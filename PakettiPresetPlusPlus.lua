@@ -1290,6 +1290,284 @@ renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:LFOEnvelopePan
 renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:LFOEnvelopePan (Preset++)", invoke = LFOEnvelopePanPresetPlusPlus}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:LFOEnvelopePan", invoke = LFOEnvelopePanPresetPlusPlus}
 
+-- Standalone Send Device Preset++ Function
+function PakettiSendDevicePresetPlusPlus(send_track_name)
+  -- Collect all send tracks to find the target
+  local send_tracks = {}
+  local target_send_index = nil
+  local count = 0
+
+  for i = 1, #renoise.song().tracks do
+    if renoise.song().tracks[i].type == renoise.Track.TRACK_TYPE_SEND then
+      local send_info = {index = count, name = renoise.song().tracks[i].name, track_number = i - 1}
+      table.insert(send_tracks, send_info)
+      
+      -- If we found the target send track name, store its index
+      if send_track_name and renoise.song().tracks[i].name == send_track_name then
+        target_send_index = count
+      end
+      count = count + 1
+    end
+  end
+
+  if count == 0 then
+    renoise.app():show_status("No Send tracks found")
+    return
+  end
+
+  -- If no specific send track name was provided, use the first send track
+  if not target_send_index then
+    target_send_index = 0
+    send_track_name = send_tracks[1].name
+  end
+
+  -- Load Send device using loadnative (which handles XML injection automatically)
+  loadnative("Audio/Effects/Native/#Send")
+  
+  -- Get the newly loaded device and configure it
+  local device = renoise.song().selected_device
+  if device and device.name == "#Send" then
+    -- Set send destination
+    device.parameters[3].value = target_send_index
+    
+    -- Rename device to send track name
+    device.display_name = send_track_name
+    renoise.app():show_status("Send device '" .. send_track_name .. "' created with Preset++ XML injection")
+  else
+    renoise.app():show_status("ERROR - Failed to load Send device")
+  end
+end
+
+-- Standalone Multiband Send Device Preset++ Function
+function PakettiMultibandSendDevicePresetPlusPlus(send_track_name)
+  -- Collect all send tracks to find the target
+  local send_tracks = {}
+  local target_send_index = nil
+  local count = 0
+
+  for i = 1, #renoise.song().tracks do
+    if renoise.song().tracks[i].type == renoise.Track.TRACK_TYPE_SEND then
+      local send_info = {index = count, name = renoise.song().tracks[i].name, track_number = i - 1}
+      table.insert(send_tracks, send_info)
+      
+      -- If we found the target send track name, store its index
+      if send_track_name and renoise.song().tracks[i].name == send_track_name then
+        target_send_index = count
+      end
+      count = count + 1
+    end
+  end
+
+  if count == 0 then
+    renoise.app():show_status("No Send tracks found")
+    return
+  end
+
+  -- If no specific send track name was provided, use the first send track
+  if not target_send_index then
+    target_send_index = 0
+    send_track_name = send_tracks[1].name
+  end
+
+  -- Load Multiband Send device using loadnative (which handles XML injection automatically)
+  loadnative("Audio/Effects/Native/#Multiband Send")
+  
+  -- Get the newly loaded device and configure it
+  local device = renoise.song().selected_device
+  if device and device.name == "#Multiband Send" then
+    -- Set send destination for all three bands
+    device.parameters[2].value = target_send_index  -- Low band send destination
+    device.parameters[4].value = target_send_index  -- Mid band send destination  
+    device.parameters[6].value = target_send_index  -- High band send destination
+    
+    -- Rename device to send track name
+    device.display_name = send_track_name .. " (MB)"
+    renoise.app():show_status("Multiband Send device '" .. send_track_name .. " (MB)' created with Preset++ XML injection")
+  else
+    renoise.app():show_status("ERROR - Failed to load Multiband Send device")
+  end
+end
+
+-- Keybindings and menu entries for standalone Send devices
+renoise.tool():add_keybinding{name="Global:Paketti:Send Device (Preset++)", invoke = function() PakettiSendDevicePresetPlusPlus() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Multiband Send Device (Preset++)", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Send Device", invoke = function() PakettiSendDevicePresetPlusPlus() end}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Multiband Send Device", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Send Device (Preset++)", invoke = function() PakettiSendDevicePresetPlusPlus() end}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Multiband Send Device (Preset++)", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Send Device", invoke = function() PakettiSendDevicePresetPlusPlus() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Multiband Send Device", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
+
+-- Helper function to load Send preset into container device
+function loadSendIntoContainer(device, send_index, send_name)
+  local send_device_xml = string.format([=[        <SendDevice type="SendDevice">
+          <SelectedPresetIsModified>true</SelectedPresetIsModified>
+          <CustomDeviceName>%s</CustomDeviceName>
+          <IsMaximized>false</IsMaximized>
+          <IsSelected>true</IsSelected>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <Volume>
+            <Value>0.706923366</Value>
+            <Visualization>Mixer and Device</Visualization>
+          </Volume>
+          <SmoothParameterChanges>true</SmoothParameterChanges>
+          <DestSendTrack>%d</DestSendTrack>
+          <Mute>false</Mute>
+        </SendDevice>]=], send_name or "Send (Preset++)", send_index or 0)
+  
+  local mixer_params = {
+    {name = "Volume", index = 1, value = "0.706923366"}
+  }
+  
+  loadPresetIntoContainer(device, send_device_xml, send_name or "Send (Preset++)", mixer_params)
+end
+
+-- Helper function to load Multiband Send preset into container device
+function loadMultibandSendIntoContainer(device, send_index, send_name)
+  local multiband_send_device_xml = string.format([=[        <MultibandSendDevice type="MultibandSendDevice">
+          <SelectedPresetIsModified>true</SelectedPresetIsModified>
+          <CustomDeviceName>%s</CustomDeviceName>
+          <IsMaximized>false</IsMaximized>
+          <IsSelected>true</IsSelected>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <Band1Volume>
+            <Value>0.706923366</Value>
+            <Visualization>Mixer and Device</Visualization>
+          </Band1Volume>
+          <Band2Volume>
+            <Value>0.706923366</Value>
+            <Visualization>Mixer and Device</Visualization>
+          </Band2Volume>
+          <Band3Volume>
+            <Value>0.706923366</Value>
+            <Visualization>Mixer and Device</Visualization>
+          </Band3Volume>
+          <SmoothParameterChanges>true</SmoothParameterChanges>
+          <DestSendTrack>%d</DestSendTrack>
+          <Mute>false</Mute>
+          <Band1Mute>false</Band1Mute>
+          <Band2Mute>false</Band2Mute>
+          <Band3Mute>false</Band3Mute>
+          <SplitFrequency1>
+            <Value>0.25</Value>
+            <Visualization>Mixer and Device</Visualization>
+          </SplitFrequency1>
+          <SplitFrequency2>
+            <Value>0.75</Value>
+            <Visualization>Mixer and Device</Visualization>
+          </SplitFrequency2>
+        </MultibandSendDevice>]=], send_name or "Multiband Send (Preset++)", send_index or 0)
+  
+  local mixer_params = {
+    {name = "Band1Volume", index = 1, value = "0.706923366"},
+    {name = "Band2Volume", index = 2, value = "0.706923366"},
+    {name = "Band3Volume", index = 3, value = "0.706923366"},
+    {name = "SplitFreq1", index = 7, value = "0.25"},
+    {name = "SplitFreq2", index = 8, value = "0.75"}
+  }
+  
+  loadPresetIntoContainer(device, multiband_send_device_xml, send_name or "Multiband Send (Preset++)", mixer_params)
+end
+
+function SendPresetPlusPlus()
+  local selected_device = renoise.song().selected_device
+  
+  -- Check if we have a selected device that is a container
+  if selected_device and isContainerDevice(selected_device) then
+    loadSendIntoContainer(selected_device, 0, "Send (Preset++)")
+    return
+  end
+  
+  -- Original behavior: load directly on track
+  loadnative("Audio/Effects/Native/#Send", nil, nil, nil, true)
+  
+  local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="SendDevice">
+    <IsMaximized>false</IsMaximized>
+    <Volume>
+      <Value>0.706923366</Value>
+    </Volume>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+    <DestSendTrack>0</DestSendTrack>
+    <Mute>false</Mute>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+  
+  renoise.song().selected_device.active_preset_data = device_xml
+  renoise.song().selected_device.parameters[1].show_in_mixer = true
+  renoise.song().selected_device.is_maximized = false
+  renoise.song().selected_device.display_name = "Send (Preset++)"
+end
+
+function MultibandSendPresetPlusPlus()
+  local selected_device = renoise.song().selected_device
+  
+  -- Check if we have a selected device that is a container
+  if selected_device and isContainerDevice(selected_device) then
+    loadMultibandSendIntoContainer(selected_device, 0, "Multiband Send (Preset++)")
+    return
+  end
+  
+  -- Original behavior: load directly on track
+  loadnative("Audio/Effects/Native/#Multiband Send", nil, nil, nil, true)
+  
+  local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="MultibandSendDevice">
+    <IsMaximized>false</IsMaximized>
+    <Band1Volume>
+      <Value>0.706923366</Value>
+    </Band1Volume>
+    <Band2Volume>
+      <Value>0.706923366</Value>
+    </Band2Volume>
+    <Band3Volume>
+      <Value>0.706923366</Value>
+    </Band3Volume>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+    <DestSendTrack>0</DestSendTrack>
+    <Mute>false</Mute>
+    <Band1Mute>false</Band1Mute>
+    <Band2Mute>false</Band2Mute>
+    <Band3Mute>false</Band3Mute>
+    <SplitFrequency1>
+      <Value>0.25</Value>
+    </SplitFrequency1>
+    <SplitFrequency2>
+      <Value>0.75</Value>
+    </SplitFrequency2>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+  
+  renoise.song().selected_device.active_preset_data = device_xml
+  renoise.song().selected_device.parameters[1].show_in_mixer = true
+  renoise.song().selected_device.parameters[2].show_in_mixer = true
+  renoise.song().selected_device.parameters[3].show_in_mixer = true
+  renoise.song().selected_device.parameters[7].show_in_mixer = true
+  renoise.song().selected_device.parameters[8].show_in_mixer = true
+  renoise.song().selected_device.is_maximized = false
+  renoise.song().selected_device.display_name = "Multiband Send (Preset++)"
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Send (Preset++)", invoke = SendPresetPlusPlus}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Send", invoke = SendPresetPlusPlus}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Send (Preset++)", invoke = SendPresetPlusPlus}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Send", invoke = SendPresetPlusPlus}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Multiband Send (Preset++)", invoke = MultibandSendPresetPlusPlus}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Multiband Send", invoke = MultibandSendPresetPlusPlus}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Multiband Send (Preset++)", invoke = MultibandSendPresetPlusPlus}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Multiband Send", invoke = MultibandSendPresetPlusPlus}
+
 
 function inspectTrackDeviceChainTEST()
 

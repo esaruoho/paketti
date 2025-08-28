@@ -1833,7 +1833,11 @@ local function modify_device_param(device_path, param_identifier, midi_message)
           new_value = math.max(param.value_min, math.min(param.value_max, new_value))
           param.value = new_value
         end
-        renoise.app():show_status(param.name .. " of " .. device.name .. " modified.")
+        
+        -- Make parameter visible in mixer
+        param.show_in_mixer = true
+        
+        renoise.app():show_status(param.name .. " of " .. device.name .. " modified (now visible in mixer)")
       else
         renoise.app():show_status("Parameter not found in " .. device.name)
         return
@@ -1843,7 +1847,70 @@ local function modify_device_param(device_path, param_identifier, midi_message)
   end
 
   if not found_device then
-    renoise.app():show_status("The device " .. device_path .. " is not present on selected track.")
+    -- Device not found, so load it first
+    local track = renoise.song().selected_track
+    
+    -- Check if track type supports this device
+    if track.type == renoise.Track.TRACK_TYPE_GROUP or 
+       track.type == renoise.Track.TRACK_TYPE_SEND or 
+       track.type == renoise.Track.TRACK_TYPE_MASTER then
+      if device_path:find("*Instr.") or device_path:find("*Key Tracker") or 
+         device_path:find("*Velocity Tracker") or device_path:find("*MIDI Control") then
+        renoise.app():show_status("Cannot load MIDI/Instrument devices on " .. track.type .. " track")
+        return
+      end
+    end
+    
+    -- Find insertion position - after track volume/pan (index 1) and Line Input if present
+    local insert_index = 2
+    if track.devices[2] and track.devices[2].name == "#Line Input" then
+      insert_index = 3
+    end
+    
+    -- Insert the device
+    track:insert_device_at(device_path, insert_index)
+    local new_device = track.devices[insert_index]
+    
+    if new_device then
+      -- Now modify the parameter on the newly loaded device
+      local param
+      
+      -- Handle numeric parameter indices (for Doofer and EQ 10)
+      if type(param_identifier) == "number" then
+        if param_identifier <= #new_device.parameters then
+          param = new_device.parameters[param_identifier]
+        end
+      else
+        -- Handle parameter names (for other devices)
+        for _, parameter in ipairs(new_device.parameters) do
+          if parameter.name == param_identifier then
+            param = parameter
+            break
+          end
+        end
+      end
+      
+      if param then
+        if midi_message:is_abs_value() then
+          param.value = param.value_min + ((param.value_max - param.value_min) * (midi_message.int_value / 127))
+        elseif midi_message:is_rel_value() then
+          local value_range = param.value_max - param.value_min
+          local relative_change = (midi_message.int_value / 127) * value_range
+          local new_value = param.value + relative_change
+          new_value = math.max(param.value_min, math.min(param.value_max, new_value))
+          param.value = new_value
+        end
+        
+        -- Make parameter visible in mixer
+        param.show_in_mixer = true
+        
+        renoise.app():show_status("Loaded " .. new_device.name .. " and modified " .. param.name .. " (now visible in mixer)")
+      else
+        renoise.app():show_status("Parameter not found in newly loaded " .. new_device.name)
+      end
+    else
+      renoise.app():show_status("Failed to load device " .. device_path)
+    end
   end
 end
 
@@ -1942,14 +2009,66 @@ local function modify_filter_type(midi_value)
       -- Apply the modified XML
       device.active_preset_data = new_xml
       
+      -- Make the Type parameter visible in mixer (parameter 1 is Type)
+      if device.parameters[1] then
+        device.parameters[1].show_in_mixer = true
+      end
+      
       -- Show status message
-      renoise.app():show_status("Analog Filter Type changed to: " .. new_type)
+      renoise.app():show_status("Analog Filter Type changed to: " .. new_type .. " (now visible in mixer)")
       return
     end
   end
   
   if not found_device then
-    renoise.app():show_status("Analog Filter device not found on selected track")
+    -- Device not found, so load it first
+    local track = renoise.song().selected_track
+    
+    -- Check if track type supports this device
+    if track.type == renoise.Track.TRACK_TYPE_GROUP or 
+       track.type == renoise.Track.TRACK_TYPE_SEND or 
+       track.type == renoise.Track.TRACK_TYPE_MASTER then
+      renoise.app():show_status("Cannot load Analog Filter on " .. track.type .. " track")
+      return
+    end
+    
+    -- Find insertion position
+    local insert_index = 2
+    if track.devices[2] and track.devices[2].name == "#Line Input" then
+      insert_index = 3
+    end
+    
+    -- Insert the Analog Filter device
+    track:insert_device_at("Audio/Effects/Native/Analog Filter", insert_index)
+    local new_device = track.devices[insert_index]
+    
+    if new_device then
+      -- Get current XML data
+      local xml_data = new_device.active_preset_data
+      
+      -- Calculate which filter type to use based on MIDI value (0-127)
+      local type_index = math.floor((midi_value / 127) * (#filter_types - 0.01)) + 1
+      type_index = math.min(type_index, #filter_types)
+      local new_type = filter_types[type_index]
+      
+      -- Replace only the Model tag in XML
+      local new_xml = xml_data:gsub(
+        '<Model>[^<]+</Model>',
+        '<Model>' .. new_type .. '</Model>'
+      )
+      
+      -- Apply the modified XML
+      new_device.active_preset_data = new_xml
+      
+      -- Make the Type parameter visible in mixer (parameter 1 is Type)
+      if new_device.parameters[1] then
+        new_device.parameters[1].show_in_mixer = true
+      end
+      
+      renoise.app():show_status("Loaded Analog Filter and changed Type to: " .. new_type .. " (now visible in mixer)")
+    else
+      renoise.app():show_status("Failed to load Analog Filter device")
+    end
   end
 end
 

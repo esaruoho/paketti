@@ -254,6 +254,8 @@ end
 
 local note_columns_switch, effect_columns_switch, delay_column_switch, volume_column_switch, panning_column_switch, sample_effects_column_switch, collapsed_switch, incoming_audio_switch, populate_sends_switch, external_editor_switch
 
+
+
 local function simplifiedSendCreationNaming()
   local send_tracks = {}
   local count = 0
@@ -267,21 +269,58 @@ local function simplifiedSendCreationNaming()
     end
   end
 
-  -- Create the appropriate number of #Send devices
-  for i = 1, count do
-    loadnative("Audio/Effects/Native/#Send")
+  if count == 0 then
+    renoise.app():show_status("No Send tracks found")
+    return
   end
 
-  local sendcount = 2  -- Start after existing devices
+  -- Check preference for Send device type (1 = Send, 2 = Multiband Send)
+  local use_multiband = (prefs.pakettiMidiPopulator.sendDeviceType.value == 2)
+  local device_path = use_multiband and "Audio/Effects/Native/#Multiband Send" or "Audio/Effects/Native/#Send"
+  local device_name = use_multiband and "#Multiband Send" or "#Send"
 
-  -- Assign parameters and names in correct order
+  print(string.format("-- Paketti MIDI Populator: Creating %d %s devices", count, device_name))
+
+  -- Create each Send device one at a time using the proper loadnative architecture
   for i = 1, count do
-    local send_device = renoise.song().selected_track.devices[sendcount]
     local send_track = send_tracks[i]
-    send_device.parameters[3].value = send_track.index
-    send_device.display_name = send_track.name
-    sendcount = sendcount + 1
+    
+    print(string.format("-- Paketti MIDI Populator: Creating device %d/%d for send track '%s' (index %d)", i, count, send_track.name, send_track.index))
+    
+    -- Use loadnative which should handle XML injection automatically
+    loadnative(device_path)
+    
+    -- Get the newly loaded device (loadnative sets selected_device)
+    local device = renoise.song().selected_device
+    if device and (device.name == "#Send" or device.name == "#Multiband Send") then
+      -- MANUALLY apply the preset data since automatic isn't working
+      if use_multiband then
+        device.active_preset_data = read_file("Presets/PakettiMultiSend.xml")
+      else
+        device.active_preset_data = read_file("Presets/PakettiSend.xml")
+      end
+      
+      -- Set send destination parameter(s) AFTER preset is applied
+      if use_multiband then
+        -- For Multiband Send: set all three bands to the same destination
+        device.parameters[2].value = send_track.index  -- Low band send destination
+        device.parameters[4].value = send_track.index  -- Mid band send destination  
+        device.parameters[6].value = send_track.index  -- High band send destination
+      else
+        -- For regular Send: parameter 3 is the Receiver (send destination)
+        device.parameters[3].value = send_track.index
+      end
+      
+      -- Rename device to send track name
+      device.display_name = send_track.name
+      print(string.format("-- Paketti MIDI Populator: Successfully created %s device '%s' targeting send track %d", device_name, send_track.name, send_track.index))
+    else
+      print(string.format("-- Paketti MIDI Populator: ERROR - Failed to load %s device", device_name))
+    end
   end
+
+  local device_type = use_multiband and "Multiband Send" or "Send"
+  renoise.app():show_status("Created " .. count .. " " .. device_type .. " devices with proper XML injection")
 end
 
 local function MidiInitChannelTrackInstrument(track_index)
@@ -307,7 +346,7 @@ local function MidiInitChannelTrackInstrument(track_index)
   -- Create a new track
   renoise.song():insert_track_at(track_index)
   local new_track = renoise.song():track(track_index)
-  local track_name = "TR" .. string.format("%02d", midi_in_channel)
+  local track_name =  string.format("%02d", midi_in_channel)
   if midi_in_device ~= "<None>" and midi_in_device ~= "No MIDI Input Devices - do not select this" then
     track_name = track_name .. " " .. midi_in_device .. ":" .. string.format("%02d", midi_in_channel) .. ">"
   end
@@ -625,6 +664,7 @@ local function save_preferences()
   prefs.pakettiMidiPopulator.collapsed.value = (collapsed_switch.value == 2)
   prefs.pakettiMidiPopulator.incomingAudio.value = (incoming_audio_switch.value == 2)
   prefs.pakettiMidiPopulator.populateSends.value = (populate_sends_switch.value == 2)
+  -- Note: sendDeviceType is managed globally in preferences and doesn't need to be saved here
   -- If you have a preference for external_editor_switch, uncomment the next line
   -- prefs.pakettiMidiPopulator.externalEditor.value = (external_editor_switch.value == 2)
 end

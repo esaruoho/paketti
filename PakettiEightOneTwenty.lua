@@ -556,16 +556,72 @@ function update_row_button_colors(row_elements)
   end
 end
 
+-- Get default automation value for groovebox8120 parameters
+function PakettiEightOneTwentyGetDefaultValue(param_name, track_index)
+  -- Special case: Pitchbend always gets 0.5 (center)
+  if param_name == "Pitchbend" then
+    print("8120 AUTOMATION DEBUG: Using default value 0.5 for Pitchbend")
+    return 0.5
+  end
+  
+  -- For other parameters, try to get macro knob value
+  local song = renoise.song()
+  local instrument = song.instruments[track_index]
+  if not instrument or not instrument.macros then
+    print("8120 AUTOMATION DEBUG: No instrument or macros found for track " .. track_index .. ", using parameter default")
+    return 0.5  -- Fallback to center value
+  end
+  
+  local macros = instrument.macros
+  local macro_mapping = {
+    ["Cutoff"] = 2,           -- Macro knob 02
+    ["Resonance"] = 3,        -- Macro knob 03  
+    ["CutLfoAmp"] = 4,        -- Macro knob 04
+    ["CutLfoFreq"] = 5,       -- Macro knob 05
+    ["Drive"] = 6,            -- Macro knob 06
+    ["ParallelComp"] = 7      -- Macro knob 07
+  }
+  
+  local macro_index = macro_mapping[param_name]
+  if macro_index and macros[macro_index] then
+    local macro_value = macros[macro_index].value
+    print("8120 AUTOMATION DEBUG: Using macro value for " .. param_name .. " (macro " .. macro_index .. "): " .. macro_value)
+    return macro_value
+  end
+  
+  print("8120 AUTOMATION DEBUG: No macro mapping for " .. param_name .. ", using default 0.5")
+  return 0.5  -- Default center value
+end
+
 -- Preserve automation selection (device + parameter) when switching tracks
 function PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, new_track_index)
+  print("8120 AUTOMATION DEBUG: *** FUNCTION CALLED *** with track " .. (new_track_index or "nil"))
   local app = renoise.app()
+  print("8120 AUTOMATION DEBUG: Current lower frame: " .. (app.window.active_lower_frame or "nil"))
+  print("8120 AUTOMATION DEBUG: AUTOMATION_FRAME constant: " .. renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION)
+  
   if app.window.active_lower_frame ~= renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
     print("8120 AUTOMATION DEBUG: Not in automation view, skipping restoration")
     return
   end
+  
+  print("8120 AUTOMATION DEBUG: prev_device: " .. (prev_device and prev_device.name or "nil"))
+  print("8120 AUTOMATION DEBUG: prev_param: " .. (prev_param and prev_param.name or "nil"))
+  
+  -- If no previous automation, force Pitchbend on *Instr. Macros device
   if not prev_device or not prev_param then 
-    print("8120 AUTOMATION DEBUG: No previous device/parameter to restore")
-    return 
+    print("8120 AUTOMATION DEBUG: No previous device/parameter - FORCING Pitchbend on *Instr. Macros")
+    local song = renoise.song()
+    local new_track = song.tracks[new_track_index]
+    if not new_track then 
+      print("8120 AUTOMATION DEBUG: Target track doesn't exist")
+      return 
+    end
+    
+    -- Force selection of *Instr. Macros device and Pitchbend parameter
+    prev_device = { name = "*Instr. Macros" }  -- Fake device for matching
+    prev_param = { name = "Pitchbend" }        -- Force Pitchbend
+    print("8120 AUTOMATION DEBUG: FORCED - prev_device: *Instr. Macros, prev_param: Pitchbend")
   end
   
   print("8120 AUTOMATION DEBUG: Trying to restore '" .. (prev_param.name or "unknown") .. "' from '" .. (prev_device.name or "unknown") .. "' to track " .. new_track_index)
@@ -578,54 +634,122 @@ function PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param
   end
   
   -- List all devices on the new track for debugging
-  print("8120 AUTOMATION DEBUG: Available devices on track " .. new_track_index .. ":")
+  print("8120 AUTOMATION DEBUG: *** SEARCHING DEVICES ON TRACK " .. new_track_index .. " ***")
   for di, device in ipairs(new_track.devices) do
-    print("  [" .. di .. "] " .. (device.name or "unnamed") .. " / " .. (device.display_name or "no display name"))
+    print("  [" .. di .. "] NAME: '" .. (device.name or "nil") .. "' DISPLAY: '" .. (device.display_name or "nil") .. "' PATH: '" .. (device.device_path or "nil") .. "' SHORT: '" .. (device.short_name or "nil") .. "'")
   end
+  print("8120 AUTOMATION DEBUG: Total devices found: " .. #new_track.devices)
   
-  -- Only restore if we can find EXACT matches - no fallbacks that might jump to wrong parameters
+  -- For groovebox8120: PRIORITIZE *Instr. Macros device over exact parameter matching
   local target_device_index = nil
-  for di, device in ipairs(new_track.devices) do
-    if device.name == prev_device.name then
-      target_device_index = di
-      print("8120 AUTOMATION DEBUG: Found matching device at index " .. di)
-      break
-    end
-  end
-  
-  -- If we can't find exact device match, don't try fallbacks - just exit
-  if not target_device_index then 
-    print("8120 AUTOMATION DEBUG: Device '" .. (prev_device.name or "unknown") .. "' not found on new track, preserving current automation selection")
-    return 
-  end
-  
-  song.selected_device_index = target_device_index
-  local device = new_track.devices[target_device_index]
-  
-  -- List all parameters on the device for debugging  
-  print("8120 AUTOMATION DEBUG: Available parameters on device '" .. device.name .. "':")
-  for pi, p in ipairs(device.parameters) do
-    if p.is_automatable then
-      print("  [" .. pi .. "] " .. (p.name or "unnamed") .. " (automatable)")
-    end
-  end
-  
   local target_param = nil
-  for _, p in ipairs(device.parameters) do
-    if p.name == prev_param.name and p.is_automatable then
-      target_param = p
-      print("8120 AUTOMATION DEBUG: Found matching parameter '" .. p.name .. "'")
+  
+  -- First, look for *Instr. Macros device (preferred for groovebox8120)
+  local expected_display_name = string.format("%02X_Drumkit", new_track_index - 1)
+  print("8120 AUTOMATION DEBUG: PRIORITIZING *Instr. Macros device - looking for name '*Instr. Macros' OR display_name '" .. expected_display_name .. "'")
+  
+  for i, device in ipairs(new_track.devices) do
+    print("8120 AUTOMATION DEBUG: Checking device [" .. i .. "] name='" .. device.name .. "' display='" .. device.display_name .. "'")
+    if device.name == "*Instr. Macros" or device.display_name == expected_display_name then
+      target_device_index = i
+      print("8120 AUTOMATION DEBUG: *** FOUND *Instr. Macros DEVICE *** at index " .. i .. ": " .. device.name .. " / " .. device.display_name)
+      song.selected_device_index = target_device_index
+      
+      -- List all parameters on *Instr. Macros device for debugging  
+      local device_obj = new_track.devices[target_device_index]
+      print("8120 AUTOMATION DEBUG: Available parameters on *Instr. Macros device:")
+      for pi, p in ipairs(device_obj.parameters) do
+        if p.is_automatable then
+          print("  [" .. pi .. "] '" .. (p.name or "unnamed") .. "' (automatable)")
+        end
+      end
+      
+      -- For groovebox8120: Prioritize specific parameters, NEVER X_PitchBend
+      -- First try to find the same parameter (if it's NOT X_PitchBend)
+      if prev_param.name ~= "X_PitchBend" then
+        for _, p in ipairs(device_obj.parameters) do
+          if p.name == prev_param.name and p.is_automatable then
+            target_param = p
+            print("8120 AUTOMATION DEBUG: Found matching parameter '" .. p.name .. "' on *Instr. Macros device")
+            break
+          end
+        end
+      end
+      
+      -- If no matching parameter or it was X_PitchBend, look for 'Pitchbend' ONLY
+      if not target_param then
+        for _, p in ipairs(device_obj.parameters) do
+          if p.name == "Pitchbend" and p.is_automatable then
+            target_param = p
+            print("8120 AUTOMATION DEBUG: Using 'Pitchbend' parameter on *Instr. Macros: '" .. target_param.name .. "'")
+            break
+          end
+        end
+      end
+      
+      -- NO OTHER FALLBACKS - If no Pitchbend found, DO NOTHING
+      if not target_param then
+        print("8120 AUTOMATION DEBUG: No Pitchbend parameter found on *Instr. Macros device - DOING NOTHING")
+        return
+      end
       break
     end
   end
   
-  -- If we can't find exact parameter match, don't force anything - just exit
-  if not target_param then 
-    print("8120 AUTOMATION DEBUG: Parameter '" .. (prev_param.name or "unknown") .. "' not found on new track, preserving current automation selection")
+  -- If no *Instr. Macros device found, CREATE ONE instead of falling back to TrackVolPan
+  if not target_device_index then
+    print("8120 AUTOMATION DEBUG: No *Instr. Macros device found, CREATING ONE NOW")
+    
+    -- Save current selected track/instrument
+    local orig_track = song.selected_track_index
+    local orig_instrument = song.selected_instrument_index
+    
+    -- Switch to target track and instrument for groovebox8120 setup
+    song.selected_track_index = new_track_index
+    song.selected_instrument_index = new_track_index
+    
+    -- Add *Instr. Macros device
+    loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
+    local macro_device = new_track:device(#new_track.devices)
+    macro_device.display_name = string.format("%02X_Drumkit", new_track_index - 1)
+    macro_device.is_maximized = false
+    
+    print("8120 AUTOMATION DEBUG: Created *Instr. Macros device at index " .. #new_track.devices .. " with display name: " .. macro_device.display_name)
+    
+    -- Now set target to the newly created device
+    target_device_index = #new_track.devices
+    song.selected_device_index = target_device_index
+    
+    -- Look for Pitchbend parameter ONLY on the new device
+    local device_obj = new_track.devices[target_device_index]
+    for _, p in ipairs(device_obj.parameters) do
+      if p.name == "Pitchbend" and p.is_automatable then
+        target_param = p
+        print("8120 AUTOMATION DEBUG: Using 'Pitchbend' parameter on newly created *Instr. Macros: '" .. target_param.name .. "'")
+        break
+      end
+    end
+    
+    -- NO FALLBACKS - If no Pitchbend found on new device, DO NOTHING
+    if not target_param then
+      print("8120 AUTOMATION DEBUG: No Pitchbend parameter found on newly created *Instr. Macros device - DOING NOTHING")
+      song.selected_track_index = orig_track
+      song.selected_instrument_index = orig_instrument
+      return
+    end
+    
+    -- Restore original selection
+    song.selected_track_index = orig_track
+    song.selected_instrument_index = orig_instrument
+  end
+  
+  -- If still no target found, exit
+  if not target_device_index or not target_param then 
+    print("8120 AUTOMATION DEBUG: No suitable device/parameter found, preserving current automation selection")
     return 
   end
   
-  -- Check if automation envelope exists - if not, create it FIRST before setting parameter
+  -- ALWAYS CREATE AUTOMATION ENVELOPE FIRST to prevent Renoise fallback to Volume
   local pattern = song.selected_pattern
   local pattern_track = pattern and pattern.tracks and pattern.tracks[new_track_index]
   if pattern_track then
@@ -633,7 +757,7 @@ function PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param
     if existing then
       if #existing.points == 0 then
         -- Envelope exists but is empty - add default points to prevent Renoise from falling back to other parameters
-        local default_value = target_param.value  -- Use current parameter value
+        local default_value = PakettiEightOneTwentyGetDefaultValue(target_param.name, new_track_index)
         existing:add_point_at(1, default_value)
         existing:add_point_at(pattern.number_of_lines, default_value)
         print("8120 AUTOMATION DEBUG: Added default points to empty " .. target_param.name .. " envelope (value: " .. default_value .. ")")
@@ -641,25 +765,52 @@ function PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param
         print("8120 AUTOMATION DEBUG: Envelope for " .. target_param.name .. " already has " .. #existing.points .. " points")
       end
     else
-      -- No automation envelope exists - create one BEFORE setting the parameter to prevent fallback
-      print("8120 AUTOMATION DEBUG: No automation envelope exists for " .. target_param.name .. ", creating one FIRST")
+      -- CRITICAL: ALWAYS create envelope BEFORE setting parameter to prevent Volume fallback
+      print("8120 AUTOMATION DEBUG: *** CREATING ENVELOPE FIRST *** for " .. target_param.name .. " to prevent Volume fallback")
       local automation = pattern_track:create_automation(target_param)
       if automation and pattern.number_of_lines and pattern.number_of_lines > 0 then
-        local default_value = target_param.value  -- Use current parameter value
+        local default_value = PakettiEightOneTwentyGetDefaultValue(target_param.name, new_track_index)
         automation:add_point_at(1, default_value)
         automation:add_point_at(pattern.number_of_lines, default_value)
-        print("8120 AUTOMATION DEBUG: Created new " .. target_param.name .. " envelope with value " .. default_value .. " BEFORE setting parameter")
+        print("8120 AUTOMATION DEBUG: *** CREATED NEW ENVELOPE *** " .. target_param.name .. " with value " .. default_value .. " BEFORE setting parameter")
       else
-        print("8120 AUTOMATION DEBUG: Failed to create automation envelope for " .. target_param.name)
+        print("8120 AUTOMATION DEBUG: *** FAILED *** to create automation envelope for " .. target_param.name .. " - THIS WILL CAUSE VOLUME FALLBACK!")
+        return  -- Don't set parameter if we can't create envelope
       end
     end
+  else
+    print("8120 AUTOMATION DEBUG: *** NO PATTERN TRACK *** - THIS WILL CAUSE VOLUME FALLBACK!")
+    return
   end
   
-  -- NOW set the automation parameter - envelope should exist so no fallback to pitchbend
-  song.selected_automation_parameter = target_param
-  print("8120 AUTOMATION DEBUG: Successfully set automation parameter to '" .. target_param.name .. "' AFTER ensuring envelope exists")
+  -- NOW set the automation parameter - envelope MUST exist to prevent Volume fallback
+  print("8120 AUTOMATION DEBUG: *** SETTING AUTOMATION PARAMETER *** to '" .. target_param.name .. "' (envelope should exist)")
   
-  print("8120 AUTOMATION DEBUG: Restoration complete for " .. (device.display_name or device.name) .. " / " .. target_param.name)
+  -- Double-check envelope exists before setting parameter
+  local final_check = pattern_track:find_automation(target_param)
+  if final_check and #final_check.points > 0 then
+    print("8120 AUTOMATION DEBUG: *** ENVELOPE VERIFIED *** " .. target_param.name .. " has " .. #final_check.points .. " points")
+    song.selected_automation_parameter = target_param
+    print("8120 AUTOMATION DEBUG: *** PARAMETER SET *** to '" .. target_param.name .. "' AFTER verifying envelope exists")
+  else
+    print("8120 AUTOMATION DEBUG: *** ENVELOPE MISSING *** for " .. target_param.name .. " - REFUSING TO SET PARAMETER TO PREVENT VOLUME FALLBACK")
+    return
+  end
+  
+  -- VERIFY what was actually selected
+  local actually_selected_device = song.selected_automation_device
+  local actually_selected_param = song.selected_automation_parameter
+  print("8120 AUTOMATION DEBUG: *** VERIFICATION *** Actually selected device: " .. (actually_selected_device and actually_selected_device.name or "nil"))
+  print("8120 AUTOMATION DEBUG: *** VERIFICATION *** Actually selected parameter: " .. (actually_selected_param and actually_selected_param.name or "nil"))
+  
+  local selected_device = new_track.devices[target_device_index]
+  print("8120 AUTOMATION DEBUG: Restoration complete for " .. (selected_device.display_name or selected_device.name) .. " / " .. target_param.name)
+  
+  -- FINAL DEFINITIVE CONFIRMATION - what's actually selected
+  local final_device = song.selected_automation_device
+  local final_param = song.selected_automation_parameter
+  print("8120 AUTOMATION DEBUG: *** FINAL RESULT *** SELECTED: " .. (final_device and final_device.name or "NO_DEVICE") .. " / " .. (final_param and final_param.name or "NO_PARAMETER"))
+  print("8120 AUTOMATION DEBUG: *** END OF FUNCTION *** Device: " .. (final_device and final_device.name or "nil") .. " Parameter: " .. (final_param and final_param.name or "nil"))
 end
 
 -- Highlight handling for 8x120 rows
@@ -738,6 +889,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
           end
           if track_index then
             renoise.song().selected_track_index = track_index
+            renoise.song().selected_instrument_index = row_elements.instrument_popup.value
           end
           updateTrackNameWithSteps(track, step)
           row_elements.valuebox.value = step
@@ -749,9 +901,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
           end
           update_row_button_colors(row_elements)  -- Update button colors
           row_elements.print_to_pattern()
-          if track_index and prev_device and prev_param then
-            PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
-          end
+          print("8120 AUTOMATION DEBUG: *** AFTER print_to_pattern() *** Final automation: " .. (renoise.song().selected_automation_device and renoise.song().selected_automation_device.name or "nil") .. " / " .. (renoise.song().selected_automation_parameter and renoise.song().selected_automation_parameter.name or "nil"))
           renoise.app():show_status(string.format("Set steps to %d for row %d", step, row_index))
         end
       end)(i),
@@ -1109,19 +1259,67 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       value = false,
       width=30,
       notifier=function()
-        -- CAPTURE automation selection BEFORE any track/instrument changes
-        local prev_device, prev_param = nil, nil
+        local current_track = renoise.song().selected_track_index
+        local target_track = track_indices[row_elements.track_popup.value]
+        local current_track_name = renoise.song().tracks[current_track] and renoise.song().tracks[current_track].name or "Unknown"
+        local target_track_name = target_track and renoise.song().tracks[target_track] and renoise.song().tracks[target_track].name or "Unknown"
+        
+        print("8120 AUTOMATION DEBUG: *** BUTTON CLICKED ROW " .. row_index .. " *** STARTING")
+        print("8120 AUTOMATION DEBUG: Current track: " .. current_track .. " ('" .. current_track_name .. "') → Target track: " .. (target_track or "nil") .. " ('" .. target_track_name .. "')")
+        
+        -- CAPTURE automation selection at VERY START before ANYTHING happens
+        local initial_device, initial_param = nil, nil
         if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
-          prev_device = renoise.song().selected_automation_device
-          prev_param = renoise.song().selected_automation_parameter
-          print("8120 AUTOMATION DEBUG: CAPTURED parameter before changes: '" .. (prev_param and prev_param.name or "none") .. "'")
+          initial_device = renoise.song().selected_automation_device
+          initial_param = renoise.song().selected_automation_parameter
+          print("8120 AUTOMATION DEBUG: *** INITIAL STATE *** Device: " .. (initial_device and initial_device.name or "nil") .. " Parameter: " .. (initial_param and initial_param.name or "nil"))
+          if initial_param and initial_param.name == "Volume" then
+            print("8120 AUTOMATION DEBUG: *** VOLUME ALREADY SELECTED *** Something else selected Volume before this button click!")
+          end
         end
-        PakettiEightOneTwentyHighlightRow(row_index)
+        
+
+        
+        
         if not row_elements.updating_checkboxes then
           -- Get and select the track first
           local track_index = track_indices[row_elements.track_popup.value]
           if track_index then
+            local current_before = renoise.song().selected_track_index
+            print("8120 AUTOMATION DEBUG: *** ABOUT TO SELECT TRACK " .. track_index .. " (from " .. current_before .. ") *** This will destroy automation selection!")
+            
+            if track_index == current_before then
+              print("8120 AUTOMATION DEBUG: *** NO TRACK CHANGE NEEDED *** Already on target track " .. track_index)
+              PakettiEightOneTwentyHighlightRow(row_index)
+              return
+            end
+            
+            -- CAPTURE automation BEFORE track selection destroys it
+            local saved_device, saved_param = nil, nil
+            if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+              saved_device = renoise.song().selected_automation_device
+              saved_param = renoise.song().selected_automation_parameter
+              print("8120 AUTOMATION DEBUG: *** SAVING AUTOMATION *** Device: " .. (saved_device and saved_device.name or "nil") .. " Parameter: " .. (saved_param and saved_param.name or "nil"))
+            end
+            
             renoise.song().selected_track_index = track_index
+            local current_after = renoise.song().selected_track_index
+            print("8120 AUTOMATION DEBUG: *** TRACK SELECTED *** " .. current_before .. " → " .. current_after .. " (requested " .. track_index .. ")")
+            print("8120 AUTOMATION DEBUG: *** AFTER TRACK SWITCH *** Now automation is: " .. (renoise.song().selected_automation_device and renoise.song().selected_automation_device.name or "nil") .. " / " .. (renoise.song().selected_automation_parameter and renoise.song().selected_automation_parameter.name or "nil"))
+            
+            -- IMMEDIATELY restore automation to prevent Volume fallback
+            if saved_device and saved_param and renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+              print("8120 AUTOMATION DEBUG: *** IMMEDIATELY RESTORING AUTOMATION *** to prevent Volume fallback")
+              PakettiEightOneTwentyRestoreAutomationSelection(saved_device, saved_param, track_index)
+            else
+              print("8120 AUTOMATION DEBUG: *** NOT RESTORING *** saved_device:" .. (saved_device and saved_device.name or "nil") .. " saved_param:" .. (saved_param and saved_param.name or "nil"))
+            end
+            
+            -- Now highlight the row after automation is restored
+            PakettiEightOneTwentyHighlightRow(row_index)
+          else
+            print("8120 AUTOMATION DEBUG: *** NO TRACK INDEX *** track_indices[" .. row_elements.track_popup.value .. "] = nil")
+            PakettiEightOneTwentyHighlightRow(row_index)
           end
           
           -- If we're in sample editor view, select the instrument and its active sample
@@ -1174,6 +1372,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         local track = renoise.song():track(track_index)
         -- Select the track first
         renoise.song().selected_track_index = track_index
+        renoise.song().selected_instrument_index = row_elements.instrument_popup.value
         -- Then update track name and pattern
         updateTrackNameWithSteps(track, value)
         -- Update selected step
@@ -1979,6 +2178,22 @@ end
   end
 
   function row_elements.show_automation()
+    local current_track = renoise.song().selected_track_index
+    local target_track = track_indices[track_popup.value]
+    local current_track_name = renoise.song().tracks[current_track] and renoise.song().tracks[current_track].name or "Unknown"
+    local target_track_name = target_track and renoise.song().tracks[target_track] and renoise.song().tracks[target_track].name or "Unknown"
+    
+    print("8120 AUTOMATION DEBUG: *** AUTOMATION BUTTON CLICKED ROW " .. row_index .. " ***")
+    print("8120 AUTOMATION DEBUG: Current track: " .. current_track .. " ('" .. current_track_name .. "') → Target track: " .. (target_track or "nil") .. " ('" .. target_track_name .. "')")
+    
+    -- CAPTURE automation selection BEFORE track selection destroys it
+    local saved_device, saved_param = nil, nil
+    if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+      saved_device = renoise.song().selected_automation_device
+      saved_param = renoise.song().selected_automation_parameter
+      print("8120 AUTOMATION DEBUG: *** SAVING AUTOMATION *** Device: " .. (saved_device and saved_device.name or "nil") .. " Parameter: " .. (saved_param and saved_param.name or "nil"))
+    end
+    
     -- Highlight this row in the 8120 interface
     PakettiEightOneTwentyHighlightRow(row_index)
     
@@ -1987,8 +2202,35 @@ end
     local track = song.tracks[track_index]
     local instrument_index = instrument_popup.value
     
+    if not track_index then
+      print("8120 AUTOMATION DEBUG: *** ERROR *** No track index for row " .. row_index)
+      return
+    end
+    
+    -- Switch to automation view FIRST
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
+    renoise.app().window.lower_frame_is_visible = true
+    renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+    
     -- Select both the track and instrument for this row
-    song.selected_track_index = track_index
+    if track_index ~= current_track then
+      print("8120 AUTOMATION DEBUG: *** SWITCHING TRACKS *** " .. current_track .. " → " .. track_index)
+      song.selected_track_index = track_index
+      print("8120 AUTOMATION DEBUG: *** TRACK SWITCHED *** Now automation is: " .. (song.selected_automation_device and song.selected_automation_device.name or "nil") .. " / " .. (song.selected_automation_parameter and song.selected_automation_parameter.name or "nil"))
+      
+      -- IMMEDIATELY restore automation to prevent Volume fallback
+      if saved_device and saved_param then
+        print("8120 AUTOMATION DEBUG: *** IMMEDIATELY RESTORING AUTOMATION *** to prevent Volume fallback")
+        PakettiEightOneTwentyRestoreAutomationSelection(saved_device, saved_param, track_index)
+      else
+        print("8120 AUTOMATION DEBUG: *** NO AUTOMATION TO RESTORE *** - will create Pitchbend")
+        -- If no previous automation, create Pitchbend on *Instr. Macros device
+        PakettiEightOneTwentyRestoreAutomationSelection(nil, nil, track_index)
+      end
+    else
+      print("8120 AUTOMATION DEBUG: *** ALREADY ON CORRECT TRACK *** " .. track_index)
+    end
+    
     song.selected_instrument_index = instrument_index
     
     -- Select the primary sample (00-7F velocity range) for this instrument
@@ -2000,14 +2242,10 @@ end
       end
     end
     
-    -- First switch to mixer view and show automation
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
-    renoise.app().window.lower_frame_is_visible = true
-    renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
-    
-    -- Just switch to automation view - don't force any specific parameter
-    -- The user can manually select the parameter they want to automate
-    renoise.app():show_status(string.format('Row %d: Track "%s" + Instrument "%s" automation opened', row_index, track.name, instrument.name))
+    local final_device = song.selected_automation_device
+    local final_param = song.selected_automation_parameter
+    print("8120 AUTOMATION DEBUG: *** AUTOMATION BUTTON COMPLETE *** Final selection: " .. (final_device and final_device.name or "NO_DEVICE") .. " / " .. (final_param and final_param.name or "NO_PARAMETER"))
+    renoise.app():show_status(string.format('Row %d: Track "%s" + Instrument "%s" automation: %s / %s', row_index, track.name, instrument.name, (final_device and final_device.name or "NO_DEVICE"), (final_param and final_param.name or "NO_PARAMETER")))
   end
 
 

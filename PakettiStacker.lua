@@ -1183,11 +1183,19 @@ vb:row{
   vb:button{
     text="Follow Pattern",width=104,
     notifier=function()
-      if renoise.song().transport.follow_player then
-        -- Already on, just move to pattern editor
+      local song = renoise.song()
+      local is_in_pattern_editor = (renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR)
+      
+      if is_in_pattern_editor and song.transport.follow_player then
+        -- Already in pattern editor AND follow pattern is on -> turn it off
+        song.transport.follow_player = false
+        renoise.app():show_status("Follow Pattern turned OFF")
+      elseif song.transport.follow_player then
+        -- Follow pattern is on but not in pattern editor -> just move to pattern editor
         returnpe()
       else
-        renoise.song().transport.follow_player = true
+        -- Follow pattern is off -> turn it on and move to pattern editor
+        song.transport.follow_player = true
         returnpe()
       end
     end},

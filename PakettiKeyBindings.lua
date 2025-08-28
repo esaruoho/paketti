@@ -55,14 +55,14 @@ local total_shortcuts_text
 local selected_shortcuts_text
 local show_shortcuts_switch
 local show_script_filter_switch  -- Add this line
-local search_text
-local search_textfield
+local search_display_text
+local current_search_text = ""
 local padding_number_identifier = 5  -- Padding between number and identifier
 local padding_identifier_topic = 25  -- Padding between identifier and topic
 local padding_topic_binding = 25  -- Padding between topic and binding
 
 -- Renoise dialog variables
-local dialog
+local renoise_dialog
 local renoise_debug_log = ""
 local renoise_suppress_debug_log
 local renoiseKeybindings = {}
@@ -72,8 +72,8 @@ local renoise_total_shortcuts_text
 local renoise_selected_shortcuts_text
 local renoise_show_shortcuts_switch
 local renoise_show_script_filter_switch
-local renoise_search_text
-local renoise_search_textfield
+local renoise_search_display_text
+local renoise_current_search_text = ""
 
 -- Function to replace XML encoded entities with their corresponding characters
 local function decodeXMLString(value)
@@ -82,6 +82,20 @@ local function decodeXMLString(value)
     -- Add more replacements if needed
   }
   return value:gsub("(&amp;)", replacements)
+end
+
+-- Function to update Paketti search display
+function updatePakettiSearchDisplay()
+  if search_display_text then
+    search_display_text.text = "'" .. current_search_text .. "'"
+  end
+end
+
+-- Function to update Renoise search display
+function updateRenoiseSearchDisplay()
+  if renoise_search_display_text then
+    renoise_search_display_text.text = "'" .. renoise_current_search_text .. "'"
+  end
 end
 
 -- Combined function to parse XML and find keybindings based on filter type
@@ -186,7 +200,7 @@ function pakettiKeyBindingsUpdateList()
   local showAssignedOnly = (show_shortcuts_switch.value == 3)
   local scriptFilter = show_script_filter_switch.value  -- Get value from the switch
   local selectedIdentifier = identifier_switch.items[identifier_switch.value]
-  local searchQuery = search_textfield.value:lower()
+  local searchQuery = current_search_text:lower()
   local content = ""
   local count = 0
   local unassigned_count = 0
@@ -286,6 +300,9 @@ function pakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional par
     return
   end
 
+  -- Reset search state
+  current_search_text = ""
+
   -- Map menu identifiers to their internal names
   if selectedIdentifier then
     selectedIdentifier = menu_to_identifier[selectedIdentifier] or selectedIdentifier
@@ -365,9 +382,10 @@ function pakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional par
   }
 
   -- UI Elements
-  search_textfield = vb:textfield {
+  search_display_text = vb:text{
     width=300,
-    notifier = pakettiKeyBindingsUpdateList
+    text="'" .. current_search_text .. "'",
+    style = "strong"
   }
 
   total_shortcuts_text = vb:text{
@@ -383,8 +401,6 @@ function pakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional par
     width=1100, -- Adjusted width to fit the dialog
     align="left"
   }
-
-  search_text = vb:text{text="Filter with"}
 
 
   keybinding_list = vb:multiline_textfield { width=1100, height = 600, font = "mono" }
@@ -415,19 +431,71 @@ vb:row{vb:button{text="Save as Textfile", notifier=function()
     end
   end}},
 
-      search_text,
-      search_textfield,
+      vb:row{
+        vb:text{
+          text = "Type to search:",
+          width = 100, 
+          font="bold",
+          style="strong"
+        },
+        search_display_text
+      },
       keybinding_list,
       selected_shortcuts_text,
       total_shortcuts_text
     },
-    create_keyhandler_for_dialog(
-      function() return dialog end,
-      function(value) dialog = value end
-    ))
+    -- Create keyhandler for real-time search
+    function(dialog, key)
+      local closer = preferences.pakettiDialogClose.value
+      if key.modifiers == "" and key.name == closer then
+        dialog:close()
+        return nil
+      elseif key.name == "esc" then
+        -- Clear search text
+        current_search_text = ""
+        updatePakettiSearchDisplay()
+        pakettiKeyBindingsUpdateList()
+        return nil
+      elseif key.name == "back" then
+        -- Remove last character
+        if #current_search_text > 0 then
+          current_search_text = current_search_text:sub(1, #current_search_text - 1)
+          updatePakettiSearchDisplay()
+          pakettiKeyBindingsUpdateList()
+        end
+        return nil
+      elseif key.name == "delete" then
+        -- Clear all text
+        current_search_text = ""
+        updatePakettiSearchDisplay()
+        pakettiKeyBindingsUpdateList()
+        return nil
+      elseif key.name == "space" then
+        -- Add space character
+        current_search_text = current_search_text .. " "
+        updatePakettiSearchDisplay()
+        pakettiKeyBindingsUpdateList()
+        return nil
+      elseif string.len(key.name) == 1 then
+        -- Ignore the '<' character altogether
+        if key.name ~= "<" then
+          -- Add typed character immediately
+          current_search_text = current_search_text .. key.name
+          updatePakettiSearchDisplay()
+          pakettiKeyBindingsUpdateList()
+        end
+        return nil
+      else
+        -- Let other keys pass through
+        return key
+      end
+    end)
 
   -- Initial list update
   pakettiKeyBindingsUpdateList()
+
+  -- Set focus to Renoise after dialog opens for key capture
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 
   -- Print total found count at the end
   debug_log = debug_log .. "Debug: Total Paketti keybindings found - " .. #pakettiKeybindings .. "\n"
@@ -533,7 +601,7 @@ function renoiseKeyBindingsUpdateList()
   local showAssignedOnly = (renoise_show_shortcuts_switch.value == 3)
   local scriptFilter = renoise_show_script_filter_switch.value
   local selectedIdentifier = renoise_identifier_dropdown.items[renoise_identifier_dropdown.value]
-  local searchQuery = renoise_search_textfield.value:lower()
+  local searchQuery = renoise_current_search_text:lower()
   local content = ""
   local count = 0
   local unassigned_count = 0
@@ -629,10 +697,13 @@ end
 -- Main function to display the Renoise keybindings dialog
 function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional parameter
   -- Check if the dialog is already visible and close it
-  if dialog and dialog.visible then
-    dialog:close()
+  if renoise_dialog and renoise_dialog.visible then
+    renoise_dialog:close()
     return
   end
+
+  -- Reset search state
+  renoise_current_search_text = ""
 
   -- Map menu identifiers to their internal names
   if selectedIdentifier then
@@ -715,7 +786,11 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
   }
 
   -- UI Elements
-  renoise_search_textfield = vb:textfield{width=300, notifier=renoiseKeyBindingsUpdateList}
+  renoise_search_display_text = vb:text{
+    width=300,
+    text="'" .. renoise_current_search_text .. "'",
+    style = "strong"
+  }
 
   renoise_total_shortcuts_text = vb:text{
     text="Total: 0 shortcuts, 0 unassigned",
@@ -731,14 +806,12 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
     align="left"
   }
 
-  renoise_search_text = vb:text{text="Filter with"}
-
   renoise_keybinding_list = vb:multiline_textfield { width=1100, height = 600, font = "mono" }
 
   -- Dialog title including Renoise version
   local dialog_title = "Renoise KeyBindings for Renoise Version " .. renoise.RENOISE_VERSION
 
-  dialog = renoise.app():show_custom_dialog(dialog_title,
+  renoise_dialog = renoise.app():show_custom_dialog(dialog_title,
     vb:column{
       margin=10,
       vb:text{
@@ -766,18 +839,70 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
           end
         }
       },
-      renoise_search_text,
-      renoise_search_textfield,
+      vb:row{
+        vb:text{
+          text = "Type to search:",
+          width = 100, 
+          font="bold",
+          style="strong"
+        },
+        renoise_search_display_text
+      },
       renoise_keybinding_list,
       renoise_selected_shortcuts_text,
       renoise_total_shortcuts_text},
-    create_keyhandler_for_dialog(
-      function() return dialog end,
-      function(value) dialog = value end
-    ))
+    -- Create keyhandler for real-time search
+    function(dialog, key)
+      local closer = preferences.pakettiDialogClose.value
+      if key.modifiers == "" and key.name == closer then
+        dialog:close()
+        return nil
+      elseif key.name == "esc" then
+        -- Clear search text
+        renoise_current_search_text = ""
+        updateRenoiseSearchDisplay()
+        renoiseKeyBindingsUpdateList()
+        return nil
+      elseif key.name == "back" then
+        -- Remove last character
+        if #renoise_current_search_text > 0 then
+          renoise_current_search_text = renoise_current_search_text:sub(1, #renoise_current_search_text - 1)
+          updateRenoiseSearchDisplay()
+          renoiseKeyBindingsUpdateList()
+        end
+        return nil
+      elseif key.name == "delete" then
+        -- Clear all text
+        renoise_current_search_text = ""
+        updateRenoiseSearchDisplay()
+        renoiseKeyBindingsUpdateList()
+        return nil
+      elseif key.name == "space" then
+        -- Add space character
+        renoise_current_search_text = renoise_current_search_text .. " "
+        updateRenoiseSearchDisplay()
+        renoiseKeyBindingsUpdateList()
+        return nil
+      elseif string.len(key.name) == 1 then
+        -- Ignore the '<' character altogether
+        if key.name ~= "<" then
+          -- Add typed character immediately
+          renoise_current_search_text = renoise_current_search_text .. key.name
+          updateRenoiseSearchDisplay()
+          renoiseKeyBindingsUpdateList()
+        end
+        return nil
+      else
+        -- Let other keys pass through
+        return key
+      end
+    end)
 
   -- Initial list update
   renoiseKeyBindingsUpdateList()
+
+  -- Set focus to Renoise after dialog opens for key capture
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 
   -- Print total found count at the end
   renoise_debug_log = renoise_debug_log .. "Debug: Total Renoise keybindings found - " .. #renoiseKeybindings .. "\n"

@@ -401,7 +401,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     effectColumns = 1.0,
     collapsed = false,
     incomingAudio = false,
-    populateSends = true
+    populateSends = true,
+    sendDeviceType = 1  -- 1 = Send, 2 = Multiband Send
     },    
   PakettiPluginLoaders = renoise.Document.DocumentList(),
   PakettiDeviceLoaders = renoise.Document.DocumentList(), 
@@ -1719,6 +1720,19 @@ vb:row{
               width=400,
               notifier=function(value)
                 preferences.PakettiImpulseTrackerF8.value = value
+              end
+            }
+          },
+          vb:text{style="strong",font="bold",text="MIDI Populator Settings"},
+          vb:row{
+            vb:text{text="Send Device Type",width=150,tooltip="Choose between Send or Multiband Send devices for Populate Sends"},
+            vb:switch{
+              items={"Send","Multiband Send"},
+              value=preferences.pakettiMidiPopulator.sendDeviceType.value,
+              width=200,
+              tooltip="Choose between Send or Multiband Send devices for Populate Sends",
+              notifier=function(value)
+                preferences.pakettiMidiPopulator.sendDeviceType.value = value
               end
             }
           },

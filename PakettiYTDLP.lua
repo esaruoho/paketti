@@ -116,8 +116,12 @@ function PakettiYTDLPLogMessage(message)
   if message:match("^%[") or           -- yt-dlp progress
      message:match("^ERROR:") or       -- errors
      message:match("^WARNING:") or     -- warnings
+     message:match("^DEBUG:") or       -- debug messages
      message:match("^No videos found") or
-     message:match("^Found video") then
+     message:match("^Found video") or
+     message:match("Detected timestamp") or
+     message:match("Using URL timestamps") or
+     message:match("Final download command") then
     -- Just append the text
     logview.text = logview.text .. message .. "\n"
   end
@@ -313,6 +317,151 @@ function PakettiYTDLPSanitizeFilename(filename)
   end
 end
 
+-- Function to convert time string to seconds
+function PakettiYTDLPTimeToSeconds(time_str)
+  if not time_str then return nil end
+  
+  -- Remove trailing 's' if present
+  time_str = time_str:gsub("s$", "")
+  
+  -- Check for minutes and seconds format (2m30s or 2m30)
+  local minutes, seconds = time_str:match("(%d+)m(%d*)")
+  if minutes then
+    local total = tonumber(minutes) * 60
+    if seconds and seconds ~= "" then
+      total = total + tonumber(seconds)
+    end
+    return total
+  end
+  
+  -- Check for hours, minutes, seconds format (1h2m30s or 1h2m30)
+  local hours, minutes, seconds = time_str:match("(%d+)h(%d*)m?(%d*)")
+  if hours then
+    local total = tonumber(hours) * 3600
+    if minutes and minutes ~= "" then
+      total = total + tonumber(minutes) * 60
+    end
+    if seconds and seconds ~= "" then
+      total = total + tonumber(seconds)
+    end
+    return total
+  end
+  
+  -- Just plain seconds
+  local plain_seconds = tonumber(time_str)
+  if plain_seconds then
+    return plain_seconds
+  end
+  
+  return nil
+end
+
+-- Function to detect timestamps in URL
+function PakettiYTDLPDetectTimestamps(url)
+  if not url or url == "" then
+    PakettiYTDLPLogMessage("DEBUG: No URL provided for timestamp detection")
+    return nil
+  end
+  
+  PakettiYTDLPLogMessage("DEBUG: Checking URL for timestamps: " .. url)
+  
+  -- Check for t= parameter - more comprehensive patterns
+  -- Handles: ?t=47, &t=45s, ?t=2m30s, etc.
+  local t_param = nil
+  
+  -- Try ?t= pattern first (youtu.be format)
+  t_param = url:match("%?t=([^&]+)")
+  if t_param then
+    PakettiYTDLPLogMessage("DEBUG: Found ?t= pattern: t=" .. t_param)
+  else
+    -- Try &t= pattern (full youtube.com URLs)
+    t_param = url:match("&t=([^&]+)")
+    if t_param then
+      PakettiYTDLPLogMessage("DEBUG: Found &t= pattern: t=" .. t_param)
+    end
+  end
+  
+  if t_param then
+    PakettiYTDLPLogMessage("DEBUG: Detected timestamp parameter: t=" .. t_param)
+    local start_seconds = PakettiYTDLPTimeToSeconds(t_param)
+    if start_seconds then
+      PakettiYTDLPLogMessage("DEBUG: Parsed start time: " .. start_seconds .. " seconds")
+      local section_param = "*" .. start_seconds .. "-inf"
+      PakettiYTDLPLogMessage("DEBUG: Will use download section: " .. section_param)
+      return section_param
+    else
+      PakettiYTDLPLogMessage("DEBUG: Could not parse timestamp, falling back to *from-url")
+      return "*from-url"
+    end
+  end
+  
+  -- Check for #t= fragment (like #t=120, #t=2m30s)
+  local t_fragment = url:match("#t=([^&]+)")
+  if t_fragment then
+    PakettiYTDLPLogMessage("DEBUG: Detected timestamp fragment: #t=" .. t_fragment)
+    local start_seconds = PakettiYTDLPTimeToSeconds(t_fragment)
+    if start_seconds then
+      PakettiYTDLPLogMessage("DEBUG: Parsed start time: " .. start_seconds .. " seconds")
+      local section_param = "*" .. start_seconds .. "-inf"
+      PakettiYTDLPLogMessage("DEBUG: Will use download section: " .. section_param)
+      return section_param
+    else
+      PakettiYTDLPLogMessage("DEBUG: Could not parse timestamp, falling back to *from-url")
+      return "*from-url"
+    end
+  end
+  
+  PakettiYTDLPLogMessage("DEBUG: No timestamps detected in URL")
+  return nil
+end
+
+-- Function to detect if video has chapters and extract chapter info
+function PakettiYTDLPDetectChapters(url)
+  if not url or url == "" then
+    return false, nil
+  end
+  
+  PakettiYTDLPLogMessage("Checking for chapters in video...")
+  
+  -- Use yt-dlp to get video info and check for chapters
+  local info_command = string.format('env PATH=/opt/homebrew/bin:$PATH "%s" --dump-json --no-warnings "%s"', yt_dlp_path, url)
+  local handle = io.popen(info_command)
+  if not handle then
+    PakettiYTDLPLogMessage("Failed to check for chapters")
+    return false, nil
+  end
+  
+  local json_output = handle:read("*a")
+  handle:close()
+  
+  -- Simple check for chapters in JSON output
+  if json_output and json_output:match('"chapters":%s*%[') and not json_output:match('"chapters":%s*%[%s*%]') then
+    PakettiYTDLPLogMessage("Video has chapters detected!")
+    
+    -- Extract the first chapter title for downloading
+    local first_chapter = nil
+    local chapter_count = 0
+    for title in json_output:gmatch('"title"%s*:%s*"([^"]*)"') do
+      chapter_count = chapter_count + 1
+      if chapter_count == 1 then
+        first_chapter = title
+        PakettiYTDLPLogMessage("  First chapter: " .. title)
+      elseif chapter_count <= 3 then -- Only log first 3 chapters to avoid spam
+        PakettiYTDLPLogMessage("  Chapter found: " .. title)
+      end
+    end
+    
+    if chapter_count > 3 then
+      PakettiYTDLPLogMessage("  ... and " .. (chapter_count - 3) .. " more chapters")
+    end
+    
+    return true, first_chapter
+  end
+  
+  PakettiYTDLPLogMessage("No chapters found in video")
+  return false, nil
+end
+
 -- Function to get a random URL from yt-dlp search
 function PakettiYTDLPGetRandomUrl(search_phrase, search_results_file)
   PakettiYTDLPLogMessage("Searching for term \"" .. search_phrase .. "\"")
@@ -348,7 +497,46 @@ end
 -- Modified download video function
 function PakettiYTDLPDownloadVideo(youtube_url, full_video, clip_length, temp_dir)
   local command
-  if full_video then
+  local download_sections = ""
+  
+  PakettiYTDLPLogMessage("DEBUG: PakettiYTDLPDownloadVideo called with full_video=" .. tostring(full_video) .. ", clip_length=" .. tostring(clip_length))
+  
+  -- Check for timestamps in URL - timestamps ALWAYS override full_video setting
+  local timestamp_section = PakettiYTDLPDetectTimestamps(youtube_url)
+  local use_timestamps = false
+  
+  if timestamp_section then
+    -- Use post-processing to trim audio instead of problematic download-sections
+    local start_time = timestamp_section:match("(%d+)")
+    if start_time then
+      download_sections = '--postprocessor-args "ffmpeg:-ss ' .. start_time .. '"'
+      use_timestamps = true
+      PakettiYTDLPLogMessage("DEBUG: Using ffmpeg post-processing to trim from " .. start_time .. " seconds: " .. download_sections)
+    else
+      download_sections = ""
+      use_timestamps = false
+      PakettiYTDLPLogMessage("DEBUG: Could not parse timestamp, downloading full audio")
+    end
+    if full_video then
+      PakettiYTDLPLogMessage("DEBUG: Timestamp detected - overriding 'Download Whole Video' setting")
+    end
+  elseif not full_video then
+    -- Only check for chapters if we're not downloading full video and no timestamps found
+    local has_chapters, first_chapter = PakettiYTDLPDetectChapters(youtube_url)
+    if has_chapters and first_chapter then
+      -- Download the first chapter by name
+      download_sections = '--download-sections "' .. first_chapter .. '"'
+      PakettiYTDLPLogMessage("CHAPTER DOWNLOAD: Downloading chapter \"" .. first_chapter .. "\"")
+    elseif has_chapters then
+      -- Has chapters but couldn't get names, fall back to time-based
+      download_sections = '--download-sections "*0-' .. clip_length .. '"'
+      PakettiYTDLPLogMessage("Video has chapters but couldn't get chapter names, using time-based section")
+    else
+      download_sections = '--download-sections "*0-' .. clip_length .. '"'
+    end
+  end
+  
+  if full_video and not use_timestamps then
     command = string.format(
       'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames -f ba --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
       yt_dlp_path,
@@ -358,16 +546,38 @@ function PakettiYTDLPDownloadVideo(youtube_url, full_video, clip_length, temp_di
       youtube_url
     )
   else
-    command = string.format(
-      'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames --download-sections "*0-%d" -f ba --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
-      yt_dlp_path,
-      clip_length,
-      temp_dir,
-      separator,
-      separator,
-      youtube_url
-    )
+    -- Use sections - either timestamps or clip length  
+    -- Use best audio format for section downloads
+    local format_option = '-f ba'
+    if use_timestamps then
+      PakettiYTDLPLogMessage("DEBUG: Using best audio format for timestamps")
+    end
+    -- Simplified command construction - always use ba format, optionally add post-processing
+    if download_sections == "" then
+      command = string.format(
+        'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        yt_dlp_path,
+        format_option,
+        temp_dir,
+        separator,
+        separator,
+        youtube_url
+      )
+    else
+      command = string.format(
+        'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames %s %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        yt_dlp_path,
+        format_option,
+        download_sections,
+        temp_dir,
+        separator,
+        separator,
+        youtube_url
+      )
+    end
   end
+  
+  PakettiYTDLPLogMessage("DEBUG: Final download command (PakettiYTDLPDownloadVideo): " .. command)
   
   -- Execute with process slicing
   if not PakettiYTDLPExecuteCommand(command) then
@@ -611,10 +821,20 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
   PakettiYTDLPLogMessage("=== Sample import complete ===")
 end
 
--- Function to prompt for output directory
+-- Function to browse for output directory (direct, no warning)
+function PakettiYTDLPBrowseForOutputDir()
+  local dir = renoise.app():prompt_for_path("Set YT-DLP File Save Output Directory")
+  if dir then
+    vb.views.output_dir.text = dir
+    preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value = dir
+    PakettiYTDLPLogMessage("Saved Output Directory to " .. dir)
+  end
+end
+
+-- Function to prompt for output directory (with warning, used when starting download with no path)
 function PakettiYTDLPPromptForOutputDir()
   renoise.app():show_warning("Please set the folder that YT-DLP will download to...")
-  local dir = renoise.app():prompt_for_path("Select Output Directory")
+  local dir = renoise.app():prompt_for_path("Set YT-DLP File Save Output Directory")
   if dir then
     vb.views.output_dir.text = dir
     preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value = dir
@@ -660,6 +880,8 @@ end
 
 -- Function to handle the entire download process with proper slicing
 function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_length, full_video)
+  PakettiYTDLPLogMessage("DEBUG: PakettiYTDLPSlicedProcess called with full_video=" .. tostring(full_video) .. ", clip_length=" .. tostring(clip_length))
+  
   -- Define paths for our tracking files
   local temp_dir = output_dir .. separator .. "tempfolder"
   local search_results_file = temp_dir .. separator .. "search_results.txt"
@@ -735,7 +957,44 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
   
   -- Now start the actual download with slicing
   local download_cmd
-  if full_video then
+  local download_sections = ""
+  
+  -- Check for timestamps in URL - timestamps ALWAYS override full_video setting
+  local timestamp_section = PakettiYTDLPDetectTimestamps(command)
+  local use_timestamps = false
+  
+  if timestamp_section then
+    -- Use post-processing to trim audio instead of problematic download-sections
+    local start_time = timestamp_section:match("(%d+)")
+    if start_time then
+      download_sections = '--postprocessor-args "ffmpeg:-ss ' .. start_time .. '"'
+      use_timestamps = true
+      PakettiYTDLPLogMessage("DEBUG: Using ffmpeg post-processing to trim from " .. start_time .. " seconds: " .. download_sections)
+    else
+      download_sections = ""
+      use_timestamps = false
+      PakettiYTDLPLogMessage("DEBUG: Could not parse timestamp, downloading full audio")
+    end
+    if full_video then
+      PakettiYTDLPLogMessage("DEBUG: Timestamp detected - overriding 'Download Whole Video' setting")
+    end
+  elseif not full_video then
+    -- Only check for chapters if we're not downloading full video and no timestamps found
+    local has_chapters, first_chapter = PakettiYTDLPDetectChapters(command)
+    if has_chapters and first_chapter then
+      -- Download the first chapter by name
+      download_sections = '--download-sections "' .. first_chapter .. '"'
+      PakettiYTDLPLogMessage("CHAPTER DOWNLOAD: Downloading chapter \"" .. first_chapter .. "\"")
+    elseif has_chapters then
+      -- Has chapters but couldn't get names, fall back to time-based
+      download_sections = '--download-sections "*0-' .. clip_length .. '"'
+      PakettiYTDLPLogMessage("Video has chapters but couldn't get chapter names, using time-based section")
+    else
+      download_sections = '--download-sections "*0-' .. clip_length .. '"'
+    end
+  end
+  
+  if full_video and not use_timestamps then
     download_cmd = string.format(
       'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames -f ba --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
       yt_dlp_path,
@@ -745,16 +1004,38 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
       command
     )
   else
-    download_cmd = string.format(
-      'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames --download-sections "*0-%d" -f ba --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
-      yt_dlp_path,
-      clip_length,
-      output_dir,
-      separator,
-      separator,
-      command
-    )
+    -- Use sections - either timestamps or clip length  
+    -- Use best audio format for section downloads
+    local format_option = '-f ba'
+    if use_timestamps then
+      PakettiYTDLPLogMessage("DEBUG: Using best audio format for timestamps")
+    end
+    -- Simplified command construction - always use ba format, optionally add post-processing
+    if download_sections == "" then
+      download_cmd = string.format(
+        'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        yt_dlp_path,
+        format_option,
+        output_dir,
+        separator,
+        separator,
+        command
+      )
+    else
+      download_cmd = string.format(
+        'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames %s %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        yt_dlp_path,
+        format_option,
+        download_sections,
+        output_dir,
+        separator,
+        separator,
+        command
+      )
+    end
   end
+  
+  PakettiYTDLPLogMessage("DEBUG: Final download command: " .. download_cmd)
   
   PakettiYTDLPLogMessage("=== Starting download process ===")
   
@@ -818,9 +1099,11 @@ end
 
 -- Modify StartYTDLP to properly handle timers
 function PakettiYTDLPStartYTDLP()
+  PakettiYTDLPLogMessage("DEBUG: PakettiYTDLPStartYTDLP() called")
   local search_phrase = vb.views.search_phrase.text
   local youtube_url = vb.views.youtube_url.text
   local output_dir = vb.views.output_dir.text
+  PakettiYTDLPLogMessage("DEBUG: youtube_url = " .. tostring(youtube_url))
   
   if (search_phrase == "" or search_phrase == nil) and (youtube_url == "" or youtube_url == nil) then
     renoise.app():show_warning("Please set URL or search term")
@@ -830,6 +1113,19 @@ function PakettiYTDLPStartYTDLP()
   if output_dir == "" or output_dir == "Set this yourself, please." then
     PakettiYTDLPPromptForOutputDir()
     return
+  end
+  
+  -- Check if save format requires save path
+  local save_format = vb.views.save_format.value
+  local save_path = vb.views.save_path.text
+  if (save_format == 2 or save_format == 3) and (save_path == "<No path set>" or save_path == "" or save_path == nil) then
+    PakettiYTDLPPromptForSavePath()
+    -- Continue with download after setting save path
+    save_path = vb.views.save_path.text
+    if save_path == "<No path set>" or save_path == "" or save_path == nil then
+      -- User cancelled save path selection, abort
+      return
+    end
   end
   
   -- Save all preferences
@@ -923,19 +1219,18 @@ function PakettiYTDLPDialogContent()
     id = "main_column",
     width=690,
     margin=1,
-    vb:text{id="hi", text="YT-DLP is able to download content from:", font="bold"},
-    vb:text{id="List",text="YouTube, Twitter, Facebook, SoundCloud, Bandcamp and Instagram (tested).", font = "bold" },
+    vb:text{id="hi", text="YT-DLP is able to download content from:", font="bold",style="strong"},
+    vb:text{id="List",text="YouTube, Twitter, Facebook, SoundCloud, Bandcamp and Instagram (tested).", font = "bold",style="strong" },
     vb:row{
-      margin=5,
       vb:column{
         width=170,
-        vb:text{text="Search Phrase:" },
-        vb:text{text="URL:" },
-        vb:text{text="Output Directory:" },
-        vb:text{text="yt-dlp location:" },
-        vb:text{text="Clip Length (seconds):" },
-        vb:text{text="Loop Mode:" },
-        vb:text{text="Amount of Videos to Search for:" }
+        vb:text{text="Search Phrase", font="bold",style="strong" },
+        vb:text{text="URL", font="bold",style="strong" },
+        vb:text{text="Output Directory", font="bold",style="strong" },
+        vb:text{text="YT-DLP Location", font="bold",style="strong" },
+        vb:text{text="Clip Length (seconds)", font="bold",style="strong" },
+        vb:text{text="Loop Mode", font="bold",style="strong" },
+        vb:text{text="Amount of Searched Videos", font="bold",style="strong" }
       },
       vb:column{
         width=600,
@@ -955,6 +1250,7 @@ function PakettiYTDLPDialogContent()
           edit_mode = true,
           notifier=function(value)
             if value ~= "" then
+              PakettiYTDLPLogMessage("DEBUG: URL entered: " .. value)
               PakettiYTDLPStartYTDLP()
             end
           end
@@ -965,7 +1261,7 @@ function PakettiYTDLPDialogContent()
             width=400,
             text = preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value
           },
-          vb:button{ text="Browse", notifier = PakettiYTDLPPromptForOutputDir },
+          vb:button{ text="Browse", notifier = PakettiYTDLPBrowseForOutputDir },
           vb:button{ text="Open Path", notifier=function()
             local path = vb.views.output_dir.text
             if path and path ~= "" and path ~= "Set this yourself, please." then
@@ -1027,7 +1323,7 @@ function PakettiYTDLPDialogContent()
           PakettiYTDLPLogMessage("Saved Load Whole Video to " .. tostring(value))
         end
       },
-      vb:text{text="Download Whole Video as Audio" },
+      vb:text{text="Download Whole Video as Audio", font="bold",style="strong" },
     },
     vb:row{
       vb:checkbox{
@@ -1038,9 +1334,9 @@ function PakettiYTDLPDialogContent()
           PakettiYTDLPLogMessage("Saved Create New Instrument to " .. tostring(value))
         end
       },
-      vb:text{text="Create New Instrument for Each Downloaded Audio" },
+      vb:text{text="Create New Instrument for Each Downloaded Audio", font="bold",style="strong" },
     },
-    vb:row{vb:text{text="Save Successfully Downloaded Audio to Selected Folder" },
+    vb:row{vb:text{text="Save Successfully Downloaded Audio to Selected Folder", font="bold",style="strong"},
       vb:popup{
         id = "save_format",
         items = {"Off", "Save WAV", "Save FLAC"},
@@ -1056,12 +1352,12 @@ function PakettiYTDLPDialogContent()
       },
     },
     vb:row{
-      vb:text{text="Save Path: " },
-      vb:text{id = "save_path", text = preferences.PakettiYTDLP.PakettiYTDLPPathToSave.value or "<No path set>", font = "bold" },
+      vb:text{text="Save Path", font="bold",style="strong" },
+      vb:text{id = "save_path", text = preferences.PakettiYTDLP.PakettiYTDLPPathToSave.value or "<No path set>", font = "bold", style="strong" },
       vb:button{ text="Browse", notifier = PakettiYTDLPPromptForSavePath }
     },
     vb:row{
-      vb:text{text="Status: " },
+      vb:text{text="Status", font="bold",style="strong" },
       status_text,
       cancel_button
     },
@@ -1069,7 +1365,7 @@ function PakettiYTDLPDialogContent()
     vb:row{
       vb:column{
         vb:row{
-          vb:text{text="Log Output:", font = "bold" },
+          vb:text{text="Log Output", font = "bold",style="strong" },
           vb:button{
             id = "Clear_thing",
             text="Clear",

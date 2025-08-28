@@ -2,7 +2,7 @@ function tknaSelectedTrackVolume0to1Toggle(number)
   renoise.song().tracks[renoise.song().selected_track_index].postfx_volume.value=number
   end
   
-  
+
   renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Track Volume to -INF dB",invoke=function() tknaSelectedTrackVolume0to1Toggle(0) end}
   renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Track Volume to 0.0dB",invoke=function() tknaSelectedTrackVolume0to1Toggle(1) end}
   
@@ -1697,8 +1697,8 @@ end
 function slicePercussionDrumKit() sliceDrumKit("percussion") end
 function sliceTextureDrumKit() sliceDrumKit("texture") end
 
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
+  renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
+  renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
 
 
 
@@ -1847,7 +1847,6 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Selected Track to Mono an
 renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Master Track to Mono and Hard Left",invoke=function() masterTrackToMonoAndHardLeft() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Master Track to Mono and Hard Right",invoke=function() masterTrackToMonoAndHardRight() end}
 
--- Add MIDI mappings for the new studio session workflow functions
 renoise.tool():add_midi_mapping{name="Paketti:Selected Track to Mono and Hard Left",invoke=function(message) if message:is_trigger() then selectedTrackToMonoAndHardLeft() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Selected Track to Mono and Hard Right",invoke=function(message) if message:is_trigger() then selectedTrackToMonoAndHardRight() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Master Track to Mono and Hard Left",invoke=function(message) if message:is_trigger() then masterTrackToMonoAndHardLeft() end end}

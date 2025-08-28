@@ -621,15 +621,24 @@ function PakettiCapture_FitSlotsToPattern()
   for i = 1, total_slots do
     song.selected_line_index = start_line
     PakettiCapture_DumpRow(i)
+    
+    -- Place note-offs before the next slot (but not after the last slot)
+    if i < total_slots then
+      local next_slot_line = math.min(num_lines, start_line + step)
+      local noteoff_line = math.max(1, next_slot_line - 1)
+      if noteoff_line > start_line and noteoff_line <= num_lines then
+        song.selected_line_index = noteoff_line
+        PakettiCapture_PlaceNoteOffsAllColumns()
+      end
+    end
+    
     start_line = math.min(num_lines, start_line + step)
   end
-  -- Always place note-offs on the last pattern line when enabled
-  if preferences and preferences.pakettiCaptureLastTakeSmartNoteOff and preferences.pakettiCaptureLastTakeSmartNoteOff.value then
-    local original_line_final = song.selected_line_index
-    song.selected_line_index = num_lines
-    PakettiCapture_PlaceNoteOffsAllColumns()
-    song.selected_line_index = original_line_final
-  end
+  
+  -- Always place note-offs on the last pattern line for Fit Slots to Pattern
+  song.selected_line_index = num_lines
+  PakettiCapture_PlaceNoteOffsAllColumns()
+  
   -- Restore user-facing selection
   song.selected_line_index = original_line
 end

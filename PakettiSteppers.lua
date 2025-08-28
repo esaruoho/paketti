@@ -232,7 +232,9 @@ end
 function PakettiSetupInstrumentAwareness()
   -- Remove existing observer if any
   if instrument_change_observer then
-    renoise.song().selected_instrument_index_observable:remove_notifier(instrument_change_observer)
+    if renoise.song().selected_instrument_index_observable:has_notifier(instrument_change_observer) then
+      renoise.song().selected_instrument_index_observable:remove_notifier(instrument_change_observer)
+    end
   end
   
   -- Add new observer
@@ -246,7 +248,9 @@ end
 function PakettiCleanupInstrumentAwareness()
   -- Remove observer if it exists
   if instrument_change_observer then
-    renoise.song().selected_instrument_index_observable:remove_notifier(instrument_change_observer)
+    if renoise.song().selected_instrument_index_observable:has_notifier(instrument_change_observer) then
+      renoise.song().selected_instrument_index_observable:remove_notifier(instrument_change_observer)
+    end
     instrument_change_observer = nil
   end
   
@@ -797,18 +801,21 @@ function PakettiCreateStepperDialogContent(vb_instance)
     end
   }
 
-  -- Create offset slider
+  -- Create offset slider with 64 as center
   offset_slider = vb:slider{
-    min = -0.5,
-    max = 0.5,
-    value = 0,
+    min = 0,
+    max = 128,
+    value = 64,
+    default = 64,
     width = 200,
     notifier = function(value)
       if not updating_offset_slider then
-        PakettiOffsetVisibleStepperValues(value)
-        -- Reset slider to center after applying offset
+        -- Convert slider value (0-128) to offset range (-0.1 to 0.1)
+        local offset_amount = (value - 64) / 640.0
+        PakettiOffsetVisibleStepperValues(offset_amount)
+        -- Reset slider to center (64) after applying offset
         updating_offset_slider = true
-        offset_slider.value = 0
+        offset_slider.value = 64
         updating_offset_slider = false
       end
     end
