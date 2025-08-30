@@ -16,28 +16,34 @@ paketti_polyend_slice_notifier_added = false
 -- Function to check if current instrument has polyend slice setup
 function PakettiPolyendSliceSwitcherIsActive()
   local song = renoise.song()
-  return paketti_polyend_slice_active and 
-         paketti_polyend_slice_instrument_index == song.selected_instrument_index
+  local inst = song.selected_instrument
+  -- Active if instrument has multiple samples (up to 48)
+  return inst and #inst.samples > 1 and #inst.samples <= 48
 end
 
 -- Function to setup velocity ranges for slices
 function PakettiPolyendSliceSwitcherSetSliceVelocity(slice_index)
   if not slice_instrument then return end
   
-  -- Set all slices to 00-00 velocity range (inactive)
-  for i = 1, #slice_instrument.samples do
+  -- Limit to max 48 samples for melodic slice switching
+  local max_samples = math.min(48, #slice_instrument.samples)
+  
+  -- Set all samples to 00-00 velocity range (inactive)
+  for i = 1, max_samples do
     local sample = slice_instrument.samples[i]
-    sample.sample_mapping.velocity_range = {0, 0}
+    if sample then
+      sample.sample_mapping.velocity_range = {0, 0}
+    end
   end
   
-  -- Set selected slice to 00-7F velocity range (active)
+  -- Set selected sample to 00-7F velocity range (active)
   -- slice_index is 0-based, but samples array is 1-based
-  if slice_index >= 0 and slice_index < #slice_instrument.samples then
+  if slice_index >= 0 and slice_index < max_samples then
     local selected_sample = slice_instrument.samples[slice_index + 1] -- Lua 1-based indexing
     if selected_sample then
       selected_sample.sample_mapping.velocity_range = {0, 127}
       current_selected_slice = slice_index
-      print(string.format("-- Updated velocity: Slice %02d active (00-7F), others inactive (00-00)", slice_index + 1))
+      print(string.format("-- Updated velocity: Sample %02d active (00-7F), others inactive (00-00)", slice_index + 1))
     end
   end
 end
@@ -46,12 +52,12 @@ end
 function PakettiPolyendSliceSwitcherUpdateDialog()
   if not dialog or not dialog.visible or not current_vb then return end
   
-  local slice_text = string.format("Slice: %02d/%02d", current_selected_slice + 1, total_slices)
+  local slice_text = string.format("Sample: %02d/%02d", current_selected_slice + 1, total_slices)
   current_vb.views.slice_display.text = slice_text
   current_vb.views.slice_slider.value = current_selected_slice
   
   -- Update status
-  renoise.app():show_status(string.format("Polyend Slice: %02d (00-7F velocity)", current_selected_slice + 1))
+  renoise.app():show_status(string.format("Melodic Sample: %02d (00-7F velocity)", current_selected_slice + 1))
 end
 
 -- Function to change selected slice
@@ -117,6 +123,31 @@ end
 
 -- Function to create the slice switcher dialog
 function PakettiPolyendSliceSwitcherCreateDialog()
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  
+  -- Check if we have a valid instrument with multiple samples
+  if not inst or #inst.samples <= 1 then
+    renoise.app():show_error("No instrument with multiple samples selected. Need at least 2 samples to switch between.")
+    return
+  end
+  
+  -- Set up working variables from current instrument
+  slice_instrument = inst
+  total_slices = math.min(48, #inst.samples) -- Limit to 48 samples max
+  
+  -- Find which sample is currently active (has velocity > 0)
+  current_selected_slice = 0 -- Default to first
+  for i = 1, total_slices do
+    local sample = inst.samples[i]
+    if sample and sample.sample_mapping.velocity_range[2] > 0 then
+      current_selected_slice = i - 1 -- Convert to 0-based
+      break
+    end
+  end
+  
+  print(string.format("-- Slice Switcher: Found %d samples, active sample: %d", total_slices, current_selected_slice + 1))
+  
   -- Close existing dialog if open (to handle new PTI loads)
   if dialog and dialog.visible then
     dialog:close()
@@ -133,7 +164,7 @@ function PakettiPolyendSliceSwitcherCreateDialog()
     fresh_vb:row {
       fresh_vb:text {
         id = "slice_display",
-        text = string.format("Slice: %02d/%02d", current_selected_slice + 1, total_slices),
+        text = string.format("Sample: %02d/%02d", current_selected_slice + 1, total_slices),
         font = "bold"
       }
     },
@@ -141,8 +172,8 @@ function PakettiPolyendSliceSwitcherCreateDialog()
       fresh_vb:slider {
         id = "slice_slider",
         min = 0,
-        max = total_slices - 1,
-        value = current_selected_slice,
+        max = math.max(0, total_slices - 1), -- Ensure max is never negative
+        value = math.min(current_selected_slice, math.max(0, total_slices - 1)), -- Clamp value to valid range
         width = 300,
         notifier = function(value)
           PakettiPolyendSliceSwitcherChangeSlice(math.floor(value))
@@ -191,6 +222,19 @@ end
 
 -- Function to process instrument for polyend slice setup
 function PakettiPolyendSliceSwitcherProcessInstrument(instrument, slice_markers, original_sample_name, selected_slice_index)
+  -- Start ProcessSlicer for slice processing  
+  local dialog, vb
+  local process_slicer = ProcessSlicer(function()
+    PakettiPolyendSliceSwitcherProcessInstrument_Worker(instrument, slice_markers, original_sample_name, selected_slice_index, dialog, vb)
+  end)
+  
+  dialog, vb = process_slicer:create_dialog("Creating Individual Slice Samples...")
+  process_slicer:start()
+  return true -- Return success immediately since ProcessSlicer handles the work
+end
+
+--- ProcessSlicer worker for slice processing
+function PakettiPolyendSliceSwitcherProcessInstrument_Worker(instrument, slice_markers, original_sample_name, selected_slice_index, dialog, vb)
   print("-- Processing instrument for Polyend Slice setup")
   
   -- Set the selected slice from PTI file (default to 0 if not provided)
@@ -227,6 +271,13 @@ function PakettiPolyendSliceSwitcherProcessInstrument(instrument, slice_markers,
   
   -- Create individual samples for each slice
   for i, slice_start in ipairs(slice_markers) do
+    
+    -- Update progress dialog
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = string.format("Processing slice %d/%d...", i, total_slices)
+    end
+    renoise.app():show_status(string.format("Polyend Slice: Processing slice %d/%d", i, total_slices))
+    
     -- Ensure slice_start is at least 1 (Renoise uses 1-based indexing)
     local original_slice_start = slice_start
     slice_start = math.max(1, slice_start)
@@ -241,9 +292,12 @@ function PakettiPolyendSliceSwitcherProcessInstrument(instrument, slice_markers,
       local new_sample = instrument:insert_sample_at(#instrument.samples + 1)
       new_sample.sample_buffer:create_sample_data(sample_rate, bit_depth, num_channels, slice_length)
       
-      -- Copy slice data
+      -- Copy slice data with yielding for large slices
       local new_buffer = new_sample.sample_buffer
       new_buffer:prepare_sample_data_changes()
+      
+      -- Calculate yield interval for this slice (every 75000 frames max)
+      local yield_interval = math.min(75000, math.max(5000, math.floor(slice_length / 50)))
       
       for frame = 1, slice_length do
         for channel = 1, num_channels do
@@ -252,6 +306,14 @@ function PakettiPolyendSliceSwitcherProcessInstrument(instrument, slice_markers,
             local sample_value = original_sample.sample_buffer:sample_data(channel, source_frame)
             new_buffer:set_sample_data(channel, frame, sample_value)
           end
+        end
+        
+        -- Yield periodically for large slices to keep UI responsive
+        if frame % yield_interval == 0 then
+          if dialog and dialog.visible then
+            vb.views.progress_text.text = string.format("Processing slice %d/%d (%d%%)...", i, total_slices, math.floor((frame / slice_length) * 100))
+          end
+          coroutine.yield()
         end
       end
       
@@ -279,6 +341,9 @@ function PakettiPolyendSliceSwitcherProcessInstrument(instrument, slice_markers,
       
       print(string.format("-- Created slice %02d: frames %d-%d (%d frames)", i, slice_start, slice_end - 1, slice_length))
     end
+    
+    -- Yield after each slice to keep UI responsive
+    coroutine.yield()
   end
   
   -- Clean up: Remove the original full sample (it's at position 1)
@@ -307,6 +372,11 @@ function PakettiPolyendSliceSwitcherProcessInstrument(instrument, slice_markers,
   
   -- Set instrument name
   instrument.name = string.format("%s (Polyend Slices)", original_sample_name or "Polyend Slices")
+  
+  -- Close dialog
+  if dialog and dialog.visible then
+    dialog:close()
+  end
   
   print(string.format("-- Polyend Slice processing complete: %d slices created", total_slices))
   print(string.format("-- Selected slice %02d set to velocity 00-7F, others set to 00-00", current_selected_slice + 1))

@@ -22,6 +22,18 @@ local function read_uint32_le(data, offset)
 end
 
 function pti_loadsample(filepath)
+  -- Start ProcessSlicer for PTI loading
+  local dialog, vb
+  local process_slicer = ProcessSlicer(function()
+    pti_loadsample_Worker(filepath, dialog, vb)
+  end)
+  
+  dialog, vb = process_slicer:create_dialog("Loading PTI Sample...")
+  process_slicer:start()
+end
+
+--- ProcessSlicer worker function for PTI loading
+function pti_loadsample_Worker(filepath, dialog, vb)
   local file = io.open(filepath, "rb")
   if not file then
     renoise.app():show_error("Cannot open file: " .. filepath)
@@ -94,6 +106,15 @@ function pti_loadsample(filepath)
 
   buffer:prepare_sample_data_changes()
 
+  -- Update progress dialog
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Processing sample data..."
+  end
+  renoise.app():show_status("PTI Import: Processing sample data...")
+
+  -- Calculate yield interval for reasonable yielding (every 75000 frames max) 
+  local yield_interval = math.min(75000, math.max(5000, math.floor(sample_length / 50)))
+
   if is_stereo then
     -- For stereo, left and right channels are stored in two separate blocks.
     local left_offset = 0
@@ -116,6 +137,14 @@ function pti_loadsample(filepath)
   
       buffer:set_sample_data(1, i, sampleL / 32768)
       buffer:set_sample_data(2, i, sampleR / 32768)
+      
+      -- Yield periodically to keep UI responsive
+      if i % yield_interval == 0 then
+        if dialog and dialog.visible then
+          vb.views.progress_text.text = string.format("Processing sample data %d%%...", math.floor((i / sample_length) * 100))
+        end
+        coroutine.yield()
+      end
     end
   else
     for i = 1, sample_length do
@@ -125,6 +154,14 @@ function pti_loadsample(filepath)
       local sample = bit.bor(bit.lshift(hi, 8), lo)
       if sample >= 32768 then sample = sample - 65536 end
       buffer:set_sample_data(1, i, sample / 32768)
+      
+      -- Yield periodically to keep UI responsive
+      if i % yield_interval == 0 then
+        if dialog and dialog.visible then
+          vb.views.progress_text.text = string.format("Processing sample data %d%%...", math.floor((i / sample_length) * 100))
+        end
+        coroutine.yield()
+      end
     end
   end
   
@@ -199,6 +236,14 @@ function pti_loadsample(filepath)
     local wavetable_buffer = smp.sample_buffer
     wavetable_buffer:prepare_sample_data_changes()
 
+    -- Update progress for wavetable processing
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = "Processing wavetable data..."
+    end
+    renoise.app():show_status("PTI Import: Processing wavetable data...")
+
+    local wavetable_yield_interval = math.min(75000, math.max(5000, math.floor(original_sample_length / 50)))
+
     if is_stereo then
       local left_offset = 0
       local right_offset = sample_length * 2
@@ -215,6 +260,14 @@ function pti_loadsample(filepath)
         if sampleR >= 32768 then sampleR = sampleR - 65536 end
         wavetable_buffer:set_sample_data(1, i, sampleL / 32768)
         wavetable_buffer:set_sample_data(2, i, sampleR / 32768)
+        
+        -- Yield for wavetable processing
+        if i % wavetable_yield_interval == 0 then
+          if dialog and dialog.visible then
+            vb.views.progress_text.text = string.format("Processing wavetable %d%%...", math.floor((i / original_sample_length) * 100))
+          end
+          coroutine.yield()
+        end
       end
     else
       for i = 1, original_sample_length do
@@ -224,6 +277,14 @@ function pti_loadsample(filepath)
         local sample = bit.bor(bit.lshift(hi, 8), lo)
         if sample >= 32768 then sample = sample - 65536 end
         wavetable_buffer:set_sample_data(1, i, sample / 32768)
+        
+        -- Yield for wavetable processing
+        if i % wavetable_yield_interval == 0 then
+          if dialog and dialog.visible then
+            vb.views.progress_text.text = string.format("Processing wavetable %d%%...", math.floor((i / original_sample_length) * 100))
+          end
+          coroutine.yield()
+        end
       end
     end
 
@@ -244,6 +305,11 @@ function pti_loadsample(filepath)
     end
 
     for pos = 0, wavetable_total_positions - 1 do
+      -- Update progress for wavetable position processing
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Creating wavetable position %d/%d...", pos + 1, wavetable_total_positions)
+      end
+      
       local pos_start = pos * wavetable_window
       local new_sample = current_instrument:insert_sample_at(pos + 2)
       new_sample.sample_buffer:create_sample_data(44100, 16, is_stereo and 2 or 1, wavetable_window)
@@ -296,6 +362,9 @@ function pti_loadsample(filepath)
       else
         new_sample.sample_mapping.velocity_range = {0, 0}
       end
+      
+      -- Yield every wavetable position to keep UI responsive
+      coroutine.yield()
     end
   
     print(string.format("-- Created wavetable with %d positions, window size %d",
@@ -469,6 +538,11 @@ function pti_loadsample(filepath)
   print(string.format("-- DEBUG: Total samples in instrument: %d", #renoise.song().selected_instrument.samples))
   print(string.format("-- DEBUG: Sample length after processing: %d frames", renoise.song().selected_instrument.samples[1].sample_buffer.number_of_frames))
   
+  -- Close dialog
+  if dialog and dialog.visible then
+    dialog:close()
+  end
+
   if total_slices > 0 then
     renoise.app():show_status(string.format("PTI imported with %d slice markers", total_slices))
     print(string.format("-- SUCCESS: PTI loaded with slices - check Sample Editor for slice markers"))
@@ -863,9 +937,14 @@ function buildPTIHeader(inst, beat_slice_mode)
   local has_slices = inst.slice_markers and #inst.slice_markers > 0
   
   if has_slices then
-    -- ALWAYS use Beat Slice mode (5) for any sliced sample
-    pti_playback_mode = 5 -- Beat slice - always for slices
-    print("-- buildPTIHeader: Setting playback mode to Beat Slice (5) - always for slices")
+    -- Use Beat Slice mode (5) for drumkits, Slice mode (4) for melodic slices
+    if beat_slice_mode then
+      pti_playback_mode = 5 -- Beat slice mode for drumkits
+      print("-- buildPTIHeader: Setting playback mode to Beat Slice (5) for drumkit")
+    else
+      pti_playback_mode = 4 -- Slice mode for melodic slices  
+      print("-- buildPTIHeader: Setting playback mode to Slice (4) for melodic slice")
+    end
   else
     -- Map Renoise loop mode to PTI loop mode (for non-sliced samples)
     local renoise_loop_modes = {
@@ -998,7 +1077,7 @@ function buildPTIHeader(inst, beat_slice_mode)
   -- Write active slice (offset 377) - which slice is selected
   if has_slices then
     local slice_count = math.min(48, #(inst.slice_markers or {}))
-    local active_slice = 0  -- Always use first slice as active slice for consistency
+    local active_slice = current_selected_slice or 0  -- Use current_selected_slice for melodic slice exports
     write_at(378, string.char(active_slice))
     print(string.format("-- buildPTIHeader: Wrote active slice %d at offset 377", active_slice))
   end
@@ -1019,9 +1098,12 @@ function buildPTIHeader(inst, beat_slice_mode)
 end
 
 -- Write PCM data mono or stereo
-local function write_pcm(f, inst)
+local function write_pcm(f, inst, dialog, vb)
   local buf = inst.sample_buffer
   local channels = inst.channels or 1
+  
+  -- Calculate yield interval for reasonable yielding (every 75000 frames max)
+  local yield_interval = math.min(75000, math.max(5000, math.floor(inst.sample_length / 50)))
   
   if channels == 2 then
     -- For stereo: write all left channel data first, then all right channel data
@@ -1038,6 +1120,14 @@ local function write_pcm(f, inst)
       if int < 0 then int = int + 65536 end
       -- Write as 16-bit LE
       write_uint16_le(f, int)
+      
+      -- Yield periodically for left channel
+      if i % yield_interval == 0 then
+        if dialog and dialog.visible then
+          vb.views.progress_text.text = string.format("Writing left channel %d%%...", math.floor((i / inst.sample_length) * 50))
+        end
+        coroutine.yield()
+      end
     end
     
     -- Write right channel block  
@@ -1051,6 +1141,14 @@ local function write_pcm(f, inst)
       if int < 0 then int = int + 65536 end
       -- Write as 16-bit LE
       write_uint16_le(f, int)
+      
+      -- Yield periodically for right channel  
+      if i % yield_interval == 0 then
+        if dialog and dialog.visible then
+          vb.views.progress_text.text = string.format("Writing right channel %d%%...", 50 + math.floor((i / inst.sample_length) * 50))
+        end
+        coroutine.yield()
+      end
     end
   else
     -- Mono: write samples sequentially
@@ -1064,6 +1162,14 @@ local function write_pcm(f, inst)
       if int < 0 then int = int + 65536 end
       -- Write as 16-bit LE
       write_uint16_le(f, int)
+      
+      -- Yield periodically for mono
+      if i % yield_interval == 0 then
+        if dialog and dialog.visible then
+          vb.views.progress_text.text = string.format("Writing sample data %d%%...", math.floor((i / inst.sample_length) * 100))
+        end
+        coroutine.yield()
+      end
     end
   end
 end
@@ -1208,9 +1314,9 @@ function pti_savesample_to_path(filepath)
   end
   print(string.format("-- First 100 frames min/max: %.6f to %.6f", min_val, max_val))
 
-  -- Write PCM data
+  -- Write PCM data (without ProcessSlicer for pti_savesample_to_path)
   local pcm_start_pos = f:seek()
-  write_pcm(f, { sample_buffer = smp.sample_buffer, sample_length = data.sample_length, channels = data.channels })
+  write_pcm(f, { sample_buffer = smp.sample_buffer, sample_length = data.sample_length, channels = data.channels }, nil, nil)
   local pcm_end_pos = f:seek()
   local pcm_size = pcm_end_pos - pcm_start_pos
   
@@ -1235,6 +1341,18 @@ end
 
 -- Main save
 function pti_savesample()
+  -- Start ProcessSlicer for PTI saving
+  local dialog, vb
+  local process_slicer = ProcessSlicer(function()
+    pti_savesample_Worker(dialog, vb)
+  end)
+  
+  dialog, vb = process_slicer:create_dialog("Saving PTI Sample...")
+  process_slicer:start()
+end
+
+--- ProcessSlicer worker function for PTI saving
+function pti_savesample_Worker(dialog, vb)
   local song = renoise.song()
   local inst = song.selected_instrument
   
@@ -1379,9 +1497,14 @@ function pti_savesample()
   end
   print(string.format("-- First 100 frames min/max: %.6f to %.6f", min_val, max_val))
 
-  -- Write PCM data
+  -- Write PCM data with ProcessSlicer
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Writing PCM sample data..."
+  end
+  renoise.app():show_status("PTI Export: Writing PCM sample data...")
+  
   local pcm_start_pos = f:seek()
-  write_pcm(f, { sample_buffer = smp.sample_buffer, sample_length = data.sample_length, channels = data.channels })
+  write_pcm(f, { sample_buffer = smp.sample_buffer, sample_length = data.sample_length, channels = data.channels }, dialog, vb)
   local pcm_end_pos = f:seek()
   local pcm_size = pcm_end_pos - pcm_start_pos
   
@@ -1389,6 +1512,11 @@ function pti_savesample()
   print(string.format("-- Total file size: %d bytes", pcm_end_pos))
 
   f:close()
+
+  -- Close dialog
+  if dialog and dialog.visible then
+    dialog:close()
+  end
 
   -- Show final status
   if original_slice_count > 0 then

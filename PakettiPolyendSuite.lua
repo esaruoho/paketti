@@ -472,13 +472,263 @@ local function write_pcm(f, inst)
 end
 
 --------------------------------------------------------------------------------
--- RX2 to PTI Conversion Function
+-- Universal REX/ITI/RX2 to PTI Conversion Function
 --------------------------------------------------------------------------------
-function rx2_to_pti_convert()
-  -- Step 1: Browse for RX2 file
-  local rx2_filename = renoise.app():prompt_for_filename_to_read({"*.RX2"}, "Select RX2 file to convert to PTI")
-  if not rx2_filename or rx2_filename == "" then
+function universal_to_pti_convert()
+  -- Step 1: Browse for REX, ITI, or RX2 file
+  local source_filename = renoise.app():prompt_for_filename_to_read({"*.REX", "*.RX2", "*.ITI"}, "Select REX/RX2/ITI file to convert to PTI")
+  if not source_filename or source_filename == "" then
     return
+  end
+
+  print("------------")
+  print("-- Universal to PTI Conversion Started")
+  print("-- Source file: " .. source_filename)
+
+  -- Detect file format based on extension
+  local file_extension = source_filename:match("%.([^%.]+)$"):upper()
+  print("-- Detected format: " .. file_extension)
+
+  -- Store initial instrument index for cleanup if needed
+  local initial_instrument_count = #renoise.song().instruments
+
+  local load_success = false
+  local instrument_name = ""
+
+  -- Call appropriate loader based on file extension
+  if file_extension == "REX" then
+    print("-- Loading REX file...")
+    load_success = rex_loadsample(source_filename)
+    if load_success then
+      instrument_name = source_filename:match("([^/\\]+)$"):gsub("%.rex$", "")
+    end
+  elseif file_extension == "ITI" then
+    print("-- Loading ITI file...")
+    load_success = iti_loadinstrument(source_filename)
+    if load_success then
+      instrument_name = source_filename:match("([^/\\]+)$"):gsub("%.iti$", "")
+    end
+  elseif file_extension == "RX2" then
+    print("-- Loading RX2 file...")
+    -- Call original RX2 conversion logic
+    rx2_to_pti_convert_original(source_filename)
+    return -- RX2 has its own complete PTI export workflow
+  else
+    renoise.app():show_status("Unsupported file format: " .. file_extension)
+    print("-- ERROR: Unsupported file format")
+    return
+  end
+
+  -- Check if loading was successful
+  if not load_success then
+    print("-- ERROR: Failed to load " .. file_extension .. " file")
+    renoise.app():show_status("Failed to load " .. file_extension .. " file")
+    return
+  end
+
+  -- Verify instrument was created
+  local current_instrument_count = #renoise.song().instruments
+  if current_instrument_count <= initial_instrument_count then
+    print("-- ERROR: No new instrument was created")
+    renoise.app():show_status("No instrument was created during " .. file_extension .. " import")
+    return
+  end
+
+  print("-- " .. file_extension .. " file loaded successfully")
+  print("-- Proceeding with PTI export...")
+
+  -- Continue with PTI export logic (same as original RX2 function)
+  universal_to_pti_export(source_filename, instrument_name, file_extension)
+end
+
+-- Extract PTI export logic into separate function for reuse
+function universal_to_pti_export(source_filename, instrument_name, file_format)
+  local song = renoise.song()
+  
+  -- Clean up instrument name for file paths
+  if not instrument_name or instrument_name == "" then
+    instrument_name = source_filename:match("([^/\\]+)$") or (file_format .. " Sample")
+    -- Remove extension from name
+    instrument_name = instrument_name:gsub("%.[^%.]+$", "")
+  end
+  
+  -- Determine PTI save location 
+  local pti_filename
+  local pti_save_path = preferences.pakettiPolyendPTISavePath.value
+  local use_save_paths = preferences.pakettiPolyendSavePaths.value
+
+  if use_save_paths and pti_save_path and pti_save_path ~= "" then
+    -- Check if device is connected (only for network paths)
+    if pti_save_path:match("^//") or pti_save_path:match("^\\\\") then
+      print("-- " .. file_format .. "→PTI: Checking network device connection for: " .. pti_save_path)
+      local device_connected = check_device_connection(pti_save_path)
+      if not device_connected then
+        print("-- " .. file_format .. "→PTI: Device not connected - falling back to dialog")
+        pti_filename = renoise.app():prompt_for_filename_to_write("pti", "Save converted ." .. file_format .. " as .PTI to...")
+        if pti_filename == "" then
+          print("-- PTI export cancelled by user")
+          return
+        end
+        print("-- PTI export filename: " .. pti_filename)
+      else
+        print("-- " .. file_format .. "→PTI: Device is connected: " .. pti_save_path)
+        -- Use configured network save path
+        local safe_name = instrument_name:gsub("[^%w%-%_]", "_") -- Replace unsafe characters
+        local separator = package.config:sub(1,1)
+        local base_path = pti_save_path .. separator .. safe_name .. ".pti"
+        
+        -- Generate unique filename if file already exists
+        pti_filename = generate_unique_filename(base_path)
+        local final_filename = pti_filename:match("[^/\\]+$") or "converted.pti"
+        
+        print("-- PTI export using save path: " .. pti_filename)
+      end
+    else
+      print("-- " .. file_format .. "→PTI: Save path is local - no device checking needed: " .. pti_save_path)
+      -- Use configured local save path
+      local safe_name = instrument_name:gsub("[^%w%-%_]", "_") -- Replace unsafe characters
+      local separator = package.config:sub(1,1)
+      local base_path = pti_save_path .. separator .. safe_name .. ".pti"
+      
+      -- Generate unique filename if file already exists
+      pti_filename = generate_unique_filename(base_path)
+      local final_filename = pti_filename:match("[^/\\]+$") or "converted.pti"
+      
+      print("-- PTI export using save path: " .. pti_filename)
+    end
+  else
+    -- Prompt for PTI save location
+    pti_filename = renoise.app():prompt_for_filename_to_write("pti", "Save converted ." .. file_format .. " as .PTI to...")
+    if pti_filename == "" then
+      print("-- PTI export cancelled by user")
+      return
+    end
+    print("-- PTI export filename: " .. pti_filename)
+  end
+
+  local inst = song.selected_instrument
+  local export_smp = inst.samples[1]
+
+  -- Handle slice count limitation (max 48 in PTI format)
+  local original_slice_count = #(export_smp.slice_markers or {})
+  local limited_slice_count = math.min(48, original_slice_count)
+  
+  if original_slice_count > 48 then
+    print(string.format("-- NOTE: Sample has %d slices - limiting to 48 slices for PTI format", original_slice_count))
+    renoise.app():show_status(string.format("PTI format supports max 48 slices - limiting from %d", original_slice_count))
+  end
+
+  -- Gather simple inst params
+  local data = {
+    name = inst.name,
+    is_wavetable = false,
+    sample_length = export_smp.sample_buffer.number_of_frames,
+    loop_mode = export_smp.loop_mode,
+    loop_start = export_smp.loop_start,
+    loop_end = export_smp.loop_end,
+    channels = export_smp.sample_buffer.number_of_channels,
+    slice_markers = {} -- Initialize empty slice markers table
+  }
+
+  -- Copy up to 48 slice markers
+  print(string.format("-- Copying %d slice markers from Renoise sample", limited_slice_count))
+  for i = 1, limited_slice_count do
+    data.slice_markers[i] = export_smp.slice_markers[i]
+    print(string.format("-- Export slice %02d: Renoise frame position = %d", i, export_smp.slice_markers[i]))
+  end
+
+  -- Determine playback mode
+  local playback_mode = "1-Shot"
+  if #data.slice_markers > 0 then
+    playback_mode = "Slice"
+    print("-- Sample Playback Mode: Slice (mode 4)")
+  end
+
+  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
+    data.channels > 1 and "Stereo" or "Mono",
+    44100,
+    16,
+    data.sample_length,
+    limited_slice_count
+  ))
+
+  local loop_mode_names = {
+    [renoise.Sample.LOOP_MODE_OFF] = "OFF",
+    [renoise.Sample.LOOP_MODE_FORWARD] = "Forward",
+    [renoise.Sample.LOOP_MODE_REVERSE] = "Reverse",
+    [renoise.Sample.LOOP_MODE_PING_PONG] = "PingPong"
+  }
+
+  print(string.format("-- Loopmode: %s, Start: %d, End: %d, Looplength: %d",
+    loop_mode_names[export_smp.loop_mode] or "OFF",
+    export_smp.loop_start,
+    export_smp.loop_end,
+    export_smp.loop_end - export_smp.loop_start
+  ))
+
+  print(string.format("-- Wavetable Mode: %s", data.is_wavetable and "TRUE" or "FALSE"))
+
+  local f = io.open(pti_filename, "wb")
+  if not f then 
+    renoise.app():show_status("Cannot write file: " .. pti_filename)
+    return 
+  end
+
+  -- Write header and get its size for verification (using Beat Slice mode for sliced samples)
+  local use_beat_slice_mode = (#data.slice_markers > 0)
+  local header = buildPTIHeader(data, use_beat_slice_mode)
+  print(string.format("-- Header size: %d bytes", #header))
+  f:write(header)
+
+  -- Continue with sample data writing (same as original)
+  local buf = export_smp.sample_buffer
+  local frame_count = export_smp.sample_buffer.number_of_frames
+  local channel_count = export_smp.sample_buffer.number_of_channels
+  
+  print(string.format("-- Writing %d frames of sample data (%d channels)", frame_count, channel_count))
+
+  -- Write sample data frame by frame
+  for frame = 1, frame_count do
+    for channel = 1, channel_count do
+      local sample_value = buf:sample_data(channel, frame)
+      -- Convert to 16-bit signed integer (PTI format)
+      local int_value = math.floor(sample_value * 32767.5)
+      if int_value > 32767 then int_value = 32767 end
+      if int_value < -32768 then int_value = -32768 end
+      
+      -- Write as little-endian 16-bit
+      local low_byte = int_value % 256
+      if low_byte < 0 then low_byte = low_byte + 256 end
+      local high_byte = math.floor(int_value / 256) % 256
+      if high_byte < 0 then high_byte = high_byte + 256 end
+      
+      f:write(string.char(low_byte, high_byte))
+    end
+  end
+
+  f:close()
+  
+  renoise.app():show_status(string.format("%s→PTI conversion completed: %s", file_format, pti_filename))
+  print(string.format("-- %s→PTI conversion completed successfully", file_format))
+  print("-- Output file: " .. pti_filename)
+  print("------------")
+end
+
+-- Backward compatibility wrapper - calls universal converter
+function rx2_to_pti_convert()
+  universal_to_pti_convert()
+end
+
+-- Original RX2 to PTI Conversion Function (renamed for internal use)
+--------------------------------------------------------------------------------
+function rx2_to_pti_convert_original(rx2_filename_override)
+  -- Step 1: Browse for RX2 file (unless filename is provided)
+  local rx2_filename = rx2_filename_override
+  if not rx2_filename then
+    rx2_filename = renoise.app():prompt_for_filename_to_read({"*.RX2"}, "Select RX2 file to convert to PTI")
+    if not rx2_filename or rx2_filename == "" then
+      return
+    end
   end
 
   print("------------")
@@ -2427,7 +2677,8 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
   local drumkit_instrument = song.selected_instrument
   
   -- Copy all settings from source instrument
-  drumkit_instrument.name = "Stereo Drumkit Combo of " .. source_instrument.name
+  local instrument_type = current_selected_slice ~= nil and "Melodic Slice Combo of" or "Stereo Drumkit Combo of"
+  drumkit_instrument.name = instrument_type .. " " .. source_instrument.name
   
   -- Copy ONLY the first samples_to_copy samples using FAST bulk copy!
   for i = 1, samples_to_copy do
@@ -2567,7 +2818,8 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
    
    -- Clear all samples and create one combined sample
    if dialog and dialog.visible then
-     vb.views.progress_text.text = "Combining samples into drumkit..."
+     local progress_text = current_selected_slice ~= nil and "Combining samples into sample chain..." or "Combining samples into drumkit..."
+    vb.views.progress_text.text = progress_text
    end
    renoise.app():show_status("PTI Stereo: Combining samples into drumkit...")
    
@@ -2598,16 +2850,24 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
        return
      end
      
-     print("-- Save PTI as Drumkit: ✓ Combined sample buffer created successfully - STARTING BULK COPY...")
+     local copy_type = current_selected_slice ~= nil and "Melodic Slice" or "Save PTI as Drumkit"
+     print(string.format("-- %s: ✓ Combined sample buffer created successfully - STARTING BULK COPY...", copy_type))
      
      -- Copy all samples into the combined buffer using FAST bulk operations
-     print("-- Save PTI as Drumkit: Starting FAST bulk copy operations...")
+     print(string.format("-- %s: Starting FAST bulk copy operations...", copy_type))
      local start_time = os.clock()
      local current_position = 1
      
           for i, sample_info in ipairs(sample_data_list) do
        local copy_start_time = os.clock()
-       print(string.format("-- Save PTI as Drumkit: [%d/%d] COPYING sample %d (%d frames) to position %d", i, #sample_data_list, i, sample_info.frames, current_position))
+       
+       -- Update dialog progress
+       if dialog and dialog.visible then
+         local progress_type = current_selected_slice ~= nil and "sample chain" or "drumkit"
+         vb.views.progress_text.text = string.format("Combining sample %d/%d into %s...", i, #sample_data_list, progress_type)
+       end
+       
+       print(string.format("-- %s: [%d/%d] COPYING sample %d (%d frames) to position %d", copy_type, i, #sample_data_list, i, sample_info.frames, current_position))
        
        local success, error_msg = pcall(function()
          -- Use REAL bulk copy operation - copy sample data efficiently in chunks!
@@ -2706,9 +2966,11 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
   
   -- Insert slice markers
   if dialog and dialog.visible then
-    vb.views.progress_text.text = "Creating slice markers..."
+    local progress_text = current_selected_slice ~= nil and "Creating melodic slice markers..." or "Creating slice markers..."
+    vb.views.progress_text.text = progress_text
   end
-  renoise.app():show_status("PTI Stereo: Creating slice markers...")
+  local marker_status = current_selected_slice ~= nil and "Melodic Slice: Creating slice markers..." or "PTI Stereo: Creating slice markers..."
+  renoise.app():show_status(marker_status)
   for i = 1, #slice_positions do
     combined_sample:insert_slice_marker(slice_positions[i])
     -- Yield every 10 slices
@@ -2724,12 +2986,24 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
     dialog:close()
   end
   
-  renoise.app():show_status(string.format("PTI Stereo: Drumkit created with %d slices (%s)", #slice_positions, target_format))
-  print("-- Save PTI as Drumkit: Drumkit creation completed successfully")
+  local final_status = current_selected_slice ~= nil and 
+    string.format("Melodic Slice: Sample chain created with %d slices (%s)", #slice_positions, target_format) or
+    string.format("PTI Stereo: Drumkit created with %d slices (%s)", #slice_positions, target_format)
+  renoise.app():show_status(final_status)
+  
+  local final_log = current_selected_slice ~= nil and 
+    "-- Melodic Slice: Sample chain creation completed successfully" or
+    "-- Save PTI as Drumkit: Drumkit creation completed successfully"
+  print(final_log)
   
   -- Save PTI file (skip prompt if requested)
   if not skip_save_prompt then
     pti_savesample()
+  elseif current_selected_slice ~= nil then
+    -- CRITICAL FIX: For melodic slice export, we need to export the PTI from within ProcessSlicer
+    -- because the sample chain creation is asynchronous
+    print("-- MELODIC SLICE ProcessSlicer: Now calling pti_savesample() for slice mode export")
+    pti_savesample() -- Export as SLICE mode (4) because current_selected_slice is set
   end
 end
 
@@ -2764,7 +3038,13 @@ function save_pti_as_drumkit_stereo(skip_save_prompt)
     save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_save_prompt, dialog, vb)
   end)
   
-  dialog, vb = process_slicer:create_dialog("Creating Polyend Drumkit...")
+  -- Use different dialog title for melodic slice vs drumkit
+  local dialog_title = "Creating Polyend Drumkit..."
+  if current_selected_slice ~= nil then
+    dialog_title = "Creating Melodic Slice Sample Chain..."
+  end
+  
+  dialog, vb = process_slicer:create_dialog(dialog_title)
   process_slicer:start()
 end
 
@@ -2932,7 +3212,8 @@ function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_sa
    
    -- Clear all samples and create one combined sample
    if dialog and dialog.visible then
-     vb.views.progress_text.text = "Combining samples into drumkit..."
+     local progress_text = current_selected_slice ~= nil and "Combining samples into sample chain..." or "Combining samples into drumkit..."
+    vb.views.progress_text.text = progress_text
    end
    renoise.app():show_status("PTI Mono: Combining samples into drumkit...")
    
@@ -3076,6 +3357,11 @@ function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_sa
   -- Save PTI file (skip prompt if requested)
   if not skip_save_prompt then
     pti_savesample()
+  elseif current_selected_slice ~= nil then
+    -- CRITICAL FIX: For melodic slice export, we need to export the PTI from within ProcessSlicer
+    -- because the sample chain creation is asynchronous
+    print("-- MELODIC SLICE ProcessSlicer: Now calling pti_savesample() for slice mode export")
+    pti_savesample() -- Export as SLICE mode (4) because current_selected_slice is set
   end
 end
 
@@ -3169,7 +3455,11 @@ PakettiPolyendSuiteTooltips = {
   [48] = "Open the firmware downloads page for the selected device", -- Get Firmware button (Firmware row)
   [49] = "Automatically find, download and extract the latest firmware for the selected device", -- Auto-Update Firmware button (Firmware row)
   [50] = "Open the Polyend Palettes sample packs store in your browser", -- Polyend Palettes button (Links row)
-  [51] = "Rescan the folder for PTI files or reconnect Polyend device" -- Refresh button (Refresh row)
+  [51] = "Rescan the folder for PTI files or reconnect Polyend device", -- Refresh button (Refresh row)
+  [52] = "Load 48 samples → Create melodic slice chain (for auditioning with Slice Switcher)", -- Create Melodic Slice Instrument button
+  [53] = "Open the Polyend Slice Switcher dialog to audition and switch between melodic slices", -- Open Slice Switcher button  
+  [54] = "Export current sliced instrument as PTI (use after creating chain and auditioning)", -- Export as Melodic Slice button
+  [55] = "Load 48 samples → Create melodic slice chain → Export as PTI (one-shot)" -- Create + Export Melodic Slice button
 }
 
 -- Function to create the Polyend Buddy dialog content
@@ -4542,6 +4832,57 @@ function create_polyend_buddy_dialog(vb)
       }
     },
     
+    -- Melodic Slice row 1
+    vb:row{
+      
+      vb:text{
+        text = "Melodic Slice",
+        width = textWidth, style="strong",font="bold"
+      },
+      vb:button{
+        text = "Create Melodic Slice Instrument",
+        width = 200,
+        tooltip = PakettiPolyendSuiteTooltips[52],
+        notifier = function()
+          -- Load max 48 manually selected samples
+          PakettiMelodicSliceLoadSamples()
+          
+          -- Create melodic slice chain only (for auditioning)
+          PakettiMelodicSliceCreateChain()
+        end
+      },
+      vb:button{
+        text = "Open Slice Switcher",
+        width = 200,
+        tooltip = PakettiPolyendSuiteTooltips[53],
+        notifier = function()
+          -- Open the Polyend Slice Switcher dialog
+          PakettiPolyendSliceSwitcherCreateDialog()
+        end
+      },
+      vb:button{
+        text = "Export as Melodic Slice",
+        width = 200,
+        tooltip = PakettiPolyendSuiteTooltips[54],
+        notifier = function()
+          -- Export current sliced instrument as PTI
+          PakettiMelodicSliceExportCurrent()
+        end
+      },
+      vb:button{
+        text = "Create + Export Melodic Slice",
+        width = 200,
+        tooltip = PakettiPolyendSuiteTooltips[55],
+        notifier = function()
+          -- Load max 48 manually selected samples
+          PakettiMelodicSliceLoadSamples()
+          
+          -- Create melodic slice chain and export
+          PakettiMelodicSliceExport()
+        end
+      }
+    },
+    
     -- Convert row
     vb:row{
       
@@ -4550,12 +4891,12 @@ function create_polyend_buddy_dialog(vb)
         width = textWidth, style="strong",font="bold"
       },
       vb:button{
-        text = "RX2→PTI",
+        text = "REX/RX2/ITI→PTI",
         width = polyendButtonWidth*2,
         tooltip = PakettiPolyendSuiteTooltips[45],
         notifier = function()
-          -- Call the existing RX2 to PTI conversion function
-          rx2_to_pti_convert()
+          -- Call the universal REX/ITI/RX2 to PTI conversion function
+          universal_to_pti_convert()
         end
       }
     },

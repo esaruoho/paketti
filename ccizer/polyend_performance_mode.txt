@@ -1,0 +1,36 @@
+41 PerfFXTrack1
+42 PerfFXTrack2
+43 PerfFXTrack3
+44 PerfFXTrack4
+45 PerfFXTrack5
+46 PerfFXTrack6
+47 PerfFXTrack7
+48 PerfFXTrack8
+
+51 PerfFXSlot1Value
+52 PerfFXSlot2Value
+53 PerfFXSlot3Value
+54 PerfFXSlot4Value
+55 PerfFXSlot5Value
+56 PerfFXSlot6Value
+57 PerfFXSlot7Value
+58 PerfFXSlot8Value
+59 PerfFXSlot9Value
+60 PerfFXSlot10Value
+61 PerfFXSlot11Value
+62 PerfFXSlot12Value
+
+71 TrackMixerVol1
+72 TrackMixerVol2
+73 TrackMixerVol3
+74 TrackMixerVol4
+75 TrackMixerVol5
+76 TrackMixerVol6
+77 TrackMixerVol7
+78 TrackMixerVol8
+
+79 GlobalDelayMix
+80 GlobalReverbMix
+81 GlobalDryMix
+82 GlobalLineInput
+

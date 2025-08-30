@@ -743,6 +743,7 @@ timed_require("PakettiCaptureLastTake")
 timed_require("PakettiSlabOPatterns")
 timed_require("PakettiPolyendSuite")
 timed_require("PakettiPolyendSliceSwitcher")
+timed_require("PakettiPolyendMelodicSliceExport")
 local PolyendYes = false
 PolyendYes = false
 if PolyendYes then

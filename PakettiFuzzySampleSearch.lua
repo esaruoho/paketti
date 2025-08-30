@@ -14,6 +14,9 @@ local columns_count = 5
 -- ViewBuilder instance for use in update functions
 local vb = renoise.ViewBuilder()
 
+-- Store button references for efficient updates
+local file_buttons = {}
+
 -- Supported file extensions
 local supported_extensions = {
   "wav", "flac", "aiff", "aif", "mp3", "m4a", "mp4", 
@@ -338,6 +341,9 @@ function PakettiFuzzySampleSearchUpdateDisplay()
     selected_index = 1
   end
   
+  -- Clear button references since we're recreating the dialog
+  file_buttons = {}
+  
   -- Close current dialog and recreate with updated content
   local was_visible = dialog.visible
   dialog:close()
@@ -375,7 +381,7 @@ function PakettiFuzzySampleSearchCreateFileDisplay()
           button_text = button_text:sub(1, 57) .. "..."
         end
         
-        table.insert(column_views, vb:button{
+        local button = vb:button{
           text = button_text,
           width = 300,
           height = 22,
@@ -383,9 +389,13 @@ function PakettiFuzzySampleSearchCreateFileDisplay()
           color = is_selected and {0x80, 0xC0, 0xFF} or {0x00, 0x00, 0x00},
           notifier = function()
             selected_index = i
-            PakettiFuzzySampleSearchUpdateDisplay()
+            PakettiFuzzySampleSearchUpdateSelection()
           end
-        })
+        }
+        
+        -- Store button reference for efficient updates
+        file_buttons[i] = button
+        table.insert(column_views, button)
       end
       
       table.insert(file_columns, vb:column{
@@ -406,6 +416,9 @@ end
 function PakettiFuzzySampleSearchCreateDialog()
   -- Create a new ViewBuilder instance each time to avoid ID conflicts
   vb = renoise.ViewBuilder()
+  
+  -- Clear button references for fresh dialog
+  file_buttons = {}
   local dialog_content = vb:column{
     
     vb:row{
@@ -539,7 +552,7 @@ function PakettiFuzzySampleSearchCreateDialog()
     },
     
     vb:text{
-      text = "Use ↑↓←→ to navigate, Enter to load (keeps dialog open), Esc to clear search/close",
+      text = "Use ↑↓←→ to navigate (visual highlight + status bar), Enter to load (keeps dialog open), Esc to clear search/close",
       style = "disabled"
     },
     
@@ -578,6 +591,9 @@ function PakettiFuzzySampleSearchCreateDialog()
   end
   
   dialog = renoise.app():show_custom_dialog("Paketti Fuzzy Sample Search", dialog_content, keyhandler)
+  
+  -- Show initial selection in status bar
+  PakettiFuzzySampleSearchUpdateSelection()
 end
 
 -- Load the selected sample
@@ -713,7 +729,30 @@ function PakettiFuzzySampleSearchNavigate(direction)
   end
   
   if old_index ~= selected_index then
-    PakettiFuzzySampleSearchUpdateDisplay()
+    -- Just update the button colors without recreating the dialog
+    PakettiFuzzySampleSearchUpdateSelection()
+  end
+end
+
+-- Fast selection update without dialog recreation
+function PakettiFuzzySampleSearchUpdateSelection()
+  -- Update button colors efficiently like Dialog of Dialogs does
+  for i, button in pairs(file_buttons) do
+    if button and button.color then
+      if i == selected_index then
+        button.color = {0x80, 0xC0, 0xFF} -- Light blue for selected
+        button.font = "bold"
+      else
+        button.color = {0x00, 0x00, 0x00} -- Default for unselected
+        button.font = "normal"
+      end
+    end
+  end
+  
+  -- Also show selection in status bar
+  if #filtered_files > 0 and selected_index >= 1 and selected_index <= #filtered_files then
+    local selected_file = filtered_files[selected_index]
+    renoise.app():show_status(string.format("Selected: %s (%d/%d)", selected_file.display_name, selected_index, #filtered_files))
   end
 end
 
@@ -815,20 +854,40 @@ function PakettiFuzzySampleSearchDialog()
     return
   end
   
-  -- Get starting directory (but don't scan automatically)
-  current_directory = PakettiFuzzySampleSearchGetLastDirectory()
+  -- Get starting directory 
+  local last_directory = PakettiFuzzySampleSearchGetLastDirectory()
   
-  -- Initialize empty - user must choose directory
-  current_files = {}
-  filtered_files = {}
-  search_query = ""
+  -- Only reset files if directory changed or no directory set
+  if current_directory ~= last_directory then
+    current_directory = last_directory
+    current_files = {}
+    filtered_files = {}
+    search_query = ""
+    selected_index = 1
+    
+    -- Try to load from cache if directory is set
+    if current_directory ~= "" and PakettiFuzzySampleSearchIsCacheValid(current_directory) then
+      local cache_data = PakettiFuzzySampleSearchLoadCache(current_directory)
+      if cache_data and cache_data.files then
+        current_files = cache_data.files
+        filtered_files = cache_data.files
+        renoise.app():show_status("Loaded " .. #current_files .. " files from cache")
+      end
+    end
+  end
+  
+  -- Always reset selection to start
   selected_index = 1
   
   -- Create the dialog
   PakettiFuzzySampleSearchCreateDialog()
   
   if current_directory ~= "" then
-    renoise.app():show_status("Sample Search opened - Previous directory: " .. current_directory)
+    if #current_files > 0 then
+      renoise.app():show_status("Sample Search opened - " .. #current_files .. " files ready from: " .. current_directory)
+    else
+      renoise.app():show_status("Sample Search opened - Previous directory: " .. current_directory .. " (click Scan to load)")
+    end
   else
     renoise.app():show_status("Sample Search opened - Click Browse to select a directory")
   end

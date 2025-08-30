@@ -1020,8 +1020,9 @@ function update_sample_details(details_text, sample_name_text)
   sample_name_text.text="Name: No valid sample selected"
 end
 
-function PakettiStripSilence()
-  local song=renoise.song()
+-- ProcessSlicer coroutine version of PakettiStripSilence
+function PakettiStripSilenceCoroutine()
+  local song = renoise.song()
   local sample_index = song.selected_sample_index
   local instrument = song.selected_instrument
   local threshold = renoise.tool().preferences.PakettiStripSilenceThreshold.value
@@ -1042,8 +1043,12 @@ function PakettiStripSilence()
   local num_channels = buffer.number_of_channels
   local num_frames = buffer.number_of_frames
   local start_frame, end_frame = 1, num_frames
+  local yield_counter = 0
+  local YIELD_EVERY = 10000 -- Yield every 10k frames for responsiveness
 
-  -- Find start frame
+  renoise.app():show_status("Analyzing silence at beginning...")
+  
+  -- Find start frame with yielding
   for frame = 1, num_frames do
     local is_silent = true
     for channel = 1, num_channels do
@@ -1056,9 +1061,20 @@ function PakettiStripSilence()
       start_frame = frame
       break
     end
+    
+    -- Yield periodically
+    yield_counter = yield_counter + 1
+    if yield_counter >= YIELD_EVERY then
+      yield_counter = 0
+      renoise.app():show_status(string.format("Analyzing start: %.1f%%", (frame / num_frames) * 100))
+      coroutine.yield()
+    end
   end
 
-  -- Find end frame
+  renoise.app():show_status("Analyzing silence at end...")
+  yield_counter = 0
+
+  -- Find end frame with yielding
   for frame = num_frames, 1, -1 do
     local is_silent = true
     for channel = 1, num_channels do
@@ -1071,6 +1087,14 @@ function PakettiStripSilence()
       end_frame = frame
       break
     end
+    
+    -- Yield periodically
+    yield_counter = yield_counter + 1
+    if yield_counter >= YIELD_EVERY then
+      yield_counter = 0
+      renoise.app():show_status(string.format("Analyzing end: %.1f%%", ((num_frames - frame) / num_frames) * 100))
+      coroutine.yield()
+    end
   end
 
   local new_num_frames = end_frame - start_frame + 1
@@ -1080,15 +1104,28 @@ function PakettiStripSilence()
     return
   end
 
+  renoise.app():show_status("Creating trimmed sample...")
+
   -- Create a new sample buffer with the trimmed data
   local new_sample = instrument:insert_sample_at(sample_index + 1)
   local new_buffer = new_sample.sample_buffer
   new_buffer:create_sample_data(buffer.sample_rate, buffer.bit_depth, num_channels, new_num_frames)
   new_buffer:prepare_sample_data_changes()
 
+  yield_counter = 0
+  
+  -- Copy data with yielding
   for frame = 1, new_num_frames do
     for channel = 1, num_channels do
       new_buffer:set_sample_data(channel, frame, buffer:sample_data(channel, start_frame + frame - 1))
+    end
+    
+    -- Yield periodically
+    yield_counter = yield_counter + 1
+    if yield_counter >= YIELD_EVERY then
+      yield_counter = 0
+      renoise.app():show_status(string.format("Copying data: %.1f%%", (frame / new_num_frames) * 100))
+      coroutine.yield()
     end
   end
 
@@ -1129,11 +1166,19 @@ function PakettiStripSilence()
   renoise.app():show_status("Removed Silence from beginning + end of sample at threshold " .. (threshold * 100) .. "%")
 end
 
-function PakettiMoveSilence()
-  local song=renoise.song()
+function PakettiStripSilence()
+  local slicer = ProcessSlicer(PakettiStripSilenceCoroutine)
+  slicer:start()
+end
+
+-- ProcessSlicer coroutine version of PakettiMoveSilence
+function PakettiMoveSilenceCoroutine()
+  local song = renoise.song()
   local sample_index = song.selected_sample_index
   local instrument = song.selected_instrument
   local threshold = renoise.tool().preferences.PakettiMoveSilenceThreshold.value
+  local yield_counter = 0
+  local YIELD_EVERY = 10000 -- Yield every 10k frames for responsiveness
   
   if not instrument or sample_index == 0 or not instrument:sample(sample_index) then
     renoise.app():show_status("No valid instrument/sample/sample buffer.")
@@ -1146,6 +1191,8 @@ function PakettiMoveSilence()
     renoise.app():show_status("Sample buffer is empty.")
     return
   end
+
+  renoise.app():show_status("Analyzing initial silence...")
 
   -- Check for silence before creating temporary sample
   local start_frame = 1
@@ -1161,12 +1208,22 @@ function PakettiMoveSilence()
       start_frame = frame
       break
     end
+    
+    -- Yield periodically
+    yield_counter = yield_counter + 1
+    if yield_counter >= YIELD_EVERY then
+      yield_counter = 0
+      renoise.app():show_status(string.format("Analyzing silence: %.1f%%", (frame / buffer.number_of_frames) * 100))
+      coroutine.yield()
+    end
   end
 
   if start_frame == 1 then
     renoise.app():show_status("No initial silence found.")
     return
   end
+
+  renoise.app():show_status("Creating temporary sample...")
 
   -- Create temporary sample only if we found silence to move
   local temp_sample = instrument:insert_sample_at(#instrument.samples + 1)
@@ -1176,38 +1233,39 @@ function PakettiMoveSilence()
   local temp_buffer = temp_sample.sample_buffer
   temp_buffer:prepare_sample_data_changes()
   
-  -- Find start frame (end of initial silence)
-  local start_frame = 1
-  for frame = 1, buffer.number_of_frames do
-    local is_silent = true
-    for channel = 1, buffer.number_of_channels do
-      if math.abs(buffer:sample_data(channel, frame)) > threshold then
-        is_silent = false
-        break
-      end
-    end
-    if not is_silent then
-      start_frame = frame
-      break
-    end
-  end
+  renoise.app():show_status("Processing silence movement...")
+  yield_counter = 0
 
-  if start_frame == 1 then
-    -- No silence found, clean up and return
-    instrument:delete_sample_at(#instrument.samples)
-    renoise.app():show_status("No initial silence found.")
-    return
-  end
-
-  -- Copy non-silent part to beginning
+  -- Copy non-silent part to beginning with yielding
   for channel = 1, buffer.number_of_channels do
     for frame = 1, buffer.number_of_frames - start_frame + 1 do
       temp_buffer:set_sample_data(channel, frame, 
         buffer:sample_data(channel, start_frame + frame - 1))
+      
+      -- Yield periodically
+      yield_counter = yield_counter + 1
+      if yield_counter >= YIELD_EVERY then
+        yield_counter = 0
+        local progress = ((channel - 1) * (buffer.number_of_frames - start_frame + 1) + frame) / 
+                        (buffer.number_of_channels * (buffer.number_of_frames - start_frame + 1))
+        renoise.app():show_status(string.format("Moving audio: %.1f%%", progress * 100))
+        coroutine.yield()
+      end
     end
+    
     -- Fill end with silence
     for frame = buffer.number_of_frames - start_frame + 2, buffer.number_of_frames do
       temp_buffer:set_sample_data(channel, frame, 0)
+      
+      -- Yield periodically
+      yield_counter = yield_counter + 1
+      if yield_counter >= YIELD_EVERY then
+        yield_counter = 0
+        local progress = ((channel - 1) * (start_frame - 1) + (frame - (buffer.number_of_frames - start_frame + 1))) / 
+                        (buffer.number_of_channels * (start_frame - 1))
+        renoise.app():show_status(string.format("Adding silence: %.1f%%", progress * 100))
+        coroutine.yield()
+      end
     end
   end
 
@@ -1222,6 +1280,11 @@ function PakettiMoveSilence()
   renoise.app():show_status("Moved beginning silence to the end of the sample.")
 end
 
+function PakettiMoveSilence()
+  local slicer = ProcessSlicer(PakettiMoveSilenceCoroutine)
+  slicer:start()
+end
+
 renoise.tool():add_keybinding{name="Global:Paketti:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_midi_mapping{name="Paketti:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
@@ -1233,8 +1296,9 @@ renoise.tool():add_midi_mapping{name="Paketti:Move Beginning Silence to End",inv
 
 -----------
 
-function PakettiMoveSilenceAllSamples()
-  local song=renoise.song()
+-- ProcessSlicer coroutine version of PakettiMoveSilenceAllSamples
+function PakettiMoveSilenceAllSamplesCoroutine()
+  local song = renoise.song()
   local instrument = song.selected_instrument
   
   if not instrument then
@@ -1251,6 +1315,10 @@ function PakettiMoveSilenceAllSamples()
   local current_sample_index = song.selected_sample_index
   local threshold = renoise.tool().preferences.PakettiMoveSilenceThreshold.value
   local MIN_SILENCE_FRAMES = 50  -- Changed from 100 to 50 frames
+  local yield_counter = 0
+  local YIELD_EVERY = 1000 -- Yield every 1k frames for analysis
+  
+  renoise.app():show_status("Analyzing all samples for silence...")
   
   -- First analyze all samples to find those with significant silence
   local samples_to_process = {}
@@ -1259,8 +1327,10 @@ function PakettiMoveSilenceAllSamples()
     local sample = instrument:sample(i)
     local buffer = sample.sample_buffer
     
+    renoise.app():show_status(string.format("Analyzing sample %d/%d...", i, #instrument.samples))
+    
     if buffer and buffer.has_sample_data then
-      -- Find the first non-silent frame
+      -- Find the first non-silent frame with yielding
       local silent_frames = 0
       local first_non_silent_frame = nil
       
@@ -1275,6 +1345,15 @@ function PakettiMoveSilenceAllSamples()
         end
         if first_non_silent_frame then break end
         silent_frames = silent_frames + 1
+        
+        -- Yield periodically during analysis
+        yield_counter = yield_counter + 1
+        if yield_counter >= YIELD_EVERY then
+          yield_counter = 0
+          renoise.app():show_status(string.format("Analyzing sample %d/%d: %.1f%%", 
+            i, #instrument.samples, (frame / buffer.number_of_frames) * 100))
+          coroutine.yield()
+        end
       end
       
       -- Only process if we found significant initial silence
@@ -1284,13 +1363,26 @@ function PakettiMoveSilenceAllSamples()
           i, sample.name, silent_frames))
       end
     end
+    
+    -- Yield between samples
+    coroutine.yield()
   end
   
+  renoise.app():show_status(string.format("Found %d samples with silence to process", #samples_to_process))
+  
   -- Now process only the samples with significant silence
-  for _, sample_index in ipairs(samples_to_process) do
+  for idx, sample_index in ipairs(samples_to_process) do
+    renoise.app():show_status(string.format("Processing sample %d/%d (index %d)...", 
+      idx, #samples_to_process, sample_index))
+    
     song.selected_sample_index = sample_index
-    PakettiMoveSilence()
+    
+    -- Call the coroutine version directly since we're already in a ProcessSlicer context
+    PakettiMoveSilenceCoroutine()
     processed_count = processed_count + 1
+    
+    -- Yield between samples
+    coroutine.yield()
   end
   
   -- Restore original sample selection
@@ -1301,6 +1393,11 @@ function PakettiMoveSilenceAllSamples()
   else
     renoise.app():show_status("No samples with significant initial silence found (minimum 50 frames).")
   end
+end
+
+function PakettiMoveSilenceAllSamples()
+  local slicer = ProcessSlicer(PakettiMoveSilenceAllSamplesCoroutine)
+  slicer:start()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}

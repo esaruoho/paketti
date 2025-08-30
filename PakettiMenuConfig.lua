@@ -1406,7 +1406,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Oblique Stra
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Track Renamer...",invoke=function() pakettiTrackRenamerDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
     
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Convert RX2 to PTI",invoke=rx2_to_pti_convert}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Convert REX/RX2/ITI to PTI",invoke=universal_to_pti_convert}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Export .PTI Instrument",invoke=pti_savesample}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:File Formats:Load .MOD as Sample",
   invoke=function() 
@@ -2186,7 +2186,7 @@ renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti Pitc
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Load:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Load:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 
-renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Import/Export:Convert RX2 to PTI",invoke=rx2_to_pti_convert}
+renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Import/Export:Convert REX/RX2/ITI to PTI",invoke=universal_to_pti_convert}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Import/Export:Import .PTI (Polyend Tracker Instrument)",
   invoke=function()
     local f = renoise.app():prompt_for_filename_to_read({"*.PTI"}, "Select PTI to import")
