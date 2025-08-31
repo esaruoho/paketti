@@ -4,15 +4,16 @@
 
 local vb = renoise.ViewBuilder()
 
--- Canvas dimensions - optimized for 3-panel layout with proper margins and text space
-local canvas_width = 420
-local canvas_height = 170  -- Reduced from 220 to remove 50px excess space
-local text_height = 20     -- Space for vector text above canvas
-local content_margin = 20  -- Proper padding to ensure waveforms stay within boundaries 
+-- Canvas dimensions - optimized for minimal wasted space
+local canvas_width = 460   -- Increased width to use more dialog space
+local canvas_height = 180  -- Increased height for better drawing area
+local text_height = 14     -- Space for vector text with proper spacing
+local text_margin = 4      -- Space between text and drawing area (at least 1px as requested)
+local content_margin = 6   -- Minimal side padding
 local content_width = canvas_width - (content_margin * 2)
-local content_height = canvas_height - text_height - (content_margin * 2)
+local content_height = canvas_height - text_height - text_margin - content_margin
 local content_x = content_margin
-local content_y = text_height + content_margin  -- Start below text area
+local content_y = text_height + text_margin  -- Start below text with proper spacing
 
 -- Dialog and canvas references
 local sample_generator_dialog = nil
@@ -40,6 +41,13 @@ local volume_envelope_type = "current"  -- "current", "flat", "ramp_down", "ramp
 local pitch_modulation_type = "current"  -- "current", "flat", "ramp_up", "ramp_down", "triangle", "sine_wave", "random"
 local use_waveform_override = false  -- If true, use drawn waveform as base wave instead of dropdown selection
 local fade_out_enabled = true  -- If true, apply fade out to last 15 frames to avoid clicks
+
+-- Live pickup mode settings (similar to PakettiPCMWriter)
+local live_pickup_mode = false
+local live_pickup_sample = nil
+local live_pickup_instrument = nil
+local live_pickup_sample_index = -1
+local live_pickup_instrument_index = -1
 
 -- Colors for drawing
 local COLOR_BACKGROUND = {16, 16, 24, 255}
@@ -344,8 +352,8 @@ function PakettiSampleEffectGeneratorRenderWaveformOnly()
       phase_accumulator = phase_accumulator - 2 * math.pi
     end
     
-    -- NO VOLUME ENVELOPE - use full amplitude
-    -- Apply fade out if enabled (last 15 frames to avoid clicks)
+    -- NO VOLUME ENVELOPE - use full amplitude  
+    -- Apply fade out if enabled (last 15 frames to avoid clicks) - always apply in waveform-only mode
     if fade_out_enabled then
       local fade_frames = 15
       if sample_i > (total_samples - fade_frames) then
@@ -366,7 +374,7 @@ function PakettiSampleEffectGeneratorRenderWaveformOnly()
   renoise.app():show_status("Generated " .. sample_duration .. "s sample using ONLY waveform curve")
 end
 
--- Double the frequency of waveform (increase octave) - ABSOLUTELY PERFECT ALGORITHM
+-- Double the frequency of waveform (increase octave) - PROPER INTERPOLATION
 function PakettiSampleEffectGeneratorDoubleWaveform()
   local resolution = #waveform_data
   local original_data = {}
@@ -376,31 +384,30 @@ function PakettiSampleEffectGeneratorDoubleWaveform()
     original_data[i] = waveform_data[i]
   end
   
-  -- Create new data: PERFECT 2x with exact integer division - ZERO ARTIFACTS
+  -- Create new data: 2x frequency with proper resampling
   local half_size = math.floor(resolution / 2)
   
   for i = 1, resolution do
     if i <= half_size then
-      -- First half: sample every 2nd point from original (perfect decimation)
-      local source_index = ((i - 1) * 2) + 1
-      if source_index <= resolution then
-        waveform_data[i] = original_data[source_index]
-      else
-        waveform_data[i] = original_data[resolution]  -- Use last point as fallback
-      end
+      -- First half: properly resample the original data
+      local source_pos = ((i - 1) * 2) + 1  -- Map to original position
+      local source_index = math.floor(source_pos)
+      local fraction = source_pos - source_index
+      
+      -- Interpolate between adjacent points
+      local val1 = original_data[math.max(1, math.min(resolution, source_index))]
+      local val2 = original_data[math.max(1, math.min(resolution, source_index + 1))]
+      
+      waveform_data[i] = val1 + (val2 - val1) * fraction
     else
-      -- Second half: exact mirror copy of first half
+      -- Second half: exact copy of first half to create double frequency
       local mirror_index = i - half_size
-      if mirror_index >= 1 and mirror_index <= half_size then
-        waveform_data[i] = waveform_data[mirror_index]
-      else
-        waveform_data[i] = waveform_data[1]
-      end
+      waveform_data[i] = waveform_data[mirror_index]
     end
   end
   
   if waveform_canvas then waveform_canvas:update() end
-  print("SAMPLE_GENERATOR: ✅ ABSOLUTELY PERFECT - Doubled waveform frequency - ZERO artifacts, perfect decimation!")
+  print("SAMPLE_GENERATOR: ✅ FIXED - Doubled waveform frequency with proper interpolation!")
 end
 
 -- Halve the frequency of waveform (decrease octave) - PRISTINE ALGORITHM
@@ -428,7 +435,7 @@ function PakettiSampleEffectGeneratorHalveWaveform()
   print("SAMPLE_GENERATOR: Using PERFECT integer sampling - reversible operations!")
 end
 
--- Double the frequency of pitch curve (increase octave) - ABSOLUTELY PERFECT ALGORITHM
+-- Double the frequency of pitch curve (increase octave) - PROPER INTERPOLATION
 function PakettiSampleEffectGeneratorDoublePitch()
   local resolution = #pitch_data
   local original_data = {}
@@ -438,31 +445,30 @@ function PakettiSampleEffectGeneratorDoublePitch()
     original_data[i] = pitch_data[i]
   end
   
-  -- Create new data: PERFECT 2x with exact integer division - ZERO ARTIFACTS
+  -- Create new data: 2x frequency with proper resampling
   local half_size = math.floor(resolution / 2)
   
   for i = 1, resolution do
     if i <= half_size then
-      -- First half: sample every 2nd point from original (perfect decimation)
-      local source_index = ((i - 1) * 2) + 1
-      if source_index <= resolution then
-        pitch_data[i] = original_data[source_index]
-      else
-        pitch_data[i] = original_data[resolution]  -- Use last point as fallback
-      end
+      -- First half: properly resample the original data
+      local source_pos = ((i - 1) * 2) + 1  -- Map to original position
+      local source_index = math.floor(source_pos)
+      local fraction = source_pos - source_index
+      
+      -- Interpolate between adjacent points
+      local val1 = original_data[math.max(1, math.min(resolution, source_index))]
+      local val2 = original_data[math.max(1, math.min(resolution, source_index + 1))]
+      
+      pitch_data[i] = val1 + (val2 - val1) * fraction
     else
-      -- Second half: exact mirror copy of first half
+      -- Second half: exact copy of first half to create double frequency
       local mirror_index = i - half_size
-      if mirror_index >= 1 and mirror_index <= half_size then
-        pitch_data[i] = pitch_data[mirror_index]
-      else
-        pitch_data[i] = pitch_data[1]
-      end
+      pitch_data[i] = pitch_data[mirror_index]
     end
   end
   
   if pitch_canvas then pitch_canvas:update() end
-  print("SAMPLE_GENERATOR: ✅ ABSOLUTELY PERFECT - Doubled pitch frequency - ZERO artifacts, perfect decimation!")
+  print("SAMPLE_GENERATOR: ✅ FIXED - Doubled pitch frequency with proper interpolation!")
 end
 
 -- Halve the frequency of pitch curve (decrease octave) - PRISTINE ALGORITHM
@@ -490,7 +496,7 @@ function PakettiSampleEffectGeneratorHalvePitch()
   print("SAMPLE_GENERATOR: Using PERFECT integer sampling - reversible operations!")
 end
 
--- Double the frequency of volume envelope (increase octave) - ABSOLUTELY PERFECT ALGORITHM
+-- Double the frequency of volume envelope (increase octave) - PROPER INTERPOLATION
 function PakettiSampleEffectGeneratorDoubleVolume()
   local resolution = #volume_data
   local original_data = {}
@@ -500,31 +506,30 @@ function PakettiSampleEffectGeneratorDoubleVolume()
     original_data[i] = volume_data[i]
   end
   
-  -- Create new data: PERFECT 2x with exact integer division - ZERO ARTIFACTS
+  -- Create new data: 2x frequency with proper resampling
   local half_size = math.floor(resolution / 2)
   
   for i = 1, resolution do
     if i <= half_size then
-      -- First half: sample every 2nd point from original (perfect decimation)
-      local source_index = ((i - 1) * 2) + 1
-      if source_index <= resolution then
-        volume_data[i] = original_data[source_index]
-      else
-        volume_data[i] = original_data[resolution]  -- Use last point as fallback
-      end
+      -- First half: properly resample the original data
+      local source_pos = ((i - 1) * 2) + 1  -- Map to original position
+      local source_index = math.floor(source_pos)
+      local fraction = source_pos - source_index
+      
+      -- Interpolate between adjacent points
+      local val1 = original_data[math.max(1, math.min(resolution, source_index))]
+      local val2 = original_data[math.max(1, math.min(resolution, source_index + 1))]
+      
+      volume_data[i] = val1 + (val2 - val1) * fraction
     else
-      -- Second half: exact mirror copy of first half
+      -- Second half: exact copy of first half to create double frequency
       local mirror_index = i - half_size
-      if mirror_index >= 1 and mirror_index <= half_size then
-        volume_data[i] = volume_data[mirror_index]
-      else
-        volume_data[i] = volume_data[1]
-      end
+      volume_data[i] = volume_data[mirror_index]
     end
   end
   
   if volume_canvas then volume_canvas:update() end
-  print("SAMPLE_GENERATOR: ✅ ABSOLUTELY PERFECT - Doubled volume frequency - ZERO artifacts, perfect decimation!")
+  print("SAMPLE_GENERATOR: ✅ FIXED - Doubled volume frequency with proper interpolation!")
 end
 
 -- Halve the frequency of volume envelope (decrease octave) - PRISTINE ALGORITHM
@@ -667,6 +672,12 @@ function PakettiSampleEffectGeneratorHandleMouse(canvas_type, ev)
     tracking.last_y = -1
     tracking.last_index = -1
     
+    -- Update live sample when mouse is released (live pickup mode)
+    if live_pickup_mode then
+      print("LIVE_PICKUP: Mouse released on " .. canvas_type .. " canvas, updating live sample...")
+      PakettiSampleEffectGeneratorUpdateLiveSample()
+    end
+    
   elseif ev.type == "move" then
     tracking.last_x = ev.position.x
     tracking.last_y = ev.position.y
@@ -726,9 +737,9 @@ function PakettiSampleEffectGeneratorDrawPoint(canvas_type, mouse_x, mouse_y)
     return nil, nil
   end
   
-  -- Check if mouse is within content area
-  if mouse_x < content_x or mouse_x >= content_x + content_width or
-     mouse_y < content_y or mouse_y >= content_y + content_height then
+  -- Check if mouse is within content area - FIXED: Allow drawing at the exact right/bottom edge
+  if mouse_x < content_x or mouse_x > content_x + content_width or
+     mouse_y < content_y or mouse_y > content_y + content_height then
     return nil, nil
   end
   
@@ -750,6 +761,231 @@ function PakettiSampleEffectGeneratorDrawPoint(canvas_type, mouse_x, mouse_y)
   print("DRAW: " .. canvas_type .. " index=" .. data_index .. " value=" .. string.format("%.3f", y_norm))
   
   return data_index, y_norm
+end
+
+-- Live pickup mode functions
+function PakettiSampleEffectGeneratorEnterLivePickupMode()
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  
+  if not inst or not inst.samples or #inst.samples == 0 then
+    renoise.app():show_status("Live Pickup Mode: No samples available")
+    return false
+  end
+  
+  local sample = inst:sample(song.selected_sample_index)
+  if not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Live Pickup Mode: Selected sample has no data")
+    return false
+  end
+  
+  live_pickup_mode = true
+  live_pickup_sample = sample
+  live_pickup_instrument = inst
+  live_pickup_sample_index = song.selected_sample_index
+  live_pickup_instrument_index = song.selected_instrument_index
+  
+  -- Switch to sample editor so user can see what's happening
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  
+  renoise.app():show_status("Live Audition Mode: Enabled - sample editor opened")
+  print("LIVE_PICKUP: Mode enabled for instrument " .. live_pickup_instrument_index .. ", sample " .. live_pickup_sample_index)
+  return true
+end
+
+function PakettiSampleEffectGeneratorExitLivePickupMode()
+  -- Generate one final sample with current envelope settings before disabling
+  if live_pickup_mode and live_pickup_sample then
+    print("LIVE_PICKUP: Generating final sample before disabling...")
+    PakettiSampleEffectGeneratorUpdateLiveSample()
+  end
+  
+  live_pickup_mode = false
+  live_pickup_sample = nil
+  live_pickup_instrument = nil
+  live_pickup_sample_index = -1
+  live_pickup_instrument_index = -1
+  
+  renoise.app():show_status("Live Audition: Disabled - final sample rendered")
+  print("LIVE_PICKUP: Mode disabled with final render")
+end
+
+function PakettiSampleEffectGeneratorUpdateLiveSample()
+  if not live_pickup_mode or not live_pickup_sample then
+    return
+  end
+  
+  -- Show status that we're writing the sample
+  renoise.app():show_status("Writing Sample...")
+  
+  -- Protected call to handle any sample access errors gracefully
+  local success, error_msg = pcall(function()
+    -- Additional safety check - ensure the sample object is still valid
+    if not live_pickup_sample.sample_buffer or not live_pickup_sample.sample_buffer.has_sample_data then
+      live_pickup_mode = false
+      live_pickup_sample = nil
+      live_pickup_instrument = nil
+      renoise.app():show_status("Live Pickup Mode: Sample became invalid")
+      return
+    end
+    
+    local buffer = live_pickup_sample.sample_buffer
+    
+    -- Generate the sample data based on current effect settings (using proper phase accumulation)
+    local sample_frames = math.floor(sample_duration * sample_rate)
+    local generated_data = {}
+    
+    -- Initialize phase accumulation for proper pitch modulation
+    local phase_accumulator = 0.0
+    local base_freq = 440.0  -- A4 note
+    
+    -- Auto-detect if user has drawn meaningful waveform data
+    local has_custom_waveform = false
+    if #waveform_data > 1 then
+      -- Check if waveform differs significantly from a flat line
+      local first_val = waveform_data[1]
+      local variation = 0
+      for i = 2, #waveform_data do
+        variation = variation + math.abs(waveform_data[i] - first_val)
+      end
+      has_custom_waveform = (variation > 0.1)  -- If there's noticeable variation, use custom waveform
+    end
+    
+    print("LIVE_PICKUP: Generating " .. sample_frames .. " frames (" .. string.format("%.2f", sample_duration) .. "s)")
+    print("LIVE_PICKUP: Custom waveform detected: " .. (has_custom_waveform and "YES - using drawn waveform" or "NO - using " .. wave_type .. " oscillator"))
+    
+    -- Debug volume data at the end to see what's happening
+    if #volume_data > 0 then
+      local num_points = #volume_data
+      local end_points = math.min(10, num_points)  -- Show last 10 points
+      print("LIVE_PICKUP: Volume data end points (" .. num_points .. " total):")
+      for i = num_points - end_points + 1, num_points do
+        print("  volume_data[" .. i .. "] = " .. string.format("%.3f", volume_data[i]))
+      end
+    end
+    
+    -- Check if user has drawn their own fade at the end
+    local user_has_custom_fade = false
+    if #volume_data > 0 then
+      local end_volume = volume_data[#volume_data]
+      if end_volume < 0.1 then
+        user_has_custom_fade = true
+        print("LIVE_PICKUP: User drew fade to silence (end volume: " .. string.format("%.3f", end_volume) .. ") - disabling auto-fade")
+      else
+        print("LIVE_PICKUP: End volume is " .. string.format("%.3f", end_volume) .. " - keeping auto-fade enabled")
+      end
+    end
+    
+    for sample_i = 1, sample_frames do
+      local time_norm = (sample_i - 1) / (sample_frames - 1)  -- 0.0 to 1.0
+      
+      -- Get interpolated values from curves
+      local waveform_value = PakettiSampleEffectGeneratorInterpolateData(waveform_data, time_norm)
+      local pitch_mult = PakettiSampleEffectGeneratorInterpolateData(pitch_data, time_norm)
+      local volume_mult = PakettiSampleEffectGeneratorInterpolateData(volume_data, time_norm)
+      
+      -- Convert pitch curve to frequency multiplier
+      local freq_mult = math.pow(2, (pitch_mult - 0.5) * 4)  -- -2 to +2 octaves
+      
+      -- Calculate instantaneous frequency
+      local actual_freq = base_freq * freq_mult
+      
+      -- Accumulate phase (this gives smooth pitch transitions)
+      local phase_delta = actual_freq * 2 * math.pi / sample_rate
+      phase_accumulator = phase_accumulator + phase_delta
+      
+      -- Keep phase in reasonable range
+      while phase_accumulator > 2 * math.pi do
+        phase_accumulator = phase_accumulator - 2 * math.pi
+      end
+      
+      -- Generate base oscillator sample
+      local base_wave_sample
+      if wave_type == "current" then
+        base_wave_sample = math.sin(phase_accumulator)  -- Default to sine for current mode
+      elseif wave_type == "sine" then
+        base_wave_sample = math.sin(phase_accumulator)
+      elseif wave_type == "triangle" then
+        local normalized_phase = (phase_accumulator / (2 * math.pi)) % 1
+        if normalized_phase < 0.25 then
+          base_wave_sample = 4 * normalized_phase
+        elseif normalized_phase < 0.75 then
+          base_wave_sample = 2 - 4 * normalized_phase
+        else
+          base_wave_sample = 4 * normalized_phase - 4
+        end
+      elseif wave_type == "square" then
+        base_wave_sample = math.sin(phase_accumulator) > 0 and 1 or -1
+      elseif wave_type == "sawtooth" then
+        local normalized_phase = (phase_accumulator / (2 * math.pi)) % 1
+        base_wave_sample = 2 * normalized_phase - 1
+      elseif wave_type == "random" then
+        base_wave_sample = (math.random() * 2) - 1
+      else
+        base_wave_sample = math.sin(phase_accumulator)
+      end
+      
+      -- Apply waveform curve (different behavior based on custom waveform detection)
+      local wave_sample
+      if has_custom_waveform then
+        -- CUSTOM WAVEFORM MODE: Use drawn waveform as repeating oscillator based on phase!
+        local waveform_phase = (phase_accumulator / (2 * math.pi)) % 1.0  -- 0.0 to 1.0
+        local waveform_sample_value = PakettiSampleEffectGeneratorInterpolateData(waveform_data, waveform_phase)
+        wave_sample = (waveform_sample_value * 2) - 1  -- Convert 0.0-1.0 to -1.0 to 1.0
+      else
+        -- STANDARD MODE: Use the pitched oscillator as the base wave
+        wave_sample = base_wave_sample
+      end
+      
+      -- Apply volume envelope
+      wave_sample = wave_sample * volume_mult
+      
+      -- Apply fade out to avoid clicks ONLY if user hasn't drawn their own fade
+      local should_auto_fade = fade_out_enabled
+      if #volume_data > 0 then
+        -- Check if user has drawn their own fade to silence at the end
+        local end_volume = volume_data[#volume_data]  -- Last volume point
+        if end_volume < 0.1 then  -- If user ended near silence, don't auto-fade
+          should_auto_fade = false
+        end
+      end
+      
+      if should_auto_fade and sample_i > sample_frames - 15 then
+        local fade_amount = (sample_frames - sample_i) / 15.0
+        wave_sample = wave_sample * fade_amount
+      end
+      
+      generated_data[sample_i] = wave_sample
+    end
+    
+    -- Recreate the sample buffer with the correct duration
+    local num_channels = 1  -- Mono
+    local bit_depth = 32    -- 32-bit float
+    local success = buffer:create_sample_data(sample_rate, bit_depth, num_channels, sample_frames)
+    
+    if not success then
+      renoise.app():show_status("Live Pickup Mode: Failed to resize sample buffer")
+      return
+    end
+    
+    -- Update the sample buffer with generated data
+    buffer:prepare_sample_data_changes()
+    for i = 1, sample_frames do
+      local normalized_value = math.max(-1, math.min(1, generated_data[i]))
+      buffer:set_sample_data(1, i, normalized_value)
+    end
+    buffer:finalize_sample_data_changes()
+    
+    print("LIVE_PICKUP: Updated sample with " .. sample_frames .. " frames (" .. string.format("%.2f", sample_duration) .. " seconds)")
+    renoise.app():show_status("Sample writing finished.")
+  end)
+  
+  if not success then
+    print("LIVE_PICKUP: Error updating sample - " .. tostring(error_msg))
+    renoise.app():show_status("Live Pickup Mode: Update failed")
+    -- Disable live pickup mode if there was an error
+    PakettiSampleEffectGeneratorExitLivePickupMode()
+  end
 end
 
 -- Render canvas content with vector text labels
@@ -1038,8 +1274,17 @@ function PakettiSampleEffectGeneratorGenerateSample()
     -- Apply volume envelope
     wave_sample = wave_sample * volume_mult
     
-    -- Apply fade out if enabled (last 15 frames to avoid clicks)
-    if fade_out_enabled then
+    -- Apply fade out if enabled (last 15 frames to avoid clicks) ONLY if user hasn't drawn their own fade
+    local should_auto_fade = fade_out_enabled
+    if #volume_data > 0 then
+      -- Check if user has drawn their own fade to silence at the end
+      local end_volume = volume_data[#volume_data]  -- Last volume point
+      if end_volume < 0.1 then  -- If user ended near silence, don't auto-fade
+        should_auto_fade = false
+      end
+    end
+    
+    if should_auto_fade then
       local fade_frames = 15
       if sample_i > (total_samples - fade_frames) then
         local fade_pos = sample_i - (total_samples - fade_frames)
@@ -1204,8 +1449,12 @@ function PakettiSampleEffectGeneratorCreateDialog()
   local vb = renoise.ViewBuilder()
   
   local dialog_content = vb:column {
-    -- Canvas row - text labels now rendered as vector graphics within canvases
+    spacing = 4,  -- Reduce spacing between rows
+    margin = 8,   -- Reduce overall dialog margin
+    
+    -- Canvas row - text labels now rendered as vector graphics within canvases  
     vb:row {
+      spacing = 4,  -- Reduce spacing between canvases
       -- Waveform canvas column  
       vb:column {
         vb:canvas {
@@ -1260,8 +1509,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
     
     -- Controls row
     vb:row {
+      spacing = 6,  -- Compact spacing between control columns
       -- Wave type selection
       vb:column {
+        width = 100,  -- Uniform column width
         vb:text { text = "Wave Type", font = "bold", style = "strong" },
         vb:popup {
           id = "wave_type_popup",
@@ -1278,6 +1529,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             end
             
             print("SAMPLE_GENERATOR: Wave type changed to " .. wave_type)
+            -- Update live sample if live audition is enabled
+            if live_pickup_mode then
+              PakettiSampleEffectGeneratorUpdateLiveSample()
+            end
           end
         },
         vb:row {
@@ -1287,6 +1542,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             tooltip = "Double waveform frequency",
             notifier = function()
               PakettiSampleEffectGeneratorDoubleWaveform()
+              -- Update live sample if live audition is enabled
+              if live_pickup_mode then
+                PakettiSampleEffectGeneratorUpdateLiveSample()
+              end
             end
           },
           vb:button {
@@ -1295,6 +1554,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             tooltip = "Halve waveform frequency",
             notifier = function()
               PakettiSampleEffectGeneratorHalveWaveform()
+              -- Update live sample if live audition is enabled
+              if live_pickup_mode then
+                PakettiSampleEffectGeneratorUpdateLiveSample()
+              end
             end
           },
           vb:button {
@@ -1303,6 +1566,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             tooltip = "Randomize waveform curve",
             notifier = function()
               PakettiSampleEffectGeneratorRandomizeWaveform()
+              -- Update live sample if live audition is enabled
+              if live_pickup_mode then
+                PakettiSampleEffectGeneratorUpdateLiveSample()
+              end
             end
           },
         }
@@ -1310,6 +1577,7 @@ function PakettiSampleEffectGeneratorCreateDialog()
       
       -- Pitch modulation type selection (FIXED ORDER: matches canvas order)
       vb:column {
+        width = 100,  -- Uniform column width
         vb:text { text = "Pitch Modulation", font = "bold", style = "strong" },
         vb:popup {
           id = "pitch_modulation_popup",
@@ -1326,6 +1594,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             end
             
             print("SAMPLE_GENERATOR: Pitch modulation changed to " .. pitch_modulation_type)
+            -- Update live sample if live audition is enabled
+            if live_pickup_mode then
+              PakettiSampleEffectGeneratorUpdateLiveSample()
+            end
           end
         },
         vb:row {
@@ -1335,6 +1607,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             tooltip = "Double pitch curve frequency",
             notifier = function()
               PakettiSampleEffectGeneratorDoublePitch()
+              -- Update live sample if live audition is enabled
+              if live_pickup_mode then
+                PakettiSampleEffectGeneratorUpdateLiveSample()
+              end
             end
           },
           vb:button {
@@ -1343,6 +1619,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             tooltip = "Halve pitch curve frequency", 
             notifier = function()
               PakettiSampleEffectGeneratorHalvePitch()
+              -- Update live sample if live audition is enabled
+              if live_pickup_mode then
+                PakettiSampleEffectGeneratorUpdateLiveSample()
+              end
             end
           },
           vb:button {
@@ -1351,6 +1631,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             tooltip = "Randomize pitch modulation curve",
             notifier = function()
               PakettiSampleEffectGeneratorRandomizePitch()
+              -- Update live sample if live audition is enabled
+              if live_pickup_mode then
+                PakettiSampleEffectGeneratorUpdateLiveSample()
+              end
             end
           },
         }
@@ -1358,6 +1642,7 @@ function PakettiSampleEffectGeneratorCreateDialog()
       
       -- Volume envelope type selection (FIXED ORDER: matches canvas order)
       vb:column {
+        width = 100,  -- Uniform column width
         vb:text { text = "Volume Envelope", font = "bold", style = "strong" },
         vb:popup {
           id = "volume_envelope_popup",
@@ -1374,6 +1659,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             end
             
             print("SAMPLE_GENERATOR: Volume envelope changed to " .. volume_envelope_type)
+            -- Update live sample if live audition is enabled
+            if live_pickup_mode then
+              PakettiSampleEffectGeneratorUpdateLiveSample()
+            end
           end
         },
         vb:row {
@@ -1383,6 +1672,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             tooltip = "Double volume envelope frequency",
             notifier = function()
               PakettiSampleEffectGeneratorDoubleVolume()
+              -- Update live sample if live audition is enabled
+              if live_pickup_mode then
+                PakettiSampleEffectGeneratorUpdateLiveSample()
+              end
             end
           },
           vb:button {
@@ -1391,6 +1684,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             tooltip = "Halve volume envelope frequency",
             notifier = function()
               PakettiSampleEffectGeneratorHalveVolume()
+              -- Update live sample if live audition is enabled
+              if live_pickup_mode then
+                PakettiSampleEffectGeneratorUpdateLiveSample()
+              end              
             end
           },
           vb:button {
@@ -1399,6 +1696,10 @@ function PakettiSampleEffectGeneratorCreateDialog()
             tooltip = "Randomize volume envelope curve",
             notifier = function()
               PakettiSampleEffectGeneratorRandomizeVolume()
+              -- Update live sample if live audition is enabled
+              if live_pickup_mode then
+                PakettiSampleEffectGeneratorUpdateLiveSample()
+              end              
             end
           },
         },
@@ -1417,6 +1718,7 @@ function PakettiSampleEffectGeneratorCreateDialog()
       
       -- Duration control
       vb:column {
+        width = 100,  -- Uniform column width
         vb:text { text = "Duration (sec)", font = "bold", style = "strong" },
         vb:valuebox {
           id = "duration_valuebox",
@@ -1433,7 +1735,7 @@ function PakettiSampleEffectGeneratorCreateDialog()
       
       -- Action buttons
       vb:column {
-        vb:text { text = "Actions:", font = "bold" },
+        spacing = 2,  -- Compact button spacing
         vb:row {
           vb:button {
             text = "Generate (SPACE)",
@@ -1468,8 +1770,6 @@ function PakettiSampleEffectGeneratorCreateDialog()
             end
           },
         },
-        
-
         vb:button {
           text = "Generate 25 Random Samples",
           width = 320,
@@ -1477,13 +1777,38 @@ function PakettiSampleEffectGeneratorCreateDialog()
           notifier = function()
             PakettiSampleEffectGeneratorGenerate25Random()
           end
+        },
+        vb:row {
+          spacing = 4,  -- Compact live audition controls
+          vb:checkbox {
+            id = "live_pickup_checkbox",
+            value = false,
+            tooltip = "Enable/disable live audition mode - updates current sample when mouse is released",
+            notifier = function()
+              local checkbox = vb.views.live_pickup_checkbox
+              if checkbox.value then
+                -- User checked the box - enable live pickup
+                if not PakettiSampleEffectGeneratorEnterLivePickupMode() then
+                  -- Failed to enable, uncheck the box
+                  checkbox.value = false
+                end
+              else
+                -- User unchecked the box - disable live pickup
+                PakettiSampleEffectGeneratorExitLivePickupMode()
+              end
+            end
+          },
+          vb:text { 
+            text = "Live Audition",
+            tooltip = "When enabled, the current sample will be updated every time you release the mouse after drawing"
+          }
         }
       }
     },
     
     -- Instructions
     vb:text {
-      text = "Instructions: Draw on canvases to shape your sample. Press SPACE to generate. ESC to close.",
+      text = "Instructions: Draw on canvases to shape your sample. Press SPACE to generate. ESC to close. Enable Live Pickup to update current sample on mouse release.",
       font = "italic"
     }
   }
