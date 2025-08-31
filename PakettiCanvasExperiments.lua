@@ -1026,6 +1026,21 @@ function paketti_canvas_keyhandler_func(dialog, key)
     return nil -- Don't pass this key to Renoise
   end
   
+  -- Check for SPACE to open external editor
+  if key.name == "space" then
+    print("KEYHANDLER: SPACE pressed - toggling external editor")
+    if current_device then
+      current_device.external_editor_visible = not current_device.external_editor_visible
+      local status = current_device.external_editor_visible and "opened" or "closed"
+      renoise.app():show_status("External Editor " .. status)
+      print("KEYHANDLER: External editor " .. status)
+    else
+      renoise.app():show_status("No device selected for external editor")
+      print("KEYHANDLER: No device selected for external editor")
+    end
+    return nil -- Don't pass this key to Renoise
+  end
+  
   -- CRITICAL: Pass ALL other keys back to Renoise so normal shortcuts work
   -- This ensures track selection, navigation, and all other Renoise shortcuts work normally
   print("KEYHANDLER: Passing key '" .. tostring(key.name) .. "' back to Renoise")
@@ -1034,9 +1049,11 @@ end
 
 -- Clean up observers when dialog closes
 function PakettiCanvasExperimentsCleanup()
+  print("CLEANUP: Starting cleanup - turning off automation sync")
   
   -- CRITICAL: Turn off automation sync to stop all automation writing
   follow_automation = false
+  print("CLEANUP: Automation sync turned OFF")
   
   -- AGGRESSIVELY remove device selection observer with multiple attempts
   if device_selection_notifier then
@@ -1185,9 +1202,9 @@ function PakettiCanvasExperimentsCreateDialog()
       },
       vb:button {
         id = "follow_automation_button",
-        text = "Automation Sync: OFF",
+        text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF",
         width = 180,
-        color = {96, 96, 96},
+        color = follow_automation and {0, 120, 0} or {96, 96, 96},
         tooltip = "Toggle bidirectional automation: read automation playback + write when drawing",
         notifier = function()
           follow_automation = not follow_automation
@@ -1457,6 +1474,12 @@ function PakettiCanvasExperimentsCreateDialog()
   
   -- Ensure Renoise grabs keyboard focus for the middle frame after opening the dialog
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+  
+  -- Ensure Renoise follow_player setting matches automation sync state
+  pcall(function()
+    renoise.song().transport.follow_player = follow_automation
+    print("DIALOG_CREATE: Synced follow_player to automation sync state: " .. tostring(follow_automation))
+  end)
   
   -- CRITICAL: Ensure cleanup happens when dialog is closed by user clicking X
   if canvas_experiments_dialog then
@@ -2057,6 +2080,7 @@ function PakettiCanvasExperimentsEmergencyReset()
   pcall(function()
     -- Reset any potential stuck automation state
     follow_automation = false
+    print("EMERGENCY_RESET: Automation sync forced OFF")
     automation_reading_enabled = true
     parameter_being_drawn = nil
     

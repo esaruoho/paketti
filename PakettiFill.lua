@@ -387,8 +387,16 @@ function PakettiFillGetSampleName(note_value)
 end
 
 -- Check Where? conditions (Polyend-style logic)
-function PakettiFillShouldFillLine(pattern_line, where_mode, line_index, step_interval, selection, density, euclidean_pattern)
+function PakettiFillShouldFillLine(pattern_line, where_mode, line_index, step_interval, selection, density, euclidean_pattern, remembered_fx_lines)
   -- 1=Note, 2=No Note, 3=FX, 4=No FX, 5=Random, 6=Each, 7=Euclidean
+  
+  -- If we have remembered FX pattern and we're in FX mode, use the remembered pattern
+  if where_mode == 3 and remembered_fx_lines then
+    local should_fill = remembered_fx_lines[line_index] == true
+    print("DEBUG PakettiFill: Using remembered pattern for line " .. line_index .. " -> " .. tostring(should_fill))
+    return should_fill
+  end
+  
   if where_mode == 1 then -- Note: only fill where notes exist
     for i = 1, #pattern_line.note_columns do
       if pattern_line.note_columns[i].note_value ~= renoise.PatternLine.EMPTY_NOTE then
@@ -435,11 +443,23 @@ function PakettiFillShouldFillLine(pattern_line, where_mode, line_index, step_in
 end
 
 -- Apply fill to pattern selection
-function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_note, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep)
+function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_note, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, remembered_fx_lines)
   trueRandomSeed()
   
   local song = renoise.song()
   local selection = song.selection_in_pattern
+  
+  print("DEBUG PakettiFill: Starting fill with parameters:")
+  print("  density=" .. density .. ", fill_type=" .. fill_type)
+  print("  use_random_fx=" .. tostring(use_random_fx) .. ", effects_only=" .. tostring(effects_only))
+  print("  where_mode=" .. where_mode .. ", selected_effect_index=" .. selected_effect_index)
+  print("  effect_min_value=" .. effect_min_value .. ", effect_max_value=" .. effect_max_value)
+  
+  if selected_effect then
+    print("  selected_effect=" .. (selected_effect[1] or "nil"))
+  else
+    print("  selected_effect=nil")
+  end
   
   if not selection then
     renoise.app():show_status("No pattern selection found")
@@ -458,8 +478,16 @@ function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_n
     local step_length
     if use_editstep then
       step_length = renoise.song().transport.edit_step
+      -- Treat EditStep = 0 as EditStep = 1 (step every line)
+      if step_length == 0 then
+        step_length = 1
+        print("DEBUG PakettiFill: Euclidean mode using EditStep = 0, treating as 1 (step every line)")
+      else
+        print("DEBUG PakettiFill: Euclidean mode using EditStep = " .. step_length)
+      end
     else
       step_length = math.max(1, step_interval)
+      print("DEBUG PakettiFill: Euclidean mode using Step Length = " .. step_length)
     end
     
     euclidean_pattern = PakettiFillGenerateEuclideanPattern(events, step_length)
@@ -479,7 +507,9 @@ function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_n
       end
       
       -- Ensure effect columns are visible if using random FX
+      print("DEBUG PakettiFill: Track " .. track_index .. " - use_random_fx=" .. tostring(use_random_fx) .. ", effect_columns_visible=" .. effect_columns_visible)
       if use_random_fx and effect_columns_visible == 0 then
+        print("DEBUG PakettiFill: Making effect column visible for track " .. track_index)
         track.visible_effect_columns = 1
         effect_columns_visible = 1
       end
@@ -488,29 +518,38 @@ function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_n
       local end_column = (track_index == selection.end_track) and selection.end_column or note_columns_visible
       
       -- Process lines
+      print("DEBUG PakettiFill: Processing lines " .. selection.start_line .. " to " .. selection.end_line .. " for track " .. track_index)
       for line_index = selection.start_line, selection.end_line do
         local pattern_line = song:pattern(song.selected_pattern_index):track(track_index):line(line_index)
         
         -- Check if this line should be filled based on Where? conditions
-        if PakettiFillShouldFillLine(pattern_line, where_mode, line_index, step_interval, selection, density, euclidean_pattern) then
+        local should_fill = PakettiFillShouldFillLine(pattern_line, where_mode, line_index, step_interval, selection, density, euclidean_pattern, remembered_fx_lines)
+        print("DEBUG PakettiFill: Line " .. line_index .. " should_fill=" .. tostring(should_fill) .. " (density=" .. density .. "%)")
+        if should_fill then
           -- Determine what to write based on where_mode and effects_only
           local write_notes = true
           local write_effects = true
+          
+          print("DEBUG PakettiFill: Line " .. line_index .. " - effects_only=" .. tostring(effects_only) .. ", where_mode=" .. where_mode)
           
           if effects_only then
             -- Effects Only checkbox: only effects, no notes
             write_notes = false
             write_effects = true
+            print("DEBUG PakettiFill: Effects Only mode - write_notes=false, write_effects=true")
           elseif where_mode == 3 then -- "FX" mode: only effects
             write_notes = false 
             write_effects = true
+            print("DEBUG PakettiFill: FX mode - write_notes=false, write_effects=true")
           elseif where_mode == 4 then -- "No FX" mode: only notes
             write_notes = true
             write_effects = false
+            print("DEBUG PakettiFill: No FX mode - write_notes=true, write_effects=false")
           else
             -- All other modes: both notes and effects
             write_notes = true
             write_effects = true
+            print("DEBUG PakettiFill: Standard mode - write_notes=true, write_effects=true")
           end
           
           -- Write notes if allowed
@@ -566,32 +605,50 @@ function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_n
           
           -- Write effects if allowed
           if write_effects and effect_columns_visible > 0 then
+            print("DEBUG PakettiFill: Writing effects - write_effects=" .. tostring(write_effects) .. ", effect_columns_visible=" .. effect_columns_visible)
             local effect_column = pattern_line:effect_column(1)
+            if effect_column then
+              print("DEBUG PakettiFill: Got effect column for track " .. track_index .. ", line " .. line_index)
+            else
+              print("DEBUG PakettiFill: ERROR - Could not get effect column 1 for track " .. track_index .. ", line " .. line_index)
+              print("DEBUG PakettiFill: Track effect_columns_visible=" .. track.visible_effect_columns)
+            end
+            
             if effect_column then
               local effect_to_use
               if use_random_fx and #available_effects > 0 then
                 -- Random FX takes precedence over dropdown selection
                 effect_to_use = available_effects[math.random(#available_effects)]
+                print("DEBUG PakettiFill: Using random FX: " .. (effect_to_use and effect_to_use[1] or "nil"))
               elseif selected_effect_index == 1 then
                 -- "<No Effect>" selected and Random FX is off: clear effect
+                print("DEBUG PakettiFill: Clearing effect (No Effect selected)")
                 effect_column.number_string = ".."
                 effect_column.amount_value = 0
                 effect_to_use = nil  -- Don't process further
               elseif selected_effect then 
                 -- Specific effect selected
                 effect_to_use = selected_effect
+                print("DEBUG PakettiFill: Using selected effect: " .. (effect_to_use and effect_to_use[1] or "nil"))
               end
               
               if effect_to_use then
+                print("DEBUG PakettiFill: About to write effect " .. effect_to_use[1])
                 effect_column.number_string = effect_to_use[1]
+                print("DEBUG PakettiFill: Set effect number to " .. effect_to_use[1])
                 -- Use min/max range for effect values if specific effect is selected
+                local effect_value
                 if not use_random_fx and selected_effect then
                   local min_val = math.min(effect_min_value, effect_max_value)
                   local max_val = math.max(effect_min_value, effect_max_value)
-                  effect_column.amount_value = math.random(min_val, max_val)
+                  effect_value = math.random(min_val, max_val)
+                  print("DEBUG PakettiFill: Using min/max range " .. min_val .. "-" .. max_val .. ", generated value " .. effect_value)
                 else
-                  effect_column.amount_value = PakettiFillGenerateEffectValue(effect_to_use[1])
+                  effect_value = PakettiFillGenerateEffectValue(effect_to_use[1])
+                  print("DEBUG PakettiFill: Generated effect value " .. effect_value .. " using PakettiFillGenerateEffectValue")
                 end
+                effect_column.amount_value = effect_value
+                print("DEBUG PakettiFill: Successfully wrote effect " .. effect_to_use[1] .. string.format("%02X", effect_value) .. " to track " .. track_index .. ", line " .. line_index)
               end
             end
           end
@@ -816,7 +873,9 @@ function PakettiFillShowDialog()
         step_interval_slider.active = not use_editstep
         if use_editstep then
           local current_editstep = renoise.song().transport.edit_step
-          step_interval_value_text.text = tostring(current_editstep)
+          -- Treat EditStep = 0 as 1 for display purposes
+          local display_editstep = (current_editstep == 0) and 1 or current_editstep
+          step_interval_value_text.text = tostring(display_editstep)
           step_interval_text.text = "EditStep"
         else
           step_interval_value_text.text = tostring(step_interval)
@@ -829,10 +888,24 @@ function PakettiFillShowDialog()
   -- Function to update EditStep display and sample names
   local function PakettiFillUpdateRealTimeValues()
     if dialog and dialog.visible then
-      -- Update EditStep display if using EditStep in Euclidean mode
-      if where_mode == 7 and use_editstep then
+      -- Update EditStep display if using EditStep (in any relevant mode)
+      if use_editstep then
         local current_editstep = renoise.song().transport.edit_step
-        step_interval_value_text.text = tostring(current_editstep)
+        -- Treat EditStep = 0 as 1 for display purposes
+        local display_editstep = (current_editstep == 0) and 1 or current_editstep
+        
+        if where_mode == 7 then -- Euclidean mode
+          step_interval_value_text.text = tostring(display_editstep)
+        elseif where_mode == 6 then -- Each mode  
+          step_interval_text.text = "EditStep: " .. tostring(display_editstep)
+          step_interval_value_text.text = tostring(display_editstep)
+        else
+          -- For other modes that use EditStep, update the step interval display
+          -- Note: In modes 1-5, the step interval might represent EditStep conceptually
+          if step_interval_value_text then
+            step_interval_value_text.text = tostring(display_editstep)
+          end
+        end
       end
       
       -- Update sample names in Euclidean mode if instrument changed
@@ -883,8 +956,11 @@ function PakettiFillShowDialog()
         density_label.text = "Density"
         density_slider.max = 100
         density_value_text.text = string.format("%d%%", density_value)
-        step_interval_text.text = "EditStep: " .. tostring(renoise.song().transport.edit_step)
-        step_interval_value_text.text = tostring(renoise.song().transport.edit_step)
+        local current_editstep = renoise.song().transport.edit_step
+        -- Treat EditStep = 0 as 1 for display purposes
+        local display_editstep = (current_editstep == 0) and 1 or current_editstep
+        step_interval_text.text = "EditStep: " .. tostring(display_editstep)
+        step_interval_value_text.text = tostring(display_editstep)
         step_interval_slider.active = false  -- Disable slider for Each mode
         from_label.text = "From"
         to_label.text = "To"
@@ -925,12 +1001,8 @@ function PakettiFillShowDialog()
         density_slider.max = 16  -- Max events should be reasonable
         
         -- Set sensible default event count when switching to Euclidean
-        if use_editstep then
-          local edit_step = renoise.song().transport.edit_step
-          density_value = math.max(1, math.min(4, edit_step)) -- Default to EditStep or max 4 events
-        else
-          density_value = 1  -- Default to 1 event
-        end
+        -- Always default to 1 event for focus, regardless of EditStep
+        density_value = 1
         paketti_fill_density_value = density_value  -- Save to global
         density_slider.value = density_value
         density_value_text.text = tostring(density_value)
@@ -938,7 +1010,10 @@ function PakettiFillShowDialog()
         -- Update Step Length or EditStep display based on checkbox
         if use_editstep then
           step_interval_text.text = "EditStep"
-          step_interval_value_text.text = tostring(renoise.song().transport.edit_step)
+          local current_editstep = renoise.song().transport.edit_step
+          -- Treat EditStep = 0 as 1 for display purposes
+          local display_editstep = (current_editstep == 0) and 1 or current_editstep
+          step_interval_value_text.text = tostring(display_editstep)
           step_interval_slider.active = false
         else
           step_interval_text.text = "Step Length"
@@ -1026,6 +1101,15 @@ function PakettiFillShowDialog()
     notifier = function(value)
       selected_effect_index = value
       paketti_fill_selected_effect_index = value  -- Save to global
+      
+      -- If Random FX is on and user selects a specific effect (not "<No Effect>"), turn off Random FX
+      if use_random_fx and selected_effect_index > 1 then
+        print("DEBUG PakettiFill: User selected specific effect, turning off Random FX")
+        use_random_fx = false
+        paketti_fill_use_random_fx = false  -- Save to global
+        random_fx_checkbox.value = false  -- Update checkbox display
+      end
+      
       update_effect_sliders_active()  -- Update slider active state when effect changes
     end
   }
@@ -1114,6 +1198,15 @@ function PakettiFillShowDialog()
     notifier = function(value)
       use_random_fx = value
       paketti_fill_use_random_fx = value  -- Save to global
+      
+      -- When Random FX is turned ON, reset effect selector to "<No Effect>" 
+      if use_random_fx and selected_effect_index > 1 then
+        print("DEBUG PakettiFill: Random FX turned on, resetting effect selector to '<No Effect>'")
+        selected_effect_index = 1
+        paketti_fill_selected_effect_index = 1  -- Save to global
+        effect_selector.value = 1  -- Update dropdown display
+      end
+      
       update_effect_sliders_active()  -- Update slider active state when Random FX changes
     end
   }
@@ -1174,7 +1267,7 @@ function PakettiFillShowDialog()
         selected_effect = available_effects[selected_effect_index - 1]  -- Adjust for "<No Effect>" offset
       end
       
-      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep)
+      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, nil)
       
       -- Return focus to middle frame for keyboard shortcuts
       renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
@@ -1210,11 +1303,74 @@ function PakettiFillShowDialog()
         selected_effect = available_effects[selected_effect_index - 1]  -- Adjust for "<No Effect>" offset
       end
       
+      -- For "Where? FX" mode, remember existing effect pattern before clearing
+      local remembered_fx_lines = {}
+      if where_mode == 3 then -- "FX" mode - remember where effects currently exist
+        print("DEBUG PakettiFill: FX mode - remembering existing effect pattern before clearing")
+        for line_index = 1, pattern.number_of_lines do
+          local pattern_line = pattern:track(track_index):line(line_index)
+          -- Check if this line has any effects
+          local has_effects = false
+          for col = 1, track.visible_effect_columns do
+            local effect_column = pattern_line:effect_column(col)
+            if effect_column and not effect_column.is_empty then
+              has_effects = true
+              break
+            end
+          end
+          if has_effects then
+            remembered_fx_lines[line_index] = true
+            print("DEBUG PakettiFill: Remembered effect on line " .. line_index)
+          end
+        end
+        local count = 0
+        for _ in pairs(remembered_fx_lines) do count = count + 1 end
+        print("DEBUG PakettiFill: Remembered " .. count .. " lines with effects")
+      end
+      
+      -- Clear track based on mode: FX Only = clear only effects, otherwise clear everything
+      if effects_only then
+        print("DEBUG PakettiFill: FX Only mode - clearing only effect columns from track " .. track_index)
+        -- Only clear effect columns, preserve notes
+        for line_index = 1, pattern.number_of_lines do
+          local pattern_line = pattern:track(track_index):line(line_index)
+          -- Clear all effect columns but leave notes untouched
+          for col = 1, track.visible_effect_columns do
+            local effect_column = pattern_line:effect_column(col)
+            if effect_column then
+              effect_column:clear()
+            end
+          end
+        end
+      else
+        print("DEBUG PakettiFill: Full mode - clearing entire track " .. track_index)
+        -- Clear everything (notes + effects)
+        for line_index = 1, pattern.number_of_lines do
+          local pattern_line = pattern:track(track_index):line(line_index)
+          
+          -- Clear all note columns
+          for col = 1, track.visible_note_columns do
+            local note_column = pattern_line:note_column(col)
+            if note_column then
+              note_column:clear()
+            end
+          end
+          
+          -- Clear all effect columns
+          for col = 1, track.visible_effect_columns do
+            local effect_column = pattern_line:effect_column(col)
+            if effect_column then
+              effect_column:clear()
+            end
+          end
+        end
+      end
+      
       -- Temporarily override selection for track fill
       local original_selection = song.selection_in_pattern
       song.selection_in_pattern = temp_selection
       
-      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep)
+      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, remembered_fx_lines)
       
       -- Restore original selection
       song.selection_in_pattern = original_selection
@@ -1347,11 +1503,142 @@ function PakettiFillShowDialog()
     table.unpack(content_items)
   }
   
-  -- Create dialog with key handler
-  local keyhandler = create_keyhandler_for_dialog(
-    function() return dialog end,
-    function(value) dialog = value end
-  )
+  -- Create dialog with custom key handler that supports Enter for Fill Track
+  local keyhandler = function(dialog_obj, key)
+    local closer = preferences.pakettiDialogClose.value
+    print("KEYHANDLER DEBUG: name:'" .. tostring(key.name) .. "' modifiers:'" .. tostring(key.modifiers) .. "' closer:'" .. tostring(closer) .. "'")
+    
+    -- Debug: Check for Enter/Return key variations
+    if key.name == "return" or key.name == "enter" or key.name == "cr" or key.name == "lf" then
+      print("DEBUG PakettiFill: ENTER-like key detected: '" .. key.name .. "' with modifiers: '" .. key.modifiers .. "'")
+    end
+    
+    if key.modifiers == "" and key.name == closer then
+      -- Clean up any observers that might exist
+      if cleanup_observers then
+        cleanup_observers()
+      end
+      dialog_obj:close()
+      dialog = nil
+      return nil
+    elseif key.modifiers == "" and key.name == "return" then
+      -- Enter key pressed - trigger Fill Track
+      print("DEBUG PakettiFill: Enter key pressed - triggering Fill Track")
+      
+      -- Execute the same logic as Fill Track button
+      local song = renoise.song()
+      local pattern_index = song.selected_pattern_index
+      local track_index = song.selected_track_index
+      local pattern = song:pattern(pattern_index)
+      local track = song:track(track_index)
+      
+      -- Create a selection that covers the entire track
+      local temp_selection = {
+        start_track = track_index,
+        end_track = track_index,
+        start_line = 1,
+        end_line = pattern.number_of_lines,
+        start_column = 1,
+        end_column = track.visible_note_columns  -- Use actual visible columns
+      }
+      
+      -- For constant mode, use the lowest note from the range
+      local constant_note_value = math.min(from_note_value, to_note_value)
+      -- Handle "<No Effect>" option (index 1) - pass nil for no effect
+      local selected_effect = nil
+      if selected_effect_index > 1 then
+        selected_effect = available_effects[selected_effect_index - 1]  -- Adjust for "<No Effect>" offset
+      end
+      
+      -- For "Where? FX" mode, remember existing effect pattern before clearing
+      local remembered_fx_lines = {}
+      if where_mode == 3 then -- "FX" mode - remember where effects currently exist
+        print("DEBUG PakettiFill: FX mode - remembering existing effect pattern before clearing")
+        for line_index = 1, pattern.number_of_lines do
+          local pattern_line = pattern:track(track_index):line(line_index)
+          -- Check if this line has any effects
+          local has_effects = false
+          for col = 1, track.visible_effect_columns do
+            local effect_column = pattern_line:effect_column(col)
+            if effect_column and not effect_column.is_empty then
+              has_effects = true
+              break
+            end
+          end
+          if has_effects then
+            remembered_fx_lines[line_index] = true
+            print("DEBUG PakettiFill: Remembered effect on line " .. line_index)
+          end
+        end
+        local count = 0
+        for _ in pairs(remembered_fx_lines) do count = count + 1 end
+        print("DEBUG PakettiFill: Remembered " .. count .. " lines with effects")
+      end
+      
+      -- Clear track based on mode: FX Only = clear only effects, otherwise clear everything
+      if effects_only then
+        print("DEBUG PakettiFill: FX Only mode - clearing only effect columns from track " .. track_index)
+        -- Only clear effect columns, preserve notes
+        for line_index = 1, pattern.number_of_lines do
+          local pattern_line = pattern:track(track_index):line(line_index)
+          -- Clear all effect columns but leave notes untouched
+          for col = 1, track.visible_effect_columns do
+            local effect_column = pattern_line:effect_column(col)
+            if effect_column then
+              effect_column:clear()
+            end
+          end
+        end
+      else
+        print("DEBUG PakettiFill: Full mode - clearing entire track " .. track_index)
+        -- Clear everything (notes + effects)
+        for line_index = 1, pattern.number_of_lines do
+          local pattern_line = pattern:track(track_index):line(line_index)
+          
+          -- Clear all note columns
+          for col = 1, track.visible_note_columns do
+            local note_column = pattern_line:note_column(col)
+            if note_column then
+              note_column:clear()
+            end
+          end
+          
+          -- Clear all effect columns
+          for col = 1, track.visible_effect_columns do
+            local effect_column = pattern_line:effect_column(col)
+            if effect_column then
+              effect_column:clear()
+            end
+          end
+        end
+      end
+      
+      -- Temporarily override selection for track fill
+      local original_selection = song.selection_in_pattern
+      song.selection_in_pattern = temp_selection
+      
+      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, remembered_fx_lines)
+      
+      -- Restore original selection
+      song.selection_in_pattern = original_selection
+      
+      -- Return focus to middle frame and ensure pattern editor is visible
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      
+      -- Make sure we're viewing the track we just filled
+      song.selected_track_index = track_index
+      
+      -- Jump to line 1 to see the filled results from the beginning
+      song.transport.playback_pos = renoise.SongPos(song.selected_pattern_index, 1)
+      
+      -- Give user feedback about what just happened
+      renoise.app():show_status(string.format("PakettiFill: Filled entire track %d with %s", track_index, effects_only and "effects only" or "notes and effects"))
+      
+      return nil -- Consume the Enter key, don't pass it to Renoise
+    else
+      return key
+    end
+  end
   
   dialog = renoise.app():show_custom_dialog("Paketti Fill", content, keyhandler)
   
@@ -1371,12 +1658,8 @@ function PakettiFillShowDialog()
     end
     
     -- Set sensible default event count when opening in Euclidean mode
-    if use_editstep then
-      local edit_step = renoise.song().transport.edit_step
-      density_value = math.max(1, math.min(4, edit_step)) -- Default to EditStep or max 4 events
-    else
-      density_value = 1  -- Default to 1 event
-    end
+    -- Always default to 1 event for focus, regardless of EditStep
+    density_value = 1
     paketti_fill_density_value = density_value  -- Save to global
     density_slider.value = density_value
     density_value_text.text = tostring(density_value)

@@ -1320,28 +1320,79 @@ function effectamount(amount, effectname)
   local s = renoise.song()
   local counter = nil
 
+  print("DEBUG: effectamount called with amount=" .. amount .. ", effectname=" .. (effectname or "nil"))
+  print("DEBUG: selected track=" .. s.selected_track_index .. ", selected line=" .. s.selected_line_index)
+  print("DEBUG: track type=" .. s.selected_track.type)
+  print("DEBUG: visible effect columns=" .. s.selected_track.visible_effect_columns)
+
+  -- Check if track is a sequencer track
+  if s.selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    print("DEBUG: Track is not a sequencer track (type=" .. s.selected_track.type .. "), cannot write effects")
+    return
+  end
+
+  -- Ensure at least one effect column is visible
+  if s.selected_track.visible_effect_columns == 0 then
+    print("DEBUG: No effect columns visible, making first effect column visible")
+    s.selected_track.visible_effect_columns = 1
+  end
+
   if s.selection_in_pattern == nil then
     -- If no selection is set, output to the row that the cursor is on
     local current_line_index = s.selected_line_index
     
-    s:pattern(s.selected_pattern_index):track(s.selected_track_index):line(current_line_index):effect_column(1).number_string = effectname
-    counter = s:pattern(s.selected_pattern_index):track(s.selected_track_index):line(current_line_index):effect_column(1).amount_value + amount
+    print("DEBUG: Writing to single line " .. current_line_index)
+    local effect_column = s:pattern(s.selected_pattern_index):track(s.selected_track_index):line(current_line_index):effect_column(1)
+    
+    if not effect_column then
+      print("DEBUG: ERROR - Could not get effect column 1")
+      return
+    end
+    
+    effect_column.number_string = effectname
+    counter = effect_column.amount_value + amount
 
     if counter > 255 then counter = 255 end
     if counter < 1 then counter = 0 end
-    s:pattern(s.selected_pattern_index):track(s.selected_track_index):line(current_line_index):effect_column(1).amount_value = counter
+    effect_column.amount_value = counter
+    
+    print("DEBUG: Wrote " .. effectname .. string.format("%02X", counter) .. " to line " .. current_line_index)
   else
     -- If a selection is set, process the selection range
     local start_track = s.selection_in_pattern.start_track
     local end_track = s.selection_in_pattern.end_track
+    print("DEBUG: Processing selection from line " .. s.selection_in_pattern.start_line .. " to " .. s.selection_in_pattern.end_line)
+    print("DEBUG: Processing tracks from " .. start_track .. " to " .. end_track)
+    
     for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
       for t = start_track, end_track do
-        s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(1).number_string = effectname
-        counter = s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(1).amount_value + amount
+        local track = s:pattern(s.selected_pattern_index):track(t)
+        local track_obj = s:track(t)
+        
+        -- Check if this is a sequencer track
+        if track_obj.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+          print("DEBUG: Skipping track " .. t .. " (not sequencer track)")
+        else
+          -- Ensure effect column is visible for this track
+          if track_obj.visible_effect_columns == 0 then
+            print("DEBUG: Making effect column visible for track " .. t)
+            track_obj.visible_effect_columns = 1
+          end
+          
+          local effect_column = track:line(i):effect_column(1)
+          if not effect_column then
+            print("DEBUG: ERROR - Could not get effect column 1 for track " .. t .. ", line " .. i)
+          else
+            effect_column.number_string = effectname
+            counter = effect_column.amount_value + amount
 
-        if counter > 255 then counter = 255 end
-        if counter < 1 then counter = 0 end
-        s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(1).amount_value = counter
+            if counter > 255 then counter = 255 end
+            if counter < 1 then counter = 0 end
+            effect_column.amount_value = counter
+            
+            print("DEBUG: Wrote " .. effectname .. string.format("%02X", counter) .. " to track " .. t .. ", line " .. i)
+          end
+        end
       end
     end
   end

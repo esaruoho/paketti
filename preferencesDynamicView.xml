@@ -99,7 +99,7 @@
   <dynamic_view02_upper_step5>1.0</dynamic_view02_upper_step5>
   <dynamic_view02_middle_step5>1.0</dynamic_view02_middle_step5>
   <dynamic_view02_lower_step5>1.0</dynamic_view02_lower_step5>
-  <dynamic_view02_sample_record_visible_step5>3</dynamic_view02_sample_record_visible_step5>
+  <dynamic_view02_sample_record_visible_step5>1.0</dynamic_view02_sample_record_visible_step5>
   <dynamic_view02_disk_browser_visible_step5>1.0</dynamic_view02_disk_browser_visible_step5>
   <dynamic_view02_instrument_box_visible_step5>1.0</dynamic_view02_instrument_box_visible_step5>
   <dynamic_view02_pattern_matrix_visible_step5>1.0</dynamic_view02_pattern_matrix_visible_step5>

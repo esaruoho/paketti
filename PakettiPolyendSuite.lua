@@ -3456,10 +3456,10 @@ PakettiPolyendSuiteTooltips = {
   [49] = "Automatically find, download and extract the latest firmware for the selected device", -- Auto-Update Firmware button (Firmware row)
   [50] = "Open the Polyend Palettes sample packs store in your browser", -- Polyend Palettes button (Links row)
   [51] = "Rescan the folder for PTI files or reconnect Polyend device", -- Refresh button (Refresh row)
-  [52] = "Load 48 samples → Create melodic slice chain (for auditioning with Slice Switcher)", -- Create Melodic Slice Instrument button
-  [53] = "Open the Polyend Slice Switcher dialog to audition and switch between melodic slices", -- Open Slice Switcher button  
+  [52] = "Load 48 samples → Create melodic slice chain (for auditioning with Slice Switcher)", -- Prepare Melodic Instrument button
+  [53] = "Open the Polyend Slice Switcher dialog to audition and switch between melodic slices", -- Default Slice Select button  
   [54] = "Export current sliced instrument as PTI (use after creating chain and auditioning)", -- Export as Melodic Slice button
-  [55] = "Load 48 samples → Create melodic slice chain → Export as PTI (one-shot)" -- Create + Export Melodic Slice button
+  [55] = "Load 48 samples → Create melodic slice chain → Export as PTI (one-shot)" -- Create & Export Melodic Slice button
 }
 
 -- Function to create the Polyend Buddy dialog content
@@ -5037,6 +5037,54 @@ function create_polyend_buddy_dialog(vb)
           renoise.app():show_status("Opened Polyend Palettes sample packs store in browser")
         end
       }
+    },
+    
+    -- Melodic Slice section
+    vb:row{
+      vb:text{
+        text = "Melodic Slice",
+        width = textWidth, style="strong",font="bold"
+      },
+    },
+    
+    -- Melodic Slice buttons - First row
+    vb:row{
+      vb:button{
+        text = "Prepare Melodic Instrument",
+        width = 200,
+        tooltip = PakettiPolyendSuiteTooltips[52],
+        notifier = function()
+          PakettiMelodicSliceCreateChain()
+        end
+      },
+      vb:button{
+        text = "Default Slice Select",
+        width = 200,
+        tooltip = PakettiPolyendSuiteTooltips[53],
+        notifier = function()
+          PakettiPolyendSliceSwitcherCreateDialog()
+        end
+      },
+    },
+    
+    -- Melodic Slice buttons - Second row
+    vb:row{
+      vb:button{
+        text = "Export as Melodic Slice",
+        width = 200,
+        tooltip = PakettiPolyendSuiteTooltips[54],
+        notifier = function()
+          PakettiMelodicSliceExport()
+        end
+      },
+      vb:button{
+        text = "Create & Export Melodic Slice",
+        width = 200,
+        tooltip = PakettiPolyendSuiteTooltips[55],
+        notifier = function()
+          PakettiMelodicSliceExportCurrent()
+        end
+      },
     },
     
     -- Other action buttons

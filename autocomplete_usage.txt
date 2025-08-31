@@ -1,118 +1,121 @@
-Global:Paketti:Squeeze Note Columns (Whole Song):4
-Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Write Current BPM&LPB to Master Column:3
-Sample Editor:Paketti:Process:Cross-fade Loop Edges (Fixed End):2
-Pattern Editor:Paketti:Write Notes Descending:1
-Global:Paketti:Paketti Speed and Tempo to BPM Dialog...:6
-Mixer:Paketti Gadgets:Paketti Action Selector Dialog...:4
-Pattern Editor:Paketti:Write Notes EditStep Ascending:7
-Pattern Editor:Paketti Gadgets:Paketti Action Selector Dialog...:1
-Sample Editor:Paketti:Process:Cross-fade Sample w/ Fade-In/Out:1
+Global:Paketti:Paketti Stacker Dialog...:6
+Sample Editor:Paketti:Select Second Half of Sample Buffer:1
+Global:Paketti:Paketti Stem Slicer Dialog...:6
+Global:Paketti:Paketti Steppers Dialog...:1
+Global:Paketti:Paketti PitchBend Multiple Sample Loader (Normalize):1
 Global:Paketti:PakettiStemSlicer Dialog...:22
 Global:Paketti:Detect Sample BPM:2
-Disk Browser Files:Paketti Gadgets:Paketti Stacker Dialog...:1
-Global:Paketti:Set BPM from Sample Length:2
-Pattern Editor:Paketti:Write Notes Random:1
-Global:Track Devices:Load ValhallaDelay:6
-Pattern Editor:Paketti Gadgets:Paketti Dialog of Dialogs...:2
-Global:Paketti:Duplicate All Samples at +36 Transpose:2
-Main Menu:Tools:Paketti:PlayerPro:Waveform Viewer (SkunkWorks):1
-Global:Paketti:Explode Notes to New Tracks (Ordered):4
-Global:Paketti:Duplicate All Samples at -12 Transpose:1
-Global:Paketti:Hide Track DSP Device External Editors for All Tracks:2
-Global:Paketti:Duplicate All Samples at -24 Transpose:1
-Main Menu:File:Paketti:Largest Samples Dialog...:1
-Global:Paketti:Duplicate All Samples at -36 Transpose:1
-Global:Paketti:Configure Launch App Selection...:3
-Global:Paketti:Squeeze Note Columns (Pattern):1
-Global:Paketti:Paketti Overdub 01 (No Metronome/Line Input):2
-Global:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...:1
-Sample Editor:Paketti:Chebyshev Polynomial Waveshaper...:1
-Global:Paketti Theme Selector:Open Paketti Theme Selector Dialog...:1
-Global:Paketti:Paketti PitchBend Multiple Sample Loader:1
-Global:Paketti:Duplicate All Samples at +12 Transpose:1
-Global:Paketti:Sectionizer...:2
-Mixer:Paketti:Enable All Devices on Track:2
-Sample Editor:Paketti:Digitakt Quick Export Stereo:2
-Global:Paketti:Open Player Pro Note Column Dialog...:4
-Mixer:Paketti:CCizer:Open CCizer Dialog:2
-Pattern Editor:Paketti Gadgets:VolDelayPan Slider Dialog...:1
-Global:Paketti:Reverse All Samples in Selected Instrument:6
-Load Plugin ZebraHZ (AU):5
-Main Menu:Tools:Paketti:Plugins/Devices:Debug:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog...:1
-Pattern Editor:Paketti Gadgets:Paketti Timestretch Dialog...:1
-Global:Paketti:Set Selected Instrument Loop PingPong:1
-Global:Paketti:Paketti Stacker Dialog...:6
-Global:Paketti:Invert Random Samples in Instrument:1
-Sample Editor:Paketti:Audio Diff:2
-Global:Paketti:Set Selected Instrument All Loop 03 PingPong:4
-Global:Paketti:Set Selected Instrument All Loop 02 Reverse:1
-Global:Paketti:CCizer Loader...:3
-Global:Paketti:Duplicate and Reverse Instrument:1
-Global:Paketti:Paketti Steppers Dialog...:1
-Main Menu:Tools:Paketti:Plugins/Devices:Debug:∿ Squiggly Sinewave to Clipboard...:1
-Sample Navigator:Paketti:Paketti Stacker Dialog...:1
-Global:Sononymph:Open Sononymph Dialog...:1
-Global:Paketti:Duplicate Pattern Above & Clear Muted Tracks:1
-Global:Paketti:Paketti MIDI Populator Dialog...:7
-Global:Paketti:Wipe&Slice&Write to Pattern:7
-Mixer:Paketti:Clear/Wipe Selected Track TrackDSPs:1
-Sample Editor:Paketti:Toggle Signed/Unsigned:2
-Global:Paketti:Normalize All Samples in Instrument:5
-Sample Editor:Paketti:Octave Slammer (-3 +3 octaves):1
-Global:Paketti:Timestretch Dialog...:2
-Pattern Editor:Paketti:Pattern:Create New Pattern from Selection:1
-DSP Chain:Paketti:Insert Random Device (AU/Native Only):4
-Global:Track Devices:Load Renoise Distortion 2:1
-Sample Editor:Paketti Gadgets:BPM Calculation Dialog...:6
-Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx):1
-Global:Paketti:Normalize Sample Slices Independently:1
-Sample Editor:Paketti Gadgets:Paketti Sample Adjust Dialog...:2
-Global:Paketti:Toggle Audition Current Line on Pattern Row Change:1
-Pattern Editor:Paketti:Effect Column Infobyte (-1) (2nd):1
-Main Menu:Tools:Paketti Gadgets:Paketti Volume/Delay/Pan Slider Controls...:1
-Global:Paketti:Paketti YT-DLP Downloader:5
-DSP Device:Paketti:Randomize Automation Envelopes for Device:1
-Pattern Editor:Paketti:Show BPM Calculation Dialog...:3
-Sample Editor:Paketti Gadgets:Paketti Autocomplete...:1
-Global:Paketti:Paketti PitchBend Drumkit Sample Loader:1
-Mixer:Paketti:Decrease All Track Volumes by 3dB:13
-Global:Paketti:Show/Hide User Preference Devices Master Dialog (SlotShow)...:2
-Global:Paketti:Distribute All Samples to Separate Modulation Sets:1
-Pattern Editor:Paketti:Clean Render Selected Track/Group:2
-Main Menu:Tools:Paketti Gadgets:Paketti Groovebox 8120...:4
-Pattern Editor:Paketti:Set BPM from Sample Length:1
-Pattern Editor:Paketti:Other Trackers:Open Player Pro Tools Effect Dialog:1
-Global:Paketti:Distribute All Samples to Separate FX & Mod Sets:1
-Sample Mappings:Paketti Gadgets:Paketti Stacker Dialog...:1
-DSP Device:Paketti:CCizer:Open CCizer Dialog:18
-Global:Paketti:User-Defined Sample Folders...:2
-Global:Paketti:Paketti PitchBend Multiple Sample Loader (Normalize):1
-Global:Paketti:Snapshot All Devices on Selected Track to Automation:1
-Global:Paketti:Show Paketti Single Cycle Waveform Writer...:1
-Sample Editor:Paketti:Select Second Half of Sample Buffer:1
-Main Menu:Tools:Paketti:Pattern Editor:Clean Render:Clean Render Seamless Selected Track/Group:2
-Global:Paketti:Paketti Action Selector Dialog...:8
-Global:Paketti:PitchBend Drumkit Instrument Init:1
-Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Gaps:1
-Global:Paketti:12st PitchBend Instrument Init:1
-Pattern Editor:Paketti:Open Player Pro Tools Dialog...:4
-Global:Paketti:Move Beginning Silence to End:2
-Paketti:Octave Slammer (-3 +3 octaves):2
-Global:Paketti:Polyend Buddy (PTI File Browser):1
-Global:Paketti:Explode Notes to New Tracks:10
-Sample FX Mixer:Paketti Gadgets:CCizer Loader...:1
-Main Menu:Tools:Paketti:Pattern Editor:Value Interpolation Looper Dialog...:1
-Global:Paketti:Uncollapse All Tracks:1
-Global:Paketti:Duplicate All Samples at +24 Transpose:1
-Sample Editor:Paketti:Convert to 24-bit:1
-Sample Navigator:Paketti:Set Loop Mode to Reverse:1
-Mixer:Paketti:Hipass (Preset++):15
-Global:Paketti:Paketti Stem Slicer Dialog...:5
-Global:Paketti:Paketti BPM to MS Delay Calculator Dialog...:6
-Global:Paketti:Paketti Beat Structure Editor...:1
+Pattern Editor:Paketti:Write Notes EditStep Ascending:7
 Global:Paketti:Paketti PitchBend Drumkit Sample Loader (Random):1
-Global:Paketti:Load 04 AKWF Samples (XY):1
-Global:Paketti:Paketti Selected Device Parameter Editor:2
-Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide User Preference Devices Master Dialog (SlotShow)...:2
 Global:Paketti:Delete Unused Samples:1
+Global:Paketti:Move Beginning Silence to End:2
+Global:Paketti:Paketti Action Selector Dialog...:8
+Global:Paketti:Set Selected Instrument All Loop 02 Reverse:1
+Global:Paketti:Squeeze Note Columns (Pattern):1
+Global:Paketti:Uncollapse All Tracks:1
+Global:Paketti:CCizer Loader...:3
+Global:Paketti:Set Selected Instrument All Loop 03 PingPong:4
+Global:Paketti:Squeeze Note Columns (Whole Song):4
+Pattern Editor:Paketti Gadgets:Paketti Action Selector Dialog...:1
+Pattern Editor:Paketti Gadgets:VolDelayPan Slider Dialog...:1
+Global:Paketti:Paketti YT-DLP Downloader:5
+Global:Paketti:Invert Random Samples in Instrument:1
+Global:Paketti:User-Defined Sample Folders...:2
+Sample Editor:Paketti Gadgets:Paketti Autocomplete...:1
+Global:Paketti:Paketti BPM to MS Delay Calculator Dialog...:6
+Mixer:Paketti Gadgets:Paketti Action Selector Dialog...:4
+Global:Paketti:Duplicate All Samples at +12 Transpose:1
+Global:Paketti:Load 04 AKWF Samples (XY):1
+Global:Paketti:Paketti Beat Structure Editor...:1
+Disk Browser Files:Paketti Gadgets:Paketti Stacker Dialog...:1
+Pattern Editor:Paketti Gadgets:Paketti Dialog of Dialogs...:2
+Global:Paketti:Snapshot All Devices on Selected Track to Automation:1
+Global:Paketti:Duplicate All Samples at +24 Transpose:1
+Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx):1
+Global:Paketti:Duplicate All Samples at +36 Transpose:2
+Pattern Editor:Paketti:Other Trackers:Open Player Pro Tools Effect Dialog:1
+DSP Device:Paketti:Randomize Automation Envelopes for Device:1
+Sample Mappings:Paketti Gadgets:Paketti Stacker Dialog...:1
+Main Menu:File:Paketti:Largest Samples Dialog...:1
+Main Menu:Tools:Paketti:Plugins/Devices:Debug:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog...:1
+Sample Editor:Paketti Gadgets:BPM Calculation Dialog...:6
+Global:Paketti:Duplicate All Samples at -24 Transpose:1
+Global:Paketti:Set Selected Instrument Loop PingPong:1
+Global:Paketti:Duplicate and Reverse Instrument:1
+Global:Paketti:Duplicate All Samples at -36 Transpose:1
+Sample Navigator:Paketti:Paketti Stacker Dialog...:1
+Pattern Editor:Paketti:Open Player Pro Tools Dialog...:4
+Global:Paketti:Set BPM from Sample Length:2
+Mixer:Paketti:CCizer:Open CCizer Dialog:2
+Sample Editor:Paketti:Toggle Signed/Unsigned:2
+Load Plugin ZebraHZ (AU):5
+Sample Navigator:Paketti:Set Loop Mode to Reverse:1
+Sample Editor:Paketti:Digitakt Quick Export Stereo:2
+Main Menu:Tools:Paketti:Plugins/Devices:Debug:∿ Squiggly Sinewave to Clipboard...:1
+Main Menu:Tools:Paketti:PlayerPro:Waveform Viewer (SkunkWorks):1
+DSP Device:Paketti:CCizer:Open CCizer Dialog:18
+Sample Editor:Paketti:Process:Cross-fade Loop Edges (Fixed End):2
+Pattern Editor:Paketti Gadgets:Paketti Timestretch Dialog...:1
+Global:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...:1
+Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide User Preference Devices Master Dialog (SlotShow)...:2
+Mixer:Paketti:Enable All Devices on Track:2
+Global:Paketti:Show/Hide User Preference Devices Master Dialog (SlotShow)...:2
+Global:Paketti:Polyend Buddy (PTI File Browser):1
+Global:Paketti:Sectionizer...:2
+Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Write Current BPM&LPB to Master Column:3
+Mixer:Paketti:Decrease All Track Volumes by 3dB:13
+Mixer:Paketti:Hipass (Preset++):15
+Main Menu:Tools:Paketti:Pattern Editor:Clean Render:Clean Render Seamless Selected Track/Group:2
+Sample FX Mixer:Paketti Gadgets:CCizer Loader...:1
+Mixer:Paketti:Clear/Wipe Selected Track TrackDSPs:1
+Pattern Editor:Paketti:Show BPM Calculation Dialog...:3
+Global:Paketti:Paketti PitchBend Drumkit Sample Loader:1
+Global:Paketti:Octave Slammer (-3 +3 octaves):1
+Paketti:Octave Slammer (-3 +3 octaves):3
 Pattern Editor:Paketti:Write Notes Ascending:2
+Global:Paketti:Distribute All Samples to Separate FX & Mod Sets:1
+Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Gaps:1
+Global:Paketti:Show Paketti Single Cycle Waveform Writer...:1
+Pattern Editor:Paketti:Write Notes Descending:1
+Global:Paketti:Paketti PitchBend Multiple Sample Loader:1
+Global:Paketti:Configure Launch App Selection...:3
+Sample Editor:Paketti:Audio Diff:2
+Global:Paketti:Explode Notes to New Tracks:10
+Global:Paketti:Distribute All Samples to Separate Modulation Sets:1
+Global:Paketti:Wipe&Slice&Write to Pattern:7
+Global:Paketti:Normalize All Samples in Instrument:5
+Global:Paketti:Paketti MIDI Populator Dialog...:7
+Pattern Editor:Paketti:Effect Column Infobyte (-1) (2nd):1
+Global:Paketti:Timestretch Dialog...:2
+Global:Paketti:Duplicate Pattern Above & Clear Muted Tracks:1
+Pattern Editor:Paketti:Clean Render Selected Track/Group:2
+Global:Paketti:PitchBend Drumkit Instrument Init:1
+Pattern Editor:Paketti:Write Notes Random:1
+Global:Paketti:Normalize Sample Slices Independently:1
+Global:Paketti:Explode Notes to New Tracks (Ordered):4
+Global:Paketti:12st PitchBend Instrument Init:1
+Global:Paketti:Toggle Audition Current Line on Pattern Row Change:1
+Pattern Editor:Paketti Gadgets:Paketti Capture Last Take...:1
+Global:Paketti:Hide Track DSP Device External Editors for All Tracks:2
+Sample Editor:Paketti Gadgets:Paketti Sample Adjust Dialog...:2
+Global:Paketti:Paketti Speed and Tempo to BPM Dialog...:6
+Main Menu:Tools:Paketti Gadgets:Paketti Groovebox 8120...:4
+Global:Paketti:Paketti Overdub 01 (No Metronome/Line Input):2
+Main Menu:Tools:Paketti Gadgets:Paketti Volume/Delay/Pan Slider Controls...:1
+Pattern Editor:Paketti:Set BPM from Sample Length:1
+Main Menu:Tools:Paketti:Pattern Editor:Value Interpolation Looper Dialog...:1
+Global:Paketti:Duplicate All Samples at -12 Transpose:1
+Global:Paketti:Open Player Pro Note Column Dialog...:5
+Sample Editor:Paketti:Octave Slammer (-3 +3 octaves):2
+Global:Paketti:Paketti Selected Device Parameter Editor:2
+Sample Editor:Paketti:Process:Cross-fade Sample w/ Fade-In/Out:1
+DSP Chain:Paketti:Insert Random Device (AU/Native Only):4
+Global:Paketti Theme Selector:Open Paketti Theme Selector Dialog...:1
+Sample Editor:Paketti:Chebyshev Polynomial Waveshaper...:1
+Global:Paketti:Reverse All Samples in Selected Instrument:6
+Sample Editor:Paketti:Octave Slammer (-1 +1 octaves):1
+Global:Track Devices:Load Renoise Distortion 2:1
+Global:Sononymph:Open Sononymph Dialog...:1
+Sample Editor:Paketti:Convert to 24-bit:1
+Global:Track Devices:Load ValhallaDelay:6
+Pattern Editor:Paketti:Pattern:Create New Pattern from Selection:1

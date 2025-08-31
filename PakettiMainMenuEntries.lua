@@ -23,6 +23,8 @@ local donations = {
   {"2025-07-28", "Leann Lai Syn Yuan", 4.38},
   {"2025-07-29", "Cosmic Ollie", 96.25},
   {"2025-08-17", "Cubeinthebox", 16.39, {"Soundcloud", "https://soundcloud.com/thecubeinthebox"}},
+  {"2025-08-31", "grymmjack", 9.11, {"YouTube", "https://youtube.com/grymmjack"}, {"Soundcloud","https://soundcloud.com/grymmjack"},{"GitHub","https://github.com/grymmjack"}},
+  {"2025-08-30", "Bloodclot", 7.22, {"Linktree", "https://linktr.ee/bclbclbcl"}},
 }
 
 local total_amount = 0

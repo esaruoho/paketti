@@ -576,10 +576,10 @@ function PakettiFuzzySampleSearchCreateDialog()
     -- First handle our custom keys
     local handled_key = PakettiFuzzySampleSearchKeyHandler(dialog_ref, key)
     if handled_key == nil then
-      return nil  -- Key was handled by our function
+      return nil  -- Key was handled by our function, stop processing
     end
     
-    -- If not handled by our function, check for dialog close
+    -- If not handled by our function, check for dialog close preference
     local closer = preferences.pakettiDialogClose.value
     if key.modifiers == "" and key.name == closer then
       dialog_ref:close()
@@ -804,6 +804,7 @@ function PakettiFuzzySampleSearchKeyHandler(dialog_ref, key)
     return key
   end
   
+  -- Handle keys regardless of modifiers for basic navigation and search
   if key.modifiers == "" then
     if key.name == "up" then
       PakettiFuzzySampleSearchNavigate("up")
@@ -824,16 +825,17 @@ function PakettiFuzzySampleSearchKeyHandler(dialog_ref, key)
     elseif key.name == "escape" then
       if search_query ~= "" then
         PakettiFuzzySampleSearchUpdateSearch("")
+        return nil
       else
         dialog_ref:close()
         dialog = nil
+        return nil
       end
-      return nil
     elseif key.name == "backspace" then
       if #search_query > 0 then
         PakettiFuzzySampleSearchUpdateSearch(search_query:sub(1, -2))
+        return nil
       end
-      return nil
     elseif key.name == "space" then
       PakettiFuzzySampleSearchUpdateSearch(search_query .. " ")
       return nil

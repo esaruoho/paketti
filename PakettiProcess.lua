@@ -117,10 +117,29 @@ function NormalizeSelectedSliceInSample()
         yield_if_needed()
       end
 
-      -- Find overall peak.
+      -- Determine which channels to process based on selection
+      local selected_channel = buffer.selected_channel
+      local channels_to_normalize = {}
+      
+      if selected_channel == 1 then -- CHANNEL_LEFT
+        channels_to_normalize = {1}
+        print("Normalizing: Left channel only")
+      elseif selected_channel == 2 then -- CHANNEL_RIGHT  
+        channels_to_normalize = {2}
+        print("Normalizing: Right channel only")
+      else -- CHANNEL_LEFT_AND_RIGHT or default
+        for ch = 1, num_channels do
+          channels_to_normalize[ch] = ch
+        end
+        print("Normalizing: All channels")
+      end
+
+      -- Find peak only from selected channels
       local peak = 0
-      for _, p in ipairs(channel_peaks) do
-        if p > peak then peak = p end
+      for _, ch in ipairs(channels_to_normalize) do
+        if channel_peaks[ch] and channel_peaks[ch] > peak then 
+          peak = channel_peaks[ch] 
+        end
       end
       if peak == 0 then
         print("Sample is silent, no normalization needed")
@@ -150,7 +169,22 @@ function NormalizeSelectedSliceInSample()
             local f = frame + i
             local idx = f - slice_start + 1
             local cached_value = sample_cache[ch][idx]
-            set_sample(buffer, ch, f, cached_value * scale)
+            
+            -- Only normalize selected channels
+            local should_normalize = false
+            for _, target_ch in ipairs(channels_to_normalize) do
+              if ch == target_ch then
+                should_normalize = true
+                break
+              end
+            end
+            
+            if should_normalize then
+              set_sample(buffer, ch, f, cached_value * scale)
+            else
+              -- Keep original value for unselected channels
+              set_sample(buffer, ch, f, cached_value)
+            end
           end
         end
         time_processing = time_processing + (os.clock() - t_block)
@@ -179,13 +213,23 @@ function NormalizeSelectedSliceInSample()
         dialog:close()
       end
 
+      -- Generate appropriate status message
+      local channel_desc = ""
+      if selected_channel == 1 then
+        channel_desc = " (left channel)"
+      elseif selected_channel == 2 then
+        channel_desc = " (right channel)"
+      elseif num_channels > 1 then
+        channel_desc = " (both channels)"
+      end
+
       if sel_range[1] and sel_range[2] then
         if noprocess == true then
           renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
         return end
-        renoise.app():show_status("Normalized selection in " .. current_sample.name)
+        renoise.app():show_status("Normalized selection" .. channel_desc .. " in " .. current_sample.name)
       else
-        renoise.app():show_status("Normalized " .. current_sample.name)
+        renoise.app():show_status("Normalized" .. channel_desc .. " " .. current_sample.name)
       end
     end
 
@@ -312,10 +356,28 @@ function NormalizeSelectedSliceInSample()
         yield_if_needed()
       end
 
+      -- Determine which channels to process based on selection
+      local selected_channel = buffer.selected_channel
+      local channels_to_normalize = {}
+      
+      if selected_channel == 1 then -- CHANNEL_LEFT
+        channels_to_normalize = {1}
+        print("Normalizing: Left channel only")
+      elseif selected_channel == 2 then -- CHANNEL_RIGHT  
+        channels_to_normalize = {2}
+        print("Normalizing: Right channel only")
+      else -- CHANNEL_LEFT_AND_RIGHT or default
+        for ch = 1, num_channels do
+          channels_to_normalize[ch] = ch
+        end
+        print("Normalizing: All channels")
+      end
+
+      -- Find peak only from selected channels
       local peak = 0
-      for _, channel_peak in ipairs(channel_peaks) do
-        if channel_peak > peak then
-          peak = channel_peak
+      for _, ch in ipairs(channels_to_normalize) do
+        if channel_peaks[ch] and channel_peaks[ch] > peak then 
+          peak = channel_peaks[ch] 
         end
       end
 
@@ -347,7 +409,22 @@ function NormalizeSelectedSliceInSample()
             local f = frame + i
             local idx = f - slice_start + 1
             local value = sample_cache[ch][idx]
-            set_sample(buffer, ch, f, value * scale)
+            
+            -- Only normalize selected channels
+            local should_normalize = false
+            for _, target_ch in ipairs(channels_to_normalize) do
+              if ch == target_ch then
+                should_normalize = true
+                break
+              end
+            end
+            
+            if should_normalize then
+              set_sample(buffer, ch, f, value * scale)
+            else
+              -- Keep original value for unselected channels
+              set_sample(buffer, ch, f, value)
+            end
           end
         end
         time_processing = time_processing + (os.clock() - t_block)
@@ -377,15 +454,25 @@ function NormalizeSelectedSliceInSample()
         dialog:close()
       end
 
+      -- Generate appropriate status message
+      local channel_desc = ""
+      if selected_channel == 1 then
+        channel_desc = " (left channel)"
+      elseif selected_channel == 2 then
+        channel_desc = " (right channel)"
+      elseif num_channels > 1 then
+        channel_desc = " (both channels)"
+      end
+
       if current_slice == 1 then
         local sel = buffer.selection_range
         if sel[1] and sel[2] then
           if noprocess == true then
             renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
           return end
-          renoise.app():show_status("Normalized selection in " .. current_sample.name)
+          renoise.app():show_status("Normalized selection" .. channel_desc .. " in " .. current_sample.name)
         else
-          renoise.app():show_status("Normalized entire sample")
+          renoise.app():show_status("Normalized entire sample" .. channel_desc)
         end
       else
         local sel = buffer.selection_range
@@ -393,9 +480,9 @@ function NormalizeSelectedSliceInSample()
           if noprocess == true then
             renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
           return end
-          renoise.app():show_status(string.format("Normalized selection in slice %d", current_slice))
+          renoise.app():show_status(string.format("Normalized selection%s in slice %d", channel_desc, current_slice))
         else
-          renoise.app():show_status(string.format("Normalized slice %d", current_slice))
+          renoise.app():show_status(string.format("Normalized slice %d%s", current_slice, channel_desc))
         end
         song.selected_sample_index = song.selected_sample_index - 1 
         song.selected_sample_index = song.selected_sample_index + 1
@@ -3499,3 +3586,5 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
+
+
