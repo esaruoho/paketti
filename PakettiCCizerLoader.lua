@@ -223,6 +223,9 @@ local function apply_ccizer_mappings(mappings, filename)
         end
         
         renoise.app():show_status(status_message)
+        
+        -- Open parameter editor after CC XML injection is complete
+        PakettiCanvasExperimentsInit()
     else
         renoise.app():show_error("Failed to find or load MIDI Control device")
     end
@@ -574,6 +577,9 @@ local function apply_ccizer_to_selected_device(mappings, filename)
         end
         
         renoise.app():show_status(status_message)
+        
+        -- Open parameter editor after CC XML injection is complete
+        PakettiCanvasExperimentsInit()
     else
         -- No device selected or wrong device type - create new MIDI Control device
         print("-- CCizer: No MIDI Control device selected, creating new one")
@@ -613,6 +619,9 @@ local function apply_ccizer_to_selected_device(mappings, filename)
             end
             
             renoise.app():show_status(status_message)
+            
+            -- Open parameter editor after CC XML injection is complete
+            PakettiCanvasExperimentsInit()
         else
             renoise.app():show_error("Failed to find or load MIDI Control device")
         end

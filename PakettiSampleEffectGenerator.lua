@@ -4,16 +4,17 @@
 
 local vb = renoise.ViewBuilder()
 
--- Canvas dimensions - optimized for minimal wasted space
-local canvas_width = 460   -- Increased width to use more dialog space
-local canvas_height = 180  -- Increased height for better drawing area
+-- Canvas dimensions - 3 pixels wider and taller for better rendering
+local canvas_width = 463   -- 3 pixels wider
+local canvas_height = 183  -- 3 pixels taller
 local text_height = 14     -- Space for vector text with proper spacing
-local text_margin = 4      -- Space between text and drawing area (at least 1px as requested)
-local content_margin = 6   -- Minimal side padding
-local content_width = canvas_width - (content_margin * 2)
-local content_height = canvas_height - text_height - text_margin - content_margin
-local content_x = content_margin
-local content_y = text_height + text_margin  -- Start below text with proper spacing
+local text_margin = 6      -- Space between text and drawing area (lifted by 2 pixels as requested)
+local border_margin = 6    -- Grey rectangle border margin  
+local internal_padding = 10 -- INTERNAL padding so waveforms don't get clipped at edges
+local content_width = canvas_width - (border_margin * 2) - (internal_padding * 2)  -- Smaller drawing area
+local content_height = canvas_height - text_height - text_margin - border_margin - (internal_padding * 2)  -- Smaller drawing area
+local content_x = border_margin + internal_padding  -- Start inside the border + padding
+local content_y = text_height + text_margin + internal_padding  -- Start below text + padding
 
 -- Dialog and canvas references
 local sample_generator_dialog = nil
@@ -33,14 +34,167 @@ local mouse_tracking = {
   volume = { is_down = false, last_x = -1, last_y = -1, last_index = -1 }
 }
 
+-- Unified dropdown items for all canvases (DRY principle)
+local UNIFIED_DROPDOWN_ITEMS = {"Current", "Sine", "Triangle", "Square", "Sawtooth", "Flat", "Ramp Up", "Ramp Down", "Log Ramp Up", "Log Ramp Down", "Pulse", "Diode", "Gauss", "Chebyshev", "Chirp", "Pink Noise", "Random", "Random Stairs"}
+local UNIFIED_DROPDOWN_TYPES = {"current", "sine", "triangle", "square", "sawtooth", "flat", "ramp_up", "ramp_down", "log_ramp_up", "log_ramp_down", "pulse", "diode", "gauss", "chebyshev", "chirp", "pink_noise", "random", "random_stairs"}
+
+-- Pitch-specific dropdown items (includes octave steps)
+local PITCH_DROPDOWN_ITEMS = {"Current", "Sine", "Triangle", "Square", "Sawtooth", "Flat", "Ramp Up", "Ramp Down", "Log Ramp Up", "Log Ramp Down", "1 Octave Steps", "2 Octave Steps", "Pulse", "Diode", "Gauss", "Chebyshev", "Chirp", "Pink Noise", "Random", "Random Stairs"}
+local PITCH_DROPDOWN_TYPES = {"current", "sine", "triangle", "square", "sawtooth", "flat", "ramp_up", "ramp_down", "log_ramp_up", "log_ramp_down", "octave_steps_1", "octave_steps_2", "pulse", "diode", "gauss", "chebyshev", "chirp", "pink_noise", "random", "random_stairs"}
+
 -- Sample generation settings
 local sample_duration = 2.0  -- Default 2.0 seconds
 local sample_rate = 44100
-local wave_type = "current"  -- "current", "sine", "triangle", "square", "sawtooth", "random"
-local volume_envelope_type = "current"  -- "current", "flat", "ramp_down", "ramp_up", "triangle", "random"
-local pitch_modulation_type = "current"  -- "current", "flat", "ramp_up", "ramp_down", "triangle", "sine_wave", "random"
+local wave_type = "current"
+local volume_envelope_type = "current"
+local pitch_modulation_type = "current"
 local use_waveform_override = false  -- If true, use drawn waveform as base wave instead of dropdown selection
-local fade_out_enabled = true  -- If true, apply fade out to last 15 frames to avoid clicks
+local fade_out_enabled = true  -- If true, apply fade out to last 1000 frames (0.023s) to avoid clicks - ends at ZERO
+
+-- Tuning settings (from PakettiPCMWriter.lua)
+local A4_FREQ = 440.0  -- A4 reference frequency
+local tuned_resolution = 100  -- Auto-calculated for perfect A440 tuning
+
+-- Calculate perfect waveform resolution for A440Hz tuning
+function PakettiSampleEffectGeneratorCalculateTunedResolution()
+  -- Calculate samples per cycle at A440Hz
+  local samples_per_cycle = sample_rate / A4_FREQ  -- ~100.227 samples at 44100Hz/440Hz
+  
+  -- Round to nearest integer for waveform resolution
+  tuned_resolution = math.floor(samples_per_cycle + 0.5)
+  
+  -- Clamp to reasonable range (50-200 points)
+  tuned_resolution = math.max(50, math.min(200, tuned_resolution))
+  
+  print("TUNING: Calculated tuned resolution for A440Hz: " .. tuned_resolution .. " points (exact: " .. string.format("%.3f", samples_per_cycle) .. ")")
+  
+  -- Update UI display if it exists
+  PakettiSampleEffectGeneratorUpdateTuningDisplay()
+  
+  return tuned_resolution
+end
+
+-- Update the tuning display in the UI
+function PakettiSampleEffectGeneratorUpdateTuningDisplay()
+  if vb and vb.views.tuning_text then
+    vb.views.tuning_text.text = tuned_resolution .. " pts"
+  end
+end
+
+-- Frequency to note analysis (from PakettiPCMWriter.lua)
+function PakettiSampleEffectGeneratorFrequencyToNoteAnalysis(frequency)
+  local A4 = 440.0
+  local A4_INDEX = 57
+  
+  local notes = {
+    "C0","C#0","D0","D#0","E0","F0","F#0","G0","G#0","A0","A#0","B0",
+    "C1","C#1","D1","D#1","E1","F1","F#1","G1","G#1","A1","A#1","B1",
+    "C2","C#2","D2","D#2","E2","F2","F#2","G2","G#2","A2","A#2","B2",
+    "C3","C#3","D3","D#3","E3","F3","F#3","G3","G#3","A3","A#3","B3",
+    "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
+    "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5",
+    "C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6","A#6","B6",
+    "C7","C#7","D7","D#7","E7","F7","F#7","G7","G#7","A7","A#7","B7",
+    "C8","C#8","D8","D#8","E8","F8","F#8","G8","G#8","A8","A#8","B8",
+    "C9","C#9","D9","D#9","E9","F9","F#9","G9","G#9","A9","A#9","B9"
+  }
+  
+  local r = 1.059463094359295264  -- 2^(1/12)
+  local cent = 1.0005777895065549  -- 2^(1/1200)
+  local MINUS, PLUS = 0, 1
+  
+  local r_index = 1
+  local cent_index = 0
+  local side
+  local working_freq = A4
+  
+  if frequency >= working_freq then
+    -- Higher than or equal to A4
+    while frequency >= r * working_freq do
+      working_freq = r * working_freq
+      r_index = r_index + 1
+    end
+    while frequency > cent * working_freq do
+      working_freq = cent * working_freq
+      cent_index = cent_index + 1
+    end
+    if (cent * working_freq - frequency) < (frequency - working_freq) then
+      cent_index = cent_index + 1
+    end
+    if cent_index > 50 then
+      cent_index = cent_index - 100
+      r_index = r_index + 1
+    end
+    side = PLUS
+  else
+    -- Lower than A4
+    while frequency <= working_freq / r do
+      working_freq = working_freq / r
+      r_index = r_index - 1
+    end
+    while frequency < working_freq / cent do
+      working_freq = working_freq / cent
+      cent_index = cent_index + 1
+    end
+    if (frequency - working_freq / cent) < (working_freq - frequency) then
+      cent_index = cent_index + 1
+    end
+    if cent_index >= 50 then
+      cent_index = cent_index - 100
+      r_index = r_index - 1
+    end
+    side = MINUS
+  end
+  
+  -- Calculate MIDI note number
+  local midi_note = A4_INDEX + r_index - 1
+  
+  -- Get note name
+  local note_name = "C4"
+  if midi_note >= 0 and midi_note < #notes then
+    note_name = notes[midi_note + 1]
+  end
+  
+  return {
+    midi_note = midi_note,
+    note_name = note_name,
+    cents = cent_index,
+    side = side
+  }
+end
+
+-- Calculate pitch correction (from PakettiPCMWriter.lua)  
+function PakettiSampleEffectGeneratorCalculatePitchCorrection(sample_rate, wave_length_frames, cycles)
+  cycles = cycles or 1
+  
+  -- Calculate frequency from wave data
+  local freq = sample_rate / (wave_length_frames / cycles)
+  
+  -- Analyze the frequency
+  local result = PakettiSampleEffectGeneratorFrequencyToNoteAnalysis(freq)
+  
+  -- Calculate pitch correction values
+  local midi_note = result.midi_note + 12  -- Convert to standard MIDI system (C4=60)
+  local target_note = 60  -- C4
+  local diff = midi_note - target_note
+  local transpose_value = -diff
+  transpose_value = math.max(-120, math.min(120, transpose_value))
+  
+  -- Calculate fine tune correction (negate to correct the detected deviation)
+  local cents_value = -result.cents
+  local fine_tune_steps = math.floor(cents_value * 1.275 + 0.5)  -- Scale: 255 steps / 200 cents = 1.275
+  fine_tune_steps = math.max(-128, math.min(127, fine_tune_steps))
+  
+  return {
+    frequency = freq,
+    note_name = result.note_name,
+    midi_note = midi_note,
+    cents = result.cents,
+    transpose = transpose_value,
+    fine_tune = fine_tune_steps,
+    cent_direction = result.side == 0 and "minus" or "plus"
+  }
+end
 
 -- Live pickup mode settings (similar to PakettiPCMWriter)
 local live_pickup_mode = false
@@ -48,6 +202,11 @@ local live_pickup_sample = nil
 local live_pickup_instrument = nil
 local live_pickup_sample_index = -1
 local live_pickup_instrument_index = -1
+
+-- Frequency multipliers for mathematical regeneration
+local volume_frequency_multiplier = 1
+local pitch_frequency_multiplier = 1
+local waveform_frequency_multiplier = 1
 
 -- Colors for drawing
 local COLOR_BACKGROUND = {16, 16, 24, 255}
@@ -64,8 +223,8 @@ function PakettiSampleEffectGeneratorInitializeData()
   pitch_data = {}
   volume_data = {}
   
-  -- Initialize with default curves
-  local resolution = 100  -- Number of points across canvas width
+  -- Calculate tuned resolution for perfect A440Hz
+  local resolution = PakettiSampleEffectGeneratorCalculateTunedResolution()
   
   -- Default sine wave for waveform
   for i = 1, resolution do
@@ -105,16 +264,21 @@ function PakettiSampleEffectGeneratorInitializeData()
     print("SAMPLE_GENERATOR: Force updated volume canvas")
   end
   
-  print("SAMPLE_GENERATOR: ✅ FIXED PITCH PRESETS - Now using full 0.0-1.0 range!")
+  print("SAMPLE_GENERATOR: FIXED PITCH PRESETS - Now using full 0.0-1.0 range!")
 end
 
 -- Generate pitch modulation preset
 function PakettiSampleEffectGeneratorGeneratePitchPreset(preset_type)
+  -- ALWAYS reset frequency multiplier when changing dropdown selection (including "current")
+  pitch_frequency_multiplier = 1
+  print("PITCH PRESET: Reset frequency multiplier to 1x")
+  
   -- Skip if "current" - preserve whatever is drawn
   if preset_type == "current" then
     return
   end
   
+  print("PITCH PRESET: Generating '" .. preset_type .. "' preset")
   local resolution = #pitch_data
   
   for i = 1, resolution do
@@ -131,14 +295,53 @@ function PakettiSampleEffectGeneratorGeneratePitchPreset(preset_type)
       pitch_value = math.pow(x_norm, 0.3)  -- Logarithmic ramp up (slow start, fast end)
     elseif preset_type == "log_ramp_down" then
       pitch_value = 1.0 - math.pow(x_norm, 0.3)  -- Logarithmic ramp down (fast start, slow end)
+      if i <= 5 or i >= resolution - 4 then
+        print("  ORIGINAL pitch[" .. i .. "] = " .. string.format("%.3f", pitch_value) .. " (x_norm=" .. string.format("%.3f", x_norm) .. ")")
+      end
+    elseif preset_type == "octave_steps_1" then
+      -- 1 Octave steps: 0, +12, 0, -12, 0, +12, 0, -12 (±1 octave range)
+      local step_count = math.floor(x_norm * 4) % 4  -- 4-step pattern repeating
+      if step_count == 0 then
+        pitch_value = 0.5   -- 0 semitones (no change)
+      elseif step_count == 1 then
+        pitch_value = 0.75  -- +12 semitones (+1 octave)
+      elseif step_count == 2 then
+        pitch_value = 0.5   -- 0 semitones (no change)
+      else  -- step_count == 3
+        pitch_value = 0.25  -- -12 semitones (-1 octave)
+      end
+    elseif preset_type == "octave_steps_2" then
+      -- 2 Octave steps: 0, +12, +24, +12, 0, -12, -24, -12 (±2 octave range)
+      local step_count = math.floor(x_norm * 8) % 8  -- 8-step pattern repeating
+      if step_count == 0 then
+        pitch_value = 0.5   -- 0 semitones (no change)
+      elseif step_count == 1 then
+        pitch_value = 0.75  -- +12 semitones (+1 octave)
+      elseif step_count == 2 then
+        pitch_value = 1.0   -- +24 semitones (+2 octaves)
+      elseif step_count == 3 then
+        pitch_value = 0.75  -- +12 semitones (+1 octave)
+      elseif step_count == 4 then
+        pitch_value = 0.5   -- 0 semitones (no change)
+      elseif step_count == 5 then
+        pitch_value = 0.25  -- -12 semitones (-1 octave)
+      elseif step_count == 6 then
+        pitch_value = 0.0   -- -24 semitones (-2 octaves)
+      else  -- step_count == 7
+        pitch_value = 0.25  -- -12 semitones (-1 octave)
+      end
     elseif preset_type == "triangle" then
       if x_norm < 0.5 then
         pitch_value = x_norm * 2  -- Ramp up from 0.0 to 1.0
       else
         pitch_value = 2.0 - (x_norm * 2)  -- Ramp down from 1.0 to 0.0
       end
-    elseif preset_type == "sine_wave" then
-      pitch_value = 0.5 + math.sin(x_norm * math.pi * 4) * 0.4  -- Sine wave oscillation (full range)
+    elseif preset_type == "square" then
+      pitch_value = (math.sin(x_norm * math.pi * 2) > 0) and 1.0 or 0.0  -- Square wave
+    elseif preset_type == "sawtooth" then
+      pitch_value = x_norm  -- Linear ramp 0.0 to 1.0
+    elseif preset_type == "sine" then
+      pitch_value = 0.5 + math.sin(x_norm * math.pi * 2) * 0.5  -- Sine wave oscillation (1 cycle, full range)
     elseif preset_type == "pulse" then
       pitch_value = (math.sin(x_norm * math.pi * 4) > 0) and 1.0 or 0.0  -- Pulse wave
     elseif preset_type == "diode" then
@@ -163,6 +366,14 @@ function PakettiSampleEffectGeneratorGeneratePitchPreset(preset_type)
       pitch_value = (math.random() + math.random() + math.random()) / 3
     elseif preset_type == "random" then
       pitch_value = math.random()  -- Random for each point
+    elseif preset_type == "random_stairs" then
+      -- Random stairs - every 10 steps has the same random value
+      local step_size = 10
+      local step_index = math.floor((i - 1) / step_size)
+      -- Generate consistent random value for this step group
+      math.randomseed(12345 + step_index)  -- Simple seed per step group
+      pitch_value = math.random()
+      math.randomseed(os.time())  -- Reset to time-based seed
     end
     
     pitch_data[i] = pitch_value
@@ -178,6 +389,10 @@ end
 
 -- Generate volume envelope preset
 function PakettiSampleEffectGeneratorGenerateVolumePreset(preset_type)
+  -- ALWAYS reset frequency multiplier when changing dropdown selection (including "current")
+  volume_frequency_multiplier = 1
+  print("VOLUME PRESET: Reset frequency multiplier to 1x")
+  
   -- Skip if "current" - preserve whatever is drawn
   if preset_type == "current" then
     return
@@ -205,6 +420,12 @@ function PakettiSampleEffectGeneratorGenerateVolumePreset(preset_type)
       else
         volume_value = 2.0 - (x_norm * 2)  -- Ramp down from 1.0 to 0.0
       end
+    elseif preset_type == "square" then
+      volume_value = (math.sin(x_norm * math.pi * 2) > 0) and 1.0 or 0.0  -- Square wave
+    elseif preset_type == "sawtooth" then
+      volume_value = x_norm  -- Linear ramp 0.0 to 1.0
+    elseif preset_type == "sine" then
+      volume_value = 0.5 + math.sin(x_norm * math.pi * 2) * 0.5  -- Sine wave oscillation (1 cycle, full range)
     elseif preset_type == "fade_in_out" then
       if x_norm < 0.1 then
         volume_value = x_norm / 0.1  -- Fade in
@@ -238,6 +459,14 @@ function PakettiSampleEffectGeneratorGenerateVolumePreset(preset_type)
       volume_value = (math.random() + math.random() + math.random()) / 3
     elseif preset_type == "random" then
       volume_value = math.random()  -- Random for each point
+    elseif preset_type == "random_stairs" then
+      -- Random stairs - every 10 steps has the same random value
+      local step_size = 10
+      local step_index = math.floor((i - 1) / step_size)
+      -- Generate consistent random value for this step group
+      math.randomseed(54321 + step_index)  -- Different base seed for volume
+      volume_value = math.random()
+      math.randomseed(os.time())  -- Reset to time-based seed
     end
     
     volume_data[i] = volume_value
@@ -253,6 +482,9 @@ end
 
 -- Generate base waveform in waveform canvas
 function PakettiSampleEffectGeneratorGenerateBaseWaveform(waveform_type)
+  -- Reset frequency multiplier when generating new preset
+  waveform_frequency_multiplier = 1
+  
   local resolution = #waveform_data
   
   for i = 1, resolution do
@@ -303,6 +535,14 @@ function PakettiSampleEffectGeneratorGenerateBaseWaveform(waveform_type)
       wave_value = (math.random() + math.random() + math.random()) / 3  -- Simple pink noise approximation
     elseif waveform_type == "random" then
       wave_value = math.random()  -- Random 0.0 to 1.0
+    elseif waveform_type == "random_stairs" then
+      -- Random stairs - every 10 steps has the same random value
+      local step_size = 10
+      local step_index = math.floor((i - 1) / step_size)
+      -- Generate consistent random value for this step group
+      math.randomseed(98765 + step_index)  -- Different base seed for waveform
+      wave_value = math.random()
+      math.randomseed(os.time())  -- Reset to time-based seed
     end
     
     waveform_data[i] = wave_value
@@ -322,7 +562,7 @@ function PakettiSampleEffectGeneratorRenderWaveformOnly()
     return
   end
   
-  print("SAMPLE_GENERATOR: Rendering waveform ONLY (no pitch/volume envelopes)")
+  print("SAMPLE_GENERATOR: Rendering waveform ONLY (no pitch/volume envelopes) with A440Hz tuning")
   
   -- Calculate sample properties
   local total_samples = math.floor(sample_duration * sample_rate)
@@ -330,6 +570,7 @@ function PakettiSampleEffectGeneratorRenderWaveformOnly()
   
   print("SAMPLE_GENERATOR: Duration=" .. sample_duration .. "s, Samples=" .. total_samples)
   print("SAMPLE_GENERATOR: Using ONLY drawn waveform curve (ignoring pitch and volume)")
+  print("SAMPLE_GENERATOR: Waveform resolution: " .. tuned_resolution .. " points (A440Hz tuned)")
   
   -- Generate sample data using ONLY the waveform curve
   local base_freq = 440.0  -- A4 note
@@ -353,13 +594,17 @@ function PakettiSampleEffectGeneratorRenderWaveformOnly()
     end
     
     -- NO VOLUME ENVELOPE - use full amplitude  
-    -- Apply fade out if enabled (last 15 frames to avoid clicks) - always apply in waveform-only mode
+    -- Apply fade out if enabled (proper fadeout to zero) - always apply in waveform-only mode
     if fade_out_enabled then
-      local fade_frames = 15
+      local fade_frames = 1000  -- Longer fade to zero (about 0.023 seconds)
       if sample_i > (total_samples - fade_frames) then
         local fade_pos = sample_i - (total_samples - fade_frames)
         local fade_mult = 1.0 - (fade_pos / fade_frames)  -- 1.0 to 0.0
         wave_sample = wave_sample * fade_mult
+        -- Ensure the very last sample is exactly zero
+        if sample_i == total_samples then
+          wave_sample = 0.0
+        end
       end
     end
     
@@ -370,44 +615,274 @@ function PakettiSampleEffectGeneratorRenderWaveformOnly()
   -- Create and load sample using PakettiSamples functions
   PakettiSampleEffectGeneratorCreateAndLoadSample(sample_data, sample_rate)
   
-  print("SAMPLE_GENERATOR: Waveform-only sample generation complete!")
-  renoise.app():show_status("Generated " .. sample_duration .. "s sample using ONLY waveform curve")
+  print("SAMPLE_GENERATOR: A440Hz tuned waveform-only sample generation complete!")
+  renoise.app():show_status("Generated " .. sample_duration .. "s A440Hz tuned sample using ONLY waveform curve")
 end
 
--- Double the frequency of waveform (increase octave) - PROPER INTERPOLATION
-function PakettiSampleEffectGeneratorDoubleWaveform()
-  local resolution = #waveform_data
-  local original_data = {}
+-- UNIFIED 2X DOUBLING FUNCTION - TRUE "GENERATE ONCE + FLOOD FILL" FOR PERFECT PRECISION!
+function PakettiSampleEffectGeneratorDouble2X(preset_type, data_array, frequency_multiplier, envelope_name)
+  local resolution = #data_array
   
-  -- Save original data
-  for i = 1, resolution do
-    original_data[i] = waveform_data[i]
-  end
+  print(envelope_name .. "_DOUBLE: FLOOD FILL APPROACH at " .. frequency_multiplier .. "x frequency")
   
-  -- Create new data: 2x frequency with proper resampling
-  local half_size = math.floor(resolution / 2)
+  -- Check if this is a custom curve that needs special handling
+  local is_custom_curve = not (preset_type == "sine" or preset_type == "sine_wave" or 
+                              preset_type == "triangle" or preset_type == "square" or 
+                              preset_type == "sawtooth" or preset_type == "ramp_up" or 
+                              preset_type == "ramp_down" or preset_type == "log_ramp_up" or 
+                              preset_type == "log_ramp_down" or preset_type == "octave_steps_1" or 
+                              preset_type == "octave_steps_2" or preset_type == "pulse" or 
+                              preset_type == "diode" or preset_type == "gauss" or 
+                              preset_type == "chebyshev" or preset_type == "chirp" or 
+                              preset_type == "pink_noise" or preset_type == "random" or 
+                              preset_type == "random_stairs" or preset_type == "fade_in_out")
   
-  for i = 1, resolution do
-    if i <= half_size then
-      -- First half: properly resample the original data
-      local source_pos = ((i - 1) * 2) + 1  -- Map to original position
-      local source_index = math.floor(source_pos)
-      local fraction = source_pos - source_index
+  if is_custom_curve then
+    -- CUSTOM CURVE: Compress the full curve and repeat it at higher frequency
+    print("  Custom curve '" .. preset_type .. "' - compressing full curve and repeating")
+    
+    if #data_array > 0 then
+      -- Save the original full curve (this is one complete cycle as drawn by user)
+      local original_curve = {}
+      for i = 1, #data_array do
+        original_curve[i] = data_array[i]
+      end
       
-      -- Interpolate between adjacent points
-      local val1 = original_data[math.max(1, math.min(resolution, source_index))]
-      local val2 = original_data[math.max(1, math.min(resolution, source_index + 1))]
-      
-      waveform_data[i] = val1 + (val2 - val1) * fraction
+      -- Now generate the new frequency by treating the original as one cycle
+      for i = 1, resolution do
+        local x_norm = (i - 1) / resolution  -- 0.0 to just before 1.0
+        local cycle_pos = (x_norm * frequency_multiplier) % 1  -- Apply frequency multiplication
+        
+        -- Interpolate from the original curve at this cycle position
+        local original_index = cycle_pos * (#original_curve - 1) + 1
+        local lower_index = math.floor(original_index)
+        local upper_index = math.ceil(original_index)
+        local fraction = original_index - lower_index
+        
+        -- Clamp indices
+        lower_index = math.max(1, math.min(#original_curve, lower_index))
+        upper_index = math.max(1, math.min(#original_curve, upper_index))
+        
+        -- Linear interpolation
+        local value
+        if lower_index == upper_index then
+          value = original_curve[lower_index]
+        else
+          local val1 = original_curve[lower_index]
+          local val2 = original_curve[upper_index]
+          value = val1 + (val2 - val1) * fraction
+        end
+        
+        data_array[i] = value
+      end
     else
-      -- Second half: exact copy of first half to create double frequency
-      local mirror_index = i - half_size
-      waveform_data[i] = waveform_data[mirror_index]
+      -- If no data exists, create a flat line
+      for i = 1, resolution do
+        data_array[i] = 0.5
+      end
     end
+  else
+    -- MATHEMATICAL PRESET: TRUE FLOOD FILL - GENERATE ONE PERFECT CYCLE + COPY IT!
+    local base_cycle_size = math.floor(resolution / frequency_multiplier)
+    
+    -- BOUNDS CHECK: Prevent cycle size from becoming too small
+    if base_cycle_size < 2 then
+      print("  WARNING: Cycle size too small (" .. base_cycle_size .. "), limiting to minimum of 2 points")
+      base_cycle_size = 2
+    end
+    
+    print("  GENERATING ONE PERFECT CYCLE (" .. base_cycle_size .. " points) then FLOOD FILLING...")
+    
+    -- STEP 1: Generate ONE perfect cycle
+    local perfect_cycle = {}
+    
+    -- Different functions need different cycle_pos ranges
+    local is_ramp_function = (preset_type == "ramp_up" or preset_type == "ramp_down" or 
+                             preset_type == "log_ramp_up" or preset_type == "log_ramp_down" or
+                             preset_type == "fade_in_out")
+    
+    for i = 1, base_cycle_size do
+      local cycle_pos
+      if is_ramp_function then
+        -- RAMP FUNCTIONS: Need full 0.0 to 1.0 range for complete amplitude
+        cycle_pos = (i - 1) / (base_cycle_size - 1)  -- 0.0 to 1.0
+        if i == base_cycle_size then
+          cycle_pos = 1.0  -- Ensure last point is exactly 1.0
+        end
+      else
+        -- PERIODIC FUNCTIONS: 0.0 to just before 1.0 (avoid duplicate endpoints)
+        cycle_pos = (i - 1) / base_cycle_size  -- 0.0 to just before 1.0
+      end
+      
+      local value
+      
+      if preset_type == "sine" then
+        if envelope_name == "WAVEFORM" then
+          value = math.sin(cycle_pos * math.pi * 2) * 0.5 + 0.5  -- SINE (0.0 to 1.0)
+        else
+          value = 0.5 + math.sin(cycle_pos * math.pi * 2) * 0.5  -- SINE (pitch/volume, full range)
+        end
+      elseif preset_type == "triangle" then
+        if envelope_name == "WAVEFORM" then
+          -- Triangle wave for waveforms
+          if cycle_pos < 0.25 then
+            value = cycle_pos * 4 * 0.5 + 0.5
+          elseif cycle_pos < 0.75 then
+            value = (2 - cycle_pos * 4) * 0.5 + 0.5
+          else
+            value = ((cycle_pos - 0.75) * 4 - 1) * 0.5 + 0.5
+          end
+        else
+          -- Triangle for pitch/volume envelopes
+          if cycle_pos < 0.5 then
+            value = cycle_pos * 2  -- Ramp up 0.0 to 1.0
+          else
+            value = 2.0 - (cycle_pos * 2)  -- Ramp down 1.0 to 0.0
+          end
+        end
+      elseif preset_type == "square" then
+        value = (math.sin(cycle_pos * math.pi * 2) > 0) and 1.0 or 0.0
+      elseif preset_type == "sawtooth" then
+        value = cycle_pos  -- Linear ramp 0.0 to 1.0
+      elseif preset_type == "ramp_up" then
+        value = cycle_pos  -- LINEAR RAMP 0.0 to 1.0
+      elseif preset_type == "ramp_down" then
+        value = 1.0 - cycle_pos  -- LINEAR RAMP 1.0 to 0.0
+      elseif preset_type == "log_ramp_up" then
+        value = math.pow(cycle_pos, 0.3)  -- LOG RAMP UP
+      elseif preset_type == "log_ramp_down" then
+        value = 1.0 - math.pow(cycle_pos, 0.3)  -- LOG RAMP DOWN
+      elseif preset_type == "octave_steps_1" then
+        -- 1 Octave steps: 0, +12, 0, -12 (only for PITCH envelope)
+        if envelope_name == "PITCH" then
+          local step_count = math.floor(cycle_pos * 4) % 4  -- 4-step pattern
+          if step_count == 0 then
+            value = 0.5   -- 0 semitones (no change)
+          elseif step_count == 1 then
+            value = 0.75  -- +12 semitones (+1 octave)
+          elseif step_count == 2 then
+            value = 0.5   -- 0 semitones (no change)
+          else  -- step_count == 3
+            value = 0.25  -- -12 semitones (-1 octave)
+          end
+        else
+          value = 0.5  -- Default fallback for non-pitch envelopes
+        end
+      elseif preset_type == "octave_steps_2" then
+        -- 2 Octave steps: 0, +12, +24, +12, 0, -12, -24, -12 (only for PITCH envelope)
+        if envelope_name == "PITCH" then
+          local step_count = math.floor(cycle_pos * 8) % 8  -- 8-step pattern
+          if step_count == 0 then
+            value = 0.5   -- 0 semitones (no change)
+          elseif step_count == 1 then
+            value = 0.75  -- +12 semitones (+1 octave)
+          elseif step_count == 2 then
+            value = 1.0   -- +24 semitones (+2 octaves)
+          elseif step_count == 3 then
+            value = 0.75  -- +12 semitones (+1 octave)
+          elseif step_count == 4 then
+            value = 0.5   -- 0 semitones (no change)
+          elseif step_count == 5 then
+            value = 0.25  -- -12 semitones (-1 octave)
+          elseif step_count == 6 then
+            value = 0.0   -- -24 semitones (-2 octaves)
+          else  -- step_count == 7
+            value = 0.25  -- -12 semitones (-1 octave)
+          end
+        else
+          value = 0.5  -- Default fallback for non-pitch envelopes
+        end
+      elseif preset_type == "pulse" then
+        local freq_mult = (envelope_name == "PITCH") and 4 or 2  -- Pitch uses higher frequency
+        value = (math.sin(cycle_pos * math.pi * freq_mult) > 0) and 1.0 or 0.0
+      elseif preset_type == "diode" then
+        local phase_shift = (envelope_name == "WAVEFORM") and 0.25 or 0.0
+        local shifted_cycle = (cycle_pos + phase_shift) % 1
+        local r = math.sin(shifted_cycle * 2 * math.pi + math.pi / 6)
+        value = r < 0 and 0 or r  -- DIODE (rectified)
+      elseif preset_type == "gauss" then
+        local centered_cycle = 2 * cycle_pos - 1
+        local width = (envelope_name == "WAVEFORM") and 8 or 4  -- Different widths
+        value = math.exp(-centered_cycle * centered_cycle * width)
+      elseif preset_type == "chebyshev" then
+        local cheby_x = cycle_pos * 2 - 1
+        local order = (envelope_name == "WAVEFORM") and 3 or 2  -- Different orders
+        value = (math.cos(math.acos(cheby_x) * order) + 1) / 2
+      elseif preset_type == "chirp" then
+        local phase = cycle_pos * 2 * math.pi
+        value = (math.sin(phase / 2) * math.sin(3 * phase * phase) + 1) / 2
+      elseif preset_type == "pink_noise" then
+        value = (math.random() + math.random() + math.random()) / 3
+      elseif preset_type == "random" then
+        value = math.random()
+      elseif preset_type == "random_stairs" then
+        -- Random stairs - every 10 steps has the same random value
+        local step_size = math.max(1, math.floor(base_cycle_size / 10))  -- Adjust step size for cycle length
+        local step_index = math.floor((i - 1) / step_size)
+        local base_seed = envelope_name == "WAVEFORM" and 98765 or (envelope_name == "PITCH" and 12345 or 54321)
+        math.randomseed(base_seed + step_index)  -- Simple seed per step group
+        value = math.random()
+        math.randomseed(os.time())  -- Reset to time-based seed
+      elseif preset_type == "fade_in_out" then  -- Volume-specific
+        if cycle_pos < 0.1 then
+          value = cycle_pos / 0.1  -- Fade in
+        elseif cycle_pos > 0.9 then
+          value = (1.0 - cycle_pos) / 0.1  -- Fade out
+        else
+          value = 1.0  -- Sustain
+        end
+      else
+        value = 0.5  -- Default fallback
+      end
+      
+      perfect_cycle[i] = value
+      
+      -- Debug: Show first few points and last point of the perfect cycle
+      if i <= 3 or i == base_cycle_size then
+        local range_info = is_ramp_function and "(RAMP: 0.0→1.0)" or "(PERIODIC: 0.0→<1.0)"
+        local value_str = (value ~= nil) and string.format("%.6f", value) or "nil"
+        local cycle_pos_str = (cycle_pos ~= nil) and string.format("%.4f", cycle_pos) or "nil"
+        print("    perfect_cycle[" .. i .. "] = " .. value_str .. " (cycle_pos=" .. cycle_pos_str .. ") " .. range_info)
+      end
+    end
+    
+    -- STEP 2: FLOOD FILL - Copy the perfect cycle to fill the entire array
+    for i = 1, resolution do
+      local cycle_index = ((i - 1) % base_cycle_size) + 1  -- Wrap around within the perfect cycle
+      data_array[i] = perfect_cycle[cycle_index]  -- EXACT COPY - ZERO PRECISION LOSS!
+      
+      -- Debug: Show how we're copying the perfect cycle
+      if i <= 3 or (i > base_cycle_size and i <= base_cycle_size + 3) then
+        local data_value_str = (data_array[i] ~= nil) and string.format("%.6f", data_array[i]) or "nil"
+        print("    data_array[" .. i .. "] = perfect_cycle[" .. cycle_index .. "] = " .. data_value_str)
+      end
+    end
+    
+    print("  FLOOD FILL COMPLETE: " .. frequency_multiplier .. "x frequency with PERFECT amplitude matching!")
   end
+  
+  return true  -- Signal successful regeneration
+end
+
+-- Double the frequency of waveform (increase octave) - REFACTORED FOR DRY
+function PakettiSampleEffectGeneratorDoubleWaveform()
+  -- Prevent frequency multiplier from becoming too extreme
+  if waveform_frequency_multiplier >= 32 then
+    print("WAVEFORM_DOUBLE: WARNING - Frequency multiplier limit reached (" .. waveform_frequency_multiplier .. "x) - ignoring 2X request")
+    renoise.app():show_status("Waveform frequency limit reached!")
+    return
+  end
+  
+  waveform_frequency_multiplier = waveform_frequency_multiplier * 2
+  
+  -- Use unified perfect flood-fill regeneration (works for ALL curve types!)
+  PakettiSampleEffectGeneratorDouble2X(wave_type, waveform_data, waveform_frequency_multiplier, "WAVEFORM")
   
   if waveform_canvas then waveform_canvas:update() end
-  print("SAMPLE_GENERATOR: ✅ FIXED - Doubled waveform frequency with proper interpolation!")
+  if live_pickup_mode then
+    PakettiSampleEffectGeneratorUpdateLiveSample()
+  end
+  print("SAMPLE_GENERATOR: DRY - Waveform frequency now " .. waveform_frequency_multiplier .. "x!")
 end
 
 -- Halve the frequency of waveform (decrease octave) - PRISTINE ALGORITHM
@@ -431,44 +906,29 @@ function PakettiSampleEffectGeneratorHalveWaveform()
   end
   
   if waveform_canvas then waveform_canvas:update() end
-  print("SAMPLE_GENERATOR: ✅ PRISTINE - Halved waveform frequency (2 cycles → 1 cycle) - PERFECT INVERSE!")
+  print("SAMPLE_GENERATOR: PRISTINE - Halved waveform frequency (2 cycles → 1 cycle) - PERFECT INVERSE!")
   print("SAMPLE_GENERATOR: Using PERFECT integer sampling - reversible operations!")
 end
 
--- Double the frequency of pitch curve (increase octave) - PROPER INTERPOLATION
+-- Double the frequency of pitch curve (increase octave) - MATHEMATICAL REGENERATION
 function PakettiSampleEffectGeneratorDoublePitch()
-  local resolution = #pitch_data
-  local original_data = {}
-  
-  -- Save original data
-  for i = 1, resolution do
-    original_data[i] = pitch_data[i]
+  -- Prevent frequency multiplier from becoming too extreme
+  if pitch_frequency_multiplier >= 32 then
+    print("PITCH_DOUBLE: WARNING - Frequency multiplier limit reached (" .. pitch_frequency_multiplier .. "x) - ignoring 2X request")
+    renoise.app():show_status("Pitch frequency limit reached!")
+    return
   end
   
-  -- Create new data: 2x frequency with proper resampling
-  local half_size = math.floor(resolution / 2)
+  pitch_frequency_multiplier = pitch_frequency_multiplier * 2
   
-  for i = 1, resolution do
-    if i <= half_size then
-      -- First half: properly resample the original data
-      local source_pos = ((i - 1) * 2) + 1  -- Map to original position
-      local source_index = math.floor(source_pos)
-      local fraction = source_pos - source_index
-      
-      -- Interpolate between adjacent points
-      local val1 = original_data[math.max(1, math.min(resolution, source_index))]
-      local val2 = original_data[math.max(1, math.min(resolution, source_index + 1))]
-      
-      pitch_data[i] = val1 + (val2 - val1) * fraction
-    else
-      -- Second half: exact copy of first half to create double frequency
-      local mirror_index = i - half_size
-      pitch_data[i] = pitch_data[mirror_index]
-    end
-  end
+  -- Use unified perfect flood-fill regeneration (works for ALL curve types!)
+  PakettiSampleEffectGeneratorDouble2X(pitch_modulation_type, pitch_data, pitch_frequency_multiplier, "PITCH")
   
   if pitch_canvas then pitch_canvas:update() end
-  print("SAMPLE_GENERATOR: ✅ FIXED - Doubled pitch frequency with proper interpolation!")
+  if live_pickup_mode then
+    PakettiSampleEffectGeneratorUpdateLiveSample()
+  end
+  print("SAMPLE_GENERATOR: DRY - Pitch frequency now " .. pitch_frequency_multiplier .. "x!")
 end
 
 -- Halve the frequency of pitch curve (decrease octave) - PRISTINE ALGORITHM
@@ -492,44 +952,29 @@ function PakettiSampleEffectGeneratorHalvePitch()
   end
   
   if pitch_canvas then pitch_canvas:update() end
-  print("SAMPLE_GENERATOR: ✅ PRISTINE - Halved pitch curve frequency (2 cycles → 1 cycle) - PERFECT INVERSE!")
+  print("SAMPLE_GENERATOR: PRISTINE - Halved pitch curve frequency (2 cycles → 1 cycle) - PERFECT INVERSE!")
   print("SAMPLE_GENERATOR: Using PERFECT integer sampling - reversible operations!")
 end
 
--- Double the frequency of volume envelope (increase octave) - PROPER INTERPOLATION
+-- Double the frequency of volume envelope (increase octave) - MATHEMATICAL REGENERATION
 function PakettiSampleEffectGeneratorDoubleVolume()
-  local resolution = #volume_data
-  local original_data = {}
-  
-  -- Save original data
-  for i = 1, resolution do
-    original_data[i] = volume_data[i]
+  -- Prevent frequency multiplier from becoming too extreme
+  if volume_frequency_multiplier >= 32 then
+    print("VOLUME_DOUBLE: WARNING - Frequency multiplier limit reached (" .. volume_frequency_multiplier .. "x) - ignoring 2X request")
+    renoise.app():show_status("Volume frequency limit reached!")
+    return
   end
   
-  -- Create new data: 2x frequency with proper resampling
-  local half_size = math.floor(resolution / 2)
+  volume_frequency_multiplier = volume_frequency_multiplier * 2
   
-  for i = 1, resolution do
-    if i <= half_size then
-      -- First half: properly resample the original data
-      local source_pos = ((i - 1) * 2) + 1  -- Map to original position
-      local source_index = math.floor(source_pos)
-      local fraction = source_pos - source_index
-      
-      -- Interpolate between adjacent points
-      local val1 = original_data[math.max(1, math.min(resolution, source_index))]
-      local val2 = original_data[math.max(1, math.min(resolution, source_index + 1))]
-      
-      volume_data[i] = val1 + (val2 - val1) * fraction
-    else
-      -- Second half: exact copy of first half to create double frequency
-      local mirror_index = i - half_size
-      volume_data[i] = volume_data[mirror_index]
-    end
-  end
+  -- Use unified perfect flood-fill regeneration (works for ALL curve types!)
+  PakettiSampleEffectGeneratorDouble2X(volume_envelope_type, volume_data, volume_frequency_multiplier, "VOLUME")
   
   if volume_canvas then volume_canvas:update() end
-  print("SAMPLE_GENERATOR: ✅ FIXED - Doubled volume frequency with proper interpolation!")
+  if live_pickup_mode then
+    PakettiSampleEffectGeneratorUpdateLiveSample()
+  end
+  print("SAMPLE_GENERATOR: DRY - Volume frequency now " .. volume_frequency_multiplier .. "x!")
 end
 
 -- Halve the frequency of volume envelope (decrease octave) - PRISTINE ALGORITHM
@@ -553,7 +998,7 @@ function PakettiSampleEffectGeneratorHalveVolume()
   end
   
   if volume_canvas then volume_canvas:update() end
-  print("SAMPLE_GENERATOR: ✅ PRISTINE - Halved volume envelope frequency (2 cycles → 1 cycle) - PERFECT INVERSE!")
+  print("SAMPLE_GENERATOR: PRISTINE - Halved volume envelope frequency (2 cycles → 1 cycle) - PERFECT INVERSE!")
   print("SAMPLE_GENERATOR: Using PERFECT integer sampling - reversible operations!")
 end
 
@@ -602,29 +1047,128 @@ function PakettiSampleEffectGeneratorRandomizeVolume()
   print("SAMPLE_GENERATOR: Randomized volume")
 end
 
--- Generate 25 random samples
+-- Invert waveform data
+function PakettiSampleEffectGeneratorInvertWaveform()
+  local resolution = #waveform_data
+  for i = 1, resolution do
+    waveform_data[i] = 1.0 - waveform_data[i]  -- Invert 0.0 to 1.0
+  end
+  if waveform_canvas then 
+    waveform_canvas:update()
+    print("SAMPLE_GENERATOR: Updated waveform canvas")
+  else
+    print("SAMPLE_GENERATOR: WARNING - waveform_canvas is nil!")
+  end
+  print("SAMPLE_GENERATOR: Inverted waveform")
+  -- Update live sample if live audition is enabled
+  if live_pickup_mode then
+    PakettiSampleEffectGeneratorUpdateLiveSample()
+  end
+end
+
+-- Invert pitch data
+function PakettiSampleEffectGeneratorInvertPitch()
+  local resolution = #pitch_data
+  for i = 1, resolution do
+    pitch_data[i] = 1.0 - pitch_data[i]  -- Invert 0.0 to 1.0
+  end
+  if pitch_canvas then 
+    pitch_canvas:update()
+    print("SAMPLE_GENERATOR: Updated pitch canvas")
+  else
+    print("SAMPLE_GENERATOR: WARNING - pitch_canvas is nil!")
+  end
+  print("SAMPLE_GENERATOR: Inverted pitch")
+  -- Update live sample if live audition is enabled
+  if live_pickup_mode then
+    PakettiSampleEffectGeneratorUpdateLiveSample()
+  end
+end
+
+-- Invert volume data
+function PakettiSampleEffectGeneratorInvertVolume()
+  local resolution = #volume_data
+  for i = 1, resolution do
+    volume_data[i] = 1.0 - volume_data[i]  -- Invert 0.0 to 1.0
+  end
+  if volume_canvas then 
+    volume_canvas:update()
+    print("SAMPLE_GENERATOR: Updated volume canvas")
+  else
+    print("SAMPLE_GENERATOR: WARNING - volume_canvas is nil!")
+  end
+  print("SAMPLE_GENERATOR: Inverted volume")
+  -- Update live sample if live audition is enabled
+  if live_pickup_mode then
+    PakettiSampleEffectGeneratorUpdateLiveSample()
+  end
+end
+
+-- Global slicer reference for 25 random samples
+local random_samples_slicer = nil
+
+-- Generate 25 random samples using ProcessSlicer
 function PakettiSampleEffectGeneratorGenerate25Random()
-  print("SAMPLE_GENERATOR: Starting 25 random sample generation...")
+  print("SAMPLE_GENERATOR: Starting 25 random sample generation with A440Hz tuning...")
+  
+  -- Create and start the process slicer
+  random_samples_slicer = ProcessSlicer(PakettiSampleEffectGeneratorGenerate25RandomProcess)
+  random_samples_slicer:start()
+end
+
+-- ProcessSlicer function for generating 25 random samples
+function PakettiSampleEffectGeneratorGenerate25RandomProcess()
+  local dialog, vb = random_samples_slicer:create_dialog("Generating 25 Random Samples")
+  
+  -- Sensible dropdown options (excluding "current" and limiting "random")
+  local waveform_options = {"sine", "triangle", "square", "sawtooth", "flat", "ramp_up", "ramp_down", "log_ramp_up", "log_ramp_down", "pulse", "diode", "gauss", "chebyshev", "chirp", "pink_noise", "random_stairs"}
+  local pitch_options = {"sine", "triangle", "square", "sawtooth", "flat", "ramp_up", "ramp_down", "log_ramp_up", "log_ramp_down", "octave_steps_1", "octave_steps_2", "pulse", "diode", "gauss", "chebyshev", "chirp", "pink_noise", "random_stairs"}
+  local volume_options = {"sine", "triangle", "square", "sawtooth", "flat", "ramp_up", "ramp_down", "log_ramp_up", "log_ramp_down", "pulse", "diode", "gauss", "chebyshev", "chirp", "pink_noise", "random_stairs"}
+  
+  local random_count = 0  -- Track how many "random random random" we've used
+  local max_random = 5    -- Maximum allowed random chaos samples
   
   for sample_num = 1, 25 do
-    print("SAMPLE_GENERATOR: Generating random sample " .. sample_num .. "/25")
+    -- Check for cancellation
+    if random_samples_slicer:was_cancelled() then
+      print("SAMPLE_GENERATOR: Generation cancelled by user")
+      break
+    end
     
-    -- Randomize all curves
-    PakettiSampleEffectGeneratorRandomizeWaveform()
-    PakettiSampleEffectGeneratorRandomizePitch()
-    PakettiSampleEffectGeneratorRandomizeVolume()
+    -- Update progress
+    vb.views.progress_text.text = "Generating sample " .. sample_num .. "/25..."
+    print("SAMPLE_GENERATOR: Generating sample " .. sample_num .. "/25 (tuned resolution: " .. tuned_resolution .. " pts)")
     
-    -- Randomize wave type
-    local wave_types = {"sine", "triangle", "square", "sawtooth", "random"}
-    wave_type = wave_types[math.random(1, 5)]
+    -- Decide if this should be a "random chaos" sample (max 5 out of 25)
+    local use_random_chaos = (random_count < max_random) and (math.random() < 0.3)  -- 30% chance if under limit
     
-    -- Randomize volume envelope type
-    local volume_types = {"flat", "ramp_down", "ramp_up", "triangle", "fade_in_out", "random"}
-    volume_envelope_type = volume_types[math.random(1, 6)]
-    
-    -- Randomize pitch modulation type
-    local pitch_types = {"flat", "ramp_up", "ramp_down", "triangle", "sine_wave", "random"}
-    pitch_modulation_type = pitch_types[math.random(1, 6)]
+    if use_random_chaos then
+      -- RANDOM CHAOS mode - completely random curves
+      print("SAMPLE_GENERATOR: Using RANDOM CHAOS mode for sample " .. sample_num)
+      PakettiSampleEffectGeneratorRandomizeWaveform()
+      PakettiSampleEffectGeneratorRandomizePitch() 
+      PakettiSampleEffectGeneratorRandomizeVolume()
+      wave_type = "random"
+      pitch_modulation_type = "random"
+      volume_envelope_type = "random"
+      random_count = random_count + 1
+    else
+      -- SENSIBLE mode - pick from dropdown presets
+      local wave_choice = waveform_options[math.random(1, #waveform_options)]
+      local pitch_choice = pitch_options[math.random(1, #pitch_options)]
+      local volume_choice = volume_options[math.random(1, #volume_options)]
+      
+      print("SAMPLE_GENERATOR: Using SENSIBLE mode: " .. wave_choice .. " + " .. pitch_choice .. " + " .. volume_choice)
+      
+      -- Generate presets instead of random curves
+      wave_type = wave_choice
+      pitch_modulation_type = pitch_choice  
+      volume_envelope_type = volume_choice
+      
+      PakettiSampleEffectGeneratorGenerateBaseWaveform(wave_choice)
+      PakettiSampleEffectGeneratorGeneratePitchPreset(pitch_choice)
+      PakettiSampleEffectGeneratorGenerateVolumePreset(volume_choice)
+    end
     
     -- Randomize duration (0.5 to 5.0 seconds)
     sample_duration = 0.5 + math.random() * 4.5
@@ -632,14 +1176,17 @@ function PakettiSampleEffectGeneratorGenerate25Random()
     -- Generate the sample
     PakettiSampleEffectGeneratorGenerateSample()
     
-    -- Small delay to prevent overwhelming Renoise
-    if sample_num % 5 == 0 then
-      print("SAMPLE_GENERATOR: Generated " .. sample_num .. "/25 samples...")
-    end
+    -- Yield control back to Renoise every sample to maintain responsiveness
+    coroutine.yield()
   end
   
-  renoise.app():show_status("Generated 25 random samples!")
-  print("SAMPLE_GENERATOR: Completed 25 random sample generation")
+  -- Close dialog when done
+  if dialog and dialog.visible then
+    dialog:close()
+  end
+  
+  renoise.app():show_status("Generated 25 A440Hz tuned samples! (" .. random_count .. " random chaos, " .. (25 - random_count) .. " sensible)")
+  print("SAMPLE_GENERATOR: Completed 25 sample generation - " .. random_count .. " random chaos, " .. (25 - random_count) .. " sensible combinations")
 end
 
 -- Handle mouse input for canvas drawing with smooth line interpolation
@@ -663,6 +1210,19 @@ function PakettiSampleEffectGeneratorHandleMouse(canvas_type, ev)
     tracking.is_down = true
     tracking.last_x = ev.position.x
     tracking.last_y = ev.position.y
+    
+    -- Reset frequency multiplier when user starts drawing (manual drawing = new curve)
+    if canvas_type == "waveform" then
+      waveform_frequency_multiplier = 1
+      print("DRAW: Reset waveform frequency multiplier to 1x (manual drawing)")
+    elseif canvas_type == "pitch" then
+      pitch_frequency_multiplier = 1
+      print("DRAW: Reset pitch frequency multiplier to 1x (manual drawing)")
+    elseif canvas_type == "volume" then
+      volume_frequency_multiplier = 1
+      print("DRAW: Reset volume frequency multiplier to 1x (manual drawing)")
+    end
+    
     local data_index, y_norm = PakettiSampleEffectGeneratorDrawPoint(canvas_type, ev.position.x, ev.position.y)
     tracking.last_index = data_index
     
@@ -737,19 +1297,18 @@ function PakettiSampleEffectGeneratorDrawPoint(canvas_type, mouse_x, mouse_y)
     return nil, nil
   end
   
-  -- Check if mouse is within content area - FIXED: Allow drawing at the exact right/bottom edge
-  if mouse_x < content_x or mouse_x > content_x + content_width or
-     mouse_y < content_y or mouse_y > content_y + content_height then
-    return nil, nil
-  end
-  
-  -- Convert mouse position to data index and value
+  -- Convert mouse position to data index and value (allow drawing outside bounds for easier dragging to min/max)
   local x_norm = (mouse_x - content_x) / content_width  -- 0.0 to 1.0
   local y_norm = 1.0 - ((mouse_y - content_y) / content_height)  -- 0.0 to 1.0 (inverted Y)
   
-  -- Clamp values
+  -- Clamp values to valid range (allows dragging outside bounds to hit min/max easily)
   x_norm = math.max(0, math.min(1, x_norm))
   y_norm = math.max(0, math.min(1, y_norm))
+  
+  -- Only allow X within canvas bounds (prevent drawing outside horizontal range)
+  if mouse_x < content_x or mouse_x > content_x + content_width then
+    return nil, nil
+  end
   
   -- Map to data array index - FIX: Ensure proper scaling across full array length
   local data_index = math.floor(x_norm * (#data_array - 1)) + 1
@@ -768,14 +1327,21 @@ function PakettiSampleEffectGeneratorEnterLivePickupMode()
   local song = renoise.song()
   local inst = song.selected_instrument
   
+  -- If no samples exist, create one automatically for Live Audition with current envelopes
   if not inst or not inst.samples or #inst.samples == 0 then
-    renoise.app():show_status("Live Pickup Mode: No samples available")
-    return false
+    print("LIVE_PICKUP: No samples exist, generating sample with current envelopes for Live Audition mode...")
+    
+    -- Generate a proper sample with current envelope settings first
+    PakettiSampleEffectGeneratorGenerateSample()
+    
+    -- Get fresh references after sample generation
+    inst = song.selected_instrument
+    print("LIVE_PICKUP: Generated initial sample with current envelopes for Live Audition mode")
   end
   
   local sample = inst:sample(song.selected_sample_index)
-  if not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
-    renoise.app():show_status("Live Pickup Mode: Selected sample has no data")
+  if not sample.sample_buffer then
+    renoise.app():show_status("Live Pickup Mode: Sample buffer unavailable")
     return false
   end
   
@@ -790,6 +1356,11 @@ function PakettiSampleEffectGeneratorEnterLivePickupMode()
   
   renoise.app():show_status("Live Audition Mode: Enabled - sample editor opened")
   print("LIVE_PICKUP: Mode enabled for instrument " .. live_pickup_instrument_index .. ", sample " .. live_pickup_sample_index)
+  
+  -- Immediately generate sample with current envelope settings
+  print("LIVE_PICKUP: Generating initial sample with current envelopes...")
+  PakettiSampleEffectGeneratorUpdateLiveSample()
+  
   return true
 end
 
@@ -810,6 +1381,75 @@ function PakettiSampleEffectGeneratorExitLivePickupMode()
   print("LIVE_PICKUP: Mode disabled with final render")
 end
 
+-- PERFORMANCE OPTIMIZATIONS - Pre-calculated lookup tables
+local sin_lookup = {}
+local pow2_lookup = {}
+local lookup_resolution = 4096  -- High resolution lookup tables
+
+-- Initialize lookup tables on first use
+function PakettiSampleEffectGeneratorInitLookupTables()
+  if #sin_lookup == 0 then
+    print("OPTIMIZATION: Building lookup tables...")
+    for i = 0, lookup_resolution - 1 do
+      local phase = (i / lookup_resolution) * 2 * math.pi
+      sin_lookup[i + 1] = math.sin(phase)
+    end
+    
+    -- Pitch lookup: -2 to +2 octaves mapped to 0-4096
+    for i = 0, lookup_resolution - 1 do
+      local pitch_norm = i / (lookup_resolution - 1)  -- 0.0 to 1.0
+      local octave_offset = (pitch_norm - 0.5) * 4  -- -2 to +2 octaves
+      pow2_lookup[i + 1] = math.pow(2, octave_offset)
+    end
+    print("OPTIMIZATION: Lookup tables ready (sin: " .. #sin_lookup .. ", pow2: " .. #pow2_lookup .. ")")
+  end
+end
+
+-- Fast sine lookup with linear interpolation
+function PakettiSampleEffectGeneratorFastSin(phase)
+  local normalized_phase = (phase / (2 * math.pi)) % 1.0
+  local float_index = normalized_phase * (lookup_resolution - 1) + 1
+  local lower_index = math.floor(float_index)
+  local fraction = float_index - lower_index
+  
+  local val1 = sin_lookup[lower_index] or 0
+  local val2 = sin_lookup[lower_index + 1] or sin_lookup[1]
+  
+  return val1 + (val2 - val1) * fraction
+end
+
+-- Fast power-of-2 lookup
+function PakettiSampleEffectGeneratorFastPow2(pitch_norm)
+  local clamped_norm = math.max(0, math.min(1, pitch_norm))
+  local float_index = clamped_norm * (lookup_resolution - 1) + 1
+  local lower_index = math.floor(float_index)
+  local fraction = float_index - lower_index
+  
+  local val1 = pow2_lookup[lower_index] or 1
+  local val2 = pow2_lookup[lower_index + 1] or pow2_lookup[lookup_resolution]
+  
+  return val1 + (val2 - val1) * fraction
+end
+
+-- PRE-CALCULATE ENVELOPES: Convert 100-point envelopes to exact sample-frame arrays
+function PakettiSampleEffectGeneratorPrecalculateEnvelopes(sample_frames)
+  local waveform_envelope = {}
+  local pitch_envelope = {}  
+  local volume_envelope = {}
+  
+  print("OPTIMIZATION: Pre-calculating " .. sample_frames .. " envelope points...")
+  
+  for sample_i = 1, sample_frames do
+    local time_norm = (sample_i - 1) / (sample_frames - 1)
+    waveform_envelope[sample_i] = PakettiSampleEffectGeneratorInterpolateData(waveform_data, time_norm)
+    pitch_envelope[sample_i] = PakettiSampleEffectGeneratorInterpolateData(pitch_data, time_norm)
+    volume_envelope[sample_i] = PakettiSampleEffectGeneratorInterpolateData(volume_data, time_norm)
+  end
+  
+  print("OPTIMIZATION: Envelope pre-calculation complete!")
+  return waveform_envelope, pitch_envelope, volume_envelope
+end
+
 function PakettiSampleEffectGeneratorUpdateLiveSample()
   if not live_pickup_mode or not live_pickup_sample then
     return
@@ -817,6 +1457,9 @@ function PakettiSampleEffectGeneratorUpdateLiveSample()
   
   -- Show status that we're writing the sample
   renoise.app():show_status("Writing Sample...")
+  
+  -- Initialize lookup tables for performance
+  PakettiSampleEffectGeneratorInitLookupTables()
   
   -- Protected call to handle any sample access errors gracefully
   local success, error_msg = pcall(function()
@@ -876,61 +1519,72 @@ function PakettiSampleEffectGeneratorUpdateLiveSample()
       end
     end
     
+    -- DEBUG: Check fade out settings
+    print("LIVE_PICKUP: fade_out_enabled=" .. tostring(fade_out_enabled) .. ", user_has_custom_fade=" .. tostring(user_has_custom_fade))
+    
+    -- OPTIMIZATION: Pre-calculate all envelope values at once (3 interpolations → 3 arrays)
+    local waveform_envelope, pitch_envelope, volume_envelope = PakettiSampleEffectGeneratorPrecalculateEnvelopes(sample_frames)
+    
+    -- OPTIMIZATION: Pre-select waveform generation function (remove if/elseif from tight loop)
+    local waveform_generator
+    if wave_type == "current" or wave_type == "sine" then
+      waveform_generator = function(phase) return PakettiSampleEffectGeneratorFastSin(phase) end
+    elseif wave_type == "triangle" then
+      waveform_generator = function(phase)
+        local normalized_phase = (phase / (2 * math.pi)) % 1
+        if normalized_phase < 0.25 then
+          return 4 * normalized_phase
+        elseif normalized_phase < 0.75 then
+          return 2 - 4 * normalized_phase
+        else
+          return 4 * normalized_phase - 4
+        end
+      end
+    elseif wave_type == "square" then
+      waveform_generator = function(phase) return PakettiSampleEffectGeneratorFastSin(phase) > 0 and 1 or -1 end
+    elseif wave_type == "sawtooth" then
+      waveform_generator = function(phase)
+        local normalized_phase = (phase / (2 * math.pi)) % 1
+        return 2 * normalized_phase - 1
+      end
+    elseif wave_type == "random" then
+      waveform_generator = function(phase) return (math.random() * 2) - 1 end
+    else
+      waveform_generator = function(phase) return PakettiSampleEffectGeneratorFastSin(phase) end
+    end
+    
+    print("OPTIMIZATION: Entering optimized main loop with pre-calculated envelopes...")
+    local two_pi = 2 * math.pi
+    
     for sample_i = 1, sample_frames do
-      local time_norm = (sample_i - 1) / (sample_frames - 1)  -- 0.0 to 1.0
+      -- OPTIMIZATION: Get pre-calculated envelope values (no interpolation!)
+      local waveform_value = waveform_envelope[sample_i]
+      local pitch_mult = pitch_envelope[sample_i] 
+      local volume_mult = volume_envelope[sample_i]
       
-      -- Get interpolated values from curves
-      local waveform_value = PakettiSampleEffectGeneratorInterpolateData(waveform_data, time_norm)
-      local pitch_mult = PakettiSampleEffectGeneratorInterpolateData(pitch_data, time_norm)
-      local volume_mult = PakettiSampleEffectGeneratorInterpolateData(volume_data, time_norm)
-      
-      -- Convert pitch curve to frequency multiplier
-      local freq_mult = math.pow(2, (pitch_mult - 0.5) * 4)  -- -2 to +2 octaves
+      -- OPTIMIZATION: Use fast lookup table instead of math.pow()
+      local freq_mult = PakettiSampleEffectGeneratorFastPow2(pitch_mult)
       
       -- Calculate instantaneous frequency
       local actual_freq = base_freq * freq_mult
       
       -- Accumulate phase (this gives smooth pitch transitions)
-      local phase_delta = actual_freq * 2 * math.pi / sample_rate
+      local phase_delta = actual_freq * two_pi / sample_rate
       phase_accumulator = phase_accumulator + phase_delta
       
-      -- Keep phase in reasonable range
-      while phase_accumulator > 2 * math.pi do
-        phase_accumulator = phase_accumulator - 2 * math.pi
-      end
+      -- OPTIMIZATION: Use modulo instead of while loop for phase normalization
+      phase_accumulator = phase_accumulator % two_pi
       
-      -- Generate base oscillator sample
-      local base_wave_sample
-      if wave_type == "current" then
-        base_wave_sample = math.sin(phase_accumulator)  -- Default to sine for current mode
-      elseif wave_type == "sine" then
-        base_wave_sample = math.sin(phase_accumulator)
-      elseif wave_type == "triangle" then
-        local normalized_phase = (phase_accumulator / (2 * math.pi)) % 1
-        if normalized_phase < 0.25 then
-          base_wave_sample = 4 * normalized_phase
-        elseif normalized_phase < 0.75 then
-          base_wave_sample = 2 - 4 * normalized_phase
-        else
-          base_wave_sample = 4 * normalized_phase - 4
-        end
-      elseif wave_type == "square" then
-        base_wave_sample = math.sin(phase_accumulator) > 0 and 1 or -1
-      elseif wave_type == "sawtooth" then
-        local normalized_phase = (phase_accumulator / (2 * math.pi)) % 1
-        base_wave_sample = 2 * normalized_phase - 1
-      elseif wave_type == "random" then
-        base_wave_sample = (math.random() * 2) - 1
-      else
-        base_wave_sample = math.sin(phase_accumulator)
-      end
+      -- OPTIMIZATION: Use pre-selected waveform generator function
+      local base_wave_sample = waveform_generator(phase_accumulator)
       
       -- Apply waveform curve (different behavior based on custom waveform detection)
       local wave_sample
       if has_custom_waveform then
         -- CUSTOM WAVEFORM MODE: Use drawn waveform as repeating oscillator based on phase!
-        local waveform_phase = (phase_accumulator / (2 * math.pi)) % 1.0  -- 0.0 to 1.0
-        local waveform_sample_value = PakettiSampleEffectGeneratorInterpolateData(waveform_data, waveform_phase)
+        local waveform_phase_norm = (phase_accumulator / two_pi) % 1.0  -- 0.0 to 1.0
+        -- OPTIMIZATION OPPORTUNITY: This could be pre-calculated too for specific frequencies
+        local waveform_sample_value = PakettiSampleEffectGeneratorInterpolateData(waveform_data, waveform_phase_norm)
         wave_sample = (waveform_sample_value * 2) - 1  -- Convert 0.0-1.0 to -1.0 to 1.0
       else
         -- STANDARD MODE: Use the pitched oscillator as the base wave
@@ -941,18 +1595,19 @@ function PakettiSampleEffectGeneratorUpdateLiveSample()
       wave_sample = wave_sample * volume_mult
       
       -- Apply fade out to avoid clicks ONLY if user hasn't drawn their own fade
-      local should_auto_fade = fade_out_enabled
-      if #volume_data > 0 then
-        -- Check if user has drawn their own fade to silence at the end
-        local end_volume = volume_data[#volume_data]  -- Last volume point
-        if end_volume < 0.1 then  -- If user ended near silence, don't auto-fade
-          should_auto_fade = false
-        end
-      end
+      local should_auto_fade = fade_out_enabled and not user_has_custom_fade
       
-      if should_auto_fade and sample_i > sample_frames - 15 then
-        local fade_amount = (sample_frames - sample_i) / 15.0
-        wave_sample = wave_sample * fade_amount
+      if should_auto_fade and sample_i > sample_frames - 1000 then
+        local fade_pos = sample_i - (sample_frames - 1000)
+        local fade_mult = 1.0 - (fade_pos / 1000.0)  -- 1.0 to 0.0
+        wave_sample = wave_sample * fade_mult
+        -- Debug only first and last fade samples to avoid spam
+        if sample_i == sample_frames - 999 then  -- First fade sample
+          print("LIVE_PICKUP: FADE OUT STARTED! fade_mult=" .. string.format("%.6f", fade_mult))
+        elseif sample_i == sample_frames then
+          wave_sample = 0.0
+          print("LIVE_PICKUP: FINAL SAMPLE SET TO ZERO!")
+        end
       end
       
       generated_data[sample_i] = wave_sample
@@ -975,6 +1630,21 @@ function PakettiSampleEffectGeneratorUpdateLiveSample()
       buffer:set_sample_data(1, i, normalized_value)
     end
     buffer:finalize_sample_data_changes()
+    
+    -- Apply A440Hz tuning correction to Live Pickup Mode sample (same as main generation)
+    local pitch_correction = PakettiSampleEffectGeneratorCalculatePitchCorrection(sample_rate, tuned_resolution, 1)
+    
+    -- Only apply correction if deviation is significant (>2 cents)
+    local cents_deviation = math.abs(pitch_correction.cents)
+    if cents_deviation > 2 then
+      live_pickup_sample.transpose = pitch_correction.transpose
+      live_pickup_sample.fine_tune = pitch_correction.fine_tune
+      print("LIVE_PICKUP: Applied tuning correction - Transpose: " .. pitch_correction.transpose .. ", Fine: " .. pitch_correction.fine_tune .. " (was " .. string.format("%.1f", cents_deviation) .. " cents off)")
+    else
+      live_pickup_sample.transpose = 0
+      live_pickup_sample.fine_tune = 0
+      print("LIVE_PICKUP: Sample well-tuned (" .. string.format("%.1f", cents_deviation) .. " cents) - no correction needed")
+    end
     
     print("LIVE_PICKUP: Updated sample with " .. sample_frames .. " frames (" .. string.format("%.2f", sample_duration) .. " seconds)")
     renoise.app():show_status("Sample writing finished.")
@@ -1077,13 +1747,14 @@ function PakettiSampleEffectGeneratorRenderCanvas(canvas_type, ctx)
     local points_drawn = 0
     for i = 1, #data_array do
       local x_norm = (i - 1) / (#data_array - 1)
-      -- Calculate positions within content bounds
+      -- Calculate positions within content bounds - account for line thickness (2px) to prevent clipping
+      local line_thickness = 2
       local x_pos = content_x + x_norm * content_width
-      local y_pos = content_y + (1.0 - data_array[i]) * content_height
+      local y_pos = content_y + line_thickness/2 + (1.0 - data_array[i]) * (content_height - line_thickness)
       
       -- Additional safety clamp to ensure absolutely no boundary violations
       x_pos = math.max(content_x, math.min(content_x + content_width, x_pos))
-      y_pos = math.max(content_y, math.min(content_y + content_height, y_pos))
+      y_pos = math.max(content_y + line_thickness/2, math.min(content_y + content_height - line_thickness/2, y_pos))
       
       if i == 1 then
         ctx:move_to(x_pos, y_pos)
@@ -1114,11 +1785,11 @@ function PakettiSampleEffectGeneratorRenderCanvas(canvas_type, ctx)
     ctx:stroke()
   end
   
-  -- Draw border
+  -- Draw border (grey rectangle around the FULL area including padding)
   ctx.stroke_color = {80, 80, 80, 255}
   ctx.line_width = 2
   ctx:begin_path()
-  ctx:rect(content_x, content_y, content_width, content_height)
+  ctx:rect(border_margin, text_height + text_margin, canvas_width - (border_margin * 2), canvas_height - text_height - text_margin - border_margin)
   ctx:stroke()
 end
 
@@ -1185,7 +1856,7 @@ function PakettiSampleEffectGeneratorGenerateSample()
   print("SAMPLE_GENERATOR: Using CURRENT curves: Wave=" .. (wave_type == "current" and "YES" or "NO") .. 
         ", Pitch=" .. (pitch_modulation_type == "current" and "YES" or "NO") .. 
         ", Volume=" .. (volume_envelope_type == "current" and "YES" or "NO"))
-  print("SAMPLE_GENERATOR: ✅ FIXED - Now generating " .. total_samples .. " samples over " .. sample_duration .. " seconds with pitch modulation!")
+  print("SAMPLE_GENERATOR: FIXED - Now generating " .. total_samples .. " samples over " .. sample_duration .. " seconds with pitch modulation!")
   
   -- Generate sample data with proper phase accumulation for pitch modulation
   local phase_accumulator = 0.0
@@ -1285,11 +1956,15 @@ function PakettiSampleEffectGeneratorGenerateSample()
     end
     
     if should_auto_fade then
-      local fade_frames = 15
+      local fade_frames = 1000  -- Longer fade to zero (about 0.023 seconds)
       if sample_i > (total_samples - fade_frames) then
         local fade_pos = sample_i - (total_samples - fade_frames)
         local fade_mult = 1.0 - (fade_pos / fade_frames)  -- 1.0 to 0.0
         wave_sample = wave_sample * fade_mult
+        -- Ensure the very last sample is exactly zero
+        if sample_i == total_samples then
+          wave_sample = 0.0
+        end
       end
     end
     
@@ -1394,11 +2069,34 @@ function PakettiSampleEffectGeneratorCreateAndLoadSample(sample_data, sample_rat
   -- Finalize sample data changes
   sample.sample_buffer:finalize_sample_data_changes()
   
-  -- Set sample properties
+  -- Set sample properties with Paketti loader settings
   sample.name = "Generated_" .. os.date("%H%M%S")
-  sample.fine_tune = 0
+  
+  -- Apply A440Hz tuning correction (from PakettiPCMWriter.lua)
+  local pitch_correction = PakettiSampleEffectGeneratorCalculatePitchCorrection(sample_rate, tuned_resolution, 1)
+  
+  -- Only apply correction if deviation is significant (>2 cents)
+  local cents_deviation = math.abs(pitch_correction.cents)
+  if cents_deviation > 2 then
+    sample.transpose = pitch_correction.transpose
+    sample.fine_tune = pitch_correction.fine_tune
+    print("TUNING: Applied pitch correction - Transpose: " .. pitch_correction.transpose .. ", Fine: " .. pitch_correction.fine_tune .. " (was " .. string.format("%.1f", cents_deviation) .. " cents off)")
+    sample.name = sample.name .. " -> " .. pitch_correction.note_name
+  else
+    sample.transpose = 0
+    sample.fine_tune = 0
+    print("TUNING: Sample well-tuned (" .. string.format("%.1f", cents_deviation) .. " cents) - no correction needed")
+  end
+  
   sample.volume = 1.0
   sample.panning = 0.5
+  
+  -- Apply Paketti loader preferences (same as PakettiSamples.lua)
+  sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+  sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+  sample.autofade = preferences.pakettiLoaderAutofade.value
+  sample.autoseek = preferences.pakettiLoaderAutoseek.value
+  sample.oneshot = preferences.pakettiLoaderOneshot.value
   
   -- Set sample mapping properties (base_note is on the mapping, not the sample)
   if sample.sample_mapping then
@@ -1449,12 +2147,9 @@ function PakettiSampleEffectGeneratorCreateDialog()
   local vb = renoise.ViewBuilder()
   
   local dialog_content = vb:column {
-    spacing = 4,  -- Reduce spacing between rows
-    margin = 8,   -- Reduce overall dialog margin
     
     -- Canvas row - text labels now rendered as vector graphics within canvases  
     vb:row {
-      spacing = 4,  -- Reduce spacing between canvases
       -- Waveform canvas column  
       vb:column {
         vb:canvas {
@@ -1509,19 +2204,21 @@ function PakettiSampleEffectGeneratorCreateDialog()
     
     -- Controls row
     vb:row {
-      spacing = 6,  -- Compact spacing between control columns
       -- Wave type selection
       vb:column {
-        width = 100,  -- Uniform column width
+        width = 120,  -- Column width to fit 120px invert button perfectly
         vb:text { text = "Wave Type", font = "bold", style = "strong" },
         vb:popup {
           id = "wave_type_popup",
-          items = {"Current", "Sine", "Triangle", "Square", "Sawtooth", "Pulse", "Diode", "Gauss", "Chebyshev", "Chirp", "Log Ramp Up", "Log Ramp Down", "Pink Noise", "Random"},
+          items = UNIFIED_DROPDOWN_ITEMS,
           value = 1,  -- Default to Current (use drawn waveform)
           width = 120,
           notifier = function(value)
-            local types = {"current", "sine", "triangle", "square", "sawtooth", "pulse", "diode", "gauss", "chebyshev", "chirp", "log_ramp_up", "log_ramp_down", "pink_noise", "random"}
-            wave_type = types[value]
+            wave_type = UNIFIED_DROPDOWN_TYPES[value]
+            
+            -- ALWAYS reset frequency multiplier when changing dropdown selection (including "current")
+            waveform_frequency_multiplier = 1
+            print("WAVEFORM PRESET: Reset frequency multiplier to 1x")
             
             if wave_type ~= "current" then
               -- Only generate base waveform if user selected a preset (not "Current")
@@ -1538,19 +2235,16 @@ function PakettiSampleEffectGeneratorCreateDialog()
         vb:row {
           vb:button {
             text = "2x",
-            width = 38,
+            width = 40,
             tooltip = "Double waveform frequency",
             notifier = function()
               PakettiSampleEffectGeneratorDoubleWaveform()
-              -- Update live sample if live audition is enabled
-              if live_pickup_mode then
-                PakettiSampleEffectGeneratorUpdateLiveSample()
-              end
+              -- Note: DoubleWaveform() already handles Live Audition updates internally
             end
           },
           vb:button {
             text = "1/2", 
-            width = 38,
+            width = 40,
             tooltip = "Halve waveform frequency",
             notifier = function()
               PakettiSampleEffectGeneratorHalveWaveform()
@@ -1572,26 +2266,33 @@ function PakettiSampleEffectGeneratorCreateDialog()
               end
             end
           },
+        },
+        vb:row {
+          vb:button {
+            text = "Invert",
+            width = 120,
+            tooltip = "Invert waveform curve",
+            notifier = function()
+              PakettiSampleEffectGeneratorInvertWaveform()
+            end
+          },
         }
       },
       
       -- Pitch modulation type selection (FIXED ORDER: matches canvas order)
       vb:column {
-        width = 100,  -- Uniform column width
+        width = 120,  -- Column width to fit 120px invert button perfectly
         vb:text { text = "Pitch Modulation", font = "bold", style = "strong" },
         vb:popup {
           id = "pitch_modulation_popup",
-          items = {"Current", "Flat", "Ramp Up", "Ramp Down", "Log Ramp Up", "Log Ramp Down", "Triangle", "Sine Wave", "Pulse", "Diode", "Gauss", "Chebyshev", "Chirp", "Pink Noise", "Random"},
+          items = PITCH_DROPDOWN_ITEMS,
           value = 1,  -- Default to Current (use drawn pitch curve)
           width = 120,
           notifier = function(value)
-            local types = {"current", "flat", "ramp_up", "ramp_down", "log_ramp_up", "log_ramp_down", "triangle", "sine_wave", "pulse", "diode", "gauss", "chebyshev", "chirp", "pink_noise", "random"}
-            pitch_modulation_type = types[value]
+            pitch_modulation_type = PITCH_DROPDOWN_TYPES[value]
             
-            if pitch_modulation_type ~= "current" then
-              -- Only generate preset if user selected a preset (not "Current")
-              PakettiSampleEffectGeneratorGeneratePitchPreset(pitch_modulation_type)
-            end
+            -- ALWAYS reset frequency multiplier and call preset function (even for "current")
+            PakettiSampleEffectGeneratorGeneratePitchPreset(pitch_modulation_type)
             
             print("SAMPLE_GENERATOR: Pitch modulation changed to " .. pitch_modulation_type)
             -- Update live sample if live audition is enabled
@@ -1603,14 +2304,11 @@ function PakettiSampleEffectGeneratorCreateDialog()
         vb:row {
           vb:button {
             text = "2x",
-            width = 38,
+            width = 40,
             tooltip = "Double pitch curve frequency",
             notifier = function()
               PakettiSampleEffectGeneratorDoublePitch()
-              -- Update live sample if live audition is enabled
-              if live_pickup_mode then
-                PakettiSampleEffectGeneratorUpdateLiveSample()
-              end
+              -- Note: DoublePitch() already handles Live Audition updates internally
             end
           },
           vb:button {
@@ -1637,26 +2335,33 @@ function PakettiSampleEffectGeneratorCreateDialog()
               end
             end
           },
+        },
+        vb:row {
+          vb:button {
+            text = "Invert",
+            width = 120,
+            tooltip = "Invert pitch modulation curve",
+            notifier = function()
+              PakettiSampleEffectGeneratorInvertPitch()
+            end
+          },
         }
       },
       
       -- Volume envelope type selection (FIXED ORDER: matches canvas order)
       vb:column {
-        width = 100,  -- Uniform column width
+        width = 120,  -- Column width to fit 120px invert button perfectly
         vb:text { text = "Volume Envelope", font = "bold", style = "strong" },
         vb:popup {
           id = "volume_envelope_popup",
-          items = {"Current", "Flat", "Ramp Down", "Ramp Up", "Log Ramp Down", "Log Ramp Up", "Triangle", "Fade In/Out", "Pulse", "Diode", "Gauss", "Chebyshev", "Chirp", "Pink Noise", "Random"},
+          items = UNIFIED_DROPDOWN_ITEMS,
           value = 1,  -- Default to Current (use drawn volume curve)
           width = 120,
           notifier = function(value)
-            local types = {"current", "flat", "ramp_down", "ramp_up", "log_ramp_down", "log_ramp_up", "triangle", "fade_in_out", "pulse", "diode", "gauss", "chebyshev", "chirp", "pink_noise", "random"}
-            volume_envelope_type = types[value]
+            volume_envelope_type = UNIFIED_DROPDOWN_TYPES[value]
             
-            if volume_envelope_type ~= "current" then
-              -- Only generate preset if user selected a preset (not "Current")
-              PakettiSampleEffectGeneratorGenerateVolumePreset(volume_envelope_type)
-            end
+            -- ALWAYS reset frequency multiplier and call preset function (even for "current")
+            PakettiSampleEffectGeneratorGenerateVolumePreset(volume_envelope_type)
             
             print("SAMPLE_GENERATOR: Volume envelope changed to " .. volume_envelope_type)
             -- Update live sample if live audition is enabled
@@ -1668,19 +2373,16 @@ function PakettiSampleEffectGeneratorCreateDialog()
         vb:row {
           vb:button {
             text = "2x",
-            width = 38,
+            width = 40,
             tooltip = "Double volume envelope frequency",
             notifier = function()
               PakettiSampleEffectGeneratorDoubleVolume()
-              -- Update live sample if live audition is enabled
-              if live_pickup_mode then
-                PakettiSampleEffectGeneratorUpdateLiveSample()
-              end
+              -- Note: DoubleVolume() already handles Live Audition updates internally
             end
           },
           vb:button {
             text = "1/2",
-            width = 38,
+            width = 40,
             tooltip = "Halve volume envelope frequency",
             notifier = function()
               PakettiSampleEffectGeneratorHalveVolume()
@@ -1704,9 +2406,19 @@ function PakettiSampleEffectGeneratorCreateDialog()
           },
         },
         vb:row {
+          vb:button {
+            text = "Invert",
+            width = 120,
+            tooltip = "Invert volume envelope curve",
+            notifier = function()
+              PakettiSampleEffectGeneratorInvertVolume()
+            end
+          },
+        },
+        vb:row {
           vb:checkbox {
             value = fade_out_enabled,
-            tooltip = "Fade out last 15 frames to avoid clicks",
+            tooltip = "Fade out last 1000 frames (0.023s) to avoid clicks - ends at ZERO",
             notifier = function(value)
               fade_out_enabled = value
               print("SAMPLE_GENERATOR: Fade out " .. (fade_out_enabled and "enabled" or "disabled"))
@@ -1718,8 +2430,8 @@ function PakettiSampleEffectGeneratorCreateDialog()
       
       -- Duration control
       vb:column {
-        width = 100,  -- Uniform column width
-        vb:text { text = "Duration (sec)", font = "bold", style = "strong" },
+        width = 90,  -- Column width to fit 120px invert button perfectly
+        vb:text { width=90,text = "Duration (sec)", font = "bold", style = "strong" },
         vb:valuebox {
           id = "duration_valuebox",
           min = 0.1,
@@ -1733,13 +2445,24 @@ function PakettiSampleEffectGeneratorCreateDialog()
         }
       },
       
+      -- Tuning info display
+      vb:column {
+        width = 90,
+        vb:text { width=90, text = "A440 Tuning", font = "bold", style = "strong" },
+        vb:text { 
+          id = "tuning_text",
+          width = 90,
+          text = tuned_resolution .. " pts",
+          style = "normal"
+        }
+      },
+      
       -- Action buttons
       vb:column {
-        spacing = 2,  -- Compact button spacing
         vb:row {
           vb:button {
             text = "Generate (SPACE)",
-            width = 120,
+            width = 160,
             tooltip = "Generate sample from drawn curves",
             notifier = function()
               PakettiSampleEffectGeneratorGenerateSample()
@@ -1748,7 +2471,7 @@ function PakettiSampleEffectGeneratorCreateDialog()
 
           vb:button {
             text = "Reset All Envelopes",
-            width = 140,
+            width = 160,
             tooltip = "Reset all envelopes: waveform to sine, pitch to flat, volume to full",
             notifier = function()
               PakettiSampleEffectGeneratorInitializeData()
@@ -1779,7 +2502,6 @@ function PakettiSampleEffectGeneratorCreateDialog()
           end
         },
         vb:row {
-          spacing = 4,  -- Compact live audition controls
           vb:checkbox {
             id = "live_pickup_checkbox",
             value = false,
@@ -1799,7 +2521,7 @@ function PakettiSampleEffectGeneratorCreateDialog()
             end
           },
           vb:text { 
-            text = "Live Audition",
+            text = "Live Audition",style="strong",font="bold",
             tooltip = "When enabled, the current sample will be updated every time you release the mouse after drawing"
           }
         }
@@ -1808,7 +2530,7 @@ function PakettiSampleEffectGeneratorCreateDialog()
     
     -- Instructions
     vb:text {
-      text = "Instructions: Draw on canvases to shape your sample. Press SPACE to generate. ESC to close. Enable Live Pickup to update current sample on mouse release.",
+      text = "Instructions: Draw on the canvas to shape your sound. Press SPACE to generate. ESC to close. Enable Live Audition to update current sample on mouse release.",
       font = "italic"
     }
   }
@@ -1866,3 +2588,4 @@ renoise.tool():add_keybinding {
 }
 
 print("SAMPLE_GENERATOR: Module loaded successfully")
+
