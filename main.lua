@@ -161,8 +161,8 @@ function timed_require(module_name)
         file:close()
     end
     
-    -- Require the module and time it
-    require(module_name)
+    -- Load the module from local file and time it
+    dofile(file_path)
     local elapsed = (os.clock() - start_time) * 1000 -- convert to milliseconds
     
     print(string.format("%s, %d lines, %.2f ms", module_name, line_count, elapsed))
