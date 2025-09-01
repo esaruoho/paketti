@@ -50,11 +50,34 @@ local volume_envelope_type = "current"
 local pitch_modulation_type = "current"
 local use_waveform_override = false  -- If true, use drawn waveform as base wave instead of dropdown selection
 local fade_out_enabled = true  -- If true, apply fade out to last 1000 frames (0.023s) to avoid clicks - ends at ZERO
-local beatsync_enabled = true  -- If true, enable beat sync with 32 lines and Stretch-Texture mode
+local beatsync_enabled = true  -- If true, enable beatsync with 32 lines and Stretch-Texture mode
 
 -- Tuning settings (from PakettiPCMWriter.lua)
 local A4_FREQ = 440.0  -- A4 reference frequency
 local tuned_resolution = 100  -- Auto-calculated for perfect A440 tuning
+
+-- Turn off beatsync for the currently selected sample
+function PakettiSampleEffectGeneratorTurnOffBeatSync()
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  
+  if not inst or song.selected_sample_index == 0 then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local sample = inst:sample(song.selected_sample_index)
+  if not sample then
+    renoise.app():show_status("No sample found at selected index")
+    return
+  end
+  
+  -- Turn off beatsync
+  sample.beat_sync_enabled = false
+  
+  renoise.app():show_status("Beatsync disabled for selected sample")
+  print("SAMPLE_GENERATOR: Beatsync disabled for sample " .. song.selected_sample_index .. " in instrument " .. song.selected_instrument_index)
+end
 
 -- Calculate perfect waveform resolution for A440Hz tuning
 function PakettiSampleEffectGeneratorCalculateTunedResolution()
@@ -1647,15 +1670,15 @@ function PakettiSampleEffectGeneratorUpdateLiveSample()
       print("LIVE_PICKUP: Sample well-tuned (" .. string.format("%.1f", cents_deviation) .. " cents) - no correction needed")
     end
     
-    -- Apply beat sync settings if enabled (same as main generation)
+    -- Apply beatsync settings if enabled (same as main generation)
     if beatsync_enabled then
       live_pickup_sample.beat_sync_enabled = true
       live_pickup_sample.beat_sync_lines = 32
       live_pickup_sample.beat_sync_mode = renoise.Sample.BEAT_SYNC_TEXTURE
-      print("LIVE_PICKUP: Applied beat sync - 32 lines, Stretch-Texture mode")
+      print("LIVE_PICKUP: Applied beatsync - 32 lines, Stretch-Texture mode")
     else
       live_pickup_sample.beat_sync_enabled = false
-      print("LIVE_PICKUP: Beat sync disabled")
+      print("LIVE_PICKUP: Beatsync disabled")
     end
     
     print("LIVE_PICKUP: Updated sample with " .. sample_frames .. " frames (" .. string.format("%.2f", sample_duration) .. " seconds)")
@@ -2110,15 +2133,15 @@ function PakettiSampleEffectGeneratorCreateAndLoadSample(sample_data, sample_rat
   sample.autoseek = preferences.pakettiLoaderAutoseek.value
   sample.oneshot = preferences.pakettiLoaderOneshot.value
   
-  -- Apply beat sync settings if enabled
+  -- Apply beatsync settings if enabled
   if beatsync_enabled then
     sample.beat_sync_enabled = true
     sample.beat_sync_lines = 32
     sample.beat_sync_mode = renoise.Sample.BEAT_SYNC_TEXTURE
-    print("SAMPLE_GENERATOR: Applied beat sync - 32 lines, Stretch-Texture mode")
+    print("SAMPLE_GENERATOR: Applied beatsync - 32 lines, Stretch-Texture mode")
   else
     sample.beat_sync_enabled = false
-    print("SAMPLE_GENERATOR: Beat sync disabled")
+    print("SAMPLE_GENERATOR: Beatsync disabled")
   end
   
   -- Set sample mapping properties (base_note is on the mapping, not the sample)
@@ -2162,6 +2185,18 @@ end
 function PakettiSampleEffectGeneratorCreateDialog()
   if sample_generator_dialog and sample_generator_dialog.visible then
     sample_generator_dialog:close()
+  end
+  
+  -- Set beatsync checkbox based on currently selected sample's state
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  
+  if inst and song.selected_sample_index > 0 then
+    local sample = inst:sample(song.selected_sample_index)
+    if sample then
+      beatsync_enabled = sample.beat_sync_enabled
+      print("SAMPLE_GENERATOR: Dialog opened - beatsync checkbox set to " .. (beatsync_enabled and "ON" or "OFF") .. " based on current sample")
+    end
   end
   
   -- Initialize data with default curves
@@ -2452,13 +2487,35 @@ function PakettiSampleEffectGeneratorCreateDialog()
         vb:row {
           vb:checkbox {
             value = beatsync_enabled,
-            tooltip = "Enable beat sync with 32 lines and Stretch-Texture mode for all generated samples",
+            tooltip = "Enable beatsync with 32 lines and Stretch-Texture mode for all generated samples",
             notifier = function(value)
               beatsync_enabled = value
-              print("SAMPLE_GENERATOR: Beat sync " .. (beatsync_enabled and "enabled (32 lines, Stretch-Texture)" or "disabled"))
+              
+              -- Also affect the currently selected sample immediately
+              local song = renoise.song()
+              local inst = song.selected_instrument
+              
+              if inst and song.selected_sample_index > 0 then
+                local sample = inst:sample(song.selected_sample_index)
+                if sample then
+                  if beatsync_enabled then
+                    -- Turn ON beatsync for current sample
+                    sample.beat_sync_enabled = true
+                    sample.beat_sync_lines = 32
+                    sample.beat_sync_mode = renoise.Sample.BEAT_SYNC_TEXTURE
+                    print("SAMPLE_GENERATOR: Beatsync enabled for current sample " .. song.selected_sample_index .. " (32 lines, Stretch-Texture)")
+                  else
+                    -- Turn OFF beatsync for current sample
+                    sample.beat_sync_enabled = false
+                    print("SAMPLE_GENERATOR: Beatsync disabled for current sample " .. song.selected_sample_index)
+                  end
+                end
+              end
+              
+              print("SAMPLE_GENERATOR: Beatsync " .. (beatsync_enabled and "enabled (32 lines, Stretch-Texture)" or "disabled") .. " for future generated samples")
             end
           },
-          vb:text { text = "Beat Sync", font = "bold", style = "strong" },
+          vb:text { text = "Beatsync", font = "bold", style = "strong" },
         },
       },
       
