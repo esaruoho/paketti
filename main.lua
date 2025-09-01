@@ -150,7 +150,7 @@ function timed_require(module_name)
     
     -- Count lines in the file
     local line_count = 0
-    local file_path = renoise.tool().bundle_path .. module_name .. ".lua"
+    local file_path = renoise.tool().bundle_path .. separator .. module_name .. ".lua"
     local file = io.open(file_path, "r")
     if file then
         for _ in file:lines() do

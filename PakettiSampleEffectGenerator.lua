@@ -50,6 +50,7 @@ local volume_envelope_type = "current"
 local pitch_modulation_type = "current"
 local use_waveform_override = false  -- If true, use drawn waveform as base wave instead of dropdown selection
 local fade_out_enabled = true  -- If true, apply fade out to last 1000 frames (0.023s) to avoid clicks - ends at ZERO
+local beatsync_enabled = true  -- If true, enable beat sync with 32 lines and Stretch-Texture mode
 
 -- Tuning settings (from PakettiPCMWriter.lua)
 local A4_FREQ = 440.0  -- A4 reference frequency
@@ -1646,6 +1647,17 @@ function PakettiSampleEffectGeneratorUpdateLiveSample()
       print("LIVE_PICKUP: Sample well-tuned (" .. string.format("%.1f", cents_deviation) .. " cents) - no correction needed")
     end
     
+    -- Apply beat sync settings if enabled (same as main generation)
+    if beatsync_enabled then
+      live_pickup_sample.beat_sync_enabled = true
+      live_pickup_sample.beat_sync_lines = 32
+      live_pickup_sample.beat_sync_mode = renoise.Sample.BEAT_SYNC_TEXTURE
+      print("LIVE_PICKUP: Applied beat sync - 32 lines, Stretch-Texture mode")
+    else
+      live_pickup_sample.beat_sync_enabled = false
+      print("LIVE_PICKUP: Beat sync disabled")
+    end
+    
     print("LIVE_PICKUP: Updated sample with " .. sample_frames .. " frames (" .. string.format("%.2f", sample_duration) .. " seconds)")
     renoise.app():show_status("Sample writing finished.")
   end)
@@ -2098,6 +2110,17 @@ function PakettiSampleEffectGeneratorCreateAndLoadSample(sample_data, sample_rat
   sample.autoseek = preferences.pakettiLoaderAutoseek.value
   sample.oneshot = preferences.pakettiLoaderOneshot.value
   
+  -- Apply beat sync settings if enabled
+  if beatsync_enabled then
+    sample.beat_sync_enabled = true
+    sample.beat_sync_lines = 32
+    sample.beat_sync_mode = renoise.Sample.BEAT_SYNC_TEXTURE
+    print("SAMPLE_GENERATOR: Applied beat sync - 32 lines, Stretch-Texture mode")
+  else
+    sample.beat_sync_enabled = false
+    print("SAMPLE_GENERATOR: Beat sync disabled")
+  end
+  
   -- Set sample mapping properties (base_note is on the mapping, not the sample)
   if sample.sample_mapping then
     sample.sample_mapping.base_note = 48  -- C-4 (middle C)
@@ -2425,6 +2448,17 @@ function PakettiSampleEffectGeneratorCreateDialog()
             end
           },
           vb:text { text = "Fade Out", font = "bold", style = "strong" },
+        },
+        vb:row {
+          vb:checkbox {
+            value = beatsync_enabled,
+            tooltip = "Enable beat sync with 32 lines and Stretch-Texture mode for all generated samples",
+            notifier = function(value)
+              beatsync_enabled = value
+              print("SAMPLE_GENERATOR: Beat sync " .. (beatsync_enabled and "enabled (32 lines, Stretch-Texture)" or "disabled"))
+            end
+          },
+          vb:text { text = "Beat Sync", font = "bold", style = "strong" },
         },
       },
       
