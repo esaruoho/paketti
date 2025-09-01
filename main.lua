@@ -1,3 +1,5 @@
+local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
+
 sampleEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 patternEditor = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 pe = patternEditor
