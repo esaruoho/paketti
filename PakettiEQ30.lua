@@ -1588,11 +1588,11 @@ function create_eq_dialog()
     
       vb:text {
         text = "Randomize",style="strong",font="bold",
-        width = 80
+        width = 60
       },
       vb:button {
         text = "Smooth",
-        width = 80,
+        width = 60,
         tooltip = "Generate smooth, musical random EQ curve with gentle peaks",
         notifier = function()
           randomize_eq_curve("smooth")
@@ -1600,7 +1600,7 @@ function create_eq_dialog()
       },
       vb:button {
         text = "Surgical",
-        width = 80,
+        width = 60,
         tooltip = "Generate surgical random EQ with sharp individual band adjustments",
         notifier = function()
           randomize_eq_curve("surgical")
@@ -1608,7 +1608,7 @@ function create_eq_dialog()
       },
       vb:button {
         text = "Creative",
-        width = 80,
+        width = 60,
         tooltip = "Generate wild and experimental random EQ curve",
         notifier = function()
           randomize_eq_curve("creative")

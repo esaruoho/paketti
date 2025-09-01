@@ -1,5 +1,3 @@
-require "process_slicer"
-
 -- Initialize the ViewBuilder and other variables
 local vb = renoise.ViewBuilder()
 local dialog = nil
