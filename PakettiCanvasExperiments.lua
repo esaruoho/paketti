@@ -1232,19 +1232,28 @@ function PakettiCanvasExperimentsCreateDialog()
           end
         end
       },
+      vb:text{text="Randomize",style="strong",font="bold",width=50},
       vb:button {
-        text = "Randomize Automation",
-        width = 150,
+        text = "Automation",
+        width = 80,
         tooltip = "Randomize current Edit A/B and write snapshot to automation",
         notifier = function()
           PakettiCanvasExperimentsRandomizeAutomation()
+        end
+      },
+      vb:button {
+        text = "by EditStep",
+        width = 80,
+        tooltip = "Randomize automation at EditStep intervals (clear all, write at steps, set to Point mode)",
+        notifier = function()
+          PakettiCanvasExperimentsRandomizeByEditStep()
         end
       },
       vb:text { text = "Automation Playmode", width = 130, font="bold",style = "strong" },
       vb:switch {
         id = "canvas_playmode_switch",
         items = {"Points","Lines","Curves"},
-        width = 300,
+        width = 150,
         value = (preferences and preferences.PakettiCanvasAutomationPlaymode and preferences.PakettiCanvasAutomationPlaymode.value) or 2,
         notifier = function(value)
           if preferences and preferences.PakettiCanvasAutomationPlaymode then
@@ -2003,6 +2012,78 @@ function RemoveParameterObservers()
   
   -- Clear the table completely
   device_parameter_observers = {}
+end
+
+-- Randomize by EditStep - writes automation per EditStep with randomized values
+function PakettiCanvasExperimentsRandomizeByEditStep()
+  trueRandomSeed()
+  
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    renoise.app():show_status("No track selected")
+    return
+  end
+  
+  if not current_device or #device_parameters == 0 then
+    renoise.app():show_status("No device parameters available")
+    return
+  end
+  
+  local edit_step = song.transport.edit_step
+  if edit_step <= 0 then
+    edit_step = 1  -- Treat EditStep 0 as 1 (every line)
+  end
+  
+  local pattern = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local pattern_track = song:pattern(pattern):track(track_index)
+  local pattern_length = song:pattern(pattern).number_of_lines
+  
+  -- Clear all automation first
+  PakettiCanvasExperimentsClearAutomation()
+  
+  local written_points = 0
+  
+  -- Write randomized automation at EditStep intervals
+  for i, param_info in ipairs(device_parameters) do
+    local parameter = param_info.parameter
+    if parameter then
+      local automation = pattern_track:find_automation(parameter)
+      if not automation then
+        automation = pattern_track:create_automation(parameter)
+      end
+      
+      if automation then
+        automation:clear()
+        
+        -- Write points at EditStep intervals
+        for line = 1, pattern_length, edit_step do
+          if line <= pattern_length then
+            -- Generate random value within parameter range
+            local value_range = param_info.value_max - param_info.value_min
+            local random_value = param_info.value_min + (math.random() * value_range)
+            
+            -- Convert to normalized value for automation
+            local normalized_value = (random_value - param_info.value_min) / (param_info.value_max - param_info.value_min)
+            normalized_value = math.max(0.0, math.min(1.0, normalized_value))
+            
+            automation:add_point_at(line, normalized_value)
+            written_points = written_points + 1
+          end
+        end
+        
+        -- Set this envelope to POINTS mode after creating content
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+      end
+    end
+  end
+  
+  -- Update canvas to show randomized values
+  if canvas_experiments_canvas then
+    canvas_experiments_canvas:update()
+  end
+  
+  renoise.app():show_status(string.format("Canvas: randomized per EditStep %d: %d automation points written", edit_step, written_points))
 end
 
 -- Randomize Automation: Randomizes current Edit A/B and writes snapshot to automation

@@ -224,7 +224,7 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load .MOD as S
       paketti_toggle_signed_unsigned() end end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Save:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Polyend:Export .PTI Instrument",invoke=pti_savesample}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Save:Save Unused Samples (.WAV&.XRNI)...",invoke=function() saveUnusedSamples() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Save:Save Unused Instruments (.XRNI)...",invoke=function() saveUnusedInstruments() end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Save:Save All Samples to Folder...",invoke=function() saveAllSamplesToFolder() end}

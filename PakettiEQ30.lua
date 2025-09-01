@@ -565,6 +565,81 @@ function update_global_bandwidth(bandwidth_value)
   end
 end
 
+-- Randomize by EditStep - writes automation per EditStep with randomized values
+function PakettiEQ30RandomizeByEditStep()
+  trueRandomSeed()
+  
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    renoise.app():show_status("No track selected")
+    return
+  end
+  
+  local edit_step = song.transport.edit_step
+  if edit_step <= 0 then
+    edit_step = 1  -- Treat EditStep 0 as 1 (every line)
+  end
+  
+  local pattern = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local pattern_track = song:pattern(pattern):track(track_index)
+  local pattern_length = song:pattern(pattern).number_of_lines
+  
+  -- Clear all automation first
+  clear_all_eq30_automation()
+  
+  local written_points = 0
+  
+  -- Write randomized automation at EditStep intervals
+  for i = 1, #eq30_frequencies do
+    local parameter = get_parameter_for_band(i)
+    if parameter then
+      local automation = pattern_track:find_automation(parameter)
+      if not automation then
+        automation = pattern_track:create_automation(parameter)
+      end
+      
+      if automation then
+        automation:clear()
+        
+        -- Write points at EditStep intervals
+        for line = 1, pattern_length, edit_step do
+          if line <= pattern_length then
+            -- Generate random gain value (-12 to +12 dB for musical range)
+            local random_gain = (math.random() - 0.5) * 24
+            random_gain = math.max(-20, math.min(20, random_gain))
+            
+            -- Convert to normalized value for automation
+            local normalized_value = (random_gain - parameter.value_min) / (parameter.value_max - parameter.value_min)
+            normalized_value = math.max(0.0, math.min(1.0, normalized_value))
+            
+            automation:add_point_at(line, normalized_value)
+            written_points = written_points + 1
+            
+            -- Update canvas display for the current random value
+            eq_gains[i] = random_gain
+          end
+        end
+        
+        -- Set this envelope to POINTS mode after creating content
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+      end
+    end
+  end
+  
+  -- Update canvas to show randomized values
+  if eq_canvas then
+    eq_canvas:update()
+  end
+  
+  -- Apply random values to EQ devices as well
+  for i = 1, #eq30_frequencies do
+    update_eq_device_parameter(i, eq_gains[i])
+  end
+  
+  renoise.app():show_status(string.format("EQ30 randomized per EditStep %d: %d automation points written", edit_step, written_points))
+end
+
 -- Randomize EQ curve with different patterns
 function randomize_eq_curve(pattern_type)
   trueRandomSeed()
@@ -1537,6 +1612,14 @@ function create_eq_dialog()
         tooltip = "Generate wild and experimental random EQ curve",
         notifier = function()
           randomize_eq_curve("creative")
+        end
+      },
+      vb:button {
+        text = "Randomize by EditStep",
+        width = 180,
+        tooltip = "Randomize automation at EditStep intervals (clear all, write at steps, set to Point mode)",
+        notifier = function()
+          PakettiEQ30RandomizeByEditStep()
         end
       },
       vb:text { text = "Automation Playmode", width = 130, style = "strong",font="bold" },
