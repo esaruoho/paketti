@@ -1,5 +1,3 @@
--- Load the fuzzy search utility
-require("PakettiFuzzySearchUtil")
 
 -- Define the mapping between menu names and their corresponding identifiers
 local menu_to_identifier = {
