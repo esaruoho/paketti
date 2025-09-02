@@ -48,7 +48,7 @@ TODO how to ...
 
 ]]
 
-require (_clibroot.."cString")
+require("cString")
 
 class 'cSandbox'
 

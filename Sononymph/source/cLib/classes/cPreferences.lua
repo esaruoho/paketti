@@ -18,7 +18,7 @@ Note: cPreferences stores it's own settings in the root of the this folder
 
 --=================================================================================================
 
-require (_clibroot.."cFilesystem")
+require("cFilesystem")
 
 class 'cPreferences'
 

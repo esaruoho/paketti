@@ -15,8 +15,8 @@ therefore, it is recommended that any cLib-powered tool includes this file
 
 --=================================================================================================
 
-require (_clibroot.."cValue")
-require (_clibroot.."cNumber")
+require("cValue")
+require("cNumber")
 
 ---------------------------------------------------------------------------------------------------
 

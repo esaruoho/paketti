@@ -78,12 +78,8 @@ function pakettiActionSelectorDialog()
     end
   end
 
-  -- First, require all files to ensure functions are in scope
-  for _, filename in ipairs(paketti_files) do
-    require(filename)
-  end
-  
-  -- Then scan for menu entries and keybindings
+  -- All files are already loaded by main.lua via timed_require()
+  -- Just scan for menu entries and keybindings
   for _, filename in ipairs(paketti_files) do
     ActionSelectorScanFile(filename)
   end

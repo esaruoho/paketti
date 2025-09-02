@@ -1,873 +1,885 @@
 SHORTCUT_CACHE_VERSION=1.0
-Paketti:Impulse Tracker ALT-G Shrink Selection Replicate|||Shift + CMD + G
-Paketti:Select Specific Track 07|||Shift + 7
-Paketti:Impulse Tracker ALT-S Set Selection to Instrument|||CMD + S
-Paketti:Select Specific Track 08|||Shift + 8
-Paketti:Impulse Tracker Home *2 behaviour|||OPT + Up
-Paketti:Select Specific Track 09|||Shift + 9
-Paketti:Impulse Tracker End *2 behaviour|||OPT + Down
-Paketti:Select Specific Track 10|||Shift + 0
-Paste Selection|||CMD + V
-Paketti:Impulse Tracker Alt-Right Move Forwards One Channel (Wrap)|||OPT + Right
-Split Pattern at Current Line|||OPT + CMD + K
-Duplicate Selection|||CMD + D
-Paketti:Copy Above Effect Column|||CMD + \
-Join Pattern with Next|||OPT + CMD + J
-Paketti:Copy Above Effect Column + Increase Value|||OPT + \
-Insert Group from Selection|||OPT + CMD + G
-Paketti:Copy Above Effect Column + Decrease Value|||Shift + OPT + \
-Paketti:Player Pro Transpose Selection or Note Column -1|||CMD + A
-Paketti:Player Pro Transpose Selection or Note Column +12|||Shift + CMD + Q
-Paketti:Player Pro Transpose Selection or Note Column -12|||Shift + CMD + A
-∿ Paketti Switch between Note/FX columns|||CTRL + Tab
-Paketti:Write 0Sxx Command Random Slice/Offset|||Shift + CTRL + X
-∿ Paketti Enhanced Phrase Generator|||OPT + CTRL + P
-Move Cursor Left|||Left
-Paketti:Rename Tracks By Played Samples|||OPT + CMD + CTRL + R
-∿ Show/Hide Track DSP and FX Chain Device External Editors|||Shift + CMD + H
-∿ Move Slice Start Left by 10|||CTRL + Left
-∿ Transpose Octave Up Note Column (Selection/Note Column)|||Shift + OPT + CMD + Q
-Move Cursor to Sample End|||End
-∿ Transpose Octave Down Note Column (Selection/Note Column)|||Shift + OPT + CMD + A
-Paketti:Pick a Random Theme (All)|||Shift + OPT + CTRL + ,
-∿ Transpose +1 Note Column (Selection/Note Column)|||OPT + CMD + Q
-Paketti:Pick a Random Theme (Favorites)|||Shift + CTRL + ,
-Zoom Out Vertical|||Prior
-∿ Transpose -1 Note Column (Selection/Note Column)|||OPT + CMD + A
-∿ Move Slice End Left by 100|||Shift + CMD + Left
-∿ Impulse Tracker ALT-D Double Select W/ Automation|||CMD + D
-Paketti:Paketti Automation|||OPT + T
-Select All Slice Markers|||Shift + CMD + A
-Toggle Snapping|||CMD + 0
-Paketti:LFO Write to Selected Automation Parameter|||Shift + OPT + §
-Toggle Draw Mode|||OPT + CMD + D
-Paketti:LFO Write to Effect Column 1 (0Dxx)|||Shift + CTRL + 2
-Play/Stop Selection|||Space
-Paketti:LFO Write to Phrase LPB (1-64)|||OPT + §
-2nd Clear Sample|||CMD + Delete
-2nd Delete|||Delete
-Trim|||CMD + T
-∿ Toggle All Columns|||Shift + CTRL + Q
-∿ LFOEnvelopePan (Preset++)|||Shift + P
-∿ Shrink to Triplets|||CTRL + T
-Fade In Log|||Shift + OPT + CMD + I
-∿ Randomize Selected Device|||OPT + R
-Fade Out Log|||Shift + OPT + CMD + O
-Paketti:BPM Decrease (-0.1)|||Shift + RBracket
-Adjust Volume|||F10
-Paste (2nd)|||Shift + F5
-Paketti:BPM Decrease (-0.5)|||Shift + CTRL + \
-Paste Continuously|||CMD + V
-∿ Impulse Tracker ALT-F Expand Selection|||CMD + F
-Set Loop Start/Range|||Shift + CMD + L
-Paketti:BPM Decrease (-1)|||\
-Shrink|||Shift + CMD + F8
-∿ Impulse Tracker ALT-G Shrink Selection|||CMD + G
-Paketti:BPM Increase (+0.1)|||CMD + RBracket
-Expand (2nd)|||Shift + F9
-∿ Impulse Tracker ALT-F Expand Selection Replicate|||Shift + CMD + F
-Paketti:BPM Increase (+0.5)|||CTRL + \
-∿ Impulse Tracker ALT-G Shrink Selection Replicate|||Shift + CMD + G
-Toggle Play Selection Enabled|||CMD + Q
-Quantize Notes|||OPT + Q
-∿ Impulse Tracker ALT-S Set Selection to Instrument|||CMD + S
-Paketti:BPM Increase (+1)|||Shift + \
-Move Right|||Right
-Move Up|||Up
-∿ Delay Column Decrease (-1)|||CTRL + <
-Select All|||CMD + A
-Move One Page Down|||Next
-Jump to First Device|||Home
-∿ Impulse Tracker Home *2 behaviour|||OPT + Up
-Clear and Copy|||Shift + CMD + F3
-∿ KapsLock CapsLock Caps Lock Note Off|||CapsLock
-∿ Impulse Tracker End *2 behaviour|||OPT + Down
-Paketti:Toggle Mute Tracks|||CMD + F9
-∿ Rotate Sample Buffer Upwards|||Shift + CTRL + Up
-∿ Clever Note Off Right Before|||OPT + CTRL + <
-∿ Paketti eSpeak Text-to-Speech Dialog...|||CTRL + E
-∿ Impulse Tracker Alt-Right Move Forwards One Channel (Wrap)|||OPT + Right
-∿ Clever Note Off Half Before|||CMD + <
-Paketti:Toggle Solo Tracks|||CMD + F10
-∿ Impulse Tracker ALT-Y Swap Block|||CMD + Y
-Paketti:Slide Selected Column Content Up|||CMD + CTRL + Up
-Select First Track|||Home
-Paketti:Slide Selected Track Content Down|||OPT + CMD + Down
-Select Previous Sequence|||Up
-Select Next Sequence|||Down
-∿ Impulse Tracker CTRL-O Pattern to Sample|||CTRL + O
-Select Next Sequence Page|||Next
-∿ Set Pattern Length to 008 (008)|||CTRL + 2
-Select Last Sequence|||CMD + End
-Paketti:Hide Track DSP Device External Editors for All Tracks|||CMD + H
-∿ Player Pro Intelligent Dialog...|||Shift + Return
-∿ Impulse Tracker ALT-X Effect Column (Interpolate&Clear)|||OPT + X
-Paketti:Randomize Automation Envelope|||Shift + OPT + R
-∿ Set Pattern Length to 032 (020)|||CTRL + 4
-Paketti:Randomize Automation Envelopes for Device|||OPT + CMD + R
-Paketti:Switch to Automation Dynamic|||A
-∿ Set Pattern Length to 064 (040)|||CTRL + 5
-∿ Player Pro Transpose Selection or Note Column +1|||CMD + Q
-Paketti:Show Automation Value Dialog...|||Shift + OPT + A
-∿ Player Pro Transpose Selection or Note Column -1|||CMD + A
-∿ Set Pattern Length to 128 (080)|||CTRL + 6
-∿ Player Pro Transpose Selection or Note Column +12|||Shift + CMD + Q
-Paketti:Flood Fill Automation Selection|||OPT + Y
-∿ Player Pro Transpose Selection or Note Column -12|||Shift + CMD + A
-Loop Sequence|||CMD + L
-∿ Open User Preferences Dialog...|||CTRL + U
-Clear|||Shift + Delete
-∿ OctaMED Note Spread Increment|||Shift + CMD + CTRL + Right
-∿ OctaMED Note Spread Decrement|||Shift + CMD + CTRL + Left
-∿ Duplicate Instrument and Select New Instrument|||Shift + CMD + D
-Play/Stop Phrase|||Shift + CMD + Return
-Mark Whole Phrase|||CMD + L
-∿ Sequence Selection (Next)|||CMD + CTRL + 2
-∿ Sequence Selection (Previous)|||CMD + CTRL + 1
-Paketti:Expose and Select Next Column|||Shift + CMD + Right
-Transpose One Octave Up (2nd)|||Shift + F12
-Transpose One Octave Down (2nd)|||Shift + F11
-∿ Wipe&Slice&Write to Pattern|||Shift + OPT + 0
-∿ Switch Middle Frames|||Shift + OPT + Z
-∿ F4 Shift Midi Immediately|||Shift + F4
-Mute/Unmute Selected Column|||Shift + CMD + \
-∿ Paketti Capture Last Take...|||K
-Paketti:Insert Inverter Device to TrackDSP/SampleFX|||OPT + I
-Open Script Editor|||Shift + CMD + E
-∿ Polyend Buddy (PTI File Browser)|||CTRL + P
-Move to First|||CMD + Home
-Move to Last|||CMD + End
-Move Selection to Previous|||Left
-∿ Load Device Chain EQ10 Macro Experimental|||Shift + Q
-∿ Load U-He Colour Copy|||OPT + C
-Move Selection to Last|||End
-Insert New Instrument|||HelpKey(Insert)
-Insert New Instrument (2nd)|||CMD + Back
-Delete Instrument|||Back
-Delete Instrument (2nd)|||Delete
-Move Instrument Down|||OPT + CMD + Down
-Copy Instrument|||CMD + C
-∿ Load D16 Syntorus 2|||Shift + A
-Copy and Clear Instrument|||CMD + X
-∿ Pattern Effect Command CheatSheet|||F1
-Clear Instrument (2nd)|||Shift + Back
-∿ Load D16 Toraverb 2|||Shift + T
-Select Next by Note|||Right
-∿ Load Device (AudioUnit) Transient Shaper|||Shift + E
-∿ Load D16 Repeater|||Shift + CTRL + D
-Delete Selected|||CMD + Back
-∿ Pick a Random Theme (All)|||Shift + OPT + CTRL + ,
-Drum Kit Map|||CMD + D
-Distributed Range Map|||CMD + E
-∿ Load Device (AudioUnit) Simplon|||OPT + S
-Select First Device|||Home
-∿ Load George Yohng's W1 2|||Shift + W
-Select Next Chain|||Tab
-Select Previous Chain|||Shift + Tab
-∿ Randomize Automation Envelope|||Shift + OPT + R
-Paketti:Hide Current and Select Previous Column|||Shift + CMD + Left
-∿ Load OhmForce Hematohm|||Shift + H
-∿ Randomize Automation Envelopes for Device|||OPT + CMD + R
-Duplicate Chain|||CMD + D
-∿ Switch to Automation Dynamic|||A
-Select Last Set|||End
-∿ Load Plugin Surge XT (AU) + surgemacros|||Shift + CTRL + S
-Select Previous Set|||Shift + Tab
-Insert New Set|||CMD + T
-∿ Load FabFilter Pro-Q 3|||Shift + Z
-∿ Wipe&Slice (064)|||OPT + 6
-Move to Previous Line|||Left
-∿ Load TAL-Reverb 4|||Shift + R
-∿ Wipe&Slice (128)|||OPT + 7
-∿ Wipe&Slice (256)|||OPT + 9
-Edit Point Time|||CMD + T
-∿ Wipe Slices|||OPT + 0
-Draw Tool|||CMD + B
-Shift Values Up|||Up
-∿ Paketti Save Selected Sample .WAV|||CMD + W
-∿ Flood Fill Automation Selection|||OPT + Y
-Shift Values Right|||Tab
-∿ Double LFO Envelope Resolution|||CTRL + H
-Paketti:Sequence Selection (Next)|||CMD + CTRL + 2
-Paketti:Sequence Selection (Previous)|||CMD + CTRL + 1
-∿ Halve LFO Envelope Resolution|||Shift + CTRL + H
-Set Focus to List|||Tab
-Select Previous Device|||Left
-Select Next Device|||Right
-Maximize Device|||Up
-Minimize Device|||Down
-∿ Quick LFO Custom Editor|||Shift + CTRL + L
-∿ Duplicate and Reverse Instrument|||Shift + CMD + R
-∿ Paketti Save Selected Sample Range .WAV|||Shift + CMD + W
-Show/Focus Track Editors|||OPT + K
-Paste Device|||CMD + V
-∿ Randomize Selected Instrument Modulation Filter Type|||Shift + OPT + M
-Commit Changes|||CMD + Return
-Show/Hide Disk Browser|||OPT + B
-∿ Pakettify Current Instrument|||OPT + P
-∿ Smart Beatsync from Selection|||Shift + CMD + S
-Show/Hide Instrument Properties|||Shift + OPT + N
-∿ Load Random Samples (32) from Path|||Shift + CMD + CTRL + P
-∿ Load Random Samples (12) into Single Instrument|||Shift + OPT + 1
-∿ Paketti MIDI Mappings (Dynamic)...|||Shift + CMD + M
-∿ User-Defined Sample Folders...|||Shift + CMD + U
-Duplicate|||CMD + D
-Select Previous File|||Up
-∿ Show BPM Calculation Dialog...|||CTRL + B
-∿ Sample Pitch Modifier Dialog...|||Shift + OPT + P
-Paketti:Open VolDelayPan Slider Dialog...|||CTRL + V
-Paketti:Delay Column Increase (+1)|||Shift + CTRL + <
-Paketti:Load FabFilter One|||OPT + F
-Paketti:Delay Column Decrease (-1)|||CTRL + <
-Open MIDI Mapping Dialog...|||CMD + M
-Paketti:KapsLock CapsLock Caps Lock Note Off|||CapsLock
-Shift Values Left|||Shift + Tab
-Shift Values Down|||Down
-Paketti:Clever Note Off Right After|||OPT + <
-Move to Next Line|||Right
-Paste All Devices|||CMD + V
-∿ Show Paketti Single Cycle Waveform Writer...|||Shift + OPT + C
-Copy All Devices|||CMD + C
-Cut All Devices|||CMD + X
-Paketti:Clever Note Off Half Before|||CMD + <
-Delete Set|||Shift + CMD + T
-Select Next Set|||Tab
-Select First Set|||Home
-Delete Chain|||Shift + CMD + T
-∿ Clean Render&Save Selected Track/Group (.WAV)|||Shift + CTRL + R
-∿ Load Renoise Chorus 2 as Vowel Filter|||OPT + CTRL + V
-Insert New Chain|||CMD + T
-Open Render Dialog...|||Shift + OPT + CMD + R
-Move Device Left|||OPT + CMD + Left
-Select Last Device|||End
-∿ Load & Show Paketti EQ30|||Shift + OPT + Q
-Layered Map|||CMD + L
-Delete Selected (2nd)|||Delete
-Select Next by Velocity|||Down
-∿ Load Renoise Convolver|||Shift + C
-Select Previous by Velocity|||Up
-Select Previous by Note|||Left
-Toggle Loop Pattern|||CMD + F13
-Paketti:Paketti Pattern Doubler|||CMD + §
-Clear Instrument|||Shift + Delete
-Paste Instrument|||CMD + V
-Paketti:Paketti Pattern Halver|||Shift + CMD + §
-Toggle Block Playing|||NumpadEnter
-Delete the Selected File or Dir|||CMD + Back
-Panic|||CTRL + Escape
-Paketti:Randomize Effect Column Parameters|||Shift + OPT + X
-Paketti:Cycle Chord Inversion Up|||CTRL + Up
-Play Pattern|||F6
-Increase Pattern Number|||Right
-Jump to Next Pos|||Down
-Paketti:Flood Fill Note and Instrument every 7 step|||Shift + OPT + 7
-Move Selection to First|||Home
-Move Selection to Next|||Right
-Play Song from Current Line|||Shift + RControl
-∿ Set Phrase Length to 512 (200)|||CTRL + 8
-∿ Load Renoise Gainer|||Shift + G
-Pause/Continue|||RMeta
-Paketti:Toggle Note Off in All Visible Note Columns|||Shift + CapsLock
-Paketti:Set Pattern Length to 128 (080)|||CTRL + 6
-∿ Set Phrase Length to 256 (100)|||CTRL + 7
-Paketti:Toggle Note Off on All Tracks on Current Row|||CTRL + CapsLock
-Schedule Edited Sequence for Playback|||CMD + Space
-∿ Load Renoise Maximizer|||Shift + X
-Paketti:Replicate Selected Track Above Current Row |||CTRL + Down
-Play from Edited Sequence|||Shift + CMD + Space
-∿ Load Renoise Maximizer to Master Track|||Shift + CMD + X
-Paketti:Replicate All Above Current Row |||Shift + CTRL + Down
-Delete|||Delete
-Insert|||HelpKey(Insert)
-Record Pattern|||Shift + RShift
-∿ Load Renoise mpReverb 2|||Shift + N
-Paketti:Squeeze Note Columns (Whole Song)|||Shift + CTRL + Z
-Stop Song|||RAlt
-∿ Set Phrase Length to 032 (020)|||CTRL + 4
-∿ Paketti Pattern Doubler|||CMD + §
-∿ Set Phrase Length to 016 (010)|||CTRL + 3
-∿ Set Phrase Length to 008 (008)|||CTRL + 2
-Select Previous LoopBlock|||CMD + NumpadMinus
-∿ Set Phrase Length to 004 (004)|||CTRL + 1
-∿ Impulse Tracker ALT-D Double Select|||CMD + D
-Select Next LoopBlock|||CMD + NumpadPlus
-Delete Phrase|||Shift + CMD + Delete
-Randomize (2nd)|||Shift + F7
-Halve LoopBlock Size|||CMD + NumpadDivide
-Shrink (2nd)|||Shift + F8
-Flip (2nd)|||Shift + F6
-Double LoopBlock Size|||CMD + NumpadMultiply
-Copy (2nd)|||CMD + C
-Copy and Clear (2nd)|||CMD + X
-Zoom In Vertical|||Next
-Jump to Last Row|||End
-∿ Load Renoise #Line Input|||Shift + I
-Jump to First Row|||Home
-Duplicate Track|||CMD + D
-Create Alias|||CMD + P
-∿ Paketti Unison Generator|||OPT + U
-Clear (2nd)|||Delete
-Select First Sequence|||CMD + Home
-∿ Load Renoise #Send|||Shift + S
-Select Previous Sequence Page|||Prior
-∿ Toggle Paketti Dialog of Dialogs...|||OPT + F1
-Note Off Row|||Shift + CMD + CapsLock
-Select Last Track|||End
-Select Next Track (2nd)|||Tab
-Select Previous Track (2nd)|||Shift + Tab
-Duplicate Whole Song|||CMD + 0
-Smart Note Off Row|||Shift + OPT + <
-∿ Load Renoise *Instr. Automation|||Shift + CTRL + A
-Duplicate 9 Pattern Block|||CMD + 9
-Loop Selection|||CMD + L
-∿ Load Renoise *Instr. Macros|||Shift + M
-Select Previous Instrument|||Up
-∿ Humanize Selection...|||OPT + H
-∿ LFO Write to Phrase LPB (1-64)|||OPT + §
-∿ Cycle Paketti Dynamic View 01|||F2
-Copy Selection|||CMD + C
-∿ Cycle Paketti Dynamic View 02|||F3
-∿ Load Renoise *LFO|||Shift + L
-∿ Cycle Paketti Dynamic View 03|||F4
-Cut Selection|||CMD + X
-∿ Cycle Paketti Dynamic View 04|||F11
-∿ Selected Track to Mono and Hard Left|||Shift + OPT + CMD + Left
-Jump to End|||End
-∿ Open VolDelayPan Slider Dialog...|||CTRL + V
-∿ Selected Track to Mono and Hard Right|||Shift + OPT + CMD + Right
-Paketti:Delay Column Decrease Selection/Row (-1)|||CTRL + Left
-Jump to Start|||Home
-Jump to Next Section|||OPT + CMD + Down
-Paketti:Delay Column Increase Selection/Row (+10)|||Shift + CTRL + Right
-∿ Set Phrase Length to 064 (040)|||CTRL + 5
-Jump to Previous Pos|||Up
-∿ Paketti PitchBend Drumkit Sample Loader|||Shift + CMD + O
-∿ Toggle Note Off on All Tracks on Current Row|||CTRL + CapsLock
-∿ Set Phrase Length to 128 (080)|||CTRL + 6
-∿ Paketti PitchBend Drumkit Sample Loader (Random)|||OPT + CMD + O
-∿ Hipass (Preset++)|||Shift + OPT + H
-∿ Impulse Tracker F12 Master|||F12
-∿ Crossfade Loop|||Shift + CMD + C
-Paketti:Match Current Sub Column Selection|||Shift + CMD + E
-∿ Create New Instrument & Loop from Selection|||OPT + CMD + Right
-∿ Parama Param Increase|||CTRL + Right
-∿ Paketti PitchBend Multiple Sample Loader|||CMD + O
-∿ Parama Param Previous Parameter|||CTRL + Up
-∿ Parama Param Next Parameter|||CTRL + Down
-∿ Paketti PitchBend Multiple Sample Loader (Normalize)|||Shift + OPT + O
-∿ Squeeze Note Columns (Whole Song)|||Shift + CTRL + Z
-∿ BPM Increase (+0.5)|||CTRL + \
-Paketti:Nudge and Paste Selection|||Shift + OPT + CMD + Down
-∿ Add Gainer A to Selected Track|||OPT + O
-Paketti:Normalize Selected Sample or Slice|||CMD + N
-Paketti:Fill Effect Column with 0G01+0D00|||Shift + CMD + Down
-∿ Add Gainer B to Selected Track|||OPT + L
-∿ Move Selected DSP to Previous Track|||Shift + CTRL + Left
-Paketti:Fill Effect Column with 0G01+0U00|||Shift + CMD + Up
-∿ Move DSPs to Next Track|||CMD + CTRL + Right
-∿ Snapshot Selected Device to Automation|||Shift + OPT + S
-Paketti:Note-Off Paste (from Selection)|||Shift + OPT + CTRL + P
-∿ Delete Current Sample & Select Next|||CTRL + /
-Paste|||CMD + P
-Paketti:Generate Delay Value on Note Columns|||OPT + G
-Expand|||Shift + CMD + F9
-Init Device Settings|||Shift + CMD + Back
-Paketti:Toggle All Columns|||Shift + CTRL + Q
-Move Device Down|||OPT + CMD + Down
-Insert Device|||CMD + V
-Paketti:Toggle All Columns (No Sample Effects)|||Shift + CTRL + W
-Copy Device|||CMD + C
-Cut Device|||CMD + X
-Select Next File|||Down
-Delete Device (2nd)|||Delete
-Collapse Folder|||Left
-Paketti:Show Only Panning Columns|||Shift + CTRL + 5
-Expand Folder|||Right
-Delete Device|||Back
-Select First Entry|||OPT + Up
-∿ Wipe&Slice (004)|||OPT + 2
-Select Last Entry|||OPT + Down
-Paketti:Selection in Pattern to Group|||Shift + CTRL + G
-Select on Previous Page|||Prior
-∿ Wipe&Slice (008)|||OPT + 3
-Paketti:Reverse Notes in Selection|||CTRL + R
-Select on Next Page|||Next
-Select Previous Track|||Left
-Paketti:Flood Fill with Selection|||CTRL + F
-Select Next Track|||Right
-Toggle Dir/File List|||Tab
-Paketti:Rotate Track Content to SelectionStart First|||Shift + OPT + CMD + Up
-∿ Wipe&Slice (032)|||OPT + 5
-Toggle Fullscreen/Windowed Mode|||OPT + Return
-Paketti:Clean Render Selected Track/Group (WAV Only)|||CMD + R
-Jump to Last Device|||End
-Paketti:Toggle Signed/Unsigned|||OPT + CMD + A
-Move One Page Up|||Prior
-Paketti:Protracker MOD Modulation...|||OPT + M
-Move Down|||Down
-Paketti:Rotate Sample Buffer Upwards|||Shift + CTRL + Up
-Move Left|||Left
-Paketti:Rotate Sample Buffer Downwards|||Shift + CTRL + Down
-∿ Move Slice End Right by 100|||Shift + CMD + Right
-Paketti:Flip Sample Buffer Selection Back|||OPT + Left
-∿ Move Slice Start Right by 100|||Shift + CTRL + Right
-Paketti:Flip Sample Buffer Selection Forward|||OPT + Right
-∿ Move Slice Start Left by 100|||Shift + CTRL + Left
-∿ Move Slice End Right by 10|||CMD + Right
-Paketti:Rotate Sample Buffer Right 1000|||CMD + CTRL + Left
-∿ Move Slice End Left by 10|||CMD + Left
-∿ Move Slice Start Right by 10|||CTRL + Right
-Paketti:Rotate Sample Buffer Left 1000|||CMD + CTRL + Right
-∿ Impulse Tracker Alt-Left Move Backwards One Channel (Wrap)|||OPT + Left
-Delete Pattern|||CMD + Back
-Paketti:Select Loop Range|||Shift + OPT + CMD + S
-∿ Toggle Loop Range (Selection)|||CMD + L
-∿ Fill Effect Column with 0G01+0D00|||Shift + CMD + Down
-Paketti:Toggle Loop Range (Selection)|||CMD + L
-∿ Rotate Sample Buffer Left 1000|||CMD + CTRL + Right
-∿ Rotate Sample Buffer Right 1000|||CMD + CTRL + Left
-Paketti:Unmark / Clear Selection|||CMD + U
-∿ Flip Sample Buffer Selection Forward|||OPT + Right
-∿ Flip Sample Buffer Selection Back|||OPT + Left
-Paketti:Move Slice Start Left by 10|||CTRL + Left
-∿ Rotate Sample Buffer Downwards|||Shift + CTRL + Down
-Paketti:Move Slice Start Right by 10|||CTRL + Right
-Store Favorite 3|||Shift + CMD + 3
-∿ Recursive Remove DC Offset Random Times|||Shift + OPT + D
-Paketti:Move Slice End Left by 10|||CMD + Left
-Store Favorite 4|||Shift + CMD + 4
-∿ Recursive Remove DC Offset|||CMD + D
-Paketti:Move Slice End Right by 10|||CMD + Right
-∿ Protracker MOD Modulation...|||OPT + M
-Paketti:Move Slice Start Left by 100|||Shift + CTRL + Left
-∿ Toggle Signed/Unsigned|||OPT + CMD + A
-Paketti:Move Slice Start Right by 100|||Shift + CTRL + Right
-Move to Next Column|||Right
-Paketti:Move Slice End Left by 100|||Shift + CMD + Left
-Move to Next Row|||Down
-Paketti:Move Slice End Right by 100|||Shift + CMD + Right
-Copy Into New Instrument|||Shift + OPT + CMD + C
-Paketti:Move DSPs to Previous Track|||CMD + CTRL + Left
-∿ Replicate Selected Track Above Current Row |||CTRL + Down
-Paketti:Move DSPs to Next Track|||CMD + CTRL + Right
-Clear Sample|||CMD + Back
-Paketti:Move Selected DSP to Previous Track|||Shift + CTRL + Left
-Set Snap Mode9|||CMD + 9
-Paketti:Move Selected DSP to Next Track|||Shift + CTRL + Right
-Capture Instrument|||Shift + CMD + Return
-Paketti:Create Group and Move DSPs|||Shift + CTRL + G
-Select Next Sample|||Down
-Paketti:Duplicate Track and Instrument|||CMD + D
-Jump 16 Rows Up|||Prior
-Paketti:Hipass (Preset++)|||Shift + OPT + H
-Select Previous Sample|||Up
-Paketti:Impulse Tracker ALT-D Double Select|||CMD + D
-Zoom Selection|||OPT + CMD + S
-Paketti:Set Phrase Length to 004 (004)|||CTRL + 1
-Jump to Row 0|||F9
-Paketti:Set Phrase Length to 008 (008)|||CTRL + 2
-Jump to Row 16|||F10
-Paketti:Set Phrase Length to 016 (010)|||CTRL + 3
-Move Cursor to Sample Start|||Home
-Paketti:Set Phrase Length to 032 (020)|||CTRL + 4
-Jump to Next Column|||Tab
-Paketti:Quick LFO Custom Editor|||Shift + CTRL + L
-Move Cursor Right|||Right
-Paketti:Set Phrase Length to 128 (080)|||CTRL + 6
-Increase Octave (2nd)|||Shift + <
-Paketti:Set Phrase Length to 256 (100)|||CTRL + 7
-∿ Rotate Track Content to SelectionStart First|||Shift + OPT + CMD + Up
-Paketti:Set Phrase Length to 512 (200)|||CTRL + 8
-Jump to First Track|||Shift + CMD + Home
-∿ Previous Wavetable Cycle|||CTRL + W
-Clear Current Note or Effect|||Delete
-∿ Selection in Pattern to Group|||Shift + CTRL + G
-∿ Show Only Effect Columns|||Shift + CTRL + 6
-∿ Show Only Panning Columns|||Shift + CTRL + 5
-Paketti:Selected Track to Mono and Hard Left|||Shift + OPT + CMD + Left
-∿ Show Only Volume Columns|||Shift + CTRL + 4
-∿ Toggle All Columns (No Sample Effects)|||Shift + CTRL + W
-Insert New Row|||Shift + §
-∿ Generate Delay Value on Note Columns|||OPT + G
-Paketti:Selected Track to Mono and Hard Right|||Shift + OPT + CMD + Right
-Delete Current Row|||Shift + Back
-∿ Note-Off Paste (from Selection)|||Shift + OPT + CTRL + P
-Mute Track 3|||CMD + F3
-Insert New Row in Column|||§
-Delete Current Row in Column|||Back
-∿ Select Loop Range|||Shift + OPT + CMD + S
-∿ Nudge and Paste Selection|||Shift + OPT + CMD + Down
-∿ Duplicate Selection with Padding&Move Cursor 1|||Shift + OPT + D
-∿ Toggle Note Off in Selected Tracks|||OPT + CapsLock
-∿ Match Current Sub Column Selection|||Shift + CMD + E
-Paketti:Open User Preferences Dialog...|||CTRL + U
-∿ Expose and Select Next Column|||Shift + CMD + Right
-∿ Delay Column Decrease Selection/Row (-10)|||Shift + CTRL + Left
-∿ Delay Column Increase Selection/Row (+10)|||Shift + CTRL + Right
-Collapse/Expand Group|||Shift + CMD + J
-∿ Delay Column Decrease Selection/Row (-1)|||CTRL + Left
-Paketti:Duplicate and Reverse Instrument|||Shift + CMD + R
-∿ Replicate All Above Current Row |||Shift + CTRL + Down
-Play Current Line|||4
-Increase EditStep|||CMD + Equals
-Cut|||CMD + X
-Decrease Pattern Number|||Left
-Double EditStep|||OPT + Equals
-∿ Toggle Note Off in All Visible Note Columns|||Shift + CapsLock
-Halve EditStep|||OPT + Minus
-∿ Unmark / Clear Selection|||CMD + U
-Set EditStep To 0|||CMD + 0
-Randomize|||Shift + CMD + F7
-Set EditStep To 1|||CMD + 1
-Insert Pattern (2nd)|||Shift + CMD + Back
-Set EditStep To 2|||CMD + 2
-∿ Flood Fill Note and Instrument every 5 step|||Shift + OPT + 5
-Set EditStep To 3|||CMD + 3
-∿ Paketti Pattern Halver|||Shift + CMD + §
-Set EditStep To 4|||CMD + 4
-∿ Set Pattern Length to 512 (200)|||CTRL + 8
-Set EditStep To 5|||CMD + 5
-∿ Set Pattern Length to 256 (100)|||CTRL + 7
-Set EditStep To 6|||CMD + 6
-∿ Set Pattern Length to 016 (010)|||CTRL + 3
-Set EditStep To 7|||CMD + 7
-∿ Set Pattern Length to 004 (004)|||CTRL + 1
-Set EditStep To 8|||CMD + 8
-Delete Pattern (2nd)|||CMD + Delete
-Set EditStep To 9|||CMD + 9
-∿ Copy Above Effect Column|||CMD + \
-∿ Clever Note Off Right After|||OPT + <
-∿ Delay Column Increase (+1)|||Shift + CTRL + <
-∿ Copy Above Effect Column + Increase Value|||OPT + \
-∿ Impulse Tracker MixPaste|||OPT + M
-∿ Slide Selected Track Content Down|||OPT + CMD + Down
-∿ Experimental Sample FX Render|||OPT + D
-∿ Slide Selected Column Content Up|||CMD + CTRL + Up
-∿ Slide Selected Column Content Down|||CMD + CTRL + Down
-∿ Rename Tracks By Played Samples|||OPT + CMD + CTRL + R
-∿ Write 0Sxx Command Random Slice/Offset|||Shift + CTRL + X
-∿ Flood Fill Column with Row|||Shift + OPT + CTRL + Down
-∿ Reverse Selected Sample or Slice|||CMD + R
-Paketti:Paketti Overdub 12 (No Metronome/No Line Input)|||CMD + Minus
-∿ Reset Nudge Delay Output Delay to 0ms (ALL)|||CTRL + 0
-∿ Impulse Tracker ALT-L Mark Track/Mark Pattern|||CMD + L
-Set Quantization To 3|||Shift + CMD + 3
-Set Quantization To 4|||Shift + CMD + 4
-Set Quantization To 5|||Shift + CMD + 5
-∿ ChordsPlus Random Chord|||Shift + CTRL + 3
-∿ Cycle Chord Inversion Down|||Shift + CTRL + Up
-∿ Cycle Chord Inversion Up|||CTRL + Up
-Set Quantization To 8|||Shift + CMD + 8
-∿ Shift Notes Left|||OPT + CMD + Left
-Set Quantization To 9|||Shift + CMD + 9
-Begin Selection|||CMD + B
-Deselect|||CMD + U
-End Selection|||CMD + E
-∿ Toggle Audition Current Line on Pattern Row Change|||OPT + A
-∿ Paketti Stem Slicer Dialog...|||CTRL + Z
-Toggle PatternWrap|||Shift + F13
-Insert Track|||CMD + T
-Clear Muted Tracks|||OPT + CMD + F3
-Interpolate Logarithmic|||Shift + CMD + L
-Insert Group|||CMD + G
-Go to Sequence End|||CMD + End
-Delete Track|||Shift + CMD + T
-Jump One Page Down|||Next
-∿ Paketti Function Search...|||CTRL + A
-∿ Flood Fill Note and Instrument every 6 step|||Shift + OPT + 6
-Duplicate Track (incl. Patterns)|||OPT + CMD + D
-Transpose One Note Up|||CMD + Q
-∿ Flood Fill Note and Instrument every 7 step|||Shift + OPT + 7
-Paketti:Play Current Line in Phrase|||OPT + E
-Move Track Left|||OPT + CMD + Left
-Copy|||CMD + C
-Increase Quantization|||Shift + CMD + Equals
-∿ Flood Fill Note and Instrument every 9 step|||Shift + OPT + 9
-Insert Repeated Pattern (2nd)|||OPT + CMD + Back
-Insert Repeated Pattern|||OPT + CMD + HelpKey(Insert)
-Paketti:Reverse Selected Sample or Slice|||CMD + R
-∿ Paketti Groovebox 8120|||OPT + 8
-Transpose One Note Down|||Shift + CMD + F1
-Insert Pattern|||CMD + HelpKey(Insert)
-Transpose One Octave Up|||CMD + F12
-Jump One Page Up|||Prior
-Transpose One Octave Down|||Shift + CMD + A
-Go to Sequence Start|||CMD + Home
-Paketti:Flood Fill Column with Row|||Shift + OPT + CTRL + Down
-Copy and Clear|||CMD + X
-Clear Whole Row|||OPT + Delete
-Paketti:Toggle Audition Current Line on Pattern Row Change|||OPT + A
-Open Sample Record Dialog...|||Shift + F3
-Jump to Master Track|||Shift + CMD + End
-Jump to Previous Column|||Shift + Tab
-Jump 16 Rows Down|||Next
-Paketti:Set Pattern Length to 004 (004)|||CTRL + 1
-Quit|||CTRL + Q
-Move to Next Row with Note|||Shift + CMD + Next
-∿ Load Random AKWF Sample|||Shift + CMD + 1
-Paketti:Set Pattern Length to 008 (008)|||CTRL + 2
-Paketti:Paketti PitchBend Drumkit Sample Loader|||Shift + CMD + O
-∿ Load Random amount (1...12) of AKWF Samples|||Shift + OPT + 2
-Move to Previous Row with Note|||Shift + CMD + Prior
-Paketti:Set Pattern Length to 016 (010)|||CTRL + 3
-Hide All Others|||OPT + CMD + H
-Paketti:Paketti Function Search...|||CTRL + A
-Paketti:Paketti PitchBend Multiple Sample Loader|||CMD + O
-Focus Previous Window|||Shift + CMD + <
-Move to Previous Row|||Up
-Paketti:Paketti PitchBend Multiple Sample Loader (Normalize)|||Shift + OPT + O
-Move to Previous Column|||Left
-Paketti:Set Pattern Length to 064 (040)|||CTRL + 5
-Paketti:Insert New Sample Slot & Select|||CTRL + Minus
-Duplicate Instrument|||CMD + D
-Toggle Dir/File List (2nd)|||Shift + Tab
-Paketti:Show Only Volume Columns|||Shift + CTRL + 4
-Open Song...|||CTRL + L
-∿ Duplicate Track and Instrument|||CMD + D
-Focus Previous View|||Shift + OPT + Tab
-Save Song...|||CTRL + S
-Paketti:Duplicate Selection with Padding&Move Cursor 1|||Shift + OPT + D
-∿ Wipe&Slice (002)|||OPT + 1
-Paketti:Wipe&Slice (004)|||OPT + 2
-Paketti:Slide Selected Column Content Down|||CMD + CTRL + Down
-Paketti:Toggle Note Off in Selected Tracks|||OPT + CapsLock
-Paketti:Wipe&Slice (008)|||OPT + 3
-Undo|||CMD + Z
-∿ Slice Count From Selection|||Shift + OPT + E
-Paketti:Wipe&Slice (016)|||OPT + 4
-Redo|||Shift + CMD + Z
-∿ Wipe&Slice (016)|||OPT + 4
-Paketti:Wipe&Slice (032)|||OPT + 5
-∿ Impulse Tracker F5 Start Playback|||F5
-∿ Select Specific Track 09|||Shift + 9
-Paketti:Wipe&Slice (064)|||OPT + 6
-∿ Select Specific Track 01|||Shift + 1
-∿ Impulse Tracker F7 Start Playback from Cursor Row|||F7
-Paketti:Wipe&Slice (128)|||OPT + 7
-∿ Impulse Tracker F7 Start Playback from Cursor Row (2nd)|||RControl
-Paketti:Select Specific Track 02|||Shift + 2
-∿ BPM Decrease (-0.5)|||Shift + CTRL + \
-∿ Impulse Tracker F8 Stop Playback (Panic)|||F8
-∿ Copy Above Effect Column + Decrease Value|||Shift + OPT + \
-Paketti:TouchOSC Sample Recorder and Record|||Shift + CTRL + §
-∿ Insert New Sample Slot & Select|||CTRL + Minus
-∿ Show Paketti Formula Device Manual Dialog...|||Shift + OPT + F
-Paketti:Delay Column Decrease Selection/Row (-10)|||Shift + CTRL + Left
-Paketti:TouchOSC Pattern Editor|||OPT + F2
-Paketti:Transpose Octave Down Note Column (Selection/Note Column)|||Shift + OPT + CMD + A
-Paketti:Shrink to Triplets|||CTRL + T
-Paketti:Double LFO Envelope Resolution|||CTRL + H
-∿ Toggle Solo Tracks|||CMD + F10
-Select Next Instrument|||Down
-Paketti:Load Plugin Surge XT (AU) + surgemacros|||Shift + CTRL + S
-Paketti:Cycle Chord Inversion Down|||Shift + CTRL + Up
-Select Next Instrument (2nd)|||CMD + Down
-Paketti:Previous Wavetable Cycle|||CTRL + W
-∿ Load Device (AudioUnit) ValhallaFreqEcho|||Shift + F
-Select Previous Instrument Page|||Prior
-∿ LFO Write Single Parameter Write to Automation|||Shift + CTRL + 1
-Select Next Instrument Page|||Next
-Paketti:Shift Notes Left|||OPT + CMD + Left
-Select First Instrument|||Home
-Paketti:Wipe&Slice (002)|||OPT + 1
-∿ Paketti Automation|||OPT + T
-Select Last Instrument|||End
-Paketti:Impulse Tracker F5 Start Playback|||F5
-∿ Select First Instrument Box Slot|||Shift + OPT + CTRL + 1
-∿ Modify PitchStep Steps (Random)|||Shift + OPT + CMD + P
-Paketti:Randomize Selected Device|||OPT + R
-Paketti:Experimental Sample FX Render|||OPT + D
-Paketti:LFOEnvelopePan (Preset++)|||Shift + P
-∿ Reverse Notes in Selection|||CTRL + R
-∿ Modify PitchStep Steps (Hard Detune)|||Shift + OPT + CMD + CTRL + P
-∿ Show Paketti Preferences...|||Shift + CMD + ,
-∿ Flood Fill with Selection|||CTRL + F
-∿ LFO Write to Effect Column 1 (0Dxx)|||Shift + CTRL + 2
-∿ Capture Nearest Instrument and Octave (jump)|||Return
-∿ Modify PitchStep Steps (Octave Up+2, Octave Down-2)|||OPT + CMD + P
-Paketti:Impulse Tracker F7 Start Playback from Cursor Row (2nd)|||RControl
-Paketti:Polyend Buddy (PTI File Browser)|||CTRL + P
-Paketti:Add Gainer B to Selected Track|||OPT + L
-Paketti:Open External Editor for Plugin|||'
-Paketti:Paketti Steppers Dialog...|||CTRL + D
-Paketti:Add Gainer A to Selected Track|||OPT + O
-Paketti:Load Random amount (1...12) of AKWF Samples|||Shift + OPT + 2
-Select Previous Sample in Instrument|||Shift + NumpadMinus
-Paketti:Show Paketti Preferences...|||Shift + CMD + ,
-Paketti:Halve LFO Envelope Resolution|||Shift + CTRL + H
-∿ LFO Write to Selected Automation Parameter|||Shift + OPT + §
-Select Previous Instrument (2nd)|||CMD + Up
-Select Next Sample in Instrument|||Shift + NumpadPlus
-∿ Load Plugin ZebraHZ (AU)|||OPT + Z
-∿ Play Current Line in Phrase|||OPT + E
-Paketti:ChordsPlus Random Chord|||Shift + CTRL + 3
-∿ Paketti Steppers Dialog...|||CTRL + D
-∿ Toggle Mute Tracks|||CMD + F9
-Paketti:Crossfade Loop|||Shift + CMD + C
-Paketti:Paketti eSpeak Text-to-Speech Dialog...|||CTRL + E
-Decrease Octave (2nd)|||<
-Paketti:Reset Nudge Delay Output Delay to 0ms (ALL)|||CTRL + 0
-Paketti:Cycle Paketti Dynamic View 04|||F11
-∿ Open External Editor for Plugin|||'
-Paketti:Cycle Paketti Dynamic View 03|||F4
-Paketti:F4 Shift Midi Immediately|||Shift + F4
-Paketti:Cycle Paketti Dynamic View 02|||F3
-Paketti:Cycle Paketti Dynamic View 01|||F2
-Paketti:Load Device Chain EQ10 Macro Experimental|||Shift + Q
-Paketti:Set Phrase Length to 064 (040)|||CTRL + 5
-Paketti:Wipe&Slice (256)|||OPT + 9
-∿ Wavetable Control|||OPT + W
-∿ Load FabFilter One|||OPT + F
-Paketti:Paketti Save Selected Sample Range .WAV|||Shift + CMD + W
-Paketti:Set Pattern Length to 512 (200)|||CTRL + 8
-Paketti:Paketti Save Selected Sample .WAV|||CMD + W
-Paketti:Load Device (AudioUnit) Transient Shaper|||Shift + E
-Paketti:Randomize Selected Instrument Modulation Filter Type|||Shift + OPT + M
-∿ Normalize Selected Sample or Slice|||CMD + N
-Paketti:Paketti PitchBend Drumkit Sample Loader (Random)|||OPT + CMD + O
-Paketti:Delay Column Increase Selection/Row (+1)|||CTRL + Right
-Mute Track 1|||CMD + F1
-Paketti:Smart Beatsync from Selection|||Shift + CMD + S
-Paketti:Clever Note Off Right Before|||OPT + CTRL + <
-Mute Track 2|||CMD + F2
-Paketti:Load Device (AudioUnit) ValhallaFreqEcho|||Shift + F
-Paketti:Snapshot Selected Device to Automation|||Shift + OPT + S
-∿ Normalize Sample Slices Independently|||Shift + CMD + N
-Paketti:Pakettify Current Instrument|||OPT + P
-Paketti:Set Pattern Length to 256 (100)|||CTRL + 7
-Mute Track 4|||CMD + F4
-∿ Paketti Stacker Dialog...|||Shift + CTRL + P
-Paketti:LFO Write Single Parameter Write to Automation|||Shift + CTRL + 1
-Mute Track 5|||CMD + F5
-Paketti:Load Random Samples (32) from Path|||Shift + CMD + CTRL + P
-Paketti:User-Defined Sample Folders...|||Shift + CMD + U
-Mute Track 6|||CMD + F6
-Paketti:Load Random Samples (12) into Single Instrument|||Shift + OPT + 1
-∿ Paketti Overdub 12 (No Metronome/No Line Input)|||CMD + Minus
-Mute Track 7|||CMD + F7
-∿ Clear All TrackDSPs from Current Track|||Shift + OPT + T
-Paketti:Load Plugin ZebraHZ (AU)|||OPT + Z
-Mute Track 8|||CMD + F8
-∿ Insert Inverter Device to TrackDSP/SampleFX|||OPT + I
-Paketti:Start/Stop Sample Recording and Pakettify|||OPT + F3
-Mute Track 9|||CMD + Numpad9
-Paketti:Show Paketti Formula Device Manual Dialog...|||Shift + OPT + F
-Paketti:Capture Nearest Instrument and Octave (jump)|||Return
-Paketti:Flood Fill Note and Instrument every 9 step|||Shift + OPT + 9
-Paketti:Modify PitchStep Steps (Random)|||Shift + OPT + CMD + P
-Paketti:Paketti Groovebox 8120|||OPT + 8
-Paketti:Paketti Stacker Dialog...|||Shift + CTRL + P
-Paketti:Modify PitchStep Steps (Hard Detune)|||Shift + OPT + CMD + CTRL + P
-Paketti:TouchOSC Sample Editor|||OPT + CTRL + F3
-Paketti:Impulse Tracker Alt-Left Move Backwards One Channel (Wrap)|||OPT + Left
-Paketti:Modify PitchStep Steps (Octave Up+2, Octave Down-2)|||OPT + CMD + P
-Paketti:Flood Fill Note and Instrument every 6 step|||Shift + OPT + 6
-∿ Load New Instrument with Current Slice Markers|||OPT + N
-New Song|||Shift + CTRL + N
-Paketti:Slice Count From Selection|||Shift + OPT + E
-Paketti:Wavetable Control|||OPT + W
-∿ TouchOSC Sample Recorder and Record|||Shift + CTRL + §
-∿ Show XO Plugin External Editor|||CTRL + X
-Paketti:Flood Fill Note and Instrument every 5 step|||Shift + OPT + 5
-∿ TouchOSC Pattern Editor|||OPT + F2
-Paketti:Normalize Sample Slices Independently|||Shift + CMD + N
-∿ BPM Decrease (-1)|||\
-∿ TouchOSC Sample Editor|||OPT + CTRL + F3
-∿ BPM Increase (+1)|||Shift + \
-Paketti:Impulse Tracker ALT-X Effect Column (Interpolate&Clear)|||OPT + X
-∿ Start/Stop Sample Recording and Pakettify|||OPT + F3
-∿ BPM Decrease (-0.1)|||Shift + RBracket
-Paketti:Player Pro Transpose Selection or Note Column +1|||CMD + Q
-Paketti:Duplicate Instrument and Select New Instrument|||Shift + CMD + D
-∿ BPM Increase (+0.1)|||CMD + RBracket
-Paketti:Show Paketti KeyBindings Dialog...|||Shift + CMD + K
-Paketti:Impulse Tracker MixPaste|||OPT + M
-Paketti:Paketti MIDI Mappings (Dynamic)...|||Shift + CMD + M
-Paketti:Show Renoise KeyBindings Dialog...|||CMD + K
-∿ Show Paketti KeyBindings Dialog...|||Shift + CMD + K
-Paketti:Paketti Gater Dialog...|||CTRL + G
-Paketti:Show BPM Calculation Dialog...|||CTRL + B
-∿ Show Renoise KeyBindings Dialog...|||CMD + K
-Paketti:Record+Follow Toggle (2nd)|||RShift
-Paketti:Sample Pitch Modifier Dialog...|||Shift + OPT + P
-Paketti:Toggle EditMode (3rd)|||Escape
-Paketti:Paketti Unison Generator|||OPT + U
-∿ Open Paketti Init Phrase Dialog...|||CMD + I
-Paketti:Record+Follow+Metronome Toggle|||Shift + Escape
-Paketti:Wipe&Slice&Write to Pattern|||Shift + OPT + 0
-Paketti:Toggle Paketti Dialog of Dialogs...|||OPT + F1
-Paketti:Paketti Capture Last Take...|||K
-∿ Select Specific Track 02|||Shift + 2
-∿ Delay Column Increase Selection/Row (+1)|||CTRL + Right
-Increase Octave|||NumpadMultiply
-∿ Select Specific Track 03|||Shift + 3
-Decrease Octave|||NumpadDivide
-Paketti:Load Device (AudioUnit) Simplon|||OPT + S
-∿ Select Specific Track 04|||Shift + 4
-Paketti:Load & Show Paketti EQ30|||Shift + OPT + Q
-Paketti:Wipe Slices|||OPT + 0
-∿ Select Specific Track 05|||Shift + 5
-∿ Record+Follow Toggle (2nd)|||RShift
-Init Device Settings (2nd)|||Shift + CMD + Delete
-∿ Select Specific Track 06|||Shift + 6
-Paketti:Humanize Selection...|||OPT + H
-Paketti:Load Random AKWF Sample|||Shift + CMD + 1
-∿ Select Specific Track 07|||Shift + 7
-∿ Hide Current and Select Previous Column|||Shift + CMD + Left
-∿ Fill Effect Column with 0G01+0U00|||Shift + CMD + Up
-∿ Select Specific Track 08|||Shift + 8
-∿ Toggle EditMode (3rd)|||Escape
-Paketti:Open Paketti Init Phrase Dialog...|||CMD + I
-∿ Record+Follow+Metronome Toggle|||Shift + Escape
-Paketti:Impulse Tracker F7 Start Playback from Cursor Row|||F7
-∿ Clean Render Selected Track/Group (WAV Only)|||CMD + R
-∿ Select Specific Track 10|||Shift + 0
-Preferences...|||CMD + ,
-Paketti:Impulse Tracker F8 Stop Playback (Panic)|||F8
-Paketti:Clean Render&Save Selected Track/Group (.WAV)|||Shift + CTRL + R
-Paketti:Impulse Tracker F12 Master|||F12
-∿ Parama Param Decrease|||CTRL + Left
-Paketti:Show/Hide Track DSP and FX Chain Device External Editors|||Shift + CMD + H
-∿ Impulse Tracker CTRL-N New Song Dialog...|||CTRL + N
-Paketti:Impulse Tracker CTRL-N New Song Dialog...|||CTRL + N
-Paketti:Paketti Stem Slicer Dialog...|||CTRL + Z
-∿ Pick a Random Theme (Favorites)|||Shift + CTRL + ,
-Paketti:Clear All TrackDSPs from Current Track|||Shift + OPT + T
 Paketti:Impulse Tracker ALT-Y Swap Block|||CMD + Y
-Paketti:Delete Current Sample & Select Next|||CTRL + /
-∿ Show Automation Value Dialog...|||Shift + OPT + A
+Paketti:Shift Notes Left|||OPT + CMD + Left
 Paketti:Select First Instrument Box Slot|||Shift + OPT + CTRL + 1
-Paketti:Load New Instrument with Current Slice Markers|||OPT + N
-Paketti:Set Pattern Length to 032 (020)|||CTRL + 4
-∿ Paketti Gater Dialog...|||CTRL + G
+Redo|||Shift + CMD + Z
+Paketti:Cycle Chord Inversion Up|||CTRL + Up
 Paketti:Impulse Tracker CTRL-O Pattern to Sample|||CTRL + O
-Paketti:Show XO Plugin External Editor|||CTRL + X
-Paketti:Show Paketti Single Cycle Waveform Writer...|||Shift + OPT + C
-Paketti:Player Pro Intelligent Dialog...|||Shift + Return
-∿ Move DSPs to Previous Track|||CMD + CTRL + Left
-Paketti:Create New Instrument & Loop from Selection|||OPT + CMD + Right
-∿ Randomize Effect Column Parameters|||Shift + OPT + X
+Paketti:Cycle Chord Inversion Down|||Shift + CTRL + Up
 Paketti:OctaMED Note Spread Increment|||Shift + CMD + CTRL + Right
 Paketti:Transpose Octave Up Note Column (Selection/Note Column)|||Shift + OPT + CMD + Q
-Paketti:Switch Middle Frames|||Shift + OPT + Z
-∿ Move Selected DSP to Next Track|||Shift + CTRL + Right
 Paketti:OctaMED Note Spread Decrement|||Shift + CMD + CTRL + Left
-∿ Create Group and Move DSPs|||Shift + CTRL + G
+Paketti:Transpose Octave Down Note Column (Selection/Note Column)|||Shift + OPT + CMD + A
 Paketti:Pattern Effect Command CheatSheet|||F1
+Toggle Fullscreen/Windowed Mode|||OPT + Return
 Paketti:Transpose +1 Note Column (Selection/Note Column)|||OPT + CMD + Q
-∿ Hide Track DSP Device External Editors for All Tracks|||CMD + H
-Paketti:Select Specific Track 01|||Shift + 1
+Paketti:Pick a Random Theme (All)|||Shift + OPT + CTRL + ,
 Paketti:Transpose -1 Note Column (Selection/Note Column)|||OPT + CMD + A
-∿ Load ValhallaShimmer|||OPT + V
+Paketti:Pick a Random Theme (Favorites)|||Shift + CTRL + ,
 Paketti:Impulse Tracker ALT-D Double Select W/ Automation|||CMD + D
-Flip|||Shift + CMD + F6
-Paketti:Select Specific Track 03|||Shift + 3
 Paketti:Impulse Tracker ALT-F Expand Selection|||CMD + F
-∿ Load ValhallaDelay|||Shift + D
-Paketti:Select Specific Track 04|||Shift + 4
+Paketti:Play Current Line in Phrase|||OPT + E
 Paketti:Impulse Tracker ALT-G Shrink Selection|||CMD + G
-∿ Load ValhallaVintageVerb|||Shift + V
-Paketti:Select Specific Track 05|||Shift + 5
+Paketti:Paketti Fill Dialog...|||Shift + OPT + F
 Paketti:Impulse Tracker ALT-F Expand Selection Replicate|||Shift + CMD + F
-Paketti:Show Only Effect Columns|||Shift + CTRL + 6
+Paketti:Open External Editor for Plugin|||'
+Paketti:Impulse Tracker ALT-G Shrink Selection Replicate|||Shift + CMD + G
+Paketti:Load FabFilter One|||OPT + F
+Paketti:Impulse Tracker ALT-S Set Selection to Instrument|||CMD + S
+Paketti:Impulse Tracker Home *2 behaviour|||OPT + Up
+Paketti:LFO Write to Selected Automation Parameter|||Shift + OPT + §
+Paketti:Randomize Selected Device|||OPT + R
+Paketti:LFO Write to Effect Column 1 (0Dxx)|||Shift + CTRL + 2
+Paketti:Clear All TrackDSPs from Current Track|||Shift + OPT + T
+Paketti:LFO Write to Phrase LPB (1-64)|||OPT + §
+∿ Delay Column Decrease Selection/Row (-1)|||CTRL + Left
+Paketti:Impulse Tracker Alt-Left Move Backwards One Channel (Wrap)|||OPT + Left
+Paketti:LFO Write Single Parameter Write to Automation|||Shift + CTRL + 1
+Paketti:Load New Instrument with Current Slice Markers|||OPT + N
+Paketti:Impulse Tracker ALT-X Effect Column (Interpolate&Clear)|||OPT + X
+Paketti:Snapshot Selected Device to Automation|||Shift + OPT + S
+∿ Delay Column Decrease Selection/Row (-10)|||Shift + CTRL + Left
+Paketti:Show XO Plugin External Editor|||CTRL + X
+Paketti:Paketti Unison Generator|||OPT + U
+∿ Expose and Select Next Column|||Shift + CMD + Right
+Paketti:Player Pro Transpose Selection or Note Column -1|||CMD + A
+Paketti:Toggle Paketti Dialog of Dialogs...|||OPT + F1
+Paketti:Player Pro Transpose Selection or Note Column +12|||Shift + CMD + Q
+Paketti:Cycle Paketti Dynamic View 01|||F2
+Paketti:Cycle Paketti Dynamic View 02|||F3
+Paketti:Cycle Paketti Dynamic View 03|||F4
+Paketti:Player Pro Effect Dialog...|||Shift + Return
+Paketti:Cycle Paketti Dynamic View 04|||F11
+Paketti:Select Specific Track 01|||Shift + 1
+∿ Modify PitchStep Steps (Random)|||Shift + OPT + CMD + P
+Paketti:Select Specific Track 02|||Shift + 2
+Paketti:Shrink to Triplets|||CTRL + T
+Paketti:Select Specific Track 03|||Shift + 3
+∿ Modify PitchStep Steps (Hard Detune)|||Shift + OPT + CMD + CTRL + P
+Paketti:Select Specific Track 05|||Shift + 5
+∿ Toggle Note Off on All Tracks on Current Row|||CTRL + CapsLock
 Paketti:Select Specific Track 06|||Shift + 6
+∿ Modify PitchStep Steps (Octave Up+2, Octave Down-2)|||OPT + CMD + P
+Paketti:Impulse Tracker MixPaste|||OPT + M
+Paketti:Select Specific Track 08|||Shift + 8
+Paketti:Select Specific Track 09|||Shift + 9
+Paketti:Select Specific Track 10|||Shift + 0
+Paketti:Delay Column Decrease (-1)|||CTRL + <
+Paketti:KapsLock CapsLock Caps Lock Note Off|||CapsLock
+∿ Clean Render&Save Selected Track/Group (.WAV)|||Shift + CTRL + R
+Paketti:Copy Above Effect Column|||CMD + \
+Paketti:Clever Note Off Right After|||OPT + <
+∿ Match Current Sub Column Selection|||Shift + CMD + E
+Paketti:Copy Above Effect Column + Increase Value|||OPT + \
+Paketti:Clever Note Off Right Before|||OPT + CTRL + <
+∿ Paketti Steppers Dialog...|||CTRL + D
+Paketti:Copy Above Effect Column + Decrease Value|||Shift + OPT + \
+Paketti:Clever Note Off Half Before|||CMD + <
+Paketti:Flood Fill Column with Row|||Shift + OPT + CTRL + Down
+Paketti:Toggle Audition Current Line on Pattern Row Change|||OPT + A
+∿ Replicate Selected Track Above Current Row |||CTRL + Down
+∿ Toggle Note Off in Selected Tracks|||OPT + CapsLock
+∿ Wavetable Control|||OPT + W
+Paketti:Paketti PitchBend Drumkit Sample Loader|||Shift + CMD + O
+∿ Duplicate Selection with Padding&Move Cursor 1|||Shift + OPT + D
+Paketti:Paketti PitchBend Drumkit Sample Loader (Random)|||OPT + CMD + O
+∿ Normalize Selected Sample or Slice|||CMD + N
+∿ Hipass (Preset++)|||Shift + OPT + H
+Paketti:Paketti Pattern Halver|||Shift + CMD + §
+∿ LFOEnvelopePan (Preset++)|||Shift + P
+∿ Rotate Sample Buffer Right 1000|||CMD + CTRL + Left
+Paketti:Flood Fill Note and Instrument every 5 step|||Shift + OPT + 5
+Paketti:Paketti Overdub 12 (No Metronome/No Line Input)|||CMD + Minus
+∿ Rotate Sample Buffer Left 1000|||CMD + CTRL + Right
+Paketti:Flood Fill Note and Instrument every 6 step|||Shift + OPT + 6
+∿ Normalize Sample Slices Independently|||Shift + CMD + N
+Paketti:Flood Fill Note and Instrument every 7 step|||Shift + OPT + 7
+Paketti:Flood Fill Note and Instrument every 9 step|||Shift + OPT + 9
+∿ Duplicate Pattern Above & Clear Muted Tracks|||CTRL + Up
+Paketti:Toggle Note Off in All Visible Note Columns|||Shift + CapsLock
+∿ Fill Effect Column with 0G01+0D00|||Shift + CMD + Down
+Paketti:Toggle Note Off on All Tracks on Current Row|||CTRL + CapsLock
+∿ Paketti Groovebox 8120|||OPT + 8
+Paketti:Replicate Selected Track Above Current Row |||CTRL + Down
+∿ Duplicate Instrument and Select New Instrument|||Shift + CMD + D
+Paketti:Replicate All Above Current Row |||Shift + CTRL + Down
+∿ Move DSPs to Next Track|||CMD + CTRL + Right
+Paketti:Delay Column Increase Selection/Row (+1)|||CTRL + Right
+∿ Move Selected DSP to Previous Track|||Shift + CTRL + Left
+∿ Select Loop Range|||Shift + OPT + CMD + S
+Paketti:Delay Column Decrease Selection/Row (-1)|||CTRL + Left
+∿ Create Group and Move DSPs|||Shift + CTRL + G
+Paketti:Delay Column Increase Selection/Row (+10)|||Shift + CTRL + Right
+Paketti:Delay Column Decrease Selection/Row (-10)|||Shift + CTRL + Left
+∿ Note-Off Paste (from Selection)|||Shift + OPT + CTRL + P
+Paketti:Match Current Sub Column Selection|||Shift + CMD + E
+∿ Recursive Remove DC Offset Random Times|||Shift + OPT + D
+Move Left|||Left
+Paketti:Toggle Note Off in Selected Tracks|||OPT + CapsLock
+Move Up|||Up
+Move Down|||Down
+Paketti:Duplicate Selection with Padding&Move Cursor 1|||Shift + OPT + D
+Mute Track 4|||CMD + F4
+Jump to First Device|||Home
+Paketti:Nudge and Paste Selection|||Shift + OPT + CMD + Down
+Mute Track 5|||CMD + F5
+Paketti:Fill Effect Column with 0G01+0D00|||Shift + CMD + Down
+Mute Track 6|||CMD + F6
+Delete Device|||Back
+Paketti:Fill Effect Column with 0G01+0U00|||Shift + CMD + Up
+Mute Track 7|||CMD + F7
+∿ Capture Nearest Instrument and Octave (jump)|||Return
+Insert Device|||CMD + V
+Mute Track 8|||CMD + F8
+∿ Move Slice Start Left by 100|||Shift + CTRL + Left
+Paketti:Insert New Sample Slot & Select|||CTRL + Minus
+∿ Move Slice Start Right by 100|||Shift + CTRL + Right
+Init Device Settings|||Shift + CMD + Back
+∿ Move Slice End Left by 100|||Shift + CMD + Left
+Paketti:Delete Current Sample & Select Next|||CTRL + /
+∿ Move Slice End Right by 100|||Shift + CMD + Right
+Cut All Devices|||CMD + X
+Paketti:Wipe&Slice (002)|||OPT + 1
+Paste All Devices|||CMD + V
+Paketti:Wipe&Slice (004)|||OPT + 2
+Paketti:Wipe&Slice (008)|||OPT + 3
+Select on Next Page|||Next
+Delete|||Delete
+Paketti:Wipe&Slice (016)|||OPT + 4
+Toggle Dir/File List (2nd)|||Shift + Tab
+Paketti:Wipe&Slice (032)|||OPT + 5
+∿ Parama Param Previous Parameter|||CTRL + Up
+∿ Parama Param Increase|||CTRL + Right
+Paketti:Wipe&Slice (064)|||OPT + 6
+Paketti:Wipe&Slice (128)|||OPT + 7
+Delete the Selected File or Dir|||CMD + Back
+Paketti:Wipe&Slice (256)|||OPT + 9
+Paketti:Wipe Slices|||OPT + 0
+∿ Copy Above Effect Column|||CMD + \
+∿ Double LFO Envelope Resolution|||CTRL + H
+∿ Copy Above Effect Column + Increase Value|||OPT + \
+∿ Halve LFO Envelope Resolution|||Shift + CTRL + H
+∿ Copy Above Effect Column + Decrease Value|||Shift + OPT + \
+Paketti:Paketti Save Selected Sample Range .WAV|||Shift + CMD + W
+Move to Next Column|||Right
+Move to Previous Row|||Up
+Paketti:Polyend Buddy (PTI File Browser)|||CTRL + P
+∿ Quick LFO Custom Editor|||Shift + CTRL + L
+Move to Previous Row with Note|||Shift + CMD + Prior
+Paketti:Pakettify Current Instrument|||OPT + P
+Move to Next Row with Note|||Shift + CMD + Next
+Paketti:Smart Beatsync from Selection|||Shift + CMD + S
+Capture Instrument|||Shift + CMD + Return
+Paketti:Load Random Samples (32) from Path|||Shift + CMD + CTRL + P
+∿ Paketti Overdub 12 (No Metronome/No Line Input)|||CMD + Minus
+Jump 16 Rows Down|||Next
+Paketti:Load Random Samples (12) into Single Instrument|||Shift + OPT + 1
+Jump to Next Section|||OPT + CMD + Down
+Jump to Row 0|||F9
+Paketti:User-Defined Sample Folders...|||Shift + CMD + U
+∿ Toggle Audition Current Line on Pattern Row Change|||OPT + A
+Paketti:Slice Count From Selection|||Shift + OPT + E
+Jump to Next Column|||Tab
+Paketti:Modify PitchStep Steps (Random)|||Shift + OPT + CMD + P
+Jump to Master Track|||Shift + CMD + End
+Paketti:Toggle Mute Tracks|||CMD + F9
+Paketti:Modify PitchStep Steps (Hard Detune)|||Shift + OPT + CMD + CTRL + P
+Clear Current Note or Effect|||Delete
+Paketti:Modify PitchStep Steps (Octave Up+2, Octave Down-2)|||OPT + CMD + P
+Clear Whole Row|||OPT + Delete
+∿ Paketti MIDI Mappings (Dynamic)...|||Shift + CMD + M
+Paketti:Slide Selected Column Content Down|||CMD + CTRL + Down
+Paketti:Slide Selected Column Content Up|||CMD + CTRL + Up
+Paketti:Wavetable Control|||OPT + W
+Paketti:Slide Selected Track Content Down|||OPT + CMD + Down
+∿ Switch Middle Frames|||Shift + OPT + Z
+Duplicate Selection|||CMD + D
+Paketti:Normalize Sample Slices Independently|||Shift + CMD + N
+Loop Selection|||CMD + L
+Paketti:Double LFO Envelope Resolution|||CTRL + H
+Paketti:Hide Track DSP Device External Editors for All Tracks|||CMD + H
+Paketti:Halve LFO Envelope Resolution|||Shift + CTRL + H
+∿ Show BPM Calculation Dialog...|||CTRL + B
+Open Script Editor|||Shift + CMD + E
+Paketti:Paketti MIDI Mappings (Dynamic)...|||Shift + CMD + M
+Move to First|||CMD + Home
+∿ Sample Pitch Modifier Dialog...|||Shift + OPT + P
+Split Pattern at Current Line|||OPT + CMD + K
+Paketti:Show BPM Calculation Dialog...|||CTRL + B
+Join Pattern with Next|||OPT + CMD + J
+∿ Impulse Tracker ALT-L Mark Track/Mark Pattern|||CMD + L
+Paketti:Sample Pitch Modifier Dialog...|||Shift + OPT + P
+∿ Play Current Line in Phrase|||OPT + E
+Paketti:LFOEnvelopePan (Preset++)|||Shift + P
+Show/Hide Instrument Properties|||Shift + OPT + N
+∿ Hide Track DSP Device External Editors for All Tracks|||CMD + H
+Paketti:Wipe&Slice&Write to Pattern|||Shift + OPT + 0
+Select Last Sequence|||CMD + End
+∿ Show/Hide Track DSP and FX Chain Device External Editors|||Shift + CMD + H
+∿ Paketti Fill Dialog...|||Shift + OPT + F
+Clear Instrument|||Shift + Delete
+Clear Instrument (2nd)|||Shift + Back
+Move Cursor to Sample Start|||Home
+Paketti:Show Paketti Single Cycle Waveform Writer...|||Shift + OPT + C
+Move Cursor to Sample End|||End
+Clear (2nd)|||Delete
+Create Alias|||CMD + P
+Select Previous by Velocity|||Up
+∿ Open External Editor for Plugin|||'
+Zoom In Vertical|||Next
+Zoom Out Vertical|||Prior
+Zoom Selection|||OPT + CMD + S
+Distributed Range Map|||CMD + E
+Layered Map|||CMD + L
+Select Previous Sample|||Up
+∿ LFO Write to Selected Automation Parameter|||Shift + OPT + §
+Select Next Chain|||Tab
+Select Previous Chain|||Shift + Tab
+Move Device Left|||OPT + CMD + Left
+Select All Slice Markers|||Shift + CMD + A
+Insert New Chain|||CMD + T
+Delete Chain|||Shift + CMD + T
+Loop Sequence|||CMD + L
+∿ LFO Write to Effect Column 1 (0Dxx)|||Shift + CTRL + 2
+Select Last Set|||End
+Select Next Set|||Tab
+Select Previous Set|||Shift + Tab
+Insert New Set|||CMD + T
+∿ Toggle Signed/Unsigned|||OPT + CMD + A
+Toggle Draw Mode|||OPT + CMD + D
+∿ Protracker MOD Modulation...|||OPT + M
+Move to Previous Line|||Left
+Play/Stop Selection|||Space
+Clear Sample|||CMD + Back
+2nd Clear Sample|||CMD + Delete
+∿ LFO Write to Phrase LPB (1-64)|||OPT + §
+Trim|||CMD + T
+∿ LFO Write Single Parameter Write to Automation|||Shift + CTRL + 1
+Fade In Log|||Shift + OPT + CMD + I
+∿ Paketti Enhanced Phrase Generator|||OPT + CTRL + P
+∿ Randomize Selected Device|||OPT + R
+∿ Clear All TrackDSPs from Current Track|||Shift + OPT + T
+Shift Values Up|||Up
+Shift Values Down|||Down
+Open MIDI Mapping Dialog...|||CMD + M
+∿ Paketti Unison Generator|||OPT + U
+Select Previous File|||Up
+Select Next File|||Down
+Collapse Folder|||Left
+Expand Folder|||Right
+∿ Toggle Paketti Dialog of Dialogs...|||OPT + F1
+Select Last Entry|||OPT + Down
+Select on Previous Page|||Prior
+∿ Transpose Octave Up Note Column (Selection/Note Column)|||Shift + OPT + CMD + Q
+Select Previous Device|||Left
+∿ Rotate Sample Buffer Downwards|||Shift + CTRL + Down
+∿ Wipe&Slice&Write to Pattern|||Shift + OPT + 0
+Minimize Device|||Down
+∿ Transpose +1 Note Column (Selection/Note Column)|||OPT + CMD + Q
+Copy Into New Instrument|||Shift + OPT + CMD + C
+Open Render Dialog...|||Shift + OPT + CMD + R
+∿ Transpose -1 Note Column (Selection/Note Column)|||OPT + CMD + A
+∿ Cycle Paketti Dynamic View 01|||F2
+∿ Paketti Capture Last Take...|||K
+∿ Cycle Paketti Dynamic View 02|||F3
+∿ Cycle Paketti Dynamic View 03|||F4
+Focus Previous View|||Shift + OPT + Tab
+∿ Cycle Paketti Dynamic View 04|||F11
+∿ BPM Decrease (-1)|||\
+Toggle Loop Pattern|||CMD + F13
+∿ BPM Increase (+1)|||Shift + \
+∿ BPM Decrease (-0.1)|||Shift + RBracket
+Toggle Block Playing|||NumpadEnter
+∿ BPM Increase (+0.1)|||CMD + RBracket
+Paketti:Show Paketti Preferences...|||Shift + CMD + ,
+∿ BPM Decrease (-0.5)|||Shift + CTRL + \
+∿ BPM Increase (+0.5)|||CTRL + \
+∿ Crossfade Loop|||Shift + CMD + C
+Play Song from Current Line|||Shift + RControl
+∿ Paketti Pattern Halver|||Shift + CMD + §
+Paketti:Paketti eSpeak Text-to-Speech Dialog...|||CTRL + E
+∿ Select Specific Track 01|||Shift + 1
+Schedule Edited Sequence for Playback|||CMD + Space
+∿ Select Specific Track 02|||Shift + 2
+Play from Edited Sequence|||Shift + CMD + Space
+∿ Select Specific Track 03|||Shift + 3
+∿ Select Specific Track 04|||Shift + 4
+Record Pattern|||Shift + RShift
+∿ Select Specific Track 05|||Shift + 5
+Stop Song|||RAlt
+∿ Impulse Tracker ALT-F Expand Selection|||CMD + F
+∿ Select Specific Track 06|||Shift + 6
+∿ Select Specific Track 07|||Shift + 7
+∿ Impulse Tracker ALT-G Shrink Selection|||CMD + G
+Paketti:BPM Decrease (-0.1)|||Shift + RBracket
+∿ Select Specific Track 08|||Shift + 8
+∿ Select Specific Track 09|||Shift + 9
+Paketti:BPM Decrease (-0.5)|||Shift + CTRL + \
+∿ Select Specific Track 10|||Shift + 0
+Paketti:Insert Inverter Device to TrackDSP/SampleFX|||OPT + I
+Paketti:BPM Decrease (-1)|||\
+Paketti:BPM Increase (+0.1)|||CMD + RBracket
+Paketti:Load Plugin Surge XT (AU) + surgemacros|||Shift + CTRL + S
+∿ Impulse Tracker Home *2 behaviour|||OPT + Up
+Paketti:Load Plugin ZebraHZ (AU)|||OPT + Z
+Paketti:BPM Increase (+0.5)|||CTRL + \
+Note Off Row|||Shift + CMD + CapsLock
+∿ Impulse Tracker End *2 behaviour|||OPT + Down
+Paketti:Clear Unused Patterns|||Shift + OPT + U
+Paketti:BPM Increase (+1)|||Shift + \
+Smart Note Off Row|||Shift + OPT + <
+∿ Impulse Tracker Alt-Right Move Forwards One Channel (Wrap)|||OPT + Right
+Paketti:Capture Nearest Instrument and Octave (jump)|||Return
+∿ Impulse Tracker Alt-Left Move Backwards One Channel (Wrap)|||OPT + Left
+∿ Randomize Effect Column Parameters|||Shift + OPT + X
+Paketti:Paketti Stacker Dialog...|||Shift + CTRL + P
+Select Previous Instrument (2nd)|||CMD + Up
+Select Next Instrument|||Down
+Select Next Instrument (2nd)|||CMD + Down
+Paketti:TouchOSC Sample Recorder and Record|||Shift + CTRL + §
+Select Previous Instrument Page|||Prior
+∿ Impulse Tracker ALT-X Effect Column (Interpolate&Clear)|||OPT + X
+Paketti:TouchOSC Pattern Editor|||OPT + F2
+Select First Instrument|||Home
+Paketti:TouchOSC Sample Editor|||OPT + CTRL + F3
+Select Last Instrument|||End
+∿ Player Pro Transpose Selection or Note Column +1|||CMD + Q
+∿ Player Pro Transpose Selection or Note Column -1|||CMD + A
+Paketti:Create New Instrument & Loop from Selection|||OPT + CMD + Right
+∿ Player Pro Transpose Selection or Note Column -12|||Shift + CMD + A
+Play/Stop Phrase|||Shift + CMD + Return
+Commit Changes|||CMD + Return
+∿ Player Pro Effect Dialog...|||Shift + Return
+Init Device Settings (2nd)|||Shift + CMD + Delete
+Paste Device|||CMD + V
+∿ Set Phrase Length to 016 (010)|||CTRL + 3
+Maximize Device|||Up
+Select Previous Sample in Instrument|||Shift + NumpadMinus
+Select Next Device|||Right
+∿ Set Phrase Length to 032 (020)|||CTRL + 4
+Set Focus to List|||Tab
+Shift Values Right|||Tab
+Select Next Sample in Instrument|||Shift + NumpadPlus
+∿ Set Phrase Length to 064 (040)|||CTRL + 5
+Shift Values Left|||Shift + Tab
+Draw Tool|||CMD + B
+Edit Point Time|||CMD + T
+∿ Set Phrase Length to 128 (080)|||CTRL + 6
+Move to Next Line|||Right
+Copy All Devices|||CMD + C
+Delete Set|||Shift + CMD + T
+∿ Set Phrase Length to 256 (100)|||CTRL + 7
+Paketti:Randomize Effect Column Parameters|||Shift + OPT + X
+Select First Set|||Home
+Duplicate Chain|||CMD + D
+∿ Set Phrase Length to 512 (200)|||CTRL + 8
+Select Last Device|||End
+Select First Device|||Home
+Drum Kit Map|||CMD + D
+∿ Shrink to Triplets|||CTRL + T
+Delete Selected (2nd)|||Delete
+Delete Selected|||CMD + Back
+Select Next by Velocity|||Down
+Select Next by Note|||Right
+Select Previous by Note|||Left
+Copy and Clear Instrument|||CMD + X
+Paste Instrument|||CMD + V
+Copy Instrument|||CMD + C
+Duplicate Instrument|||CMD + D
+Move Instrument Down|||OPT + CMD + Down
+Delete Instrument (2nd)|||Delete
+Mute Track 1|||CMD + F1
+∿ Slide Selected Column Content Down|||CMD + CTRL + Down
+Delete Instrument|||Back
+Mute Track 2|||CMD + F2
+∿ Slide Selected Column Content Up|||CMD + CTRL + Up
+Insert New Instrument (2nd)|||CMD + Back
+Mute Track 3|||CMD + F3
+Insert New Instrument|||HelpKey(Insert)
+Select Next Instrument Page|||Next
+∿ Slide Selected Track Content Down|||OPT + CMD + Down
+Duplicate|||CMD + D
+Insert|||HelpKey(Insert)
+∿ Impulse Tracker MixPaste|||OPT + M
+Move Selection to Last|||End
+Paketti:Sequence Selection (Next)|||CMD + CTRL + 2
+Paketti:Sequence Selection (Previous)|||CMD + CTRL + 1
+∿ User-Defined Sample Folders...|||Shift + CMD + U
+Move Selection to First|||Home
+Move Selection to Next|||Right
+∿ Delay Column Increase (+1)|||Shift + CTRL + <
+Move Selection to Previous|||Left
+Move to Last|||CMD + End
+∿ Delay Column Decrease (-1)|||CTRL + <
+∿ Set Phrase Length to 008 (008)|||CTRL + 2
+∿ Set Phrase Length to 004 (004)|||CTRL + 1
+2nd Delete|||Delete
+Delete Phrase|||Shift + CMD + Delete
+Mute/Unmute Selected Column|||Shift + CMD + \
+Shrink|||Shift + CMD + F8
+∿ KapsLock CapsLock Caps Lock Note Off|||CapsLock
+Randomize|||Shift + CMD + F7
+∿ Clever Note Off Right After|||OPT + <
+Shrink (2nd)|||Shift + F8
+Flip (2nd)|||Shift + F6
+∿ Clever Note Off Right Before|||OPT + CTRL + <
+Transpose One Octave Down (2nd)|||Shift + F11
+Transpose One Octave Up (2nd)|||Shift + F12
+∿ Clever Note Off Half Before|||CMD + <
+Quantize Notes|||OPT + Q
+∿ Set EditStep to 00|||CMD + 0
+Copy and Clear (2nd)|||CMD + X
+Mark Whole Phrase|||CMD + L
+∿ Set EditStep to 01|||CMD + 1
+Jump to Row 16|||F10
+Jump to Last Row|||End
+∿ Set EditStep to 02|||CMD + 2
+Jump to First Row|||Home
+∿ Set Pattern Length to 008 (008)|||CTRL + 2
+∿ Set EditStep to 03|||CMD + 3
+∿ Duplicate Pattern Below & Clear Muted Tracks|||CTRL + Down
+Paketti:Impulse Tracker Alt-Right Move Forwards One Channel (Wrap)|||OPT + Right
+∿ Set EditStep to 04|||CMD + 4
+∿ Set Pattern Length to 016 (010)|||CTRL + 3
+Select First Sequence|||CMD + Home
+∿ Set EditStep to 05|||CMD + 5
+Select Next Sequence Page|||Next
+Select Previous Sequence Page|||Prior
+∿ Set EditStep to 06|||CMD + 6
+Select Next Sequence|||Down
+Select Previous Sequence|||Up
+∿ Set EditStep to 07|||CMD + 7
+Select Last Track|||End
+∿ Insert Inverter Device to TrackDSP/SampleFX|||OPT + I
+∿ Set EditStep to 08|||CMD + 8
+Select First Track|||Home
+Show/Focus Track Editors|||OPT + K
+∿ Set EditStep to 09|||CMD + 9
+∿ Set Pattern Length to 128 (080)|||CTRL + 6
+Select Next Track (2nd)|||Tab
+Select Previous Track (2nd)|||Shift + Tab
+Paste Selection|||CMD + V
+Copy Selection|||CMD + C
+Show/Hide Disk Browser|||OPT + B
+Cut Selection|||CMD + X
+Jump to End|||End
+∿ Load TAL-Reverb 4|||Shift + R
+∿ Load New Instrument with Current Slice Markers|||OPT + N
+∿ Previous Wavetable Cycle|||CTRL + W
+∿ Load Renoise Chorus 2 as Vowel Filter|||OPT + CTRL + V
+Jump to Start|||Home
+∿ Load Random AKWF Sample|||Shift + CMD + 1
+∿ Show XO Plugin External Editor|||CTRL + X
+Jump to Next Pos|||Down
+∿ Load Random amount (1...12) of AKWF Samples|||Shift + OPT + 2
+∿ Load ValhallaDelay|||Shift + D
+Jump to Previous Pos|||Up
+∿ Load ValhallaVintageVerb|||Shift + V
+Paketti:ChordsPlus Random Chord|||Shift + CTRL + 3
+Increase Pattern Number|||Right
+Paketti:Normalize Selected Sample or Slice|||CMD + N
+∿ Parama Param Decrease|||CTRL + Left
+∿ Parama Param Next Parameter|||CTRL + Down
+∿ Duplicate Track and Instrument|||CMD + D
+∿ Move Selected DSP to Next Track|||Shift + CTRL + Right
+∿ Load Renoise Gainer|||Shift + G
+∿ Move DSPs to Previous Track|||CMD + CTRL + Left
+Move Track Left|||OPT + CMD + Left
+Insert Group|||CMD + G
+∿ Load Renoise Maximizer|||Shift + X
+Move Device Down|||OPT + CMD + Down
+∿ Load Renoise Maximizer to Master Track|||Shift + CMD + X
+Copy Device|||CMD + C
+Cut Device|||CMD + X
+∿ Load Renoise mpReverb 2|||Shift + N
+Delete Device (2nd)|||Delete
+Select Previous Track|||Left
+Select Next Track|||Right
+Jump to First Track|||Shift + CMD + Home
+∿ Toggle All Columns|||Shift + CTRL + Q
+Paketti:Reverse Selected Sample or Slice|||CMD + R
+Jump to Last Device|||End
+∿ Toggle All Columns (No Sample Effects)|||Shift + CTRL + W
+Move One Page Down|||Next
+Move One Page Up|||Prior
+∿ Impulse Tracker F5 Start Playback|||F5
+Move Right|||Right
+∿ Move Slice End Right by 10|||CMD + Right
+∿ Move Slice End Left by 10|||CMD + Left
+∿ Load Renoise #Send|||Shift + S
+∿ Move Slice Start Right by 10|||CTRL + Right
+∿ Impulse Tracker F7 Start Playback from Cursor Row (2nd)|||RControl
+∿ Move Slice Start Left by 10|||CTRL + Left
+∿ Show Only Volume Columns|||Shift + CTRL + 4
+∿ Load Renoise *Instr. Automation|||Shift + CTRL + A
+∿ Reverse Selected Sample or Slice|||CMD + R
+∿ Load Renoise *Instr. Macros|||Shift + M
+∿ Unmark / Clear Selection|||CMD + U
+∿ Toggle Loop Range (Selection)|||CMD + L
+∿ Flip Sample Buffer Selection Forward|||OPT + Right
+∿ Load Renoise *LFO|||Shift + L
+∿ Show Only Effect Columns|||Shift + CTRL + 6
+∿ Impulse Tracker F12 Master|||F12
+∿ Flip Sample Buffer Selection Back|||OPT + Left
+∿ Selection in Pattern to Group|||Shift + CTRL + G
+∿ Rotate Sample Buffer Upwards|||Shift + CTRL + Up
+∿ Recursive Remove DC Offset|||CMD + D
+Toggle Play Selection Enabled|||CMD + Q
+Set Loop Start/Range|||Shift + CMD + L
+Adjust Volume|||F10
+Fade Out Log|||Shift + OPT + CMD + O
+Paketti:Toggle Solo Tracks|||CMD + F10
+∿ Impulse Tracker ALT-D Double Select|||CMD + D
+Select All|||CMD + A
+Select Next Sample|||Down
+Flip|||Shift + CMD + F6
+Move Cursor Right|||Right
+Copy|||CMD + C
+Move Cursor Left|||Left
+Paste|||CMD + P
+Transpose One Note Up|||CMD + Q
+∿ Set Pattern Length to 032 (020)|||CTRL + 4
+∿ Flood Fill with Selection|||CTRL + F
+∿ Set Pattern Length to 512 (200)|||CTRL + 8
+Paketti:Set Pattern Length to 004 (004)|||CTRL + 1
+∿ Impulse Tracker CTRL-N New Song Dialog...|||CTRL + N
+∿ Show Only Panning Columns|||Shift + CTRL + 5
+∿ Generate Delay Value on Note Columns|||OPT + G
+Paketti:Set Pattern Length to 008 (008)|||CTRL + 2
+∿ Fill Effect Column with 0G01+0U00|||Shift + CMD + Up
+∿ Nudge and Paste Selection|||Shift + OPT + CMD + Down
+∿ Open User Preferences Dialog...|||CTRL + U
+Paketti:Set Pattern Length to 016 (010)|||CTRL + 3
+∿ Hide Current and Select Previous Column|||Shift + CMD + Left
+∿ Delay Column Increase Selection/Row (+10)|||Shift + CTRL + Right
+∿ Select First Instrument Box Slot|||Shift + OPT + CTRL + 1
+Paketti:Set Pattern Length to 032 (020)|||CTRL + 4
+∿ Toggle Note Off in All Visible Note Columns|||Shift + CapsLock
+∿ Impulse Tracker CTRL-O Pattern to Sample|||CTRL + O
+∿ Replicate All Above Current Row |||Shift + CTRL + Down
+Paketti:Set Pattern Length to 064 (040)|||CTRL + 5
+∿ Delay Column Increase Selection/Row (+1)|||CTRL + Right
+Paketti:Set Phrase Length to 008 (008)|||CTRL + 2
+∿ Load Device Chain EQ10 Macro Experimental|||Shift + Q
+Paketti:Set Pattern Length to 128 (080)|||CTRL + 6
+Focus Previous Window|||Shift + CMD + <
+∿ Flood Fill Note and Instrument every 5 step|||Shift + OPT + 5
+∿ Paketti Switch between Note/FX columns|||CTRL + Tab
+∿ Paketti Pattern Doubler|||CMD + §
+∿ Reverse Notes in Selection|||CTRL + R
+Paketti:Set Pattern Length to 256 (100)|||CTRL + 7
+∿ Set Pattern Length to 256 (100)|||CTRL + 7
+Insert Pattern (2nd)|||Shift + CMD + Back
+∿ Set Pattern Length to 064 (040)|||CTRL + 5
+Insert Repeated Pattern|||OPT + CMD + HelpKey(Insert)
+∿ Rotate Track Content to SelectionStart First|||Shift + OPT + CMD + Up
+Insert Repeated Pattern (2nd)|||OPT + CMD + Back
+∿ Set Pattern Length to 004 (004)|||CTRL + 1
+Delete Pattern|||CMD + Back
+Delete Pattern (2nd)|||CMD + Delete
+∿ Rename Tracks By Played Samples|||OPT + CMD + CTRL + R
+∿ Player Pro Transpose Selection or Note Column +12|||Shift + CMD + Q
+Insert New Row|||Shift + §
+∿ Impulse Tracker ALT-S Set Selection to Instrument|||CMD + S
+∿ Slice Count From Selection|||Shift + OPT + E
+Delete Current Row|||Shift + Back
+∿ Impulse Tracker ALT-G Shrink Selection Replicate|||Shift + CMD + G
+∿ Impulse Tracker ALT-F Expand Selection Replicate|||Shift + CMD + F
+Insert New Row in Column|||§
+∿ Load FabFilter One|||OPT + F
+∿ Impulse Tracker ALT-D Double Select W/ Automation|||CMD + D
+∿ OctaMED Note Spread Increment|||Shift + CMD + CTRL + Right
+∿ Transpose Octave Down Note Column (Selection/Note Column)|||Shift + OPT + CMD + A
+∿ ChordsPlus Random Chord|||Shift + CTRL + 3
+∿ OctaMED Note Spread Decrement|||Shift + CMD + CTRL + Left
+∿ Reset Nudge Delay Output Delay to 0ms (ALL)|||CTRL + 0
+∿ Cycle Chord Inversion Down|||Shift + CTRL + Up
+Play Current Line|||4
+Increase EditStep|||CMD + Equals
+∿ Pattern Effect Command CheatSheet|||F1
+∿ Cycle Chord Inversion Up|||CTRL + Up
+Double EditStep|||OPT + Equals
+∿ Shift Notes Left|||OPT + CMD + Left
+Halve EditStep|||OPT + Minus
+Deselect|||CMD + U
+Paketti:Randomize Automation Envelope|||Shift + OPT + R
+Insert Group from Selection|||OPT + CMD + G
+Paketti:Note-Off Paste (from Selection)|||Shift + OPT + CTRL + P
+Toggle PatternWrap|||Shift + F13
+∿ Pick a Random Theme (All)|||Shift + OPT + CTRL + ,
+Paketti:Generate Delay Value on Note Columns|||OPT + G
+Clear Muted Tracks|||OPT + CMD + F3
+∿ Pick a Random Theme (Favorites)|||Shift + CTRL + ,
+Paketti:Show Automation Value Dialog...|||Shift + OPT + A
+Transpose One Octave Up|||CMD + F12
+Transpose One Octave Down|||Shift + CMD + A
+Paketti:Toggle All Columns (No Sample Effects)|||Shift + CTRL + W
+∿ Paketti Gater Dialog...|||CTRL + G
+Interpolate Logarithmic|||Shift + CMD + L
+Paketti:Show Only Volume Columns|||Shift + CTRL + 4
+∿ Paketti Automation|||OPT + T
+Copy (2nd)|||CMD + C
+Paketti:Show Only Panning Columns|||Shift + CTRL + 5
+∿ Add Gainer B to Selected Track|||OPT + L
+Clear and Copy|||Shift + CMD + F3
+Paketti:Show Only Effect Columns|||Shift + CTRL + 6
+Transpose One Note Down|||Shift + CMD + F1
+∿ Clean Render Selected Track/Group (WAV Only)|||CMD + R
+Paketti:Selection in Pattern to Group|||Shift + CTRL + G
+Set Quantization To 4|||Shift + CMD + 4
+Set Quantization To 5|||Shift + CMD + 5
+Paketti:Reverse Notes in Selection|||CTRL + R
+Expand|||Shift + CMD + F9
+Expand (2nd)|||Shift + F9
+Paketti:Flood Fill with Selection|||CTRL + F
+Randomize (2nd)|||Shift + F7
+∿ Show Paketti Preferences...|||Shift + CMD + ,
+Paketti:Rotate Track Content to SelectionStart First|||Shift + OPT + CMD + Up
+∿ TouchOSC Sample Recorder and Record|||Shift + CTRL + §
+∿ Paketti eSpeak Text-to-Speech Dialog...|||CTRL + E
+Paketti:Clean Render Selected Track/Group (WAV Only)|||CMD + R
+∿ TouchOSC Pattern Editor|||OPT + F2
+Paketti:Toggle Signed/Unsigned|||OPT + CMD + A
+Insert Track|||CMD + T
+∿ TouchOSC Sample Editor|||OPT + CTRL + F3
+∿ Show Paketti Single Cycle Waveform Writer...|||Shift + OPT + C
+Paketti:Rotate Sample Buffer Upwards|||Shift + CTRL + Up
+∿ Start/Stop Sample Recording and Pakettify|||OPT + F3
+Paketti:Rotate Sample Buffer Downwards|||Shift + CTRL + Down
+∿ Randomize Automation Envelope|||Shift + OPT + R
+Paketti:Flip Sample Buffer Selection Back|||OPT + Left
+Paste Continuously|||CMD + V
+∿ Randomize Automation Envelopes for Device|||OPT + CMD + R
+Paste (2nd)|||Shift + F5
+Copy and Clear|||CMD + X
+Paketti:Rotate Sample Buffer Right 1000|||CMD + CTRL + Left
+Clear|||Shift + Delete
+∿ Show Automation Value Dialog...|||Shift + OPT + A
+Paketti:Rotate Sample Buffer Left 1000|||CMD + CTRL + Right
+End Selection|||CMD + E
+Begin Selection|||CMD + B
+∿ Show Renoise KeyBindings Dialog...|||CMD + K
+∿ Load & Show Paketti EQ30|||Shift + OPT + Q
+Insert Pattern|||CMD + HelpKey(Insert)
+Paketti:Toggle Loop Range (Selection)|||CMD + L
+Jump One Page Down|||Next
+∿ Open Paketti Init Phrase Dialog...|||CMD + I
+Paketti:Unmark / Clear Selection|||CMD + U
+Paketti:Hipass (Preset++)|||Shift + OPT + H
+Go to Sequence End|||CMD + End
+Paketti:Move Slice Start Left by 10|||CTRL + Left
+∿ Selected Track to Mono and Hard Left|||Shift + OPT + CMD + Left
+Paketti:Move Slice Start Right by 10|||CTRL + Right
+∿ Record+Follow+Metronome Toggle|||Shift + Escape
+∿ Selected Track to Mono and Hard Right|||Shift + OPT + CMD + Right
+Paketti:Move Slice End Left by 10|||CMD + Left
+Collapse/Expand Group|||Shift + CMD + J
+Paketti:Delay Column Increase (+1)|||Shift + CTRL + <
+Paketti:Move Slice End Right by 10|||CMD + Right
+Delete Track|||Shift + CMD + T
+Paketti:Move Slice Start Left by 100|||Shift + CTRL + Left
+∿ Paketti PitchBend Drumkit Sample Loader|||Shift + CMD + O
+∿ Flood Fill Automation Selection|||OPT + Y
+Set Quantization To 9|||Shift + CMD + 9
+∿ Paketti PitchBend Drumkit Sample Loader (Random)|||OPT + CMD + O
+Set Quantization To 8|||Shift + CMD + 8
+Paketti:Move Slice End Right by 100|||Shift + CMD + Right
+Set Quantization To 3|||Shift + CMD + 3
+Paketti:Move DSPs to Previous Track|||CMD + CTRL + Left
+∿ Create New Instrument & Loop from Selection|||OPT + CMD + Right
+Paketti:Move DSPs to Next Track|||CMD + CTRL + Right
+∿ Paketti PitchBend Multiple Sample Loader|||CMD + O
+∿ Sequence Selection (Previous)|||CMD + CTRL + 1
+New Song|||Shift + CTRL + N
+∿ Paketti PitchBend Multiple Sample Loader (Normalize)|||Shift + OPT + O
+∿ Load U-He Colour Copy|||OPT + C
+Paketti:Create Group and Move DSPs|||Shift + CTRL + G
+Increase Quantization|||Shift + CMD + Equals
+Paketti:Duplicate Track and Instrument|||CMD + D
+Delete Current Row in Column|||Back
+∿ Load D16 Syntorus 2|||Shift + A
+Jump to Previous Column|||Shift + Tab
+Paketti:Duplicate Pattern Above & Clear Muted Tracks|||CTRL + Up
+∿ Insert New Sample Slot & Select|||CTRL + Minus
+∿ Load D16 Toraverb 2|||Shift + T
+Jump 16 Rows Up|||Prior
+∿ Load D16 Repeater|||Shift + CTRL + D
+∿ Delete Current Sample & Select Next|||CTRL + /
+Paketti:Set Phrase Length to 004 (004)|||CTRL + 1
+Move to Next Row|||Down
+∿ Load George Yohng's W1 2|||Shift + W
+Move to Previous Column|||Left
+Paketti:Set Phrase Length to 016 (010)|||CTRL + 3
+∿ Load OhmForce Hematohm|||Shift + H
+Paketti:Set Phrase Length to 032 (020)|||CTRL + 4
+Store Favorite 4|||Shift + CMD + 4
+Paketti:Set Phrase Length to 064 (040)|||CTRL + 5
+Store Favorite 3|||Shift + CMD + 3
+Paketti:Set Phrase Length to 128 (080)|||CTRL + 6
+Toggle Dir/File List|||Tab
+Paketti:Set Phrase Length to 256 (100)|||CTRL + 7
+∿ Wipe&Slice (002)|||OPT + 1
+Paketti:Set Phrase Length to 512 (200)|||CTRL + 8
+Select First Entry|||OPT + Up
+∿ Paketti Function Search...|||CTRL + A
+∿ Wipe&Slice (004)|||OPT + 2
+∿ Paketti Stem Slicer Dialog...|||CTRL + Z
+∿ Experimental Sample FX Render|||OPT + D
+∿ Squeeze Note Columns (Whole Song)|||Shift + CTRL + Z
+∿ Wipe&Slice (008)|||OPT + 3
+∿ Explode Notes to New Tracks|||Shift + CTRL + X
+∿ Add Gainer A to Selected Track|||OPT + O
+∿ Open VolDelayPan Slider Dialog...|||CTRL + V
+∿ Wipe&Slice (016)|||OPT + 4
+∿ Humanize Selection...|||OPT + H
+∿ Paketti Sample Effect Generator|||OPT + S
+∿ Polyend Buddy (PTI File Browser)|||CTRL + P
+∿ Wipe&Slice (032)|||OPT + 5
+Paketti:Select Specific Track 07|||Shift + 7
+∿ Flood Fill Column with Row|||Shift + OPT + CTRL + Down
+∿ Clear Unused Patterns|||Shift + OPT + U
+∿ Wipe&Slice (064)|||OPT + 6
+Paketti:Experimental Sample FX Render|||OPT + D
+Paketti:Previous Wavetable Cycle|||CTRL + W
+∿ Load ValhallaShimmer|||OPT + V
+∿ Wipe&Slice (128)|||OPT + 7
+∿ Load FabFilter Pro-Q 3|||Shift + Z
+Paketti:Paketti Groovebox 8120|||OPT + 8
+∿ Load Renoise #Line Input|||Shift + I
+∿ Wipe&Slice (256)|||OPT + 9
+∿ Load Device (AudioUnit) ValhallaFreqEcho|||Shift + F
+∿ Wipe Slices|||OPT + 0
+Paketti:Paketti Steppers Dialog...|||CTRL + D
+Paketti:Set Pattern Length to 512 (200)|||CTRL + 8
+Paketti:Randomize Selected Instrument Modulation Filter Type|||Shift + OPT + M
+∿ Load Device (AudioUnit) Uhbik-D|||OPT + CMD + CTRL + V
+Paketti:Paketti PitchBend Multiple Sample Loader (Normalize)|||Shift + OPT + O
+Paketti:Add Gainer B to Selected Track|||OPT + L
+Paketti:Rename Tracks By Played Samples|||OPT + CMD + CTRL + R
+Paketti:Hide Current and Select Previous Column|||Shift + CMD + Left
+∿ Paketti Save Selected Sample .WAV|||CMD + W
+Paketti:Add Gainer A to Selected Track|||OPT + O
+Paketti:Player Pro Transpose Selection or Note Column -12|||Shift + CMD + A
+Paketti:Open VolDelayPan Slider Dialog...|||CTRL + V
+Paketti:Player Pro Transpose Selection or Note Column +1|||CMD + Q
+∿ Toggle Solo Tracks|||CMD + F10
+Paketti:Impulse Tracker End *2 behaviour|||OPT + Down
+Paketti:Humanize Selection...|||OPT + H
+∿ Toggle Mute Tracks|||CMD + F9
+Paketti:Paketti Gater Dialog...|||CTRL + G
+Paketti:Paketti Automation|||OPT + T
+∿ Load Plugin ZebraHZ (AU)|||OPT + Z
+Paketti:Open User Preferences Dialog...|||CTRL + U
+∿ Impulse Tracker F7 Start Playback from Cursor Row|||F7
+∿ Sequence Selection (Next)|||CMD + CTRL + 2
+Paketti:Open Paketti Init Phrase Dialog...|||CMD + I
+Paketti:Paketti Sample Effect Generator|||OPT + S
+∿ Duplicate and Reverse Instrument|||Shift + CMD + R
+Paketti:Move Selected DSP to Next Track|||Shift + CTRL + Right
+Paketti:Paketti Pattern Doubler|||CMD + §
+∿ Paketti Save Selected Sample Range .WAV|||Shift + CMD + W
+Paketti:Impulse Tracker ALT-D Double Select|||CMD + D
+∿ Snapshot Selected Device to Automation|||Shift + OPT + S
+Paketti:Paketti Function Search...|||CTRL + A
+Paketti:Protracker MOD Modulation...|||OPT + M
+Paketti:Squeeze Note Columns (Whole Song)|||Shift + CTRL + Z
+Undo|||CMD + Z
+∿ Randomize Selected Instrument Modulation Filter Type|||Shift + OPT + M
+Panic|||CTRL + Escape
+Paketti:Load Random AKWF Sample|||Shift + CMD + 1
+∿ Pakettify Current Instrument|||OPT + P
+Paketti:Crossfade Loop|||Shift + CMD + C
+∿ Load Plugin Surge XT (AU) + surgemacros|||Shift + CTRL + S
+∿ Smart Beatsync from Selection|||Shift + CMD + S
+Select Previous Instrument|||Up
+Paketti:Start/Stop Sample Recording and Pakettify|||OPT + F3
+Paketti:Paketti PitchBend Multiple Sample Loader|||CMD + O
+Select Previous LoopBlock|||CMD + NumpadMinus
+∿ Load Random Samples (32) from Path|||Shift + CMD + CTRL + P
+Paketti:Show Paketti KeyBindings Dialog...|||Shift + CMD + K
+Pause/Continue|||RMeta
+Paketti:Duplicate Instrument and Select New Instrument|||Shift + CMD + D
+Paketti:Show Renoise KeyBindings Dialog...|||CMD + K
+∿ Load Random Samples (12) into Single Instrument|||Shift + OPT + 1
+Paketti:Explode Notes to New Tracks|||Shift + CTRL + X
+Paketti:Load Device (AudioUnit) ValhallaFreqEcho|||Shift + F
+Paketti:Flood Fill Automation Selection|||OPT + Y
+Paketti:Record+Follow Toggle (2nd)|||RShift
+Paketti:Show/Hide Track DSP and FX Chain Device External Editors|||Shift + CMD + H
+Paketti:Toggle EditMode (3rd)|||Escape
+Paketti:Randomize Automation Envelopes for Device|||OPT + CMD + R
+Paketti:Switch to Automation Dynamic|||A
+Paketti:Record+Follow+Metronome Toggle|||Shift + Escape
+∿ Impulse Tracker ALT-Y Swap Block|||CMD + Y
+Paketti:Load Device (AudioUnit) Uhbik-D|||OPT + CMD + CTRL + V
+Halve LoopBlock Size|||CMD + NumpadDivide
+Paketti:Set EditStep to 00|||CMD + 0
+Select Next LoopBlock|||CMD + NumpadPlus
+Paketti:Selected Track to Mono and Hard Left|||Shift + OPT + CMD + Left
+Paketti:Paketti Save Selected Sample .WAV|||CMD + W
+Paketti:Set EditStep to 01|||CMD + 1
+Duplicate Track|||CMD + D
+Duplicate Track (incl. Patterns)|||OPT + CMD + D
+Paketti:Load Device Chain EQ10 Macro Experimental|||Shift + Q
+Paketti:Set EditStep to 02|||CMD + 2
+Paketti:Selected Track to Mono and Hard Right|||Shift + OPT + CMD + Right
+Paketti:Expose and Select Next Column|||Shift + CMD + Right
+Increase Octave|||NumpadMultiply
+Paketti:Set EditStep to 03|||CMD + 3
+Decrease Octave|||NumpadDivide
+Double LoopBlock Size|||CMD + NumpadMultiply
+Increase Octave (2nd)|||Shift + <
+Paketti:Set EditStep to 04|||CMD + 4
+Play Pattern|||F6
+Decrease Octave (2nd)|||<
+∿ Record+Follow Toggle (2nd)|||RShift
+Paketti:Set EditStep to 05|||CMD + 5
+Paketti:Move Selected DSP to Previous Track|||Shift + CTRL + Left
+Cut|||CMD + X
+∿ Flood Fill Note and Instrument every 6 step|||Shift + OPT + 6
+Paketti:Set EditStep to 06|||CMD + 6
+Decrease Pattern Number|||Left
+∿ Flood Fill Note and Instrument every 7 step|||Shift + OPT + 7
+∿ Show Paketti KeyBindings Dialog...|||Shift + CMD + K
+Paketti:Set EditStep to 07|||CMD + 7
+∿ Toggle EditMode (3rd)|||Escape
+Go to Sequence Start|||CMD + Home
+∿ Flood Fill Note and Instrument every 9 step|||Shift + OPT + 9
+Paketti:Set EditStep to 08|||CMD + 8
+Paketti:Duplicate Pattern Below & Clear Muted Tracks|||CTRL + Down
+Jump One Page Up|||Prior
+∿ F4 Shift Midi Immediately|||Shift + F4
+Paketti:Set EditStep to 09|||CMD + 9
+Paketti:Quick LFO Custom Editor|||Shift + CTRL + L
+Open Sample Record Dialog...|||Shift + F3
+Paketti:Switch Middle Frames|||Shift + OPT + Z
+Paketti:Load & Show Paketti EQ30|||Shift + OPT + Q
+Paketti:Move Slice End Left by 100|||Shift + CMD + Left
+Paketti:F4 Shift Midi Immediately|||Shift + F4
+Quit|||CTRL + Q
+Paketti:Move Slice Start Right by 100|||Shift + CTRL + Right
+Paketti:Reset Nudge Delay Output Delay to 0ms (ALL)|||CTRL + 0
+Preferences...|||CMD + ,
+Paketti:Paketti Capture Last Take...|||K
+∿ Switch to Automation Dynamic|||A
+Paketti:Select Loop Range|||Shift + OPT + CMD + S
+Paketti:Flip Sample Buffer Selection Forward|||OPT + Right
+Hide All Others|||OPT + CMD + H
+∿ Paketti Stacker Dialog...|||Shift + CTRL + P
+Mute Track 9|||CMD + Numpad9
+Paketti:Load Random amount (1...12) of AKWF Samples|||Shift + OPT + 2
+Paketti:Toggle All Columns|||Shift + CTRL + Q
+Paketti:Impulse Tracker F5 Start Playback|||F5
+Paketti:Duplicate and Reverse Instrument|||Shift + CMD + R
+Paketti:Impulse Tracker F7 Start Playback from Cursor Row|||F7
+∿ Load Renoise Convolver|||Shift + C
+Paketti:Impulse Tracker F7 Start Playback from Cursor Row (2nd)|||RControl
+Paketti:Clean Render&Save Selected Track/Group (.WAV)|||Shift + CTRL + R
+Paketti:Impulse Tracker F8 Stop Playback (Panic)|||F8
+Open Song...|||CTRL + L
+Paketti:Impulse Tracker F12 Master|||F12
+∿ Impulse Tracker F8 Stop Playback (Panic)|||F8
+Save Song...|||CTRL + S
+Paketti:Paketti Stem Slicer Dialog...|||CTRL + Z
+Paketti:Impulse Tracker CTRL-N New Song Dialog...|||CTRL + N
+Paketti:Select Specific Track 04|||Shift + 4

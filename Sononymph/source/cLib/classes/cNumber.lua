@@ -14,7 +14,7 @@ A good base class for e.g. device parameters, which it is modelled over
 -------------------------------------------------------------------------------
 
 
-require (_clibroot.."cValue")
+require("cValue")
 
 class 'cNumber' (cValue)
 

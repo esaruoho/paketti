@@ -10,7 +10,7 @@ Static methods for dealing with the file-system
 
 ]]
 
-require (_clibroot.."cString")
+require("cString")
 
 class 'cFilesystem'
 

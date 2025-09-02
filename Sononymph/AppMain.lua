@@ -1,3 +1,6 @@
+local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
+
+
 --[[
 This tool was originally created by danoise,
 and somewhat heavily modified by Esa Ruoho a.k.a. Lackluster.
@@ -14,11 +17,17 @@ _trace_filters = {
   "Selected Sample Full path:", "Sample loaded:", "Failed to load sample:" -- Show load results
 }
 
-_clibroot = 'Sononymph/source/cLib/classes/'
+-- Set up package path so require() can find cLib modules
+local tool_path = renoise.tool().bundle_path
+local clib_path = tool_path .. 'Sononymph' .. separator .. 'source' .. separator .. 'cLib' .. separator .. 'classes' .. separator
+-- Add cLib classes path to package.path
+package.path = package.path .. ";" .. clib_path .. "?.lua"
 
-require (_clibroot..'cLib')
-require (_clibroot..'cDebug')
-require (_clibroot..'cFileMonitor')
+_clibroot = clib_path
+
+dofile (_clibroot .. 'cLib.lua')
+dofile (_clibroot .. 'cDebug.lua')
+dofile (_clibroot .. 'cFileMonitor.lua')
 
 ---------------------------------------------------------------------------------------------------
 -- Sample utility functions (replacement for xLib xSample functions)
@@ -54,8 +63,9 @@ end
 -- Sononymph integration for Paketti
 ---------------------------------------------------------------------------------------------------
 
-require ('Sononymph/AppUI')
-require ('Sononymph/App')
+
+dofile (tool_path .. separator .. 'Sononymph' .. separator .. 'AppUI.lua')
+dofile (tool_path .. separator .. 'Sononymph' .. separator .. 'App.lua')
 
 ---------------------------------------------------------------------------------------------------
 -- local variables & initialization

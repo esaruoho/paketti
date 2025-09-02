@@ -12,8 +12,8 @@ Static methods for accessing the Renoise config file
 
 --==============================================================================
 
-require (_clibroot.."cFilesystem")
-require (_clibroot.."cParseXML")
+require("cFilesystem")
+require("cParseXML")
 
 class 'cConfig'
 

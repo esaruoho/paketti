@@ -35,8 +35,8 @@ customize the resulting string.
 
 --=================================================================================================
 
-require (_clibroot.."cTable")
-require (_clibroot.."cReflection")
+require("cTable")
+require("cReflection")
 
 class 'cPersistence'
 

@@ -10333,9 +10333,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Flip Devices 1&2 On/Off",invoke=function() toggle_two_devices(1, 2) end}
 ----------
--- Load the fuzzy search utility
-require("PakettiFuzzySearchUtil")
-
 -- Track fuzzy search dialog
 local dialog = nil
 function pakettiFuzzySearchTrackDialog()

@@ -1,14 +1,18 @@
 CACHE_VERSION=1.0
-SCAN_TIME=1756182222
-COMMAND_COUNT=4749
+SCAN_TIME=1756790329
+COMMAND_COUNT=4800
 Menu Entry|||DSP Chain:Paketti:Hipass (Preset++)|||DSP Chain|||HipassPlusPlus|||DCPHP,chain,paketti,hipass,preset|||PakettiPresetPlusPlus
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (AU/Native Only)|||DSP Chain|||function() insertRandomDevice(true) end|||DCPIRDANO,chain,paketti,insert,random,device,native,only|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (All)|||DSP Chain|||function() insertRandomDevice(false) end|||DCPIRDA,chain,paketti,insert,random,device|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Inspect Track Device Chain|||DSP Chain|||inspectTrackDeviceChain|||DCPITDC,chain,paketti,inspect,track,device,chain|||PakettiPresetPlusPlus
 Menu Entry|||DSP Chain:Paketti:Inspect Track Device Chain (Clean)|||DSP Chain|||inspectTrackDeviceChainClean|||DCPITDCC,chain,paketti,inspect,track,device,chain,clean|||PakettiPresetPlusPlus
 Menu Entry|||DSP Chain:Paketti:LFOEnvelopePan (Preset++)|||DSP Chain|||LFOEnvelopePanPresetPlusPlus|||DCPLP,chain,paketti,lfoenvelopepan,preset|||PakettiPresetPlusPlus
+Menu Entry|||DSP Chain:Paketti:Multiband Send (Preset++)|||DSP Chain|||MultibandSendPresetPlusPlus|||DCPMSP,chain,paketti,multiband,send,preset|||PakettiPresetPlusPlus
+Menu Entry|||DSP Chain:Paketti:Multiband Send Device (Preset++)|||DSP Chain|||function() PakettiMultibandSendDevicePresetPlusPlus() end|||DCPMSDP,chain,paketti,multiband,send,device,preset|||PakettiPresetPlusPlus
 Menu Entry|||DSP Chain:Paketti:Populate Send Tracks for All Tracks|||DSP Chain|||PakettiPopulateSendTracksAllTracks|||DCPPSTFAT,chain,paketti,populate,send,tracks,tracks|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Populate Send Tracks for Selected Track|||DSP Chain|||PakettiPopulateSendTracksSelectedTrack|||DCPPSTFST,chain,paketti,populate,send,tracks,selected,track|||PakettiMenuConfig
+Menu Entry|||DSP Chain:Paketti:Send (Preset++)|||DSP Chain|||SendPresetPlusPlus|||DCPSP,chain,paketti,send,preset|||PakettiPresetPlusPlus
+Menu Entry|||DSP Chain:Paketti:Send Device (Preset++)|||DSP Chain|||function() PakettiSendDevicePresetPlusPlus() end|||DCPSDP,chain,paketti,send,device,preset|||PakettiPresetPlusPlus
 Menu Entry|||DSP Chain:Paketti:SeparateSyncLFO (Beatsgo) (Preset++)|||DSP Chain|||SeparateSyncLFOBeatsgo|||DCPSBP,chain,paketti,separatesynclfo,beatsgo,preset|||PakettiPresetPlusPlus
 Menu Entry|||DSP Device Automation:Follow Off|||DSP Device Automation|||function() renoise.song().transport.follow_player=false end|||DDAFO,device,automation,follow|||PakettiMenuConfig
 Menu Entry|||DSP Device:Paketti Gadgets:CCizer Loader...|||DSP Device|||PakettiCCizerLoader|||DDPGCL,device,paketti,gadgets,ccizer,loader|||PakettiCCizerLoader
@@ -73,6 +77,10 @@ Menu Entry|||DSP Device:Paketti:Populate Send Tracks for All Tracks|||DSP Device
 Menu Entry|||DSP Device:Paketti:Populate Send Tracks for Selected Track|||DSP Device|||PakettiPopulateSendTracksSelectedTrack|||DDPPSTFST,device,paketti,populate,send,tracks,selected,track|||PakettiMenuConfig
 Menu Entry|||DSP Device:Paketti:Preset++:Hipass|||Preset++|||HipassPlusPlus|||DDPPH,device,paketti,preset,hipass|||PakettiPresetPlusPlus
 Menu Entry|||DSP Device:Paketti:Preset++:LFOEnvelopePan|||Preset++|||LFOEnvelopePanPresetPlusPlus|||DDPPL,device,paketti,preset,lfoenvelopepan|||PakettiPresetPlusPlus
+Menu Entry|||DSP Device:Paketti:Preset++:Multiband Send|||Preset++|||MultibandSendPresetPlusPlus|||DDPPMS,device,paketti,preset,multiband,send|||PakettiPresetPlusPlus
+Menu Entry|||DSP Device:Paketti:Preset++:Multiband Send Device|||Preset++|||function() PakettiMultibandSendDevicePresetPlusPlus() end|||DDPPMSD,device,paketti,preset,multiband,send,device|||PakettiPresetPlusPlus
+Menu Entry|||DSP Device:Paketti:Preset++:Send|||Preset++|||SendPresetPlusPlus|||DDPPS,device,paketti,preset,send|||PakettiPresetPlusPlus
+Menu Entry|||DSP Device:Paketti:Preset++:Send Device|||Preset++|||function() PakettiSendDevicePresetPlusPlus() end|||DDPPSD,device,paketti,preset,send,device|||PakettiPresetPlusPlus
 Menu Entry|||DSP Device:Paketti:Preset++:SeparateSyncLFO (Beatsgo LFO)|||Preset++|||SeparateSyncLFOBeatsgo|||DDPPSBL,device,paketti,preset,separatesynclfo,beatsgo|||PakettiPresetPlusPlus
 Menu Entry|||DSP Device:Paketti:Query Missing Device for Parameters|||DSP Device|||function() MissingDeviceParameters() end|||DDPQMDFP,device,paketti,query,missing,device,parameters|||PakettiMenuConfig
 Menu Entry|||DSP Device:Paketti:Quick Load Device Dialog...|||DSP Device|||pakettiQuickLoadDialog|||DDPQLDD,device,paketti,quick,load,device,dialog|||PakettiMenuConfig
@@ -132,7 +140,7 @@ Menu Entry|||Disk Browser:Paketti:Batch Convert SFZ to XRNI (Save Only)...|||Dis
 Menu Entry|||Disk Browser:Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load...|||Disk Browser|||function() PakettiBatchWaveToXRNI(true) end|||DBPBPWFIFTXL,disk,browser,paketti,batch,pakettify,wave,files,folder,xrni,load|||PakettiSamples
 Menu Entry|||Disk Browser:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...|||Disk Browser|||PakettiBatchWaveToXRNI|||DBPBPWFIFTXSO,disk,browser,paketti,batch,pakettify,wave,files,folder,xrni,save,only|||PakettiSamples
 Menu Entry|||Disk Browser:Paketti:Cycle Disk Browser Category|||Disk Browser|||function() DiskBrowserCategoryCycler() end|||DBPCDBC,disk,browser,paketti,cycle,disk,browser,category|||Paketti35
-Menu Entry|||Disk Browser:Paketti:Import/Export:Convert RX2 to PTI|||Import/Export|||rx2_to_pti_convert|||DBPIECRTP,disk,browser,paketti,import,export,convert|||PakettiMenuConfig
+Menu Entry|||Disk Browser:Paketti:Import/Export:Convert REX/RX2/ITI to PTI|||Import/Export|||universal_to_pti_convert|||DBPIECRRITP,disk,browser,paketti,import,export,convert|||PakettiMenuConfig
 Menu Entry|||Disk Browser:Paketti:Set to Instruments|||Disk Browser|||function() SetDiskBrowserCategory(2) end|||DBPSTI,disk,browser,paketti,instruments|||Paketti35
 Menu Entry|||Disk Browser:Paketti:Set to Other|||Disk Browser|||function() SetDiskBrowserCategory(4) end|||DBPSTO,disk,browser,paketti,other|||Paketti35
 Menu Entry|||Disk Browser:Paketti:Set to Samples|||Disk Browser|||function() SetDiskBrowserCategory(3) end|||DBPSTS,disk,browser,paketti,samples|||Paketti35
@@ -216,6 +224,8 @@ Menu Entry|||Instrument Box:Paketti:Instruments:Set All Instruments All Samples 
 Menu Entry|||Instrument Box:Paketti:Instruments:Set All Instruments All Samples Autoseek Off|||Instruments|||function() setAllInstrumentsAllSamplesAutoseek(0) end|||IBPISAIASAO,instrument,paketti,instruments,instruments,samples,autoseek|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Instruments:Set All Instruments All Samples Autoseek On|||Instruments|||function() setAllInstrumentsAllSamplesAutoseek(1) end|||IBPISAIASAO,instrument,paketti,instruments,instruments,samples,autoseek|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Instruments:Show All Instrument Properties|||Instruments|||function() InstrumentPropertiesControl(true) end|||IBPISAIP,instrument,paketti,instruments,show,instrument,properties|||PakettiMenuConfig
+Menu Entry|||Instrument Box:Paketti:Load RingMod Instrument|||Instrument Box|||PakettiLoadRingModInstrument|||IBPLRI,instrument,paketti,load,ringmod,instrument|||PakettiExperimental_Verify
+Menu Entry|||Instrument Box:Paketti:Load RingMod Legacy Instrument|||Instrument Box|||PakettiLoadRingModLegacyInstrument|||IBPLRLI,instrument,paketti,load,ringmod,legacy,instrument|||PakettiExperimental_Verify
 Menu Entry|||Instrument Box:Paketti:Load:Fill Empty Sample Slots (Randomized Folder)|||Load|||function() fillEmptySampleSlots() end|||IBPLFESSRF,instrument,paketti,load,fill,empty,sample,slots,randomized,folder|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Load:Load .MOD as Sample|||Load|||function() 
     local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"|||IBPLLMAS,instrument,paketti,load,load,sample|||PakettiMenuConfig
@@ -248,6 +258,7 @@ Menu Entry|||Instrument Box:Paketti:Plugins/Devices:Randomize Selected Instrumen
 Menu Entry|||Instrument Box:Paketti:Plugins/Devices:Show XO Plugin External Editor|||Plugins/Devices|||function() XOPointCloud() end|||IBPPDSXPEE,instrument,paketti,plugins,devices,show,plugin,external,editor|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Plugins/Devices:Switch Plugin AutoSuspend Off|||Plugins/Devices|||function() autosuspendOFF() end|||IBPPDSPAO,instrument,paketti,plugins,devices,switch,plugin,autosuspend|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Plugins/Devices:Toggle Mono Device|||Plugins/Devices|||function() PakettiToggleMono() end|||IBPPDTMD,instrument,paketti,plugins,devices,toggle,mono,device|||PakettiMenuConfig
+Menu Entry|||Instrument Box:Paketti:Polyend:Export .PTI Instrument|||Polyend|||pti_savesample|||IBPPEPI,instrument,paketti,polyend,export,instrument|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Record:Paketti Overdub 01 (Metronome/Line Input)|||Record|||function() recordtocurrenttrack(true, true,1) end|||IBPRPO0MLI,instrument,paketti,record,paketti,overdub,metronome,line,input|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Record:Paketti Overdub 01 (Metronome/No Line Input)|||Record|||function() recordtocurrenttrack(true, false,1) end|||IBPRPO0MNLI,instrument,paketti,record,paketti,overdub,metronome,line,input|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Record:Paketti Overdub 01 (No Metronome/Line Input)|||Record|||function() recordtocurrenttrack(false, true,1) end|||IBPRPO0NMLI,instrument,paketti,record,paketti,overdub,metronome,line,input|||PakettiMenuConfig
@@ -262,7 +273,6 @@ Menu Entry|||Instrument Box:Paketti:Samples:Sononymph:Load Selected Sample from 
 Menu Entry|||Instrument Box:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (Prompt)|||Samples|||function() start(false) if app then app:load_selected_sample_from_sononym(true) end end|||IBPSSLSSFSP,instrument,paketti,samples,sononymph,load,selected,sample,from,sononym,prompt|||Sononymph/AppMain
 Menu Entry|||Instrument Box:Paketti:Samples:Sononymph:Search Selected Sample in Sononym|||Samples|||search_selected_sample|||IBPSSSSSIS,instrument,paketti,samples,sononymph,search,selected,sample,sononym|||Sononymph/AppMain
 Menu Entry|||Instrument Box:Paketti:Samples:Sononymph:Toggle Sononym Auto-Transfer|||Samples|||function() start(false) if app then app:toggle_live_transfer() end end|||IBPSSTSAT,instrument,paketti,samples,sononymph,toggle,sononym,auto,transfer|||Sononymph/AppMain
-Menu Entry|||Instrument Box:Paketti:Save:Export .PTI Instrument|||Save|||pti_savesample|||IBPSEPI,instrument,paketti,save,export,instrument|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Save:Save All Samples to Folder...|||Save|||function() saveAllSamplesToFolder() end|||IBPSSASTF,instrument,paketti,save,save,samples,folder|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Save:Save Unused Instruments (.XRNI)...|||Save|||function() saveUnusedInstruments() end|||IBPSSUIX,instrument,paketti,save,save,unused,instruments,xrni|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Save:Save Unused Samples (.WAV&.XRNI)...|||Save|||function() saveUnusedSamples() end|||IBPSSUSWX,instrument,paketti,save,save,unused,samples,xrni|||PakettiMenuConfig
@@ -294,6 +304,8 @@ Menu Entry|||Instrument Box:Paketti:Xperimental/WIP:Sample Sorter:Sort by Veloci
 Menu Entry|||Instrument Modulation:Paketti:Delete All Modulation Sets|||Instrument Modulation|||function() selectedInstrumentDeleteAllSampleModulationSets() end|||IMPDAMS,instrument,modulation,paketti,delete,modulation,sets|||PakettiRequests
 Menu Entry|||Instrument Modulation:Paketti:Distribute All Samples to Separate FX & Mod Sets|||Instrument Modulation|||function() selectedInstrumentDistributeToSeparateFxAndModChains() end|||IMPDASTSFMS,instrument,modulation,paketti,distribute,samples,separate,sets|||PakettiRequests
 Menu Entry|||Instrument Modulation:Paketti:Distribute All Samples to Separate Modulation Sets|||Instrument Modulation|||function() selectedInstrumentDistributeToSeparateModulationSets() end|||IMPDASTSMS,instrument,modulation,paketti,distribute,samples,separate,modulation,sets|||PakettiRequests
+Menu Entry|||Main Menu:File:Clear Unused Patterns|||Main Menu|||PakettiClearUnusedPatterns|||MMFCUP,main,menu,file,clear,unused,patterns|||PakettiMenuConfig
+Menu Entry|||Main Menu:File:Clear Unused Patterns|||Main Menu|||PakettiClearUnusedPatterns|||MMFCUP,main,menu,file,clear,unused,patterns|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Delete Unused Instruments...|||Main Menu|||deleteUnusedInstruments|||MMFDUI,main,menu,file,delete,unused,instruments|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Delete Unused Instruments...|||Main Menu|||deleteUnusedInstruments|||MMFDUI,main,menu,file,delete,unused,instruments|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Delete Unused Samples...|||Main Menu|||deleteUnusedSamples|||MMFDUS,main,menu,file,delete,unused,samples|||PakettiMenuConfig
@@ -304,6 +316,8 @@ Menu Entry|||Main Menu:File:Load Most Recently Saved Song|||Main Menu|||function
 Menu Entry|||Main Menu:File:Load Most Recently Saved Song|||Main Menu|||function() loadRecentlySavedSong() end|||MMFLMRSS,main,menu,file,load,most,recently,saved,song|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Paketti New Song Dialog...|||File|||function() pakettiImpulseTrackerNewSongDialog() end|||MMFPNSD,main,menu,file,paketti,song,dialog|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Paketti New Song Dialog...|||File|||function() pakettiImpulseTrackerNewSongDialog() end|||MMFPNSD,main,menu,file,paketti,song,dialog|||PakettiMenuConfig
+Menu Entry|||Main Menu:File:Paketti:Clear Unused Patterns|||File|||PakettiClearUnusedPatterns|||MMFPCUP,main,menu,file,paketti,clear,unused,patterns|||PakettiMenuConfig
+Menu Entry|||Main Menu:File:Paketti:Clear Unused Patterns|||File|||PakettiClearUnusedPatterns|||MMFPCUP,main,menu,file,paketti,clear,unused,patterns|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Paketti:Delete Unused Instruments...|||File|||deleteUnusedInstruments|||MMFPDUI,main,menu,file,paketti,delete,unused,instruments|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Paketti:Delete Unused Instruments...|||File|||deleteUnusedInstruments|||MMFPDUI,main,menu,file,paketti,delete,unused,instruments|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Paketti:Delete Unused Samples...|||File|||deleteUnusedSamples|||MMFPDUS,main,menu,file,paketti,delete,unused,samples|||PakettiMenuConfig
@@ -326,8 +340,8 @@ Menu Entry|||Main Menu:File:Paketti:Save Unused Instruments (.XRNI)...|||File|||
 Menu Entry|||Main Menu:File:Paketti:Save Unused Instruments (.XRNI)...|||File|||saveUnusedInstruments|||MMFPSUIX,main,menu,file,paketti,save,unused,instruments,xrni|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Paketti:Save Unused Samples (.WAV&.XRNI)...|||File|||saveUnusedSamples|||MMFPSUSWX,main,menu,file,paketti,save,unused,samples,xrni|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Paketti:Save Unused Samples (.WAV&.XRNI)...|||File|||saveUnusedSamples|||MMFPSUSWX,main,menu,file,paketti,save,unused,samples,xrni|||PakettiMenuConfig
-Menu Entry|||Main Menu:File:Paketti:Wipe Song Patterns|||File|||function() wipeSongPattern() end|||MMFPWSP,main,menu,file,paketti,wipe,song,patterns|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Paketti:Wipe Song Patterns|||File|||function() wipeSongPattern() end|||MMFPWSP,main,menu,file,paketti,wipe,song,patterns|||PakettiExperimental_Verify
+Menu Entry|||Main Menu:File:Paketti:Wipe Song Patterns|||File|||function() wipeSongPattern() end|||MMFPWSP,main,menu,file,paketti,wipe,song,patterns|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Remove Empty Tracks (No Notes, No DSP)...|||Main Menu|||PakettiClearanceRemoveEmptyTracksAndDSP|||MMFRETNNND,main,menu,file,remove,empty,tracks,notes|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Remove Empty Tracks...|||Main Menu|||PakettiClearanceRemoveEmptyTracks|||MMFRET,main,menu,file,remove,empty,tracks|||PakettiMenuConfig
 Menu Entry|||Main Menu:File:Save (Paketti Track Dater & Titler)...|||Main Menu|||pakettiTitlerDialog|||MMFSPTDT,main,menu,file,save,paketti,track,dater,titler|||PakettiMenuConfig
@@ -348,6 +362,7 @@ Menu Entry|||Main Menu:Paketti:Set Sync Mode to (Internal)|||Main Menu|||functio
 Menu Entry|||Main Menu:Paketti:Set Sync Mode to (Jack)|||Main Menu|||function() setSyncMode(renoise.Transport.SYNC_MODE_JACK)end|||MMPSSMTJ,main,menu,paketti,sync,mode,jack|||Paketti35
 Menu Entry|||Main Menu:Paketti:Set Sync Mode to (Midi Clock)|||Main Menu|||function() setSyncMode(renoise.Transport.SYNC_MODE_MIDI_CLOCK) end|||MMPSSMTMC,main,menu,paketti,sync,mode,midi,clock|||Paketti35
 Menu Entry|||Main Menu:Tools:Automation Stack|||Main Menu|||function() PakettiAutomationStackShowDialog() end|||MMTAS,main,menu,tools,automation,stack|||PakettiAutomationStack
+Menu Entry|||Main Menu:Tools:Automation Stack - Select Arbitrary Parameters|||Main Menu|||function() PakettiAutomationStack_ShowParameterSelectionDialog() end|||MMTASSAP,main,menu,tools,automation,stack,select,arbitrary,parameters|||PakettiAutomationStack
 Menu Entry|||Main Menu:Tools:Chebyshev Polynomial Waveshaper...|||Main Menu|||show_chebyshev_waveshaper|||MMTCPW,main,menu,tools,chebyshev,polynomial,waveshaper|||PakettiChebyshevWaveshaper
 Menu Entry|||Main Menu:Tools:Filename-Based Keyzone Mapping|||Main Menu|||function() pakettiKeyzoneDistributorFilenameDialog() end|||MMTFBKM,main,menu,tools,filename,based,keyzone,mapping|||PakettiKeyzoneDistributor
 Menu Entry|||Main Menu:Tools:Keyzone Distributor|||Main Menu|||function() pakettiKeyzoneDistributorDialog() end|||MMTKD,main,menu,tools,keyzone,distributor|||PakettiKeyzoneDistributor
@@ -356,6 +371,8 @@ Menu Entry|||Main Menu:Tools:Paketti Capture Last Take...|||Tools|||PakettiCaptu
 Menu Entry|||Main Menu:Tools:Paketti EQ30|||Tools|||PakettiEQ10ExperimentInit|||MMTPE,main,menu,tools,paketti,eq30|||PakettiEQ30
 Menu Entry|||Main Menu:Tools:Paketti EQ30 Unused Note Frequency Reduction Flavor|||Tools|||PakettiEQ30UnusedNoteFrequencyReductionFlavor|||MMTPEUNFRF,main,menu,tools,paketti,eq30,unused,note,frequency,reduction,flavor|||PakettiEQ30
 Menu Entry|||Main Menu:Tools:Paketti EQ64 Unused Note Frequency Reduction Flavor|||Tools|||PakettiEQ64UnusedNoteFrequencyReductionFlavor|||MMTPEUNFRF,main,menu,tools,paketti,eq64,unused,note,frequency,reduction,flavor|||PakettiEQ30
+Menu Entry|||Main Menu:Tools:Paketti Fill Dialog...|||Tools|||PakettiFillShowDialog|||MMTPFD,main,menu,tools,paketti,fill,dialog|||PakettiFill
+Menu Entry|||Main Menu:Tools:Paketti Fuzzy Sample Search...|||Tools|||PakettiFuzzySampleSearchDialog|||MMTPFSS,main,menu,tools,paketti,fuzzy,sample,search|||PakettiFuzzySampleSearch
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:CCizer Loader...|||Tools|||PakettiCCizerLoader|||MMTPGCL,main,menu,tools,paketti,gadgets,ccizer,loader|||PakettiCCizerLoader
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Fuzzy Search Track...|||Tools|||pakettiFuzzySearchTrackDialog|||MMTPGFST,main,menu,tools,paketti,gadgets,fuzzy,search,track|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Keyzone Distributor Dialog...|||Tools|||function() pakettiKeyzoneDistributorDialog() end|||MMTPGKDD,main,menu,tools,paketti,gadgets,keyzone,distributor,dialog|||PakettiMenuConfig
@@ -395,6 +412,7 @@ Menu Entry|||Main Menu:Tools:Paketti Gadgets:Track Routings...|||Tools|||functio
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Transpose Blocks Dialog...|||Tools|||show_transpose_block_dialog|||MMTPGTBD,main,menu,tools,paketti,gadgets,transpose,blocks,dialog|||PakettiTransposeBlock
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Unison Generator|||Tools|||PakettiCreateUnisonSamples|||MMTPGUG,main,menu,tools,paketti,gadgets,unison,generator|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Multitap Experiment|||Tools|||PakettiMultitapExperimentInit|||MMTPME,main,menu,tools,paketti,multitap,experiment|||PakettiMultitapExperiment
+Menu Entry|||Main Menu:Tools:Paketti Sample Effect Generator|||Tools|||PakettiSampleEffectGeneratorInit|||MMTPSEG,main,menu,tools,paketti,sample,effect,generator|||PakettiSampleEffectGenerator
 Menu Entry|||Main Menu:Tools:Paketti Selected Device Parameter Editor|||Tools|||PakettiCanvasExperimentsInit|||MMTPSDPE,main,menu,tools,paketti,selected,device,parameter,editor|||PakettiCanvasExperiments
 Menu Entry|||Main Menu:Tools:Paketti..:Detect Sample BPM|||Tools|||pakettiIntelligentBPMDetection|||MMTPDSB,main,menu,tools,paketti,detect,sample|||PakettiOldschoolSlicePitch
 Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Advanced Subdivision Calculator|||Tools|||function() show_subdivision_calculator_dialog() end|||MMTPMMASC,main,menu,tools,paketti,metric,modulation,advanced,subdivision,calculator|||PakettiMetricModulation
@@ -406,6 +424,7 @@ Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Quick 4:3 (4/4→3/4 fe
 Menu Entry|||Main Menu:Tools:Paketti..:Other..:Open Last Stem Slicer Output...|||Tools|||openLastStemSlicerOutput|||MMTPOOLSSO,main,menu,tools,paketti,other,open,last,stem,slicer,output|||PakettiStemSlicer
 Menu Entry|||Main Menu:Tools:Paketti..:Samples..:Set All Instruments Samples NNA to Cut|||Tools|||function() PakettiNNASetAllInstrumentsSamplesCut() end|||MMTPSSAISNTC,main,menu,tools,paketti,samples,instruments,samples|||PakettiSamples
 Menu Entry|||Main Menu:Tools:Paketti:!!About:About Paketti/Donations...|||!!About|||function() pakettiAboutDonations() end|||MMTPAAPD,main,menu,tools,paketti,about,about,paketti,donations|||PakettiMenuConfig
+Menu Entry|||Main Menu:Tools:Paketti:!Loaders:Fuzzy Sample Search Dialog...|||!Loaders|||PakettiFuzzySampleSearchDialog|||MMTPLFSSD,main,menu,tools,paketti,loaders,fuzzy,sample,search,dialog|||PakettiFuzzySampleSearch
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (Agave)|||!Preferences|||function() ChangeFonts3() end|||MMTPPCFA,main,menu,tools,paketti,preferences,change,fonts,agave|||PakettiCustomization
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (classic)|||!Preferences|||function() ChangeFonts1() end|||MMTPPCFC,main,menu,tools,paketti,preferences,change,fonts,classic|||PakettiCustomization
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (default)|||!Preferences|||function() ChangeFonts2() end|||MMTPPCFD,main,menu,tools,paketti,preferences,change,fonts,default|||PakettiCustomization
@@ -500,7 +519,7 @@ Menu Entry|||Main Menu:Tools:Paketti:Instruments:Duplicate and Reverse Instrumen
 Menu Entry|||Main Menu:Tools:Paketti:Instruments:File Formats:Akai Formats Info...|||Instruments|||function() showAkaiFormatsInfo() end|||MMTPIFFAFI,main,menu,tools,paketti,instruments,file,formats,akai,formats,info|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Instruments:File Formats:Check Akai Importers...|||Instruments|||function() checkAkaiImportersAvailable() end|||MMTPIFFCAI,main,menu,tools,paketti,instruments,file,formats,check,akai,importers|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Instruments:File Formats:Convert IFF to WAV...|||Instruments|||convertIFFToWAV|||MMTPIFFCITW,main,menu,tools,paketti,instruments,file,formats,convert|||PakettiMenuConfig
-Menu Entry|||Main Menu:Tools:Paketti:Instruments:File Formats:Convert RX2 to PTI|||Instruments|||rx2_to_pti_convert|||MMTPIFFCRTP,main,menu,tools,paketti,instruments,file,formats,convert|||PakettiMenuConfig
+Menu Entry|||Main Menu:Tools:Paketti:Instruments:File Formats:Convert REX/RX2/ITI to PTI|||Instruments|||universal_to_pti_convert|||MMTPIFFCRRITP,main,menu,tools,paketti,instruments,file,formats,convert|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Instruments:File Formats:Convert WAV to IFF...|||Instruments|||convertWAVToIFF|||MMTPIFFCWTI,main,menu,tools,paketti,instruments,file,formats,convert|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Instruments:File Formats:Dump REX Structure to Text|||Instruments|||function()
     local file_path = renoise.app():prompt_for_filename_to_read({ "*.rex","*.REX"|||MMTPIFFDRSTT,main,menu,tools,paketti,instruments,file,formats,dump,structure,text|||PakettiMenuConfig
@@ -585,6 +604,11 @@ Menu Entry|||Main Menu:Tools:Paketti:LFO Write:LFO Write to Phrase LPB (1-64)|||
 Menu Entry|||Main Menu:Tools:Paketti:LFO Write:LFO Write to Selected Automation Parameter|||LFO Write|||toggle_parameter_following|||MMTPLWLWTSAP,main,menu,tools,paketti,write,write,selected,automation,parameter|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:LFO Write:Single Parameter Write to Automation|||LFO Write|||toggle_single_parameter_following|||MMTPLWSPWTA,main,menu,tools,paketti,write,single,parameter,write,automation|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Load Random Sample to Pattern (from Dialog)|||Tools|||loadRandomSampleToPatternDialog|||MMTPLRSTPFD,main,menu,tools,paketti,load,random,sample,pattern,from,dialog|||PakettiSamples
+Menu Entry|||Main Menu:Tools:Paketti:Load RingMod Instrument|||Tools|||PakettiLoadRingModInstrument|||MMTPLRI,main,menu,tools,paketti,load,ringmod,instrument|||PakettiExperimental_Verify
+Menu Entry|||Main Menu:Tools:Paketti:Load RingMod Legacy Instrument|||Tools|||PakettiLoadRingModLegacyInstrument|||MMTPLRLI,main,menu,tools,paketti,load,ringmod,legacy,instrument|||PakettiExperimental_Verify
+Menu Entry|||Main Menu:Tools:Paketti:Melodic Slice Create Chain|||Tools|||PakettiMelodicSliceCreateChain|||MMTPMSCC,main,menu,tools,paketti,melodic,slice,create,chain|||PakettiPolyendMelodicSliceExport
+Menu Entry|||Main Menu:Tools:Paketti:Melodic Slice Export (One-Shot)...|||Tools|||PakettiMelodicSliceExport|||MMTPMSEOS,main,menu,tools,paketti,melodic,slice,export,shot|||PakettiPolyendMelodicSliceExport
+Menu Entry|||Main Menu:Tools:Paketti:Melodic Slice Export Current...|||Tools|||PakettiMelodicSliceExportCurrent|||MMTPMSEC,main,menu,tools,paketti,melodic,slice,export,current|||PakettiPolyendMelodicSliceExport
 Menu Entry|||Main Menu:Tools:Paketti:Navigation:Cycle Backwards through Global View Presets|||Navigation|||PakettiSelectPreviousGlobalViewPreset|||MMTPNCBTGVP,main,menu,tools,paketti,navigation,cycle,backwards,through,global,view,presets|||PakettiForeignSnippets
 Menu Entry|||Main Menu:Tools:Paketti:Navigation:Cycle Forward through Global View Presets|||Navigation|||PakettiSelectNextGlobalViewPreset|||MMTPNCFTGVP,main,menu,tools,paketti,navigation,cycle,forward,through,global,view,presets|||PakettiForeignSnippets
 Menu Entry|||Main Menu:Tools:Paketti:Octatrack:Generate Drumkit (Play to End)|||Octatrack|||function() PakettiOTDrumkitPlayToEnd() end|||MMTPOGDPTE,main,menu,tools,paketti,octatrack,generate,drumkit,play|||PakettiOTExport
@@ -1018,6 +1042,10 @@ Menu Entry|||Mixer:Paketti:Populate Send Tracks for All Tracks|||Mixer|||Paketti
 Menu Entry|||Mixer:Paketti:Populate Send Tracks for Selected Track|||Mixer|||PakettiPopulateSendTracksSelectedTrack|||MPPSTFST,mixer,paketti,populate,send,tracks,selected,track|||PakettiMenuConfig
 Menu Entry|||Mixer:Paketti:Preset++:Hipass|||Preset++|||HipassPlusPlus|||MPPH,mixer,paketti,preset,hipass|||PakettiPresetPlusPlus
 Menu Entry|||Mixer:Paketti:Preset++:LFOEnvelopePan|||Preset++|||LFOEnvelopePanPresetPlusPlus|||MPPL,mixer,paketti,preset,lfoenvelopepan|||PakettiPresetPlusPlus
+Menu Entry|||Mixer:Paketti:Preset++:Multiband Send|||Preset++|||MultibandSendPresetPlusPlus|||MPPMS,mixer,paketti,preset,multiband,send|||PakettiPresetPlusPlus
+Menu Entry|||Mixer:Paketti:Preset++:Multiband Send Device|||Preset++|||function() PakettiMultibandSendDevicePresetPlusPlus() end|||MPPMSD,mixer,paketti,preset,multiband,send,device|||PakettiPresetPlusPlus
+Menu Entry|||Mixer:Paketti:Preset++:Send|||Preset++|||SendPresetPlusPlus|||MPPS,mixer,paketti,preset,send|||PakettiPresetPlusPlus
+Menu Entry|||Mixer:Paketti:Preset++:Send Device|||Preset++|||function() PakettiSendDevicePresetPlusPlus() end|||MPPSD,mixer,paketti,preset,send,device|||PakettiPresetPlusPlus
 Menu Entry|||Mixer:Paketti:Preset++:SeparateSyncLFO (Beatsgo LFO)|||Preset++|||SeparateSyncLFOBeatsgo|||MPPSBL,mixer,paketti,preset,separatesynclfo,beatsgo|||PakettiPresetPlusPlus
 Menu Entry|||Mixer:Paketti:Quick LFO Custom Editor|||Mixer|||pakettiQuickLFOCustomEditor|||MPQLCE,mixer,paketti,quick,custom,editor|||PakettiXMLizer
 Menu Entry|||Mixer:Paketti:Quick Load Device Dialog...|||Mixer|||pakettiQuickLoadDialog|||MPQLDD,mixer,paketti,quick,load,device,dialog|||PakettiMenuConfig
@@ -1155,6 +1183,7 @@ Menu Entry|||Pattern Editor:Paketti..:Slices to Phrase (phrase only)|||Pattern E
 Menu Entry|||Pattern Editor:Paketti..:Slices to Phrase (with trigger)|||Pattern Editor|||function() pakettiSlicesToPhrase(true) end|||PEPSTPWT,pattern,editor,paketti,slices,phrase,with,trigger|||PakettiOldschoolSlicePitch
 Menu Entry|||Pattern Editor:Paketti:Advanced Subdivision Calculator|||Pattern Editor|||function() show_subdivision_calculator_dialog() end|||PEPASC,pattern,editor,paketti,advanced,subdivision,calculator|||PakettiMetricModulation
 Menu Entry|||Pattern Editor:Paketti:Automation:Automation Stack|||Automation|||function() PakettiAutomationStackShowDialog() end|||PEPAAS,pattern,editor,paketti,automation,automation,stack|||PakettiAutomationStack
+Menu Entry|||Pattern Editor:Paketti:Automation:Automation Stack - Select Arbitrary Parameters|||Automation|||function() PakettiAutomationStack_ShowParameterSelectionDialog() end|||PEPAASSAP,pattern,editor,paketti,automation,automation,stack,select,arbitrary,parameters|||PakettiAutomationStack
 Menu Entry|||Pattern Editor:Paketti:Automation:Convert FX to Automation|||Automation|||read_fx_to_automation|||PEPACFTA,pattern,editor,paketti,automation,convert,automation|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti:Automation:Snapshot All Devices on Selected Track to Automation|||Automation|||snapshot_all_devices_to_automation|||PEPASADOSTTA,pattern,editor,paketti,automation,snapshot,devices,selected,track,automation|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti:Automation:Snapshot Selected Device to Automation|||Automation|||snapshot_selected_device_to_automation|||PEPASSDTA,pattern,editor,paketti,automation,snapshot,selected,device,automation|||PakettiMenuConfig
@@ -1499,6 +1528,7 @@ Menu Entry|||Pattern Matrix:Paketti:Automation Curves:Top to Center (Lin) for Pa
 Menu Entry|||Pattern Matrix:Paketti:Automation:Snapshot All Devices on Selected Track to Automation|||Automation|||snapshot_all_devices_to_automation|||PMPASADOSTTA,pattern,matrix,paketti,automation,snapshot,devices,selected,track,automation|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti:Bypass All Devices on Channel|||Pattern Matrix|||function() effectbypass() end|||PMPBADOC,pattern,matrix,paketti,bypass,devices,channel|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti:Bypass EFX (Write to Pattern)|||Pattern Matrix|||function() effectbypasspattern()  end|||PMPBEWTP,pattern,matrix,paketti,bypass,write,pattern|||PakettiMenuConfig
+Menu Entry|||Pattern Matrix:Paketti:Clear Unused Patterns|||Pattern Matrix|||PakettiClearUnusedPatterns|||PMPCUP,pattern,matrix,paketti,clear,unused,patterns|||PakettiPatternSequencer
 Menu Entry|||Pattern Matrix:Paketti:Clone Current Sequence|||Pattern Matrix|||clone_current_sequence|||PMPCCS,pattern,matrix,paketti,clone,current,sequence|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti:Clone Pattern (Without Automation)|||Pattern Matrix|||function() clone_pattern_without_automation() end|||PMPCPWA,pattern,matrix,paketti,clone,pattern,without,automation|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti:Clone Sequence (With Automation)|||Pattern Matrix|||function() clone_sequence_with_automation_only() end|||PMPCSWA,pattern,matrix,paketti,clone,sequence,with,automation|||PakettiMenuConfig
@@ -1569,6 +1599,7 @@ Menu Entry|||Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Polyend Pattern Brow
 Menu Entry|||Pattern Sequencer:Paketti Gadgets:Paketti Sequencer Settings Dialog...|||Pattern Sequencer|||pakettiSequencerSettingsDialog|||PSPGPSSD,pattern,sequencer,paketti,gadgets,paketti,sequencer,settings,dialog|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti Gadgets:Paketti Slab'o'Patterns...|||Pattern Sequencer|||PakettiSlabOPatternsToggle|||PSPGPSOP,pattern,sequencer,paketti,gadgets,paketti,slab,patterns|||PakettiSlabOPatterns
 Menu Entry|||Pattern Sequencer:Paketti Gadgets:Sectionizer...|||Pattern Sequencer|||PakettiSectionizer|||PSPGS,pattern,sequencer,paketti,gadgets,sectionizer|||PakettiSandbox
+Menu Entry|||Pattern Sequencer:Paketti:Clear Unused Patterns|||Pattern Sequencer|||PakettiClearUnusedPatterns|||PSPCUP,pattern,sequencer,paketti,clear,unused,patterns|||PakettiPatternSequencer
 Menu Entry|||Pattern Sequencer:Paketti:Clear all Pattern Names|||Pattern Sequencer|||PakettiPatternNamesClearAll|||PSPCAPN,pattern,sequencer,paketti,clear,pattern,names|||PakettiSandbox
 Menu Entry|||Pattern Sequencer:Paketti:Clone Current Sequence|||Pattern Sequencer|||clone_current_sequence|||PSPCCS,pattern,sequencer,paketti,clone,current,sequence|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Clone and Expand Pattern to LPB*2|||Pattern Sequencer|||function() cloneAndExpandPatternToLPBDouble()end|||PSPCAEPTL2,pattern,sequencer,paketti,clone,expand,pattern|||PakettiMenuConfig
@@ -2375,6 +2406,7 @@ Keybinding|||Global:Paketti:Clear All TrackDSPs from Current Track|||Global|||fu
     end end|||GPCATFCT,global,paketti,clear,trackdsps,from,current,track|||PakettiLoaders
 Keybinding|||Global:Paketti:Clear Pattern Sequence Loop|||Global|||function() TKNAClearPatternSequenceLoop() end|||GPCPSL,global,paketti,clear,pattern,sequence,loop|||PakettiTkna
 Keybinding|||Global:Paketti:Clear PitchStep Steps|||Global|||function() PakettiClearStepper("Pitch Stepper") end|||GPCPS,global,paketti,clear,pitchstep,steps|||PakettiSteppers
+Keybinding|||Global:Paketti:Clear Unused Patterns|||Global|||PakettiClearUnusedPatterns|||GPCUP,global,paketti,clear,unused,patterns|||PakettiPatternSequencer
 Keybinding|||Global:Paketti:Clear all Pattern Names|||Global|||PakettiPatternNamesClearAll|||GPCAPN,global,paketti,clear,pattern,names|||PakettiSandbox
 Keybinding|||Global:Paketti:Clear/Wipe Selected Track TrackDSPs|||Global|||function() wipeSelectedTrackTrackDSPs() end|||GPCWSTT,global,paketti,clear,wipe,selected,track,trackdsps|||PakettiPatternEditor
 Keybinding|||Global:Paketti:Clone Current Pattern to Current Sequence|||Global|||function() clonePTN() end|||GPCCPTCS,global,paketti,clone,current,pattern,current,sequence|||PakettiPatternEditor
@@ -2576,6 +2608,7 @@ Keybinding|||Global:Paketti:Flood Fill Automation Selection|||Global|||PakettiAu
 Keybinding|||Global:Paketti:Flood Fill Column with Row|||Global|||function() pakettiFloodFillColumn(false) end|||GPFFCWR,global,paketti,flood,fill,column,with|||PakettiPatternEditor
 Keybinding|||Global:Paketti:Flood Fill Column with Row by EditStep|||Global|||function() pakettiFloodFillColumn(true) end|||GPFFCWRBE,global,paketti,flood,fill,column,with,editstep|||PakettiPatternEditor
 Keybinding|||Global:Paketti:Fullscreen (2nd)|||Global|||function() SecondFullscreen() end|||GPF2,global,paketti,fullscreen|||PakettiControls
+Keybinding|||Global:Paketti:Fuzzy Sample Search Dialog...|||Global|||PakettiFuzzySampleSearchDialog|||GPFSSD,global,paketti,fuzzy,sample,search,dialog|||PakettiFuzzySampleSearch
 Keybinding|||Global:Paketti:Fuzzy Search Track|||Global|||pakettiFuzzySearchTrackDialog|||GPFST,global,paketti,fuzzy,search,track|||PakettiRequests
 Keybinding|||Global:Paketti:Generate AM Sinewave 1000Hz (20x mod)|||Global|||function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end|||GPGAS12M,global,paketti,generate,sinewave,1000hz|||PakettiExperimental_Verify
 Keybinding|||Global:Paketti:Generate AM Sinewave 440Hz (20x mod)|||Global|||function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end|||GPGAS42M,global,paketti,generate,sinewave,440hz|||PakettiExperimental_Verify
@@ -2851,6 +2884,8 @@ Keybinding|||Global:Paketti:Load Random Samples (32) from Path|||Global|||functi
 Keybinding|||Global:Paketti:Load Random amount (1...12) of AKWF Samples|||Global|||function() load_random_akwf_sample("random") end|||GPLRA11OAS,global,paketti,load,random,amount,akwf,samples|||PakettiAKWF
 Keybinding|||Global:Paketti:Load Recently Saved Song|||Global|||function() loadRecentlySavedSong() end|||GPLRSS,global,paketti,load,recently,saved,song|||PakettiControls
 Keybinding|||Global:Paketti:Load Rhino 2.1 AU|||Global|||function() LoadRhino() end|||GPLR21A,global,paketti,load,rhino|||PakettiLoaders
+Keybinding|||Global:Paketti:Load RingMod Instrument|||Global|||PakettiLoadRingModInstrument|||GPLRI,global,paketti,load,ringmod,instrument|||PakettiExperimental_Verify
+Keybinding|||Global:Paketti:Load RingMod Legacy Instrument|||Global|||PakettiLoadRingModLegacyInstrument|||GPLRLI,global,paketti,load,ringmod,legacy,instrument|||PakettiExperimental_Verify
 Keybinding|||Global:Paketti:Load Surge (VST)|||Global|||function() renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties:load_plugin("Audio/Generators/VST/Surge")
 local pd=renoise.song().selected_instrument.plugin_properties.plugin_device
  if pd.external_editor_visible==false then pd.external_editor_visible=true end 
@@ -2879,6 +2914,9 @@ Keybinding|||Global:Paketti:Master Track to Mono and Hard Right|||Global|||funct
 Keybinding|||Global:Paketti:Match Effect Column to Current Row (All Rows)|||Global|||PakettiMatchEffectColumnToCurrentRowAll|||GPMECTCRAR,global,paketti,match,effect,column,current,rows|||PakettiPatternEditor
 Keybinding|||Global:Paketti:Match Effect Column to Current Row (Forward)|||Global|||PakettiMatchEffectColumnToCurrentRowForward|||GPMECTCRF,global,paketti,match,effect,column,current,forward|||PakettiPatternEditor
 Keybinding|||Global:Paketti:Max Amp DC Offset Kick Generator|||Global|||function() pakettiMaxAmplitudeDCOffsetKickCreator() end|||GPMADOKG,global,paketti,offset,kick,generator|||PakettiAudioProcessing
+Keybinding|||Global:Paketti:Melodic Slice Create Chain|||Global|||PakettiMelodicSliceCreateChain|||GPMSCC,global,paketti,melodic,slice,create,chain|||PakettiPolyendMelodicSliceExport
+Keybinding|||Global:Paketti:Melodic Slice Export (One-Shot)|||Global|||PakettiMelodicSliceExport|||GPMSEOS,global,paketti,melodic,slice,export,shot|||PakettiPolyendMelodicSliceExport
+Keybinding|||Global:Paketti:Melodic Slice Export Current|||Global|||PakettiMelodicSliceExportCurrent|||GPMSEC,global,paketti,melodic,slice,export,current|||PakettiPolyendMelodicSliceExport
 Keybinding|||Global:Paketti:Metric Modulation Calculator|||Global|||function() show_metric_modulation_dialog() end|||GPMMC,global,paketti,metric,modulation,calculator|||PakettiMetricModulation
 Keybinding|||Global:Paketti:Metronome BPB Decrease (-1)|||Global|||function() adjust_metronome(0, -1) end|||GPMBD1,-1,global,paketti,metronome,decrease|||PakettiPatternEditor
 Keybinding|||Global:Paketti:Metronome BPB Increase (+1)|||Global|||function() adjust_metronome(0, 1) end|||GPMBI1,+1,global,paketti,metronome,increase|||PakettiPatternEditor
@@ -2917,6 +2955,8 @@ Keybinding|||Global:Paketti:Move Slice Start Right by 500|||Global|||create_slic
 Keybinding|||Global:Paketti:Move Track Left|||Global|||moveTrackLeft|||GPMTL,global,paketti,move,track,left|||PakettiPatternEditor
 Keybinding|||Global:Paketti:Move Track Right|||Global|||moveTrackRight|||GPMTR,global,paketti,move,track,right|||PakettiPatternEditor
 Keybinding|||Global:Paketti:Multi-File Raw Loader (8-bit)|||Global|||pakettiMultiFileRawLoader|||GPMFRL8B,global,paketti,multi,file,loader|||PakettiImport
+Keybinding|||Global:Paketti:Multiband Send (Preset++)|||Global|||MultibandSendPresetPlusPlus|||GPMSP,global,paketti,multiband,send,preset|||PakettiPresetPlusPlus
+Keybinding|||Global:Paketti:Multiband Send Device (Preset++)|||Global|||function() PakettiMultibandSendDevicePresetPlusPlus() end|||GPMSDP,global,paketti,multiband,send,device,preset|||PakettiPresetPlusPlus
 Keybinding|||Global:Paketti:Multiply BPM & Halve LPB|||Global|||pakettiBPMMultiplyHalveLPB|||GPMBHL,global,paketti,multiply,halve|||PakettiBPM
 Keybinding|||Global:Paketti:Mute Selected Track|||Global|||muteSelectedTrack|||GPMST,global,paketti,mute,selected,track|||PakettiExperimental_Verify
 Keybinding|||Global:Paketti:Next Wavetable Cycle|||Global|||function() PakettiWavetablerMoveLoopCycle(1) end|||GPNWC,global,paketti,next,wavetable,cycle|||PakettiWavetabler
@@ -2985,6 +3025,7 @@ Keybinding|||Global:Paketti:Paketti Dynamic View Preferences Dialog 5-8...|||Glo
 Keybinding|||Global:Paketti:Paketti EQ30|||Global|||PakettiEQ10ExperimentInit|||GPPE,global,paketti,paketti,eq30|||PakettiEQ30
 Keybinding|||Global:Paketti:Paketti EQ30 Unused Note Frequency Reduction Flavor|||Global|||PakettiEQ30UnusedNoteFrequencyReductionFlavor|||GPPEUNFRF,global,paketti,paketti,eq30,unused,note,frequency,reduction,flavor|||PakettiEQ30
 Keybinding|||Global:Paketti:Paketti EQ64 Unused Note Frequency Reduction Flavor|||Global|||PakettiEQ64UnusedNoteFrequencyReductionFlavor|||GPPEUNFRF,global,paketti,paketti,eq64,unused,note,frequency,reduction,flavor|||PakettiEQ30
+Keybinding|||Global:Paketti:Paketti Fill Dialog...|||Global|||PakettiFillShowDialog|||GPPFD,global,paketti,paketti,fill,dialog|||PakettiFill
 Keybinding|||Global:Paketti:Paketti Function Search...|||Global|||pakettiAutocompleteToggle|||GPPFS,global,paketti,paketti,function,search|||PakettiAutocomplete
 Keybinding|||Global:Paketti:Paketti Gater Dialog...|||Global|||function()
   if dialog and dialog.visible then
@@ -3023,6 +3064,7 @@ Keybinding|||Global:Paketti:Paketti PitchBend Drumkit Sample Loader (Random)|||G
 Keybinding|||Global:Paketti:Paketti PitchBend Multiple Sample Loader|||Global|||function() pitchBendMultipleSampleLoader() end|||GPPPMSL,global,paketti,paketti,pitchbend,multiple,sample,loader|||PakettiSamples
 Keybinding|||Global:Paketti:Paketti PitchBend Multiple Sample Loader (Normalize)|||Global|||function() pitchBendMultipleSampleLoader(true) end|||GPPPMSLN,global,paketti,paketti,pitchbend,multiple,sample,loader,normalize|||PakettiSamples
 Keybinding|||Global:Paketti:Paketti Sample Adjust Dialog...|||Global|||show_paketti_sample_adjust_dialog|||GPPSAD,global,paketti,paketti,sample,adjust,dialog|||PakettiAudioProcessing
+Keybinding|||Global:Paketti:Paketti Sample Effect Generator|||Global|||PakettiSampleEffectGeneratorInit|||GPPSEG,global,paketti,paketti,sample,effect,generator|||PakettiSampleEffectGenerator
 Keybinding|||Global:Paketti:Paketti Save Selected Sample .FLAC|||Global|||function() pakettiSaveSample("FLAC") end|||GPPSSSF,global,paketti,paketti,save,selected,sample,flac|||PakettiSamples
 Keybinding|||Global:Paketti:Paketti Save Selected Sample .WAV|||Global|||function() pakettiSaveSample("WAV") end|||GPPSSSW,global,paketti,paketti,save,selected,sample|||PakettiSamples
 Keybinding|||Global:Paketti:Paketti Save Selected Sample Range .FLAC|||Global|||function() pakettiSaveSampleRange("flac") end|||GPPSSSRF,global,paketti,paketti,save,selected,sample,range,flac|||PakettiSamples
@@ -3294,6 +3336,8 @@ Keybinding|||Global:Paketti:Selected Track Output Routing +1|||Global|||function
 Keybinding|||Global:Paketti:Selected Track Output Routing -1|||Global|||function() cycleSelectedTrackOutputRouting(-1) end|||GPSTOR1,-1,global,paketti,selected,track,output,routing|||PakettiTkna
 Keybinding|||Global:Paketti:Selected Track to Mono and Hard Left|||Global|||function() selectedTrackToMonoAndHardLeft() end|||GPSTTMAHL,global,paketti,selected,track,mono,hard,left|||PakettiTkna
 Keybinding|||Global:Paketti:Selected Track to Mono and Hard Right|||Global|||function() selectedTrackToMonoAndHardRight() end|||GPSTTMAHR,global,paketti,selected,track,mono,hard,right|||PakettiTkna
+Keybinding|||Global:Paketti:Send (Preset++)|||Global|||SendPresetPlusPlus|||GPSP,global,paketti,send,preset|||PakettiPresetPlusPlus
+Keybinding|||Global:Paketti:Send Device (Preset++)|||Global|||function() PakettiSendDevicePresetPlusPlus() end|||GPSDP,global,paketti,send,device,preset|||PakettiPresetPlusPlus
 Keybinding|||Global:Paketti:Send Reverser|||Global|||function() SendMuteKeepReverser() end|||GPSR,global,paketti,send,reverser|||PakettiXMLizer
 Keybinding|||Global:Paketti:SeparateSyncLFO (Beatsgo) (Preset++)|||Global|||SeparateSyncLFOBeatsgo|||GPSBP,global,paketti,separatesynclfo,beatsgo,preset|||PakettiPresetPlusPlus
 Keybinding|||Global:Paketti:Sequence Loop Selection (Next)|||Global|||tknaSequenceLoopSelectionNext|||GPSLSN,global,paketti,sequence,loop,selection,next|||PakettiTkna
@@ -3843,6 +3887,7 @@ Keybinding|||Pattern Editor:Navigation:Paketti Jump to Column (Previous) (Note/F
 Keybinding|||Pattern Editor:Navigation:Paketti Switch between Note/FX columns|||Navigation|||toggle_column_type|||PENPSBNFC,pattern,editor,navigation,paketti,switch,between,note,columns|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Apply Note Column Sample Effects M00/MFF|||Pattern Editor|||function() applyNoteColumnEffects() end|||PEPANCSEMM,pattern,editor,paketti,apply,note,column,sample,effects|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Apply User-Set Tuning to Selected Track|||Pattern Editor|||apply_tuning_to_track|||PEPAUSTTST,pattern,editor,paketti,apply,user,tuning,selected,track|||PakettiTuningDisplay
+Keybinding|||Pattern Editor:Paketti:Automation Stack - Select Arbitrary Parameters...|||Pattern Editor|||function() PakettiAutomationStack_ShowParameterSelectionDialog() end|||PEPASSAP,pattern,editor,paketti,automation,stack,select,arbitrary,parameters|||PakettiAutomationStack
 Keybinding|||Pattern Editor:Paketti:Automation Stack...|||Pattern Editor|||function() PakettiAutomationStackShowDialog() end|||PEPAS,pattern,editor,paketti,automation,stack|||PakettiAutomationStack
 Keybinding|||Pattern Editor:Paketti:BPM Calculation Debug (Comprehensive)|||Pattern Editor|||comprehensive_bpm_calculation_debug|||PEPBCDC,pattern,editor,paketti,calculation,debug,comprehensive|||PakettiPitchControl
 Keybinding|||Pattern Editor:Paketti:BPM Interpolate Current to Next Pattern|||Pattern Editor|||PakettiTempoInterpolateCurrentToNext|||PEPBICTNP,pattern,editor,paketti,interpolate,current,next,pattern|||PakettiPatternEditor
@@ -3887,6 +3932,7 @@ Keybinding|||Pattern Editor:Paketti:Clear Note Column Sample Effects M00/MFF|||P
 Keybinding|||Pattern Editor:Paketti:Clear Selected Track Above Current Row|||Pattern Editor|||function() clear_track_direction("above",false) end|||PEPCSTACR,pattern,editor,paketti,clear,selected,track,above,current|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Clear Selected Track Below Current Row|||Pattern Editor|||function() clear_track_direction("below",false) end|||PEPCSTBCR,pattern,editor,paketti,clear,selected,track,below,current|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Clear Tuning Effects from Selected Track|||Pattern Editor|||clear_tuning_effects_from_track|||PEPCTEFST,pattern,editor,paketti,clear,tuning,effects,from,selected,track|||PakettiTuningDisplay
+Keybinding|||Pattern Editor:Paketti:Clear Unused Patterns|||Pattern Editor|||PakettiClearUnusedPatterns|||PEPCUP,pattern,editor,paketti,clear,unused,patterns|||PakettiPatternSequencer
 Keybinding|||Pattern Editor:Paketti:Clever Note Off Half Before|||Pattern Editor|||function() CleverNoteOff("HalfBefore") end|||PEPCNOHB,pattern,editor,paketti,clever,note,half,before|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Clever Note Off Right After|||Pattern Editor|||function() CleverNoteOff("RightAfter") end|||PEPCNORA,pattern,editor,paketti,clever,note,right,after|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Clever Note Off Right Before|||Pattern Editor|||function() CleverNoteOff("RightBefore") end|||PEPCNORB,pattern,editor,paketti,clever,note,right,before|||PakettiPatternEditor
@@ -4377,6 +4423,7 @@ Keybinding|||Pattern Editor:Paketti:Write Notes EditStep Descending|||Pattern Ed
 Keybinding|||Pattern Editor:Paketti:Write Notes EditStep Random|||Pattern Editor|||function() writeNotesMethodEditStep("random") end|||PEPWNER,pattern,editor,paketti,write,notes,editstep,random|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Write Notes Random|||Pattern Editor|||function() writeNotesMethod("random") end|||PEPWNR,pattern,editor,paketti,write,notes,random|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Selection:Impulse Tracker ALT-L Mark Track/Mark Pattern|||Pattern Editor|||function() MarkTrackMarkPattern() end|||PESITALMTMP,pattern,editor,selection,impulse,tracker,mark,track,mark,pattern|||PakettiImpulseTracker
+Keybinding|||Pattern Matrix:Paketti:Clear Unused Patterns|||Pattern Matrix|||PakettiClearUnusedPatterns|||PMPCUP,pattern,matrix,paketti,clear,unused,patterns|||PakettiPatternSequencer
 Keybinding|||Pattern Matrix:Paketti:Duplicate Pattern (Groovebox 8120)|||Pattern Matrix|||PakettiEightOneTwentyDuplicatePattern|||PMPDPG8,pattern,matrix,paketti,duplicate,pattern,groovebox,8120|||PakettiEightOneTwenty
 Keybinding|||Pattern Matrix:Paketti:Duplicate Pattern (No Clear)|||Pattern Matrix|||PakettiDuplicatePattern|||PMPDPNC,pattern,matrix,paketti,duplicate,pattern,clear|||PakettiPatternMatrix
 Keybinding|||Pattern Matrix:Paketti:Duplicate Pattern Above & Clear Muted Tracks|||Pattern Matrix|||duplicate_pattern_and_clear_muted_above|||PMPDPACMT,pattern,matrix,paketti,duplicate,pattern,above,clear,muted,tracks|||PakettiPatternMatrix
@@ -4392,6 +4439,7 @@ Keybinding|||Pattern Matrix:Paketti:Selection in Pattern Matrix to Group|||Patte
 Keybinding|||Pattern Matrix:Paketti:Swap Pattern Slot with Above|||Pattern Matrix|||PakettiSwapPatternSlotWithAbove|||PMPSPSWA,pattern,matrix,paketti,swap,pattern,slot,with,above|||PakettiPatternMatrix
 Keybinding|||Pattern Matrix:Paketti:Swap Pattern Slot with Below|||Pattern Matrix|||PakettiSwapPatternSlotWithBelow|||PMPSPSWB,pattern,matrix,paketti,swap,pattern,slot,with,below|||PakettiPatternMatrix
 Keybinding|||Pattern Matrix:Paketti:Switch to Automation|||Pattern Matrix|||function() showAutomation() end|||PMPSTA,pattern,matrix,paketti,switch,automation|||PakettiAutomation
+Keybinding|||Pattern Sequencer:Paketti:Clear Unused Patterns|||Pattern Sequencer|||PakettiClearUnusedPatterns|||PSPCUP,pattern,sequencer,paketti,clear,unused,patterns|||PakettiPatternSequencer
 Keybinding|||Pattern Sequencer:Paketti:Clone Current Sequence|||Pattern Sequencer|||clone_current_sequence|||PSPCCS,pattern,sequencer,paketti,clone,current,sequence|||PakettiPatternSequencer
 Keybinding|||Pattern Sequencer:Paketti:Create Section From Selection|||Pattern Sequencer|||create_section_from_selection|||PSPCSFS,pattern,sequencer,paketti,create,section,from,selection|||PakettiPatternSequencer
 Keybinding|||Pattern Sequencer:Paketti:Duplicate Pattern (Groovebox 8120)|||Pattern Sequencer|||PakettiEightOneTwentyDuplicatePattern|||PSPDPG8,pattern,sequencer,paketti,duplicate,pattern,groovebox,8120|||PakettiEightOneTwenty
@@ -5139,6 +5187,8 @@ renoise.song().selected_device_index=2
 renoise.song().selected_track.devices[2].parameters[2].value=1
 end end|||PLDO,paketti,load,offset|||PakettiLoaders
 MIDI Mapping|||Paketti:Load Renoise Maximizer to Master Track|||Paketti|||function(message) if message:is_trigger() then loadMasterMaximizer() end end|||PLRMTMT,paketti,load,renoise,maximizer,master,track|||PakettiLoaders
+MIDI Mapping|||Paketti:Load RingMod Instrument [Trigger]|||Paketti|||function(message) if message:is_trigger() then PakettiLoadRingModInstrument() end end|||PLRIT,paketti,load,ringmod,instrument,trigger|||PakettiExperimental_Verify
+MIDI Mapping|||Paketti:Load RingMod Legacy Instrument [Trigger]|||Paketti|||function(message) if message:is_trigger() then PakettiLoadRingModLegacyInstrument() end end|||PLRLIT,paketti,load,ringmod,legacy,instrument,trigger|||PakettiExperimental_Verify
 MIDI Mapping|||Paketti:Load XRNI & Disable Phrases|||Paketti|||function(message) if message:is_trigger() then
  loadXRNIWipePhrasesTwo() end end|||PLXDP,paketti,load,xrni,disable,phrases|||PakettiLoaders
 MIDI Mapping|||Paketti:Load XRNI & Keep Phrases|||Paketti|||function(message) if message:is_trigger() then loadXRNIKeepPhrases() end end|||PLXKP,paketti,load,xrni,keep,phrases|||PakettiLoaders
@@ -6438,3 +6488,4 @@ Dynamic Device Loader|||Load Device Splitter (Native)|||Dynamic Device Loaders||
 Dynamic Device Loader|||Load Device Transient Shaper (AudioUnit)|||Dynamic Device Loaders|||pakettiLoadDevice('Audio/Effects/AU/aufx:TrSh:Scha')|||device,load,transient shaper|||preferences.xml
 Dynamic Device Loader|||Load Device ValhallaFreqEcho (AudioUnit)|||Dynamic Device Loaders|||pakettiLoadDevice('Audio/Effects/AU/aufx:FqEh:oDin')|||device,load,valhallafreqecho|||preferences.xml
 Dynamic Device Loader|||Load Device Simplon (AudioUnit)|||Dynamic Device Loaders|||pakettiLoadDevice('Audio/Effects/AU/aumf:FSim:FabF')|||device,load,simplon|||preferences.xml
+Dynamic Device Loader|||Load Device Uhbik-D (AudioUnit)|||Dynamic Device Loaders|||pakettiLoadDevice('Audio/Effects/AU/aumf:UcD1:UHfX')|||device,load,uhbik-d|||preferences.xml

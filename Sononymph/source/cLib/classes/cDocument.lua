@@ -39,7 +39,7 @@ FIXME
 
 --==============================================================================
 
-require (_clibroot.."cReflection")
+require("cReflection")
 
 class 'cDocument'
 
