@@ -1620,9 +1620,7 @@ renoise.tool().app_release_document_observable:add_notifier(function()
   stop_status_monitor()
 end)
 
--- Add keybinding and menu entry for status monitor toggle
+
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
-
-

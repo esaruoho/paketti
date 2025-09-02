@@ -48,6 +48,13 @@ local sample_rate = 44100
 local wave_type = "current"
 local volume_envelope_type = "current"
 local pitch_modulation_type = "current"
+
+-- Live pickup mode settings (similar to PakettiPCMWriter)
+local live_pickup_mode = false
+local live_pickup_sample = nil
+local live_pickup_instrument = nil
+local live_pickup_sample_index = -1
+local live_pickup_instrument_index = -1
 local use_waveform_override = false  -- If true, use drawn waveform as base wave instead of dropdown selection
 local fade_out_enabled = true  -- If true, apply fade out to last 1000 frames (0.023s) to avoid clicks - ends at ZERO
 local beatsync_enabled = true  -- If true, enable beatsync with 32 lines and Stretch-Texture mode
@@ -353,13 +360,6 @@ function PakettiSampleEffectGeneratorCalculatePitchCorrection(sample_rate, wave_
     cent_direction = result.side == 0 and "minus" or "plus"
   }
 end
-
--- Live pickup mode settings (similar to PakettiPCMWriter)
-local live_pickup_mode = false
-local live_pickup_sample = nil
-local live_pickup_instrument = nil
-local live_pickup_sample_index = -1
-local live_pickup_instrument_index = -1
 
 -- Frequency multipliers for mathematical regeneration
 local volume_frequency_multiplier = 1

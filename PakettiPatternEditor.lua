@@ -7824,3 +7824,87 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:BPM Interpolate Current to Next Pattern", invoke=PakettiTempoInterpolateCurrentToNext}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM Interpolate Current to Next Pattern", invoke=PakettiTempoInterpolateCurrentToNext}
+
+
+-------
+-- Note Cut Effect Toggle Shortcut Function
+function PakettiPatternEditorNoteCut()
+  local s = renoise.song()
+  local a = renoise.app()
+  
+  -- Ensure at least one effect column is visible
+  sliderVisibleEffect()
+  
+  if s.selection_in_pattern then
+    -- Apply to selection
+    for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
+      local track = s:track(t)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local note_columns_visible = track.visible_note_columns
+        local effect_columns_visible = track.visible_effect_columns
+        local total_columns_visible = note_columns_visible + effect_columns_visible
+        
+        local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or note_columns_visible + 1
+        local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or total_columns_visible
+        
+        for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+          for col = start_column, end_column do
+            local column_index = col - note_columns_visible
+            if column_index > 0 and column_index <= effect_columns_visible then
+              local effect_column = s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(column_index)
+              if effect_column then
+                -- Toggle: if already 0C00, clear it; otherwise set it
+                if effect_column.number_string == "0C" and effect_column.amount_string == "00" then
+                  effect_column:clear()
+                else
+                  effect_column.number_string = "0C"
+                  effect_column.amount_string = "00"
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  else
+    -- Apply to current line
+    if s.selected_effect_column_index > 0 then
+      -- Effect column is selected
+      local effect_column = s.selected_effect_column
+      if effect_column then
+        -- Toggle: if already 0C00, clear it; otherwise set it
+        if effect_column.number_string == "0C" and effect_column.amount_string == "00" then
+          effect_column:clear()
+          a:show_status("Note Cut (0C00) removed from effect column")
+        else
+          effect_column.number_string = "0C"
+          effect_column.amount_string = "00"
+          a:show_status("Note Cut (0C00) applied to effect column")
+        end
+      end
+    else
+      -- Note column is selected or no specific column, use first effect column
+      local line = s.selected_line
+      if line then
+        local effect_column = line:effect_column(1)
+        if effect_column then
+          -- Toggle: if already 0C00, clear it; otherwise set it
+          if effect_column.number_string == "0C" and effect_column.amount_string == "00" then
+            effect_column:clear()
+            a:show_status("Note Cut (0C00) removed from effect column")
+          else
+            effect_column.number_string = "0C"
+            effect_column.amount_string = "00"
+            a:show_status("Note Cut (0C00) applied to effect column")
+          end
+        end
+      end
+    end
+  end
+  
+  a.window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Pattern Editor Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
