@@ -4,12 +4,13 @@
 local vb = renoise.ViewBuilder()
 local dialog = nil
 local current_vb = nil -- Store reference to current ViewBuilder for updates
-local current_selected_slice = 0
+current_selected_slice = 0
 local total_slices = 0
 local slice_instrument = nil
 
 -- Global variables to track polyend slice state
 paketti_polyend_slice_active = false
+paketti_melodic_slice_mode = false -- Track if we're in melodic slice export mode
 paketti_polyend_slice_instrument_index = nil
 paketti_polyend_slice_notifier_added = false
 

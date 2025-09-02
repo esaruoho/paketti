@@ -1557,6 +1557,9 @@ function PakettiToggleSoloTracksAllOthersMutedExceptRange(start_track, end_track
   local group_parents = {}
 
   print("Selection In Pattern is from index " .. start_track .. " to index " .. end_track)
+  print("MUTE_STATE_ACTIVE = " .. renoise.Track.MUTE_STATE_ACTIVE)
+  print("MUTE_STATE_OFF = " .. renoise.Track.MUTE_STATE_OFF)
+  print("MUTE_STATE_MUTE = " .. (renoise.Track.MUTE_STATE_MUTE or "nil"))
   for i = start_track, end_track do
     print("Track index: " .. i .. " (" .. song:track(i).name .. ")")
     if song:track(i).group_parent then
@@ -1569,12 +1572,27 @@ function PakettiToggleSoloTracksAllOthersMutedExceptRange(start_track, end_track
   end
 
   for i = 1, total_track_count do
-    if song:track(i).type ~= renoise.Track.TRACK_TYPE_MASTER and (i < start_track or i > end_track) and song:track(i).mute_state ~= renoise.Track.MUTE_STATE_OFF then
-      return false
+    if song:track(i).type ~= renoise.Track.TRACK_TYPE_MASTER and (i < start_track or i > end_track) then
+      local is_group_parent = false
+      for _, group_parent_name in ipairs(group_parents) do
+        if song:track(i).name == group_parent_name then
+          is_group_parent = true
+          break
+        end
+      end
+      
+      print("Checking track outside range: " .. i .. " (" .. song:track(i).name .. ") - mute_state: " .. song:track(i).mute_state .. " - is_group_parent: " .. tostring(is_group_parent))
+      
+      if not is_group_parent and song:track(i).mute_state ~= renoise.Track.MUTE_STATE_OFF then
+        print("Track " .. i .. " is not muted and not a group parent, returning false")
+        return false
+      end
     end
   end
   for i = start_track, end_track do
+    print("Checking track in range: " .. i .. " (" .. song:track(i).name .. ") - mute_state: " .. song:track(i).mute_state)
     if song:track(i).mute_state ~= renoise.Track.MUTE_STATE_ACTIVE then
+      print("Track " .. i .. " is not active, returning false")
       return false
     end
   end
@@ -1594,6 +1612,7 @@ function PakettiToggleSoloTracksAllOthersMutedExceptRange(start_track, end_track
       end
     end
   end
+  print("All conditions met - returning true (should unmute all tracks)")
   return true
 end
 
@@ -1613,7 +1632,9 @@ function PakettiToggleSoloTracks()
     for i = sip.start_track, sip.end_track do
       print("Track index: " .. i .. " (" .. song:track(i).name .. ")")
     end
-    if PakettiToggleSoloTracksAllOthersMutedExceptRange(sip.start_track, sip.end_track) then
+    local should_unmute = PakettiToggleSoloTracksAllOthersMutedExceptRange(sip.start_track, sip.end_track)
+    print("PakettiToggleSoloTracksAllOthersMutedExceptRange returned: " .. tostring(should_unmute))
+    if should_unmute then
       print("Detecting all-tracks-should-be-unmuted situation")
       PakettiToggleSoloTracksUnmuteAllTracks()
     else

@@ -1077,7 +1077,15 @@ function buildPTIHeader(inst, beat_slice_mode)
   -- Write active slice (offset 377) - which slice is selected
   if has_slices then
     local slice_count = math.min(48, #(inst.slice_markers or {}))
-    local active_slice = current_selected_slice or 0  -- Use current_selected_slice for melodic slice exports
+    -- Only use current_selected_slice for melodic slice exports (when paketti_melodic_slice_mode is true)
+    -- For regular beat slice PTI saves, always use 0 as active slice
+    local active_slice = 0
+    if paketti_melodic_slice_mode and current_selected_slice then
+      active_slice = current_selected_slice
+      print(string.format("-- buildPTIHeader: Melodic slice mode - using selected slice %d", active_slice))
+    else
+      print("-- buildPTIHeader: Regular beat slice PTI - using slice 0")
+    end
     write_at(378, string.char(active_slice))
     print(string.format("-- buildPTIHeader: Wrote active slice %d at offset 377", active_slice))
   end
@@ -1296,9 +1304,12 @@ function pti_savesample_to_path(filepath)
     return false
   end
 
-  -- Write header and get its size for verification
-  local header = buildPTIHeader(data)
+  -- Write header and get its size for verification  
+  -- Determine if this should be Beat Slice mode (5) or Slice mode (4)
+  local use_beat_slice_mode = not paketti_melodic_slice_mode -- Beat Slice for regular saves, Slice for melodic exports
+  local header = buildPTIHeader(data, use_beat_slice_mode)
   print(string.format("-- Header size: %d bytes", #header))
+  print(string.format("-- PTI Mode: %s", use_beat_slice_mode and "Beat Slice (5)" or "Slice (4)"))
   f:write(header)
 
   -- Debug first few frames before writing
@@ -1336,6 +1347,9 @@ function pti_savesample_to_path(filepath)
     renoise.app():show_status(string.format("PTI exported: '%s'", smp.name))
   end
   
+  -- Clear melodic slice mode flag after PTI export is complete
+  paketti_melodic_slice_mode = false
+  
   return true
 end
 
@@ -1356,9 +1370,21 @@ function pti_savesample_Worker(dialog, vb)
   local song = renoise.song()
   local inst = song.selected_instrument
   
+  -- For regular PTI saves (not melodic slice exports), clear the melodic slice mode
+  if not paketti_melodic_slice_mode then
+    current_selected_slice = nil -- Clear any leftover value from previous melodic operations
+    print("-- PTI Save: Regular save mode - cleared current_selected_slice")
+  else
+    print("-- PTI Save: Melodic slice export mode - using current_selected_slice")
+  end
+  
   -- Check if we have a valid instrument and sample
   if not inst or #inst.samples == 0 then
-    renoise.app():show_error("No instrument or sample selected")
+    renoise.app():show_status("No instrument or sample selected")
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    paketti_melodic_slice_mode = false -- Clear flag on error
     return
   end
 
@@ -1380,7 +1406,10 @@ function pti_savesample_Worker(dialog, vb)
     -- For non-sliced: export selected sample
     smp = inst.samples[selected_sample_index]
     if not smp then
-      renoise.app():show_error("No sample selected")
+      renoise.app():show_status("No sample selected")
+      if dialog and dialog.visible then
+        dialog:close()
+      end
       return
     end
     export_info = string.format("Sample %d: '%s'", selected_sample_index, smp.name)
@@ -1401,6 +1430,10 @@ function pti_savesample_Worker(dialog, vb)
     filename = result
     if filename == "" then
       print("-- PTI Export: User cancelled file dialog")
+      renoise.app():show_status("No filename was provided, cancelling Export")
+      if dialog and dialog.visible then
+        dialog:close()
+      end
       return
     end
   else
@@ -1511,8 +1544,11 @@ function pti_savesample_Worker(dialog, vb)
   end
 
   -- Write header and get its size for verification
-  local header = buildPTIHeader(data)
+  -- Determine if this should be Beat Slice mode (5) or Slice mode (4)
+  local use_beat_slice_mode = not paketti_melodic_slice_mode -- Beat Slice for regular saves, Slice for melodic exports
+  local header = buildPTIHeader(data, use_beat_slice_mode)
   print(string.format("-- Header size: %d bytes", #header))
+  print(string.format("-- PTI Mode: %s", use_beat_slice_mode and "Beat Slice (5)" or "Slice (4)"))
   f:write(header)
 
   -- Debug first few frames before writing
@@ -1559,6 +1595,10 @@ function pti_savesample_Worker(dialog, vb)
   else
     renoise.app():show_status(string.format("PTI exported: '%s'", smp.name))
   end
+  
+  -- Clear melodic slice mode flag after PTI export is complete
+  paketti_melodic_slice_mode = false
+  print("-- PTI Save: Export complete - cleared melodic slice mode flag")
 end
 
 -- Menu entries

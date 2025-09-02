@@ -88,11 +88,18 @@ function PakettiSliceStepInitializeRows()
   local slice_info = PakettiSliceStepGetSliceInfo()
   local default_slice_base = slice_info and slice_info.base_note or 48
   
+  -- Check if we have slices available - if not, force Sample Offset mode
+  local default_mode = ROW_MODES.SLICE
+  if not slice_info or slice_info.slice_count == 0 then
+    default_mode = ROW_MODES.SAMPLE_OFFSET
+    print("DEBUG: No slices available, forcing Sample Offset mode")
+  end
+  
   for row = 1, NUM_ROWS do
     rows[row] = {
-      mode = ROW_MODES.SLICE, -- Default to slice mode
+      mode = default_mode, -- Use determined mode based on slice availability
       value = 0x20, -- Default sample offset
-      note_value = 36, -- C-3 default note
+      note_value = 48, -- C-4 default note
       slice_note = default_slice_base + row, -- Default slice note for each row
       active_steps = MAX_STEPS,
       enabled = true
@@ -903,6 +910,113 @@ function PakettiSliceStepGlobalSampleOffset()
   renoise.app():show_status("Global Sample Offset: Enabled all 8 rows, cleared pattern, applied sample offset pattern")
 end
 
+function PakettiSliceStepEvenSpread()
+  print("DEBUG: PakettiSliceStepEvenSpread - Setting even spread sample offset values across 8 rows...")
+  
+  -- STEP 1: Set selected sample's New Note Action to CUT for proper slice behavior
+  local song = renoise.song()
+  if song then
+    local instrument = song.selected_instrument
+    if instrument and #instrument.samples > 0 then
+      local sample = instrument.samples[song.selected_sample_index]
+      if sample then
+        sample.new_note_action = renoise.Sample.NEW_NOTE_ACTION_NOTE_CUT
+        sample.mute_group = 1
+        print("DEBUG: Set sample New Note Action to CUT and Mute Group to 1 for clean slice behavior")
+      end
+    end
+  end
+  
+  -- STEP 2: Disable writing to pattern
+  initializing_dialog = true
+  
+  -- Calculate even spread values: 8 equal slices (256/8 = 32 units apart)  
+  local even_spread_values = {0, 32, 64, 96, 128, 160, 192, 224}
+  
+  -- STEP 2: Set all rows to Sample Offset mode and apply even spread values
+  for row = 1, NUM_ROWS do
+    print("DEBUG: Setting row " .. row .. " to SAMPLE_OFFSET mode with value " .. even_spread_values[row])
+    rows[row].mode = ROW_MODES.SAMPLE_OFFSET
+    rows[row].enabled = true
+    rows[row].value = even_spread_values[row]
+    rows[row].active_steps = current_steps  -- Set step count to match current step mode
+    
+    -- Update the UI switch directly
+    if row_mode_switches[row] then
+      row_mode_switches[row].value = ROW_MODES.SAMPLE_OFFSET
+      print("DEBUG: Updated switch for row " .. row .. " to SAMPLE_OFFSET mode")
+    end
+    
+    -- Enable and update sample offset valuebox
+    if sample_offset_valueboxes[row] then
+      sample_offset_valueboxes[row].active = true
+      sample_offset_valueboxes[row].value = even_spread_values[row]
+      print("DEBUG: Set sample offset valuebox for row " .. row .. " to " .. even_spread_values[row])
+    end
+    
+    -- Update step count valuebox to current_steps
+    if step_valueboxes[row] then
+      step_valueboxes[row].value = current_steps
+      print("DEBUG: Set step count valuebox for row " .. row .. " to " .. current_steps)
+    end
+    
+    -- DISABLE transpose rotary for sample offset mode
+    if transpose_rotaries[row] then
+      transpose_rotaries[row].active = false
+      print("DEBUG: Disabled transpose rotary for row " .. row .. " (sample offset mode)")
+    end
+  end
+  
+  -- STEP 3: Clear the whole track completely
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local track = pattern:track(track_index)
+  
+  print("DEBUG: Clearing entire track...")
+  track:clear()
+  
+  -- STEP 4: Re-enable writing to pattern first
+  initializing_dialog = false
+  
+  -- STEP 5: Set checkboxes at evenly spaced positions (AFTER re-enabling dialog updates)
+  local step_interval = current_steps / 8  -- 16/8=2, 32/8=4
+  print("DEBUG: Even Spread - current_steps=" .. current_steps .. ", step_interval=" .. step_interval .. ", MAX_STEPS=" .. MAX_STEPS)
+  
+  for row = 1, NUM_ROWS do
+    print("DEBUG: Processing row " .. row .. ", row_checkboxes[row] exists: " .. tostring(row_checkboxes[row] ~= nil))
+    if row_checkboxes[row] then
+      -- Clear all checkboxes first
+      for step = 1, MAX_STEPS do
+        if row_checkboxes[row][step] then
+          row_checkboxes[row][step].value = false
+        end
+      end
+      -- Set checkbox at the calculated position for this row
+      local target_step = ((row - 1) * step_interval) + 1
+      print("DEBUG: Row " .. row .. " calculated target_step=" .. target_step)
+      if target_step <= MAX_STEPS and row_checkboxes[row][target_step] then
+        row_checkboxes[row][target_step].value = true
+        print("DEBUG: Row " .. row .. " checkbox SET at step " .. target_step)
+      else
+        print("DEBUG: Row " .. row .. " FAILED to set checkbox - target_step=" .. target_step .. ", MAX_STEPS=" .. MAX_STEPS .. ", checkbox exists=" .. tostring(row_checkboxes[row][target_step] ~= nil))
+      end
+    end
+  end
+  
+  -- Update button colors and write new sample offset pattern
+  PakettiSliceStepUpdateButtonColors()
+  PakettiSliceStepWriteToPattern()
+  
+  local step_list = ""
+  for row = 1, NUM_ROWS do
+    local target_step = ((row - 1) * step_interval) + 1
+    if row > 1 then step_list = step_list .. ", " end
+    step_list = step_list .. target_step
+  end
+  renoise.app():show_status("Even Spread (" .. current_steps .. " steps): Sample offsets 00,20,40,60,80,A0,C0,E0 - Checkboxes at steps: " .. step_list)
+end
+
 -- (Global Parameter function removed - parameter functionality removed)
 
 -- Row management
@@ -1312,7 +1426,7 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
   if song then
     local instrument = song.selected_instrument
     if instrument and #instrument.samples > 0 then
-      local sample_index = song.selected_sample_index  -- Default to current sample
+      local sample_index = song.selected_sample_index or 1  -- Default to first sample if none selected
       
       if row_data.mode == ROW_MODES.SLICE then
         -- Use the slice note that this row is actually set to play
@@ -1667,6 +1781,16 @@ function PakettiSliceStepCreateDialog()
         notifier = function(value)
           current_steps = (value == 2) and 32 or 16
           MAX_STEPS = current_steps -- Update MAX_STEPS
+          
+          -- Update all row step counts to match the new step mode
+          for row = 1, NUM_ROWS do
+            rows[row].active_steps = current_steps
+            -- Update the UI step valuebox for each row
+            if step_valueboxes[row] then
+              step_valueboxes[row].value = current_steps
+            end
+          end
+          
           -- Refresh dialog
           PakettiSliceStepCleanupPlayhead()
           PakettiSliceStepCleanupTrackChangeDetection()
@@ -1714,7 +1838,11 @@ function PakettiSliceStepCreateDialog()
         text = "Slice",
         width = 50,
         notifier = PakettiSliceStepGlobalSlice
-
+    },
+       vb:button{
+        text = "Even Spread",
+        width = 80,
+        notifier = PakettiSliceStepEvenSpread
     }
   }}
   

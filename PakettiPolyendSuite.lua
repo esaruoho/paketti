@@ -3459,7 +3459,7 @@ PakettiPolyendSuiteTooltips = {
   [52] = "Load 48 samples → Create melodic slice chain (for auditioning with Slice Switcher)", -- Prepare Melodic Instrument button
   [53] = "Open the Polyend Slice Switcher dialog to audition and switch between melodic slices", -- Default Slice Select button  
   [54] = "Export current sliced instrument as PTI (use after creating chain and auditioning)", -- Export as Melodic Slice button
-  [55] = "Load 48 samples → Create melodic slice chain → Export as PTI (one-shot)" -- Create & Export Melodic Slice button
+  [55] = "Load 48 samples → Create melodic slice chain →  (one-shot)" -- Create & Export Melodic Slice button
 }
 
 -- Function to create the Polyend Buddy dialog content
@@ -4374,6 +4374,17 @@ function create_polyend_buddy_dialog(vb)
           local device_not_connected = false
           
           if use_save_paths and pti_save_path and pti_save_path ~= "" then
+            -- Check if the save path directory exists using existing function
+            local path_exists = check_polyend_path_exists(pti_save_path)
+            
+            if not path_exists then
+              print("-- Save PTI: Configured save path does not exist or is not accessible: " .. pti_save_path)
+              renoise.app():show_status("Save path not accessible - will prompt for save location")
+              -- Fall back to prompting for save location
+              pti_savesample()
+              return
+            end
+            
             -- Smart check: Only verify device connection if save path is ON the device
             if polyend_buddy_root_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
               print("-- Save PTI: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
@@ -4388,37 +4399,44 @@ function create_polyend_buddy_dialog(vb)
               print("-- Save PTI: Save path is local - no device checking needed: " .. pti_save_path)
             end
             
-            -- Generate filename based on instrument/sample name
-            local song = renoise.song()
-            local instrument_name = song.selected_instrument.name or "Untitled"
-            local safe_name = instrument_name:gsub("[^%w%-%_]", "_") -- Replace unsafe characters
-            local separator = package.config:sub(1,1)
-            local base_path = pti_save_path .. separator .. safe_name .. ".pti"
+            if not device_not_connected then
+              -- Generate filename based on instrument/sample name
+              local song = renoise.song()
+              local instrument_name = song.selected_instrument.name or "Untitled"
+              local safe_name = instrument_name:gsub("[^%w%-%_]", "_") -- Replace unsafe characters
+              local separator = package.config:sub(1,1)
+              -- Fix double separator issue
+              local clean_save_path = pti_save_path:gsub("[/\\]+$", "") -- Remove trailing separators
+              local base_path = clean_save_path .. separator .. safe_name .. ".pti"
             
-            -- Generate unique filename if file already exists
-            local unique_path = generate_unique_filename(base_path)
-            local final_filename = unique_path:match("[^/\\]+$") or "untitled.pti"
-            
-            -- Save using pti_savesample_to_path if available
-            if pti_savesample_to_path then
-              local success = pti_savesample_to_path(unique_path)
-              if success then
-                -- Create local backup copy if enabled
-                if create_local_backup_copy then
-                  create_local_backup_copy(unique_path, "Save_PTI")
+              -- Generate unique filename if file already exists
+              local unique_path = generate_unique_filename(base_path)
+              local final_filename = unique_path:match("[^/\\]+$") or "untitled.pti"
+              
+              -- Save using pti_savesample_to_path if available
+              if pti_savesample_to_path then
+                local success = pti_savesample_to_path(unique_path)
+                if success then
+                  -- Create local backup copy if enabled
+                  if create_local_backup_copy then
+                    create_local_backup_copy(unique_path, "Save_PTI")
+                  end
+                  
+                  -- Refresh the dropdowns to show the new file
+                  update_pti_dropdown(vb)
+                  update_computer_backup_dropdown(vb)
+                  
+                  renoise.app():show_status(string.format("PTI saved to %s", unique_path))
+                else
+                  renoise.app():show_status("Failed to save PTI file")
                 end
-                
-                -- Refresh the dropdowns to show the new file
-                update_pti_dropdown(vb)
-                update_computer_backup_dropdown(vb)
-                
-                renoise.app():show_status(string.format("PTI saved to %s", unique_path))
               else
-                renoise.app():show_status("Failed to save PTI file")
+                -- Fallback to regular save dialog
+                renoise.app():show_status("pti_savesample_to_path not available - using dialog")
+                pti_savesample()
               end
             else
-              -- Fallback to regular save dialog
-              renoise.app():show_status("pti_savesample_to_path not available - using dialog")
+              -- Device not connected, use regular save dialog
               pti_savesample()
             end
           else

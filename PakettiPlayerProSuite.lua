@@ -837,8 +837,27 @@ function pakettiPlayerProTranspose(steps, range, playback)
     local tracks = renoise.song().tracks[track_index]
 
     -- Set the column range for each track based on the selection
-    local first_column = (track_index == start_track) and start_column or 1
-    local last_column = (track_index == end_track) and end_column or tracks.visible_note_columns
+    local first_column, last_column
+    local max_columns = math.min(12, tracks.visible_note_columns)
+    
+    if start_track == end_track then
+      -- Single track selection: use exact column range but clamp to available columns
+      first_column = math.max(1, math.min(start_column, max_columns))
+      last_column = math.max(1, math.min(end_column, max_columns))
+    else
+      -- Multi-track selection: handle edge tracks differently than middle tracks
+      if track_index == start_track then
+        first_column = math.max(1, math.min(start_column, max_columns))
+        last_column = max_columns
+      elseif track_index == end_track then
+        first_column = 1
+        last_column = math.max(1, math.min(end_column, max_columns))
+      else
+        -- Middle tracks: use all visible columns
+        first_column = 1
+        last_column = max_columns
+      end
+    end
 
     -- Iterate through each line in the determined range
     for line_index = start_line, end_line do

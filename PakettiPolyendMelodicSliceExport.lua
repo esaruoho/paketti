@@ -157,6 +157,7 @@ function PakettiMelodicSliceExport()
   
   -- STEP 2: Use existing sample chain creation, then export as SLICE mode (not Beat Slice!)
   current_selected_slice = 0 -- First sample = slice 0 for PTI
+  paketti_melodic_slice_mode = true -- Set melodic slice mode flag for PTI export
   print("-- PakettiMelodicSlice: Creating sample chain for MELODIC SLICE export...")
   renoise.app():show_status("Creating melodic slice sample chain...")
   
@@ -260,6 +261,7 @@ function PakettiMelodicSliceExportCurrent()
   
   -- SIMPLE: Set selected slice to the active sample (convert 1-based to 0-based for PTI)
   current_selected_slice = active_sample_index - 1
+  paketti_melodic_slice_mode = true -- Set melodic slice mode flag for PTI export
   print(string.format("-- PakettiMelodicSlice: Set selected slice = %d for PTI export", current_selected_slice))
   
   -- Create sample chain, then export as SLICE mode (not Beat Slice!)
