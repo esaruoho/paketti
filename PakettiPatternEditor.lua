@@ -7908,3 +7908,84 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Pattern Editor Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
+
+-- Note Cut All Tracks Toggle Function - toggles C00 on all sequencer tracks for current row
+function PakettiPatternEditorNoteCutAllTracks()
+  local s = renoise.song()
+  local a = renoise.app()
+  local current_line = s.selected_line_index
+  local sequencer_track_count = s.sequencer_track_count
+  local applied_count = 0
+  local removed_count = 0
+  
+  for track_index = 1, sequencer_track_count do
+    local track = s:track(track_index)
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      -- Ensure at least one effect column is visible
+      if track.visible_effect_columns == 0 then
+        track.visible_effect_columns = 1
+      end
+      
+      -- Toggle C00 on first effect column of current line
+      local effect_column = s:pattern(s.selected_pattern_index):track(track_index):line(current_line):effect_column(1)
+      if effect_column then
+        -- Toggle: if already 0C00, clear it; otherwise set it
+        if effect_column.number_string == "0C" and effect_column.amount_string == "00" then
+          effect_column:clear()
+          removed_count = removed_count + 1
+        else
+          effect_column.number_string = "0C"
+          effect_column.amount_string = "00"
+          applied_count = applied_count + 1
+        end
+      end
+    end
+  end
+  
+  if applied_count > 0 then
+    a:show_status("Note Cut (0C00) applied to " .. applied_count .. " sequencer tracks on line " .. current_line)
+  else
+    a:show_status("Note Cut (0C00) removed from " .. removed_count .. " sequencer tracks on line " .. current_line)
+  end
+  a.window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Note Cut Master Track Toggle Function - toggles C00 on master track for current row  
+function PakettiPatternEditorNoteCutMaster()
+  local s = renoise.song()
+  local a = renoise.app()
+  local current_line = s.selected_line_index
+  local master_track_index = s.sequencer_track_count + 1
+  local master_track = s:track(master_track_index)
+  
+  -- Ensure at least one effect column is visible on master
+  if master_track.visible_effect_columns == 0 then
+    master_track.visible_effect_columns = 1
+  end
+  
+  -- Toggle C00 on first effect column of master track on current line
+  local effect_column = s:pattern(s.selected_pattern_index):track(master_track_index):line(current_line):effect_column(1)
+  if effect_column then
+    -- Toggle: if already 0C00, clear it; otherwise set it
+    if effect_column.number_string == "0C" and effect_column.amount_string == "00" then
+      effect_column:clear()
+      a:show_status("Note Cut (0C00) removed from Master track on line " .. current_line)
+    else
+      effect_column.number_string = "0C"
+      effect_column.amount_string = "00"
+      a:show_status("Note Cut (0C00) applied to Master track on line " .. current_line)
+    end
+  end
+  
+  a.window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}

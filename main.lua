@@ -782,6 +782,7 @@ timed_require("PakettiAutocomplete")
 --timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
 --timed_require("PakettiAKAI")
 
+timed_require("PakettiSliceEffectStepSequencer")
 timed_require("PakettiEightOneTwenty")
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.

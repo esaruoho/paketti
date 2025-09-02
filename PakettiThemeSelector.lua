@@ -164,6 +164,11 @@ local function save_favorites()
     return
   end
 
+  -- Add .xml extension if no extension is provided
+  if not file_path:match("%.%w+$") then
+    file_path = file_path .. ".xml"
+  end
+
   local file = io.open(file_path, "w")
   if not file then
     renoise.app():show_status("Failed to open file for writing.")
