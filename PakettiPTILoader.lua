@@ -1391,10 +1391,41 @@ function pti_savesample_Worker(dialog, vb)
   local total_samples = #inst.samples
   local has_multiple_samples = total_samples > 1
 
-  -- Prompt for save location with local variable assignment
-  local filename = renoise.app():prompt_for_filename_to_write("*.pti", "Save .PTI as...")
-  if filename == "" then
-    return
+  -- Prompt for save location with error handling
+  local filename = ""
+  local success, result = pcall(function()
+    return renoise.app():prompt_for_filename_to_write("*.pti", "Save .PTI as...")
+  end)
+  
+  if success then
+    filename = result
+    if filename == "" then
+      print("-- PTI Export: User cancelled file dialog")
+      return
+    end
+  else
+    -- File dialog failed - show error and provide alternative
+    print("-- PTI Export: File dialog failed - " .. tostring(result))
+    renoise.app():show_status("File dialog failed - will use default filename in home directory")
+    
+    -- Create fallback filename in home directory
+    local home_dir = os.getenv("HOME") or os.getenv("USERPROFILE") or ""
+    if home_dir == "" then
+      renoise.app():show_error("Cannot determine home directory for fallback save location")
+      return
+    end
+    
+    -- Generate safe filename
+    local song = renoise.song()
+    local inst = song.selected_instrument
+    local safe_name = (inst.name or "Sample"):gsub("[^%w%-%_]", "_")
+    
+    -- Add timestamp to make filename unique
+    local timestamp = os.date("%Y%m%d_%H%M%S")
+    filename = home_dir .. "/" .. safe_name .. "_" .. timestamp .. ".pti"
+    
+    print("-- PTI Export: Using fallback filename: " .. filename)
+    renoise.app():show_status("Saving to fallback location: " .. filename)
   end
 
   print("------------")

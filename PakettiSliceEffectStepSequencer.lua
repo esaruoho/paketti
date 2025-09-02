@@ -281,7 +281,7 @@ function PakettiSliceStepUpdateButtonColors()
     if row_buttons[row] then
       for step = 1, MAX_STEPS do
         if row_buttons[row][step] then
-          local is_beat_marker = (step == 1 or step == 5 or step == 9 or step == 13)
+          local is_beat_marker = ((step - 1) % 4 == 0)
           local is_playhead = (playhead_step_indices[row] == step and playhead_color)
           local is_active_step = (step <= rows[row].active_steps)
           local is_selected = (selected_steps[row] == step)
