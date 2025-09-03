@@ -1192,6 +1192,22 @@ function pti_savesample_to_path(filepath)
     renoise.app():show_error("No instrument or sample selected")
     return false
   end
+  
+  -- SMART DETECTION: Check if this is a melodic slice instrument
+  local is_melodic_slice = PakettiPTIIsMelodicSliceInstrument(inst)
+  
+  if is_melodic_slice and not paketti_melodic_slice_mode then
+    print("-- PTI Save (path): Detected melodic slice instrument - routing to melodic slice export")
+    renoise.app():show_status("Detected melodic slice setup - exporting as melodic slice PTI")
+    
+    -- Route to melodic slice export (which will set paketti_melodic_slice_mode = true and handle saving)
+    if PakettiMelodicSliceExportCurrent then
+      PakettiMelodicSliceExportCurrent()
+      return true -- Export handled by melodic slice function
+    else
+      print("-- PTI Save (path): PakettiMelodicSliceExportCurrent not available, falling back to regular save")
+    end
+  end
 
   -- SLICE DETECTION: Check if samples[1] has slice markers
   local base_sample = inst.samples[1]
@@ -1365,18 +1381,40 @@ function pti_savesample()
   process_slicer:start()
 end
 
+-- Function to detect if instrument is set up as melodic slice instrument
+function PakettiPTIIsMelodicSliceInstrument(inst)
+  if not inst or #inst.samples < 2 or #inst.samples > 48 then
+    return false
+  end
+  
+  -- Check if first sample is active (00-7F) and others are inactive (00-00)
+  local first_sample = inst.samples[1]
+  if not first_sample then return false end
+  
+  local first_vel = first_sample.sample_mapping.velocity_range
+  if not first_vel or first_vel[1] ~= 0 or first_vel[2] ~= 127 then
+    return false -- First sample should be 00-7F
+  end
+  
+  -- Check that remaining samples are all inactive (00-00)
+  for i = 2, #inst.samples do
+    local sample = inst.samples[i]
+    if sample then
+      local vel_range = sample.sample_mapping.velocity_range
+      if not vel_range or vel_range[1] ~= 0 or vel_range[2] ~= 0 then
+        return false -- Other samples should be 00-00
+      end
+    end
+  end
+  
+  print(string.format("-- PTI Save: Detected melodic slice instrument: %d samples (first active 00-7F, others inactive 00-00)", #inst.samples))
+  return true
+end
+
 --- ProcessSlicer worker function for PTI saving
 function pti_savesample_Worker(dialog, vb)
   local song = renoise.song()
   local inst = song.selected_instrument
-  
-  -- For regular PTI saves (not melodic slice exports), clear the melodic slice mode
-  if not paketti_melodic_slice_mode then
-    current_selected_slice = nil -- Clear any leftover value from previous melodic operations
-    print("-- PTI Save: Regular save mode - cleared current_selected_slice")
-  else
-    print("-- PTI Save: Melodic slice export mode - using current_selected_slice")
-  end
   
   -- Check if we have a valid instrument and sample
   if not inst or #inst.samples == 0 then
@@ -1387,23 +1425,122 @@ function pti_savesample_Worker(dialog, vb)
     paketti_melodic_slice_mode = false -- Clear flag on error
     return
   end
+  
+  -- SMART DETECTION: Check if this is a melodic slice instrument
+  local is_melodic_slice = PakettiPTIIsMelodicSliceInstrument(inst)
+  
+  if is_melodic_slice and not paketti_melodic_slice_mode then
+    print("-- PTI Save: Detected melodic slice instrument - routing to melodic slice export")
+    renoise.app():show_status("Detected melodic slice setup - exporting as melodic slice PTI")
+    
+    -- Close current dialog
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
+    -- Route to melodic slice export (which will set paketti_melodic_slice_mode = true)
+    if PakettiMelodicSliceExportCurrent then
+      PakettiMelodicSliceExportCurrent()
+    else
+      print("-- PTI Save: PakettiMelodicSliceExportCurrent not available, falling back to regular save")
+    end
+    return
+  end
+  
+  -- For regular PTI saves (not melodic slice exports), clear the melodic slice mode
+  if not paketti_melodic_slice_mode then
+    current_selected_slice = nil -- Clear any leftover value from previous melodic operations
+    print("-- PTI Save: Regular save mode - cleared current_selected_slice")
+  else
+    print("-- PTI Save: Melodic slice export mode - using current_selected_slice")
+  end
 
+  -- MELODIC SLICE DETECTION: Check for melodic slice pattern
+  local total_samples = #inst.samples
+  local is_melodic_slice = false
+  local melodic_full_sample = nil
+  
+  if total_samples > 1 then
+    local zero_velocity_samples = 0
+    local full_velocity_sample = nil
+    local full_velocity_sample_index = nil
+    
+    print(string.format("-- MELODIC SLICE DETECTION: Checking %d samples for velocity pattern", total_samples))
+    
+    -- Check velocity ranges of all samples
+    for i, sample in ipairs(inst.samples) do
+      -- Safe access to velocity range
+      local velocity_min, velocity_max
+      if sample.sample_mapping and sample.sample_mapping.velocity_range then
+        velocity_min = sample.sample_mapping.velocity_range[1]
+        velocity_max = sample.sample_mapping.velocity_range[2]
+        
+        print(string.format("-- Sample %d (%s) velocity range: %02X-%02X", i, sample.name or "unnamed", velocity_min, velocity_max))
+        
+        if velocity_min == 0 and velocity_max == 0 then
+          -- This sample has 00-00 velocity (not velocity mapped)
+          zero_velocity_samples = zero_velocity_samples + 1
+          print(string.format("-- Sample %d: Zero velocity (00-00) - count now %d", i, zero_velocity_samples))
+        elseif velocity_min == 0 and velocity_max == 127 then
+          -- This sample has 00-7F velocity (full velocity range)
+          full_velocity_sample = sample
+          full_velocity_sample_index = i
+          print(string.format("-- Sample %d: Full velocity (00-7F) - marked as full velocity sample", i))
+        else
+          print(string.format("-- Sample %d: Other velocity range (%02X-%02X) - doesn't match melodic pattern", i, velocity_min, velocity_max))
+        end
+      else
+        print(string.format("-- Sample %d: No velocity mapping found, skipping", i))
+      end
+    end
+    
+    print(string.format("-- MELODIC SLICE ANALYSIS: %d zero velocity samples, %s full velocity sample", 
+      zero_velocity_samples, full_velocity_sample and "1" or "0"))
+    
+    -- Melodic slice pattern: all samples except one have 00-00, one has 00-7F
+    if zero_velocity_samples == (total_samples - 1) and full_velocity_sample then
+      is_melodic_slice = true
+      melodic_full_sample = full_velocity_sample
+      print(string.format("-- MELODIC SLICE DETECTED! Pattern confirmed: %d samples with 00-00, 1 sample (index %d) with 00-7F", 
+        zero_velocity_samples, full_velocity_sample_index))
+    else
+      print(string.format("-- MELODIC SLICE NOT DETECTED: Expected %d zero velocity samples, got %d. Expected 1 full velocity sample, got %s", 
+        total_samples - 1, zero_velocity_samples, full_velocity_sample and "1" or "0"))
+    end
+  else
+    print("-- MELODIC SLICE DETECTION: Only 1 sample found, skipping melodic slice detection")
+  end
+  
   -- SLICE DETECTION: Check if samples[1] has slice markers
   local base_sample = inst.samples[1]
   local has_slices = base_sample and #(base_sample.slice_markers or {}) > 0
   
-  -- Choose sample to export: samples[1] for slices, selected sample otherwise
+  -- Choose sample to export based on detection results
   local selected_sample_index = song.selected_sample_index
   local smp
   local export_info
   
-  if has_slices then
-    -- For slices: always export samples[1] (the base sample with slice markers)
+  if is_melodic_slice then
+    -- MELODIC SLICE MODE: Use existing melodic slice export function (handles everything)
+    print(string.format("-- MELODIC SLICE MODE: Detected melodic slice pattern - calling PakettiMelodicSliceExportCurrent()"))
+    PakettiMelodicSliceExportCurrent()
+    
+    -- Close dialog if it exists since the export is complete
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
+    -- Early return - PakettiMelodicSliceExportCurrent handles the entire export process
+    return
+    
+  elseif has_slices then
+    -- For traditional slices: always export samples[1] (the base sample with slice markers)
     smp = base_sample
     export_info = string.format("base sample with %d slices", #base_sample.slice_markers)
     print(string.format("-- SLICE MODE: Exporting base sample (Sample 1) with %d slice markers", #base_sample.slice_markers))
+    
   else
-    -- For non-sliced: export selected sample
+    -- For regular samples: export selected sample
     smp = inst.samples[selected_sample_index]
     if not smp then
       renoise.app():show_status("No sample selected")
@@ -1417,13 +1554,19 @@ function pti_savesample_Worker(dialog, vb)
   end
 
   -- PTI FORMAT INFO: Check for multiple samples (info only)
-  local total_samples = #inst.samples
   local has_multiple_samples = total_samples > 1
 
-  -- Prompt for save location with error handling
+  -- Prompt for save location with OS-specific error handling
   local filename = ""
+  local os_name = os.platform()
   local success, result = pcall(function()
-    return renoise.app():prompt_for_filename_to_write("*.pti", "Save .PTI as...")
+    if os_name == "WINDOWS" then
+      -- Windows has issues with *.pti pattern - use just "pti"
+      return renoise.app():prompt_for_filename_to_write("pti", "Save .PTI as...")
+    else
+      -- macOS and Linux work fine with *.pti pattern
+      return renoise.app():prompt_for_filename_to_write("*.pti", "Save .PTI as...")
+    end
   end)
   
   if success then
@@ -1436,6 +1579,12 @@ function pti_savesample_Worker(dialog, vb)
       end
       return
     end
+    
+    -- Ensure filename ends with .pti extension (especially important for Windows)
+    if not filename:match("%.pti$") then
+      filename = filename .. ".pti"
+    end
+    print("-- PTI Export: Final filename: " .. filename)
   else
     -- File dialog failed - show error and provide alternative
     print("-- PTI Export: File dialog failed - " .. tostring(result))

@@ -372,7 +372,7 @@ function PakettiPolyendSliceSwitcherProcessInstrument_Worker(instrument, slice_m
   end
   
   -- Set instrument name
-  instrument.name = string.format("%s (Polyend Slices)", original_sample_name or "Polyend Slices")
+  instrument.name = string.format("%s (Polyend Slice Mode)", original_sample_name or "Polyend Slice Mode")
   
   -- Close dialog
   if dialog and dialog.visible then
