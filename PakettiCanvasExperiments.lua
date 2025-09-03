@@ -224,6 +224,11 @@ end
 
 -- Refresh device parameters when device selection changes
 function PakettiCanvasExperimentsRefreshDevice()
+  -- CRITICAL: Only run if dialog is still open
+  if not canvas_experiments_dialog or not canvas_experiments_dialog.visible then
+    return
+  end
+  
   local song = renoise.song()
   
   print("=== Device Selection Changed ===")
@@ -496,7 +501,7 @@ function PakettiCanvasExperimentsInit()
     pcall(function()
       if song and song.selected_device_observable then
         song.selected_device_observable:remove_notifier(device_selection_notifier)
-        print("INIT: ✅ Removed existing device selection observer")
+        print("INIT: Removed existing device selection observer")
       end
     end)
     device_selection_notifier = nil
@@ -549,7 +554,7 @@ function PakettiCanvasExperimentsHandleMouse(ev)
           if observer then
             if not parameter.value_observable:has_notifier(observer) then
               parameter.value_observable:add_notifier(observer)
-              print("MOUSE_UP_OUTSIDE: ✅ RE-ENABLED automation for parameter " .. parameter_being_drawn .. " (" .. param_info.name .. ")")
+              print("MOUSE_UP_OUTSIDE: RE-ENABLED automation for parameter " .. parameter_being_drawn .. " (" .. param_info.name .. ")")
             end
           end
         end
@@ -597,15 +602,15 @@ function PakettiCanvasExperimentsHandleMouse(ev)
           if observer then
             if parameter.value_observable:has_notifier(observer) then
               parameter.value_observable:remove_notifier(observer)
-              print("MOUSE_DOWN: ✅ DISABLED automation for parameter " .. parameter_being_drawn .. " (" .. param_info.name .. ")")
+              print("MOUSE_DOWN: DISABLED automation for parameter " .. parameter_being_drawn .. " (" .. param_info.name .. ")")
               renoise.app():show_status("Drawing: Automation disabled for " .. param_info.name)
             else
-              print("MOUSE_DOWN: ❌ Observer not found on parameter " .. parameter_being_drawn)
+              print("MOUSE_DOWN: Observer not found on parameter " .. parameter_being_drawn)
               -- NOTE: Observer will be rebuilt when mouse is released (see MOUSE_UP section)
-              print("MOUSE_DOWN: ⚠️ Observer missing for parameter " .. parameter_being_drawn .. " - will rebuild on mouse up")
+              print("MOUSE_DOWN: Observer missing for parameter " .. parameter_being_drawn .. " - will rebuild on mouse up")
             end
           else
-            print("MOUSE_DOWN: ❌ No observer stored for parameter " .. parameter_being_drawn)
+            print("MOUSE_DOWN: No observer stored for parameter " .. parameter_being_drawn)
           end
         end
       end
@@ -630,13 +635,13 @@ function PakettiCanvasExperimentsHandleMouse(ev)
         if observer then
           if not parameter.value_observable:has_notifier(observer) then
             parameter.value_observable:add_notifier(observer)
-            print("MOUSE_UP: ✅ RE-ENABLED automation for parameter " .. parameter_being_drawn .. " (" .. param_info.name .. ")")
+            print("MOUSE_UP: RE-ENABLED automation for parameter " .. parameter_being_drawn .. " (" .. param_info.name .. ")")
             renoise.app():show_status("Drawing complete: Automation resumed for " .. param_info.name)
           else
-            print("MOUSE_UP: ⚠️ Observer was already active for parameter " .. parameter_being_drawn)
+            print("MOUSE_UP: Observer was already active for parameter " .. parameter_being_drawn)
           end
         else
-          print("MOUSE_UP: ⚠️ REBUILDING observer for parameter " .. parameter_being_drawn)
+          print("MOUSE_UP: REBUILDING observer for parameter " .. parameter_being_drawn)
           -- SAFETY: Rebuild the observer if it was lost (e.g., due to remove_all_notifiers)
           local param_index = parameter_being_drawn  -- Capture in closure
           local new_observer = function()
@@ -649,7 +654,7 @@ function PakettiCanvasExperimentsHandleMouse(ev)
           end
           parameter.value_observable:add_notifier(new_observer)
           device_parameter_observers[parameter] = new_observer
-          print("MOUSE_UP: ✅ REBUILT automation observer for parameter " .. parameter_being_drawn)
+          print("MOUSE_UP: REBUILT automation observer for parameter " .. parameter_being_drawn)
           renoise.app():show_status("Drawing complete: Automation observer rebuilt for " .. param_info.name)
         end
       end
@@ -1061,7 +1066,7 @@ function PakettiCanvasExperimentsCleanup()
       local song = renoise.song()
       if song and song.selected_device_observable then
         song.selected_device_observable:remove_notifier(device_selection_notifier)
-        print("CLEANUP: ✅ Removed device selection observer")
+        print("CLEANUP: Removed device selection observer")
       end
     end)
     device_selection_notifier = nil
@@ -1985,7 +1990,7 @@ function SetupParameterObservers()
           
           -- CRITICAL CHECK: Show if parameter being drawn is still getting automation updates
           if parameter_being_drawn == i then
-            print("🔥 CRITICAL: Parameter " .. i .. " (" .. param_info.name .. ") got automation update during drawing!")
+            print("CRITICAL: Parameter " .. i .. " (" .. param_info.name .. ") got automation update during drawing!")
           end
           
           -- ALWAYS update canvas when parameter changes externally (automation playback)

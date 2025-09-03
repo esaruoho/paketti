@@ -25,6 +25,7 @@ local row_checkboxes = {}
 local row_ui_elements = {}
 local row_mode_switches = {}  -- Store references to mode switches for direct updates
 local step_valueboxes = {}  -- Store references to step count valueboxes
+local step_count_labels = {}  -- Store references to step count labels for dynamic updates
 local note_text_labels = {}  -- Store references to note text labels for dynamic updates
 local slice_note_valueboxes = {}  -- Store references to slice note valueboxes
 local slice_note_labels = {}  -- Store references to slice note text labels
@@ -37,6 +38,17 @@ local track_change_notifier = nil
 
 -- Dialog initialization flag to prevent pattern writing during population
 local initializing_dialog = false
+
+-- Row modes
+local ROW_MODES = {
+  SAMPLE_OFFSET = 1,
+  SLICE = 2
+}
+
+local MODE_NAMES = {
+  [ROW_MODES.SAMPLE_OFFSET] = "Sample Offset (0Sxx)",
+  [ROW_MODES.SLICE] = "Slice Notes"
+}
 
 -- Current note column tracking for optimized updates
 local current_note_column = 1
@@ -55,19 +67,77 @@ local normal_color = {0,0,0}
 local beat_color = {0x22 / 255, 0xaa / 255, 0xff / 255}
 local selected_color = {0x80, 0x00, 0x80}
 
+-- Helper function to update sample effects column visibility
+function PakettiSliceStepUpdateSampleEffectColumnVisibility()
+  local song = renoise.song()
+  if not song then return end
+  
+  local track = song.selected_track
+  if not track then return end
+  
+  -- Check if any rows are using sample offset mode
+  local has_sample_offset_mode = false
+  for row = 1, NUM_ROWS do
+    if rows[row] and rows[row].enabled and rows[row].mode == ROW_MODES.SAMPLE_OFFSET then
+      has_sample_offset_mode = true
+      break
+    end
+  end
+  
+  -- Show sample effect column only if sample offset mode is used
+  track.sample_effects_column_visible = has_sample_offset_mode
+  
+  print("DEBUG: Sample effect column visibility set to " .. tostring(has_sample_offset_mode))
+end
+
+-- Helper function to detect and auto-select instrument used in current track
+function PakettiSliceStepAutoSelectInstrument()
+  local song = renoise.song()
+  if not song then return end
+  
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local track = song.selected_track
+  
+  -- Scan first few lines of the track to find instrument usage
+  local instrument_counts = {}
+  local max_lines_to_scan = math.min(32, pattern.number_of_lines)
+  
+  for line_idx = 1, max_lines_to_scan do
+    local pattern_line = pattern:track(track_index):line(line_idx)
+    for col = 1, track.visible_note_columns do
+      local note_col = pattern_line:note_column(col)
+      if note_col.note_string ~= "---" and note_col.note_string ~= "" and note_col.instrument_value < 255 then
+        local instrument_index = note_col.instrument_value + 1  -- Convert from 0-based to 1-based
+        instrument_counts[instrument_index] = (instrument_counts[instrument_index] or 0) + 1
+      end
+    end
+  end
+  
+  -- Find the most used instrument
+  local most_used_instrument = nil
+  local max_count = 0
+  for instrument_index, count in pairs(instrument_counts) do
+    if count > max_count and instrument_index <= #song.instruments then
+      max_count = count
+      most_used_instrument = instrument_index
+    end
+  end
+  
+  -- Auto-select the most used instrument if different from current
+  if most_used_instrument and most_used_instrument ~= song.selected_instrument_index then
+    local old_instrument = song.selected_instrument_index
+    song.selected_instrument_index = most_used_instrument
+    print("DEBUG: Auto-selected instrument " .. most_used_instrument .. " (was instrument " .. old_instrument .. ") based on track usage")
+    renoise.app():show_status("Auto-selected instrument " .. most_used_instrument .. " based on track usage")
+    return true  -- Instrument was changed
+  end
+  
+  return false  -- No change needed
+end
+
 -- Selected step tracking (like PakettiGater)
 local selected_steps = {}
-
--- Row modes
-local ROW_MODES = {
-  SAMPLE_OFFSET = 1,
-  SLICE = 2
-}
-
-local MODE_NAMES = {
-  [ROW_MODES.SAMPLE_OFFSET] = "Sample Offset (0Sxx)",
-  [ROW_MODES.SLICE] = "Slice Notes"
-}
 
 -- Initialize row data
 function PakettiSliceStepInitializeRows()
@@ -76,6 +146,7 @@ function PakettiSliceStepInitializeRows()
   row_checkboxes = {}
   row_mode_switches = {}  -- Clear switch references
   step_valueboxes = {}  -- Clear step valuebox references
+  step_count_labels = {}  -- Clear step count label references
   note_text_labels = {}  -- Clear note text label references
   slice_note_valueboxes = {}  -- Clear slice note valuebox references
   slice_note_labels = {}  -- Clear slice note label references
@@ -116,6 +187,13 @@ function PakettiSliceStepInitializeRows()
   end
 end
 
+-- Helper function to update step count label display
+function PakettiSliceStepUpdateStepCountLabel(row)
+  if step_count_labels[row] and rows[row] then
+    step_count_labels[row].text = string.format("%02d", rows[row].active_steps)
+  end
+end
+
 -- Set active steps for a specific row (like PakettiGater)
 function PakettiSliceStepSetActiveSteps(row, step_count)
   if not rows[row] then return end
@@ -133,6 +211,9 @@ function PakettiSliceStepSetActiveSteps(row, step_count)
   if step_valueboxes[row] then
     step_valueboxes[row].value = step_count
   end
+  
+  -- Update the step count label if it exists
+  PakettiSliceStepUpdateStepCountLabel(row)
   
   -- Update button colors and write to pattern
   PakettiSliceStepUpdateButtonColors()
@@ -186,7 +267,7 @@ function PakettiSliceStepUpdatePlayheadHighlights()
         local within_steps_window_index = ((current_line - 1) % steps) + 1
         
         if steps <= MAX_STEPS then
-          new_idx = ((within_steps_window_index - 1) % MAX_STEPS) + 1
+          new_idx = within_steps_window_index
         elseif within_steps_window_index <= MAX_STEPS then
           new_idx = within_steps_window_index
         end
@@ -213,10 +294,47 @@ function PakettiSliceStepSetupTrackChangeDetection()
   track_change_notifier = function()
     local new_track_index = renoise.song().selected_track_index
     if new_track_index ~= current_track_index then
+      local old_track_index = current_track_index
       current_track_index = new_track_index
-      -- Refresh device/parameter information in UI
-      renoise.app():show_status("Step Sequencer: Track changed, refreshing device list")
-      -- Would refresh UI here if it was dynamic
+      print("DEBUG: Track changed from " .. (old_track_index or "nil") .. " to " .. new_track_index)
+      
+      -- Auto-select instrument based on new track
+      PakettiSliceStepAutoSelectInstrument()
+      
+      -- Read pattern data from new track to update dialog
+      if dialog and dialog.visible then
+        print("DEBUG: Track change - reading pattern from new track")
+        PakettiSliceStepReadExistingPattern()
+        
+        -- Update step counts and step view based on new track's column names
+        local song = renoise.song()
+        if song and song.selected_track then
+          local track = song.selected_track
+          if track.max_note_columns >= 1 then
+            local first_column_name = track:column_name(1)
+            local old_steps = current_steps
+            if first_column_name:find("32_32") or first_column_name:find("32") then
+              current_steps = 32
+              MAX_STEPS = 32
+            elseif first_column_name:find("16_16") or first_column_name:find("16") then
+              current_steps = 16
+              MAX_STEPS = 16
+            end
+            
+            if current_steps ~= old_steps then
+              print("DEBUG: Track change - step count changed from " .. old_steps .. " to " .. current_steps)
+              -- Refresh dialog to update step view
+              PakettiSliceStepRefreshDialog()
+            else
+              -- Just update button colors and sample effect column visibility
+              PakettiSliceStepUpdateButtonColors()
+              PakettiSliceStepUpdateSampleEffectColumnVisibility()
+            end
+          end
+        end
+      end
+      
+      renoise.app():show_status("Step Sequencer: Track changed to " .. new_track_index .. ", updated dialog content")
     end
   end
   
@@ -418,7 +536,10 @@ function PakettiSliceStepSelectNoteColumn(row)
   if row >= 1 and row <= track.visible_note_columns then
     song.selected_note_column_index = row
     -- Also ensure we're in the pattern editor and focused on note columns
+    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then return
+    else 
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    end
     print("DEBUG: Selected note column " .. row .. " for step sequencer row " .. row)
   end
 end
@@ -440,9 +561,9 @@ function PakettiSliceStepWriteRowToPattern(target_row)
     track.visible_note_columns = target_row
   end
   
-  -- Ensure effect columns are visible for sample offset mode
-  if rows[target_row].mode == ROW_MODES.SAMPLE_OFFSET and track.visible_effect_columns < target_row then
-    track.visible_effect_columns = target_row
+  -- Ensure sample effect column is visible for sample offset mode
+  if rows[target_row].mode == ROW_MODES.SAMPLE_OFFSET then
+    track.sample_effects_column_visible = true
   end
   
   local row_data = rows[target_row]
@@ -457,20 +578,18 @@ function PakettiSliceStepWriteRowToPattern(target_row)
       pattern_line:note_column(target_row):clear()
     end
     
-    -- Clear effect column if in sample offset mode
-    if row_data.mode == ROW_MODES.SAMPLE_OFFSET and target_row <= #pattern_line.effect_columns then
-      pattern_line.effect_columns[target_row]:clear()
+    -- Clear sample effect column if in sample offset mode
+    if row_data.mode == ROW_MODES.SAMPLE_OFFSET and target_row <= track.visible_note_columns then
+      pattern_line:note_column(target_row).effect_number_string = ""
+      pattern_line:note_column(target_row).effect_amount_string = ""
     end
   end
   
-  -- STEP 2: Write step count marker (ZZxx) to first line
-  if row_data.enabled and row_steps ~= 16 then
-    local first_line = pattern:track(track_index):line(1)
-    if target_row <= track.visible_note_columns then
-      local note_column = first_line:note_column(target_row)
-      note_column.effect_number_string = "ZZ"
-      note_column.effect_amount_string = string.format("%02X", row_steps)
-    end
+  -- STEP 2: Update column name to show step count (account for column 1 being view setting)
+  local column_index = target_row + 1 -- Column 1 is reserved for view setting
+  if row_data.enabled and column_index <= track.max_note_columns then
+    track:set_column_name(column_index, string.format("%02d", row_steps))
+    print("DEBUG: Updated column " .. column_index .. " name to '" .. string.format("%02d", row_steps) .. "' for row " .. target_row .. " (" .. row_steps .. " steps)")
   end
   
   -- STEP 3: Write only ACTIVE steps to first row_steps lines (not all lines!)
@@ -497,9 +616,10 @@ function PakettiSliceStepWriteRowToPattern(target_row)
               dest_line:note_column(target_row):copy_from(source_line:note_column(target_row))
             end
             
-            -- Copy effect column efficiently if in sample offset mode
-            if row_data.mode == ROW_MODES.SAMPLE_OFFSET and target_row <= #dest_line.effect_columns then
-              dest_line.effect_columns[target_row]:copy_from(source_line.effect_columns[target_row])
+            -- Copy sample effect efficiently if in sample offset mode
+            if row_data.mode == ROW_MODES.SAMPLE_OFFSET and target_row <= track.visible_note_columns then
+              dest_line:note_column(target_row).effect_number_string = source_line:note_column(target_row).effect_number_string
+              dest_line:note_column(target_row).effect_amount_string = source_line:note_column(target_row).effect_amount_string
             end
           end
         end
@@ -515,17 +635,14 @@ function PakettiSliceStepWriteStepToLine(row, step, pattern_line, track)
   local row_data = rows[row]
   
   if row_data.mode == ROW_MODES.SAMPLE_OFFSET then
-    -- Write sample offset command AND note
-    if row <= #pattern_line.effect_columns then
-      pattern_line.effect_columns[row].number_string = "0S"
-      pattern_line.effect_columns[row].amount_string = string.format("%02X", row_data.value)
-    end
-    
-    -- Also write the note for this sample offset
+    -- Write sample offset command AND note to same note column
     if row <= track.visible_note_columns then
       local note_string = PakettiSliceStepNoteValueToString(row_data.note_value)
       pattern_line:note_column(row).note_string = note_string
       pattern_line:note_column(row).instrument_value = renoise.song().selected_instrument_index - 1
+      -- Write sample offset to note column sample effect
+      pattern_line:note_column(row).effect_number_string = "0S"
+      pattern_line:note_column(row).effect_amount_string = string.format("%02X", row_data.value)
     end
     
   elseif row_data.mode == ROW_MODES.SLICE then
@@ -565,9 +682,16 @@ function PakettiSliceStepWriteToPattern()
     track.visible_note_columns = math.max(track.visible_note_columns, max_note_columns_needed)
   end
   
-  -- Ensure effect columns are visible for sample offset mode
-  if track.visible_effect_columns < 8 then
-    track.visible_effect_columns = 8
+  -- Ensure sample effect column is visible for sample offset mode
+  local has_sample_offset_mode = false
+  for row = 1, NUM_ROWS do
+    if rows[row].enabled and rows[row].mode == ROW_MODES.SAMPLE_OFFSET then
+      has_sample_offset_mode = true
+      break
+    end
+  end
+  if has_sample_offset_mode then
+    track.sample_effects_column_visible = true
   end
   
   local pattern_length = pattern.number_of_lines
@@ -575,7 +699,7 @@ function PakettiSliceStepWriteToPattern()
   -- Clear all existing content first
   PakettiSliceStepClearAllPattern(pattern, track_index, track, pattern_length)
   
-  -- Write step count markers (ZZxx) to first line for rows with non-default step counts
+  -- Set column names to show step counts for all rows
   PakettiSliceStepWriteStepCountMarkers(pattern, track_index, track)
   
   -- Write pattern line by line to handle multiple simultaneous triggers
@@ -593,41 +717,63 @@ function PakettiSliceStepWriteToPattern()
   renoise.app():show_status("Step sequencer pattern applied")
 end
 
--- Write step count markers (ZZxx) for non-default step counts
+-- Set note column names to show step counts AND store view setting in first column
 function PakettiSliceStepWriteStepCountMarkers(pattern, track_index, track)
-  local first_line = pattern:track(track_index):line(1)
+  -- First, store the current view setting in column 1
+  if track.max_note_columns >= 1 then
+    local view_setting = current_steps .. "_" .. current_steps
+    track:set_column_name(1, view_setting)
+    print("DEBUG: Set column 1 name to '" .. view_setting .. "' to store " .. current_steps .. "-step view setting")
+  end
   
-  -- Write ZZxx markers for rows with step counts different from 16
+  -- Set column names to show step counts for enabled rows (starting from column 2 if column 1 is view setting)
+  local column_offset = 1 -- Column 1 is reserved for view setting
   for row = 1, NUM_ROWS do
-    if rows[row].enabled and rows[row].active_steps ~= 16 then
-      -- Use the note column's sample effect columns for step count storage
-      if row <= track.visible_note_columns then
-        local note_column = first_line:note_column(row)
-        note_column.effect_number_string = "ZZ"
-        note_column.effect_amount_string = string.format("%02X", rows[row].active_steps)
-      end
+    local column_index = row + column_offset
+    if rows[row].enabled and column_index <= track.max_note_columns then
+      local step_count = rows[row].active_steps
+      -- Set column name to show step count (e.g., "04", "08", "16")
+      track:set_column_name(column_index, string.format("%02d", step_count))
+      print("DEBUG: Set column " .. column_index .. " name to '" .. string.format("%02d", step_count) .. "' for row " .. row .. " (" .. step_count .. " steps)")
     end
   end
 end
 
--- Read step count markers (ZZxx) from pattern
+-- Read step counts from note column names AND view setting from first column
 function PakettiSliceStepReadStepCountMarkers(pattern, track_index, track)
-  local first_line = pattern:track(track_index):line(1)
+  -- First, check column 1 for view setting (e.g. "16_16" or "32_32")
+  if track.max_note_columns >= 1 then
+    local first_column_name = track:column_name(1)
+    if first_column_name:find("32_32") or first_column_name:find("32") then
+      current_steps = 32
+      MAX_STEPS = 32
+      print("DEBUG: Found 32-step view setting in first column: '" .. first_column_name .. "'")
+    elseif first_column_name:find("16_16") or first_column_name:find("16") then
+      current_steps = 16
+      MAX_STEPS = 16
+      print("DEBUG: Found 16-step view setting in first column: '" .. first_column_name .. "'")
+    end
+  end
   
-  -- Read ZZxx markers from note columns
+  -- Read step counts from column names (starting from column 2, since column 1 is view setting)
   for row = 1, NUM_ROWS do
-    if row <= track.visible_note_columns then
-      local note_column = first_line:note_column(row)
-      if note_column.effect_number_string == "ZZ" then
-        local step_count = tonumber(note_column.effect_amount_string, 16)
-        if step_count and step_count >= 1 and step_count <= 32 then
-          rows[row].active_steps = step_count
-          -- Update the UI step valuebox to reflect the read step count
-          if step_valueboxes[row] then
-            step_valueboxes[row].value = step_count
-          end
-          print("DEBUG: Read ZZ" .. note_column.effect_amount_string .. " - updated row " .. row .. " step count to " .. step_count .. " and UI valuebox")
+    local column_index = row + 1 -- Column 1 is reserved for view setting
+    if column_index <= track.max_note_columns then
+      local column_name = track:column_name(column_index)
+      local step_count = tonumber(column_name)
+      
+      if step_count and step_count >= 1 and step_count <= 32 then
+        rows[row].active_steps = step_count
+        -- Update the UI step valuebox to reflect the read step count
+        if step_valueboxes[row] then
+          step_valueboxes[row].value = step_count
         end
+        -- Update the step count label to reflect the read step count
+        PakettiSliceStepUpdateStepCountLabel(row)
+        print("DEBUG: Read column " .. column_index .. " name '" .. column_name .. "' - updated row " .. row .. " step count to " .. step_count .. " and UI elements")
+      else
+        -- If column name is not a number or is invalid, use default
+        print("DEBUG: Column " .. column_index .. " name '" .. column_name .. "' is not a valid step count, using default for row " .. row)
       end
     end
   end
@@ -649,16 +795,14 @@ function PakettiSliceStepWriteRowToLine(row, line, pattern_line, track)
         track.visible_note_columns = row
       end
       
-      -- Write sample offset command AND note to appropriate columns
-      local effect_column_index = math.min(row, #pattern_line.effect_columns)
-      pattern_line.effect_columns[effect_column_index].number_string = "0S"
-      pattern_line.effect_columns[effect_column_index].amount_string = string.format("%02X", row_data.value)
-      
-      -- Also write the note for this sample offset
+      -- Write sample offset command AND note to same note column
       local note_string = PakettiSliceStepNoteValueToString(row_data.note_value)
       pattern_line:note_column(row).note_string = note_string
       pattern_line:note_column(row).instrument_value = renoise.song().selected_instrument_index - 1
-      print("DEBUG: Sample Offset Row " .. row .. " wrote " .. note_string .. " to note column " .. row .. " with 0S" .. string.format("%02X", row_data.value))
+      -- Write sample offset to note column sample effect
+      pattern_line:note_column(row).effect_number_string = "0S"
+      pattern_line:note_column(row).effect_amount_string = string.format("%02X", row_data.value)
+      print("DEBUG: Sample Offset Row " .. row .. " wrote " .. note_string .. " to note column " .. row .. " with 0S" .. string.format("%02X", row_data.value) .. " (sample effect)")
       
     elseif row_data.mode == ROW_MODES.SLICE then
       -- Write specific slice note for this row using the slice_note value
@@ -699,7 +843,7 @@ function PakettiSliceStepClearAllPattern(pattern, track_index, track, pattern_le
       pattern_line:note_column(col).volume_string = ""
       pattern_line:note_column(col).panning_string = ""
       pattern_line:note_column(col).delay_string = ""
-      -- Clear sample effect columns (where ZZ step count markers are stored)
+      -- Clear note column sample effects  
       pattern_line:note_column(col).effect_number_string = ""
       pattern_line:note_column(col).effect_amount_string = ""
     end
@@ -744,8 +888,8 @@ end
 -- Global functions
 function PakettiSliceStepGlobalSlice()
   local slice_info = PakettiSliceStepGetSliceInfo()
-  if not slice_info then
-    renoise.app():show_status("No sliced instrument detected - load a sliced sample first!")
+  if not slice_info or slice_info.slice_count == 0 then
+    renoise.app():show_status("Cannot use Slice mode: Sample has no slice markers")
     return
   end
   
@@ -846,6 +990,9 @@ function PakettiSliceStepGlobalSlice()
   PakettiSliceStepUpdateButtonColors()
   PakettiSliceStepWriteToPattern()
   
+  -- Update sample effect column visibility (should be hidden in slice mode)
+  PakettiSliceStepUpdateSampleEffectColumnVisibility()
+  
   local enabled_rows = math.min(NUM_ROWS, slice_info.slice_count)
   renoise.app():show_status("Global Slice: Enabled " .. enabled_rows .. " rows, cleared sample offsets, applied slice pattern")
 end
@@ -907,6 +1054,9 @@ function PakettiSliceStepGlobalSampleOffset()
   PakettiSliceStepUpdateButtonColors()
   PakettiSliceStepWriteToPattern()
   
+  -- Update sample effect column visibility (should be visible in sample offset mode)
+  PakettiSliceStepUpdateSampleEffectColumnVisibility()
+  
   renoise.app():show_status("Global Sample Offset: Enabled all 8 rows, cleared pattern, applied sample offset pattern")
 end
 
@@ -960,6 +1110,9 @@ function PakettiSliceStepEvenSpread()
       print("DEBUG: Set step count valuebox for row " .. row .. " to " .. current_steps)
     end
     
+    -- Update step count label to current_steps
+    PakettiSliceStepUpdateStepCountLabel(row)
+    
     -- DISABLE transpose rotary for sample offset mode
     if transpose_rotaries[row] then
       transpose_rotaries[row].active = false
@@ -1008,6 +1161,9 @@ function PakettiSliceStepEvenSpread()
   PakettiSliceStepUpdateButtonColors()
   PakettiSliceStepWriteToPattern()
   
+  -- Update sample effect column visibility (should be visible for sample offset mode)
+  PakettiSliceStepUpdateSampleEffectColumnVisibility()
+  
   local step_list = ""
   for row = 1, NUM_ROWS do
     local target_step = ((row - 1) * step_interval) + 1
@@ -1022,6 +1178,8 @@ end
 -- Row management
 function PakettiSliceStepSetRowSteps(row, steps)
   rows[row].active_steps = steps
+  -- Update the step count label if it exists
+  PakettiSliceStepUpdateStepCountLabel(row)
   PakettiSliceStepUpdateButtonColors()
   -- Only update this specific row, not entire pattern
   PakettiSliceStepWriteRowToPattern(row)
@@ -1039,6 +1197,72 @@ function PakettiSliceStepClearRow(row)
     PakettiSliceStepWriteRowToPattern(row)
     renoise.app():show_status("Row " .. row .. " cleared")
   end
+end
+
+-- Fill row with every N pattern
+function PakettiSliceStepFillRowEveryN(row, interval)
+  if not row_checkboxes[row] or not rows[row] then return end
+  
+  local row_steps = rows[row].active_steps
+  
+  -- Clear all checkboxes first
+  for step = 1, MAX_STEPS do
+    if row_checkboxes[row][step] then
+      row_checkboxes[row][step].value = false
+    end
+  end
+  
+  -- Fill every N steps (starting from step 1, so 1,1+N,1+2N...)
+  for step = 1, row_steps, interval do
+    if step <= MAX_STEPS and row_checkboxes[row][step] then
+      row_checkboxes[row][step].value = true
+    end
+  end
+  
+  -- Update button colors and write pattern
+  PakettiSliceStepUpdateButtonColors()
+  PakettiSliceStepWriteRowToPattern(row)
+  
+  renoise.app():show_status("Row " .. row .. ": Filled every " .. interval .. " steps (" .. row_steps .. " total steps)")
+end
+
+-- Fill row with edit step pattern
+function PakettiSliceStepFillRowEveryEditStep(row)
+  if not row_checkboxes[row] or not rows[row] then return end
+  
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_status("No song available")
+    return
+  end
+  
+  local edit_step = song.transport.edit_step
+  -- If edit_step is 0 or negative, use interval of 1 (fill every step)
+  if edit_step <= 0 then
+    edit_step = 1
+  end
+  
+  local row_steps = rows[row].active_steps
+  
+  -- Clear all checkboxes first
+  for step = 1, MAX_STEPS do
+    if row_checkboxes[row][step] then
+      row_checkboxes[row][step].value = false
+    end
+  end
+  
+  -- Fill every edit_step steps (starting from step 1, so 1,1+edit_step,1+2*edit_step...)
+  for step = 1, row_steps, edit_step do
+    if step <= MAX_STEPS and row_checkboxes[row][step] then
+      row_checkboxes[row][step].value = true
+    end
+  end
+  
+  -- Update button colors and write pattern
+  PakettiSliceStepUpdateButtonColors()
+  PakettiSliceStepWriteRowToPattern(row)
+  
+  renoise.app():show_status("Row " .. row .. ": Filled every " .. edit_step .. " steps (EditStep=" .. edit_step .. ", " .. row_steps .. " total steps)")
 end
 
 -- Shift individual row left/right (like PakettiGater)
@@ -1071,6 +1295,17 @@ end
 
 function PakettiSliceStepSetRowMode(row, mode)
   print("DEBUG: PakettiSliceStepSetRowMode - Setting row " .. row .. " to mode " .. mode)
+  
+  -- Validate mode - prevent switching to SLICE mode if no slices are available
+  if mode == ROW_MODES.SLICE then
+    local slice_info = PakettiSliceStepGetSliceInfo()
+    if not slice_info or slice_info.slice_count == 0 then
+      print("DEBUG: Cannot set row " .. row .. " to SLICE mode - no slices available")
+      renoise.app():show_status("Cannot use Slice mode: Sample has no slice markers")
+      return -- Exit without changing mode
+    end
+  end
+  
   rows[row].mode = mode
   -- Mode-specific setup could go here
   PakettiSliceStepUpdateButtonColors()
@@ -1081,6 +1316,9 @@ function PakettiSliceStepSetRowMode(row, mode)
     row_mode_switches[row].value = mode
     print("DEBUG: Updated switch value for row " .. row .. " to " .. mode)
   end
+  
+  -- Update sample effect column visibility based on new mode
+  PakettiSliceStepUpdateSampleEffectColumnVisibility()
   
   -- Enable/disable sample offset valuebox based on mode
   if sample_offset_valueboxes[row] then
@@ -1190,6 +1428,8 @@ function PakettiSliceStepRefreshDialog()
         if step_valueboxes[row] then
           step_valueboxes[row].value = saved_rows[row].active_steps
         end
+        -- Update step count label to saved value
+        PakettiSliceStepUpdateStepCountLabel(row)
         -- Update note text labels and sample offset valuebox
         if saved_rows[row].mode == ROW_MODES.SAMPLE_OFFSET and note_text_labels[row] then
           note_text_labels[row].text = PakettiSliceStepNoteValueToString(saved_rows[row].note_value)
@@ -1573,7 +1813,7 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
   end
   table.insert(row_1_elements, step_valuebox)
   
-  -- Add Clear and shift buttons to row 1
+  -- Add Clear, shift, and fill buttons to row 1
   table.insert(row_1_elements, vb_local:button{
     text = "Clear",
     width = 50,
@@ -1607,6 +1847,43 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
       end
     end)(row)
   })
+  -- Add fill pattern buttons
+  table.insert(row_1_elements, vb_local:button{
+    text = "2",
+    width = 25,
+    tooltip = "Fill every 2 steps (1,3,5,7...)",
+    notifier = (function(current_row)
+      return function()
+        -- Select the corresponding note column when interacting with this row
+        PakettiSliceStepSelectNoteColumn(current_row)
+        PakettiSliceStepFillRowEveryN(current_row, 2)
+      end
+    end)(row)
+  })
+  table.insert(row_1_elements, vb_local:button{
+    text = "4", 
+    width = 25,
+    tooltip = "Fill every 4 steps (1,5,9,13...)",
+    notifier = (function(current_row)
+      return function()
+        -- Select the corresponding note column when interacting with this row
+        PakettiSliceStepSelectNoteColumn(current_row)
+        PakettiSliceStepFillRowEveryN(current_row, 4)
+      end
+    end)(row)
+  })
+  table.insert(row_1_elements, vb_local:button{
+    text = "E",
+    width = 25,
+    tooltip = "Fill using current Edit Step interval from Renoise",
+    notifier = (function(current_row)
+      return function()
+        -- Select the corresponding note column when interacting with this row
+        PakettiSliceStepSelectNoteColumn(current_row)
+        PakettiSliceStepFillRowEveryEditStep(current_row)
+      end
+    end)(row)
+  })
   local row_1 = vb_local:row(row_1_elements)
   
   -- ROW 2: [TRANSPOSE ROTARY][checkboxes][switch][sample offset valuebox if applicable]
@@ -1633,12 +1910,35 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
   local current_mode = rows[row].mode
   print("DEBUG: Creating switch for row " .. row .. " with current mode " .. current_mode)
   
+  -- Check if slices are available 
+  local slice_info = PakettiSliceStepGetSliceInfo()
+  local has_slices = slice_info and slice_info.slice_count > 0
+  
+  -- Always provide both options (ViewBuilder switch needs at least 2 items)
+  local switch_items = {"Sample Offset", "Slice"}
+  
+  -- Ensure current_mode is valid - if no slices but mode is SLICE, force to SAMPLE_OFFSET
+  if not has_slices and current_mode == ROW_MODES.SLICE then
+    current_mode = ROW_MODES.SAMPLE_OFFSET
+    rows[row].mode = ROW_MODES.SAMPLE_OFFSET
+  end
+  
   local mode_switch = vb_local:switch{
-    items = {"Sample Offset", "Slice"},
+    items = switch_items,
     value = current_mode,
     width = 160,
     notifier = (function(current_row)
       return function(value)
+        -- Check if trying to select slice mode when no slices available
+        if value == ROW_MODES.SLICE and not has_slices then
+          -- Reset switch back to Sample Offset
+          if row_mode_switches[current_row] then
+            row_mode_switches[current_row].value = ROW_MODES.SAMPLE_OFFSET
+          end
+          renoise.app():show_status("Cannot use Slice mode: Sample has no slice markers")
+          return
+        end
+        
         -- Select the corresponding note column when interacting with this row
         PakettiSliceStepSelectNoteColumn(current_row)
         print("DEBUG: Row " .. current_row .. " switch clicked - changing from mode " .. current_mode .. " to mode " .. value)
@@ -1689,7 +1989,9 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
   local row_data = rows[row]
   
   if row_data.mode == ROW_MODES.SAMPLE_OFFSET then
-    table.insert(elements_table, vb_local:text{text = "Note:", width = 30, style = "strong", font = "bold"})
+    local step_count_label = vb_local:text{text = string.format("%02d", row_data.active_steps), width = 30, style = "strong", font = "bold"}
+    step_count_labels[row] = step_count_label  -- Store reference for dynamic updates
+    table.insert(elements_table, step_count_label)
     table.insert(elements_table, vb_local:valuebox{
       min = 0,
       max = 119,
@@ -1720,7 +2022,7 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
       
       local slice_valuebox = vb_local:valuebox{
         min = slice_info.base_note + 1, -- First slice (base+1)
-        max = slice_info.base_note + slice_info.slice_count, -- Last slice
+        max = slice_info.base_note + slice_info.slice_count - 1, -- Last slice (fix off-by-one)
         value = row_data.slice_note or (slice_info.base_note + row),
         width = 50,
         notifier = (function(current_row)
@@ -1768,6 +2070,24 @@ function PakettiSliceStepCreateDialog()
   print("DEBUG: Dialog opening - HALTING pattern writing")
   initializing_dialog = true
   
+  -- STEP 1.1: Auto-select instrument based on track usage
+  local instrument_changed = PakettiSliceStepAutoSelectInstrument()
+  
+  -- STEP 1.5: Read view setting from first column before initializing UI
+  local song = renoise.song()
+  if song and song.selected_track and song.selected_track.max_note_columns >= 1 then
+    local first_column_name = song.selected_track:column_name(1)
+    if first_column_name:find("32_32") or first_column_name:find("32") then
+      current_steps = 32
+      MAX_STEPS = 32
+      print("DEBUG: Restored 32-step view setting from first column: '" .. first_column_name .. "'")
+    elseif first_column_name:find("16_16") or first_column_name:find("16") then
+      current_steps = 16
+      MAX_STEPS = 16
+      print("DEBUG: Restored 16-step view setting from first column: '" .. first_column_name .. "'")
+    end
+  end
+  
   -- STEP 2: Initialize rows with default values
   print("DEBUG: Dialog opening - INITIALIZING rows")
   PakettiSliceStepInitializeRows()
@@ -1779,24 +2099,178 @@ function PakettiSliceStepCreateDialog()
         items = {"16", "32"},width=50,
         value = (current_steps == 32) and 2 or 1,
         notifier = function(value)
+          local old_steps = current_steps
           current_steps = (value == 2) and 32 or 16
           MAX_STEPS = current_steps -- Update MAX_STEPS
           
-          -- Update all row step counts to match the new step mode
+          -- Show immediate feedback
+          renoise.app():show_status("Switching to " .. current_steps .. " steps...")
+          
+          -- Optimize: Only save checkbox states that we'll actually need to restore/duplicate
+          local saved_checkbox_states = {}
+          local saved_row_steps = {}
           for row = 1, NUM_ROWS do
-            rows[row].active_steps = current_steps
-            -- Update the UI step valuebox for each row
-            if step_valueboxes[row] then
-              step_valueboxes[row].value = current_steps
+            saved_checkbox_states[row] = {}
+            saved_row_steps[row] = rows[row].active_steps -- Only save step counts, not all data
+            if row_checkboxes[row] then
+              -- Only save states for steps that exist
+              local steps_to_save = math.min(old_steps, rows[row].active_steps or old_steps)
+              for step = 1, steps_to_save do
+                if row_checkboxes[row][step] then
+                  saved_checkbox_states[row][step] = row_checkboxes[row][step].value
+                end
+              end
             end
           end
           
-          -- Refresh dialog
+          -- Smart step count updating logic
+          -- Check if ALL rows are currently using the old step count
+          local all_rows_at_old_steps = true
+          for row = 1, NUM_ROWS do
+            if rows[row].active_steps ~= old_steps then
+              all_rows_at_old_steps = false
+              break
+            end
+          end
+          
+          local rows_to_update = {}
+          if all_rows_at_old_steps then
+            -- If ALL rows are at old step count, update ALL to new step count (best UX)
+            for row = 1, NUM_ROWS do
+              rows[row].active_steps = current_steps
+              rows_to_update[row] = true
+            end
+          else
+            -- Mixed step counts - only update rows that were using the old maximum
+            for row = 1, NUM_ROWS do
+              if rows[row].active_steps == old_steps then
+                rows[row].active_steps = current_steps
+                rows_to_update[row] = true
+              end
+            end
+          end
+          
+          -- Optimize: Batch UI updates and minimize dialog recreation work
+          local was_initializing = initializing_dialog
+          initializing_dialog = true -- Prevent pattern writing during UI updates
+          
+          -- CRITICAL: Update the view setting column name BEFORE recreating dialog
+          -- Otherwise PakettiSliceStepCreateDialog() will read the old name and reset our changes!
+          local song = renoise.song()
+          if song and song.selected_track then
+            local view_setting = current_steps .. "_" .. current_steps
+            song.selected_track:set_column_name(1, view_setting)
+            print("DEBUG: PRE-DIALOG: Updated column 1 name to '" .. view_setting .. "' before dialog recreation")
+          end
+          
+          -- Refresh dialog (unavoidable due to ViewBuilder limitations)
           PakettiSliceStepCleanupPlayhead()
           PakettiSliceStepCleanupTrackChangeDetection()
           dialog:close()
           dialog = nil
           PakettiSliceStepCreateDialog()
+          
+          -- Smart restore and duplicate logic
+          if old_steps == 16 and current_steps == 32 then
+            local duplicated_rows = 0
+            local preserved_rows = 0
+            
+            -- Batch all checkbox updates to minimize UI redraws
+            for row = 1, NUM_ROWS do
+              if saved_checkbox_states[row] and row_checkboxes[row] then
+                local row_step_count = saved_row_steps[row] or 16
+                
+                -- Restore original steps (only up to what the row actually had)
+                local restore_steps = math.min(16, row_step_count)
+                for step = 1, restore_steps do
+                  if row_checkboxes[row][step] and saved_checkbox_states[row][step] ~= nil then
+                    row_checkboxes[row][step].value = saved_checkbox_states[row][step]
+                  end
+                end
+                
+                -- Smart duplication logic based on whether this row was updated
+                if rows_to_update[row] then
+                  -- This row was updated to 32 steps - duplicate its pattern
+                  for step = 1, restore_steps do
+                    local target_step = step + 16
+                    if target_step <= 32 and row_checkboxes[row][target_step] and saved_checkbox_states[row][step] ~= nil then
+                      row_checkboxes[row][target_step].value = saved_checkbox_states[row][step]
+                    end
+                  end
+                  duplicated_rows = duplicated_rows + 1
+                else
+                  -- This row kept its original step count - preserve silence in 17-32
+                  preserved_rows = preserved_rows + 1
+                end
+              end
+            end
+            
+            -- Smart status messages based on behavior
+            local status_msg = "Expanded to 32 steps"
+            if all_rows_at_old_steps then
+              status_msg = status_msg .. " - all rows expanded to 32 steps and patterns duplicated"
+            elseif duplicated_rows > 0 and preserved_rows > 0 then
+              status_msg = status_msg .. " - duplicated " .. duplicated_rows .. " rows, preserved " .. preserved_rows .. " rows"
+            elseif duplicated_rows > 0 then
+              status_msg = status_msg .. " - pattern duplicated for " .. duplicated_rows .. " rows"
+            else
+              status_msg = status_msg .. " - preserved all row patterns"
+            end
+            renoise.app():show_status(status_msg)
+          elseif old_steps == 32 and current_steps == 16 then
+            -- Smart contracting from 32 to 16: keep only first 16 steps
+            local contracted_rows = 0
+            local preserved_rows = 0
+            
+            for row = 1, NUM_ROWS do
+              if saved_checkbox_states[row] and row_checkboxes[row] then
+                for step = 1, 16 do
+                  if row_checkboxes[row][step] and saved_checkbox_states[row][step] ~= nil then
+                    row_checkboxes[row][step].value = saved_checkbox_states[row][step]
+                  end
+                end
+                
+                if rows_to_update[row] then
+                  contracted_rows = contracted_rows + 1
+                else
+                  preserved_rows = preserved_rows + 1
+                end
+              end
+            end
+            
+            -- Smart status message for contraction
+            local status_msg = "Contracted to 16 steps"
+            if all_rows_at_old_steps then
+              status_msg = status_msg .. " - all rows contracted to 16 steps"
+            elseif contracted_rows > 0 and preserved_rows > 0 then
+              status_msg = status_msg .. " - contracted " .. contracted_rows .. " rows, preserved " .. preserved_rows .. " rows"
+            else
+              status_msg = status_msg .. " - kept first 16 steps"
+            end
+            renoise.app():show_status(status_msg)
+          else
+            -- Same step count or other transition: restore as-is
+            for row = 1, NUM_ROWS do
+              if saved_checkbox_states[row] and row_checkboxes[row] then
+                for step = 1, math.min(old_steps, current_steps) do
+                  if row_checkboxes[row][step] and saved_checkbox_states[row][step] ~= nil then
+                    row_checkboxes[row][step].value = saved_checkbox_states[row][step]
+                  end
+                end
+              end
+            end
+          end
+          
+          -- Restore original initializing state and batch final updates
+          initializing_dialog = was_initializing
+          
+          -- (Column name was already updated before dialog recreation)
+          
+          -- Single batched update at the end
+          PakettiSliceStepUpdateButtonColors()
+          if not initializing_dialog then
+            PakettiSliceStepWriteToPattern()
+          end
         end
       },
       
@@ -1817,6 +2291,16 @@ function PakettiSliceStepCreateDialog()
                if step_valueboxes[row] then
                  step_valueboxes[row].value = value
                end
+               -- Update the step count label for each row
+               PakettiSliceStepUpdateStepCountLabel(row)
+             end
+             
+             -- Update the view setting in the first column
+             local song = renoise.song()
+             if song and song.selected_track then
+               local view_setting = value .. "_" .. value
+               song.selected_track:set_column_name(1, view_setting)
+               print("DEBUG: Updated column 1 name to '" .. view_setting .. "' for master steps change")
              end
              
              -- Update button colors and write pattern
@@ -1837,12 +2321,84 @@ function PakettiSliceStepCreateDialog()
        vb:button{
         text = "Slice",
         width = 50,
+        active = (PakettiSliceStepGetSliceInfo() and PakettiSliceStepGetSliceInfo().slice_count > 0),
         notifier = PakettiSliceStepGlobalSlice
     },
        vb:button{
         text = "Even Spread",
         width = 80,
         notifier = PakettiSliceStepEvenSpread
+    },
+    vb:text{text = "Instrument Transpose:", font = "bold", style = "strong"},
+    vb:button{
+      text = "-24",
+      width = 30,
+      notifier = function()
+        local song = renoise.song()
+        if song and song.selected_instrument and #song.selected_instrument.samples > 0 then
+          local sample = song.selected_instrument.samples[song.selected_sample_index or 1]
+          if sample then
+            sample.transpose = -24
+            renoise.app():show_status("Instrument transpose set to -24")
+          end
+        end
+      end
+    },
+    vb:button{
+      text = "-12",
+      width = 30,
+      notifier = function()
+        local song = renoise.song()
+        if song and song.selected_instrument and #song.selected_instrument.samples > 0 then
+          local sample = song.selected_instrument.samples[song.selected_sample_index or 1]
+          if sample then
+            sample.transpose = -12
+            renoise.app():show_status("Instrument transpose set to -12")
+          end
+        end
+      end
+    },
+    vb:button{
+      text = "0",
+      width = 25,
+      notifier = function()
+        local song = renoise.song()
+        if song and song.selected_instrument and #song.selected_instrument.samples > 0 then
+          local sample = song.selected_instrument.samples[song.selected_sample_index or 1]
+          if sample then
+            sample.transpose = 0
+            renoise.app():show_status("Instrument transpose set to 0")
+          end
+        end
+      end
+    },
+    vb:button{
+      text = "+12",
+      width = 30,
+      notifier = function()
+        local song = renoise.song()
+        if song and song.selected_instrument and #song.selected_instrument.samples > 0 then
+          local sample = song.selected_instrument.samples[song.selected_sample_index or 1]
+          if sample then
+            sample.transpose = 12
+            renoise.app():show_status("Instrument transpose set to +12")
+          end
+        end
+      end
+    },
+    vb:button{
+      text = "+24",
+      width = 30,
+      notifier = function()
+        local song = renoise.song()
+        if song and song.selected_instrument and #song.selected_instrument.samples > 0 then
+          local sample = song.selected_instrument.samples[song.selected_sample_index or 1]
+          if sample then
+            sample.transpose = 24
+            renoise.app():show_status("Instrument transpose set to +24")
+          end
+        end
+      end
     }
   }}
   
@@ -2003,7 +2559,7 @@ function PakettiSliceStepCreateDialog()
   initializing_dialog = false
   
   -- Ensure focus returns to Pattern Editor
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+--  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 -- Menu entries and keybindings
@@ -2047,7 +2603,7 @@ function PakettiSliceStepReadExistingPattern()
   local slice_info = PakettiSliceStepGetSliceInfo()
   local has_sample_offsets = false
   
-  -- First read step count markers from first line
+  -- First read step counts from column names
   PakettiSliceStepReadStepCountMarkers(pattern, track_index, track)
   
   -- Clear all checkboxes first
@@ -2064,15 +2620,27 @@ function PakettiSliceStepReadExistingPattern()
   -- FIRST PASS: Analyze pattern to detect what modes each row should use
   print("DEBUG: Analyzing pattern to detect content modes...")
   
-  -- Check for ANY sample offsets in the pattern
+  -- Check for ANY sample offsets in the pattern (check both effect columns and note column sample effects)
   for line_idx = 1, pattern.number_of_lines do
     local pattern_line = pattern:track(track_index):line(line_idx)
+    -- Check effect columns (legacy)
     for col = 1, #pattern_line.effect_columns do
       local effect_col = pattern_line.effect_columns[col]
       if effect_col.number_string == "0S" then
         has_sample_offsets = true
-        print("DEBUG: Found sample offsets in pattern - will use SAMPLE_OFFSET mode")
+        print("DEBUG: Found sample offsets in effect columns - will use SAMPLE_OFFSET mode")
         break
+      end
+    end
+    -- Check note column sample effects (new method)
+    if not has_sample_offsets then
+      for col = 1, track.visible_note_columns do
+        local note_col = pattern_line:note_column(col)
+        if note_col.effect_number_string == "0S" then
+          has_sample_offsets = true
+          print("DEBUG: Found sample offsets in note column sample effects - will use SAMPLE_OFFSET mode")
+          break
+        end
       end
     end
     if has_sample_offsets then break end
@@ -2084,13 +2652,23 @@ function PakettiSliceStepReadExistingPattern()
     
     for row = 1, NUM_ROWS do
       if not detected_modes[row] then
-        -- Check for Sample Offset (0Sxx in effect columns)
+        -- Check for Sample Offset (0Sxx in effect columns or note column sample effects)
+        local found_sample_offset = false
         if row <= #pattern_line.effect_columns then
           local effect_col = pattern_line.effect_columns[row]
           if effect_col.number_string == "0S" then
-            detected_modes[row] = ROW_MODES.SAMPLE_OFFSET
-            print("DEBUG: Row " .. row .. " detected as SAMPLE_OFFSET (found 0S)")
+            found_sample_offset = true
           end
+        end
+        if not found_sample_offset and row <= track.visible_note_columns then
+          local note_col = pattern_line:note_column(row)
+          if note_col.effect_number_string == "0S" then
+            found_sample_offset = true
+          end
+        end
+        if found_sample_offset then
+          detected_modes[row] = ROW_MODES.SAMPLE_OFFSET
+          print("DEBUG: Row " .. row .. " detected as SAMPLE_OFFSET (found 0S)")
         end
         
         -- Check for Slice notes (if sliced instrument is available)
@@ -2109,21 +2687,32 @@ function PakettiSliceStepReadExistingPattern()
     end
   end
   
-  -- Apply GLOBAL mode logic based on user requirements:
-  -- 6. when opening dialog, and no sample offsets exist? then you're in slice mode
-  -- 7. when opening dialog, and sample offsets exist? then set mode to Sample Offset mode
-  if not has_sample_offsets and slice_info then
-    print("DEBUG: No sample offsets found and slices available - defaulting all rows to SLICE mode")
-    for row = 1, NUM_ROWS do
-      if not detected_modes[row] then
-        detected_modes[row] = ROW_MODES.SLICE
+  -- Apply PER-ROW intelligent defaults for undetected rows
+  print("DEBUG: Applying per-row intelligent defaults for undetected rows...")
+  for row = 1, NUM_ROWS do
+    if not detected_modes[row] then
+      -- Check if this row has any content at all
+      local has_any_content = false
+      for line_idx = 1, math.min(MAX_STEPS, pattern.number_of_lines) do
+        local pattern_line = pattern:track(track_index):line(line_idx)
+        if row <= track.visible_note_columns then
+          local note_col = pattern_line:note_column(row)
+          if note_col.note_string ~= "---" and note_col.note_string ~= "" then
+            has_any_content = true
+            break
+          end
+        end
       end
-    end
-  elseif has_sample_offsets then
-    print("DEBUG: Sample offsets found - defaulting remaining rows to SAMPLE_OFFSET mode")
-    for row = 1, NUM_ROWS do
-      if not detected_modes[row] then
+      
+      -- Intelligent per-row default:
+      -- If row has content and slices are available, default to SLICE
+      -- If row has content but no slices, or row is empty, default to SAMPLE_OFFSET
+      if has_any_content and slice_info then
+        detected_modes[row] = ROW_MODES.SLICE
+        print("DEBUG: Row " .. row .. " has content and slices available - defaulting to SLICE mode")
+      else
         detected_modes[row] = ROW_MODES.SAMPLE_OFFSET
+        print("DEBUG: Row " .. row .. " defaulting to SAMPLE_OFFSET mode (no content or no slices)")
       end
     end
   end
@@ -2143,6 +2732,26 @@ function PakettiSliceStepReadExistingPattern()
   
   if mode_change_count > 0 then
     print("DEBUG: Auto-detected and changed " .. mode_change_count .. " row modes")
+    -- Refresh UI after mode changes to update switch displays and controls
+    PakettiSliceStepUpdateButtonColors()
+    PakettiSliceStepUpdateSampleEffectColumnVisibility()
+    
+    -- Update mode-specific control visibility for all changed rows
+    for row = 1, NUM_ROWS do
+      if detected_modes[row] then
+        local mode = detected_modes[row] -- Use the detected mode (which is now applied to rows[row].mode)
+        -- Enable/disable sample offset valuebox based on mode
+        if sample_offset_valueboxes[row] then
+          sample_offset_valueboxes[row].active = (mode == ROW_MODES.SAMPLE_OFFSET)
+          print("DEBUG: Sample offset valuebox for row " .. row .. " " .. (mode == ROW_MODES.SAMPLE_OFFSET and "enabled" or "disabled"))
+        end
+        -- Enable/disable transpose rotary based on mode  
+        if transpose_rotaries[row] then
+          transpose_rotaries[row].active = (mode == ROW_MODES.SLICE)
+          print("DEBUG: Transpose rotary for row " .. row .. " " .. (mode == ROW_MODES.SLICE and "enabled" or "disabled"))
+        end
+      end
+    end
   end
   
   -- SECOND PASS: Read existing pattern data based on detected/current modes
@@ -2169,22 +2778,31 @@ function PakettiSliceStepReadExistingPattern()
               end
             end
           end
-          -- Also check effect columns for 0Sxx
+          -- Also check for 0Sxx in effect columns (legacy) or note column sample effects (new)
+          local sample_offset_value = nil
+          local sample_offset_source = ""
           if row <= #pattern_line.effect_columns then
             local effect_col = pattern_line.effect_columns[row]
             if effect_col.number_string == "0S" then
-              found_data = true
-              -- Update the value from the pattern
-              local hex_value = tonumber(effect_col.amount_string, 16)
-              if hex_value then
-                rows[row].value = hex_value
-                -- Update the UI valuebox if it exists
-                if sample_offset_valueboxes[row] then
-                  sample_offset_valueboxes[row].value = hex_value
-                end
-                print("DEBUG: Read 0S" .. effect_col.amount_string .. " from row " .. row .. " line " .. line_idx .. " - updated UI valuebox")
-              end
+              sample_offset_value = tonumber(effect_col.amount_string, 16)
+              sample_offset_source = "effect column"
             end
+          end
+          if not sample_offset_value and row <= track.visible_note_columns then
+            local note_col = pattern_line:note_column(row)
+            if note_col.effect_number_string == "0S" then
+              sample_offset_value = tonumber(note_col.effect_amount_string, 16)
+              sample_offset_source = "note column sample effect"
+            end
+          end
+          if sample_offset_value then
+            found_data = true
+            rows[row].value = sample_offset_value
+            -- Update the UI valuebox if it exists
+            if sample_offset_valueboxes[row] then
+              sample_offset_valueboxes[row].value = sample_offset_value
+            end
+            print("DEBUG: Read 0S" .. string.format("%02X", sample_offset_value) .. " from row " .. row .. " line " .. line_idx .. " (" .. sample_offset_source .. ") - updated UI valuebox")
           end
           
         elseif row_data.mode == ROW_MODES.SLICE then

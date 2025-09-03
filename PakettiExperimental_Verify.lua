@@ -1559,7 +1559,7 @@ function PakettiToggleSoloTracksAllOthersMutedExceptRange(start_track, end_track
   print("Selection In Pattern is from index " .. start_track .. " to index " .. end_track)
   print("MUTE_STATE_ACTIVE = " .. renoise.Track.MUTE_STATE_ACTIVE)
   print("MUTE_STATE_OFF = " .. renoise.Track.MUTE_STATE_OFF)
-  print("MUTE_STATE_MUTE = " .. (renoise.Track.MUTE_STATE_MUTE or "nil"))
+  print("MUTE_STATE_MUTED = " .. renoise.Track.MUTE_STATE_MUTED)
   for i = start_track, end_track do
     print("Track index: " .. i .. " (" .. song:track(i).name .. ")")
     if song:track(i).group_parent then
