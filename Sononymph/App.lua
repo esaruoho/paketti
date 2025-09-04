@@ -846,7 +846,7 @@ function App:_create_temp()
   if not buffer then 
     return nil,"Sample is empty."
   end
-  local tmp_path = os.tmpname("flac")
+  local tmp_path = pakettiGetTempFilePath(".flac")
   local success = buffer:save_as(tmp_path,"flac")
   if not success then 
     return nil,"Failed to save sample."

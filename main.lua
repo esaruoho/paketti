@@ -37,6 +37,25 @@ function trueRandomSeed()
   -- Add some additional random calls to further randomize the sequence
   math.random(); math.random(); math.random()
 end
+
+-- Global helper function to get proper temporary file path - fixes os.tmpname() issues
+function pakettiGetTempFilePath(extension)
+    extension = extension or ".tmp"
+    local temp_dir = "/tmp"
+    
+    if os.platform() == "WINDOWS" then
+        temp_dir = os.getenv("TEMP") or os.getenv("TMP") or "C:\\temp"
+    else
+        temp_dir = os.getenv("TMPDIR") or "/tmp"
+    end
+    
+    -- Generate unique filename with timestamp and random suffix
+    local timestamp = tostring(os.time())
+    local random_suffix = math.random(100000, 999999)
+    local filename = string.format("paketti_temp_%s_%d%s", timestamp, random_suffix, extension)
+    
+    return temp_dir .. separator .. filename
+end
 --
 local init_time = os.clock()
 -- Function to check if an instrument uses effects or has an empty FX chain and adjust name accordingly

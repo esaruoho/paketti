@@ -1652,7 +1652,7 @@ function WipeRetain()
   if selected_sample and selected_instrument and #selected_instrument.samples>0 then
     local sample_buffer=selected_sample.sample_buffer
     if sample_buffer.has_sample_data then
-      tmpvariable=os.tmpname()..".wav"
+      tmpvariable=pakettiGetTempFilePath(".wav")
       instrument_name=selected_instrument.name
       local slice_markers=selected_sample.slice_markers
 
@@ -2498,7 +2498,7 @@ function pakettiMinimizeToLoopEnd()
     return
   end
 
-  local temp_file_path = os.tmpname() .. ".wav"
+  local temp_file_path = pakettiGetTempFilePath(".wav")
   local selection_start, selection_end = 1, loop_end
 
   local new_instrument = song:insert_instrument_at(#song.instruments + 1)

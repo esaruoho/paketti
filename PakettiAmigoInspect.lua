@@ -108,7 +108,7 @@ end
 -- Convert binary plist to XML via plutil
 function pakettiAmigoPlistToXml(bin_data)
     pakettiAmigoDebug("Converting binary plist to XML")
-    local tmpbin = os.tmpname()
+    local tmpbin = pakettiGetTempFilePath(".tmp")
     local f = io.open(tmpbin, "wb")
     if not f then error("Failed to open temp file") end
     f:write(bin_data)
@@ -236,7 +236,7 @@ function pakettiAmigoParseJuceParams(chunk)
   -- First convert binary plist to XML if needed
   if working_chunk:sub(1,6) == "bplist" then
     print("Debug: Converting binary plist to XML first...")
-    local tmpbin = os.tmpname()
+    local tmpbin = pakettiGetTempFilePath(".tmp")
     local tmpxml = tmpbin .. ".xml"
     local ok, err = pcall(function()
       -- Write binary file
@@ -606,7 +606,7 @@ function pakettiAmigoDecodeActiveParameterChunk()
   end
 
   -- Convert raw plist to XML for inspection
-  local tmpbin = os.tmpname()
+  local tmpbin = pakettiGetTempFilePath(".tmp")
   do local f = io.open(tmpbin, "wb") f:write(raw) f:close() end
   local tmpxml = tmpbin .. ".xml"
   if os.execute(('plutil -convert xml1 -o "%s" "%s"'):format(tmpxml, tmpbin)) ~= 0 then
@@ -669,7 +669,7 @@ function pakettiAmigoDecodeActiveParameterChunk()
               -- Extract WAV
               local endpos = pos + 8 + winfo.chunk_size - 1
               local wavseg = chunk:sub(pos, math.min(endpos, #chunk))
-              local wavfile = os.tmpname() .. ".wav"
+              local wavfile = pakettiGetTempFilePath(".wav")
               local wf = io.open(wavfile, "wb"); wf:write(wavseg); wf:close()
               print("Extracted WAV to: " .. wavfile)
             else
@@ -761,7 +761,7 @@ function pakettiAmigoLoadIntoSample()
 
     -- write to temp
     pakettiAmigoDebug("Step 6: Writing temp WAV file")
-    local tmp_path = os.tmpname() .. ".wav"
+    local tmp_path = pakettiGetTempFilePath(".wav")
     pakettiAmigoWriteFile(tmp_path, wav_data)
 
     -- lookup the selected sample in the selected instrument
@@ -996,7 +996,7 @@ function pakettiAmigoExportSampleToAmigo()
         pakettiAmigoDebug(string.format("  Sample rate: %d", original_rate), true)
         
         -- Save to temporary WAV
-        local tmp_path = os.tmpname() .. ".wav"
+        local tmp_path = pakettiGetTempFilePath(".wav")
         pakettiAmigoDebug(string.format("\nSaving temporary WAV to: %s", tmp_path), true)
         local success, msg = sample.sample_buffer:save_as(tmp_path, "wav")
         if not success then
@@ -1056,7 +1056,7 @@ function pakettiAmigoExportSampleToAmigo()
         pakettiAmigoDebug(string.format("  Pathname: %s", clean_name), true)
         
         -- Convert to binary plist
-        local tmpxml = os.tmpname() .. ".xml"
+        local tmpxml = pakettiGetTempFilePath(".xml")
         local tmpbin = tmpxml .. ".bin"
         
         -- Create XML plist with the JUCE data
@@ -1588,7 +1588,7 @@ function pakettiAmigoImportWavefile()
 
   -- Convert existing plist to XML
   print("Debug: Converting plist to XML...")
-  local tmpbin = os.tmpname()
+  local tmpbin = pakettiGetTempFilePath(".tmp")
   do local f = io.open(tmpbin, "wb") f:write(raw) f:close() end
   local tmpxml = tmpbin .. ".xml"
   os.execute(('plutil -convert xml1 -o "%s" "%s"'):format(tmpxml, tmpbin))
@@ -1656,7 +1656,7 @@ function pakettiAmigoImportWavefile()
       
       -- Convert back to binary plist
       print("Debug: Converting back to binary plist...")
-      local tmpxml2 = os.tmpname() .. ".xml"
+      local tmpxml2 = pakettiGetTempFilePath(".xml")
       do local xf = io.open(tmpxml2, "wb") xf:write(new_xmlc) xf:close() end
       local tmpbin2 = tmpxml2 .. ".bin"
       local plutil_result = os.execute(('plutil -convert binary1 -o "%s" "%s"'):format(tmpbin2, tmpxml2))
@@ -1728,7 +1728,7 @@ function pakettiAmigoSetJucePath(old_chunk, new_path)
     local working_chunk = old_chunk
     if working_chunk:sub(1,6) == "bplist" then
         pakettiAmigoDebug("Converting binary plist to XML first...")
-        local tmpbin = os.tmpname()
+        local tmpbin = pakettiGetTempFilePath(".tmp")
         local tmpxml = tmpbin .. ".xml"
         
         -- Write binary plist to temp file
@@ -1919,7 +1919,7 @@ function pakettiAmigoSetJucePath(old_chunk, new_path)
 </plist>]==], base64.encode(working_chunk))
         
         -- Write XML plist
-        local tmpxml = os.tmpname() .. ".xml"
+        local tmpxml = pakettiGetTempFilePath(".xml")
         local tmpbin = tmpxml .. ".bin"
         local f = io.open(tmpxml, "wb")
         if not f then error("Failed to create temporary XML file") end
@@ -1988,7 +1988,7 @@ function pakettiAmigoSetActivePathname()
   -- If it's a binary plist, convert to XML first
   if raw:sub(1,6) == "bplist" then
     print("Debug: Converting binary plist to XML...")
-    local tmpbin = os.tmpname()
+    local tmpbin = pakettiGetTempFilePath(".tmp")
     local tmpxml = tmpbin .. ".xml"
     do 
       local f = io.open(tmpbin, "wb")
@@ -2069,7 +2069,7 @@ function pakettiAmigoSetActivePathname()
     local verify_raw = base64.decode(verify_b64)
     if verify_raw:sub(1,6) == "bplist" then
       print("Debug: Converting verification plist to XML...")
-      local tmpbin = os.tmpname()
+      local tmpbin = pakettiGetTempFilePath(".tmp")
       local tmpxml = tmpbin .. ".xml"
       do local f = io.open(tmpbin, "wb") f:write(verify_raw) f:close() end
       os.execute(('plutil -convert xml1 -o "%s" "%s"'):format(tmpxml, tmpbin))

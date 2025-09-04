@@ -156,7 +156,7 @@ function start_rendering(render_context)
     render_context.source_track = song.selected_track_index
     render_context.target_track = song.selected_track_index + 1
     render_context.target_instrument = song.selected_instrument_index + 1
-    render_context.temp_file_path = os.tmpname() .. ".wav"
+    render_context.temp_file_path = pakettiGetTempFilePath(".wav")
 
     -- Start rendering
     local success, error_message = song:render(render_options, render_context.temp_file_path, function() rendering_done_callback(render_context) end)
@@ -496,7 +496,7 @@ end
   render_context.source_track = renoise.song().selected_track_index
   render_context.target_track = render_context.source_track + 1
   render_context.target_instrument = renoise.song().selected_instrument_index + 1
-  render_context.temp_file_path = os.tmpname() .. ".wav"
+  render_context.temp_file_path = pakettiGetTempFilePath(".wav")
 
   -- Start rendering with the correct function call
   local success, error_message = renoise.song():render(render_options, render_context.temp_file_path, rendering_done_callbackLPB)
@@ -725,7 +725,7 @@ function CleanRenderAndSaveStart(format)
   render_context.source_track = renoise.song().selected_track_index
   render_context.target_track = render_context.source_track + 1
   render_context.target_instrument = renoise.song().selected_instrument_index + 1
-  render_context.temp_file_path = os.tmpname() .. ".wav"
+  render_context.temp_file_path = pakettiGetTempFilePath(".wav")
   render_context.format = format
 
   -- Start rendering with the correct function call
@@ -940,7 +940,7 @@ end
   -- Set render context
   render_context.source_track = renoise.song().selected_track_index
   render_context.target_instrument = renoise.song().selected_instrument_index + 1
-  render_context.temp_file_path = os.tmpname() .. ".wav"
+  render_context.temp_file_path = pakettiGetTempFilePath(".wav")
 
   -- Start rendering with the correct function call
   local success, error_message = renoise.song():render(render_options, render_context.temp_file_path, PakettiSeamlessRenderingDoneCallback)
@@ -1225,7 +1225,7 @@ function start_selection_rendering(render_context, track_index)
     render_context.source_track = track_index
     render_context.target_track = track_index + 1
     render_context.target_instrument = song.selected_instrument_index
-    render_context.temp_file_path = os.tmpname() .. ".wav"
+    render_context.temp_file_path = pakettiGetTempFilePath(".wav")
 
     -- Start rendering
     local success, error_message = song:render(render_options, render_context.temp_file_path, function() selection_rendering_done_callback(render_context) end)
@@ -1950,7 +1950,7 @@ function start_experimental_rendering()
     local target_instrument = song.selected_instrument_index + 1
     song:insert_instrument_at(target_instrument)
     experimental_render_context.target_instrument = target_instrument
-    experimental_render_context.temp_file_path = os.tmpname() .. ".wav"
+    experimental_render_context.temp_file_path = pakettiGetTempFilePath(".wav")
     
     -- Save current solo and mute states before modifying them
     track_states = {}

@@ -25,8 +25,8 @@ local row_checkboxes = {}
 local row_ui_elements = {}
 local row_mode_switches = {}  -- Store references to mode switches for direct updates
 local step_valueboxes = {}  -- Store references to step count valueboxes
-local step_count_labels = {}  -- Store references to step count labels for dynamic updates
 local note_text_labels = {}  -- Store references to note text labels for dynamic updates
+local note_valueboxes = {}  -- Store references to sample offset note valueboxes
 local slice_note_valueboxes = {}  -- Store references to slice note valueboxes
 local slice_note_labels = {}  -- Store references to slice note text labels
 local sample_offset_valueboxes = {}  -- Store references to sample offset valueboxes
@@ -61,6 +61,71 @@ local playing_observer_fn = nil
 local playhead_step_indices = {}
 
 -- (Reverse functionality removed)
+
+-- Sample Offset Visualizer - Shows where 0S effects point to in sample editor
+-- Calculate precise frame position from Sample Offset value (0-255)
+function PakettiSliceStepSampleOffsetCalculateFrame(offset_value, total_frames)
+  if not offset_value or not total_frames or total_frames <= 1 then
+    return 1
+  end
+  
+  -- Map 0S value (0-255) to frame position (1 to total_frames)
+  -- 0S00 = frame 1, 0SFF = near end frame
+  local normalized = offset_value / 255.0
+  local frame = math.floor(normalized * (total_frames - 1)) + 1
+  
+  -- Ensure frame is within valid range
+  frame = math.max(1, math.min(frame, total_frames))
+  
+  return frame
+end
+
+-- Update sample editor selection to show Sample Offset position
+function PakettiSliceStepSampleOffsetUpdateSelection(offset_value)
+  -- Only visualize when in instrument sample editor
+  if renoise.app().window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+    return
+  end
+  
+  local song = renoise.song()
+  
+  -- Check if we have selected instrument and sample
+  if not song.selected_instrument or not song.selected_sample then
+    return
+  end
+  
+  local sample = song.selected_sample
+  local buffer = sample.sample_buffer
+  
+  -- Check if sample has data
+  if not buffer.has_sample_data or buffer.number_of_frames <= 1 then
+    return
+  end
+  
+  -- Calculate precise frame position
+  local frame = PakettiSliceStepSampleOffsetCalculateFrame(offset_value, buffer.number_of_frames)
+  
+  -- Set selection to a much more visible range around offset position  
+  local selection_size = math.min(1000, math.floor(buffer.number_of_frames * 0.01)) -- 1% of sample or 1000 frames, whichever is smaller
+  selection_size = math.max(selection_size, 100) -- But at least 100 frames
+  local half_size = math.floor(selection_size / 2)
+  
+  local start_frame = math.max(1, frame - half_size)
+  local end_frame = math.min(buffer.number_of_frames, frame + half_size)
+  buffer.selection_range = {start_frame, end_frame}
+  
+  -- Optional: Also center the view on this frame if far from current display
+  local current_display = buffer.display_range
+  if frame < current_display[1] or frame > current_display[2] then
+    local display_length = current_display[2] - current_display[1]
+    local new_start = math.max(1, frame - math.floor(display_length / 2))
+    local new_end = math.min(buffer.number_of_frames, new_start + display_length)
+    buffer.display_range = {new_start, new_end}
+  end
+  
+  local selection_frames = end_frame - start_frame + 1
+  print("Sample Offset Visualizer: Set selection to frames " .. start_frame .. "-" .. end_frame .. " (" .. selection_frames .. " frames around 0S" .. string.format("%02X", offset_value) .. " = frame " .. frame .. ") out of " .. buffer.number_of_frames .. " frames")
+end
 
 -- Colors
 local normal_color = {0,0,0}
@@ -146,8 +211,8 @@ function PakettiSliceStepInitializeRows()
   row_checkboxes = {}
   row_mode_switches = {}  -- Clear switch references
   step_valueboxes = {}  -- Clear step valuebox references
-  step_count_labels = {}  -- Clear step count label references
   note_text_labels = {}  -- Clear note text label references
+  note_valueboxes = {}  -- Clear sample offset note valuebox references
   slice_note_valueboxes = {}  -- Clear slice note valuebox references
   slice_note_labels = {}  -- Clear slice note label references
   sample_offset_valueboxes = {}  -- Clear sample offset valuebox references
@@ -187,12 +252,7 @@ function PakettiSliceStepInitializeRows()
   end
 end
 
--- Helper function to update step count label display
-function PakettiSliceStepUpdateStepCountLabel(row)
-  if step_count_labels[row] and rows[row] then
-    step_count_labels[row].text = string.format("%02d", rows[row].active_steps)
-  end
-end
+-- Helper function to update step count label display - REMOVED (redundant with step count valuebox)
 
 -- Set active steps for a specific row (like PakettiGater)
 function PakettiSliceStepSetActiveSteps(row, step_count)
@@ -211,9 +271,6 @@ function PakettiSliceStepSetActiveSteps(row, step_count)
   if step_valueboxes[row] then
     step_valueboxes[row].value = step_count
   end
-  
-  -- Update the step count label if it exists
-  PakettiSliceStepUpdateStepCountLabel(row)
   
   -- Update button colors and write to pattern
   PakettiSliceStepUpdateButtonColors()
@@ -768,8 +825,6 @@ function PakettiSliceStepReadStepCountMarkers(pattern, track_index, track)
         if step_valueboxes[row] then
           step_valueboxes[row].value = step_count
         end
-        -- Update the step count label to reflect the read step count
-        PakettiSliceStepUpdateStepCountLabel(row)
         print("DEBUG: Read column " .. column_index .. " name '" .. column_name .. "' - updated row " .. row .. " step count to " .. step_count .. " and UI elements")
       else
         -- If column name is not a number or is invalid, use default
@@ -864,12 +919,17 @@ function PakettiSliceStepNoteValueToString(note_value)
 end
 
 function PakettiSliceStepNoteStringToValue(note_string)
-  if not note_string or note_string == "---" or note_string == "" then return nil end
+  if not note_string or note_string == "---" or note_string == "" or note_string == "OFF" then 
+    return nil 
+  end
   
   local note_names = {
     ["C-"] = 0, ["C#"] = 1, ["D-"] = 2, ["D#"] = 3, ["E-"] = 4, ["F-"] = 5,
     ["F#"] = 6, ["G-"] = 7, ["G#"] = 8, ["A-"] = 9, ["A#"] = 10, ["B-"] = 11
   }
+  
+  -- Ensure we have at least 3 characters for a valid note
+  if string.len(note_string) < 3 then return nil end
   
   local note_part = string.sub(note_string, 1, 2)
   local octave_part = tonumber(string.sub(note_string, 3))
@@ -915,6 +975,12 @@ function PakettiSliceStepGlobalSlice()
       if sample_offset_valueboxes[row] then
         sample_offset_valueboxes[row].active = false
         print("DEBUG: Disabled sample offset valuebox for row " .. row)
+      end
+      
+      -- ENABLE slice note valuebox for slice mode
+      if slice_note_valueboxes[row] then
+        slice_note_valueboxes[row].active = true
+        print("DEBUG: Enabled slice note valuebox for row " .. row .. " (slice mode)")
       end
       
       -- ENABLE transpose rotary for slice mode
@@ -1021,6 +1087,12 @@ function PakettiSliceStepGlobalSampleOffset()
       print("DEBUG: Enabled sample offset valuebox for row " .. row)
     end
     
+    -- DISABLE slice note valuebox for sample offset mode
+    if slice_note_valueboxes[row] then
+      slice_note_valueboxes[row].active = false
+      print("DEBUG: Disabled slice note valuebox for row " .. row .. " (sample offset mode)")
+    end
+    
     -- DISABLE transpose rotary for sample offset mode
     if transpose_rotaries[row] then
       transpose_rotaries[row].active = false
@@ -1102,6 +1174,14 @@ function PakettiSliceStepEvenSpread()
       sample_offset_valueboxes[row].active = true
       sample_offset_valueboxes[row].value = even_spread_values[row]
       print("DEBUG: Set sample offset valuebox for row " .. row .. " to " .. even_spread_values[row])
+      -- Update sample editor visualization for this offset value
+      PakettiSliceStepSampleOffsetUpdateSelection(even_spread_values[row])
+    end
+    
+    -- DISABLE slice note valuebox for sample offset mode
+    if slice_note_valueboxes[row] then
+      slice_note_valueboxes[row].active = false
+      print("DEBUG: Disabled slice note valuebox for row " .. row .. " (sample offset mode)")
     end
     
     -- Update step count valuebox to current_steps
@@ -1110,8 +1190,6 @@ function PakettiSliceStepEvenSpread()
       print("DEBUG: Set step count valuebox for row " .. row .. " to " .. current_steps)
     end
     
-    -- Update step count label to current_steps
-    PakettiSliceStepUpdateStepCountLabel(row)
     
     -- DISABLE transpose rotary for sample offset mode
     if transpose_rotaries[row] then
@@ -1173,13 +1251,269 @@ function PakettiSliceStepEvenSpread()
   renoise.app():show_status("Even Spread (" .. current_steps .. " steps): Sample offsets 00,20,40,60,80,A0,C0,E0 - Checkboxes at steps: " .. step_list)
 end
 
+function PakettiSliceStepTwoOctaves()
+  print("DEBUG: PakettiSliceStepTwoOctaves - Creating two octave melodic pattern across 8 rows...")
+  
+  -- STEP 1: Disable writing to pattern
+  initializing_dialog = true
+  
+  local slice_info = PakettiSliceStepGetSliceInfo()
+  local base_note = 48  -- C-4 default
+  
+  if slice_info and slice_info.slice_count > 0 then
+    -- Use slice mode with detected base note
+    base_note = slice_info.base_note
+    print("DEBUG: Using SLICE mode with base note " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
+  else
+    -- Use sample offset mode with C-4 base note
+    print("DEBUG: Using SAMPLE_OFFSET mode with base note " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
+  end
+  
+  -- Two octaves pattern: 0 +12 +24 +12 0 -12 -24 -12 (8 steps for 8 rows)
+  local transpose_pattern = {0, 12, 24, 12, 0, -12, -24, -12}
+  
+  -- STEP 2: Set all rows based on available mode
+  for row = 1, NUM_ROWS do
+    print("DEBUG: Setting row " .. row .. " with transpose " .. transpose_pattern[row])
+    
+    if slice_info and slice_info.slice_count > 0 then
+      -- SLICE MODE: Set slice notes based on transpose pattern
+      rows[row].mode = ROW_MODES.SLICE
+      rows[row].slice_note = base_note + transpose_pattern[row]
+      rows[row].enabled = true
+      
+      -- Update UI switch
+      if row_mode_switches[row] then
+        row_mode_switches[row].value = ROW_MODES.SLICE
+      end
+      
+      -- Update slice note valuebox and label
+      if slice_note_valueboxes[row] then
+        slice_note_valueboxes[row].value = rows[row].slice_note
+      end
+      if slice_note_labels[row] then
+        slice_note_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].slice_note)
+      end
+      
+      -- Enable/disable appropriate controls
+      if sample_offset_valueboxes[row] then
+        sample_offset_valueboxes[row].active = false
+      end
+      if slice_note_valueboxes[row] then
+        slice_note_valueboxes[row].active = true
+      end
+      if transpose_rotaries[row] then
+        transpose_rotaries[row].active = true
+      end
+      
+    else
+      -- SAMPLE OFFSET MODE: Set note values based on transpose pattern
+      rows[row].mode = ROW_MODES.SAMPLE_OFFSET
+      rows[row].note_value = base_note + transpose_pattern[row]
+      rows[row].value = 0  -- Reset sample offset to 0
+      rows[row].enabled = true
+      
+      -- Update UI switch
+      if row_mode_switches[row] then
+        row_mode_switches[row].value = ROW_MODES.SAMPLE_OFFSET
+      end
+      
+      -- Update note text label
+      if note_text_labels[row] then
+        note_text_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].note_value)
+      end
+      
+      -- Update sample offset valuebox
+      if sample_offset_valueboxes[row] then
+        sample_offset_valueboxes[row].value = 0
+        sample_offset_valueboxes[row].active = true
+      end
+      
+      -- Enable/disable appropriate controls
+      if slice_note_valueboxes[row] then
+        slice_note_valueboxes[row].active = false
+      end
+      if transpose_rotaries[row] then
+        transpose_rotaries[row].active = false
+      end
+    end
+    
+    -- Set step count to current_steps
+    rows[row].active_steps = current_steps
+    if step_valueboxes[row] then
+      step_valueboxes[row].value = current_steps
+    end
+  end
+  
+  -- STEP 3: Clear the whole track
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local track = pattern:track(track_index)
+  track:clear()
+  
+  -- STEP 4: Re-enable writing to pattern
+  initializing_dialog = false
+  
+  -- STEP 5: Set checkboxes at first step for all rows
+  for row = 1, NUM_ROWS do
+    if row_checkboxes[row] then
+      -- Clear all checkboxes first
+      for step = 1, MAX_STEPS do
+        if row_checkboxes[row][step] then
+          row_checkboxes[row][step].value = false
+        end
+      end
+      -- Set checkbox at step 1
+      if row_checkboxes[row][1] then
+        row_checkboxes[row][1].value = true
+      end
+    end
+  end
+  
+  -- Update UI and write pattern
+  PakettiSliceStepUpdateButtonColors()
+  PakettiSliceStepWriteToPattern()
+  PakettiSliceStepUpdateSampleEffectColumnVisibility()
+  
+  local mode_name = slice_info and slice_info.slice_count > 0 and "Slice" or "Sample Offset"
+  renoise.app():show_status("Two Octaves: 8-row melodic pattern (0,+12,+24,+12,0,-12,-24,-12) applied in " .. mode_name .. " mode")
+end
+
+function PakettiSliceStepOctaveUpDown()
+  print("DEBUG: PakettiSliceStepOctaveUpDown - Creating octave up/down pattern across 8 rows...")
+  
+  -- STEP 1: Disable writing to pattern
+  initializing_dialog = true
+  
+  local slice_info = PakettiSliceStepGetSliceInfo()
+  local base_note = 48  -- C-4 default
+  
+  if slice_info and slice_info.slice_count > 0 then
+    -- Use slice mode with detected base note
+    base_note = slice_info.base_note
+    print("DEBUG: Using SLICE mode with base note " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
+  else
+    -- Use sample offset mode with C-4 base note
+    print("DEBUG: Using SAMPLE_OFFSET mode with base note " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
+  end
+  
+  -- Octave up/down pattern: 0 +12 0 -12 0 +12 0 -12 (repeating across 8 rows)
+  local transpose_pattern = {0, 12, 0, -12, 0, 12, 0, -12}
+  
+  -- STEP 2: Set all rows based on available mode
+  for row = 1, NUM_ROWS do
+    print("DEBUG: Setting row " .. row .. " with transpose " .. transpose_pattern[row])
+    
+    if slice_info and slice_info.slice_count > 0 then
+      -- SLICE MODE: Set slice notes based on transpose pattern
+      rows[row].mode = ROW_MODES.SLICE
+      rows[row].slice_note = base_note + transpose_pattern[row]
+      rows[row].enabled = true
+      
+      -- Update UI switch
+      if row_mode_switches[row] then
+        row_mode_switches[row].value = ROW_MODES.SLICE
+      end
+      
+      -- Update slice note valuebox and label
+      if slice_note_valueboxes[row] then
+        slice_note_valueboxes[row].value = rows[row].slice_note
+      end
+      if slice_note_labels[row] then
+        slice_note_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].slice_note)
+      end
+      
+      -- Enable/disable appropriate controls
+      if sample_offset_valueboxes[row] then
+        sample_offset_valueboxes[row].active = false
+      end
+      if slice_note_valueboxes[row] then
+        slice_note_valueboxes[row].active = true
+      end
+      if transpose_rotaries[row] then
+        transpose_rotaries[row].active = true
+      end
+      
+    else
+      -- SAMPLE OFFSET MODE: Set note values based on transpose pattern
+      rows[row].mode = ROW_MODES.SAMPLE_OFFSET
+      rows[row].note_value = base_note + transpose_pattern[row]
+      rows[row].value = 0  -- Reset sample offset to 0
+      rows[row].enabled = true
+      
+      -- Update UI switch
+      if row_mode_switches[row] then
+        row_mode_switches[row].value = ROW_MODES.SAMPLE_OFFSET
+      end
+      
+      -- Update note text label
+      if note_text_labels[row] then
+        note_text_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].note_value)
+      end
+      
+      -- Update sample offset valuebox
+      if sample_offset_valueboxes[row] then
+        sample_offset_valueboxes[row].value = 0
+        sample_offset_valueboxes[row].active = true
+      end
+      
+      -- Enable/disable appropriate controls
+      if slice_note_valueboxes[row] then
+        slice_note_valueboxes[row].active = false
+      end
+      if transpose_rotaries[row] then
+        transpose_rotaries[row].active = false
+      end
+    end
+    
+    -- Set step count to current_steps
+    rows[row].active_steps = current_steps
+    if step_valueboxes[row] then
+      step_valueboxes[row].value = current_steps
+    end
+  end
+  
+  -- STEP 3: Clear the whole track
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local track = pattern:track(track_index)
+  track:clear()
+  
+  -- STEP 4: Re-enable writing to pattern
+  initializing_dialog = false
+  
+  -- STEP 5: Set checkboxes at first step for all rows
+  for row = 1, NUM_ROWS do
+    if row_checkboxes[row] then
+      -- Clear all checkboxes first
+      for step = 1, MAX_STEPS do
+        if row_checkboxes[row][step] then
+          row_checkboxes[row][step].value = false
+        end
+      end
+      -- Set checkbox at step 1
+      if row_checkboxes[row][1] then
+        row_checkboxes[row][1].value = true
+      end
+    end
+  end
+  
+  -- Update UI and write pattern
+  PakettiSliceStepUpdateButtonColors()
+  PakettiSliceStepWriteToPattern()
+  PakettiSliceStepUpdateSampleEffectColumnVisibility()
+  
+  local mode_name = slice_info and slice_info.slice_count > 0 and "Slice" or "Sample Offset"
+  renoise.app():show_status("Octave Up/Down: 8-row melodic pattern (0,+12,0,-12 repeating) applied in " .. mode_name .. " mode")
+end
+
 -- (Global Parameter function removed - parameter functionality removed)
 
 -- Row management
 function PakettiSliceStepSetRowSteps(row, steps)
   rows[row].active_steps = steps
-  -- Update the step count label if it exists
-  PakettiSliceStepUpdateStepCountLabel(row)
   PakettiSliceStepUpdateButtonColors()
   -- Only update this specific row, not entire pattern
   PakettiSliceStepWriteRowToPattern(row)
@@ -1326,6 +1660,12 @@ function PakettiSliceStepSetRowMode(row, mode)
     print("DEBUG: Sample offset valuebox for row " .. row .. " " .. (mode == ROW_MODES.SAMPLE_OFFSET and "enabled" or "disabled"))
   end
   
+  -- Enable/disable slice note valuebox based on mode
+  if slice_note_valueboxes[row] then
+    slice_note_valueboxes[row].active = (mode == ROW_MODES.SLICE)
+    print("DEBUG: Slice note valuebox for row " .. row .. " " .. (mode == ROW_MODES.SLICE and "enabled" or "disabled"))
+  end
+  
   -- Enable/disable transpose rotary based on mode
   if transpose_rotaries[row] then
     transpose_rotaries[row].active = (mode == ROW_MODES.SLICE)
@@ -1429,7 +1769,6 @@ function PakettiSliceStepRefreshDialog()
           step_valueboxes[row].value = saved_rows[row].active_steps
         end
         -- Update step count label to saved value
-        PakettiSliceStepUpdateStepCountLabel(row)
         -- Update note text labels and sample offset valuebox
         if saved_rows[row].mode == ROW_MODES.SAMPLE_OFFSET and note_text_labels[row] then
           note_text_labels[row].text = PakettiSliceStepNoteValueToString(saved_rows[row].note_value)
@@ -1438,6 +1777,10 @@ function PakettiSliceStepRefreshDialog()
         if sample_offset_valueboxes[row] then
           sample_offset_valueboxes[row].value = saved_rows[row].value
           sample_offset_valueboxes[row].active = (saved_rows[row].mode == ROW_MODES.SAMPLE_OFFSET)
+        end
+        -- Update slice note valuebox active state
+        if slice_note_valueboxes[row] then
+          slice_note_valueboxes[row].active = (saved_rows[row].mode == ROW_MODES.SLICE)
         end
         -- Update transpose rotary to appropriate sample value and active state
         if transpose_rotaries[row] then
@@ -1964,6 +2307,8 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
         PakettiSliceStepSelectNoteColumn(current_row)
         if rows[current_row].mode == ROW_MODES.SAMPLE_OFFSET then
           rows[current_row].value = value
+          -- Update sample editor selection to show offset position
+          PakettiSliceStepSampleOffsetUpdateSelection(value)
           -- Only update this specific row, not entire pattern
           PakettiSliceStepWriteRowToPattern(current_row)
         end
@@ -1989,10 +2334,7 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
   local row_data = rows[row]
   
   if row_data.mode == ROW_MODES.SAMPLE_OFFSET then
-    local step_count_label = vb_local:text{text = string.format("%02d", row_data.active_steps), width = 30, style = "strong", font = "bold"}
-    step_count_labels[row] = step_count_label  -- Store reference for dynamic updates
-    table.insert(elements_table, step_count_label)
-    table.insert(elements_table, vb_local:valuebox{
+    local note_valuebox = vb_local:valuebox{
       min = 0,
       max = 119,
       value = row_data.note_value,
@@ -2010,10 +2352,51 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
           PakettiSliceStepWriteRowToPattern(current_row)
         end
       end)(row)
-    })
-    local note_text_label = vb_local:text{text = PakettiSliceStepNoteValueToString(row_data.note_value), style = "strong", font = "bold"}
+    }
+    note_valueboxes[row] = note_valuebox  -- Store reference
+    table.insert(elements_table, note_valuebox)
+    
+    local note_text_label = vb_local:text{text = PakettiSliceStepNoteValueToString(row_data.note_value), style = "strong", font = "bold", width = 30}
     note_text_labels[row] = note_text_label  -- Store reference for dynamic updates
     table.insert(elements_table, note_text_label)
+    
+    -- Add +1/-1 octave buttons for Sample Offset mode
+    table.insert(elements_table, vb_local:button{
+      text = "-1",
+      width = 25,
+      notifier = (function(current_row, current_valuebox)
+        return function()
+          PakettiSliceStepSelectNoteColumn(current_row)
+          local new_value = math.max(0, rows[current_row].note_value - 12)
+          rows[current_row].note_value = new_value
+          -- Update the valuebox directly
+          current_valuebox.value = new_value
+          -- Update note label
+          if note_text_labels[current_row] then
+            note_text_labels[current_row].text = PakettiSliceStepNoteValueToString(new_value)
+          end
+          PakettiSliceStepWriteRowToPattern(current_row)
+        end
+      end)(row, note_valuebox)
+    })
+    table.insert(elements_table, vb_local:button{
+      text = "+1",
+      width = 25,
+      notifier = (function(current_row, current_valuebox)
+        return function()
+          PakettiSliceStepSelectNoteColumn(current_row)
+          local new_value = math.min(119, rows[current_row].note_value + 12)
+          rows[current_row].note_value = new_value
+          -- Update the valuebox directly
+          current_valuebox.value = new_value
+          -- Update note label
+          if note_text_labels[current_row] then
+            note_text_labels[current_row].text = PakettiSliceStepNoteValueToString(new_value)
+          end
+          PakettiSliceStepWriteRowToPattern(current_row)
+        end
+      end)(row, note_valuebox)
+    })
   
   elseif row_data.mode == ROW_MODES.SLICE then
     local slice_info = PakettiSliceStepGetSliceInfo()
@@ -2045,10 +2428,45 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
       local slice_note_label = vb_local:text{
         text = PakettiSliceStepNoteValueToString(row_data.slice_note or (slice_info.base_note + row)), 
         style = "strong", 
-        font = "bold"
+        font = "bold",
+        width = 35
       }
       slice_note_labels[row] = slice_note_label  -- Store reference for dynamic updates
       table.insert(elements_table, slice_note_label)
+      
+      -- Add +1/-1 octave buttons for Slice mode
+      table.insert(elements_table, vb_local:button{
+        text = "-1",
+        width = 25,
+        notifier = (function(current_row, current_valuebox, current_label)
+          return function()
+            PakettiSliceStepSelectNoteColumn(current_row)
+            local new_value = math.max(slice_info.base_note + 1, rows[current_row].slice_note - 12)
+            rows[current_row].slice_note = new_value
+            -- Update slice valuebox directly
+            current_valuebox.value = new_value
+            -- Update slice note label directly
+            current_label.text = PakettiSliceStepNoteValueToString(new_value)
+            PakettiSliceStepWriteRowToPattern(current_row)
+          end
+        end)(row, slice_valuebox, slice_note_label)
+      })
+      table.insert(elements_table, vb_local:button{
+        text = "+1",
+        width = 25,
+        notifier = (function(current_row, current_valuebox, current_label)
+          return function()
+            PakettiSliceStepSelectNoteColumn(current_row)
+            local new_value = math.min(slice_info.base_note + slice_info.slice_count - 1, rows[current_row].slice_note + 12)
+            rows[current_row].slice_note = new_value
+            -- Update slice valuebox directly
+            current_valuebox.value = new_value
+            -- Update slice note label directly
+            current_label.text = PakettiSliceStepNoteValueToString(new_value)
+            PakettiSliceStepWriteRowToPattern(current_row)
+          end
+        end)(row, slice_valuebox, slice_note_label)
+      })
     else
       table.insert(elements_table, vb_local:text{text = "N/A", style = "disabled"})
     end
@@ -2292,7 +2710,6 @@ function PakettiSliceStepCreateDialog()
                  step_valueboxes[row].value = value
                end
                -- Update the step count label for each row
-               PakettiSliceStepUpdateStepCountLabel(row)
              end
              
              -- Update the view setting in the first column
@@ -2329,18 +2746,16 @@ function PakettiSliceStepCreateDialog()
         width = 80,
         notifier = PakettiSliceStepEvenSpread
     },
-    vb:text{text = "Instrument Transpose:", font = "bold", style = "strong"},
+
+    vb:text{text = "Transpose", font = "bold", style = "strong"},
     vb:button{
       text = "-24",
       width = 30,
       notifier = function()
         local song = renoise.song()
-        if song and song.selected_instrument and #song.selected_instrument.samples > 0 then
-          local sample = song.selected_instrument.samples[song.selected_sample_index or 1]
-          if sample then
-            sample.transpose = -24
-            renoise.app():show_status("Instrument transpose set to -24")
-          end
+        if song and song.selected_instrument then
+          song.selected_instrument.transpose = -24
+          renoise.app():show_status("Instrument transpose set to -24")
         end
       end
     },
@@ -2349,12 +2764,9 @@ function PakettiSliceStepCreateDialog()
       width = 30,
       notifier = function()
         local song = renoise.song()
-        if song and song.selected_instrument and #song.selected_instrument.samples > 0 then
-          local sample = song.selected_instrument.samples[song.selected_sample_index or 1]
-          if sample then
-            sample.transpose = -12
-            renoise.app():show_status("Instrument transpose set to -12")
-          end
+        if song and song.selected_instrument then
+          song.selected_instrument.transpose = -12
+          renoise.app():show_status("Instrument transpose set to -12")
         end
       end
     },
@@ -2363,12 +2775,9 @@ function PakettiSliceStepCreateDialog()
       width = 25,
       notifier = function()
         local song = renoise.song()
-        if song and song.selected_instrument and #song.selected_instrument.samples > 0 then
-          local sample = song.selected_instrument.samples[song.selected_sample_index or 1]
-          if sample then
-            sample.transpose = 0
-            renoise.app():show_status("Instrument transpose set to 0")
-          end
+        if song and song.selected_instrument then
+          song.selected_instrument.transpose = 0
+          renoise.app():show_status("Instrument transpose set to 0")
         end
       end
     },
@@ -2377,12 +2786,9 @@ function PakettiSliceStepCreateDialog()
       width = 30,
       notifier = function()
         local song = renoise.song()
-        if song and song.selected_instrument and #song.selected_instrument.samples > 0 then
-          local sample = song.selected_instrument.samples[song.selected_sample_index or 1]
-          if sample then
-            sample.transpose = 12
-            renoise.app():show_status("Instrument transpose set to +12")
-          end
+        if song and song.selected_instrument then
+          song.selected_instrument.transpose = 12
+          renoise.app():show_status("Instrument transpose set to +12")
         end
       end
     },
@@ -2391,12 +2797,9 @@ function PakettiSliceStepCreateDialog()
       width = 30,
       notifier = function()
         local song = renoise.song()
-        if song and song.selected_instrument and #song.selected_instrument.samples > 0 then
-          local sample = song.selected_instrument.samples[song.selected_sample_index or 1]
-          if sample then
-            sample.transpose = 24
-            renoise.app():show_status("Instrument transpose set to +24")
-          end
+        if song and song.selected_instrument then
+          song.selected_instrument.transpose = 24
+          renoise.app():show_status("Instrument transpose set to +24")
         end
       end
     }
@@ -2410,7 +2813,6 @@ function PakettiSliceStepCreateDialog()
   -- Global controls
   content:add_child(vb:column{
   vb:row{
-    vb:text{text = "Controls", font = "bold", style = "strong"},
       vb:button{
         text = "Clear All",
         width = 80,
@@ -2527,6 +2929,17 @@ function PakettiSliceStepCreateDialog()
           PakettiSliceStepShiftAllRows("right")
         end
       },
+      vb:text{text = "Pitch Stepper", style="strong", font="Bold", width=70},
+      vb:button{
+        text = "Two Octaves",
+        width = 80,
+        notifier = PakettiSliceStepTwoOctaves
+    },
+       vb:button{
+        text = "Octave Up/Down",
+        width = 90,
+        notifier = PakettiSliceStepOctaveUpDown
+    },
 
     },
 
@@ -2562,6 +2975,34 @@ function PakettiSliceStepCreateDialog()
 --  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
+-- Show current Sample Offset position from selected row manually
+function PakettiSliceStepShowCurrentSampleOffset()
+  -- Switch to sample editor if not already there
+  if renoise.app().window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Get currently selected note column to determine which step sequencer row to check
+  local note_column = song.selected_note_column_index
+  if note_column < 1 or note_column > NUM_ROWS then
+    renoise.app():show_status("Select a note column (1-8) to show its Sample Offset position")
+    return
+  end
+  
+  -- Check if this row is in sample offset mode and has a value
+  if not rows[note_column] or rows[note_column].mode ~= ROW_MODES.SAMPLE_OFFSET then
+    renoise.app():show_status("Note column " .. note_column .. " is not in Sample Offset mode")
+    return
+  end
+  
+  local offset_value = rows[note_column].value
+  PakettiSliceStepSampleOffsetUpdateSelection(offset_value)
+  renoise.app():show_status("Sample Offset Row " .. note_column .. ": 0S" .. string.format("%02X", offset_value) .. " position highlighted in sample editor")
+end
+
 -- Menu entries and keybindings
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Slice / Effect Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 
@@ -2581,6 +3022,12 @@ renoise.tool():add_midi_mapping{
       PakettiSliceStepCreateDialog()
     end
   end
+}
+
+-- Sample Offset Visualizer keybinding
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Show Current Sample Offset in Sample Editor",
+  invoke = PakettiSliceStepShowCurrentSampleOffset
 }
 
 -- Function to read existing pattern and populate checkboxes
@@ -2745,6 +3192,11 @@ function PakettiSliceStepReadExistingPattern()
           sample_offset_valueboxes[row].active = (mode == ROW_MODES.SAMPLE_OFFSET)
           print("DEBUG: Sample offset valuebox for row " .. row .. " " .. (mode == ROW_MODES.SAMPLE_OFFSET and "enabled" or "disabled"))
         end
+        -- Enable/disable slice note valuebox based on mode
+        if slice_note_valueboxes[row] then
+          slice_note_valueboxes[row].active = (mode == ROW_MODES.SLICE)
+          print("DEBUG: Slice note valuebox for row " .. row .. " " .. (mode == ROW_MODES.SLICE and "enabled" or "disabled"))
+        end
         -- Enable/disable transpose rotary based on mode  
         if transpose_rotaries[row] then
           transpose_rotaries[row].active = (mode == ROW_MODES.SLICE)
@@ -2801,8 +3253,10 @@ function PakettiSliceStepReadExistingPattern()
             -- Update the UI valuebox if it exists
             if sample_offset_valueboxes[row] then
               sample_offset_valueboxes[row].value = sample_offset_value
+              -- Update sample editor visualization for this offset value
+              PakettiSliceStepSampleOffsetUpdateSelection(sample_offset_value)
             end
-            print("DEBUG: Read 0S" .. string.format("%02X", sample_offset_value) .. " from row " .. row .. " line " .. line_idx .. " (" .. sample_offset_source .. ") - updated UI valuebox")
+            print("DEBUG: Read 0S" .. string.format("%02X", sample_offset_value) .. " from row " .. row .. " line " .. line_idx .. " (" .. sample_offset_source .. ") - updated UI valuebox and sample visualization")
           end
           
         elseif row_data.mode == ROW_MODES.SLICE then
@@ -2832,9 +3286,20 @@ function PakettiSliceStepReadExistingPattern()
     -- (Reverse row functionality removed)
   end
   
-  -- Update UI elements to reflect the read slice note values
+  -- Update UI elements to reflect the read note values
   for row = 1, NUM_ROWS do
-    if rows[row].mode == ROW_MODES.SLICE and rows[row].slice_note then
+    if rows[row].mode == ROW_MODES.SAMPLE_OFFSET and rows[row].note_value then
+      -- Update note valuebox if it exists
+      if note_valueboxes[row] then
+        note_valueboxes[row].value = rows[row].note_value
+        print("DEBUG: Updated note valuebox for row " .. row .. " to note value " .. rows[row].note_value)
+      end
+      -- Update note label if it exists
+      if note_text_labels[row] then
+        note_text_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].note_value)
+        print("DEBUG: Updated note label for row " .. row .. " to " .. PakettiSliceStepNoteValueToString(rows[row].note_value))
+      end
+    elseif rows[row].mode == ROW_MODES.SLICE and rows[row].slice_note then
       -- Update slice note valuebox if it exists
       if slice_note_valueboxes[row] then
         slice_note_valueboxes[row].value = rows[row].slice_note

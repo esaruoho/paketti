@@ -67,7 +67,7 @@ function saveSelectedSampleToTempAndOpen(app_path)
     end
     -- Remove any existing .wav extension and add -tmpSave.wav
     sample_name = sample_name:gsub("%.wav$", "")
-    local temp_file_path = os.tmpname():gsub("[^/\\]*$", "") .. sample_name .. "-tmpSave.wav"
+    local temp_file_path = pakettiGetTempFilePath(".wav"):gsub("[^/\\]*[^/\\]*$", sample_name .. "-tmpSave.wav")
     song.selected_sample.sample_buffer:save_as(temp_file_path, "wav")
     
     -- Detect the operating system
@@ -152,7 +152,7 @@ function saveSelectedSampleRangeToTempAndOpen(app_path)
     end
     -- Remove any existing .wav extension and add -tmpSave.wav
     sample_name = sample_name:gsub("%.wav$", "")
-    local temp_file_path = os.tmpname():gsub("[^/\\]*$", "") .. sample_name .. "-tmpSave.wav"
+    local temp_file_path = pakettiGetTempFilePath(".wav"):gsub("[^/\\]*[^/\\]*$", sample_name .. "-tmpSave.wav")
     new_sample.sample_buffer:save_as(temp_file_path, "wav")
     
     -- Clean up: delete the temporary instrument and reselect original instrument
@@ -393,7 +393,7 @@ function saveSampleToSmartFolder(index)
     end
 
     local lsfvariable = nil
-    lsfvariable = os.tmpname("wav")
+    lsfvariable = pakettiGetTempFilePath(".wav")
     local path = smart_folder_path .. "/"
     local s = renoise.song()
     local instboxname = s.selected_instrument.name

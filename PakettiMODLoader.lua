@@ -109,7 +109,7 @@ function load_samples_from_mod()
       local header = table.concat(hdr)
 
       -- write to temp .wav
-      local tmp = os.tmpname()..".wav"
+      local tmp = pakettiGetTempFilePath(".wav")
       local wf  = io.open(tmp,"wb")
       wf:write(header)
       wf:write(unsigned)

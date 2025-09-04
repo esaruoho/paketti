@@ -136,7 +136,7 @@ local function extract_preset_from_blob(b64)
   local plist = raw:sub(pos)
 
   -- 4) Write to temp + plutil → XML
-  local bin = os.tmpname()
+  local bin = pakettiGetTempFilePath(".tmp")
   local xml = bin .. ".xml"
   do
     local f = assert(io.open(bin,"wb"))
@@ -452,7 +452,7 @@ function PakettiXRNSProbeBrowseAndAnalyzeXRNS()
   local filename = renoise.app():prompt_for_filename_to_read({"*.XRNS"}, "Paketti XRNS Probe")
   if not filename then return end
   
-  local temp_path = os.tmpname()
+  local temp_path = pakettiGetTempFilePath(".tmp")
   local cmd = string.format('unzip -p "%s" "Song.xml" > "%s"', filename, temp_path)
   
   if os.execute(cmd) ~= 0 then

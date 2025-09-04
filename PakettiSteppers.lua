@@ -853,6 +853,14 @@ function PakettiCreateStepperDialogContent(vb_instance)
       vb:button{text = "Random", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperRandom) end}
     },
     vb:row{
+      vb:text{text = "Pitch Melodic", style="strong", font="Bold", width=70},
+      vb:button{text = "Two Octaves", width=86, pressed = function() PakettiFillVisibleStepperTwoOctaves() end},
+      vb:button{text = "Octave Up/Down", width=96, pressed = function() PakettiFillVisibleStepperOctaveUpDown() end},
+      vb:button{text = "Minor Detune", width=86, pressed = function() PakettiFillVisibleStepperMinorDetune() end},
+      vb:button{text = "Hard Detune", width=85, pressed = function() PakettiFillVisibleStepperHardDetune() end},
+      vb:button{text = "Pitch Random", width=85, pressed = function() PakettiFillVisibleStepperPitchRandom() end}
+    },
+    vb:row{
       vb:text{text = "Waveforms", style="strong", font="Bold", width=70},
       vb:button{text = "Ramp Up", width=86, pressed = function() PakettiFillVisibleStepperRampUp() end},
       vb:button{text = "Ramp Down", width=96, pressed = function() PakettiFillVisibleStepperRampDown() end},
@@ -2022,5 +2030,91 @@ function PakettiScaleVisibleStepperValues(scale_factor)
     return
   end
   PakettiScaleStepperValues(visible_stepper, scale_factor)
+end
+
+function PakettiFillVisibleStepperTwoOctaves()
+  local visible_stepper = PakettiGetVisibleStepperName()
+  if not visible_stepper then
+    renoise.app():show_status("No stepper is currently visible")
+    return
+  end
+  
+  if visible_stepper == "Pitch Stepper" then
+    PakettiFillPitchStepperTwoOctaves()
+  else
+    renoise.app():show_status("Two Octaves pattern only works with Pitch Stepper")
+  end
+end
+
+function PakettiFillVisibleStepperOctaveUpDown()
+  local visible_stepper = PakettiGetVisibleStepperName()
+  if not visible_stepper then
+    renoise.app():show_status("No stepper is currently visible")
+    return
+  end
+  
+  if visible_stepper == "Pitch Stepper" then
+    PakettiFillPitchStepper()
+  else
+    renoise.app():show_status("Octave Up/Down pattern only works with Pitch Stepper")
+  end
+end
+
+function PakettiFillVisibleStepperMinorDetune()
+  local visible_stepper = PakettiGetVisibleStepperName()
+  if not visible_stepper then
+    renoise.app():show_status("No stepper is currently visible")
+    return
+  end
+  
+  if visible_stepper == "Pitch Stepper" then
+    local instrument = renoise.song().selected_instrument
+    if instrument and instrument.sample_modulation_sets[1] then
+      local deviceIndex = findStepperDeviceIndex(visible_stepper)
+      if deviceIndex then
+        local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+        local current_step_count = device.length
+        PakettiFillPitchStepperDigits(0.015, current_step_count)
+      end
+    end
+  else
+    renoise.app():show_status("Minor Detune pattern only works with Pitch Stepper")
+  end
+end
+
+function PakettiFillVisibleStepperHardDetune()
+  local visible_stepper = PakettiGetVisibleStepperName()
+  if not visible_stepper then
+    renoise.app():show_status("No stepper is currently visible")
+    return
+  end
+  
+  if visible_stepper == "Pitch Stepper" then
+    local instrument = renoise.song().selected_instrument
+    if instrument and instrument.sample_modulation_sets[1] then
+      local deviceIndex = findStepperDeviceIndex(visible_stepper)
+      if deviceIndex then
+        local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+        local current_step_count = device.length
+        PakettiFillPitchStepperDigits(0.05, current_step_count)
+      end
+    end
+  else
+    renoise.app():show_status("Hard Detune pattern only works with Pitch Stepper")
+  end
+end
+
+function PakettiFillVisibleStepperPitchRandom()
+  local visible_stepper = PakettiGetVisibleStepperName()
+  if not visible_stepper then
+    renoise.app():show_status("No stepper is currently visible")
+    return
+  end
+  
+  if visible_stepper == "Pitch Stepper" then
+    PakettiFillStepperRandom("Pitch Stepper")
+  else
+    renoise.app():show_status("Pitch Random pattern only works with Pitch Stepper")
+  end
 end
 

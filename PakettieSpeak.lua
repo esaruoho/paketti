@@ -786,7 +786,7 @@ function PakettieSpeakCreateSample(custom_text)
   local process = ProcessSlicer(function(text_to_render, dialog, vb)
     -- This is the actual process function that will be run by ProcessSlicer
     local executable = PakettieSpeakRevertPath(eSpeak.executable)
-    local path = os.tmpname() .. ".wav"
+    local path = pakettiGetTempFilePath(".wav")
 
     -- Update progress text
     if dialog and dialog.visible then

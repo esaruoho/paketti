@@ -36,7 +36,7 @@ function rex_loadsample(filename)
   dprint("Using Paketti default instrument configuration")
   
   -- Create temporary AIFF file
-  local aiff_copy = os.tmpname() .. ".aiff"
+  local aiff_copy = pakettiGetTempFilePath(".aiff")
   dprint("Created temporary file:", aiff_copy)
   
   local f_in = io.open(filename, "rb")

@@ -595,7 +595,7 @@ local function process_audio()
 
   -- Export selected audio to a WAV file
   local sample = song.instruments[1].samples[1]
-  local output_path = os.tmpname() .. ".wav"
+  local output_path = pakettiGetTempFilePath(".wav")
   sample.sample_buffer:save_as(output_path, "wav")
 
   -- Run Csound with the wacky filter

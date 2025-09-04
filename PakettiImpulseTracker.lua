@@ -1764,11 +1764,11 @@ function pakettiImpulseTrackerNewSongDialog()
   -- Rest of the dialog creation code...
   vb = renoise.ViewBuilder()
   local dialog_content = vb:column{
-        margin=10,
-    vb:text{text="New Song ... with",font="bold",style="strong",align="center"},
+        --margin=10,
+    --vb:text{text="New Song ... with",font="bold",style="strong",align="center"},
     -- "Set all to" switch   
     vb:space {height=5},
-    vb:column{style="panel",margin=10,
+    vb:column{style="panel",--margin=10,
    vb:row{
       vb:text{text="Set all to",width=180,style="strong",font="bold"},
       vb:switch {
@@ -1779,7 +1779,7 @@ function pakettiImpulseTrackerNewSongDialog()
         notifier = handle_set_all_switch_change
       }
     },
-    vb:space { height = 10 },
+    --vb:space { height = 10 },
       vb:row{
         vb:text{text="Patterns",width=180,style="strong",font="bold"},
         vb:switch {
@@ -1867,7 +1867,7 @@ function pakettiImpulseTrackerNewSongDialog()
       vb:space {height=10},
       vb:row{
         vb:button{text="OK",width=100,notifier=handle_ok_click()},
-        vb:button{text="Cancel",width=100,notifier=handle_cancel_click(), color={1, 0, 0}}
+        vb:button{text="Cancel",width=100,notifier=handle_cancel_click()} --color={1, 0, 0}}
       }
     }
   }
