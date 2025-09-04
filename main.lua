@@ -651,14 +651,12 @@ end
 --------
 timed_require("rx")
 timed_require("base64float")
-
-
-
 timed_require("Paketti0G01_Loader")
 timed_require("PakettieSpeak")
 timed_require("PakettiChordsPlus")
 timed_require("PakettiLaunchApp")
 timed_require("PakettiDeviceChains")
+timed_require("PakettiExecute")
 timed_require("PakettiLoadDevices")
 timed_require("PakettiSandbox")
 timed_require("PakettiTupletGenerator")

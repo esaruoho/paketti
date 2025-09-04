@@ -522,6 +522,29 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   SononymphShowPrefs = true,
   -- Dialog of Dialogs Settings
   pakettiDialogOfDialogsColumnsPerRow = 6,
+  -- Paketti Execute Settings
+  pakettiExecute = {
+    App01 = renoise.Document.ObservableString(""),
+    App01Argument = renoise.Document.ObservableString(""),
+    App02 = renoise.Document.ObservableString(""),
+    App02Argument = renoise.Document.ObservableString(""),
+    App03 = renoise.Document.ObservableString(""),
+    App03Argument = renoise.Document.ObservableString(""),
+    App04 = renoise.Document.ObservableString(""),
+    App04Argument = renoise.Document.ObservableString(""),
+    App05 = renoise.Document.ObservableString(""),
+    App05Argument = renoise.Document.ObservableString(""),
+    App06 = renoise.Document.ObservableString(""),
+    App06Argument = renoise.Document.ObservableString(""),
+    App07 = renoise.Document.ObservableString(""),
+    App07Argument = renoise.Document.ObservableString(""),
+    App08 = renoise.Document.ObservableString(""),
+    App08Argument = renoise.Document.ObservableString(""),
+    App09 = renoise.Document.ObservableString(""),
+    App09Argument = renoise.Document.ObservableString(""),
+    App10 = renoise.Document.ObservableString(""),
+    App10Argument = renoise.Document.ObservableString("")
+  },
 }
 
 renoise.tool().preferences = preferences
@@ -553,6 +576,8 @@ end
 
 -- Add pattern sequencer preferences accessor
 PatternSequencer = renoise.tool().preferences.pakettiPatternSequencer
+-- Add execute preferences accessor
+PakettiExecute = renoise.tool().preferences.pakettiExecute
 
       -- Define available keys for dialog closing
       local dialog_close_keys = {"tab", "esc", "space", "return", "q", "donteverclose"}

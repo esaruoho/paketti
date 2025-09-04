@@ -347,7 +347,8 @@ local function create_button_list()
   table.insert(buttons, {"Switch Note Instrument Dialog", "pakettiSwitchNoteInstrumentDialog"})
   table.insert(buttons, {"Plugin Details", "pakettiPluginDetailsDialog"})
   table.insert(buttons, {"Effect Details", "pakettiEffectDetailsDialog"})
-  table.insert(buttons, {"Set Pattern/Phrase Length", "pakettiPatternPhraseLength"})  
+  table.insert(buttons, {"Set Pattern/Phrase Length", "pakettiPatternPhraseLength"})
+  table.insert(buttons, {"Instrument Transpose Dialog", "PakettiInstrumentTransposeDialog"})
   return buttons
 end
 

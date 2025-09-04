@@ -32,6 +32,7 @@ local print_once = false
 -- Valuebox references for updating from button clicks
 local volume_valuebox = nil
 local retrig_valuebox = nil
+local retrig_speed_valuebox = nil
 local playback_valuebox = nil
 local panning_valuebox = nil
 
@@ -753,6 +754,81 @@ local function receive_volume_checkboxes()
   initializing = false
   safe_switch_to_pattern_editor()
   renoise.app():show_status("Received Volume Gater pattern")
+end
+
+-- Read existing retrig speed from current track and update retrig_value accordingly
+function PakettiGaterReadRetrigSpeed()
+  if not renoise.song() then return end
+  
+  local pattern = renoise.song().selected_pattern
+  local track_index = renoise.song().selected_track_index
+  local track = renoise.song().selected_track
+  local visible_note_columns = track.visible_note_columns
+  local found_retrig_value = nil
+  
+  -- Scan through the pattern to find existing retrig values
+  for i = 1, pattern.number_of_lines do
+    local line = pattern:track(track_index):line(i)
+    
+    -- Check both FX Columns for retrig
+    for fx_col = 1, track.visible_effect_columns do
+      if line.effect_columns[fx_col].number_string == "0R" and line.effect_columns[fx_col].amount_string ~= "" then
+        local hex_value = line.effect_columns[fx_col].amount_string
+        if hex_value ~= "00" then
+          found_retrig_value = tonumber("0x" .. hex_value)
+          break
+        end
+      end
+    end
+    
+    -- Check Volume Column for retrig
+    if not found_retrig_value then
+      for j = 1, visible_note_columns do
+        local note_column = line:note_column(j)
+        if string.sub(note_column.volume_string, 1, 1) == "R" then
+          local hex_char = string.sub(note_column.volume_string, 2, 2)
+          if hex_char ~= "" and hex_char ~= "0" then
+            found_retrig_value = tonumber("0x" .. hex_char)
+            break
+          end
+        end
+      end
+    end
+    
+    -- Check Panning Column for retrig
+    if not found_retrig_value then
+      for j = 1, visible_note_columns do
+        local note_column = line:note_column(j)
+        if string.sub(note_column.panning_string, 1, 1) == "R" then
+          local hex_char = string.sub(note_column.panning_string, 2, 2)
+          if hex_char ~= "" and hex_char ~= "0" then
+            found_retrig_value = tonumber("0x" .. hex_char)
+            break
+          end
+        end
+      end
+    end
+    
+    if found_retrig_value then break end
+  end
+  
+  -- Update retrig_value based on what we found
+  if found_retrig_value and found_retrig_value >= 1 and found_retrig_value <= 15 then
+    retrig_value = found_retrig_value
+    -- Update the retrig speed valuebox if it exists (for autograb when dialog is open)
+    if retrig_speed_valuebox then
+      retrig_speed_valuebox.value = retrig_value
+    end
+    renoise.app():show_status("Gater: Read existing retrig speed R" .. string.format("%02X", retrig_value) .. " from track")
+  else
+    -- Default to R04 if no retrig found
+    retrig_value = 4
+    -- Update the retrig speed valuebox if it exists
+    if retrig_speed_valuebox then
+      retrig_speed_valuebox.value = retrig_value
+    end
+    renoise.app():show_status("Gater: No retrig found in track, defaulting to R04")
+  end
 end
 
 -- Receive Retrig checkboxes state
@@ -2755,6 +2831,9 @@ function pakettiGaterDialog()
     end
   initializing = true -- Start initialization
 
+  -- Read existing retrig speed from track before initializing
+  PakettiGaterReadRetrigSpeed()
+  
   initialize_checkboxes()
   
   -- Create the dialog content in a separate function to reduce upvalues
@@ -3045,19 +3124,22 @@ function PakettiCreateGaterDialogContent(vb_instance)
       }
     },
     vb_local:row{
-      vb_local:valuebox{
-        min = 1,
-        max = 15,
-        value = retrig_value,
-        width=50,
-        tooltip = "Retrig Speed",
-        notifier=function(value)
-          retrig_value = value
-          if not initializing then
-            insert_commands()
+      (function()
+        retrig_speed_valuebox = vb_local:valuebox{
+          min = 1,
+          max = 15,
+          value = retrig_value,
+          width=50,
+          tooltip = "Retrig Speed",
+          notifier=function(value)
+            retrig_value = value
+            if not initializing then
+              insert_commands()
+            end
           end
-        end
-      },
+        }
+        return retrig_speed_valuebox
+      end)(),
       vb_local:text{text="Retrig Speed" }
     },
     (function()
@@ -3347,6 +3429,8 @@ function auto_grab_handler()
   if current_track_index ~= previous_track_index then
     previous_track_index = current_track_index
     initializing = true
+    -- Read existing retrig speed from new track before receiving patterns
+    PakettiGaterReadRetrigSpeed()
     receive_volume_checkboxes()
     receive_retrig_checkboxes()
     receive_playback_checkboxes()

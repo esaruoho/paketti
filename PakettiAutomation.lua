@@ -1615,6 +1615,14 @@ renoise.tool():add_keybinding{name="Global:Paketti:Automation Top to Center (Lin
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Center to Bottom (Lin)",invoke=automation_center_to_bottom_lin }
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Bottom to Center (Lin)",invoke=automation_bottom_to_center_lin }
 
+-- Global helper function to ensure automation line values are valid [[memory:5821545]]
+function PakettiAutomationValidateLine(line, pattern_length)
+  if pattern_length == 512 and line > 512 then
+    return 512 -- Cap it at 512 if the pattern length is the maximum allowed
+  end
+  return math.min(math.max(1, line), pattern_length)
+end
+
 function randomize_envelope()
   -- Initialize random seed for true randomness
   math.randomseed(os.time())
@@ -1633,19 +1641,13 @@ function randomize_envelope()
   local pattern_length = song:pattern(song.selected_pattern_index).number_of_lines
   local selection = envelope and envelope.selection_range
 
-  -- Helper to ensure line is valid
-  local function validate_line(line)
-    if pattern_length == 512 and line > 512 then
-      return 512 -- Cap it at 512 if the pattern length is the maximum allowed
-    end
-    return math.min(math.max(1, line), pattern_length)
-  end
+  -- Using global validation function
 
   if not envelope then
     envelope = track_automation:create_automation(automation_parameter)
     print("Created new automation envelope for parameter: " .. automation_parameter.name)
     for line = 1, pattern_length do
-      envelope:add_point_at(validate_line(line), math.random())
+      envelope:add_point_at(PakettiAutomationValidateLine(line, pattern_length), math.random())
     end
     renoise.app():show_status("Filled new envelope across entire pattern with random values.")
     print("Randomized entire pattern with random values.")
@@ -1654,10 +1656,10 @@ function randomize_envelope()
 
   if selection then
     local start_line, end_line = selection[1], selection[2]
-    start_line = validate_line(start_line)
-    end_line = validate_line(end_line)
+    start_line = PakettiAutomationValidateLine(start_line, pattern_length)
+    end_line = PakettiAutomationValidateLine(end_line, pattern_length)
     for line = start_line, end_line do
-      envelope:add_point_at(validate_line(line), math.random())
+      envelope:add_point_at(PakettiAutomationValidateLine(line, pattern_length), math.random())
     end
     renoise.app():show_status("Randomized automation points within selected range.")
     print("Randomized selection range from line " .. start_line .. " to line " .. end_line)
@@ -1666,7 +1668,7 @@ function randomize_envelope()
 
   envelope:clear()
   for line = 1, pattern_length do
-    envelope:add_point_at(validate_line(line), math.random())
+    envelope:add_point_at(PakettiAutomationValidateLine(line, pattern_length), math.random())
   end
   renoise.app():show_status("Randomized entire existing envelope across pattern.")
   print("Randomized entire existing envelope across the pattern.")
@@ -1707,7 +1709,7 @@ function randomize_device_envelopes(start_param)
       
       -- Fill the envelope with random values across the pattern length
       for line = 1, pattern_length do
-        envelope:add_point_at(line, math.random())
+        envelope:add_point_at(PakettiAutomationValidateLine(line, pattern_length), math.random())
       end
       
  --     print("Randomized entire envelope for parameter: " .. parameter.name)

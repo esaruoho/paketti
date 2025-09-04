@@ -88,6 +88,8 @@ if not DynamicViewPrefs then
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_instrument_box_visible_step" .. step, renoise.Document.ObservableNumber(1))
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_pattern_matrix_visible_step" .. step, renoise.Document.ObservableNumber(1))
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_pattern_advanced_edit_visible_step" .. step, renoise.Document.ObservableNumber(1))
+      DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_instrument_editor_detached_step" .. step, renoise.Document.ObservableNumber(1))
+      DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_mixer_view_detached_step" .. step, renoise.Document.ObservableNumber(1))
     end
   end
 end
@@ -106,7 +108,8 @@ function loadDynamicViewPreferences()
         "upper_step", "middle_step", "lower_step",
         "sample_record_visible_step", "disk_browser_visible_step",
         "instrument_box_visible_step", "pattern_matrix_visible_step",
-        "pattern_advanced_edit_visible_step"
+        "pattern_advanced_edit_visible_step", "instrument_editor_detached_step",
+        "mixer_view_detached_step"
       }
       for _, prop_suffix in ipairs(prop_names) do
         local prop_name = "dynamic_view" .. dv_id .. "_" .. prop_suffix .. step
@@ -162,6 +165,11 @@ end
 -- Function to build options for visibility toggles
 local function build_visibility_options()
   return { "<Change Nothing>", "<Hide>", "<Show>" }
+end
+
+-- Function to build options for detach toggles
+local function build_detach_options()
+  return { "<Change Nothing>", "Detached", "Attached" }
 end
 
 function apply_dynamic_view_step(dv, step)
@@ -260,6 +268,26 @@ function apply_dynamic_view_step(dv, step)
           app_window.pattern_advanced_edit_is_visible = true
         end
       end
+    },
+    { property = "instrument_editor_detached_step", apply = function(value)
+        local success = pcall(function()
+          if value == 2 then
+            renoise.app().window.instrument_editor_is_detached = true   -- Detached
+          elseif value == 3 then
+            renoise.app().window.instrument_editor_is_detached = false  -- Attached
+          end
+        end)
+      end
+    },
+    { property = "mixer_view_detached_step", apply = function(value)
+        local success = pcall(function()
+          if value == 2 then
+            renoise.app().window.mixer_view_is_detached = true   -- Detached
+          elseif value == 3 then
+            renoise.app().window.mixer_view_is_detached = false  -- Attached
+          end
+        end)
+      end
     }
   }
 
@@ -297,7 +325,9 @@ function cycle_dynamic_view(dv)
       "disk_browser_visible_step",
       "instrument_box_visible_step",
       "pattern_matrix_visible_step",
-      "pattern_advanced_edit_visible_step"
+      "pattern_advanced_edit_visible_step",
+      "instrument_editor_detached_step",
+      "mixer_view_detached_step"
     }
     for _, ctrl in ipairs(visibility_controls) do
       local value = DynamicViewPrefs["dynamic_view" .. dv_id .. "_" .. ctrl .. step].value
@@ -388,7 +418,7 @@ end
 -- Build dynamic view UI
 local function build_dynamic_view_ui(vb, dv)
   local dv_id = string.format("%02d", dv)
-  local steps_label = vb:text{text="Steps in Cycle: 0", font = "bold" }
+  local title_label = vb:text{text="Paketti Dynamic View " .. dv_id .. " (00)", font = "bold", width=200}
 
   local function update_steps_label()
     local steps_count = 0
@@ -404,7 +434,9 @@ local function build_dynamic_view_ui(vb, dv)
         "disk_browser_visible_step",
         "instrument_box_visible_step",
         "pattern_matrix_visible_step",
-        "pattern_advanced_edit_visible_step"
+        "pattern_advanced_edit_visible_step",
+        "instrument_editor_detached_step",
+        "mixer_view_detached_step"
       }
       for _, ctrl in ipairs(visibility_controls) do
         local value = DynamicViewPrefs["dynamic_view" .. dv_id .. "_" .. ctrl .. step].value
@@ -418,7 +450,7 @@ local function build_dynamic_view_ui(vb, dv)
         steps_count = steps_count + 1
       end
     end
-    steps_label.text="Steps in Cycle: " .. steps_count
+    title_label.text = "Paketti Dynamic View " .. dv_id .. " (" .. string.format("%02d", steps_count) .. ")"
   end
 
   local function clear_visibility_controls()
@@ -427,7 +459,9 @@ local function build_dynamic_view_ui(vb, dv)
       "disk_browser_visible_step",
       "instrument_box_visible_step",
       "pattern_matrix_visible_step",
-      "pattern_advanced_edit_visible_step"
+      "pattern_advanced_edit_visible_step",
+      "instrument_editor_detached_step",
+      "mixer_view_detached_step"
     }
     for step = 1, steps_per_view do
       for _, ctrl in ipairs(visibility_controls) do
@@ -444,8 +478,9 @@ local function build_dynamic_view_ui(vb, dv)
   local dv_column = vb:column{
   --  spacing=5,
     vb:row{
-      vb:text{text="Paketti Dynamic View " .. dv_id, font = "bold",width=250 },
-      steps_label
+      title_label,
+      vb:button{ text="Cycle", height = 20,width=60, pressed = function() cycle_dynamic_view(dv) end},
+      vb:button{ text="Clear All Visibility Controls", height = 20,width=180, pressed = function() clear_visibility_controls() end}
     },
     build_header_row(vb, steps_per_view),
     build_property_row(vb, dv_id, "upper_step", "Upper Frame", function() return build_options(views_upper, true) end, update_steps_label),
@@ -456,10 +491,8 @@ local function build_dynamic_view_ui(vb, dv)
     build_property_row(vb, dv_id, "sample_record_visible_step", "Sample Recorder", build_visibility_options, update_steps_label),
     build_property_row(vb, dv_id, "pattern_matrix_visible_step", "Pattern Matrix", build_visibility_options, update_steps_label),
     build_property_row(vb, dv_id, "pattern_advanced_edit_visible_step", "Advanced Edit", build_visibility_options, update_steps_label),
-    vb:row{
-      vb:button{ text="Cycle", height = 20,width=100, pressed = function() cycle_dynamic_view(dv) end},
-      vb:button{ text="Clear All Visibility Controls", height = 20,width=200, pressed = function() clear_visibility_controls() end}
-    }
+    build_property_row(vb, dv_id, "instrument_editor_detached_step", "Instrument Editor", build_detach_options, update_steps_label),
+    build_property_row(vb, dv_id, "mixer_view_detached_step", "Mixer View", build_detach_options, update_steps_label)
   }
 
   return dv_column
@@ -545,14 +578,25 @@ function save_dynamic_views_to_txt()
         end
       end
 
+      -- Map detach control values to text
+      local function detach_value_to_text(value)
+        if value == 1 then return "<Change Nothing>"
+        elseif value == 2 then return "Detached"
+        elseif value == 3 then return "Attached"
+        else return "<Unknown>"
+        end
+      end
+
       local disk_browser = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_disk_browser_visible_step" .. step].value)
       local instrument_box = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_box_visible_step" .. step].value)
       local sample_recorder = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_sample_record_visible_step" .. step].value)
       local pattern_matrix = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_pattern_matrix_visible_step" .. step].value)
       local advanced_edit = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_pattern_advanced_edit_visible_step" .. step].value)
+      local instrument_editor = detach_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_editor_detached_step" .. step].value)
+      local mixer_view = detach_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_mixer_view_detached_step" .. step].value)
 
-      file:write(string.format("  Step %d - Upper: %d, Middle: %d, Lower: %d, Disk Browser: %s, Instrument Box: %s, Sample Recorder: %s, Pattern Matrix: %s, Advanced Edit: %s\n",
-        step, upper, middle, lower, disk_browser, instrument_box, sample_recorder, pattern_matrix, advanced_edit))
+      file:write(string.format("  Step %d - Upper: %d, Middle: %d, Lower: %d, Disk Browser: %s, Instrument Box: %s, Sample Recorder: %s, Pattern Matrix: %s, Advanced Edit: %s, Instrument Editor: %s, Mixer View: %s\n",
+        step, upper, middle, lower, disk_browser, instrument_box, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view))
     end
   end
 
@@ -579,9 +623,9 @@ function load_dynamic_views_from_txt()
     else
       if dv then
         local dv_id = string.format("%02d", dv)
-        local step, upper, middle, lower, disk_browser, instrument_box, sample_recorder, pattern_matrix, advanced_edit = string.match(
+        local step, upper, middle, lower, disk_browser, instrument_box, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view = string.match(
           line,
-          "Step (%d+) %- Upper: (%d+), Middle: (%d+), Lower: (%d+), Disk Browser: (%b<>), Instrument Box: (%b<>), Sample Recorder: (%b<>), Pattern Matrix: (%b<>), Advanced Edit: (%b<>)"
+          "Step (%d+) %- Upper: (%d+), Middle: (%d+), Lower: (%d+), Disk Browser: (%b<>), Instrument Box: (%b<>), Sample Recorder: (%b<>), Pattern Matrix: (%b<>), Advanced Edit: (%b<>), Instrument Editor: (%b<>), Mixer View: (%b<>)"
         )
         if step then
           step = tonumber(step)
@@ -598,11 +642,28 @@ function load_dynamic_views_from_txt()
             end
           end
 
+          -- Map text to detach control values
+          local function text_to_detach_value(text)
+            if text == "<Change Nothing>" then return 1
+            elseif text == "Detached" then return 2
+            elseif text == "Attached" then return 3
+            else return 1  -- Default to "<Change Nothing>" if unknown
+            end
+          end
+
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_disk_browser_visible_step" .. step].value = text_to_visibility_value(disk_browser)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_box_visible_step" .. step].value = text_to_visibility_value(instrument_box)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_sample_record_visible_step" .. step].value = text_to_visibility_value(sample_recorder)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_pattern_matrix_visible_step" .. step].value = text_to_visibility_value(pattern_matrix)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_pattern_advanced_edit_visible_step" .. step].value = text_to_visibility_value(advanced_edit)
+          
+          -- Handle new detach properties if they exist in the loaded data
+          if instrument_editor then
+            DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_editor_detached_step" .. step].value = text_to_detach_value(instrument_editor)
+          end
+          if mixer_view then
+            DynamicViewPrefs["dynamic_view" .. dv_id .. "_mixer_view_detached_step" .. step].value = text_to_detach_value(mixer_view)
+          end
         end
       end
     end
@@ -633,7 +694,9 @@ function set_dynamic_view_step_from_knob(dv, knob_value)
       "disk_browser_visible_step",
       "instrument_box_visible_step",
       "pattern_matrix_visible_step",
-      "pattern_advanced_edit_visible_step"
+      "pattern_advanced_edit_visible_step",
+      "instrument_editor_detached_step",
+      "mixer_view_detached_step"
     }
     for _, ctrl in ipairs(visibility_controls) do
       local value = DynamicViewPrefs["dynamic_view" .. dv_id .. "_" .. ctrl .. step].value

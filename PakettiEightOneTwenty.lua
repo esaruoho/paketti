@@ -1344,8 +1344,8 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
           
           -- Then print to pattern
           row_elements.print_to_pattern()
-          if track_index and prev_device and prev_param then
-            PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
+          if track_index and saved_device and saved_param then
+            PakettiEightOneTwentyRestoreAutomationSelection(saved_device, saved_param, track_index)
           end
         end
       end

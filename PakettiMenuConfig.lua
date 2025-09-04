@@ -182,6 +182,10 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Steppers:Paketti St
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Select Random Instrument (Sample,Plugin,MIDI)",invoke=function() pakettiSelectRandomInstrument() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Transpose Dialog...",invoke=function() PakettiInstrumentTransposeDialog() end}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Transpose Dialog...",invoke=function() PakettiInstrumentTransposeDialog() end}
+
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Load Random AKWF Sample",invoke=function() load_random_akwf_sample(1) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Load Random amount (1...12) of AKWF Samples",invoke=function() load_random_akwf_sample("random") end}

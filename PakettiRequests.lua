@@ -251,18 +251,8 @@ function selectedInstrumentDistributeToSeparateFxChains()
     return
   end
 
-  -- Check for slice markers on the first sample [[memory:4746832]]
-  local first_sample = instrument.samples[1]
-  local samples_to_process = {}
-  
-  if #first_sample.slice_markers > 0 then
-    -- If slice markers exist, only process the first sample
-    samples_to_process = {first_sample}
-  else
-    -- If no slice markers, process all samples
-    samples_to_process = instrument.samples
-  end
-
+  -- Process ALL samples in the instrument (includes sliced samples if they exist)
+  local samples_to_process = instrument.samples
   local num_samples = #samples_to_process
   local num_existing_fx_chains = #instrument.sample_device_chains
 
@@ -279,7 +269,7 @@ function selectedInstrumentDistributeToSeparateFxChains()
     sample.device_chain_index = i
   end
 
-  renoise.app():show_status("Distributed " .. num_samples .. " sample(s) to separate FX chains")
+  renoise.app():show_status("Distributed " .. num_samples .. " sample(s) or slice(s) to separate FX chains")
 end
 
 -- Function to delete all sample FX chains (keeps only the first one)
@@ -326,18 +316,8 @@ function selectedInstrumentDistributeToSeparateModulationSets()
     return
   end
 
-  -- Check for slice markers on the first sample [[memory:4746832]]
-  local first_sample = instrument.samples[1]
-  local samples_to_process = {}
-
-  if #first_sample.slice_markers > 0 then
-    -- If slice markers exist, only process the first sample
-    samples_to_process = {first_sample}
-  else
-    -- If no slice markers, process all samples
-    samples_to_process = instrument.samples
-  end
-
+  -- Process ALL samples in the instrument (includes sliced samples if they exist)
+  local samples_to_process = instrument.samples
   local num_samples = #samples_to_process
   local num_existing_mod_sets = #instrument.sample_modulation_sets
 
@@ -367,16 +347,8 @@ function selectedInstrumentDistributeToSeparateFxAndModChains()
     return
   end
 
-  -- Check for slice markers on the first sample [[memory:4746832]]
-  local first_sample = instrument.samples[1]
-  local samples_to_process = {}
-
-  if #first_sample.slice_markers > 0 then
-    samples_to_process = {first_sample}
-  else
-    samples_to_process = instrument.samples
-  end
-
+  -- Process ALL samples in the instrument (includes sliced samples if they exist)
+  local samples_to_process = instrument.samples
   local num_samples = #samples_to_process
 
   -- Ensure enough FX chains
