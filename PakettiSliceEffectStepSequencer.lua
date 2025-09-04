@@ -39,6 +39,9 @@ local track_change_notifier = nil
 -- Dialog initialization flag to prevent pattern writing during population
 local initializing_dialog = false
 
+-- Step switching flag to prevent auto Global Slice during step changes
+local step_switching_in_progress = false
+
 -- Row modes
 local ROW_MODES = {
   SAMPLE_OFFSET = 1,
@@ -106,8 +109,24 @@ function PakettiSliceStepSampleOffsetUpdateSelection(offset_value)
   local frame = PakettiSliceStepSampleOffsetCalculateFrame(offset_value, buffer.number_of_frames)
   
   -- Set selection to a much more visible range around offset position  
-  local selection_size = math.min(1000, math.floor(buffer.number_of_frames * 0.01)) -- 1% of sample or 1000 frames, whichever is smaller
-  selection_size = math.max(selection_size, 100) -- But at least 100 frames
+  -- For short samples (8 beats or less, roughly 200,000 frames at 44.1khz), use 3x smaller range
+  -- For longer samples, retain the current size
+  local base_selection_size = math.min(1000, math.floor(buffer.number_of_frames * 0.01)) -- 1% of sample or 1000 frames, whichever is smaller
+  base_selection_size = math.max(base_selection_size, 100) -- But at least 100 frames
+  
+  -- Determine if this is a short sample (roughly 8 beats at 140 BPM at 44.1kHz = ~200,000 frames)
+  local short_sample_threshold = 200000
+  local selection_size = base_selection_size
+  
+  if buffer.number_of_frames < short_sample_threshold then
+    -- For short samples, use 3x smaller range
+    selection_size = math.floor(base_selection_size / 3)
+    selection_size = math.max(selection_size, 50) -- But at least 50 frames for visibility
+    print("DEBUG: Short sample detected (" .. buffer.number_of_frames .. " frames), using 3x smaller visualization range: " .. selection_size .. " frames")
+  else
+    -- For longer samples, keep the current size
+    print("DEBUG: Long sample detected (" .. buffer.number_of_frames .. " frames), using normal visualization range: " .. selection_size .. " frames")
+  end
   local half_size = math.floor(selection_size / 2)
   
   local start_frame = math.max(1, frame - half_size)
@@ -224,22 +243,30 @@ function PakettiSliceStepInitializeRows()
   local slice_info = PakettiSliceStepGetSliceInfo()
   local default_slice_base = slice_info and slice_info.base_note or 48
   
-  -- Check if we have slices available - if not, force Sample Offset mode
-  local default_mode = ROW_MODES.SLICE
-  if not slice_info or slice_info.slice_count == 0 then
-    default_mode = ROW_MODES.SAMPLE_OFFSET
-    print("DEBUG: No slices available, forcing Sample Offset mode")
+  -- Don't apply auto Global Slice during initialization - let pattern reading handle it
+  local auto_global_slice = false
+  if step_switching_in_progress then
+    print("DEBUG: Step switching in progress - preserving existing row modes")
+  else
+    print("DEBUG: Initializing with default modes - pattern reading will apply smart detection")
   end
   
   for row = 1, NUM_ROWS do
+    local row_mode = ROW_MODES.SAMPLE_OFFSET  -- Default to sample offset
+    local row_enabled = true
+    
+    -- Don't apply auto Global Slice here - let pattern reading handle smart detection
+    
     rows[row] = {
-      mode = default_mode, -- Use determined mode based on slice availability
+      mode = row_mode,
       value = 0x20, -- Default sample offset
       note_value = 48, -- C-4 default note
-      slice_note = default_slice_base + row, -- Default slice note for each row
+      slice_note = nil, -- Let the UI fallback to (base_note + row) - same as Global Slice button
       active_steps = MAX_STEPS,
-      enabled = true
+      enabled = row_enabled
     }
+    
+    print("DEBUG: Row " .. row .. " created with mode " .. row_mode .. " (enabled: " .. tostring(row_enabled) .. ")")
     
     row_buttons[row] = {}
     row_checkboxes[row] = {}
@@ -250,6 +277,9 @@ function PakettiSliceStepInitializeRows()
       row_checkboxes[row][step] = nil -- Will be created by ViewBuilder
     end
   end
+  
+  -- Initialization complete - pattern reading will apply smart detection
+  print("DEBUG: Row initialization complete - pattern reading will apply smart mode detection")
 end
 
 -- Helper function to update step count label display - REMOVED (redundant with step count valuebox)
@@ -1133,7 +1163,22 @@ function PakettiSliceStepGlobalSampleOffset()
 end
 
 function PakettiSliceStepEvenSpread()
-  print("DEBUG: PakettiSliceStepEvenSpread - Setting even spread sample offset values across 8 rows...")
+  print("DEBUG: PakettiSliceStepEvenSpread - Starting even spread function...")
+  
+  -- Check if sample has slices
+  local slice_info = PakettiSliceStepGetSliceInfo()
+  local sample_has_slices = slice_info and slice_info.slice_count > 0
+  
+  -- Check if dialog is currently in slice mode (any row using slice mode)
+  local dialog_in_slice_mode = false
+  for row = 1, NUM_ROWS do
+    if rows[row] and rows[row].enabled and rows[row].mode == ROW_MODES.SLICE then
+      dialog_in_slice_mode = true
+      break
+    end
+  end
+  
+  print("DEBUG: Sample has slices:", sample_has_slices, "Dialog in slice mode:", dialog_in_slice_mode)
   
   -- STEP 1: Set selected sample's New Note Action to CUT for proper slice behavior
   local song = renoise.song()
@@ -1152,10 +1197,60 @@ function PakettiSliceStepEvenSpread()
   -- STEP 2: Disable writing to pattern
   initializing_dialog = true
   
-  -- Calculate even spread values: 8 equal slices (256/8 = 32 units apart)  
-  local even_spread_values = {0, 32, 64, 96, 128, 160, 192, 224}
-  
-  -- STEP 2: Set all rows to Sample Offset mode and apply even spread values
+  -- Handle the special case: sample has slices AND dialog is in slice mode
+  if sample_has_slices and dialog_in_slice_mode then
+    print("DEBUG: Both sample has slices AND dialog in slice mode - distributing slice notes instead of sample offsets")
+    
+    -- Use slice mode and distribute slice notes evenly across rows
+    for row = 1, NUM_ROWS do
+      print("DEBUG: Setting row " .. row .. " to SLICE mode")
+      rows[row].mode = ROW_MODES.SLICE
+      rows[row].enabled = true
+      rows[row].active_steps = current_steps  -- Set step count to match current step mode
+      
+      -- Calculate slice note for this row (distribute evenly across available slices)
+      local slice_note = slice_info.base_note + ((row - 1) % slice_info.slice_count) + 1
+      rows[row].slice_note = slice_note
+      
+      -- Update the UI switch directly
+      if row_mode_switches[row] then
+        row_mode_switches[row].value = ROW_MODES.SLICE
+        print("DEBUG: Updated switch for row " .. row .. " to SLICE mode")
+      end
+      
+      -- DISABLE sample offset valuebox for slice mode
+      if sample_offset_valueboxes[row] then
+        sample_offset_valueboxes[row].active = false
+        print("DEBUG: Disabled sample offset valuebox for row " .. row .. " (slice mode)")
+      end
+      
+      -- Enable slice note valuebox
+      if slice_note_valueboxes[row] then
+        slice_note_valueboxes[row].active = true
+        slice_note_valueboxes[row].value = slice_note
+        print("DEBUG: Set slice note valuebox for row " .. row .. " to " .. slice_note)
+      end
+      
+      -- Update step count valuebox to current_steps
+      if step_valueboxes[row] then
+        step_valueboxes[row].value = current_steps
+        print("DEBUG: Set step count valuebox for row " .. row .. " to " .. current_steps)
+      end
+      
+      -- Enable transpose rotary for slice mode
+      if transpose_rotaries[row] then
+        transpose_rotaries[row].active = true
+        print("DEBUG: Enabled transpose rotary for row " .. row .. " (slice mode)")
+      end
+    end
+    
+  else
+    -- Original behavior: use sample offset mode
+    print("DEBUG: Using sample offset mode (sample has no slices or dialog not in slice mode)")
+    -- Calculate even spread values: 8 equal slices (256/8 = 32 units apart)  
+    local even_spread_values = {0, 32, 64, 96, 128, 160, 192, 224}
+
+    -- STEP 3: Set all rows to Sample Offset mode and apply even spread values
   for row = 1, NUM_ROWS do
     print("DEBUG: Setting row " .. row .. " to SAMPLE_OFFSET mode with value " .. even_spread_values[row])
     rows[row].mode = ROW_MODES.SAMPLE_OFFSET
@@ -1197,8 +1292,9 @@ function PakettiSliceStepEvenSpread()
       print("DEBUG: Disabled transpose rotary for row " .. row .. " (sample offset mode)")
     end
   end
+  end -- close the else block
   
-  -- STEP 3: Clear the whole track completely
+  -- STEP 3: Clear the whole track completely (common to both modes)
   local song = renoise.song()
   local pattern = song.selected_pattern
   local track_index = song.selected_track_index
@@ -1248,7 +1344,83 @@ function PakettiSliceStepEvenSpread()
     if row > 1 then step_list = step_list .. ", " end
     step_list = step_list .. target_step
   end
-  renoise.app():show_status("Even Spread (" .. current_steps .. " steps): Sample offsets 00,20,40,60,80,A0,C0,E0 - Checkboxes at steps: " .. step_list)
+  
+  -- Show appropriate status message based on the mode that was used
+  if sample_has_slices and dialog_in_slice_mode then
+    renoise.app():show_status("Even Spread (" .. current_steps .. " steps): Slice notes distributed across slices - Checkboxes at steps: " .. step_list)
+  else
+    renoise.app():show_status("Even Spread (" .. current_steps .. " steps): Sample offsets 00,20,40,60,80,A0,C0,E0 - Checkboxes at steps: " .. step_list)
+  end
+end
+
+function PakettiSliceStepEvenOffsets()
+  print("DEBUG: PakettiSliceStepEvenOffsets - Setting even spread sample offset values without stepsequencers...")
+  
+  -- STEP 1: Set selected sample's New Note Action to CUT for proper slice behavior
+  local song = renoise.song()
+  if song then
+    local instrument = song.selected_instrument
+    if instrument and #instrument.samples > 0 then
+      local sample = instrument.samples[song.selected_sample_index]
+      if sample then
+        sample.new_note_action = renoise.Sample.NEW_NOTE_ACTION_NOTE_CUT
+        sample.mute_group = 1
+        print("DEBUG: Set sample New Note Action to CUT and Mute Group to 1 for clean slice behavior")
+      end
+    end
+  end
+  
+  -- STEP 2: Disable writing to pattern
+  initializing_dialog = true
+  
+  -- Calculate even spread values: 8 equal slices (256/8 = 32 units apart)  
+  local even_spread_values = {0, 32, 64, 96, 128, 160, 192, 224}
+  
+  -- STEP 3: Set all rows to Sample Offset mode and apply even spread values (NO STEPSEQUENCER CHANGES)
+  for row = 1, NUM_ROWS do
+    print("DEBUG: Setting row " .. row .. " to SAMPLE_OFFSET mode with value " .. even_spread_values[row])
+    rows[row].mode = ROW_MODES.SAMPLE_OFFSET
+    rows[row].enabled = true
+    rows[row].value = even_spread_values[row]
+    
+    -- Update the UI switch directly
+    if row_mode_switches[row] then
+      row_mode_switches[row].value = ROW_MODES.SAMPLE_OFFSET
+      print("DEBUG: Updated switch for row " .. row .. " to SAMPLE_OFFSET mode")
+    end
+    
+    -- Enable and update sample offset valuebox
+    if sample_offset_valueboxes[row] then
+      sample_offset_valueboxes[row].active = true
+      sample_offset_valueboxes[row].value = even_spread_values[row]
+      print("DEBUG: Set sample offset valuebox for row " .. row .. " to " .. even_spread_values[row])
+      -- Update sample editor visualization for this offset value
+      PakettiSliceStepSampleOffsetUpdateSelection(even_spread_values[row])
+    end
+    
+    -- DISABLE slice note valuebox for sample offset mode
+    if slice_note_valueboxes[row] then
+      slice_note_valueboxes[row].active = false
+      print("DEBUG: Disabled slice note valuebox for row " .. row .. " (sample offset mode)")
+    end
+    
+    -- DISABLE transpose rotary for sample offset mode
+    if transpose_rotaries[row] then
+      transpose_rotaries[row].active = false
+      print("DEBUG: Disabled transpose rotary for row " .. row .. " (sample offset mode)")
+    end
+  end
+  
+  -- STEP 4: Re-enable writing to pattern
+  initializing_dialog = false
+  
+  -- Update button colors (but don't write to pattern automatically)
+  PakettiSliceStepUpdateButtonColors()
+  
+  -- Update sample effect column visibility (should be visible for sample offset mode)
+  PakettiSliceStepUpdateSampleEffectColumnVisibility()
+  
+  renoise.app():show_status("Even Offsets: Sample offsets 00,20,40,60,80,A0,C0,E0 set - Checkboxes unchanged")
 end
 
 function PakettiSliceStepTwoOctaves()
@@ -2259,32 +2431,41 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
   
   -- Always provide both options (ViewBuilder switch needs at least 2 items)
   local switch_items = {"Sample Offset", "Slice"}
+  local switch_value = current_mode
   
-  -- Ensure current_mode is valid - if no slices but mode is SLICE, force to SAMPLE_OFFSET
-  if not has_slices and current_mode == ROW_MODES.SLICE then
-    current_mode = ROW_MODES.SAMPLE_OFFSET
+  -- Force to sample offset mode if no slices available but somehow in slice mode
+  if current_mode == ROW_MODES.SLICE and not has_slices then
+    print("DEBUG: FORCING row " .. row .. " from SLICE to SAMPLE_OFFSET mode (no slices available)")
     rows[row].mode = ROW_MODES.SAMPLE_OFFSET
+    switch_value = ROW_MODES.SAMPLE_OFFSET
   end
+  
+  print("DEBUG: Row " .. row .. " switch using mode " .. switch_value .. " (has_slices: " .. tostring(has_slices) .. ")")
   
   local mode_switch = vb_local:switch{
     items = switch_items,
-    value = current_mode,
+    value = switch_value,
     width = 160,
     notifier = (function(current_row)
       return function(value)
-        -- Check if trying to select slice mode when no slices available
-        if value == ROW_MODES.SLICE and not has_slices then
-          -- Reset switch back to Sample Offset
-          if row_mode_switches[current_row] then
-            row_mode_switches[current_row].value = ROW_MODES.SAMPLE_OFFSET
-          end
-          renoise.app():show_status("Cannot use Slice mode: Sample has no slice markers")
+        -- Dynamic check for slices (in case sample changed after dialog creation)
+        local current_slice_info = PakettiSliceStepGetSliceInfo()
+        local current_has_slices = current_slice_info and current_slice_info.slice_count > 0
+        
+        print("DEBUG: Row " .. current_row .. " switch clicked - attempting to change to mode " .. value .. " (has_slices: " .. tostring(current_has_slices) .. ")")
+        
+        -- BUGFIX: Only block Slice mode when no slices available - allow Sample Offset to work normally
+        if value == ROW_MODES.SLICE and not current_has_slices then
+          -- Don't update anything - just show error and let UI stay "broken" temporarily
+          -- This way clicking "Sample Offset" will trigger the notifier properly
+          renoise.app():show_status("Cannot use Slice mode: Sample has no slice markers - click Sample Offset to fix")
+          print("DEBUG: Row " .. current_row .. " BLOCKED from SLICE mode (no slices available) - UI temporarily desync'd")
           return
         end
         
-        -- Select the corresponding note column when interacting with this row
+        -- Normal switching - both Sample Offset (when no slices) and Slice (when slices available)
         PakettiSliceStepSelectNoteColumn(current_row)
-        print("DEBUG: Row " .. current_row .. " switch clicked - changing from mode " .. current_mode .. " to mode " .. value)
+        print("DEBUG: Row " .. current_row .. " switch clicked - changing to mode " .. value)
         PakettiSliceStepSetRowMode(current_row, value)
       end
     end)(row)
@@ -2300,7 +2481,7 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
     max = 255,
     value = row_data.value,
     width = 50,
-    active = (current_mode == ROW_MODES.SAMPLE_OFFSET),
+    active = (switch_value == ROW_MODES.SAMPLE_OFFSET),
     notifier = (function(current_row)
       return function(value)
         -- Select the corresponding note column when interacting with this row
@@ -2527,9 +2708,21 @@ function PakettiSliceStepCreateDialog()
           -- Optimize: Only save checkbox states that we'll actually need to restore/duplicate
           local saved_checkbox_states = {}
           local saved_row_steps = {}
+          local saved_row_modes = {}
+          local saved_row_enabled = {}
+          local saved_row_data = {}
           for row = 1, NUM_ROWS do
             saved_checkbox_states[row] = {}
             saved_row_steps[row] = rows[row].active_steps -- Only save step counts, not all data
+            saved_row_modes[row] = rows[row].mode -- PRESERVE row modes during step switching
+            saved_row_enabled[row] = rows[row].enabled -- PRESERVE enabled states
+            saved_row_data[row] = {
+              mode = rows[row].mode,
+              value = rows[row].value,
+              note_value = rows[row].note_value,
+              slice_note = rows[row].slice_note,
+              enabled = rows[row].enabled
+            }
             if row_checkboxes[row] then
               -- Only save states for steps that exist
               local steps_to_save = math.min(old_steps, rows[row].active_steps or old_steps)
@@ -2544,26 +2737,37 @@ function PakettiSliceStepCreateDialog()
           -- Smart step count updating logic
           -- Check if ALL rows are currently using the old step count
           local all_rows_at_old_steps = true
+          print("DEBUG: Checking step counts - old_steps=" .. old_steps .. ", current_steps=" .. current_steps)
           for row = 1, NUM_ROWS do
-            if rows[row].active_steps ~= old_steps then
+            local row_steps = rows[row].active_steps or 0
+            print("DEBUG: Row " .. row .. " has active_steps=" .. row_steps)
+            if row_steps ~= old_steps then
               all_rows_at_old_steps = false
+              print("DEBUG: Row " .. row .. " step count mismatch - has " .. row_steps .. ", expected " .. old_steps)
               break
             end
           end
+          print("DEBUG: all_rows_at_old_steps=" .. tostring(all_rows_at_old_steps))
           
           local rows_to_update = {}
           if all_rows_at_old_steps then
             -- If ALL rows are at old step count, update ALL to new step count (best UX)
+            print("DEBUG: Updating ALL rows from " .. old_steps .. " to " .. current_steps .. " steps")
             for row = 1, NUM_ROWS do
               rows[row].active_steps = current_steps
               rows_to_update[row] = true
+              print("DEBUG: Updated row " .. row .. " to " .. current_steps .. " steps")
             end
           else
             -- Mixed step counts - only update rows that were using the old maximum
+            print("DEBUG: Mixed step counts detected - only updating rows that match old_steps=" .. old_steps)
             for row = 1, NUM_ROWS do
               if rows[row].active_steps == old_steps then
                 rows[row].active_steps = current_steps
                 rows_to_update[row] = true
+                print("DEBUG: Updated row " .. row .. " from " .. old_steps .. " to " .. current_steps .. " steps")
+              else
+                print("DEBUG: Skipped row " .. row .. " (has " .. (rows[row].active_steps or 0) .. " steps, not " .. old_steps .. ")")
               end
             end
           end
@@ -2571,6 +2775,9 @@ function PakettiSliceStepCreateDialog()
           -- Optimize: Batch UI updates and minimize dialog recreation work
           local was_initializing = initializing_dialog
           initializing_dialog = true -- Prevent pattern writing during UI updates
+          
+          -- Set global flag to prevent auto Global Slice during step switching
+          step_switching_in_progress = true
           
           -- CRITICAL: Update the view setting column name BEFORE recreating dialog
           -- Otherwise PakettiSliceStepCreateDialog() will read the old name and reset our changes!
@@ -2587,6 +2794,28 @@ function PakettiSliceStepCreateDialog()
           dialog:close()
           dialog = nil
           PakettiSliceStepCreateDialog()
+          
+          -- CRITICAL: Restore row data IMMEDIATELY after dialog recreation
+          for row = 1, NUM_ROWS do
+            if saved_row_data[row] then
+              rows[row].mode = saved_row_data[row].mode
+              rows[row].value = saved_row_data[row].value
+              rows[row].note_value = saved_row_data[row].note_value
+              rows[row].slice_note = saved_row_data[row].slice_note
+              rows[row].enabled = saved_row_data[row].enabled
+              print("DEBUG: RESTORED row " .. row .. " - mode: " .. rows[row].mode .. ", enabled: " .. tostring(rows[row].enabled))
+              
+              -- Update UI switch to match restored mode
+              if row_mode_switches[row] then
+                row_mode_switches[row].value = rows[row].mode
+                print("DEBUG: RESTORED switch for row " .. row .. " to mode " .. rows[row].mode)
+              end
+            end
+          end
+          
+          -- Clear the step switching flag after restoration
+          step_switching_in_progress = false
+          print("DEBUG: Step switching restoration complete - flag cleared")
           
           -- Smart restore and duplicate logic
           if old_steps == 16 and current_steps == 32 then
@@ -2741,10 +2970,15 @@ function PakettiSliceStepCreateDialog()
         active = (PakettiSliceStepGetSliceInfo() and PakettiSliceStepGetSliceInfo().slice_count > 0),
         notifier = PakettiSliceStepGlobalSlice
     },
-       vb:button{
-        text = "Even Spread",
-        width = 80,
-        notifier = PakettiSliceStepEvenSpread
+           vb:button{
+      text = "Even Spread",
+      width = 80,
+      notifier = PakettiSliceStepEvenSpread
+    },
+    vb:button{
+      text = "Even Offsets",
+      width = 80,
+      notifier = PakettiSliceStepEvenOffsets
     },
 
     vb:text{text = "Transpose", font = "bold", style = "strong"},
@@ -2800,6 +3034,78 @@ function PakettiSliceStepCreateDialog()
         if song and song.selected_instrument then
           song.selected_instrument.transpose = 24
           renoise.app():show_status("Instrument transpose set to +24")
+        end
+      end
+    },
+    
+    vb:text{text = "BPM", font = "bold", style = "strong"},
+    vb:button{
+      text = "Detect",
+      width = 60,
+      notifier = function()
+        local song = renoise.song()
+        if not song.selected_sample or not song.selected_sample.sample_buffer or not song.selected_sample.sample_buffer.has_sample_data then
+          renoise.app():show_status("No sample selected or sample has no data")
+          return
+        end
+        
+        local sample = song.selected_sample
+        local sample_buffer = sample.sample_buffer
+        local sample_length_frames = sample_buffer.number_of_frames
+        local sample_rate = sample_buffer.sample_rate
+        
+        local detected_bpm, beat_count
+        
+        -- Check if sample has slice markers (sliced break)
+        if sample.slice_markers and #sample.slice_markers > 0 then
+          -- Use transient detection for sliced breaks
+          local estimated_beats = #sample.slice_markers
+          detected_bpm, beat_count = pakettiBPMDetectFromTransients(sample_buffer, estimated_beats)
+        else
+          -- Use intelligent detection for non-sliced breaks
+          detected_bpm, beat_count = pakettiBPMDetectFromSample(sample_length_frames, sample_rate)
+        end
+        
+        if detected_bpm then
+          renoise.app():show_status(string.format("Detected BPM: %.1f", detected_bpm))
+        else
+          renoise.app():show_status("Could not detect BPM from sample")
+        end
+      end
+    },
+    vb:button{
+      text = "Detect&Set",
+      width = 70,
+      notifier = function()
+        local song = renoise.song()
+        if not song.selected_sample or not song.selected_sample.sample_buffer or not song.selected_sample.sample_buffer.has_sample_data then
+          renoise.app():show_status("No sample selected or sample has no data")
+          return
+        end
+        
+        local sample = song.selected_sample
+        local sample_buffer = sample.sample_buffer
+        local sample_length_frames = sample_buffer.number_of_frames
+        local sample_rate = sample_buffer.sample_rate
+        local original_bpm = song.transport.bpm
+        
+        local detected_bpm, beat_count
+        
+        -- Check if sample has slice markers (sliced break)
+        if sample.slice_markers and #sample.slice_markers > 0 then
+          -- Use transient detection for sliced breaks
+          local estimated_beats = #sample.slice_markers
+          detected_bpm, beat_count = pakettiBPMDetectFromTransients(sample_buffer, estimated_beats)
+        else
+          -- Use intelligent detection for non-sliced breaks
+          detected_bpm, beat_count = pakettiBPMDetectFromSample(sample_length_frames, sample_rate)
+        end
+        
+        if detected_bpm then
+          song.transport.bpm = detected_bpm
+          renoise.app():show_status(string.format("BPM set to %.1f (was %.1f, %d beats detected)", detected_bpm, original_bpm, beat_count))
+        else
+          renoise.app():show_status("Could not detect BPM from sample")
         end
       end
     }
@@ -3134,32 +3440,75 @@ function PakettiSliceStepReadExistingPattern()
     end
   end
   
-  -- Apply PER-ROW intelligent defaults for undetected rows
-  print("DEBUG: Applying per-row intelligent defaults for undetected rows...")
+  -- Analyze pattern type and apply the user's clear logic
+  local rows_with_sample_offsets = 0
+  local rows_with_slices = 0
+  local empty_rows = 0
+  
   for row = 1, NUM_ROWS do
-    if not detected_modes[row] then
-      -- Check if this row has any content at all
-      local has_any_content = false
-      for line_idx = 1, math.min(MAX_STEPS, pattern.number_of_lines) do
-        local pattern_line = pattern:track(track_index):line(line_idx)
-        if row <= track.visible_note_columns then
-          local note_col = pattern_line:note_column(row)
-          if note_col.note_string ~= "---" and note_col.note_string ~= "" then
-            has_any_content = true
-            break
-          end
+    if detected_modes[row] == ROW_MODES.SAMPLE_OFFSET then
+      rows_with_sample_offsets = rows_with_sample_offsets + 1
+    elseif detected_modes[row] == ROW_MODES.SLICE then
+      rows_with_slices = rows_with_slices + 1
+    else
+      empty_rows = empty_rows + 1
+    end
+  end
+  
+  local total_content_rows = rows_with_sample_offsets + rows_with_slices
+  
+  print("DEBUG: Pattern analysis - Sample offsets: " .. rows_with_sample_offsets .. ", Slices: " .. rows_with_slices .. ", Empty: " .. empty_rows)
+  
+  if total_content_rows == 0 then
+    -- CASE 1: EMPTY PATTERN + SLICED INSTRUMENT → Global Slice
+    if slice_info and slice_info.slice_count > 0 then
+      print("DEBUG: EMPTY PATTERN + SLICED INSTRUMENT → GLOBAL SLICE")
+      for row = 1, NUM_ROWS do
+        if row <= slice_info.slice_count then
+          detected_modes[row] = ROW_MODES.SLICE
+          print("DEBUG: Row " .. row .. " set to SLICE (Global Slice for empty pattern)")
+        else
+          detected_modes[row] = ROW_MODES.SAMPLE_OFFSET
+          print("DEBUG: Row " .. row .. " set to SAMPLE_OFFSET (beyond slice count)")
         end
       end
-      
-      -- Intelligent per-row default:
-      -- If row has content and slices are available, default to SLICE
-      -- If row has content but no slices, or row is empty, default to SAMPLE_OFFSET
-      if has_any_content and slice_info then
-        detected_modes[row] = ROW_MODES.SLICE
-        print("DEBUG: Row " .. row .. " has content and slices available - defaulting to SLICE mode")
-      else
+    else
+      print("DEBUG: EMPTY PATTERN + NO SLICES → SAMPLE_OFFSET")
+      for row = 1, NUM_ROWS do
         detected_modes[row] = ROW_MODES.SAMPLE_OFFSET
-        print("DEBUG: Row " .. row .. " defaulting to SAMPLE_OFFSET mode (no content or no slices)")
+      end
+    end
+  elseif rows_with_slices > 0 and rows_with_sample_offsets == 0 then
+    -- CASE 2: PATTERN WITH ONLY SLICES → Global Slice
+    print("DEBUG: PATTERN WITH ONLY SLICES → GLOBAL SLICE")
+    for row = 1, NUM_ROWS do
+      if not detected_modes[row] then -- Only set undetected rows
+        if slice_info and row <= slice_info.slice_count then
+          detected_modes[row] = ROW_MODES.SLICE
+          print("DEBUG: Row " .. row .. " set to SLICE (Global Slice - slice-only pattern)")
+        else
+          detected_modes[row] = ROW_MODES.SAMPLE_OFFSET
+          print("DEBUG: Row " .. row .. " set to SAMPLE_OFFSET (beyond slice count)")
+        end
+      end
+    end
+  elseif rows_with_sample_offsets > 0 and rows_with_slices == 0 then
+    -- CASE 3: PATTERN WITH ONLY SAMPLE OFFSETS → Global Sample Offset
+    print("DEBUG: PATTERN WITH ONLY SAMPLE OFFSETS → GLOBAL SAMPLE OFFSET")
+    for row = 1, NUM_ROWS do
+      if not detected_modes[row] then -- Only set undetected rows
+        detected_modes[row] = ROW_MODES.SAMPLE_OFFSET
+        print("DEBUG: Row " .. row .. " set to SAMPLE_OFFSET (Global Sample Offset)")
+      end
+    end
+  else
+    -- CASE 4: MIXED PATTERN → Per-row detection (already done in first pass)
+    print("DEBUG: MIXED PATTERN → PER-ROW DETECTION (sample offsets: " .. rows_with_sample_offsets .. ", slices: " .. rows_with_slices .. ")")
+    for row = 1, NUM_ROWS do
+      if not detected_modes[row] then
+        -- Default empty rows in mixed pattern to sample offset
+        detected_modes[row] = ROW_MODES.SAMPLE_OFFSET
+        print("DEBUG: Row " .. row .. " defaulted to SAMPLE_OFFSET (mixed pattern, empty row)")
       end
     end
   end
@@ -3318,6 +3667,8 @@ function PakettiSliceStepReadExistingPattern()
   print("DEBUG: PakettiSliceStepReadExistingPattern - Pattern writing state restored to: " .. tostring(not initializing_dialog))
   
   print("DEBUG: PakettiSliceStepReadExistingPattern - Completed. Read " .. read_count .. " steps")
+  
+  -- Pattern reading complete
   
   local status_message = "Read Pattern: Found " .. read_count .. " steps"
   if mode_change_count > 0 then
