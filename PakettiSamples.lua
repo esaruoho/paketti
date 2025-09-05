@@ -6378,3 +6378,98 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Place Sample to End at
 renoise.tool():add_keybinding{name="Global:Paketti:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
 renoise.tool():add_midi_mapping{name="Paketti:Place Sample to End at Pattern End [Trigger]", invoke = function(message) if message:is_trigger() then PakettiPlaceSampleToEndAtPatternEnd() end end}
 
+
+-- Batch XRNI Loader - Load all XRNI files from a folder as new instruments
+function PakettiBatchXRNILoader()
+  local song = renoise.song()
+  
+  -- Show folder selection dialog
+  local selected_folder = renoise.app():prompt_for_path("Select folder containing XRNI files")
+  if selected_folder == "" then
+    renoise.app():show_status("PakettiBatchXRNILoader: No folder selected")
+    return
+  end
+  
+  -- Scan folder for XRNI files
+  local xrni_files = {}
+  
+  local success, result = pcall(function()
+    return os.filenames(selected_folder, "*.xrni")
+  end)
+  
+  if not success or not result then
+    renoise.app():show_status("PakettiBatchXRNILoader: Could not scan folder: " .. selected_folder)
+    return
+  end
+  
+  -- Collect XRNI files
+  for _, filename in ipairs(result) do
+    local full_path = selected_folder .. separator .. filename
+    table.insert(xrni_files, {
+      filename = filename,
+      full_path = full_path
+    })
+  end
+  
+  if #xrni_files == 0 then
+    renoise.app():show_status("PakettiBatchXRNILoader: No XRNI files found in folder")
+    return
+  end
+  
+  -- Sort files alphabetically
+  table.sort(xrni_files, function(a, b) 
+    return a.filename:lower() < b.filename:lower() 
+  end)
+  
+  local loaded_count = 0
+  local failed_count = 0
+  local failed_files = {}
+  
+  renoise.app():show_status("PakettiBatchXRNILoader: Loading " .. tostring(#xrni_files) .. " XRNI files...")
+  
+  -- Load each XRNI file
+  for i, file_info in ipairs(xrni_files) do
+    local success_load, err = pcall(function()
+      -- Create new instrument after current selected instrument
+      song:insert_instrument_at(song.selected_instrument_index + 1)
+      song.selected_instrument_index = song.selected_instrument_index + 1
+      
+      -- Load the XRNI file
+      renoise.app():load_instrument(file_info.full_path)
+      
+      -- Set instrument name to filename without extension
+      local instrument_name = file_info.filename:match("(.+)%.xrni$") or file_info.filename
+      song.selected_instrument.name = instrument_name
+    end)
+    
+    if success_load then
+      loaded_count = loaded_count + 1
+    else
+      failed_count = failed_count + 1
+      table.insert(failed_files, file_info.filename .. " (" .. tostring(err) .. ")")
+    end
+  end
+  
+  -- Report results
+  local status_msg = string.format("PakettiBatchXRNILoader: Loaded %d/%d XRNI files", loaded_count, #xrni_files)
+  if failed_count > 0 then
+    status_msg = status_msg .. string.format(" (%d failed)", failed_count)
+  end
+  
+  renoise.app():show_status(status_msg)
+  
+  -- Print detailed results if any failures
+  if failed_count > 0 then
+    print("PakettiBatchXRNILoader: Failed to load:")
+    for _, failed_file in ipairs(failed_files) do
+      print("  - " .. failed_file)
+    end
+  end
+end
+
+
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Sample Tools:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
+renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti Loaders:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
+renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti Loaders:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
+renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
+

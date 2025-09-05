@@ -241,7 +241,7 @@ function PakettiSliceStepInitializeRows()
   current_track_index = renoise.song().selected_track_index
   
   local slice_info = PakettiSliceStepGetSliceInfo()
-  local default_slice_base = slice_info and slice_info.base_note or 48
+  local default_first_slice = slice_info and slice_info.first_slice_key or 48
   
   -- Don't apply auto Global Slice during initialization - let pattern reading handle it
   local auto_global_slice = false
@@ -251,17 +251,27 @@ function PakettiSliceStepInitializeRows()
     print("DEBUG: Initializing with default modes - pattern reading will apply smart detection")
   end
   
+  -- Check if we should initialize with slice mode
+  local slice_info = PakettiSliceStepGetSliceInfo()
+  local use_slice_mode = slice_info and slice_info.slice_count > 0
+  
   for row = 1, NUM_ROWS do
     local row_mode = ROW_MODES.SAMPLE_OFFSET  -- Default to sample offset
     local row_enabled = true
+    local slice_note = nil
     
-    -- Don't apply auto Global Slice here - let pattern reading handle smart detection
+    -- If we have slices, initialize directly with slice mode and proper slice notes
+    if use_slice_mode and row <= math.min(8, slice_info.slice_count) then
+      row_mode = ROW_MODES.SLICE
+      slice_note = slice_info.first_slice_key + (row - 1)  -- Row 1 = first slice (E-2), row 2 = second slice (F-2), etc.
+      print("DEBUG: Row " .. row .. " initialized with SLICE mode, slice note " .. slice_note .. " (" .. PakettiSliceStepNoteValueToString(slice_note) .. ")")
+    end
     
     rows[row] = {
       mode = row_mode,
       value = 0x20, -- Default sample offset
       note_value = 48, -- C-4 default note
-      slice_note = nil, -- Let the UI fallback to (base_note + row) - same as Global Slice button
+      slice_note = slice_note,
       active_steps = MAX_STEPS,
       enabled = row_enabled
     }
@@ -521,6 +531,10 @@ function PakettiSliceStepSelectStep(row, step)
   PakettiSliceStepSetRowSteps(row, step)
 end
 
+-- Cached slice info to avoid repeated detection
+local cached_slice_info = nil
+local cached_instrument_index = nil
+
 -- Slice detection
 function PakettiSliceStepGetSliceInfo()
   local song = renoise.song()
@@ -529,40 +543,75 @@ function PakettiSliceStepGetSliceInfo()
   local instrument = song.selected_instrument
   if not instrument or #instrument.samples == 0 then return nil end
   
-  local first_sample = instrument.samples[1]
-  if #first_sample.slice_markers == 0 then return nil end
+  local current_instrument_index = song.selected_instrument_index
   
-  -- Find the actual key mappings - we need to distinguish base sample from slices
-  local min_note = nil
-  local max_note = nil
-  local base_note = nil
-  local all_slice_notes = {}
-  
-  -- Scan through sample mappings to find the ACTUAL base note and slice range
-  for i = 1, #instrument.sample_mappings do
-    local mapping = instrument.sample_mappings[i]
-    if mapping.sample_index == 1 then -- First sample (sliced)
-      -- Collect all notes mapped to the sliced sample
-      for note = mapping.note_range[1], mapping.note_range[2] do
-        table.insert(all_slice_notes, note)
-        if not min_note or note < min_note then
-          min_note = note
-        end
-        if not max_note or note > max_note then
-          max_note = note
-        end
-      end
-    end
+  -- Return cached result if instrument hasn't changed
+  if cached_slice_info and cached_instrument_index == current_instrument_index then
+    return cached_slice_info
   end
   
-  -- The base note is typically the LOWEST note mapped to the sliced sample
-  -- (This is where the full unsliced sample is usually mapped)
-  if all_slice_notes and #all_slice_notes > 0 then
-    table.sort(all_slice_notes)
-    base_note = all_slice_notes[1] -- Lowest note = base sample
+  local first_sample = instrument.samples[1]
+  if #first_sample.slice_markers == 0 then 
+    cached_slice_info = nil
+    cached_instrument_index = current_instrument_index
+    return nil 
+  end
+  
+  print("DEBUG: SLICE DETECTION - Found " .. #first_sample.slice_markers .. " slice markers")
+  
+  -- Find the actual key mappings using the proper layer access
+  local min_note = nil
+  local max_note = nil
+  local first_slice_key = nil
+  local all_slice_notes = {}
+  
+  -- Check NOTE_ON layer mappings (layer 1 is NOTE_ON)
+  local note_on_mappings = instrument.sample_mappings[1]
+  if note_on_mappings and #note_on_mappings > 0 then
+    print("DEBUG: SLICE DETECTION - Found " .. #note_on_mappings .. " NOTE_ON sample mappings")
+    
+    -- DEBUG: Print all sample mappings and collect all notes
+    for i = 1, #note_on_mappings do
+      local mapping = note_on_mappings[i]
+      if mapping and mapping.note_range then
+        print("DEBUG: Mapping " .. i .. " - Range: " .. mapping.note_range[1] .. "-" .. mapping.note_range[2])
+        
+        -- Collect all notes from all mappings (for sliced instruments, all mappings are relevant)
+        for note = mapping.note_range[1], mapping.note_range[2] do
+          table.insert(all_slice_notes, note)
+          if not min_note or note < min_note then
+            min_note = note
+          end
+          if not max_note or note > max_note then
+            max_note = note
+          end
+        end
+      else
+        print("DEBUG: Mapping " .. i .. " - Invalid mapping or no note_range")
+      end
+    end
   else
-    -- Fallback if no mappings found
-    base_note = 48 -- C-4
+    print("DEBUG: SLICE DETECTION - No NOTE_ON mappings found!")
+  end
+  
+  -- The FIRST SLICE is the SECOND mapping ([1][2]), not the first ([1][1] = full sample)
+  if all_slice_notes and #all_slice_notes > 1 then
+    table.sort(all_slice_notes)
+    local full_sample_key = all_slice_notes[1] -- [1][1] = full sample
+    first_slice_key = all_slice_notes[2] -- [1][2] = FIRST SLICE
+    print("DEBUG: SLICE DETECTION - Full sample key: " .. full_sample_key .. " (" .. PakettiSliceStepNoteValueToString(full_sample_key) .. ")")
+    print("DEBUG: SLICE DETECTION - First slice key: " .. first_slice_key .. " (" .. PakettiSliceStepNoteValueToString(first_slice_key) .. ")")
+    print("DEBUG: SLICE DETECTION - Note range: " .. min_note .. " to " .. max_note .. " (" .. PakettiSliceStepNoteValueToString(min_note) .. " to " .. PakettiSliceStepNoteValueToString(max_note) .. ")")
+  elseif #all_slice_notes == 1 then
+    -- Only one mapping found (just the full sample)
+    print("DEBUG: SLICE DETECTION - Only full sample found, no slice mappings!")
+    first_slice_key = 48 -- C-4 fallback
+    min_note = 48
+    max_note = 48 + #first_sample.slice_markers
+  else
+    -- Fallback if no mappings found at all
+    print("DEBUG: SLICE DETECTION - NO MAPPINGS FOUND! Using fallback C-4")
+    first_slice_key = 48 -- C-4
     min_note = 48
     max_note = 48 + #first_sample.slice_markers
   end
@@ -574,19 +623,50 @@ function PakettiSliceStepGetSliceInfo()
     return note_names[note] .. octave
   end
   
-  local slice_count = #first_sample.slice_markers + 1
+  local slice_count = #first_sample.slice_markers  -- Number of actual slices, NOT including the full sample
   local was_detected = (all_slice_notes and #all_slice_notes > 0)
   local detection_info = was_detected and " (detected)" or " (fallback - no keymaps found!)"
   
-  return {
+  -- Cache the result
+  cached_slice_info = {
     slice_count = slice_count,
     sample = first_sample,
-    base_note = base_note or 48,
+    first_slice_key = first_slice_key or 48,
     min_note = min_note,
     max_note = max_note,
-    note_range = "Base: " .. note_to_string(base_note or 48) .. detection_info .. " | Slices: " .. note_to_string((base_note or 48) + 1) .. " to " .. note_to_string(max_note),
+    note_range = "First slice: " .. note_to_string(first_slice_key or 48) .. detection_info .. " | Range: " .. note_to_string(first_slice_key or 48) .. " to " .. note_to_string(max_note),
     was_detected = was_detected
   }
+  cached_instrument_index = current_instrument_index
+  
+  return cached_slice_info
+end
+
+-- Clear slice info cache (call when instrument changes)
+function PakettiSliceStepClearSliceCache()
+  cached_slice_info = nil
+  cached_instrument_index = nil
+end
+
+-- Refresh slice UI elements after slice notes have been applied
+function PakettiSliceStepRefreshSliceUI()
+  print("DEBUG: PakettiSliceStepRefreshSliceUI - Updating slice UI elements")
+  
+  for row = 1, NUM_ROWS do
+    if rows[row] and rows[row].mode == ROW_MODES.SLICE and rows[row].slice_note then
+      -- Update slice note valuebox if it exists
+      if slice_note_valueboxes[row] then
+        slice_note_valueboxes[row].value = rows[row].slice_note
+        print("DEBUG: Refreshed slice valuebox for row " .. row .. " to " .. rows[row].slice_note)
+      end
+      
+      -- Update slice note label if it exists
+      if slice_note_labels[row] then
+        slice_note_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].slice_note)
+        print("DEBUG: Refreshed slice label for row " .. row .. " to " .. PakettiSliceStepNoteValueToString(rows[row].slice_note))
+      end
+    end
+  end
 end
 
 -- (Device parameter detection functions removed)
@@ -736,7 +816,7 @@ function PakettiSliceStepWriteStepToLine(row, step, pattern_line, track)
     -- Write specific slice note for this row
     local slice_info = PakettiSliceStepGetSliceInfo()
     if slice_info and row <= track.visible_note_columns then
-      local note_value = row_data.slice_note or (slice_info.base_note + row)
+      local note_value = row_data.slice_note or (slice_info.first_slice_key + row - 1)
       local note_string = PakettiSliceStepNoteValueToString(note_value)
       
       pattern_line:note_column(row).note_string = note_string
@@ -893,7 +973,7 @@ function PakettiSliceStepWriteRowToLine(row, line, pattern_line, track)
       -- Write specific slice note for this row using the slice_note value
       local slice_info = PakettiSliceStepGetSliceInfo()
       if slice_info then
-        local note_value = row_data.slice_note or (slice_info.base_note + row)
+        local note_value = row_data.slice_note or (slice_info.first_slice_key + row - 1)
         local note_string = PakettiSliceStepNoteValueToString(note_value)
         
         -- Ensure we have enough note columns visible for this row
@@ -1209,7 +1289,7 @@ function PakettiSliceStepEvenSpread()
       rows[row].active_steps = current_steps  -- Set step count to match current step mode
       
       -- Calculate slice note for this row (distribute evenly across available slices)
-      local slice_note = slice_info.base_note + ((row - 1) % slice_info.slice_count) + 1
+      local slice_note = slice_info.first_slice_key + ((row - 1) % slice_info.slice_count)
       rows[row].slice_note = slice_note
       
       -- Update the UI switch directly
@@ -1433,9 +1513,9 @@ function PakettiSliceStepTwoOctaves()
   local base_note = 48  -- C-4 default
   
   if slice_info and slice_info.slice_count > 0 then
-    -- Use slice mode with detected base note
-    base_note = slice_info.base_note
-    print("DEBUG: Using SLICE mode with base note " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
+    -- Use slice mode with detected first slice key
+    base_note = slice_info.first_slice_key
+    print("DEBUG: Using SLICE mode with first slice key " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
   else
     -- Use sample offset mode with C-4 base note
     print("DEBUG: Using SAMPLE_OFFSET mode with base note " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
@@ -1562,9 +1642,9 @@ function PakettiSliceStepOctaveUpDown()
   local base_note = 48  -- C-4 default
   
   if slice_info and slice_info.slice_count > 0 then
-    -- Use slice mode with detected base note
-    base_note = slice_info.base_note
-    print("DEBUG: Using SLICE mode with base note " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
+    -- Use slice mode with detected first slice key
+    base_note = slice_info.first_slice_key
+    print("DEBUG: Using SLICE mode with first slice key " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
   else
     -- Use sample offset mode with C-4 base note
     print("DEBUG: Using SAMPLE_OFFSET mode with base note " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
@@ -2142,18 +2222,18 @@ function PakettiSliceStepGetSampleIndexForSliceNote(slice_note)
   local instrument = song.selected_instrument
   if not instrument or #instrument.samples == 0 then return nil end
   
-  -- If slice_note is the base note, return sample index 1 (full sample)
-  if slice_note == slice_info.base_note then
-    return 1
+  -- If slice_note is the first slice key, return sample index 2 (first slice)
+  if slice_note == slice_info.first_slice_key then
+    return 2  -- First slice is sample index 2
   end
   
-  -- If slice_note is above base_note, it corresponds to a slice
-  -- slice_note = base_note + 1 -> sample index 2 (first slice)
-  -- slice_note = base_note + 2 -> sample index 3 (second slice)
+  -- Map slice notes to sample indices
+  -- slice_note = first_slice_key + 0 -> sample index 2 (first slice)  
+  -- slice_note = first_slice_key + 1 -> sample index 3 (second slice)
   -- etc.
-  if slice_note > slice_info.base_note and slice_note <= (slice_info.base_note + slice_info.slice_count) then
-    local slice_offset = slice_note - slice_info.base_note
-    local sample_index = slice_offset + 1  -- +1 because sample 1 is the full sample
+  if slice_note >= slice_info.first_slice_key and slice_note <= (slice_info.first_slice_key + slice_info.slice_count - 1) then
+    local slice_offset = slice_note - slice_info.first_slice_key
+    local sample_index = slice_offset + 2  -- +2 because sample 1 is full sample, slices start at index 2
     
     -- Clamp to available samples
     if sample_index > #instrument.samples then
@@ -2584,10 +2664,17 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
     if slice_info then
       table.insert(elements_table, vb_local:text{text = "Slice:", width = 30, style = "strong", font = "bold"})
       
+      -- Apply slice mapping directly: row 1 = first slice ([1][2]), row 2 = second slice ([1][3]), etc.
+      local slice_note_for_row = slice_info.first_slice_key + (row - 1)
+      if not row_data.slice_note then
+        row_data.slice_note = slice_note_for_row  -- Apply it directly to the data
+        rows[row].slice_note = slice_note_for_row  -- And to the global rows data
+      end
+      
       local slice_valuebox = vb_local:valuebox{
-        min = slice_info.base_note + 1, -- First slice (base+1)
-        max = slice_info.base_note + slice_info.slice_count - 1, -- Last slice (fix off-by-one)
-        value = row_data.slice_note or (slice_info.base_note + row),
+        min = slice_info.min_note, -- Use actual detected min 
+        max = slice_info.max_note, -- Use actual detected max
+        value = row_data.slice_note,
         width = 50,
         notifier = (function(current_row)
           return function(value)
@@ -2607,7 +2694,7 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
       table.insert(elements_table, slice_valuebox)
       
       local slice_note_label = vb_local:text{
-        text = PakettiSliceStepNoteValueToString(row_data.slice_note or (slice_info.base_note + row)), 
+        text = PakettiSliceStepNoteValueToString(row_data.slice_note), 
         style = "strong", 
         font = "bold",
         width = 35
@@ -2622,7 +2709,7 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
         notifier = (function(current_row, current_valuebox, current_label)
           return function()
             PakettiSliceStepSelectNoteColumn(current_row)
-            local new_value = math.max(slice_info.base_note + 1, rows[current_row].slice_note - 12)
+            local new_value = math.max(slice_info.min_note, rows[current_row].slice_note - 12)
             rows[current_row].slice_note = new_value
             -- Update slice valuebox directly
             current_valuebox.value = new_value
@@ -2638,7 +2725,7 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
         notifier = (function(current_row, current_valuebox, current_label)
           return function()
             PakettiSliceStepSelectNoteColumn(current_row)
-            local new_value = math.min(slice_info.base_note + slice_info.slice_count - 1, rows[current_row].slice_note + 12)
+            local new_value = math.min(slice_info.max_note, rows[current_row].slice_note + 12)
             rows[current_row].slice_note = new_value
             -- Update slice valuebox directly
             current_valuebox.value = new_value
@@ -2669,7 +2756,10 @@ function PakettiSliceStepCreateDialog()
   print("DEBUG: Dialog opening - HALTING pattern writing")
   initializing_dialog = true
   
-  -- STEP 1.1: Auto-select instrument based on track usage
+  -- STEP 1.1: Clear slice cache to ensure fresh detection
+  PakettiSliceStepClearSliceCache()
+  
+  -- STEP 1.2: Auto-select instrument based on track usage
   local instrument_changed = PakettiSliceStepAutoSelectInstrument()
   
   -- STEP 1.5: Read view setting from first column before initializing UI
@@ -3399,6 +3489,9 @@ function PakettiSliceStepReadExistingPattern()
     if has_sample_offsets then break end
   end
   
+  -- Track slice notes for empty pattern initialization
+  local detected_slice_notes = {}
+  
   -- Now analyze each row
   for line_idx = 1, math.min(MAX_STEPS, pattern.number_of_lines) do
     local pattern_line = pattern:track(track_index):line(line_idx)
@@ -3430,7 +3523,7 @@ function PakettiSliceStepReadExistingPattern()
           if note_col.note_string ~= "---" and note_col.note_string ~= "" then
             -- Try to parse the note and see if it's in slice range
             local note_value = PakettiSliceStepNoteStringToValue(note_col.note_string)
-            if note_value and note_value >= slice_info.base_note and note_value <= (slice_info.base_note + slice_info.slice_count) then
+            if note_value and note_value >= slice_info.first_slice_key and note_value <= (slice_info.first_slice_key + slice_info.slice_count - 1) then
               detected_modes[row] = ROW_MODES.SLICE
               print("DEBUG: Row " .. row .. " detected as SLICE (found slice note " .. note_col.note_string .. ")")
             end
@@ -3460,16 +3553,19 @@ function PakettiSliceStepReadExistingPattern()
   print("DEBUG: Pattern analysis - Sample offsets: " .. rows_with_sample_offsets .. ", Slices: " .. rows_with_slices .. ", Empty: " .. empty_rows)
   
   if total_content_rows == 0 then
-    -- CASE 1: EMPTY PATTERN + SLICED INSTRUMENT → Global Slice
+    -- CASE 1: EMPTY PATTERN + SLICED INSTRUMENT → Global Slice with sequential slice mapping
     if slice_info and slice_info.slice_count > 0 then
-      print("DEBUG: EMPTY PATTERN + SLICED INSTRUMENT → GLOBAL SLICE")
+      print("DEBUG: EMPTY PATTERN + SLICED INSTRUMENT → GLOBAL SLICE with first 8 slices")
       for row = 1, NUM_ROWS do
-        if row <= slice_info.slice_count then
+        if row <= math.min(8, slice_info.slice_count) then
           detected_modes[row] = ROW_MODES.SLICE
-          print("DEBUG: Row " .. row .. " set to SLICE (Global Slice for empty pattern)")
+          -- Map first 8 slices sequentially: Row 1 = first slice, Row 2 = second slice, etc.
+          local slice_note = slice_info.first_slice_key + (row - 1)
+          detected_slice_notes[row] = slice_note
+          print("DEBUG: Row " .. row .. " set to SLICE with slice note " .. slice_note .. " (" .. PakettiSliceStepNoteValueToString(slice_note) .. ")")
         else
           detected_modes[row] = ROW_MODES.SAMPLE_OFFSET
-          print("DEBUG: Row " .. row .. " set to SAMPLE_OFFSET (beyond slice count)")
+          print("DEBUG: Row " .. row .. " set to SAMPLE_OFFSET (beyond first 8 slices)")
         end
       end
     else
@@ -3523,6 +3619,24 @@ function PakettiSliceStepReadExistingPattern()
         row_mode_switches[row].value = detected_modes[row]
       end
       mode_change_count = mode_change_count + 1
+    end
+    
+    -- Apply detected slice notes for SLICE mode rows
+    if detected_slice_notes[row] and detected_modes[row] == ROW_MODES.SLICE then
+      rows[row].slice_note = detected_slice_notes[row]
+      print("DEBUG: Applied slice note " .. detected_slice_notes[row] .. " to row " .. row)
+      
+      -- Update slice note valuebox if it exists
+      if slice_note_valueboxes[row] then
+        slice_note_valueboxes[row].value = detected_slice_notes[row]
+        print("DEBUG: Updated slice note valuebox for row " .. row .. " to " .. detected_slice_notes[row])
+      end
+      
+      -- Update slice note label if it exists
+      if slice_note_labels[row] then
+        slice_note_labels[row].text = PakettiSliceStepNoteValueToString(detected_slice_notes[row])
+        print("DEBUG: Updated slice note label for row " .. row .. " to " .. PakettiSliceStepNoteValueToString(detected_slice_notes[row]))
+      end
     end
   end
   
@@ -3667,6 +3781,9 @@ function PakettiSliceStepReadExistingPattern()
   print("DEBUG: PakettiSliceStepReadExistingPattern - Pattern writing state restored to: " .. tostring(not initializing_dialog))
   
   print("DEBUG: PakettiSliceStepReadExistingPattern - Completed. Read " .. read_count .. " steps")
+  
+  -- Pattern reading complete - refresh slice UI elements to show applied slice notes
+  PakettiSliceStepRefreshSliceUI()
   
   -- Pattern reading complete
   
