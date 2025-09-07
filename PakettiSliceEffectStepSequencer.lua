@@ -37,6 +37,10 @@ local row_containers = {}  -- Store row container references for styling
 local current_track_index = nil
 local track_change_notifier = nil
 
+-- Pattern change detection  
+local current_pattern_index = nil
+local pattern_change_notifier = nil
+
 -- Dialog initialization flag to prevent pattern writing during population
 local initializing_dialog = false
 
@@ -47,7 +51,7 @@ local step_switching_in_progress = false
 local current_selected_row = nil
 
 -- Velocity Canvas Variables (expandable section like PakettiCaptureLastTake gater)
-local velocity_canvas_expanded = false
+local velocity_canvas_expanded = preferences.pakettiSliceStepSeqShowVelocity.value or false
 local velocity_canvas_toggle_button = nil
 local velocity_canvas_content_column = nil
 local velocity_canvas = nil
@@ -57,9 +61,18 @@ local velocity_canvas_mouse_is_down = false
 local velocity_canvas_last_mouse_x = -1
 local velocity_canvas_last_mouse_y = -1
 
+-- Velocity slider width (reach close to 4-step separator lines without overlapping)
+local velocity_slider_width = 27  -- Step buttons are 30px, sliders touch but don't overlap separators (was 28, now 27)
+
+-- Left offset to align velocity canvas with step buttons (solo checkbox width + spacing)
+local velocity_canvas_left_offset = 26
+
+-- Flag to prevent checkbox notifier from overriding velocity canvas settings
+local velocity_canvas_setting_velocity = false
+
 -- Calculate velocity canvas width to match step buttons (30px each)
 function PakettiSliceStepCalculateVelocityCanvasWidth()
-  return MAX_STEPS * 30  -- Match step button width exactly
+  return MAX_STEPS * 30  -- Step button width exactly (ViewBuilder spacer handles offset)
 end
 
 -- Velocity data for each row (16 steps per row, values 0-80)
@@ -122,34 +135,37 @@ function PakettiSliceStepDrawVelocityCanvas(ctx)
   ctx.stroke_color = {32, 32, 32, 255}
   ctx.line_width = 1
   
-  -- Vertical grid lines for each step
-  local step_width = w / MAX_STEPS
-  for step = 0, MAX_STEPS do
-    local x = step * step_width
-    
-    -- Make every 4th step line thicker and brighter for visual grouping
-    if step > 0 and (step % 4) == 0 then
-      ctx.stroke_color = {80, 80, 80, 255}  -- Brighter gray for 4-step separators
-      ctx.line_width = 3  -- Thicker line every 4 steps
-    else
-      ctx.stroke_color = {32, 32, 32, 255}  -- Dark gray for regular grid
-      ctx.line_width = 1  -- Normal thin line
-    end
-    
-    ctx:begin_path()
-    ctx:move_to(x, 0)
-    ctx:line_to(x, h)
-    ctx:stroke()
-  end
-  
-  -- Horizontal grid lines for velocity levels
-  ctx.stroke_color = {32, 32, 32, 255}  -- Reset stroke color for horizontal lines
-  ctx.line_width = 1  -- Reset line width for horizontal lines
+  -- Horizontal grid lines for velocity levels (draw first - behind vertical lines)
+  ctx.stroke_color = {32, 32, 32, 255}
+  ctx.line_width = 1
   for level = 0, 8 do
     local y = h - (level / 8) * h
     ctx:begin_path()
     ctx:move_to(0, y)
     ctx:line_to(w, y)
+    ctx:stroke()
+  end
+  
+  -- Vertical grid lines for each step (draw second - on top of horizontal lines)
+  local step_width = w / MAX_STEPS
+  for step = 0, MAX_STEPS do
+    local x = step * step_width
+    
+    -- Make every 4th step line bright white, all others pale grey - both 3px thick
+    if step > 0 and (step % 4) == 0 then
+      ctx.stroke_color = {255, 255, 255, 255}  -- Bright white for 4-step separators
+      ctx.line_width = 3  -- 3px thick
+    elseif step > 0 then
+      ctx.stroke_color = {80, 80, 80, 255}  -- Pale grey for regular step separators
+      ctx.line_width = 3  -- 3px thick (same as 4-step separators)
+    else
+      ctx.stroke_color = {32, 32, 32, 255}  -- Dark gray for edge (step 0)
+      ctx.line_width = 1  -- Thin line for edge
+    end
+    
+    ctx:begin_path()
+    ctx:move_to(x, 0)
+    ctx:line_to(x, h)
     ctx:stroke()
   end
   
@@ -160,8 +176,10 @@ function PakettiSliceStepDrawVelocityCanvas(ctx)
     -- Draw all step areas first to show where drawing is possible
     for step = 1, MAX_STEPS do
       local step_is_active = row_checkboxes[display_row][step] and row_checkboxes[display_row][step].value
-      local bar_x = (step - 1) * step_width + 2
-      local bar_width = step_width - 4
+      -- Center the narrower velocity slider within the step button area
+      local step_center_x = ((step - 1) * step_width) + (step_width / 2)
+      local bar_x = step_center_x - (velocity_slider_width / 2)
+      local bar_width = velocity_slider_width
       
       if step_is_active then
         -- Draw active velocity bars in purple
@@ -181,7 +199,7 @@ function PakettiSliceStepDrawVelocityCanvas(ctx)
   
   -- Draw border
   ctx.stroke_color = {255, 255, 255, 255}
-  ctx.line_width = 2
+  ctx.line_width = 3  -- Match the 4-step separator thickness (was 2, now 3)
   ctx:begin_path()
   ctx:rect(0, 0, w, h)
   ctx:stroke()
@@ -208,15 +226,15 @@ function PakettiSliceStepDrawVelocityCanvas(ctx)
   ctx.stroke_color = {200, 200, 200, 255}
   ctx.line_width = 2
   
-  local label_size = 10
-  local label_x = w - 25
+  local label_size = 8  -- Match the row number font size (was 10, now 8)
+  local label_x = w - 13  -- Moved 2 pixels further to the right (was 15, now 13)
   
-  -- Draw "80" at top using proper canvas font
-  PakettiCanvasFontDrawDigit8(ctx, label_x - label_size, 5, label_size)
+  -- Draw "80" at top using proper canvas font with proper digit spacing
+  PakettiCanvasFontDrawDigit8(ctx, label_x - label_size - 3, 5, label_size)
   PakettiCanvasFontDrawDigit0(ctx, label_x, 5, label_size)
   
-  -- Draw "00" at bottom using proper canvas font
-  PakettiCanvasFontDrawDigit0(ctx, label_x - label_size, h - label_size - 5, label_size)
+  -- Draw "00" at bottom using proper canvas font with proper digit spacing  
+  PakettiCanvasFontDrawDigit0(ctx, label_x - label_size - 3, h - label_size - 5, label_size)
   PakettiCanvasFontDrawDigit0(ctx, label_x, h - label_size - 5, label_size)
   
   -- Display current row info using PakettiCanvasFont
@@ -224,36 +242,38 @@ function PakettiSliceStepDrawVelocityCanvas(ctx)
   ctx.line_width = 2
   
   local info_size = 8
-  local info_x = 10
-  local info_y = 10
+  local step_width = w / MAX_STEPS
+  local info_x = (step_width / 2) - (info_size / 2)  -- Center horizontally in first step area
+  local info_y = 5   -- Match the "80" label y position (was 10, now 5)
   
-  -- Draw "ROW" text
-  PakettiCanvasFontDrawLetterR(ctx, info_x, info_y, info_size)
-  PakettiCanvasFontDrawLetterO(ctx, info_x + info_size + 2, info_y, info_size)
-  PakettiCanvasFontDrawLetterW(ctx, info_x + (info_size + 2) * 2, info_y, info_size)
-  
-  -- Draw space and row number
-  local row_num_x = info_x + (info_size + 2) * 3 + 4
+  -- Draw just the row number using direct function calls (same approach as "80"/"00" labels)
   local row_digit = tostring(display_row or 1)
-  if #row_digit == 1 then
-    local digit_func = PakettiCanvasFontLetterFunctions[row_digit]
-    if digit_func then
-      digit_func(ctx, row_num_x, info_y, info_size)
-    end
-  else
-    -- Handle two-digit numbers if needed (shouldn't happen with 8 rows max, but just in case)
-    for i = 1, #row_digit do
-      local digit = row_digit:sub(i, i)
-      local digit_func = PakettiCanvasFontLetterFunctions[digit]
-      if digit_func then
-        digit_func(ctx, row_num_x + (i - 1) * (info_size + 1), info_y, info_size)
-      end
-    end
+  if row_digit == "1" then
+    PakettiCanvasFontDrawDigit1(ctx, info_x, info_y, info_size)
+  elseif row_digit == "2" then
+    PakettiCanvasFontDrawDigit2(ctx, info_x, info_y, info_size)
+  elseif row_digit == "3" then
+    PakettiCanvasFontDrawDigit3(ctx, info_x, info_y, info_size)
+  elseif row_digit == "4" then
+    PakettiCanvasFontDrawDigit4(ctx, info_x, info_y, info_size)
+  elseif row_digit == "5" then
+    PakettiCanvasFontDrawDigit5(ctx, info_x, info_y, info_size)
+  elseif row_digit == "6" then
+    PakettiCanvasFontDrawDigit6(ctx, info_x, info_y, info_size)
+  elseif row_digit == "7" then
+    PakettiCanvasFontDrawDigit7(ctx, info_x, info_y, info_size)
+  elseif row_digit == "8" then
+    PakettiCanvasFontDrawDigit8(ctx, info_x, info_y, info_size)
   end
 end
 
 -- Handle velocity canvas mouse input
 function PakettiSliceStepHandleVelocityCanvasMouse(ev)
+  -- CRITICAL: Only handle mouse events if velocity canvas is actually expanded/visible
+  if not velocity_canvas_expanded then
+    return
+  end
+  
   -- Use current calculated width to match step buttons
   local w = PakettiSliceStepCalculateVelocityCanvasWidth()
   local h = velocity_canvas_height
@@ -325,8 +345,11 @@ function PakettiSliceStepHandleVelocityCanvasInput(x, y)
   if row_checkboxes[display_row] and row_checkboxes[display_row][step] then
     local was_active = row_checkboxes[display_row][step].value
     if not was_active then
+      -- Mark that we're setting velocity from canvas to prevent checkbox from overriding it
+      velocity_canvas_setting_velocity = true
       -- Activate this step checkbox since user is drawing velocity here
       row_checkboxes[display_row][step].value = true
+      velocity_canvas_setting_velocity = false
       renoise.app():show_status("Row " .. display_row .. " Step " .. step .. ": Created new step with velocity " .. string.format("%02d", velocity))
     else
       renoise.app():show_status("Row " .. display_row .. " Step " .. step .. ": Updated velocity to " .. string.format("%02d", velocity))
@@ -627,6 +650,7 @@ function PakettiSliceStepInitializeRows()
   playhead_step_indices = {}
   selected_steps = {}  -- Initialize selected step tracking
   current_track_index = renoise.song().selected_track_index
+  current_pattern_index = renoise.song().selected_pattern_index
   
   local slice_info = PakettiSliceStepGetSliceInfo()
   local default_first_slice = slice_info and slice_info.first_slice_key or 48
@@ -837,6 +861,46 @@ function PakettiSliceStepCleanupTrackChangeDetection()
     song.selected_track_index_observable:remove_notifier(track_change_notifier)
   end
   track_change_notifier = nil
+end
+
+-- Pattern change detection and UI refresh
+function PakettiSliceStepSetupPatternChangeDetection()
+  if pattern_change_notifier then return end -- Already setup
+  
+  pattern_change_notifier = function()
+    local new_pattern_index = renoise.song().selected_pattern_index
+    if new_pattern_index ~= current_pattern_index then
+      local old_pattern_index = current_pattern_index
+      current_pattern_index = new_pattern_index
+      print("DEBUG: Pattern changed from " .. (old_pattern_index or "nil") .. " to " .. new_pattern_index)
+      
+      -- Read pattern data from new pattern to update dialog
+      if dialog and dialog.visible then
+        print("DEBUG: Pattern change - reading pattern data from new pattern")
+        PakettiSliceStepReadExistingPattern()
+        
+        -- Update button colors and sample effect column visibility  
+        PakettiSliceStepUpdateButtonColors()
+        PakettiSliceStepUpdateSampleEffectColumnVisibility()
+      end
+      
+      renoise.app():show_status("Step Sequencer: Pattern changed to " .. new_pattern_index .. ", updated dialog content")
+    end
+  end
+  
+  if renoise.song().selected_pattern_index_observable and 
+     not renoise.song().selected_pattern_index_observable:has_notifier(pattern_change_notifier) then
+    renoise.song().selected_pattern_index_observable:add_notifier(pattern_change_notifier)
+  end
+end
+
+function PakettiSliceStepCleanupPatternChangeDetection()
+  local song = renoise.song()
+  if pattern_change_notifier and song.selected_pattern_index_observable and 
+     song.selected_pattern_index_observable:has_notifier(pattern_change_notifier) then
+    song.selected_pattern_index_observable:remove_notifier(pattern_change_notifier)
+  end
+  pattern_change_notifier = nil
 end
 
 -- (CalculateReverseStep function removed - reverse functionality removed)
@@ -1266,7 +1330,7 @@ function PakettiSliceStepWriteRowToPattern(target_row)
     end
   end
   
-  renoise.app():show_status("Flood-filled row " .. target_row .. " pattern")
+--  renoise.app():show_status("Flood-filled row " .. target_row .. " pattern")
 end
 
 -- Helper function: Write a single step to a single line (extracted from PakettiSliceStepWriteRowToLine)
@@ -3180,8 +3244,6 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
           PakettiSliceStepSelectSliceForRow(current_row)
           -- Set step count to clicked step (like PakettiGater)
           PakettiSliceStepSetActiveSteps(current_row, s)
-          -- Also toggle the checkbox at this step
-          PakettiSliceStepSelectStep(current_row, s)
         end
       end)(step, row)
     }
@@ -3339,8 +3401,8 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
           -- Select the corresponding slice in sample editor when interacting with this row
           PakettiSliceStepSelectSliceForRow(current_row)
           
-          -- CRITICAL: When step is activated, set velocity to maximum (80)
-          if value == true then
+          -- CRITICAL: When step is activated, set velocity to maximum (80) - unless velocity canvas is setting it
+          if value == true and not velocity_canvas_setting_velocity then
             if row_velocities[current_row] then
               row_velocities[current_row][current_step] = 80  -- Set to maximum velocity
               print("DEBUG: Step " .. current_step .. " activated on row " .. current_row .. " - set velocity to 80 (max)")
@@ -3706,6 +3768,7 @@ function PakettiSliceStepCreateDialog()
   if dialog and dialog.visible then
     PakettiSliceStepCleanupPlayhead()
     PakettiSliceStepCleanupTrackChangeDetection()
+    PakettiSliceStepCleanupPatternChangeDetection()
     dialog:close()
     dialog = nil
     return
@@ -3875,6 +3938,7 @@ function PakettiSliceStepCreateDialog()
           -- Refresh dialog (unavoidable due to ViewBuilder limitations)
           PakettiSliceStepCleanupPlayhead()
           PakettiSliceStepCleanupTrackChangeDetection()
+          PakettiSliceStepCleanupPatternChangeDetection()
           dialog:close()
           dialog = nil
           PakettiSliceStepCreateDialog()
@@ -4068,44 +4132,45 @@ function PakettiSliceStepCreateDialog()
         end
       },
       
-                 vb:text{text = "Master Steps", width = 80, font="bold",style="strong"},
-         vb:valuebox{
-           min = 1,
-           max = 32,
-           value = current_steps,
-           width = 60,
-           notifier = function(value)
-             current_steps = value
-             MAX_STEPS = value
-             
-             -- Update all row step counts to match master steps
-             for row = 1, NUM_ROWS do
-               rows[row].active_steps = value
-               -- Update the UI step valuebox for each row
-               if step_valueboxes[row] then
-                 step_valueboxes[row].value = value
-               end
-               -- Update the step count label for each row
-             end
-             
-             -- Update the view setting in the first column
-             local song = renoise.song()
-             if song and song.selected_track then
-               local view_setting = value .. "_" .. value
-               song.selected_track:set_column_name(1, view_setting)
-               print("DEBUG: Updated column 1 name to '" .. view_setting .. "' for master steps change")
-             end
-             
-             -- Update button colors and write pattern
-             PakettiSliceStepUpdateButtonColors()
-             PakettiSliceStepWriteToPattern()
-             
-             renoise.app():show_status("Master steps set to " .. value .. " - all rows updated")
-           end
-     
-       },
-       vb:text{text = "Global", font = "bold", style = "strong"},
+       vb:text{text="Global:",font="bold",style="strong"},
+vb:text{text="Steps",font="bold",style="strong"},
+vb:valuebox{
+  min = 1,
+  max = 32,
+  value = current_steps,
+  width = 47,
+  notifier = function(value)
+    current_steps = value
+    MAX_STEPS = value
     
+    -- Update all row step counts to match master steps
+    for row = 1, NUM_ROWS do
+      rows[row].active_steps = value
+      -- Update the UI step valuebox for each row
+      if step_valueboxes[row] then
+        step_valueboxes[row].value = value
+      end
+      -- Update the step count label for each row
+    end
+    
+    -- Update the view setting in the first column
+    local song = renoise.song()
+    if song and song.selected_track then
+      local view_setting = value .. "_" .. value
+      song.selected_track:set_column_name(1, view_setting)
+      print("DEBUG: Updated column 1 name to '" .. view_setting .. "' for master steps change")
+    end
+    
+    -- Update button colors and write pattern
+    PakettiSliceStepUpdateButtonColors()
+    PakettiSliceStepWriteToPattern()
+    
+    renoise.app():show_status("Master steps set to " .. value .. " - all rows updated")
+  end
+
+},
+
+
     vb:button{
      text = "Sample Offset",
      width = 80,
@@ -4137,7 +4202,7 @@ function PakettiSliceStepCreateDialog()
     vb:text{text = "Transpose", font = "bold", style = "strong"},
     vb:button{
       text = "-24",
-      width = 30,
+      width = 25,
       notifier = function()
         local song = renoise.song()
         if song and song.selected_instrument then
@@ -4148,7 +4213,7 @@ function PakettiSliceStepCreateDialog()
     },
     vb:button{
       text = "-12",
-      width = 30,
+      width = 25,
       notifier = function()
         local song = renoise.song()
         if song and song.selected_instrument then
@@ -4159,7 +4224,7 @@ function PakettiSliceStepCreateDialog()
     },
     vb:button{
       text = "0",
-      width = 25,
+      width = 15,
       notifier = function()
         local song = renoise.song()
         if song and song.selected_instrument then
@@ -4170,7 +4235,7 @@ function PakettiSliceStepCreateDialog()
     },
     vb:button{
       text = "+12",
-      width = 30,
+      width = 25,
       notifier = function()
         local song = renoise.song()
         if song and song.selected_instrument then
@@ -4181,7 +4246,7 @@ function PakettiSliceStepCreateDialog()
     },
     vb:button{
       text = "+24",
-      width = 30,
+      width = 25,
       notifier = function()
         local song = renoise.song()
         if song and song.selected_instrument then
@@ -4194,7 +4259,7 @@ function PakettiSliceStepCreateDialog()
     vb:text{text = "BPM", font = "bold", style = "strong"},
     vb:button{
       text = "Detect",
-      width = 60,
+      width = 45,
       notifier = function()
         local song = renoise.song()
         if not song.selected_sample or not song.selected_sample.sample_buffer or not song.selected_sample.sample_buffer.has_sample_data then
@@ -4261,15 +4326,7 @@ function PakettiSliceStepCreateDialog()
           renoise.app():show_status("Could not detect BPM from sample")
         end
       end
-    },
-    
-    vb:text{text = "|", font = "bold", style = "strong"},
-    vb:button{
-      text = "Duplicate Pattern", 
-      midi_mapping = "Paketti:Paketti Slice Step Sequencer:Duplicate Pattern",
-      notifier = PakettiSliceStepDuplicatePattern
-    }
-  }}
+    }}}
   
   -- Add row controls
   for row = 1, NUM_ROWS do
@@ -4416,17 +4473,24 @@ function PakettiSliceStepCreateDialog()
         width = 90,
         notifier = PakettiSliceStepOctaveUpDown
     },
-
+    vb:text{text="|",font="bold",style="strong",width=10},
+    vb:button{
+      text = "Duplicate Pattern", 
+      midi_mapping = "Paketti:Paketti Slice Step Sequencer:Duplicate Pattern",
+      notifier = PakettiSliceStepDuplicatePattern
+    }
     },
 
   })
   
   -- Create velocity canvas expandable section (moved to bottom)
   velocity_canvas_toggle_button = vb:button{
-    text = "▴", -- Start collapsed
+    text = velocity_canvas_expanded and "▾" or "▴", -- Set initial state from preference
     width = 22,
     notifier = function()
       velocity_canvas_expanded = not velocity_canvas_expanded
+      -- Update the preference when user toggles
+      preferences.pakettiSliceStepSeqShowVelocity.value = velocity_canvas_expanded
       PakettiSliceStepUpdateVelocityCanvasVisibility()
     end
   }
@@ -4442,19 +4506,23 @@ function PakettiSliceStepCreateDialog()
   }
   
   velocity_canvas_content_column = vb:column{
-    style = "group",
-    margin = 6,
-    visible = false, -- Start hidden
     
-    velocity_canvas,  -- Use the stored canvas reference
+    style = "group",
+    --margin = 6,
+    visible = velocity_canvas_expanded, -- Use preference for initial state
     
     vb:row{
-      vb:text{
-        text = "Instructions: Draws velocity bars only where steps are active. Drawing in empty areas creates new steps with that velocity.",
-        width = PakettiSliceStepCalculateVelocityCanvasWidth() - 20,  -- Match calculated canvas width
-        style = "normal"
-      }
+      vb:text{text=" ",width=20},
+      velocity_canvas  -- Use the stored canvas reference
     }
+    
+--    vb:row{
+--      vb:text{
+--        text = "Instructions: Draws velocity bars only where steps are active. Drawing in empty areas creates new steps with that velocity.",
+--        width = PakettiSliceStepCalculateVelocityCanvasWidth() - 20,  -- Match calculated canvas width
+--        style = "normal"
+--      }
+--    }
   }
 
   -- Add expandable velocity section to dialog
@@ -4482,6 +4550,7 @@ function PakettiSliceStepCreateDialog()
         -- Dialog closed, cleanup
         PakettiSliceStepCleanupPlayhead()
         PakettiSliceStepCleanupTrackChangeDetection()
+        PakettiSliceStepCleanupPatternChangeDetection()
       end
     end,
     -- Custom key handler for CTRL-Z/CMD-Z undo support
@@ -4507,9 +4576,10 @@ function PakettiSliceStepCreateDialog()
   
   dialog = renoise.app():show_custom_dialog("Paketti Sample Offset / Slice Step Sequencer", content, keyhandler)
   
-  -- Setup playhead and track change detection
+  -- Setup playhead and track/pattern change detection
   PakettiSliceStepSetupPlayhead()
   PakettiSliceStepSetupTrackChangeDetection()
+  PakettiSliceStepSetupPatternChangeDetection()
   
   -- STEP 3: READ PATTERN to populate rows (NOW that UI elements exist)
   print("DEBUG: Dialog opened - READING pattern to populate rows")
@@ -4522,6 +4592,24 @@ function PakettiSliceStepCreateDialog()
   -- STEP 4: RESTART dialog -> pattern writing
   print("DEBUG: Dialog opened - RESTARTING pattern writing")
   initializing_dialog = false
+  
+  -- STEP 5: Auto-highlight row based on current note column position
+  local song = renoise.song()
+  if song and song.selected_track then
+    local track = song.selected_track
+    local current_note_column = song.selected_note_column_index
+    local visible_columns = track.visible_note_columns
+    
+    -- If the track has 8 note columns enabled and we're on the 8th note column
+    if visible_columns == 8 and current_note_column == 8 then
+      print("DEBUG: Auto-highlighting row 8 (current note column: " .. current_note_column .. ", visible columns: " .. visible_columns .. ")")
+      PakettiSliceStepHighlightRow(8)
+    -- If we're on any other note column position within the available rows, highlight that row
+    elseif current_note_column >= 1 and current_note_column <= NUM_ROWS and current_note_column <= visible_columns then
+      print("DEBUG: Auto-highlighting row " .. current_note_column .. " (current note column: " .. current_note_column .. ", visible columns: " .. visible_columns .. ")")
+      PakettiSliceStepHighlightRow(current_note_column)
+    end
+  end
   
   -- Ensure focus returns to Pattern Editor
 --  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR

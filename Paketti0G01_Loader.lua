@@ -523,6 +523,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   SononymphShowPrefs = true,
   -- Dialog of Dialogs Settings
   pakettiDialogOfDialogsColumnsPerRow = 6,
+  -- Slice Step Sequencer Settings
+  pakettiSliceStepSeqShowVelocity = false,
   -- Paketti Execute Settings
   pakettiExecute = {
     App01 = renoise.Document.ObservableString(""),
@@ -924,6 +926,11 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 vb:text{text="Switcharoo Auto-Grab",width=150,tooltip="Automatically grab chords from pattern when opening Paketti Switcharoo dialog",},
                 vb:switch{items={"Off","On"},tooltip="Automatically grab chords from pattern when opening Paketti Switcharoo dialog",value=preferences.pakettiSwitcharooAutoGrab.value and 2 or 1,width=200,
                   notifier=function(value) preferences.pakettiSwitcharooAutoGrab.value=(value==2) end}},
+            vb:text{text="Slice StepSeq", font="bold",style = "strong"},
+            vb:row{
+              vb:text{text="Show Velocity",width=150},
+              vb:switch{items={"Off","On"},value=preferences.pakettiSliceStepSeqShowVelocity.value and 2 or 1,width=200,
+                notifier=function(value) preferences.pakettiSliceStepSeqShowVelocity.value=(value==2) end}},
             vb:row{
             vb:button{text="Load Pale Green Theme",width=150,notifier=function() update_loadPaleGreenTheme_preferences() end},
             vb:button{text="Load Plaid Zap .XRNI",width=150,notifier=function() renoise.app():load_instrument("Gifts/plaidzap.xrni") end},
