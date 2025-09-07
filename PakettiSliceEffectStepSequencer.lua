@@ -31,6 +31,7 @@ local slice_note_valueboxes = {}  -- Store references to slice note valueboxes
 local slice_note_labels = {}  -- Store references to slice note text labels
 local sample_offset_valueboxes = {}  -- Store references to sample offset valueboxes
 local transpose_rotaries = {}  -- Store references to transpose rotaries
+local row_containers = {}  -- Store row container references for styling
 
 -- Track change detection
 local current_track_index = nil
@@ -41,6 +42,37 @@ local initializing_dialog = false
 
 -- Step switching flag to prevent auto Global Slice during step changes
 local step_switching_in_progress = false
+
+-- Track currently selected row for styling (like PakettiEightOneTwenty)
+local current_selected_row = nil
+
+-- Velocity Canvas Variables (expandable section like PakettiCaptureLastTake gater)
+local velocity_canvas_expanded = false
+local velocity_canvas_toggle_button = nil
+local velocity_canvas_content_column = nil
+local velocity_canvas = nil
+local velocity_canvas_width = 480  -- Will be calculated as MAX_STEPS * 30 to match step button width
+local velocity_canvas_height = 200
+local velocity_canvas_mouse_is_down = false
+local velocity_canvas_last_mouse_x = -1
+local velocity_canvas_last_mouse_y = -1
+
+-- Calculate velocity canvas width to match step buttons (30px each)
+function PakettiSliceStepCalculateVelocityCanvasWidth()
+  return MAX_STEPS * 30  -- Match step button width exactly
+end
+
+-- Velocity data for each row (16 steps per row, values 0-80)
+local row_velocities = {}
+
+-- Initialize velocity data for all rows (will be expanded as needed)
+for row = 1, NUM_ROWS do
+  row_velocities[row] = {}
+  -- Initialize for current MAX_STEPS, but expand dynamically as needed
+  for step = 1, 32 do  -- Always initialize for maximum possible steps
+    row_velocities[row][step] = 80  -- Default to max velocity (80)
+  end
+end
 
 -- Row modes
 local ROW_MODES = {
@@ -65,6 +97,355 @@ local playhead_step_indices = {}
 
 -- (Reverse functionality removed)
 
+-- Velocity Canvas Functions
+
+-- Function to update velocity canvas section visibility (like PakettiCapture gater)
+function PakettiSliceStepUpdateVelocityCanvasVisibility()
+  if velocity_canvas_content_column then
+    velocity_canvas_content_column.visible = velocity_canvas_expanded
+  end
+  if velocity_canvas_toggle_button then
+    velocity_canvas_toggle_button.text = velocity_canvas_expanded and "▾" or "▴"
+  end
+end
+
+-- Draw the velocity canvas showing velocities for selected row
+function PakettiSliceStepDrawVelocityCanvas(ctx)
+  -- Calculate width to match current step button layout
+  velocity_canvas_width = PakettiSliceStepCalculateVelocityCanvasWidth()
+  local w, h = velocity_canvas_width, velocity_canvas_height
+  
+  -- Clear canvas
+  ctx:clear_rect(0, 0, w, h)
+  
+  -- Draw background grid
+  ctx.stroke_color = {32, 32, 32, 255}
+  ctx.line_width = 1
+  
+  -- Vertical grid lines for each step
+  local step_width = w / MAX_STEPS
+  for step = 0, MAX_STEPS do
+    local x = step * step_width
+    
+    -- Make every 4th step line thicker and brighter for visual grouping
+    if step > 0 and (step % 4) == 0 then
+      ctx.stroke_color = {80, 80, 80, 255}  -- Brighter gray for 4-step separators
+      ctx.line_width = 3  -- Thicker line every 4 steps
+    else
+      ctx.stroke_color = {32, 32, 32, 255}  -- Dark gray for regular grid
+      ctx.line_width = 1  -- Normal thin line
+    end
+    
+    ctx:begin_path()
+    ctx:move_to(x, 0)
+    ctx:line_to(x, h)
+    ctx:stroke()
+  end
+  
+  -- Horizontal grid lines for velocity levels
+  ctx.stroke_color = {32, 32, 32, 255}  -- Reset stroke color for horizontal lines
+  ctx.line_width = 1  -- Reset line width for horizontal lines
+  for level = 0, 8 do
+    local y = h - (level / 8) * h
+    ctx:begin_path()
+    ctx:move_to(0, y)
+    ctx:line_to(w, y)
+    ctx:stroke()
+  end
+  
+  -- Draw velocity values for current selected row (or row 1 if none selected) - ONLY where steps are active
+  local display_row = current_selected_row or 1
+  if row_velocities[display_row] and row_checkboxes[display_row] then
+    
+    -- Draw all step areas first to show where drawing is possible
+    for step = 1, MAX_STEPS do
+      local step_is_active = row_checkboxes[display_row][step] and row_checkboxes[display_row][step].value
+      local bar_x = (step - 1) * step_width + 2
+      local bar_width = step_width - 4
+      
+      if step_is_active then
+        -- Draw active velocity bars in purple
+        ctx.fill_color = {120, 40, 160, 255}  -- Purple like canvas experiments
+        local velocity = row_velocities[display_row][step] or 80
+        local normalized_velocity = velocity / 80.0  -- 0-80 range to 0-1
+        local bar_height = normalized_velocity * h
+        local bar_y = h - bar_height
+        ctx:fill_rect(bar_x, bar_y, bar_width, bar_height)
+      else
+        -- Draw faint background for inactive steps to show they can be drawn on
+        ctx.fill_color = {32, 32, 32, 100}  -- Very dark gray, semi-transparent
+        ctx:fill_rect(bar_x, h - 10, bar_width, 8)  -- Small indicator at bottom
+      end
+    end
+  end
+  
+  -- Draw border
+  ctx.stroke_color = {255, 255, 255, 255}
+  ctx.line_width = 2
+  ctx:begin_path()
+  ctx:rect(0, 0, w, h)
+  ctx:stroke()
+  
+  -- Draw mouse cursor when drawing
+  if velocity_canvas_mouse_is_down and velocity_canvas_last_mouse_x >= 0 and velocity_canvas_last_mouse_y >= 0 then
+    ctx.stroke_color = {255, 255, 255, 255}
+    ctx.line_width = 1
+    
+    -- Vertical line
+    ctx:begin_path()
+    ctx:move_to(velocity_canvas_last_mouse_x, 0)
+    ctx:line_to(velocity_canvas_last_mouse_x, h)
+    ctx:stroke()
+    
+    -- Horizontal line
+    ctx:begin_path()
+    ctx:move_to(0, velocity_canvas_last_mouse_y)
+    ctx:line_to(w, velocity_canvas_last_mouse_y)
+    ctx:stroke()
+  end
+  
+  -- Draw velocity value labels using PakettiCanvasFont
+  ctx.stroke_color = {200, 200, 200, 255}
+  ctx.line_width = 2
+  
+  local label_size = 10
+  local label_x = w - 25
+  
+  -- Draw "80" at top using proper canvas font
+  PakettiCanvasFontDrawDigit8(ctx, label_x - label_size, 5, label_size)
+  PakettiCanvasFontDrawDigit0(ctx, label_x, 5, label_size)
+  
+  -- Draw "00" at bottom using proper canvas font
+  PakettiCanvasFontDrawDigit0(ctx, label_x - label_size, h - label_size - 5, label_size)
+  PakettiCanvasFontDrawDigit0(ctx, label_x, h - label_size - 5, label_size)
+  
+  -- Display current row info using PakettiCanvasFont
+  ctx.stroke_color = {255, 255, 255, 255}
+  ctx.line_width = 2
+  
+  local info_size = 8
+  local info_x = 10
+  local info_y = 10
+  
+  -- Draw "ROW" text
+  PakettiCanvasFontDrawLetterR(ctx, info_x, info_y, info_size)
+  PakettiCanvasFontDrawLetterO(ctx, info_x + info_size + 2, info_y, info_size)
+  PakettiCanvasFontDrawLetterW(ctx, info_x + (info_size + 2) * 2, info_y, info_size)
+  
+  -- Draw space and row number
+  local row_num_x = info_x + (info_size + 2) * 3 + 4
+  local row_digit = tostring(display_row or 1)
+  if #row_digit == 1 then
+    local digit_func = PakettiCanvasFontLetterFunctions[row_digit]
+    if digit_func then
+      digit_func(ctx, row_num_x, info_y, info_size)
+    end
+  else
+    -- Handle two-digit numbers if needed (shouldn't happen with 8 rows max, but just in case)
+    for i = 1, #row_digit do
+      local digit = row_digit:sub(i, i)
+      local digit_func = PakettiCanvasFontLetterFunctions[digit]
+      if digit_func then
+        digit_func(ctx, row_num_x + (i - 1) * (info_size + 1), info_y, info_size)
+      end
+    end
+  end
+end
+
+-- Handle velocity canvas mouse input
+function PakettiSliceStepHandleVelocityCanvasMouse(ev)
+  -- Use current calculated width to match step buttons
+  local w = PakettiSliceStepCalculateVelocityCanvasWidth()
+  local h = velocity_canvas_height
+  
+  if ev.type == "exit" then
+    return
+  end
+  
+  if not (ev.position.x >= 0 and ev.position.x < w and ev.position.y >= 0 and ev.position.y < h) then
+    if ev.type == "up" then
+      velocity_canvas_mouse_is_down = false
+      velocity_canvas_last_mouse_x = -1
+      velocity_canvas_last_mouse_y = -1
+      if velocity_canvas and velocity_canvas.update then
+        velocity_canvas:update()
+      end
+    end
+    return
+  end
+  
+  local x = ev.position.x
+  local y = ev.position.y
+  
+  velocity_canvas_last_mouse_x = x
+  velocity_canvas_last_mouse_y = y
+  
+  if ev.type == "down" then
+    velocity_canvas_mouse_is_down = true
+    PakettiSliceStepHandleVelocityCanvasInput(x, y)
+  elseif ev.type == "up" then
+    velocity_canvas_mouse_is_down = false
+    velocity_canvas_last_mouse_x = -1
+    velocity_canvas_last_mouse_y = -1
+    if velocity_canvas and velocity_canvas.update then
+      velocity_canvas:update()
+    end
+  elseif ev.type == "move" then
+    if velocity_canvas_mouse_is_down then
+      PakettiSliceStepHandleVelocityCanvasInput(x, y)
+    end
+    if velocity_canvas and velocity_canvas.update then
+      velocity_canvas:update()
+    end
+  end
+end
+
+-- Handle velocity canvas input for parameter editing
+function PakettiSliceStepHandleVelocityCanvasInput(x, y)
+  local display_row = current_selected_row or 1
+  if not row_velocities[display_row] then return end
+  
+  -- Use current calculated width to match step buttons
+  local canvas_width = PakettiSliceStepCalculateVelocityCanvasWidth()
+  local step_width = canvas_width / MAX_STEPS
+  local step = math.floor(x / step_width) + 1
+  step = math.max(1, math.min(MAX_STEPS, step))
+  
+  -- Calculate velocity from Y position (inverted: top = 80, bottom = 0)
+  local normalized_y = 1.0 - (y / velocity_canvas_height)
+  normalized_y = math.max(0, math.min(1, normalized_y))
+  
+  local velocity = math.floor(normalized_y * 80)
+  velocity = math.max(0, math.min(80, velocity))
+  
+  -- Update velocity for this step
+  row_velocities[display_row][step] = velocity
+  
+  -- CRITICAL: If drawing velocity in an area where step is not active, activate that step!
+  if row_checkboxes[display_row] and row_checkboxes[display_row][step] then
+    local was_active = row_checkboxes[display_row][step].value
+    if not was_active then
+      -- Activate this step checkbox since user is drawing velocity here
+      row_checkboxes[display_row][step].value = true
+      renoise.app():show_status("Row " .. display_row .. " Step " .. step .. ": Created new step with velocity " .. string.format("%02d", velocity))
+    else
+      renoise.app():show_status("Row " .. display_row .. " Step " .. step .. ": Updated velocity to " .. string.format("%02d", velocity))
+    end
+  end
+  
+  -- Update button colors to reflect new checkbox state
+  PakettiSliceStepUpdateButtonColors()
+  
+  -- Apply changes to pattern immediately (this will write both the step and its velocity)
+  if not initializing_dialog then
+    PakettiSliceStepWriteRowToPattern(display_row)
+  end
+  
+  -- Update canvas to show new state
+  if velocity_canvas and velocity_canvas.update then
+    velocity_canvas:update()
+  end
+end
+
+-- Update velocity canvas when row selection changes
+function PakettiSliceStepUpdateVelocityCanvasForRow(row)
+  if velocity_canvas and velocity_canvas_expanded and velocity_canvas.update then
+    velocity_canvas:update()
+  end
+end
+
+-- Apply velocities from a specific row to pattern
+function PakettiSliceStepApplyRowVelocitiesToPattern(row)
+  if initializing_dialog then return end
+  if not row_velocities[row] then return end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local track = song.selected_track
+  
+  if not pattern or not track then return end
+  if row > track.visible_note_columns then return end
+  
+  local pattern_track = pattern:track(track_index)
+  local pattern_length = pattern.number_of_lines
+  
+  -- Get row step count
+  local row_steps = (rows[row] and rows[row].active_steps) or MAX_STEPS
+  
+  -- Apply velocities across entire pattern with replication
+  for line = 1, pattern_length do
+    local step_in_sequence = ((line - 1) % row_steps) + 1
+    
+    if step_in_sequence <= MAX_STEPS then
+      local velocity = row_velocities[row][step_in_sequence]
+      
+      if velocity then
+        local pattern_line = pattern_track:line(line)
+        local note_col = pattern_line:note_column(row)
+        
+        -- Only apply velocity to lines that have notes (not empty or OFF)
+        if note_col.note_string ~= "---" and note_col.note_string ~= "" and note_col.note_string ~= "OFF" then
+          -- Convert 0-80 range to Renoise 0-127 range
+          local renoise_velocity = math.floor((velocity / 80) * 127)
+          renoise_velocity = math.max(0, math.min(127, renoise_velocity))
+          
+          -- Apply velocity (0-127 range, 255 = empty)
+          note_col.volume_value = (renoise_velocity == 0) and 0 or renoise_velocity
+        end
+      end
+    end
+  end
+end
+
+-- Read existing velocities from pattern (only where notes exist)
+function PakettiSliceStepReadVelocitiesFromPattern()
+  if not renoise.song() then return end
+  
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  
+  local pattern_track = pattern:track(track_index)
+  local lines_to_read = math.min(MAX_STEPS, pattern.number_of_lines)
+  
+  -- Reset all velocities to default first
+  for row = 1, NUM_ROWS do
+    for step = 1, MAX_STEPS do
+      row_velocities[row][step] = 80  -- Default max velocity
+    end
+  end
+  
+  -- Read velocities from first MAX_STEPS lines for each row (only where notes exist)
+  for row = 1, NUM_ROWS do
+    if row <= song.selected_track.visible_note_columns then
+      for step = 1, lines_to_read do
+        local pattern_line = pattern_track:line(step)
+        local note_col = pattern_line:note_column(row)
+        
+        -- Only read velocities where there are actual notes (aligns with new behavior)
+        if note_col.note_string ~= "---" and note_col.note_string ~= "" and note_col.note_string ~= "OFF" then
+          if note_col.volume_value and note_col.volume_value ~= 255 then
+            -- Convert Renoise 0-127 range to 0-80 range
+            local velocity_80 = math.floor((note_col.volume_value / 127) * 80)
+            velocity_80 = math.max(0, math.min(80, velocity_80))
+            row_velocities[row][step] = velocity_80
+            print("DEBUG: Read velocity " .. velocity_80 .. " from row " .. row .. " step " .. step)
+          else
+            -- No velocity specified = max velocity
+            row_velocities[row][step] = 80
+            print("DEBUG: Set default velocity 80 for row " .. row .. " step " .. step .. " (no velocity in pattern)")
+          end
+        end
+      end
+    end
+  end
+  
+  print("DEBUG: Finished reading velocities from pattern")
+end
+
 -- Sample Offset Visualizer - Shows where 0S effects point to in sample editor
 -- Calculate precise frame position from Sample Offset value (0-255)
 function PakettiSliceStepSampleOffsetCalculateFrame(offset_value, total_frames)
@@ -83,7 +464,7 @@ function PakettiSliceStepSampleOffsetCalculateFrame(offset_value, total_frames)
   return frame
 end
 
--- Update sample editor selection to show Sample Offset position
+-- Update sample editor selection and display to show from Sample Offset position
 function PakettiSliceStepSampleOffsetUpdateSelection(offset_value)
   -- Only visualize when in instrument sample editor
   if renoise.app().window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
@@ -122,28 +503,34 @@ function PakettiSliceStepSampleOffsetUpdateSelection(offset_value)
     -- For short samples, use 3x smaller range
     selection_size = math.floor(base_selection_size / 3)
     selection_size = math.max(selection_size, 50) -- But at least 50 frames for visibility
-    print("DEBUG: Short sample detected (" .. buffer.number_of_frames .. " frames), using 3x smaller visualization range: " .. selection_size .. " frames")
+    print("DEBUG: Short sample detected (" .. buffer.number_of_frames .. " frames), using 3x smaller selection range: " .. selection_size .. " frames")
   else
     -- For longer samples, keep the current size
-    print("DEBUG: Long sample detected (" .. buffer.number_of_frames .. " frames), using normal visualization range: " .. selection_size .. " frames")
+    print("DEBUG: Long sample detected (" .. buffer.number_of_frames .. " frames), using normal selection range: " .. selection_size .. " frames")
   end
-  local half_size = math.floor(selection_size / 2)
+  -- Set selection starting from offset position (not centered)
+  local selection_start = frame
+  local selection_end = math.min(buffer.number_of_frames, selection_start + selection_size)
+  buffer.selection_range = {selection_start, selection_end}
   
-  local start_frame = math.max(1, frame - half_size)
-  local end_frame = math.min(buffer.number_of_frames, frame + half_size)
-  buffer.selection_range = {start_frame, end_frame}
-  
-  -- Optional: Also center the view on this frame if far from current display
+  -- Set display range to start FROM the offset position
+  -- Get current display range to maintain zoom level/window size
   local current_display = buffer.display_range
-  if frame < current_display[1] or frame > current_display[2] then
-    local display_length = current_display[2] - current_display[1]
-    local new_start = math.max(1, frame - math.floor(display_length / 2))
-    local new_end = math.min(buffer.number_of_frames, new_start + display_length)
-    buffer.display_range = {new_start, new_end}
+  local current_display_length = current_display[2] - current_display[1]
+  
+  -- Set display to start from the offset frame position
+  local new_display_start = frame
+  local new_display_end = math.min(buffer.number_of_frames, new_display_start + current_display_length)
+  
+  -- If we're near the end and can't show full length, adjust start position
+  if new_display_end == buffer.number_of_frames and (new_display_end - new_display_start) < current_display_length then
+    new_display_start = math.max(1, new_display_end - current_display_length)
   end
   
-  local selection_frames = end_frame - start_frame + 1
-  print("Sample Offset Visualizer: Set selection to frames " .. start_frame .. "-" .. end_frame .. " (" .. selection_frames .. " frames around 0S" .. string.format("%02X", offset_value) .. " = frame " .. frame .. ") out of " .. buffer.number_of_frames .. " frames")
+  buffer.display_range = {new_display_start, new_display_end}
+  
+  local selection_frames = selection_end - selection_start + 1
+  print("DEBUG: Sample Offset 0S" .. string.format("%02X", offset_value) .. " -> Frame " .. frame .. " (" .. math.floor((frame / buffer.number_of_frames) * 100) .. "%), display from " .. new_display_start .. "-" .. new_display_end .. ", selection: " .. selection_start .. "-" .. selection_end .. " (" .. selection_frames .. " frames)")
 end
 
 -- Colors
@@ -236,6 +623,7 @@ function PakettiSliceStepInitializeRows()
   slice_note_labels = {}  -- Clear slice note label references
   sample_offset_valueboxes = {}  -- Clear sample offset valuebox references
   transpose_rotaries = {}  -- Clear transpose rotary references
+  row_containers = {}  -- Clear row container references
   playhead_step_indices = {}
   selected_steps = {}  -- Initialize selected step tracking
   current_track_index = renoise.song().selected_track_index
@@ -273,7 +661,8 @@ function PakettiSliceStepInitializeRows()
       note_value = 48, -- C-4 default note
       slice_note = slice_note,
       active_steps = MAX_STEPS,
-      enabled = row_enabled
+      enabled = row_enabled, -- Still used for legitimate enable/disable (beyond slice count, etc.)
+      soloed = false -- Solo state for UI checkbox
     }
     
     print("DEBUG: Row " .. row .. " created with mode " .. row_mode .. " (enabled: " .. tostring(row_enabled) .. ")")
@@ -410,10 +799,10 @@ function PakettiSliceStepSetupTrackChangeDetection()
           if track.max_note_columns >= 1 then
             local first_column_name = track:column_name(1)
             local old_steps = current_steps
-            if first_column_name:find("32_32") or first_column_name:find("32") then
+            if first_column_name:find("_32") then
               current_steps = 32
               MAX_STEPS = 32
-            elseif first_column_name:find("16_16") or first_column_name:find("16") then
+            elseif first_column_name:find("_16") then
               current_steps = 16
               MAX_STEPS = 16
             end
@@ -522,6 +911,57 @@ function PakettiSliceStepUpdateButtonColors()
         end
       end
     end
+  end
+end
+
+-- Row styling (similar to PakettiEightOneTwenty)
+function PakettiSliceStepUpdateRowStyles(selected_row_index)
+  for row = 1, NUM_ROWS do
+    local rc = row_containers[row]
+    if rc then
+      -- Available row styles: plain | border | group | panel | body
+      if row == selected_row_index then
+        rc.style = "group" -- SELECTED: subtle outline
+      else
+        rc.style = "body"   -- NOT-SELECTED: light background
+      end
+    end
+  end
+end
+
+-- Direct row highlighting function (like PakettiEightOneTwenty)
+function PakettiSliceStepHighlightRow(row_index)
+  if initializing_dialog then return end
+  current_selected_row = row_index
+  PakettiSliceStepUpdateRowStyles(current_selected_row)
+  -- Also select the corresponding note column
+  PakettiSliceStepSelectNoteColumnOnly(row_index)
+  -- Update velocity canvas for new row selection
+  PakettiSliceStepUpdateVelocityCanvasForRow(row_index)
+end
+
+-- Separated note column selection without styling (to avoid double styling calls)
+function PakettiSliceStepSelectNoteColumnOnly(row)
+  local song = renoise.song()
+  if not song then return end
+  
+  local track = song.selected_track
+  
+  -- Ensure enough note columns are visible
+  if track.visible_note_columns < row then
+    track.visible_note_columns = row
+  end
+  
+  -- Select the corresponding note column (row 1 -> note column 1, etc.)
+  if row >= 1 and row <= track.visible_note_columns then
+    song.selected_note_column_index = row
+    -- Also ensure we're in the pattern editor and focused on note columns
+    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then 
+      return
+    else 
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    end
+    print("DEBUG: Selected note column " .. row .. " for step sequencer row " .. row)
   end
 end
 
@@ -709,6 +1149,32 @@ function PakettiSliceStepSelectNoteColumn(row)
     end
     print("DEBUG: Selected note column " .. row .. " for step sequencer row " .. row)
   end
+  
+  -- Update row styling to show which row is selected
+  current_selected_row = row
+  PakettiSliceStepUpdateRowStyles(current_selected_row)
+end
+
+-- Select the slice corresponding to the step sequencer row in the sample editor
+function PakettiSliceStepSelectSliceForRow(row)
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Only select slice if this row is in SLICE mode and has a slice_note
+  if not rows[row] or rows[row].mode ~= ROW_MODES.SLICE or not rows[row].slice_note then
+    return
+  end
+  
+  local slice_note = rows[row].slice_note
+  local sample_index = PakettiSliceStepGetSampleIndexForSliceNote(slice_note)
+  
+  if sample_index and sample_index >= 1 then
+    local instrument = song.selected_instrument
+    if instrument and sample_index <= #instrument.samples then
+      song.selected_sample_index = sample_index
+      print("DEBUG: Selected slice sample " .. sample_index .. " for row " .. row .. " (slice note " .. slice_note .. " - " .. PakettiSliceStepNoteValueToString(slice_note) .. ")")
+    end
+  end
 end
 
 -- PakettiEightOneTwenty-inspired optimization: Clear once, write active steps only, use copy_from for repetition
@@ -752,42 +1218,48 @@ function PakettiSliceStepWriteRowToPattern(target_row)
     end
   end
   
-  -- STEP 2: Update column name to show step count (account for column 1 being view setting)
-  local column_index = target_row + 1 -- Column 1 is reserved for view setting
-  if row_data.enabled and column_index <= track.max_note_columns then
-    track:set_column_name(column_index, string.format("%02d", row_steps))
-    print("DEBUG: Updated column " .. column_index .. " name to '" .. string.format("%02d", row_steps) .. "' for row " .. target_row .. " (" .. row_steps .. " steps)")
+  -- STEP 2: Update column name to show step count
+  if target_row <= track.max_note_columns then
+    if target_row == 1 then
+      -- Row 1 uses special format with view setting
+      local view_setting = string.format("%02d", row_steps) .. "_" .. current_steps
+      track:set_column_name(target_row, view_setting)
+      print("DEBUG: Updated column " .. target_row .. " name to '" .. view_setting .. "' for row " .. target_row .. " (" .. row_steps .. " steps + view setting)")
+    else
+      -- Other rows use simple step count format
+      track:set_column_name(target_row, string.format("%02d", row_steps))
+      print("DEBUG: Updated column " .. target_row .. " name to '" .. string.format("%02d", row_steps) .. "' for row " .. target_row .. " (" .. row_steps .. " steps)")
+    end
   end
   
   -- STEP 3: Write only ACTIVE steps to first row_steps lines (not all lines!)
-  if row_data.enabled then
-    for step = 1, math.min(MAX_STEPS, row_steps) do
-      if row_checkboxes[target_row][step] and row_checkboxes[target_row][step].value then
-        local pattern_line = pattern:track(track_index):line(step)
-        PakettiSliceStepWriteStepToLine(target_row, step, pattern_line, track)
-      end
+  -- Note: Solo/mute is now handled by track column muting, not by disabling pattern writing
+  for step = 1, math.min(MAX_STEPS, row_steps) do
+    if row_checkboxes[target_row][step] and row_checkboxes[target_row][step].value then
+      local pattern_line = pattern:track(track_index):line(step)
+      PakettiSliceStepWriteStepToLine(target_row, step, pattern_line, track)
     end
-    
-    -- STEP 4: Use copy_from for efficient repetition (PakettiEightOneTwenty approach)
-    if pattern_length > row_steps then
-      local full_repeats = math.floor(pattern_length / row_steps)
-      for repeat_num = 1, full_repeats - 1 do
-        local start_line = repeat_num * row_steps + 1
-        for step = 1, math.min(MAX_STEPS, row_steps) do
-          if start_line + step - 1 <= pattern_length then
-            local source_line = pattern:track(track_index):line(step)
-            local dest_line = pattern:track(track_index):line(start_line + step - 1)
-            
-            -- Copy note column efficiently
-            if target_row <= track.visible_note_columns then
-              dest_line:note_column(target_row):copy_from(source_line:note_column(target_row))
-            end
-            
-            -- Copy sample effect efficiently if in sample offset mode
-            if row_data.mode == ROW_MODES.SAMPLE_OFFSET and target_row <= track.visible_note_columns then
-              dest_line:note_column(target_row).effect_number_string = source_line:note_column(target_row).effect_number_string
-              dest_line:note_column(target_row).effect_amount_string = source_line:note_column(target_row).effect_amount_string
-            end
+  end
+  
+  -- STEP 4: Use copy_from for efficient repetition (PakettiEightOneTwenty approach)
+  if pattern_length > row_steps then
+    local full_repeats = math.floor(pattern_length / row_steps)
+    for repeat_num = 1, full_repeats - 1 do
+      local start_line = repeat_num * row_steps + 1
+      for step = 1, math.min(MAX_STEPS, row_steps) do
+        if start_line + step - 1 <= pattern_length then
+          local source_line = pattern:track(track_index):line(step)
+          local dest_line = pattern:track(track_index):line(start_line + step - 1)
+          
+          -- Copy note column efficiently
+          if target_row <= track.visible_note_columns then
+            dest_line:note_column(target_row):copy_from(source_line:note_column(target_row))
+          end
+          
+          -- Copy sample effect efficiently if in sample offset mode
+          if row_data.mode == ROW_MODES.SAMPLE_OFFSET and target_row <= track.visible_note_columns then
+            dest_line:note_column(target_row).effect_number_string = source_line:note_column(target_row).effect_number_string
+            dest_line:note_column(target_row).effect_amount_string = source_line:note_column(target_row).effect_amount_string
           end
         end
       end
@@ -800,16 +1272,18 @@ end
 -- Helper function: Write a single step to a single line (extracted from PakettiSliceStepWriteRowToLine)
 function PakettiSliceStepWriteStepToLine(row, step, pattern_line, track)
   local row_data = rows[row]
+  local note_col = nil
   
   if row_data.mode == ROW_MODES.SAMPLE_OFFSET then
     -- Write sample offset command AND note to same note column
     if row <= track.visible_note_columns then
       local note_string = PakettiSliceStepNoteValueToString(row_data.note_value)
-      pattern_line:note_column(row).note_string = note_string
-      pattern_line:note_column(row).instrument_value = renoise.song().selected_instrument_index - 1
+      note_col = pattern_line:note_column(row)
+      note_col.note_string = note_string
+      note_col.instrument_value = renoise.song().selected_instrument_index - 1
       -- Write sample offset to note column sample effect
-      pattern_line:note_column(row).effect_number_string = "0S"
-      pattern_line:note_column(row).effect_amount_string = string.format("%02X", row_data.value)
+      note_col.effect_number_string = "0S"
+      note_col.effect_amount_string = string.format("%02X", row_data.value)
     end
     
   elseif row_data.mode == ROW_MODES.SLICE then
@@ -819,9 +1293,21 @@ function PakettiSliceStepWriteStepToLine(row, step, pattern_line, track)
       local note_value = row_data.slice_note or (slice_info.first_slice_key + row - 1)
       local note_string = PakettiSliceStepNoteValueToString(note_value)
       
-      pattern_line:note_column(row).note_string = note_string
-      pattern_line:note_column(row).instrument_value = renoise.song().selected_instrument_index - 1
+      note_col = pattern_line:note_column(row)
+      note_col.note_string = note_string
+      note_col.instrument_value = renoise.song().selected_instrument_index - 1
     end
+  end
+  
+  -- Apply velocity from velocity canvas
+  if note_col and row_velocities[row] and row_velocities[row][step] then
+    local velocity = row_velocities[row][step]
+    -- Convert 0-80 range to Renoise 0-127 range
+    local renoise_velocity = math.floor((velocity / 80) * 127)
+    renoise_velocity = math.max(0, math.min(127, renoise_velocity))
+    
+    -- Apply velocity (0-127 range, 255 = empty)
+    note_col.volume_value = (renoise_velocity == 0) and 0 or renoise_velocity
   end
 end
 
@@ -886,47 +1372,58 @@ end
 
 -- Set note column names to show step counts AND store view setting in first column
 function PakettiSliceStepWriteStepCountMarkers(pattern, track_index, track)
-  -- First, store the current view setting in column 1
+  -- Column 1 gets special treatment: stores both row 1 step count and view setting
   if track.max_note_columns >= 1 then
-    local view_setting = current_steps .. "_" .. current_steps
+    local first_row_steps = rows[1].active_steps or current_steps
+    local view_setting = string.format("%02d", first_row_steps) .. "_" .. current_steps
     track:set_column_name(1, view_setting)
-    print("DEBUG: Set column 1 name to '" .. view_setting .. "' to store " .. current_steps .. "-step view setting")
+    print("DEBUG: Set column 1 name to '" .. view_setting .. "' to store " .. current_steps .. "-step view setting (first row: " .. first_row_steps .. " steps)")
   end
   
-  -- Set column names to show step counts for enabled rows (starting from column 2 if column 1 is view setting)
-  local column_offset = 1 -- Column 1 is reserved for view setting
-  for row = 1, NUM_ROWS do
-    local column_index = row + column_offset
-    if rows[row].enabled and column_index <= track.max_note_columns then
+  -- Set column names to show step counts for other enabled rows (2-8)
+  for row = 2, NUM_ROWS do
+    if rows[row].enabled and row <= track.max_note_columns then
       local step_count = rows[row].active_steps
       -- Set column name to show step count (e.g., "04", "08", "16")
-      track:set_column_name(column_index, string.format("%02d", step_count))
-      print("DEBUG: Set column " .. column_index .. " name to '" .. string.format("%02d", step_count) .. "' for row " .. row .. " (" .. step_count .. " steps)")
+      track:set_column_name(row, string.format("%02d", step_count))
+      print("DEBUG: Set column " .. row .. " name to '" .. string.format("%02d", step_count) .. "' for row " .. row .. " (" .. step_count .. " steps)")
     end
   end
 end
 
 -- Read step counts from note column names AND view setting from first column
 function PakettiSliceStepReadStepCountMarkers(pattern, track_index, track)
-  -- First, check column 1 for view setting (e.g. "16_16" or "32_32")
+  -- First, check column 1 for view setting (e.g. "04_32" or "08_16") and row 1 step count
   if track.max_note_columns >= 1 then
     local first_column_name = track:column_name(1)
-    if first_column_name:find("32_32") or first_column_name:find("32") then
+    if first_column_name:find("_32") then
       current_steps = 32
       MAX_STEPS = 32
       print("DEBUG: Found 32-step view setting in first column: '" .. first_column_name .. "'")
-    elseif first_column_name:find("16_16") or first_column_name:find("16") then
+    elseif first_column_name:find("_16") then
       current_steps = 16
       MAX_STEPS = 16
       print("DEBUG: Found 16-step view setting in first column: '" .. first_column_name .. "'")
     end
+    
+    -- Extract row 1 step count from the format "XX_YY"
+    local row1_steps = first_column_name:match("(%d+)_")
+    if row1_steps then
+      local step_count = tonumber(row1_steps)
+      if step_count and step_count >= 1 and step_count <= 32 then
+        rows[1].active_steps = step_count
+        if step_valueboxes[1] then
+          step_valueboxes[1].value = step_count
+        end
+        print("DEBUG: Read row 1 step count " .. step_count .. " from column 1 name '" .. first_column_name .. "'")
+      end
+    end
   end
   
-  -- Read step counts from column names (starting from column 2, since column 1 is view setting)
-  for row = 1, NUM_ROWS do
-    local column_index = row + 1 -- Column 1 is reserved for view setting
-    if column_index <= track.max_note_columns then
-      local column_name = track:column_name(column_index)
+  -- Read step counts from column names for other rows (2-8)
+  for row = 2, NUM_ROWS do
+    if row <= track.max_note_columns then
+      local column_name = track:column_name(row)
       local step_count = tonumber(column_name)
       
       if step_count and step_count >= 1 and step_count <= 32 then
@@ -935,10 +1432,10 @@ function PakettiSliceStepReadStepCountMarkers(pattern, track_index, track)
         if step_valueboxes[row] then
           step_valueboxes[row].value = step_count
         end
-        print("DEBUG: Read column " .. column_index .. " name '" .. column_name .. "' - updated row " .. row .. " step count to " .. step_count .. " and UI elements")
+        print("DEBUG: Read column " .. row .. " name '" .. column_name .. "' - updated row " .. row .. " step count to " .. step_count .. " and UI elements")
       else
         -- If column name is not a number or is invalid, use default
-        print("DEBUG: Column " .. column_index .. " name '" .. column_name .. "' is not a valid step count, using default for row " .. row)
+        print("DEBUG: Column " .. row .. " name '" .. column_name .. "' is not a valid step count, using default for row " .. row)
       end
     end
   end
@@ -1503,262 +2000,505 @@ function PakettiSliceStepEvenOffsets()
   renoise.app():show_status("Even Offsets: Sample offsets 00,20,40,60,80,A0,C0,E0 set - Checkboxes unchanged")
 end
 
+-- Randomize all rows at once (optimized)
+function PakettiSliceStepRandomizeAllRows()
+  -- STEP 1: Disable pattern writing for batch operation
+  initializing_dialog = true
+  
+  -- STEP 2: Use proper random seeding from main.lua
+  trueRandomSeed()
+  
+  local total_filled = 0
+  
+  -- STEP 3: Randomize all rows in memory (fast)
+  for row = 1, NUM_ROWS do
+    if row_checkboxes[row] and rows[row] then
+      local row_steps = rows[row].active_steps
+      
+      -- Clear all checkboxes first for this row
+      for step = 1, MAX_STEPS do
+        if row_checkboxes[row][step] then
+          row_checkboxes[row][step].value = false
+        end
+      end
+      
+      -- Randomly fill steps (50% chance per step within active range)
+      for step = 1, row_steps do
+        if step <= MAX_STEPS and row_checkboxes[row][step] then
+          if math.random() < 0.5 then
+            row_checkboxes[row][step].value = true
+            total_filled = total_filled + 1
+          end
+        end
+      end
+    end
+  end
+  
+  -- STEP 4: Re-enable pattern writing
+  initializing_dialog = false
+  
+  -- STEP 5: Write all rows to pattern in one batch operation (fast!)
+  PakettiSliceStepWriteToPattern()
+  
+  -- STEP 6: Update UI once at the end
+  PakettiSliceStepUpdateButtonColors()
+  
+  renoise.app():show_status("Randomized all rows: " .. total_filled .. " total steps filled across 8 rows")
+end
+
+-- Helper function to check if current instrument is pakettified
+function PakettiSliceStepIsInstrumentPakettified()
+  local song = renoise.song()
+  if not song then return false end
+  local instrument = song.selected_instrument
+  if not instrument then return false end
+  return string.find(instrument.name, " %(Pakettified%)") ~= nil
+end
+
+
 function PakettiSliceStepTwoOctaves()
   print("DEBUG: PakettiSliceStepTwoOctaves - Creating two octave melodic pattern across 8 rows...")
   
-  -- STEP 1: Disable writing to pattern
-  initializing_dialog = true
+  -- STEP 1: Handle non-pakettified instruments properly
+  print("DEBUG: Checking if instrument is pakettified...")
+  local is_pakettified = PakettiSliceStepIsInstrumentPakettified()
+  print("DEBUG: Instrument pakettified: " .. tostring(is_pakettified))
   
-  local slice_info = PakettiSliceStepGetSliceInfo()
-  local base_note = 48  -- C-4 default
-  
-  if slice_info and slice_info.slice_count > 0 then
-    -- Use slice mode with detected first slice key
-    base_note = slice_info.first_slice_key
-    print("DEBUG: Using SLICE mode with first slice key " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
+  if not is_pakettified then
+    print("DEBUG: Instrument NOT pakettified, checking slice compatibility...")
+    local slice_info = PakettiSliceStepGetSliceInfo()
+    if slice_info and slice_info.slice_count > 0 then
+      -- Check if slice notes are within ValueBox range (36-58)
+      local min_note = slice_info.min_note or slice_info.first_slice_key
+      local max_note = slice_info.max_note or (min_note + 24)  -- Use detected range or calculate
+      print("DEBUG: Slice range: " .. min_note .. "-" .. max_note .. " (required: 36-58)")
+      print("DEBUG: min_note < 36: " .. tostring(min_note < 36))
+      print("DEBUG: max_note > 58: " .. tostring(max_note > 58))
+      local needs_pakettification = (min_note < 36 or max_note > 58)
+      print("DEBUG: Needs pakettification: " .. tostring(needs_pakettification))
+      
+      if needs_pakettification then
+        print("DEBUG: Slices outside ValueBox range (" .. min_note .. "-" .. max_note .. "), auto-pakettifying...")
+        
+        -- STEP 1A: HALT dialog->pattern writing
+        local was_initializing = initializing_dialog
+        initializing_dialog = true
+        print("DEBUG: Dialog-to-pattern writing HALTED for pakettification")
+        
+        -- STEP 1B: Store current slice setup (which slice numbers are selected)
+        local stored_slice_setup = {}
+        for row = 1, NUM_ROWS do
+          if rows[row].mode == ROW_MODES.SLICE and rows[row].enabled then
+            -- Find which slice number this corresponds to
+            local slice_note = rows[row].slice_note
+            local slice_number = slice_note - slice_info.first_slice_key + 2  -- +2 because first_slice_key is slice #2
+            stored_slice_setup[row] = {
+              slice_number = slice_number,
+              enabled = rows[row].enabled,
+              steps = {}
+            }
+            -- Store which steps are active for this row
+            for step = 1, 32 do
+              stored_slice_setup[row].steps[step] = row_checkboxes[row] and row_checkboxes[row][step] and row_checkboxes[row][step].value or false
+            end
+            print("DEBUG: Stored row " .. row .. " slice #" .. slice_number .. " (note " .. slice_note .. ")")
+          end
+        end
+        
+        -- STEP 1C: Pakettify instrument
+        renoise.app():show_status("Auto-pakettifying instrument for slice step sequencer compatibility...")
+        local old_instrument_index = renoise.song().selected_instrument_index
+        PakettiInjectDefaultXRNI()
+        local new_instrument_index = renoise.song().selected_instrument_index
+        print("DEBUG: Pakettify complete. Instrument changed from " .. old_instrument_index .. " to " .. new_instrument_index)
+        
+        -- STEP 1D: Clear cached slice info to force re-detection
+        cached_slice_info = nil
+        cached_instrument_index = nil
+        print("DEBUG: Cleared cached slice info for re-detection")
+        
+        -- STEP 1E: Re-detect slice mappings with new instrument
+        local new_slice_info = PakettiSliceStepGetSliceInfo()
+        if new_slice_info and new_slice_info.slice_count > 0 then
+          print("DEBUG: Re-detected slices - first slice key now: " .. new_slice_info.first_slice_key)
+          
+          -- STEP 1F: Re-map stored slice selections to new note mappings AND update UI immediately
+          for row = 1, NUM_ROWS do
+            if stored_slice_setup[row] then
+              local slice_number = stored_slice_setup[row].slice_number
+              local new_slice_note = new_slice_info.first_slice_key + (slice_number - 2)  -- -2 because first_slice_key is slice #2
+              
+              -- Restore row settings with new note mapping
+              rows[row].mode = ROW_MODES.SLICE  
+              rows[row].slice_note = new_slice_note
+              rows[row].enabled = stored_slice_setup[row].enabled
+              
+              print("DEBUG: Remapped row " .. row .. " slice #" .. slice_number .. " from old setup to new note " .. new_slice_note .. " (" .. PakettiSliceStepNoteValueToString(new_slice_note) .. ")")
+              
+              -- IMMEDIATELY update UI elements with the NEW note value
+              -- Update UI switch
+              if row_mode_switches[row] then
+                row_mode_switches[row].value = ROW_MODES.SLICE
+                print("DEBUG: Updated switch for row " .. row .. " to SLICE mode")
+              end
+              
+              -- Update slice note valuebox - CRITICAL: Use new_slice_note directly!
+              if slice_note_valueboxes[row] then
+                slice_note_valueboxes[row].value = new_slice_note
+                print("DEBUG: Updated valuebox for row " .. row .. " to new note " .. new_slice_note .. " (" .. PakettiSliceStepNoteValueToString(new_slice_note) .. ")")
+              end
+              
+              -- Update slice note label
+              if slice_note_labels[row] then
+                slice_note_labels[row].text = PakettiSliceStepNoteValueToString(new_slice_note)
+                print("DEBUG: Updated label for row " .. row .. " to " .. PakettiSliceStepNoteValueToString(new_slice_note))
+              end
+              
+              -- Restore checkbox states
+              for step = 1, 32 do
+                if row_checkboxes[row] and row_checkboxes[row][step] then
+                  row_checkboxes[row][step].value = stored_slice_setup[row].steps[step]
+                end
+              end
+              
+              print("DEBUG: Completed UI update for row " .. row .. " with slice #" .. slice_number .. " at new note " .. new_slice_note)
+            end
+          end
+          
+          print("DEBUG: Slice setup restoration complete")
+        end
+        
+        -- STEP 1H: Resume dialog-to-pattern writing
+        initializing_dialog = was_initializing
+        print("DEBUG: Dialog-to-pattern writing RESUMED after pakettification")
+      else
+        print("DEBUG: Slices are within compatible range, no pakettification needed")
+      end
+    else
+      print("DEBUG: No slices found or slice_count = 0, no pakettification needed")
+    end
   else
-    -- Use sample offset mode with C-4 base note
-    print("DEBUG: Using SAMPLE_OFFSET mode with base note " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
+    print("DEBUG: Instrument already pakettified, no pakettification needed")
   end
   
-  -- Two octaves pattern: 0 +12 +24 +12 0 -12 -24 -12 (8 steps for 8 rows)
-  local transpose_pattern = {0, 12, 24, 12, 0, -12, -24, -12}
-  
-  -- STEP 2: Set all rows based on available mode
-  for row = 1, NUM_ROWS do
-    print("DEBUG: Setting row " .. row .. " with transpose " .. transpose_pattern[row])
+  if not is_pakettified then
+    -- For newly pakettified instruments: Apply transpose pattern to dialog
+    print("DEBUG: Applying Two Octaves transpose pattern to dialog after pakettification")
+    
+    -- Disable writing to pattern while we update the dialog
+    initializing_dialog = true
+    
+    -- Get slice info (fresh after pakettification)
+    local slice_info = PakettiSliceStepGetSliceInfo()
+    local base_note = 48  -- C-4 default
     
     if slice_info and slice_info.slice_count > 0 then
-      -- SLICE MODE: Set slice notes based on transpose pattern
-      rows[row].mode = ROW_MODES.SLICE
-      rows[row].slice_note = base_note + transpose_pattern[row]
-      rows[row].enabled = true
-      
-      -- Update UI switch
-      if row_mode_switches[row] then
-        row_mode_switches[row].value = ROW_MODES.SLICE
+      base_note = slice_info.first_slice_key
+    end
+    
+    -- Two octaves pattern: 0 +12 +24 +12 0 -12 -24 -12 (8 steps for 8 rows)
+    local transpose_pattern = {0, 12, 24, 12, 0, -12, -24, -12}
+    
+    -- Set all rows based on transpose pattern
+    for row = 1, NUM_ROWS do
+      if slice_info and slice_info.slice_count > 0 then
+        -- SLICE MODE: Set slice notes based on transpose pattern
+        rows[row].mode = ROW_MODES.SLICE
+        rows[row].slice_note = base_note + transpose_pattern[row]
+        rows[row].enabled = true
+        
+        -- Update UI
+        if row_mode_switches[row] then
+          row_mode_switches[row].value = ROW_MODES.SLICE
+        end
+        if slice_note_valueboxes[row] then
+          slice_note_valueboxes[row].value = rows[row].slice_note
+        end
+        if slice_note_labels[row] then
+          slice_note_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].slice_note)
+        end
+      else
+        -- SAMPLE OFFSET MODE: Set note values based on transpose pattern
+        rows[row].mode = ROW_MODES.SAMPLE_OFFSET
+        rows[row].note_value = base_note + transpose_pattern[row]
+        rows[row].value = 0
+        rows[row].enabled = true
+        
+        -- Update UI
+        if row_mode_switches[row] then
+          row_mode_switches[row].value = ROW_MODES.SAMPLE_OFFSET
+        end
+        if note_text_labels[row] then
+          note_text_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].note_value)
+        end
       end
       
-      -- Update slice note valuebox and label
-      if slice_note_valueboxes[row] then
-        slice_note_valueboxes[row].value = rows[row].slice_note
-      end
-      if slice_note_labels[row] then
-        slice_note_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].slice_note)
-      end
-      
-      -- Enable/disable appropriate controls
-      if sample_offset_valueboxes[row] then
-        sample_offset_valueboxes[row].active = false
-      end
-      if slice_note_valueboxes[row] then
-        slice_note_valueboxes[row].active = true
-      end
-      if transpose_rotaries[row] then
-        transpose_rotaries[row].active = true
-      end
-      
-    else
-      -- SAMPLE OFFSET MODE: Set note values based on transpose pattern
-      rows[row].mode = ROW_MODES.SAMPLE_OFFSET
-      rows[row].note_value = base_note + transpose_pattern[row]
-      rows[row].value = 0  -- Reset sample offset to 0
-      rows[row].enabled = true
-      
-      -- Update UI switch
-      if row_mode_switches[row] then
-        row_mode_switches[row].value = ROW_MODES.SAMPLE_OFFSET
-      end
-      
-      -- Update note text label
-      if note_text_labels[row] then
-        note_text_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].note_value)
-      end
-      
-      -- Update sample offset valuebox
-      if sample_offset_valueboxes[row] then
-        sample_offset_valueboxes[row].value = 0
-        sample_offset_valueboxes[row].active = true
-      end
-      
-      -- Enable/disable appropriate controls
-      if slice_note_valueboxes[row] then
-        slice_note_valueboxes[row].active = false
-      end
-      if transpose_rotaries[row] then
-        transpose_rotaries[row].active = false
+      -- Set step count to current_steps
+      rows[row].active_steps = current_steps
+      if step_valueboxes[row] then
+        step_valueboxes[row].value = current_steps
       end
     end
     
-    -- Set step count to current_steps
-    rows[row].active_steps = current_steps
-    if step_valueboxes[row] then
-      step_valueboxes[row].value = current_steps
+    -- Set checkboxes at first step for all rows
+    for row = 1, NUM_ROWS do
+      if row_checkboxes[row] then
+        -- Clear all checkboxes first
+        for step = 1, MAX_STEPS do
+          if row_checkboxes[row][step] then
+            row_checkboxes[row][step].value = false
+          end
+        end
+        -- Set checkbox at step 1
+        if row_checkboxes[row][1] then
+          row_checkboxes[row][1].value = true
+        end
+      end
     end
+    
+    -- Re-enable pattern writing
+    initializing_dialog = false
+  else
+    print("DEBUG: Pakettified instrument - using current dialog state without modification")
   end
   
-  -- STEP 3: Clear the whole track
+  -- Clear the track and write pattern
   local song = renoise.song()
   local pattern = song.selected_pattern
   local track_index = song.selected_track_index
   local track = pattern:track(track_index)
   track:clear()
   
-  -- STEP 4: Re-enable writing to pattern
-  initializing_dialog = false
-  
-  -- STEP 5: Set checkboxes at first step for all rows
-  for row = 1, NUM_ROWS do
-    if row_checkboxes[row] then
-      -- Clear all checkboxes first
-      for step = 1, MAX_STEPS do
-        if row_checkboxes[row][step] then
-          row_checkboxes[row][step].value = false
-        end
-      end
-      -- Set checkbox at step 1
-      if row_checkboxes[row][1] then
-        row_checkboxes[row][1].value = true
-      end
-    end
-  end
-  
   -- Update UI and write pattern
   PakettiSliceStepUpdateButtonColors()
   PakettiSliceStepWriteToPattern()
   PakettiSliceStepUpdateSampleEffectColumnVisibility()
   
+  -- ALWAYS apply pitch stepper function
+  print("DEBUG: Applying Two Octaves pitch stepper")
+  PakettiFillPitchStepperTwoOctaves()
+  
   local mode_name = slice_info and slice_info.slice_count > 0 and "Slice" or "Sample Offset"
-  renoise.app():show_status("Two Octaves: 8-row melodic pattern (0,+12,+24,+12,0,-12,-24,-12) applied in " .. mode_name .. " mode")
+  renoise.app():show_status("Two Octaves pattern applied in " .. mode_name .. " mode + Pitch Stepper applied")
 end
 
 function PakettiSliceStepOctaveUpDown()
   print("DEBUG: PakettiSliceStepOctaveUpDown - Creating octave up/down pattern across 8 rows...")
   
-  -- STEP 1: Disable writing to pattern
-  initializing_dialog = true
+  -- STEP 1: Check if instrument is already pakettified
+  local is_pakettified = PakettiSliceStepIsInstrumentPakettified()
+  print("DEBUG: Instrument pakettified: " .. tostring(is_pakettified))
   
-  local slice_info = PakettiSliceStepGetSliceInfo()
-  local base_note = 48  -- C-4 default
-  
-  if slice_info and slice_info.slice_count > 0 then
-    -- Use slice mode with detected first slice key
-    base_note = slice_info.first_slice_key
-    print("DEBUG: Using SLICE mode with first slice key " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
+  -- STEP 2: Handle non-pakettified instruments properly
+  if not is_pakettified then
+    local slice_info = PakettiSliceStepGetSliceInfo()
+    if slice_info and slice_info.slice_count > 0 then
+      -- Check if slice notes are within ValueBox range (36-58)
+      local min_note = slice_info.first_slice_key
+      local max_note = min_note + 12  -- One octave range
+      if min_note < 36 or max_note > 58 then
+        print("DEBUG: Slices outside ValueBox range (" .. min_note .. "-" .. max_note .. "), auto-pakettifying...")
+        
+        -- STEP 1A: HALT dialog->pattern writing
+        local was_initializing = initializing_dialog
+        initializing_dialog = true
+        print("DEBUG: Dialog-to-pattern writing HALTED for pakettification")
+        
+        -- STEP 1B: Store current slice setup (which slice numbers are selected)
+        local stored_slice_setup = {}
+        for row = 1, NUM_ROWS do
+          if rows[row].mode == ROW_MODES.SLICE and rows[row].enabled then
+            -- Find which slice number this corresponds to
+            local slice_note = rows[row].slice_note
+            local slice_number = slice_note - slice_info.first_slice_key + 2  -- +2 because first_slice_key is slice #2
+            stored_slice_setup[row] = {
+              slice_number = slice_number,
+              enabled = rows[row].enabled,
+              steps = {}
+            }
+            -- Store which steps are active for this row
+            for step = 1, 32 do
+              stored_slice_setup[row].steps[step] = row_checkboxes[row] and row_checkboxes[row][step] and row_checkboxes[row][step].value or false
+            end
+            print("DEBUG: Stored row " .. row .. " slice #" .. slice_number .. " (note " .. slice_note .. ")")
+          end
+        end
+        
+        -- STEP 1C: Pakettify instrument
+        renoise.app():show_status("Auto-pakettifying instrument for slice step sequencer compatibility...")
+        local old_instrument_index = renoise.song().selected_instrument_index
+        PakettiInjectDefaultXRNI()
+        local new_instrument_index = renoise.song().selected_instrument_index
+        print("DEBUG: Pakettify complete. Instrument changed from " .. old_instrument_index .. " to " .. new_instrument_index)
+        
+        -- STEP 1D: Clear cached slice info to force re-detection
+        cached_slice_info = nil
+        cached_instrument_index = nil
+        print("DEBUG: Cleared cached slice info for re-detection")
+        
+        -- STEP 1E: Re-detect slice mappings with new instrument
+        local new_slice_info = PakettiSliceStepGetSliceInfo()
+        if new_slice_info and new_slice_info.slice_count > 0 then
+          print("DEBUG: Re-detected slices - first slice key now: " .. new_slice_info.first_slice_key)
+          
+          -- STEP 1F: Re-map stored slice selections to new note mappings AND update UI immediately
+          for row = 1, NUM_ROWS do
+            if stored_slice_setup[row] then
+              local slice_number = stored_slice_setup[row].slice_number
+              local new_slice_note = new_slice_info.first_slice_key + (slice_number - 2)  -- -2 because first_slice_key is slice #2
+              
+              -- Restore row settings with new note mapping
+              rows[row].mode = ROW_MODES.SLICE  
+              rows[row].slice_note = new_slice_note
+              rows[row].enabled = stored_slice_setup[row].enabled
+              
+              print("DEBUG: Remapped row " .. row .. " slice #" .. slice_number .. " from old setup to new note " .. new_slice_note .. " (" .. PakettiSliceStepNoteValueToString(new_slice_note) .. ")")
+              
+              -- IMMEDIATELY update UI elements with the NEW note value
+              -- Update UI switch
+              if row_mode_switches[row] then
+                row_mode_switches[row].value = ROW_MODES.SLICE
+                print("DEBUG: Updated switch for row " .. row .. " to SLICE mode")
+              end
+              
+              -- Update slice note valuebox - CRITICAL: Use new_slice_note directly!
+              if slice_note_valueboxes[row] then
+                slice_note_valueboxes[row].value = new_slice_note
+                print("DEBUG: Updated valuebox for row " .. row .. " to new note " .. new_slice_note .. " (" .. PakettiSliceStepNoteValueToString(new_slice_note) .. ")")
+              end
+              
+              -- Update slice note label
+              if slice_note_labels[row] then
+                slice_note_labels[row].text = PakettiSliceStepNoteValueToString(new_slice_note)
+                print("DEBUG: Updated label for row " .. row .. " to " .. PakettiSliceStepNoteValueToString(new_slice_note))
+              end
+              
+              -- Restore checkbox states
+              for step = 1, 32 do
+                if row_checkboxes[row] and row_checkboxes[row][step] then
+                  row_checkboxes[row][step].value = stored_slice_setup[row].steps[step]
+                end
+              end
+              
+              print("DEBUG: Completed UI update for row " .. row .. " with slice #" .. slice_number .. " at new note " .. new_slice_note)
+            end
+          end
+          
+          print("DEBUG: Slice setup restoration complete")
+        end
+        
+        -- STEP 1H: Resume dialog-to-pattern writing
+        initializing_dialog = was_initializing
+        print("DEBUG: Dialog-to-pattern writing RESUMED after pakettification")
+      else
+        print("DEBUG: Slices are within compatible range, no pakettification needed")
+      end
+    else
+      print("DEBUG: No slices found or slice_count = 0, no pakettification needed")
+    end
   else
-    -- Use sample offset mode with C-4 base note
-    print("DEBUG: Using SAMPLE_OFFSET mode with base note " .. base_note .. " (" .. PakettiSliceStepNoteValueToString(base_note) .. ")")
+    print("DEBUG: Instrument already pakettified, no pakettification needed")
   end
   
-  -- Octave up/down pattern: 0 +12 0 -12 0 +12 0 -12 (repeating across 8 rows)
-  local transpose_pattern = {0, 12, 0, -12, 0, 12, 0, -12}
-  
-  -- STEP 2: Set all rows based on available mode
-  for row = 1, NUM_ROWS do
-    print("DEBUG: Setting row " .. row .. " with transpose " .. transpose_pattern[row])
+  if not is_pakettified then
+    -- For newly pakettified instruments: Apply transpose pattern to dialog
+    print("DEBUG: Applying Octave Up/Down transpose pattern to dialog after pakettification")
+    
+    -- Disable writing to pattern while we update the dialog
+    initializing_dialog = true
+    
+    -- Get slice info (fresh after pakettification)
+    local slice_info = PakettiSliceStepGetSliceInfo()
+    local base_note = 48  -- C-4 default
     
     if slice_info and slice_info.slice_count > 0 then
-      -- SLICE MODE: Set slice notes based on transpose pattern
-      rows[row].mode = ROW_MODES.SLICE
-      rows[row].slice_note = base_note + transpose_pattern[row]
-      rows[row].enabled = true
-      
-      -- Update UI switch
-      if row_mode_switches[row] then
-        row_mode_switches[row].value = ROW_MODES.SLICE
+      base_note = slice_info.first_slice_key
+    end
+    
+    -- Octave up/down pattern: 0 +12 0 -12 0 +12 0 -12 (repeating across 8 rows)
+    local transpose_pattern = {0, 12, 0, -12, 0, 12, 0, -12}
+    
+    -- Set all rows based on transpose pattern
+    for row = 1, NUM_ROWS do
+      if slice_info and slice_info.slice_count > 0 then
+        -- SLICE MODE: Set slice notes based on transpose pattern
+        rows[row].mode = ROW_MODES.SLICE
+        rows[row].slice_note = base_note + transpose_pattern[row]
+        rows[row].enabled = true
+        
+        -- Update UI
+        if row_mode_switches[row] then
+          row_mode_switches[row].value = ROW_MODES.SLICE
+        end
+        if slice_note_valueboxes[row] then
+          slice_note_valueboxes[row].value = rows[row].slice_note
+        end
+        if slice_note_labels[row] then
+          slice_note_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].slice_note)
+        end
+      else
+        -- SAMPLE OFFSET MODE: Set note values based on transpose pattern
+        rows[row].mode = ROW_MODES.SAMPLE_OFFSET
+        rows[row].note_value = base_note + transpose_pattern[row]
+        rows[row].value = 0
+        rows[row].enabled = true
+        
+        -- Update UI
+        if row_mode_switches[row] then
+          row_mode_switches[row].value = ROW_MODES.SAMPLE_OFFSET
+        end
+        if note_text_labels[row] then
+          note_text_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].note_value)
+        end
       end
       
-      -- Update slice note valuebox and label
-      if slice_note_valueboxes[row] then
-        slice_note_valueboxes[row].value = rows[row].slice_note
-      end
-      if slice_note_labels[row] then
-        slice_note_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].slice_note)
-      end
-      
-      -- Enable/disable appropriate controls
-      if sample_offset_valueboxes[row] then
-        sample_offset_valueboxes[row].active = false
-      end
-      if slice_note_valueboxes[row] then
-        slice_note_valueboxes[row].active = true
-      end
-      if transpose_rotaries[row] then
-        transpose_rotaries[row].active = true
-      end
-      
-    else
-      -- SAMPLE OFFSET MODE: Set note values based on transpose pattern
-      rows[row].mode = ROW_MODES.SAMPLE_OFFSET
-      rows[row].note_value = base_note + transpose_pattern[row]
-      rows[row].value = 0  -- Reset sample offset to 0
-      rows[row].enabled = true
-      
-      -- Update UI switch
-      if row_mode_switches[row] then
-        row_mode_switches[row].value = ROW_MODES.SAMPLE_OFFSET
-      end
-      
-      -- Update note text label
-      if note_text_labels[row] then
-        note_text_labels[row].text = PakettiSliceStepNoteValueToString(rows[row].note_value)
-      end
-      
-      -- Update sample offset valuebox
-      if sample_offset_valueboxes[row] then
-        sample_offset_valueboxes[row].value = 0
-        sample_offset_valueboxes[row].active = true
-      end
-      
-      -- Enable/disable appropriate controls
-      if slice_note_valueboxes[row] then
-        slice_note_valueboxes[row].active = false
-      end
-      if transpose_rotaries[row] then
-        transpose_rotaries[row].active = false
+      -- Set step count to current_steps
+      rows[row].active_steps = current_steps
+      if step_valueboxes[row] then
+        step_valueboxes[row].value = current_steps
       end
     end
     
-    -- Set step count to current_steps
-    rows[row].active_steps = current_steps
-    if step_valueboxes[row] then
-      step_valueboxes[row].value = current_steps
+    -- Set checkboxes at first step for all rows
+    for row = 1, NUM_ROWS do
+      if row_checkboxes[row] then
+        -- Clear all checkboxes first
+        for step = 1, MAX_STEPS do
+          if row_checkboxes[row][step] then
+            row_checkboxes[row][step].value = false
+          end
+        end
+        -- Set checkbox at step 1
+        if row_checkboxes[row][1] then
+          row_checkboxes[row][1].value = true
+        end
+      end
     end
+    
+    -- Re-enable pattern writing
+    initializing_dialog = false
+  else
+    print("DEBUG: Pakettified instrument - using current dialog state without modification")
   end
   
-  -- STEP 3: Clear the whole track
+  -- Clear the track and write pattern
   local song = renoise.song()
   local pattern = song.selected_pattern
   local track_index = song.selected_track_index
   local track = pattern:track(track_index)
   track:clear()
   
-  -- STEP 4: Re-enable writing to pattern
-  initializing_dialog = false
-  
-  -- STEP 5: Set checkboxes at first step for all rows
-  for row = 1, NUM_ROWS do
-    if row_checkboxes[row] then
-      -- Clear all checkboxes first
-      for step = 1, MAX_STEPS do
-        if row_checkboxes[row][step] then
-          row_checkboxes[row][step].value = false
-        end
-      end
-      -- Set checkbox at step 1
-      if row_checkboxes[row][1] then
-        row_checkboxes[row][1].value = true
-      end
-    end
-  end
-  
   -- Update UI and write pattern
   PakettiSliceStepUpdateButtonColors()
   PakettiSliceStepWriteToPattern()
   PakettiSliceStepUpdateSampleEffectColumnVisibility()
   
+  -- ALWAYS apply pitch stepper function
+  print("DEBUG: Applying Octave Up/Down pitch stepper")
+  PakettiFillPitchStepper()
+  
   local mode_name = slice_info and slice_info.slice_count > 0 and "Slice" or "Sample Offset"
-  renoise.app():show_status("Octave Up/Down: 8-row melodic pattern (0,+12,0,-12 repeating) applied in " .. mode_name .. " mode")
+  renoise.app():show_status("Octave Up/Down pattern applied in " .. mode_name .. " mode + Pitch Stepper applied")
 end
 
 -- (Global Parameter function removed - parameter functionality removed)
@@ -1812,6 +2552,32 @@ function PakettiSliceStepFillRowEveryN(row, interval)
   renoise.app():show_status("Row " .. row .. ": Filled every " .. interval .. " steps (" .. row_steps .. " total steps)")
 end
 
+-- Helper function to check if current row pattern matches the desired edit step pattern
+function PakettiSliceStepWouldEditStepPatternBeDifferent(row, edit_step)
+  if not row_checkboxes[row] or not rows[row] then return true end
+  
+  local row_steps = rows[row].active_steps
+  
+  -- First check: are there any active checkboxes beyond row_steps?
+  for step = row_steps + 1, MAX_STEPS do
+    if row_checkboxes[row][step] and row_checkboxes[row][step].value then
+      return true -- Found a checkbox beyond active steps, pattern would be different
+    end
+  end
+  
+  -- Check if current pattern matches what edit step pattern would create
+  for step = 1, row_steps do
+    local should_be_active = (step % edit_step == 1) -- Edit step pattern: 1, 1+edit_step, 1+2*edit_step...
+    local is_currently_active = row_checkboxes[row][step] and row_checkboxes[row][step].value
+    
+    if should_be_active ~= is_currently_active then
+      return true -- Pattern would be different
+    end
+  end
+  
+  return false -- Pattern would be identical
+end
+
 -- Fill row with edit step pattern
 function PakettiSliceStepFillRowEveryEditStep(row)
   if not row_checkboxes[row] or not rows[row] then return end
@@ -1823,9 +2589,15 @@ function PakettiSliceStepFillRowEveryEditStep(row)
   end
   
   local edit_step = song.transport.edit_step
-  -- If edit_step is 0 or negative, use interval of 1 (fill every step)
-  if edit_step <= 0 then
+  -- If edit_step is 0, use interval of 1 (fill every step)
+  if edit_step == 0 then
     edit_step = 1
+  end
+  
+  -- Check if the pattern would actually be different
+  if not PakettiSliceStepWouldEditStepPatternBeDifferent(row, edit_step) then
+    renoise.app():show_status("Row " .. row .. ": Already has edit step pattern (EditStep=" .. edit_step .. "), no changes needed")
+    return
   end
   
   local row_steps = rows[row].active_steps
@@ -1849,6 +2621,40 @@ function PakettiSliceStepFillRowEveryEditStep(row)
   PakettiSliceStepWriteRowToPattern(row)
   
   renoise.app():show_status("Row " .. row .. ": Filled every " .. edit_step .. " steps (EditStep=" .. edit_step .. ", " .. row_steps .. " total steps)")
+end
+
+-- Fill row randomly
+function PakettiSliceStepFillRowRandomly(row)
+  if not row_checkboxes[row] or not rows[row] then return end
+  
+  local row_steps = rows[row].active_steps
+  
+  -- Use proper random seeding from main.lua
+  trueRandomSeed()
+  
+  -- Clear all checkboxes first
+  for step = 1, MAX_STEPS do
+    if row_checkboxes[row][step] then
+      row_checkboxes[row][step].value = false
+    end
+  end
+  
+  -- Randomly fill steps (50% chance per step within active range)
+  local filled_count = 0
+  for step = 1, row_steps do
+    if step <= MAX_STEPS and row_checkboxes[row][step] then
+      if math.random() < 0.5 then
+        row_checkboxes[row][step].value = true
+        filled_count = filled_count + 1
+      end
+    end
+  end
+  
+  -- Update button colors and write pattern
+  PakettiSliceStepUpdateButtonColors()
+  PakettiSliceStepWriteRowToPattern(row)
+  
+  renoise.app():show_status("Row " .. row .. ": Randomly filled " .. filled_count .. " of " .. row_steps .. " steps")
 end
 
 -- Shift individual row left/right (like PakettiGater)
@@ -1987,7 +2793,8 @@ function PakettiSliceStepRefreshDialog()
           note_value = rows[row].note_value,
           active_steps = rows[row].active_steps,
           enabled = rows[row].enabled,
-          slice_note = rows[row].slice_note
+          slice_note = rows[row].slice_note,
+          soloed = rows[row].soloed
         }
       end
     end
@@ -2009,16 +2816,24 @@ function PakettiSliceStepRefreshDialog()
         rows[row].mode = saved_rows[row].mode
         rows[row].value = saved_rows[row].value
         rows[row].note_value = saved_rows[row].note_value
-        rows[row].active_steps = saved_rows[row].active_steps
+        -- Only restore active_steps if not in the middle of step switching
+        if not step_switching_in_progress then
+          rows[row].active_steps = saved_rows[row].active_steps
+        end
         rows[row].enabled = saved_rows[row].enabled
         rows[row].slice_note = saved_rows[row].slice_note
+        rows[row].soloed = saved_rows[row].soloed or false
         -- Update the mode switch to reflect the restored mode
         if row_mode_switches[row] then
           row_mode_switches[row].value = saved_rows[row].mode
         end
-        -- Update step valuebox
+        -- Update step valuebox - use current value if step switching, saved value otherwise
         if step_valueboxes[row] then
-          step_valueboxes[row].value = saved_rows[row].active_steps
+          if step_switching_in_progress then
+            step_valueboxes[row].value = rows[row].active_steps  -- Use current (pattern-read) value
+          else
+            step_valueboxes[row].value = saved_rows[row].active_steps  -- Use saved value
+          end
         end
         -- Update step count label to saved value
         -- Update note text labels and sample offset valuebox
@@ -2302,8 +3117,10 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
     active = (row_data.mode == ROW_MODES.SLICE),  -- Active only in slice mode
     notifier = (function(current_row)
       return function(value)
-        -- Select the corresponding note column when interacting with this row
-        PakettiSliceStepSelectNoteColumn(current_row)
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
+        -- Select the corresponding slice in sample editor when interacting with this row
+        PakettiSliceStepSelectSliceForRow(current_row)
         
         local song = renoise.song()
         if not song then return end
@@ -2357,8 +3174,10 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
       color = {0,0,0},
       notifier = (function(s, current_row) 
         return function()
-          -- Select the corresponding note column when interacting with this row
-          PakettiSliceStepSelectNoteColumn(current_row)
+          -- Highlight the row and select note column when interacting with this row
+          PakettiSliceStepHighlightRow(current_row)
+          -- Select the corresponding slice in sample editor when interacting with this row
+          PakettiSliceStepSelectSliceForRow(current_row)
           -- Set step count to clicked step (like PakettiGater)
           PakettiSliceStepSetActiveSteps(current_row, s)
           -- Also toggle the checkbox at this step
@@ -2377,32 +3196,37 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
     width = 50,
     notifier = (function(current_row)
       return function(value)
-        -- Select the corresponding note column when interacting with this row
-        PakettiSliceStepSelectNoteColumn(current_row)
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
+        -- Select the corresponding slice in sample editor when interacting with this row
+        PakettiSliceStepSelectSliceForRow(current_row)
         PakettiSliceStepSetRowSteps(current_row, value)
       end
     end)(row)
   }
   step_valueboxes[row] = step_valuebox  -- Store reference for updating
   
-  -- Build row 1: mute checkbox + step buttons + step valuebox + Clear/Shift buttons
-  -- Mute checkbox (moved to row 1)
-  local mute_checkbox = vb_local:checkbox{
-    value = row_data.enabled,
+  -- Build row 1: solo checkbox + step buttons + step valuebox + Clear/Shift buttons
+  -- Solo checkbox (moved to row 1)
+  local solo_checkbox = vb_local:checkbox{
+    value = rows[row].soloed or false,
     width = 20,
     notifier = (function(current_row)
       return function(value)
-        -- Select the corresponding note column when interacting with this row
-        PakettiSliceStepSelectNoteColumn(current_row)
-        rows[current_row].enabled = value
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
+        -- Select the corresponding slice in sample editor when interacting with this row
+        PakettiSliceStepSelectSliceForRow(current_row)
+        -- Update solo state
+        rows[current_row].soloed = value
+        -- Update column muting based on solo states
+        PakettiSliceStepUpdateSoloStates()
         PakettiSliceStepUpdateButtonColors()
-        -- Only update this specific row, not entire pattern
-        PakettiSliceStepWriteRowToPattern(current_row)
       end
     end)(row)
   }
   
-  local row_1_elements = {mute_checkbox}
+  local row_1_elements = {solo_checkbox}
   for step = 1, MAX_STEPS do
     table.insert(row_1_elements, step_buttons[step])
   end
@@ -2414,8 +3238,10 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
     width = 50,
     notifier = (function(current_row)
       return function()
-        -- Select the corresponding note column when interacting with this row
-        PakettiSliceStepSelectNoteColumn(current_row)
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
+        -- Select the corresponding slice in sample editor when interacting with this row
+        PakettiSliceStepSelectSliceForRow(current_row)
         PakettiSliceStepClearRow(current_row)
       end
     end)(row)
@@ -2425,8 +3251,10 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
     width = 30,
     notifier = (function(current_row)
       return function()
-        -- Select the corresponding note column when interacting with this row
-        PakettiSliceStepSelectNoteColumn(current_row)
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
+        -- Select the corresponding slice in sample editor when interacting with this row
+        PakettiSliceStepSelectSliceForRow(current_row)
         PakettiSliceStepShiftRow(current_row, "left")
       end
     end)(row)
@@ -2436,8 +3264,10 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
     width = 30,
     notifier = (function(current_row)
       return function()
-        -- Select the corresponding note column when interacting with this row
-        PakettiSliceStepSelectNoteColumn(current_row)
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
+        -- Select the corresponding slice in sample editor when interacting with this row
+        PakettiSliceStepSelectSliceForRow(current_row)
         PakettiSliceStepShiftRow(current_row, "right")
       end
     end)(row)
@@ -2449,8 +3279,8 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
     tooltip = "Fill every 2 steps (1,3,5,7...)",
     notifier = (function(current_row)
       return function()
-        -- Select the corresponding note column when interacting with this row
-        PakettiSliceStepSelectNoteColumn(current_row)
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
         PakettiSliceStepFillRowEveryN(current_row, 2)
       end
     end)(row)
@@ -2461,8 +3291,8 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
     tooltip = "Fill every 4 steps (1,5,9,13...)",
     notifier = (function(current_row)
       return function()
-        -- Select the corresponding note column when interacting with this row
-        PakettiSliceStepSelectNoteColumn(current_row)
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
         PakettiSliceStepFillRowEveryN(current_row, 4)
       end
     end)(row)
@@ -2470,12 +3300,26 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
   table.insert(row_1_elements, vb_local:button{
     text = "E",
     width = 25,
-    tooltip = "Fill using current Edit Step interval from Renoise",
+    tooltip = "Fill using current Edit Step",
     notifier = (function(current_row)
       return function()
-        -- Select the corresponding note column when interacting with this row
-        PakettiSliceStepSelectNoteColumn(current_row)
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
         PakettiSliceStepFillRowEveryEditStep(current_row)
+      end
+    end)(row)
+  })
+  table.insert(row_1_elements, vb_local:button{
+    text = "RND",
+    width = 35,
+    tooltip = "Fill randomly (50% chance per step)",
+    notifier = (function(current_row)
+      return function()
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
+        -- Select the corresponding slice in sample editor when interacting with this row
+        PakettiSliceStepSelectSliceForRow(current_row)
+        PakettiSliceStepFillRowRandomly(current_row)
       end
     end)(row)
   })
@@ -2488,14 +3332,30 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
     local checkbox = vb_local:checkbox{
       value = false,
       width = 30,
-      notifier = (function(current_row)
-        return function()
-          -- Select the corresponding note column when interacting with this row
-          PakettiSliceStepSelectNoteColumn(current_row)
+      notifier = (function(current_row, current_step)
+        return function(value)
+          -- Highlight the row and select note column when interacting with this row
+          PakettiSliceStepHighlightRow(current_row)
+          -- Select the corresponding slice in sample editor when interacting with this row
+          PakettiSliceStepSelectSliceForRow(current_row)
+          
+          -- CRITICAL: When step is activated, set velocity to maximum (80)
+          if value == true then
+            if row_velocities[current_row] then
+              row_velocities[current_row][current_step] = 80  -- Set to maximum velocity
+              print("DEBUG: Step " .. current_step .. " activated on row " .. current_row .. " - set velocity to 80 (max)")
+              
+              -- Update velocity canvas if it's visible and showing this row
+              if velocity_canvas_expanded and current_selected_row == current_row then
+                PakettiSliceStepUpdateVelocityCanvasForRow(current_row)
+              end
+            end
+          end
+          
           -- Only update this specific row, not entire pattern
           PakettiSliceStepWriteRowToPattern(current_row)
         end
-      end)(row)
+      end)(row, step)
     }
     row_checkboxes[row][step] = checkbox
     table.insert(row_2_elements, checkbox)
@@ -2544,7 +3404,7 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
         end
         
         -- Normal switching - both Sample Offset (when no slices) and Slice (when slices available)
-        PakettiSliceStepSelectNoteColumn(current_row)
+        PakettiSliceStepHighlightRow(current_row)
         print("DEBUG: Row " .. current_row .. " switch clicked - changing to mode " .. value)
         PakettiSliceStepSetRowMode(current_row, value)
       end
@@ -2564,8 +3424,8 @@ function PakettiSliceStepCreateRowControls(vb_local, row)
     active = (switch_value == ROW_MODES.SAMPLE_OFFSET),
     notifier = (function(current_row)
       return function(value)
-        -- Select the corresponding note column when interacting with this row
-        PakettiSliceStepSelectNoteColumn(current_row)
+        -- Highlight the row and select note column when interacting with this row
+        PakettiSliceStepHighlightRow(current_row)
         if rows[current_row].mode == ROW_MODES.SAMPLE_OFFSET then
           rows[current_row].value = value
           -- Update sample editor selection to show offset position
@@ -2602,8 +3462,8 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
       width = 50,
       notifier = (function(current_row)
         return function(value)
-          -- Select the corresponding note column when interacting with this row
-          PakettiSliceStepSelectNoteColumn(current_row)
+          -- Highlight the row and select note column when interacting with this row
+          PakettiSliceStepHighlightRow(current_row)
           rows[current_row].note_value = value
           -- Update the note text label dynamically
           if note_text_labels[current_row] then
@@ -2627,7 +3487,7 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
       width = 25,
       notifier = (function(current_row, current_valuebox)
         return function()
-          PakettiSliceStepSelectNoteColumn(current_row)
+          PakettiSliceStepHighlightRow(current_row)
           local new_value = math.max(0, rows[current_row].note_value - 12)
           rows[current_row].note_value = new_value
           -- Update the valuebox directly
@@ -2645,7 +3505,7 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
       width = 25,
       notifier = (function(current_row, current_valuebox)
         return function()
-          PakettiSliceStepSelectNoteColumn(current_row)
+          PakettiSliceStepHighlightRow(current_row)
           local new_value = math.min(119, rows[current_row].note_value + 12)
           rows[current_row].note_value = new_value
           -- Update the valuebox directly
@@ -2678,8 +3538,8 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
         width = 50,
         notifier = (function(current_row)
           return function(value)
-            -- Select the corresponding note column when interacting with this row
-            PakettiSliceStepSelectNoteColumn(current_row)
+            -- Highlight the row and select note column when interacting with this row
+            PakettiSliceStepHighlightRow(current_row)
             rows[current_row].slice_note = value
             -- Update the text label dynamically
             if slice_note_labels[current_row] then
@@ -2708,7 +3568,7 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
         width = 25,
         notifier = (function(current_row, current_valuebox, current_label)
           return function()
-            PakettiSliceStepSelectNoteColumn(current_row)
+            PakettiSliceStepHighlightRow(current_row)
             local new_value = math.max(slice_info.min_note, rows[current_row].slice_note - 12)
             rows[current_row].slice_note = new_value
             -- Update slice valuebox directly
@@ -2724,7 +3584,7 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
         width = 25,
         notifier = (function(current_row, current_valuebox, current_label)
           return function()
-            PakettiSliceStepSelectNoteColumn(current_row)
+            PakettiSliceStepHighlightRow(current_row)
             local new_value = math.min(slice_info.max_note, rows[current_row].slice_note + 12)
             rows[current_row].slice_note = new_value
             -- Update slice valuebox directly
@@ -2741,6 +3601,105 @@ function PakettiSliceStepAddModeControlsToRow(vb_local, row, elements_table)
   end
 end
 
+
+function PakettiSliceStepUpdateSoloStates()
+  local song = renoise.song()
+  local track = song.selected_track
+  
+  -- Check if any rows are soloed
+  local any_soloed = false
+  for row = 1, NUM_ROWS do
+    if rows[row].soloed then
+      any_soloed = true
+      break
+    end
+  end
+  
+  -- Update column muting based on solo states
+  if any_soloed then
+    -- Solo mode: mute all columns, then unmute only soloed ones
+    for row = 1, NUM_ROWS do
+      if row <= track.max_note_columns then
+        local should_be_muted = not rows[row].soloed
+        if track:column_is_muted(row) ~= should_be_muted then
+          track:set_column_is_muted(row, should_be_muted)
+          print("DEBUG: Solo - Set column " .. row .. " muted = " .. tostring(should_be_muted))
+        end
+      end
+    end
+  else
+    -- No solo: unmute all columns
+    for row = 1, NUM_ROWS do
+      if row <= track.max_note_columns then
+        if track:column_is_muted(row) then
+          track:set_column_is_muted(row, false)
+          print("DEBUG: Solo - Unmuted column " .. row .. " (no solo active)")
+        end
+      end
+    end
+  end
+end
+
+function PakettiSliceStepDuplicatePattern()
+  local song=renoise.song()
+  local current_pattern_index=song.selected_pattern_index
+  local current_sequence_index=song.selected_sequence_index
+  local new_sequence_index = current_sequence_index + 1
+  local new_pattern_index = song.sequencer:insert_new_pattern_at(new_sequence_index)
+  song.patterns[new_pattern_index]:copy_from(song.patterns[current_pattern_index])
+  local original_name = song.patterns[current_pattern_index].name
+  if original_name == "" then
+    original_name = "Pattern " .. tostring(current_pattern_index)
+  end
+  song.patterns[new_pattern_index].name = original_name .. " (duplicate)"
+  
+  -- CRITICAL: Transport user to the new pattern location
+  song.selected_sequence_index = new_sequence_index
+  song.selected_pattern_index = new_pattern_index
+  
+  -- CRITICAL: Force the edit and playback positions to the new pattern location
+  -- This works regardless of follow pattern setting and ensures user is transported to new pattern
+  local new_song_pos = renoise.SongPos(new_sequence_index, 1)
+  
+  -- Always set edit position to new pattern
+  song.transport.edit_pos = new_song_pos
+  
+  -- If playing, also move playback position to new pattern  
+  if song.transport.playing then
+    song.transport.playback_pos = new_song_pos
+  end
+  
+  -- Ensure pattern editor is active and updates view
+  --if renoise.app().window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+  --  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  --end
+  
+  -- Copy mute states from original sequence slot to the new one
+  for track_index = 1, #song.tracks do
+    local is_muted = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+    song.sequencer:set_track_sequence_slot_is_muted(track_index, new_sequence_index, is_muted)
+  end
+  -- Copy automation data explicitly to ensure full duplication
+  for track_index = 1, #song.tracks do
+    local track = song.tracks[track_index]
+    local source_pattern = song.patterns[current_pattern_index]
+    local dest_pattern = song.patterns[new_pattern_index]
+    
+    -- Copy track automation
+    if source_pattern.tracks[track_index] and source_pattern.tracks[track_index].automation then
+      for _, automation in ipairs(source_pattern.tracks[track_index].automation) do
+        local dest_automation = dest_pattern.tracks[track_index]:create_automation(automation.dest_parameter)
+        dest_automation.playmode = automation.playmode
+        dest_automation.length = automation.length
+        dest_automation:clear()
+        for point_index = 1, automation.length do
+          dest_automation:add_point_at(point_index, automation:point_at(point_index))
+        end
+      end
+    end
+  end
+  renoise.app():show_status("Pattern duplicated and moved to sequence position " .. new_sequence_index)
+end
 
 function PakettiSliceStepCreateDialog()
   -- Handle close-on-reopen: if dialog is already open, close it
@@ -2766,11 +3725,11 @@ function PakettiSliceStepCreateDialog()
   local song = renoise.song()
   if song and song.selected_track and song.selected_track.max_note_columns >= 1 then
     local first_column_name = song.selected_track:column_name(1)
-    if first_column_name:find("32_32") or first_column_name:find("32") then
+    if first_column_name:find("_32") then
       current_steps = 32
       MAX_STEPS = 32
       print("DEBUG: Restored 32-step view setting from first column: '" .. first_column_name .. "'")
-    elseif first_column_name:find("16_16") or first_column_name:find("16") then
+    elseif first_column_name:find("_16") then
       current_steps = 16
       MAX_STEPS = 16
       print("DEBUG: Restored 16-step view setting from first column: '" .. first_column_name .. "'")
@@ -2801,6 +3760,20 @@ function PakettiSliceStepCreateDialog()
           local saved_row_modes = {}
           local saved_row_enabled = {}
           local saved_row_data = {}
+          
+          -- CRITICAL: Save velocity canvas state and selected row for restoration
+          local saved_velocity_canvas_expanded = velocity_canvas_expanded
+          local saved_current_selected_row = current_selected_row
+          local saved_row_velocities = {}
+          -- Deep copy velocity data
+          for row = 1, NUM_ROWS do
+            saved_row_velocities[row] = {}
+            if row_velocities[row] then
+              for step = 1, MAX_STEPS do
+                saved_row_velocities[row][step] = row_velocities[row][step]
+              end
+            end
+          end
           for row = 1, NUM_ROWS do
             saved_checkbox_states[row] = {}
             saved_row_steps[row] = rows[row].active_steps -- Only save step counts, not all data
@@ -2811,7 +3784,8 @@ function PakettiSliceStepCreateDialog()
               value = rows[row].value,
               note_value = rows[row].note_value,
               slice_note = rows[row].slice_note,
-              enabled = rows[row].enabled
+              enabled = rows[row].enabled,
+              active_steps = rows[row].active_steps
             }
             if row_checkboxes[row] then
               -- Only save states for steps that exist
@@ -2842,22 +3816,22 @@ function PakettiSliceStepCreateDialog()
           local rows_to_update = {}
           if all_rows_at_old_steps then
             -- If ALL rows are at old step count, update ALL to new step count (best UX)
-            print("DEBUG: Updating ALL rows from " .. old_steps .. " to " .. current_steps .. " steps")
+            print("DEBUG: *** ALL ROWS AT " .. old_steps .. " STEPS -> UPDATING ALL TO " .. current_steps .. " STEPS AND DUPLICATING ***")
             for row = 1, NUM_ROWS do
               rows[row].active_steps = current_steps
               rows_to_update[row] = true
-              print("DEBUG: Updated row " .. row .. " to " .. current_steps .. " steps")
+              print("DEBUG: Updated row " .. row .. " from " .. old_steps .. " to " .. current_steps .. " steps (will duplicate content)")
             end
           else
             -- Mixed step counts - only update rows that were using the old maximum
-            print("DEBUG: Mixed step counts detected - only updating rows that match old_steps=" .. old_steps)
+            print("DEBUG: *** MIXED STEP COUNTS - ONLY UPDATING ROWS THAT MATCH " .. old_steps .. " STEPS ***")
             for row = 1, NUM_ROWS do
               if rows[row].active_steps == old_steps then
                 rows[row].active_steps = current_steps
                 rows_to_update[row] = true
-                print("DEBUG: Updated row " .. row .. " from " .. old_steps .. " to " .. current_steps .. " steps")
+                print("DEBUG: Updated row " .. row .. " from " .. old_steps .. " to " .. current_steps .. " steps (will duplicate content)")
               else
-                print("DEBUG: Skipped row " .. row .. " (has " .. (rows[row].active_steps or 0) .. " steps, not " .. old_steps .. ")")
+                print("DEBUG: Skipped row " .. row .. " (has " .. (rows[row].active_steps or 0) .. " steps, not " .. old_steps .. " - will preserve existing pattern)")
               end
             end
           end
@@ -2869,13 +3843,33 @@ function PakettiSliceStepCreateDialog()
           -- Set global flag to prevent auto Global Slice during step switching
           step_switching_in_progress = true
           
-          -- CRITICAL: Update the view setting column name BEFORE recreating dialog
-          -- Otherwise PakettiSliceStepCreateDialog() will read the old name and reset our changes!
+          -- CRITICAL: Update ALL column names BEFORE recreating dialog
+          -- Otherwise PakettiSliceStepCreateDialog() will read the old names and reset our changes!
           local song = renoise.song()
           if song and song.selected_track then
+            local track = song.selected_track
+            
+            -- Update column 1 with view setting
             local view_setting = current_steps .. "_" .. current_steps
-            song.selected_track:set_column_name(1, view_setting)
+            track:set_column_name(1, view_setting)
             print("DEBUG: PRE-DIALOG: Updated column 1 name to '" .. view_setting .. "' before dialog recreation")
+            
+            -- Update columns 2-8 for rows that were updated to new step count
+            for row = 2, NUM_ROWS do
+              if rows_to_update[row] and row <= track.max_note_columns then
+                local new_step_count = rows[row].active_steps
+                local current_column_name = track:column_name(row)
+                local target_column_name = string.format("%02d", new_step_count)
+                
+                -- Only update if the column name doesn't already match the target
+                if current_column_name ~= target_column_name then
+                  track:set_column_name(row, target_column_name)
+                  print("DEBUG: PRE-DIALOG: Updated column " .. row .. " name from '" .. current_column_name .. "' to '" .. target_column_name .. "' before dialog recreation")
+                else
+                  print("DEBUG: PRE-DIALOG: Column " .. row .. " name '" .. current_column_name .. "' already matches target, skipping update")
+                end
+              end
+            end
           end
           
           -- Refresh dialog (unavoidable due to ViewBuilder limitations)
@@ -2886,6 +3880,7 @@ function PakettiSliceStepCreateDialog()
           PakettiSliceStepCreateDialog()
           
           -- CRITICAL: Restore row data IMMEDIATELY after dialog recreation
+          -- NOTE: Don't restore active_steps during step switching - pattern reading handles it correctly
           for row = 1, NUM_ROWS do
             if saved_row_data[row] then
               rows[row].mode = saved_row_data[row].mode
@@ -2893,24 +3888,84 @@ function PakettiSliceStepCreateDialog()
               rows[row].note_value = saved_row_data[row].note_value
               rows[row].slice_note = saved_row_data[row].slice_note
               rows[row].enabled = saved_row_data[row].enabled
-              print("DEBUG: RESTORED row " .. row .. " - mode: " .. rows[row].mode .. ", enabled: " .. tostring(rows[row].enabled))
+              -- DON'T restore active_steps during step switching - pattern reading already set correct values from updated column names
+              
+              print("DEBUG: RESTORED row " .. row .. " - mode: " .. rows[row].mode .. ", enabled: " .. tostring(rows[row].enabled) .. ", active_steps: " .. rows[row].active_steps .. " (preserved from pattern reading)")
               
               -- Update UI switch to match restored mode
               if row_mode_switches[row] then
                 row_mode_switches[row].value = rows[row].mode
                 print("DEBUG: RESTORED switch for row " .. row .. " to mode " .. rows[row].mode)
               end
+              
+              -- CRITICAL: Update step valuebox to show the CURRENT (pattern-read) step count, not the saved one
+              if step_valueboxes[row] then
+                step_valueboxes[row].value = rows[row].active_steps  -- Use current value, not saved value
+                print("DEBUG: RESTORED step valuebox for row " .. row .. " to " .. rows[row].active_steps .. " steps (from pattern reading)")
+              end
             end
           end
           
+          -- CRITICAL: Restore velocity canvas state and selected row
+          velocity_canvas_expanded = saved_velocity_canvas_expanded
+          current_selected_row = saved_current_selected_row
+          
+          -- Restore velocity data (expand for 32-step mode)
+          row_velocities = {}
+          for row = 1, NUM_ROWS do
+            row_velocities[row] = {}
+            if saved_row_velocities[row] then
+              for step = 1, MAX_STEPS do
+                if step <= old_steps then
+                  -- Restore original velocity data
+                  row_velocities[row][step] = saved_row_velocities[row][step] or 80
+                elseif old_steps == 16 and current_steps == 32 and step > 16 then
+                  -- For 16->32 expansion, duplicate velocities like checkboxes
+                  local source_step = step - 16
+                  if source_step >= 1 and source_step <= 16 then
+                    row_velocities[row][step] = saved_row_velocities[row][source_step] or 80
+                  else
+                    row_velocities[row][step] = 80  -- Default for new steps
+                  end
+                else
+                  row_velocities[row][step] = 80  -- Default max velocity
+                end
+              end
+            else
+              -- Initialize with defaults if no saved data
+              for step = 1, MAX_STEPS do
+                row_velocities[row][step] = 80
+              end
+            end
+          end
+          
+          -- Restore velocity canvas expanded state
+          if velocity_canvas_toggle_button then
+            velocity_canvas_toggle_button.text = velocity_canvas_expanded and "▾" or "▴"
+          end
+          if velocity_canvas_content_column then
+            velocity_canvas_content_column.visible = velocity_canvas_expanded
+          end
+          
+          -- Restore selected row highlighting
+          if saved_current_selected_row then
+            PakettiSliceStepHighlightRow(saved_current_selected_row)
+            print("DEBUG: RESTORED selected row: " .. saved_current_selected_row)
+          end
+          
+          -- Update velocity canvas to show restored state
+          PakettiSliceStepUpdateVelocityCanvasForRow(current_selected_row or 1)
+          
           -- Clear the step switching flag after restoration
           step_switching_in_progress = false
-          print("DEBUG: Step switching restoration complete - flag cleared")
+          print("DEBUG: Step switching restoration complete - flag cleared, velocity canvas state restored")
           
           -- Smart restore and duplicate logic
           if old_steps == 16 and current_steps == 32 then
             local duplicated_rows = 0
             local preserved_rows = 0
+            
+            print("DEBUG: *** 16->32 STEP EXPANSION: Restoring checkboxes and duplicating patterns ***")
             
             -- Batch all checkbox updates to minimize UI redraws
             for row = 1, NUM_ROWS do
@@ -2928,6 +3983,7 @@ function PakettiSliceStepCreateDialog()
                 -- Smart duplication logic based on whether this row was updated
                 if rows_to_update[row] then
                   -- This row was updated to 32 steps - duplicate its pattern
+                  print("DEBUG: Row " .. row .. " - DUPLICATING steps 1-" .. restore_steps .. " to 17-" .. (restore_steps + 16))
                   for step = 1, restore_steps do
                     local target_step = step + 16
                     if target_step <= 32 and row_checkboxes[row][target_step] and saved_checkbox_states[row][step] ~= nil then
@@ -2937,6 +3993,7 @@ function PakettiSliceStepCreateDialog()
                   duplicated_rows = duplicated_rows + 1
                 else
                   -- This row kept its original step count - preserve silence in 17-32
+                  print("DEBUG: Row " .. row .. " - PRESERVING original pattern (was " .. row_step_count .. " steps)")
                   preserved_rows = preserved_rows + 1
                 end
               end
@@ -3051,12 +4108,12 @@ function PakettiSliceStepCreateDialog()
     
     vb:button{
      text = "Sample Offset",
-     width = 100,
+     width = 80,
      notifier = PakettiSliceStepGlobalSampleOffset
     },
        vb:button{
         text = "Slice",
-        width = 50,
+        width = 30,
         active = (PakettiSliceStepGetSliceInfo() and PakettiSliceStepGetSliceInfo().slice_count > 0),
         notifier = PakettiSliceStepGlobalSlice
     },
@@ -3069,6 +4126,12 @@ function PakettiSliceStepCreateDialog()
       text = "Even Offsets",
       width = 80,
       notifier = PakettiSliceStepEvenOffsets
+    },
+    vb:button{
+      text = "Randomize All Rows",
+      width = 120,
+      tooltip = "Randomly fill all 8 rows (50% chance per step)",
+      notifier = PakettiSliceStepRandomizeAllRows
     },
 
     vb:text{text = "Transpose", font = "bold", style = "strong"},
@@ -3198,20 +4261,32 @@ function PakettiSliceStepCreateDialog()
           renoise.app():show_status("Could not detect BPM from sample")
         end
       end
+    },
+    
+    vb:text{text = "|", font = "bold", style = "strong"},
+    vb:button{
+      text = "Duplicate Pattern", 
+      midi_mapping = "Paketti:Paketti Slice Step Sequencer:Duplicate Pattern",
+      notifier = PakettiSliceStepDuplicatePattern
     }
   }}
   
   -- Add row controls
   for row = 1, NUM_ROWS do
-    content:add_child(PakettiSliceStepCreateRowControls(vb, row))
+    local row_container = PakettiSliceStepCreateRowControls(vb, row)
+    row_containers[row] = row_container  -- Store reference for styling
+    content:add_child(row_container)
   end
+  
+  -- Initialize row styles (all to body style initially)
+  PakettiSliceStepUpdateRowStyles(nil)
   
   -- Global controls
   content:add_child(vb:column{
   vb:row{
       vb:button{
         text = "Clear All",
-        width = 80,
+        width = 60,
         notifier = function()
           for row = 1, NUM_ROWS do
             for step = 1, MAX_STEPS do
@@ -3327,6 +4402,11 @@ function PakettiSliceStepCreateDialog()
       },
       vb:text{text = "Pitch Stepper", style="strong", font="Bold", width=70},
       vb:button{
+        text = "Clear",
+        width = 50,
+        notifier = function() PakettiClearStepper("Pitch Stepper") end
+      },
+      vb:button{
         text = "Two Octaves",
         width = 80,
         notifier = PakettiSliceStepTwoOctaves
@@ -3341,6 +4421,59 @@ function PakettiSliceStepCreateDialog()
 
   })
   
+  -- Create velocity canvas expandable section (moved to bottom)
+  velocity_canvas_toggle_button = vb:button{
+    text = "▴", -- Start collapsed
+    width = 22,
+    notifier = function()
+      velocity_canvas_expanded = not velocity_canvas_expanded
+      PakettiSliceStepUpdateVelocityCanvasVisibility()
+    end
+  }
+  
+  -- Create the canvas directly and store reference
+  velocity_canvas = vb:canvas{
+    width = PakettiSliceStepCalculateVelocityCanvasWidth(),  -- Calculate width to match step buttons
+    height = velocity_canvas_height,
+    mode = "plain",
+    render = PakettiSliceStepDrawVelocityCanvas,
+    mouse_handler = PakettiSliceStepHandleVelocityCanvasMouse,
+    mouse_events = {"down", "up", "move", "exit"}
+  }
+  
+  velocity_canvas_content_column = vb:column{
+    style = "group",
+    margin = 6,
+    visible = false, -- Start hidden
+    
+    velocity_canvas,  -- Use the stored canvas reference
+    
+    vb:row{
+      vb:text{
+        text = "Instructions: Draws velocity bars only where steps are active. Drawing in empty areas creates new steps with that velocity.",
+        width = PakettiSliceStepCalculateVelocityCanvasWidth() - 20,  -- Match calculated canvas width
+        style = "normal"
+      }
+    }
+  }
+
+  -- Add expandable velocity section to dialog
+  content:add_child(vb:row{
+    velocity_canvas_toggle_button,
+    vb:text{
+      text = "Show Velocity Editor Canvas",
+      style = "strong",
+      font = "bold",
+      width = 300
+    }
+  })
+  
+  -- Add the collapsible velocity content
+  content:add_child(velocity_canvas_content_column)
+  
+  -- Initialize velocity section visibility
+  PakettiSliceStepUpdateVelocityCanvasVisibility()
+  
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
     function(value) 
@@ -3350,6 +4483,25 @@ function PakettiSliceStepCreateDialog()
         PakettiSliceStepCleanupPlayhead()
         PakettiSliceStepCleanupTrackChangeDetection()
       end
+    end,
+    -- Custom key handler for CTRL-Z/CMD-Z undo support
+    function(dialog, key)
+      -- Check for undo key combinations
+      if (key.modifiers == "control" and key.name == "z") or (key.modifiers == "cmd" and key.name == "z") then
+        print("DEBUG: Undo key detected - will read pattern after 4ms delay")
+        -- Let Renoise handle the undo first, then read the pattern after a short delay
+        local undo_timer_fn = function()
+          if dialog and dialog.visible then
+            print("DEBUG: Reading pattern after undo operation")
+            PakettiSliceStepReadExistingPattern()
+          end
+        end
+        renoise.tool():add_timer(undo_timer_fn, 4) -- 4ms delay
+        -- Return false to let Renoise handle the undo normally
+        return false
+      end
+      -- Return false for all other keys to use default handling
+      return false
     end
   )
   
@@ -3362,6 +4514,10 @@ function PakettiSliceStepCreateDialog()
   -- STEP 3: READ PATTERN to populate rows (NOW that UI elements exist)
   print("DEBUG: Dialog opened - READING pattern to populate rows")
   PakettiSliceStepReadExistingPattern()
+  
+  -- STEP 3.5: READ VELOCITIES from pattern
+  print("DEBUG: Dialog opened - READING velocities from pattern")
+  PakettiSliceStepReadVelocitiesFromPattern()
   
   -- STEP 4: RESTART dialog -> pattern writing
   print("DEBUG: Dialog opened - RESTARTING pattern writing")
@@ -3525,7 +4681,8 @@ function PakettiSliceStepReadExistingPattern()
             local note_value = PakettiSliceStepNoteStringToValue(note_col.note_string)
             if note_value and note_value >= slice_info.first_slice_key and note_value <= (slice_info.first_slice_key + slice_info.slice_count - 1) then
               detected_modes[row] = ROW_MODES.SLICE
-              print("DEBUG: Row " .. row .. " detected as SLICE (found slice note " .. note_col.note_string .. ")")
+              detected_slice_notes[row] = note_value  -- STORE THE ACTUAL SLICE NOTE VALUE!
+              print("DEBUG: Row " .. row .. " detected as SLICE (found slice note " .. note_col.note_string .. " = " .. note_value .. ")")
             end
           end
         end
@@ -3575,13 +4732,17 @@ function PakettiSliceStepReadExistingPattern()
       end
     end
   elseif rows_with_slices > 0 and rows_with_sample_offsets == 0 then
-    -- CASE 2: PATTERN WITH ONLY SLICES → Global Slice
-    print("DEBUG: PATTERN WITH ONLY SLICES → GLOBAL SLICE")
+    -- CASE 2: PATTERN WITH ONLY SLICES → Preserve existing slices, fill empty rows
+    print("DEBUG: PATTERN WITH ONLY SLICES → PRESERVE EXISTING SLICES")
     for row = 1, NUM_ROWS do
-      if not detected_modes[row] then -- Only set undetected rows
+      if not detected_modes[row] then -- Only set undetected rows (preserve existing slice data)
         if slice_info and row <= slice_info.slice_count then
           detected_modes[row] = ROW_MODES.SLICE
-          print("DEBUG: Row " .. row .. " set to SLICE (Global Slice - slice-only pattern)")
+          -- Only assign default slice notes to EMPTY rows - don't overwrite existing ones
+          if not detected_slice_notes[row] then
+            detected_slice_notes[row] = slice_info.first_slice_key + (row - 1)
+          end
+          print("DEBUG: Row " .. row .. " set to SLICE (preserving existing slice data)")
         else
           detected_modes[row] = ROW_MODES.SAMPLE_OFFSET
           print("DEBUG: Row " .. row .. " set to SAMPLE_OFFSET (beyond slice count)")
@@ -3798,5 +4959,14 @@ function PakettiSliceStepReadExistingPattern()
   end
   renoise.app():show_status(status_message)
 end
+
+-- MIDI mapping and keybinding for Duplicate Pattern button in Slice Step Sequencer
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Slice Step Sequencer:Duplicate Pattern",invoke=function(message)
+  if message:is_trigger() then PakettiSliceStepDuplicatePattern() end
+end}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern (Slice Step Sequencer)",invoke=PakettiSliceStepDuplicatePattern}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate Pattern (Slice Step Sequencer)",invoke=PakettiSliceStepDuplicatePattern}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Pattern (Slice Step Sequencer)",invoke=PakettiSliceStepDuplicatePattern}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern (Slice Step Sequencer)",invoke=PakettiSliceStepDuplicatePattern}
 
 

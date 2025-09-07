@@ -426,6 +426,59 @@ function PakettiSwitcharoo_ApplyComplexity(notes, complexity_level)
     end
   end
   
+  if complexity_level >= 6 then
+    -- Level 6: Add #5 (augmented 5th) or b13
+    if chord_type == "dominant7" or chord_type == "major7" then
+      table.insert(extensions_to_add, 8)  -- #5 (augmented 5th)
+    else
+      table.insert(extensions_to_add, 20) -- b13
+    end
+  end
+  
+  if complexity_level >= 7 then
+    -- Level 7: Add #13 or b11 alterations
+    if chord_type == "dominant7" then
+      table.insert(extensions_to_add, 22) -- #13 (classic altered dominant)
+    else
+      table.insert(extensions_to_add, 16) -- b11 for minor chords
+    end
+  end
+  
+  if complexity_level >= 8 then
+    -- Level 8: Upper structure triads - add major triad from b7
+    local b7_from_root = extension_root + 10 -- b7
+    table.insert(extensions_to_add, 10) -- b7 itself
+    table.insert(extensions_to_add, 14) -- 9th (major 2nd from b7)  
+    table.insert(extensions_to_add, 17) -- 11th (perfect 4th from b7)
+  end
+  
+  if complexity_level >= 9 then
+    -- Level 9: Polychordal elements - tritone substitution chord tones
+    table.insert(extensions_to_add, 1)  -- b2 (very dissonant)
+    table.insert(extensions_to_add, 7)  -- b6
+  end
+  
+  if complexity_level >= 10 then
+    -- Level 10: Maximum alterations - all chromatic neighbors
+    table.insert(extensions_to_add, 13) -- b9 (if not already added)
+    table.insert(extensions_to_add, 15) -- #9 (if not already added)
+    table.insert(extensions_to_add, 19) -- b13 alternate octave
+  end
+  
+  if complexity_level >= 11 then
+    -- Level 11: Extreme extensions - double alterations
+    table.insert(extensions_to_add, 2)  -- major 2nd (very close)
+    table.insert(extensions_to_add, 5)  -- perfect 4th in lower register
+    table.insert(extensions_to_add, 23) -- b7 up an octave
+  end
+  
+  if complexity_level >= 12 then
+    -- Level 12: Chromatic saturation - fill remaining chromatic spaces
+    table.insert(extensions_to_add, 3)  -- minor 3rd variation
+    table.insert(extensions_to_add, 9)  -- major 6th
+    table.insert(extensions_to_add, 12) -- octave (reinforcement)
+  end
+  
   -- Add the extensions from the higher octave root, avoiding duplicates  
   for _, semitones in ipairs(extensions_to_add) do
     local new_val = extension_root + semitones
@@ -998,7 +1051,7 @@ function PakettiSwitcharoo_BuildSlotRow(index)
   -- Complexity control (intelligent chord extensions based on chord type)
   local complexity_control = PakettiSwitcharoo_vb:valuebox{
     min = 0,
-    max = 5,
+    max = 12,
     value = 0,
     width = PakettiSwitcharoo_CONTROL_WIDTH,
     notifier = function(value)

@@ -3767,3 +3767,225 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load RingMod Legacy Instrumen
 -- MIDI mappings
 renoise.tool():add_midi_mapping{name="Paketti:Load RingMod Instrument [Trigger]", invoke = function(message) if message:is_trigger() then PakettiLoadRingModInstrument() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Load RingMod Legacy Instrument [Trigger]", invoke = function(message) if message:is_trigger() then PakettiLoadRingModLegacyInstrument() end end}
+
+-----------------------------------------------------------------------
+-- Solo Only Tracks with Pattern Data in Current Pattern
+-----------------------------------------------------------------------
+
+-- Helper function to check if a track has pattern data in current pattern
+function PakettiTrackHasPatternDataInCurrentPattern(track_index)
+  local song = renoise.song()
+  
+  -- Get current selected pattern index
+  local current_pattern_index = song.selected_pattern_index
+  if not current_pattern_index then
+    return false
+  end
+  
+  local pattern = song.patterns[current_pattern_index]
+  if not pattern then
+    return false
+  end
+  
+  local pattern_track = pattern:track(track_index)
+  if not pattern_track then
+    return false
+  end
+  
+  -- Check each line in the pattern for note data or effect data
+  for line_index = 1, pattern.number_of_lines do
+    local line = pattern_track:line(line_index)
+    
+    -- Check note columns for notes
+    for _, note_col in ipairs(line.note_columns) do
+      if not note_col.is_empty then
+        -- Check for real notes (not note-offs) or instrument data
+        if (note_col.note_value > 0 and note_col.note_value < 120) or 
+           note_col.instrument_value < 255 or
+           note_col.volume_value > 0 or
+           note_col.panning_value ~= 255 or
+           note_col.delay_value > 0 or
+           note_col.effect_number_value > 0 or
+           note_col.effect_amount_value > 0 then
+          return true
+        end
+      end
+    end
+    
+    -- Check effect columns for effects
+    for _, fx_col in ipairs(line.effect_columns) do
+      if fx_col.number_value > 0 or fx_col.amount_value > 0 then
+        return true
+      end
+    end
+  end
+  
+  return false
+end
+
+-- Main function to solo only tracks that have pattern data in current pattern (toggles with unsolo all)
+function PakettiSoloTracksWithPatternData()
+  local song = renoise.song()
+  
+  if not song then
+    renoise.app():show_status("Paketti Solo Pattern Data: No song loaded")
+    return
+  end
+  
+  local tracks_with_data = {}
+  local tracks_without_data = {}
+  local groups_to_unmute = {}
+  
+  -- Check each track for pattern data in current pattern
+  for track_index = 1, #song.tracks do
+    local track = song:track(track_index)
+    
+    -- Skip master track and group tracks (groups are handled automatically)
+    if track.type ~= renoise.Track.TRACK_TYPE_MASTER and track.type ~= renoise.Track.TRACK_TYPE_GROUP then
+      if PakettiTrackHasPatternDataInCurrentPattern(track_index) then
+        table.insert(tracks_with_data, track_index)
+        
+        -- If track is in a group, add that group to unmute list
+        if track.group_parent then
+          groups_to_unmute[track.group_parent] = true
+        end
+      else
+        table.insert(tracks_without_data, track_index)
+      end
+    end
+  end
+  
+  -- Check if we're already in "soloed" state 
+  -- (tracks without data are muted AND tracks with data are unmuted)
+  local already_soloed = false
+  print("DEBUG: tracks_without_data=" .. #tracks_without_data .. ", tracks_with_data=" .. #tracks_with_data)
+  
+  if #tracks_without_data > 0 and #tracks_with_data > 0 then
+    local tracks_without_data_muted = true
+    local tracks_with_data_unmuted = true
+    
+    -- Check if tracks without data are muted (not ACTIVE = they're muted via OFF or MUTE)
+    for _, track_index in ipairs(tracks_without_data) do
+      local track = song:track(track_index)
+      print("DEBUG: Track " .. track_index .. " without data, mute_state=" .. track.mute_state)
+      if track.mute_state == renoise.Track.MUTE_STATE_ACTIVE then
+        tracks_without_data_muted = false
+        print("DEBUG: Track " .. track_index .. " is ACTIVE, so not already soloed")
+        break
+      end
+    end
+    
+    print("DEBUG: tracks_without_data_muted=" .. tostring(tracks_without_data_muted))
+    
+    -- Check if tracks with data are unmuted (including their parent groups)
+    if tracks_without_data_muted then
+      for _, track_index in ipairs(tracks_with_data) do
+        local track = song:track(track_index)
+        print("DEBUG: Track " .. track_index .. " with data, mute_state=" .. track.mute_state)
+        if track.mute_state ~= renoise.Track.MUTE_STATE_ACTIVE then
+          tracks_with_data_unmuted = false
+          print("DEBUG: Track " .. track_index .. " is NOT active, so not already soloed")
+          break
+        end
+        -- If track is in a group, also check that the group is unmuted
+        if track.group_parent then
+          print("DEBUG: Track " .. track_index .. " has group_parent, group mute_state=" .. track.group_parent.mute_state)
+          if track.group_parent.mute_state ~= renoise.Track.MUTE_STATE_ACTIVE then
+            tracks_with_data_unmuted = false
+            print("DEBUG: Track " .. track_index .. " group is NOT active, so not already soloed")
+            break
+          end
+        end
+      end
+    end
+    
+    print("DEBUG: tracks_with_data_unmuted=" .. tostring(tracks_with_data_unmuted))
+    already_soloed = tracks_without_data_muted and tracks_with_data_unmuted
+  end
+  
+  print("DEBUG: already_soloed=" .. tostring(already_soloed))
+  
+  local current_pattern_index = song.selected_pattern_index
+  
+  if already_soloed then
+    -- We're already soloed, so unsolo everything (unmute all tracks)
+    local unmuted_count = 0
+    for track_index = 1, #song.tracks do
+      local track = song:track(track_index)
+      if track.type ~= renoise.Track.TRACK_TYPE_MASTER then
+        if track.mute_state ~= renoise.Track.MUTE_STATE_ACTIVE then
+          track.mute_state = renoise.Track.MUTE_STATE_ACTIVE
+          unmuted_count = unmuted_count + 1
+        end
+      end
+    end
+    renoise.app():show_status(string.format("Paketti: Unmuted all %d tracks", unmuted_count))
+  else
+    -- First mute all non-master tracks (using OFF like existing solo functionality)
+    for track_index = 1, #song.tracks do
+      local track = song:track(track_index)
+      if track.type ~= renoise.Track.TRACK_TYPE_MASTER then
+        track.mute_state = renoise.Track.MUTE_STATE_OFF
+      end
+    end
+    
+    -- Then unmute tracks with data
+    for _, track_index in ipairs(tracks_with_data) do
+      local track = song:track(track_index)
+      track.mute_state = renoise.Track.MUTE_STATE_ACTIVE
+    end
+    
+    -- Unmute groups that contain tracks with data
+    for group_track, _ in pairs(groups_to_unmute) do
+      group_track.mute_state = renoise.Track.MUTE_STATE_ACTIVE
+    end
+    
+    -- Status message
+    renoise.app():show_status(string.format("Paketti: Soloed %d tracks with pattern data in pattern %02X", #tracks_with_data, current_pattern_index))
+  end
+end
+
+-- Function to unsolo all tracks (unmute all)
+function PakettiUnsoloAllTracks()
+  local song = renoise.song()
+  
+  if not song then
+    renoise.app():show_status("Paketti Unsolo All: No song loaded")
+    return
+  end
+  
+  local unmuted_count = 0
+  
+  -- Unmute all tracks except master
+  for track_index = 1, #song.tracks do
+    local track = song:track(track_index)
+    
+    if track.type ~= renoise.Track.TRACK_TYPE_MASTER then
+      if track.mute_state ~= renoise.Track.MUTE_STATE_ACTIVE then
+        track.mute_state = renoise.Track.MUTE_STATE_ACTIVE
+        unmuted_count = unmuted_count + 1
+      end
+    end
+  end
+  
+  renoise.app():show_status(string.format("Paketti: Unmuted all %d tracks", unmuted_count))
+end
+
+-- Menu entries for multiple contexts
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
+
+-- Keybindings and MIDI mappings
+renoise.tool():add_keybinding{name="Global:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
+renoise.tool():add_keybinding{name="Global:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
+renoise.tool():add_midi_mapping{name="Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
+renoise.tool():add_midi_mapping{name="Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}

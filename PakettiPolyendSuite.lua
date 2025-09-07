@@ -4760,7 +4760,7 @@ function create_polyend_buddy_dialog(vb)
           -- Load 48 random samples (asynchronous with ProcessSlicer)
           -- We need to poll for completion since loadRandomDrumkitSamples uses ProcessSlicer
           local original_instrument_index = renoise.song().selected_instrument_index
-          loadRandomDrumkitSamples(48)
+          loadRandomDrumkitSamples(48, nil, false)
           
           -- Poll for completion by checking if the target number of samples are loaded
           local timer_function
@@ -4818,7 +4818,7 @@ function create_polyend_buddy_dialog(vb)
           -- Load 48 random samples (asynchronous with ProcessSlicer)
           -- We need to poll for completion since loadRandomDrumkitSamples uses ProcessSlicer
           local original_instrument_index = renoise.song().selected_instrument_index
-          loadRandomDrumkitSamples(48)
+          loadRandomDrumkitSamples(48, nil, false)
           
           -- Poll for completion by checking if the target number of samples are loaded
           local timer_function

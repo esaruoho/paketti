@@ -498,17 +498,19 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sample Loader",invoke=function(message) if message:is_trigger() then pitchBendDrumkitLoader() end end}
 
-function loadRandomDrumkitSamples(num_samples, create_automation_device)
+function loadRandomDrumkitSamples(num_samples, folder_path, create_automation_device)
     -- Seed the random number generator with current time
     math.randomseed(os.time())
     -- Add some random calls to further randomize the sequence
     math.random(); math.random(); math.random()
 
-    -- Prompt the user to select a folder
-    local folder_path = renoise.app():prompt_for_path("Select Folder to Randomize Drumkit Loading From")
-    if not folder_path then
-        renoise.app():show_status("No folder selected.")
-        return nil
+    -- If no folder_path provided, prompt the user to select a folder
+    if not folder_path or folder_path == "" then
+        folder_path = renoise.app():prompt_for_path("Select Folder to Randomize Drumkit Loading From")
+        if not folder_path then
+            renoise.app():show_status("No folder selected.")
+            return nil
+        end
     end
 
     -- Get all valid audio files in the selected directory and subdirectories using global function
@@ -3514,55 +3516,6 @@ local function loadRandomSample(num_samples, folder_path)
     sample.name = file_name
     instrument.name = file_name
     renoise.app():show_status("Loaded file into new instrument: " .. selected_file)
-  end
-end
-
--- Function to load random drumkit samples into one instrument
-local function loadRandomDrumkitSamples(num_samples, folder_path)
-  if not folder_path or folder_path == "" then
-    renoise.app():show_status("Folder path is not defined. Please set a valid path.")
-    return nil
-  end
-
-  local sample_files = PakettiGetFilesInDirectory(folder_path)
-  if #sample_files == 0 then
-    renoise.app():show_status("No audio files found in the selected folder.")
-    return nil
-  end
-
-  local song=renoise.song()
-  local instrument = song.selected_instrument
-  if #instrument.samples > 0 or instrument.plugin_properties.plugin_loaded then
-    song:insert_instrument_at(song.selected_instrument_index + 1)
-    song.selected_instrument_index = song.selected_instrument_index + 1
-    instrument = song.selected_instrument
-  end
-  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-  local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
-
-  renoise.app():load_instrument(defaultInstrument)
-
-  instrument = song.selected_instrument
-  instrument.name = string.format("%02X_Drumkit", song.selected_instrument_index - 1)
-
-  local max_samples = 120
-  local num_samples_to_load = math.min(#sample_files, max_samples)
-
-  for i = 1, num_samples_to_load do
-    local random_index = math.random(1, #sample_files)
-    local selected_file = sample_files[random_index]
-    table.remove(sample_files, random_index)
-
-    local file_name = selected_file:match("([^/\\]+)%.%w+$")
-
-    if #instrument.samples < i then
-      instrument:insert_sample_at(i)
-    end
-
-    local sample = instrument.samples[i]
-    if sample.sample_buffer:load_from(selected_file) then
-      sample.name = file_name
-    end
   end
 end
 

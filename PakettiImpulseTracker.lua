@@ -1169,6 +1169,45 @@ else
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker ALT-L Mark Track/Mark Pattern",invoke=function() MarkTrackMarkPattern() end}  
+
+-- Shift-ALT-L: Mark Note Column/Mark Pattern (select only current note column content)
+function MarkNoteColumnMarkPattern()
+  local s = renoise.song()
+  local sp = s.selected_pattern
+  local current_track = s.selected_track_index
+  local current_note_column = s.selected_note_column_index
+  local current_effect_column = s.selected_effect_column_index
+  
+  -- Determine which column to select
+  local column_index = nil
+  
+  if current_note_column > 0 then
+    -- We're in a note column
+    column_index = current_note_column
+  elseif current_effect_column > 0 then
+    -- We're in an effect column - calculate the column index
+    local visible_note_columns = s.tracks[current_track].visible_note_columns
+    column_index = visible_note_columns + current_effect_column
+  else
+    -- No column selected, default to first column
+    column_index = 1
+  end
+  
+  -- Create selection for the specific column only
+  s.selection_in_pattern = {
+    start_track = current_track,
+    end_track = current_track,
+    start_line = 1,
+    end_line = sp.number_of_lines,
+    start_column = column_index,
+    end_column = column_index
+  }
+  
+  -- Also update automation selection if available
+  selectPatternRangeInAutomation()
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker SHIFT-ALT-L Mark Note Column/Mark Pattern",invoke=function() MarkNoteColumnMarkPattern() end}
 ------------------------------------------------------
 ----------Protman's Alt-D except patternwide
 function DoubleSelectPattern()
