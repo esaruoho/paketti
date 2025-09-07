@@ -1219,25 +1219,31 @@ function PakettiSliceStepSelectNoteColumn(row)
   PakettiSliceStepUpdateRowStyles(current_selected_row)
 end
 
--- Select the slice corresponding to the step sequencer row in the sample editor
+-- Select the slice or highlight sample offset corresponding to the step sequencer row
 function PakettiSliceStepSelectSliceForRow(row)
   local song = renoise.song()
   if not song then return end
   
-  -- Only select slice if this row is in SLICE mode and has a slice_note
-  if not rows[row] or rows[row].mode ~= ROW_MODES.SLICE or not rows[row].slice_note then
-    return
-  end
+  -- Check if we have valid row data
+  if not rows[row] then return end
   
-  local slice_note = rows[row].slice_note
-  local sample_index = PakettiSliceStepGetSampleIndexForSliceNote(slice_note)
-  
-  if sample_index and sample_index >= 1 then
-    local instrument = song.selected_instrument
-    if instrument and sample_index <= #instrument.samples then
-      song.selected_sample_index = sample_index
-      print("DEBUG: Selected slice sample " .. sample_index .. " for row " .. row .. " (slice note " .. slice_note .. " - " .. PakettiSliceStepNoteValueToString(slice_note) .. ")")
+  if rows[row].mode == ROW_MODES.SLICE and rows[row].slice_note then
+    -- SLICE mode: select the corresponding slice sample
+    local slice_note = rows[row].slice_note
+    local sample_index = PakettiSliceStepGetSampleIndexForSliceNote(slice_note)
+    
+    if sample_index and sample_index >= 1 then
+      local instrument = song.selected_instrument
+      if instrument and sample_index <= #instrument.samples then
+        song.selected_sample_index = sample_index
+        print("DEBUG: Selected slice sample " .. sample_index .. " for row " .. row .. " (slice note " .. slice_note .. " - " .. PakettiSliceStepNoteValueToString(slice_note) .. ")")
+      end
     end
+  elseif rows[row].mode == ROW_MODES.SAMPLE_OFFSET then
+    -- SAMPLE_OFFSET mode: highlight the sample offset position in sample editor
+    local offset_value = rows[row].value or 0x20
+    PakettiSliceStepSampleOffsetUpdateSelection(offset_value)
+    print("DEBUG: Highlighted sample offset 0S" .. string.format("%02X", offset_value) .. " for row " .. row)
   end
 end
 
