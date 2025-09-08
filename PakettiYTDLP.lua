@@ -4,7 +4,7 @@ local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
 -- TODO YT-DLP make sure it finishes downloading
 
 
-local yt_dlp_path = "/opt/homebrew/bin/yt-dlp"
+local yt_dlp_path = ""  -- Will be set by PakettiYTDLPSetExecutablePaths() based on OS detection
 local ffmpeg_path = ""
 local RUNTIME = tostring(os.time())
 local SAMPLE_LENGTH = 10
@@ -38,8 +38,20 @@ end
 function PakettiYTDLPSetExecutablePaths()
   -- First check if path is already set in preferences
   yt_dlp_path = preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value
+  
+  -- Clear preferences if they contain wrong OS-specific paths
+  local os_name = os.platform()
+  if os_name == "LINUX" and yt_dlp_path and yt_dlp_path:match("^/opt/homebrew/") then
+    PakettiYTDLPLogMessage("Clearing macOS path from Linux system preferences")
+    yt_dlp_path = ""
+    preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = ""
+  elseif os_name == "MACINTOSH" and yt_dlp_path and yt_dlp_path:match("^/usr/bin/") then
+    PakettiYTDLPLogMessage("Clearing Linux path from macOS system preferences")
+    yt_dlp_path = ""
+    preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = ""
+  end
 
-  -- If not set in preferences, try to find it automatically
+  -- If not set in preferences or cleared, try to find it automatically
   if yt_dlp_path == nil or yt_dlp_path == "" then
     local os_name = os.platform()
     
@@ -89,6 +101,7 @@ function PakettiYTDLPSetExecutablePaths()
   end
 
   PakettiYTDLPLogMessage("Using yt-dlp path: " .. yt_dlp_path)
+  PakettiYTDLPLogMessage("Running on OS: " .. os.platform())
 
   -- Set ffmpeg_path based on OS
   local os_name = os.platform()
@@ -934,6 +947,10 @@ end
 
 -- Function to handle the entire download process with proper slicing
 function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_length, full_video)
+  -- Ensure paths are set up (backup in case called from other places)
+  if yt_dlp_path == "" then
+    PakettiYTDLPSetExecutablePaths()
+  end
   PakettiYTDLPLogMessage("DEBUG: PakettiYTDLPSlicedProcess called with full_video=" .. tostring(full_video) .. ", clip_length=" .. tostring(clip_length))
   
   -- Define paths for our tracking files
@@ -1158,6 +1175,8 @@ end
 function PakettiYTDLPStartYTDLP()
   -- Reset error flag for new download
   error_already_logged = false
+  -- Set up executable paths based on OS detection
+  PakettiYTDLPSetExecutablePaths()
   PakettiYTDLPLogMessage("DEBUG: PakettiYTDLPStartYTDLP() called")
   local search_phrase = vb.views.search_phrase.text
   local youtube_url = vb.views.youtube_url.text
@@ -1508,8 +1527,10 @@ end
   end
 end
 
-
 function pakettiYTDLPDialog()
+  -- Set up paths when dialog is opened
+  PakettiYTDLPSetExecutablePaths()
+  
   if dialog and dialog.visible then
     PakettiYTDLPLogMessage("Dialog is visible, closing dialog.")
     PakettiYTDLPCloseDialog()
