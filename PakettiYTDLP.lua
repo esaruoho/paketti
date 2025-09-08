@@ -20,6 +20,19 @@ local cancel_button = nil
 local status_text = nil
 local process_slicer = nil
 local completion_timer_func = nil
+local error_already_logged = false
+
+-- Function to get PATH environment string based on OS
+function PakettiYTDLPGetPathEnv()
+  local os_name = os.platform()
+  if os_name == "MACINTOSH" then
+    return "env PATH=/opt/homebrew/bin:$PATH "
+  elseif os_name == "LINUX" then
+    return ""  -- Use system PATH, no need to modify for Linux
+  else
+    return ""
+  end
+end
 
 -- Function to detect the operating system and assign paths
 function PakettiYTDLPSetExecutablePaths()
@@ -36,11 +49,11 @@ function PakettiYTDLPSetExecutablePaths()
       PakettiYTDLPLogMessage("Detected macOS. Trying Homebrew yt-dlp path.")
     
     elseif os_name == "LINUX" then
-      -- Try multiple common Linux paths in order
+      -- Try multiple common Linux paths in order (most common first)
       local linux_paths = {
+        "/usr/bin/yt-dlp",                        -- System-wide installation (most common)
+        "/usr/local/bin/yt-dlp",                  -- Local installation
         "/home/linuxbrew/.linuxbrew/bin/yt-dlp",  -- Linux Homebrew path
-        "/usr/local/bin/yt-dlp",                  -- Common local installation
-        "/usr/bin/yt-dlp",                        -- System-wide installation
         "/snap/bin/yt-dlp"                        -- Snap installation
       }
       
@@ -424,7 +437,7 @@ function PakettiYTDLPDetectChapters(url)
   PakettiYTDLPLogMessage("Checking for chapters in video...")
   
   -- Use yt-dlp to get video info and check for chapters
-  local info_command = string.format('env PATH=/opt/homebrew/bin:$PATH "%s" --dump-json --no-warnings "%s"', yt_dlp_path, url)
+  local info_command = string.format('%s"%s" --dump-json --no-warnings "%s"', PakettiYTDLPGetPathEnv(), yt_dlp_path, url)
   local handle = io.popen(info_command)
   if not handle then
     PakettiYTDLPLogMessage("Failed to check for chapters")
@@ -466,7 +479,7 @@ end
 function PakettiYTDLPGetRandomUrl(search_phrase, search_results_file)
   PakettiYTDLPLogMessage("Searching for term \"" .. search_phrase .. "\"")
   
-  local command = string.format('env PATH=/opt/homebrew/bin:$PATH "%s" "ytsearch30:%s" --get-id --no-warnings', yt_dlp_path, search_phrase)
+  local command = string.format('%s"%s" "ytsearch30:%s" --get-id --no-warnings', PakettiYTDLPGetPathEnv(), yt_dlp_path, search_phrase)
   local handle = io.popen(command)
   if not handle then
     PakettiYTDLPLogMessage("Failed to start search")
@@ -538,7 +551,8 @@ function PakettiYTDLPDownloadVideo(youtube_url, full_video, clip_length, temp_di
   
   if full_video and not use_timestamps then
     command = string.format(
-      'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames -f ba --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+      '%s"%s" --restrict-filenames -f ba --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+      PakettiYTDLPGetPathEnv(),
       yt_dlp_path,
       temp_dir,
       separator,
@@ -555,7 +569,8 @@ function PakettiYTDLPDownloadVideo(youtube_url, full_video, clip_length, temp_di
     -- Simplified command construction - always use ba format, optionally add post-processing
     if download_sections == "" then
       command = string.format(
-        'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        '%s"%s" --restrict-filenames %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        PakettiYTDLPGetPathEnv(),
         yt_dlp_path,
         format_option,
         temp_dir,
@@ -565,7 +580,8 @@ function PakettiYTDLPDownloadVideo(youtube_url, full_video, clip_length, temp_di
       )
     else
       command = string.format(
-        'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames %s %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        '%s"%s" --restrict-filenames %s %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        PakettiYTDLPGetPathEnv(),
         yt_dlp_path,
         format_option,
         download_sections,
@@ -584,9 +600,18 @@ function PakettiYTDLPDownloadVideo(youtube_url, full_video, clip_length, temp_di
     return false
   end
   
-  -- Wait for process to finish
-  while process_running do
+  -- Wait for process to finish (with timeout)
+  local process_timeout = 600  -- Maximum 10 minutes for download process
+  local process_wait_count = 0
+  
+  while process_running and process_wait_count < process_timeout do
     os.execute("sleep 0.1")
+    process_wait_count = process_wait_count + 0.1
+  end
+  
+  if process_running then
+    PakettiYTDLPLogMessage("ERROR: Download process timed out after 10 minutes")
+    process_running = false  -- Force stop to prevent further issues
   end
   
   return true
@@ -708,12 +733,26 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
   PakettiYTDLPLogMessage("=== Starting Renoise import process ===")
   PakettiYTDLPLogMessage("Checking completion signal file: " .. completion_signal_file)
 
-  -- Wait until the completion signal file is created
-  while not PakettiYTDLPFileExists(completion_signal_file) do
-    PakettiYTDLPLogMessage("Waiting for completion signal file...")
+  -- Wait until the completion signal file is created (with timeout)
+  local max_wait_time = 300  -- Maximum 5 minutes waiting for completion
+  local wait_count = 0
+  local completion_detected = false
+  
+  while wait_count < max_wait_time and not PakettiYTDLPFileExists(completion_signal_file) do
+    if wait_count == 0 then
+      PakettiYTDLPLogMessage("Waiting for completion signal file...")
+    end
+    wait_count = wait_count + 1
     os.execute('sleep 1')
   end
-  PakettiYTDLPLogMessage("Completion signal file detected")
+  
+  if PakettiYTDLPFileExists(completion_signal_file) then
+    PakettiYTDLPLogMessage("Completion signal file detected")
+    completion_detected = true
+  else
+    PakettiYTDLPLogMessage("ERROR: Download did not complete within 5 minutes. Checking for files anyway...")
+    completion_detected = false
+  end
 
   -- List all WAV files in temp directory
   local files = PakettiYTDLPListDir(temp_dir)
@@ -726,7 +765,10 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
   end
 
   if #sample_files == 0 then
-    PakettiYTDLPLogMessage("ERROR: No WAV files found in " .. temp_dir)
+    if not error_already_logged then
+      PakettiYTDLPLogMessage("ERROR: No WAV files found in " .. temp_dir)
+      error_already_logged = true
+    end
     return
   end
 
@@ -736,19 +778,31 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
   for _, file in ipairs(sample_files) do
     PakettiYTDLPLogMessage("Checking file availability: " .. file)
     local file_size = -1
-    while true do
+    local max_retries = 30  -- Maximum 30 seconds waiting for file
+    local retry_count = 0
+    local file_found = false
+    
+    while retry_count < max_retries do
       local f = io.open(file, "rb")
       if f then
         local current_file_size = f:seek("end")
         f:close()
         if current_file_size == file_size then
+          file_found = true
           break
         end
         file_size = current_file_size
       end
+      retry_count = retry_count + 1
       os.execute('sleep 1')
     end
-    PakettiYTDLPLogMessage("File is ready: " .. file)
+    
+    if file_found then
+      PakettiYTDLPLogMessage("File is ready: " .. file)
+    else
+      PakettiYTDLPLogMessage("ERROR: File not found or not accessible after 30 seconds: " .. file)
+      -- Continue processing other files instead of failing completely
+    end
   end
 
   local song=renoise.song()
@@ -906,7 +960,7 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
     -- Search command - do this immediately without slicing
     -- Update the log BEFORE starting the search
     logview.text="=== Starting search for term: \"" .. search_phrase .. "\" ===\n"
-    local search_command = string.format('env PATH=/opt/homebrew/bin:$PATH "%s" "ytsearch30:%s" --get-id --no-warnings', yt_dlp_path, search_phrase)
+    local search_command = string.format('%s"%s" "ytsearch30:%s" --get-id --no-warnings', PakettiYTDLPGetPathEnv(), yt_dlp_path, search_phrase)
     local handle = io.popen(search_command)
     if not handle then
       PakettiYTDLPLogMessage("ERROR: Failed to start search")
@@ -996,7 +1050,8 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
   
   if full_video and not use_timestamps then
     download_cmd = string.format(
-      'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames -f ba --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+      '%s"%s" --restrict-filenames -f ba --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+      PakettiYTDLPGetPathEnv(),
       yt_dlp_path,
       output_dir,
       separator,
@@ -1013,7 +1068,8 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
     -- Simplified command construction - always use ba format, optionally add post-processing
     if download_sections == "" then
       download_cmd = string.format(
-        'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        '%s"%s" --restrict-filenames %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        PakettiYTDLPGetPathEnv(),
         yt_dlp_path,
         format_option,
         output_dir,
@@ -1023,7 +1079,8 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
       )
     else
       download_cmd = string.format(
-        'env PATH=/opt/homebrew/bin:$PATH "%s" --restrict-filenames %s %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        '%s"%s" --restrict-filenames %s %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        PakettiYTDLPGetPathEnv(),
         yt_dlp_path,
         format_option,
         download_sections,
@@ -1099,6 +1156,8 @@ end
 
 -- Modify StartYTDLP to properly handle timers
 function PakettiYTDLPStartYTDLP()
+  -- Reset error flag for new download
+  error_already_logged = false
   PakettiYTDLPLogMessage("DEBUG: PakettiYTDLPStartYTDLP() called")
   local search_phrase = vb.views.search_phrase.text
   local youtube_url = vb.views.youtube_url.text
