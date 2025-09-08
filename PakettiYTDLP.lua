@@ -56,9 +56,26 @@ function PakettiYTDLPSetExecutablePaths()
     local os_name = os.platform()
     
     if os_name == "MACINTOSH" then
-      -- Check Homebrew path on Mac
-      yt_dlp_path = "/opt/homebrew/bin/yt-dlp"
-      PakettiYTDLPLogMessage("Detected macOS. Trying Homebrew yt-dlp path.")
+      -- Try multiple common macOS paths in order
+      local macos_paths = {
+        "/opt/homebrew/bin/yt-dlp",        -- Apple Silicon Homebrew
+        "/usr/local/bin/yt-dlp",           -- Intel Homebrew
+        "/usr/bin/yt-dlp"                  -- System installation
+      }
+      
+      for _, path in ipairs(macos_paths) do
+        local file = io.open(path, "r")
+        if file then
+          file:close()
+          yt_dlp_path = path
+          PakettiYTDLPLogMessage("Found yt-dlp at: " .. path)
+          break
+        end
+      end
+      
+      if not yt_dlp_path or yt_dlp_path == "" then
+        PakettiYTDLPLogMessage("Could not find yt-dlp in common macOS paths.")
+      end
     
     elseif os_name == "LINUX" then
       -- Try multiple common Linux paths in order (most common first)
@@ -100,14 +117,55 @@ function PakettiYTDLPSetExecutablePaths()
     return
   end
 
-  PakettiYTDLPLogMessage("Using yt-dlp path: " .. yt_dlp_path)
-  PakettiYTDLPLogMessage("Running on OS: " .. os.platform())
+  -- Final verification that the path actually exists and is executable
+  local file = io.open(yt_dlp_path, "r")
+  if file then
+    file:close()
+    PakettiYTDLPLogMessage("Using yt-dlp path: " .. yt_dlp_path)
+    PakettiYTDLPLogMessage("Running on OS: " .. os.platform())
+    
+    -- Test if yt-dlp is actually working
+    local test_command = string.format('%s"%s" --version', PakettiYTDLPGetPathEnv(), yt_dlp_path)
+    local test_handle = io.popen(test_command)
+    if test_handle then
+      local version_output = test_handle:read("*a")
+      test_handle:close()
+      if version_output and version_output ~= "" then
+        PakettiYTDLPLogMessage("yt-dlp version check successful")
+      else
+        PakettiYTDLPLogMessage("WARNING: yt-dlp version check failed - binary might not be working")
+      end
+    end
+  else
+    PakettiYTDLPLogMessage("ERROR: yt-dlp not found at: " .. yt_dlp_path)
+    PakettiYTDLPLogMessage("Please manually set the correct path in preferences")
+    error("yt-dlp executable not found at specified path")
+  end
 
   -- Set ffmpeg_path based on OS
   local os_name = os.platform()
   if os_name == "MACINTOSH" then
-    ffmpeg_path = "/opt/homebrew/bin/ffmpeg"
-    PakettiYTDLPLogMessage("Detected macOS. Setting ffmpeg path accordingly.")
+    -- Try multiple ffmpeg paths on macOS
+    local macos_ffmpeg_paths = {
+      "/opt/homebrew/bin/ffmpeg",          -- Apple Silicon Homebrew
+      "/usr/local/bin/ffmpeg",             -- Intel Homebrew
+      "/usr/bin/ffmpeg"                    -- System installation
+    }
+    
+    for _, path in ipairs(macos_ffmpeg_paths) do
+      local file = io.open(path, "r")
+      if file then
+        file:close()
+        ffmpeg_path = path
+        PakettiYTDLPLogMessage("Found ffmpeg at: " .. path)
+        break
+      end
+    end
+    
+    if not ffmpeg_path or ffmpeg_path == "" then
+      ffmpeg_path = "/opt/homebrew/bin/ffmpeg"  -- Default fallback
+      PakettiYTDLPLogMessage("Defaulting to Homebrew ffmpeg path")
+    end
   elseif os_name == "LINUX" then
     -- Try multiple ffmpeg paths on Linux
     local linux_ffmpeg_paths = {
@@ -564,43 +622,30 @@ function PakettiYTDLPDownloadVideo(youtube_url, full_video, clip_length, temp_di
   
   if full_video and not use_timestamps then
     command = string.format(
-      '%s"%s" --restrict-filenames -f ba --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+      'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
+      temp_dir,
       PakettiYTDLPGetPathEnv(),
       yt_dlp_path,
-      temp_dir,
-      separator,
-      separator,
       youtube_url
     )
   else
     -- Use sections - either timestamps or clip length  
-    -- Use best audio format for section downloads
-    local format_option = '-f ba'
-    if use_timestamps then
-      PakettiYTDLPLogMessage("DEBUG: Using best audio format for timestamps")
-    end
-    -- Simplified command construction - always use ba format, optionally add post-processing
+    -- Simplified command construction - no format specifier, let yt-dlp choose
     if download_sections == "" then
       command = string.format(
-        '%s"%s" --restrict-filenames %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
+        temp_dir,
         PakettiYTDLPGetPathEnv(),
         yt_dlp_path,
-        format_option,
-        temp_dir,
-        separator,
-        separator,
         youtube_url
       )
     else
       command = string.format(
-        '%s"%s" --restrict-filenames %s %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
+        'cd "%s" && %s"%s" %s --extract-audio --audio-format wav "%s"',
+        temp_dir,
         PakettiYTDLPGetPathEnv(),
         yt_dlp_path,
-        format_option,
         download_sections,
-        temp_dir,
-        separator,
-        separator,
         youtube_url
       )
     end
@@ -613,19 +658,8 @@ function PakettiYTDLPDownloadVideo(youtube_url, full_video, clip_length, temp_di
     return false
   end
   
-  -- Wait for process to finish (with timeout)
-  local process_timeout = 600  -- Maximum 10 minutes for download process
-  local process_wait_count = 0
-  
-  while process_running and process_wait_count < process_timeout do
-    os.execute("sleep 0.1")
-    process_wait_count = process_wait_count + 0.1
-  end
-  
-  if process_running then
-    PakettiYTDLPLogMessage("ERROR: Download process timed out after 10 minutes")
-    process_running = false  -- Force stop to prevent further issues
-  end
+  -- Process will complete asynchronously - no need to block here
+  PakettiYTDLPLogMessage("Download process started - will complete asynchronously")
   
   return true
 end
@@ -737,6 +771,112 @@ function PakettiYTDLPExecuteLua(search_phrase, youtube_url, download_dir, clip_l
   PakettiYTDLPLogMessage("Paketti YT-DLP finished.")
 end
 
+-- Global variables for async sample loading
+local async_sample_loading_timer = nil
+local async_loading_state = nil
+
+-- Function to load one sample at a time asynchronously  
+function PakettiYTDLPAsyncSampleLoader()
+  if not async_loading_state then return end
+  
+  local state = async_loading_state
+  local current_index = state.current_index
+  local sample_files = state.sample_files
+  local instrument = state.instrument
+  local loop_mode = state.loop_mode
+  local download_dir = state.download_dir
+  
+  if current_index > #sample_files then
+    -- All samples loaded, clean up
+    if async_sample_loading_timer and renoise.tool():has_timer(async_sample_loading_timer) then
+      renoise.tool():remove_timer(async_sample_loading_timer)
+    end
+    async_sample_loading_timer = nil
+    async_loading_state = nil
+    
+    -- Move files to final destination
+    for _, file in ipairs(sample_files) do
+      local dest_file = download_dir .. separator .. file:match("[^" .. separator .. "]+$")
+      local success_move, err_move = PakettiYTDLPMove(file, dest_file)
+      if success_move then
+        PakettiYTDLPLogMessage("Moved file to final location: " .. dest_file)
+      else
+        PakettiYTDLPLogMessage("ERROR: Failed to move file: " .. tostring(err_move))
+      end
+    end
+    
+    -- Switch to sample editor view
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+    PakettiYTDLPLogMessage("=== Sample import complete ===")
+    return
+  end
+  
+  -- Load current sample
+  local file = sample_files[current_index]
+  PakettiYTDLPLogMessage("Loading sample " .. current_index .. "/" .. #sample_files .. ": " .. file)
+  
+  local sample = instrument:insert_sample_at(1)
+  if sample then
+    local buffer = sample.sample_buffer
+    if buffer then
+      -- Load the sample
+      if buffer:load_from(file) then
+        -- Set names and properties
+        local filename = file:match("[^" .. separator .. "]+$")
+        sample.name = filename
+        instrument.name = filename
+        sample.loop_mode = loop_mode
+
+        PakettiYTDLPLogMessage("Successfully loaded sample: " .. filename)
+
+        -- Remove placeholder sample if it exists
+        local num_samples = #instrument.samples
+        if num_samples > 0 and instrument.samples[num_samples].name == "Placeholder sample" then
+          instrument:delete_sample_at(num_samples)
+          PakettiYTDLPLogMessage("Removed placeholder sample from last slot")
+        end
+      else
+        PakettiYTDLPLogMessage("ERROR: Failed to load sample from file")
+      end
+    else
+      PakettiYTDLPLogMessage("ERROR: Failed to get sample buffer")
+    end
+  else
+    PakettiYTDLPLogMessage("ERROR: Failed to insert sample")
+  end
+  
+  -- Move to next sample
+  async_loading_state.current_index = current_index + 1
+end
+
+-- Function to start async sample loading
+function PakettiYTDLPStartAsyncSampleLoading(sample_files, instrument, loop_mode, download_dir)
+  if #sample_files == 0 then
+    PakettiYTDLPLogMessage("No samples to load")
+    return
+  end
+  
+  -- Set up loading state
+  async_loading_state = {
+    current_index = 1,
+    sample_files = sample_files,
+    instrument = instrument,
+    loop_mode = loop_mode,
+    download_dir = download_dir
+  }
+  
+  -- Clean up any existing timer
+  if async_sample_loading_timer and renoise.tool():has_timer(async_sample_loading_timer) then
+    renoise.tool():remove_timer(async_sample_loading_timer)
+  end
+  
+  -- Start timer to load samples one by one
+  async_sample_loading_timer = PakettiYTDLPAsyncSampleLoader
+  renoise.tool():add_timer(async_sample_loading_timer, 200) -- 200ms delay between samples
+  
+  PakettiYTDLPLogMessage("Started async loading of " .. #sample_files .. " sample(s)")
+end
+
 -- Function to load downloaded samples into Renoise
 function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_new_instrument)
   local temp_dir = download_dir .. separator .. "tempfolder"
@@ -746,25 +886,11 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
   PakettiYTDLPLogMessage("=== Starting Renoise import process ===")
   PakettiYTDLPLogMessage("Checking completion signal file: " .. completion_signal_file)
 
-  -- Wait until the completion signal file is created (with timeout)
-  local max_wait_time = 300  -- Maximum 5 minutes waiting for completion
-  local wait_count = 0
-  local completion_detected = false
-  
-  while wait_count < max_wait_time and not PakettiYTDLPFileExists(completion_signal_file) do
-    if wait_count == 0 then
-      PakettiYTDLPLogMessage("Waiting for completion signal file...")
-    end
-    wait_count = wait_count + 1
-    os.execute('sleep 1')
-  end
-  
+  -- Check if completion signal file already exists (should be there since timer called us)
   if PakettiYTDLPFileExists(completion_signal_file) then
     PakettiYTDLPLogMessage("Completion signal file detected")
-    completion_detected = true
   else
-    PakettiYTDLPLogMessage("ERROR: Download did not complete within 5 minutes. Checking for files anyway...")
-    completion_detected = false
+    PakettiYTDLPLogMessage("WARNING: Completion signal not found, checking for files anyway...")
   end
 
   -- List all WAV files in temp directory
@@ -787,34 +913,14 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
 
   PakettiYTDLPLogMessage("Found " .. #sample_files .. " WAV file(s) to import")
 
-  -- Ensure files are fully available
+  -- Simple file existence check (files should be ready since process completed)
   for _, file in ipairs(sample_files) do
-    PakettiYTDLPLogMessage("Checking file availability: " .. file)
-    local file_size = -1
-    local max_retries = 30  -- Maximum 30 seconds waiting for file
-    local retry_count = 0
-    local file_found = false
-    
-    while retry_count < max_retries do
-      local f = io.open(file, "rb")
-      if f then
-        local current_file_size = f:seek("end")
-        f:close()
-        if current_file_size == file_size then
-          file_found = true
-          break
-        end
-        file_size = current_file_size
-      end
-      retry_count = retry_count + 1
-      os.execute('sleep 1')
-    end
-    
-    if file_found then
+    local f = io.open(file, "rb")
+    if f then
+      f:close()
       PakettiYTDLPLogMessage("File is ready: " .. file)
     else
-      PakettiYTDLPLogMessage("ERROR: File not found or not accessible after 30 seconds: " .. file)
-      -- Continue processing other files instead of failing completely
+      PakettiYTDLPLogMessage("WARNING: File not accessible: " .. file)
     end
   end
 
@@ -835,57 +941,8 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
     return
   end
 
-  for _, file in ipairs(sample_files) do
-    PakettiYTDLPLogMessage("Loading sample into Renoise: " .. file)
-    local sample = instrument:insert_sample_at(1)
-    if sample then
-      local buffer = sample.sample_buffer
-      if buffer then
-        -- Load the sample
-        if buffer:load_from(file) then
-          -- Wait for sample to be fully loaded
-          buffer:prepare_sample_data_changes()
-          buffer:finalize_sample_data_changes()
-
-          -- Set names and properties
-          local filename = file:match("[^" .. separator .. "]+$")
-          sample.name = filename
-          instrument.name = filename
-          sample.loop_mode = loop_mode
-
-          PakettiYTDLPLogMessage("Successfully loaded sample: " .. filename)
-
-          -- Remove placeholder sample if it exists
-          local num_samples = #instrument.samples
-          if num_samples > 0 and instrument.samples[num_samples].name == "Placeholder sample" then
-            instrument:delete_sample_at(num_samples)
-            PakettiYTDLPLogMessage("Removed placeholder sample from last slot")
-          end
-        else
-          PakettiYTDLPLogMessage("ERROR: Failed to load sample from file")
-        end
-      else
-        PakettiYTDLPLogMessage("ERROR: Failed to get sample buffer")
-      end
-    else
-      PakettiYTDLPLogMessage("ERROR: Failed to insert sample")
-    end
-  end
-
-  -- Move files to final destination
-  for _, file in ipairs(sample_files) do
-    local dest_file = download_dir .. separator .. file:match("[^" .. separator .. "]+$")
-    local success_move, err_move = PakettiYTDLPMove(file, dest_file)
-    if success_move then
-      PakettiYTDLPLogMessage("Moved file to final location: " .. dest_file)
-    else
-      PakettiYTDLPLogMessage("ERROR: Failed to move file: " .. tostring(err_move))
-    end
-  end
-
-  -- Switch to sample editor view
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-  PakettiYTDLPLogMessage("=== Sample import complete ===")
+  -- Start async sample loading process (will handle file moving and completion)
+  PakettiYTDLPStartAsyncSampleLoading(sample_files, instrument, loop_mode, download_dir)
 end
 
 -- Function to browse for output directory (direct, no warning)
@@ -1067,43 +1124,33 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
   
   if full_video and not use_timestamps then
     download_cmd = string.format(
-      '%s"%s" --restrict-filenames -f ba --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
-      PakettiYTDLPGetPathEnv(),
-      yt_dlp_path,
+      'cd "%s%stempfolder" && %s"%s" --extract-audio --audio-format wav "%s"',
       output_dir,
       separator,
-      separator,
+      PakettiYTDLPGetPathEnv(),
+      yt_dlp_path,
       command
     )
   else
     -- Use sections - either timestamps or clip length  
-    -- Use best audio format for section downloads
-    local format_option = '-f ba'
-    if use_timestamps then
-      PakettiYTDLPLogMessage("DEBUG: Using best audio format for timestamps")
-    end
-    -- Simplified command construction - always use ba format, optionally add post-processing
+    -- Simplified command construction - no format specifier, let yt-dlp choose
     if download_sections == "" then
       download_cmd = string.format(
-        '%s"%s" --restrict-filenames %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
-        PakettiYTDLPGetPathEnv(),
-        yt_dlp_path,
-        format_option,
+        'cd "%s%stempfolder" && %s"%s" --extract-audio --audio-format wav "%s"',
         output_dir,
         separator,
-        separator,
+        PakettiYTDLPGetPathEnv(),
+        yt_dlp_path,
         command
       )
     else
       download_cmd = string.format(
-        '%s"%s" --restrict-filenames %s %s --extract-audio --audio-format wav -o "%s%stempfolder%s%%(title)s-%%(id)s.%%(ext)s" "%s"',
-        PakettiYTDLPGetPathEnv(),
-        yt_dlp_path,
-        format_option,
-        download_sections,
+        'cd "%s%stempfolder" && %s"%s" %s --extract-audio --audio-format wav "%s"',
         output_dir,
         separator,
-        separator,
+        PakettiYTDLPGetPathEnv(),
+        yt_dlp_path,
+        download_sections,
         command
       )
     end
@@ -1113,33 +1160,20 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
   
   PakettiYTDLPLogMessage("=== Starting download process ===")
   
-  -- Execute download with process slicing
-  process_handle = io.popen(download_cmd .. " 2>&1", "r")
-  if not process_handle then
+  -- Start download using existing timer-based process slicing system  
+  if not PakettiYTDLPExecuteCommand(download_cmd) then
     PakettiYTDLPLogMessage("ERROR: Failed to start download")
     return
   end
   
-  -- Monitor download progress with slicing
-  while true do
-    local output = process_handle:read("*l")
-    if not output then break end
-    
-    -- Update status text based on output
-    if status_text then
-      if output:match("^%[download%]%s+([%d%.]+)%%%s+") then
-        status_text.text="Downloading: " .. output:match("^%[download%]%s+([%d%.]+)%%%s+") .. "%"
-      elseif output:match("^%[ExtractAudio%]") then
-        status_text.text="Extracting Audio..."
-      end
-    end
-    
-    PakettiYTDLPLogMessage(output)
-    coroutine.yield()
+  PakettiYTDLPLogMessage("=== Download started - will be monitored by timer-based slicing ===")
+  
+  -- Wait for the download process to complete by checking process_running flag
+  while process_running do
+    coroutine.yield()  -- Yield to allow other operations
   end
   
-  process_handle:close()
-  process_handle = nil
+  PakettiYTDLPLogMessage("=== Download process completed ===")
   
   if status_text then
     status_text.text="Ready"
