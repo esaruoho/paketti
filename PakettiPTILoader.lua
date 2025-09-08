@@ -1750,7 +1750,321 @@ function pti_savesample_Worker(dialog, vb)
   print("-- PTI Save: Export complete - cleared melodic slice mode flag")
 end
 
+-- PTI Subfolder Export Functions (GLOBAL)
+function PakettiExportSubfoldersAsMelodicSlices()
+  -- Prompt user to select parent folder
+  local parent_folder = renoise.app():prompt_for_path("Select parent folder containing subfolders to export as melodic slice PTIs")
+  if not parent_folder or parent_folder == "" then
+    renoise.app():show_status("No parent folder selected")
+    return
+  end
+  
+  print("------------")
+  print("-- PTI Subfolder Export: Melodic Slices from " .. parent_folder)
+  
+  -- Get subdirectories using existing Renoise function
+  local success, subdirs = pcall(os.dirnames, parent_folder)
+  if not success or not subdirs or #subdirs == 0 then
+    renoise.app():show_status("No subdirectories found in selected folder")
+    print("-- No subdirectories found or error accessing: " .. parent_folder)
+    return
+  end
+  
+  local separator = package.config:sub(1, 1)
+  local exported_count = 0
+  
+  for _, subdir_name in ipairs(subdirs) do
+    -- Skip hidden directories and system folders
+    if not subdir_name:match("^%.") then
+      local subdir_path = parent_folder .. separator .. subdir_name
+      local audio_files = PakettiGetFilesInDirectory(subdir_path)
+      
+      if #audio_files > 0 and #audio_files <= 48 then
+        print(string.format("-- Processing subfolder: %s (%d audio files)", subdir_name, #audio_files))
+        
+        if #audio_files == 1 then
+          -- Single file: create simple instrument mapped C-0 to B-9
+          renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+          renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
+          
+          pakettiPreferencesDefaultInstrumentLoader()
+          
+          local inst = renoise.song().selected_instrument
+          local sample = inst.samples[1]
+          
+          -- Load the single audio file
+          local success_load, load_result = pcall(function()
+            return sample.sample_buffer:load_from(audio_files[1])
+          end)
+          
+          if success_load and load_result then
+            inst.name = subdir_name
+            sample.name = subdir_name
+            sample.sample_mapping.note_range = {0, 119} -- C-0 to B-9
+            sample.sample_mapping.velocity_range = {0, 127}
+            
+            -- Export as PTI
+            local pti_path = parent_folder .. separator .. subdir_name .. ".pti"
+            local export_success = pti_savesample_to_path(pti_path)
+            if export_success then
+              exported_count = exported_count + 1
+              print(string.format("-- Exported single sample PTI: %s", pti_path))
+            end
+          else
+            print(string.format("-- Failed to load audio file from %s", subdir_name))
+          end
+          
+        else
+          -- Multiple files: create melodic slice setup
+          renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+          renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
+          
+          pakettiPreferencesDefaultInstrumentLoader()
+          
+          local inst = renoise.song().selected_instrument
+          inst.name = subdir_name
+          
+          -- Delete default sample
+          if #inst.samples > 0 then
+            inst:delete_sample_at(1)
+          end
+          
+          -- Load up to 48 audio files as separate samples
+          local loaded_count = 0
+          for i, audio_file in ipairs(audio_files) do
+            if i <= 48 then
+              local sample = inst:insert_sample_at(#inst.samples + 1)
+              local success_load, load_result = pcall(function()
+                return sample.sample_buffer:load_from(audio_file)
+              end)
+              
+              if success_load and load_result then
+                local file_name = audio_file:match("([^/\\]+)%.%w+$") or ("Sample_" .. i)
+                sample.name = file_name
+                
+                -- Set up melodic slice mapping: first sample active (00-7F), others inactive (00-00)
+                if i == 1 then
+                  sample.sample_mapping.velocity_range = {0, 127} -- Active sample
+                  sample.sample_mapping.note_range = {0, 119} -- C-0 to B-9
+                else
+                  sample.sample_mapping.velocity_range = {0, 0} -- Inactive samples
+                  sample.sample_mapping.note_range = {0, 119} -- C-0 to B-9
+                end
+                
+                loaded_count = loaded_count + 1
+              else
+                print(string.format("-- Failed to load audio file: %s", audio_file))
+              end
+            end
+          end
+          
+          if loaded_count > 0 then
+            -- Set melodic slice mode and export
+            paketti_melodic_slice_mode = true
+            current_selected_slice = 0 -- First slice selected
+            
+            local pti_path = parent_folder .. separator .. subdir_name .. ".pti"
+            local export_success = pti_savesample_to_path(pti_path)
+            if export_success then
+              exported_count = exported_count + 1
+              print(string.format("-- Exported melodic slice PTI: %s (%d samples)", pti_path, loaded_count))
+            end
+            
+            -- Clear melodic slice mode
+            paketti_melodic_slice_mode = false
+            current_selected_slice = nil
+          end
+        end
+      elseif #audio_files > 48 then
+        print(string.format("-- Skipping subfolder %s: too many files (%d), max 48", subdir_name, #audio_files))
+      else
+        print(string.format("-- Skipping subfolder %s: no audio files found", subdir_name))
+      end
+    end
+  end
+  
+  renoise.app():show_status(string.format("Melodic slice export complete: %d PTI files created from subfolders", exported_count))
+  print(string.format("-- PTI Subfolder Export: Completed melodic slices export - %d PTIs created", exported_count))
+end
+
+-- PTI Subfolder Export Functions (GLOBAL)  
+function PakettiExportSubfoldersAsDrumSlices()
+  -- Prompt user to select parent folder
+  local parent_folder = renoise.app():prompt_for_path("Select parent folder containing subfolders to export as drum slice PTIs")
+  if not parent_folder or parent_folder == "" then
+    renoise.app():show_status("No parent folder selected")
+    return
+  end
+  
+  print("------------")
+  print("-- PTI Subfolder Export: Drum Slices from " .. parent_folder)
+  
+  -- Get subdirectories using existing Renoise function
+  local success, subdirs = pcall(os.dirnames, parent_folder)
+  if not success or not subdirs or #subdirs == 0 then
+    renoise.app():show_status("No subdirectories found in selected folder")
+    print("-- No subdirectories found or error accessing: " .. parent_folder)
+    return
+  end
+  
+  local separator = package.config:sub(1, 1)
+  local exported_count = 0
+  
+  for _, subdir_name in ipairs(subdirs) do
+    -- Skip hidden directories and system folders
+    if not subdir_name:match("^%.") then
+      local subdir_path = parent_folder .. separator .. subdir_name
+      local audio_files = PakettiGetFilesInDirectory(subdir_path)
+      
+      if #audio_files > 0 and #audio_files <= 48 then
+        print(string.format("-- Processing subfolder: %s (%d audio files)", subdir_name, #audio_files))
+        
+        if #audio_files == 1 then
+          -- Single file: create simple instrument mapped C-0 to B-9
+          renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+          renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
+          
+          pakettiPreferencesDefaultInstrumentLoader()
+          
+          local inst = renoise.song().selected_instrument
+          local sample = inst.samples[1]
+          
+          -- Load the single audio file
+          local success_load, load_result = pcall(function()
+            return sample.sample_buffer:load_from(audio_files[1])
+          end)
+          
+          if success_load and load_result then
+            inst.name = subdir_name
+            sample.name = subdir_name
+            sample.sample_mapping.note_range = {0, 119} -- C-0 to B-9
+            sample.sample_mapping.velocity_range = {0, 127}
+            
+            -- Export as PTI (will use Beat Slice mode since paketti_melodic_slice_mode is false)
+            local pti_path = parent_folder .. separator .. subdir_name .. ".pti"
+            local export_success = pti_savesample_to_path(pti_path)
+            if export_success then
+              exported_count = exported_count + 1
+              print(string.format("-- Exported single sample PTI: %s", pti_path))
+            end
+          else
+            print(string.format("-- Failed to load audio file from %s", subdir_name))
+          end
+          
+        else
+          -- Multiple files: create drum slice setup using sample chaining
+          renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+          renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
+          
+          pakettiPreferencesDefaultInstrumentLoader()
+          
+          local inst = renoise.song().selected_instrument
+          inst.name = subdir_name
+          local base_sample = inst.samples[1]
+          
+          -- Create sample chain by concatenating audio files
+          local chain_data = {}
+          local slice_positions = {}
+          local total_frames = 0
+          local sample_rate = 44100
+          local is_stereo = false
+          
+          -- First pass: analyze files and determine if we need stereo
+          for i, audio_file in ipairs(audio_files) do
+            if i <= 48 then
+              -- Create temporary instrument to load and analyze file
+              local temp_inst_idx = #renoise.song().instruments + 1
+              renoise.song():insert_instrument_at(temp_inst_idx)
+              local temp_sample = renoise.song().instruments[temp_inst_idx].samples[1]
+              
+              local success_load = pcall(function()
+                temp_sample.sample_buffer:load_from(audio_file)
+              end)
+              
+              if success_load and temp_sample.sample_buffer.has_sample_data then
+                local channels = temp_sample.sample_buffer.number_of_channels
+                local frames = temp_sample.sample_buffer.number_of_frames
+                
+                if channels == 2 then
+                  is_stereo = true
+                end
+                
+                -- Store sample data temporarily
+                chain_data[i] = {
+                  frames = frames,
+                  channels = channels,
+                  data = temp_sample.sample_buffer
+                }
+                
+                slice_positions[i] = total_frames + 1 -- +1 for 1-based indexing
+                total_frames = total_frames + frames
+                
+                print(string.format("-- Sample %d: %d frames, %s", i, frames, channels == 2 and "stereo" or "mono"))
+              end
+              
+              -- Clean up temporary instrument
+              renoise.song():delete_instrument_at(temp_inst_idx)
+            end
+          end
+          
+          if total_frames > 0 then
+            -- Create the chained sample buffer
+            base_sample.sample_buffer:create_sample_data(sample_rate, 16, is_stereo and 2 or 1, total_frames)
+            base_sample.sample_buffer:prepare_sample_data_changes()
+            
+            -- Copy data from individual samples into chain
+            local current_pos = 1
+            for i, sample_info in ipairs(chain_data) do
+              if sample_info and sample_info.data and sample_info.data.has_sample_data then
+                local frames = sample_info.frames
+                local channels = sample_info.channels
+                
+                for frame = 1, frames do
+                  for ch = 1, (is_stereo and 2 or 1) do
+                    local value = 0
+                    if ch <= channels then
+                      value = sample_info.data:sample_data(ch, frame)
+                    end
+                    base_sample.sample_buffer:set_sample_data(ch, current_pos + frame - 1, value)
+                  end
+                end
+                current_pos = current_pos + frames
+              end
+            end
+            
+            base_sample.sample_buffer:finalize_sample_data_changes()
+            
+            -- Add slice markers for drum slices
+            for i = 2, #slice_positions do -- Skip first position (start of sample)
+              base_sample:insert_slice_marker(slice_positions[i])
+            end
+            
+            base_sample.name = subdir_name .. " (Drum Chain)"
+            
+            -- Export as drum slice PTI (Beat Slice mode)
+            local pti_path = parent_folder .. separator .. subdir_name .. ".pti"
+            local export_success = pti_savesample_to_path(pti_path)
+            if export_success then
+              exported_count = exported_count + 1
+              print(string.format("-- Exported drum slice PTI: %s (%d slices)", pti_path, #slice_positions))
+            end
+          end
+        end
+      elseif #audio_files > 48 then
+        print(string.format("-- Skipping subfolder %s: too many files (%d), max 48", subdir_name, #audio_files))
+      else
+        print(string.format("-- Skipping subfolder %s: no audio files found", subdir_name))
+      end
+    end
+  end
+  
+  renoise.app():show_status(string.format("Drum slice export complete: %d PTI files created from subfolders", exported_count))
+  print(string.format("-- PTI Subfolder Export: Completed drum slices export - %d PTIs created", exported_count))
+end
+
 -- Menu entries
 renoise.tool():add_keybinding{name="Global:Paketti:PTI Export",invoke = pti_savesample}
+renoise.tool():add_keybinding{name="Global:Paketti:Export Subfolders as Melodic Slices",invoke = PakettiExportSubfoldersAsMelodicSlices}
+renoise.tool():add_keybinding{name="Global:Paketti:Export Subfolders as Drum Slices",invoke = PakettiExportSubfoldersAsDrumSlices}
 
 

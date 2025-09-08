@@ -556,6 +556,88 @@ function PakettiSliceStepSampleOffsetUpdateSelection(offset_value)
   print("DEBUG: Sample Offset 0S" .. string.format("%02X", offset_value) .. " -> Frame " .. frame .. " (" .. math.floor((frame / buffer.number_of_frames) * 100) .. "%), display from " .. new_display_start .. "-" .. new_display_end .. ", selection: " .. selection_start .. "-" .. selection_end .. " (" .. selection_frames .. " frames)")
 end
 
+-- Smart transpose function - context-aware instrument transpose
+-- If current track has content, transpose the instruments used in that track
+-- If current track is empty, transpose the selected instrument
+function PakettiSliceStepSmartTranspose(transpose_value)
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_status("No song loaded")
+    return
+  end
+  
+  local current_track_index = song.selected_track_index
+  local current_track = song.tracks[current_track_index]
+  if not current_track then
+    renoise.app():show_status("No track selected")
+    return
+  end
+  
+  -- Find instruments used in current track across all patterns
+  local track_instruments = {}
+  local pattern_sequence = song.sequencer.pattern_sequence
+  
+  for seq_index = 1, #pattern_sequence do
+    local pattern_index = pattern_sequence[seq_index]
+    local pattern = song.patterns[pattern_index]
+    if pattern and pattern.tracks[current_track_index] then
+      local track_in_pattern = pattern.tracks[current_track_index]
+      
+      -- Check all lines in this track
+      for line_index = 1, track_in_pattern.number_of_lines do
+        local line = track_in_pattern:line(line_index)
+        
+        -- Check all note columns for instruments
+        for note_column_index = 1, #line.note_columns do
+          local note_column = line.note_columns[note_column_index]
+          if note_column.instrument_value < 255 then  -- Valid instrument (255 = empty)
+            local instrument_index = note_column.instrument_value + 1  -- Convert to 1-based
+            track_instruments[instrument_index] = true
+          end
+        end
+      end
+    end
+  end
+  
+  -- Count instruments found
+  local instrument_count = 0
+  local instruments_to_transpose = {}
+  for instrument_index, _ in pairs(track_instruments) do
+    instrument_count = instrument_count + 1
+    instruments_to_transpose[#instruments_to_transpose + 1] = instrument_index
+  end
+  
+  -- Decide what to transpose
+  if instrument_count > 0 then
+    -- Track has content - transpose instruments used in track
+    local transposed_names = {}
+    for _, instrument_index in ipairs(instruments_to_transpose) do
+      local instrument = song.instruments[instrument_index]
+      if instrument then
+        -- Clamp transpose value to valid range (-120 to +120)
+        local new_transpose = math.max(-120, math.min(120, transpose_value))
+        instrument.transpose = new_transpose
+        transposed_names[#transposed_names + 1] = string.format("%02X", instrument_index - 1)
+      end
+    end
+    
+    local instrument_list = table.concat(transposed_names, ", ")
+    renoise.app():show_status(string.format("Track %d instruments [%s] transpose set to %+d", 
+      current_track_index, instrument_list, transpose_value))
+  else
+    -- Track is empty - transpose selected instrument  
+    local selected_instrument = song.selected_instrument
+    if selected_instrument then
+      local new_transpose = math.max(-120, math.min(120, transpose_value))
+      selected_instrument.transpose = new_transpose
+      renoise.app():show_status(string.format("Selected instrument [%02X] transpose set to %+d", 
+        song.selected_instrument_index - 1, transpose_value))
+    else
+      renoise.app():show_status("No instrument selected and track is empty")
+    end
+  end
+end
+
 -- Colors
 local normal_color = {0,0,0}
 local beat_color = {0x22 / 255, 0xaa / 255, 0xff / 255}
@@ -1743,14 +1825,29 @@ end
 function PakettiSliceStepGlobalSampleOffset()
   print("DEBUG: PakettiSliceStepGlobalSampleOffset - Setting all rows to SAMPLE_OFFSET mode...")
   
+  -- Check if we're currently in slice mode (any row using slice mode)
+  local dialog_in_slice_mode = false
+  for row = 1, NUM_ROWS do
+    if rows[row] and rows[row].enabled and rows[row].mode == ROW_MODES.SLICE then
+      dialog_in_slice_mode = true
+      break
+    end
+  end
+  
+  print("DEBUG: Dialog in slice mode:", dialog_in_slice_mode)
+  
   -- STEP 1: Disable writing to pattern
   initializing_dialog = true
   
-  -- STEP 2: Set all switches to Sample Offset mode directly
+  -- Calculate even spread values: 8 equal slices (256/8 = 32 units apart)  
+  local even_spread_values = {0, 32, 64, 96, 128, 160, 192, 224}
+  
+  -- STEP 2: Set all switches to Sample Offset mode directly with spread values
   for row = 1, NUM_ROWS do
-    print("DEBUG: Setting row " .. row .. " to SAMPLE_OFFSET mode and enabling")
+    print("DEBUG: Setting row " .. row .. " to SAMPLE_OFFSET mode and enabling with offset " .. even_spread_values[row])
     rows[row].mode = ROW_MODES.SAMPLE_OFFSET
     rows[row].enabled = true
+    rows[row].value = even_spread_values[row]
     
     -- Update the UI switch directly - no dialog refresh needed
     if row_mode_switches[row] then
@@ -1758,10 +1855,11 @@ function PakettiSliceStepGlobalSampleOffset()
       print("DEBUG: Updated switch for row " .. row .. " to SAMPLE_OFFSET mode")
     end
     
-    -- Enable sample offset valuebox since we're switching to sample offset mode
+    -- Enable and update sample offset valuebox since we're switching to sample offset mode
     if sample_offset_valueboxes[row] then
       sample_offset_valueboxes[row].active = true
-      print("DEBUG: Enabled sample offset valuebox for row " .. row)
+      sample_offset_valueboxes[row].value = even_spread_values[row]
+      print("DEBUG: Enabled sample offset valuebox for row " .. row .. " with value " .. even_spread_values[row])
     end
     
     -- DISABLE slice note valuebox for sample offset mode
@@ -1777,22 +1875,48 @@ function PakettiSliceStepGlobalSampleOffset()
     end
   end
   
-  -- STEP 3: Clear sample offsets from the pattern
   local song = renoise.song()
   local pattern = song.selected_pattern
   local track_index = song.selected_track_index
   
-  print("DEBUG: Clearing pattern...")
-  for line = 1, pattern.number_of_lines do
-    local pattern_line = pattern:track(track_index):line(line)
-    -- Clear all note columns and effect columns
-    for col = 1, math.min(8, #pattern_line.note_columns) do
-      pattern_line:note_column(col).note_string = "---"
-      pattern_line:note_column(col).instrument_value = 255
+  if dialog_in_slice_mode then
+    -- STEP 3a: If in slice mode, convert existing slice notes to first sample notes + offsets
+    -- BUT preserve the stepsequencing pattern content
+    print("DEBUG: Converting slice notes to first sample notes with offsets, preserving stepsequencing...")
+    
+    for line = 1, pattern.number_of_lines do
+      local pattern_line = pattern:track(track_index):line(line)
+      -- Only modify notes that exist, don't clear empty lines
+      for col = 1, math.min(8, #pattern_line.note_columns) do
+        local note_col = pattern_line:note_column(col)
+        if note_col.note_string ~= "---" and note_col.note_string ~= "" then
+          -- Get the first sample's note (typically C-4 or the base note)
+          local instrument = song.selected_instrument
+          if instrument and #instrument.samples > 0 then
+            local first_sample = instrument.samples[1]
+            if first_sample then
+              -- Set note to play the first sample (usually C-4)
+              note_col.note_string = "C-4"
+              print("DEBUG: Line " .. line .. " col " .. col .. " converted to first sample note C-4")
+            end
+          end
+        end
+      end
     end
-    for col = 1, math.min(8, #pattern_line.effect_columns) do
-      pattern_line.effect_columns[col].number_string = ""
-      pattern_line.effect_columns[col].amount_string = ""
+  else
+    -- STEP 3b: Original behavior for non-slice mode - clear pattern completely
+    print("DEBUG: Clearing pattern (not in slice mode)...")
+    for line = 1, pattern.number_of_lines do
+      local pattern_line = pattern:track(track_index):line(line)
+      -- Clear all note columns and effect columns
+      for col = 1, math.min(8, #pattern_line.note_columns) do
+        pattern_line:note_column(col).note_string = "---"
+        pattern_line:note_column(col).instrument_value = 255
+      end
+      for col = 1, math.min(8, #pattern_line.effect_columns) do
+        pattern_line.effect_columns[col].number_string = ""
+        pattern_line.effect_columns[col].amount_string = ""
+      end
     end
   end
   
@@ -1806,7 +1930,11 @@ function PakettiSliceStepGlobalSampleOffset()
   -- Update sample effect column visibility (should be visible in sample offset mode)
   PakettiSliceStepUpdateSampleEffectColumnVisibility()
   
-  renoise.app():show_status("Global Sample Offset: Enabled all 8 rows, cleared pattern, applied sample offset pattern")
+  if dialog_in_slice_mode then
+    renoise.app():show_status("Global Sample Offset: Enabled all 8 rows, converted slice notes to first sample + spread offsets (00,20,40,60,80,A0,C0,E0), preserved stepsequencing")
+  else
+    renoise.app():show_status("Global Sample Offset: Enabled all 8 rows, cleared pattern, applied sample offset pattern with spread offsets (00,20,40,60,80,A0,C0,E0)")
+  end
 end
 
 function PakettiSliceStepEvenSpread()
@@ -4210,55 +4338,35 @@ vb:valuebox{
       text = "-24",
       width = 25,
       notifier = function()
-        local song = renoise.song()
-        if song and song.selected_instrument then
-          song.selected_instrument.transpose = -24
-          renoise.app():show_status("Instrument transpose set to -24")
-        end
+        PakettiSliceStepSmartTranspose(-24)
       end
     },
     vb:button{
       text = "-12",
       width = 25,
       notifier = function()
-        local song = renoise.song()
-        if song and song.selected_instrument then
-          song.selected_instrument.transpose = -12
-          renoise.app():show_status("Instrument transpose set to -12")
-        end
+        PakettiSliceStepSmartTranspose(-12)
       end
     },
     vb:button{
       text = "0",
       width = 15,
       notifier = function()
-        local song = renoise.song()
-        if song and song.selected_instrument then
-          song.selected_instrument.transpose = 0
-          renoise.app():show_status("Instrument transpose set to 0")
-        end
+        PakettiSliceStepSmartTranspose(0)
       end
     },
     vb:button{
       text = "+12",
       width = 25,
       notifier = function()
-        local song = renoise.song()
-        if song and song.selected_instrument then
-          song.selected_instrument.transpose = 12
-          renoise.app():show_status("Instrument transpose set to +12")
-        end
+        PakettiSliceStepSmartTranspose(12)
       end
     },
     vb:button{
       text = "+24",
       width = 25,
       notifier = function()
-        local song = renoise.song()
-        if song and song.selected_instrument then
-          song.selected_instrument.transpose = 24
-          renoise.app():show_status("Instrument transpose set to +24")
-        end
+        PakettiSliceStepSmartTranspose(24)
       end
     },
     

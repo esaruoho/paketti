@@ -1412,6 +1412,8 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti eSpe
     
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Convert REX/RX2/ITI to PTI",invoke=universal_to_pti_convert}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:File Formats:Export Subfolders as Melodic Slices",invoke=PakettiExportSubfoldersAsMelodicSlices}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Export Subfolders as Drum Slices",invoke=PakettiExportSubfoldersAsDrumSlices}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:File Formats:Load .MOD as Sample",
   invoke=function() 
     local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")

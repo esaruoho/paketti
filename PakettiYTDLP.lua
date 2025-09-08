@@ -401,6 +401,24 @@ function PakettiYTDLPSanitizeFilename(filename)
   end
 end
 
+-- Function to sanitize and fix common URL issues
+function PakettiYTDLPSanitizeURL(url)
+  if not url or url == "" then
+    return url
+  end
+  
+  -- Fix missing 'h' at the start of https URLs
+  if url:match("^ttps://") then
+    url = "h" .. url
+    PakettiYTDLPLogMessage("DEBUG: Fixed URL missing 'h' prefix: " .. url)
+  elseif url:match("^ttp://") then
+    url = "h" .. url
+    PakettiYTDLPLogMessage("DEBUG: Fixed URL missing 'h' prefix: " .. url)
+  end
+  
+  return url
+end
+
 -- Function to convert time string to seconds
 function PakettiYTDLPTimeToSeconds(time_str)
   if not time_str then return nil end
@@ -585,71 +603,54 @@ function PakettiYTDLPDownloadVideo(youtube_url, full_video, clip_length, temp_di
   
   PakettiYTDLPLogMessage("DEBUG: PakettiYTDLPDownloadVideo called with full_video=" .. tostring(full_video) .. ", clip_length=" .. tostring(clip_length))
   
-  -- Check for timestamps in URL - timestamps ALWAYS override full_video setting
-  local timestamp_section = PakettiYTDLPDetectTimestamps(youtube_url)
+  -- COMMENTED OUT: Chapter and timestamp detection - just download full video
+  -- -- Check for timestamps in URL - timestamps ALWAYS override full_video setting
+  -- local timestamp_section = PakettiYTDLPDetectTimestamps(youtube_url)
   local use_timestamps = false
+  -- 
+  -- if timestamp_section then
+  --   -- Use post-processing to trim audio instead of problematic download-sections
+  --   local start_time = timestamp_section:match("(%d+)")
+  --   if start_time then
+  --     download_sections = '--postprocessor-args "FFmpegExtractAudio:-ss ' .. start_time .. ' -t ' .. clip_length .. '"'
+  --     use_timestamps = true
+  --     PakettiYTDLPLogMessage("DEBUG: Using FFmpegExtractAudio post-processing to extract " .. clip_length .. " seconds starting from " .. start_time .. " seconds")
+  --   else
+  --     download_sections = ""
+  --     use_timestamps = false
+  --     PakettiYTDLPLogMessage("DEBUG: Could not parse timestamp, downloading full audio")
+  --   end
+  --   if full_video then
+  --     PakettiYTDLPLogMessage("DEBUG: Timestamp detected - overriding 'Download Whole Video' setting")
+  --   end
+  -- elseif not full_video then
+  --   -- Only check for chapters if we're not downloading full video and no timestamps found
+  --   local has_chapters, first_chapter = PakettiYTDLPDetectChapters(youtube_url)
+  --   if has_chapters and first_chapter then
+  --     -- Download the first chapter by index
+  --     download_sections = '--hls-prefer-native --download-sections "0" --force-keyframes-at-cuts'
+  --     PakettiYTDLPLogMessage("CHAPTER DOWNLOAD: Downloading first chapter (index 0): \"" .. first_chapter .. "\"")
+  --   elseif has_chapters then
+  --     -- Has chapters but couldn't get names, use first chapter by index
+  --     download_sections = '--hls-prefer-native --download-sections "0" --force-keyframes-at-cuts'
+  --     PakettiYTDLPLogMessage("Video has chapters, downloading first chapter by index with exact cuts")
+  --   else
+  --     download_sections = '--hls-prefer-native --download-sections "*0-' .. clip_length .. '" --force-keyframes-at-cuts'
+  --     PakettiYTDLPLogMessage("Using HLS-native download-sections to extract first " .. clip_length .. " seconds with exact cuts")
+  --   end
+  -- end
   
-  if timestamp_section then
-    -- Use post-processing to trim audio instead of problematic download-sections
-    local start_time = timestamp_section:match("(%d+)")
-    if start_time then
-      download_sections = '--postprocessor-args "ffmpeg:-ss ' .. start_time .. '"'
-      use_timestamps = true
-      PakettiYTDLPLogMessage("DEBUG: Using ffmpeg post-processing to trim from " .. start_time .. " seconds: " .. download_sections)
-    else
-      download_sections = ""
-      use_timestamps = false
-      PakettiYTDLPLogMessage("DEBUG: Could not parse timestamp, downloading full audio")
-    end
-    if full_video then
-      PakettiYTDLPLogMessage("DEBUG: Timestamp detected - overriding 'Download Whole Video' setting")
-    end
-  elseif not full_video then
-    -- Only check for chapters if we're not downloading full video and no timestamps found
-    local has_chapters, first_chapter = PakettiYTDLPDetectChapters(youtube_url)
-    if has_chapters and first_chapter then
-      -- Download the first chapter by name
-      download_sections = '--download-sections "' .. first_chapter .. '"'
-      PakettiYTDLPLogMessage("CHAPTER DOWNLOAD: Downloading chapter \"" .. first_chapter .. "\"")
-    elseif has_chapters then
-      -- Has chapters but couldn't get names, fall back to time-based
-      download_sections = '--download-sections "*0-' .. clip_length .. '"'
-      PakettiYTDLPLogMessage("Video has chapters but couldn't get chapter names, using time-based section")
-    else
-      download_sections = '--download-sections "*0-' .. clip_length .. '"'
-    end
-  end
+  -- Simplified: Always download full video
+  PakettiYTDLPLogMessage("DEBUG: Downloading full video (chapter/timestamp detection disabled)")
   
-  if full_video and not use_timestamps then
-    command = string.format(
-      'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
-      temp_dir,
-      PakettiYTDLPGetPathEnv(),
-      yt_dlp_path,
-      youtube_url
-    )
-  else
-    -- Use sections - either timestamps or clip length  
-    -- Simplified command construction - no format specifier, let yt-dlp choose
-    if download_sections == "" then
-      command = string.format(
-        'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
-        temp_dir,
-        PakettiYTDLPGetPathEnv(),
-        yt_dlp_path,
-        youtube_url
-      )
-    else
-      command = string.format(
-        'cd "%s" && %s"%s" %s --extract-audio --audio-format wav "%s"',
-        temp_dir,
-        PakettiYTDLPGetPathEnv(),
-        yt_dlp_path,
-        download_sections,
-        youtube_url
-      )
-    end
-  end
+  -- Simplified: Always download full video
+  command = string.format(
+    'cd "%s" && %s"%s" -f "bestaudio/best" --external-downloader ffmpeg --external-downloader-args "-c copy" --extract-audio --audio-format wav "%s"',
+    temp_dir,
+    PakettiYTDLPGetPathEnv(),
+    yt_dlp_path,
+    youtube_url
+  )
   
   PakettiYTDLPLogMessage("DEBUG: Final download command (PakettiYTDLPDownloadVideo): " .. command)
   
@@ -1087,74 +1088,55 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
   local download_cmd
   local download_sections = ""
   
-  -- Check for timestamps in URL - timestamps ALWAYS override full_video setting
-  local timestamp_section = PakettiYTDLPDetectTimestamps(command)
+  -- COMMENTED OUT: Chapter and timestamp detection - just download full video
+  -- -- Check for timestamps in URL - timestamps ALWAYS override full_video setting
+  -- local timestamp_section = PakettiYTDLPDetectTimestamps(command)
   local use_timestamps = false
+  -- 
+  -- if timestamp_section then
+  --   -- Use post-processing to trim audio instead of problematic download-sections
+  --   local start_time = timestamp_section:match("(%d+)")
+  --   if start_time then
+  --     download_sections = '--postprocessor-args "FFmpegExtractAudio:-ss ' .. start_time .. ' -t ' .. clip_length .. '"'
+  --     use_timestamps = true
+  --     PakettiYTDLPLogMessage("DEBUG: Using FFmpegExtractAudio post-processing to extract " .. clip_length .. " seconds starting from " .. start_time .. " seconds")
+  --   else
+  --     download_sections = ""
+  --     use_timestamps = false
+  --     PakettiYTDLPLogMessage("DEBUG: Could not parse timestamp, downloading full audio")
+  --   end
+  --   if full_video then
+  --     PakettiYTDLPLogMessage("DEBUG: Timestamp detected - overriding 'Download Whole Video' setting")
+  --   end
+  -- elseif not full_video then
+  --   -- Only check for chapters if we're not downloading full video and no timestamps found
+  --   local has_chapters, first_chapter = PakettiYTDLPDetectChapters(command)
+  --   if has_chapters and first_chapter then
+  --     -- Download the first chapter by index
+  --     download_sections = '--hls-prefer-native --download-sections "0" --force-keyframes-at-cuts'
+  --     PakettiYTDLPLogMessage("CHAPTER DOWNLOAD: Downloading first chapter (index 0): \"" .. first_chapter .. "\"")
+  --   elseif has_chapters then
+  --     -- Has chapters but couldn't get names, use first chapter by index
+  --     download_sections = '--hls-prefer-native --download-sections "0" --force-keyframes-at-cuts'
+  --     PakettiYTDLPLogMessage("Video has chapters, downloading first chapter by index with exact cuts")
+  --   else
+  --     download_sections = '--hls-prefer-native --download-sections "*0-' .. clip_length .. '" --force-keyframes-at-cuts'
+  --     PakettiYTDLPLogMessage("Using HLS-native download-sections to extract first " .. clip_length .. " seconds with exact cuts")
+  --   end
+  -- end
   
-  if timestamp_section then
-    -- Use post-processing to trim audio instead of problematic download-sections
-    local start_time = timestamp_section:match("(%d+)")
-    if start_time then
-      download_sections = '--postprocessor-args "ffmpeg:-ss ' .. start_time .. '"'
-      use_timestamps = true
-      PakettiYTDLPLogMessage("DEBUG: Using ffmpeg post-processing to trim from " .. start_time .. " seconds: " .. download_sections)
-    else
-      download_sections = ""
-      use_timestamps = false
-      PakettiYTDLPLogMessage("DEBUG: Could not parse timestamp, downloading full audio")
-    end
-    if full_video then
-      PakettiYTDLPLogMessage("DEBUG: Timestamp detected - overriding 'Download Whole Video' setting")
-    end
-  elseif not full_video then
-    -- Only check for chapters if we're not downloading full video and no timestamps found
-    local has_chapters, first_chapter = PakettiYTDLPDetectChapters(command)
-    if has_chapters and first_chapter then
-      -- Download the first chapter by name
-      download_sections = '--download-sections "' .. first_chapter .. '"'
-      PakettiYTDLPLogMessage("CHAPTER DOWNLOAD: Downloading chapter \"" .. first_chapter .. "\"")
-    elseif has_chapters then
-      -- Has chapters but couldn't get names, fall back to time-based
-      download_sections = '--download-sections "*0-' .. clip_length .. '"'
-      PakettiYTDLPLogMessage("Video has chapters but couldn't get chapter names, using time-based section")
-    else
-      download_sections = '--download-sections "*0-' .. clip_length .. '"'
-    end
-  end
+  -- Simplified: Always download full video
+  PakettiYTDLPLogMessage("DEBUG: Downloading full video (chapter/timestamp detection disabled)")
   
-  if full_video and not use_timestamps then
-    download_cmd = string.format(
-      'cd "%s%stempfolder" && %s"%s" --extract-audio --audio-format wav "%s"',
-      output_dir,
-      separator,
-      PakettiYTDLPGetPathEnv(),
-      yt_dlp_path,
-      command
-    )
-  else
-    -- Use sections - either timestamps or clip length  
-    -- Simplified command construction - no format specifier, let yt-dlp choose
-    if download_sections == "" then
-      download_cmd = string.format(
-        'cd "%s%stempfolder" && %s"%s" --extract-audio --audio-format wav "%s"',
-        output_dir,
-        separator,
-        PakettiYTDLPGetPathEnv(),
-        yt_dlp_path,
-        command
-      )
-    else
-      download_cmd = string.format(
-        'cd "%s%stempfolder" && %s"%s" %s --extract-audio --audio-format wav "%s"',
-        output_dir,
-        separator,
-        PakettiYTDLPGetPathEnv(),
-        yt_dlp_path,
-        download_sections,
-        command
-      )
-    end
-  end
+  -- Simplified: Always download full video
+  download_cmd = string.format(
+    'cd "%s%stempfolder" && %s"%s" -f "bestaudio/best" --external-downloader ffmpeg --external-downloader-args "-c copy" --extract-audio --audio-format wav "%s"',
+    output_dir,
+    separator,
+    PakettiYTDLPGetPathEnv(),
+    yt_dlp_path,
+    command
+  )
   
   PakettiYTDLPLogMessage("DEBUG: Final download command: " .. download_cmd)
   
@@ -1215,6 +1197,16 @@ function PakettiYTDLPStartYTDLP()
   local search_phrase = vb.views.search_phrase.text
   local youtube_url = vb.views.youtube_url.text
   local output_dir = vb.views.output_dir.text
+  
+  -- Sanitize URL to fix common issues like missing 'h' prefix
+  local original_url = youtube_url
+  youtube_url = PakettiYTDLPSanitizeURL(youtube_url)
+  
+  -- Update the text field if URL was corrected
+  if original_url ~= youtube_url and vb.views.youtube_url then
+    vb.views.youtube_url.text = youtube_url
+  end
+  
   PakettiYTDLPLogMessage("DEBUG: youtube_url = " .. tostring(youtube_url))
   
   if (search_phrase == "" or search_phrase == nil) and (youtube_url == "" or youtube_url == nil) then
@@ -1242,10 +1234,10 @@ function PakettiYTDLPStartYTDLP()
   
   -- Save all preferences
   preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value = output_dir
-  preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = tonumber(vb.views.clip_length.value)
+  -- preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = tonumber(vb.views.clip_length.value)  -- COMMENTED: No longer used
   preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value = tonumber(vb.views.loop_mode.value)
   preferences.PakettiYTDLP.PakettiYTDLPAmountOfVideos.value = tonumber(vb.views.video_amount.value)
-  preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value = vb.views.full_video.value
+  -- preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value = vb.views.full_video.value  -- COMMENTED: Always full video now
   preferences.PakettiYTDLP.PakettiYTDLPNewInstrumentOrSameInstrument.value = vb.views.create_new_instrument.value
   preferences.PakettiYTDLP.PakettiYTDLPFormatToSave.value = vb.views.save_format.value
   preferences.PakettiYTDLP.PakettiYTDLPPathToSave.value = vb.views.save_path.text
@@ -1270,8 +1262,8 @@ function PakettiYTDLPStartYTDLP()
     search_phrase, 
     youtube_url, 
     output_dir, 
-    tonumber(vb.views.clip_length.value),
-    vb.views.full_video.value
+    15, -- Default clip length (not used but needed for function signature)
+    true -- Always full video
   )
   
   process_slicer:start()
@@ -1340,7 +1332,7 @@ function PakettiYTDLPDialogContent()
         vb:text{text="URL", font="bold",style="strong" },
         vb:text{text="Output Directory", font="bold",style="strong" },
         vb:text{text="YT-DLP Location", font="bold",style="strong" },
-        vb:text{text="Clip Length (seconds)", font="bold",style="strong" },
+        --vb:text{text="Clip Length (seconds)", font="bold",style="strong" },
         vb:text{text="Loop Mode", font="bold",style="strong" },
         vb:text{text="Amount of Searched Videos", font="bold",style="strong" }
       },
@@ -1393,16 +1385,17 @@ function PakettiYTDLPDialogContent()
           },
           vb:button{ text="Browse", notifier = PakettiYTDLPPromptForYTDLPPath },
         },
-        vb:valuebox{
-          id = "clip_length",
-          min = 1,
-          max = 60,
-          value = preferences.PakettiYTDLP.PakettiYTDLPClipLength.value or SAMPLE_LENGTH,
-          notifier=function(value)
-            preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = value
-            PakettiYTDLPLogMessage("Saved Clip Length to " .. value)
-          end
-        },
+        -- COMMENTED OUT: Clip length control (no longer functional - always downloads full video)
+        -- vb:valuebox{
+        --   id = "clip_length",
+        --   min = 1,
+        --   max = 60,
+        --   value = preferences.PakettiYTDLP.PakettiYTDLPClipLength.value or SAMPLE_LENGTH,
+        --   notifier=function(value)
+        --     preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = value
+        --     PakettiYTDLPLogMessage("Saved Clip Length to " .. value)
+        --   end
+        -- },
         vb:popup{
           id = "loop_mode",
           items = loop_modes,
@@ -1425,16 +1418,17 @@ function PakettiYTDLPDialogContent()
         }
       }
     },
-    vb:row{
-      vb:checkbox{
-        id = "full_video",
-        value = preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value,
-        notifier=function(value)
-          preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value = value
-          if value then vb.views.clip_length.value = SAMPLE_LENGTH end
-          PakettiYTDLPLogMessage("Saved Load Whole Video to " .. tostring(value))
-        end
-      },
+    -- COMMENTED OUT: Full video checkbox (no longer functional - always downloads full video)
+    -- vb:row{
+    --   vb:checkbox{
+    --     id = "full_video",
+    --     value = preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value,
+    --     notifier=function(value)
+    --       preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value = value
+    --       if value then vb.views.clip_length.value = SAMPLE_LENGTH end
+    --       PakettiYTDLPLogMessage("Saved Load Whole Video to " .. tostring(value))
+    --     end
+    --   },
       vb:text{text="Download Whole Video as Audio", font="bold",style="strong" },
     },
     vb:row{
@@ -1505,10 +1499,10 @@ function PakettiYTDLPDialogContent()
       },
       vb:button{ text="Save", notifier=function()
         preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value = vb.views.output_dir.text
-        preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = vb.views.clip_length.value
+        -- preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = vb.views.clip_length.value  -- COMMENTED: No longer used
         preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value = vb.views.loop_mode.value
         preferences.PakettiYTDLP.PakettiYTDLPAmountOfVideos.value = vb.views.video_amount.value
-        preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value = vb.views.full_video.value
+        -- preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value = vb.views.full_video.value  -- COMMENTED: Always full video
         preferences.PakettiYTDLP.PakettiYTDLPNewInstrumentOrSameInstrument.value = vb.views.create_new_instrument.value
         preferences.PakettiYTDLP.PakettiYTDLPFormatToSave.value = vb.views.save_format.value
         preferences.PakettiYTDLP.PakettiYTDLPPathToSave.value = vb.views.save_path.text
@@ -1518,10 +1512,10 @@ function PakettiYTDLPDialogContent()
       end},
       vb:button{ text="Save & Close", notifier=function()
         preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value = vb.views.output_dir.text
-        preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = vb.views.clip_length.value
+        -- preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = vb.views.clip_length.value  -- COMMENTED: No longer used
         preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value = vb.views.loop_mode.value
         preferences.PakettiYTDLP.PakettiYTDLPAmountOfVideos.value = vb.views.video_amount.value
-        preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value = vb.views.full_video.value
+        -- preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value = vb.views.full_video.value  -- COMMENTED: Always full video
         preferences.PakettiYTDLP.PakettiYTDLPNewInstrumentOrSameInstrument.value = vb.views.create_new_instrument.value
         preferences.PakettiYTDLP.PakettiYTDLPFormatToSave.value = vb.views.save_format.value
         preferences.PakettiYTDLP.PakettiYTDLPPathToSave.value = vb.views.save_path.text
