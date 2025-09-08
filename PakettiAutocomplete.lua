@@ -2347,11 +2347,42 @@ local function execute_command(command)
     
     -- Special handling for MIDI mapping functions (they expect message parameter)
     if command.invoke:match("function%s*%(message%)") then
-      print("DETECTED: MIDI mapping function - cannot execute without MIDI message")
-      success = true  -- Mark as "successful" to avoid falling through to Method 2
-      error_msg = ""  -- Clear error since this is expected behavior
-      renoise.app():show_status("MIDI mapping functions require MIDI input to execute")
-      print("INFO: MIDI mapping function detected - skipping execution")
+      print("DETECTED: MIDI mapping function - creating synthetic MIDI message with value 127")
+      
+      -- Create a fake MIDI message with value 127 to simulate a MIDI trigger
+      local fake_message = {
+        is_trigger = function() return true end,
+        is_switch = function() return false end,
+        is_rel_value = function() return false end,
+        is_abs_value = function() return false end,
+        int_value = 127,
+        boolean_value = true
+      }
+      
+      -- Execute the MIDI mapping function with the synthetic message
+      local func = loadstring("return " .. command.invoke)
+      if func then
+        print("✓ Successfully created MIDI function from invoke string")
+        local ok, result = pcall(func)
+        if ok and type(result) == "function" then
+          print("✓ MIDI function loaded successfully, executing with synthetic message...")
+          local exec_ok, exec_err = pcall(result, fake_message)
+          if exec_ok then
+            success = true
+            print("✓ MIDI EXECUTION SUCCESSFUL!")
+          else
+            error_msg = "Error executing MIDI function: " .. tostring(exec_err)
+            print("✗ MIDI execution failed: " .. error_msg)
+          end
+        else
+          print("✗ MIDI function loading failed or result is not a function")
+          if not ok then
+            print("Error: " .. tostring(result))
+          end
+        end
+      else
+        print("✗ Failed to create MIDI function from invoke string")
+      end
     else
       -- Regular function definition - execute normally
       local func = loadstring("return " .. command.invoke)

@@ -21,6 +21,7 @@ local status_text = nil
 local process_slicer = nil
 local completion_timer_func = nil
 local error_already_logged = false
+local last_progress_message = ""
 
 -- Function to get PATH environment string based on OS
 function PakettiYTDLPGetPathEnv()
@@ -195,19 +196,29 @@ end
 -- Function to log messages to the multiline textfield
 function PakettiYTDLPLogMessage(message)
   if not logview then return end
+  if not message or message == "" then return end
   
-  -- Only log certain types of messages
-  if message:match("^%[") or           -- yt-dlp progress
-     message:match("^ERROR:") or       -- errors
-     message:match("^WARNING:") or     -- warnings
-     message:match("^DEBUG:") or       -- debug messages
-     message:match("^No videos found") or
-     message:match("^Found video") or
-     message:match("Detected timestamp") or
-     message:match("Using URL timestamps") or
-     message:match("Final download command") then
-    -- Just append the text
+  -- Filter duplicate progress messages
+  if message:match("^%[download%].*%%") then
+    -- This is a download progress line - only show if different from last
+    if message == last_progress_message then
+      return -- Skip duplicate
+    end
+    last_progress_message = message
+  end
+  
+  -- Show only essential output - no debug noise
+  if message:match("^%[download%].*%%") or     -- Download progress with percentage
+     message:match("^ERROR:") or               -- Errors
+     message:match("^WARNING:.*Skipping") or   -- Format skip warnings
+     message:match("^Downloading full video") or -- Clean start message
+     message:match("^%[ExtractAudio%]") or     -- Audio extraction
+     message:match("^%[info%].*available formats") then -- Format info
+    
     logview.text = logview.text .. message .. "\n"
+    
+    -- Auto-scroll to bottom to show latest progress
+    logview:scroll_to_last_line()
   end
 end
 
@@ -333,12 +344,23 @@ function PakettiYTDLPProcessSlice()
   
   local output = process_handle:read("*l")
   if output then
-    -- Update status text based on output
+    -- Update status text based on output with improved pattern matching
     if status_text then
-      if output:match("^%[download%]%s+([%d%.]+)%%%s+") then
-        status_text.text="Downloading: " .. output:match("^%[download%]%s+([%d%.]+)%%%s+") .. "%"
+      -- Match various download progress patterns
+      local percent = output:match("([%d%.]+)%%")
+      local eta = output:match("ETA (%d+:%d+)")
+      local speed = output:match("at%s+([%d%.]+[KMG]?iB/s)")
+      
+      if percent and eta and speed then
+        status_text.text = string.format("Downloading: %s%% - %s at %s", percent, eta, speed)
+      elseif percent and eta then
+        status_text.text = string.format("Downloading: %s%% - ETA %s", percent, eta)
+      elseif percent then
+        status_text.text = "Downloading: " .. percent .. "%"
       elseif output:match("^%[ExtractAudio%]") then
-        status_text.text="Extracting Audio..."
+        status_text.text = "Extracting Audio..."
+      elseif output:match("^%[hlsnative%]") then
+        status_text.text = "Processing stream..."
       end
     end
     
@@ -358,6 +380,17 @@ function PakettiYTDLPProcessSlice()
     end
     if cancel_button then
       cancel_button.active = false
+    end
+    
+    -- Now create the completion signal since download actually finished
+    local output_dir = preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value
+    if output_dir then
+      local completion_file = output_dir .. separator .. "tempfolder" .. separator .. "download_completed.txt"
+      local file = io.open(completion_file, "w")
+      if file then
+        file:close()
+        PakettiYTDLPLogMessage("Download completed")
+      end
     end
   end
 end
@@ -385,7 +418,7 @@ function PakettiYTDLPExecuteCommand(command)
   if cancel_button then
     cancel_button.active = true
   end
-  process_timer = renoise.tool():add_timer(PakettiYTDLPProcessSlice, 50) -- Check every 50ms
+  process_timer = renoise.tool():add_timer(PakettiYTDLPProcessSlice, 200) -- Check every 200ms (reduced frequency with --newline flag)
   return true
 end
 
@@ -596,75 +629,6 @@ function PakettiYTDLPGetRandomUrl(search_phrase, search_results_file)
   return urls[random_index]
 end
 
--- Modified download video function
-function PakettiYTDLPDownloadVideo(youtube_url, full_video, clip_length, temp_dir)
-  local command
-  local download_sections = ""
-  
-  PakettiYTDLPLogMessage("DEBUG: PakettiYTDLPDownloadVideo called with full_video=" .. tostring(full_video) .. ", clip_length=" .. tostring(clip_length))
-  
-  -- COMMENTED OUT: Chapter and timestamp detection - just download full video
-  -- -- Check for timestamps in URL - timestamps ALWAYS override full_video setting
-  -- local timestamp_section = PakettiYTDLPDetectTimestamps(youtube_url)
-  local use_timestamps = false
-  -- 
-  -- if timestamp_section then
-  --   -- Use post-processing to trim audio instead of problematic download-sections
-  --   local start_time = timestamp_section:match("(%d+)")
-  --   if start_time then
-  --     download_sections = '--postprocessor-args "FFmpegExtractAudio:-ss ' .. start_time .. ' -t ' .. clip_length .. '"'
-  --     use_timestamps = true
-  --     PakettiYTDLPLogMessage("DEBUG: Using FFmpegExtractAudio post-processing to extract " .. clip_length .. " seconds starting from " .. start_time .. " seconds")
-  --   else
-  --     download_sections = ""
-  --     use_timestamps = false
-  --     PakettiYTDLPLogMessage("DEBUG: Could not parse timestamp, downloading full audio")
-  --   end
-  --   if full_video then
-  --     PakettiYTDLPLogMessage("DEBUG: Timestamp detected - overriding 'Download Whole Video' setting")
-  --   end
-  -- elseif not full_video then
-  --   -- Only check for chapters if we're not downloading full video and no timestamps found
-  --   local has_chapters, first_chapter = PakettiYTDLPDetectChapters(youtube_url)
-  --   if has_chapters and first_chapter then
-  --     -- Download the first chapter by index
-  --     download_sections = '--hls-prefer-native --download-sections "0" --force-keyframes-at-cuts'
-  --     PakettiYTDLPLogMessage("CHAPTER DOWNLOAD: Downloading first chapter (index 0): \"" .. first_chapter .. "\"")
-  --   elseif has_chapters then
-  --     -- Has chapters but couldn't get names, use first chapter by index
-  --     download_sections = '--hls-prefer-native --download-sections "0" --force-keyframes-at-cuts'
-  --     PakettiYTDLPLogMessage("Video has chapters, downloading first chapter by index with exact cuts")
-  --   else
-  --     download_sections = '--hls-prefer-native --download-sections "*0-' .. clip_length .. '" --force-keyframes-at-cuts'
-  --     PakettiYTDLPLogMessage("Using HLS-native download-sections to extract first " .. clip_length .. " seconds with exact cuts")
-  --   end
-  -- end
-  
-  -- Simplified: Always download full video
-  PakettiYTDLPLogMessage("DEBUG: Downloading full video (chapter/timestamp detection disabled)")
-  
-  -- Simplified: Always download full video
-  command = string.format(
-    'cd "%s" && %s"%s" -f "bestaudio/best" --external-downloader ffmpeg --external-downloader-args "-c copy" --extract-audio --audio-format wav "%s"',
-    temp_dir,
-    PakettiYTDLPGetPathEnv(),
-    yt_dlp_path,
-    youtube_url
-  )
-  
-  PakettiYTDLPLogMessage("DEBUG: Final download command (PakettiYTDLPDownloadVideo): " .. command)
-  
-  -- Execute with process slicing
-  if not PakettiYTDLPExecuteCommand(command) then
-    return false
-  end
-  
-  -- Process will complete asynchronously - no need to block here
-  PakettiYTDLPLogMessage("Download process started - will complete asynchronously")
-  
-  return true
-end
-
 -- Function to sanitize filenames in temp_dir and record them
 function PakettiYTDLPSanitizeFilenames(temp_dir, filenames_file)
   local files = PakettiYTDLPListDir(temp_dir)
@@ -758,10 +722,22 @@ function PakettiYTDLPExecuteLua(search_phrase, youtube_url, download_dir, clip_l
     return
   end
 
-  PakettiYTDLPLogMessage(string.format("Starting download for URL: %s.", selected_url))
+  -- Show clean start message
+  PakettiYTDLPLogMessage("Downloading full video of " .. selected_url)
 
-  -- Download video or clip
-  PakettiYTDLPDownloadVideo(selected_url, full_video, clip_length, temp_dir)
+  -- Execute your simple working yt-dlp command directly
+  local yt_dlp_cmd = string.format(
+    'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
+    temp_dir,
+    PakettiYTDLPGetPathEnv(),
+    yt_dlp_path,
+    selected_url
+  )
+  
+  if not PakettiYTDLPExecuteCommand(yt_dlp_cmd) then
+    PakettiYTDLPLogMessage("ERROR: Download failed")
+    return
+  end
 
   -- Sanitize filenames and record them
   PakettiYTDLPSanitizeFilenames(temp_dir, filenames_file)
@@ -1009,7 +985,6 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
   if yt_dlp_path == "" then
     PakettiYTDLPSetExecutablePaths()
   end
-  PakettiYTDLPLogMessage("DEBUG: PakettiYTDLPSlicedProcess called with full_video=" .. tostring(full_video) .. ", clip_length=" .. tostring(clip_length))
   
   -- Define paths for our tracking files
   local temp_dir = output_dir .. separator .. "tempfolder"
@@ -1024,13 +999,34 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
   if youtube_url and youtube_url ~= "" then
     -- Direct URL download
     command = youtube_url
-    PakettiYTDLPLogMessage("Starting download for URL: " .. youtube_url)
+    
+    -- Show clean start message
+    PakettiYTDLPLogMessage("Downloading full video of " .. youtube_url)
+
+    -- Execute your simple working yt-dlp command directly
+    local yt_dlp_cmd = string.format(
+      'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
+      temp_dir,
+      PakettiYTDLPGetPathEnv(),
+      yt_dlp_path,
+      youtube_url
+    )
+    
+    if not PakettiYTDLPExecuteCommand(yt_dlp_cmd) then
+      PakettiYTDLPLogMessage("ERROR: Download failed")
+      return
+    end
+    
     -- Write URL to search results
     local f = io.open(search_results_file, "w")
     if f then
       f:write(youtube_url .. "\n")
       f:close()
     end
+    
+    -- Return here - download is now running asynchronously
+    -- File listing and completion signal will be handled by the process timer
+    return
   else
     -- Search command - do this immediately without slicing
     -- Update the log BEFORE starting the search
@@ -1082,118 +1078,36 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
     math.randomseed(os.time())
     command = urls[math.random(1, #urls)]
     PakettiYTDLPLogMessage("=== Selected video for download: " .. command .. " ===")
-  end
-  
-  -- Now start the actual download with slicing
-  local download_cmd
-  local download_sections = ""
-  
-  -- COMMENTED OUT: Chapter and timestamp detection - just download full video
-  -- -- Check for timestamps in URL - timestamps ALWAYS override full_video setting
-  -- local timestamp_section = PakettiYTDLPDetectTimestamps(command)
-  local use_timestamps = false
-  -- 
-  -- if timestamp_section then
-  --   -- Use post-processing to trim audio instead of problematic download-sections
-  --   local start_time = timestamp_section:match("(%d+)")
-  --   if start_time then
-  --     download_sections = '--postprocessor-args "FFmpegExtractAudio:-ss ' .. start_time .. ' -t ' .. clip_length .. '"'
-  --     use_timestamps = true
-  --     PakettiYTDLPLogMessage("DEBUG: Using FFmpegExtractAudio post-processing to extract " .. clip_length .. " seconds starting from " .. start_time .. " seconds")
-  --   else
-  --     download_sections = ""
-  --     use_timestamps = false
-  --     PakettiYTDLPLogMessage("DEBUG: Could not parse timestamp, downloading full audio")
-  --   end
-  --   if full_video then
-  --     PakettiYTDLPLogMessage("DEBUG: Timestamp detected - overriding 'Download Whole Video' setting")
-  --   end
-  -- elseif not full_video then
-  --   -- Only check for chapters if we're not downloading full video and no timestamps found
-  --   local has_chapters, first_chapter = PakettiYTDLPDetectChapters(command)
-  --   if has_chapters and first_chapter then
-  --     -- Download the first chapter by index
-  --     download_sections = '--hls-prefer-native --download-sections "0" --force-keyframes-at-cuts'
-  --     PakettiYTDLPLogMessage("CHAPTER DOWNLOAD: Downloading first chapter (index 0): \"" .. first_chapter .. "\"")
-  --   elseif has_chapters then
-  --     -- Has chapters but couldn't get names, use first chapter by index
-  --     download_sections = '--hls-prefer-native --download-sections "0" --force-keyframes-at-cuts'
-  --     PakettiYTDLPLogMessage("Video has chapters, downloading first chapter by index with exact cuts")
-  --   else
-  --     download_sections = '--hls-prefer-native --download-sections "*0-' .. clip_length .. '" --force-keyframes-at-cuts'
-  --     PakettiYTDLPLogMessage("Using HLS-native download-sections to extract first " .. clip_length .. " seconds with exact cuts")
-  --   end
-  -- end
-  
-  -- Simplified: Always download full video
-  PakettiYTDLPLogMessage("DEBUG: Downloading full video (chapter/timestamp detection disabled)")
-  
-  -- Simplified: Always download full video
-  download_cmd = string.format(
-    'cd "%s%stempfolder" && %s"%s" -f "bestaudio/best" --external-downloader ffmpeg --external-downloader-args "-c copy" --extract-audio --audio-format wav "%s"',
-    output_dir,
-    separator,
-    PakettiYTDLPGetPathEnv(),
-    yt_dlp_path,
-    command
-  )
-  
-  PakettiYTDLPLogMessage("DEBUG: Final download command: " .. download_cmd)
-  
-  PakettiYTDLPLogMessage("=== Starting download process ===")
-  
-  -- Start download using existing timer-based process slicing system  
-  if not PakettiYTDLPExecuteCommand(download_cmd) then
-    PakettiYTDLPLogMessage("ERROR: Failed to start download")
+    
+    -- Execute download for selected URL
+    local yt_dlp_cmd = string.format(
+      'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
+      temp_dir,
+      PakettiYTDLPGetPathEnv(),
+      yt_dlp_path,
+      command
+    )
+    
+    if not PakettiYTDLPExecuteCommand(yt_dlp_cmd) then
+      PakettiYTDLPLogMessage("ERROR: Download failed")
+      return
+    end
+    
+    -- Return here - download is now running asynchronously
     return
   end
   
-  PakettiYTDLPLogMessage("=== Download started - will be monitored by timer-based slicing ===")
-  
-  -- Wait for the download process to complete by checking process_running flag
-  while process_running do
-    coroutine.yield()  -- Yield to allow other operations
-  end
-  
-  PakettiYTDLPLogMessage("=== Download process completed ===")
-  
-  if status_text then
-    status_text.text="Ready"
-  end
-  
-  -- Write downloaded filenames to filenames.txt
-  local files = PakettiYTDLPListDir(temp_dir)
-  local filenames_handle = io.open(filenames_file, "w")
-  if filenames_handle then
-    for _, file in ipairs(files) do
-      if file:match("%.wav$") then
-        filenames_handle:write(file .. "\n")
-        PakettiYTDLPLogMessage("Recording filename: " .. file)
-      end
-    end
-    filenames_handle:close()
-  else
-    PakettiYTDLPLogMessage("ERROR: Could not open filenames.txt for writing")
-  end
-  
-  -- Signal completion and trigger Renoise loading
-  local completion_file = temp_dir .. separator .. "download_completed.txt"
-  local file = io.open(completion_file, "w")
-  if file then
-    file:close()
-    PakettiYTDLPLogMessage("=== Download complete, signaling for Renoise import ===")
-  else
-    PakettiYTDLPLogMessage("ERROR: Could not create completion signal file")
-  end
+  -- All download logic is now handled above
+  -- File listing and completion signal will be handled by the process timer when download completes
 end
 
 -- Modify StartYTDLP to properly handle timers
 function PakettiYTDLPStartYTDLP()
-  -- Reset error flag for new download
+  -- Reset flags for new download
   error_already_logged = false
+  last_progress_message = ""
   -- Set up executable paths based on OS detection
   PakettiYTDLPSetExecutablePaths()
-  PakettiYTDLPLogMessage("DEBUG: PakettiYTDLPStartYTDLP() called")
   local search_phrase = vb.views.search_phrase.text
   local youtube_url = vb.views.youtube_url.text
   local output_dir = vb.views.output_dir.text
@@ -1207,7 +1121,6 @@ function PakettiYTDLPStartYTDLP()
     vb.views.youtube_url.text = youtube_url
   end
   
-  PakettiYTDLPLogMessage("DEBUG: youtube_url = " .. tostring(youtube_url))
   
   if (search_phrase == "" or search_phrase == nil) and (youtube_url == "" or youtube_url == nil) then
     renoise.app():show_warning("Please set URL or search term")
@@ -1354,7 +1267,6 @@ function PakettiYTDLPDialogContent()
           edit_mode = true,
           notifier=function(value)
             if value ~= "" then
-              PakettiYTDLPLogMessage("DEBUG: URL entered: " .. value)
               PakettiYTDLPStartYTDLP()
             end
           end
@@ -1598,12 +1510,7 @@ function PakettiYTDLPCloseDialog()
   renoise.app():show_status("Closing Paketti YT-DLP Dialog")
 end
 
-
-
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti YT-DLP Downloader",invoke=pakettiYTDLPDialog }
-
-
-
 
 -- Add this function to handle process cancellation
 function PakettiYTDLPCancelProcess()
@@ -1635,4 +1542,3 @@ function PakettiYTDLPCancelProcess()
   end
   PakettiYTDLPLogMessage("Process cancelled")
 end
-
