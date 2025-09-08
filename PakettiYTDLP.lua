@@ -1429,7 +1429,10 @@ function PakettiYTDLPDialogContent()
     --       PakettiYTDLPLogMessage("Saved Load Whole Video to " .. tostring(value))
     --     end
     --   },
-      vb:text{text="Download Whole Video as Audio", font="bold",style="strong" },
+    --   vb:text{text="Download Whole Video as Audio", font="bold",style="strong" },
+    -- },
+    vb:row{
+      vb:text{text="Download Whole Video as Audio", font="bold",style="strong" }
     },
     vb:row{
       vb:checkbox{

@@ -2218,6 +2218,8 @@ renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Import/Export:L
         pakettiLoadExeAsSample(file_path)
         paketti_toggle_signed_unsigned() end end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Import/Export:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Import/Export:Export Subfolders as Melodic Slices",invoke=PakettiExportSubfoldersAsMelodicSlices}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Import/Export:Export Subfolders as Drum Slices",invoke=PakettiExportSubfoldersAsDrumSlices}
 end 
 
 
