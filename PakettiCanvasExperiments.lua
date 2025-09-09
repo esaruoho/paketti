@@ -3,11 +3,16 @@
 -- Allows visual editing of device parameters through a canvas interface
 
 local vb = renoise.ViewBuilder()
-local canvas_width = 1280  -- keep wide like EQ30
-local canvas_height = 390  -- reduced to take less vertical space (match EQ30)
+
+-- Base canvas dimensions (actual size calculated at dialog creation time)
+local base_canvas_width = 1280  -- keep wide like EQ30
+local base_canvas_height = 390  -- reduced to take less vertical space (match EQ30)
+local canvas_width = base_canvas_width  -- Will be updated in dialog creation
+local canvas_height = base_canvas_height  -- Will be updated in dialog creation
+
 local content_margin = 3  -- tighter margin around the content area
-local content_width = canvas_width - (content_margin * 2)  -- 80% of canvas width
-local content_height = canvas_height - (content_margin * 2)  -- 80% of canvas height
+local content_width = canvas_width - (content_margin * 2)  -- Will be updated in dialog creation
+local content_height = canvas_height - (content_margin * 2)  -- Will be updated in dialog creation
 local content_x = content_margin
 local content_y = content_margin
 local canvas_experiments_dialog = nil
@@ -42,6 +47,9 @@ local device_parameter_observers = {}
 -- Auto-switch to automation view when enabling automation sync (DEFAULT: OFF)
 local auto_show_automation = false
 
+-- Clean parameter names by removing "CC XX " prefix (DEFAULT: ON)
+local clean_parameter_names = true
+
 -- Track which specific parameter is being manually edited (automation sync aware)
 local parameter_being_drawn = nil  -- Index of parameter currently being drawn
 local automation_reading_enabled = true
@@ -61,6 +69,29 @@ local COLOR_CROSSFADE = {80, 160, 40, 255}          -- Green for crossfade outli
 local canvas_update_timer = nil
 -- Remember previous device index for smart restoration
 local previous_device_index = nil
+
+-- Helper function to get UI width (no longer scaled by half-size preference)
+local function get_ui_width(base_width)
+  return base_width
+end
+
+-- Helper function to clean parameter names by removing "CC XX " prefix
+local function get_clean_parameter_name(param_name)
+  if not clean_parameter_names or not param_name then
+    return param_name
+  end
+  
+  -- Remove "CC XX " pattern (e.g., "CC 54 (Cutoff)" becomes "(Cutoff)")
+  local cleaned = param_name:gsub("^CC %d+ ", "")
+  
+  -- Remove parentheses if the entire remaining string is wrapped in them
+  -- e.g., "(Cutoff)" becomes "Cutoff"
+  if cleaned:match("^%((.+)%)$") then
+    cleaned = cleaned:match("^%((.+)%)$")
+  end
+  
+  return cleaned
+end
 
 -- Navigation functions for track and device switching
 function PakettiCanvasExperimentsSelectPreviousTrack()
@@ -160,6 +191,21 @@ local randomize_slider_view = nil
 -- Shared canvas font (moved to PakettiCanvasFont.lua)
 -- Use PakettiCanvasFontLetterFunctions for per-character drawing and PakettiCanvasFontDrawText for strings
 
+-- Function to toggle clean parameter names (silent, no UI button)
+function PakettiCanvasExperimentsToggleCleanNames()
+  clean_parameter_names = not clean_parameter_names
+  -- Update canvas to show cleaned/original names
+  if canvas_experiments_canvas then
+    canvas_experiments_canvas:update()
+  end
+  -- Update status text
+  if status_text_view then
+    status_text_view.text = PakettiCanvasExperimentsGetStatusText()
+  end
+  local status = clean_parameter_names and "ON" or "OFF"
+  renoise.app():show_status("Parameter name cleaning: " .. status)
+end
+
 -- Generate dynamic status text
 function PakettiCanvasExperimentsGetStatusText()
   -- Safe nil checking throughout with proper error handling
@@ -174,7 +220,9 @@ function PakettiCanvasExperimentsGetStatusText()
     end
     
     local device_name = "Unknown Device"
-    if current_device and current_device.display_name then
+    if current_device and current_device.short_name then
+      device_name = current_device.short_name
+    elseif current_device and current_device.display_name then
       device_name = current_device.display_name
     end
     
@@ -183,20 +231,7 @@ function PakettiCanvasExperimentsGetStatusText()
       param_count = #device_parameters
     end
     
-    -- Safe track info access
-    local track_number = "?"
-    local track_name = "Unknown Track"
-    
-    if song.selected_track_index then
-      track_number = tostring(song.selected_track_index)
-    end
-    
-    if song.selected_track and song.selected_track.name then
-      track_name = song.selected_track.name
-    end
-    
-    local base_text = string.format("Track %s / %s [%s] (%d)", 
-      track_number, track_name, device_name, param_count)
+    local base_text = string.format("%s (%d)", device_name, param_count)
     
     -- Safe current parameter access with multiple nil checks
     if current_drawing_parameter and 
@@ -206,8 +241,8 @@ function PakettiCanvasExperimentsGetStatusText()
        current_drawing_parameter.index then
       
       local param_info = current_drawing_parameter
-      local param_text = string.format(":%d: %s = %.3f", 
-        param_info.index, param_info.name, param_info.parameter.value)
+      local param_text = string.format(": %s = %.3f", 
+        get_clean_parameter_name(param_info.name), param_info.parameter.value)
       return base_text .. param_text
     end
     
@@ -554,7 +589,6 @@ function PakettiCanvasExperimentsHandleMouse(ev)
           if observer then
             if not parameter.value_observable:has_notifier(observer) then
               parameter.value_observable:add_notifier(observer)
-              print("MOUSE_UP_OUTSIDE: RE-ENABLED automation for parameter " .. parameter_being_drawn .. " (" .. param_info.name .. ")")
             end
           end
         end
@@ -597,20 +631,12 @@ function PakettiCanvasExperimentsHandleMouse(ev)
           local parameter = param_info.parameter
           local observer = device_parameter_observers[parameter]
           
-          print("MOUSE_DOWN: Disabling automation for parameter " .. parameter_being_drawn .. " (" .. param_info.name .. ")")
-          
+          -- Disable automation observer for this parameter to prevent drawing conflicts
           if observer then
             if parameter.value_observable:has_notifier(observer) then
               parameter.value_observable:remove_notifier(observer)
-              print("MOUSE_DOWN: DISABLED automation for parameter " .. parameter_being_drawn .. " (" .. param_info.name .. ")")
               renoise.app():show_status("Drawing: Automation disabled for " .. param_info.name)
-            else
-              print("MOUSE_DOWN: Observer not found on parameter " .. parameter_being_drawn)
-              -- NOTE: Observer will be rebuilt when mouse is released (see MOUSE_UP section)
-              print("MOUSE_DOWN: Observer missing for parameter " .. parameter_being_drawn .. " - will rebuild on mouse up")
             end
-          else
-            print("MOUSE_DOWN: No observer stored for parameter " .. parameter_being_drawn)
           end
         end
       end
@@ -635,13 +661,9 @@ function PakettiCanvasExperimentsHandleMouse(ev)
         if observer then
           if not parameter.value_observable:has_notifier(observer) then
             parameter.value_observable:add_notifier(observer)
-            print("MOUSE_UP: RE-ENABLED automation for parameter " .. parameter_being_drawn .. " (" .. param_info.name .. ")")
             renoise.app():show_status("Drawing complete: Automation resumed for " .. param_info.name)
-          else
-            print("MOUSE_UP: Observer was already active for parameter " .. parameter_being_drawn)
           end
         else
-          print("MOUSE_UP: REBUILDING observer for parameter " .. parameter_being_drawn)
           -- SAFETY: Rebuild the observer if it was lost (e.g., due to remove_all_notifiers)
           local param_index = parameter_being_drawn  -- Capture in closure
           local new_observer = function()
@@ -654,7 +676,6 @@ function PakettiCanvasExperimentsHandleMouse(ev)
           end
           parameter.value_observable:add_notifier(new_observer)
           device_parameter_observers[parameter] = new_observer
-          print("MOUSE_UP: REBUILT automation observer for parameter " .. parameter_being_drawn)
           renoise.app():show_status("Drawing complete: Automation observer rebuilt for " .. param_info.name)
         end
       end
@@ -921,11 +942,16 @@ function PakettiCanvasExperimentsDrawCanvas(ctx)
       ctx.line_width = 2  -- Make text bold by using thicker lines
       
       -- Draw parameter name vertically (rotated text effect)
-      local text_size = math.max(4, math.min(12, parameter_width * 0.6))  -- Scale text reasonably to fit column
+      local base_text_size = math.max(4, math.min(12, parameter_width * 0.6))  -- Scale text reasonably to fit column
+      -- Apply half-size font scaling based on preferences:
+      -- If HalfSizeFont is On: Always use small text
+      -- If HalfSizeFont is Off: Use small text only when HalfSize canvas is enabled
+      local use_small_text = preferences.pakettiParameterEditor.HalfSizeFont.value or preferences.pakettiParameterEditor.HalfSize.value
+      local text_size = use_small_text and math.floor(base_text_size * 0.75) or base_text_size
       local text_start_y = content_y + 10  -- Start near top
       
       -- Draw each character of the parameter name vertically
-      local param_name = param_info.name
+      local param_name = get_clean_parameter_name(param_info.name)
       local letter_spacing = text_size + 4  -- Add 4 pixels between letters for better readability
       -- Calculate how many characters can fit vertically
       local max_chars = math.floor((content_height - 20) / letter_spacing)
@@ -1104,11 +1130,27 @@ function PakettiCanvasExperimentsCleanup()
   current_edit_mode = "A"
 end
 
+-- Update canvas dimensions based on current preferences
+function PakettiCanvasExperimentsUpdateDimensions()
+  -- Apply half-size preference to canvas HEIGHT only (75% of original height)
+  canvas_width = base_canvas_width  -- Keep original width
+  canvas_height = preferences.pakettiParameterEditor.HalfSize.value and math.floor(base_canvas_height * 0.75) or base_canvas_height
+  
+  -- Update content dimensions based on new canvas size
+  content_width = canvas_width - (content_margin * 2)
+  content_height = canvas_height - (content_margin * 2)
+  
+  print("DIMENSIONS: Canvas size: " .. canvas_width .. "x" .. canvas_height .. " (75% Height: " .. tostring(preferences.pakettiParameterEditor.HalfSize.value) .. ")")
+end
+
 -- Create the main dialog
 function PakettiCanvasExperimentsCreateDialog()
   if canvas_experiments_dialog and canvas_experiments_dialog.visible then
     canvas_experiments_dialog:close()
   end
+  
+  -- Update canvas dimensions based on current preferences
+  PakettiCanvasExperimentsUpdateDimensions()
   
   local title = "Paketti Selected Device Parameter Editor"
   
@@ -1117,48 +1159,41 @@ function PakettiCanvasExperimentsCreateDialog()
   
   local dialog_content = vb:column {
     
-  vb:row{    
-    -- Dynamic status text showing track, device, and parameter info
-    vb:text {
-      id = "status_text_view",
-      text = PakettiCanvasExperimentsGetStatusText(),
-      font = "bold",
-      style = "strong",width=680
-    },
-    
-      vb:button {
+  vb:row{
+      -- Previous/Next buttons (conditional visibility)
+      preferences.pakettiParameterEditor.PreviousNext.value and vb:button {
         text = "Previous Track",
-        width = 80,
+        width = get_ui_width(80),
         tooltip = "Switch to previous track",
         notifier = function()
           PakettiCanvasExperimentsSelectPreviousTrack()
         end
-      },
-      vb:button {
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.PreviousNext.value and vb:button {
         text = "Previous Device",
-        width = 80,
+        width = get_ui_width(80),
         tooltip = "Switch to previous device on current track",
         notifier = function()
           PakettiCanvasExperimentsSelectPreviousDevice()
         end
-      },
-      vb:button {
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.PreviousNext.value and vb:button {
         text = "Next Device",
-        width = 80,
+        width = get_ui_width(80),
         tooltip = "Switch to next device on current track",
         notifier = function()
           PakettiCanvasExperimentsSelectNextDevice()
         end
-      },
-      vb:button {
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.PreviousNext.value and vb:button {
         text = "Next Track",
-        width = 80,
+        width = get_ui_width(80),
         tooltip = "Switch to next track",
         notifier = function()
           PakettiCanvasExperimentsSelectNextTrack()
         end
-      },
-      vb:checkbox {
+      } or vb:space{width=1},
+--[[      vb:checkbox {
 
         id = "auto_show_automation_checkbox",
         value = auto_show_automation,
@@ -1175,7 +1210,7 @@ function PakettiCanvasExperimentsCreateDialog()
         text = "Automation Sync On: Show Automation", font="bold",style="strong",
         tooltip = "When enabled, turning on Automation Sync will automatically switch to the Automation view"
       }
-    
+    ]]--
 
 
     },
@@ -1183,7 +1218,7 @@ function PakettiCanvasExperimentsCreateDialog()
     vb:row {
       vb:button {
         text = "Add Snapshot to Automation",
-        width = 180,
+        width = 160,
         tooltip = "Add current parameter values as automation points",
         notifier = function()
           PakettiCanvasExperimentsSnapshotToAutomation()
@@ -1191,7 +1226,7 @@ function PakettiCanvasExperimentsCreateDialog()
       },
       vb:button {
         text = "Clear",
-        width = 80,
+        width = 50,
         tooltip = "Clear all automation for selected device - parameters become stable",
         notifier = function()
           PakettiCanvasExperimentsClearAutomation()
@@ -1199,7 +1234,7 @@ function PakettiCanvasExperimentsCreateDialog()
       },
       vb:button {
         text = "Clean & Snap",
-        width = 120,
+        width = 60,
         tooltip = "Clear automation + write current parameter values at line 1",
         notifier = function()
           PakettiCanvasExperimentsCleanAndSnap()
@@ -1254,11 +1289,12 @@ function PakettiCanvasExperimentsCreateDialog()
           PakettiCanvasExperimentsRandomizeByEditStep()
         end
       },
-      vb:text { text = "Automation Playmode", width = 130, font="bold",style = "strong" },
-      vb:switch {
+      -- Automation Playmode controls (conditional visibility)
+      preferences.pakettiParameterEditor.AutomationPlaymode.value and vb:text { text = "Automation Playmode", width = get_ui_width(130), font="bold",style = "strong" } or vb:space{width=1},
+      preferences.pakettiParameterEditor.AutomationPlaymode.value and vb:switch {
         id = "canvas_playmode_switch",
         items = {"Points","Lines","Curves"},
-        width = 150,
+        width = get_ui_width(150),
         value = (preferences and preferences.PakettiCanvasAutomationPlaymode and preferences.PakettiCanvasAutomationPlaymode.value) or 2,
         notifier = function(value)
           if preferences and preferences.PakettiCanvasAutomationPlaymode then
@@ -1282,7 +1318,7 @@ function PakettiCanvasExperimentsCreateDialog()
           end
           renoise.app():show_status("Canvas: Automation Playmode updated on " .. tostring(changed) .. " envelopes")
         end
-      },
+      } or vb:space{width=1},
       
       vb:button {
         text = "Toggle External Editor",
@@ -1293,6 +1329,13 @@ function PakettiCanvasExperimentsCreateDialog()
           end
         end
       },
+      
+      -- Device status text at the end of this row
+      vb:text{
+        id="status_text_view",
+        text=PakettiCanvasExperimentsGetStatusText(),
+        font="bold",style="strong",
+        width=400}
 
 
     },
@@ -1311,18 +1354,19 @@ function PakettiCanvasExperimentsCreateDialog()
       mouse_events = {"down", "up", "move", "exit"}
     },
     
-    -- Randomize controls
+    -- Single row with conditional Randomize and Edit A/B controls
     vb:row {
-      vb:text {
+      -- Randomize Strength controls (conditional visibility)
+      preferences.pakettiParameterEditor.RandomizeStrength.value and vb:text {
         text = "Randomize Strength:",
-        width = 120, style="strong",font="bold"
-      },
-      vb:slider {
+        width = get_ui_width(120), style="strong",font="bold"
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.RandomizeStrength.value and vb:slider {
         id = "randomize_slider_view",
         min = 0,
         max = 100,
         value = randomize_strength,
-        width = 300,
+        width = get_ui_width(300),
         notifier = function(value)
           randomize_strength = value
           -- Update percentage text
@@ -1330,29 +1374,31 @@ function PakettiCanvasExperimentsCreateDialog()
             vb.views.randomize_percentage_text.text = string.format("%.2f%%", value)
           end
         end
-      },
-      vb:text {
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.RandomizeStrength.value and vb:text {
         text = string.format("%.2f%%", randomize_strength),
-        width = 30,
+        width = get_ui_width(30),
         id = "randomize_percentage_text", style="strong",font="bold"
-      },
-      vb:button {
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.RandomizeStrength.value and vb:button {
         id = "randomize_button",
         text = "Randomize Edit A",
-        width = 120,
+        width = get_ui_width(120),
         notifier = function()
           PakettiCanvasExperimentsRandomizeCurrentMode()
         end
-      },
-      vb:text {
+      } or vb:space{width=1},
+      
+      -- Edit A/B controls (conditional visibility)
+      preferences.pakettiParameterEditor.AB.value and vb:text {
         text = "Edit A/B",
         style = "strong",font="bold",
-        width = 50
-      },
-      vb:button {
+        width = get_ui_width(50)
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.AB.value and vb:button {
         id = "edit_a_button",
         text = "Edit A",
-        width = 60,
+        width = get_ui_width(60),
         color = current_edit_mode == "A" and COLOR_BUTTON_ACTIVE or COLOR_BUTTON_INACTIVE,
         tooltip = "Switch to Edit A parameters",
         notifier = function()
@@ -1385,11 +1431,11 @@ function PakettiCanvasExperimentsCreateDialog()
           if canvas_experiments_canvas then canvas_experiments_canvas:update() end
           renoise.app():show_status("Edit A: Direct device control (purple bars)")
         end
-      },
-      vb:button {
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.AB.value and vb:button {
         id = "edit_b_button", 
         text = "Edit B",
-        width = 60,
+        width = get_ui_width(60),
         color = current_edit_mode == "B" and COLOR_BUTTON_ACTIVE or COLOR_BUTTON_INACTIVE,
         tooltip = "Switch to Edit B parameters",
         notifier = function()
@@ -1420,17 +1466,17 @@ function PakettiCanvasExperimentsCreateDialog()
           -- Update canvas to show Edit B colors
           if canvas_experiments_canvas then canvas_experiments_canvas:update() end
         end
-      },
-      vb:text {
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.AB.value and vb:text {
         text = "Crossfade",
-        width = 40, style="strong",font="bold"
-      },
-      vb:slider {
+        width = get_ui_width(40), style="strong",font="bold"
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.AB.value and vb:slider {
         id = "crossfade_slider",
         min = 0.0,
         max = 1.0,
         value = crossfade_amount,
-        width = 300,
+        width = get_ui_width(300),
         tooltip = "Crossfade between Edit A (0%) and Edit B (100%)",
         notifier = function(value)
           ApplyCrossfade(value)
@@ -1439,12 +1485,13 @@ function PakettiCanvasExperimentsCreateDialog()
             vb.views.crossfade_text.text = string.format("%.1f%%", value * 100)
           end
         end
-      },
-      vb:text {
+      } or vb:space{width=1},
+      preferences.pakettiParameterEditor.AB.value and vb:text {
         id = "crossfade_text",
         text = string.format("%.1f%%", crossfade_amount * 100),
-        width = 50, style="strong",font="bold"
-      }
+        width = get_ui_width(50), style="strong",font="bold"
+      } or vb:space{width=1}
+    }
 
     }
     
@@ -1478,7 +1525,7 @@ function PakettiCanvasExperimentsCreateDialog()
 
     },
 ]]--    
-      }
+      
   
   canvas_experiments_dialog = renoise.app():show_custom_dialog(
     title,
@@ -1988,9 +2035,9 @@ function SetupParameterObservers()
             return
           end
           
-          -- CRITICAL CHECK: Show if parameter being drawn is still getting automation updates
+          -- Skip automation updates for parameters currently being drawn (prevents feedback loops)
           if parameter_being_drawn == i then
-            print("CRITICAL: Parameter " .. i .. " (" .. param_info.name .. ") got automation update during drawing!")
+            return -- Don't update canvas for parameter being manually drawn
           end
           
           -- ALWAYS update canvas when parameter changes externally (automation playback)

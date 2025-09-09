@@ -548,6 +548,15 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     App10 = renoise.Document.ObservableString(""),
     App10Argument = renoise.Document.ObservableString("")
   },
+  -- Parameter Editor Settings
+  pakettiParameterEditor = {
+    PreviousNext = true,
+    AB = true,
+    AutomationPlaymode = true,
+    RandomizeStrength = true,
+    HalfSize = false,
+    HalfSizeFont = false
+  },
 }
 
 renoise.tool().preferences = preferences
@@ -581,6 +590,8 @@ end
 PatternSequencer = renoise.tool().preferences.pakettiPatternSequencer
 -- Add execute preferences accessor
 PakettiExecute = renoise.tool().preferences.pakettiExecute
+-- Add parameter editor preferences accessor
+PakettiParameterEditor = renoise.tool().preferences.pakettiParameterEditor
 
       -- Define available keys for dialog closing
       local dialog_close_keys = {"tab", "esc", "space", "return", "q", "donteverclose"}
@@ -1507,6 +1518,74 @@ vb:row{
 
 
 
+
+          vb:text{style="strong",font="bold",text="Parameter Editor"},
+          vb:row{
+            vb:text{text="Previous/Next",width=150,tooltip="Show Previous Track, Previous Device, Next Device, Next Track buttons"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiParameterEditor.PreviousNext.value and 2 or 1,
+              width=200,
+              tooltip="Show Previous Track, Previous Device, Next Device, Next Track buttons",
+              notifier=function(value) 
+                preferences.pakettiParameterEditor.PreviousNext.value=(value==2)
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="A/B",width=150,tooltip="Show Edit A/B, Edit A, Edit B and Crossfade sliders"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiParameterEditor.AB.value and 2 or 1,
+              width=200,
+              tooltip="Show Edit A/B, Edit A, Edit B and Crossfade sliders",
+              notifier=function(value) 
+                preferences.pakettiParameterEditor.AB.value=(value==2)
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Automation Playmode",width=150,tooltip="Show Automation Playmode Points, Lines, Curves controls"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiParameterEditor.AutomationPlaymode.value and 2 or 1,
+              width=200,
+              tooltip="Show Automation Playmode Points, Lines, Curves controls",
+              notifier=function(value) 
+                preferences.pakettiParameterEditor.AutomationPlaymode.value=(value==2)
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Randomize Strength",width=150,tooltip="Show Randomize Strength text and slider"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiParameterEditor.RandomizeStrength.value and 2 or 1,
+              width=200,
+              tooltip="Show Randomize Strength text and slider",
+              notifier=function(value) 
+                preferences.pakettiParameterEditor.RandomizeStrength.value=(value==2)
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Half Size",width=150,tooltip="Make canvas 75% of original height (390px becomes ~293px)"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiParameterEditor.HalfSize.value and 2 or 1,
+              width=200,
+              tooltip="Make canvas 75% of original height (390px becomes ~293px)",
+              notifier=function(value) 
+                preferences.pakettiParameterEditor.HalfSize.value=(value==2)
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Half Size Font",width=150,tooltip="On: Always use smaller text. Off: Use small text only with Half Size canvas"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiParameterEditor.HalfSizeFont.value and 2 or 1,
+              width=200,
+              tooltip="On: Always use smaller text. Off: Use small text only with Half Size canvas",
+              notifier=function(value) 
+                preferences.pakettiParameterEditor.HalfSizeFont.value=(value==2)
+              end
+            }
+          },
 
           -- Unison Generator Settings wrapped in group
 

@@ -5168,14 +5168,19 @@ function duplicateTrackAndInstrument()
   new_track.sample_effects_column_visible = selected_track.sample_effects_column_visible
   new_track.collapsed = selected_track.collapsed
   
+  -- Copy mixer volume settings
+  new_track.prefx_volume.value = selected_track.prefx_volume.value
+  new_track.postfx_volume.value = selected_track.postfx_volume.value
+  
   -- Copy DSP devices and their settings
   for device_index = 2, #selected_track.devices do  -- Start from 2 to skip Track Volume device
     local old_device = selected_track.devices[device_index]
     local new_device = new_track:insert_device_at(old_device.device_path, device_index)
     
-    -- Copy device parameters
+    -- Copy device parameters and mixer settings
     for param_index = 1, #old_device.parameters do
       new_device.parameters[param_index].value = old_device.parameters[param_index].value
+      new_device.parameters[param_index].show_in_mixer = old_device.parameters[param_index].show_in_mixer
     end
     
     -- Copy device display settings

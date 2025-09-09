@@ -151,9 +151,12 @@ function paketti_generate_midi_control_xml(cc_mappings)
                 table.insert(xml_lines, '      <Value>0.0</Value>')
             end
             table.insert(xml_lines, string.format('    </ControllerValue%d>', i))
-            table.insert(xml_lines, string.format('    <ControllerNumber%d>%d</ControllerNumber%d>', i, mapping.cc, i))
+            -- For pitchbend, use controller number 0 instead of -1 to enable it
+            local controller_number = (mapping.type == "PB") and 0 or mapping.cc
+            table.insert(xml_lines, string.format('    <ControllerNumber%d>%d</ControllerNumber%d>', i, controller_number, i))
             table.insert(xml_lines, string.format('    <ControllerName%d>%s</ControllerName%d>', i, mapping.name, i))
             table.insert(xml_lines, string.format('    <ControllerType%d>%s</ControllerType%d>', i, mapping.type or "CC", i))
+            table.insert(xml_lines, string.format('    <ControllerEnabled%d>true</ControllerEnabled%d>', i, i))
         else
             -- Default empty controller
             table.insert(xml_lines, string.format('    <ControllerValue%d>', i))
@@ -162,6 +165,7 @@ function paketti_generate_midi_control_xml(cc_mappings)
             table.insert(xml_lines, string.format('    <ControllerNumber%d>-1</ControllerNumber%d>', i, i))
             table.insert(xml_lines, string.format('    <ControllerName%d>Untitled</ControllerName%d>', i, i))
             table.insert(xml_lines, string.format('    <ControllerType%d>CC</ControllerType%d>', i, i))
+            table.insert(xml_lines, string.format('    <ControllerEnabled%d>false</ControllerEnabled%d>', i, i))
         end
     end
     
@@ -187,48 +191,72 @@ local function apply_ccizer_mappings(mappings, filename)
     print("-- CCizer: Creating MIDI Control device from CCizer mappings")
     print(string.format("-- CCizer: Using %d / %d CC mappings", #mappings, MAX_CC_LIMIT))
     
-    -- Load the MIDI Control device
-    print("-- CCizer: Loading *Instr. MIDI Control device...")
-    loadnative("Audio/Effects/Native/*Instr. MIDI Control")
+    -- Load the MIDI Control device SILENTLY
+    print("-- CCizer: Loading *Instr. MIDI Control device silently...")
+    loadnative("Audio/Effects/Native/*Instr. MIDI Control", nil, nil, nil, true)
     
-    -- Give the device a moment to load
+    -- Give the device a moment to load, then apply XML and open parameter editor
     renoise.app():show_status("Loading MIDI Control device...")
     
     -- Generate the XML preset with our CC mappings
     local xml_content = paketti_generate_midi_control_xml(mappings)
+    local name_without_ext = filename:match("^(.+)%..+$") or filename
     
-    -- Apply the XML to the device
-    local device = nil
-    if renoise.app().window.active_middle_frame == 7 or renoise.app().window.active_middle_frame == 6 then
-        -- Sample FX chain
-        device = song.selected_sample_device
-    else
-        -- Track DSP chain
-        device = song.selected_device
-    end
+    -- Using anonymous timer functions prevents multiple registrations
     
-    if device and device.name == "*Instr. MIDI Control" then
-        device.active_preset_data = xml_content
-        -- Use CCizer filename as device name
-        local name_without_ext = filename:match("^(.+)%..+$") or filename
-        device.display_name = name_without_ext
-        print("-- CCizer: Successfully applied CC mappings to device with name: " .. name_without_ext)
-        
-        -- Create status message with CC count information
-        local status_message = string.format("MIDI Control device '%s' created with %d/%d CC mappings", name_without_ext, #mappings, MAX_CC_LIMIT)
-        if #mappings == MAX_CC_LIMIT then
-            status_message = status_message .. " (max reached)"
+    local function apply_xml_and_open_editor()
+        -- Find the device that was just loaded
+        local device = nil
+        if renoise.app().window.active_middle_frame == 7 or renoise.app().window.active_middle_frame == 6 then
+            -- Sample FX chain
+            device = song.selected_sample_device
         else
-            status_message = status_message .. string.format(" (%d slots available)", MAX_CC_LIMIT - #mappings)
+            -- Track DSP chain
+            device = song.selected_device
         end
         
-        renoise.app():show_status(status_message)
-        
-        -- Open parameter editor after CC XML injection is complete
-        PakettiCanvasExperimentsInit()
-    else
-        renoise.app():show_error("Failed to find or load MIDI Control device")
+        if device and device.name == "*Instr. MIDI Control" then
+            device.active_preset_data = xml_content
+            device.display_name = name_without_ext
+            print("-- CCizer: Successfully applied CC mappings to device with name: " .. name_without_ext)
+            
+            -- Create status message with CC count information
+            local status_message = string.format("MIDI Control device '%s' created with %d/%d CC mappings", name_without_ext, #mappings, MAX_CC_LIMIT)
+            if #mappings == MAX_CC_LIMIT then
+                status_message = status_message .. " (max reached)"
+            else
+                status_message = status_message .. string.format(" (%d slots available)", MAX_CC_LIMIT - #mappings)
+            end
+            
+            renoise.app():show_status(status_message)
+            
+            -- Wait a tick, then open parameter editor and remove timer
+            local didiRun = false
+            local timer_func
+            timer_func = function()
+                didiRun = true
+                if didiRun == true then
+                    renoise.tool():remove_timer(timer_func)
+                end
+                PakettiCanvasExperimentsInit()
+            end
+            renoise.tool():add_timer(timer_func, 100)
+        else
+            renoise.app():show_error("Failed to find or load MIDI Control device")
+        end
     end
+    
+    -- Wait for device to load before applying XML
+    local didiRun = false
+    local device_timer_func
+    device_timer_func = function()
+        didiRun = true
+        if didiRun == true then
+            renoise.tool():remove_timer(device_timer_func)
+        end
+        apply_xml_and_open_editor()
+    end
+    renoise.tool():add_timer(device_timer_func, 200)
 end
 
 -- Create the CCizer loader dialog
@@ -493,46 +521,61 @@ function PakettiCreateMIDIControlFromTextFile()
     
     print(status_message)
     
-    -- Load the MIDI Control device
-    print("-- MIDI Control Text: Loading *Instr. MIDI Control device...")
-    loadnative("Audio/Effects/Native/*Instr. MIDI Control")
+    -- Load the MIDI Control device SILENTLY  
+    print("-- MIDI Control Text: Loading *Instr. MIDI Control device silently...")
+    loadnative("Audio/Effects/Native/*Instr. MIDI Control", nil, nil, nil, true)
     
-    -- Give the device a moment to load
+    -- Give the device a moment to load, then apply XML
     renoise.app():show_status("Loading MIDI Control device...")
     
     -- Generate the XML preset with our CC mappings
     local xml_content = paketti_generate_midi_control_xml(cc_mappings)
     
-    -- Apply the XML to the device
-    local device = nil
-    if renoise.app().window.active_middle_frame == 7 or renoise.app().window.active_middle_frame == 6 then
-      -- Sample FX chain
-      device = song.selected_sample_device
-    else
-      -- Track DSP chain
-      device = song.selected_device
+    -- Extract filename without path and extension
+    local filename = selected_textfile:match("([^/\\]+)$")  -- Get filename from path
+    local name_without_ext = filename:match("^(.+)%..+$") or filename  -- Remove extension, fallback to full filename
+    
+    local function apply_xml_and_finish()
+        -- Apply the XML to the device
+        local device = nil
+        if renoise.app().window.active_middle_frame == 7 or renoise.app().window.active_middle_frame == 6 then
+          -- Sample FX chain
+          device = song.selected_sample_device
+        else
+          -- Track DSP chain
+          device = song.selected_device
+        end
+        
+        if device and device.name == "*Instr. MIDI Control" then
+          device.active_preset_data = xml_content
+          device.display_name = name_without_ext
+          print("-- MIDI Control Text: Successfully applied CC mappings to device with name: " .. name_without_ext)
+          
+          -- Create status message with CC count information
+          local status_message = string.format("MIDI Control device '%s' created with %d/%d CC mappings", name_without_ext, #cc_mappings, MAX_CC_LIMIT)
+          if #cc_mappings == MAX_CC_LIMIT then
+              status_message = status_message .. " (max reached)"
+          else
+              status_message = status_message .. string.format(" (%d slots available)", MAX_CC_LIMIT - #cc_mappings)
+          end
+          
+          renoise.app():show_status(status_message)
+        else
+          renoise.app():show_error("Failed to find or load MIDI Control device")
+        end
     end
     
-    if device and device.name == "*Instr. MIDI Control" then
-      device.active_preset_data = xml_content
-      -- Extract filename without path and extension
-      local filename = selected_textfile:match("([^/\\]+)$")  -- Get filename from path
-      local name_without_ext = filename:match("^(.+)%..+$") or filename  -- Remove extension, fallback to full filename
-      device.display_name = name_without_ext
-      print("-- MIDI Control Text: Successfully applied CC mappings to device with name: " .. name_without_ext)
-      
-      -- Create status message with CC count information
-      local status_message = string.format("MIDI Control device '%s' created with %d/%d CC mappings", name_without_ext, #cc_mappings, MAX_CC_LIMIT)
-      if #cc_mappings == MAX_CC_LIMIT then
-          status_message = status_message .. " (max reached)"
-      else
-          status_message = status_message .. string.format(" (%d slots available)", MAX_CC_LIMIT - #cc_mappings)
-      end
-      
-      renoise.app():show_status(status_message)
-    else
-      renoise.app():show_error("Failed to find or load MIDI Control device")
+    -- Wait for device to load before applying XML
+    local didiRun = false
+    local device_timer_func
+    device_timer_func = function()
+        didiRun = true
+        if didiRun == true then
+            renoise.tool():remove_timer(device_timer_func)
+        end
+        apply_xml_and_finish()
     end
+    renoise.tool():add_timer(device_timer_func, 200)
   end
   
 
@@ -578,53 +621,87 @@ local function apply_ccizer_to_selected_device(mappings, filename)
         
         renoise.app():show_status(status_message)
         
-        -- Open parameter editor after CC XML injection is complete
-        PakettiCanvasExperimentsInit()
+        -- Wait a tick, then open parameter editor and remove timer
+        local didiRun = false
+        local timer_func
+        timer_func = function()
+            didiRun = true
+            if didiRun == true then
+                renoise.tool():remove_timer(timer_func)
+            end
+            PakettiCanvasExperimentsInit()
+        end
+        renoise.tool():add_timer(timer_func, 100)
     else
         -- No device selected or wrong device type - create new MIDI Control device
         print("-- CCizer: No MIDI Control device selected, creating new one")
         print(string.format("-- CCizer: Using %d / %d CC mappings", #mappings, MAX_CC_LIMIT))
         
-        -- Load the MIDI Control device
-        print("-- CCizer: Loading *Instr. MIDI Control device...")
-        loadnative("Audio/Effects/Native/*Instr. MIDI Control")
+        -- Load the MIDI Control device SILENTLY
+        print("-- CCizer: Loading *Instr. MIDI Control device silently...")
+        loadnative("Audio/Effects/Native/*Instr. MIDI Control", nil, nil, nil, true)
         
-        -- Give the device a moment to load
+        -- Give the device a moment to load, then apply XML and open parameter editor
         renoise.app():show_status("Loading MIDI Control device...")
         
         -- Generate the XML preset with our CC mappings
         local xml_content = paketti_generate_midi_control_xml(mappings)
         
-        -- Apply the XML to the device
-        local device = nil
-        if renoise.app().window.active_middle_frame == 7 or renoise.app().window.active_middle_frame == 6 then
-            -- Sample FX chain
-            device = song.selected_sample_device
-        else
-            -- Track DSP chain
-            device = song.selected_device
-        end
+        -- Using anonymous timer functions prevents multiple registrations
         
-        if device and device.name == "*Instr. MIDI Control" then
-            device.active_preset_data = xml_content
-            device.display_name = filename
-            print("-- CCizer: Successfully applied CC mappings to new device with name: " .. filename)
-            
-            -- Create status message with CC count information
-            local status_message = string.format("Created MIDI Control device '%s' with %d/%d CC mappings", filename, #mappings, MAX_CC_LIMIT)
-            if #mappings == MAX_CC_LIMIT then
-                status_message = status_message .. " (max reached)"
+        local function apply_xml_and_open_editor()
+            -- Find the device that was just loaded
+            local device = nil
+            if renoise.app().window.active_middle_frame == 7 or renoise.app().window.active_middle_frame == 6 then
+                -- Sample FX chain
+                device = song.selected_sample_device
             else
-                status_message = status_message .. string.format(" (%d slots available)", MAX_CC_LIMIT - #mappings)
+                -- Track DSP chain
+                device = song.selected_device
             end
             
-            renoise.app():show_status(status_message)
-            
-            -- Open parameter editor after CC XML injection is complete
-            PakettiCanvasExperimentsInit()
-        else
-            renoise.app():show_error("Failed to find or load MIDI Control device")
+            if device and device.name == "*Instr. MIDI Control" then
+                device.active_preset_data = xml_content
+                device.display_name = filename
+                print("-- CCizer: Successfully applied CC mappings to new device with name: " .. filename)
+                
+                -- Create status message with CC count information
+                local status_message = string.format("Created MIDI Control device '%s' with %d/%d CC mappings", filename, #mappings, MAX_CC_LIMIT)
+                if #mappings == MAX_CC_LIMIT then
+                    status_message = status_message .. " (max reached)"
+                else
+                    status_message = status_message .. string.format(" (%d slots available)", MAX_CC_LIMIT - #mappings)
+                end
+                
+                renoise.app():show_status(status_message)
+                
+                -- Wait a tick, then open parameter editor and remove timer
+                local didiRun = false
+                local timer_func
+                timer_func = function()
+                    didiRun = true
+                    if didiRun == true then
+                        renoise.tool():remove_timer(timer_func)
+                    end
+                    PakettiCanvasExperimentsInit()
+                end
+                renoise.tool():add_timer(timer_func, 100)
+            else
+                renoise.app():show_error("Failed to find or load MIDI Control device")
+            end
         end
+        
+        -- Wait for device to load before applying XML
+        local didiRun = false
+        local device_timer_func
+        device_timer_func = function()
+            didiRun = true
+            if didiRun == true then
+                renoise.tool():remove_timer(device_timer_func)
+            end
+            apply_xml_and_open_editor()
+        end
+        renoise.tool():add_timer(device_timer_func, 200)
     end
 end
 

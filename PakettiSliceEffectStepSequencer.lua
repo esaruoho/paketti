@@ -4545,9 +4545,7 @@ vb:valuebox{
         text = "Render Track to New Sample",
         width = 150,
         notifier = function()
-          -- Use PakettiRender.lua to render current track to new sample
-          -- Parameters: muteOriginal=false, justwav=false, newtrack=false, timestretch_mode=false, current_bpm=nil
-          pakettiCleanRenderSelection(false, false, false, false, nil)
+          PakettiImpulseTrackerPatternToSample()
         end
       },
       vb:button{

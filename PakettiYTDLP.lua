@@ -866,6 +866,9 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
   -- Check if completion signal file already exists (should be there since timer called us)
   if PakettiYTDLPFileExists(completion_signal_file) then
     PakettiYTDLPLogMessage("Completion signal file detected")
+    -- CRITICAL: Remove completion signal file immediately to prevent repeated processing
+    os.remove(completion_signal_file)
+    PakettiYTDLPLogMessage("Removed completion signal file to prevent duplicate processing")
   else
     PakettiYTDLPLogMessage("WARNING: Completion signal not found, checking for files anyway...")
   end
@@ -996,108 +999,78 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
   PakettiYTDLPClearFile(filenames_file)
   
   local command
-  if youtube_url and youtube_url ~= "" then
-    -- Direct URL download
-    command = youtube_url
-    
-    -- Show clean start message
-    PakettiYTDLPLogMessage("Downloading full video of " .. youtube_url)
-
-    -- Execute your simple working yt-dlp command directly
-    local yt_dlp_cmd = string.format(
-      'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
-      temp_dir,
-      PakettiYTDLPGetPathEnv(),
-      yt_dlp_path,
-      youtube_url
-    )
-    
-    if not PakettiYTDLPExecuteCommand(yt_dlp_cmd) then
-      PakettiYTDLPLogMessage("ERROR: Download failed")
-      return
-    end
-    
-    -- Write URL to search results
-    local f = io.open(search_results_file, "w")
-    if f then
-      f:write(youtube_url .. "\n")
-      f:close()
-    end
-    
-    -- Return here - download is now running asynchronously
-    -- File listing and completion signal will be handled by the process timer
-    return
-  else
-    -- Search command - do this immediately without slicing
-    -- Update the log BEFORE starting the search
-    logview.text="=== Starting search for term: \"" .. search_phrase .. "\" ===\n"
-    local search_command = string.format('%s"%s" "ytsearch30:%s" --get-id --no-warnings', PakettiYTDLPGetPathEnv(), yt_dlp_path, search_phrase)
-    local handle = io.popen(search_command)
-    if not handle then
-      PakettiYTDLPLogMessage("ERROR: Failed to start search")
-      return
-    end
-    
-    -- Read all results immediately
-    local urls = {}
-    local count = 0
-    local results_file = io.open(search_results_file, "w")
-    local current_log = logview.text
-    
-    for line in handle:lines() do
-      if line and line ~= "" then
-        count = count + 1
-        local url = "https://www.youtube.com/watch?v=" .. line
-        table.insert(urls, url)
-        
-        -- Write to search results file
-        if results_file then
-          results_file:write(url .. "\n")
-        end
-        
-        -- Update the progress on the same line
-        logview.text = current_log .. string.format("Found video %02d/30", count)
-        coroutine.yield()
-      end
-    end
-    
-    if results_file then
-      results_file:close()
-    end
-    handle:close()
-    
-    if #urls == 0 then
-      PakettiYTDLPLogMessage("ERROR: No videos found")
-      return
-    end
-    
-    logview.text = logview.text .. "\n"  -- Add newline after counter
-    PakettiYTDLPLogMessage("=== Found " .. #urls .. " videos total ===")
-    
-    -- Select random URL
-    math.randomseed(os.time())
-    command = urls[math.random(1, #urls)]
-    PakettiYTDLPLogMessage("=== Selected video for download: " .. command .. " ===")
-    
-    -- Execute download for selected URL
-    local yt_dlp_cmd = string.format(
-      'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
-      temp_dir,
-      PakettiYTDLPGetPathEnv(),
-      yt_dlp_path,
-      command
-    )
-    
-    if not PakettiYTDLPExecuteCommand(yt_dlp_cmd) then
-      PakettiYTDLPLogMessage("ERROR: Download failed")
-      return
-    end
-    
-    -- Return here - download is now running asynchronously
+  -- ProcessSlicer function now only handles search (direct URLs are handled outside ProcessSlicer)
+  if not search_phrase or search_phrase == "" then
+    PakettiYTDLPLogMessage("ERROR: ProcessSlicer called without search phrase")
     return
   end
   
-  -- All download logic is now handled above
+  -- Search command - do this with slicing for UI responsiveness
+  -- Update the log BEFORE starting the search
+  logview.text="=== Starting search for term: \"" .. search_phrase .. "\" ===\n"
+  local search_command = string.format('%s"%s" "ytsearch30:%s" --get-id --no-warnings', PakettiYTDLPGetPathEnv(), yt_dlp_path, search_phrase)
+  local handle = io.popen(search_command)
+  if not handle then
+    PakettiYTDLPLogMessage("ERROR: Failed to start search")
+    return
+  end
+  
+  -- Read all results with yielding for UI responsiveness
+  local urls = {}
+  local count = 0
+  local results_file = io.open(search_results_file, "w")
+  local current_log = logview.text
+  
+  for line in handle:lines() do
+    if line and line ~= "" then
+      count = count + 1
+      local url = "https://www.youtube.com/watch?v=" .. line
+      table.insert(urls, url)
+      
+      -- Write to search results file
+      if results_file then
+        results_file:write(url .. "\n")
+      end
+      
+      -- Update the progress on the same line
+      logview.text = current_log .. string.format("Found video %02d/30", count)
+      coroutine.yield()
+    end
+  end
+  
+  if results_file then
+    results_file:close()
+  end
+  handle:close()
+  
+  if #urls == 0 then
+    PakettiYTDLPLogMessage("ERROR: No videos found")
+    return
+  end
+  
+  logview.text = logview.text .. "\n"  -- Add newline after counter
+  PakettiYTDLPLogMessage("=== Found " .. #urls .. " videos total ===")
+  
+  -- Select random URL
+  math.randomseed(os.time())
+  command = urls[math.random(1, #urls)]
+  PakettiYTDLPLogMessage("=== Selected video for download: " .. command .. " ===")
+  
+  -- Execute download for selected URL
+  local yt_dlp_cmd = string.format(
+    'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
+    temp_dir,
+    PakettiYTDLPGetPathEnv(),
+    yt_dlp_path,
+    command
+  )
+  
+  if not PakettiYTDLPExecuteCommand(yt_dlp_cmd) then
+    PakettiYTDLPLogMessage("ERROR: Download failed")
+    return
+  end
+  
+  -- Return here - download is now running asynchronously  
   -- File listing and completion signal will be handled by the process timer when download completes
 end
 
@@ -1166,29 +1139,57 @@ function PakettiYTDLPStartYTDLP()
   end
   PakettiYTDLPClearFile(output_dir .. separator .. "tempfolder" .. separator .. "filenames.txt")
   
-  -- Start the sliced process
-  if process_slicer and process_slicer:running() then
-    process_slicer:stop()
+  -- For direct URLs, skip ProcessSlicer and download directly
+  if youtube_url and youtube_url ~= "" then
+    -- Direct download without ProcessSlicer (which was causing UI freezing)
+    local temp_dir = output_dir .. separator .. "tempfolder"
+    PakettiYTDLPCreateDir(temp_dir)
+    
+    -- Show clean start message
+    PakettiYTDLPLogMessage("Downloading full video of " .. youtube_url)
+    
+    -- Execute your simple working yt-dlp command directly
+    local yt_dlp_cmd = string.format(
+      'cd "%s" && %s"%s" --extract-audio --audio-format wav "%s"',
+      temp_dir,
+      PakettiYTDLPGetPathEnv(),
+      yt_dlp_path,
+      youtube_url
+    )
+    
+    if not PakettiYTDLPExecuteCommand(yt_dlp_cmd) then
+      PakettiYTDLPLogMessage("ERROR: Download failed")
+      return
+    end
+    
+    -- Download is now running with timer-based progress updates
+  else
+    -- For search terms, use ProcessSlicer (needed for the search process)
+    if process_slicer and process_slicer:running() then
+      process_slicer:stop()
+    end
+    
+    process_slicer = ProcessSlicer(PakettiYTDLPSlicedProcess, 
+      search_phrase, 
+      youtube_url, 
+      output_dir, 
+      15, -- Default clip length (not used but needed for function signature)
+      true -- Always full video
+    )
+    
+    process_slicer:start()
   end
-  
-  process_slicer = ProcessSlicer(PakettiYTDLPSlicedProcess, 
-    search_phrase, 
-    youtube_url, 
-    output_dir, 
-    15, -- Default clip length (not used but needed for function signature)
-    true -- Always full video
-  )
-  
-  process_slicer:start()
   
   -- Proper timer handling
   local function check_completion()
     if PakettiYTDLPFileExists(output_dir .. separator .. "tempfolder" .. separator .. "download_completed.txt") then
-      -- Remove the timer first
+      -- Remove the timer IMMEDIATELY to prevent multiple calls
       if renoise.tool():has_timer(completion_timer_func) then
         renoise.tool():remove_timer(completion_timer_func)
       end
-      -- Load into Renoise
+      completion_timer_func = nil  -- Clear reference to prevent reuse
+      
+      -- Load into Renoise (this function will now remove the completion signal file)
       PakettiYTDLPLoadVideoAudioIntoRenoise(
         output_dir,
         tonumber(vb.views.loop_mode.value),

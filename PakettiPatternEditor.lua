@@ -1990,6 +1990,43 @@ end
     end
 end
 
+function PakettiNoteOffDelayModify(delay_change)
+  local song = renoise.song()
+  local current_pattern = song.selected_pattern
+  local current_track_index = song.selected_track_index
+  local current_track = song.selected_track
+  
+  -- Make delay column visible
+  current_track.delay_column_visible = true
+  
+  local note_off_count = 0
+  local pattern_lines = current_pattern.number_of_lines
+  
+  -- Iterate through all lines in the pattern
+  for line_index = 1, pattern_lines do
+    local pattern_line = current_pattern:track(current_track_index):line(line_index)
+    
+    -- Check all note columns in this line
+    for column_index = 1, current_track.visible_note_columns do
+      local note_column = pattern_line:note_column(column_index)
+      
+      -- Check if this is a NOTE_OFF
+      if note_column.note_value == renoise.PatternLine.NOTE_OFF then
+        -- Modify the delay value with bounds checking
+        local new_delay = note_column.delay_value + delay_change
+        new_delay = math.max(0, math.min(255, new_delay))
+        note_column.delay_value = new_delay
+        note_off_count = note_off_count + 1
+      end
+    end
+  end
+  
+  if note_off_count > 0 then
+    renoise.app():show_status(string.format("Modified delay for %d Note OFF events by %+d", note_off_count, delay_change))
+  else
+    renoise.app():show_status("No Note OFF events found in current track")
+  end
+end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase Delay (+1)",invoke=function() columns(1,1) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase Delay (+10)",invoke=function() columns(10,1) end}
@@ -1999,6 +2036,8 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase D
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase Delay (+10) (2nd)",invoke=function() columns(10,1) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Decrease Delay (-1) (2nd)",invoke=function() columns(-1,1) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Decrease Delay (-10) (2nd)",invoke=function() columns(-10,1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Off Note Delay Offset (+1)",invoke=function() PakettiNoteOffDelayModify(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Off Note Delay Offset (-1)",invoke=function() PakettiNoteOffDelayModify(-1) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase Panning (+1)",invoke=function() columns(1,2) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase Panning (+10)",invoke=function() columns(10,2) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Decrease Panning (-1)",invoke=function() columns(-1,2) end}
@@ -4463,6 +4502,137 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clear All Tracks Belo
 
 
 renoise.tool():add_midi_mapping{name="Paketti:Clear Selected Track Above Current Row",invoke=function(message) if message:is_trigger() then clear_track_direction("above", false) end end}
+
+-- Function to wipe track content by editstep intervals
+function wipe_track_by_editstep(all_tracks)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local pattern_length = pattern.number_of_lines
+  local selected_line_index = song.selected_line_index
+  local editstep = song.transport.edit_step
+  
+  -- If editstep is 0, treat it as 1
+  if editstep == 0 then
+    editstep = 1
+  end
+  
+  -- Determine what to clear based on current column selection
+  local selected_note_column = song.selected_note_column_index
+  local selected_effect_column = song.selected_effect_column_index
+  local in_note_column = (selected_note_column > 0)
+  local in_effect_column = (selected_note_column == 0 and selected_effect_column > 0)
+  
+  local lines_cleared = 0
+  
+  -- Check if there's a selection
+  local selection = song.selection_in_pattern
+  
+  if selection then
+    -- Work within selection using selection_in_pattern_pro
+    local selection_data = selection_in_pattern_pro()
+    if not selection_data then
+      renoise.app():show_status("Could not get selection data")
+      return
+    end
+    
+    -- Process each track in the selection
+    for _, track_info in ipairs(selection_data) do
+      local track_index = track_info.track_index
+      local track = song.tracks[track_index]
+      local pattern_track = pattern:track(track_index)
+      
+      -- Start from selection start line and wipe at editstep intervals within selection bounds
+      for line_idx = selection.start_line, selection.end_line, editstep do
+        local line = pattern_track:line(line_idx)
+        local line_had_content = false
+        
+        -- Clear note columns (only if in note column and for sequencer tracks and selected)
+        if in_note_column and track.type == renoise.Track.TRACK_TYPE_SEQUENCER and #track_info.note_columns > 0 then
+          for _, note_col_idx in ipairs(track_info.note_columns) do
+            local note_column = line:note_column(note_col_idx)
+            if not note_column.is_empty then
+              line_had_content = true
+              note_column:clear()
+            end
+          end
+        end
+        
+        -- Clear effect columns (if in note column OR in effect column and selected)
+        if (in_note_column or in_effect_column) and #track_info.effect_columns > 0 then
+          for _, effect_col_idx in ipairs(track_info.effect_columns) do
+            local effect_column = line:effect_column(effect_col_idx)
+            if not effect_column.is_empty then
+              line_had_content = true
+              effect_column:clear()
+            end
+          end
+        end
+        
+        if line_had_content then
+          lines_cleared = lines_cleared + 1
+        end
+      end
+    end
+    
+    -- Show status for selection mode
+    local column_msg = in_note_column and "note+effect columns" or (in_effect_column and "effect columns" or "columns")
+    renoise.app():show_status(string.format("Wiped %d lines (%s) within selection using EditStep intervals (%d)", 
+      lines_cleared, column_msg, editstep))
+  else
+    -- No selection - use original behavior for whole track
+    local track_range = all_tracks and {1, #song.tracks} or {song.selected_track_index, song.selected_track_index}
+    
+    -- Process each track in the range
+    for track_index = track_range[1], track_range[2] do
+      local track = song.tracks[track_index]
+      local pattern_track = pattern:track(track_index)
+      
+      -- Start from selected line and wipe at editstep intervals
+      for line_idx = selected_line_index, pattern_length, editstep do
+        local line = pattern_track:line(line_idx)
+        local line_had_content = false
+        
+        -- Clear note columns (only if in note column and for sequencer tracks)
+        if in_note_column and track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          for note_col_idx = 1, track.visible_note_columns do
+            local note_column = line:note_column(note_col_idx)
+            if not note_column.is_empty then
+              line_had_content = true
+              note_column:clear()
+            end
+          end
+        end
+        
+        -- Clear effect columns (if in note column OR in effect column)
+        if in_note_column or in_effect_column then
+          for effect_col_idx = 1, track.visible_effect_columns do
+            local effect_column = line:effect_column(effect_col_idx)
+            if not effect_column.is_empty then
+              line_had_content = true
+              effect_column:clear()
+            end
+          end
+        end
+        
+        if line_had_content then
+          lines_cleared = lines_cleared + 1
+        end
+      end
+    end
+    
+    -- Show status for non-selection mode
+    local track_msg = all_tracks and "all tracks" or "the selected track"
+    local column_msg = in_note_column and "note+effect columns" or (in_effect_column and "effect columns" or "columns")
+    renoise.app():show_status(string.format("Wiped %d lines (%s) from %s using EditStep intervals (%d)", 
+      lines_cleared, column_msg, track_msg, editstep))
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe Selected Track by EditStep",invoke=function() wipe_track_by_editstep(false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Tracks by EditStep",invoke=function() wipe_track_by_editstep(true) end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Wipe Selected Track by EditStep",invoke=function(message) if message:is_trigger() then wipe_track_by_editstep(false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe All Tracks by EditStep",invoke=function(message) if message:is_trigger() then wipe_track_by_editstep(true) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Clear Selected Track Below Current Row",invoke=function(message) if message:is_trigger() then clear_track_direction("below", false) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Clear All Tracks Above Current Row",invoke=function(message) if message:is_trigger() then clear_track_direction("above", true) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Clear All Tracks Below Current Row",invoke=function(message) if message:is_trigger() then clear_track_direction("below", true) end end}

@@ -86,6 +86,7 @@ if not DynamicViewPrefs then
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_sample_record_visible_step" .. step, renoise.Document.ObservableNumber(1))
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_disk_browser_visible_step" .. step, renoise.Document.ObservableNumber(1))
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_instrument_box_visible_step" .. step, renoise.Document.ObservableNumber(1))
+      DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_instrument_box_slot_size_step" .. step, renoise.Document.ObservableNumber(1))
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_pattern_matrix_visible_step" .. step, renoise.Document.ObservableNumber(1))
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_pattern_advanced_edit_visible_step" .. step, renoise.Document.ObservableNumber(1))
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_instrument_editor_detached_step" .. step, renoise.Document.ObservableNumber(1))
@@ -107,7 +108,7 @@ function loadDynamicViewPreferences()
       local prop_names = {
         "upper_step", "middle_step", "lower_step",
         "sample_record_visible_step", "disk_browser_visible_step",
-        "instrument_box_visible_step", "pattern_matrix_visible_step",
+        "instrument_box_visible_step", "instrument_box_slot_size_step", "pattern_matrix_visible_step",
         "pattern_advanced_edit_visible_step", "instrument_editor_detached_step",
         "mixer_view_detached_step"
       }
@@ -172,6 +173,11 @@ local function build_detach_options()
   return { "<Change Nothing>", "Detached", "Attached" }
 end
 
+-- Function to build options for instrument box size
+local function build_instrument_box_size_options()
+  return { "<Change Nothing>", "Small", "Medium", "Large" }
+end
+
 function apply_dynamic_view_step(dv, step)
   local app_window = renoise.app().window
   local dv_id = string.format("%02d", dv)
@@ -234,6 +240,16 @@ function apply_dynamic_view_step(dv, step)
           app_window.instrument_box_is_visible = false
         elseif value == 3 then
           app_window.instrument_box_is_visible = true
+        end
+      end
+    },
+    { property = "instrument_box_slot_size_step", apply = function(value)
+        if value == 2 then
+          app_window.instrument_box_slot_size = 1  -- Small
+        elseif value == 3 then
+          app_window.instrument_box_slot_size = 2  -- Medium  
+        elseif value == 4 then
+          app_window.instrument_box_slot_size = 3  -- Large
         end
       end
     },
@@ -324,6 +340,7 @@ function cycle_dynamic_view(dv)
       "sample_record_visible_step",
       "disk_browser_visible_step",
       "instrument_box_visible_step",
+      "instrument_box_slot_size_step",
       "pattern_matrix_visible_step",
       "pattern_advanced_edit_visible_step",
       "instrument_editor_detached_step",
@@ -386,15 +403,6 @@ function cycle_dynamic_view(dv)
   end
 end
 
--- Function to build the header row with step numbers
-local function build_header_row(vb, steps_per_view)
-  local row = vb:row{}
-  row:add_child(vb:text{text="",width=110 }) -- Blank cell for labels column
-  for step = 1, steps_per_view do
-    row:add_child(vb:text{text="Step " .. step, align="center",width=125, font = "bold" })
-  end
-  return row
-end
 
 -- Function to build a row for a specific property across all steps
 local function build_property_row(vb, dv_id, property_name, label_text, items_builder, update_steps_label)
@@ -458,6 +466,7 @@ local function build_dynamic_view_ui(vb, dv)
       "sample_record_visible_step",
       "disk_browser_visible_step",
       "instrument_box_visible_step",
+      "instrument_box_slot_size_step",
       "pattern_matrix_visible_step",
       "pattern_advanced_edit_visible_step",
       "instrument_editor_detached_step",
@@ -482,11 +491,11 @@ local function build_dynamic_view_ui(vb, dv)
       vb:button{ text="Cycle", height = 20,width=60, pressed = function() cycle_dynamic_view(dv) end},
       vb:button{ text="Clear All Visibility Controls", height = 20,width=180, pressed = function() clear_visibility_controls() end}
     },
-    build_header_row(vb, steps_per_view),
     build_property_row(vb, dv_id, "upper_step", "Upper Frame", function() return build_options(views_upper, true) end, update_steps_label),
     build_property_row(vb, dv_id, "middle_step", "Middle Frame", function() return build_options(views_middle, false) end, update_steps_label),
     build_property_row(vb, dv_id, "lower_step", "Lower Frame", function() return build_options(views_lower, true) end, update_steps_label),
     build_property_row(vb, dv_id, "instrument_box_visible_step", "Instrument Box", build_visibility_options, update_steps_label),
+    build_property_row(vb, dv_id, "instrument_box_slot_size_step", "Instrument Size", build_instrument_box_size_options, update_steps_label),
     build_property_row(vb, dv_id, "disk_browser_visible_step", "Disk Browser", build_visibility_options, update_steps_label),
     build_property_row(vb, dv_id, "sample_record_visible_step", "Sample Recorder", build_visibility_options, update_steps_label),
     build_property_row(vb, dv_id, "pattern_matrix_visible_step", "Pattern Matrix", build_visibility_options, update_steps_label),
@@ -587,16 +596,27 @@ function save_dynamic_views_to_txt()
         end
       end
 
+      -- Map instrument box size control values to text
+      local function instrument_box_size_value_to_text(value)
+        if value == 1 then return "<Change Nothing>"
+        elseif value == 2 then return "Small"
+        elseif value == 3 then return "Medium"
+        elseif value == 4 then return "Large"
+        else return "<Unknown>"
+        end
+      end
+
       local disk_browser = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_disk_browser_visible_step" .. step].value)
       local instrument_box = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_box_visible_step" .. step].value)
+      local instrument_box_size = instrument_box_size_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_box_slot_size_step" .. step].value)
       local sample_recorder = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_sample_record_visible_step" .. step].value)
       local pattern_matrix = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_pattern_matrix_visible_step" .. step].value)
       local advanced_edit = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_pattern_advanced_edit_visible_step" .. step].value)
       local instrument_editor = detach_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_editor_detached_step" .. step].value)
       local mixer_view = detach_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_mixer_view_detached_step" .. step].value)
 
-      file:write(string.format("  Step %d - Upper: %d, Middle: %d, Lower: %d, Disk Browser: %s, Instrument Box: %s, Sample Recorder: %s, Pattern Matrix: %s, Advanced Edit: %s, Instrument Editor: %s, Mixer View: %s\n",
-        step, upper, middle, lower, disk_browser, instrument_box, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view))
+      file:write(string.format("  Step %d - Upper: %d, Middle: %d, Lower: %d, Disk Browser: %s, Instrument Box: %s, Instrument Box Size: %s, Sample Recorder: %s, Pattern Matrix: %s, Advanced Edit: %s, Instrument Editor: %s, Mixer View: %s\n",
+        step, upper, middle, lower, disk_browser, instrument_box, instrument_box_size, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view))
     end
   end
 
@@ -623,9 +643,9 @@ function load_dynamic_views_from_txt()
     else
       if dv then
         local dv_id = string.format("%02d", dv)
-        local step, upper, middle, lower, disk_browser, instrument_box, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view = string.match(
+        local step, upper, middle, lower, disk_browser, instrument_box, instrument_box_size, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view = string.match(
           line,
-          "Step (%d+) %- Upper: (%d+), Middle: (%d+), Lower: (%d+), Disk Browser: (%b<>), Instrument Box: (%b<>), Sample Recorder: (%b<>), Pattern Matrix: (%b<>), Advanced Edit: (%b<>), Instrument Editor: (%b<>), Mixer View: (%b<>)"
+          "Step (%d+) %- Upper: (%d+), Middle: (%d+), Lower: (%d+), Disk Browser: (%b<>), Instrument Box: (%b<>), Instrument Box Size: (%b<>), Sample Recorder: (%b<>), Pattern Matrix: (%b<>), Advanced Edit: (%b<>), Instrument Editor: (%b<>), Mixer View: (%b<>)"
         )
         if step then
           step = tonumber(step)
@@ -651,8 +671,19 @@ function load_dynamic_views_from_txt()
             end
           end
 
+          -- Map text to instrument box size control values
+          local function text_to_instrument_box_size_value(text)
+            if text == "<Change Nothing>" then return 1
+            elseif text == "Small" then return 2
+            elseif text == "Medium" then return 3
+            elseif text == "Large" then return 4
+            else return 1  -- Default to "<Change Nothing>" if unknown
+            end
+          end
+
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_disk_browser_visible_step" .. step].value = text_to_visibility_value(disk_browser)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_box_visible_step" .. step].value = text_to_visibility_value(instrument_box)
+          DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_box_slot_size_step" .. step].value = text_to_instrument_box_size_value(instrument_box_size)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_sample_record_visible_step" .. step].value = text_to_visibility_value(sample_recorder)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_pattern_matrix_visible_step" .. step].value = text_to_visibility_value(pattern_matrix)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_pattern_advanced_edit_visible_step" .. step].value = text_to_visibility_value(advanced_edit)
@@ -693,6 +724,7 @@ function set_dynamic_view_step_from_knob(dv, knob_value)
       "sample_record_visible_step",
       "disk_browser_visible_step",
       "instrument_box_visible_step",
+      "instrument_box_slot_size_step",
       "pattern_matrix_visible_step",
       "pattern_advanced_edit_visible_step",
       "instrument_editor_detached_step",

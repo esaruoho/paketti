@@ -412,7 +412,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 1-64 x[Knob]"
   invoke=function(message)
     if message:is_abs_value() then
       -- Handle absolute values (0-127)
-      midiValues(1, 64, renoise.song().transport, 'edit_step', message.int_value)
+      midiValues(1, 64, renoise.song().transport, 'edit_step', message)
     elseif message:is_rel_value() then
       -- Handle relative values (-63 to +63)
       local current_value = renoise.song().transport.edit_step
@@ -428,7 +428,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 1-64 x[Knob]"
   invoke=function(message)
     if message:is_abs_value() then
       -- Handle absolute values (0-127)
-      midiValues(0, 64, renoise.song().transport, 'edit_step', message.int_value)
+      midiValues(0, 64, renoise.song().transport, 'edit_step', message)
     elseif message:is_rel_value() then
       -- Handle relative values (-63 to +63)
       local current_value = renoise.song().transport.edit_step
@@ -444,7 +444,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 1-64 x[Knob]"
   invoke=function(message)
     if message:is_abs_value() then
       -- Pass the actual property object, not just the value
-      midiValues(1, 64, renoise.song().transport, 'lpb', message.int_value)
+      midiValues(1, 64, renoise.song().transport, 'lpb', message)
     end
   end}
 
@@ -528,7 +528,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Select Group Tracks x[Knob]",
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Octave x[Knob]",
   invoke=function(message)
     if message:is_abs_value() then
-      midiValues(0, 8, renoise.song().transport, 'octave', message.int_value)
+      midiValues(0, 8, renoise.song().transport, 'octave', message)
     end
 end}
 
@@ -536,7 +536,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Track x[Knob]
   invoke=function(message)
     if message:is_abs_value() then
     local trackCount = #renoise.song().tracks
-      midiValues(1, trackCount, renoise.song(), 'selected_track_index', message.int_value)
+      midiValues(1, trackCount, renoise.song(), 'selected_track_index', message)
     end
 end}
 
@@ -547,7 +547,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Track DSP Dev
     if deviceCount < 2 then 
     renoise.app():show_status("There are no Track DSP Devices on this channel.")
     else
-      midiValues(2, deviceCount, renoise.song(), 'selected_device_index', message.int_value)
+      midiValues(2, deviceCount, renoise.song(), 'selected_device_index', message)
     end
     end
 end}
@@ -556,7 +556,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Instrument x[
   invoke=function(message)
     if message:is_abs_value() then
     local instrumentCount = #renoise.song().instruments
-      midiValues(1, instrumentCount, renoise.song(), 'selected_instrument_index', message.int_value)
+      midiValues(1, instrumentCount, renoise.song(), 'selected_instrument_index', message)
     end
 end}
 ----------------
@@ -564,7 +564,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Sample Loop 0
   invoke=function(message)
     if message:is_abs_value() then
     local sampleEndPosition = renoise.song().selected_sample.loop_end -1
-      midiValues(1, sampleEndPosition, renoise.song().selected_sample, 'loop_start', message.int_value)
+      midiValues(1, sampleEndPosition, renoise.song().selected_sample, 'loop_start', message)
     end
 end}
 
@@ -572,7 +572,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Sample Loop 0
   invoke=function(message)
     if message:is_abs_value() then
     local loopStart = renoise.song().selected_sample.loop_start
-      midiValues(loopStart, renoise.song().selected_sample.sample_buffer.number_of_frames, renoise.song().selected_sample, 'loop_end', message.int_value)
+      midiValues(loopStart, renoise.song().selected_sample.sample_buffer.number_of_frames, renoise.song().selected_sample, 'loop_end', message)
     end
 end}
 
@@ -582,7 +582,7 @@ renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Select
     local selectionEnd=renoise.song().selected_sample.sample_buffer.selection_end
     local selectionStart=renoise.song().selected_sample.sample_buffer.selection_start
     local range=renoise.song().selected_sample.sample_buffer.selection_range 
-      midiValues(1, renoise.song().selected_sample.sample_buffer.number_of_frames, renoise.song().selected_sample.sample_buffer, 'selection_start', message.int_value)
+      midiValues(1, renoise.song().selected_sample.sample_buffer.number_of_frames, renoise.song().selected_sample.sample_buffer, 'selection_start', message)
     end
 end}
 
@@ -592,7 +592,7 @@ renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Select
     local selectionEnd=renoise.song().selected_sample.sample_buffer.selection_end
     local selectionStart=renoise.song().selected_sample.sample_buffer.selection_start
     local range=renoise.song().selected_sample.sample_buffer.selection_range
-      midiValues(1, renoise.song().selected_sample.sample_buffer.number_of_frames, renoise.song().selected_sample.sample_buffer, 'selection_end', message.int_value)
+      midiValues(1, renoise.song().selected_sample.sample_buffer.number_of_frames, renoise.song().selected_sample.sample_buffer, 'selection_end', message)
     end
 end}
 ----------
@@ -1106,7 +1106,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Set Beatsync Value for Selected Sa
   if message:is_abs_value() then
   if renoise.song().selected_instrument ~= nil and renoise.song().selected_sample ~= nil then
     renoise.song().selected_sample.beat_sync_enabled=true
-    midiValues(1, 128, renoise.song().selected_sample, 'beat_sync_lines', message.int_value)
+    midiValues(1, 128, renoise.song().selected_sample, 'beat_sync_lines', message)
   else renoise.app():show_status("There is no Instrument and no Sample.") end
   end
   end}

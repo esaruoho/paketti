@@ -6,6 +6,7 @@
   <dynamic_view01_sample_record_visible_step1>1.0</dynamic_view01_sample_record_visible_step1>
   <dynamic_view01_disk_browser_visible_step1>2</dynamic_view01_disk_browser_visible_step1>
   <dynamic_view01_instrument_box_visible_step1>3</dynamic_view01_instrument_box_visible_step1>
+  <dynamic_view01_instrument_box_slot_size_step1>2</dynamic_view01_instrument_box_slot_size_step1>
   <dynamic_view01_pattern_matrix_visible_step1>2</dynamic_view01_pattern_matrix_visible_step1>
   <dynamic_view01_pattern_advanced_edit_visible_step1>2</dynamic_view01_pattern_advanced_edit_visible_step1>
   <dynamic_view01_instrument_editor_detached_step1>1.0</dynamic_view01_instrument_editor_detached_step1>
@@ -16,6 +17,7 @@
   <dynamic_view01_sample_record_visible_step2>1.0</dynamic_view01_sample_record_visible_step2>
   <dynamic_view01_disk_browser_visible_step2>2</dynamic_view01_disk_browser_visible_step2>
   <dynamic_view01_instrument_box_visible_step2>1.0</dynamic_view01_instrument_box_visible_step2>
+  <dynamic_view01_instrument_box_slot_size_step2>3</dynamic_view01_instrument_box_slot_size_step2>
   <dynamic_view01_pattern_matrix_visible_step2>1.0</dynamic_view01_pattern_matrix_visible_step2>
   <dynamic_view01_pattern_advanced_edit_visible_step2>2</dynamic_view01_pattern_advanced_edit_visible_step2>
   <dynamic_view01_instrument_editor_detached_step2>1.0</dynamic_view01_instrument_editor_detached_step2>
@@ -25,7 +27,8 @@
   <dynamic_view01_lower_step3>1.0</dynamic_view01_lower_step3>
   <dynamic_view01_sample_record_visible_step3>1.0</dynamic_view01_sample_record_visible_step3>
   <dynamic_view01_disk_browser_visible_step3>2</dynamic_view01_disk_browser_visible_step3>
-  <dynamic_view01_instrument_box_visible_step3>2</dynamic_view01_instrument_box_visible_step3>
+  <dynamic_view01_instrument_box_visible_step3>1.0</dynamic_view01_instrument_box_visible_step3>
+  <dynamic_view01_instrument_box_slot_size_step3>4</dynamic_view01_instrument_box_slot_size_step3>
   <dynamic_view01_pattern_matrix_visible_step3>1.0</dynamic_view01_pattern_matrix_visible_step3>
   <dynamic_view01_pattern_advanced_edit_visible_step3>2</dynamic_view01_pattern_advanced_edit_visible_step3>
   <dynamic_view01_instrument_editor_detached_step3>1.0</dynamic_view01_instrument_editor_detached_step3>
@@ -36,6 +39,7 @@
   <dynamic_view01_sample_record_visible_step4>1.0</dynamic_view01_sample_record_visible_step4>
   <dynamic_view01_disk_browser_visible_step4>1.0</dynamic_view01_disk_browser_visible_step4>
   <dynamic_view01_instrument_box_visible_step4>1.0</dynamic_view01_instrument_box_visible_step4>
+  <dynamic_view01_instrument_box_slot_size_step4>1.0</dynamic_view01_instrument_box_slot_size_step4>
   <dynamic_view01_pattern_matrix_visible_step4>1.0</dynamic_view01_pattern_matrix_visible_step4>
   <dynamic_view01_pattern_advanced_edit_visible_step4>1.0</dynamic_view01_pattern_advanced_edit_visible_step4>
   <dynamic_view01_instrument_editor_detached_step4>1.0</dynamic_view01_instrument_editor_detached_step4>
@@ -46,6 +50,7 @@
   <dynamic_view01_sample_record_visible_step5>1.0</dynamic_view01_sample_record_visible_step5>
   <dynamic_view01_disk_browser_visible_step5>1.0</dynamic_view01_disk_browser_visible_step5>
   <dynamic_view01_instrument_box_visible_step5>1.0</dynamic_view01_instrument_box_visible_step5>
+  <dynamic_view01_instrument_box_slot_size_step5>1.0</dynamic_view01_instrument_box_slot_size_step5>
   <dynamic_view01_pattern_matrix_visible_step5>1.0</dynamic_view01_pattern_matrix_visible_step5>
   <dynamic_view01_pattern_advanced_edit_visible_step5>1.0</dynamic_view01_pattern_advanced_edit_visible_step5>
   <dynamic_view01_instrument_editor_detached_step5>1.0</dynamic_view01_instrument_editor_detached_step5>
@@ -56,6 +61,7 @@
   <dynamic_view01_sample_record_visible_step6>1.0</dynamic_view01_sample_record_visible_step6>
   <dynamic_view01_disk_browser_visible_step6>1.0</dynamic_view01_disk_browser_visible_step6>
   <dynamic_view01_instrument_box_visible_step6>1.0</dynamic_view01_instrument_box_visible_step6>
+  <dynamic_view01_instrument_box_slot_size_step6>1.0</dynamic_view01_instrument_box_slot_size_step6>
   <dynamic_view01_pattern_matrix_visible_step6>1.0</dynamic_view01_pattern_matrix_visible_step6>
   <dynamic_view01_pattern_advanced_edit_visible_step6>1.0</dynamic_view01_pattern_advanced_edit_visible_step6>
   <dynamic_view01_instrument_editor_detached_step6>1.0</dynamic_view01_instrument_editor_detached_step6>
@@ -66,6 +72,7 @@
   <dynamic_view01_sample_record_visible_step7>1.0</dynamic_view01_sample_record_visible_step7>
   <dynamic_view01_disk_browser_visible_step7>1.0</dynamic_view01_disk_browser_visible_step7>
   <dynamic_view01_instrument_box_visible_step7>1.0</dynamic_view01_instrument_box_visible_step7>
+  <dynamic_view01_instrument_box_slot_size_step7>1.0</dynamic_view01_instrument_box_slot_size_step7>
   <dynamic_view01_pattern_matrix_visible_step7>1.0</dynamic_view01_pattern_matrix_visible_step7>
   <dynamic_view01_pattern_advanced_edit_visible_step7>1.0</dynamic_view01_pattern_advanced_edit_visible_step7>
   <dynamic_view01_instrument_editor_detached_step7>1.0</dynamic_view01_instrument_editor_detached_step7>
@@ -76,6 +83,7 @@
   <dynamic_view01_sample_record_visible_step8>1.0</dynamic_view01_sample_record_visible_step8>
   <dynamic_view01_disk_browser_visible_step8>1.0</dynamic_view01_disk_browser_visible_step8>
   <dynamic_view01_instrument_box_visible_step8>1.0</dynamic_view01_instrument_box_visible_step8>
+  <dynamic_view01_instrument_box_slot_size_step8>1.0</dynamic_view01_instrument_box_slot_size_step8>
   <dynamic_view01_pattern_matrix_visible_step8>1.0</dynamic_view01_pattern_matrix_visible_step8>
   <dynamic_view01_pattern_advanced_edit_visible_step8>1.0</dynamic_view01_pattern_advanced_edit_visible_step8>
   <dynamic_view01_instrument_editor_detached_step8>1.0</dynamic_view01_instrument_editor_detached_step8>
@@ -86,6 +94,7 @@
   <dynamic_view02_sample_record_visible_step1>1.0</dynamic_view02_sample_record_visible_step1>
   <dynamic_view02_disk_browser_visible_step1>1.0</dynamic_view02_disk_browser_visible_step1>
   <dynamic_view02_instrument_box_visible_step1>1.0</dynamic_view02_instrument_box_visible_step1>
+  <dynamic_view02_instrument_box_slot_size_step1>1.0</dynamic_view02_instrument_box_slot_size_step1>
   <dynamic_view02_pattern_matrix_visible_step1>2</dynamic_view02_pattern_matrix_visible_step1>
   <dynamic_view02_pattern_advanced_edit_visible_step1>2</dynamic_view02_pattern_advanced_edit_visible_step1>
   <dynamic_view02_instrument_editor_detached_step1>1.0</dynamic_view02_instrument_editor_detached_step1>
@@ -96,6 +105,7 @@
   <dynamic_view02_sample_record_visible_step2>1.0</dynamic_view02_sample_record_visible_step2>
   <dynamic_view02_disk_browser_visible_step2>2</dynamic_view02_disk_browser_visible_step2>
   <dynamic_view02_instrument_box_visible_step2>2</dynamic_view02_instrument_box_visible_step2>
+  <dynamic_view02_instrument_box_slot_size_step2>1.0</dynamic_view02_instrument_box_slot_size_step2>
   <dynamic_view02_pattern_matrix_visible_step2>2</dynamic_view02_pattern_matrix_visible_step2>
   <dynamic_view02_pattern_advanced_edit_visible_step2>2</dynamic_view02_pattern_advanced_edit_visible_step2>
   <dynamic_view02_instrument_editor_detached_step2>1.0</dynamic_view02_instrument_editor_detached_step2>
@@ -106,6 +116,7 @@
   <dynamic_view02_sample_record_visible_step3>1.0</dynamic_view02_sample_record_visible_step3>
   <dynamic_view02_disk_browser_visible_step3>1.0</dynamic_view02_disk_browser_visible_step3>
   <dynamic_view02_instrument_box_visible_step3>1.0</dynamic_view02_instrument_box_visible_step3>
+  <dynamic_view02_instrument_box_slot_size_step3>1.0</dynamic_view02_instrument_box_slot_size_step3>
   <dynamic_view02_pattern_matrix_visible_step3>2</dynamic_view02_pattern_matrix_visible_step3>
   <dynamic_view02_pattern_advanced_edit_visible_step3>2</dynamic_view02_pattern_advanced_edit_visible_step3>
   <dynamic_view02_instrument_editor_detached_step3>1.0</dynamic_view02_instrument_editor_detached_step3>
@@ -116,6 +127,7 @@
   <dynamic_view02_sample_record_visible_step4>1.0</dynamic_view02_sample_record_visible_step4>
   <dynamic_view02_disk_browser_visible_step4>1.0</dynamic_view02_disk_browser_visible_step4>
   <dynamic_view02_instrument_box_visible_step4>1.0</dynamic_view02_instrument_box_visible_step4>
+  <dynamic_view02_instrument_box_slot_size_step4>1.0</dynamic_view02_instrument_box_slot_size_step4>
   <dynamic_view02_pattern_matrix_visible_step4>2</dynamic_view02_pattern_matrix_visible_step4>
   <dynamic_view02_pattern_advanced_edit_visible_step4>2</dynamic_view02_pattern_advanced_edit_visible_step4>
   <dynamic_view02_instrument_editor_detached_step4>1.0</dynamic_view02_instrument_editor_detached_step4>
@@ -126,6 +138,7 @@
   <dynamic_view02_sample_record_visible_step5>1.0</dynamic_view02_sample_record_visible_step5>
   <dynamic_view02_disk_browser_visible_step5>1.0</dynamic_view02_disk_browser_visible_step5>
   <dynamic_view02_instrument_box_visible_step5>1.0</dynamic_view02_instrument_box_visible_step5>
+  <dynamic_view02_instrument_box_slot_size_step5>1.0</dynamic_view02_instrument_box_slot_size_step5>
   <dynamic_view02_pattern_matrix_visible_step5>1.0</dynamic_view02_pattern_matrix_visible_step5>
   <dynamic_view02_pattern_advanced_edit_visible_step5>1.0</dynamic_view02_pattern_advanced_edit_visible_step5>
   <dynamic_view02_instrument_editor_detached_step5>1.0</dynamic_view02_instrument_editor_detached_step5>
@@ -136,6 +149,7 @@
   <dynamic_view02_sample_record_visible_step6>1.0</dynamic_view02_sample_record_visible_step6>
   <dynamic_view02_disk_browser_visible_step6>1.0</dynamic_view02_disk_browser_visible_step6>
   <dynamic_view02_instrument_box_visible_step6>1.0</dynamic_view02_instrument_box_visible_step6>
+  <dynamic_view02_instrument_box_slot_size_step6>1.0</dynamic_view02_instrument_box_slot_size_step6>
   <dynamic_view02_pattern_matrix_visible_step6>1.0</dynamic_view02_pattern_matrix_visible_step6>
   <dynamic_view02_pattern_advanced_edit_visible_step6>1.0</dynamic_view02_pattern_advanced_edit_visible_step6>
   <dynamic_view02_instrument_editor_detached_step6>1.0</dynamic_view02_instrument_editor_detached_step6>
@@ -146,6 +160,7 @@
   <dynamic_view02_sample_record_visible_step7>1.0</dynamic_view02_sample_record_visible_step7>
   <dynamic_view02_disk_browser_visible_step7>1.0</dynamic_view02_disk_browser_visible_step7>
   <dynamic_view02_instrument_box_visible_step7>1.0</dynamic_view02_instrument_box_visible_step7>
+  <dynamic_view02_instrument_box_slot_size_step7>1.0</dynamic_view02_instrument_box_slot_size_step7>
   <dynamic_view02_pattern_matrix_visible_step7>1.0</dynamic_view02_pattern_matrix_visible_step7>
   <dynamic_view02_pattern_advanced_edit_visible_step7>1.0</dynamic_view02_pattern_advanced_edit_visible_step7>
   <dynamic_view02_instrument_editor_detached_step7>1.0</dynamic_view02_instrument_editor_detached_step7>
@@ -156,6 +171,7 @@
   <dynamic_view02_sample_record_visible_step8>1.0</dynamic_view02_sample_record_visible_step8>
   <dynamic_view02_disk_browser_visible_step8>1.0</dynamic_view02_disk_browser_visible_step8>
   <dynamic_view02_instrument_box_visible_step8>1.0</dynamic_view02_instrument_box_visible_step8>
+  <dynamic_view02_instrument_box_slot_size_step8>1.0</dynamic_view02_instrument_box_slot_size_step8>
   <dynamic_view02_pattern_matrix_visible_step8>1.0</dynamic_view02_pattern_matrix_visible_step8>
   <dynamic_view02_pattern_advanced_edit_visible_step8>1.0</dynamic_view02_pattern_advanced_edit_visible_step8>
   <dynamic_view02_instrument_editor_detached_step8>1.0</dynamic_view02_instrument_editor_detached_step8>
@@ -166,6 +182,7 @@
   <dynamic_view03_sample_record_visible_step1>1.0</dynamic_view03_sample_record_visible_step1>
   <dynamic_view03_disk_browser_visible_step1>1.0</dynamic_view03_disk_browser_visible_step1>
   <dynamic_view03_instrument_box_visible_step1>1.0</dynamic_view03_instrument_box_visible_step1>
+  <dynamic_view03_instrument_box_slot_size_step1>1.0</dynamic_view03_instrument_box_slot_size_step1>
   <dynamic_view03_pattern_matrix_visible_step1>2</dynamic_view03_pattern_matrix_visible_step1>
   <dynamic_view03_pattern_advanced_edit_visible_step1>2</dynamic_view03_pattern_advanced_edit_visible_step1>
   <dynamic_view03_instrument_editor_detached_step1>1.0</dynamic_view03_instrument_editor_detached_step1>
@@ -176,6 +193,7 @@
   <dynamic_view03_sample_record_visible_step2>1.0</dynamic_view03_sample_record_visible_step2>
   <dynamic_view03_disk_browser_visible_step2>1.0</dynamic_view03_disk_browser_visible_step2>
   <dynamic_view03_instrument_box_visible_step2>1.0</dynamic_view03_instrument_box_visible_step2>
+  <dynamic_view03_instrument_box_slot_size_step2>1.0</dynamic_view03_instrument_box_slot_size_step2>
   <dynamic_view03_pattern_matrix_visible_step2>1.0</dynamic_view03_pattern_matrix_visible_step2>
   <dynamic_view03_pattern_advanced_edit_visible_step2>1.0</dynamic_view03_pattern_advanced_edit_visible_step2>
   <dynamic_view03_instrument_editor_detached_step2>1.0</dynamic_view03_instrument_editor_detached_step2>
@@ -186,6 +204,7 @@
   <dynamic_view03_sample_record_visible_step3>1.0</dynamic_view03_sample_record_visible_step3>
   <dynamic_view03_disk_browser_visible_step3>1.0</dynamic_view03_disk_browser_visible_step3>
   <dynamic_view03_instrument_box_visible_step3>1.0</dynamic_view03_instrument_box_visible_step3>
+  <dynamic_view03_instrument_box_slot_size_step3>1.0</dynamic_view03_instrument_box_slot_size_step3>
   <dynamic_view03_pattern_matrix_visible_step3>1.0</dynamic_view03_pattern_matrix_visible_step3>
   <dynamic_view03_pattern_advanced_edit_visible_step3>1.0</dynamic_view03_pattern_advanced_edit_visible_step3>
   <dynamic_view03_instrument_editor_detached_step3>1.0</dynamic_view03_instrument_editor_detached_step3>
@@ -196,6 +215,7 @@
   <dynamic_view03_sample_record_visible_step4>1.0</dynamic_view03_sample_record_visible_step4>
   <dynamic_view03_disk_browser_visible_step4>1.0</dynamic_view03_disk_browser_visible_step4>
   <dynamic_view03_instrument_box_visible_step4>1.0</dynamic_view03_instrument_box_visible_step4>
+  <dynamic_view03_instrument_box_slot_size_step4>1.0</dynamic_view03_instrument_box_slot_size_step4>
   <dynamic_view03_pattern_matrix_visible_step4>1.0</dynamic_view03_pattern_matrix_visible_step4>
   <dynamic_view03_pattern_advanced_edit_visible_step4>1.0</dynamic_view03_pattern_advanced_edit_visible_step4>
   <dynamic_view03_instrument_editor_detached_step4>1.0</dynamic_view03_instrument_editor_detached_step4>
@@ -206,6 +226,7 @@
   <dynamic_view03_sample_record_visible_step5>1.0</dynamic_view03_sample_record_visible_step5>
   <dynamic_view03_disk_browser_visible_step5>1.0</dynamic_view03_disk_browser_visible_step5>
   <dynamic_view03_instrument_box_visible_step5>1.0</dynamic_view03_instrument_box_visible_step5>
+  <dynamic_view03_instrument_box_slot_size_step5>1.0</dynamic_view03_instrument_box_slot_size_step5>
   <dynamic_view03_pattern_matrix_visible_step5>1.0</dynamic_view03_pattern_matrix_visible_step5>
   <dynamic_view03_pattern_advanced_edit_visible_step5>1.0</dynamic_view03_pattern_advanced_edit_visible_step5>
   <dynamic_view03_instrument_editor_detached_step5>1.0</dynamic_view03_instrument_editor_detached_step5>
@@ -216,6 +237,7 @@
   <dynamic_view03_sample_record_visible_step6>1.0</dynamic_view03_sample_record_visible_step6>
   <dynamic_view03_disk_browser_visible_step6>1.0</dynamic_view03_disk_browser_visible_step6>
   <dynamic_view03_instrument_box_visible_step6>1.0</dynamic_view03_instrument_box_visible_step6>
+  <dynamic_view03_instrument_box_slot_size_step6>1.0</dynamic_view03_instrument_box_slot_size_step6>
   <dynamic_view03_pattern_matrix_visible_step6>1.0</dynamic_view03_pattern_matrix_visible_step6>
   <dynamic_view03_pattern_advanced_edit_visible_step6>1.0</dynamic_view03_pattern_advanced_edit_visible_step6>
   <dynamic_view03_instrument_editor_detached_step6>1.0</dynamic_view03_instrument_editor_detached_step6>
@@ -226,6 +248,7 @@
   <dynamic_view03_sample_record_visible_step7>1.0</dynamic_view03_sample_record_visible_step7>
   <dynamic_view03_disk_browser_visible_step7>1.0</dynamic_view03_disk_browser_visible_step7>
   <dynamic_view03_instrument_box_visible_step7>1.0</dynamic_view03_instrument_box_visible_step7>
+  <dynamic_view03_instrument_box_slot_size_step7>1.0</dynamic_view03_instrument_box_slot_size_step7>
   <dynamic_view03_pattern_matrix_visible_step7>1.0</dynamic_view03_pattern_matrix_visible_step7>
   <dynamic_view03_pattern_advanced_edit_visible_step7>1.0</dynamic_view03_pattern_advanced_edit_visible_step7>
   <dynamic_view03_instrument_editor_detached_step7>1.0</dynamic_view03_instrument_editor_detached_step7>
@@ -236,6 +259,7 @@
   <dynamic_view03_sample_record_visible_step8>1.0</dynamic_view03_sample_record_visible_step8>
   <dynamic_view03_disk_browser_visible_step8>1.0</dynamic_view03_disk_browser_visible_step8>
   <dynamic_view03_instrument_box_visible_step8>1.0</dynamic_view03_instrument_box_visible_step8>
+  <dynamic_view03_instrument_box_slot_size_step8>1.0</dynamic_view03_instrument_box_slot_size_step8>
   <dynamic_view03_pattern_matrix_visible_step8>1.0</dynamic_view03_pattern_matrix_visible_step8>
   <dynamic_view03_pattern_advanced_edit_visible_step8>1.0</dynamic_view03_pattern_advanced_edit_visible_step8>
   <dynamic_view03_instrument_editor_detached_step8>1.0</dynamic_view03_instrument_editor_detached_step8>
@@ -246,6 +270,7 @@
   <dynamic_view04_sample_record_visible_step1>1.0</dynamic_view04_sample_record_visible_step1>
   <dynamic_view04_disk_browser_visible_step1>2</dynamic_view04_disk_browser_visible_step1>
   <dynamic_view04_instrument_box_visible_step1>1.0</dynamic_view04_instrument_box_visible_step1>
+  <dynamic_view04_instrument_box_slot_size_step1>1.0</dynamic_view04_instrument_box_slot_size_step1>
   <dynamic_view04_pattern_matrix_visible_step1>2</dynamic_view04_pattern_matrix_visible_step1>
   <dynamic_view04_pattern_advanced_edit_visible_step1>2</dynamic_view04_pattern_advanced_edit_visible_step1>
   <dynamic_view04_instrument_editor_detached_step1>1.0</dynamic_view04_instrument_editor_detached_step1>
@@ -256,6 +281,7 @@
   <dynamic_view04_sample_record_visible_step2>1.0</dynamic_view04_sample_record_visible_step2>
   <dynamic_view04_disk_browser_visible_step2>1.0</dynamic_view04_disk_browser_visible_step2>
   <dynamic_view04_instrument_box_visible_step2>1.0</dynamic_view04_instrument_box_visible_step2>
+  <dynamic_view04_instrument_box_slot_size_step2>1.0</dynamic_view04_instrument_box_slot_size_step2>
   <dynamic_view04_pattern_matrix_visible_step2>3</dynamic_view04_pattern_matrix_visible_step2>
   <dynamic_view04_pattern_advanced_edit_visible_step2>2</dynamic_view04_pattern_advanced_edit_visible_step2>
   <dynamic_view04_instrument_editor_detached_step2>1.0</dynamic_view04_instrument_editor_detached_step2>
@@ -266,6 +292,7 @@
   <dynamic_view04_sample_record_visible_step3>1.0</dynamic_view04_sample_record_visible_step3>
   <dynamic_view04_disk_browser_visible_step3>1.0</dynamic_view04_disk_browser_visible_step3>
   <dynamic_view04_instrument_box_visible_step3>1.0</dynamic_view04_instrument_box_visible_step3>
+  <dynamic_view04_instrument_box_slot_size_step3>1.0</dynamic_view04_instrument_box_slot_size_step3>
   <dynamic_view04_pattern_matrix_visible_step3>1.0</dynamic_view04_pattern_matrix_visible_step3>
   <dynamic_view04_pattern_advanced_edit_visible_step3>1.0</dynamic_view04_pattern_advanced_edit_visible_step3>
   <dynamic_view04_instrument_editor_detached_step3>1.0</dynamic_view04_instrument_editor_detached_step3>
@@ -276,6 +303,7 @@
   <dynamic_view04_sample_record_visible_step4>1.0</dynamic_view04_sample_record_visible_step4>
   <dynamic_view04_disk_browser_visible_step4>1.0</dynamic_view04_disk_browser_visible_step4>
   <dynamic_view04_instrument_box_visible_step4>1.0</dynamic_view04_instrument_box_visible_step4>
+  <dynamic_view04_instrument_box_slot_size_step4>1.0</dynamic_view04_instrument_box_slot_size_step4>
   <dynamic_view04_pattern_matrix_visible_step4>1.0</dynamic_view04_pattern_matrix_visible_step4>
   <dynamic_view04_pattern_advanced_edit_visible_step4>1.0</dynamic_view04_pattern_advanced_edit_visible_step4>
   <dynamic_view04_instrument_editor_detached_step4>1.0</dynamic_view04_instrument_editor_detached_step4>
@@ -286,6 +314,7 @@
   <dynamic_view04_sample_record_visible_step5>1.0</dynamic_view04_sample_record_visible_step5>
   <dynamic_view04_disk_browser_visible_step5>1.0</dynamic_view04_disk_browser_visible_step5>
   <dynamic_view04_instrument_box_visible_step5>1.0</dynamic_view04_instrument_box_visible_step5>
+  <dynamic_view04_instrument_box_slot_size_step5>1.0</dynamic_view04_instrument_box_slot_size_step5>
   <dynamic_view04_pattern_matrix_visible_step5>1.0</dynamic_view04_pattern_matrix_visible_step5>
   <dynamic_view04_pattern_advanced_edit_visible_step5>1.0</dynamic_view04_pattern_advanced_edit_visible_step5>
   <dynamic_view04_instrument_editor_detached_step5>1.0</dynamic_view04_instrument_editor_detached_step5>
@@ -296,6 +325,7 @@
   <dynamic_view04_sample_record_visible_step6>1.0</dynamic_view04_sample_record_visible_step6>
   <dynamic_view04_disk_browser_visible_step6>1.0</dynamic_view04_disk_browser_visible_step6>
   <dynamic_view04_instrument_box_visible_step6>1.0</dynamic_view04_instrument_box_visible_step6>
+  <dynamic_view04_instrument_box_slot_size_step6>1.0</dynamic_view04_instrument_box_slot_size_step6>
   <dynamic_view04_pattern_matrix_visible_step6>1.0</dynamic_view04_pattern_matrix_visible_step6>
   <dynamic_view04_pattern_advanced_edit_visible_step6>1.0</dynamic_view04_pattern_advanced_edit_visible_step6>
   <dynamic_view04_instrument_editor_detached_step6>1.0</dynamic_view04_instrument_editor_detached_step6>
@@ -306,6 +336,7 @@
   <dynamic_view04_sample_record_visible_step7>1.0</dynamic_view04_sample_record_visible_step7>
   <dynamic_view04_disk_browser_visible_step7>1.0</dynamic_view04_disk_browser_visible_step7>
   <dynamic_view04_instrument_box_visible_step7>1.0</dynamic_view04_instrument_box_visible_step7>
+  <dynamic_view04_instrument_box_slot_size_step7>1.0</dynamic_view04_instrument_box_slot_size_step7>
   <dynamic_view04_pattern_matrix_visible_step7>1.0</dynamic_view04_pattern_matrix_visible_step7>
   <dynamic_view04_pattern_advanced_edit_visible_step7>1.0</dynamic_view04_pattern_advanced_edit_visible_step7>
   <dynamic_view04_instrument_editor_detached_step7>1.0</dynamic_view04_instrument_editor_detached_step7>
@@ -316,6 +347,7 @@
   <dynamic_view04_sample_record_visible_step8>1.0</dynamic_view04_sample_record_visible_step8>
   <dynamic_view04_disk_browser_visible_step8>1.0</dynamic_view04_disk_browser_visible_step8>
   <dynamic_view04_instrument_box_visible_step8>1.0</dynamic_view04_instrument_box_visible_step8>
+  <dynamic_view04_instrument_box_slot_size_step8>1.0</dynamic_view04_instrument_box_slot_size_step8>
   <dynamic_view04_pattern_matrix_visible_step8>1.0</dynamic_view04_pattern_matrix_visible_step8>
   <dynamic_view04_pattern_advanced_edit_visible_step8>1.0</dynamic_view04_pattern_advanced_edit_visible_step8>
   <dynamic_view04_instrument_editor_detached_step8>1.0</dynamic_view04_instrument_editor_detached_step8>
@@ -326,6 +358,7 @@
   <dynamic_view05_sample_record_visible_step1>1.0</dynamic_view05_sample_record_visible_step1>
   <dynamic_view05_disk_browser_visible_step1>1.0</dynamic_view05_disk_browser_visible_step1>
   <dynamic_view05_instrument_box_visible_step1>1.0</dynamic_view05_instrument_box_visible_step1>
+  <dynamic_view05_instrument_box_slot_size_step1>1.0</dynamic_view05_instrument_box_slot_size_step1>
   <dynamic_view05_pattern_matrix_visible_step1>1.0</dynamic_view05_pattern_matrix_visible_step1>
   <dynamic_view05_pattern_advanced_edit_visible_step1>1.0</dynamic_view05_pattern_advanced_edit_visible_step1>
   <dynamic_view05_instrument_editor_detached_step1>1.0</dynamic_view05_instrument_editor_detached_step1>
@@ -336,6 +369,7 @@
   <dynamic_view05_sample_record_visible_step2>1.0</dynamic_view05_sample_record_visible_step2>
   <dynamic_view05_disk_browser_visible_step2>1.0</dynamic_view05_disk_browser_visible_step2>
   <dynamic_view05_instrument_box_visible_step2>1.0</dynamic_view05_instrument_box_visible_step2>
+  <dynamic_view05_instrument_box_slot_size_step2>1.0</dynamic_view05_instrument_box_slot_size_step2>
   <dynamic_view05_pattern_matrix_visible_step2>1.0</dynamic_view05_pattern_matrix_visible_step2>
   <dynamic_view05_pattern_advanced_edit_visible_step2>1.0</dynamic_view05_pattern_advanced_edit_visible_step2>
   <dynamic_view05_instrument_editor_detached_step2>1.0</dynamic_view05_instrument_editor_detached_step2>
@@ -346,6 +380,7 @@
   <dynamic_view05_sample_record_visible_step3>1.0</dynamic_view05_sample_record_visible_step3>
   <dynamic_view05_disk_browser_visible_step3>1.0</dynamic_view05_disk_browser_visible_step3>
   <dynamic_view05_instrument_box_visible_step3>1.0</dynamic_view05_instrument_box_visible_step3>
+  <dynamic_view05_instrument_box_slot_size_step3>1.0</dynamic_view05_instrument_box_slot_size_step3>
   <dynamic_view05_pattern_matrix_visible_step3>1.0</dynamic_view05_pattern_matrix_visible_step3>
   <dynamic_view05_pattern_advanced_edit_visible_step3>1.0</dynamic_view05_pattern_advanced_edit_visible_step3>
   <dynamic_view05_instrument_editor_detached_step3>1.0</dynamic_view05_instrument_editor_detached_step3>
@@ -356,6 +391,7 @@
   <dynamic_view05_sample_record_visible_step4>1.0</dynamic_view05_sample_record_visible_step4>
   <dynamic_view05_disk_browser_visible_step4>1.0</dynamic_view05_disk_browser_visible_step4>
   <dynamic_view05_instrument_box_visible_step4>1.0</dynamic_view05_instrument_box_visible_step4>
+  <dynamic_view05_instrument_box_slot_size_step4>1.0</dynamic_view05_instrument_box_slot_size_step4>
   <dynamic_view05_pattern_matrix_visible_step4>1.0</dynamic_view05_pattern_matrix_visible_step4>
   <dynamic_view05_pattern_advanced_edit_visible_step4>1.0</dynamic_view05_pattern_advanced_edit_visible_step4>
   <dynamic_view05_instrument_editor_detached_step4>1.0</dynamic_view05_instrument_editor_detached_step4>
@@ -366,6 +402,7 @@
   <dynamic_view05_sample_record_visible_step5>1.0</dynamic_view05_sample_record_visible_step5>
   <dynamic_view05_disk_browser_visible_step5>1.0</dynamic_view05_disk_browser_visible_step5>
   <dynamic_view05_instrument_box_visible_step5>1.0</dynamic_view05_instrument_box_visible_step5>
+  <dynamic_view05_instrument_box_slot_size_step5>1.0</dynamic_view05_instrument_box_slot_size_step5>
   <dynamic_view05_pattern_matrix_visible_step5>1.0</dynamic_view05_pattern_matrix_visible_step5>
   <dynamic_view05_pattern_advanced_edit_visible_step5>1.0</dynamic_view05_pattern_advanced_edit_visible_step5>
   <dynamic_view05_instrument_editor_detached_step5>1.0</dynamic_view05_instrument_editor_detached_step5>
@@ -376,6 +413,7 @@
   <dynamic_view05_sample_record_visible_step6>1.0</dynamic_view05_sample_record_visible_step6>
   <dynamic_view05_disk_browser_visible_step6>1.0</dynamic_view05_disk_browser_visible_step6>
   <dynamic_view05_instrument_box_visible_step6>1.0</dynamic_view05_instrument_box_visible_step6>
+  <dynamic_view05_instrument_box_slot_size_step6>1.0</dynamic_view05_instrument_box_slot_size_step6>
   <dynamic_view05_pattern_matrix_visible_step6>1.0</dynamic_view05_pattern_matrix_visible_step6>
   <dynamic_view05_pattern_advanced_edit_visible_step6>1.0</dynamic_view05_pattern_advanced_edit_visible_step6>
   <dynamic_view05_instrument_editor_detached_step6>1.0</dynamic_view05_instrument_editor_detached_step6>
@@ -386,6 +424,7 @@
   <dynamic_view05_sample_record_visible_step7>1.0</dynamic_view05_sample_record_visible_step7>
   <dynamic_view05_disk_browser_visible_step7>1.0</dynamic_view05_disk_browser_visible_step7>
   <dynamic_view05_instrument_box_visible_step7>1.0</dynamic_view05_instrument_box_visible_step7>
+  <dynamic_view05_instrument_box_slot_size_step7>1.0</dynamic_view05_instrument_box_slot_size_step7>
   <dynamic_view05_pattern_matrix_visible_step7>1.0</dynamic_view05_pattern_matrix_visible_step7>
   <dynamic_view05_pattern_advanced_edit_visible_step7>1.0</dynamic_view05_pattern_advanced_edit_visible_step7>
   <dynamic_view05_instrument_editor_detached_step7>1.0</dynamic_view05_instrument_editor_detached_step7>
@@ -396,6 +435,7 @@
   <dynamic_view05_sample_record_visible_step8>1.0</dynamic_view05_sample_record_visible_step8>
   <dynamic_view05_disk_browser_visible_step8>1.0</dynamic_view05_disk_browser_visible_step8>
   <dynamic_view05_instrument_box_visible_step8>1.0</dynamic_view05_instrument_box_visible_step8>
+  <dynamic_view05_instrument_box_slot_size_step8>1.0</dynamic_view05_instrument_box_slot_size_step8>
   <dynamic_view05_pattern_matrix_visible_step8>1.0</dynamic_view05_pattern_matrix_visible_step8>
   <dynamic_view05_pattern_advanced_edit_visible_step8>1.0</dynamic_view05_pattern_advanced_edit_visible_step8>
   <dynamic_view05_instrument_editor_detached_step8>1.0</dynamic_view05_instrument_editor_detached_step8>
@@ -406,6 +446,7 @@
   <dynamic_view06_sample_record_visible_step1>1.0</dynamic_view06_sample_record_visible_step1>
   <dynamic_view06_disk_browser_visible_step1>1.0</dynamic_view06_disk_browser_visible_step1>
   <dynamic_view06_instrument_box_visible_step1>1.0</dynamic_view06_instrument_box_visible_step1>
+  <dynamic_view06_instrument_box_slot_size_step1>1.0</dynamic_view06_instrument_box_slot_size_step1>
   <dynamic_view06_pattern_matrix_visible_step1>1.0</dynamic_view06_pattern_matrix_visible_step1>
   <dynamic_view06_pattern_advanced_edit_visible_step1>1.0</dynamic_view06_pattern_advanced_edit_visible_step1>
   <dynamic_view06_instrument_editor_detached_step1>1.0</dynamic_view06_instrument_editor_detached_step1>
@@ -416,6 +457,7 @@
   <dynamic_view06_sample_record_visible_step2>1.0</dynamic_view06_sample_record_visible_step2>
   <dynamic_view06_disk_browser_visible_step2>1.0</dynamic_view06_disk_browser_visible_step2>
   <dynamic_view06_instrument_box_visible_step2>1.0</dynamic_view06_instrument_box_visible_step2>
+  <dynamic_view06_instrument_box_slot_size_step2>1.0</dynamic_view06_instrument_box_slot_size_step2>
   <dynamic_view06_pattern_matrix_visible_step2>1.0</dynamic_view06_pattern_matrix_visible_step2>
   <dynamic_view06_pattern_advanced_edit_visible_step2>1.0</dynamic_view06_pattern_advanced_edit_visible_step2>
   <dynamic_view06_instrument_editor_detached_step2>1.0</dynamic_view06_instrument_editor_detached_step2>
@@ -426,6 +468,7 @@
   <dynamic_view06_sample_record_visible_step3>1.0</dynamic_view06_sample_record_visible_step3>
   <dynamic_view06_disk_browser_visible_step3>1.0</dynamic_view06_disk_browser_visible_step3>
   <dynamic_view06_instrument_box_visible_step3>1.0</dynamic_view06_instrument_box_visible_step3>
+  <dynamic_view06_instrument_box_slot_size_step3>1.0</dynamic_view06_instrument_box_slot_size_step3>
   <dynamic_view06_pattern_matrix_visible_step3>1.0</dynamic_view06_pattern_matrix_visible_step3>
   <dynamic_view06_pattern_advanced_edit_visible_step3>1.0</dynamic_view06_pattern_advanced_edit_visible_step3>
   <dynamic_view06_instrument_editor_detached_step3>1.0</dynamic_view06_instrument_editor_detached_step3>
@@ -436,6 +479,7 @@
   <dynamic_view06_sample_record_visible_step4>1.0</dynamic_view06_sample_record_visible_step4>
   <dynamic_view06_disk_browser_visible_step4>1.0</dynamic_view06_disk_browser_visible_step4>
   <dynamic_view06_instrument_box_visible_step4>1.0</dynamic_view06_instrument_box_visible_step4>
+  <dynamic_view06_instrument_box_slot_size_step4>1.0</dynamic_view06_instrument_box_slot_size_step4>
   <dynamic_view06_pattern_matrix_visible_step4>1.0</dynamic_view06_pattern_matrix_visible_step4>
   <dynamic_view06_pattern_advanced_edit_visible_step4>1.0</dynamic_view06_pattern_advanced_edit_visible_step4>
   <dynamic_view06_instrument_editor_detached_step4>1.0</dynamic_view06_instrument_editor_detached_step4>
@@ -446,6 +490,7 @@
   <dynamic_view06_sample_record_visible_step5>1.0</dynamic_view06_sample_record_visible_step5>
   <dynamic_view06_disk_browser_visible_step5>1.0</dynamic_view06_disk_browser_visible_step5>
   <dynamic_view06_instrument_box_visible_step5>1.0</dynamic_view06_instrument_box_visible_step5>
+  <dynamic_view06_instrument_box_slot_size_step5>1.0</dynamic_view06_instrument_box_slot_size_step5>
   <dynamic_view06_pattern_matrix_visible_step5>1.0</dynamic_view06_pattern_matrix_visible_step5>
   <dynamic_view06_pattern_advanced_edit_visible_step5>1.0</dynamic_view06_pattern_advanced_edit_visible_step5>
   <dynamic_view06_instrument_editor_detached_step5>1.0</dynamic_view06_instrument_editor_detached_step5>
@@ -456,6 +501,7 @@
   <dynamic_view06_sample_record_visible_step6>1.0</dynamic_view06_sample_record_visible_step6>
   <dynamic_view06_disk_browser_visible_step6>1.0</dynamic_view06_disk_browser_visible_step6>
   <dynamic_view06_instrument_box_visible_step6>1.0</dynamic_view06_instrument_box_visible_step6>
+  <dynamic_view06_instrument_box_slot_size_step6>1.0</dynamic_view06_instrument_box_slot_size_step6>
   <dynamic_view06_pattern_matrix_visible_step6>1.0</dynamic_view06_pattern_matrix_visible_step6>
   <dynamic_view06_pattern_advanced_edit_visible_step6>1.0</dynamic_view06_pattern_advanced_edit_visible_step6>
   <dynamic_view06_instrument_editor_detached_step6>1.0</dynamic_view06_instrument_editor_detached_step6>
@@ -466,6 +512,7 @@
   <dynamic_view06_sample_record_visible_step7>1.0</dynamic_view06_sample_record_visible_step7>
   <dynamic_view06_disk_browser_visible_step7>1.0</dynamic_view06_disk_browser_visible_step7>
   <dynamic_view06_instrument_box_visible_step7>1.0</dynamic_view06_instrument_box_visible_step7>
+  <dynamic_view06_instrument_box_slot_size_step7>1.0</dynamic_view06_instrument_box_slot_size_step7>
   <dynamic_view06_pattern_matrix_visible_step7>1.0</dynamic_view06_pattern_matrix_visible_step7>
   <dynamic_view06_pattern_advanced_edit_visible_step7>1.0</dynamic_view06_pattern_advanced_edit_visible_step7>
   <dynamic_view06_instrument_editor_detached_step7>1.0</dynamic_view06_instrument_editor_detached_step7>
@@ -476,6 +523,7 @@
   <dynamic_view06_sample_record_visible_step8>1.0</dynamic_view06_sample_record_visible_step8>
   <dynamic_view06_disk_browser_visible_step8>1.0</dynamic_view06_disk_browser_visible_step8>
   <dynamic_view06_instrument_box_visible_step8>1.0</dynamic_view06_instrument_box_visible_step8>
+  <dynamic_view06_instrument_box_slot_size_step8>1.0</dynamic_view06_instrument_box_slot_size_step8>
   <dynamic_view06_pattern_matrix_visible_step8>1.0</dynamic_view06_pattern_matrix_visible_step8>
   <dynamic_view06_pattern_advanced_edit_visible_step8>1.0</dynamic_view06_pattern_advanced_edit_visible_step8>
   <dynamic_view06_instrument_editor_detached_step8>1.0</dynamic_view06_instrument_editor_detached_step8>
@@ -486,6 +534,7 @@
   <dynamic_view07_sample_record_visible_step1>1.0</dynamic_view07_sample_record_visible_step1>
   <dynamic_view07_disk_browser_visible_step1>1.0</dynamic_view07_disk_browser_visible_step1>
   <dynamic_view07_instrument_box_visible_step1>1.0</dynamic_view07_instrument_box_visible_step1>
+  <dynamic_view07_instrument_box_slot_size_step1>1.0</dynamic_view07_instrument_box_slot_size_step1>
   <dynamic_view07_pattern_matrix_visible_step1>1.0</dynamic_view07_pattern_matrix_visible_step1>
   <dynamic_view07_pattern_advanced_edit_visible_step1>1.0</dynamic_view07_pattern_advanced_edit_visible_step1>
   <dynamic_view07_instrument_editor_detached_step1>1.0</dynamic_view07_instrument_editor_detached_step1>
@@ -496,6 +545,7 @@
   <dynamic_view07_sample_record_visible_step2>1.0</dynamic_view07_sample_record_visible_step2>
   <dynamic_view07_disk_browser_visible_step2>1.0</dynamic_view07_disk_browser_visible_step2>
   <dynamic_view07_instrument_box_visible_step2>1.0</dynamic_view07_instrument_box_visible_step2>
+  <dynamic_view07_instrument_box_slot_size_step2>1.0</dynamic_view07_instrument_box_slot_size_step2>
   <dynamic_view07_pattern_matrix_visible_step2>1.0</dynamic_view07_pattern_matrix_visible_step2>
   <dynamic_view07_pattern_advanced_edit_visible_step2>1.0</dynamic_view07_pattern_advanced_edit_visible_step2>
   <dynamic_view07_instrument_editor_detached_step2>1.0</dynamic_view07_instrument_editor_detached_step2>
@@ -506,6 +556,7 @@
   <dynamic_view07_sample_record_visible_step3>1.0</dynamic_view07_sample_record_visible_step3>
   <dynamic_view07_disk_browser_visible_step3>1.0</dynamic_view07_disk_browser_visible_step3>
   <dynamic_view07_instrument_box_visible_step3>1.0</dynamic_view07_instrument_box_visible_step3>
+  <dynamic_view07_instrument_box_slot_size_step3>1.0</dynamic_view07_instrument_box_slot_size_step3>
   <dynamic_view07_pattern_matrix_visible_step3>1.0</dynamic_view07_pattern_matrix_visible_step3>
   <dynamic_view07_pattern_advanced_edit_visible_step3>1.0</dynamic_view07_pattern_advanced_edit_visible_step3>
   <dynamic_view07_instrument_editor_detached_step3>1.0</dynamic_view07_instrument_editor_detached_step3>
@@ -516,6 +567,7 @@
   <dynamic_view07_sample_record_visible_step4>1.0</dynamic_view07_sample_record_visible_step4>
   <dynamic_view07_disk_browser_visible_step4>1.0</dynamic_view07_disk_browser_visible_step4>
   <dynamic_view07_instrument_box_visible_step4>1.0</dynamic_view07_instrument_box_visible_step4>
+  <dynamic_view07_instrument_box_slot_size_step4>1.0</dynamic_view07_instrument_box_slot_size_step4>
   <dynamic_view07_pattern_matrix_visible_step4>1.0</dynamic_view07_pattern_matrix_visible_step4>
   <dynamic_view07_pattern_advanced_edit_visible_step4>1.0</dynamic_view07_pattern_advanced_edit_visible_step4>
   <dynamic_view07_instrument_editor_detached_step4>1.0</dynamic_view07_instrument_editor_detached_step4>
@@ -526,6 +578,7 @@
   <dynamic_view07_sample_record_visible_step5>1.0</dynamic_view07_sample_record_visible_step5>
   <dynamic_view07_disk_browser_visible_step5>1.0</dynamic_view07_disk_browser_visible_step5>
   <dynamic_view07_instrument_box_visible_step5>1.0</dynamic_view07_instrument_box_visible_step5>
+  <dynamic_view07_instrument_box_slot_size_step5>1.0</dynamic_view07_instrument_box_slot_size_step5>
   <dynamic_view07_pattern_matrix_visible_step5>1.0</dynamic_view07_pattern_matrix_visible_step5>
   <dynamic_view07_pattern_advanced_edit_visible_step5>1.0</dynamic_view07_pattern_advanced_edit_visible_step5>
   <dynamic_view07_instrument_editor_detached_step5>1.0</dynamic_view07_instrument_editor_detached_step5>
@@ -536,6 +589,7 @@
   <dynamic_view07_sample_record_visible_step6>1.0</dynamic_view07_sample_record_visible_step6>
   <dynamic_view07_disk_browser_visible_step6>1.0</dynamic_view07_disk_browser_visible_step6>
   <dynamic_view07_instrument_box_visible_step6>1.0</dynamic_view07_instrument_box_visible_step6>
+  <dynamic_view07_instrument_box_slot_size_step6>1.0</dynamic_view07_instrument_box_slot_size_step6>
   <dynamic_view07_pattern_matrix_visible_step6>1.0</dynamic_view07_pattern_matrix_visible_step6>
   <dynamic_view07_pattern_advanced_edit_visible_step6>1.0</dynamic_view07_pattern_advanced_edit_visible_step6>
   <dynamic_view07_instrument_editor_detached_step6>1.0</dynamic_view07_instrument_editor_detached_step6>
@@ -546,6 +600,7 @@
   <dynamic_view07_sample_record_visible_step7>1.0</dynamic_view07_sample_record_visible_step7>
   <dynamic_view07_disk_browser_visible_step7>1.0</dynamic_view07_disk_browser_visible_step7>
   <dynamic_view07_instrument_box_visible_step7>1.0</dynamic_view07_instrument_box_visible_step7>
+  <dynamic_view07_instrument_box_slot_size_step7>1.0</dynamic_view07_instrument_box_slot_size_step7>
   <dynamic_view07_pattern_matrix_visible_step7>1.0</dynamic_view07_pattern_matrix_visible_step7>
   <dynamic_view07_pattern_advanced_edit_visible_step7>1.0</dynamic_view07_pattern_advanced_edit_visible_step7>
   <dynamic_view07_instrument_editor_detached_step7>1.0</dynamic_view07_instrument_editor_detached_step7>
@@ -556,6 +611,7 @@
   <dynamic_view07_sample_record_visible_step8>1.0</dynamic_view07_sample_record_visible_step8>
   <dynamic_view07_disk_browser_visible_step8>1.0</dynamic_view07_disk_browser_visible_step8>
   <dynamic_view07_instrument_box_visible_step8>1.0</dynamic_view07_instrument_box_visible_step8>
+  <dynamic_view07_instrument_box_slot_size_step8>1.0</dynamic_view07_instrument_box_slot_size_step8>
   <dynamic_view07_pattern_matrix_visible_step8>1.0</dynamic_view07_pattern_matrix_visible_step8>
   <dynamic_view07_pattern_advanced_edit_visible_step8>1.0</dynamic_view07_pattern_advanced_edit_visible_step8>
   <dynamic_view07_instrument_editor_detached_step8>1.0</dynamic_view07_instrument_editor_detached_step8>
@@ -566,6 +622,7 @@
   <dynamic_view08_sample_record_visible_step1>1.0</dynamic_view08_sample_record_visible_step1>
   <dynamic_view08_disk_browser_visible_step1>1.0</dynamic_view08_disk_browser_visible_step1>
   <dynamic_view08_instrument_box_visible_step1>1.0</dynamic_view08_instrument_box_visible_step1>
+  <dynamic_view08_instrument_box_slot_size_step1>1.0</dynamic_view08_instrument_box_slot_size_step1>
   <dynamic_view08_pattern_matrix_visible_step1>1.0</dynamic_view08_pattern_matrix_visible_step1>
   <dynamic_view08_pattern_advanced_edit_visible_step1>1.0</dynamic_view08_pattern_advanced_edit_visible_step1>
   <dynamic_view08_instrument_editor_detached_step1>1.0</dynamic_view08_instrument_editor_detached_step1>
@@ -576,6 +633,7 @@
   <dynamic_view08_sample_record_visible_step2>1.0</dynamic_view08_sample_record_visible_step2>
   <dynamic_view08_disk_browser_visible_step2>1.0</dynamic_view08_disk_browser_visible_step2>
   <dynamic_view08_instrument_box_visible_step2>1.0</dynamic_view08_instrument_box_visible_step2>
+  <dynamic_view08_instrument_box_slot_size_step2>1.0</dynamic_view08_instrument_box_slot_size_step2>
   <dynamic_view08_pattern_matrix_visible_step2>1.0</dynamic_view08_pattern_matrix_visible_step2>
   <dynamic_view08_pattern_advanced_edit_visible_step2>1.0</dynamic_view08_pattern_advanced_edit_visible_step2>
   <dynamic_view08_instrument_editor_detached_step2>1.0</dynamic_view08_instrument_editor_detached_step2>
@@ -586,6 +644,7 @@
   <dynamic_view08_sample_record_visible_step3>1.0</dynamic_view08_sample_record_visible_step3>
   <dynamic_view08_disk_browser_visible_step3>1.0</dynamic_view08_disk_browser_visible_step3>
   <dynamic_view08_instrument_box_visible_step3>1.0</dynamic_view08_instrument_box_visible_step3>
+  <dynamic_view08_instrument_box_slot_size_step3>1.0</dynamic_view08_instrument_box_slot_size_step3>
   <dynamic_view08_pattern_matrix_visible_step3>1.0</dynamic_view08_pattern_matrix_visible_step3>
   <dynamic_view08_pattern_advanced_edit_visible_step3>1.0</dynamic_view08_pattern_advanced_edit_visible_step3>
   <dynamic_view08_instrument_editor_detached_step3>1.0</dynamic_view08_instrument_editor_detached_step3>
@@ -596,6 +655,7 @@
   <dynamic_view08_sample_record_visible_step4>1.0</dynamic_view08_sample_record_visible_step4>
   <dynamic_view08_disk_browser_visible_step4>1.0</dynamic_view08_disk_browser_visible_step4>
   <dynamic_view08_instrument_box_visible_step4>1.0</dynamic_view08_instrument_box_visible_step4>
+  <dynamic_view08_instrument_box_slot_size_step4>1.0</dynamic_view08_instrument_box_slot_size_step4>
   <dynamic_view08_pattern_matrix_visible_step4>1.0</dynamic_view08_pattern_matrix_visible_step4>
   <dynamic_view08_pattern_advanced_edit_visible_step4>1.0</dynamic_view08_pattern_advanced_edit_visible_step4>
   <dynamic_view08_instrument_editor_detached_step4>1.0</dynamic_view08_instrument_editor_detached_step4>
@@ -606,6 +666,7 @@
   <dynamic_view08_sample_record_visible_step5>1.0</dynamic_view08_sample_record_visible_step5>
   <dynamic_view08_disk_browser_visible_step5>1.0</dynamic_view08_disk_browser_visible_step5>
   <dynamic_view08_instrument_box_visible_step5>1.0</dynamic_view08_instrument_box_visible_step5>
+  <dynamic_view08_instrument_box_slot_size_step5>1.0</dynamic_view08_instrument_box_slot_size_step5>
   <dynamic_view08_pattern_matrix_visible_step5>1.0</dynamic_view08_pattern_matrix_visible_step5>
   <dynamic_view08_pattern_advanced_edit_visible_step5>1.0</dynamic_view08_pattern_advanced_edit_visible_step5>
   <dynamic_view08_instrument_editor_detached_step5>1.0</dynamic_view08_instrument_editor_detached_step5>
@@ -616,6 +677,7 @@
   <dynamic_view08_sample_record_visible_step6>1.0</dynamic_view08_sample_record_visible_step6>
   <dynamic_view08_disk_browser_visible_step6>1.0</dynamic_view08_disk_browser_visible_step6>
   <dynamic_view08_instrument_box_visible_step6>1.0</dynamic_view08_instrument_box_visible_step6>
+  <dynamic_view08_instrument_box_slot_size_step6>1.0</dynamic_view08_instrument_box_slot_size_step6>
   <dynamic_view08_pattern_matrix_visible_step6>1.0</dynamic_view08_pattern_matrix_visible_step6>
   <dynamic_view08_pattern_advanced_edit_visible_step6>1.0</dynamic_view08_pattern_advanced_edit_visible_step6>
   <dynamic_view08_instrument_editor_detached_step6>1.0</dynamic_view08_instrument_editor_detached_step6>
@@ -626,6 +688,7 @@
   <dynamic_view08_sample_record_visible_step7>1.0</dynamic_view08_sample_record_visible_step7>
   <dynamic_view08_disk_browser_visible_step7>1.0</dynamic_view08_disk_browser_visible_step7>
   <dynamic_view08_instrument_box_visible_step7>1.0</dynamic_view08_instrument_box_visible_step7>
+  <dynamic_view08_instrument_box_slot_size_step7>1.0</dynamic_view08_instrument_box_slot_size_step7>
   <dynamic_view08_pattern_matrix_visible_step7>1.0</dynamic_view08_pattern_matrix_visible_step7>
   <dynamic_view08_pattern_advanced_edit_visible_step7>1.0</dynamic_view08_pattern_advanced_edit_visible_step7>
   <dynamic_view08_instrument_editor_detached_step7>1.0</dynamic_view08_instrument_editor_detached_step7>
@@ -636,6 +699,7 @@
   <dynamic_view08_sample_record_visible_step8>1.0</dynamic_view08_sample_record_visible_step8>
   <dynamic_view08_disk_browser_visible_step8>1.0</dynamic_view08_disk_browser_visible_step8>
   <dynamic_view08_instrument_box_visible_step8>1.0</dynamic_view08_instrument_box_visible_step8>
+  <dynamic_view08_instrument_box_slot_size_step8>1.0</dynamic_view08_instrument_box_slot_size_step8>
   <dynamic_view08_pattern_matrix_visible_step8>1.0</dynamic_view08_pattern_matrix_visible_step8>
   <dynamic_view08_pattern_advanced_edit_visible_step8>1.0</dynamic_view08_pattern_advanced_edit_visible_step8>
   <dynamic_view08_instrument_editor_detached_step8>1.0</dynamic_view08_instrument_editor_detached_step8>

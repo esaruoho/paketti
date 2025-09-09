@@ -954,7 +954,12 @@ function draw_eq_canvas(ctx)
       
       -- Draw frequency name vertically (rotated text effect - EXACTLY like PakettiCanvasExperiments.lua)
       local bar_center_x = bar_x + (bar_width / 2)
-      local text_size = math.max(4, math.min(12, bar_width * 0.6))
+      local base_text_size = math.max(4, math.min(12, bar_width * 0.6))
+      -- Apply half-size font scaling based on preferences:
+      -- If HalfSizeFont is On: Always use small text
+      -- If HalfSizeFont is Off: Use small text only when HalfSize canvas is enabled
+      local use_small_text = preferences.pakettiParameterEditor.HalfSizeFont.value or preferences.pakettiParameterEditor.HalfSize.value
+      local text_size = use_small_text and math.floor(base_text_size * 0.75) or base_text_size
       local text_start_y = (content_y - content_y_offset) + 15 - math.floor(text_size * 0.5)  -- lift by ~0.5 char
       
       -- Draw each character of the frequency name vertically (COPIED from PakettiCanvasExperiments.lua)
@@ -993,14 +998,20 @@ function draw_eq_canvas(ctx)
     
     -- Draw ALL band numbers (01-30) below each column
     local band_text = string.format("%02d", i)  -- 01, 02, 03, ..., 30
-    local text_size = math.max(3, math.min(6, band_width * 0.4))  -- Scale text to fit narrow columns
+    local base_text_size = math.max(3, math.min(6, band_width * 0.4))  -- Scale text to fit narrow columns
+    -- Apply half-size font scaling based on preferences
+    local use_small_text = preferences.pakettiParameterEditor.HalfSizeFont.value or preferences.pakettiParameterEditor.HalfSize.value
+    local text_size = use_small_text and math.floor(base_text_size * 0.75) or base_text_size
     PakettiCanvasFontDrawText(ctx, band_text, bar_center_x - (#band_text * text_size/3), label_y_start, text_size)
   end
   
   -- Side dB labels at left and right edges for measurement feel (+/-20, +/-12, +/-6, +/-3) – ensure only drawn once
   ctx.stroke_color = COLOR_BAND_LABELS
   ctx.line_width = 1
-  local label_size = 7
+  local base_label_size = 7
+  -- Apply half-size font scaling based on preferences
+  local use_small_text = preferences.pakettiParameterEditor.HalfSizeFont.value or preferences.pakettiParameterEditor.HalfSize.value
+  local label_size = use_small_text and math.floor(base_label_size * 0.75) or base_label_size
   -- Include full range on sides
   local levels = {20, 12, 6, 3, -3, -6, -12, -20}
   for i = 1, #levels do
