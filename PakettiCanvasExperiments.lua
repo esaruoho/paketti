@@ -1060,13 +1060,13 @@ function paketti_canvas_keyhandler_func(dialog, key)
   -- Check for SPACE to open external editor
   if key.name == "space" then
     print("KEYHANDLER: SPACE pressed - toggling external editor")
-    if current_device then
+    if current_device and current_device.external_editor_available then
       current_device.external_editor_visible = not current_device.external_editor_visible
       local status = current_device.external_editor_visible and "opened" or "closed"
       renoise.app():show_status("External Editor " .. status)
       print("KEYHANDLER: External editor " .. status)
     else
-      renoise.app():show_status("No device selected for external editor")
+      renoise.app():show_status("There's no external editor for this device, doing nothing.")
       print("KEYHANDLER: No device selected for external editor")
     end
     return nil -- Don't pass this key to Renoise
@@ -1324,8 +1324,10 @@ function PakettiCanvasExperimentsCreateDialog()
         text = "Toggle External Editor",
         width = 141,
         notifier = function()
-          if current_device then
+          if current_device and current_device.external_editor_available then
             current_device.external_editor_visible = not current_device.external_editor_visible
+          else
+            renoise.app():show_status("There's no external editor for this device, doing nothing.")
           end
         end
       },
