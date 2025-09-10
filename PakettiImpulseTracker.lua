@@ -1342,6 +1342,25 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D
 
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Pattern",invoke=function() DoubleSelectPattern() end}
+
+-- Function to select just the current row across all note columns
+function PakettiSelectCurrentRow()
+  local s = renoise.song()
+  local sip = s.selection_in_pattern
+  local last_column = s.selected_track.visible_effect_columns +
+                      s.selected_track.visible_note_columns
+
+  s.selection_in_pattern = {
+    start_line   = s.selected_line_index,
+    end_line     = s.selected_line_index,
+    start_track  = s.selected_track_index,
+    end_track    = s.selected_track_index,
+    start_column = 1,
+    end_column   = last_column,
+  }
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Select Current Row",invoke=PakettiSelectCurrentRow}
 --------------------------------------------------------------------------------------------------------------------------------------
 --IT "Home Home Home" behaviour. First Home takes to current column first_line. Second Home takes to current track first_line. 
 --Third home takes to first track first_line.

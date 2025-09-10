@@ -1048,6 +1048,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Other Trackers:Slid
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Slide Selected Column Content Up",invoke=PakettiImpulseTrackerSlideUp}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Slide Selected Track Content Down",invoke=PakettiImpulseTrackerSlideTrackDown}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Slide Selected Track Content Up",invoke=PakettiImpulseTrackerSlideTrackUp}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Select Current Row",invoke=PakettiSelectCurrentRow}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Tracks:Convert Global Groove to Delay on Selected Track/Group",invoke=pakettiGrooveToDelay}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Enable All Devices on Track",invoke=function() effectenable() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Devices on Track",invoke=function() effectbypass() end}
