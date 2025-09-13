@@ -766,7 +766,7 @@ function test_dynamic_mapping_detection()
     print("2. The files containing these patterns haven't been executed")
     print("3. The patterns have different naming than expected")
   else
-    print("\n✅ All expected dynamic patterns were successfully detected!")
+    print("\nAll expected dynamic patterns were successfully detected!")
   end
   
   return total_found, total_expected
@@ -1498,7 +1498,7 @@ function pakettiMIDIMappingsDialog()
                     dialog_state.last_assigned_category = full_category
                     save_dialog_state()
                     
-                    renoise.app():show_status("✅ " .. button_text:sub(1,30) .. "... → " .. selected_main .. ":" .. selected_sub)
+                    renoise.app():show_status(button_text:sub(1,30) .. "... → " .. selected_main .. ":" .. selected_sub)
                     
                     -- Check if we need to rebuild the display
                     local current_filter = category_filter.items[category_filter.value]
@@ -1605,7 +1605,7 @@ function pakettiMIDIMappingsDialog()
                     dialog_state.last_assigned_category = full_category
                     save_dialog_state()
                     
-                    renoise.app():show_status("✅ " .. button_text:sub(1,30) .. "... → " .. selected_main .. ":" .. selected_sub)
+                    renoise.app():show_status(button_text:sub(1,30) .. "... → " .. selected_main .. ":" .. selected_sub)
                     
                     -- Check if we need to rebuild the display
                     local current_filter = category_filter.items[category_filter.value]
@@ -2019,7 +2019,7 @@ function pakettiMIDIMappingsDialog()
           -- Always rebuild after batch operations
           rebuild_mappings_display()
           
-          renoise.app():show_status(string.format("✅ Batch moved %d/%d mappings to %s:%s", 
+          renoise.app():show_status(string.format("Batch moved %d/%d mappings to %s:%s", 
             success_count, selected_count, selected_main, selected_sub))
         end
       }

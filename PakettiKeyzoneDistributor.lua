@@ -356,7 +356,7 @@ function PakettiKeyzoneDistributorGenerateFileListText(file_info_list)
   local text_lines = {}
   
   for i, file_info in ipairs(file_info_list) do
-    local status = file_info.enabled and "[✓]" or "[ ]"
+    local status = file_info.enabled and "[x]" or "[ ]"
     local keyrange_text = "No range detected"
     
     if file_info.keyrange then

@@ -487,11 +487,11 @@ function PakettiXIExport()
     
     -- Check if sample has data
     if not buffer then
-      dprint("  ❌ ERROR: Sample has no buffer!")
+      dprint("  ERROR: Sample has no buffer!")
     elseif not buffer.has_sample_data then
-      dprint("  ❌ WARNING: Sample buffer exists but has no audio data!")
+      dprint("  WARNING: Sample buffer exists but has no audio data!")
     else
-      dprint("  ✅ Sample has audio data")
+      dprint("  Sample has audio data")
       dprint("  Sample frames: " .. buffer.number_of_frames)
       dprint("  Sample rate: " .. buffer.sample_rate .. " Hz")
       dprint("  Channels: " .. buffer.number_of_channels)
@@ -545,12 +545,12 @@ function PakettiXIExport()
     local delta_data
     
     if not buffer or not buffer.has_sample_data then
-      dprint("  ❌ SKIPPING sample conversion - no audio data!")
+      dprint("  SKIPPING sample conversion - no audio data!")
       -- Create empty delta data for samples with no audio
       delta_data = {}
       sample_length = 0
     else
-      dprint("  ✅ PROCEEDING with sample conversion...")
+      dprint("  PROCEEDING with sample conversion...")
       delta_data = convert_sample_data(sample)
       sample_length = #delta_data * 2  -- 2 bytes per 16-bit sample
       dprint("  Converted " .. #delta_data .. " delta values, " .. sample_length .. " bytes")
@@ -638,11 +638,11 @@ function PakettiXIExport()
   renoise.app():show_status("XI export complete: " .. filename .. " (" .. file_size .. " bytes)")
   dprint("Export complete: " .. #instrument.samples .. " samples, " .. xi_nalloc .. " used")
   dprint("=== FT2-COMPATIBLE EXPORT FIXES APPLIED ===")
-  dprint("✅ No sample name length byte (removed)")
-  dprint("✅ FT2-style delta encoding (corrected)")
-  dprint("✅ Stereo L+R block layout (not interleaved)")
-  dprint("✅ Signed 16-bit little-endian sample data")
-  dprint("✅ Standard 40-byte sample headers")
+  dprint("No sample name length byte (removed)")
+  dprint("FT2-style delta encoding (corrected)")
+  dprint("Stereo L+R block layout (not interleaved)")
+  dprint("Signed 16-bit little-endian sample data")
+  dprint("Standard 40-byte sample headers")
 end
 
 -- Add menu entries

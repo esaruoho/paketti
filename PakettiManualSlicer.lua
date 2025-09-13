@@ -483,7 +483,7 @@ function paketti_manual_slicer_samples_worker(source_instrument, num_samples, di
     dialog:close()
   end
   
-  renoise.app():show_status(string.format("✅ Manual Slicer: Created %d uniform slices (max duration: %.2fs)", 
+  renoise.app():show_status(string.format("Manual Slicer: Created %d uniform slices (max duration: %.2fs)", 
     target_slice_count, max_duration_frames / 48000.0))
   print("-- Manual Slicer Samples: Completed successfully")
 end

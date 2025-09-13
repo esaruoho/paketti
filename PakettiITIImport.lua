@@ -1215,24 +1215,24 @@ function setup_keyboard_mapping(instrument, keyboard_table, loaded_samples, iti_
         
         mapping_count = mapping_count + 1
         if is_highest_range and final_range_max > range.max then
-          dprint(string.format("✓ Sample %d: notes %d-%d (%s to %s) [EXTENDED to B-9], base_note=%s (%d)", 
+          dprint(string.format("Sample %d: notes %d-%d (%s to %s) [EXTENDED to B-9], base_note=%s (%d)", 
             sample_idx, range.min, final_range_max, note_name_min, note_name_max, base_note_name, base_note))
         else
-          dprint(string.format("✓ Sample %d: notes %d-%d (%s to %s), base_note=%s (%d)", 
+          dprint(string.format("Sample %d: notes %d-%d (%s to %s), base_note=%s (%d)", 
             sample_idx, range.min, final_range_max, note_name_min, note_name_max, base_note_name, base_note))
         end
         
         if #ranges > 1 then
-          dprint(string.format("⚠ Sample %d has %d ranges, only using first range", sample_idx, #ranges))
+          dprint(string.format("Sample %d has %d ranges, only using first range", sample_idx, #ranges))
         end
       end
     end
   end
   
   if mapping_count > 0 then
-    dprint(string.format("✓ Keyboard mapping completed: configured %d sample mappings", mapping_count))
+    dprint(string.format("Keyboard mapping completed: configured %d sample mappings", mapping_count))
   else
-    dprint("⚠ No keyboard mappings configured - using default sample mappings")
+    dprint("No keyboard mappings configured - using default sample mappings")
   end
 end
 

@@ -76,13 +76,13 @@ function pakettiNotepadRun()
       
       if success then
         executed_count = executed_count + 1
-        print(string.format("✅ Paragraph %d executed successfully", i))
+        print(string.format("Paragraph %d executed successfully", i))
         if result then
           print(string.format("   Result: %s", tostring(result)))
         end
       else
         error_count = error_count + 1
-        print(string.format("❌ Paragraph %d failed: %s", i, tostring(result)))
+        print(string.format("Paragraph %d failed: %s", i, tostring(result)))
       end
     else
       print(string.format("Skipping empty paragraph %d", i))

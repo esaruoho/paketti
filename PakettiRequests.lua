@@ -3067,16 +3067,22 @@ renoise.app():load_instrument(defaultInstrument)
   new_sample.sample_buffer:finalize_sample_data_changes()
 
   -- Copy sample properties
-  new_sample.autofade = sample.autofade
-  new_sample.autoseek = sample.autoseek
-  new_sample.loop_mode = sample.loop_mode
-  new_sample.beat_sync_mode = sample.beat_sync_mode
-  new_sample.beat_sync_lines = sample.beat_sync_lines
-  new_sample.fine_tune = sample.fine_tune
   new_sample.volume = sample.volume
   new_sample.panning = sample.panning
-  new_sample.new_note_action = sample.new_note_action
+  new_sample.transpose = sample.transpose
+  new_sample.fine_tune = sample.fine_tune
+  new_sample.beat_sync_enabled = sample.beat_sync_enabled
+  new_sample.beat_sync_lines = sample.beat_sync_lines
+  new_sample.beat_sync_mode = sample.beat_sync_mode
+  new_sample.oneshot = sample.oneshot
+  new_sample.loop_release = sample.loop_release
+  new_sample.loop_mode = sample.loop_mode
+  new_sample.loop_start = sample.loop_start
+  new_sample.loop_end = sample.loop_end
   new_sample.mute_group = sample.mute_group
+  new_sample.new_note_action = sample.new_note_action
+  new_sample.autoseek = sample.autoseek
+  new_sample.autofade = sample.autofade
   new_sample.oversample_enabled = sample.oversample_enabled
   new_sample.interpolation_mode = sample.interpolation_mode
 
@@ -3086,6 +3092,13 @@ renoise.app():load_instrument(defaultInstrument)
   mapping.note_range = { 0, 119 }  -- C-0 to B-9
   mapping.velocity_range = { 0, 127 }
   mapping.map_velocity_to_volume = true
+
+  -- Clean up any "Placeholder sample" left behind
+  for i = #new_instrument.samples, 1, -1 do
+    if new_instrument.samples[i].name == "Placeholder sample" or new_instrument.samples[i].name == "Placeholder for drumkit" then
+      new_instrument:delete_sample_at(i)
+    end
+  end
 
   -- Set octave and show status
   song.transport.octave = 3

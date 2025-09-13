@@ -137,11 +137,11 @@ function make_ot_table(sample)
       end
     end
     
-    print("PakettiOTExport: ✅ SUCCESSFULLY USING STORED OT METADATA")
-    print(string.format("PakettiOTExport: 📊 Tempo=%d (BPM: %d), TrimLen=%d, LoopLen=%d, Stretch=%d, Loop=%d, Gain=%d", 
+    print("PakettiOTExport: SUCCESSFULLY USING STORED OT METADATA")
+    print(string.format("PakettiOTExport: Tempo=%d (BPM: %d), TrimLen=%d, LoopLen=%d, Stretch=%d, Loop=%d, Gain=%d", 
       tempo_value, math.floor(tempo_value/24), trim_loop_value, loop_len_value, stretch_value, loop_value, gain_value))
-    print(string.format("PakettiOTExport: 🎯 trim_end=%d, sample_len=%d", trim_end_value, sample_len))
-    print(string.format("PakettiOTExport: 🔪 Found %d stored slice ends", #stored_slice_ends))
+    print(string.format("PakettiOTExport: trim_end=%d, sample_len=%d", trim_end_value, sample_len))
+    print(string.format("PakettiOTExport: Found %d stored slice ends", #stored_slice_ends))
     
     -- Show first few slice ends for verification
     if stored_slice_ends and #stored_slice_ends > 0 then
@@ -152,7 +152,7 @@ function make_ot_table(sample)
       if #stored_slice_ends > 5 then
         table.insert(preview, "...")
       end
-      print(string.format("PakettiOTExport: 🔪 Slice ends preview: %s", table.concat(preview, ", ")))
+      print(string.format("PakettiOTExport: Slice ends preview: %s", table.concat(preview, ", ")))
     end
   else
     -- Fallback: compute values from current Renoise state
@@ -1100,9 +1100,9 @@ function ot_import_filehook(filename)
   if wav_found and sample_loaded then
     import_status = "WAV FILE LOADED & SLICES APPLIED"
   elseif wav_found and not sample_loaded then
-    import_status = "❌ WAV FILE FOUND BUT FAILED TO LOAD"
+    import_status = "WAV FILE FOUND BUT FAILED TO LOAD"
   else
-    import_status = "⚠️  NO CORRESPONDING WAV FILE FOUND"
+    import_status = "NO CORRESPONDING WAV FILE FOUND"
   end
   
   -- Show debug dialog conditionally based on control variable
@@ -1543,14 +1543,14 @@ function PakettiOTDrumkitSmart_Worker(source_instrument, num_samples)
       end
       
       processed_count = processed_count + 1
-      print(string.format("-- OT Drumkit Smart: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
+      print(string.format("-- OT Drumkit Smart: Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
       
       -- Clean up temp instrument
       song:delete_instrument_at(temp_instrument_index)
       song.selected_instrument_index = new_instrument_index
     else
       skipped_count = skipped_count + 1
-      print(string.format("-- OT Drumkit Smart: ✗ Skipping slot %02d: no sample data", i))
+      print(string.format("-- OT Drumkit Smart: Skipping slot %02d: no sample data", i))
     end
     
     -- Yield after each sample to maintain UI responsiveness
@@ -1783,14 +1783,14 @@ function PakettiOTDrumkitMono_Worker(source_instrument, num_samples)
       end
       
       processed_count = processed_count + 1
-      print(string.format("-- OT Drumkit Mono: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
+      print(string.format("-- OT Drumkit Mono: Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
       
       -- Clean up temp instrument
       song:delete_instrument_at(temp_instrument_index)
       song.selected_instrument_index = new_instrument_index
     else
       skipped_count = skipped_count + 1
-      print(string.format("-- OT Drumkit Mono: ✗ Skipping slot %02d: no sample data", i))
+      print(string.format("-- OT Drumkit Mono: Skipping slot %02d: no sample data", i))
     end
     
     -- Yield after each sample to maintain UI responsiveness
@@ -2038,14 +2038,14 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, 
       end
       
       processed_count = processed_count + 1
-      print(string.format("-- OT Drumkit Smart: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
+      print(string.format("-- OT Drumkit Smart: Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
       
       -- Clean up temp instrument
       song:delete_instrument_at(temp_instrument_index)
       song.selected_instrument_index = new_instrument_index
     else
       skipped_count = skipped_count + 1
-      print(string.format("-- OT Drumkit Smart: ✗ Skipping slot %02d: no sample data", i))
+      print(string.format("-- OT Drumkit Smart: Skipping slot %02d: no sample data", i))
     end
     
     -- Yield every 20 samples to keep UI responsive but still efficient
@@ -2130,11 +2130,11 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, 
     end
     
     current_position = current_position + sample_data.frames
-    print(string.format("-- OT Drumkit Smart: ✓ Sample %d combined successfully", i))
+    print(string.format("-- OT Drumkit Smart: Sample %d combined successfully", i))
   end
   
   local end_time = os.clock()
-  print(string.format("-- OT Drumkit Smart: ✓ FAST bulk combining completed in %.2f seconds", end_time - start_time))
+  print(string.format("-- OT Drumkit Smart: FAST bulk combining completed in %.2f seconds", end_time - start_time))
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   combined_sample.name = drumkit_instrument.name
@@ -2295,14 +2295,14 @@ function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples, d
       end
       
       processed_count = processed_count + 1
-      print(string.format("-- OT Drumkit Mono: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
+      print(string.format("-- OT Drumkit Mono: Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
       
       -- Clean up temp instrument
       song:delete_instrument_at(temp_instrument_index)
       song.selected_instrument_index = new_instrument_index
     else
       skipped_count = skipped_count + 1
-      print(string.format("-- OT Drumkit Mono: ✗ Skipping slot %02d: no sample data", i))
+      print(string.format("-- OT Drumkit Mono: Skipping slot %02d: no sample data", i))
     end
     
     -- Yield every 20 samples to keep UI responsive but still efficient
@@ -2373,11 +2373,11 @@ function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples, d
     end
     
     current_position = current_position + sample_data.frames
-    print(string.format("-- OT Drumkit Mono: ✓ Sample %d combined successfully", i))
+    print(string.format("-- OT Drumkit Mono: Sample %d combined successfully", i))
   end
   
   local end_time = os.clock()
-  print(string.format("-- OT Drumkit Mono: ✓ FAST bulk combining completed in %.2f seconds", end_time - start_time))
+  print(string.format("-- OT Drumkit Mono: FAST bulk combining completed in %.2f seconds", end_time - start_time))
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   combined_sample.name = drumkit_instrument.name
@@ -2593,7 +2593,7 @@ function PakettiOTDrumkitSmart_Legacy()
       end
       
       processed_count = processed_count + 1
-      print(string.format("-- OT Drumkit Smart: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
+      print(string.format("-- OT Drumkit Smart: Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
       
       -- Clean up temp instrument
       song:delete_instrument_at(temp_instrument_index)
@@ -2601,9 +2601,9 @@ function PakettiOTDrumkitSmart_Legacy()
     else
       skipped_count = skipped_count + 1
       if sample then
-        print(string.format("-- OT Drumkit Smart: ✗ Skipping slot %02d: no sample data", i))
+        print(string.format("-- OT Drumkit Smart: Skipping slot %02d: no sample data", i))
       else
-        print(string.format("-- OT Drumkit Smart: ✗ Skipping slot %02d: no sample object", i))
+        print(string.format("-- OT Drumkit Smart: Skipping slot %02d: no sample object", i))
       end
     end
     
@@ -2695,11 +2695,11 @@ function PakettiOTDrumkitSmart_Legacy()
     end
     
     current_position = current_position + sample_data.frames
-    print(string.format("-- OT Drumkit Smart Legacy: ✓ Sample %d combined successfully", i))
+    print(string.format("-- OT Drumkit Smart Legacy: Sample %d combined successfully", i))
   end
   
   local end_time = os.clock()
-  print(string.format("-- OT Drumkit Smart Legacy: ✓ FAST bulk combining completed in %.2f seconds", end_time - start_time))
+  print(string.format("-- OT Drumkit Smart Legacy: FAST bulk combining completed in %.2f seconds", end_time - start_time))
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   
@@ -2973,7 +2973,7 @@ function PakettiOTDrumkitMono_Legacy()
       end
       
       processed_count = processed_count + 1
-      print(string.format("-- OT Drumkit Mono: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
+      print(string.format("-- OT Drumkit Mono: Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
       
       -- Clean up temp instrument
       song:delete_instrument_at(temp_instrument_index)
@@ -2981,9 +2981,9 @@ function PakettiOTDrumkitMono_Legacy()
     else
       skipped_count = skipped_count + 1
       if sample then
-        print(string.format("-- OT Drumkit Mono: ✗ Skipping slot %02d: no sample data", i))
+        print(string.format("-- OT Drumkit Mono: Skipping slot %02d: no sample data", i))
       else
-        print(string.format("-- OT Drumkit Mono: ✗ Skipping slot %02d: no sample object", i))
+        print(string.format("-- OT Drumkit Mono: Skipping slot %02d: no sample object", i))
       end
     end
   end
@@ -3055,11 +3055,11 @@ function PakettiOTDrumkitMono_Legacy()
     end
     
     current_position = current_position + sample_data.frames
-    print(string.format("-- OT Drumkit Mono Legacy: ✓ Sample %d combined successfully", i))
+    print(string.format("-- OT Drumkit Mono Legacy: Sample %d combined successfully", i))
   end
   
   local end_time = os.clock()
-  print(string.format("-- OT Drumkit Mono Legacy: ✓ FAST bulk combining completed in %.2f seconds", end_time - start_time))
+  print(string.format("-- OT Drumkit Mono Legacy: FAST bulk combining completed in %.2f seconds", end_time - start_time))
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   
@@ -3511,14 +3511,14 @@ function PakettiOTDrumkitPlayToEnd_Worker(source_instrument, num_samples, dialog
       end
       
       processed_count = processed_count + 1
-      print(string.format("-- OT Drumkit PlayToEnd: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
+      print(string.format("-- OT Drumkit PlayToEnd: Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
       
       -- Clean up temp instrument
       song:delete_instrument_at(temp_instrument_index)
       song.selected_instrument_index = new_instrument_index
     else
       skipped_count = skipped_count + 1
-      print(string.format("-- OT Drumkit PlayToEnd: ✗ Skipping slot %02d: no sample data", i))
+      print(string.format("-- OT Drumkit PlayToEnd: Skipping slot %02d: no sample data", i))
     end
     
     -- Yield every 20 samples
@@ -3607,11 +3607,11 @@ function PakettiOTDrumkitPlayToEnd_Worker(source_instrument, num_samples, dialog
     end
     
     current_position = current_position + sample_data.frames
-    print(string.format("-- OT Drumkit PlayToEnd: ✓ Sample %d combined successfully", i))
+    print(string.format("-- OT Drumkit PlayToEnd: Sample %d combined successfully", i))
   end
   
   local end_time = os.clock()
-  print(string.format("-- OT Drumkit PlayToEnd: ✓ FAST bulk combining completed in %.2f seconds", end_time - start_time))
+  print(string.format("-- OT Drumkit PlayToEnd: FAST bulk combining completed in %.2f seconds", end_time - start_time))
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   combined_sample.name = drumkit_instrument.name

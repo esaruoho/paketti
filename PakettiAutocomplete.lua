@@ -2362,51 +2362,51 @@ local function execute_command(command)
       -- Execute the MIDI mapping function with the synthetic message
       local func = loadstring("return " .. command.invoke)
       if func then
-        print("✓ Successfully created MIDI function from invoke string")
+        print("Successfully created MIDI function from invoke string")
         local ok, result = pcall(func)
         if ok and type(result) == "function" then
-          print("✓ MIDI function loaded successfully, executing with synthetic message...")
+          print("MIDI function loaded successfully, executing with synthetic message...")
           local exec_ok, exec_err = pcall(result, fake_message)
           if exec_ok then
             success = true
-            print("✓ MIDI EXECUTION SUCCESSFUL!")
+            print("MIDI EXECUTION SUCCESSFUL!")
           else
             error_msg = "Error executing MIDI function: " .. tostring(exec_err)
-            print("✗ MIDI execution failed: " .. error_msg)
+            print("MIDI execution failed: " .. error_msg)
           end
         else
-          print("✗ MIDI function loading failed or result is not a function")
+          print("MIDI function loading failed or result is not a function")
           if not ok then
             print("Error: " .. tostring(result))
           end
         end
       else
-        print("✗ Failed to create MIDI function from invoke string")
+        print("Failed to create MIDI function from invoke string")
       end
     else
       -- Regular function definition - execute normally
       local func = loadstring("return " .. command.invoke)
       if func then
-        print("✓ Successfully created function from invoke string")
+        print("Successfully created function from invoke string")
         local ok, result = pcall(func)
         if ok and type(result) == "function" then
-          print("✓ Function loaded successfully, executing...")
+          print("Function loaded successfully, executing...")
           local exec_ok, exec_err = pcall(result)
           if exec_ok then
             success = true
-            print("✓ EXECUTION SUCCESSFUL!")
+            print("EXECUTION SUCCESSFUL!")
           else
             error_msg = "Error executing: " .. tostring(exec_err)
-            print("✗ Execution failed: " .. error_msg)
+            print("Execution failed: " .. error_msg)
           end
         else
-          print("✗ Function loading failed or result is not a function")
+          print("Function loading failed or result is not a function")
           if not ok then
             print("Error: " .. tostring(result))
           end
         end
       else
-        print("✗ Failed to create function from invoke string")
+        print("Failed to create function from invoke string")
       end
     end
   else
@@ -2423,17 +2423,17 @@ local function execute_command(command)
     
     local func = loadstring(invoke_string)
     if func then
-      print("✓ Successfully created function from invoke string")
+      print("Successfully created function from invoke string")
       local exec_ok, exec_err = pcall(func)
       if exec_ok then
         success = true
-        print("✓ EXECUTION SUCCESSFUL!")
+        print("EXECUTION SUCCESSFUL!")
       else
         error_msg = "Error executing: " .. tostring(exec_err)
-        print("✗ Execution failed: " .. error_msg)
+        print("Execution failed: " .. error_msg)
       end
     else
-      print("✗ Failed to create function from invoke string")
+      print("Failed to create function from invoke string")
     end
   end
   
@@ -2446,20 +2446,20 @@ local function execute_command(command)
       print("CHECKING: Simple function name: " .. command.invoke)
       if _G[command.invoke] then
         if type(_G[command.invoke]) == "function" then
-          print("✓ Found global function: " .. command.invoke)
+          print("Found global function: " .. command.invoke)
           local exec_ok, exec_err = pcall(_G[command.invoke])
           if exec_ok then
             success = true
-            print("✓ EXECUTION SUCCESSFUL!")
+            print("EXECUTION SUCCESSFUL!")
           else
             error_msg = "Error executing: " .. tostring(exec_err)
-            print("✗ Execution failed: " .. error_msg)
+            print("Execution failed: " .. error_msg)
           end
         else
-          print("✗ Global " .. command.invoke .. " exists but is not a function (type: " .. type(_G[command.invoke]) .. ")")
+          print("Global " .. command.invoke .. " exists but is not a function (type: " .. type(_G[command.invoke]) .. ")")
         end
       else
-        print("✗ Global function " .. command.invoke .. " not found")
+        print("Global function " .. command.invoke .. " not found")
       end
     else
       print("SKIPPING: Complex invoke string, not suitable for global lookup: " .. command.invoke:sub(1, 50) .. "...")
@@ -2468,7 +2468,7 @@ local function execute_command(command)
   
   -- If execution failed, show error
   if not success then
-    local final_error = error_msg ~= "" and error_msg or ("✗ Failed to execute: " .. command.name)
+    local final_error = error_msg ~= "" and error_msg or ("Failed to execute: " .. command.name)
     print("FINAL RESULT: FAILED")
     print("ERROR: " .. final_error)
     renoise.app():show_status(final_error)

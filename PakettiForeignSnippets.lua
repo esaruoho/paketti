@@ -2357,7 +2357,7 @@ function pakettiResetBasenotesToLowestNoteRange()
 end
 
 -- Menu entries for basenote reset
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Global:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
 

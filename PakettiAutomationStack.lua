@@ -1464,7 +1464,7 @@ function PakettiAutomationStack_ShowParameterSelectionDialog()
   
   -- Add header row
   local header_row = PakettiAutomationStack_arbitrary_vb:row{
-    PakettiAutomationStack_arbitrary_vb:text{ text = "✓ Check parameters you want to display, then click APPLY:", font = "bold", style = "strong" },
+    PakettiAutomationStack_arbitrary_vb:text{ text = "Check parameters you want to display, then click APPLY:", font = "bold", style = "strong" },
   }
   
   local quick_buttons_row = PakettiAutomationStack_arbitrary_vb:row{
@@ -1484,7 +1484,7 @@ function PakettiAutomationStack_ShowParameterSelectionDialog()
     end },
     PakettiAutomationStack_arbitrary_vb:space{ width = 20 },
     PakettiAutomationStack_arbitrary_vb:button{ 
-      text = "✓ APPLY - Show Selected Parameters", 
+      text = "APPLY - Show Selected Parameters", 
       width = 280, 
       height = 24,
       notifier = function()
@@ -1615,7 +1615,7 @@ function PakettiAutomationStack_ShowParameterSelectionDialog()
   local bottom_button_row = PakettiAutomationStack_arbitrary_vb:row{
     PakettiAutomationStack_arbitrary_vb:space{ width = 150 },
     PakettiAutomationStack_arbitrary_vb:button{ 
-      text = "✗ Cancel", 
+      text = "Cancel", 
       width = 100, 
       notifier = function()
         PakettiAutomationStack_arbitrary_dialog:close()

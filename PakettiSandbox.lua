@@ -569,7 +569,7 @@ renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti Gadgets:Sectio
 renoise.tool():add_keybinding{name = "Global:Paketti:Sectionizer...", invoke = PakettiSectionizer}
 
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Patterns:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Pattern Tools:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti:Pattern Tools:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}

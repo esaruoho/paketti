@@ -977,7 +977,7 @@ function pakettiDoubleLFOResolution()
   -- Inject the modified XML back to the device
   device.active_preset_data = new_xml
   
-  renoise.app():show_status(string.format("✅ PakettiXMLizer: Doubled LFO resolution %d→%d points", point_count, new_point_count))
+  renoise.app():show_status(string.format("PakettiXMLizer: Doubled LFO resolution %d→%d points", point_count, new_point_count))
   print(string.format("PakettiXMLizer: Successfully doubled LFO resolution from %d to %d points", point_count, new_point_count))
 end
 
@@ -1114,7 +1114,7 @@ function pakettiHalveLFOResolution()
   -- Inject the modified XML back to the device
   device.active_preset_data = new_xml
   
-  renoise.app():show_status(string.format("✅ PakettiXMLizer: Halved LFO resolution %d→%d points", point_count, new_point_count))
+  renoise.app():show_status(string.format("PakettiXMLizer: Halved LFO resolution %d→%d points", point_count, new_point_count))
   print(string.format("PakettiXMLizer: Successfully halved LFO resolution from %d to %d points", point_count, new_point_count))
 end
 
@@ -1491,7 +1491,7 @@ function pakettiScaleLFOEnvelope(scale_factor)
   local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
   device.active_preset_data = new_xml
   
-  renoise.app():show_status(string.format("✅ PakettiXMLizer: Scaled LFO envelope by %d%%", math.floor(scale_factor * 100)))
+  renoise.app():show_status(string.format("PakettiXMLizer: Scaled LFO envelope by %d%%", math.floor(scale_factor * 100)))
 end
 
 -- Function to flip/reverse LFO envelope point order
@@ -1547,7 +1547,7 @@ function pakettiFlipLFOEnvelope()
   local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
   device.active_preset_data = new_xml
   
-  renoise.app():show_status("✅ PakettiXMLizer: Flipped LFO envelope point order")
+  renoise.app():show_status("PakettiXMLizer: Flipped LFO envelope point order")
 end
 
 -- Function to invert/mirror LFO envelope values
@@ -1593,7 +1593,7 @@ function pakettiInvertLFOEnvelope()
   local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
   device.active_preset_data = new_xml
   
-  renoise.app():show_status("✅ PakettiXMLizer: Inverted LFO envelope values")
+  renoise.app():show_status("PakettiXMLizer: Inverted LFO envelope values")
 end
 
 -- Function to create slapback effect (original + reversed)
@@ -1684,7 +1684,7 @@ function pakettiSlapbackLFOEnvelope()
   new_xml = new_xml:gsub("<Length>.-</Length>", "<Length>" .. new_length .. "</Length>", 1)
   device.active_preset_data = new_xml
   
-  renoise.app():show_status(string.format("✅ PakettiXMLizer: Created LFO slapback %d→%d points", #original_values, #slapback_points))
+  renoise.app():show_status(string.format("PakettiXMLizer: Created LFO slapback %d→%d points", #original_values, #slapback_points))
 end
 
 -- Function to set all LFO envelope values to center (0.5)
@@ -1730,7 +1730,7 @@ function pakettiCenterLFOEnvelope()
   local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
   device.active_preset_data = new_xml
   
-  renoise.app():show_status("✅ PakettiXMLizer: Set LFO envelope to center (0.5)")
+  renoise.app():show_status("PakettiXMLizer: Set LFO envelope to center (0.5)")
 end
 
 -- Function to set all LFO envelope values to minimum (0.0)
@@ -1776,7 +1776,7 @@ function pakettiMinLFOEnvelope()
   local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
   device.active_preset_data = new_xml
   
-  renoise.app():show_status("✅ PakettiXMLizer: Set LFO envelope to minimum (0.0)")
+  renoise.app():show_status("PakettiXMLizer: Set LFO envelope to minimum (0.0)")
 end
 
 -- Function to set all LFO envelope values to maximum (1.0)
@@ -1822,7 +1822,7 @@ function pakettiMaxLFOEnvelope()
   local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
   device.active_preset_data = new_xml
   
-  renoise.app():show_status("✅ PakettiXMLizer: Set LFO envelope to maximum (1.0)")
+  renoise.app():show_status("PakettiXMLizer: Set LFO envelope to maximum (1.0)")
 end
 
 -- Function to randomize LFO envelope values
@@ -1871,7 +1871,7 @@ function pakettiRandomizeLFOEnvelope()
   local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
   device.active_preset_data = new_xml
   
-  renoise.app():show_status("✅ PakettiXMLizer: Randomized LFO envelope values")
+  renoise.app():show_status("PakettiXMLizer: Randomized LFO envelope values")
 end
 
 -- Function to humanize LFO envelope with ±2% variation
@@ -1924,7 +1924,7 @@ function pakettiHumanizeLFOEnvelope()
   local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
   device.active_preset_data = new_xml
   
-  renoise.app():show_status("✅ PakettiXMLizer: Humanized LFO envelope with ±2% variation")
+  renoise.app():show_status("PakettiXMLizer: Humanized LFO envelope with ±2% variation")
 end
 
 -- Register keybindings and menu entries for all new LFO envelope functions

@@ -130,7 +130,7 @@ function compare_files()
     format_func = format_func or function(v) return tostring(v) end
     local r_str = format_func(r_val)
     local o_str = format_func(o_val)
-    local status = (r_val == o_val) and "✓ SAME" or "✗ DIFFERENT"
+    local status = (r_val == o_val) and "SAME" or "DIFFERENT"
     print(string.format("%-15s: Renoise=%s, OctaChainer=%s [%s]", name, r_str, o_str, status))
   end
   
@@ -151,23 +151,23 @@ function compare_files()
   print(string.rep("-", 80))
   
   if renoise_data.slice_count ~= octachainer_data.slice_count then
-    print(string.format("🔥 SLICE COUNT MISMATCH: Renoise exported %d slices, OctaChainer has %d slices", 
+    print(string.format("SLICE COUNT MISMATCH: Renoise exported %d slices, OctaChainer has %d slices", 
       renoise_data.slice_count, octachainer_data.slice_count))
     print("   This explains why they show different behavior on Octatrack!")
   end
   
   if renoise_data.tempo ~= octachainer_data.tempo then
-    print(string.format("🎵 TEMPO DIFFERENCE: Renoise=%.1f BPM, OctaChainer=%.1f BPM", 
+    print(string.format("TEMPO DIFFERENCE: Renoise=%.1f BPM, OctaChainer=%.1f BPM", 
       renoise_data.tempo/24.0, octachainer_data.tempo/24.0))
   end
   
   if renoise_data.stretch ~= octachainer_data.stretch then
-    print(string.format("🔧 STRETCH SETTING: Renoise=%d, OctaChainer=%d", 
+    print(string.format("STRETCH SETTING: Renoise=%d, OctaChainer=%d", 
       renoise_data.stretch, octachainer_data.stretch))
   end
   
   if renoise_data.loop ~= octachainer_data.loop then
-    print(string.format("🔄 LOOP SETTING: Renoise=%d, OctaChainer=%d", 
+    print(string.format("LOOP SETTING: Renoise=%d, OctaChainer=%d", 
       renoise_data.loop, octachainer_data.loop))
   end
   

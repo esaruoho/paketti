@@ -2058,24 +2058,24 @@ function experimental_rendering_done_callback()
         -- STEP 1: Copy ALL base sample settings from original first sample to new first sample
         -- (transpose, finetune, beat sync, mute group, NNA, autofade, autoseek, interpolation, oversampling, panning, volume, loops, etc.)
         if pakettiCopyBaseSampleSettings(original_sample, target_sample) then
-            print("DEBUG EXP: ✓ Copied ALL base sample settings from original to new first sample")
+            print("DEBUG EXP: Copied ALL base sample settings from original to new first sample")
         else
-            print("DEBUG EXP: ✗ Failed to copy base sample settings")
+            print("DEBUG EXP: Failed to copy base sample settings")
         end
         
         -- STEP 2: Copy slice markers (this creates the slice aliases automatically)
         if pakettiCopySliceMarkers(original_sample, target_sample) then
-            print("DEBUG EXP: ✓ Copied slice markers - new slices created")
+            print("DEBUG EXP: Copied slice markers - new slices created")
             
             -- STEP 3: Copy ALL settings from each original slice to each corresponding new slice
             -- (transpose, finetune, beat sync, mute group, NNA, autofade, autoseek, interpolation, oversampling, panning, volume, loops, etc.)
             if pakettiCopySliceSettings(original_instrument, new_instrument) then
-                print("DEBUG EXP: ✓ Copied ALL slice settings from original slices to new slices")
+                print("DEBUG EXP: Copied ALL slice settings from original slices to new slices")
             else
-                print("DEBUG EXP: ✗ Failed to copy slice settings")
+                print("DEBUG EXP: Failed to copy slice settings")
             end
         else
-            print("DEBUG EXP: ✗ Failed to copy slice markers")
+            print("DEBUG EXP: Failed to copy slice markers")
         end
     else
         print("DEBUG EXP: REGULAR INSTRUMENT - Copying ALL settings from original sample to new FX-processed sample")
@@ -2084,9 +2084,9 @@ function experimental_rendering_done_callback()
         local target_sample = new_instrument.samples[1]
         
         if pakettiCopyBaseSampleSettings(original_sample, target_sample) then
-            print("DEBUG EXP: ✓ Copied ALL sample settings from original to new sample")
+            print("DEBUG EXP: Copied ALL sample settings from original to new sample")
         else
-            print("DEBUG EXP: ✗ Failed to copy sample settings")
+            print("DEBUG EXP: Failed to copy sample settings")
         end
     end
     

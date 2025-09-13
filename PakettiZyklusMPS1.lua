@@ -104,7 +104,7 @@ return pattern {
 ]]
 
   phrase.script_data = script
-  renoise.app():show_status("✅ pattrns script with speed + voicing + reverse: " .. phrase.name)
+  renoise.app():show_status("pattrns script with speed + voicing + reverse: " .. phrase.name)
 end
 
 renoise.tool():add_menu_entry {

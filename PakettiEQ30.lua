@@ -1304,7 +1304,7 @@ function auto_load_existing_eq_settings()
   
   -- Only auto-load if we have EQ devices (making it "just work")
   if #eq_devices >= 1 then
-    print("🔄 Auto-loading existing EQ30 settings from " .. #eq_devices .. " devices...")
+    print("Auto-loading existing EQ30 settings from " .. #eq_devices .. " devices...")
     
     -- Reset gains first
     for i = 1, #eq30_frequencies do

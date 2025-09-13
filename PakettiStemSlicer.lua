@@ -67,30 +67,83 @@ local last_dialog_spawn_time = 0
 local processing_is_complete = false
 local completion_handled = false -- Prevent multiple completion handlers
 
--- EMERGENCY: Prevent dialog flooding
-function preventDialogFlooding(dialog_type)
-    local current_time = os.clock()
-    dialog_spawn_count = dialog_spawn_count + 1
+-- Global reusable export instrument to prevent crashes (CRASH PREVENTION)
+local export_instrument_idx = nil
+
+-- Calculate beat duration in frames for given BPM and sample rate (EARLY ACCESS)
+function calculateBeatDurationFrames(bpm, sample_rate)
+    return math.floor((60.0 / bpm) * sample_rate)
+end
+
+-- Create reusable export instrument once per session
+function createExportInstrument()
+    if export_instrument_idx then return export_instrument_idx end
     
-    print(string.format("DIALOG CHECK: Type=%s, Count=%d, Complete=%s, Handled=%s", 
-        dialog_type or "unknown", dialog_spawn_count, tostring(processing_is_complete), tostring(completion_handled)))
+    local song = renoise.song()
+    export_instrument_idx = #song.instruments + 1
+    song:insert_instrument_at(export_instrument_idx)
+    local export_inst = song.instruments[export_instrument_idx]
+    export_inst.name = "PakettiStemSlicer_Export_Temp"
     
-    -- If too many dialogs spawned recently, KILL IT
-    if dialog_spawn_count > 3 and (current_time - last_dialog_spawn_time) < 5 then
-        print("EMERGENCY: Dialog flooding detected! Preventing dialog spawn.")
-        emergencyStopAllDialogs() -- Activate killswitch
-        return false -- Block dialog
+    if #export_inst.samples == 0 then
+        export_inst:insert_sample_at(1)
     end
     
-    -- If processing is complete and dialogs keep spawning, KILL IT
-    if processing_is_complete and dialog_spawn_count > 2 then
-        print("EMERGENCY: Processing complete but dialogs keep spawning! Blocking.")
-        emergencyStopAllDialogs() -- Activate killswitch
-        return false -- Block dialog
+    print("Created reusable export instrument at index", export_instrument_idx)
+    return export_instrument_idx
+end
+
+-- Clean up export instrument at end of session (ENHANCED LOGGING)
+function cleanupExportInstrument()
+    if export_instrument_idx then
+        local song = renoise.song()
+        print(string.format("CLEANUP: Attempting to delete export instrument at index %d (total instruments: %d)", 
+            export_instrument_idx, #song.instruments))
+        
+        if export_instrument_idx <= #song.instruments then
+            local inst = song.instruments[export_instrument_idx]
+            print(string.format("CLEANUP: Found instrument '%s' at index %d", inst.name, export_instrument_idx))
+            
+            -- No yields needed since we're outside ProcessSlicer context
+            
+            song:delete_instrument_at(export_instrument_idx)
+            print("CLEANUP: Successfully deleted export instrument")
+        else
+            print(string.format("CLEANUP: Export instrument index %d is out of range (max: %d)", 
+                export_instrument_idx, #song.instruments))
+        end
+        export_instrument_idx = nil
+    else
+        print("CLEANUP: No export instrument to clean up (export_instrument_idx is nil)")
+    end
+end
+
+-- Simple dialog prevention (non-aggressive)
+function preventDialogFlooding(dialog_type)
+    local current_time = os.clock()
+    
+    -- CRITICAL: Prevent dialog flooding during cancellation/completion
+    if processing_is_complete then
+        print("FLOOD PREVENTION: Processing already complete, blocking dialog:", dialog_type)
+        return false
+    end
+    
+    -- Rate limiting: Don't allow more than one dialog per second of same type
+    if last_dialog_spawn_time and (current_time - last_dialog_spawn_time) < 1.0 then
+        print("FLOOD PREVENTION: Rate limiting dialog:", dialog_type, "time since last:", current_time - last_dialog_spawn_time)
+        return false
+    end
+    
+    -- Count limiting: Don't allow more than 3 dialogs total per session
+    dialog_spawn_count = dialog_spawn_count + 1
+    if dialog_spawn_count > 3 then
+        print("FLOOD PREVENTION: Too many dialogs spawned:", dialog_spawn_count, "blocking:", dialog_type)
+        return false
     end
     
     last_dialog_spawn_time = current_time
-    return true -- Allow dialog
+    print("FLOOD PREVENTION: Allowing dialog:", dialog_type, "count:", dialog_spawn_count)
+    return true
 end
 
 -- Mark processing as complete
@@ -99,28 +152,10 @@ function markProcessingComplete()
     print("PROCESSING MARKED AS COMPLETE - No more dialogs should spawn")
 end
 
--- EMERGENCY KILLSWITCH: Stop all dialogs and timers
+-- Emergency stop (disabled to avoid annoyance)
 function emergencyStopAllDialogs()
-    print("EMERGENCY KILLSWITCH ACTIVATED - Stopping all dialogs and timers")
-    processing_is_complete = true
-    completion_handled = true
-    dialog_spawn_count = 1000 -- Force high count to block future dialogs
-    
-    -- CRITICAL: Clean up temp export instrument in emergency
-    if export_instrument_idx then
-        print("EMERGENCY CLEANUP: Removing temp export instrument")
-        cleanupExportInstrument()
-    end
-    
-    -- Kill any running timers
-    pcall(function()
-        if progress_timer then
-            renoise.tool():remove_timer(progress_timer)
-            progress_timer = nil
-        end
-    end)
-    
-    renoise.app():show_status("EMERGENCY: All StemSlicer dialogs and timers stopped")
+    -- Disabled - was too aggressive and annoying
+    print("Emergency stop requested but disabled")
 end
 
 -- Return to original dialog with completion status (FIXED: No new dialog)
@@ -137,7 +172,7 @@ function returnToOriginalDialogWithCompletion()
         
         -- Update folder display to show completion status with clickable access
         if vb.views.folder_display then
-            local completion_text = string.format("✅ COMPLETED: %d files processed", files_completed)
+            local completion_text = string.format("COMPLETED: %d files processed", files_completed)
             if files_skipped > 0 then
                 completion_text = completion_text .. string.format(" (%d skipped)", files_skipped)
             end
@@ -247,6 +282,7 @@ function resetConsecutiveErrors()
     consecutive_errors = 0
 end
 
+
 -- Clear error tracking for new processing session
 function clearErrorTracking()
     processing_errors = {}
@@ -256,7 +292,17 @@ function clearErrorTracking()
     completion_handled = false -- Reset completion handler flag
     processing_is_complete = false -- Reset completion flag
     dialog_spawn_count = 0 -- Reset dialog counter
+    last_dialog_spawn_time = 0 -- Reset dialog timing
     current_sample_name = "Ready to start..." -- Reset sample display
+end
+
+-- Reset dialog flood prevention state for new session
+function resetDialogFloodPrevention()
+    dialog_spawn_count = 0
+    last_dialog_spawn_time = 0
+    processing_is_complete = false
+    completion_handled = false
+    print("FLOOD PREVENTION: State reset for new session")
 end
 
 -- Generate error summary for final report
@@ -268,7 +314,7 @@ function generateErrorSummary()
     local summary = string.format("Processing completed with %d errors (%d files skipped):\n", #processing_errors, files_skipped)
     for i, err in ipairs(processing_errors) do
         if i <= 10 then  -- Show first 10 errors
-            summary = summary .. string.format("• [%s] %s: %s\n", err.type, err.file:match("[^/\\]+$") or err.file, err.details)
+            summary = summary .. string.format("- [%s] %s: %s\n", err.type, err.file:match("[^/\\]+$") or err.file, err.details)
         elseif i == 11 then
             summary = summary .. string.format("... and %d more errors (check console for full log)\n", #processing_errors - 10)
             break
@@ -386,10 +432,6 @@ function clearSilenceCache()
   silence_files_cache = {}
 end
 
--- Calculate beat duration in frames for given BPM and sample rate (MOVED UP FOR EARLY ACCESS)
-function calculateBeatDurationFrames(bpm, sample_rate)
-    return math.floor((60.0 / bpm) * sample_rate)
-end
 
 -- BPM observable wiring (keeps the dialog BPM in sync with transport)
 local stemslicer_bpm_observer = nil
@@ -445,7 +487,7 @@ function offerReverseDialogForBuiltDrumkits(tasks)
       vb_local:button{ text="Cancel", width=80, notifier=function() d:close() end }
     }
   }
-  d = renoise.app():show_custom_dialog("Paketti – Reverse Drumkits", content)
+  d = renoise.app():show_custom_dialog("Paketti - Reverse Drumkits", content)
 end
 
 -- Reverse samples in instruments whose names match selected beat lengths, using ProcessSlicer
@@ -532,7 +574,7 @@ function canInsertInstruments(count)
 end
 
 -- Helper function to update extract_beat_lengths based on checkbox states
-local function updateExtractBeatLengths()
+function updateExtractBeatLengths()
     extract_beat_lengths = {}
     if vb.views.extract_32 and vb.views.extract_32.value and master_beat_length > 32 then
         table.insert(extract_beat_lengths, 32)
@@ -610,7 +652,7 @@ function showStemSlicerSummary()
       end}
     }
   }
-  renoise.app():show_custom_dialog("PakettiStemSlicer – Finished", content)
+  renoise.app():show_custom_dialog("PakettiStemSlicer - Finished", content)
 end
 
 -- Open folder via OS
@@ -1306,52 +1348,6 @@ function clearSilenceMap()
     current_silence_map_file = ""
 end
 
--- Global reusable export instrument to prevent crashes (CRASH PREVENTION)
-local export_instrument_idx = nil
-
--- Create reusable export instrument once per session
-function createExportInstrument()
-    if export_instrument_idx then return export_instrument_idx end
-    
-    local song = renoise.song()
-    export_instrument_idx = #song.instruments + 1
-    song:insert_instrument_at(export_instrument_idx)
-    local export_inst = song.instruments[export_instrument_idx]
-    export_inst.name = "PakettiStemSlicer_Export_Temp"
-    
-    if #export_inst.samples == 0 then
-        export_inst:insert_sample_at(1)
-    end
-    
-    print("Created reusable export instrument at index", export_instrument_idx)
-    return export_instrument_idx
-end
-
--- Clean up export instrument at end of session (ENHANCED LOGGING)
-function cleanupExportInstrument()
-    if export_instrument_idx then
-        local song = renoise.song()
-        print(string.format("CLEANUP: Attempting to delete export instrument at index %d (total instruments: %d)", 
-            export_instrument_idx, #song.instruments))
-        
-        if export_instrument_idx <= #song.instruments then
-            local inst = song.instruments[export_instrument_idx]
-            print(string.format("CLEANUP: Found instrument '%s' at index %d", inst.name, export_instrument_idx))
-            
-            -- No yields needed since we're outside ProcessSlicer context
-            
-            song:delete_instrument_at(export_instrument_idx)
-            print("CLEANUP: Successfully deleted export instrument")
-        else
-            print(string.format("CLEANUP: Export instrument index %d is out of range (max: %d)", 
-                export_instrument_idx, #song.instruments))
-        end
-        export_instrument_idx = nil
-    else
-        print("CLEANUP: No export instrument to clean up (export_instrument_idx is nil)")
-    end
-end
-
 -- Export a specific region of a sample buffer to wav file (CRASH SAFE)
 local function exportSliceRegion(buffer, start_frame, end_frame, output_path)
     local success, error_msg = pcall(function()
@@ -1702,7 +1698,7 @@ local function processSingleFile(file_path, output_folder)
     coroutine.yield() -- Extra safety yield
     coroutine.yield() -- Even more safety
     song:delete_instrument_at(new_inst_idx)
-    print(string.format("  ✓ Cleaned up instrument for: %s", clean_name))
+    print(string.format("  Cleaned up instrument for: %s", clean_name))
     
     return true
 end
@@ -1730,6 +1726,7 @@ local function processAllFiles()
     total_files_to_process = #audio_files
     current_sample_name = "Starting..."
     clearErrorTracking()
+    resetDialogFloodPrevention() -- Reset dialog flood prevention for new session
     
     -- Initialize memory leak prevention (CRITICAL)
     resetMemoryTracking()
@@ -1895,7 +1892,15 @@ local function startProcessing()
         -- Check if ProcessSlicer was cancelled and handle cleanup
         if not process_slicer:running() and process_slicer:was_cancelled() and not completion_handled then
             completion_handled = true -- Prevent multiple handlers
+            markProcessingComplete() -- Mark processing as complete to prevent dialog flooding
             print("PROCESS CANCELLED: Cleaning up temp export instrument")
+            
+            -- CRITICAL: Remove timer FIRST to prevent further executions
+            if progress_timer then
+                renoise.tool():remove_timer(progress_timer)
+                progress_timer = nil
+                print("CANCEL: Timer removed successfully")
+            end
             
             -- Clean up temp export instrument when cancelled via progress dialog
             if export_instrument_idx then
@@ -1903,22 +1908,27 @@ local function startProcessing()
                 cleanupExportInstrument()
             end
             
-            if progress_timer then
-                renoise.tool():remove_timer(progress_timer)
-                progress_timer = nil
+            -- Close progress dialog and return to original
+            if progress_dialog and progress_dialog.visible then 
+                progress_dialog:close() 
+                print("CANCEL: Progress dialog closed")
             end
             
-            -- Close progress dialog and return to original
-            if progress_dialog and progress_dialog.visible then progress_dialog:close() end
-            returnToOriginalDialogWithCompletion()
+            -- Use a delayed call to prevent timer race condition
+            renoise.tool():add_timer(function()
+                print("CANCEL: Delayed return to original dialog")
+                returnToOriginalDialogWithCompletion()
+            end, 200) -- Wait 200ms to ensure timer cleanup is complete
             
         elseif not process_slicer:running() and not completion_handled then
             completion_handled = true -- EMERGENCY: Prevent multiple completion handlers
-            markProcessingComplete() -- Mark processing as complete
+            markProcessingComplete() -- Mark processing as complete to prevent dialog flooding
             
+            -- CRITICAL: Remove timer FIRST to prevent further executions
             if progress_timer then
                 renoise.tool():remove_timer(progress_timer)
                 progress_timer = nil
+                print("COMPLETION: Timer removed successfully")
             end
             
             print("PROCESSING COMPLETE: Starting completion sequence (once only)")
@@ -1931,15 +1941,11 @@ local function startProcessing()
             
             -- FIXED: Update progress dialog to show completion properly
             if progress_dialog and progress_dialog.visible and progress_vb then
-                -- Update the title
-                if progress_dialog.title then
-                    print("UPDATING: Progress dialog title to show completion")
-                    -- Unfortunately, we can't change dialog title in Renoise
-                end
+                -- Note: Can't change dialog title in Renoise, so skip that
                 
                 -- Update progress text to show clean completion message
                 if progress_vb.views.progress_text then
-                    local completion_message = string.format("✅ Processing complete! %d files processed", files_completed)
+                    local completion_message = string.format("Processing complete! %d files processed", files_completed)
                     if files_skipped > 0 then
                         completion_message = completion_message .. string.format(" (%d skipped)", files_skipped)
                     end
@@ -2005,6 +2011,11 @@ function pakettiStemSlicerDialogInternal()
             text = "Slice audio stems into BPM-synchronized beat chunks",
             style = "normal"
         },
+        vb:text{
+          text = "Naming format: originalname_XXbeats_sliceYY.wav, silent slices will be marked with _silence suffix",
+          style = "normal"
+      },    
+
         
         
         -- Folder selection
@@ -2105,10 +2116,6 @@ function pakettiStemSlicerDialogInternal()
                 vb:text{text = "04 beats"}
             }
         },  
-        vb:text{
-            text = "Naming format: originalname_XXbeats_sliceYY.wav, silent slices will be marked with _silence suffix",
-            style = "normal"
-        },    
         -- Control buttons
         vb:row{
             vb:button{

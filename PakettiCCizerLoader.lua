@@ -374,9 +374,9 @@ function PakettiCCizerLoader()
                             preview = preview .. string.format("Valid CC mappings: %d / %d (max for MIDI Control device)\n\n", #mappings, MAX_CC_LIMIT)
                             
                             if #mappings == MAX_CC_LIMIT then
-                                preview = preview .. "⚠️ Reached maximum CC limit for MIDI Control device\n\n"
+                                preview = preview .. "Reached maximum CC limit for MIDI Control device\n\n"
                             elseif #mappings > 0 then
-                                preview = preview .. string.format("✓ Can add %d more CC mappings\n\n", MAX_CC_LIMIT - #mappings)
+                                preview = preview .. string.format("Can add %d more CC mappings\n\n", MAX_CC_LIMIT - #mappings)
                             end
                             
                             for i, mapping in ipairs(mappings) do
@@ -856,9 +856,9 @@ function PakettiCCizerLoaderToSelectedDevice()
                             preview = preview .. string.format("Valid CC mappings: %d / %d (max for MIDI Control device)\n\n", #mappings, MAX_CC_LIMIT)
                             
                             if #mappings == MAX_CC_LIMIT then
-                                preview = preview .. "⚠️ Reached maximum CC limit for MIDI Control device\n\n"
+                                preview = preview .. "Reached maximum CC limit for MIDI Control device\n\n"
                             elseif #mappings > 0 then
-                                preview = preview .. string.format("✓ Can add %d more CC mappings\n\n", MAX_CC_LIMIT - #mappings)
+                                preview = preview .. string.format("Can add %d more CC mappings\n\n", MAX_CC_LIMIT - #mappings)
                             end
                             
                             for i, mapping in ipairs(mappings) do

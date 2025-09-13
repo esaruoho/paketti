@@ -1790,7 +1790,7 @@ function comprehensive_bpm_calculation_debug()
   if calculated_bpm < 20 or calculated_bpm > 999 then
     print("   WARNING: Calculated BPM is outside valid range (20-999)")
   else
-    print("   ✓ Calculated BPM is within valid range")
+    print("   Calculated BPM is within valid range")
   end
   
   -- 6. BEATSYNC TO PITCH CONVERSION ANALYSIS
@@ -1826,7 +1826,7 @@ function comprehensive_bpm_calculation_debug()
       print("     • After clamping: Transpose " .. clamped_transpose .. ", Finetune " .. clamped_finetune)
       print("     • WARNING: Values were clamped to valid ranges")
     else
-      print("     • ✓ Values are within valid ranges")
+      print("     • Values are within valid ranges")
     end
   else
     print("\n6. BEATSYNC TO PITCH CONVERSION:")
@@ -1851,11 +1851,11 @@ function comprehensive_bpm_calculation_debug()
   print("   BPM difference: " .. string.format("%.3f", math.abs(calculated_bpm - current_bpm)))
   
   if math.abs(calculated_bpm - current_bpm) < 0.1 then
-    print("   ✓ Sample BPM matches song BPM very closely")
+    print("   Sample BPM matches song BPM very closely")
   elseif math.abs(calculated_bpm - current_bpm) < 1.0 then
-    print("   ⚠ Sample BPM is close to song BPM (within 1 BPM)")
+    print("   Sample BPM is close to song BPM (within 1 BPM)")
   else
-    print("   ⚠ Sample BPM differs significantly from song BPM")
+    print("   Sample BPM differs significantly from song BPM")
   end
   
   if sample.beat_sync_enabled then

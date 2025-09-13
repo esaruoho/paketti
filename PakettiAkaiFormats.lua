@@ -310,13 +310,13 @@ function checkAkaiImportersAvailable()
   local status = "=== AKAI IMPORTERS STATUS ===\n\n"
   status = status .. "Available formats:\n"
   for _, name in ipairs(available) do
-    status = status .. "  ✓ " .. name .. "\n"
+    status = status .. "  " .. name .. "\n"
   end
   
   if #missing > 0 then
     status = status .. "\nMissing importers:\n"
     for _, name in ipairs(missing) do
-      status = status .. "  ✗ " .. name .. "\n"
+      status = status .. "  " .. name .. " (missing)\n"
     end
     status = status .. "\nLoad the corresponding PakettiAkai*.lua files to enable all formats."
   else

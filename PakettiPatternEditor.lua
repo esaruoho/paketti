@@ -7520,7 +7520,7 @@ function PakettiFitSampleOffsetToPattern(headless)
   end
   
   -- Show completion message
-  local success_msg = string.format("✓ Fit Sample Offset completed: %s + 0S00-0S%02X across %d rows", hijack_note_string, sxx_max - 1, pattern_length)
+  local success_msg = string.format("Fit Sample Offset completed: %s + 0S00-0S%02X across %d rows", hijack_note_string, sxx_max - 1, pattern_length)
   renoise.app():show_status(success_msg)
   print(success_msg)
   print(string.format("Sample will play from start to just before end across pattern length using hijacked note %s", hijack_note_string))

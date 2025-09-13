@@ -647,12 +647,12 @@ function cycle_inversion(direction)
   local selection = song.selection_in_pattern
 
   if selection then
-    -- 🚀 If there is a selection, process each row separately
+    -- If there is a selection, process each row separately
     for line_index = selection.start_line, selection.end_line do
       process_row_inversion(pattern, track_index, line_index, selection.start_column, selection.end_column, direction)
     end
   else
-    -- 🚀 No selection? Process only the current row at the cursor position
+    -- No selection? Process only the current row at the cursor position
     local line_index = song.selected_line_index
     process_row_inversion(pattern, track_index, line_index, 1, track.visible_note_columns, direction)
   end
