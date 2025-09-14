@@ -67,6 +67,9 @@ local last_dialog_spawn_time = 0
 local processing_is_complete = false
 local completion_handled = false -- Prevent multiple completion handlers
 
+-- CRITICAL: Global cancellation flag that persists after dialog closes
+local processing_cancelled = false
+
 -- Global reusable export instrument to prevent crashes (CRASH PREVENTION)
 local export_instrument_idx = nil
 
@@ -77,9 +80,32 @@ end
 
 -- Create reusable export instrument once per session
 function createExportInstrument()
-    if export_instrument_idx then return export_instrument_idx end
-    
     local song = renoise.song()
+    
+    -- CRITICAL FIX: Always validate existing export instrument by NAME, not just index
+    if export_instrument_idx and export_instrument_idx <= #song.instruments then
+        local inst = song.instruments[export_instrument_idx]
+        -- SAFETY CHECK: Ensure we're looking at the right instrument by name
+        if inst and inst.name == "PakettiStemSlicer_Export_Temp" and #inst.samples > 0 then
+            print("EXPORT INSTRUMENT: Reusing existing valid export instrument at index", export_instrument_idx)
+            return export_instrument_idx
+        else
+            print("EXPORT INSTRUMENT: Index points to wrong instrument:", inst and inst.name or "nil")
+            export_instrument_idx = nil -- Reset to force recreation
+        end
+    end
+    
+    -- Look for existing export instrument by name across all instruments
+    for i = 1, #song.instruments do
+        local inst = song.instruments[i]
+        if inst and inst.name == "PakettiStemSlicer_Export_Temp" then
+            print("EXPORT INSTRUMENT: Found existing export instrument by name at index", i)
+            export_instrument_idx = i
+            return export_instrument_idx
+        end
+    end
+    
+    -- Create new export instrument at the END of the instrument list
     export_instrument_idx = #song.instruments + 1
     song:insert_instrument_at(export_instrument_idx)
     local export_inst = song.instruments[export_instrument_idx]
@@ -89,7 +115,7 @@ function createExportInstrument()
         export_inst:insert_sample_at(1)
     end
     
-    print("Created reusable export instrument at index", export_instrument_idx)
+    print("EXPORT INSTRUMENT: Created new export instrument at index", export_instrument_idx)
     return export_instrument_idx
 end
 
@@ -104,10 +130,22 @@ function cleanupExportInstrument()
             local inst = song.instruments[export_instrument_idx]
             print(string.format("CLEANUP: Found instrument '%s' at index %d", inst.name, export_instrument_idx))
             
-            -- No yields needed since we're outside ProcessSlicer context
-            
-            song:delete_instrument_at(export_instrument_idx)
-            print("CLEANUP: Successfully deleted export instrument")
+            -- CRITICAL SAFETY CHECK: Only delete if it's actually the export instrument
+            if inst.name == "PakettiStemSlicer_Export_Temp" then
+                song:delete_instrument_at(export_instrument_idx)
+                print("CLEANUP: Successfully deleted export instrument")
+            else
+                print(string.format("CLEANUP: SAFETY ABORT - Instrument name '%s' doesn't match expected 'PakettiStemSlicer_Export_Temp'", inst.name))
+                -- Search for the real export instrument by name
+                for i = 1, #song.instruments do
+                    local search_inst = song.instruments[i]
+                    if search_inst and search_inst.name == "PakettiStemSlicer_Export_Temp" then
+                        print(string.format("CLEANUP: Found real export instrument at index %d, deleting that instead", i))
+                        song:delete_instrument_at(i)
+                        break
+                    end
+                end
+            end
         else
             print(string.format("CLEANUP: Export instrument index %d is out of range (max: %d)", 
                 export_instrument_idx, #song.instruments))
@@ -150,6 +188,22 @@ end
 function markProcessingComplete()
     processing_is_complete = true
     print("PROCESSING MARKED AS COMPLETE - No more dialogs should spawn")
+end
+
+-- CRITICAL: Cancellation flag management
+function markProcessingCancelled()
+    processing_cancelled = true
+    processing_is_complete = true  -- Also mark as complete to prevent dialogs
+    print("PROCESSING CANCELLED - All operations should stop immediately")
+end
+
+function isProcessingCancelled()
+    return processing_cancelled
+end
+
+function resetProcessingCancellation()
+    processing_cancelled = false
+    print("CANCELLATION FLAG RESET - Ready for new processing session")
 end
 
 -- Emergency stop (disabled to avoid annoyance)
@@ -294,6 +348,7 @@ function clearErrorTracking()
     dialog_spawn_count = 0 -- Reset dialog counter
     last_dialog_spawn_time = 0 -- Reset dialog timing
     current_sample_name = "Ready to start..." -- Reset sample display
+    resetProcessingCancellation() -- Reset global cancellation flag
 end
 
 -- Reset dialog flood prevention state for new session
@@ -548,7 +603,12 @@ function setupStemSlicerBpmObservable()
     return
   end
   stemslicer_bpm_observer = function()
-    updateStemSlicerBpmDisplay()
+    -- CRITICAL FIX: Only update BPM if NOT currently processing to prevent race conditions
+    if not (process_slicer and process_slicer:running()) then
+      updateStemSlicerBpmDisplay()
+    else
+      print("BPM OBSERVER: Blocked during processing to prevent interference")
+    end
   end
   renoise.song().transport.bpm_observable:add_notifier(stemslicer_bpm_observer)
   -- Prime UI with current BPM on open
@@ -1446,8 +1506,18 @@ end
 
 -- Process a single audio file using direct visual approach (SEQUENTIAL PROCESSING)
 local function processSingleFile(file_path, output_folder)
+    local file_name = file_path:match("[^/\\]+$") or file_path
     print("=== STARTING SEQUENTIAL PROCESSING ===")
-    print("Processing file:", file_path)
+    print(string.format("Processing file [%s]: %s", os.date("%H:%M:%S"), file_path))
+    
+    -- CRITICAL FIX: Clear any stale state before processing this file
+    clearSilenceMap()
+    collectgarbage("collect") -- Force garbage collection before each file
+    
+    -- DEBUGGING: Log initial state
+    local song = renoise.song()
+    print(string.format("FILE DEBUG [%s]: Initial instruments=%d, selected=%d", 
+        file_name, #song.instruments, song.selected_instrument_index))
     
     -- Ensure we're not doing anything else while processing this file
     coroutine.yield() -- Give UI a chance to update before starting
@@ -1545,10 +1615,12 @@ local function processSingleFile(file_path, output_folder)
         sample:delete_slice_marker(sample.slice_markers[1])
     end
     
-    for slice_idx = 1, num_master_slices do
-        local slice_start = (slice_idx - 1) * master_slice_frames + 1
+    -- CRITICAL FIX: Don't insert marker at frame 1 (beginning), only at cut points
+    for slice_idx = 1, num_master_slices - 1 do -- Note: -1 to avoid marker at beginning
+        local slice_start = slice_idx * master_slice_frames + 1
         if slice_start <= total_frames then
             sample:insert_slice_marker(slice_start)
+            print(string.format("  Added slice marker at frame %d (slice %d boundary)", slice_start, slice_idx + 1))
         end
     end
     
@@ -1572,15 +1644,32 @@ local function processSingleFile(file_path, output_folder)
     table.insert(slice_positions, total_frames + 1) -- End marker
     
     -- Export master beat slices
+    print(string.format("SLICE EXPORT DEBUG [%s]: Starting master beat export, %d slice positions", 
+        file_name, #slice_positions))
+    
     for slice_idx = 1, #slice_positions - 1 do
+        -- CRITICAL: Check for cancellation during slice processing
+        if isProcessingCancelled() then
+            print(string.format("CANCELLATION: Export cancelled during slice %d of file %s", slice_idx, file_name))
+            return false
+        end
         local slice_start = slice_positions[slice_idx]
         local slice_end = slice_positions[slice_idx + 1] - 1
         local slice_length = slice_end - slice_start + 1
         
+        print(string.format("SLICE DEBUG [%s]: Processing slice %d/%d (start=%d, end=%d, length=%d)", 
+            file_name, slice_idx, #slice_positions - 1, slice_start, slice_end, slice_length))
+        
         if slice_length > 0 then
-            -- Visual selection in sample editor
-            buffer.selection_start = slice_start
-            buffer.selection_end = slice_end
+            -- CRITICAL FIX: Avoid visual selection during batch processing to prevent BPM observer interference
+            -- Only set selection if we're not in background processing mode
+            if dialog and dialog.visible then
+                buffer.selection_start = slice_start
+                buffer.selection_end = slice_end
+                print(string.format("SLICE DEBUG [%s]: Set visual selection for UI", file_name))
+            else
+                print(string.format("SLICE DEBUG [%s]: Skipped visual selection (background processing)", file_name))
+            end
             
             current_progress = string.format("Exporting %s: %d-beat slice %d/%d", 
                 clean_name, master_beat_length, slice_idx, #slice_positions - 1)
@@ -1595,25 +1684,38 @@ local function processSingleFile(file_path, output_folder)
             local output_path = output_folder .. "/" .. output_filename
             
             local export_success = false
+            local export_error_msg = ""
+            
+            print(string.format("EXPORT DEBUG [%s]: About to export slice %d, silent=%s, filename=%s", 
+                file_name, slice_idx, tostring(is_silent), output_filename))
+            
             if is_silent then
                 -- OPTIMIZATION: Copy pre-generated silence file instead of exporting
                 local silence_source = generateSilenceFile(master_beat_length, sample_rate, output_folder)
                 export_success = copySilenceFile(silence_source, output_path)
                 if export_success then
-                    print(string.format("    Copied silence: %s", output_filename))
+                    print(string.format("EXPORT SUCCESS [%s]: Copied silence: %s", file_name, output_filename))
                 else
-                    print(string.format("    Failed to copy silence: %s", output_filename))
+                    export_error_msg = string.format("Failed to copy silence: %s", output_filename)
+                    print(string.format("EXPORT FAILED [%s]: %s", file_name, export_error_msg))
                 end
             else
                 -- Export actual audio slice
-                export_success = exportSliceRegion(buffer, slice_start, slice_end, output_path)
+                export_success, export_error_msg = exportSliceRegion(buffer, slice_start, slice_end, output_path)
                 if export_success then
-                    print(string.format("    Exported: %s", output_filename))
+                    print(string.format("EXPORT SUCCESS [%s]: Exported audio: %s", file_name, output_filename))
                 else
-                    local export_error = string.format("    Failed to export: %s", output_filename)
-                    print(export_error)
-                    renoise.app():show_status(export_error)
+                    local full_error = string.format("Failed to export audio slice %d: %s", slice_idx, export_error_msg)
+                    print(string.format("EXPORT FAILED [%s]: %s", file_name, full_error))
+                    renoise.app():show_status(full_error)
+                    
+                    -- CRITICAL: If export fails, log it but don't stop processing other slices
+                    logProcessingError("EXPORT_FAILED", file_path, full_error)
                 end
+            end
+            
+            if not export_success then
+                print(string.format("EXPORT ERROR [%s]: Slice %d failed, continuing with next slice...", file_name, slice_idx))
             end
             
             -- Yield after each master slice export to prevent script timeout
@@ -1623,6 +1725,12 @@ local function processSingleFile(file_path, output_folder)
     
     -- Step 4: Now create subdivisions from the master slices
     for _, beat_length in ipairs(extract_beat_lengths) do
+        -- CRITICAL: Check for cancellation during subdivision processing
+        if isProcessingCancelled() then
+            print(string.format("CANCELLATION: Subdivision export cancelled during %d-beat processing of %s", beat_length, file_name))
+            return false
+        end
+        
         if beat_length < master_beat_length then
             local subdivisions_per_master = master_beat_length / beat_length
             
@@ -1690,16 +1798,42 @@ local function processSingleFile(file_path, output_folder)
         end
     end
     
-    print(string.format("  Completed processing: %s", clean_name))
+    print(string.format("FILE COMPLETION [%s]: All slice exports complete", file_name))
+    
+    -- DEBUGGING: Count actual exported files to verify everything worked
+    local exported_files = 0
+    local success_files = 0
+    local silence_files = 0
+    
+    -- Count files that should have been created
+    local expected_master_slices = #slice_positions - 1
+    local expected_subdivisions = 0
+    for _, beat_length in ipairs(extract_beat_lengths) do
+        if beat_length < master_beat_length then
+            local subdivisions_per_master = master_beat_length / beat_length
+            expected_subdivisions = expected_subdivisions + (expected_master_slices * subdivisions_per_master)
+        end
+    end
+    local expected_total = expected_master_slices + expected_subdivisions
+    
+    print(string.format("FILE SUMMARY [%s]: Expected %d total slices (%d master + %d subdivisions)", 
+        file_name, expected_total, expected_master_slices, expected_subdivisions))
     
     -- CRASH FIX: Clean up this file's instrument immediately after ALL exports are done
-    print(string.format("  Finalizing %s - ensuring all exports complete...", clean_name))
+    print(string.format("FILE CLEANUP [%s]: Ensuring all exports complete, cleaning up instrument %d", file_name, new_inst_idx))
     coroutine.yield() -- Let any pending operations complete
     coroutine.yield() -- Extra safety yield
     coroutine.yield() -- Even more safety
-    song:delete_instrument_at(new_inst_idx)
-    print(string.format("  Cleaned up instrument for: %s", clean_name))
     
+    -- Verify instrument still exists before deletion
+    if new_inst_idx <= #song.instruments then
+        song:delete_instrument_at(new_inst_idx)
+        print(string.format("FILE CLEANUP [%s]: Successfully cleaned up instrument", file_name))
+    else
+        print(string.format("FILE CLEANUP [%s]: Instrument already removed or out of range", file_name))
+    end
+    
+    print(string.format("FILE COMPLETE [%s]: Processing finished successfully", file_name))
     return true
 end
 
@@ -1753,16 +1887,17 @@ local function processAllFiles()
     
     -- Process each file sequentially with complete cleanup (CRASH FIX)
     for file_idx, file_path in ipairs(audio_files) do
-        if process_slicer and process_slicer:was_cancelled() then
-            print("Processing cancelled by user")
+        -- CRITICAL FIX: Check for cancellation more frequently and break immediately
+        if isProcessingCancelled() then
+            print("CANCELLATION: Processing cancelled by user at file", file_idx)
             
             -- CRITICAL: Clean up temp export instrument when cancelled
             if export_instrument_idx then
-                print("CLEANUP: Removing temp export instrument after cancellation")
+                print("CANCELLATION CLEANUP: Removing temp export instrument")
                 cleanupExportInstrument()
             end
             
-            break
+            return -- Exit the function immediately
         end
         
         -- Check for critical error threshold
@@ -1884,15 +2019,28 @@ local function startProcessing()
     
     -- Update progress text periodically and handle completion
     local progress_timer = nil
+    local cancellation_timer_created = false -- CRITICAL: Prevent multiple cancellation timers
+    
     progress_timer = renoise.tool():add_timer(function()
+        -- CRITICAL: Stop timer immediately if processing was cancelled globally
+        if processing_cancelled then
+            if progress_timer then
+                renoise.tool():remove_timer(progress_timer)
+                progress_timer = nil
+                print("TIMER STOPPED: Processing cancelled globally")
+            end
+            return
+        end
+        
         if progress_dialog and progress_dialog.visible and progress_vb then
             progress_vb.views.progress_text.text = calculateProgress()
         end
         
         -- Check if ProcessSlicer was cancelled and handle cleanup
-        if not process_slicer:running() and process_slicer:was_cancelled() and not completion_handled then
+        if not process_slicer:running() and process_slicer:was_cancelled() and not completion_handled and not cancellation_timer_created then
             completion_handled = true -- Prevent multiple handlers
-            markProcessingComplete() -- Mark processing as complete to prevent dialog flooding
+            cancellation_timer_created = true -- Prevent multiple cancellation timers
+            markProcessingCancelled() -- Use the global cancellation flag
             print("PROCESS CANCELLED: Cleaning up temp export instrument")
             
             -- CRITICAL: Remove timer FIRST to prevent further executions
@@ -1914,11 +2062,12 @@ local function startProcessing()
                 print("CANCEL: Progress dialog closed")
             end
             
-            -- Use a delayed call to prevent timer race condition
+            -- SINGLE delayed call - won't repeat because cancellation_timer_created is now true
             renoise.tool():add_timer(function()
-                print("CANCEL: Delayed return to original dialog")
+                print("CANCEL: One-time delayed return to original dialog")
                 returnToOriginalDialogWithCompletion()
             end, 200) -- Wait 200ms to ensure timer cleanup is complete
+            
             
         elseif not process_slicer:running() and not completion_handled then
             completion_handled = true -- EMERGENCY: Prevent multiple completion handlers

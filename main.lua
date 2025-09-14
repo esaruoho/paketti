@@ -261,6 +261,7 @@ end
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?", invoke=whichSubcolumn}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Which Sub-Column?", invoke=whichSubcolumn}
 
+
 ------------------------------------------------
 local themes_path = renoise.tool().bundle_path .. "Themes/"
 local themes = os.filenames(themes_path, "*.xrnc")
@@ -766,8 +767,8 @@ timed_require("PakettiSwitcharoo")
 timed_require("PakettiPolyendSuite")
 timed_require("PakettiPolyendSliceSwitcher")
 timed_require("PakettiPolyendMelodicSliceExport")
-local PolyendYes = false
-PolyendYes = false
+local PolyendYes = true
+PolyendYes = true
 if PolyendYes then
   timed_require("PakettiPolyendPatternData")
 end

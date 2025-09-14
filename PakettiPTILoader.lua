@@ -36,6 +36,7 @@ end
 function pti_loadsample_Worker(filepath, dialog, vb)
   local file = io.open(filepath, "rb")
   if not file then
+    _G.pti_is_loading = false -- Clear loading flag on error
     renoise.app():show_error("Cannot open file: " .. filepath)
     return
   end
@@ -50,6 +51,7 @@ function pti_loadsample_Worker(filepath, dialog, vb)
 
   -- Validate sample length
   if sample_length == 0 then
+    _G.pti_is_loading = false -- Clear loading flag on error
     renoise.app():show_error("PTI Import Error: Sample has no audio data (0 frames)")
     print("-- PTI: Import failed - sample_length is 0")
     return
@@ -165,7 +167,16 @@ function pti_loadsample_Worker(filepath, dialog, vb)
     end
   end
   
-  buffer:finalize_sample_data_changes()
+  -- Safely finalize sample data changes
+  local finalize_success, finalize_error = pcall(function()
+    buffer:finalize_sample_data_changes()
+  end)
+  
+  if not finalize_success then
+    print(string.format("-- PTI Import: WARNING - Failed to finalize sample buffer: %s", finalize_error))
+    renoise.app():show_status("PTI Import: Warning - Sample buffer finalize failed")
+    return
+  end
 
   -- Read loop data from the header
   local loop_mode_byte = string.byte(header, 77)
@@ -288,7 +299,16 @@ function pti_loadsample_Worker(filepath, dialog, vb)
       end
     end
 
-    wavetable_buffer:finalize_sample_data_changes()
+    -- Safely finalize wavetable sample data changes
+    local finalize_success, finalize_error = pcall(function()
+      wavetable_buffer:finalize_sample_data_changes()
+    end)
+    
+    if not finalize_success then
+      print(string.format("-- PTI Wavetable: WARNING - Failed to finalize wavetable buffer: %s", finalize_error))
+      renoise.app():show_status("PTI Import: Warning - Wavetable buffer finalize failed")
+      return
+    end
     
     -- Set properties for the wavetable slot
     smp.name = clean_name .. " (Wavetable)"
@@ -524,6 +544,9 @@ function pti_loadsample_Worker(filepath, dialog, vb)
     end
   end
 
+  -- Finalize sample data changes
+  buffer:finalize_sample_data_changes()
+
   -- Apply Paketti Loader preferences to the sample
   smp.autofade = preferences.pakettiLoaderAutofade.value
   smp.autoseek = preferences.pakettiLoaderAutoseek.value
@@ -542,6 +565,9 @@ function pti_loadsample_Worker(filepath, dialog, vb)
   if dialog and dialog.visible then
     dialog:close()
   end
+
+  -- Clear the loading flag 
+  _G.pti_is_loading = false
 
   if total_slices > 0 then
     renoise.app():show_status(string.format("PTI imported with %d slice markers", total_slices))

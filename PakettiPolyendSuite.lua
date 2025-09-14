@@ -2954,7 +2954,17 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
      print(string.format("-- Save PTI as Drumkit: REAL bulk copy completed in %.2f seconds (was ~3 minutes before!)", elapsed_time))
      print("-- Save PTI as Drumkit: Finalizing sample buffer...")
    
-  combined_sample.sample_buffer:finalize_sample_data_changes()
+  -- Safely finalize sample data changes
+  local finalize_success, finalize_error = pcall(function()
+    combined_sample.sample_buffer:finalize_sample_data_changes()
+  end)
+  
+  if not finalize_success then
+    print(string.format("-- Save PTI as Drumkit: WARNING - Failed to finalize sample buffer: %s", finalize_error))
+    renoise.app():show_status("PTI: Warning - Sample buffer finalize failed")
+    return
+  end
+  
   combined_sample.name = drumkit_instrument.name
   
   -- NOW delete the original samples after copying is complete
@@ -3321,7 +3331,17 @@ function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_sa
      print(string.format("-- Save PTI as Drumkit: REAL bulk copy completed in %.2f seconds (was ~3 minutes before!)", elapsed_time))
      print("-- Save PTI as Drumkit: Finalizing sample buffer...")
    
-  combined_sample.sample_buffer:finalize_sample_data_changes()
+  -- Safely finalize sample data changes
+  local finalize_success, finalize_error = pcall(function()
+    combined_sample.sample_buffer:finalize_sample_data_changes()
+  end)
+  
+  if not finalize_success then
+    print(string.format("-- Save PTI as Drumkit: WARNING - Failed to finalize sample buffer: %s", finalize_error))
+    renoise.app():show_status("PTI: Warning - Sample buffer finalize failed")
+    return
+  end
+  
   combined_sample.name = drumkit_instrument.name
   
   -- NOW delete the original samples after copying is complete
@@ -4636,7 +4656,7 @@ function create_polyend_buddy_dialog(vb)
     vb:row{
       
       vb:text{
-        text = "Load & Drumkit 1",
+        text = "Load & Drum Slice 1",
         width = textWidth, style="strong",font="bold"
       },
       vb:button{
@@ -4729,7 +4749,7 @@ function create_polyend_buddy_dialog(vb)
     vb:row{
       
       vb:text{
-        text = "Load & Drumkit 2",
+        text = "Load & Drum Slice 2",
         width = textWidth, style="strong",font="bold"
       },
       vb:button{
@@ -4854,7 +4874,7 @@ function create_polyend_buddy_dialog(vb)
     vb:row{
       
       vb:text{
-        text = "Melodic Slice",
+        text = "Load & Melodic Slice",
         width = textWidth, style="strong",font="bold"
       },
       vb:button{

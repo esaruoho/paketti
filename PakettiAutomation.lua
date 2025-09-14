@@ -3492,3 +3492,96 @@ function openVisiblePagesToFitParameters()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Open Visible Pages to Fit Parameters",invoke=openVisiblePagesToFitParameters}
+
+-- Global Automation Envelope Playmode Functions
+function PakettiAutomationGlobalSetToPoints()
+  local song = renoise.song()
+  local envelope_count = 0
+  
+  -- Iterate through all patterns
+  for pattern_index = 1, #song.patterns do
+    local pattern = song.patterns[pattern_index]
+    
+    -- Iterate through all tracks in the pattern
+    for track_index = 1, #pattern.tracks do
+      local track = pattern.tracks[track_index]
+      
+      -- Iterate through all automation in the track
+      for _, automation in ipairs(track.automation) do
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        envelope_count = envelope_count + 1
+      end
+    end
+  end
+  
+  renoise.app():show_status("Set " .. envelope_count .. " automation envelopes to Points mode globally")
+  print("PakettiAutomationGlobalSetToPoints: Set " .. envelope_count .. " envelopes to PLAYMODE_POINTS")
+end
+
+function PakettiAutomationGlobalSetToLines()
+  local song = renoise.song()
+  local envelope_count = 0
+  
+  -- Iterate through all patterns
+  for pattern_index = 1, #song.patterns do
+    local pattern = song.patterns[pattern_index]
+    
+    -- Iterate through all tracks in the pattern
+    for track_index = 1, #pattern.tracks do
+      local track = pattern.tracks[track_index]
+      
+      -- Iterate through all automation in the track
+      for _, automation in ipairs(track.automation) do
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+        envelope_count = envelope_count + 1
+      end
+    end
+  end
+  
+  renoise.app():show_status("Set " .. envelope_count .. " automation envelopes to Lines mode globally")
+  print("PakettiAutomationGlobalSetToLines: Set " .. envelope_count .. " envelopes to PLAYMODE_LINES")
+end
+
+function PakettiAutomationGlobalSetToCurves()
+  local song = renoise.song()
+  local envelope_count = 0
+  
+  -- Iterate through all patterns
+  for pattern_index = 1, #song.patterns do
+    local pattern = song.patterns[pattern_index]
+    
+    -- Iterate through all tracks in the pattern
+    for track_index = 1, #pattern.tracks do
+      local track = pattern.tracks[track_index]
+      
+      -- Iterate through all automation in the track
+      for _, automation in ipairs(track.automation) do
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_CURVES
+        envelope_count = envelope_count + 1
+      end
+    end
+  end
+  
+  renoise.app():show_status("Set " .. envelope_count .. " automation envelopes to Curves mode globally")
+  print("PakettiAutomationGlobalSetToCurves: Set " .. envelope_count .. " envelopes to PLAYMODE_CURVES")
+end
+
+-- Keybindings for global automation playmode functions
+renoise.tool():add_keybinding{name="Global:Paketti:Set All Automation Envelopes to Points",invoke=PakettiAutomationGlobalSetToPoints}
+renoise.tool():add_keybinding{name="Global:Paketti:Set All Automation Envelopes to Lines",invoke=PakettiAutomationGlobalSetToLines}
+renoise.tool():add_keybinding{name="Global:Paketti:Set All Automation Envelopes to Curves",invoke=PakettiAutomationGlobalSetToCurves}
+
+
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
+renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
+renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
+
