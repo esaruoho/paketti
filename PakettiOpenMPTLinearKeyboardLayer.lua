@@ -9,9 +9,11 @@ PakettiLinearKeyboard_vb = nil
 PakettiLinearKeyboard_q_octave_dropdown = nil
 PakettiLinearKeyboard_a_octave_dropdown = nil
 PakettiLinearKeyboard_z_octave_dropdown = nil
+PakettiLinearKeyboard_follow_transport_checkbox = nil
 PakettiLinearKeyboard_current_playing_notes = {}
 PakettiLinearKeyboard_pressed_keys = {}  -- Track which keys are currently pressed
 PakettiLinearKeyboard_DEBUG = true
+PakettiLinearKeyboard_transport_notifier = nil
 
 -- Default note values (absolute note values, not octave offsets)
 PakettiLinearKeyboard_q_base_note = 48    -- C-4 (transport.octave * 12)
@@ -128,10 +130,19 @@ end
 function PakettiLinearKeyboard_KeyToNoteValue(key_name)
   if not key_name then return nil end
   
+  -- Check if following transport octave
+  local follow_transport = PakettiLinearKeyboard_follow_transport_checkbox and PakettiLinearKeyboard_follow_transport_checkbox.value or false
+  
   -- Check Q row
   local q_offset = PakettiLinearKeyboard_q_row_keys[key_name]
   if q_offset ~= nil then
-    local base_note = PakettiLinearKeyboard_GetSelectedNoteValue(PakettiLinearKeyboard_q_octave_dropdown.value)
+    local base_note
+    if follow_transport then
+      local song = renoise.song()
+      base_note = song.transport.octave * 12  -- Q row = transport octave
+    else
+      base_note = PakettiLinearKeyboard_GetSelectedNoteValue(PakettiLinearKeyboard_q_octave_dropdown.value)
+    end
     local note_value = base_note + q_offset
     return PakettiLinearKeyboard_Clamp(note_value, 0, 119)
   end
@@ -139,7 +150,13 @@ function PakettiLinearKeyboard_KeyToNoteValue(key_name)
   -- Check A row  
   local a_offset = PakettiLinearKeyboard_a_row_keys[key_name]
   if a_offset ~= nil then
-    local base_note = PakettiLinearKeyboard_GetSelectedNoteValue(PakettiLinearKeyboard_a_octave_dropdown.value)
+    local base_note
+    if follow_transport then
+      local song = renoise.song()
+      base_note = (song.transport.octave + 1) * 12  -- A row = transport octave + 1
+    else
+      base_note = PakettiLinearKeyboard_GetSelectedNoteValue(PakettiLinearKeyboard_a_octave_dropdown.value)
+    end
     local note_value = base_note + a_offset
     return PakettiLinearKeyboard_Clamp(note_value, 0, 119)
   end
@@ -147,7 +164,13 @@ function PakettiLinearKeyboard_KeyToNoteValue(key_name)
   -- Check Z row
   local z_offset = PakettiLinearKeyboard_z_row_keys[key_name]
   if z_offset ~= nil then
-    local base_note = PakettiLinearKeyboard_GetSelectedNoteValue(PakettiLinearKeyboard_z_octave_dropdown.value)
+    local base_note
+    if follow_transport then
+      local song = renoise.song()
+      base_note = (song.transport.octave + 2) * 12  -- Z row = transport octave + 2
+    else
+      base_note = PakettiLinearKeyboard_GetSelectedNoteValue(PakettiLinearKeyboard_z_octave_dropdown.value)
+    end
     local note_value = base_note + z_offset
     return PakettiLinearKeyboard_Clamp(note_value, 0, 119)
   end
@@ -242,16 +265,13 @@ function PakettiLinearKeyboard_WriteNoteToPattern(note_value)
     ncol.note_string = note_string
     ncol.instrument_value = song.selected_instrument_index - 1
     
-    -- Advance cursor by edit step
+    -- Advance cursor by edit step with proper modulo wrapping
     local edit_step = song.transport.edit_step
     local current_line = song.selected_line_index
     local pattern_length = patt.number_of_lines
-    local new_line = current_line + edit_step
     
-    -- Keep within pattern bounds
-    if new_line > pattern_length then
-      new_line = pattern_length
-    end
+    -- Use modulo to wrap around properly (convert to 0-based, add step, modulo, convert back to 1-based)
+    local new_line = ((current_line - 1 + edit_step) % pattern_length) + 1
     
     song.selected_line_index = new_line
     
@@ -266,6 +286,25 @@ function OpenMPTKeyhandler(dialog, key)
   if not key then return my_keyhandler_func(dialog, key) end
   
   local key_name = tostring(key.name or "")
+  
+  -- Always pass through ANY modifier key combinations to Renoise (shift, alt, ctrl, cmd)
+  if key.modifiers and (#key.modifiers > 0) then
+    if PakettiLinearKeyboard_DEBUG then
+      print("PakettiLinearKeyboard DEBUG: Passing through modifier key combo: " .. key_name)
+    end
+    return my_keyhandler_func(dialog, key)
+  end
+  
+  -- Pass through cursor keys and function keys
+  if key_name == "up" or key_name == "down" or key_name == "left" or key_name == "right" or
+     key_name == "f1" or key_name == "f2" or key_name == "f3" or key_name == "f4" or 
+     key_name == "f5" or key_name == "f6" or key_name == "f7" or key_name == "f8" or 
+     key_name == "f9" or key_name == "f10" or key_name == "f11" then
+    if PakettiLinearKeyboard_DEBUG then
+      print("PakettiLinearKeyboard DEBUG: Passing through navigation/function key: " .. key_name)
+    end
+    return my_keyhandler_func(dialog, key)
+  end
   
   -- Handle special keys for note control
   if key_name == "space" and not key.repeated then
@@ -305,33 +344,36 @@ function OpenMPTKeyhandler(dialog, key)
   local note_value = PakettiLinearKeyboard_KeyToNoteValue(key_name)
   
   if note_value then
-    -- This is a mappable note key
+    -- This is a mappable note key - ALWAYS intercept it when in note column
     if not key.repeated then
-      -- Key press: check if this is a new key or same key
-      local was_already_pressed = PakettiLinearKeyboard_pressed_keys[key_name]
+      -- Stop all notes first, then start this one
+      PakettiLinearKeyboard_StopAllNotes()
+      PakettiLinearKeyboard_pressed_keys = {} -- Clear all pressed keys
       
-      if not was_already_pressed then
-        -- New key pressed - stop all other notes first, then start this one
-        PakettiLinearKeyboard_StopAllNotes()
-        PakettiLinearKeyboard_pressed_keys = {} -- Clear all pressed keys
-        
-        -- Start this note and track the key
-        PakettiLinearKeyboard_StartNote(note_value)
-        PakettiLinearKeyboard_WriteNoteToPattern(note_value)
-        PakettiLinearKeyboard_pressed_keys[key_name] = note_value
-        
-        -- Show feedback that we're intercepting
-        local note_string = PakettiLinearKeyboard_NoteValueToString(note_value)
-        renoise.app():show_status("PakettiLinearKeyboard: In Note column - playing " .. note_string .. " (key: " .. key_name .. ")")
-      end
+      -- Start this note and write to pattern
+      PakettiLinearKeyboard_StartNote(note_value)
+      PakettiLinearKeyboard_WriteNoteToPattern(note_value)
+      PakettiLinearKeyboard_pressed_keys[key_name] = note_value
+      
+      -- Show feedback that we're intercepting
+      local note_string = PakettiLinearKeyboard_NoteValueToString(note_value)
+      renoise.app():show_status("PakettiLinearKeyboard: In Note column - playing " .. note_string .. " (key: " .. key_name .. ")")
     else
-      -- Key repeated - don't retrigger note, but keep it playing
+      -- Key repeated - ALSO write to pattern and advance cursor
+      PakettiLinearKeyboard_StopAllNotes()
+      PakettiLinearKeyboard_pressed_keys = {} -- Clear all pressed keys
+      
+      -- Start this note and write to pattern on repeat too
+      PakettiLinearKeyboard_StartNote(note_value)
+      PakettiLinearKeyboard_WriteNoteToPattern(note_value)
+      PakettiLinearKeyboard_pressed_keys[key_name] = note_value
+      
       if PakettiLinearKeyboard_DEBUG then
-        print("PakettiLinearKeyboard DEBUG: Key repeated, maintaining note: " .. key_name)
+        print("PakettiLinearKeyboard DEBUG: Key repeated, writing note: " .. key_name)
       end
     end
     
-    -- Don't pass the key through to Renoise since we've handled it
+    -- ALWAYS return nil for mappable keys when in note column to prevent global shortcuts
     return nil
   else
     -- Not a mappable key, stop any playing notes and pass through
@@ -346,6 +388,16 @@ function OpenMPTKeyhandler(dialog, key)
   end
 end
 
+-- Transport octave notifier function
+function PakettiLinearKeyboard_TransportOctaveChanged()
+  -- Only update if following transport and dialog is open
+  if PakettiLinearKeyboard_follow_transport_checkbox and 
+     PakettiLinearKeyboard_follow_transport_checkbox.value and 
+     PakettiLinearKeyboard_vb then
+    PakettiLinearKeyboard_UpdateDropdowns()
+  end
+end
+
 -- Update dropdown values based on current transport octave
 function PakettiLinearKeyboard_UpdateDropdowns()
   if not PakettiLinearKeyboard_vb then return end
@@ -353,23 +405,28 @@ function PakettiLinearKeyboard_UpdateDropdowns()
   local song = renoise.song()
   local base_octave = song.transport.octave or 4
   
-  -- Update dropdowns to show current defaults based on transport octave
-  if PakettiLinearKeyboard_q_octave_dropdown then
-    local default_note = base_octave * 12  -- C- of transport octave
-    PakettiLinearKeyboard_q_base_note = default_note
-    PakettiLinearKeyboard_q_octave_dropdown.value = default_note + 1  -- dropdown is 1-indexed
-  end
+  -- Only update dropdowns if not following transport or if manually triggered
+  local follow_transport = PakettiLinearKeyboard_follow_transport_checkbox and PakettiLinearKeyboard_follow_transport_checkbox.value or false
   
-  if PakettiLinearKeyboard_a_octave_dropdown then
-    local default_note = (base_octave + 1) * 12  -- C- of transport octave + 1
-    PakettiLinearKeyboard_a_base_note = default_note
-    PakettiLinearKeyboard_a_octave_dropdown.value = default_note + 1
-  end
-  
-  if PakettiLinearKeyboard_z_octave_dropdown then
-    local default_note = (base_octave + 2) * 12  -- C- of transport octave + 2  
-    PakettiLinearKeyboard_z_base_note = default_note
-    PakettiLinearKeyboard_z_octave_dropdown.value = default_note + 1
+  if follow_transport or not PakettiLinearKeyboard_follow_transport_checkbox then
+    -- Update dropdowns to show current defaults based on transport octave
+    if PakettiLinearKeyboard_q_octave_dropdown then
+      local default_note = base_octave * 12  -- C- of transport octave
+      PakettiLinearKeyboard_q_base_note = default_note
+      PakettiLinearKeyboard_q_octave_dropdown.value = default_note + 1  -- dropdown is 1-indexed
+    end
+    
+    if PakettiLinearKeyboard_a_octave_dropdown then
+      local default_note = (base_octave + 1) * 12  -- C- of transport octave + 1
+      PakettiLinearKeyboard_a_base_note = default_note
+      PakettiLinearKeyboard_a_octave_dropdown.value = default_note + 1
+    end
+    
+    if PakettiLinearKeyboard_z_octave_dropdown then
+      local default_note = (base_octave + 2) * 12  -- C- of transport octave + 2  
+      PakettiLinearKeyboard_z_base_note = default_note
+      PakettiLinearKeyboard_z_octave_dropdown.value = default_note + 1
+    end
   end
 end
 
@@ -406,13 +463,28 @@ function PakettiOpenMPTLinearKeyboardLayerDialog()
     value = PakettiLinearKeyboard_Clamp(PakettiLinearKeyboard_z_base_note, 0, 119) + 1,
     width = 80
   }
+  
+  -- Follow transport checkbox
+  PakettiLinearKeyboard_follow_transport_checkbox = PakettiLinearKeyboard_vb:checkbox{
+    value = false,
+    notifier = function(value)
+      if value then
+        -- Update dropdowns to follow transport immediately
+        PakettiLinearKeyboard_UpdateDropdowns()
+        renoise.app():show_status("PakettiLinearKeyboard: Now following transport octave")
+      else
+        renoise.app():show_status("PakettiLinearKeyboard: Using manual octave settings")
+      end
+    end
+  }
 
   local content = PakettiLinearKeyboard_vb:column{
-    PakettiLinearKeyboard_vb:text{
-      text = "Configure starting note for each keyboard row:",
-      style = "strong"
+    
+    -- Follow transport checkbox
+    PakettiLinearKeyboard_vb:row{
+      PakettiLinearKeyboard_follow_transport_checkbox,
+      PakettiLinearKeyboard_vb:text{ text = "Follow transport octave (dynamic)", style = "strong" }
     },
-    PakettiLinearKeyboard_vb:space{ height = 5 },
     
     -- Q row configuration
     PakettiLinearKeyboard_vb:row{
@@ -435,35 +507,12 @@ function PakettiOpenMPTLinearKeyboardLayerDialog()
       PakettiLinearKeyboard_vb:text{ text = "+ 0-11 semitones (linear)", width = 200 }
     },
     
-    PakettiLinearKeyboard_vb:space{ height = 10 },
-    
     PakettiLinearKeyboard_vb:text{
-      text = "How it works:",
-      font = "bold",
-      style = "strong"
-    },
-    PakettiLinearKeyboard_vb:text{
-      text = "• When cursor is in NOTE column: keys are remapped and auditioned",
+      text = "QWERTY rows play linear chromatic notes when cursor is in NOTE column. Modifier keys and F1-F11 pass through to Renoise.",
       style = "normal"
     },
     PakettiLinearKeyboard_vb:text{
-      text = "• When cursor is in other columns: keys pass through normally",
-      style = "normal"
-    },
-    PakettiLinearKeyboard_vb:text{
-      text = "• Each row plays 12 chromatic semitones linearly from chosen start note",
-      style = "normal"
-    },
-    PakettiLinearKeyboard_vb:text{
-      text = "• Press SPACE to stop all playing notes",
-      style = "normal"
-    },
-    PakettiLinearKeyboard_vb:text{
-      text = "• Notes auto-stop when moving cursor or pressing different keys",
-      style = "normal"
-    },
-    PakettiLinearKeyboard_vb:text{
-      text = "• Cursor advances by edit step amount after each note entry",
+      text = "Hold keys for repeated notes. SPACE stops playback. Enable 'Follow transport octave' for dynamic octave tracking.",
       style = "normal"
     },
     
@@ -493,6 +542,13 @@ function PakettiOpenMPTLinearKeyboardLayerDialog()
         width = 60,
         notifier = function()
           PakettiLinearKeyboard_StopAllNotes()
+          
+          -- Clean up transport notifier
+          if PakettiLinearKeyboard_transport_notifier then
+            renoise.song().transport.octave_observable:remove_notifier(PakettiLinearKeyboard_transport_notifier)
+            PakettiLinearKeyboard_transport_notifier = nil
+          end
+          
           if PakettiLinearKeyboard_dialog and PakettiLinearKeyboard_dialog.visible then 
             PakettiLinearKeyboard_dialog:close() 
           end
@@ -502,6 +558,11 @@ function PakettiOpenMPTLinearKeyboardLayerDialog()
   }
   
   PakettiLinearKeyboard_dialog = renoise.app():show_custom_dialog("Paketti OpenMPT Linear Keyboard Layer", content, OpenMPTKeyhandler)
+  
+  -- Set up transport octave notifier
+  if not PakettiLinearKeyboard_transport_notifier then
+    PakettiLinearKeyboard_transport_notifier = renoise.song().transport.octave_observable:add_notifier(PakettiLinearKeyboard_TransportOctaveChanged)
+  end
   
   -- Ensure Renoise keeps focus for keyboard
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
@@ -513,6 +574,13 @@ end
 function PakettiOpenMPTLinearKeyboardLayerToggle()
   if PakettiLinearKeyboard_dialog and PakettiLinearKeyboard_dialog.visible then
     PakettiLinearKeyboard_StopAllNotes()
+    
+    -- Clean up transport notifier
+    if PakettiLinearKeyboard_transport_notifier then
+      renoise.song().transport.octave_observable:remove_notifier(PakettiLinearKeyboard_transport_notifier)
+      PakettiLinearKeyboard_transport_notifier = nil
+    end
+    
     PakettiLinearKeyboard_dialog:close()
     PakettiLinearKeyboard_dialog = nil
   else
