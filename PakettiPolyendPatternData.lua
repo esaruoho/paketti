@@ -333,6 +333,7 @@ local function auto_load_all_instruments(project_root)
     end
     
     print("-- Auto-loading PTI instruments from: " .. instruments_folder)
+    print("-- NOTE: Renoise instrument 01 is left empty for Polyend instrument 00 references")
     
     local loaded_count = 0
     
@@ -349,42 +350,65 @@ local function auto_load_all_instruments(project_root)
     -- Sort files to load in order
     table.sort(files)
     
-    -- Load PTI instruments synchronously, ONE AT A TIME using simple flag-based synchronization
-    for _, filename in ipairs(files) do
+    -- Load PTI instruments for bulk project import (without ProcessSlicer dialogs)
+    print(string.format("-- Loading %d PTI instruments for project import", #files))
+    
+    -- Clear existing instruments first (but keep instrument 1 empty as a placeholder for instrument 00)
+    local song = renoise.song()
+    while #song.instruments > 1 do
+        song:delete_instrument_at(2)
+    end
+    
+    for i, filename in ipairs(files) do
         local full_path = instruments_folder .. separator .. filename
-        print(string.format("-- Loading PTI instrument: %s", filename))
+        print(string.format("-- Loading PTI instrument: %s (%d/%d)", filename, i, #files))
         
-        renoise.app():show_status(string.format("Loading PTI: %s", filename))
+        renoise.app():show_status(string.format("Loading PTI: %s (%d/%d)", filename, i, #files))
         
-        -- SYNCHRONOUS loading - each instrument loaded completely before next one
-        local success, error_msg = pcall(function()
-            if pti_loadsample then
-                -- Set loading flag
-                _G.pti_is_loading = true
-                
-                -- Start the PTI load
-                pti_loadsample(full_path)
-                
-                -- Wait for loading to complete
-                while _G.pti_is_loading do
-                    os.execute("sleep 0.01") -- Wait 10ms
-                end
-                
-                loaded_count = loaded_count + 1
-                print(string.format("-- Successfully loaded PTI: %s", filename))
-            else
-                error("PTI loader not available")
+        -- Extract the numeric part from filename to determine correct Renoise instrument index
+        local file_number = filename:match("^(%d+)")
+        if file_number then
+            local polyend_instrument_index = tonumber(file_number) -- 1, 2, 3, 4, 5, 6...
+            local renoise_instrument_index = polyend_instrument_index + 1 -- Map 1->2, 2->3, 3->4, etc. (Skip Renoise instrument 1 for Polyend instrument 00 empty)
+            
+            print(string.format("   Mapping PTI file '%s' (Polyend instrument %02d) -> Renoise instrument %02d", 
+                filename, polyend_instrument_index - 1, renoise_instrument_index - 1)) -- Show 0-based for clarity
+        
+            -- Ensure we have enough instrument slots
+            while #song.instruments < renoise_instrument_index do
+                song:insert_instrument_at(#song.instruments + 1)
             end
-        end)
-        
-        if not success then
-            print(string.format("-- FAILED to load PTI %s: %s", filename, tostring(error_msg)))
-            -- Make sure flag is cleared on error
-            _G.pti_is_loading = false
+            
+            -- Select the target instrument slot
+            song.selected_instrument_index = renoise_instrument_index
+            
+            -- Call PTI worker function directly for bulk loading (bypass ProcessSlicer dialog system)
+            local success, error_msg = pcall(function()
+                if pti_loadsample_Worker then
+                    -- Set loading flag
+                    _G.pti_is_loading = true
+                    
+                    -- Call worker function directly (no dialog needed for bulk import)
+                    pti_loadsample_Worker(full_path, nil, nil)
+                    
+                    -- Clear loading flag after completion
+                    _G.pti_is_loading = false
+                    
+                    loaded_count = loaded_count + 1
+                    print(string.format("-- Successfully loaded PTI: %s -> Renoise instrument %d", filename, renoise_instrument_index - 1))
+                else
+                    error("PTI worker function not available")
+                end
+            end)
+            
+            if not success then
+                print(string.format("-- FAILED to load PTI %s: %s", filename, tostring(error_msg)))
+                -- Make sure flag is cleared on error
+                _G.pti_is_loading = false
+            end
+        else
+            print(string.format("-- WARNING: Could not extract number from PTI filename: %s", filename))
         end
-        
-        -- Update status after each instrument
-        renoise.app():show_status(string.format("Loaded %d/%d PTI instruments", loaded_count, #files))
     end
     
     print(string.format("-- Loaded %d PTI instruments", loaded_count))
@@ -819,8 +843,10 @@ function import_pattern_to_renoise(pattern_data, target_pattern_index, track_map
                                 if note <= 119 then
                                     line.note_columns[1].note_value = note
                                     -- Only set instrument when there's actually a note
+                                    -- Map Polyend instruments to match PTI loading: 00->02(hihat), 01->03(snare), etc. (Skip instrument 01 for empty)
                                     if step_data.instrument and step_data.instrument < 255 then
-                                        line.note_columns[1].instrument_value = step_data.instrument
+                                        local renoise_instrument_index = step_data.instrument + 2
+                                        line.note_columns[1].instrument_value = renoise_instrument_index
                                         instruments_used[step_data.instrument] = (instruments_used[step_data.instrument] or 0) + 1
                                     end
                                 elseif note == 120 then
@@ -1040,8 +1066,10 @@ local function export_pattern_to_mtp(pattern_index, output_path, track_count)
                 end
                 
                 -- Get instrument
+                -- Map Renoise instruments to match PTI loading: 02(hihat)->00, 03(snare)->01, etc. (Skip instrument 01 empty)
                 if line.note_columns[1].instrument_value < 255 then
-                    instrument = line.note_columns[1].instrument_value
+                    local polyend_instrument_index = math.max(0, line.note_columns[1].instrument_value - 2)
+                    instrument = polyend_instrument_index
                 end
                 
                 -- Convert effects (very basic - only handle a few Renoise -> Polyend mappings)

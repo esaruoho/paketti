@@ -21,6 +21,38 @@ local function read_uint32_le(data, offset)
          string.byte(data, offset + 4) * 16777216
 end
 
+function PakettiPTIDetectAndPrintSliceNotes(playback_mode, slice_count, slice_frames, instrument_name)
+  -- Only process for Slice (4) or Beat Slice (5) modes
+  if not (playback_mode == 4 or playback_mode == 5) or slice_count == 0 then
+    return
+  end
+
+  local mode_name = (playback_mode == 4) and "Slice" or "Beat Slice"
+  print(string.format("-- PTI %s Mode Detected: %s", mode_name, instrument_name))
+  print(string.format("-- Slice Count: %d", slice_count))
+  print("-- Expected Slice Notes:")
+
+  -- Note names for chromatic mapping starting from C-2 (note 36) - standard drum machine mapping
+  local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+  
+  for i = 0, slice_count - 1 do
+    -- Calculate note number starting from C-2 (36) - matches MTP and standard drum machine mapping
+    local note_number = 36 + i
+    local octave = math.floor(note_number / 12) - 1
+    local note_index = (note_number % 12) + 1
+    local note_name = note_names[note_index] .. octave
+    
+    -- Get slice frame position if available
+    local frame_info = ""
+    if slice_frames and slice_frames[i + 1] then
+      frame_info = string.format(" (frame: %d)", slice_frames[i + 1])
+    end
+    
+    print(string.format("   Slice %02d -> %s%s", i, note_name, frame_info))
+  end
+  print("-- End of slice note mapping")
+end
+
 function pti_loadsample(filepath)
   -- Start ProcessSlicer for PTI loading
   local dialog, vb
@@ -92,10 +124,8 @@ function pti_loadsample_Worker(filepath, dialog, vb)
   local slice_count = string.byte(header, 377)  -- Offset 376 + 1 for Lua 1-based indexing
   local active_slice = string.byte(header, 378)  -- Offset 377 + 1 for Lua 1-based indexing
 
-  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
-    is_stereo and "Stereo" or "Mono", 44100, 16, sample_length, slice_count))
-  print(string.format("-- PTI DEBUG: About to process %d slices", slice_count))
-  print(string.format("-- Stereo detected by blockwise comparison: %s", tostring(is_stereo)))
+  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames", 
+    is_stereo and "Stereo" or "Mono", 44100, 16, sample_length))
 
   -- DEBUG: Read additional header values to compare with export
   local playback_mode = string.byte(header, 77)
@@ -103,9 +133,6 @@ function pti_loadsample_Worker(filepath, dialog, vb)
   local panning = string.byte(header, 277)
   local wavetable_flag = string.byte(header, 21)
   
-  print(string.format("-- PTI IMPORT DEBUG: playback_mode=%d, volume=%d, panning=%d", playback_mode or 0, volume or 0, panning or 0))
-  print(string.format("-- PTI IMPORT DEBUG: slice_count=%d, active_slice=%d, wavetable_flag=%d", slice_count or 0, active_slice or 0, wavetable_flag or 0))
-
   buffer:prepare_sample_data_changes()
 
   -- Update progress dialog
@@ -144,8 +171,8 @@ function pti_loadsample_Worker(filepath, dialog, vb)
       if i % yield_interval == 0 then
         if dialog and dialog.visible then
           vb.views.progress_text.text = string.format("Processing sample data %d%%...", math.floor((i / sample_length) * 100))
+          coroutine.yield()
         end
-        coroutine.yield()
       end
     end
   else
@@ -161,8 +188,8 @@ function pti_loadsample_Worker(filepath, dialog, vb)
       if i % yield_interval == 0 then
         if dialog and dialog.visible then
           vb.views.progress_text.text = string.format("Processing sample data %d%%...", math.floor((i / sample_length) * 100))
+          coroutine.yield()
         end
-        coroutine.yield()
       end
     end
   end
@@ -276,8 +303,8 @@ function pti_loadsample_Worker(filepath, dialog, vb)
         if i % wavetable_yield_interval == 0 then
           if dialog and dialog.visible then
             vb.views.progress_text.text = string.format("Processing wavetable %d%%...", math.floor((i / original_sample_length) * 100))
+            coroutine.yield()
           end
-          coroutine.yield()
         end
       end
     else
@@ -293,8 +320,8 @@ function pti_loadsample_Worker(filepath, dialog, vb)
         if i % wavetable_yield_interval == 0 then
           if dialog and dialog.visible then
             vb.views.progress_text.text = string.format("Processing wavetable %d%%...", math.floor((i / original_sample_length) * 100))
+            coroutine.yield()
           end
-          coroutine.yield()
         end
       end
     end
@@ -384,7 +411,9 @@ function pti_loadsample_Worker(filepath, dialog, vb)
       end
       
       -- Yield every wavetable position to keep UI responsive
-      coroutine.yield()
+      if dialog and dialog.visible then
+        coroutine.yield()
+      end
     end
   
     print(string.format("-- Created wavetable with %d positions, window size %d",
@@ -395,22 +424,22 @@ function pti_loadsample_Worker(filepath, dialog, vb)
 
   -- Process slice markers. (Note: slice_count was taken from header at offset 377.)
   local slice_frames = {}
-  print(string.format("-- DEBUG: Reading slice markers from header, slice_count = %d", slice_count))
+  if slice_count > 0 then
+    print(string.format("-- Reading %d slice markers", slice_count))
+  end
   for i = 0, slice_count - 1 do
     local offset = 280 + i * 2
     local raw_value = read_uint16_le(header, offset)
-    print(string.format("-- DEBUG: Slice %02d: offset=%d, raw_value=0x%04X (%d)", i+1, offset, raw_value, raw_value))
     if raw_value >= 0 and raw_value <= 65535 then
       local frame = math.floor((raw_value / 65535) * sample_length)
       table.insert(slice_frames, frame)
-      print(string.format("-- DEBUG: Slice %02d: calculated frame = %d", i+1, frame))
     end
   end
 
   -- Check if we should use Polyend Slice processing instead of normal slice processing
   -- Only process if it's mode 4 (Slice), NOT mode 5 (Beat Slice)
   if slice_count > 0 and playback_mode == 4 and type(PakettiPolyendSliceSwitcherProcessInstrument) == "function" then
-    print("-- DEBUG: Detected Slice mode (4) PTI with slices, attempting Polyend Slice processing")
+    print("-- Attempting Polyend Slice processing")
     local success = PakettiPolyendSliceSwitcherProcessInstrument(
       renoise.song().selected_instrument,
       slice_frames,
@@ -432,12 +461,13 @@ function pti_loadsample_Worker(filepath, dialog, vb)
       else
         print(string.format("-- PTI with %d slices but playback mode %d (not Slice mode 4) - using normal processing", slice_count, playback_mode))
       end
-    else
-      print("-- No slices detected")
     end
   end
 
   table.sort(slice_frames)
+
+  -- Print slice notes for Drum Slice PTIs (Slice mode 4 or Beat Slice mode 5)
+  PakettiPTIDetectAndPrintSliceNotes(playback_mode, slice_count, slice_frames, clean_name)
 
   -- Detect audio content length for possible trimming
   local abs_threshold = 0.001
@@ -498,16 +528,25 @@ function pti_loadsample_Worker(filepath, dialog, vb)
     buffer:finalize_sample_data_changes()
     sample_length = trimmed_length  -- update sample_length for later use
 
-    -- Apply rescaled slice markers
-    for i, frame in ipairs(rescaled_slices) do
-      print(string.format("-- Slice %02d at frame: %d", i, frame))
-      smp:insert_slice_marker(frame + 1)
+    -- Set base sample base_note and note_range to B-1 BEFORE inserting slices
+    local instrument = renoise.song().selected_instrument
+    if instrument.samples[1] then
+      instrument.samples[1].sample_mapping.base_note = 35 -- B-1
+      instrument.samples[1].sample_mapping.note_range = {35, 35} -- B-1 only
+      instrument.samples[1].sample_mapping.velocity_range = {0, 127}
+      print(string.format("-- Set base sample base_note=35 (B-1) and note_range={35,35} - slices will auto-map from C-2"))
     end
 
-    -- Enable oversampling for all slices
+    -- Apply rescaled slice markers
+    for i, frame in ipairs(rescaled_slices) do
+      smp:insert_slice_marker(frame + 1)
+    end
+    
+    -- Enable oversampling and preferences for all slices
     for i = 1, #smp.slice_markers do
-      local slice_sample = renoise.song().selected_instrument.samples[i + 1]
+      local slice_sample = instrument.samples[i + 1]
       if slice_sample then
+        -- Apply Paketti loader preferences (slice keyzone mappings are automatic)
         slice_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
         slice_sample.autofade = preferences.pakettiLoaderAutofade.value
         slice_sample.autoseek = preferences.pakettiLoaderAutoseek.value
@@ -518,18 +557,30 @@ function pti_loadsample_Worker(filepath, dialog, vb)
 
       end
     end
+    
+    print(string.format("-- Applied preferences to %d slice samples", #smp.slice_markers))
 
   else
     -- Apply original slices if no trim is necessary
     if #slice_frames > 0 then
-      print(string.format("-- DEBUG: Applying %d slice markers without trimming", #slice_frames))
+      -- Set base sample base_note and note_range to B-1 BEFORE inserting slices
+      local instrument = renoise.song().selected_instrument
+      if instrument.samples[1] then
+        instrument.samples[1].sample_mapping.base_note = 35 -- B-1
+        instrument.samples[1].sample_mapping.note_range = {35, 35} -- B-1 only
+        instrument.samples[1].sample_mapping.velocity_range = {0, 127}
+        print(string.format("-- Set base sample base_note=35 (B-1) and note_range={35,35} - slices will auto-map from C-2"))
+      end
+      
       for i, frame in ipairs(slice_frames) do
-        print(string.format("-- Slice %02d at frame: %d", i, frame))
         smp:insert_slice_marker(frame + 1)
-      end    
+      end
+      
+      -- Enable oversampling and preferences for all slices
       for i = 1, #smp.slice_markers do
-        local slice_sample = renoise.song().selected_instrument.samples[i + 1]
+        local slice_sample = instrument.samples[i + 1]
         if slice_sample then
+          -- Apply Paketti loader preferences (slice keyzone mappings are automatic)
           slice_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
           slice_sample.autofade = preferences.pakettiLoaderAutofade.value
           slice_sample.autoseek = preferences.pakettiLoaderAutoseek.value
@@ -541,11 +592,10 @@ function pti_loadsample_Worker(filepath, dialog, vb)
 
         end
       end
+      
+      print(string.format("-- Applied preferences to %d slice samples", #smp.slice_markers))
     end
   end
-
-  -- Finalize sample data changes
-  buffer:finalize_sample_data_changes()
 
   -- Apply Paketti Loader preferences to the sample
   smp.autofade = preferences.pakettiLoaderAutofade.value
@@ -557,9 +607,6 @@ function pti_loadsample_Worker(filepath, dialog, vb)
   -- smp.loop_release = preferences.pakettiLoaderLoopExit.value
 
   local total_slices = #renoise.song().selected_instrument.samples[1].slice_markers
-  print(string.format("-- DEBUG: Final total slice count: %d", total_slices))
-  print(string.format("-- DEBUG: Total samples in instrument: %d", #renoise.song().selected_instrument.samples))
-  print(string.format("-- DEBUG: Sample length after processing: %d frames", renoise.song().selected_instrument.samples[1].sample_buffer.number_of_frames))
   
   -- Close dialog
   if dialog and dialog.visible then
@@ -578,7 +625,6 @@ function pti_loadsample_Worker(filepath, dialog, vb)
     print("-- Switched to Sample Editor to display slice markers")
   else
     renoise.app():show_status("PTI imported successfully")
-    print(string.format("-- WARNING: No slices found - this might be a non-sliced PTI file"))
   end
 end
 
@@ -1160,7 +1206,9 @@ local function write_pcm(f, inst, dialog, vb)
         if dialog and dialog.visible then
           vb.views.progress_text.text = string.format("Writing left channel %d%%...", math.floor((i / inst.sample_length) * 50))
         end
-        coroutine.yield()
+        if dialog and dialog.visible then
+          coroutine.yield()
+        end
       end
     end
     
@@ -1181,7 +1229,9 @@ local function write_pcm(f, inst, dialog, vb)
         if dialog and dialog.visible then
           vb.views.progress_text.text = string.format("Writing right channel %d%%...", 50 + math.floor((i / inst.sample_length) * 50))
         end
-        coroutine.yield()
+        if dialog and dialog.visible then
+          coroutine.yield()
+        end
       end
     end
   else
@@ -1202,7 +1252,9 @@ local function write_pcm(f, inst, dialog, vb)
         if dialog and dialog.visible then
           vb.views.progress_text.text = string.format("Writing sample data %d%%...", math.floor((i / inst.sample_length) * 100))
         end
-        coroutine.yield()
+        if dialog and dialog.visible then
+          coroutine.yield()
+        end
       end
     end
   end
@@ -1315,12 +1367,11 @@ function pti_savesample_to_path(filepath)
     print("-- Sample Playback Mode: Slice (mode 4)")
   end
 
-  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
+  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames", 
     data.channels > 1 and "Stereo" or "Mono",
     44100,
     16,
-    data.sample_length,
-    limited_slice_count
+    data.sample_length
   ))
 
   local loop_mode_names = {
@@ -1687,12 +1738,11 @@ function pti_savesample_Worker(dialog, vb)
     print("-- Sample Playback Mode: Slice (mode 4)")
   end
 
-  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
+  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames", 
     data.channels > 1 and "Stereo" or "Mono",
     44100,
     16,
-    data.sample_length,
-    limited_slice_count
+    data.sample_length
   ))
 
   local loop_mode_names = {
