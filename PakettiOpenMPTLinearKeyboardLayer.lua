@@ -242,8 +242,21 @@ function PakettiLinearKeyboard_WriteNoteToPattern(note_value)
     ncol.note_string = note_string
     ncol.instrument_value = song.selected_instrument_index - 1
     
+    -- Advance cursor by edit step
+    local edit_step = song.transport.edit_step
+    local current_line = song.selected_line_index
+    local pattern_length = patt.number_of_lines
+    local new_line = current_line + edit_step
+    
+    -- Keep within pattern bounds
+    if new_line > pattern_length then
+      new_line = pattern_length
+    end
+    
+    song.selected_line_index = new_line
+    
     if PakettiLinearKeyboard_DEBUG then
-      print("PakettiLinearKeyboard DEBUG: Wrote note " .. tostring(note_string) .. " to pattern")
+      print("PakettiLinearKeyboard DEBUG: Wrote note " .. tostring(note_string) .. " to pattern, advanced cursor by " .. tostring(edit_step) .. " lines")
     end
   end
 end
@@ -447,6 +460,10 @@ function PakettiOpenMPTLinearKeyboardLayerDialog()
     },
     PakettiLinearKeyboard_vb:text{
       text = "• Notes auto-stop when moving cursor or pressing different keys",
+      style = "normal"
+    },
+    PakettiLinearKeyboard_vb:text{
+      text = "• Cursor advances by edit step amount after each note entry",
       style = "normal"
     },
     

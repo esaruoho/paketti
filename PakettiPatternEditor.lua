@@ -8159,3 +8159,277 @@ renoise.tool():add_keybinding{name="Global:Paketti:Note Cut Master Toggle (0C00)
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
+
+-- Pick & Move Feature - Global state variables
+PakettiPickAndMoveActive = false
+PakettiPickAndMoveStoredContent = nil
+PakettiPickAndMoveOriginalLine = 0
+PakettiPickAndMoveTrackIndex = 0
+
+-- Function to copy all content from a track line (note columns and effect columns)
+function PakettiPickAndMoveCopyLineContent(pattern_track, track, line_index)
+  local line = pattern_track:line(line_index)
+  local content = {}
+  
+  -- Copy only note columns that have content
+  content.note_columns = {}
+  local note_col_count = 0
+  for i = 1, track.max_note_columns do
+    local note_col = line.note_columns[i]
+    if note_col.note_value ~= 121 or 
+       note_col.instrument_value ~= 255 or 
+       note_col.volume_value ~= 255 or 
+       note_col.panning_value ~= 255 or 
+       note_col.delay_value ~= 0 then
+      note_col_count = i
+    end
+    -- Always copy up to the highest column with content
+    if i <= note_col_count then
+      content.note_columns[i] = {
+        note_value = note_col.note_value,
+        instrument_value = note_col.instrument_value,
+        volume_value = note_col.volume_value,
+        panning_value = note_col.panning_value,
+        delay_value = note_col.delay_value
+      }
+    end
+  end
+  
+  -- Copy only effect columns that have content
+  content.effect_columns = {}
+  local effect_col_count = 0
+  for i = 1, track.max_effect_columns do
+    local effect_col = line.effect_columns[i]
+    if effect_col.number_value ~= 0 or effect_col.amount_value ~= 0 then
+      effect_col_count = i
+    end
+    -- Always copy up to the highest column with content
+    if i <= effect_col_count then
+      content.effect_columns[i] = {
+        number_value = effect_col.number_value,
+        amount_value = effect_col.amount_value
+      }
+    end
+  end
+  
+  return content
+end
+
+-- Function to paste content to a track line
+function PakettiPickAndMovePasteLineContent(pattern_track, track, line_index, content)
+  local line = pattern_track:line(line_index)
+  
+  -- Set visible columns to exactly what's needed for note columns
+  if content.note_columns and #content.note_columns > 0 then
+    local required_note_cols = #content.note_columns
+    if required_note_cols > track.visible_note_columns then
+      track.visible_note_columns = math.min(required_note_cols, track.max_note_columns)
+    end
+  end
+  
+  -- Set visible columns to exactly what's needed for effect columns
+  if content.effect_columns and #content.effect_columns > 0 then
+    local required_effect_cols = #content.effect_columns
+    if required_effect_cols > track.visible_effect_columns then
+      track.visible_effect_columns = math.min(required_effect_cols, track.max_effect_columns)
+    end
+  end
+  
+  -- Paste note columns
+  if content.note_columns then
+    for i = 1, #content.note_columns do
+      if content.note_columns[i] and i <= track.max_note_columns then
+        local note_col = line.note_columns[i]
+        local stored_col = content.note_columns[i]
+        note_col.note_value = stored_col.note_value
+        note_col.instrument_value = stored_col.instrument_value
+        note_col.volume_value = stored_col.volume_value
+        note_col.panning_value = stored_col.panning_value
+        note_col.delay_value = stored_col.delay_value
+      end
+    end
+  end
+  
+  -- Paste effect columns
+  if content.effect_columns then
+    for i = 1, #content.effect_columns do
+      if content.effect_columns[i] and i <= track.max_effect_columns then
+        local effect_col = line.effect_columns[i]
+        local stored_col = content.effect_columns[i]
+        effect_col.number_value = stored_col.number_value
+        effect_col.amount_value = stored_col.amount_value
+      end
+    end
+  end
+end
+
+-- Function to clear all content from a track line
+function PakettiPickAndMoveClearLineContent(pattern_track, track, line_index)
+  local line = pattern_track:line(line_index)
+  
+  -- Clear all note columns that might have content
+  for i = 1, track.max_note_columns do
+    local note_col = line.note_columns[i]
+    note_col.note_value = 121 -- empty
+    note_col.instrument_value = 255 -- empty
+    note_col.volume_value = 255 -- empty
+    note_col.panning_value = 255 -- empty
+    note_col.delay_value = 0
+  end
+  
+  -- Clear all effect columns that might have content
+  for i = 1, track.max_effect_columns do
+    local effect_col = line.effect_columns[i]
+    effect_col.number_value = 0
+    effect_col.amount_value = 0
+  end
+end
+
+-- Function to check if a line has any content
+function PakettiPickAndMoveLineHasContent(pattern_track, track, line_index)
+  local line = pattern_track:line(line_index)
+  
+  -- Check note columns for any content
+  for i = 1, track.max_note_columns do
+    local note_col = line.note_columns[i]
+    if note_col.note_value ~= 121 or -- not empty
+       note_col.instrument_value ~= 255 or -- not empty
+       note_col.volume_value ~= 255 or -- not empty
+       note_col.panning_value ~= 255 or -- not empty
+       note_col.delay_value ~= 0 then
+      return true
+    end
+  end
+  
+  -- Check effect columns for any content
+  for i = 1, track.max_effect_columns do
+    local effect_col = line.effect_columns[i]
+    if effect_col.number_value ~= 0 or effect_col.amount_value ~= 0 then
+      return true
+    end
+  end
+  
+  return false
+end
+
+-- Function to enable Pick & Move mode and pick up current line content
+function PakettiPickAndMoveEnable()
+  local s = renoise.song()
+  local pattern_track = s.selected_pattern_track
+  local track = s.selected_track
+  local line_index = s.transport.edit_pos.line
+  
+  -- Check if current line has content
+  if not PakettiPickAndMoveLineHasContent(pattern_track, track, line_index) then
+    renoise.app():show_status("Pick & Move: No content on current line to pick up")
+    return
+  end
+  
+  -- Store the content and position
+  PakettiPickAndMoveStoredContent = PakettiPickAndMoveCopyLineContent(pattern_track, track, line_index)
+  PakettiPickAndMoveOriginalLine = line_index
+  PakettiPickAndMoveTrackIndex = s.selected_track_index
+  PakettiPickAndMoveActive = true
+  
+  -- Clear the original line
+  PakettiPickAndMoveClearLineContent(pattern_track, track, line_index)
+  
+  renoise.app():show_status("Pick & Move: Content picked up from line " .. line_index .. " - use cursor keys to move")
+end
+
+-- Function to disable Pick & Move mode
+function PakettiPickAndMoveDisable()
+  if PakettiPickAndMoveActive and PakettiPickAndMoveStoredContent then
+    local s = renoise.song()
+    -- Always paste content at current position when disabling
+    local pattern_track = s.selected_pattern_track
+    local track = s.selected_track
+    local current_line = s.transport.edit_pos.line
+    PakettiPickAndMovePasteLineContent(pattern_track, track, current_line, PakettiPickAndMoveStoredContent)
+  end
+  
+  PakettiPickAndMoveActive = false
+  PakettiPickAndMoveStoredContent = nil
+  PakettiPickAndMoveOriginalLine = 0
+  PakettiPickAndMoveTrackIndex = 0
+  renoise.app():show_status("Pick & Move: Disabled")
+end
+
+-- Function to toggle Pick & Move mode
+function PakettiPickAndMoveToggle()
+  if PakettiPickAndMoveActive then
+    PakettiPickAndMoveDisable()
+  else
+    PakettiPickAndMoveEnable()
+  end
+end
+
+-- Function to handle cursor movement in Pick & Move mode
+function PakettiPickAndMoveCursorMove(direction)
+  if not PakettiPickAndMoveActive or not PakettiPickAndMoveStoredContent then
+    return false -- Let normal cursor movement handle it
+  end
+  
+  local s = renoise.song()
+  local current_line = s.transport.edit_pos.line
+  local pattern = s.selected_pattern
+  local new_line = current_line
+  
+  -- Calculate new position
+  if direction == "up" then
+    new_line = math.max(1, current_line - 1)
+  elseif direction == "down" then
+    new_line = math.min(pattern.number_of_lines, current_line + 1)
+  end
+  
+  -- Only move if position actually changed
+  if new_line ~= current_line then
+    -- Move cursor first
+    s.transport.edit_pos = {sequence = s.transport.edit_pos.sequence, line = new_line}
+    
+    -- Always paste the content at the new position
+    local pattern_track = s.selected_pattern_track
+    local track = s.selected_track
+    PakettiPickAndMovePasteLineContent(pattern_track, track, new_line, PakettiPickAndMoveStoredContent)
+  end
+  
+  return true -- We handled the movement
+end
+
+-- Cursor Up handler for Pick & Move
+function PakettiPickAndMoveCursorUp()
+  if PakettiPickAndMoveCursorMove("up") then
+    return -- We handled it
+  end
+  -- If Pick & Move didn't handle it, do normal cursor movement - move up one line
+  local s = renoise.song()
+  local current_line = s.transport.edit_pos.line
+  if current_line > 1 then
+    s.transport.edit_pos = {sequence = s.transport.edit_pos.sequence, line = current_line - 1}
+  end
+end
+
+-- Cursor Down handler for Pick & Move  
+function PakettiPickAndMoveCursorDown()
+  if PakettiPickAndMoveCursorMove("down") then
+    return -- We handled it
+  end
+  -- If Pick & Move didn't handle it, do normal cursor movement - move down one line
+  local s = renoise.song()
+  local current_line = s.transport.edit_pos.line
+  local pattern = s.selected_pattern
+  if current_line < pattern.number_of_lines then
+    s.transport.edit_pos = {sequence = s.transport.edit_pos.sequence, line = current_line + 1}
+  end
+end
+
+-- Add menu entries and keybindings for Pick & Move
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
+
+-- Override cursor keys for Pick & Move functionality
+renoise.tool():add_keybinding{name="Pattern Editor:Navigation:Move Cursor Up [Override]", invoke=PakettiPickAndMoveCursorUp}
+renoise.tool():add_keybinding{name="Pattern Editor:Navigation:Move Cursor Down [Override]", invoke=PakettiPickAndMoveCursorDown}
