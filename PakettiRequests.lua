@@ -7412,6 +7412,31 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Interpolation 2 (Linear) 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Interpolation 3 (Cubic) Globally",invoke=function() PakettiGlobalSample(3) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Interpolation 4 (Sinc) Globally",invoke=function() PakettiGlobalSample(4) end}
 
+function PakettiGlobalOversample(enable_oversample)
+  local song=renoise.song()
+  local oversample_state=enable_oversample and "enabled" or "disabled"
+  
+  for i=1,#song.instruments do
+    local instrument=song.instruments[i]
+    
+    if instrument==nil then
+      renoise.app():show_status("Instrument "..i.." is nil, skipping.")
+    elseif #instrument.samples==0 then
+      renoise.app():show_status("Instrument "..i.." has no samples, skipping.")
+    else
+      for y=1,#instrument.samples do
+        instrument.samples[y].oversample_enabled=enable_oversample
+      end
+      renoise.app():show_status("Set oversampling "..oversample_state.." for all samples in instrument "..i..".")
+    end
+  end
+  
+  renoise.app():show_status("Finished setting oversampling "..oversample_state.." for all instruments.")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Set Oversampling Enabled Globally",invoke=function() PakettiGlobalOversample(true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Oversampling Disabled Globally",invoke=function() PakettiGlobalOversample(false) end}
+
 --
 
 

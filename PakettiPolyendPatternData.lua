@@ -317,6 +317,9 @@ local function read_project_file(filepath)
     }
 end
 
+-- Global mapping table to track Polyend instrument indices to Renoise instrument slots
+_G.polyend_to_renoise_instrument_mapping = {}
+
 -- Auto-load all PTI instruments from instruments folder using the existing PTI loader
 local function auto_load_all_instruments(project_root)
     if not project_root or project_root == "" then
@@ -331,6 +334,9 @@ local function auto_load_all_instruments(project_root)
     
     print("-- Auto-loading PTI instruments from: " .. instruments_folder)
     print("-- NOTE: Renoise instrument 01 is left empty for Polyend instrument 00 references")
+    
+    -- Clear the global mapping table
+    _G.polyend_to_renoise_instrument_mapping = {}
     
     local loaded_count = 0
     
@@ -362,14 +368,19 @@ local function auto_load_all_instruments(project_root)
         
         renoise.app():show_status(string.format("Loading PTI: %s (%d/%d)", filename, i, #files))
         
-        -- Extract the numeric part from filename to determine correct Renoise instrument index
+        -- Extract the numeric part from filename to determine the PTI file index
         local file_number = filename:match("^(%d+)")
         if file_number then
-            local polyend_instrument_index = tonumber(file_number) -- 1, 2, 3, 4, 5, 6...
-            local renoise_instrument_index = polyend_instrument_index + 1 -- Map 1->2, 2->3, 3->4, etc. (Skip Renoise instrument 1 for Polyend instrument 00 empty)
+            local pti_file_number = tonumber(file_number) -- 1, 2, 3, 4, 5, 6...
+            -- The PTI file number represents the actual Polyend instrument index (0-based)
+            local polyend_instrument_index = pti_file_number - 1 -- Convert 1-based filename to 0-based Polyend index
+            local renoise_instrument_index = pti_file_number + 1 -- Map to Renoise (skip slot 1, use 2, 3, 4, etc.)
+            
+            -- Store the mapping: Polyend instrument index -> Renoise instrument slot
+            _G.polyend_to_renoise_instrument_mapping[polyend_instrument_index] = renoise_instrument_index
             
             print(string.format("   Mapping PTI file '%s' (Polyend instrument %02d) -> Renoise instrument %02d", 
-                filename, polyend_instrument_index - 1, renoise_instrument_index - 1)) -- Show 0-based for clarity
+                filename, polyend_instrument_index, renoise_instrument_index))
         
             -- Ensure we have enough instrument slots
             while #song.instruments < renoise_instrument_index do
@@ -840,16 +851,20 @@ function import_pattern_to_renoise(pattern_data, target_pattern_index, track_map
                                 if note <= 119 then
                                     line.note_columns[1].note_value = note
                                     -- Only set instrument when there's actually a note
-                                    -- Map Polyend instruments to match PTI loading: 00->02(hihat), 01->03(snare), etc. (Skip instrument 01 for empty)
+                                    -- Use the global mapping table to find the correct Renoise instrument slot
                                     if step_data.instrument and step_data.instrument < 255 then
-                                        local renoise_instrument_index = step_data.instrument + 2
-                                        line.note_columns[1].instrument_value = renoise_instrument_index
-                                        instruments_used[step_data.instrument] = (instruments_used[step_data.instrument] or 0) + 1
+                                        local renoise_instrument_index = _G.polyend_to_renoise_instrument_mapping[step_data.instrument]
+                                        if renoise_instrument_index then
+                                            line.note_columns[1].instrument_value = renoise_instrument_index
+                                            instruments_used[step_data.instrument] = (instruments_used[step_data.instrument] or 0) + 1
+                                        else
+                                            print(string.format("-- WARNING: No mapping found for Polyend instrument %02X", step_data.instrument))
+                                        end
                                     end
                                 elseif note == 120 then
                                     line.note_columns[1].note_string = "OFF"
                                 elseif note == 121 then
-                                    line.note_columns[1].note_string = "CUT"
+                                    line.note_columns[1].note_string = "OFF"
                                 end
                                 -- Note: MTP format doesn't include velocity data
                                 -- Velocity/volume would need to come from instrument settings or effects
