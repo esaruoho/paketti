@@ -222,15 +222,54 @@ t.edit_mode=false
 t.metronome_enabled=false
 t.loop_block_enabled=false
 t.loop_pattern = false
-t.loop_block_enabled=false
 t:start_at(startpos)
+
+-- Check for Paketti Automation devices and initialize monitoring if they exist
+if type(initialize_doofer_monitoring) == "function" then 
+  initialize_doofer_monitoring() 
+end
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F5 Start Playback",invoke=function() ImpulseTrackerPlaySong() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F5 Start Playback (2nd)",invoke=function() ImpulseTrackerPlaySong() end}
 ----------------------------------------------------------------------------------------------------------------
 -- F6, or Impulse Tracker Play Pattern.
--- There is currently no need for this, but if there one day is, this'll be where it will reside :)
--- You can map F6 to Global:Transport:Play Pattern.
+function playPattern()
+local s = renoise.song()
+local t = s.transport
+local startpos = t.playback_pos
+
+if t.playing then t:panic() ResetAllSteppers() else end
+  t:panic()
+  ResetAllSteppers()
+  -- Use current position instead of resetting to sequence 1, line 1
+  startpos.sequence = s.selected_sequence_index
+  startpos.line = s.selected_line_index
+  t.playback_pos = startpos
+local start_time = os.clock()
+  while (os.clock() - start_time < 0.225) do
+        -- Delay the start after panic. Don't go below 0.2 seconds 
+        -- or you might tempt some plugins to crash and take Renoise in the fall!!    
+        -- ^^^ I don't know or remember who wrote the above comments but it wasn't me -Esa  
+  end
+-- Don't change follow_player, edit_mode, or metronome_enabled
+t.loop_block_enabled=false
+t.loop_pattern = true
+t:start_at(startpos)
+
+-- Check for Paketti Automation devices and initialize monitoring if they exist
+if type(initialize_doofer_monitoring) == "function" then 
+  initialize_doofer_monitoring() 
+end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F6 Start Playback Pattern",invoke=function() playPattern() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F6 Start Playback Pattern (2nd)",invoke=function() playPattern() end}
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker F6 Start Playback Pattern",invoke=function() playPattern() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker F6 Start Playback Pattern (2nd)",invoke=function() playPattern() end}
+
+renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker F6 Start Playback Pattern",invoke=function() playPattern() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker F6 Start Playback Pattern (2nd)",invoke=function() playPattern() end}
 ----------------------------------------------------------------------------------------------------------------
 -- F7, or Impulse Tracker Play from line.
 function ImpulseTrackerPlayFromLine()
@@ -262,6 +301,13 @@ local monitoring_enabled = true
  startpos.sequence = s.selected_sequence_index
  t.playback_pos = startpos
   t:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN)
+end
+
+
+
+-- Check for Paketti Automation devices and initialize monitoring if they exist
+if type(initialize_doofer_monitoring) == "function" then 
+  initialize_doofer_monitoring() 
 end
 end
 

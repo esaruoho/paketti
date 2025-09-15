@@ -705,16 +705,8 @@ PakettiAutomationDoofer = true
 end
 
 
--- Keybinding for Initialization
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Automation",
-  invoke=function() initialize_doofer_monitoring() end}
-
-
-
-
-
-
-
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Automation Hack",invoke=function() initialize_doofer_monitoring() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Paketti Automation Hack",invoke=function() initialize_doofer_monitoring() end}
 
 ---------
 -- Helper function to handle volume-specific scaling
