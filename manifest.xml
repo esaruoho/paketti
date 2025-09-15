@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RenoiseScriptingTool doc_version="0">
-  <Name>Paketti</Name>
+  <ApiVersion>6</ApiVersion>
+  <AutoUpgraded>true</AutoUpgraded>
   <Id>org.lackluster.Paketti</Id>
   <Version>3.54</Version>
-  <ApiVersion>6</ApiVersion>
   <Author>lackluster | esaruoho@icloud.com</Author>
-  <AutoUpgraded>false</AutoUpgraded>
+  <Name>Paketti</Name>
   <Category>Workflow</Category>
   <Description>Shortcuts, midimappings, menu entries for sample modification, clean rendering, ImpulseTracker shortcuts, Pattern Editor features, loading VST,VST3,AudioUnit devices, etc.</Description>
-  <Homepage>https://patreon.com/esaruoho</Homepage>
-  <Platform/>
-  <Icon/>
+  <Homepage>http://www.lackluster.org/</Homepage>
 </RenoiseScriptingTool>

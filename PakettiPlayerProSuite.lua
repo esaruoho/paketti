@@ -4691,7 +4691,7 @@ function pakettiPlayerProStartMiddleFrameObserver()
   end
   
   renoise.app().window.active_middle_frame_observable:add_notifier(middle_frame_observer)
-  print("PlayerPro: Started middle frame observer")
+  
 end
 
 function pakettiPlayerProStopMiddleFrameObserver()

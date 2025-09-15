@@ -1,9 +1,6 @@
 -- PakettiPolyendPatternData.lua
 -- Polyend Pattern Data functionality for Paketti
 -- Import Polyend Tracker patterns and projects into Renoise
-
-print("PakettiPolyendPatternData.lua loaded")
-
 local vb = renoise.ViewBuilder()
 local bit = require("bit")
 local separator = package.config:sub(1,1)

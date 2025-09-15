@@ -276,14 +276,26 @@ end
 
 -- DIGITS --------------------------------------------------------------
 function PakettiCanvasFontDrawDigit0(ctx, x, y, size)
+  local original_width = ctx.line_width or 1
+  
+  -- Draw rectangle outline
   ctx:begin_path()
   ctx:move_to(x, y)
   ctx:line_to(x + size, y)
   ctx:line_to(x + size, y + size)
   ctx:line_to(x, y + size)
   ctx:line_to(x, y)
+  ctx:stroke()
+  
+  -- Draw diagonal slash with thinner line for smooth look (not spiky!)
+  ctx.line_width = 1  -- Always use 1px for diagonal to avoid spike
+  ctx:begin_path()
+  ctx:move_to(x, y)
   ctx:line_to(x + size, y + size)
   ctx:stroke()
+  
+  -- Restore original line width
+  ctx.line_width = original_width
 end
 
 function PakettiCanvasFontDrawDigit1(ctx, x, y, size)
@@ -793,7 +805,7 @@ end
 -- TEXT ---------------------------------------------------------------
 function PakettiCanvasFontDrawText(ctx, text, x, y, size)
   local current_x = x
-  local letter_spacing = size * 1.2
+  local letter_spacing = size * 1.4  -- Increased spacing for better readability with thicker fonts
   local i = 1
   local n = #text
   while i <= n do

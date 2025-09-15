@@ -479,5 +479,3 @@ function PakettiPolyendSliceSwitcherRemoveNotifier()
     end
   end
 end
-
-print("PakettiPolyendSliceSwitcher.lua loaded successfully")
