@@ -3567,6 +3567,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set All Automation Envelopes 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
+
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
@@ -3576,4 +3577,102 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Set All Automation En
 renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
+
+
+
+
+
+
+
+-- Global variable to track the loop end notifier
+paketti_loop_end_notifier = nil
+
+-- Function to map device parameter value to sample loop_end
+function PakettiMapParameterToLoopEnd(param_value)
+  local song = renoise.song()
+  
+  -- Check if we have a selected instrument and sample
+  if not song.selected_instrument or #song.selected_instrument.samples == 0 then
+    return
+  end
+  
+  local sample = song.selected_instrument.samples[song.selected_sample_index]
+  
+  -- Check if sample has data
+  if not sample.sample_buffer.has_sample_data then
+    return
+  end
+  
+  local sample_buffer = sample.sample_buffer
+  local total_frames = sample_buffer.number_of_frames
+  local loop_start = sample.loop_start
+  
+  -- Map 0.0-1.0 parameter value to frame range
+  -- Ensure loop_end is at least loop_start + 1 and doesn't exceed total frames
+  local min_loop_end = loop_start + 1
+  local max_loop_end = total_frames
+  
+  -- Calculate the mapped loop_end value
+  local mapped_loop_end = math.floor(param_value * (max_loop_end - min_loop_end) + min_loop_end)
+  
+  -- Clamp the value to ensure it's within valid range
+  mapped_loop_end = math.max(min_loop_end, math.min(max_loop_end, mapped_loop_end))
+  
+  -- Set the loop_end value
+  sample.loop_end = mapped_loop_end
+  
+  print(string.format("Parameter: %.3f -> Loop End: %d (Start: %d, Frames: %d)", 
+    param_value, mapped_loop_end, loop_start, total_frames))
+end
+
+-- Function to toggle monitoring device parameter for loop end control
+function PakettiToggleLoopEndParameterMonitor()
+  local song = renoise.song()
+  
+  -- If monitor is currently active, stop it
+  if paketti_loop_end_notifier then
+    -- Try to remove notifier from current device
+    if #song.selected_track.devices >= 2 and #song.selected_track.devices[2].parameters >= 4 then
+      local param = song.selected_track.devices[2].parameters[4]
+      if param.value_observable:has_notifier(paketti_loop_end_notifier) then
+        param.value_observable:remove_notifier(paketti_loop_end_notifier)
+      end
+    end
+    paketti_loop_end_notifier = nil
+    renoise.app():show_status("Loop End Parameter Monitor stopped")
+    return
+  end
+  
+  -- Check if selected track has at least 2 devices
+  if #song.selected_track.devices < 2 then
+    renoise.app():show_status("There must be a LFO connected to the first LFO Amplitude - then you can toggle the Loop End Parameter Monitor On, doing nothing.")
+    return
+  end
+  
+  local device = song.selected_track.devices[2]
+  
+  -- Check if device has at least 4 parameters
+  if #device.parameters < 4 then
+    renoise.app():show_status("There must be a LFO connected to the first LFO Amplitude - then you can toggle the Loop End Parameter Monitor On, doing nothing.")
+    return
+  end
+  
+  local param = device.parameters[4]
+  
+  -- Create the notifier function
+  paketti_loop_end_notifier = function()
+    local value = param.value
+    PakettiMapParameterToLoopEnd(value)
+  end
+  
+  -- Add the notifier
+  param.value_observable:add_notifier(paketti_loop_end_notifier)
+  
+  renoise.app():show_status("Loop End Parameter Monitor started on Device 2, Parameter 4")
+end
+
+
+-- Loop End Parameter Monitor menu entries
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Toggle Loop End Parameter Monitor", invoke=PakettiToggleLoopEndParameterMonitor}
+renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Toggle Loop End Parameter Monitor", invoke=PakettiToggleLoopEndParameterMonitor}
 

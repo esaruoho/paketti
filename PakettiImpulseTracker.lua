@@ -243,7 +243,7 @@ if t.playing then t:panic() ResetAllSteppers() else end
   ResetAllSteppers()
   -- Use current position instead of resetting to sequence 1, line 1
   startpos.sequence = s.selected_sequence_index
-  startpos.line = s.selected_line_index
+  startpos.line = 1
   t.playback_pos = startpos
 local start_time = os.clock()
   while (os.clock() - start_time < 0.225) do
