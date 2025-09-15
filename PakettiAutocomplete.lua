@@ -3781,6 +3781,7 @@ function debug_show_sample_categories()
   print("=== END SAMPLE CATEGORIES ===")
 end
 
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Add Autocomplete Abbreviation...", invoke=pakettiAutocompleteAddAbbreviation}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Reset Autocomplete Usage Statistics", invoke=pakettiAutocompleteResetUsage}

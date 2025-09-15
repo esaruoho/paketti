@@ -145,15 +145,23 @@ local function precompute_slider_colors()
 end
 precompute_slider_colors()  -- Compute once at startup
 
--- OPTIMIZATION: Probe bulk-copy capability once (eliminate repeated pcall cost)
-local HAS_BULK = (function()
-  local s = renoise.song().selected_sample
-  if not s or not s.sample_buffer then return false end
-  local ok = pcall(function() 
-    s.sample_buffer:copy_channel_data_to_table(1, 1, 1, {}) 
-  end)
-  return ok
-end)()
+-- OPTIMIZATION: Lazy-initialized bulk-copy capability flag (eliminate repeated pcall cost)
+local HAS_BULK = nil
+
+local function check_bulk_capability()
+  if HAS_BULK == nil then
+    local s = renoise.song().selected_sample
+    if not s or not s.sample_buffer then 
+      HAS_BULK = false 
+    else
+      local ok = pcall(function() 
+        s.sample_buffer:copy_channel_data_to_table(1, 1, 1, {}) 
+      end)
+      HAS_BULK = ok
+    end
+  end
+  return HAS_BULK
+end
 
 -- OPTIMIZATION: Per-channel processing state (reused across chunks for continuity)
 local PROC_STATE = {}  -- ch -> {up_hist={}, down_hist={}, dc_x1=0.0, dc_y1=0.0}
@@ -187,7 +195,7 @@ local INBUF, OUTBUF = {}, {}
 -- OPTIMIZATION: Fast bulk read/write using probed capability (eliminate repeated pcalls)
 local function read_chunk(dst, buffer, ch, start_frame, end_frame)
   local N = end_frame - start_frame + 1
-  if HAS_BULK then
+  if check_bulk_capability() then
     buffer:copy_channel_data_to_table(ch, start_frame, end_frame, dst)
   else
     for i = 1, N do 
@@ -200,7 +208,7 @@ local function read_chunk(dst, buffer, ch, start_frame, end_frame)
 end
 
 local function write_chunk(src, buffer, ch, start_frame)
-  if HAS_BULK then
+  if check_bulk_capability() then
     buffer:copy_channel_data_from_table(ch, start_frame, src)
   else
     for i = 1, #src do 
@@ -962,7 +970,7 @@ cache_sample_waveform = function()
   
   -- OPTIMIZATION: Use HAS_BULK flag to avoid repeated pcalls
   local bulk_data = {}
-  if HAS_BULK then
+  if check_bulk_capability() then
     for channel = 1, num_channels do
       bulk_data[channel] = {}
       buffer:copy_channel_data_to_table(channel, sfrm, sfrm + samples_to_read - 1, bulk_data[channel])
@@ -976,7 +984,7 @@ cache_sample_waveform = function()
     local sample_value = 0.0
     
     -- OPTIMIZATION: Branch once on HAS_BULK, not per-sample
-    if HAS_BULK then
+    if check_bulk_capability() then
       for channel = 1, num_channels do
         sample_value = sample_value + (bulk_data[channel][i] or 0)
       end
