@@ -241,7 +241,9 @@ end
 function PakettiPPWV_MapTimeToX(t, num_lines)
   local win = PakettiPPWV_GetWindowLines(num_lines)
   local view_start_t = (PakettiPPWV_view_start_line - 1)
-  local x = ((t - view_start_t) / win) * PakettiPPWV_canvas_width
+  -- For proper distribution across full canvas width, divide by (win - 1) when win > 1
+  local divisor = (win > 1) and (win - 1) or 1
+  local x = ((t - view_start_t) / divisor) * PakettiPPWV_canvas_width
   return x
 end
 
@@ -249,7 +251,9 @@ function PakettiPPWV_MapTimeToY(t, num_lines, canvas_height)
   local win = PakettiPPWV_GetWindowLines(num_lines)
   local view_start_t = (PakettiPPWV_view_start_line - 1)
   local H = canvas_height or PakettiPPWV_canvas_height
-  local y = ((t - view_start_t) / win) * H
+  -- For proper distribution across full canvas height, divide by (win - 1) when win > 1
+  local divisor = (win > 1) and (win - 1) or 1
+  local y = ((t - view_start_t) / divisor) * H
   return y
 end
 
@@ -390,9 +394,10 @@ function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h)
     local gutter = PakettiPPWV_gutter_width
     ctx.fill_color = {18,18,24,255}; ctx:fill_rect(0, 0, gutter, H)
     ctx.fill_color = {14,14,20,255}; ctx:fill_rect(W - gutter, 0, gutter, H)
-    -- Track label drawn after gutters so it's not covered; omit ':' and align after left gutter
+    -- Track label drawn to align with timeline step 00 (line 1)
     ctx.stroke_color = {255,255,255,255}
-    PakettiPPWV_DrawTextShared(ctx, string.format("%02d %s", track_index, tr and tr.name or "Track"), gutter + 4, 4, 8)
+    local label_x = PakettiPPWV_LineDelayToX(1, 0, num_lines) + 2  -- Align with step 00 plus small offset
+    PakettiPPWV_DrawTextShared(ctx, string.format("%02d %s", track_index, tr and tr.name or "Track"), label_x, 4, 8)
     if is_muted then
       ctx.fill_color = {28,28,28,210}; ctx:fill_rect(gutter, 0, W - (2*gutter), H)
       ctx.stroke_color = {220,220,220,240}
@@ -1426,17 +1431,23 @@ function PakettiPPWV_RenderCanvas(ctx)
 
   -- Playback cursor
   local tp = song.transport
+  local x_play = nil
+  local play_line = nil
   if tp.playing then
     local playpos = tp.playback_pos
-    if playpos and playpos.sequence then
-      local patt_at_seq = song.sequencer:pattern(playpos.sequence)
-      if patt_at_seq == song.selected_pattern_index then
-        local x = PakettiPPWV_LineDelayToX(playpos.line, 0, num_lines)
-        ctx.stroke_color = {255,255,255,200}
-        ctx.line_width = 2
-        draw_line(x, 0, x, H)
-      end
+    if playpos and playpos.sequence and playpos.line and playpos.sequence == renoise.song().selected_sequence_index then
+      play_line = playpos.line
     end
+  else
+    play_line = song.selected_line_index
+  end
+  if play_line then
+    x_play = PakettiPPWV_LineDelayToX(play_line, 0, num_lines)
+  end
+  if x_play then
+    ctx.stroke_color = {255,200,120,255}
+    ctx.line_width = 2
+    draw_line(x_play, 0, x_play, H)
   end
 end
 
@@ -1682,39 +1693,122 @@ end
 
 -- Public helpers for keybindings
 function PakettiPlayerProWaveformViewerNudgeLeftTick()
-  PakettiPPWV_NudgeSelectedTicks(-1)
+  if not PakettiPPWV_selected_event_id then return end
+  for i = 1, #PakettiPPWV_events do
+    local ev = PakettiPPWV_events[i]
+    if ev.id == PakettiPPWV_selected_event_id then
+      if PakettiPPWV_MoveEventByTicks(ev, -1) then
+        PakettiPPWV_RebuildEvents()
+        PakettiPPWV_UpdateCanvasThrottled()
+      end
+      break
+    end
+  end
 end
 
 function PakettiPlayerProWaveformViewerNudgeRightTick()
-  PakettiPPWV_NudgeSelectedTicks(1)
+  if not PakettiPPWV_selected_event_id then return end
+  for i = 1, #PakettiPPWV_events do
+    local ev = PakettiPPWV_events[i]
+    if ev.id == PakettiPPWV_selected_event_id then
+      if PakettiPPWV_MoveEventByTicks(ev, 1) then
+        PakettiPPWV_RebuildEvents()
+        PakettiPPWV_UpdateCanvasThrottled()
+      end
+      break
+    end
+  end
 end
 
 function PakettiPlayerProWaveformViewerNudgeLeftLine()
-  PakettiPPWV_NudgeSelectedTicks(-256)
+  if not PakettiPPWV_selected_event_id then return end
+  for i = 1, #PakettiPPWV_events do
+    local ev = PakettiPPWV_events[i]
+    if ev.id == PakettiPPWV_selected_event_id then
+      if PakettiPPWV_MoveEventByTicks(ev, -256) then
+        PakettiPPWV_RebuildEvents()
+        PakettiPPWV_UpdateCanvasThrottled()
+      end
+      break
+    end
+  end
 end
 
 function PakettiPlayerProWaveformViewerNudgeRightLine()
-  PakettiPPWV_NudgeSelectedTicks(256)
+  if not PakettiPPWV_selected_event_id then return end
+  for i = 1, #PakettiPPWV_events do
+    local ev = PakettiPPWV_events[i]
+    if ev.id == PakettiPPWV_selected_event_id then
+      if PakettiPPWV_MoveEventByTicks(ev, 256) then
+        PakettiPPWV_RebuildEvents()
+        PakettiPPWV_UpdateCanvasThrottled()
+      end
+      break
+    end
+  end
 end
 
 function PakettiPlayerProWaveformViewerSnapToRow()
-  PakettiPPWV_SnapSelectedToNearestRow()
+  if not PakettiPPWV_selected_event_id then return end
+  local song, patt = PakettiPPWV_GetSongAndPattern()
+  if not song or not patt then return end
+  for i = 1, #PakettiPPWV_events do
+    local ev = PakettiPPWV_events[i]
+    if ev.id == PakettiPPWV_selected_event_id then
+      local ptrack = patt:track(ev.track_index)
+      local src_nc = ptrack:line(ev.start_line).note_columns[ev.column_index]
+      if not src_nc or src_nc.is_empty then return end
+      local delay = src_nc.delay_value or 0
+      local delta = 0
+      if delay >= 128 then
+        delta = 256 - delay
+      else
+        delta = -delay
+      end
+      if PakettiPPWV_MoveEventByTicks(ev, delta) then
+        PakettiPPWV_RebuildEvents()
+        PakettiPPWV_UpdateCanvasThrottled()
+      end
+      break
+    end
+  end
 end
 
 function PakettiPlayerProWaveformViewerSelectPrev()
-  PakettiPPWV_SelectAdjacentEvent(-1)
+  if #PakettiPPWV_events == 0 then return end
+  local idx = 1
+  for i = 1, #PakettiPPWV_events do
+    if PakettiPPWV_events[i].id == PakettiPPWV_selected_event_id then
+      idx = i
+      break
+    end
+  end
+  idx = idx + (-1)
+  if idx < 1 then idx = 1 end
+  if idx > #PakettiPPWV_events then idx = #PakettiPPWV_events end
+  PakettiPPWV_selected_event_id = PakettiPPWV_events[idx].id
+  if PakettiPPWV_canvas then PakettiPPWV_canvas:update() end
 end
 
 function PakettiPlayerProWaveformViewerSelectNext()
-  PakettiPPWV_SelectAdjacentEvent(1)
+  if #PakettiPPWV_events == 0 then return end
+  local idx = 1
+  for i = 1, #PakettiPPWV_events do
+    if PakettiPPWV_events[i].id == PakettiPPWV_selected_event_id then
+      idx = i
+      break
+    end
+  end
+  idx = idx + 1
+  if idx < 1 then idx = 1 end
+  if idx > #PakettiPPWV_events then idx = #PakettiPPWV_events end
+  PakettiPPWV_selected_event_id = PakettiPPWV_events[idx].id
+  if PakettiPPWV_canvas then PakettiPPWV_canvas:update() end
 end
 
--- Menu entries
 renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Paketti:PlayerPro:Waveform Viewer (SkunkWorks)", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end }
-renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Waveform Viewer (SkunkWorks)", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end}
+renoise.tool():add_menu_entry{ name = "Main Menu:Tools:PlayerPro Waveform Viewer (SkunkWorks)", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end}
 renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:PlayerPro:Waveform Viewer (SkunkWorks)", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end}
-
--- Keybindings
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:PlayerPro Waveform Viewer Open Viewer", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end}
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:PlayerPro Waveform Viewer Nudge Left (Tick)", invoke = PakettiPlayerProWaveformViewerNudgeLeftTick }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:PlayerPro Waveform Viewer Nudge Right (Tick)", invoke = PakettiPlayerProWaveformViewerNudgeRightTick }
@@ -1725,10 +1819,6 @@ renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:PlayerPro Waveform
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:PlayerPro Waveform Viewer Select Next Event", invoke = PakettiPlayerProWaveformViewerSelectNext }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:PlayerPro Waveform Viewer Refresh", invoke = PakettiPlayerProWaveformViewerRefresh }
 
--- MIDI mappings (basic triggers)
 renoise.tool():add_midi_mapping{ name = "Paketti:PlayerPro Waveform Viewer Open Viewer", invoke = function(message) if message:is_trigger() then PakettiPlayerProWaveformViewerShowDialog() end end }
 renoise.tool():add_midi_mapping{ name = "Paketti:PlayerPro Waveform Viewer Nudge Left (Tick)", invoke = function(message) if message:is_trigger() then PakettiPlayerProWaveformViewerNudgeLeftTick() end end }
 renoise.tool():add_midi_mapping{ name = "Paketti:PlayerPro Waveform Viewer Nudge Right (Tick)", invoke = function(message) if message:is_trigger() then PakettiPlayerProWaveformViewerNudgeRightTick() end end }
-
-
-

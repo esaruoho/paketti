@@ -320,6 +320,9 @@ end
 -- Global mapping table to track Polyend instrument indices to Renoise instrument slots
 _G.polyend_to_renoise_instrument_mapping = {}
 
+-- Global variable to track detected BPM from patterns
+_G.polyend_detected_bpm = nil
+
 -- Auto-load all PTI instruments from instruments folder using the existing PTI loader
 local function auto_load_all_instruments(project_root)
     if not project_root or project_root == "" then
@@ -335,8 +338,9 @@ local function auto_load_all_instruments(project_root)
     print("-- Auto-loading PTI instruments from: " .. instruments_folder)
     print("-- NOTE: Renoise instrument 01 is left empty for Polyend instrument 00 references")
     
-    -- Clear the global mapping table
+    -- Clear the global mapping table and BPM detection
     _G.polyend_to_renoise_instrument_mapping = {}
+    _G.polyend_detected_bpm = nil
     
     local loaded_count = 0
     
@@ -527,6 +531,16 @@ local function auto_load_all_patterns(project_root, playlist)
     end
     
     print(string.format("-- Loaded %d patterns", loaded_count))
+    
+    -- Set global song BPM from detected tempo or default
+    local final_bpm = _G.polyend_detected_bpm or 128 -- Default to 128 BPM if no tempo found
+    local song = renoise.song()
+    if song and song.transport then
+        song.transport.bpm = final_bpm
+        print(string.format("-- SET GLOBAL BPM: %d BPM", final_bpm))
+        renoise.app():show_status(string.format("Polyend MT Project: Set BPM to %d", final_bpm))
+    end
+    
     return loaded_count
 end
 
@@ -570,6 +584,14 @@ function read_pattern_file(filepath)
     local unused2 = read_uint8(file)
     local unused3 = read_uint8(file)
     local unused4 = read_uint8(file)
+    
+    -- Debug output for potential BPM data in unused fields
+    if f_unused1 and f_unused1 ~= 0.0 then
+        print(string.format("-- DEBUG: MTP f_unused1 = %.2f (potential BPM?)", f_unused1))
+    end
+    if f_unused2 and f_unused2 ~= 0.0 then
+        print(string.format("-- DEBUG: MTP f_unused2 = %.2f (potential BPM?)", f_unused2))
+    end
     
     -- Just assume 16 tracks max and read what we can
     local track_count = 16
@@ -680,7 +702,17 @@ local function convert_polyend_fx(fx_type, fx_value)
     if fx_type == 15 then  -- Tempo (T)
         -- Polyend tempo: 8-400 BPM, value 4-200 maps to 8-400
         local bpm = (fx_value * 2) + 8
-        return "F0", string.format("%02X", math.min(255, math.max(32, bpm))), "Tempo"
+        
+        -- Store the first detected BPM globally for song setting
+        if not _G.polyend_detected_bpm then
+            _G.polyend_detected_bpm = bpm
+            print(string.format("-- DETECTED BPM: %d from Polyend Tempo FX", bpm))
+        end
+        
+        -- Convert to Renoise F0XX effect (Set BPM directly)
+        -- F0XX in Renoise: XX is the BPM value directly (32-255)
+        local renoise_bpm = math.min(255, math.max(32, bpm))
+        return "F0", string.format("%02X", renoise_bpm), "Tempo"
     elseif fx_type == 18 then  -- Volume/Velocity (V)
         return "0C", string.format("%02X", math.min(64, fx_value)), "Volume"
     elseif fx_type == 31 then  -- Panning (P) 
