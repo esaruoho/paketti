@@ -784,7 +784,7 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiNotepadRun")
   timed_require("PakettiEQ30")
   --timed_require("PakettiMultitapExperiment")
-  timed_require("PakettiPlayerProWaveformViewer")
+  --timed_require("PakettiPlayerProWaveformViewer")
   --timed_require("PakettiAutomationStack")
 end
 
