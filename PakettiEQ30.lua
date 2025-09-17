@@ -1636,7 +1636,7 @@ function create_eq_dialog()
       vb:text { text = "Automation Playmode", width = 130, style = "strong",font="bold" },
       vb:switch {
         id = "eq30_playmode_switch_1",
-        width = 300,
+        width = 200,
         items = {"Points","Lines","Curves"},
         value = (preferences and preferences.PakettiEQ30AutomationPlaymode and preferences.PakettiEQ30AutomationPlaymode.value) or 2,
         notifier = function(value)

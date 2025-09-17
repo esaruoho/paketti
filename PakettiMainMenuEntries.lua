@@ -317,7 +317,7 @@ local function create_button_list()
     table.insert(buttons, {"Paketti Enhanced Phrase Generator", "pakettiPhraseGeneratorDialog"})
     table.insert(buttons, {"Chebyshev Polynomial Waveshaper", "show_chebyshev_waveshaper"})
     table.insert(buttons, {"Paketti Device Parameter Editor", "PakettiCanvasExperimentsInit"})
-  
+    table.insert(buttons, {"Sample Offset / Slice Step Sequencer", "PakettiSliceStepCreateDialog"})  
   end
   
   -- **ALL MISSING DIALOGS ADDED (FROM COMPREHENSIVE GREP):**

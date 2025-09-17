@@ -49,6 +49,10 @@ PakettiAutomationStack_single_canvas_height = 320
 PakettiAutomationStack_copy_buffer = nil
 PakettiAutomationStack_automation_hashes = {} -- Individual automation hashes for change detection
 
+-- Observable management for auto-updating
+PakettiAutomationStack_track_observables = {} -- Track mute state observables
+PakettiAutomationStack_tracks_observable = nil -- Track list observable
+
 -- Arbitrary Parameters Selection System
 PakettiAutomationStack_arbitrary_mode = false -- false=current track, true=arbitrary selection
 PakettiAutomationStack_selected_parameters = {} -- Array of {track_index, device_index, param_index}
@@ -91,11 +95,39 @@ function PakettiAutomationStack_GetTrackColor(track_index)
   return {color[1], color[2], color[3]}
 end
 
+-- Check if track is muted
+function PakettiAutomationStack_IsTrackMuted(track_index)
+  local song = renoise.song()
+  if not song or track_index < 1 or track_index > #song.tracks then 
+    return false
+  end
+  
+  local track = song.tracks[track_index]
+  -- Master track doesn't have mute state
+  if track.type == renoise.Track.TRACK_TYPE_MASTER then
+    return false
+  end
+  
+  return track.mute_state == renoise.Track.MUTE_STATE_MUTED
+end
+
 -- Convert track color to canvas colors with alpha and brightness variations
 function PakettiAutomationStack_TrackColorToCanvas(track_index, alpha, brightness_mult)
   local rgb = PakettiAutomationStack_GetTrackColor(track_index)
   alpha = alpha or 255
   brightness_mult = brightness_mult or 1.0
+  
+  -- Apply mute state - if muted, desaturate and darken significantly
+  local is_muted = PakettiAutomationStack_IsTrackMuted(track_index)
+  if is_muted then
+    brightness_mult = brightness_mult * 0.3 -- Much darker when muted
+    alpha = math.max(60, alpha * 0.4) -- Much more transparent when muted
+    -- Desaturate by averaging with grey
+    local grey = (rgb[1] + rgb[2] + rgb[3]) / 3
+    rgb[1] = rgb[1] * 0.2 + grey * 0.8
+    rgb[2] = rgb[2] * 0.2 + grey * 0.8
+    rgb[3] = rgb[3] * 0.2 + grey * 0.8
+  end
   
   -- Apply brightness multiplier and clamp
   local r = math.max(0, math.min(255, math.floor(rgb[1] * brightness_mult)))
@@ -136,6 +168,24 @@ function PakettiAutomationStack_GetTrackName(track_index)
       end
     end
     return track.name or ("Track " .. string.format("%02d", sequencer_count))
+  end
+end
+
+-- Toggle track mute state
+function PakettiAutomationStack_ToggleTrackMute(track_index)
+  local song = renoise.song()
+  if not song or track_index < 1 or track_index > #song.tracks then return end
+  
+  local track = song.tracks[track_index]
+  -- Master track doesn't have mute state
+  if track.type == renoise.Track.TRACK_TYPE_MASTER then return end
+  
+  if track.mute_state == renoise.Track.MUTE_STATE_MUTED then
+    track:unmute()
+    renoise.app():show_status("Automation Stack: Unmuted " .. PakettiAutomationStack_GetTrackName(track_index))
+  else
+    track:mute()
+    renoise.app():show_status("Automation Stack: Muted " .. PakettiAutomationStack_GetTrackName(track_index))
   end
 end
 
@@ -249,7 +299,24 @@ end
 function PakettiAutomationStack_BuildAutomationHash()
   local song, patt, ptrack = PakettiAutomationStack_GetSongPatternTrack()
   if not song or not patt or not ptrack then return "" end
-  local acc = {tostring(patt.number_of_lines), tostring(song.selected_track_index)}
+  local acc = {tostring(patt.number_of_lines), tostring(song.selected_track_index), tostring(#song.tracks)}
+  
+  -- Include track count and mute states for change detection
+  for track_idx = 1, #song.tracks do
+    local track = song.tracks[track_idx]
+    if track then
+      local mute_state = "active"
+      if track.type ~= renoise.Track.TRACK_TYPE_MASTER then
+        if track.mute_state == renoise.Track.MUTE_STATE_MUTED then
+          mute_state = "muted"
+        elseif track.mute_state == renoise.Track.MUTE_STATE_OFF then
+          mute_state = "off"
+        end
+      end
+      acc[#acc+1] = "t" .. tostring(track_idx) .. ":" .. mute_state .. ":" .. (track.name or "")
+    end
+  end
+  
   local track = song.tracks[song.selected_track_index]
   if not track then return table.concat(acc, ":") end
   for d = 1, #track.devices do
@@ -805,9 +872,17 @@ function PakettiAutomationStack_RenderSingleCanvas(canvas_w, canvas_h)
       ctx.line_width = 1
       ctx:begin_path(); ctx:rect(2, 2, W - 4, 12); ctx:stroke()
       
-      -- Draw text with high contrast color
-      ctx.stroke_color = {255, 255, 255, 255}
-      PakettiAutomationStack_DrawText(ctx, string.upper(label), 6, 4, 8)
+      -- Add mute indicator if track is muted
+      local is_muted = PakettiAutomationStack_IsTrackMuted(track_idx)
+      local mute_suffix = is_muted and " (MUTED - CLICK TO UNMUTE)" or ""
+      
+      -- Draw text with high contrast color or dimmed if muted
+      if is_muted then
+        ctx.stroke_color = {200, 200, 200, 255} -- Slightly dimmed for muted tracks
+      else
+        ctx.stroke_color = {255, 255, 255, 255}
+      end
+      PakettiAutomationStack_DrawText(ctx, string.upper(label .. mute_suffix), 6, 4, 8)
     end
   end
 end
@@ -827,6 +902,15 @@ function PakettiAutomationStack_SingleMouse(ev, lane_h)
   if idx < 1 then idx = 1 end
   if idx > #PakettiAutomationStack_automations then idx = #PakettiAutomationStack_automations end
   if ev.type == "down" and ev.button == "left" then
+    -- Check if click is on the label area (top 14 pixels)
+    if y <= 14 then
+      local entry = PakettiAutomationStack_automations[idx]
+      if entry and entry.track_index then
+        PakettiAutomationStack_ToggleTrackMute(entry.track_index)
+        PakettiAutomationStack_RequestUpdate()
+        return
+      end
+    end
     PakettiAutomationStack_is_drawing = true
     PakettiAutomationStack_last_draw_line = line
     PakettiAutomationStack_last_draw_idx = idx
@@ -1032,6 +1116,15 @@ function PakettiAutomationStack_LaneMouse(automation_index, ev, lane_h)
   local is_alt = (string.find(mods:lower(), "alt", 1, true) ~= nil) or (string.find(mods:lower(), "option", 1, true) ~= nil)
 
   if ev.type == "down" and ev.button == "left" then
+    -- Check if click is on the label area (top 14 pixels)
+    if y <= 14 then
+      local entry = PakettiAutomationStack_automations[automation_index]
+      if entry and entry.track_index then
+        PakettiAutomationStack_ToggleTrackMute(entry.track_index)
+        PakettiAutomationStack_RequestUpdate()
+        return
+      end
+    end
     local is_shift = (string.find(mods:lower(), "shift", 1, true) ~= nil)
     if is_shift then
       PakettiAutomationStack_selection_active = true
@@ -1145,9 +1238,17 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
     ctx.line_width = 1
     ctx:begin_path(); ctx:rect(2, 2, W - 4, 12); ctx:stroke()
     
-    -- Draw text with high contrast color
-    ctx.stroke_color = {255, 255, 255, 255}
-    PakettiAutomationStack_DrawText(ctx, string.upper(label), 6, 4, 8)
+    -- Add mute indicator if track is muted
+    local is_muted = PakettiAutomationStack_IsTrackMuted(track_idx)
+    local mute_suffix = is_muted and " (MUTED - CLICK TO UNMUTE)" or ""
+    
+    -- Draw text with high contrast color or dimmed if muted
+    if is_muted then
+      ctx.stroke_color = {150, 150, 150, 255} -- Dimmed text for muted tracks
+    else
+      ctx.stroke_color = {255, 255, 255, 255}
+    end
+    PakettiAutomationStack_DrawText(ctx, string.upper(label .. mute_suffix), 6, 4, 8)
 
     local a = entry.automation
     local points = (a and a.points) or {}
@@ -1823,6 +1924,10 @@ function PakettiAutomationStack_ReopenDialog()
   PakettiAutomationStack_count_text_view = PakettiAutomationStack_vb.views.pas_count_text
   PakettiAutomationStack_show_same_popup_view = PakettiAutomationStack_vb.views.pas_show_same_popup
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+  
+  -- Setup observables for auto-updating
+  PakettiAutomationStack_SetupObservables()
+  
   PakettiAutomationStack_RebuildAutomations()
   -- Initialize automation hashes for change detection
   PakettiAutomationStack_automation_hashes = PakettiAutomationStack_BuildIndividualHashes()
@@ -1878,12 +1983,82 @@ function PakettiAutomationStack_TimerTick()
   end
 end
 
+-- Setup observables for auto-updating
+function PakettiAutomationStack_SetupObservables()
+  PakettiAutomationStack_CleanupObservables() -- Clean up existing first
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Track list observable (for when tracks are added/removed)
+  if song.tracks_observable and not song.tracks_observable:has_notifier(PakettiAutomationStack_OnTracksChanged) then
+    song.tracks_observable:add_notifier(PakettiAutomationStack_OnTracksChanged)
+    PakettiAutomationStack_tracks_observable = song.tracks_observable
+  end
+  
+  -- Individual track mute state observables
+  for track_idx = 1, #song.tracks do
+    local track = song.tracks[track_idx]
+    if track and track.type ~= renoise.Track.TRACK_TYPE_MASTER and track.mute_state_observable then
+      if not track.mute_state_observable:has_notifier(PakettiAutomationStack_OnTrackMuteChanged) then
+        track.mute_state_observable:add_notifier(PakettiAutomationStack_OnTrackMuteChanged)
+        PakettiAutomationStack_track_observables[track_idx] = track.mute_state_observable
+      end
+    end
+  end
+end
+
+-- Cleanup observables
+function PakettiAutomationStack_CleanupObservables()
+  -- Clean up tracks observable
+  if PakettiAutomationStack_tracks_observable then
+    if PakettiAutomationStack_tracks_observable:has_notifier(PakettiAutomationStack_OnTracksChanged) then
+      PakettiAutomationStack_tracks_observable:remove_notifier(PakettiAutomationStack_OnTracksChanged)
+    end
+    PakettiAutomationStack_tracks_observable = nil
+  end
+  
+  -- Clean up track mute observables
+  for track_idx, observable in pairs(PakettiAutomationStack_track_observables) do
+    if observable and observable:has_notifier(PakettiAutomationStack_OnTrackMuteChanged) then
+      observable:remove_notifier(PakettiAutomationStack_OnTrackMuteChanged)
+    end
+  end
+  PakettiAutomationStack_track_observables = {}
+end
+
+-- Observable callbacks
+function PakettiAutomationStack_OnTracksChanged()
+  if not PakettiAutomationStack_dialog or not PakettiAutomationStack_dialog.visible then return end
+  
+  -- Refresh track observables since tracks changed
+  PakettiAutomationStack_SetupObservables()
+  
+  -- Force refresh the display
+  PakettiAutomationStack_RebuildAutomations()
+  PakettiAutomationStack_RebuildCanvases()
+  PakettiAutomationStack_RequestUpdate()
+  
+  renoise.app():show_status("Automation Stack: Track list changed - updated display")
+end
+
+function PakettiAutomationStack_OnTrackMuteChanged()
+  if not PakettiAutomationStack_dialog or not PakettiAutomationStack_dialog.visible then return end
+  
+  -- Just request a visual update since mute state changed
+  PakettiAutomationStack_RequestUpdate()
+end
+
 -- Cleanup
 function PakettiAutomationStack_Cleanup()
   if PakettiAutomationStack_timer_running then
     renoise.tool():remove_timer(PakettiAutomationStack_TimerTick)
     PakettiAutomationStack_timer_running = false
   end
+  
+  -- Cleanup observables
+  PakettiAutomationStack_CleanupObservables()
+  
   PakettiAutomationStack_dialog = nil
   PakettiAutomationStack_vb = nil
   PakettiAutomationStack_header_canvas = nil

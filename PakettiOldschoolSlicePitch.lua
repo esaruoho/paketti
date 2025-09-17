@@ -987,19 +987,28 @@ function pakettiSlicesToPattern(start_from_first_row, use_detected_bpm)
     end
     
   else
-    -- Frame-accurate placement with smart column finding (enhanced original method)
-    print("Debug: Using frame-accurate placement with smart column finding")
+    -- Timing-accurate placement: map sample duration to full pattern length
+    print("Debug: Using timing-accurate placement mapped to full pattern length")
+    
+    -- Map the entire sample duration to the available pattern range
+    local available_lines = end_line - start_line + 1
+    
+    print("Debug: Pattern range:", start_line, "to", end_line, "Available lines:", available_lines)
+    print("Debug: Sample frames:", sample_frames, "Slice count:", slice_count)
     
     for i, marker_frame in ipairs(slice_markers) do
       if i <= slice_count then -- Don't trigger the final end marker
-        -- Calculate pattern position
-        local total_lines_from_start = marker_frame / frames_per_line
-        local line_offset = math.floor(total_lines_from_start)
-        local delay_fraction = total_lines_from_start - line_offset
+        -- Calculate position as ratio of sample progress mapped to pattern length
+        local position_ratio = marker_frame / sample_frames
+        local pattern_position = position_ratio * available_lines
+        local line_offset = math.floor(pattern_position)
+        local delay_fraction = pattern_position - line_offset
         local delay_value = math.floor(delay_fraction * 256)
         
         -- Ensure we stay within pattern bounds
         local target_line = start_line + line_offset
+        
+        print("Debug: Slice", i, "at frame", marker_frame, "ratio", position_ratio, "-> pattern position", pattern_position)
         if target_line <= pattern_lines then
           -- SMART COLUMN FINDING: Find next available column
           local pattern_track = pattern:track(song.selected_track_index)
@@ -1037,7 +1046,7 @@ function pakettiSlicesToPattern(start_from_first_row, use_detected_bpm)
               track.visible_note_columns = math.min(12, column)
             end
             
-            print("Debug: Slice", i, "-> Line", target_line, "Column", column, "Note", slice_note, "Delay", delay_value)
+            print("Debug: Slice", i, "-> Line", target_line, "Column", column, "Note", slice_note, "Delay", delay_value, "Ratio", position_ratio)
           end
         end
       end
@@ -1045,9 +1054,162 @@ function pakettiSlicesToPattern(start_from_first_row, use_detected_bpm)
   end
   
   local mode_text = start_from_first_row and "(from first row)" or "(from current row)"
-  local method_text = use_beat_sync and "(beat sync)" or "(frame-accurate)"
+  local method_text = use_beat_sync and "(beat sync)" or "(pattern-mapped timing)"
   renoise.app():show_status(string.format("Placed %d slices in pattern from line %d %s %s", 
     slice_count, start_line, mode_text, method_text))
+end
+
+function pakettiSlicesToPatternEvenly(start_from_first_row)
+  start_from_first_row = start_from_first_row or false  -- Default to current row behavior
+  
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No instrument or no samples found")
+    return
+  end
+  
+  -- Check if selected track is a sequencer track
+  if song.tracks[song.selected_track_index].type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Selected track is not a sequencer track. Cannot insert slices.")
+    return
+  end
+  
+  -- Always use first sample
+  local sample = instrument.samples[1]
+  print("Debug: Using sample:", sample.name)
+  if not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("First sample has no sample data")
+    return
+  end
+  
+  -- Get slice markers
+  local slice_markers = {}
+  
+  -- Debug: Check what slice_markers contains
+  print("Debug: sample.slice_markers type:", type(sample.slice_markers))
+  if sample.slice_markers then
+    print("Debug: slice_markers length:", #sample.slice_markers)
+    for i, marker in ipairs(sample.slice_markers) do
+      print("Debug: slice marker", i, ":", marker)
+      table.insert(slice_markers, marker)
+    end
+  else
+    print("Debug: sample.slice_markers is nil")
+  end
+  
+  if #slice_markers == 0 then
+    renoise.app():show_status("No slice markers found - use Sample Editor to slice first")
+    return
+  end
+  
+  -- Check if we have enough samples (original + slices)
+  local num_samples = #instrument.samples
+  if num_samples < 2 then
+    renoise.app():show_status("Selected instrument does not contain any slices (samples).")
+    return
+  end
+  
+  local pattern = song.selected_pattern
+  local track = song.selected_track
+  local pattern_lines = pattern.number_of_lines
+  
+  -- Enable delay column
+  if track.delay_column_visible == false then
+    track.delay_column_visible = true
+  end
+  
+  -- Clear pattern first
+  local start_line = start_from_first_row and 1 or song.selected_line_index
+  local end_line = pattern_lines
+  
+  for line_idx = start_line, end_line do
+    local line = pattern:track(song.selected_track_index):line(line_idx)
+    if line.note_columns[1] then
+      line.note_columns[1]:clear()
+    end
+  end
+  
+  print("Debug: Cleared pattern lines from", start_line, "to", end_line)
+  
+  -- Even distribution across pattern
+  local slice_count = #slice_markers - 1 -- Don't count final end marker
+  local actual_slice_count = num_samples - 1 -- Actual slice samples available (minus original)
+  local note_instrument = song.selected_instrument_index - 1
+  local note_panning = 255 -- Full center
+  local note_volume = 255   -- Full volume
+  
+  print("Debug: slice_markers:", #slice_markers, "calculated slice_count:", slice_count)
+  print("Debug: num_samples:", num_samples, "actual_slice_count:", actual_slice_count)
+  print("Debug: Processing", actual_slice_count, "slices with even distribution")
+  
+  -- Use the actual number of slice samples available
+  slice_count = actual_slice_count
+  
+  -- Calculate the available pattern range
+  local available_lines = end_line - start_line + 1
+  local lines_per_slice = available_lines / slice_count
+  
+  print("Debug: Pattern range:", start_line, "to", end_line, "Available lines:", available_lines, "Lines per slice:", lines_per_slice)
+  
+  for i = 1, slice_count do
+    -- Even distribution: evenly space slices across pattern
+    local slice_position = (i - 1) * lines_per_slice
+    local line_offset = math.floor(slice_position)
+    local delay_fraction = slice_position - line_offset
+    local delay_value = math.floor(delay_fraction * 256)
+    
+    -- Ensure we stay within pattern bounds
+    local target_line = start_line + line_offset
+    print("Debug: Slice", i, "target_line:", target_line, "pattern_lines:", pattern_lines, "within bounds:", target_line <= pattern_lines)
+    if target_line <= pattern_lines then
+      -- SMART COLUMN FINDING: Find next available column
+      local pattern_track = pattern:track(song.selected_track_index)
+      local column = 1
+      local note = pattern_track:line(target_line).note_columns[column]
+      
+      while (not note.is_empty) and (note.note_value < 120) and (column < 13) do
+        column = column + 1
+        if column > 12 then
+          renoise.app():show_status("Reached maximum number of note columns. Some slices could not be inserted.")
+          break
+        else
+          note = pattern_track:line(target_line).note_columns[column]
+        end
+      end
+      
+      if column <= 12 then
+        -- DIRECT SAMPLE MAPPING: Get actual note from sample mapping
+        local slice_note = 60  -- Default fallback
+        local slice_sample_index = i + 1  -- Slices start at index 2
+        local sample_mapping = instrument:sample_mapping(1, slice_sample_index)
+        if sample_mapping and sample_mapping.note_range then
+          slice_note = sample_mapping.note_range[1]
+        end
+        
+        -- Set note data
+        note.instrument_value = note_instrument
+        note.note_value = slice_note
+        note.volume_value = note_volume
+        note.panning_value = note_panning
+        note.delay_value = math.min(255, delay_value)
+        
+        -- Auto-expand visible columns
+        if track.visible_note_columns < column then
+          track.visible_note_columns = math.min(12, column)
+        end
+        
+        print("Debug: Slice", i, "(sample", slice_sample_index, ") -> Line", target_line, "Column", column, "Note", slice_note, "Delay", delay_value, "Position", slice_position)
+      end
+    else
+      print("Debug: Slice", i, "SKIPPED - target_line", target_line, "exceeds pattern_lines", pattern_lines)
+    end
+  end
+  
+  local mode_text = start_from_first_row and "(from first row)" or "(from current row)"
+  renoise.app():show_status(string.format("Placed %d slices evenly in pattern from line %d %s", 
+    slice_count, start_line, mode_text))
 end
 
 function pakettiSlicesToPatternBeatSyncOnly()
@@ -1533,6 +1695,10 @@ renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatSyncOnly}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatSyncOnly}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
@@ -1570,6 +1736,10 @@ renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (
 renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
 renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatSyncOnly}
 renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatSyncOnly}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
 renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
 renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
 renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
@@ -1592,6 +1762,8 @@ renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Oldschool Slice Pi
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (from first row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(true) end end}
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (from current row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(false) end end}
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (beat sync only)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPatternBeatSyncOnly() end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern Evenly (from first row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPatternEvenly(true) end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern Evenly (from current row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPatternEvenly(false) end end}
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrase (with trigger)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(true) end end}
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrase (phrase only)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(false) end end}
 
