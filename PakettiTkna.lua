@@ -1851,3 +1851,133 @@ renoise.tool():add_midi_mapping{name="Paketti:Selected Track to Mono and Hard Le
 renoise.tool():add_midi_mapping{name="Paketti:Selected Track to Mono and Hard Right",invoke=function(message) if message:is_trigger() then selectedTrackToMonoAndHardRight() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Master Track to Mono and Hard Left",invoke=function(message) if message:is_trigger() then masterTrackToMonoAndHardLeft() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Master Track to Mono and Hard Right",invoke=function(message) if message:is_trigger() then masterTrackToMonoAndHardRight() end end}
+
+-- Helper function to find current section boundaries
+function findCurrentSectionBounds()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local current_sequence_index = song.selected_sequence_index
+  local total_sequences = #sequencer.pattern_sequence
+  
+  -- Find the start of current section
+  local section_start = current_sequence_index
+  while section_start > 1 and not sequencer:sequence_is_start_of_section(section_start) do
+    section_start = section_start - 1
+  end
+  
+  -- Find the end of current section
+  local section_end = total_sequences
+  for i = section_start + 1, total_sequences do
+    if sequencer:sequence_is_start_of_section(i) then
+      section_end = i - 1
+      break
+    end
+  end
+  
+  return section_start, section_end
+end
+
+-- MIDI knob for selecting pattern within current section
+function midiSelectPatternWithinSection(midi_value)
+  local song = renoise.song()
+  local section_start, section_end = findCurrentSectionBounds()
+  local section_length = section_end - section_start + 1
+  
+  if section_length <= 1 then
+    renoise.app():show_status("Current section only has 1 pattern")
+    return
+  end
+  
+  -- Map 0-127 to 1-section_length
+  local pattern_index = math.floor((midi_value / 127) * (section_length - 1)) + 1
+  local target_sequence = section_start + pattern_index - 1
+  
+  if target_sequence <= section_end then
+    song.selected_sequence_index = target_sequence
+    renoise.app():show_status(string.format("Selected pattern %d of %d in current section", pattern_index, section_length))
+  end
+end
+
+-- Function to jump to specific pattern number within current section
+function jumpToPatternInSection(pattern_number)
+  local song = renoise.song()
+  local section_start, section_end = findCurrentSectionBounds()
+  local section_length = section_end - section_start + 1
+  
+  if pattern_number > section_length then
+    renoise.app():show_status(string.format("Pattern %d not available in current section (only has %d patterns)", pattern_number, section_length))
+    return
+  end
+  
+  local target_sequence = section_start + pattern_number - 1
+  song.selected_sequence_index = target_sequence
+  renoise.app():show_status(string.format("Jumped to pattern %d of %d in current section", pattern_number, section_length))
+end
+
+-- Function to jump to next section
+function jumpToNextSection()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local current_sequence_index = song.selected_sequence_index
+  local total_sequences = #sequencer.pattern_sequence
+  
+  -- Find current section end
+  local _, section_end = findCurrentSectionBounds()
+  
+  -- Look for next section start
+  local next_section_start = nil
+  for i = section_end + 1, total_sequences do
+    if sequencer:sequence_is_start_of_section(i) then
+      next_section_start = i
+      break
+    end
+  end
+  
+  if next_section_start then
+    song.selected_sequence_index = next_section_start
+    renoise.app():show_status("Jumped to next section")
+  else
+    renoise.app():show_status("There are no further sections to jump to")
+  end
+end
+
+-- Function to jump to previous section
+function jumpToPreviousSection()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local current_sequence_index = song.selected_sequence_index
+  
+  -- Find current section start
+  local section_start, _ = findCurrentSectionBounds()
+  
+  if section_start == 1 then
+    renoise.app():show_status("You are already on the first section")
+    return
+  end
+  
+  -- Look for previous section start
+  local previous_section_start = 1
+  for i = section_start - 1, 1, -1 do
+    if sequencer:sequence_is_start_of_section(i) then
+      previous_section_start = i
+      break
+    end
+  end
+  
+  song.selected_sequence_index = previous_section_start
+  renoise.app():show_status("Jumped to previous section")
+end
+
+renoise.tool():add_midi_mapping{name="Paketti:Select Pattern Within Section [Knob]", invoke=function(message) if message:is_abs_value() then midiSelectPatternWithinSection(message.int_value) end end}
+
+for i = 1, 16 do
+  renoise.tool():add_midi_mapping{name="Paketti:Jump to Pattern " .. formatDigits(2, i) .. " in Section [Trigger]", invoke=function(message) if message:is_trigger() then jumpToPatternInSection(i) end end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Jump to Pattern " .. formatDigits(2, i) .. " in Section", invoke=function() jumpToPatternInSection(i) end}
+end
+
+renoise.tool():add_midi_mapping{name="Paketti:Jump to Section (Next) [Trigger]", invoke=function(message) if message:is_trigger() then jumpToNextSection() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Jump to Section (Previous) [Trigger]", invoke=function(message) if message:is_trigger() then jumpToPreviousSection() end end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Jump to Section (Next)", invoke=jumpToNextSection}
+renoise.tool():add_keybinding{name="Global:Paketti:Jump to Section (Previous)", invoke=jumpToPreviousSection}
+
