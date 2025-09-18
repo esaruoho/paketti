@@ -1,4 +1,4 @@
--- Paketti Slice / Effect Step Sequencer
+-- Paketti Sample Offset / Slice Step Sequencer
 -- A comprehensive polyphonic step sequencer: 8 content rows → 8 note columns + 1 reverse control row
 -- Supports slices, sample offsets, device parameter automation, and reverse control
 --
@@ -4763,7 +4763,7 @@ renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets: Sample Offs
 renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets: Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 
 renoise.tool():add_keybinding{
-  name = "Global:Paketti:Paketti Slice / Effect Step Sequencer...",
+  name = "Global:Paketti:Paketti Sample Offset / Slice Step Sequencer...",
   invoke = function() 
     if renoise.song() then
       PakettiSliceStepCreateDialog()
@@ -4772,7 +4772,7 @@ renoise.tool():add_keybinding{
 }
 
 renoise.tool():add_midi_mapping{
-  name = "Paketti:Paketti Slice / Effect Step Sequencer...",
+  name = "Paketti:Paketti Sample Offset / Slice Step Sequencer...",
   invoke = function(message)
     if message:is_trigger() and renoise.song() then
       PakettiSliceStepCreateDialog()

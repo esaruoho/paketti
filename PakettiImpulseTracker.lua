@@ -226,7 +226,23 @@ t:start_at(startpos)
 
 -- Check for Paketti Automation devices and initialize monitoring if they exist
 if type(initialize_doofer_monitoring) == "function" then 
-  initialize_doofer_monitoring() 
+  local master_track = renoise.song().tracks[renoise.song().sequencer_track_count + 1]
+  local has_paketti_automation = false
+  local has_paketti_automation_2 = false
+  
+  for i = 1, #master_track.devices do
+    local device = master_track.devices[i]
+    if device.name == "Paketti Automation" then
+      has_paketti_automation = true
+    elseif device.name == "Paketti Automation 2" then
+      has_paketti_automation_2 = true
+    end
+  end
+  
+  -- Only initialize if at least one of the Paketti Automation devices exists
+  if has_paketti_automation or has_paketti_automation_2 then
+    initialize_doofer_monitoring() 
+  end
 end
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F5 Start Playback",invoke=function() ImpulseTrackerPlaySong() end}
@@ -258,7 +274,23 @@ t:start_at(startpos)
 
 -- Check for Paketti Automation devices and initialize monitoring if they exist
 if type(initialize_doofer_monitoring) == "function" then 
-  initialize_doofer_monitoring() 
+  local master_track = renoise.song().tracks[renoise.song().sequencer_track_count + 1]
+  local has_paketti_automation = false
+  local has_paketti_automation_2 = false
+  
+  for i = 1, #master_track.devices do
+    local device = master_track.devices[i]
+    if device.name == "Paketti Automation" then
+      has_paketti_automation = true
+    elseif device.name == "Paketti Automation 2" then
+      has_paketti_automation_2 = true
+    end
+  end
+  
+  -- Only initialize if at least one of the Paketti Automation devices exists
+  if has_paketti_automation or has_paketti_automation_2 then
+    initialize_doofer_monitoring() 
+  end
 end
 end
 
@@ -307,7 +339,23 @@ end
 
 -- Check for Paketti Automation devices and initialize monitoring if they exist
 if type(initialize_doofer_monitoring) == "function" then 
-  initialize_doofer_monitoring() 
+  local master_track = renoise.song().tracks[renoise.song().sequencer_track_count + 1]
+  local has_paketti_automation = false
+  local has_paketti_automation_2 = false
+  
+  for i = 1, #master_track.devices do
+    local device = master_track.devices[i]
+    if device.name == "Paketti Automation" then
+      has_paketti_automation = true
+    elseif device.name == "Paketti Automation 2" then
+      has_paketti_automation_2 = true
+    end
+  end
+  
+  -- Only initialize if at least one of the Paketti Automation devices exists
+  if has_paketti_automation or has_paketti_automation_2 then
+    initialize_doofer_monitoring() 
+  end
 end
 end
 

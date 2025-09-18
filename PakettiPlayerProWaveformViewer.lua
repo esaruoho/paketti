@@ -16,11 +16,12 @@ PakettiPPWV_canvas_width = 1200
 PakettiPPWV_lane_height = 40
 PakettiPPWV_canvas_height = 400
 PakettiPPWV_timer_running = false
-PakettiPPWV_timer_interval_ms = 20
+PakettiPPWV_timer_interval_ms = 50   -- Balanced: 20 FPS for responsive pattern input, but not the original 50 FPS performance nightmare
 PakettiPPWV_last_content_hash = ""
 PakettiPPWV_events = {}
 PakettiPPWV_selected_event_id = nil
 PakettiPPWV_cached_waveforms = {}
+PakettiPPWV_reference_scale_cache = {}  -- OPTIMIZATION: Cache reference calculations per zoom
 PakettiPPWV_debug = false
 
 -- Double-click tracking
@@ -34,6 +35,70 @@ function PakettiPPWV_DrawText(ctx, text, x, y, size)
   PakettiCanvasFontDrawText(ctx, text, x, y, size)
 end
 
+-- Load preferences into global variables
+function PakettiPPWV_LoadPreferences()
+  if PakettiPlayerProWaveformViewer then
+    PakettiPPWV_show_only_selected_track = PakettiPlayerProWaveformViewer.OnlySelectedTrack.value
+    PakettiPPWV_show_sample_names = PakettiPlayerProWaveformViewer.SampleName.value
+    PakettiPPWV_show_labels = PakettiPlayerProWaveformViewer.InstrumentName.value
+    PakettiPPWV_show_note_names = PakettiPlayerProWaveformViewer.NoteName.value
+    PakettiPPWV_vertical_scale_index = PakettiPlayerProWaveformViewer.Zoom.value
+    PakettiPPWV_orientation = PakettiPlayerProWaveformViewer.Direction.value
+    PakettiPPWV_show_horizontal_playhead = PakettiPlayerProWaveformViewer.HorizontalPlayhead.value
+    PakettiPPWV_show_vertical_playhead = PakettiPlayerProWaveformViewer.VerticalPlayhead.value
+    print("-- PPWV: Loaded preferences from settings")
+  end
+end
+
+-- Save preferences from global variables
+function PakettiPPWV_SavePreferences()
+  if PakettiPlayerProWaveformViewer then
+    PakettiPlayerProWaveformViewer.OnlySelectedTrack.value = PakettiPPWV_show_only_selected_track
+    PakettiPlayerProWaveformViewer.SampleName.value = PakettiPPWV_show_sample_names
+    PakettiPlayerProWaveformViewer.InstrumentName.value = PakettiPPWV_show_labels
+    PakettiPlayerProWaveformViewer.NoteName.value = PakettiPPWV_show_note_names
+    PakettiPlayerProWaveformViewer.Zoom.value = PakettiPPWV_vertical_scale_index
+    PakettiPlayerProWaveformViewer.Direction.value = PakettiPPWV_orientation
+    PakettiPlayerProWaveformViewer.HorizontalPlayhead.value = PakettiPPWV_show_horizontal_playhead
+    PakettiPlayerProWaveformViewer.VerticalPlayhead.value = PakettiPPWV_show_vertical_playhead
+    print("-- PPWV: Saved preferences to settings")
+  end
+end
+
+-- Function to select all samples that match the currently selected sample when "Select the same" is enabled
+function PakettiPPWV_SelectAllMatchingSamples()
+  if not PakettiPPWV_select_same_enabled then return end
+  
+  -- If we have a currently selected event, select all matching ones
+  if PakettiPPWV_selected_event_id then
+    local anchor_event = nil
+    -- Find the anchor event
+    for i = 1, #PakettiPPWV_events do
+      local e = PakettiPPWV_events[i]
+      if e.id == PakettiPPWV_selected_event_id then
+        anchor_event = e
+        break
+      end
+    end
+    
+    if anchor_event then
+      -- Clear existing selection and select all matching samples
+      PakettiPPWV_selected_ids = {}
+      for i = 1, #PakettiPPWV_events do
+        local e = PakettiPPWV_events[i]
+        if e.track_index == anchor_event.track_index and e.instrument_index == anchor_event.instrument_index and e.sample_index == anchor_event.sample_index then
+          PakettiPPWV_selected_ids[e.id] = true
+        end
+      end
+      print(string.format("-- PPWV SELECT SAME (auto): Found and selected %d matching samples for nudge", PakettiPPWV_SelectedCount()))
+      -- Show selection highlights immediately for user feedback
+      PakettiPPWV_UpdateCanvasThrottled()
+    end
+  else
+    print("-- PPWV SELECT SAME (auto): No sample currently selected to match")
+  end
+end
+
 -- Viewport/zoom state
 PakettiPPWV_zoom_levels = {1.0, 0.5, 0.25, 0.125}
 PakettiPPWV_zoom_index = 1 -- 1.0 by default (full pattern)
@@ -41,9 +106,13 @@ PakettiPPWV_view_start_line = 1
 PakettiPPWV_show_labels = false
 PakettiPPWV_show_sample_names = false
 PakettiPPWV_show_note_names = false
+PakettiPPWV_show_horizontal_playhead = true  -- Enable/disable horizontal playhead (yellow line)
+PakettiPPWV_show_vertical_playhead = true    -- Enable/disable vertical playhead (yellow line)
+PakettiPPWV_performance_mode = false  -- OPTIMIZATION #7: Performance mode toggle (flat fills vs gradients)
+PakettiPPWV_batch_tracks = false     -- OPTIMIZATION #8: Batch multiple tracks per canvas in vertical mode
 PakettiPPWV_scrollbar_view = nil
 PakettiPPWV_vscrollbar_view = nil
-PakettiPPWV_show_only_selected_track = false
+PakettiPPWV_show_only_selected_track = false  -- DEFAULT: Let user choose whether to enable selected track only mode
 PakettiPPWV_last_selected_track_index = 0
 PakettiPPWV_multi_select_mode = false
 PakettiPPWV_selected_ids = {}
@@ -73,7 +142,35 @@ PakettiPPWV_tracks_observer_func = nil -- Store the actual observer function for
 PakettiPPWV_last_playhead_line = -1
 PakettiPPWV_timeline_sidebar = nil
 PakettiPPWV_last_mute_hash = "" -- Fallback mute state hash for change detection
+PakettiPPWV_last_sample_hash = "" -- Sample buffer hash for detecting sample modifications (like reverse, crop, etc.)
 PakettiPPWV_last_click_event = nil  -- Store last clicked event for double-click detection
+
+PakettiPPWV_pending_update = false
+PakettiPPWV_update_timer = nil
+
+
+function PakettiPPWV_ScheduleDeferredUpdate()
+  if PakettiPPWV_update_timer then
+    -- Cancel existing timer to reset the delay
+    renoise.tool():remove_timer(PakettiPPWV_update_timer)
+  end
+  
+  PakettiPPWV_pending_update = true
+  PakettiPPWV_update_timer = function()
+    if PakettiPPWV_pending_update then
+      print("-- PPWV: Executing deferred pattern rebuild and canvas update")
+      PakettiPPWV_RebuildEvents()
+      PakettiPPWV_UpdateCanvasThrottled()
+      PakettiPPWV_pending_update = false
+      PakettiPPWV_update_timer = nil
+    end
+  end
+  
+  -- 150ms delay - batches rapid key presses but feels responsive
+  renoise.tool():add_timer(PakettiPPWV_update_timer, 150)
+  print("-- PPWV: Scheduled deferred update (150ms)")
+end
+
 
 function PakettiPPWV_UpdateModifierFlags(mods)
   if type(mods) ~= "string" then mods = tostring(mods or "") end
@@ -86,6 +183,47 @@ end
 
 function PakettiPPWV_DebugPrintModifierFlags(prefix)
   print(string.format("-- PPWV MODS %s shift=%s alt=%s ctrl=%s cmd=%s", prefix or "", tostring(PakettiPPWV_shift_is_down), tostring(PakettiPPWV_alt_is_down), tostring(PakettiPPWV_ctrl_is_down), tostring(PakettiPPWV_cmd_is_down)))
+end
+
+-- Duplicate current pattern below and jump to it (no clearing of muted tracks)
+function PakettiPPWV_DuplicatePattern()
+  local song = renoise.song()
+  local current_pattern_index = song.selected_pattern_index
+  local current_sequence_index = song.selected_sequence_index
+  local new_sequence_index = current_sequence_index + 1
+  local new_pattern_index = song.sequencer:insert_new_pattern_at(new_sequence_index)
+  song.patterns[new_pattern_index]:copy_from(song.patterns[current_pattern_index])
+  local original_name = song.patterns[current_pattern_index].name
+  if original_name == "" then
+    original_name = "Pattern " .. tostring(current_pattern_index)
+  end
+  song.patterns[new_pattern_index].name = original_name .. " (duplicate)"
+  song.selected_sequence_index = new_sequence_index
+  
+  -- Copy mute states from original sequence slot to the new one
+  for track_index = 1, #song.tracks do
+    local is_muted = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+    song.sequencer:set_track_sequence_slot_is_muted(track_index, new_sequence_index, is_muted)
+  end
+  
+  -- Copy automation data explicitly to ensure full duplication
+  for track_index = 1, #song.tracks do
+    local original_track = song.patterns[current_pattern_index].tracks[track_index]
+    local new_track = song.patterns[new_pattern_index].tracks[track_index]
+    for _, automation in ipairs(original_track.automation) do
+      local parameter = automation.dest_parameter
+      local new_automation = new_track:find_automation(parameter)
+      if not new_automation then
+        new_automation = new_track:create_automation(parameter)
+      end
+      new_automation:copy_from(automation)
+    end
+  end
+  
+  renoise.app():show_status("Duplicated pattern below and jumped to it.")
+  
+  -- Refresh the waveform viewer to show the new pattern
+  PakettiPPWV_UpdateCanvasThrottled()
 end
 
 function PakettiPPWV_SelectedCount()
@@ -174,16 +312,28 @@ function PakettiPPWV_DeleteSelectedEvents()
   PakettiPPWV_RebuildEvents(); PakettiPPWV_UpdateCanvasThrottled()
 end
 
+-- CRITICAL: Separate immediate and delayed canvas updates for better UX
+function PakettiPPWV_UpdateCanvasImmediate()
+  -- Direct canvas update - no throttling for user interactions  
+  if PakettiPPWV_canvas then PakettiPPWV_canvas:update() end
+  for _, canvas in ipairs(PakettiPPWV_track_canvases) do
+    if canvas.visible then canvas:update() end
+  end
+  if PakettiPPWV_header_canvas then PakettiPPWV_header_canvas:update() end
+  if PakettiPPWV_timeline_sidebar then PakettiPPWV_timeline_sidebar:update() end
+end
+
+
 function PakettiPPWV_UpdateCanvasThrottled()
   local now_ms = os.clock() * 1000
-  -- Adaptive interval: fast when dragging, medium when playing, slow when idle
+  -- Adaptive interval: Sane refresh rates that don't murder Renoise performance
   local song = renoise.song()
   local playing = song and song.transport.playing
-  local interval = 120
+  local interval = 200  -- 5 FPS when idle (was 120ms)
   if PakettiPPWV_is_dragging then
-    interval = 15
+    interval = 50      -- 20 FPS when dragging (was 67 FPS!)
   elseif playing then
-    interval = 20
+    interval = 100     -- 10 FPS during playback (was 30-50 FPS!)
   end
   PakettiPPWV_min_redraw_ms = interval
   if (now_ms - PakettiPPWV_last_redraw_ms) >= PakettiPPWV_min_redraw_ms then
@@ -194,9 +344,15 @@ function PakettiPPWV_UpdateCanvasThrottled()
       PakettiPPWV_canvas:update()
     end
     if PakettiPPWV_track_canvases and #PakettiPPWV_track_canvases > 0 then
+      -- OPTIMIZATION #11: Only update visible canvases, skip off-screen ones in vertical mode
+      local is_vertical = (PakettiPPWV_orientation == 2)
       for i = 1, #PakettiPPWV_track_canvases do
         local c = PakettiPPWV_track_canvases[i]
-        if c and c.visible then c:update() end
+        if c and c.visible then
+          -- Additional optimization: in vertical scrolled mode, could check if canvas is in view
+          -- For now, basic visible check is sufficient as ViewBuilder handles most visibility
+          c:update() 
+        end
       end
     end
     if PakettiPPWV_header_canvas and PakettiPPWV_header_canvas.visible then PakettiPPWV_header_canvas:update() end
@@ -422,6 +578,7 @@ function PakettiPPWV_AttachTrackMuteObservers()
           local detected_muted = PakettiPPWV_IsTrackMuted(tr)
           print("-- PPWV: Track " .. track_index .. " mute state changed! Raw: " .. raw_state .. 
             " Detected: " .. (detected_muted and "MUTED" or "ACTIVE"))
+          -- Immediate update for track mute changes (essential UX feedback)
           PakettiPPWV_UpdateCanvasThrottled()
         end
         
@@ -581,6 +738,7 @@ function PakettiPPWV_AttachTrackMuteObserversOnly()
           local detected_muted = PakettiPPWV_IsTrackMuted(tr)
           print("-- PPWV: Track " .. track_index .. " mute state changed! Raw: " .. raw_state .. 
             " Detected: " .. (detected_muted and "MUTED" or "ACTIVE"))
+          -- Immediate update for track mute changes (essential UX feedback)
           PakettiPPWV_UpdateCanvasThrottled()
         end
         
@@ -608,16 +766,27 @@ end
 
 -- Observe selected track changes so selected-track mode follows the user selection
 function PakettiPPWV_AttachSelectedTrackObserver()
-  PakettiPPWV_DetachSelectedTrackObserver()
   local song = renoise.song(); if not song then return end
   if song.selected_track_index_observable then
-    PakettiPPWV_selected_track_observer = function()
-      if PakettiPPWV_show_only_selected_track then
-        PakettiPPWV_RebuildTrackCanvases()
-        PakettiPPWV_UpdateCanvasThrottled()
+    -- Check if already attached to prevent duplicate notifiers
+    local already_attached = PakettiPPWV_selected_track_observer and 
+                           song.selected_track_index_observable:has_notifier(PakettiPPWV_selected_track_observer)
+    
+    if not already_attached then
+      -- Detach any existing observer first (defensive cleanup)
+      PakettiPPWV_DetachSelectedTrackObserver()
+      
+      PakettiPPWV_selected_track_observer = function()
+        if PakettiPPWV_show_only_selected_track then
+          PakettiPPWV_RebuildTrackCanvases()
+          PakettiPPWV_UpdateCanvasThrottled()
+        end
       end
+      song.selected_track_index_observable:add_notifier(PakettiPPWV_selected_track_observer)
+      print("-- PPWV: Attached selected_track_index_observable")
+    else
+      print("-- PPWV: selected_track_index_observable already attached, skipping")
     end
-    song.selected_track_index_observable:add_notifier(PakettiPPWV_selected_track_observer)
   end
 end
 
@@ -697,14 +866,18 @@ function PakettiPPWV_CalculateSampleLengthInLines(sample, ev, song, patt)
     return 4.0 -- Fallback to reasonable default
   end
   
-  -- Get note value from the pattern
+  -- Get note value - prefer from ev if available, otherwise from pattern
   local note_value = 48 -- Default C-4
-  local ptrack = patt:track(ev.track_index)
-  local line = ptrack:line(ev.start_line)
-  if line and line.note_columns and line.note_columns[ev.column_index] then
-    local nc = line.note_columns[ev.column_index]
-    if not nc.is_empty and nc.note_value and nc.note_value <= 119 then
-      note_value = nc.note_value
+  if ev.note_value then
+    note_value = ev.note_value
+  elseif ev.track_index and ev.start_line and ev.column_index and patt then
+    local ptrack = patt:track(ev.track_index)
+    local line = ptrack:line(ev.start_line)
+    if line and line.note_columns and line.note_columns[ev.column_index] then
+      local nc = line.note_columns[ev.column_index]
+      if not nc.is_empty and nc.note_value and nc.note_value <= 119 then
+        note_value = nc.note_value
+      end
     end
   end
   
@@ -773,45 +946,104 @@ end
 
 
 -- Render a single track into its own canvas (horizontal or vertical)
-function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h)
+function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h, skip_clear)
   return function(ctx)
     -- Reduced debug output to avoid console spam
     -- print("TRACK CANVAS RENDER: track=" .. track_index .. " w=" .. canvas_w .. " h=" .. canvas_h)
     local song, patt = PakettiPPWV_GetSongAndPattern()
     local W = canvas_w or PakettiPPWV_canvas_width
     local H = canvas_h or PakettiPPWV_lane_height
-    ctx:clear_rect(0, 0, W, H)
-    ctx:set_fill_linear_gradient(0, 0, 0, H)
-    ctx:add_fill_color_stop(0, {25,25,35,255})
-    ctx:add_fill_color_stop(1, {15,15,25,255})
-    ctx:begin_path(); ctx:rect(0,0,W,H); ctx:fill()
+    
+    -- CRITICAL FIX: No local window calculation needed - always render full viewport
+    
+    -- MICRO-OPTIMIZATION: Color constants as locals to reduce GC churn  
+    local COL_BACKGROUND_1 = {25,25,35,255}
+    local COL_BACKGROUND_2 = {15,15,25,255}
+    local COL_GRID_BEAT = {70,70,100,220}
+    local COL_GRID_LINE = {40,40,60,140}
+    local COL_GRID_SPARSE = {50,50,70,255}
+    local COL_GRID_MEGA = {40,40,50,200}
+    local COL_WAVEFORM = {100,255,150,200}
+    local COL_WAVEFORM_SEL = {255,200,120,255}
+    local COL_LABEL_TEXT = {255,255,255,255}
+    local COL_LABEL_BRIGHT = {255,255,120,255}
+    local COL_GUTTER_1 = {18,18,24,255}
+    local COL_GUTTER_2 = {14,14,20,255}
+    local COL_MUTED_DIM = {200,200,200,255}
+    
     if not song or not patt then return end
     local num_lines = patt.number_of_lines
     local is_vertical = (PakettiPPWV_orientation == 2)
     local win = PakettiPPWV_GetWindowLines(num_lines)
     local view_start = PakettiPPWV_view_start_line
     local view_end = math.min(num_lines, view_start + win - 1)
-    -- DEBUG: print("TRACK VIEW: track=" .. track_index .. " start=" .. view_start .. " end=" .. view_end .. " win=" .. win .. " num_lines=" .. num_lines .. " (1-based internal)")
+    
+    local draw_start, draw_end = view_start, view_end
+    
+    -- ALWAYS draw background - immediate-mode rendering requires it
+    if not skip_clear then
+      ctx:clear_rect(0, 0, W, H)
+      -- OPTIMIZATION #7: Performance mode - use flat fill instead of gradient
+      if PakettiPPWV_performance_mode then
+        ctx.fill_color = COL_BACKGROUND_1
+        ctx:fill_rect(0, 0, W, H)
+      else
+        ctx:set_fill_linear_gradient(0, 0, 0, H)
+        ctx:add_fill_color_stop(0, COL_BACKGROUND_1)
+        ctx:add_fill_color_stop(1, COL_BACKGROUND_2)
+        ctx:begin_path(); ctx:rect(0,0,W,H); ctx:fill()
+      end
+    end
+    
+    -- MICRO-OPTIMIZATION #2: Memoize Line→X for the current viewport to avoid repeated function calls
+    local LineToX_cache = {}
+    local function LineToX(line)
+      local cached = LineToX_cache[line]
+      if cached then return cached end
+      local result = PakettiPPWV_LineDelayToX(line, 0, num_lines)
+      LineToX_cache[line] = result
+      return result
+    end
+    
+    -- DEBUG: print("TRACK VIEW: track=" .. track_index .. " start=" .. view_start .. " end=" .. view_end .. " draw=" .. draw_start .. "-" .. draw_end .. " win=" .. win .. " num_lines=" .. num_lines .. " (1-based internal)")
     local lpb = song.transport.lpb
     local eff_w = (not is_vertical) and math.max(1, W - (2*PakettiPPWV_gutter_width)) or W
     local pixels_per_line = (not is_vertical) and (eff_w / win) or (H / win)
 
-    -- Grid
-    -- DEBUG: print("GRID: pixels_per_line=" .. pixels_per_line .. " threshold=6")
-    if pixels_per_line >= 6 then
-      -- DEBUG: print("DETAILED grid: drawing lines " .. view_start .. " to " .. view_end)
+    -- Grid (OPTIMIZED: More aggressive density switching for vertical mode)
+    -- DEBUG: print("GRID: pixels_per_line=" .. pixels_per_line .. " threshold=" .. (is_vertical and "12" or "6"))
+    local grid_threshold = is_vertical and 12 or 6  -- Higher threshold for vertical mode
+    
+    if pixels_per_line >= grid_threshold then
+      -- Full detail grid
+      local slope = is_vertical and (H / PakettiPPWV_GetWindowLines(num_lines)) or nil
+      local base_y = is_vertical and PakettiPPWV_MapTimeToY(PakettiPPWV_view_start_line, num_lines, H) or nil
       for line = view_start, view_end do
-        local pos = not is_vertical and PakettiPPWV_LineDelayToX(line,0,num_lines) or PakettiPPWV_MapTimeToY(line, num_lines, H)
-        if ((line-1) % lpb) == 0 then ctx.stroke_color = {70,70,100,220}; ctx.line_width = 2 else ctx.stroke_color = {40,40,60,140}; ctx.line_width = 1 end
+        local pos = not is_vertical and LineToX(line) or (base_y + (line - PakettiPPWV_view_start_line) * slope)
+        if ((line-1) % lpb) == 0 then ctx.stroke_color = COL_GRID_BEAT; ctx.line_width = 2 else ctx.stroke_color = COL_GRID_LINE; ctx.line_width = 1 end
         ctx:begin_path(); if not is_vertical then ctx:move_to(pos, 0); ctx:line_to(pos, H) else ctx:move_to(0, pos); ctx:line_to(W, pos) end; ctx:stroke()
       end
-    else
-      -- DEBUG: print("SIMPLIFIED grid: drawing beat lines " .. view_start .. " to " .. view_end .. " (lpb=" .. lpb .. ")")
-      ctx.stroke_color = {50,50,70,255}; ctx.line_width = 1
-      for line = view_start, view_end do
+    elseif pixels_per_line >= (is_vertical and 4 or 3) then
+      -- Beat lines only
+      ctx.stroke_color = COL_GRID_SPARSE; ctx.line_width = 1
+      local slope = is_vertical and (H / PakettiPPWV_GetWindowLines(num_lines)) or nil
+      local base_y = is_vertical and PakettiPPWV_MapTimeToY(PakettiPPWV_view_start_line, num_lines, H) or nil
+      for line = draw_start, draw_end do
         if ((line-1) % lpb) == 0 then
-          local pos = not is_vertical and PakettiPPWV_LineDelayToX(line,0,num_lines) or PakettiPPWV_MapTimeToY(line, num_lines, H)
+          local pos = not is_vertical and LineToX(line) or (base_y + (line - PakettiPPWV_view_start_line) * slope)
           ctx:begin_path(); if not is_vertical then ctx:move_to(pos, 0); ctx:line_to(pos, H) else ctx:move_to(0, pos); ctx:line_to(W, pos) end; ctx:stroke()
+        end
+      end
+    elseif is_vertical and pixels_per_line >= 2 then
+      -- OPTIMIZED: Super sparse grid - every 4th beat when severely zoomed out
+      ctx.stroke_color = COL_GRID_MEGA; ctx.line_width = 1
+      local slope = H / PakettiPPWV_GetWindowLines(num_lines)
+      local base_y = PakettiPPWV_MapTimeToY(PakettiPPWV_view_start_line, num_lines, H)
+      local mega_beat = lpb * 4  -- Every 4 beats
+      for line = draw_start, draw_end do
+        if ((line-1) % mega_beat) == 0 then
+          local pos = base_y + (line - PakettiPPWV_view_start_line) * slope
+          ctx:begin_path(); ctx:move_to(0, pos); ctx:line_to(W, pos); ctx:stroke()
         end
       end
     end
@@ -819,7 +1051,7 @@ function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h)
     -- Always draw the end boundary line after the last row
     local final_line = view_end + 1
     if final_line <= num_lines + 1 then  -- Allow boundary at num_lines + 1 to close the last row
-      local final_x = not is_vertical and PakettiPPWV_LineDelayToX(final_line, 0, num_lines) or PakettiPPWV_MapTimeToY(final_line, num_lines, H)
+      local final_x = not is_vertical and LineToX(final_line) or PakettiPPWV_MapTimeToY(final_line, num_lines, H)
       ctx.stroke_color = {50,50,70,255}  -- Same pale grey as normal grid lines
       ctx.line_width = 1
       ctx:begin_path()
@@ -833,34 +1065,50 @@ function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h)
       ctx:stroke()
     end
 
-    -- Label + mute state overlay
+    -- Get track and mute state (needed for waveform rendering)
     local tr = song.tracks[track_index]
     local is_muted = PakettiPPWV_IsTrackMuted(tr)
+    
+    -- Label + mute state overlay
     -- Gutters (visual margins) on both sides to align with header (no numbering here)
     local gutter = PakettiPPWV_gutter_width
     ctx.fill_color = {18,18,24,255}; ctx:fill_rect(0, 0, gutter, H)
     ctx.fill_color = {14,14,20,255}; ctx:fill_rect(W - gutter, 0, gutter, H)
     -- Track label drawn to align with timeline step 00 (line 1)
-    local label_text = string.format("%02d %s", track_index, tr and tr.name or "Track")
+    local label_text = tr and tr.name or ("Track " .. string.format("%02d", track_index))
+    local mute_text = "(MUTED - CLICK TO UNMUTE)"
     if is_muted then
-      label_text = label_text .. " (MUTED - CLICK TO UNMUTE)"
       ctx.stroke_color = {200,200,200,255} -- Dimmed text for muted tracks
+      if not is_vertical then
+        label_text = label_text .. " " .. mute_text  -- Horizontal: single line
+      end
     else
       ctx.stroke_color = {255,255,255,255}
     end
     -- In vertical mode, use small consistent offset; in horizontal mode, align with timeline
-    local label_x = is_vertical and 8 or (PakettiPPWV_LineDelayToX(1, 0, num_lines) + 2)
+    local label_x = is_vertical and 8 or (LineToX(1) + 2)
     PakettiPPWV_DrawTextShared(ctx, label_text, label_x, 4, 8)
+    -- In vertical mode, draw mute text on second line
+    if is_muted and is_vertical then
+      PakettiPPWV_DrawTextShared(ctx, mute_text, label_x, 16, 7)  -- Second line, smaller font
+    end
     if is_muted then
       ctx.fill_color = {28,28,28,210}; ctx:fill_rect(gutter, 0, W - (2*gutter), H)
       ctx.stroke_color = {220,220,220,240}
       PakettiCanvasFontDrawText(ctx, "MUTED", math.floor(W/2 - 40), math.floor(H/2 - 6), 12)
     end
 
-    -- Waveforms
+    -- Waveforms - with event culling during drag for better performance
     for i = 1, #PakettiPPWV_events do
       local ev = PakettiPPWV_events[i]
       if ev.track_index == track_index then
+        
+        -- Standard waveform rendering - draw all events for this track  
+        local should_draw_event = true
+        
+        -- CRITICAL FIX: ALWAYS draw ALL events - NO culling whatsoever (except during dirty pass)
+        -- User wants all waveforms to stay visible during drag operations
+        if should_draw_event then
         local cache
         if ev.sample_index and ev.instrument_index and song.instruments[ev.instrument_index] then
           local instr = song.instruments[ev.instrument_index]
@@ -877,30 +1125,21 @@ function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h)
           ctx:begin_path()
           local lane_mid = not is_vertical and (H/2) or (W/2)
           
-          -- Calculate actual sample length in pattern lines based on sample data, pitch, BPM, LPB
-          local sample = song.instruments[ev.instrument_index].samples[ev.sample_index]
-          local actual_sample_length_lines = PakettiPPWV_CalculateSampleLengthInLines(sample, ev, song, patt)
+          -- OPTIMIZATION: Use pre-computed sample length instead of recalculating
+          local actual_sample_length_lines = ev.natural_length_lines or 4.0
           
-          -- Find next waveform on same track/column to determine clipping point
-          -- Account for current event's delay when calculating natural end time
-          local current_actual_start_time = ev.start_line + (ev.start_delay or 0) / 256
+          -- Find next waveform on same track/column to determine clipping point (OPTIMIZED: O(1) lookup)
+          -- OPTIMIZATION: Use pre-computed actual start time
+          local current_actual_start_time = ev.actual_start_time or (ev.start_line + (ev.start_delay or 0) / 256)
           local natural_end_time = current_actual_start_time + actual_sample_length_lines
-          local clip_at_line = natural_end_time
-          local earliest_collision_time = natural_end_time
-          for j = 1, #PakettiPPWV_events do
-            local next_ev = PakettiPPWV_events[j]
-            if next_ev.track_index == ev.track_index and next_ev.column_index == ev.column_index and next_ev.id ~= ev.id then
-              local next_start_time = next_ev.start_line + (next_ev.start_delay or 0) / 256
-              -- Only consider events that start after the current event's actual start time
-              if next_start_time > current_actual_start_time and next_start_time < earliest_collision_time then
-                earliest_collision_time = next_start_time
-              end
-            end
-          end
-          clip_at_line = earliest_collision_time
+          local clip_at_line = ev.next_start_time or natural_end_time
           
-          -- Also check for Note Off events that could cut off this sample
-          local note_off_time = PakettiPPWV_FindNoteOffAt(patt, ev.track_index, ev.column_index, current_actual_start_time, clip_at_line)
+          -- Also check for Note Off events that could cut off this sample (OPTIMIZED: fast path)
+          -- Only scan for Note-Off if the range is reasonable (< 8 lines) to avoid expensive scans
+          local note_off_time = nil
+          if (clip_at_line - current_actual_start_time) <= 8 then
+            note_off_time = PakettiPPWV_FindNoteOffAt(patt, ev.track_index, ev.column_index, current_actual_start_time, clip_at_line)
+          end
           if note_off_time and note_off_time < clip_at_line then
             clip_at_line = note_off_time
           end
@@ -915,18 +1154,24 @@ function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h)
             local clip_width = x2 - x1
             local points = #cache
             
-            -- Fixed visual scale: use position-independent reference to ensure identical visual scale
-            -- Calculate pixels per sample based on a standard reference width (not position-dependent)
-            local reference_start = 1.0  -- Use line 1 as reference point
-            local reference_width = PakettiPPWV_LineDelayToX(reference_start + actual_sample_length_lines, 0, num_lines) - PakettiPPWV_LineDelayToX(reference_start, 0, num_lines)
-            local pixels_per_sample = reference_width / points
+            -- OPTIMIZED: Cache reference calculations to avoid repeated math per redraw
+            local cache_key = string.format("h_%.3f_%d_%d", actual_sample_length_lines, W, PakettiPPWV_GetWindowLines(num_lines))
+            local pixels_per_sample = PakettiPPWV_reference_scale_cache[cache_key]
+            if not pixels_per_sample then
+              local reference_start = 1.0  -- Use line 1 as reference point
+              local reference_width = PakettiPPWV_LineDelayToX(reference_start + actual_sample_length_lines, 0, num_lines) - PakettiPPWV_LineDelayToX(reference_start, 0, num_lines)
+              pixels_per_sample = reference_width / points
+              PakettiPPWV_reference_scale_cache[cache_key] = pixels_per_sample
+            end
             
             -- DEBUG: Print rendering details
-            if PakettiPPWV_debug then print(string.format("-- PPWV RENDER: Track %d Line %d -> Length=%.3f, RefWidth=%.1f, PPS=%.3f, Points=%d", 
-              ev.track_index, ev.start_line, actual_sample_length_lines, reference_width, pixels_per_sample, points)) end
+            if PakettiPPWV_debug then print(string.format("-- PPWV RENDER: Track %d Line %d -> Length=%.3f, PPS=%.3f, Points=%d", 
+              ev.track_index, ev.start_line, actual_sample_length_lines, pixels_per_sample, points)) end
             
-            -- Draw waveform at fixed scale, but only up to clip point
-            for px = 0, math.floor(clip_width) do
+            -- CRITICAL FIX: Draw waveform ONLY for actual sample length, not collision clip length
+            local actual_sample_width = PakettiPPWV_LineDelayToX(current_actual_start_time + actual_sample_length_lines, 0, num_lines) - x1
+            local sample_draw_width = math.min(clip_width, actual_sample_width)  -- Don't exceed actual sample
+            for px = 0, math.floor(sample_draw_width) do
               local sample_idx = math.floor(px / pixels_per_sample) + 1
               if sample_idx < 1 then sample_idx = 1 end
               if sample_idx > points then sample_idx = points end
@@ -942,14 +1187,24 @@ function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h)
             local clip_height = y2 - y1
             local points = #cache
             
-            -- Fixed visual scale: use position-independent reference to ensure identical visual scale
-            -- Calculate pixels per sample based on a standard reference height (not position-dependent)
-            local reference_start = 1.0  -- Use line 1 as reference point
-            local reference_height = PakettiPPWV_MapTimeToY(reference_start + actual_sample_length_lines, num_lines, H) - PakettiPPWV_MapTimeToY(reference_start, num_lines, H)
-            local pixels_per_sample = reference_height / points
+            -- OPTIMIZED: Cache reference calculations to avoid repeated math per redraw
+            local cache_key = string.format("v_%.3f_%d_%d", actual_sample_length_lines, H, PakettiPPWV_GetWindowLines(num_lines))
+            local pixels_per_sample = PakettiPPWV_reference_scale_cache[cache_key]
+            if not pixels_per_sample then
+              local win = PakettiPPWV_GetWindowLines(num_lines)
+              local slope = H / win  -- pixels per line  
+              local reference_height = actual_sample_length_lines * slope
+              pixels_per_sample = reference_height / points
+              PakettiPPWV_reference_scale_cache[cache_key] = pixels_per_sample
+            end
             
-            -- Draw waveform at fixed scale, but only up to clip point
-            for py = 0, math.floor(clip_height) do
+            -- Draw waveform at fixed scale, but only up to clip point (OPTIMIZED: adaptive step)
+            -- CRITICAL FIX: Draw waveform ONLY for actual sample length, not collision clip length
+            local win = PakettiPPWV_GetWindowLines(num_lines)
+            local actual_sample_height_pixels = actual_sample_length_lines * (H / win)
+            local sample_draw_height = math.min(clip_height, actual_sample_height_pixels)  -- Don't exceed actual sample
+            local step = math.max(1, math.floor(pixels_per_sample * 0.75))
+            for py = 0, math.floor(sample_draw_height), step do
               local sample_idx = math.floor(py / pixels_per_sample) + 1
               if sample_idx < 1 then sample_idx = 1 end
               if sample_idx > points then sample_idx = points end
@@ -981,18 +1236,9 @@ function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h)
               if sample and sample.name and sample.name ~= "" then sample_name = sample.name end
             end
             
-            -- Get note name if requested  
+            -- Get note name if requested - OPTIMIZATION: Use pre-computed note name
             if PakettiPPWV_show_note_names then
-              local ptrack = patt:track(ev.track_index)
-              local ln = ptrack:line(ev.start_line)
-              if ln and ln.note_columns and ln.note_columns[ev.column_index] then
-                local nc = ln.note_columns[ev.column_index]
-                if not nc.is_empty and nc.note_value and nc.note_value <= 119 then
-                  local names = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
-                  local oct = math.floor(nc.note_value/12)
-                  note_txt = names[(nc.note_value%12)+1] .. tostring(oct)
-                end
-              end
+              note_txt = ev.note_name or ""
             end
             
             -- Build label from components
@@ -1009,7 +1255,7 @@ function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h)
             
             -- Only draw label if we have something to show
             if label ~= "" then
-              ctx.stroke_color = {255,255,120,255}  -- Brighter yellow color
+              ctx.stroke_color = COL_LABEL_BRIGHT  -- Brighter yellow color
               ctx.line_width = 1
               if not is_vertical then
                 local x1 = PakettiPPWV_LineDelayToX(ev.start_line, ev.start_delay or 0, num_lines)
@@ -1021,12 +1267,15 @@ function PakettiPPWV_RenderTrackCanvas(track_index, canvas_w, canvas_h)
             end
           end
         end
+        -- End of event rendering block
+        end -- end if should_draw_event
       end
     end
 
     -- No playhead on track canvases - playhead is only in header (horizontal) or timeline sidebar (vertical)
   end
 end
+
 
 -- Vertical timeline sidebar renderer: draws timeline row numbers and playhead (left sidebar in vertical mode)
 function PakettiPPWV_RenderVerticalTimeline(canvas_w, canvas_h)
@@ -1035,10 +1284,16 @@ function PakettiPPWV_RenderVerticalTimeline(canvas_w, canvas_h)
     local W = canvas_w or 50
     local H = canvas_h or PakettiPPWV_canvas_height
     ctx:clear_rect(0, 0, W, H)
-    ctx:set_fill_linear_gradient(0, 0, W, 0)
-    ctx:add_fill_color_stop(0, {22,22,30,255})
-    ctx:add_fill_color_stop(1, {12,12,20,255})
-    ctx:begin_path(); ctx:rect(0,0,W,H); ctx:fill()
+    -- OPTIMIZATION #7: Performance mode - use flat fill instead of gradient
+    if PakettiPPWV_performance_mode then
+      ctx.fill_color = {22,22,30,255}
+      ctx:fill_rect(0, 0, W, H)
+    else
+      ctx:set_fill_linear_gradient(0, 0, W, 0)
+      ctx:add_fill_color_stop(0, {22,22,30,255})
+      ctx:add_fill_color_stop(1, {12,12,20,255})
+      ctx:begin_path(); ctx:rect(0,0,W,H); ctx:fill()
+    end
     if not song or not patt then return end
     local num_lines = patt.number_of_lines
     local win = PakettiPPWV_GetWindowLines(num_lines)
@@ -1046,9 +1301,11 @@ function PakettiPPWV_RenderVerticalTimeline(canvas_w, canvas_h)
     local view_end = math.min(num_lines, view_start + win - 1)
     local lpb = song.transport.lpb
     
-    -- Row labels and ticks (vertical layout)
+    -- Row labels and ticks (vertical layout) - OPTIMIZED: use slope calculation
+    local slope = H / PakettiPPWV_GetWindowLines(num_lines)
+    local base_y = PakettiPPWV_MapTimeToY(PakettiPPWV_view_start_line, num_lines, H)
     for line = view_start, view_end do
-      local y = PakettiPPWV_MapTimeToY(line, num_lines, H)
+      local y = base_y + (line - PakettiPPWV_view_start_line) * slope
       local is_beat_start = ((line-1) % lpb) == 0
       local should_show_label = is_beat_start
       
@@ -1071,26 +1328,28 @@ function PakettiPPWV_RenderVerticalTimeline(canvas_w, canvas_h)
     end
     
     -- Playhead (vertical line moving up/down in timeline sidebar)
-    local play_pos = nil
-    local play_line = nil
-    if song.transport.playing then
-      local pos = song.transport.playback_pos
-      if pos and pos.sequence and pos.line and pos.sequence == renoise.song().selected_sequence_index then
-        play_line = pos.line
+    if PakettiPPWV_show_vertical_playhead then
+      local play_pos = nil
+      local play_line = nil
+      if song.transport.playing then
+        local pos = song.transport.playback_pos
+        if pos and pos.sequence and pos.line and pos.sequence == renoise.song().selected_sequence_index then
+          play_line = pos.line
+        end
+      else
+        play_line = song.selected_line_index
       end
-    else
-      play_line = song.selected_line_index
-    end
-    if play_line then
-      play_pos = PakettiPPWV_MapTimeToY(play_line, num_lines, H)
-    end
-    if play_pos then
-      ctx.stroke_color = {255,200,120,255}
-      ctx.line_width = 2
-      ctx:begin_path()
-      -- Horizontal line across timeline sidebar width showing current position
-      ctx:move_to(0, play_pos); ctx:line_to(W, play_pos)
-      ctx:stroke()
+      if play_line then
+        play_pos = PakettiPPWV_MapTimeToY(play_line, num_lines, H)
+      end
+      if play_pos then
+        ctx.stroke_color = {255,200,120,255}
+        ctx.line_width = 2
+        ctx:begin_path()
+        -- Horizontal line across timeline sidebar width showing current position
+        ctx:move_to(0, play_pos); ctx:line_to(W, play_pos)
+        ctx:stroke()
+      end
     end
   end
 end
@@ -1115,11 +1374,16 @@ function PakettiPPWV_RenderHeaderCanvas(canvas_w, canvas_h)
     local W = canvas_w or PakettiPPWV_canvas_width
     local H = canvas_h or (PakettiPPWV_gutter_height + 4)
     ctx:clear_rect(0, 0, W, H)
-    -- Background
-    ctx:set_fill_linear_gradient(0, 0, 0, H)
-    ctx:add_fill_color_stop(0, {22,22,30,255})
-    ctx:add_fill_color_stop(1, {12,12,20,255})
-    ctx:begin_path(); ctx:rect(0,0,W,H); ctx:fill()
+    -- Background - OPTIMIZATION #7: Performance mode toggle
+    if PakettiPPWV_performance_mode then
+      ctx.fill_color = {22,22,30,255}
+      ctx:fill_rect(0, 0, W, H)
+    else
+      ctx:set_fill_linear_gradient(0, 0, 0, H)
+      ctx:add_fill_color_stop(0, {22,22,30,255})
+      ctx:add_fill_color_stop(1, {12,12,20,255})
+      ctx:begin_path(); ctx:rect(0,0,W,H); ctx:fill()
+    end
     if not song or not patt then return end
     local num_lines = patt.number_of_lines
     local win = PakettiPPWV_GetWindowLines(num_lines)
@@ -1162,7 +1426,7 @@ function PakettiPPWV_RenderHeaderCanvas(canvas_w, canvas_h)
     end
     -- Playhead (only in horizontal mode - vertical mode uses timeline sidebar playhead)
     local is_vertical = (PakettiPPWV_orientation == 2)
-    if not is_vertical then
+    if not is_vertical and PakettiPPWV_show_horizontal_playhead then
       local play_pos = nil
       local play_line = nil
       if song.transport.playing then
@@ -1338,7 +1602,11 @@ function PakettiPPWV_TrackMouse(track_index, ev)
         PakettiPPWV_HandleClickSelection(picked)
         PakettiPPWV_is_dup_dragging = PakettiPPWV_alt_is_down
         PakettiPPWV_is_dragging = true; PakettiPPWV_drag_start = {x=x,y=y,id=picked.id}
-        song.selected_track_index = picked.track_index; song.selected_line_index = picked.start_line; song.selected_instrument_index = picked.instrument_index or song.selected_instrument_index
+        
+        -- CRITICAL: Pattern editor changes FIRST (immediate)
+        song.selected_track_index = picked.track_index
+        song.selected_line_index = picked.start_line  
+        song.selected_instrument_index = picked.instrument_index or song.selected_instrument_index
         print(string.format("-- PPWV TRACK SELECT id=%s dup_drag=%s shift=%s alt=%s", tostring(picked.id), tostring(PakettiPPWV_is_dup_dragging), tostring(PakettiPPWV_shift_is_down), tostring(PakettiPPWV_alt_is_down)))
         
         -- Store this click for potential double-click detection
@@ -1348,7 +1616,8 @@ function PakettiPPWV_TrackMouse(track_index, ev)
         PakettiPPWV_last_click_event = picked
       end
       
-      PakettiPPWV_UpdateCanvasThrottled(); return
+      -- Single delayed canvas update (removed double-update)
+      renoise.tool():add_timer(function() PakettiPPWV_UpdateCanvasImmediate() end, 50)
     end
   elseif ev.type == "move" then
     if PakettiPPWV_is_dragging and PakettiPPWV_drag_start and PakettiPPWV_selected_event_id then
@@ -1376,8 +1645,11 @@ function PakettiPPWV_TrackMouse(track_index, ev)
             end
           end
         end
-        if moved then PakettiPPWV_drag_start.x = x; PakettiPPWV_drag_start.y = y; PakettiPPWV_RebuildEvents(); end
-        PakettiPPWV_UpdateCanvasThrottled()
+        if moved then 
+          PakettiPPWV_drag_start.x = x; PakettiPPWV_drag_start.y = y; PakettiPPWV_RebuildEvents()
+          -- Immediate update for track mute changes (essential UX feedback)
+          PakettiPPWV_UpdateCanvasThrottled()
+        end
       end
     end
   elseif ev.type == "up" then
@@ -1405,7 +1677,15 @@ function PakettiPPWV_RebuildTrackCanvases()
       local t = PakettiPPWV_show_only_selected_track and song.selected_track_index or i
       local cw = PakettiPPWV_canvas_width
       local ch = PakettiPPWV_GetCurrentCanvasHeight()
-      local c = PakettiPPWV_vb:canvas{ width = cw, height = ch, mode = "plain", render = PakettiPPWV_RenderTrackCanvas(t, cw, ch), mouse_handler = function(ev) PakettiPPWV_TrackMouse(t, ev) end, mouse_events = {"down","up","move"} }
+      
+      -- Standard single canvas per track
+      local c = PakettiPPWV_vb:canvas{ 
+        width = cw, height = ch, mode = "plain", 
+        render = PakettiPPWV_RenderTrackCanvas(t, cw, ch),
+        mouse_handler = function(ev) PakettiPPWV_TrackMouse(t, ev) end, 
+        mouse_events = {"down","up","move"} 
+      }
+      
       PakettiPPWV_tracks_container:add_child(c)
       PakettiPPWV_track_canvases[#PakettiPPWV_track_canvases+1] = c
     end
@@ -1416,14 +1696,38 @@ function PakettiPPWV_RebuildTrackCanvases()
     local row = PakettiPPWV_vb:row{ spacing = 0 }
     local tracks_to_draw = PakettiPPWV_show_only_selected_track and 1 or lanes
     -- Use simple fixed width per track for consistent alignment
-    local each_w = 300  -- Fixed 300px width per track for consistency
-    for i = 1, tracks_to_draw do
-      local t = PakettiPPWV_show_only_selected_track and song.selected_track_index or i
-      local cw = each_w
-      local ch = PakettiPPWV_GetCurrentCanvasHeight()
-      local c = PakettiPPWV_vb:canvas{ width = cw, height = ch, mode = "plain", render = PakettiPPWV_RenderTrackCanvas(t, cw, ch), mouse_handler = function(ev) PakettiPPWV_TrackMouse(t, ev) end, mouse_events = {"down","up","move"} }
-      row:add_child(c)
-      PakettiPPWV_track_canvases[#PakettiPPWV_track_canvases+1] = c
+    local each_w = PakettiPPWV_GetVerticalTrackWidth()  -- DRY: Use centralized width
+    
+    -- OPTIMIZATION #8: Batch multiple tracks per canvas to reduce canvas count
+    if PakettiPPWV_batch_tracks and not PakettiPPWV_show_only_selected_track and tracks_to_draw > 4 then
+      local tracks_per_batch = 4
+      local num_batches = math.ceil(tracks_to_draw / tracks_per_batch)
+      for batch = 1, num_batches do
+        local start_track = (batch - 1) * tracks_per_batch + 1
+        local end_track = math.min(batch * tracks_per_batch, tracks_to_draw)
+        local batch_width = (end_track - start_track + 1) * each_w
+        local ch = PakettiPPWV_GetCurrentCanvasHeight()
+        local c = PakettiPPWV_vb:canvas{ 
+          width = batch_width, 
+          height = ch, 
+          mode = "plain", 
+          render = PakettiPPWV_RenderBatchedTracks(start_track, end_track, each_w, ch),
+          mouse_handler = function(ev) PakettiPPWV_BatchedTrackMouse(start_track, end_track, each_w, ev) end,
+          mouse_events = {"down","up","move"} 
+        }
+        row:add_child(c)
+        PakettiPPWV_track_canvases[#PakettiPPWV_track_canvases+1] = c
+      end
+    else
+      -- Original single-track-per-canvas approach
+      for i = 1, tracks_to_draw do
+        local t = PakettiPPWV_show_only_selected_track and song.selected_track_index or i
+        local cw = each_w
+        local ch = PakettiPPWV_GetCurrentCanvasHeight()
+        local c = PakettiPPWV_vb:canvas{ width = cw, height = ch, mode = "plain", render = PakettiPPWV_RenderTrackCanvas(t, cw, ch), mouse_handler = function(ev) PakettiPPWV_TrackMouse(t, ev) end, mouse_events = {"down","up","move"} }
+        row:add_child(c)
+        PakettiPPWV_track_canvases[#PakettiPPWV_track_canvases+1] = c
+      end
     end
     PakettiPPWV_tracks_container:add_child(row)
     if PakettiPPWV_canvas then PakettiPPWV_canvas.visible = false end
@@ -1431,9 +1735,68 @@ function PakettiPPWV_RebuildTrackCanvases()
   PakettiPPWV_UpdateScrollbars()
 end
 
+-- OPTIMIZATION #8: Render multiple tracks in one canvas with Y offsets
+function PakettiPPWV_RenderBatchedTracks(start_track, end_track, track_width, canvas_h)
+  return function(ctx)
+    local W = (end_track - start_track + 1) * track_width
+    local H = canvas_h
+    
+    -- Always clear the batch canvas - individual tracks handle their own intelligent clearing
+    ctx:clear_rect(0, 0, W, H)
+    
+    for track_offset = 0, end_track - start_track do
+      local track_index = start_track + track_offset
+      local x_offset = track_offset * track_width
+      
+      -- Save and translate context for this track
+      ctx:save()
+      ctx:translate(x_offset, 0)
+      
+      -- Render individual track with clipped width - skip clearing since we handle it at batch level
+      local track_renderer = PakettiPPWV_RenderTrackCanvas(track_index, track_width, H, true)
+      track_renderer(ctx)
+      
+      ctx:restore()
+    end
+  end
+end
+
+-- OPTIMIZATION #8: Mouse handler for batched tracks
+function PakettiPPWV_BatchedTrackMouse(start_track, end_track, track_width, ev)
+  local x = ev.position.x
+  local track_offset = math.floor(x / track_width)
+  local track_index = start_track + track_offset
+  if track_index >= start_track and track_index <= end_track then
+    -- Adjust mouse position to track-relative coordinates
+    local adjusted_ev = table.copy(ev)
+    adjusted_ev.position = {x = x % track_width, y = ev.position.y}
+    PakettiPPWV_TrackMouse(track_index, adjusted_ev)
+  end
+end
+
 -- Get current vertical scale factor
 function PakettiPPWV_GetVerticalScale()
   return (PakettiPPWV_vertical_scale_index == 2) and 2 or ((PakettiPPWV_vertical_scale_index == 3) and 3 or 1)
+end
+
+-- DRY PRINCIPLE: Centralized size calculations
+function PakettiPPWV_GetSelectedTrackHeight()
+  local scale = PakettiPPWV_GetVerticalScale()
+  return math.floor((PakettiPPWV_base_canvas_height * scale) / 2)  -- Half height for performance
+end
+
+function PakettiPPWV_GetLaneHeight()
+  local scale = PakettiPPWV_GetVerticalScale()
+  if PakettiPPWV_show_only_selected_track then
+    return PakettiPPWV_GetSelectedTrackHeight()
+  else
+    return PakettiPPWV_lane_height * scale
+  end
+end
+
+-- DRY: Centralized track width for vertical mode
+function PakettiPPWV_GetVerticalTrackWidth()
+  return 96  -- OPTIMIZED: Reduced width for better performance (was 120px)
 end
 
 -- Get current canvas height with scaling applied
@@ -1442,8 +1805,7 @@ function PakettiPPWV_GetCurrentCanvasHeight()
   local is_vertical = (PakettiPPWV_orientation == 2)
   
   if PakettiPPWV_show_only_selected_track then
-    -- Selected track mode: use base canvas height
-    return PakettiPPWV_base_canvas_height * scale
+    return PakettiPPWV_GetSelectedTrackHeight()
   else
     if is_vertical then
       -- Vertical mode: use much larger base height (like 400px minimum)
@@ -1451,7 +1813,7 @@ function PakettiPPWV_GetCurrentCanvasHeight()
       return vertical_base_height * scale
     else
       -- Horizontal mode: use small lane height for stacked tracks
-      return PakettiPPWV_lane_height * scale
+      return PakettiPPWV_GetLaneHeight()
     end
   end
 end
@@ -1471,7 +1833,9 @@ end
 -- Manual refresh: clear waveform cache and redraw
 function PakettiPlayerProWaveformViewerRefresh()
   PakettiPPWV_cached_waveforms = {}
+  PakettiPPWV_reference_scale_cache = {}  -- Clear reference cache with waveforms
   PakettiPPWV_sample_length_cache = {} -- Clear sample length cache too
+  print("-- PPWV: FORCED CACHE CLEAR - Regenerating all waveforms with DC correction")
   PakettiPPWV_RebuildEvents()
   PakettiPPWV_UpdateScrollbars()
   PakettiPPWV_UpdateCanvasThrottled()
@@ -1565,15 +1929,32 @@ function PakettiPPWV_FindSampleIndexForNote(instrument, note_value)
 end
 
 -- Cache downsampled waveform for an instrument/sample pair
+-- OPTIMIZATION #5: Adaptive waveform resolution based on zoom level
+function PakettiPPWV_TargetPointsForZoom(is_vertical)
+  local win = PakettiPPWV_GetWindowLines(renoise.song() and renoise.song().selected_pattern.number_of_lines or 64)
+  if is_vertical then
+    if win >= 256 then return 128 end      -- Far zoom-out: low resolution
+    if win >= 128 then return 192 end      -- Medium zoom: medium resolution
+    return 256                             -- Close zoom: full resolution
+  else
+    return 256  -- Horizontal always uses full resolution
+  end
+end
+
 function PakettiPPWV_GetCachedWaveform(instrument_index, sample_index)
   local song = renoise.song()
   if not song then return nil end
-  local key = tostring(instrument_index) .. ":" .. tostring(sample_index)
+  
+  -- OPTIMIZATION: Dynamic resolution based on current zoom level
+  local is_vertical = (PakettiPPWV_orientation == 2)
+  local target_points = PakettiPPWV_TargetPointsForZoom(is_vertical)
+  local key = tostring(instrument_index) .. ":" .. tostring(sample_index) .. "@" .. tostring(target_points)
+  
   if PakettiPPWV_cached_waveforms[key] then
     if PakettiPPWV_debug then print(string.format("-- PPWV WAVEFORM: Using cached waveform for %s", key)) end
     return PakettiPPWV_cached_waveforms[key]
   end
-  if PakettiPPWV_debug then print(string.format("-- PPWV WAVEFORM: Creating new waveform cache for %s", key)) end
+  if PakettiPPWV_debug then print(string.format("-- PPWV WAVEFORM: Creating new waveform cache for %s (points=%d)", key, target_points)) end
   local instr = song.instruments[instrument_index]
   if not instr or not instr.samples[sample_index] then return nil end
   local sample = instr.samples[sample_index]
@@ -1581,8 +1962,9 @@ function PakettiPPWV_GetCachedWaveform(instrument_index, sample_index)
   local buffer = sample.sample_buffer
   local num_frames = buffer.number_of_frames
   local num_channels = buffer.number_of_channels
-  local target_points = 256 -- compact shape
   local cache = {}
+  
+  -- FIRST PASS: Calculate raw sample values
   for i = 1, target_points do
     local frame_pos = math.floor((i - 1) / (target_points - 1) * (num_frames - 1)) + 1
     frame_pos = math.max(1, math.min(num_frames, frame_pos))
@@ -1595,6 +1977,27 @@ function PakettiPPWV_GetCachedWaveform(instrument_index, sample_index)
     if v > 1 then v = 1 end
     cache[i] = v
   end
+  
+  -- SECOND PASS: DC CORRECTION - Remove average offset to center silence at zero
+  local dc_offset = 0
+  for i = 1, target_points do
+    dc_offset = dc_offset + cache[i]
+  end
+  dc_offset = dc_offset / target_points
+  
+  -- Apply DC correction to center waveform
+  for i = 1, target_points do
+    cache[i] = cache[i] - dc_offset
+    -- Re-clamp after DC correction
+    if cache[i] < -1 then cache[i] = -1 end
+    if cache[i] > 1 then cache[i] = 1 end
+  end
+  
+  -- DEBUG: Show DC correction amount
+  if PakettiPPWV_debug and math.abs(dc_offset) > 0.001 then
+    print(string.format("-- PPWV DC CORRECTION: %s offset=%.4f", key, dc_offset))
+  end
+  
   PakettiPPWV_cached_waveforms[key] = cache
   return cache
 end
@@ -1637,6 +2040,26 @@ function PakettiPPWV_RebuildEvents()
               local instr = song.instruments[instrument_index]
               local sample_index = PakettiPPWV_FindSampleIndexForNote(instr, nc.note_value)
               local event_id = string.format("%02d:%03d:%02d", track_index, line_index, col)
+              
+              -- MICRO-OPTIMIZATION #3: Freeze event facts to avoid pattern access during render
+              local note_value = nc.note_value or 48
+              local actual_start_time = line_index + (nc.delay_value or 0) / 256
+              local note_name = nil
+              if note_value and note_value <= 119 then
+                local names = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
+                local oct = math.floor(note_value/12)
+                note_name = names[(note_value%12)+1] .. tostring(oct)
+              end
+              
+              -- Pre-calculate sample length to avoid computation during rendering
+              local natural_length_lines = 4.0  -- Default fallback
+              if instr.samples[sample_index] then
+                local sample = instr.samples[sample_index]
+                if sample.sample_buffer and sample.sample_buffer.has_sample_data then
+                  natural_length_lines = PakettiPPWV_CalculateSampleLengthInLines(sample, {note_value=note_value, track_index=track_index, start_line=line_index, column_index=col}, song, patt) or 4.0
+                end
+              end
+              
               open_by_column[col] = {
                 id = event_id,
                 track_index = track_index,
@@ -1645,7 +2068,12 @@ function PakettiPPWV_RebuildEvents()
                 end_line = num_lines + 1, -- provisional until closed
                 instrument_index = instrument_index,
                 sample_index = sample_index,
-                start_delay = nc.delay_value or 0
+                start_delay = nc.delay_value or 0,
+                -- OPTIMIZATION: Frozen facts to avoid pattern access during render
+                note_value = note_value,
+                actual_start_time = actual_start_time,
+                note_name = note_name,
+                natural_length_lines = natural_length_lines
               }
             end
           end
@@ -1661,6 +2089,28 @@ function PakettiPPWV_RebuildEvents()
     end
   end
 
+  -- OPTIMIZATION: Precompute next_start_time for each event to avoid O(N²) lookups during rendering
+  for i = 1, #new_events do
+    local ev = new_events[i]
+    local current_actual_start_time = ev.start_line + (ev.start_delay or 0) / 256
+    ev.next_start_time = nil -- Default to no next event
+    local earliest_next_time = math.huge
+    
+    for j = 1, #new_events do
+      local next_ev = new_events[j]
+      if next_ev.track_index == ev.track_index and next_ev.column_index == ev.column_index and next_ev.id ~= ev.id then
+        local next_start_time = next_ev.start_line + (next_ev.start_delay or 0) / 256
+        if next_start_time > current_actual_start_time and next_start_time < earliest_next_time then
+          earliest_next_time = next_start_time
+        end
+      end
+    end
+    
+    if earliest_next_time < math.huge then
+      ev.next_start_time = earliest_next_time
+    end
+  end
+
   PakettiPPWV_events = new_events
 end
 
@@ -1670,13 +2120,56 @@ function PakettiPPWV_LineDelayToX(line_index, delay_value, num_lines)
   return PakettiPPWV_MapTimeToX(t, num_lines)
 end
 
+-- ADD: Reverse coordinate conversion functions (Lua 5.1 compatible)
+function PakettiPPWV_XToLine(x, num_lines)
+  local win = PakettiPPWV_GetWindowLines(num_lines)
+  local eff_w = math.max(1, PakettiPPWV_canvas_width - (2*PakettiPPWV_gutter_width))
+  local t = (x / eff_w) * win + PakettiPPWV_view_start_line
+  return math.max(1, math.min(num_lines, math.floor(t + 0.5)))
+end
+
+function PakettiPPWV_YToLine(y, num_lines, canvas_height)
+  local win = PakettiPPWV_GetWindowLines(num_lines)
+  local t = (y / canvas_height) * win + PakettiPPWV_view_start_line
+  return math.max(1, math.min(num_lines, math.floor(t + 0.5)))
+end
+
+-- MAJOR OPTIMIZATION: Returns local window [win_s, win_e] (1-based, inclusive) for the selected event on this track
+function PakettiPPWV_LocalWindowForSelected(track_index, num_lines)
+  if not PakettiPPWV_selected_event_id then return nil end
+  local sel = nil
+  for i = 1, #PakettiPPWV_events do
+    local e = PakettiPPWV_events[i]
+    if e.id == PakettiPPWV_selected_event_id then sel = e; break end
+  end
+  if not sel or sel.track_index ~= track_index then return nil end
+
+  -- Find prev/next on same track+column
+  local prev_start, next_start = 1, num_lines+1
+  for i = 1, #PakettiPPWV_events do
+    local e = PakettiPPWV_events[i]
+    if e.track_index == sel.track_index and e.column_index == sel.column_index then
+      local s = e.start_line + (e.start_delay or 0)/256
+      local sel_s = sel.start_line + (sel.start_delay or 0)/256
+      if s < sel_s and s > prev_start then prev_start = e.start_line end
+      if s > sel_s and s < next_start then next_start = e.start_line end
+    end
+  end
+
+  -- Clamp to pattern; add small padding to avoid visual clipping
+  local pad = 2
+  local win_s = math.max(1, prev_start - pad)
+  local win_e = math.min(num_lines, (next_start == (num_lines+1) and num_lines or next_start) + pad)
+  if win_e < win_s then return nil end
+  return win_s, win_e
+end
+
 -- Find event under mouse position - matches actual visual waveform rendering
 function PakettiPPWV_FindEventAt(x, y)
   local song, patt = PakettiPPWV_GetSongAndPattern()
   if not song or not patt then return nil end
   local num_lines = patt.number_of_lines
-  local scale = PakettiPPWV_GetVerticalScale()
-  local lane_height = PakettiPPWV_show_only_selected_track and PakettiPPWV_canvas_height or (PakettiPPWV_lane_height*scale)
+  local lane_height = PakettiPPWV_GetLaneHeight()  -- DRY: Use centralized calculation
   local track_lane = math.floor(y / lane_height) + 1
   if track_lane < 1 or track_lane > song.sequencer_track_count then return nil end
   
@@ -1781,10 +2274,7 @@ function PakettiPPWV_MoveEventByTicks(ev, delta_ticks)
   dst_nc.effect_amount_value = effect_amount_value
   dst_nc.delay_value = dst_delay
   -- Ensure delay column is visible after nudging
-  local song2 = renoise.song()
-  if song2 and song2.tracks[ev.track_index] and song2.tracks[ev.track_index].delay_column_visible ~= nil then
-    song2.tracks[ev.track_index].delay_column_visible = true
-  end
+  renoise.song().tracks[ev.track_index].delay_column_visible = true
   -- Update selection id and keep selection mapping
   local old_id = ev.id
   ev.start_line = dst_line  -- Keep 1-based for API compatibility
@@ -1887,25 +2377,28 @@ function PakettiPPWV_SelectAdjacentEvent(direction)
   if PakettiPPWV_canvas then PakettiPPWV_canvas:update() end
 end
 
--- Keyboard-driven nudges
+-- Keyboard-driven nudges - REVERTED TO WORKING VERSION WITH OPTIMIZED DEBOUNCING
 function PakettiPPWV_NudgeSelectedTicks(delta_ticks)
   if not PakettiPPWV_selected_event_id then return end
   for i = 1, #PakettiPPWV_events do
     local ev = PakettiPPWV_events[i]
     if ev.id == PakettiPPWV_selected_event_id then
       if PakettiPPWV_MoveEventByTicks(ev, delta_ticks) then
-        PakettiPPWV_RebuildEvents()
-        PakettiPPWV_UpdateCanvasThrottled()
+        PakettiPPWV_ScheduleDeferredUpdate()
       end
       break
     end
   end
 end
 
--- Nudge multiple selected events on the same track
+-- Nudge multiple selected events on the same track - ATOMIC BATCH OPERATION
 function PakettiPPWV_NudgeMultipleOnSameTrack(delta_ticks)
   if not PakettiPPWV_selected_event_id then return end
-  if #PakettiPPWV_selected_ids == 0 then return end
+  if PakettiPPWV_SelectedCount() == 0 then return end
+  
+  local song, patt = PakettiPPWV_GetSongAndPattern()
+  if not song or not patt then return end
+  
   -- Determine track from anchor event
   local anchor_track = nil
   for i = 1, #PakettiPPWV_events do
@@ -1916,30 +2409,90 @@ function PakettiPPWV_NudgeMultipleOnSameTrack(delta_ticks)
     end
   end
   if not anchor_track then return end
-  -- Apply move in event order (to reduce collisions)
-  local moved = false
+  
+  -- ATOMIC BATCH OPERATION: Collect all operations first, then execute in one go
+  local batch_operations = {}
+  local num_lines = patt.number_of_lines
+  local ptrack = patt:track(anchor_track)
+  
+  -- Phase 1: Plan all moves (don't touch pattern yet)
   for i = 1, #PakettiPPWV_events do
     local ev = PakettiPPWV_events[i]
     if ev.track_index == anchor_track and PakettiPPWV_selected_ids[ev.id] then
-      if PakettiPPWV_MoveEventByTicks(ev, delta_ticks) then
-        moved = true
+      local src_line = ev.start_line
+      local src_col = ev.column_index
+      local src_nc = ptrack:line(src_line).note_columns[src_col]
+      
+      if src_nc and not src_nc.is_empty and src_nc.note_value <= 119 then
+        -- Calculate new position
+        local start_ticks = (src_line - 1) * 256 + (src_nc.delay_value or 0)
+        local new_ticks = math.max(0, math.min((num_lines - 1) * 256 + 255, start_ticks + delta_ticks))
+        local dst_line = math.floor(new_ticks / 256) + 1
+        local dst_delay = new_ticks % 256
+        
+        -- Check if destination is free (or same as source)
+        local dst_nc = ptrack:line(dst_line).note_columns[src_col]
+        if dst_nc and (dst_nc.is_empty or dst_line == src_line) then
+          -- Queue this operation
+          table.insert(batch_operations, {
+            src_line = src_line,
+            src_col = src_col, 
+            dst_line = dst_line,
+            dst_delay = dst_delay,
+            note_data = {
+              note_value = src_nc.note_value,
+              instrument_value = src_nc.instrument_value,
+              volume_value = src_nc.volume_value,
+              panning_value = src_nc.panning_value,
+              effect_number_value = src_nc.effect_number_value,
+              effect_amount_value = src_nc.effect_amount_value
+            },
+            event = ev
+          })
+        end
       end
     end
   end
-  if moved then
-    PakettiPPWV_RebuildEvents()
-    -- Keep selection by reselecting items that moved: reselect by same track and approximate time window
-    local new_selected = {}
-    for i = 1, #PakettiPPWV_events do
-      local e = PakettiPPWV_events[i]
-      -- Heuristic: if original id existed, prefer same id; otherwise preserve anchor
-      if PakettiPPWV_selected_ids and PakettiPPWV_selected_ids[e.id] then
-        new_selected[e.id] = true
-      end
-    end
-    PakettiPPWV_selected_ids = new_selected
-    PakettiPPWV_UpdateCanvasThrottled()
+  
+  if #batch_operations == 0 then return end
+  
+  -- Phase 2: Execute all moves atomically (no intermediate UI updates)
+  print(string.format("-- PPWV: Executing atomic batch nudge of %d samples, delta=%d", #batch_operations, delta_ticks))
+  
+  -- Clear all source notes first
+  for _, op in ipairs(batch_operations) do
+    ptrack:line(op.src_line).note_columns[op.src_col]:clear()
   end
+  
+  -- Write all destination notes
+  for _, op in ipairs(batch_operations) do
+    local dst_nc = ptrack:line(op.dst_line).note_columns[op.src_col]
+    dst_nc.note_value = op.note_data.note_value
+    dst_nc.instrument_value = op.note_data.instrument_value
+    dst_nc.volume_value = op.note_data.volume_value
+    dst_nc.panning_value = op.note_data.panning_value
+    dst_nc.effect_number_value = op.note_data.effect_number_value
+    dst_nc.effect_amount_value = op.note_data.effect_amount_value
+    dst_nc.delay_value = op.dst_delay
+    
+    -- Update event object
+    op.event.start_line = op.dst_line
+    op.event.start_delay = op.dst_delay
+    op.event.id = string.format("%02d:%03d:%02d", op.event.track_index, op.dst_line, op.event.column_index)
+  end
+  
+  -- Ensure delay column is visible after batch nudging
+  renoise.song().tracks[anchor_track].delay_column_visible = true
+  
+  -- Keep selection after atomic move - update selection IDs to match new positions
+  local new_selected = {}
+  for _, op in ipairs(batch_operations) do
+    new_selected[op.event.id] = true
+  end
+  PakettiPPWV_selected_ids = new_selected
+  
+  -- Single deferred update for smooth performance
+  PakettiPPWV_ScheduleDeferredUpdate()
 end
 
 function PakettiPPWV_SnapSelectedToNearestRow()
@@ -1972,21 +2525,50 @@ end
 function PakettiPPWV_KeyHandler(dialog, key)
   local name = tostring(key.name)
   local mods = tostring(key.modifiers)
-  -- Debug
+  
+  -- CRITICAL FIX: Only handle specific navigation keys to prevent double note triggering
+  -- Let note entry keys (letters, numbers, etc.) pass through directly without any processing
+  local waveform_viewer_keys = {
+    left = true, right = true, up = true, down = true,
+    back = true, delete = true
+  }
+  
+  -- If this isn't a key we specifically handle, pass it directly to normal handler
+  if not waveform_viewer_keys[name] then
+    return my_keyhandler_func(dialog, key)
+  end
+  
+  -- Debug only for keys we actually handle
   PakettiPPWV_UpdateModifierFlags(mods)
   print(string.format("-- PPWV KEY name=%s mods=%s", name, mods))
   PakettiPPWV_DebugPrintModifierFlags("key")
   PakettiPPWV_shift_is_down = (mods == "shift")
   if mods == "" then
     if name == "left" then
-      if PakettiPPWV_multi_select_mode and #PakettiPPWV_events > 0 and #PakettiPPWV_selected_ids > 0 then
+      -- If "Select the same" is enabled, automatically populate matching selections
+      if PakettiPPWV_select_same_enabled then
+        PakettiPPWV_SelectAllMatchingSamples()
+      end
+      
+      local selected_count = PakettiPPWV_SelectedCount()
+      local events_count = #PakettiPPWV_events
+      
+      if (PakettiPPWV_multi_select_mode or PakettiPPWV_select_same_enabled) and events_count > 0 and selected_count > 0 then
         PakettiPPWV_NudgeMultipleOnSameTrack(-1)
       else
         PakettiPPWV_NudgeSelectedTicks(-1)
       end
       return nil
     elseif name == "right" then
-      if PakettiPPWV_multi_select_mode and #PakettiPPWV_events > 0 and #PakettiPPWV_selected_ids > 0 then
+      -- If "Select the same" is enabled, automatically populate matching selections
+      if PakettiPPWV_select_same_enabled then
+        PakettiPPWV_SelectAllMatchingSamples()
+      end
+      
+      local selected_count = PakettiPPWV_SelectedCount()
+      local events_count = #PakettiPPWV_events
+      
+      if (PakettiPPWV_multi_select_mode or PakettiPPWV_select_same_enabled) and events_count > 0 and selected_count > 0 then
         PakettiPPWV_NudgeMultipleOnSameTrack(1)
       else
         PakettiPPWV_NudgeSelectedTicks(1)
@@ -1994,14 +2576,24 @@ function PakettiPPWV_KeyHandler(dialog, key)
       return nil
     elseif name == "up" and PakettiPPWV_orientation == 2 then
       -- Vertical nudge: up/down
-      if PakettiPPWV_multi_select_mode and #PakettiPPWV_events > 0 and #PakettiPPWV_selected_ids > 0 then
+      -- If "Select the same" is enabled, automatically populate matching selections
+      if PakettiPPWV_select_same_enabled then
+        PakettiPPWV_SelectAllMatchingSamples()
+      end
+      
+      if (PakettiPPWV_multi_select_mode or PakettiPPWV_select_same_enabled) and #PakettiPPWV_events > 0 and PakettiPPWV_SelectedCount() > 0 then
         PakettiPPWV_NudgeMultipleOnSameTrack(-1)
       else
         PakettiPPWV_NudgeSelectedTicks(-1)
       end
       return nil
     elseif name == "down" and PakettiPPWV_orientation == 2 then
-      if PakettiPPWV_multi_select_mode and #PakettiPPWV_events > 0 and #PakettiPPWV_selected_ids > 0 then
+      -- If "Select the same" is enabled, automatically populate matching selections
+      if PakettiPPWV_select_same_enabled then
+        PakettiPPWV_SelectAllMatchingSamples()
+      end
+      
+      if (PakettiPPWV_multi_select_mode or PakettiPPWV_select_same_enabled) and #PakettiPPWV_events > 0 and PakettiPPWV_SelectedCount() > 0 then
         PakettiPPWV_NudgeMultipleOnSameTrack(1)
       else
         PakettiPPWV_NudgeSelectedTicks(1)
@@ -2076,9 +2668,7 @@ function PakettiPPWV_RenderCanvas(ctx)
   local selected_track = song.selected_track_index
   local lanes_to_draw = lanes
   if PakettiPPWV_show_only_selected_track then lanes_to_draw = 1 end
-  -- If only selected track: use full canvas height as one lane
-  local scale = PakettiPPWV_GetVerticalScale()
-  local lane_height = PakettiPPWV_show_only_selected_track and PakettiPPWV_canvas_height or (PakettiPPWV_lane_height*scale)
+  local lane_height = PakettiPPWV_GetLaneHeight()  -- DRY: Use centralized calculation
   local total_height = lanes_to_draw * lane_height
 
   -- Orientation switch: Vertical mode transposes axes
@@ -2209,20 +2799,26 @@ function PakettiPPWV_RenderCanvas(ctx)
     local track_index = PakettiPPWV_show_only_selected_track and selected_track or lane
     local track = song.tracks[track_index]
     local lane_top = (lane - 1) * lane_height
-    local idx_text = string.format("%02d", lane)
-    local name_text = track and track.name or "Track"
-    local label = idx_text .. ": " .. name_text
+    local name_text = track and track.name or ("Track " .. string.format("%02d", track_index))
+    local label = name_text
+    local mute_text = "(MUTED - CLICK TO UNMUTE)"
     local trk2 = song.tracks[track_index]
     local is_muted = PakettiPPWV_IsTrackMuted(trk2)
     
     if is_muted then
-      label = label .. " (MUTED - CLICK TO UNMUTE)"
       ctx.stroke_color = {200,200,200,255} -- Dimmed text for muted tracks
+      if not is_vertical then
+        label = label .. " " .. mute_text  -- Horizontal: single line
+      end
     else
       ctx.stroke_color = {255,255,255,255}
     end
     ctx.line_width = 1
     PakettiPPWV_DrawText(ctx, label, 6, lane_top + 4, 8)
+    -- In vertical mode, draw mute text on second line
+    if is_muted and is_vertical then
+      PakettiPPWV_DrawText(ctx, mute_text, 6, lane_top + 16, 7)  -- Second line, smaller font
+    end
     
     if is_muted then
       -- Solid grey overlay and big MUTE text. Skip waveform drawing later for this lane.
@@ -2316,8 +2912,10 @@ function PakettiPPWV_RenderCanvas(ctx)
         print(string.format("-- PPWV MAIN RENDER: Track %d Line %d -> Length=%.3f, RefWidth=%.1f, PPS=%.3f, Points=%d", 
           ev.track_index, ev.start_line, actual_sample_length_lines, reference_width, pixels_per_sample, points))
         
-        -- Draw waveform at fixed scale, but only up to clip point
-        for px = 0, math.floor(width) do
+        -- CRITICAL FIX: Draw waveform ONLY for actual sample length, not collision clip length  
+        local actual_sample_width = PakettiPPWV_LineDelayToX(current_actual_start_time + actual_sample_length_lines, 0, num_lines) - x1
+        local sample_draw_width = math.min(width, actual_sample_width)  -- Don't exceed actual sample
+        for px = 0, math.floor(sample_draw_width) do
           local sample_idx = math.floor(px / pixels_per_sample) + 1
           if sample_idx < 1 then sample_idx = 1 end
           if sample_idx > points then sample_idx = points end
@@ -2425,8 +3023,7 @@ function PakettiPPWV_MouseHandler(ev)
     -- Check if click is on track title area for mute toggle (main canvas view)
     local song = renoise.song()
     if song then
-      local scale = PakettiPPWV_GetVerticalScale()
-      local lane_height = PakettiPPWV_show_only_selected_track and PakettiPPWV_canvas_height or (PakettiPPWV_lane_height*scale)
+      local lane_height = PakettiPPWV_GetLaneHeight()  -- DRY: Use centralized calculation
       local lane_idx = math.floor(ev.position.y / lane_height) + 1
       local y_in_lane = ev.position.y % lane_height
       local track_index = PakettiPPWV_show_only_selected_track and song.selected_track_index or lane_idx
@@ -2443,12 +3040,14 @@ function PakettiPPWV_MouseHandler(ev)
           -- Click on track title - always toggle mute
           print("-- PPWV: Main canvas title click! Toggling mute for track " .. track_index)
           PakettiPPWV_ToggleTrackMute(track_index)
+          -- Immediate update for track mute changes (essential UX feedback)
           PakettiPPWV_UpdateCanvasThrottled()
           return
         elseif is_track_muted then
           -- Click anywhere on a muted track - unmute it
           print("-- PPWV: Main canvas click on muted track " .. track_index .. " - unmuting!")
           PakettiPPWV_ToggleTrackMute(track_index)
+          -- Immediate update for track mute changes (essential UX feedback)
           PakettiPPWV_UpdateCanvasThrottled()
           return
         end
@@ -2471,7 +3070,7 @@ function PakettiPPWV_MouseHandler(ev)
       if song.instruments[evhit.instrument_index] and #song.instruments[evhit.instrument_index].samples >= evhit.sample_index then
         song.selected_sample_index = evhit.sample_index
       end
-      -- Move pattern cursor to event start
+      -- CRITICAL: Move pattern cursor FIRST (immediate)
       song.selected_line_index = evhit.start_line
       -- Ensure delay column visible
       local trk = song.tracks[evhit.track_index]
@@ -2487,8 +3086,12 @@ function PakettiPPWV_MouseHandler(ev)
         PakettiPPWV_is_dragging = true
         PakettiPPWV_drag_start = {x = ev.position.x, y = ev.position.y, id = evhit.id}
         PakettiPPWV_is_dup_dragging = PakettiPPWV_alt_is_down
+        
+        -- ADD: Start dirty window for drag (horizontal mode)
+        PPWV_DirtyBegin(evhit.start_line, evhit.start_line)
         print(string.format("-- PPWV SELECT id=%s dup_drag=%s shift=%s alt=%s ctrl=%s cmd=%s", evhit.id, tostring(PakettiPPWV_is_dup_dragging), tostring(PakettiPPWV_shift_is_down), tostring(PakettiPPWV_alt_is_down), tostring(PakettiPPWV_ctrl_is_down), tostring(PakettiPPWV_cmd_is_down)))
-        PakettiPPWV_UpdateCanvasThrottled()
+        -- Canvas update after pattern editor change
+        renoise.tool():add_timer(function() PakettiPPWV_UpdateCanvasImmediate() end, 50)  -- Reduced from 1ms to 50ms
       end
 
       PakettiPPWV_last_click_time_ms = now_ms
@@ -2517,6 +3120,11 @@ function PakettiPPWV_MouseHandler(ev)
               if applied then
                 PakettiPPWV_drag_start.x = ev.position.x
                 PakettiPPWV_RebuildEvents()
+                
+                -- ADD: Update dirty window during drag (horizontal mode)
+                local current_line = PakettiPPWV_XToLine(ev.position.x, num_lines)
+                PPWV_DirtyUpdate(current_line, current_line)
+                
                 if PakettiPPWV_canvas then PakettiPPWV_canvas:update() end
               end
               break
@@ -2529,6 +3137,9 @@ function PakettiPPWV_MouseHandler(ev)
     PakettiPPWV_is_dragging = false
     PakettiPPWV_drag_start = nil
     PakettiPPWV_is_dup_dragging = false
+    
+    -- ADD: End dirty window on drag end (horizontal mode)
+    PPWV_DirtyEnd()
   end
 end
 
@@ -2554,6 +3165,37 @@ function PakettiPPWV_BuildMuteStateHash()
   return table.concat(acc, ":")
 end
 
+-- Build hash for sample buffer states to detect modifications (reverse, crop, etc.)
+function PakettiPPWV_BuildSampleBufferHash()
+  local song = renoise.song()
+  if not song then return "" end
+  local acc = {}
+  
+  -- Check all instruments and their samples for buffer changes
+  for inst_idx = 1, #song.instruments do
+    local instrument = song.instruments[inst_idx]
+    if instrument and #instrument.samples > 0 then
+      for samp_idx = 1, #instrument.samples do
+        local sample = instrument.samples[samp_idx]
+        if sample and sample.sample_buffer and sample.sample_buffer.has_sample_data then
+          local buffer = sample.sample_buffer
+          -- Use number of frames + sample rate + bit depth as basic change detection
+          -- This will change when samples are reversed, cropped, resampled, etc.
+          local buffer_info = string.format("%d:%d:%d:%d", 
+            buffer.number_of_frames or 0,
+            buffer.sample_rate or 0, 
+            buffer.bit_depth or 0,
+            buffer.number_of_channels or 0
+          )
+          acc[#acc+1] = "i" .. tostring(inst_idx) .. "s" .. tostring(samp_idx) .. ":" .. buffer_info
+        end
+      end
+    end
+  end
+  
+  return table.concat(acc, ":")
+end
+
 -- Timer callback
 function PakettiPPWV_TimerTick()
   if not PakettiPPWV_dialog or not PakettiPPWV_dialog.visible then return end
@@ -2566,6 +3208,17 @@ function PakettiPPWV_TimerTick()
     PakettiPPWV_last_mute_hash = mute_hash
   end
   
+  -- Check for sample buffer changes (reverse, crop, resample, etc.)
+  local sample_hash = PakettiPPWV_BuildSampleBufferHash()
+  local samples_changed = (sample_hash ~= PakettiPPWV_last_sample_hash)
+  if samples_changed then
+    print("-- PPWV: Sample buffer changes detected, clearing waveform cache")
+    PakettiPPWV_last_sample_hash = sample_hash
+    -- Clear entire waveform cache when any sample changes
+    PakettiPPWV_cached_waveforms = {}
+    PakettiPPWV_sample_length_cache = {}
+  end
+  
   -- Check for pattern content changes  
   local hash = PakettiPPWV_BuildPatternHash()
   local pattern_changed = (hash ~= PakettiPPWV_last_content_hash)
@@ -2574,13 +3227,14 @@ function PakettiPPWV_TimerTick()
     PakettiPPWV_last_content_hash = hash
   end
   
-  -- Update if either pattern content or mute states changed
-  if pattern_changed or mute_changed then
+  -- Update if any changes detected
+  if pattern_changed or mute_changed or samples_changed then
     PakettiPPWV_RebuildEvents()
     PakettiPPWV_UpdateCanvasThrottled()
   else
+    -- Only redraw during playback if playheads are enabled (otherwise pointless!)
     local song = renoise.song()
-    if song and song.transport.playing then
+    if song and song.transport.playing and (PakettiPPWV_show_horizontal_playhead or PakettiPPWV_show_vertical_playhead) then
       PakettiPPWV_UpdateCanvasThrottled()
     end
   end
@@ -2600,12 +3254,15 @@ function PakettiPPWV_Cleanup()
   PakettiPPWV_dialog = nil
   PakettiPPWV_vb = nil
   PakettiPPWV_canvas = nil
+  PakettiPPWV_track_canvases = {}
   PakettiPPWV_tracks_observable = nil
   PakettiPPWV_tracks_observer_func = nil
   PakettiPPWV_selected_event_id = nil
   PakettiPPWV_cached_waveforms = {}
+  PakettiPPWV_reference_scale_cache = {}  -- Clear reference cache with waveforms
   PakettiPPWV_last_content_hash = ""
   PakettiPPWV_last_mute_hash = ""
+  PakettiPPWV_last_sample_hash = ""  -- Clear sample buffer hash
   PakettiPPWV_last_track_count = 0
   PakettiPPWV_last_click_event = nil
   print("-- Paketti PPWV: Cleaned up")
@@ -2630,10 +3287,11 @@ function PakettiPPWV_BuildContent()
       value = PakettiPPWV_orientation,
       notifier = function(val)
         PakettiPPWV_orientation = val
+        PakettiPPWV_SavePreferences()
         PakettiPPWV_ReopenDialog()
       end
     },
-    PakettiPPWV_vb:text{ text = "Zoom" },
+    PakettiPPWV_vb:text{ text = "Zoom", style = "strong", font="bold" },
     PakettiPPWV_vb:switch{
       id = "ppwv_vscale_switch_top",
       items = {"1x","2x","3x"},
@@ -2641,29 +3299,32 @@ function PakettiPPWV_BuildContent()
       value = PakettiPPWV_vertical_scale_index,
       notifier = function(val)
         PakettiPPWV_vertical_scale_index = val
+        PakettiPPWV_SavePreferences()
         -- Reopen dialog to resize timeline sidebar to match new track canvas heights
         PakettiPPWV_ReopenDialog()
       end
-    }
+    },
+    PakettiPPWV_vb:text{ text = "Show", style = "strong", font="bold" },
+    PakettiPPWV_vb:checkbox{ id = "ppwv_show_labels_cb", value = PakettiPPWV_show_labels, notifier = function(v) PakettiPPWV_show_labels = v; PakettiPPWV_SavePreferences(); PakettiPPWV_UpdateCanvasThrottled() end }, 
+    PakettiPPWV_vb:text{ text = "Instrument Name" },
+    PakettiPPWV_vb:checkbox{ id = "ppwv_show_sample_names_cb", value = PakettiPPWV_show_sample_names, notifier = function(v) PakettiPPWV_show_sample_names = v; PakettiPPWV_SavePreferences(); PakettiPPWV_UpdateCanvasThrottled() end }, 
+    PakettiPPWV_vb:text{ text = "Sample Name" },
+    PakettiPPWV_vb:checkbox{ id = "ppwv_show_note_names_cb", value = PakettiPPWV_show_note_names, notifier = function(v) PakettiPPWV_show_note_names = v; PakettiPPWV_SavePreferences(); PakettiPPWV_UpdateCanvasThrottled() end }, 
+    PakettiPPWV_vb:text{ text = "Note" }
   }
 
   -- Options row (checkbox + label pairs)
   local options_row = PakettiPPWV_vb:row{
-    
-    PakettiPPWV_vb:row{ 
-      PakettiPPWV_vb:text{ text = "Show:" },
-      PakettiPPWV_vb:checkbox{ id = "ppwv_show_labels_cb", value = PakettiPPWV_show_labels, notifier = function(v) PakettiPPWV_show_labels = v; PakettiPPWV_UpdateCanvasThrottled() end }, 
-      PakettiPPWV_vb:text{ text = "Instrument Name" },
-      PakettiPPWV_vb:checkbox{ id = "ppwv_show_sample_names_cb", value = PakettiPPWV_show_sample_names, notifier = function(v) PakettiPPWV_show_sample_names = v; PakettiPPWV_UpdateCanvasThrottled() end }, 
-      PakettiPPWV_vb:text{ text = "Sample Name" },
-      PakettiPPWV_vb:checkbox{ id = "ppwv_show_note_names_cb", value = PakettiPPWV_show_note_names, notifier = function(v) PakettiPPWV_show_note_names = v; PakettiPPWV_UpdateCanvasThrottled() end }, 
-      PakettiPPWV_vb:text{ text = "Note" }
-    },
-    PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_multi_cb", value = PakettiPPWV_multi_select_mode, notifier = function(v) PakettiPPWV_multi_select_mode = v; if not v then PakettiPPWV_selected_ids = {} end; PakettiPPWV_UpdateCanvasThrottled() end }, PakettiPPWV_vb:text{ text = "Multi-select (same track)" } },
-    PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_select_same_cb", value = PakettiPPWV_select_same_enabled, notifier = function(v) PakettiPPWV_select_same_enabled = v end }, PakettiPPWV_vb:text{ text = "Select the same (track+instrument+sample)" } },
-    PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_only_selected_cb", value = PakettiPPWV_show_only_selected_track, notifier = function(v) PakettiPPWV_show_only_selected_track = v; PakettiPPWV_ReopenDialog() end }, PakettiPPWV_vb:text{ text = "Only selected track (full height)" } },
+    PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_multi_cb", value = PakettiPPWV_multi_select_mode, notifier = function(v) PakettiPPWV_multi_select_mode = v; if not v then PakettiPPWV_selected_ids = {} end; PakettiPPWV_UpdateCanvasThrottled() end }, PakettiPPWV_vb:text{ text = "Multi-select)" } },
+    PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_select_same_cb", value = PakettiPPWV_select_same_enabled, notifier = function(v) PakettiPPWV_select_same_enabled = v; if v then PakettiPPWV_SelectAllMatchingSamples() end end }, PakettiPPWV_vb:text{ text = "Select the same sample" } },
+    PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_only_selected_cb", value = PakettiPPWV_show_only_selected_track, notifier = function(v) PakettiPPWV_show_only_selected_track = v; PakettiPPWV_SavePreferences(); PakettiPPWV_ReopenDialog() end }, PakettiPPWV_vb:text{ text = "Show Selected Track" } },
+    PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_performance_cb", value = PakettiPPWV_performance_mode, notifier = function(v) PakettiPPWV_performance_mode = v; PakettiPPWV_UpdateCanvasThrottled() end }, PakettiPPWV_vb:text{ text = "Simpler Canvas" } },
+    PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_horizontal_playhead_cb", value = PakettiPPWV_show_horizontal_playhead, notifier = function(v) PakettiPPWV_show_horizontal_playhead = v; PakettiPPWV_SavePreferences(); PakettiPPWV_UpdateCanvasThrottled() end }, PakettiPPWV_vb:text{ text = "Horizontal playhead" } },
+    PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_vertical_playhead_cb", value = PakettiPPWV_show_vertical_playhead, notifier = function(v) PakettiPPWV_show_vertical_playhead = v; PakettiPPWV_SavePreferences(); PakettiPPWV_UpdateCanvasThrottled() end }, PakettiPPWV_vb:text{ text = "Vertical playhead" } },
+    PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_batch_tracks_cb", value = PakettiPPWV_batch_tracks, notifier = function(v) PakettiPPWV_batch_tracks = v; PakettiPPWV_ReopenDialog() end }, PakettiPPWV_vb:text{ text = "Batch tracks (4 per canvas in vertical)" } },
     PakettiPPWV_vb:row{ PakettiPPWV_vb:checkbox{ id = "ppwv_debug_cb", value = PakettiPPWV_debug, notifier = function(v) PakettiPPWV_debug = v end }, PakettiPPWV_vb:text{ text = "Debug messages" } },
-    PakettiPPWV_vb:button{ id = "ppwv_refresh_button", text = "Refresh", width = 80, notifier = function() PakettiPlayerProWaveformViewerRefresh() end }
+    PakettiPPWV_vb:button{ id = "ppwv_refresh_button", text = "Refresh", width = 60, notifier = function() PakettiPlayerProWaveformViewerRefresh() end },
+    PakettiPPWV_vb:button{ id = "ppwv_duplicate_pattern_button", text = "Duplicate Pattern", width = 100, notifier = function() PakettiPPWV_DuplicatePattern() end }
   }
 
   if PakettiPPWV_orientation == 2 then
@@ -2685,8 +3346,11 @@ function PakettiPPWV_BuildContent()
           local target_line = math.floor(((y / actual_canvas_height) * divisor) + (PakettiPPWV_view_start_line - 1)) + 1
           if target_line < 1 then target_line = 1 end
           if target_line > num_lines then target_line = num_lines end
+          -- CRITICAL: Pattern editor changes FIRST (immediate)
           song.selected_line_index = target_line
           song.transport:start_at{sequence = renoise.song().selected_sequence_index, line = target_line}
+          -- THEN canvas update with delay for responsiveness 
+          renoise.tool():add_timer(function() PakettiPPWV_UpdateCanvasImmediate() end, 50)  -- Reduced from 1ms to 50ms
         end
       end,
       render = PakettiPPWV_RenderVerticalTimeline(50, actual_canvas_height) 
@@ -2711,8 +3375,11 @@ function PakettiPPWV_BuildContent()
           local target_line = math.floor(((x / (PakettiPPWV_canvas_width)) * divisor) + (PakettiPPWV_view_start_line - 1)) + 1
           if target_line < 1 then target_line = 1 end
           if target_line > num_lines then target_line = num_lines end
+          -- CRITICAL: Pattern editor changes FIRST (immediate)
           song.selected_line_index = target_line
           song.transport:start_at{sequence = renoise.song().selected_sequence_index, line = target_line}
+          -- THEN canvas update with delay for responsiveness 
+          renoise.tool():add_timer(function() PakettiPPWV_UpdateCanvasImmediate() end, 50)  -- Reduced from 1ms to 50ms
         end
       end, render = PakettiPPWV_RenderHeaderCanvas(PakettiPPWV_canvas_width, PakettiPPWV_gutter_height + 6) } }
     local horizontal_header = PakettiPPWV_vb:column{ controls_row, options_row, header_row }
@@ -2770,6 +3437,9 @@ function PakettiPlayerProWaveformViewerShowDialog()
     return
   end
 
+  -- Load preferences before opening dialog
+  PakettiPPWV_LoadPreferences()
+
   local lanes = song.sequencer_track_count
   PakettiPPWV_canvas_height = math.max(200, lanes * PakettiPPWV_lane_height)
 
@@ -2781,8 +3451,13 @@ end
 function PakettiPlayerProWaveformViewerNudgeLeftTick()
   if not PakettiPPWV_selected_event_id then return end
   
+  -- If "Select the same" is enabled, automatically populate matching selections
+  if PakettiPPWV_select_same_enabled then
+    PakettiPPWV_SelectAllMatchingSamples()
+  end
+  
   -- Handle multi-selection if enabled and multiple items selected
-  if PakettiPPWV_multi_select_mode and PakettiPPWV_selected_ids and PakettiPPWV_SelectedCount() > 0 then
+  if (PakettiPPWV_multi_select_mode or PakettiPPWV_select_same_enabled) and PakettiPPWV_selected_ids and PakettiPPWV_SelectedCount() > 0 then
     PakettiPPWV_NudgeMultipleOnSameTrack(-1)
     return
   end
@@ -2792,8 +3467,7 @@ function PakettiPlayerProWaveformViewerNudgeLeftTick()
     local ev = PakettiPPWV_events[i]
     if ev.id == PakettiPPWV_selected_event_id then
       if PakettiPPWV_MoveEventByTicks(ev, -1) then
-        PakettiPPWV_RebuildEvents()
-        PakettiPPWV_UpdateCanvasThrottled()
+        PakettiPPWV_ScheduleDeferredUpdate()
       end
       break
     end
@@ -2803,8 +3477,13 @@ end
 function PakettiPlayerProWaveformViewerNudgeRightTick()
   if not PakettiPPWV_selected_event_id then return end
   
+  -- If "Select the same" is enabled, automatically populate matching selections
+  if PakettiPPWV_select_same_enabled then
+    PakettiPPWV_SelectAllMatchingSamples()
+  end
+  
   -- Handle multi-selection if enabled and multiple items selected
-  if PakettiPPWV_multi_select_mode and PakettiPPWV_selected_ids and PakettiPPWV_SelectedCount() > 0 then
+  if (PakettiPPWV_multi_select_mode or PakettiPPWV_select_same_enabled) and PakettiPPWV_selected_ids and PakettiPPWV_SelectedCount() > 0 then
     PakettiPPWV_NudgeMultipleOnSameTrack(1)
     return
   end
@@ -2814,8 +3493,7 @@ function PakettiPlayerProWaveformViewerNudgeRightTick()
     local ev = PakettiPPWV_events[i]
     if ev.id == PakettiPPWV_selected_event_id then
       if PakettiPPWV_MoveEventByTicks(ev, 1) then
-        PakettiPPWV_RebuildEvents()
-        PakettiPPWV_UpdateCanvasThrottled()
+        PakettiPPWV_ScheduleDeferredUpdate()
       end
       break
     end
@@ -2825,8 +3503,13 @@ end
 function PakettiPlayerProWaveformViewerNudgeLeftLine()
   if not PakettiPPWV_selected_event_id then return end
   
+  -- If "Select the same" is enabled, automatically populate matching selections
+  if PakettiPPWV_select_same_enabled then
+    PakettiPPWV_SelectAllMatchingSamples()
+  end
+  
   -- Handle multi-selection if enabled and multiple items selected
-  if PakettiPPWV_multi_select_mode and PakettiPPWV_selected_ids and PakettiPPWV_SelectedCount() > 0 then
+  if (PakettiPPWV_multi_select_mode or PakettiPPWV_select_same_enabled) and PakettiPPWV_selected_ids and PakettiPPWV_SelectedCount() > 0 then
     PakettiPPWV_NudgeMultipleOnSameTrack(-256)
     return
   end
@@ -2836,8 +3519,7 @@ function PakettiPlayerProWaveformViewerNudgeLeftLine()
     local ev = PakettiPPWV_events[i]
     if ev.id == PakettiPPWV_selected_event_id then
       if PakettiPPWV_MoveEventByTicks(ev, -256) then
-        PakettiPPWV_RebuildEvents()
-        PakettiPPWV_UpdateCanvasThrottled()
+        PakettiPPWV_ScheduleDeferredUpdate()
       end
       break
     end
@@ -2847,8 +3529,13 @@ end
 function PakettiPlayerProWaveformViewerNudgeRightLine()
   if not PakettiPPWV_selected_event_id then return end
   
+  -- If "Select the same" is enabled, automatically populate matching selections
+  if PakettiPPWV_select_same_enabled then
+    PakettiPPWV_SelectAllMatchingSamples()
+  end
+  
   -- Handle multi-selection if enabled and multiple items selected
-  if PakettiPPWV_multi_select_mode and PakettiPPWV_selected_ids and PakettiPPWV_SelectedCount() > 0 then
+  if (PakettiPPWV_multi_select_mode or PakettiPPWV_select_same_enabled) and PakettiPPWV_selected_ids and PakettiPPWV_SelectedCount() > 0 then
     PakettiPPWV_NudgeMultipleOnSameTrack(256)
     return
   end
@@ -2858,8 +3545,7 @@ function PakettiPlayerProWaveformViewerNudgeRightLine()
     local ev = PakettiPPWV_events[i]
     if ev.id == PakettiPPWV_selected_event_id then
       if PakettiPPWV_MoveEventByTicks(ev, 256) then
-        PakettiPPWV_RebuildEvents()
-        PakettiPPWV_UpdateCanvasThrottled()
+        PakettiPPWV_ScheduleDeferredUpdate()
       end
       break
     end
@@ -2884,8 +3570,7 @@ function PakettiPlayerProWaveformViewerSnapToRow()
         delta = -delay
       end
       if PakettiPPWV_MoveEventByTicks(ev, delta) then
-        PakettiPPWV_RebuildEvents()
-        PakettiPPWV_UpdateCanvasThrottled()
+        PakettiPPWV_ScheduleDeferredUpdate()
       end
       break
     end

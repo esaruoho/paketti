@@ -557,6 +557,17 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     HalfSize = false,
     HalfSizeFont = false
   },
+  -- PlayerPro Waveform Viewer Settings
+  pakettiPlayerProWaveformViewer = {
+    OnlySelectedTrack = false,
+    SampleName = false,
+    InstrumentName = false,
+    NoteName = false,
+    Zoom = 1,  -- 1x, 2x, 3x
+    Direction = 1,  -- 1=horizontal, 2=vertical
+    HorizontalPlayhead = true,  -- Show/hide horizontal playhead (yellow line)
+    VerticalPlayhead = true     -- Show/hide vertical playhead (yellow line)
+  },
 }
 
 renoise.tool().preferences = preferences
@@ -592,6 +603,8 @@ PatternSequencer = renoise.tool().preferences.pakettiPatternSequencer
 PakettiExecute = renoise.tool().preferences.pakettiExecute
 -- Add parameter editor preferences accessor
 PakettiParameterEditor = renoise.tool().preferences.pakettiParameterEditor
+-- Add PlayerPro Waveform Viewer preferences accessor
+PakettiPlayerProWaveformViewer = renoise.tool().preferences.pakettiPlayerProWaveformViewer
 
       -- Define available keys for dialog closing
       local dialog_close_keys = {"tab", "esc", "space", "return", "q", "donteverclose"}
