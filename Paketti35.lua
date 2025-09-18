@@ -663,10 +663,11 @@ end
 renoise.tool():add_midi_mapping{name="Paketti:Trigger Pattern Line Scrub (CC)",invoke=function(message) if message.boolean_value then TriggerPatternLineMidiValue(message.value) end end}
 
 -- Create 512 individual trigger functions with their own MIDI mappings and shortcuts
-for i=1,512 do
-  local hex_number = string.format("%02X", i - 1)
-  
-  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
+if preferences.PakettiTriggerPatternLineCommands.value then
+  for i=1,512 do
+    local hex_number = string.format("%02X", i - 1)
+    
+    renoise.tool():add_keybinding{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
     invoke=function()
       local song=renoise.song()
       local pattern = song.selected_pattern
@@ -677,9 +678,9 @@ for i=1,512 do
         renoise.app():show_status(string.format("The Pattern Row %d doesn't exist, doing nothing.", i))
       end
     end
-  }
-  
-  renoise.tool():add_midi_mapping{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
+    }
+    
+    renoise.tool():add_midi_mapping{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
     invoke=function(message)
       if message.boolean_value then
         local song=renoise.song()
@@ -692,7 +693,8 @@ for i=1,512 do
         end
       end
     end
-  }
+    }
+  end
 end
 
 

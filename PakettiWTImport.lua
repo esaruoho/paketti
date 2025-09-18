@@ -278,11 +278,17 @@ local function import_wavetable_to_instrument(wavetable_data, instrument_name)
     -- Copy wave data to buffer
     print("DEBUG: Writing sample data for wave " .. i .. " (" .. #wave_data .. " samples)")
     local write_success, write_error = pcall(function()
+      -- Prepare for sample data changes
+      sample.sample_buffer:prepare_sample_data_changes()
+      
       for j = 1, #wave_data do
         -- Clamp values to valid range
         local value = math.max(-1.0, math.min(1.0, wave_data[j]))
         sample.sample_buffer:set_sample_data(1, j, value)
       end
+      
+      -- Finalize sample data changes
+      sample.sample_buffer:finalize_sample_data_changes()
     end)
     
     if not write_success then

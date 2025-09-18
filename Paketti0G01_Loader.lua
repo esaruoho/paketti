@@ -282,6 +282,10 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     RenoiseLaunchFavoritesLoad = false,
     RenoiseLaunchRandomLoad = false
   },
+  PakettiJumpRowCommands = false,
+  PakettiJumpForwardBackwardCommands = false,
+  PakettiTriggerPatternLineCommands = false,
+  PakettiInstrumentTransposeCommands = false,
   UserDefinedSampleFolders01="",
   UserDefinedSampleFolders02="",
   UserDefinedSampleFolders03="",
@@ -864,13 +868,13 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
             style="group",margin=10,width="100%",
             vb:text{style="strong",font="bold",text="Miscellaneous Settings"},
             --[[vb:row{
-              vb:text{text="Upper Frame",width=150},
+              vb:text{text="Upper Frame",width=150,tooltip="Whether F2,F3,F4,F11 change the Upper Frame Scope state or not"},
               vb:switch{items={"Off","Scopes","Spectrum"},value=preferences.upperFramePreference.value+1,width=200,
+                tooltip="Whether F2,F3,F4,F11 change the Upper Frame Scope state or not",
                 notifier=function(value) preferences.upperFramePreference.value=value-1 end}
             },
-            vb:row{vb:text{style="strong",text="Whether F2,F3,F4,F11 change the Upper Frame Scope state or not"}},            
             ]]--
-            vb:space{height=8},
+            
             vb:row{
               vb:text{text="Selected Sample BeatSync",width=150},
               vb:switch{items={"Off","On"},value=preferences.SelectedSampleBeatSyncLines.value and 2 or 1,width=200,
@@ -1069,12 +1073,13 @@ vb:row{
             vb:row{vb:text{style="strong",text="Enable Scope Highlight by going to Settings -> GUI -> Show Track Color Blends."} },
 
             vb:row{
-              vb:text{text="Blend Value",width=150},
+              vb:text{text="Blend Value",width=150,tooltip="Enable Scope Highlight by going to Settings -> GUI -> Show Track Color Blends."},
               vb:slider{
                 min = 0,
                 max = 100,
                 value = math.floor(preferences.pakettiBlendValue.value),
                 width=200,
+                tooltip="Enable Scope Highlight by going to Settings -> GUI -> Show Track Color Blends.",
                 notifier=function(value)
                   value = math.floor(value)  -- Force integer value
                   preferences.pakettiBlendValue.value = value
@@ -1604,12 +1609,13 @@ vb:row{
 
             vb:text{style="strong",font="bold",text="Unison Generator Settings"},
             vb:row{
-                vb:text{text="Unison Detune",width=150},
+                vb:text{text="Unison Detune",width=150,tooltip="Controls the detune range (±) used by the Unison Generator. Hard Sync: alternating ±max values. Live-updates currently selected unison instrument."},
                 vb:slider{
                     min = 0,
                     max = 96,
                     value = preferences.pakettiUnisonDetune.value,
                     width=200,
+                    tooltip="Controls the detune range (±) used by the Unison Generator. Hard Sync: alternating ±max values. Live-updates currently selected unison instrument.",
                     notifier=function(value)
                         value = math.floor(value)  -- Ensure integer value
                         preferences.pakettiUnisonDetune.value = value
@@ -1756,21 +1762,20 @@ vb:row{
                 }
             },
             vb:row{
-                vb:text{text="Duplicate Instrument",width=150},
+                vb:text{text="Duplicate Instrument",width=150,tooltip="Copies entire instrument (plugins, AHDSR, macros) before unison-ing."},
                 vb:checkbox{
                     value=preferences.pakettiUnisonDuplicateInstrument.value,
+                    tooltip="Copies entire instrument (plugins, AHDSR, macros) before unison-ing.",
                     notifier=function(value)
                         preferences.pakettiUnisonDuplicateInstrument.value = value
                     end
                 }
             },
-            vb:row{vb:text{style="strong",text="Controls the detune range (±) used by the Unison Generator. Hard Sync: alternating ±max values."}},
-            vb:row{vb:text{style="strong",text="Live-updates currently selected unison instrument."}},
-            vb:row{vb:text{style="strong",text="Duplicate whole Instrument: copies entire instrument (plugins, AHDSR, macros) before unison-ing."}},
           
           vb:row{
-            vb:text{text="File Menu Location",width=150,style="strong",font="bold",tooltip="Choose where File-related Paketti menu entries appear"},
+            vb:text{text="File Menu Location",width=150,style="strong",font="bold",tooltip="Choose where File-related Paketti menu entries appear. Controls whether entries are under File directly, File:Paketti submenu, or both."},
             vb:switch{items={"File","Paketti","Both"},value=preferences.pakettiFileMenuLocationMode.value,width=300,
+              tooltip="Choose where File-related Paketti menu entries appear. Controls whether entries are under File directly, File:Paketti submenu, or both.",
               notifier=function(value)
                 preferences.pakettiFileMenuLocationMode.value = value
                  if type(PakettiMenuApplyFileMenuLocation) == "function" then
@@ -1780,6 +1785,7 @@ vb:row{
                 renoise.app():show_status("Paketti File Menu Location: " .. (labels[value] or tostring(value)))
               end}
           },
+
           vb:text{style="strong",font="bold",text="EQ30 Behavior"},
           vb:row{
             vb:text{text="Autofocus selected EQ10 device",width=150},
@@ -1797,15 +1803,14 @@ vb:row{
                 preferences:save_as("preferences.xml")
               end}
           },
-          vb:row{vb:text{style="strong",text="Controls whether entries are under File directly, File:Paketti submenu, or both."}},
-          vb:space{height=8},
+          
           vb:text{style="strong",font="bold",text="Pattern Editor"},
           vb:row{
             vb:text{text="Exploded Track Naming",width=150,tooltip="Use 'C-4 InstrumentName' format for exploded tracks instead of 'C-4 Notes'"},
             vb:switch{items={"Off","On"},value=preferences.pakettiExplodeTrackNaming.value and 2 or 1,width=200,tooltip="Use 'C-4 InstrumentName' format for exploded tracks instead of 'C-4 Notes'",
               notifier=function(value) preferences.pakettiExplodeTrackNaming.value=(value==2) end}
           },
-          vb:space{height=8},
+          
           vb:text{style="strong",font="bold",text="Groovebox 8120"},
           vb:row{
             vb:text{text="Collapse",width=150,tooltip="Default collapse state for first 8 tracks when opening Groovebox 8120"},
@@ -1839,7 +1844,7 @@ vb:row{
                 end
               end}
           },
-          vb:space{height=8},
+          
           vb:text{style="strong",font="bold",text="Impulse Tracker"},
           vb:row{
             vb:text{text="Impulse Tracker F8",width=150},
@@ -1868,6 +1873,62 @@ vb:row{
           vb:text{style="strong",font="bold",text="Polyend Suite Settings"},
           vb:row{vb:text{text="Open Slice Dialog",width=150,tooltip="Automatically open Polyend Slice Switcher dialog when loading PTI files with slices"},vb:switch{items={"Off","On"},value=preferences.pakettiPolyendOpenDialog.value and 2 or 1,width=200,tooltip="Automatically open Polyend Slice Switcher dialog when loading PTI files with slices",
             notifier=function(value) preferences.pakettiPolyendOpenDialog.value=(value==2) end}},
+          
+          vb:text{style="strong",font="bold",text="Jump Row Commands"},
+          vb:row{
+            vb:text{text="Enable Jump Row",width=150,tooltip="Enable 2,048 'Play at Row' keybindings and MIDI mappings (000-511). When enabled, creates 'Play at Row 000-511' commands. Warning: Significantly increases startup time."},
+            vb:switch{items={"Off","On"},
+              value=preferences.PakettiJumpRowCommands.value and 2 or 1,
+              width=200,
+              tooltip="Enable 2,048 'Play at Row' keybindings and MIDI mappings (000-511). When enabled, creates 'Play at Row 000-511' commands. Warning: Significantly increases startup time.",
+              notifier=function(value)
+                preferences.PakettiJumpRowCommands.value = (value == 2)
+                local status = value == 2 and "enabled" or "disabled"
+                renoise.app():show_status("Jump Row Commands " .. status .. ".")
+              end}
+          },
+          
+          vb:text{style="strong",font="bold",text="Jump Forward/Backward Commands"},
+          vb:row{
+            vb:text{text="Enable Jump Forward/Backward",width=150,tooltip="Enable 1,024 'Jump Forward/Backward Within Pattern/Song' keybindings and MIDI mappings (001-128). When enabled, creates 'Jump Forward/Backward by 001-128' commands. Warning: Increases startup time."},
+            vb:switch{items={"Off","On"},
+              value=preferences.PakettiJumpForwardBackwardCommands.value and 2 or 1,
+              width=200,
+              tooltip="Enable 1,024 'Jump Forward/Backward Within Pattern/Song' keybindings and MIDI mappings (001-128). When enabled, creates 'Jump Forward/Backward by 001-128' commands. Warning: Increases startup time.",
+              notifier=function(value)
+                preferences.PakettiJumpForwardBackwardCommands.value = (value == 2)
+                local status = value == 2 and "enabled" or "disabled"
+                renoise.app():show_status("Jump Forward/Backward Commands " .. status .. ".")
+              end}
+          },
+          
+          vb:text{style="strong",font="bold",text="Trigger Pattern Line Commands"},
+          vb:row{
+            vb:text{text="Enable Trigger Pattern Line",width=150,tooltip="Enable 1,024 'Trigger Pattern Line' keybindings and MIDI mappings (001-512). When enabled, creates 'Trigger Pattern Line 001-512' commands. Default: OFF."},
+            vb:switch{items={"Off","On"},
+              value=preferences.PakettiTriggerPatternLineCommands.value and 2 or 1,
+              width=200,
+              tooltip="Enable 1,024 'Trigger Pattern Line' keybindings and MIDI mappings (001-512). When enabled, creates 'Trigger Pattern Line 001-512' commands. Default: OFF.",
+              notifier=function(value)
+                preferences.PakettiTriggerPatternLineCommands.value = (value == 2)
+                local status = value == 2 and "enabled" or "disabled"
+                renoise.app():show_status("Trigger Pattern Line Commands " .. status .. ".")
+              end}
+          },
+          
+          vb:text{style="strong",font="bold",text="Instrument Transpose Commands"},
+          vb:row{
+            vb:text{text="Enable Instrument Transpose",width=150,tooltip="Enable 4,338 instrument transpose controls (1,928 keybindings + 1,928 menu entries + 482 MIDI mappings). When enabled, creates all transpose controls (keybindings, menu entries, MIDI mappings). Warning: Significantly increases startup time. Default: OFF for faster startup."},
+            vb:switch{items={"Off","On"},
+              value=preferences.PakettiInstrumentTransposeCommands.value and 2 or 1,
+              width=200,
+              tooltip="Enable 4,338 instrument transpose controls (1,928 keybindings + 1,928 menu entries + 482 MIDI mappings). When enabled, creates all transpose controls (keybindings, menu entries, MIDI mappings). Warning: Significantly increases startup time. Default: OFF for faster startup.",
+              notifier=function(value)
+                preferences.PakettiInstrumentTransposeCommands.value = (value == 2)
+                local status = value == 2 and "enabled" or "disabled"
+                renoise.app():show_status("Instrument Transpose Commands " .. status .. ".")
+              end}
+          },
 
         }
         }

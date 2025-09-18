@@ -1142,11 +1142,11 @@ function pakettiSampleVisualizerDialog()
     sample_viz_waveform_cache and #sample_viz_waveform_cache or 0))
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
-renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
-renoise.tool():add_keybinding{name = "Global:Paketti:Sample Visualizer (Canvas)",invoke = pakettiSampleVisualizerDialog}
-renoise.tool():add_midi_mapping{name = "Paketti:Sample Visualizer (Canvas)",invoke = function(message) if message:is_trigger() then pakettiSampleVisualizerDialog() end  end}
+--renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+--renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+--renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+--renoise.tool():add_keybinding{name = "Global:Paketti:Sample Visualizer (Canvas)",invoke = pakettiSampleVisualizerDialog}
+--renoise.tool():add_midi_mapping{name = "Paketti:Sample Visualizer (Canvas)",invoke = function(message) if message:is_trigger() then pakettiSampleVisualizerDialog() end  end}
 
 -- ======================================
 -- Paketti Instrument MetaInfo
@@ -2714,17 +2714,6 @@ renoise.tool():add_midi_mapping{
     end 
   end
 }
-
--- ======================================
--- Paketti Experimental/WIP Tools
--- ======================================
--- Based on various danoise scripts - experimental features for testing
-
--- ======================================
--- Paketti Sample Trimmer
--- ======================================
--- Based on danoise Trimmer.lua - trim samples to loop points or selection
-
 -- Trim a single sample based on mode
 local function pakettiTrimSample(instr, sample_idx, mode)
   local sample = instr.samples[sample_idx]
@@ -2785,6 +2774,9 @@ local function pakettiTrimSample(instr, sample_idx, mode)
   local num_channels = sbuf.number_of_channels
   local num_frames = 1 + trim_end - trim_start
   
+  -- Prepare for sample data changes
+  new_sbuf:prepare_sample_data_changes()
+  
   new_sbuf:create_sample_data(sample_rate, bit_depth, num_channels, num_frames)
   
   -- Copy the trimmed portion
@@ -2794,6 +2786,9 @@ local function pakettiTrimSample(instr, sample_idx, mode)
         sbuf:sample_data(chan_idx, frame_idx + trim_start))
     end
   end
+  
+  -- Finalize sample data changes
+  new_sbuf:finalize_sample_data_changes()
   
   -- Update loop markers if we were trimming by loop
   if mode == "loop" then
@@ -3105,46 +3100,17 @@ function pakettiKontaktExportSamples()
     exported_count, skipped_count))
 end
 
--- ======================================
--- Menu Entries for Experimental/WIP Tools
--- ======================================
-
--- Sample Trimmer
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Trimmer:Trim Selected Sample to Loop Points",
-  invoke = pakettiTrimSelectedSampleToLoop
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Trimmer:Trim Selected Sample to Selection",
-  invoke = pakettiTrimSelectedSampleToSelection
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Trimmer:Trim All Samples to Loop Points",
-  invoke = pakettiTrimAllSamplesToLoop
-}
-
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Xperimental/WIP:Sample Trimmer:Trim Selected Sample to Loop Points",
-  invoke = pakettiTrimSelectedSampleToLoop
-}
-
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Xperimental/WIP:Sample Trimmer:Trim Selected Sample to Selection",
-  invoke = pakettiTrimSelectedSampleToSelection
-}
-
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Xperimental/WIP:Sample Trimmer:Trim All Samples to Loop Points",
-  invoke = pakettiTrimAllSamplesToLoop
-}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Loop Points",invoke = pakettiTrimSelectedSampleToLoop}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Selection",invoke = pakettiTrimSelectedSampleToSelection}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim All Samples to Loop Points",invoke = pakettiTrimAllSamplesToLoop}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim Selected Sample to Loop Points",invoke = pakettiTrimSelectedSampleToLoop}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim Selected Sample to Selection",invoke = pakettiTrimSelectedSampleToSelection}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim All Samples to Loop Points",invoke = pakettiTrimAllSamplesToLoop}
 
 -- Sample Renamer
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Renamer:Rename with Note Names (Melodic)",
-  invoke = pakettiRenameSamplesWithNoteNames
-}
+  invoke = pakettiRenameSamplesWithNoteNames}
 
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Renamer:Rename with Drum Names (GM Kit)",

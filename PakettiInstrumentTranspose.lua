@@ -99,47 +99,11 @@ local transpose_categories = {
 -- Most important ones first as requested by user
 local priority_relative_values = {-1, 1}
 
--- Generate priority relative transpose MIDI mappings (once only)
-for _, value in ipairs(priority_relative_values) do
-  local sign = value >= 0 and "+" or ""
-  local formatted_value = sign .. formatDigits(3, math.abs(value))
-  local midi_name = "Paketti:Instrument Transpose Relative (" .. formatted_value .. ")"
-  
-  renoise.tool():add_midi_mapping{
-    name = midi_name,
-    invoke = function(message)
-      if message:is_trigger() then
-        PakettiInstrumentTransposeRelative(value)
-      end
-    end
-  }
-end
-
--- Generate priority relative transpose menu entries and keybindings per category
-for _, category in ipairs(transpose_categories) do
+-- Generate priority relative transpose MIDI mappings (once only) - only if enabled
+if preferences.PakettiInstrumentTransposeCommands.value then
   for _, value in ipairs(priority_relative_values) do
     local sign = value >= 0 and "+" or ""
-    local formatted_value = sign .. formatDigits(3, math.abs(value))
-    local menu_name = category.prefix .. ":Paketti:Transpose:Relative " .. formatted_value
-    local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose (" .. sign .. value .. ")"
-    
-    renoise.tool():add_menu_entry{
-      name = menu_name,
-      invoke = function() PakettiInstrumentTransposeRelative(value) end
-    }
-    
-    renoise.tool():add_keybinding{
-      name = keybinding_name, 
-      invoke = function() PakettiInstrumentTransposeRelative(value) end
-    }
-  end
-end
-
--- Generate all relative transpose MIDI mappings (once only, excluding priority ones)
--- Negative values (-120 to -2)
-for value = -120, -2 do
-  if value ~= -1 then -- Skip -1 as it's already added in priority
-    local formatted_value = "-" .. formatDigits(3, math.abs(value))
+    local formatted_value = sign .. formatDigits3( math.abs(value))
     local midi_name = "Paketti:Instrument Transpose Relative (" .. formatted_value .. ")"
     
     renoise.tool():add_midi_mapping{
@@ -153,123 +117,175 @@ for value = -120, -2 do
   end
 end
 
--- Positive values (+2 to +120)
-for value = 2, 120 do
-  if value ~= 1 then -- Skip +1 as it's already added in priority
-    local formatted_value = "+" .. formatDigits(3, value)
-    local midi_name = "Paketti:Instrument Transpose Relative (" .. formatted_value .. ")"
-    
-    renoise.tool():add_midi_mapping{
-      name = midi_name,
-      invoke = function(message)
-        if message:is_trigger() then
-          PakettiInstrumentTransposeRelative(value)
-        end
-      end
-    }
+-- Generate priority relative transpose menu entries and keybindings per category - only if enabled
+if preferences.PakettiInstrumentTransposeCommands.value then
+  for _, category in ipairs(transpose_categories) do
+    for _, value in ipairs(priority_relative_values) do
+      local sign = value >= 0 and "+" or ""
+      local formatted_value = sign .. formatDigits3( math.abs(value))
+      local menu_name = category.prefix .. ":Paketti:Transpose:Relative " .. formatted_value
+      local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose (" .. sign .. value .. ")"
+      
+      renoise.tool():add_menu_entry{
+        name = menu_name,
+        invoke = function() PakettiInstrumentTransposeRelative(value) end
+      }
+      
+      renoise.tool():add_keybinding{
+        name = keybinding_name, 
+        invoke = function() PakettiInstrumentTransposeRelative(value) end
+      }
+    end
   end
 end
 
--- Generate all relative transpose menu entries and keybindings per category (-120 to +120, excluding priority ones)
-for _, category in ipairs(transpose_categories) do
+-- Generate all relative transpose MIDI mappings (once only, excluding priority ones) - only if enabled
+if preferences.PakettiInstrumentTransposeCommands.value then
   -- Negative values (-120 to -2)
   for value = -120, -2 do
     if value ~= -1 then -- Skip -1 as it's already added in priority
-      local formatted_value = "-" .. formatDigits(3, math.abs(value))
-      local menu_name = category.prefix .. ":Paketti:Transpose:Relative " .. formatted_value
-      local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose (" .. value .. ")"
+      local formatted_value = "-" .. formatDigits3( math.abs(value))
+      local midi_name = "Paketti:Instrument Transpose Relative (" .. formatted_value .. ")"
       
-      renoise.tool():add_menu_entry{
-        name = menu_name,
-        invoke = function() PakettiInstrumentTransposeRelative(value) end
-      }
-      
-      renoise.tool():add_keybinding{
-        name = keybinding_name,
-        invoke = function() PakettiInstrumentTransposeRelative(value) end
+      renoise.tool():add_midi_mapping{
+        name = midi_name,
+        invoke = function(message)
+          if message:is_trigger() then
+            PakettiInstrumentTransposeRelative(value)
+          end
+        end
       }
     end
   end
-  
+
   -- Positive values (+2 to +120)
   for value = 2, 120 do
     if value ~= 1 then -- Skip +1 as it's already added in priority
-      local formatted_value = "+" .. formatDigits(3, value)
-      local menu_name = category.prefix .. ":Paketti:Transpose:Relative " .. formatted_value
-      local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose (+" .. value .. ")"
+      local formatted_value = "+" .. formatDigits3( value)
+      local midi_name = "Paketti:Instrument Transpose Relative (" .. formatted_value .. ")"
       
-      renoise.tool():add_menu_entry{
-        name = menu_name,
-        invoke = function() PakettiInstrumentTransposeRelative(value) end
-      }
-      
-      renoise.tool():add_keybinding{
-        name = keybinding_name,
-        invoke = function() PakettiInstrumentTransposeRelative(value) end
+      renoise.tool():add_midi_mapping{
+        name = midi_name,
+        invoke = function(message)
+          if message:is_trigger() then
+            PakettiInstrumentTransposeRelative(value)
+          end
+        end
       }
     end
   end
 end
 
--- Generate absolute transpose MIDI mappings (once only)
-for value = -120, 120 do
-  local formatted_value = (value >= 0) and ("+" .. formatDigits(3, value)) or ("-" .. formatDigits(3, math.abs(value)))
-  local midi_name = "Paketti:Instrument Transpose Absolute (" .. formatted_value .. ")"
-  
+-- Generate all relative transpose menu entries and keybindings per category (-120 to +120, excluding priority ones) - only if enabled
+if preferences.PakettiInstrumentTransposeCommands.value then
+  for _, category in ipairs(transpose_categories) do
+    -- Negative values (-120 to -2)
+    for value = -120, -2 do
+      if value ~= -1 then -- Skip -1 as it's already added in priority
+        local formatted_value = "-" .. formatDigits3( math.abs(value))
+        local menu_name = category.prefix .. ":Paketti:Transpose:Relative " .. formatted_value
+        local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose (" .. value .. ")"
+        
+        renoise.tool():add_menu_entry{
+          name = menu_name,
+          invoke = function() PakettiInstrumentTransposeRelative(value) end
+        }
+        
+        renoise.tool():add_keybinding{
+          name = keybinding_name,
+          invoke = function() PakettiInstrumentTransposeRelative(value) end
+        }
+      end
+    end
+    
+    -- Positive values (+2 to +120)
+    for value = 2, 120 do
+      if value ~= 1 then -- Skip +1 as it's already added in priority
+        local formatted_value = "+" .. formatDigits3( value)
+        local menu_name = category.prefix .. ":Paketti:Transpose:Relative " .. formatted_value
+        local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose (+" .. value .. ")"
+        
+        renoise.tool():add_menu_entry{
+          name = menu_name,
+          invoke = function() PakettiInstrumentTransposeRelative(value) end
+        }
+        
+        renoise.tool():add_keybinding{
+          name = keybinding_name,
+          invoke = function() PakettiInstrumentTransposeRelative(value) end
+        }
+      end
+    end
+  end
+end
+
+-- Generate absolute transpose MIDI mappings (once only) - only if enabled
+if preferences.PakettiInstrumentTransposeCommands.value then
+  for value = -120, 120 do
+    local formatted_value = (value >= 0) and ("+" .. formatDigits3( value)) or ("-" .. formatDigits3( math.abs(value)))
+    local midi_name = "Paketti:Instrument Transpose Absolute (" .. formatted_value .. ")"
+    
+    renoise.tool():add_midi_mapping{
+      name = midi_name,
+      invoke = function(message)
+        if message:is_trigger() then
+          PakettiInstrumentTransposeAbsolute(value)
+        end
+      end
+    }
+  end
+end
+
+-- Generate absolute transpose menu entries and keybindings per category (-120 to +120) - only if enabled
+if preferences.PakettiInstrumentTransposeCommands.value then
+  for _, category in ipairs(transpose_categories) do
+    for value = -120, 120 do
+      local sign = value > 0 and "+" or ""
+      local formatted_value = (value >= 0) and ("+" .. formatDigits3( value)) or ("-" .. formatDigits3( math.abs(value)))
+      local menu_name = category.prefix .. ":Paketti:Transpose:Absolute " .. formatted_value
+      local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose to " .. sign .. value
+      
+      renoise.tool():add_menu_entry{
+        name = menu_name,
+        invoke = function() PakettiInstrumentTransposeAbsolute(value) end
+      }
+      
+      renoise.tool():add_keybinding{
+        name = keybinding_name,
+        invoke = function() PakettiInstrumentTransposeAbsolute(value) end
+      }
+    end
+  end
+end
+
+-- Add reset MIDI mapping (once only) - only if enabled
+if preferences.PakettiInstrumentTransposeCommands.value then
   renoise.tool():add_midi_mapping{
-    name = midi_name,
+    name = "Paketti:Instrument Transpose Reset (+000)",
     invoke = function(message)
       if message:is_trigger() then
-        PakettiInstrumentTransposeAbsolute(value)
+        PakettiInstrumentTransposeAbsolute(0)
       end
     end
   }
 end
 
--- Generate absolute transpose menu entries and keybindings per category (-120 to +120)
-for _, category in ipairs(transpose_categories) do
-  for value = -120, 120 do
-    local sign = value > 0 and "+" or ""
-    local formatted_value = (value >= 0) and ("+" .. formatDigits(3, value)) or ("-" .. formatDigits(3, math.abs(value)))
-    local menu_name = category.prefix .. ":Paketti:Transpose:Absolute " .. formatted_value
-    local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose to " .. sign .. value
+-- Add separator and reset option menu entries and keybindings per category - only if enabled
+if preferences.PakettiInstrumentTransposeCommands.value then
+  for _, category in ipairs(transpose_categories) do
+    local menu_name = "--" .. category.prefix .. ":Paketti:Transpose:Reset to +000"
+    local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose to 0 (Reset)"
     
     renoise.tool():add_menu_entry{
       name = menu_name,
-      invoke = function() PakettiInstrumentTransposeAbsolute(value) end
+      invoke = function() PakettiInstrumentTransposeAbsolute(0) end
     }
     
     renoise.tool():add_keybinding{
       name = keybinding_name,
-      invoke = function() PakettiInstrumentTransposeAbsolute(value) end
+      invoke = function() PakettiInstrumentTransposeAbsolute(0) end
     }
   end
-end
-
--- Add reset MIDI mapping (once only)
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Instrument Transpose Reset (+000)",
-  invoke = function(message)
-    if message:is_trigger() then
-      PakettiInstrumentTransposeAbsolute(0)
-    end
-  end
-}
-
--- Add separator and reset option menu entries and keybindings per category
-for _, category in ipairs(transpose_categories) do
-  local menu_name = "--" .. category.prefix .. ":Paketti:Transpose:Reset to +000"
-  local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose to 0 (Reset)"
-  
-  renoise.tool():add_menu_entry{
-    name = menu_name,
-    invoke = function() PakettiInstrumentTransposeAbsolute(0) end
-  }
-  
-  renoise.tool():add_keybinding{
-    name = keybinding_name,
-    invoke = function() PakettiInstrumentTransposeAbsolute(0) end
-  }
 end
 
 -- Dialog variables
@@ -279,6 +295,7 @@ local transpose_value = 0
 local apply_to_tracks = true
 local selected_instrument_index = 1
 local instrument_indices = {}
+
 
 -- Build instrument list for dropdown (only instruments with samples or plugins)
 function PakettiInstrumentTransposeDialogBuildInstrumentList()

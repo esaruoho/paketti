@@ -10889,29 +10889,33 @@ for i=0,34 do
   end
 end
 
-for i=1,128 do
-  local formati=string.format("%03d",i)
-  renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Pattern by " .. formati,invoke=function() PakettiJumpRows(i, "forward") end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Pattern by " .. formati,invoke=function() PakettiJumpRows(i, "backward") end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Song by " .. formati,invoke=function() PakettiJumpRowsInSong(i, "forward") end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Song by " .. formati,invoke=function() PakettiJumpRowsInSong(i, "backward") end}
-  renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Pattern by " .. formati,invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRows(i, "forward") end end}
-  renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Pattern by " .. formati,invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRows(i, "backward") end end}
-  renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Song by " .. formati,invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsInSong(i, "forward") end end}
-  renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Song by " .. formati,invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsInSong(i, "backward") end end}
+if preferences.PakettiJumpForwardBackwardCommands.value then
+  for i=1,128 do
+    local formati=string.format("%03d",i)
+    renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Pattern by " .. formati,invoke=function() PakettiJumpRows(i, "forward") end}
+    renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Pattern by " .. formati,invoke=function() PakettiJumpRows(i, "backward") end}
+    renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Song by " .. formati,invoke=function() PakettiJumpRowsInSong(i, "forward") end}
+    renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Song by " .. formati,invoke=function() PakettiJumpRowsInSong(i, "backward") end}
+    renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Pattern by " .. formati,invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRows(i, "forward") end end}
+    renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Pattern by " .. formati,invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRows(i, "backward") end end}
+    renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Song by " .. formati,invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsInSong(i, "forward") end end}
+    renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Song by " .. formati,invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsInSong(i, "backward") end end}
+  end
 end
 
 
 
 
-for i=0,511 do
-  local formatnumber = string.format("%03d",i)
-  local hexnumber = string.format("%03X", i)
-  renoise.tool():add_keybinding{name="Global:Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ")",invoke=function() playAtRow(i+1, true) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ")",invoke=function() playAtRow(i+1, true) end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ") Force Internal",invoke=function() playAtRow(i+1, false) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ") Force Internal",invoke=function() playAtRow(i+1, false) end}
+if preferences.PakettiJumpRowCommands.value then
+  for i=0,511 do
+    local formatnumber = string.format("%03d",i)
+    local hexnumber = string.format("%03X", i)
+    renoise.tool():add_keybinding{name="Global:Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ")",invoke=function() playAtRow(i+1, true) end}
+    renoise.tool():add_midi_mapping{name="Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ")",invoke=function() playAtRow(i+1, true) end}
+    renoise.tool():add_keybinding{name="Global:Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ") Force Internal",invoke=function() playAtRow(i+1, false) end}
+    renoise.tool():add_midi_mapping{name="Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ") Force Internal",invoke=function() playAtRow(i+1, false) end}
   end
+end
   
 
 

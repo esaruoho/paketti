@@ -86,8 +86,28 @@ function align_instrument_names()
   end
 end
 
+-- Optimized formatDigits with cached format strings
+local formatDigitsCache = {}
+
 function formatDigits(digits, number)
-  return string.format("%0" .. digits .. "d", number)
+  -- Fast path for the most common case (digits = 3)
+  if digits == 3 then
+    return string.format("%03d", number)
+  end
+  
+  -- Use cached format string for other cases
+  local format_string = formatDigitsCache[digits]
+  if not format_string then
+    format_string = "%0" .. digits .. "d"
+    formatDigitsCache[digits] = format_string
+  end
+  
+  return string.format(format_string, number)
+end
+
+-- Even faster specialized function for 3-digit formatting
+function formatDigits3(number)
+  return string.format("%03d", number)
 end
 
 function selection_in_pattern_pro()

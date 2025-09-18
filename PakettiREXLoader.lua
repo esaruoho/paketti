@@ -255,11 +255,17 @@ function rex_loadsample(filename)
   -- Write the processed data
   dprint("Writing processed data")
   local write_success = pcall(function()
+    -- Prepare for sample data changes
+    new_buf:prepare_sample_data_changes()
+    
     for i = 1, new_frames do
       for c = 1, ch do
         new_buf:set_sample_data(c, i, processed[c][i] or 0)
       end
     end
+    
+    -- Finalize sample data changes
+    new_buf:finalize_sample_data_changes()
   end)
 
   if not write_success then

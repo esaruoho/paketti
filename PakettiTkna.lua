@@ -1972,6 +1972,9 @@ renoise.tool():add_midi_mapping{name="Paketti:Select Pattern Within Section [Kno
 
 for i = 1, 16 do
   renoise.tool():add_midi_mapping{name="Paketti:Jump to Pattern " .. formatDigits(2, i) .. " in Section [Trigger]", invoke=function(message) if message:is_trigger() then jumpToPatternInSection(i) end end}
+end
+
+for i=1,16 do
   renoise.tool():add_keybinding{name="Global:Paketti:Jump to Pattern " .. formatDigits(2, i) .. " in Section", invoke=function() jumpToPatternInSection(i) end}
 end
 
