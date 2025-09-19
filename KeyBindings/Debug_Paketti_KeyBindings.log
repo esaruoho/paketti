@@ -1,348 +1,116 @@
-Debug: Total Paketti keybindings found - 7320
-0001:Global:Paketti: ∿ Add Current Section to Scheduled Sequences: <Shortcut not Assigned>
-0002:Global:Paketti: ∿ Add Current Sequence to Scheduled List: <Shortcut not Assigned>
-0003:Global:Paketti: ∿ Add Sequence 00 to Scheduled List: <Shortcut not Assigned>
-0004:Global:Paketti: ∿ Add Sequence 01 to Scheduled List: <Shortcut not Assigned>
-0005:Global:Paketti: ∿ Add Sequence 02 to Scheduled List: <Shortcut not Assigned>
-0006:Global:Paketti: ∿ Add Sequence 03 to Scheduled List: <Shortcut not Assigned>
-0007:Global:Paketti: ∿ Add Sequence 04 to Scheduled List: <Shortcut not Assigned>
-0008:Global:Paketti: ∿ Add Sequence 05 to Scheduled List: <Shortcut not Assigned>
-0009:Global:Paketti: ∿ Add Sequence 06 to Scheduled List: <Shortcut not Assigned>
-0010:Global:Paketti: ∿ Add Sequence 07 to Scheduled List: <Shortcut not Assigned>
-0011:Global:Paketti: ∿ Add Sequence 08 to Scheduled List: <Shortcut not Assigned>
-0012:Global:Paketti: ∿ Add Sequence 09 to Scheduled List: <Shortcut not Assigned>
-0013:Global:Paketti: ∿ Add Sequence 10 to Scheduled List: <Shortcut not Assigned>
-0014:Global:Paketti: ∿ Add Sequence 11 to Scheduled List: <Shortcut not Assigned>
-0015:Global:Paketti: ∿ Add Sequence 12 to Scheduled List: <Shortcut not Assigned>
-0016:Global:Paketti: ∿ Add Sequence 13 to Scheduled List: <Shortcut not Assigned>
-0017:Global:Paketti: ∿ Add Sequence 14 to Scheduled List: <Shortcut not Assigned>
-0018:Global:Paketti: ∿ Add Sequence 15 to Scheduled List: <Shortcut not Assigned>
-0019:Global:Paketti: ∿ Add Sequence 16 to Scheduled List: <Shortcut not Assigned>
-0020:Global:Paketti: ∿ Add Sequence 17 to Scheduled List: <Shortcut not Assigned>
-0021:Global:Paketti: ∿ Add Sequence 18 to Scheduled List: <Shortcut not Assigned>
-0022:Global:Paketti: ∿ Add Sequence 19 to Scheduled List: <Shortcut not Assigned>
-0023:Global:Paketti: ∿ Add Sequence 20 to Scheduled List: <Shortcut not Assigned>
-0024:Global:Paketti: ∿ Add Sequence 21 to Scheduled List: <Shortcut not Assigned>
-0025:Global:Paketti: ∿ Add Sequence 22 to Scheduled List: <Shortcut not Assigned>
-0026:Global:Paketti: ∿ Add Sequence 23 to Scheduled List: <Shortcut not Assigned>
-0027:Global:Paketti: ∿ Add Sequence 24 to Scheduled List: <Shortcut not Assigned>
-0028:Global:Paketti: ∿ Add Sequence 25 to Scheduled List: <Shortcut not Assigned>
-0029:Global:Paketti: ∿ Add Sequence 26 to Scheduled List: <Shortcut not Assigned>
-0030:Global:Paketti: ∿ Add Sequence 27 to Scheduled List: <Shortcut not Assigned>
-0031:Global:Paketti: ∿ Add Sequence 28 to Scheduled List: <Shortcut not Assigned>
-0032:Global:Paketti: ∿ Add Sequence 29 to Scheduled List: <Shortcut not Assigned>
-0033:Global:Paketti: ∿ Add Sequence 30 to Scheduled List: <Shortcut not Assigned>
-0034:Global:Paketti: ∿ Add Sequence 31 to Scheduled List: <Shortcut not Assigned>
-0035:Global:Paketti: ∿ Clear Pattern Sequence Loop: <Shortcut not Assigned>
-0036:Global:Paketti: ∿ Clone Current Pattern to Current Sequence: <Shortcut not Assigned>
-0037:Global:Paketti: ∿ Clone Current Pattern to Current Sequence (2nd): <Shortcut not Assigned>
-0038:Global:Paketti: ∿ Clone Current Pattern to Current Sequence (3rd): <Shortcut not Assigned>
-0039:Global:Paketti: ∿ Clone Current Sequence: <Shortcut not Assigned>
-0040:Global:Paketti: ∿ Clone Sequence (Automation Only): <Shortcut not Assigned>
-0041:Global:Paketti: ∿ Continue Current Sequence From Same Line: <Shortcut not Assigned>
-0042:Global:Paketti: ∿ Continue Sequence 00 From Same Line: <Shortcut not Assigned>
-0043:Global:Paketti: ∿ Continue Sequence 01 From Same Line: <Shortcut not Assigned>
-0044:Global:Paketti: ∿ Continue Sequence 02 From Same Line: <Shortcut not Assigned>
-0045:Global:Paketti: ∿ Continue Sequence 03 From Same Line: <Shortcut not Assigned>
-0046:Global:Paketti: ∿ Continue Sequence 04 From Same Line: <Shortcut not Assigned>
-0047:Global:Paketti: ∿ Continue Sequence 05 From Same Line: <Shortcut not Assigned>
-0048:Global:Paketti: ∿ Continue Sequence 06 From Same Line: <Shortcut not Assigned>
-0049:Global:Paketti: ∿ Continue Sequence 07 From Same Line: <Shortcut not Assigned>
-0050:Global:Paketti: ∿ Continue Sequence 08 From Same Line: <Shortcut not Assigned>
-0051:Global:Paketti: ∿ Continue Sequence 09 From Same Line: <Shortcut not Assigned>
-0052:Global:Paketti: ∿ Continue Sequence 10 From Same Line: <Shortcut not Assigned>
-0053:Global:Paketti: ∿ Continue Sequence 11 From Same Line: <Shortcut not Assigned>
-0054:Global:Paketti: ∿ Continue Sequence 12 From Same Line: <Shortcut not Assigned>
-0055:Global:Paketti: ∿ Continue Sequence 13 From Same Line: <Shortcut not Assigned>
-0056:Global:Paketti: ∿ Continue Sequence 14 From Same Line: <Shortcut not Assigned>
-0057:Global:Paketti: ∿ Continue Sequence 15 From Same Line: <Shortcut not Assigned>
-0058:Global:Paketti: ∿ Continue Sequence 16 From Same Line: <Shortcut not Assigned>
-0059:Global:Paketti: ∿ Continue Sequence 17 From Same Line: <Shortcut not Assigned>
-0060:Global:Paketti: ∿ Continue Sequence 18 From Same Line: <Shortcut not Assigned>
-0061:Global:Paketti: ∿ Continue Sequence 19 From Same Line: <Shortcut not Assigned>
-0062:Global:Paketti: ∿ Continue Sequence 20 From Same Line: <Shortcut not Assigned>
-0063:Global:Paketti: ∿ Continue Sequence 21 From Same Line: <Shortcut not Assigned>
-0064:Global:Paketti: ∿ Continue Sequence 22 From Same Line: <Shortcut not Assigned>
-0065:Global:Paketti: ∿ Continue Sequence 23 From Same Line: <Shortcut not Assigned>
-0066:Global:Paketti: ∿ Continue Sequence 24 From Same Line: <Shortcut not Assigned>
-0067:Global:Paketti: ∿ Continue Sequence 25 From Same Line: <Shortcut not Assigned>
-0068:Global:Paketti: ∿ Continue Sequence 26 From Same Line: <Shortcut not Assigned>
-0069:Global:Paketti: ∿ Continue Sequence 27 From Same Line: <Shortcut not Assigned>
-0070:Global:Paketti: ∿ Continue Sequence 28 From Same Line: <Shortcut not Assigned>
-0071:Global:Paketti: ∿ Continue Sequence 29 From Same Line: <Shortcut not Assigned>
-0072:Global:Paketti: ∿ Continue Sequence 30 From Same Line: <Shortcut not Assigned>
-0073:Global:Paketti: ∿ Continue Sequence 31 From Same Line: <Shortcut not Assigned>
-0074:Global:Paketti: ∿ Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing: <Shortcut not Assigned>
-0075:Global:Paketti: ∿ Duplicate Pattern (Slice Step Sequencer): <Shortcut not Assigned>
-0076:Global:Paketti: ∿ Duplicate Selected Sequence Range: <Shortcut not Assigned>
-0077:Global:Paketti: ∿ Hotelsinus Step Sequencer: <Shortcut not Assigned>
-0078:Global:Paketti: ∿ Jump to Sequence (Next): <Shortcut not Assigned>
-0079:Global:Paketti: ∿ Jump to Sequence (Previous): <Shortcut not Assigned>
-0080:Global:Paketti: ∿ Keep Sequence Sorted Off: <Shortcut not Assigned>
-0081:Global:Paketti: ∿ Keep Sequence Sorted On: <Shortcut not Assigned>
-0082:Global:Paketti: ∿ Keep Sequence Sorted Toggle: <Shortcut not Assigned>
-0083:Global:Paketti: ∿ Paketti Sample Offset / Slice Step Sequencer...: Option + W
-0084:Global:Paketti: ∿ Select and Loop Sequence Section 01: <Shortcut not Assigned>
-0085:Global:Paketti: ∿ Select and Loop Sequence Section 02: <Shortcut not Assigned>
-0086:Global:Paketti: ∿ Select and Loop Sequence Section 03: <Shortcut not Assigned>
-0087:Global:Paketti: ∿ Select and Loop Sequence Section 04: <Shortcut not Assigned>
-0088:Global:Paketti: ∿ Select and Loop Sequence Section 05: <Shortcut not Assigned>
-0089:Global:Paketti: ∿ Select and Loop Sequence Section 06: <Shortcut not Assigned>
-0090:Global:Paketti: ∿ Select and Loop Sequence Section 07: <Shortcut not Assigned>
-0091:Global:Paketti: ∿ Select and Loop Sequence Section 08: <Shortcut not Assigned>
-0092:Global:Paketti: ∿ Select and Loop Sequence Section 09: <Shortcut not Assigned>
-0093:Global:Paketti: ∿ Select and Loop Sequence Section 10: <Shortcut not Assigned>
-0094:Global:Paketti: ∿ Select and Loop Sequence Section 11: <Shortcut not Assigned>
-0095:Global:Paketti: ∿ Select and Loop Sequence Section 12: <Shortcut not Assigned>
-0096:Global:Paketti: ∿ Select and Loop Sequence Section 13: <Shortcut not Assigned>
-0097:Global:Paketti: ∿ Select and Loop Sequence Section 14: <Shortcut not Assigned>
-0098:Global:Paketti: ∿ Select and Loop Sequence Section 15: <Shortcut not Assigned>
-0099:Global:Paketti: ∿ Select and Loop Sequence Section 16: <Shortcut not Assigned>
-0100:Global:Paketti: ∿ Select and Loop Sequence Section 17: <Shortcut not Assigned>
-0101:Global:Paketti: ∿ Select and Loop Sequence Section 18: <Shortcut not Assigned>
-0102:Global:Paketti: ∿ Select and Loop Sequence Section 19: <Shortcut not Assigned>
-0103:Global:Paketti: ∿ Select and Loop Sequence Section 20: <Shortcut not Assigned>
-0104:Global:Paketti: ∿ Select and Loop Sequence Section 21: <Shortcut not Assigned>
-0105:Global:Paketti: ∿ Select and Loop Sequence Section 22: <Shortcut not Assigned>
-0106:Global:Paketti: ∿ Select and Loop Sequence Section 23: <Shortcut not Assigned>
-0107:Global:Paketti: ∿ Select and Loop Sequence Section 24: <Shortcut not Assigned>
-0108:Global:Paketti: ∿ Select and Loop Sequence Section 25: <Shortcut not Assigned>
-0109:Global:Paketti: ∿ Select and Loop Sequence Section 26: <Shortcut not Assigned>
-0110:Global:Paketti: ∿ Select and Loop Sequence Section 27: <Shortcut not Assigned>
-0111:Global:Paketti: ∿ Select and Loop Sequence Section 28: <Shortcut not Assigned>
-0112:Global:Paketti: ∿ Select and Loop Sequence Section 29: <Shortcut not Assigned>
-0113:Global:Paketti: ∿ Select and Loop Sequence Section 30: <Shortcut not Assigned>
-0114:Global:Paketti: ∿ Select and Loop Sequence Section 31: <Shortcut not Assigned>
-0115:Global:Paketti: ∿ Select and Loop Sequence Section 32: <Shortcut not Assigned>
-0116:Global:Paketti: ∿ Selected Specific Sequence 00: <Shortcut not Assigned>
-0117:Global:Paketti: ∿ Selected Specific Sequence 01: <Shortcut not Assigned>
-0118:Global:Paketti: ∿ Selected Specific Sequence 02: <Shortcut not Assigned>
-0119:Global:Paketti: ∿ Selected Specific Sequence 03: <Shortcut not Assigned>
-0120:Global:Paketti: ∿ Selected Specific Sequence 04: <Shortcut not Assigned>
-0121:Global:Paketti: ∿ Selected Specific Sequence 05: <Shortcut not Assigned>
-0122:Global:Paketti: ∿ Selected Specific Sequence 06: <Shortcut not Assigned>
-0123:Global:Paketti: ∿ Selected Specific Sequence 07: <Shortcut not Assigned>
-0124:Global:Paketti: ∿ Selected Specific Sequence 08: <Shortcut not Assigned>
-0125:Global:Paketti: ∿ Selected Specific Sequence 09: <Shortcut not Assigned>
-0126:Global:Paketti: ∿ Selected Specific Sequence 10: <Shortcut not Assigned>
-0127:Global:Paketti: ∿ Selected Specific Sequence 11: <Shortcut not Assigned>
-0128:Global:Paketti: ∿ Selected Specific Sequence 12: <Shortcut not Assigned>
-0129:Global:Paketti: ∿ Selected Specific Sequence 13: <Shortcut not Assigned>
-0130:Global:Paketti: ∿ Selected Specific Sequence 14: <Shortcut not Assigned>
-0131:Global:Paketti: ∿ Selected Specific Sequence 15: <Shortcut not Assigned>
-0132:Global:Paketti: ∿ Selected Specific Sequence 16: <Shortcut not Assigned>
-0133:Global:Paketti: ∿ Selected Specific Sequence 17: <Shortcut not Assigned>
-0134:Global:Paketti: ∿ Selected Specific Sequence 18: <Shortcut not Assigned>
-0135:Global:Paketti: ∿ Selected Specific Sequence 19: <Shortcut not Assigned>
-0136:Global:Paketti: ∿ Selected Specific Sequence 20: <Shortcut not Assigned>
-0137:Global:Paketti: ∿ Selected Specific Sequence 21: <Shortcut not Assigned>
-0138:Global:Paketti: ∿ Selected Specific Sequence 22: <Shortcut not Assigned>
-0139:Global:Paketti: ∿ Selected Specific Sequence 23: <Shortcut not Assigned>
-0140:Global:Paketti: ∿ Selected Specific Sequence 24: <Shortcut not Assigned>
-0141:Global:Paketti: ∿ Selected Specific Sequence 25: <Shortcut not Assigned>
-0142:Global:Paketti: ∿ Selected Specific Sequence 26: <Shortcut not Assigned>
-0143:Global:Paketti: ∿ Selected Specific Sequence 27: <Shortcut not Assigned>
-0144:Global:Paketti: ∿ Selected Specific Sequence 28: <Shortcut not Assigned>
-0145:Global:Paketti: ∿ Selected Specific Sequence 29: <Shortcut not Assigned>
-0146:Global:Paketti: ∿ Selected Specific Sequence 30: <Shortcut not Assigned>
-0147:Global:Paketti: ∿ Selected Specific Sequence 31: <Shortcut not Assigned>
-0148:Global:Paketti: ∿ Sequence Loop Selection (Next): <Shortcut not Assigned>
-0149:Global:Paketti: ∿ Sequence Loop Selection (Previous): <Shortcut not Assigned>
-0150:Global:Paketti: ∿ Sequence Selection (Next): Command + Control + 2
-0151:Global:Paketti: ∿ Sequence Selection (Previous): Command + Control + 1
-0152:Global:Paketti: ∿ Set Current Section as Scheduled Sequence: <Shortcut not Assigned>
-0153:Global:Paketti: ∿ Set Current Sequence as Scheduled List: <Shortcut not Assigned>
-0154:Global:Paketti: ∿ Set Current Sequence as Scheduled and Loop: <Shortcut not Assigned>
-0155:Global:Paketti: ∿ Set Sequence 00 as Scheduled List: <Shortcut not Assigned>
-0156:Global:Paketti: ∿ Set Sequence 01 as Scheduled List: <Shortcut not Assigned>
-0157:Global:Paketti: ∿ Set Sequence 02 as Scheduled List: <Shortcut not Assigned>
-0158:Global:Paketti: ∿ Set Sequence 03 as Scheduled List: <Shortcut not Assigned>
-0159:Global:Paketti: ∿ Set Sequence 04 as Scheduled List: <Shortcut not Assigned>
-0160:Global:Paketti: ∿ Set Sequence 05 as Scheduled List: <Shortcut not Assigned>
-0161:Global:Paketti: ∿ Set Sequence 06 as Scheduled List: <Shortcut not Assigned>
-0162:Global:Paketti: ∿ Set Sequence 07 as Scheduled List: <Shortcut not Assigned>
-0163:Global:Paketti: ∿ Set Sequence 08 as Scheduled List: <Shortcut not Assigned>
-0164:Global:Paketti: ∿ Set Sequence 09 as Scheduled List: <Shortcut not Assigned>
-0165:Global:Paketti: ∿ Set Sequence 10 as Scheduled List: <Shortcut not Assigned>
-0166:Global:Paketti: ∿ Set Sequence 11 as Scheduled List: <Shortcut not Assigned>
-0167:Global:Paketti: ∿ Set Sequence 12 as Scheduled List: <Shortcut not Assigned>
-0168:Global:Paketti: ∿ Set Sequence 13 as Scheduled List: <Shortcut not Assigned>
-0169:Global:Paketti: ∿ Set Sequence 14 as Scheduled List: <Shortcut not Assigned>
-0170:Global:Paketti: ∿ Set Sequence 15 as Scheduled List: <Shortcut not Assigned>
-0171:Global:Paketti: ∿ Set Sequence 16 as Scheduled List: <Shortcut not Assigned>
-0172:Global:Paketti: ∿ Set Sequence 17 as Scheduled List: <Shortcut not Assigned>
-0173:Global:Paketti: ∿ Set Sequence 18 as Scheduled List: <Shortcut not Assigned>
-0174:Global:Paketti: ∿ Set Sequence 19 as Scheduled List: <Shortcut not Assigned>
-0175:Global:Paketti: ∿ Set Sequence 20 as Scheduled List: <Shortcut not Assigned>
-0176:Global:Paketti: ∿ Set Sequence 21 as Scheduled List: <Shortcut not Assigned>
-0177:Global:Paketti: ∿ Set Sequence 22 as Scheduled List: <Shortcut not Assigned>
-0178:Global:Paketti: ∿ Set Sequence 23 as Scheduled List: <Shortcut not Assigned>
-0179:Global:Paketti: ∿ Set Sequence 24 as Scheduled List: <Shortcut not Assigned>
-0180:Global:Paketti: ∿ Set Sequence 25 as Scheduled List: <Shortcut not Assigned>
-0181:Global:Paketti: ∿ Set Sequence 26 as Scheduled List: <Shortcut not Assigned>
-0182:Global:Paketti: ∿ Set Sequence 27 as Scheduled List: <Shortcut not Assigned>
-0183:Global:Paketti: ∿ Set Sequence 28 as Scheduled List: <Shortcut not Assigned>
-0184:Global:Paketti: ∿ Set Sequence 29 as Scheduled List: <Shortcut not Assigned>
-0185:Global:Paketti: ∿ Set Sequence 30 as Scheduled List: <Shortcut not Assigned>
-0186:Global:Paketti: ∿ Set Sequence 31 as Scheduled List: <Shortcut not Assigned>
-0187:Global:Paketti: ∿ Set Sequence Loop Selection Off: <Shortcut not Assigned>
-0188:Global:Paketti: ∿ Set Sequence Loop from Current to 00: <Shortcut not Assigned>
-0189:Global:Paketti: ∿ Set Sequence Loop from Current to 01: <Shortcut not Assigned>
-0190:Global:Paketti: ∿ Set Sequence Loop from Current to 02: <Shortcut not Assigned>
-0191:Global:Paketti: ∿ Set Sequence Loop from Current to 03: <Shortcut not Assigned>
-0192:Global:Paketti: ∿ Set Sequence Loop from Current to 04: <Shortcut not Assigned>
-0193:Global:Paketti: ∿ Set Sequence Loop from Current to 05: <Shortcut not Assigned>
-0194:Global:Paketti: ∿ Set Sequence Loop from Current to 06: <Shortcut not Assigned>
-0195:Global:Paketti: ∿ Set Sequence Loop from Current to 07: <Shortcut not Assigned>
-0196:Global:Paketti: ∿ Set Sequence Loop from Current to 08: <Shortcut not Assigned>
-0197:Global:Paketti: ∿ Set Sequence Loop from Current to 09: <Shortcut not Assigned>
-0198:Global:Paketti: ∿ Set Sequence Loop from Current to 10: <Shortcut not Assigned>
-0199:Global:Paketti: ∿ Set Sequence Loop from Current to 11: <Shortcut not Assigned>
-0200:Global:Paketti: ∿ Set Sequence Loop from Current to 12: <Shortcut not Assigned>
-0201:Global:Paketti: ∿ Set Sequence Loop from Current to 13: <Shortcut not Assigned>
-0202:Global:Paketti: ∿ Set Sequence Loop from Current to 14: <Shortcut not Assigned>
-0203:Global:Paketti: ∿ Set Sequence Loop from Current to 15: <Shortcut not Assigned>
-0204:Global:Paketti: ∿ Set Sequence Loop from Current to 16: <Shortcut not Assigned>
-0205:Global:Paketti: ∿ Set Sequence Loop from Current to 17: <Shortcut not Assigned>
-0206:Global:Paketti: ∿ Set Sequence Loop from Current to 18: <Shortcut not Assigned>
-0207:Global:Paketti: ∿ Set Sequence Loop from Current to 19: <Shortcut not Assigned>
-0208:Global:Paketti: ∿ Set Sequence Loop from Current to 20: <Shortcut not Assigned>
-0209:Global:Paketti: ∿ Set Sequence Loop from Current to 21: <Shortcut not Assigned>
-0210:Global:Paketti: ∿ Set Sequence Loop from Current to 22: <Shortcut not Assigned>
-0211:Global:Paketti: ∿ Set Sequence Loop from Current to 23: <Shortcut not Assigned>
-0212:Global:Paketti: ∿ Set Sequence Loop from Current to 24: <Shortcut not Assigned>
-0213:Global:Paketti: ∿ Set Sequence Loop from Current to 25: <Shortcut not Assigned>
-0214:Global:Paketti: ∿ Set Sequence Loop from Current to 26: <Shortcut not Assigned>
-0215:Global:Paketti: ∿ Set Sequence Loop from Current to 27: <Shortcut not Assigned>
-0216:Global:Paketti: ∿ Set Sequence Loop from Current to 28: <Shortcut not Assigned>
-0217:Global:Paketti: ∿ Set Sequence Loop from Current to 29: <Shortcut not Assigned>
-0218:Global:Paketti: ∿ Set Sequence Loop from Current to 30: <Shortcut not Assigned>
-0219:Global:Paketti: ∿ Set Sequence Loop from Current to 31: <Shortcut not Assigned>
-0220:Global:Paketti: ∿ Set Sequence Selection Off: <Shortcut not Assigned>
-0221:Global:Paketti: ∿ Slice to Pattern Sequencer Dialog...: <Shortcut not Assigned>
-0222:Global:Paketti: ∿ Toggle Current Sequence Selection On/Off: <Shortcut not Assigned>
-0223:Global:Paketti: ∿ Toggle Sequence Loop to 00: <Shortcut not Assigned>
-0224:Global:Paketti: ∿ Toggle Sequence Loop to 01: <Shortcut not Assigned>
-0225:Global:Paketti: ∿ Toggle Sequence Loop to 02: <Shortcut not Assigned>
-0226:Global:Paketti: ∿ Toggle Sequence Loop to 03: <Shortcut not Assigned>
-0227:Global:Paketti: ∿ Toggle Sequence Loop to 04: <Shortcut not Assigned>
-0228:Global:Paketti: ∿ Toggle Sequence Loop to 05: <Shortcut not Assigned>
-0229:Global:Paketti: ∿ Toggle Sequence Loop to 06: <Shortcut not Assigned>
-0230:Global:Paketti: ∿ Toggle Sequence Loop to 07: <Shortcut not Assigned>
-0231:Global:Paketti: ∿ Toggle Sequence Loop to 08: <Shortcut not Assigned>
-0232:Global:Paketti: ∿ Toggle Sequence Loop to 09: <Shortcut not Assigned>
-0233:Global:Paketti: ∿ Toggle Sequence Loop to 10: <Shortcut not Assigned>
-0234:Global:Paketti: ∿ Toggle Sequence Loop to 11: <Shortcut not Assigned>
-0235:Global:Paketti: ∿ Toggle Sequence Loop to 12: <Shortcut not Assigned>
-0236:Global:Paketti: ∿ Toggle Sequence Loop to 13: <Shortcut not Assigned>
-0237:Global:Paketti: ∿ Toggle Sequence Loop to 14: <Shortcut not Assigned>
-0238:Global:Paketti: ∿ Toggle Sequence Loop to 15: <Shortcut not Assigned>
-0239:Global:Paketti: ∿ Toggle Sequence Loop to 16: <Shortcut not Assigned>
-0240:Global:Paketti: ∿ Toggle Sequence Loop to 17: <Shortcut not Assigned>
-0241:Global:Paketti: ∿ Toggle Sequence Loop to 18: <Shortcut not Assigned>
-0242:Global:Paketti: ∿ Toggle Sequence Loop to 19: <Shortcut not Assigned>
-0243:Global:Paketti: ∿ Toggle Sequence Loop to 20: <Shortcut not Assigned>
-0244:Global:Paketti: ∿ Toggle Sequence Loop to 21: <Shortcut not Assigned>
-0245:Global:Paketti: ∿ Toggle Sequence Loop to 22: <Shortcut not Assigned>
-0246:Global:Paketti: ∿ Toggle Sequence Loop to 23: <Shortcut not Assigned>
-0247:Global:Paketti: ∿ Toggle Sequence Loop to 24: <Shortcut not Assigned>
-0248:Global:Paketti: ∿ Toggle Sequence Loop to 25: <Shortcut not Assigned>
-0249:Global:Paketti: ∿ Toggle Sequence Loop to 26: <Shortcut not Assigned>
-0250:Global:Paketti: ∿ Toggle Sequence Loop to 27: <Shortcut not Assigned>
-0251:Global:Paketti: ∿ Toggle Sequence Loop to 28: <Shortcut not Assigned>
-0252:Global:Paketti: ∿ Toggle Sequence Loop to 29: <Shortcut not Assigned>
-0253:Global:Paketti: ∿ Toggle Sequence Loop to 30: <Shortcut not Assigned>
-0254:Global:Paketti: ∿ Toggle Sequence Loop to 31: <Shortcut not Assigned>
-0255:Global:Paketti: ∿ Toggle Sequence Selection (All) On/Off: <Shortcut not Assigned>
-0256:Global:Paketti: ∿ Toggle Sequence Selection 00: <Shortcut not Assigned>
-0257:Global:Paketti: ∿ Toggle Sequence Selection 01: <Shortcut not Assigned>
-0258:Global:Paketti: ∿ Toggle Sequence Selection 02: <Shortcut not Assigned>
-0259:Global:Paketti: ∿ Toggle Sequence Selection 03: <Shortcut not Assigned>
-0260:Global:Paketti: ∿ Toggle Sequence Selection 04: <Shortcut not Assigned>
-0261:Global:Paketti: ∿ Toggle Sequence Selection 05: <Shortcut not Assigned>
-0262:Global:Paketti: ∿ Toggle Sequence Selection 06: <Shortcut not Assigned>
-0263:Global:Paketti: ∿ Toggle Sequence Selection 07: <Shortcut not Assigned>
-0264:Global:Paketti: ∿ Toggle Sequence Selection 08: <Shortcut not Assigned>
-0265:Global:Paketti: ∿ Toggle Sequence Selection 09: <Shortcut not Assigned>
-0266:Global:Paketti: ∿ Toggle Sequence Selection 10: <Shortcut not Assigned>
-0267:Global:Paketti: ∿ Toggle Sequence Selection 11: <Shortcut not Assigned>
-0268:Global:Paketti: ∿ Toggle Sequence Selection 12: <Shortcut not Assigned>
-0269:Global:Paketti: ∿ Toggle Sequence Selection 13: <Shortcut not Assigned>
-0270:Global:Paketti: ∿ Toggle Sequence Selection 14: <Shortcut not Assigned>
-0271:Global:Paketti: ∿ Toggle Sequence Selection 15: <Shortcut not Assigned>
-0272:Global:Paketti: ∿ Toggle Sequence Selection 16: <Shortcut not Assigned>
-0273:Global:Paketti: ∿ Toggle Sequence Selection 17: <Shortcut not Assigned>
-0274:Global:Paketti: ∿ Toggle Sequence Selection 18: <Shortcut not Assigned>
-0275:Global:Paketti: ∿ Toggle Sequence Selection 19: <Shortcut not Assigned>
-0276:Global:Paketti: ∿ Toggle Sequence Selection 20: <Shortcut not Assigned>
-0277:Global:Paketti: ∿ Toggle Sequence Selection 21: <Shortcut not Assigned>
-0278:Global:Paketti: ∿ Toggle Sequence Selection 22: <Shortcut not Assigned>
-0279:Global:Paketti: ∿ Toggle Sequence Selection 23: <Shortcut not Assigned>
-0280:Global:Paketti: ∿ Toggle Sequence Selection 24: <Shortcut not Assigned>
-0281:Global:Paketti: ∿ Toggle Sequence Selection 25: <Shortcut not Assigned>
-0282:Global:Paketti: ∿ Toggle Sequence Selection 26: <Shortcut not Assigned>
-0283:Global:Paketti: ∿ Toggle Sequence Selection 27: <Shortcut not Assigned>
-0284:Global:Paketti: ∿ Toggle Sequence Selection 28: <Shortcut not Assigned>
-0285:Global:Paketti: ∿ Toggle Sequence Selection 29: <Shortcut not Assigned>
-0286:Global:Paketti: ∿ Toggle Sequence Selection 30: <Shortcut not Assigned>
-0287:Global:Paketti: ∿ Toggle Sequence Selection 31: <Shortcut not Assigned>
-0288:Global:Paketti: ∿ Toggle Sequence Selection 32: <Shortcut not Assigned>
-0289:Global:Paketti: ∿ Toggle Sequence Selection to Loop: <Shortcut not Assigned>
-0290:Global:Paketti: ∿ Trigger Sequence 00: <Shortcut not Assigned>
-0291:Global:Paketti: ∿ Trigger Sequence 01: <Shortcut not Assigned>
-0292:Global:Paketti: ∿ Trigger Sequence 02: <Shortcut not Assigned>
-0293:Global:Paketti: ∿ Trigger Sequence 03: <Shortcut not Assigned>
-0294:Global:Paketti: ∿ Trigger Sequence 04: <Shortcut not Assigned>
-0295:Global:Paketti: ∿ Trigger Sequence 05: <Shortcut not Assigned>
-0296:Global:Paketti: ∿ Trigger Sequence 06: <Shortcut not Assigned>
-0297:Global:Paketti: ∿ Trigger Sequence 07: <Shortcut not Assigned>
-0298:Global:Paketti: ∿ Trigger Sequence 08: <Shortcut not Assigned>
-0299:Global:Paketti: ∿ Trigger Sequence 09: <Shortcut not Assigned>
-0300:Global:Paketti: ∿ Trigger Sequence 10: <Shortcut not Assigned>
-0301:Global:Paketti: ∿ Trigger Sequence 11: <Shortcut not Assigned>
-0302:Global:Paketti: ∿ Trigger Sequence 12: <Shortcut not Assigned>
-0303:Global:Paketti: ∿ Trigger Sequence 13: <Shortcut not Assigned>
-0304:Global:Paketti: ∿ Trigger Sequence 14: <Shortcut not Assigned>
-0305:Global:Paketti: ∿ Trigger Sequence 15: <Shortcut not Assigned>
-0306:Global:Paketti: ∿ Trigger Sequence 16: <Shortcut not Assigned>
-0307:Global:Paketti: ∿ Trigger Sequence 17: <Shortcut not Assigned>
-0308:Global:Paketti: ∿ Trigger Sequence 18: <Shortcut not Assigned>
-0309:Global:Paketti: ∿ Trigger Sequence 19: <Shortcut not Assigned>
-0310:Global:Paketti: ∿ Trigger Sequence 20: <Shortcut not Assigned>
-0311:Global:Paketti: ∿ Trigger Sequence 21: <Shortcut not Assigned>
-0312:Global:Paketti: ∿ Trigger Sequence 22: <Shortcut not Assigned>
-0313:Global:Paketti: ∿ Trigger Sequence 23: <Shortcut not Assigned>
-0314:Global:Paketti: ∿ Trigger Sequence 24: <Shortcut not Assigned>
-0315:Global:Paketti: ∿ Trigger Sequence 25: <Shortcut not Assigned>
-0316:Global:Paketti: ∿ Trigger Sequence 26: <Shortcut not Assigned>
-0317:Global:Paketti: ∿ Trigger Sequence 27: <Shortcut not Assigned>
-0318:Global:Paketti: ∿ Trigger Sequence 28: <Shortcut not Assigned>
-0319:Global:Paketti: ∿ Trigger Sequence 29: <Shortcut not Assigned>
-0320:Global:Paketti: ∿ Trigger Sequence 30: <Shortcut not Assigned>
-0321:Global:Paketti: ∿ Trigger Sequence 31: <Shortcut not Assigned>
-0322:Pattern Editor:Paketti: ∿ Duplicate Pattern (Slice Step Sequencer): <Shortcut not Assigned>
-0323:Pattern Editor:Paketti: ∿ Keep Sequence Sorted Off: <Shortcut not Assigned>
-0324:Pattern Editor:Paketti: ∿ Keep Sequence Sorted On: <Shortcut not Assigned>
-0325:Pattern Editor:Paketti: ∿ Keep Sequence Sorted Toggle: <Shortcut not Assigned>
-0326:Pattern Matrix:Paketti: ∿ Duplicate Pattern (Slice Step Sequencer): <Shortcut not Assigned>
-0327:Pattern Sequencer:Paketti: ∿ Clear Unused Patterns: <Shortcut not Assigned>
-0328:Pattern Sequencer:Paketti: ∿ Clone Current Sequence: <Shortcut not Assigned>
-0329:Pattern Sequencer:Paketti: ∿ Create Section From Selection: <Shortcut not Assigned>
-0330:Pattern Sequencer:Paketti: ∿ Duplicate Pattern (Groovebox 8120): <Shortcut not Assigned>
-0331:Pattern Sequencer:Paketti: ∿ Duplicate Pattern (No Clear): <Shortcut not Assigned>
-0332:Pattern Sequencer:Paketti: ∿ Duplicate Pattern (Slice Step Sequencer): <Shortcut not Assigned>
-0333:Pattern Sequencer:Paketti: ∿ Duplicate Pattern Above & Clear Muted Tracks: <Shortcut not Assigned>
-0334:Pattern Sequencer:Paketti: ∿ Duplicate Pattern Below & Clear Muted Tracks: <Shortcut not Assigned>
-0335:Pattern Sequencer:Paketti: ∿ Duplicate Selected Sequence Range: <Shortcut not Assigned>
-0336:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted Off: <Shortcut not Assigned>
-0337:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted On: <Shortcut not Assigned>
-0338:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted Toggle: <Shortcut not Assigned>
-0339:Pattern Sequencer:Paketti: ∿ Note Offs to All Tracks for First Pattern of Song, First Row: <Shortcut not Assigned>
-0340:Pattern Sequencer:Paketti: ∿ Note Offs to All Tracks for First Row of Current Pattern: <Shortcut not Assigned>
-0341:Pattern Sequencer:Paketti: ∿ Select Next Section Sequence: <Shortcut not Assigned>
-0342:Pattern Sequencer:Paketti: ∿ Select Previous Section Sequence: <Shortcut not Assigned>
-0343:Pattern Sequencer:Paketti: ∿ Show Paketti Sequencer Settings Dialog: <Shortcut not Assigned>
-0344:Pattern Sequencer:Paketti: ∿ Swap Pattern Slot with Above: <Shortcut not Assigned>
-0345:Pattern Sequencer:Paketti: ∿ Swap Pattern Slot with Below: <Shortcut not Assigned>
-0346:Pattern Sequencer:Paketti: ∿ Swap Two Pattern Slots: <Shortcut not Assigned>
-0347:Pattern Sequencer:Paketti: ∿ Wipe Empty Patterns From End: <Shortcut not Assigned>
+Debug: Total Paketti keybindings found - 4313
+0001:Global:Paketti: ∿ OctaMED Note Spread 01: <Shortcut not Assigned>
+0002:Global:Paketti: ∿ OctaMED Note Spread 02: <Shortcut not Assigned>
+0003:Global:Paketti: ∿ OctaMED Note Spread 03: <Shortcut not Assigned>
+0004:Global:Paketti: ∿ OctaMED Note Spread 04: <Shortcut not Assigned>
+0005:Global:Paketti: ∿ OctaMED Note Spread 05: <Shortcut not Assigned>
+0006:Global:Paketti: ∿ OctaMED Note Spread 06: <Shortcut not Assigned>
+0007:Global:Paketti: ∿ OctaMED Note Spread 07: <Shortcut not Assigned>
+0008:Global:Paketti: ∿ OctaMED Note Spread 08: <Shortcut not Assigned>
+0009:Global:Paketti: ∿ OctaMED Note Spread 09: <Shortcut not Assigned>
+0010:Global:Paketti: ∿ OctaMED Note Spread 10: <Shortcut not Assigned>
+0011:Global:Paketti: ∿ OctaMED Note Spread 11: <Shortcut not Assigned>
+0012:Global:Paketti: ∿ OctaMED Note Spread 12: <Shortcut not Assigned>
+0013:Global:Paketti: ∿ OctaMED Note Spread Decrement: Shift + Command + Control + Left
+0014:Global:Paketti: ∿ OctaMED Note Spread Increment: Shift + Command + Control + Right
+0015:Global:Paketti: ∿ OctaMED Toggle Mute Track 01: <Shortcut not Assigned>
+0016:Global:Paketti: ∿ OctaMED Toggle Mute Track 02: <Shortcut not Assigned>
+0017:Global:Paketti: ∿ OctaMED Toggle Mute Track 03: <Shortcut not Assigned>
+0018:Global:Paketti: ∿ OctaMED Toggle Mute Track 04: <Shortcut not Assigned>
+0019:Global:Paketti: ∿ OctaMED Toggle Mute Track 05: <Shortcut not Assigned>
+0020:Global:Paketti: ∿ OctaMED Toggle Mute Track 06: <Shortcut not Assigned>
+0021:Global:Paketti: ∿ OctaMED Toggle Mute Track 07: <Shortcut not Assigned>
+0022:Global:Paketti: ∿ OctaMED Toggle Mute Track 08: <Shortcut not Assigned>
+0023:Global:Paketti: ∿ OctaMED Toggle Mute Track 09: <Shortcut not Assigned>
+0024:Global:Paketti: ∿ OctaMED Toggle Mute Track 10: <Shortcut not Assigned>
+0025:Global:Paketti: ∿ OctaMED Toggle Mute Track 11: <Shortcut not Assigned>
+0026:Global:Paketti: ∿ OctaMED Toggle Mute Track 12: <Shortcut not Assigned>
+0027:Global:Paketti: ∿ OctaMED Toggle Mute Track 13: <Shortcut not Assigned>
+0028:Global:Paketti: ∿ OctaMED Toggle Mute Track 14: <Shortcut not Assigned>
+0029:Global:Paketti: ∿ OctaMED Toggle Mute Track 15: <Shortcut not Assigned>
+0030:Global:Paketti: ∿ OctaMED Toggle Mute Track 16: <Shortcut not Assigned>
+0031:Global:Paketti: ∿ Toggle OctaMED Hold-to-Fill Mode: <Shortcut not Assigned>
+0032:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 01: <Shortcut not Assigned>
+0033:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 02: <Shortcut not Assigned>
+0034:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 03: <Shortcut not Assigned>
+0035:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 04: <Shortcut not Assigned>
+0036:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 05: <Shortcut not Assigned>
+0037:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 06: <Shortcut not Assigned>
+0038:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 07: <Shortcut not Assigned>
+0039:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 08: <Shortcut not Assigned>
+0040:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 09: <Shortcut not Assigned>
+0041:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 10: <Shortcut not Assigned>
+0042:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 11: <Shortcut not Assigned>
+0043:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 12: <Shortcut not Assigned>
+0044:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 13: <Shortcut not Assigned>
+0045:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 14: <Shortcut not Assigned>
+0046:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 15: <Shortcut not Assigned>
+0047:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 16: <Shortcut not Assigned>
+0048:Pattern Editor:Paketti: ∿ OctaMED Note Echo Dialog...: <Shortcut not Assigned>
+0049:Pattern Editor:Paketti: ∿ OctaMED Note Spread 01: <Shortcut not Assigned>
+0050:Pattern Editor:Paketti: ∿ OctaMED Note Spread 02: <Shortcut not Assigned>
+0051:Pattern Editor:Paketti: ∿ OctaMED Note Spread 03: <Shortcut not Assigned>
+0052:Pattern Editor:Paketti: ∿ OctaMED Note Spread 04: <Shortcut not Assigned>
+0053:Pattern Editor:Paketti: ∿ OctaMED Note Spread 05: <Shortcut not Assigned>
+0054:Pattern Editor:Paketti: ∿ OctaMED Note Spread 06: <Shortcut not Assigned>
+0055:Pattern Editor:Paketti: ∿ OctaMED Note Spread 07: <Shortcut not Assigned>
+0056:Pattern Editor:Paketti: ∿ OctaMED Note Spread 08: <Shortcut not Assigned>
+0057:Pattern Editor:Paketti: ∿ OctaMED Note Spread 09: <Shortcut not Assigned>
+0058:Pattern Editor:Paketti: ∿ OctaMED Note Spread 10: <Shortcut not Assigned>
+0059:Pattern Editor:Paketti: ∿ OctaMED Note Spread 11: <Shortcut not Assigned>
+0060:Pattern Editor:Paketti: ∿ OctaMED Note Spread 12: <Shortcut not Assigned>
+0061:Pattern Editor:Paketti: ∿ OctaMED Note Spread Decrement: <Shortcut not Assigned>
+0062:Pattern Editor:Paketti: ∿ OctaMED Note Spread Increment: <Shortcut not Assigned>
+0063:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 01: <Shortcut not Assigned>
+0064:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 02: <Shortcut not Assigned>
+0065:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 03: <Shortcut not Assigned>
+0066:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 04: <Shortcut not Assigned>
+0067:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 05: <Shortcut not Assigned>
+0068:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 06: <Shortcut not Assigned>
+0069:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 07: <Shortcut not Assigned>
+0070:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 08: <Shortcut not Assigned>
+0071:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 09: <Shortcut not Assigned>
+0072:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 10: <Shortcut not Assigned>
+0073:Pattern Editor:Paketti: ∿ OctaMED Pick/Put Dialog...: <Shortcut not Assigned>
+0074:Pattern Editor:Paketti: ∿ OctaMED Put Slot 01: <Shortcut not Assigned>
+0075:Pattern Editor:Paketti: ∿ OctaMED Put Slot 02: <Shortcut not Assigned>
+0076:Pattern Editor:Paketti: ∿ OctaMED Put Slot 03: <Shortcut not Assigned>
+0077:Pattern Editor:Paketti: ∿ OctaMED Put Slot 04: <Shortcut not Assigned>
+0078:Pattern Editor:Paketti: ∿ OctaMED Put Slot 05: <Shortcut not Assigned>
+0079:Pattern Editor:Paketti: ∿ OctaMED Put Slot 06: <Shortcut not Assigned>
+0080:Pattern Editor:Paketti: ∿ OctaMED Put Slot 07: <Shortcut not Assigned>
+0081:Pattern Editor:Paketti: ∿ OctaMED Put Slot 08: <Shortcut not Assigned>
+0082:Pattern Editor:Paketti: ∿ OctaMED Put Slot 09: <Shortcut not Assigned>
+0083:Pattern Editor:Paketti: ∿ OctaMED Put Slot 10: <Shortcut not Assigned>
+0084:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 01: <Shortcut not Assigned>
+0085:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 02: <Shortcut not Assigned>
+0086:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 03: <Shortcut not Assigned>
+0087:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 04: <Shortcut not Assigned>
+0088:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 05: <Shortcut not Assigned>
+0089:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 06: <Shortcut not Assigned>
+0090:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 07: <Shortcut not Assigned>
+0091:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 08: <Shortcut not Assigned>
+0092:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 09: <Shortcut not Assigned>
+0093:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 10: <Shortcut not Assigned>
+0094:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 11: <Shortcut not Assigned>
+0095:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 12: <Shortcut not Assigned>
+0096:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 13: <Shortcut not Assigned>
+0097:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 14: <Shortcut not Assigned>
+0098:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 15: <Shortcut not Assigned>
+0099:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 16: <Shortcut not Assigned>
+0100:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 01: <Shortcut not Assigned>
+0101:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 02: <Shortcut not Assigned>
+0102:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 03: <Shortcut not Assigned>
+0103:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 04: <Shortcut not Assigned>
+0104:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 05: <Shortcut not Assigned>
+0105:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 06: <Shortcut not Assigned>
+0106:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 07: <Shortcut not Assigned>
+0107:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 08: <Shortcut not Assigned>
+0108:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 09: <Shortcut not Assigned>
+0109:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 10: <Shortcut not Assigned>
+0110:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 11: <Shortcut not Assigned>
+0111:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 12: <Shortcut not Assigned>
+0112:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 13: <Shortcut not Assigned>
+0113:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 14: <Shortcut not Assigned>
+0114:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 15: <Shortcut not Assigned>
+0115:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 16: <Shortcut not Assigned>
