@@ -1872,52 +1872,52 @@ end
 
 -- Menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Phrase Editor:Toggle Selected Phrase Looping",
+  name = "Main Menu:Tools:Paketti:Phrases:Toggle Selected Phrase Looping",
   invoke = pakettiToggleSelectedPhraseLooping
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Phrase Editor:Disable Looping in All Phrases",
+  name = "Main Menu:Tools:Paketti:Phrases:Disable Looping in All Phrases",
   invoke = pakettiDisableAllPhraseLooping
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Phrase Editor:Enable Looping in All Phrases",
+  name = "Main Menu:Tools:Paketti:Phrases:Enable Looping in All Phrases",
   invoke = pakettiEnableAllPhraseLooping
 }
 
 renoise.tool():add_menu_entry{
-  name = "--Main Menu:Tools:Paketti:Phrase Editor:Enable Looping in All Phrases Globally",
+  name = "--Main Menu:Tools:Paketti:Phrases:Enable Looping in All Phrases Globally",
   invoke = pakettiEnableAllPhraseLoopingGlobally
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Phrase Editor:Disable Looping in All Phrases Globally",
+  name = "Main Menu:Tools:Paketti:Phrases:Disable Looping in All Phrases Globally",
   invoke = pakettiDisableAllPhraseLoopingGlobally
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Phrase Editor:Toggle Selected Phrase Looping",
+  name = "Instrument Box:Paketti:Phrases:Toggle Selected Phrase Looping",
   invoke = pakettiToggleSelectedPhraseLooping
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Phrase Editor:Disable Looping in All Phrases",
+  name = "Instrument Box:Paketti:Phrases:Disable Looping in All Phrases",
   invoke = pakettiDisableAllPhraseLooping
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Phrase Editor:Enable Looping in All Phrases",
+  name = "Instrument Box:Paketti:Phrases:Enable Looping in All Phrases",
   invoke = pakettiEnableAllPhraseLooping
 }
 
 renoise.tool():add_menu_entry{
-  name = "--Instrument Box:Paketti:Phrase Editor:Enable Looping in All Phrases Globally",
+  name = "--Instrument Box:Paketti:Phrases:Enable Looping in All Phrases Globally",
   invoke = pakettiEnableAllPhraseLoopingGlobally
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Phrase Editor:Disable Looping in All Phrases Globally",
+  name = "Instrument Box:Paketti:Phrases:Disable Looping in All Phrases Globally",
   invoke = pakettiDisableAllPhraseLoopingGlobally
 }
 

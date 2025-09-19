@@ -1557,9 +1557,9 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:BPM&L
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrase Editor:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrase Editor:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrase Editor:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Double LPB",invoke=function() PakettiLPBDouble() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Halve LPB",invoke=function() PakettiLPBHalve() end}
@@ -1619,7 +1619,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Clean
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Clean Render:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Clean Render:Clean Render Seamless Selected Track/Group",invoke=function() PakettiSeamlessCleanRenderSelection() end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Paketti User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Quick Sample Folders:Paketti User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Set Overlap Mode 0 (Play All)",invoke=function() setOverlapMode(0) end}
@@ -1724,9 +1724,9 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Expo
 end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Global Volume Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Delete Unused Samples...",invoke=deleteUnusedSamples}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
 
@@ -1738,10 +1738,10 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Patte
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pattern Length Decrease by LPB",invoke=function() adjust_length_by("-lpb") end}
 -- Phrase Editor entries require API 6.2+
 if (renoise.API_VERSION >= 6.2) then
-  renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrase Editor:Phrase Length Increase by 8",invoke=function() adjust_length_by(8) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrase Editor:Phrase Length Decrease by 8",invoke=function() adjust_length_by(-8) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrase Editor:Phrase Length Increase by LPB",invoke=function() adjust_length_by("lpb") end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrase Editor:Phrase Length Decrease by LPB",invoke=function() adjust_length_by("-lpb") end}
+  renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Phrase Length Increase by 8",invoke=function() adjust_length_by(8) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Phrase Length Decrease by 8",invoke=function() adjust_length_by(-8) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Phrase Length Increase by LPB",invoke=function() adjust_length_by("lpb") end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Phrase Length Decrease by LPB",invoke=function() adjust_length_by("-lpb") end}
 end
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Collapse All Tracks",invoke=function() Collapser() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Uncollapse All Tracks",invoke=function() Uncollapser() end}
@@ -1774,7 +1774,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Cre
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}

@@ -426,7 +426,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Polyend Slice Dialog Toggle",
 
 
 -- Menu entries
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend Slice Switcher...",
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Polyend Slice Switcher...",
   invoke=function()
     if not PakettiPolyendSliceSwitcherIsActive() then
       renoise.app():show_status("No Polyend Slice instrument active - load a PTI with slices first")

@@ -81,9 +81,6 @@ function PakettiCanvasFontPreviewInit()
   PakettiCanvasFontPreviewVB = renoise.ViewBuilder()
 
   local content = PakettiCanvasFontPreviewVB:column{
-    margin = 10,
-    spacing = 8,
-    PakettiCanvasFontPreviewVB:text{ text = "Paketti Canvas Font Preview", font = "bold", style = "strong" },
     PakettiCanvasFontPreviewVB:canvas{
       id = "pcfp_canvas_h",
       width = PakettiCanvasFontPreviewWidth,
@@ -131,7 +128,7 @@ function PakettiCanvasFontPreviewInit()
 end
 
 -- Menu and keybinding
-renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Paketti:Canvas Font Preview", invoke = PakettiCanvasFontPreviewInit }
+renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Paketti:V3.5:Canvas Font Preview", invoke = PakettiCanvasFontPreviewInit }
 renoise.tool():add_keybinding{ name = "Global:Paketti:Canvas Font Preview", invoke = PakettiCanvasFontPreviewInit }
 
 

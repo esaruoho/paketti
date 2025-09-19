@@ -1678,8 +1678,8 @@ end
 -- Menu entries
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Gaps", invoke = pakettiOldschoolSlicePitchDetectGaps}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Xperimental/WIP:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (Reversed)", invoke = pakettiOldschoolSlicePitchFillSelectedGap}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (Copied)", invoke = pakettiOldschoolSlicePitchFillSelectedGapCopied}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (Reversed)", invoke = pakettiOldschoolSlicePitchFillAllGaps}

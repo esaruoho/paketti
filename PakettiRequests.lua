@@ -10098,6 +10098,13 @@ renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Track)",invo
 renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Pattern)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Find Note (Previous, Pattern)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
+
+
 renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
 renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
 renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
@@ -10113,6 +10120,13 @@ if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
   renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
   renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Pattern, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}-- Playback MIDI mappings
+
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Find Note (Previous, Pattern, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}-- Playback MIDI mappings
+
+
   renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
   renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
   renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}

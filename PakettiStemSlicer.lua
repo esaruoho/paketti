@@ -2161,7 +2161,7 @@ function pakettiStemSlicerDialogInternal()
             style = "normal"
         },
         vb:text{
-          text = "Naming format: originalname_XXbeats_sliceYY.wav, silent slices will be marked with _silence suffix",
+          text = "Naming format: originalname_XXbeats_sliceYY.wav, silent slices marked with _silence suffix",
           style = "normal"
       },    
 
@@ -2270,34 +2270,34 @@ function pakettiStemSlicerDialogInternal()
             vb:button{
                 id = "process_button",
                 text = "Start Processing",
-                width = 120,
+                width = 110,
                 active = false,
                 notifier = startProcessing
             },
             vb:button{
                 text = "Quick Load",
-                width = 100,
+                width = 70,
                 notifier = function()
                     onQuickLoadSlices(getOutputFolderPath(), {64,32,16,8,4}, 1)
                 end
             },
             vb:button{
                 text = "Load as Drumkit",
-                width = 120,
+                width = 80,
                 notifier = function()
                     loadAsDrumkitsFromFolder(getOutputFolderPath())
                 end
             },
             vb:button{
                 text = "Make Me One With Everything",
-                width = 220,
+                width = 150,
                 notifier = function()
                     makeEverythingFromFolder(getOutputFolderPath())
                 end
             },
             vb:button{
                 text = "Close",
-                width = 80,
+                width = 60,
                 notifier = function()
                     if process_slicer and process_slicer:running() then
                         process_slicer:cancel()
@@ -2322,7 +2322,8 @@ function pakettiStemSlicerDialogInternal()
     setupStemSlicerBpmObservable()
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Stem Slicer...",invoke = pakettiStemSlicerDialog}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Other..:Open Last Stem Slicer Output...",invoke = openLastStemSlicerOutput}
-renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Stem Slicer Dialog...",invoke = pakettiStemSlicerDialog}
-renoise.tool():add_keybinding{name = "Global:Paketti:Open Last Stem Slicer Output...",invoke = openLastStemSlicerOutput}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Open Last StemSlicer Output...",invoke = openLastStemSlicerOutput}
+renoise.tool():add_keybinding{name = "Global:Paketti:Paketti StemSlicer Dialog...",invoke = pakettiStemSlicerDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Open Last StemSlicer Output...",invoke = openLastStemSlicerOutput}

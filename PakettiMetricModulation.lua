@@ -959,32 +959,32 @@ end
 
 -- Menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Metric Modulation:Metric Modulation Calculator",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Metric Modulation Calculator",
   invoke = function() show_metric_modulation_dialog() end
 }
 
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Metric Modulation Calculator",
+  name = "Pattern Editor:Paketti:Xperimental/WIP:Metric Modulation Calculator",
   invoke = function() show_metric_modulation_dialog() end
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Metric Modulation:Quick 4:3 (4/4→3/4 feel)",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 4:3 (4/4→3/4 feel)",
   invoke = function() convert_4_to_3_feel() end
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Metric Modulation:Quick 3:2 (Triplet feel)",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 3:2 (Triplet feel)",
   invoke = function() convert_to_triplet_feel() end
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Metric Modulation:Quick 2:3 (From triplet)",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 2:3 (From triplet)",
   invoke = function() convert_from_triplet_feel() end
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Metric Modulation:Quick 3:4 (3/4→4/4 feel)",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 3:4 (3/4→4/4 feel)",
   invoke = function() convert_3_to_4_feel() end
 }
 
@@ -1038,8 +1038,8 @@ renoise.tool():add_midi_mapping{
 }
 
 -- Menu entries for subdivision calculator
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Metric Modulation:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Xperimental/WIP:Metric Modulation:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
 -- Keybinding for subdivision calculator
 renoise.tool():add_keybinding{name = "Global:Paketti:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
 

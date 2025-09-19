@@ -1201,7 +1201,7 @@ renoise.tool():add_keybinding{
 
 -- Add menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:!Loaders:Fuzzy Sample Search Dialog...",
+  name = "Main Menu:Tools:Paketti Gadgets:Fuzzy Sample Search Dialog...",
   invoke = PakettiFuzzySampleSearchDialog
 }
 

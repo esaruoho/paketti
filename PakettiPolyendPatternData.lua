@@ -1689,18 +1689,18 @@ function PakettiExportPolyendPattern()
 end
 
 -- Menu entries and keybindings
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend WIP:Import Polyend Project", invoke=PakettiImportPolyendProject}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend WIP:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend WIP:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend WIP:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend WIP:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Project", invoke=PakettiImportPolyendProject}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
 
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Polyend WIP:Import Polyend Project", invoke=PakettiImportPolyendProject}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Polyend WIP:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Polyend WIP:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Polyend WIP:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Project", invoke=PakettiImportPolyendProject}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend WIP:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Polyend WIP:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Polyend Pattern Browser", invoke=PakettiPolyendPatternBrowser}

@@ -1234,8 +1234,8 @@ function pakettiListDevicesWithExternalEditor()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Device:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Device:List Devices with External Editor Support", invoke = pakettiListDevicesWithExternalEditor}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Plugins/Devices:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Plugins/Devices:List Devices with External Editor Support", invoke = pakettiListDevicesWithExternalEditor}
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
 
 -- Keybindings  

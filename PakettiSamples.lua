@@ -5684,7 +5684,7 @@ function PakettiNNASetAllInstrumentsSamplesCut()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments Samples NNA to Cut",invoke=function() PakettiNNASetAllInstrumentsSamplesCut() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Samples..:Set All Instruments Samples NNA to Cut",invoke=function() PakettiNNASetAllInstrumentsSamplesCut() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Set All Instruments Samples NNA to Cut",invoke=function() PakettiNNASetAllInstrumentsSamplesCut() end}
 
 -- Function to toggle frequency analysis
 function toggleFrequencyAnalysis()
@@ -6426,8 +6426,8 @@ function PakettiBatchXRNILoader()
 end
 
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Sample Tools:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
-renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti Loaders:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
-renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti Loaders:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
+renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
+renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 

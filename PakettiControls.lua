@@ -1420,22 +1420,22 @@ end
 
 -- Add menu entries and keybindings
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Pattern/Phrase:Additive Record Follow Pattern (Dialog)",
+  name = "--Main Menu:Tools:Paketti:Pattern Editor:Additive Record Follow Pattern (Dialog)",
   invoke = function() additive_record_follow:show_dialog() end
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Pattern/Phrase:Additive Record Follow Pattern (Toggle)",
+  name = "Main Menu:Tools:Paketti:Pattern Editor:Additive Record Follow Pattern (Toggle)",
   invoke = function() pakettiAdditiveRecordFollowToggle() end
 }
 
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Pattern/Phrase:Additive Record Follow Pattern (Dialog)",
+  name = "--Pattern Editor:Paketti:Additive Record Follow Pattern (Dialog)",
   invoke = function() additive_record_follow:show_dialog() end
 }
 
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Pattern/Phrase:Additive Record Follow Pattern (Toggle)",
+  name = "Pattern Editor:Paketti:Additive Record Follow Pattern (Toggle)",
   invoke = function() pakettiAdditiveRecordFollowToggle() end
 }
 

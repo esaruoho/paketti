@@ -684,7 +684,6 @@ local dialogMargin=175
   
   -- Create the dialog content
   local dialog_content = vb:column{
-    margin = 10,
     vb:horizontal_aligner{
       mode = "center",
       vb:column{
@@ -734,7 +733,6 @@ local dialogMargin=175
           },
         delete_patterns_button
       },
-      vb:space{ height=10 },
                 prepare_button,
         vb:row{
           vb:button{

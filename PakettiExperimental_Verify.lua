@@ -3616,7 +3616,7 @@ function PakettiPlayCurrentLineInPhrase()
   renoise.app():show_status("Played phrase line " .. current_line)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrase Editor:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 renoise.tool():add_keybinding{name="Global:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
@@ -3754,17 +3754,14 @@ function PakettiLoadRingModLegacyInstrument()
   end
 end
 
--- Menu entries
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
 
--- Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
 
--- MIDI mappings
 renoise.tool():add_midi_mapping{name="Paketti:Load RingMod Instrument [Trigger]", invoke = function(message) if message:is_trigger() then PakettiLoadRingModInstrument() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Load RingMod Legacy Instrument [Trigger]", invoke = function(message) if message:is_trigger() then PakettiLoadRingModLegacyInstrument() end end}
 
