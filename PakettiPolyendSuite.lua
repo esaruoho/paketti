@@ -1544,6 +1544,10 @@ function scan_for_pti_files_and_folders(root_path)
   local wav_files = {}
   local folders = {}
   local separator = package.config:sub(1,1)
+  local total_dirs_scanned = 0
+  local total_pti_files_found = 0
+  local total_wav_files_found = 0
+  local start_time = os.clock()
   
   local function scan_directory(path, relative_path)
     -- Check if directory exists and is accessible
@@ -1560,7 +1564,12 @@ function scan_for_pti_files_and_folders(root_path)
       dirs = {}
     end
     
-    print(string.format("-- Polyend Buddy: Scanning %s - found %d files, %d dirs", path, #files, #dirs))
+    total_dirs_scanned = total_dirs_scanned + 1
+    
+    -- Show progress every 100 directories scanned for very large scans
+    if total_dirs_scanned % 100 == 0 then
+      print(string.format("-- Polyend Buddy: Progress - Scanned %d directories, found %d PTI files, %d WAV files...", total_dirs_scanned, total_pti_files_found, total_wav_files_found))
+    end
     
     -- Add current directory to folders list (if not root and not hidden)
     if relative_path ~= "" and not relative_path:match("^%.") and not relative_path:match("%..*$") then
@@ -1580,15 +1589,13 @@ function scan_for_pti_files_and_folders(root_path)
           display_name = relative_file_path,
           full_path = full_path
         })
-        print(string.format("-- Polyend Buddy: Found PTI file: %s", relative_file_path))
+        total_pti_files_found = total_pti_files_found + 1
       elseif filename:lower():match("%.wav$") and not filename:match("^%._") then
         table.insert(wav_files, {
           display_name = relative_file_path,
           full_path = full_path
         })
-        print(string.format("-- Polyend Buddy: Found WAV file: %s", relative_file_path))
-      elseif filename:match("^%._") then
-        print(string.format("-- Polyend Buddy: Skipping macOS metadata file: %s", relative_file_path))
+        total_wav_files_found = total_wav_files_found + 1
       end
     end
     
@@ -1602,8 +1609,6 @@ function scan_for_pti_files_and_folders(root_path)
         local sub_path = path .. separator .. dirname
         local sub_relative = relative_path == "" and dirname or (relative_path .. separator .. dirname)
         scan_directory(sub_path, sub_relative)
-      else
-        print(string.format("-- Polyend Buddy: Skipping system/hidden folder: %s", dirname))
       end
     end
   end
@@ -1614,10 +1619,10 @@ function scan_for_pti_files_and_folders(root_path)
     if not success then
       print(string.format("-- Polyend Buddy: Error - Root path does not exist or is not accessible: %s", root_path))
       print(string.format("-- Polyend Buddy: Error details: %s", tostring(test_files)))
-      return pti_files, folders
+      return pti_files, wav_files, folders
     end
     
-    print(string.format("-- Polyend Buddy: Root path accessible, found %d files", #test_files))
+    print(string.format("-- Polyend Buddy: Starting scan of path: %s", root_path))
     
     -- Always add root folder as an option
     table.insert(folders, {
@@ -1625,6 +1630,9 @@ function scan_for_pti_files_and_folders(root_path)
       full_path = root_path
     })
     scan_directory(root_path, "")
+    
+    local scan_time = os.clock() - start_time
+    print(string.format("-- Polyend Buddy: Scan complete - Found %d PTI files, %d WAV files in %d directories (%.2f seconds)", total_pti_files_found, total_wav_files_found, total_dirs_scanned, scan_time))
   end
   
   return pti_files, wav_files, folders

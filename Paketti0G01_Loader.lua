@@ -1961,6 +1961,7 @@ vb:row{
     renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
+
 function on_sample_count_change()
     if not preferences._0G01_Loader.value then return end
     local song=renoise.song()

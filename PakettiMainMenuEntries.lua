@@ -25,6 +25,7 @@ local donations = {
   {"2025-08-17", "Cubeinthebox", 16.39, {"Soundcloud", "https://soundcloud.com/thecubeinthebox"}},
   {"2025-08-31", "grymmjack", 9.11, {"YouTube", "https://youtube.com/grymmjack"}, {"Soundcloud","https://soundcloud.com/grymmjack"},{"GitHub","https://github.com/grymmjack"}},
   {"2025-08-30", "Bloodclot", 7.22, {"Linktree", "https://linktr.ee/bclbclbcl"}},
+  {"2025-09-18", "Untilde", 3.11},
 }
 
 local total_amount = 0
