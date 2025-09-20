@@ -879,6 +879,38 @@ local dialogMargin=175
             end
           }
         },
+        vb:row{
+          vb:button{
+            text = "BPM-Based Slice Dialog",
+            width = dialogMargin,
+            notifier = function()
+              print("=== OPENING BPM-BASED SLICE DIALOG ===")
+              status_text.text = "Opening BPM-based slice dialog..."
+              
+              showBPMBasedSliceDialog()
+              status_text.text = "BPM-based slice dialog opened"
+            end
+          },
+          vb:button{
+            text = "Quick: Slice at Song BPM (4 beats)",
+            width = dialogMargin,
+            notifier = function()
+              print("=== QUICK BPM SLICE AT SONG BPM (4 BEATS) ===")
+              local song_bpm = song.transport.bpm
+              status_text.text = "Slicing at " .. song_bpm .. " BPM, 4 beats per slice..."
+              
+              local success, error_msg = pcall(pakettiBPMBasedSlice4Beats, song_bpm)
+              
+              if success then
+                status_text.text = "Sliced at " .. song_bpm .. " BPM, 4 beats per slice"
+                print("Quick BPM slice completed")
+              else
+                status_text.text = "Error: " .. tostring(error_msg)
+                print("Error in quick BPM slice: " .. tostring(error_msg))
+              end
+            end
+          }
+        },
         create_patterns_button
     },
     
@@ -910,3 +942,359 @@ renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patt
 renoise.tool():add_keybinding{name="Global:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
+
+
+-- BPM-Based Slicing Functions
+-- These functions slice samples based on a specified BPM, independent of song BPM
+
+function validate_sample()
+    local song = renoise.song()
+    local sample = song.selected_sample
+    if not sample or not sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample selected or sample buffer empty")
+        return false
+    end
+    return song, sample
+end
+
+-- Core BPM-based slicing function
+function pakettiBPMBasedSlice(sample_bpm, beats_per_slice)
+    print("=== BPM Based Slice: " .. sample_bpm .. " BPM, " .. beats_per_slice .. " beats per slice ===")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    -- Always target the first sample (original sample) for slicing, not slices
+    local instrument = song.selected_instrument
+    if not instrument or #instrument.samples == 0 then
+        renoise.app():show_status("No samples in selected instrument")
+        return
+    end
+    
+    local original_selected_index = song.selected_sample_index
+    local first_sample = instrument.samples[1]
+    
+    -- If we're not on the first sample, switch to it and notify user
+    if song.selected_sample_index ~= 1 then
+        song.selected_sample_index = 1
+        sample = song.selected_sample  -- Update sample reference
+        print("Switched from sample " .. original_selected_index .. " to original sample (sample 1) for slicing")
+        renoise.app():show_status("Auto-switched to original sample for slicing")
+    end
+    
+    -- Verify the first sample has data
+    if not first_sample.sample_buffer or not first_sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("Original sample has no data")
+        return
+    end
+    
+    local sample_rate = sample.sample_buffer.sample_rate
+    local seconds_per_beat = 60 / sample_bpm
+    local seconds_per_slice = beats_per_slice * seconds_per_beat
+    local frames_per_slice = math.floor(seconds_per_slice * sample_rate)
+    
+    print("Sample rate: " .. sample_rate .. " Hz")
+    print("Seconds per beat at " .. sample_bpm .. " BPM: " .. seconds_per_beat)
+    print("Seconds per " .. beats_per_slice .. "-beat slice: " .. seconds_per_slice)
+    print("Frames per slice: " .. frames_per_slice)
+    
+    -- Calculate how many complete slices we can fit
+    local total_frames = sample.sample_buffer.number_of_frames
+    local num_slices = math.floor(total_frames / frames_per_slice)
+    
+    print("Total frames: " .. total_frames)
+    print("Number of complete " .. beats_per_slice .. "-beat slices: " .. num_slices)
+    
+    if num_slices < 1 then
+        renoise.app():show_status("Sample too short for " .. beats_per_slice .. " beats at " .. sample_bpm .. " BPM")
+        return
+    end
+    
+    -- Clear existing slice markers
+    while #sample.slice_markers > 0 do
+        sample:delete_slice_marker(sample.slice_markers[1])
+    end
+    
+    print("Cleared existing slice markers")
+    
+    -- Create new slice markers - always start with frame 1
+    sample:insert_slice_marker(1)
+    print("Created slice marker 1 at frame 1 (start)")
+    
+    -- Create remaining slice markers
+    for i = 1, num_slices - 1 do
+        local slice_position = i * frames_per_slice
+        if slice_position < total_frames then
+            sample:insert_slice_marker(slice_position)
+            print("Created slice marker " .. (i + 1) .. " at frame " .. slice_position)
+        end
+    end
+    
+    renoise.app():show_status("Sliced to " .. beats_per_slice .. " beats per slice at " .. sample_bpm .. " BPM (" .. #sample.slice_markers .. " slices)")
+    focus_sample_editor()
+end
+
+-- Wrapper functions for common beat counts
+function pakettiBPMBasedSlice1Beat(sample_bpm)
+    pakettiBPMBasedSlice(sample_bpm, 1)
+end
+
+function pakettiBPMBasedSlice2Beats(sample_bpm)
+    pakettiBPMBasedSlice(sample_bpm, 2)
+end
+
+function pakettiBPMBasedSlice4Beats(sample_bpm)
+    pakettiBPMBasedSlice(sample_bpm, 4)
+end
+
+function pakettiBPMBasedSlice8Beats(sample_bpm)
+    pakettiBPMBasedSlice(sample_bpm, 8)
+end
+
+function pakettiBPMBasedSliceHalfBeat(sample_bpm)
+    pakettiBPMBasedSlice(sample_bpm, 0.5)
+end
+
+function pakettiBPMBasedSliceQuarterBeat(sample_bpm)
+    pakettiBPMBasedSlice(sample_bpm, 0.25)
+end
+
+-- Focus sample editor utility
+function focus_sample_editor()
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+end
+
+-- BPM-Based Slice Dialog
+local bpm_dialog = nil
+
+function showBPMBasedSliceDialog()
+    -- Toggle dialog if already open
+    if bpm_dialog and bpm_dialog.visible then
+        bpm_dialog:close()
+        bpm_dialog = nil
+        return
+    end
+
+    local dialogMargin = 175
+    local song = renoise.song()
+    local vb = renoise.ViewBuilder()
+    
+    -- Default values
+    local default_bpm = song.transport.bpm
+    local default_beats = 4
+    
+    -- Get current instrument info  
+    local current_instrument_slot = song.selected_instrument_index or 0
+    local current_instrument_name = "No Instrument"
+    
+    if current_instrument_slot > 0 and song.selected_instrument then
+        current_instrument_name = song.selected_instrument.name
+        if current_instrument_name == "" then 
+            current_instrument_name = "Untitled Instrument"
+        end
+    end
+    
+    -- UI elements
+    local instrument_info_text = vb:text{
+        text = string.format("Instrument %02d: %s", current_instrument_slot, current_instrument_name),
+        font = "bold",
+        style = "strong",
+        width = 400
+    }
+    
+    local status_text = vb:text{
+        text = "Set sample BPM and slice timing",
+        width = 400,
+        align = "center"
+    }
+    
+    -- BPM input
+    local bpm_valuebox = vb:valuebox{
+        min = 20,
+        max = 999,
+        value = default_bpm,
+        width = 60
+    }
+    
+    -- Beats per slice input
+    local beats_valuebox = vb:valuebox{
+        min = 0.125,
+        max = 16,
+        value = default_beats,
+        width = 60
+    }
+    
+    -- Preset buttons for common beat values
+    local preset_buttons = vb:row{
+        vb:button{
+            text = "1/4",
+            width = 40,
+            notifier = function()
+                beats_valuebox.value = 0.25
+            end
+        },
+        vb:button{
+            text = "1/2", 
+            width = 40,
+            notifier = function()
+                beats_valuebox.value = 0.5
+            end
+        },
+        vb:button{
+            text = "1",
+            width = 40,
+            notifier = function()
+                beats_valuebox.value = 1
+            end
+        },
+        vb:button{
+            text = "2",
+            width = 40,
+            notifier = function()
+                beats_valuebox.value = 2
+            end
+        },
+        vb:button{
+            text = "4",
+            width = 40,
+            notifier = function()
+                beats_valuebox.value = 4
+            end
+        },
+        vb:button{
+            text = "8",
+            width = 40,
+            notifier = function()
+                beats_valuebox.value = 8
+            end
+        }
+    }
+    
+    -- Slice button
+    local slice_button = vb:button{
+        text = "Slice Sample",
+        width = dialogMargin,
+        notifier = function()
+            local sample_bpm = bpm_valuebox.value
+            local beats_per_slice = beats_valuebox.value
+            
+            print("=== BPM-Based Slicing from Dialog ===")
+            status_text.text = "Slicing sample..."
+            
+            local success, error_msg = pcall(pakettiBPMBasedSlice, sample_bpm, beats_per_slice)
+            
+            if success then
+                status_text.text = string.format("Sliced at %g BPM, %g beats per slice", sample_bpm, beats_per_slice)
+                print("BPM-based slicing completed successfully")
+            else
+                status_text.text = "Error: " .. tostring(error_msg)
+                print("Error in BPM-based slicing: " .. tostring(error_msg))
+            end
+        end
+    }
+    
+    -- Create patterns button
+    local create_patterns_button = vb:button{
+        text = "Create Pattern Sequences",
+        width = dialogMargin,
+        notifier = function()
+            status_text.text = "Creating pattern sequences..."
+            
+            local success, error_msg = pcall(createPatternSequencerPatternsBasedOnSliceCount)
+            
+            if success then
+                renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+                status_text.text = "Pattern sequences created successfully!"
+                print("Pattern creation completed from BPM dialog")
+            else
+                status_text.text = "Error creating patterns: " .. tostring(error_msg)
+                print("Error in pattern creation: " .. tostring(error_msg))
+            end
+        end
+    }
+    
+    -- Refresh button
+    local refresh_button = vb:button{
+        text = "Refresh Info",
+        width = dialogMargin / 2,
+        notifier = function()
+            local new_slot = song.selected_instrument_index or 0
+            local new_name = "No Instrument"
+            
+            if new_slot > 0 and song.selected_instrument then
+                new_name = song.selected_instrument.name
+                if new_name == "" then 
+                    new_name = "Untitled Instrument"
+                end
+            end
+            
+            instrument_info_text.text = string.format("Instrument %02d: %s", new_slot, new_name)
+            bpm_valuebox.value = song.transport.bpm
+            
+            status_text.text = "Info refreshed"
+        end
+    }
+    
+    -- Copy song BPM button
+    local copy_bpm_button = vb:button{
+        text = "Use Song BPM",
+        width = dialogMargin / 2,
+        notifier = function()
+            bpm_valuebox.value = song.transport.bpm
+            status_text.text = "Set to song BPM: " .. song.transport.bpm
+        end
+    }
+    
+    -- Dialog content
+    local dialog_content = vb:column{
+        vb:horizontal_aligner{
+            mode = "center",
+            vb:column{
+                vb:row{
+                    vb:text{text = "Current Instrument", width = 120, font = "bold", style = "strong"},
+                    instrument_info_text
+                },
+                vb:row{
+                    refresh_button,
+                    copy_bpm_button
+                }
+            }
+        },
+        
+        vb:column{
+            vb:row{
+                vb:text{text = "Sample BPM:", width = 80, font = "bold", style = "strong"},
+                bpm_valuebox,
+                vb:text{text = "Beats per Slice:", width = 100, font = "bold", style = "strong"},
+                beats_valuebox
+            },
+            vb:row{
+                vb:text{text = "Presets:", width = 60, font = "bold", style = "strong"},
+                preset_buttons
+            },
+            slice_button,
+            create_patterns_button
+        },
+        
+        vb:horizontal_aligner{
+            mode = "center",
+            vb:column{
+                vb:text{text = "Status:", font = "bold", style = "strong"},
+                status_text
+            }
+        }
+    }
+    
+    -- Show dialog
+    local keyhandler = create_keyhandler_for_dialog(
+        function() return bpm_dialog end,
+        function(value) bpm_dialog = value end
+    )
+    bpm_dialog = renoise.app():show_custom_dialog("BPM-Based Sample Slicer", dialog_content, keyhandler)
+end
+
+-- Keybindings and Menu Entries for BPM-Based Slicing
+renoise.tool():add_keybinding{name="Global:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
+renoise.tool():add_midi_mapping{name="Paketti:BPM-Based Sample Slicer Dialog",invoke=function(message) if message:is_trigger() then showBPMBasedSliceDialog() end end}
