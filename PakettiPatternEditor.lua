@@ -7202,15 +7202,61 @@ function writeNotesMethod(method)
     return
   end
   
+  -- Check if first sample has slice markers
+  local first_sample_has_slices = false
+  local slice_start_note = nil
+  local slice_count = 0
+  
+  if #instrument.samples > 0 then
+    local first_sample = instrument:sample(1)
+    if first_sample and #first_sample.slice_markers > 0 then
+      first_sample_has_slices = true
+      slice_count = #first_sample.slice_markers
+      
+      -- Get the slice start note - slices are the SECOND mapping onwards
+      local sample_mappings = instrument.sample_mappings[1] -- Note layer
+      if sample_mappings and #sample_mappings >= 2 then
+        -- Get the first slice mapping (slices start at index 2)
+        local first_slice_mapping = sample_mappings[2]
+        if first_slice_mapping and first_slice_mapping.base_note then
+          slice_start_note = first_slice_mapping.base_note
+        end
+      end
+      
+      -- Fallback: slices typically start one note above the original sample's base note
+      if not slice_start_note and first_sample.sample_mapping and first_sample.sample_mapping.base_note then
+        slice_start_note = first_sample.sample_mapping.base_note + 1
+      end
+    end
+  end
+  
   -- Create a table of all mapped notes
   local notes = {}
-  for _, mapping in ipairs(instrument.sample_mappings[1]) do
-    if mapping.note_range then
-      for i = mapping.note_range[1], mapping.note_range[2] do
+  
+  if first_sample_has_slices and slice_start_note then
+    -- If slice markers exist, only create notes for slices
+    for i = 0, slice_count - 1 do
+      local slice_note = slice_start_note + i
+      -- Ensure we don't exceed valid note range (0-119)
+      if slice_note <= 119 then
         table.insert(notes, {
-          note = i,
-          mapping = mapping
+          note = slice_note,
+          mapping = instrument.samples[1].sample_mapping
         })
+      else
+        break -- Stop adding notes if we exceed the valid range
+      end
+    end
+  else
+    -- If no slice markers, process all sample mappings
+    for _, mapping in ipairs(instrument.sample_mappings[1]) do
+      if mapping.note_range then
+        for i = mapping.note_range[1], mapping.note_range[2] do
+          table.insert(notes, {
+            note = i,
+            mapping = mapping
+          })
+        end
       end
     end
   end
@@ -7281,15 +7327,61 @@ function writeNotesMethodEditStep(method)
     return
   end
   
+  -- Check if first sample has slice markers
+  local first_sample_has_slices = false
+  local slice_start_note = nil
+  local slice_count = 0
+  
+  if #instrument.samples > 0 then
+    local first_sample = instrument:sample(1)
+    if first_sample and #first_sample.slice_markers > 0 then
+      first_sample_has_slices = true
+      slice_count = #first_sample.slice_markers
+      
+      -- Get the slice start note - slices are the SECOND mapping onwards
+      local sample_mappings = instrument.sample_mappings[1] -- Note layer
+      if sample_mappings and #sample_mappings >= 2 then
+        -- Get the first slice mapping (slices start at index 2)
+        local first_slice_mapping = sample_mappings[2]
+        if first_slice_mapping and first_slice_mapping.base_note then
+          slice_start_note = first_slice_mapping.base_note
+        end
+      end
+      
+      -- Fallback: slices typically start one note above the original sample's base note
+      if not slice_start_note and first_sample.sample_mapping and first_sample.sample_mapping.base_note then
+        slice_start_note = first_sample.sample_mapping.base_note + 1
+      end
+    end
+  end
+  
   -- Create a table of all mapped notes
   local notes = {}
-  for _, mapping in ipairs(instrument.sample_mappings[1]) do
-    if mapping.note_range then
-      for i = mapping.note_range[1], mapping.note_range[2] do
+  
+  if first_sample_has_slices and slice_start_note then
+    -- If slice markers exist, only create notes for slices
+    for i = 0, slice_count - 1 do
+      local slice_note = slice_start_note + i
+      -- Ensure we don't exceed valid note range (0-119)
+      if slice_note <= 119 then
         table.insert(notes, {
-          note = i,
-          mapping = mapping
+          note = slice_note,
+          mapping = instrument.samples[1].sample_mapping
         })
+      else
+        break -- Stop adding notes if we exceed the valid range
+      end
+    end
+  else
+    -- If no slice markers, process all sample mappings
+    for _, mapping in ipairs(instrument.sample_mappings[1]) do
+      if mapping.note_range then
+        for i = mapping.note_range[1], mapping.note_range[2] do
+          table.insert(notes, {
+            note = i,
+            mapping = mapping
+          })
+        end
       end
     end
   end
