@@ -169,12 +169,18 @@ local function auto_save_drumkit_if_enabled(drumkit_type, vb)
           
           return true
         else
-          renoise.app():show_status("Failed to auto-save drumkit PTI file")
-          return false
+          -- Auto-save failed, fall back to prompting for save location
+          print("-- Auto-save drumkit: Failed to save to " .. unique_path .. " - prompting for save location")
+          renoise.app():show_status("Auto-save failed - opening file dialog to choose save location")
+          pti_savesample()
+          return true -- Successfully handled by prompting user
         end
       else
-        renoise.app():show_status("pti_savesample_to_path not available - drumkit created but not auto-saved")
-        return false
+        -- pti_savesample_to_path not available, fall back to regular save dialog
+        print("-- Auto-save drumkit: pti_savesample_to_path not available - prompting for save location")
+        renoise.app():show_status("Auto-save not available - opening file dialog to choose save location")
+        pti_savesample()
+        return true -- Successfully handled by prompting user
       end
   end
   return false -- Save paths not enabled or not configured

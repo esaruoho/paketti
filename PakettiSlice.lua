@@ -503,8 +503,9 @@ local dialogMargin=175
   local bpm_valuebox = vb:valuebox{
     min = 20,
     max = 999,
+    width = 100,
     value = current_bpm,
-    width = 60,
+
     notifier = function(value)
       song.transport.bpm = value
       print("MODIFIED BPM to: " .. value)
@@ -515,7 +516,7 @@ local dialogMargin=175
     min = 1,
     max = 256,
     value = current_lpb,
-    width = 60,
+    width = 100,
     notifier = function(value)
       song.transport.lpb = value
       print("MODIFIED LPB to: " .. value)
@@ -1030,6 +1031,65 @@ function pakettiBPMBasedSlice(sample_bpm, beats_per_slice)
         end
     end
     
+    -- Apply WipeSlices preferences to all samples in the instrument
+    local currentTranspose = sample.transpose
+    
+    -- Store original beat sync values
+    local beatsync_lines = nil
+    local dontsync = nil
+    if sample.beat_sync_enabled then
+        beatsync_lines = sample.beat_sync_lines
+    else
+        dontsync = true
+        beatsync_lines = 0
+    end
+    
+    for i, sample_obj in ipairs(instrument.samples) do
+        sample_obj.new_note_action = preferences.WipeSlices.WipeSlicesNNA.value
+        sample_obj.oneshot = preferences.WipeSlices.WipeSlicesOneShot.value
+        sample_obj.autoseek = preferences.WipeSlices.WipeSlicesAutoseek.value
+        sample_obj.mute_group = preferences.WipeSlices.WipeSlicesMuteGroup.value
+        sample_obj.loop_mode = preferences.WipeSlices.WipeSlicesLoopMode.value
+        sample_obj.loop_release = preferences.WipeSlices.WipeSlicesLoopRelease.value
+        sample_obj.transpose = currentTranspose
+        sample_obj.autofade = preferences.WipeSlices.WipeSlicesAutofade.value
+        sample_obj.interpolation_mode = 4
+        sample_obj.oversample_enabled = true
+        
+        -- Apply beat sync settings
+        if dontsync then 
+            sample_obj.beat_sync_enabled = false
+        else
+            local beat_sync_mode = preferences.WipeSlices.WipeSlicesBeatSyncMode.value
+            
+            -- Validate the beat_sync_mode value
+            if beat_sync_mode < 1 or beat_sync_mode > 3 then
+                sample_obj.beat_sync_enabled = false  -- Disable beat sync for invalid mode
+            else
+                sample_obj.beat_sync_mode = beat_sync_mode
+                
+                -- Calculate beat sync lines for this slice
+                local slice_beatsync_lines = beatsync_lines / num_slices
+                if slice_beatsync_lines < 1 then 
+                    sample_obj.beat_sync_lines = beatsync_lines
+                else 
+                    sample_obj.beat_sync_lines = slice_beatsync_lines
+                end
+                
+                -- Enable beat sync for this sample
+                sample_obj.beat_sync_enabled = true
+            end
+        end
+        
+        -- Apply slice loop mode if enabled and not the original sample
+        local loopstyle = preferences.WipeSlices.SliceLoopMode.value
+        if loopstyle == true and i > 1 then
+            local max_loop_start = sample_obj.sample_buffer.number_of_frames
+            local slice_middle = math.floor(max_loop_start / 2)
+            sample_obj.loop_start = slice_middle
+        end
+    end
+    
     renoise.app():show_status("Sliced to " .. beats_per_slice .. " beats per slice at " .. sample_bpm .. " BPM (" .. #sample.slice_markers .. " slices)")
     focus_sample_editor()
 end
@@ -1043,8 +1103,16 @@ function pakettiBPMBasedSlice2Beats(sample_bpm)
     pakettiBPMBasedSlice(sample_bpm, 2)
 end
 
+function pakettiBPMBasedSlice3Beats(sample_bpm)
+    pakettiBPMBasedSlice(sample_bpm, 3)
+end
+
 function pakettiBPMBasedSlice4Beats(sample_bpm)
     pakettiBPMBasedSlice(sample_bpm, 4)
+end
+
+function pakettiBPMBasedSlice6Beats(sample_bpm)
+    pakettiBPMBasedSlice(sample_bpm, 6)
 end
 
 function pakettiBPMBasedSlice8Beats(sample_bpm)
@@ -1062,6 +1130,259 @@ end
 -- Focus sample editor utility
 function focus_sample_editor()
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+end
+
+-- Set all slices to End-Half loop mode (loop the end half of each slice)
+function pakettiSetAllSlicesToEndHalfLoop()
+    print("=== Setting All Slices to End-Half Loop Mode ===")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    local instrument = song.selected_instrument
+    if not instrument or #instrument.samples == 0 then
+        renoise.app():show_status("No samples in selected instrument")
+        return
+    end
+    
+    -- Get the first sample to check for slices
+    local first_sample = instrument.samples[1]
+    if not first_sample.slice_markers or #first_sample.slice_markers == 0 then
+        renoise.app():show_status("No slices found in sample")
+        return
+    end
+    
+    local slices_processed = 0
+    
+    -- Apply end-half loop to all slice samples (skip original sample at index 1)
+    for i = 2, #instrument.samples do
+        local slice_sample = instrument.samples[i]
+        if slice_sample and slice_sample.sample_buffer and slice_sample.sample_buffer.has_sample_data then
+            local buffer = slice_sample.sample_buffer
+            local total_frames = buffer.number_of_frames
+            
+            -- Only set loop mode to forward if currently OFF, otherwise preserve existing mode
+            if slice_sample.loop_mode == renoise.Sample.LOOP_MODE_OFF then
+                slice_sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+                print("Set slice " .. i .. " from OFF to Forward mode")
+            else
+                print("Preserved existing loop mode for slice " .. i)
+            end
+            
+            -- Always set loop points to end half of slice
+            local middle_frame = math.floor(total_frames / 2)
+            slice_sample.loop_start = middle_frame
+            slice_sample.loop_end = total_frames
+            
+            slices_processed = slices_processed + 1
+            print("Set slice " .. i .. " to end-half loop points: frames " .. middle_frame .. " to " .. total_frames)
+        end
+    end
+    
+    renoise.app():show_status("Set " .. slices_processed .. " slices to End-Half loop points")
+    print("End-Half loop points processing completed: " .. slices_processed .. " slices processed")
+end
+
+-- Set all slices to Full loop mode (loop the entire slice)
+function pakettiSetAllSlicesToFullLoop()
+    print("=== Setting All Slices to Full Loop Mode ===")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    local instrument = song.selected_instrument
+    if not instrument or #instrument.samples == 0 then
+        renoise.app():show_status("No samples in selected instrument")
+        return
+    end
+    
+    -- Get the first sample to check for slices
+    local first_sample = instrument.samples[1]
+    if not first_sample.slice_markers or #first_sample.slice_markers == 0 then
+        renoise.app():show_status("No slices found in sample")
+        return
+    end
+    
+    local slices_processed = 0
+    
+    -- Apply full loop to all slice samples (skip original sample at index 1)
+    for i = 2, #instrument.samples do
+        local slice_sample = instrument.samples[i]
+        if slice_sample and slice_sample.sample_buffer and slice_sample.sample_buffer.has_sample_data then
+            local buffer = slice_sample.sample_buffer
+            local total_frames = buffer.number_of_frames
+            
+            -- Only set loop mode to forward if currently OFF, otherwise preserve existing mode
+            if slice_sample.loop_mode == renoise.Sample.LOOP_MODE_OFF then
+                slice_sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+                print("Set slice " .. i .. " from OFF to Forward mode")
+            else
+                print("Preserved existing loop mode for slice " .. i)
+            end
+            
+            -- Always set loop points to full slice
+            slice_sample.loop_start = 1
+            slice_sample.loop_end = total_frames
+            
+            slices_processed = slices_processed + 1
+            print("Set slice " .. i .. " to full loop points: frames 1 to " .. total_frames)
+        end
+    end
+    
+    renoise.app():show_status("Set " .. slices_processed .. " slices to Full loop points")
+    print("Full loop points processing completed: " .. slices_processed .. " slices processed")
+end
+
+-- Set all slices to Loop Off mode (no looping)
+function pakettiSetAllSlicesToLoopOff()
+    print("=== Setting All Slices to Loop Off Mode ===")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    local instrument = song.selected_instrument
+    if not instrument or #instrument.samples == 0 then
+        renoise.app():show_status("No samples in selected instrument")
+        return
+    end
+    
+    -- Get the first sample to check for slices
+    local first_sample = instrument.samples[1]
+    if not first_sample.slice_markers or #first_sample.slice_markers == 0 then
+        renoise.app():show_status("No slices found in sample")
+        return
+    end
+    
+    local slices_processed = 0
+    
+    -- Apply loop off to all slice samples (skip original sample at index 1)
+    for i = 2, #instrument.samples do
+        local slice_sample = instrument.samples[i]
+        if slice_sample and slice_sample.sample_buffer and slice_sample.sample_buffer.has_sample_data then
+            -- Set loop mode to off
+            slice_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+            
+            slices_processed = slices_processed + 1
+            print("Set slice " .. i .. " to loop off mode")
+        end
+    end
+    
+    renoise.app():show_status("Set " .. slices_processed .. " slices to Loop Off mode")
+    print("Loop Off processing completed: " .. slices_processed .. " slices processed")
+end
+
+-- Set all slices to Forward loop mode (loop entire slice forward)
+function pakettiSetAllSlicesToForwardLoop()
+    print("=== Setting All Slices to Forward Loop Mode ===")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    local instrument = song.selected_instrument
+    if not instrument or #instrument.samples == 0 then
+        renoise.app():show_status("No samples in selected instrument")
+        return
+    end
+    
+    -- Get the first sample to check for slices
+    local first_sample = instrument.samples[1]
+    if not first_sample.slice_markers or #first_sample.slice_markers == 0 then
+        renoise.app():show_status("No slices found in sample")
+        return
+    end
+    
+    local slices_processed = 0
+    
+    -- Apply forward loop to all slice samples (skip original sample at index 1)
+    for i = 2, #instrument.samples do
+        local slice_sample = instrument.samples[i]
+        if slice_sample and slice_sample.sample_buffer and slice_sample.sample_buffer.has_sample_data then
+            -- Only set loop mode to forward, preserve existing loop points
+            slice_sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+            
+            slices_processed = slices_processed + 1
+            print("Set slice " .. i .. " to forward loop mode (preserving existing loop points)")
+        end
+    end
+    
+    renoise.app():show_status("Set " .. slices_processed .. " slices to Forward loop mode")
+    print("Forward loop processing completed: " .. slices_processed .. " slices processed")
+end
+
+-- Set all slices to Reverse loop mode (loop entire slice in reverse)
+function pakettiSetAllSlicesToReverseLoop()
+    print("=== Setting All Slices to Reverse Loop Mode ===")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    local instrument = song.selected_instrument
+    if not instrument or #instrument.samples == 0 then
+        renoise.app():show_status("No samples in selected instrument")
+        return
+    end
+    
+    -- Get the first sample to check for slices
+    local first_sample = instrument.samples[1]
+    if not first_sample.slice_markers or #first_sample.slice_markers == 0 then
+        renoise.app():show_status("No slices found in sample")
+        return
+    end
+    
+    local slices_processed = 0
+    
+    -- Apply reverse loop to all slice samples (skip original sample at index 1)
+    for i = 2, #instrument.samples do
+        local slice_sample = instrument.samples[i]
+        if slice_sample and slice_sample.sample_buffer and slice_sample.sample_buffer.has_sample_data then
+            -- Only set loop mode to reverse, preserve existing loop points
+            slice_sample.loop_mode = renoise.Sample.LOOP_MODE_REVERSE
+            
+            slices_processed = slices_processed + 1
+            print("Set slice " .. i .. " to reverse loop mode (preserving existing loop points)")
+        end
+    end
+    
+    renoise.app():show_status("Set " .. slices_processed .. " slices to Reverse loop mode")
+    print("Reverse loop processing completed: " .. slices_processed .. " slices processed")
+end
+
+-- Set all slices to PingPong loop mode (bounce back and forth within slice)
+function pakettiSetAllSlicesToPingPongLoop()
+    print("=== Setting All Slices to PingPong Loop Mode ===")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    local instrument = song.selected_instrument
+    if not instrument or #instrument.samples == 0 then
+        renoise.app():show_status("No samples in selected instrument")
+        return
+    end
+    
+    -- Get the first sample to check for slices
+    local first_sample = instrument.samples[1]
+    if not first_sample.slice_markers or #first_sample.slice_markers == 0 then
+        renoise.app():show_status("No slices found in sample")
+        return
+    end
+    
+    local slices_processed = 0
+    
+    -- Apply pingpong loop to all slice samples (skip original sample at index 1)
+    for i = 2, #instrument.samples do
+        local slice_sample = instrument.samples[i]
+        if slice_sample and slice_sample.sample_buffer and slice_sample.sample_buffer.has_sample_data then
+            -- Only set loop mode to pingpong, preserve existing loop points
+            slice_sample.loop_mode = renoise.Sample.LOOP_MODE_PING_PONG
+            
+            slices_processed = slices_processed + 1
+            print("Set slice " .. i .. " to pingpong loop mode (preserving existing loop points)")
+        end
+    end
+    
+    renoise.app():show_status("Set " .. slices_processed .. " slices to PingPong loop mode")
+    print("PingPong loop processing completed: " .. slices_processed .. " slices processed")
 end
 
 -- BPM-Based Slice Dialog
@@ -1113,7 +1434,13 @@ function showBPMBasedSliceDialog()
         min = 20,
         max = 999,
         value = default_bpm,
-        width = 60
+        width = 80,
+        tostring = function(value)
+            return string.format("%.2f", value)
+        end,
+        tonumber = function(str)
+            return tonumber(str)
+        end
     }
     
     -- Beats per slice input
@@ -1127,10 +1454,24 @@ function showBPMBasedSliceDialog()
     -- Preset buttons for common beat values
     local preset_buttons = vb:row{
         vb:button{
+            text = "1/6",
+            width = 40,
+            notifier = function()
+                beats_valuebox.value = 1/6
+            end
+        },
+        vb:button{
             text = "1/4",
             width = 40,
             notifier = function()
                 beats_valuebox.value = 0.25
+            end
+        },
+        vb:button{
+            text = "1/3",
+            width = 40,
+            notifier = function()
+                beats_valuebox.value = 1/3
             end
         },
         vb:button{
@@ -1155,10 +1496,24 @@ function showBPMBasedSliceDialog()
             end
         },
         vb:button{
+            text = "3",
+            width = 40,
+            notifier = function()
+                beats_valuebox.value = 3
+            end
+        },
+        vb:button{
             text = "4",
             width = 40,
             notifier = function()
                 beats_valuebox.value = 4
+            end
+        },
+        vb:button{
+            text = "6",
+            width = 40,
+            notifier = function()
+                beats_valuebox.value = 6
             end
         },
         vb:button{
@@ -1213,10 +1568,119 @@ function showBPMBasedSliceDialog()
         end
     }
     
+    -- Loop mode buttons
+    local loop_off_button = vb:button{
+        text = "Loop Off",
+        width = dialogMargin / 2,
+        notifier = function()
+            status_text.text = "Setting all slices to loop off..."
+            
+            local success, error_msg = pcall(pakettiSetAllSlicesToLoopOff)
+            
+            if success then
+                status_text.text = "All slices set to Loop Off mode"
+                print("Loop Off mode set successfully")
+            else
+                status_text.text = "Error setting loop off: " .. tostring(error_msg)
+                print("Error setting loop off: " .. tostring(error_msg))
+            end
+        end
+    }
+    
+    local forward_loop_button = vb:button{
+        text = "Forward Loop",
+        width = dialogMargin / 2,
+        notifier = function()
+            status_text.text = "Setting all slices to forward loop..."
+            
+            local success, error_msg = pcall(pakettiSetAllSlicesToForwardLoop)
+            
+            if success then
+                status_text.text = "All slices set to Forward loop mode"
+                print("Forward loop mode set successfully")
+            else
+                status_text.text = "Error setting forward loop: " .. tostring(error_msg)
+                print("Error setting forward loop: " .. tostring(error_msg))
+            end
+        end
+    }
+    
+    local reverse_loop_button = vb:button{
+        text = "Reverse Loop",
+        width = dialogMargin / 2,
+        notifier = function()
+            status_text.text = "Setting all slices to reverse loop..."
+            
+            local success, error_msg = pcall(pakettiSetAllSlicesToReverseLoop)
+            
+            if success then
+                status_text.text = "All slices set to Reverse loop mode"
+                print("Reverse loop mode set successfully")
+            else
+                status_text.text = "Error setting reverse loop: " .. tostring(error_msg)
+                print("Error setting reverse loop: " .. tostring(error_msg))
+            end
+        end
+    }
+    
+    local pingpong_loop_button = vb:button{
+        text = "PingPong Loop",
+        width = dialogMargin / 2,
+        notifier = function()
+            status_text.text = "Setting all slices to pingpong loop..."
+            
+            local success, error_msg = pcall(pakettiSetAllSlicesToPingPongLoop)
+            
+            if success then
+                status_text.text = "All slices set to PingPong loop mode"
+                print("PingPong loop mode set successfully")
+            else
+                status_text.text = "Error setting pingpong loop: " .. tostring(error_msg)
+                print("Error setting pingpong loop: " .. tostring(error_msg))
+            end
+        end
+    }
+    
+    local end_half_loop_button = vb:button{
+        text = "End-Half Loop",
+        width = dialogMargin / 2,
+        notifier = function()
+            status_text.text = "Setting all slices to end-half loop..."
+            
+            local success, error_msg = pcall(pakettiSetAllSlicesToEndHalfLoop)
+            
+            if success then
+                status_text.text = "All slices set to End-Half loop points"
+                print("End-Half loop points set successfully")
+            else
+                status_text.text = "Error setting end-half loop: " .. tostring(error_msg)
+                print("Error setting end-half loop: " .. tostring(error_msg))
+            end
+        end
+    }
+    
+    local full_loop_button = vb:button{
+        text = "Full Loop",
+        width = dialogMargin / 2,
+        notifier = function()
+            status_text.text = "Setting all slices to full loop..."
+            
+            local success, error_msg = pcall(pakettiSetAllSlicesToFullLoop)
+            
+            if success then
+                status_text.text = "All slices set to Full loop points"
+                print("Full loop points set successfully")
+            else
+                status_text.text = "Error setting full loop: " .. tostring(error_msg)
+                print("Error setting full loop: " .. tostring(error_msg))
+            end
+        end
+    }
+    
     -- Refresh button
     local refresh_button = vb:button{
         text = "Refresh Info",
-        width = dialogMargin / 2,
+        width = dialogMargin / 3,
         notifier = function()
             local new_slot = song.selected_instrument_index or 0
             local new_name = "No Instrument"
@@ -1238,10 +1702,28 @@ function showBPMBasedSliceDialog()
     -- Copy song BPM button
     local copy_bpm_button = vb:button{
         text = "Use Song BPM",
-        width = dialogMargin / 2,
+        width = dialogMargin / 3,
         notifier = function()
             bpm_valuebox.value = song.transport.bpm
             status_text.text = "Set to song BPM: " .. song.transport.bpm
+        end
+    }
+    
+    -- Intelligent BPM Detection button
+    local intelligent_bpm_button = vb:button{
+        text = "Intelligent BPM Detection",
+        width = dialogMargin / 3 * 2,
+        notifier = function()
+            if not song.selected_sample or not song.selected_sample.sample_buffer or not song.selected_sample.sample_buffer.has_sample_data then
+                status_text.text = "No sample selected or sample has no data"
+                return
+            end
+            
+            local sample_buffer = song.selected_sample.sample_buffer
+            local detected_bpm, beat_count = pakettiBPMDetectFromSample(sample_buffer.number_of_frames, sample_buffer.sample_rate)
+            bpm_valuebox.value = detected_bpm
+            status_text.text = string.format("Intelligent Detection: %.1f BPM (%d beats)", detected_bpm, beat_count)
+            print("Intelligent BPM Detection: " .. detected_bpm .. " BPM, " .. beat_count .. " beats")
         end
     }
     
@@ -1256,30 +1738,44 @@ function showBPMBasedSliceDialog()
                 },
                 vb:row{
                     refresh_button,
-                    copy_bpm_button
+                    copy_bpm_button,
+                    intelligent_bpm_button
                 }
             }
         },
         
         vb:column{
             vb:row{
-                vb:text{text = "Sample BPM:", width = 80, font = "bold", style = "strong"},
+                vb:text{text = "Sample BPM", width = 80, font = "bold", style = "strong"},
                 bpm_valuebox,
-                vb:text{text = "Beats per Slice:", width = 100, font = "bold", style = "strong"},
+                vb:text{text = "Beats per Slice", width = 100, font = "bold", style = "strong"},
                 beats_valuebox
             },
             vb:row{
-                vb:text{text = "Presets:", width = 60, font = "bold", style = "strong"},
+                vb:text{text = "Presets", width = 60, font = "bold", style = "strong"},
                 preset_buttons
             },
             slice_button,
-            create_patterns_button
+            create_patterns_button,
+            vb:text{text = "Loop Modes for All Slices", font = "bold", style = "strong"},
+            vb:row{
+                loop_off_button,
+                forward_loop_button
+            },
+            vb:row{
+                reverse_loop_button,
+                pingpong_loop_button
+            },
+            vb:row{
+                end_half_loop_button,
+                full_loop_button
+            }
         },
         
         vb:horizontal_aligner{
             mode = "center",
             vb:column{
-                vb:text{text = "Status:", font = "bold", style = "strong"},
+                vb:text{text = "Status", font = "bold", style = "strong"},
                 status_text
             }
         }
@@ -1296,5 +1792,6 @@ end
 -- Keybindings and Menu Entries for BPM-Based Slicing
 renoise.tool():add_keybinding{name="Global:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
+renoise.tool():add_menu_entry{name="--Sample Editor Ruler:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_midi_mapping{name="Paketti:BPM-Based Sample Slicer Dialog",invoke=function(message) if message:is_trigger() then showBPMBasedSliceDialog() end end}

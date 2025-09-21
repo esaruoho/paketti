@@ -1606,11 +1606,11 @@ for i = 0, 64 do
   local section_id = string.format("%02d", i)
 
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Select, Trigger and Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectTriggerLoopSection(i) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select&Trigger&Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectTriggerLoopSection(i) end end}
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Schedule and Loop Section " .. section_id,invoke=function() tknaSelectScheduleLoopSection(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Select, Schedule and Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectScheduleLoopSection(i) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select&Schedule&Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectScheduleLoopSection(i) end end}
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Select, Add to Schedule and Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectAddScheduleLoopSection(i) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select&Add to Schedule&Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectAddScheduleLoopSection(i) end end}
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Trigger and Loop:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Schedule and Loop:Select, Schedule and Loop Section " .. section_id,invoke=function() tknaSelectScheduleLoopSection(i) end}
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add to Schedule and Loop:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
@@ -1978,9 +1978,228 @@ for i=1,16 do
   renoise.tool():add_keybinding{name="Global:Paketti:Jump to Pattern " .. formatDigits(2, i) .. " in Section", invoke=function() jumpToPatternInSection(i) end}
 end
 
+-- Create keybindings and MIDI mappings for pattern triggering within sections
+for i = 1, 16 do
+  local pattern_id = formatDigits(2, i)
+  
+  -- Keybindings for trigger, schedule, and add to schedule
+  renoise.tool():add_keybinding{name="Global:Paketti:Select and Trigger Pattern " .. pattern_id .. " in Current Section", invoke=function() selectAndTriggerPatternInSection(i) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Select and Schedule Pattern " .. pattern_id .. " in Current Section", invoke=function() selectAndSchedulePatternInSection(i) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Select and Add to Schedule Pattern " .. pattern_id .. " in Current Section", invoke=function() selectAndAddSchedulePatternInSection(i) end}
+  
+  -- MIDI mappings for trigger, schedule, and add to schedule
+  renoise.tool():add_midi_mapping{name="Paketti:Select and Trigger Pattern " .. pattern_id .. " in Current Section [Trigger]", invoke=function(message) if message:is_trigger() then selectAndTriggerPatternInSection(i) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select and Schedule Pattern " .. pattern_id .. " in Current Section [Trigger]", invoke=function(message) if message:is_trigger() then selectAndSchedulePatternInSection(i) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select and Add to Schedule Pattern " .. pattern_id .. " in Current Section [Trigger]", invoke=function(message) if message:is_trigger() then selectAndAddSchedulePatternInSection(i) end end}
+end
+
+-- MIDI knob mapping for triggering patterns within current section
+renoise.tool():add_midi_mapping{name="Paketti:Trigger Pattern Within Section [Knob]", invoke=function(message) if message:is_abs_value() then midiTriggerPatternWithinSection(message.int_value) end end}
+
 renoise.tool():add_midi_mapping{name="Paketti:Jump to Section (Next) [Trigger]", invoke=function(message) if message:is_trigger() then jumpToNextSection() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Jump to Section (Previous) [Trigger]", invoke=function(message) if message:is_trigger() then jumpToPreviousSection() end end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Jump to Section (Next)", invoke=jumpToNextSection}
 renoise.tool():add_keybinding{name="Global:Paketti:Jump to Section (Previous)", invoke=jumpToPreviousSection}
+
+-- Function to select and trigger pattern within current section with different actions (DRY approach)
+function tknaSelectTriggerPatternInSection(pattern_number, action)
+  local song = renoise.song()
+  local section_start, section_end = findCurrentSectionBounds()
+  local section_length = section_end - section_start + 1
+  
+  if pattern_number > section_length then
+    renoise.app():show_status(string.format("Pattern %d not available in current section (only has %d patterns)", pattern_number, section_length))
+    return
+  end
+  
+  local target_sequence = section_start + pattern_number - 1
+  
+  -- Select the pattern
+  song.selected_sequence_index = target_sequence
+  
+  -- Perform the specified action
+  local action_text = ""
+  if action == "trigger" then
+    song.transport:trigger_sequence(target_sequence)
+    action_text = "triggered"
+  elseif action == "schedule" then
+    song.transport:set_scheduled_sequence(target_sequence)
+    action_text = "scheduled"
+  elseif action == "add_schedule" then
+    song.transport:add_scheduled_sequence(target_sequence)
+    action_text = "added to schedule"
+  end
+  
+  renoise.app():show_status(string.format("Pattern %d of %d in current section %s", pattern_number, section_length, action_text))
+end
+
+-- Wrapper functions for different actions
+function selectAndTriggerPatternInSection(pattern_number)
+  tknaSelectTriggerPatternInSection(pattern_number, "trigger")
+end
+
+function selectAndSchedulePatternInSection(pattern_number)
+  tknaSelectTriggerPatternInSection(pattern_number, "schedule")
+end
+
+function selectAndAddSchedulePatternInSection(pattern_number)
+  tknaSelectTriggerPatternInSection(pattern_number, "add_schedule")
+end
+
+-- MIDI knob function for triggering patterns within current section
+function midiTriggerPatternWithinSection(midi_value)
+  local song = renoise.song()
+  local section_start, section_end = findCurrentSectionBounds()
+  local section_length = section_end - section_start + 1
+  
+  if section_length <= 1 then
+    renoise.app():show_status("Current section only has 1 pattern")
+    return
+  end
+  
+  -- Map 0-127 to 1-section_length
+  local pattern_index = math.floor((midi_value / 127) * (section_length - 1)) + 1
+  local target_sequence = section_start + pattern_index - 1
+  
+  if target_sequence <= section_end then
+    song.selected_sequence_index = target_sequence
+    song.transport:trigger_sequence(target_sequence)
+    renoise.app():show_status(string.format("Triggered pattern %d of %d in current section", pattern_index, section_length))
+  end
+end
+
+-- Function to select section with knob and performance lock (can't change sections while playing)
+function tknaSelectSectionWithPerformanceLock(midi_value)
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local transport = song.transport
+  local total_sequences = #sequencer.pattern_sequence
+  
+  -- If transport is playing, don't allow section changes (performance lock)
+  if transport.playing then
+    renoise.app():show_status("Section locked during playback - stop transport to change sections")
+    return
+  end
+  
+  -- Find all section start positions
+  local sections = {}
+  for i = 1, total_sequences do
+    if sequencer:sequence_is_start_of_section(i) then
+      table.insert(sections, i)
+    end
+  end
+  
+  -- Check if there are any sections
+  if #sections == 0 then
+    renoise.app():show_status("No sections found in song")
+    return
+  end
+  
+  -- Map MIDI value (0-127) to section number (1-N)
+  local section_number = math.floor((midi_value / 127) * (#sections - 1)) + 1
+  section_number = math.min(section_number, #sections) -- Ensure we don't exceed available sections
+  
+  local section_start = sections[section_number]
+  
+  -- Find the end of this section
+  local section_end = total_sequences
+  if section_number < #sections then
+    section_end = sections[section_number + 1] - 1
+  end
+  
+  -- Select, loop, and start playing the section
+  song.selected_sequence_index = section_start
+  transport.loop_sequence_range = {section_start, section_end}
+  
+  -- Start playback if not already playing
+  if not transport.playing then
+    transport.playing = true
+  end
+  
+  -- Trigger the section
+  transport:trigger_sequence(section_start)
+  
+  renoise.app():show_status("Section " .. section_number .. " (pos " .. section_start .. "-" .. section_end .. ") playing (LOCKED)")
+end
+
+-- Add MIDI mapping for performance lock section selection
+renoise.tool():add_midi_mapping{name="Paketti:Select Section with Performance Lock [Knob]", invoke=function(message) if message:is_abs_value() then tknaSelectSectionWithPerformanceLock(message.int_value) end end}
+
+-- Function to select and loop section by position with different actions (DRY approach)
+function tknaSelectLoopSectionByPosition(section_number, action)
+  local song=renoise.song()
+  local sequencer = song.sequencer
+  local transport = song.transport
+  local total_sequences = #sequencer.pattern_sequence
+  
+  -- Find all section start positions
+  local sections = {}
+  for i = 1, total_sequences do
+    if sequencer:sequence_is_start_of_section(i) then
+      table.insert(sections, i)
+    end
+  end
+  
+  -- Check if the requested section exists
+  if section_number > #sections or section_number < 1 then
+    renoise.app():show_status("Section " .. section_number .. " does not exist (only " .. #sections .. " sections available)")
+    return
+  end
+  
+  local section_start = sections[section_number]
+  
+  -- Find the end of this section
+  local section_end = total_sequences
+  if section_number < #sections then
+    section_end = sections[section_number + 1] - 1
+  end
+  
+  -- Select and loop the section
+  song.selected_sequence_index = section_start
+  transport.loop_sequence_range = {section_start, section_end}
+  
+  -- Perform the specified action
+  local action_text = ""
+  if action == "trigger" then
+    transport:trigger_sequence(section_start)
+    action_text = "triggered"
+  elseif action == "schedule" then
+    transport:set_scheduled_sequence(section_start)
+    action_text = "scheduled"
+  elseif action == "add_schedule" then
+    transport:add_scheduled_sequence(section_start)
+    action_text = "added to schedule"
+  end
+  
+  renoise.app():show_status("Section " .. section_number .. " (pos " .. section_start .. "-" .. section_end .. ") " .. action_text .. " and looped.")
+end
+
+-- Wrapper functions for backwards compatibility and clarity
+function tknaSelectTriggerLoopSectionByPosition(section_number)
+  tknaSelectLoopSectionByPosition(section_number, "trigger")
+end
+
+function tknaSelectScheduleLoopSectionByPosition(section_number)
+  tknaSelectLoopSectionByPosition(section_number, "schedule")
+end
+
+function tknaSelectAddScheduleLoopSectionByPosition(section_number)
+  tknaSelectLoopSectionByPosition(section_number, "add_schedule")
+end
+
+-- Create keybindings and MIDI mappings for Select, Trigger, Schedule, and Add to Schedule for Sections by Position 01 to 32
+for i = 1, 32 do
+  local section_id = string.format("%02d", i)
+
+  renoise.tool():add_keybinding{name="Global:Paketti:Select&Trigger&Loop Section by Position " .. section_id,invoke=function() tknaSelectTriggerLoopSectionByPosition(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select&Trigger&Loop Section by Position " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectTriggerLoopSectionByPosition(i) end end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Select&Schedule&Loop Section by Position " .. section_id,invoke=function() tknaSelectScheduleLoopSectionByPosition(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select&Schedule&Loop Section by Position " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectScheduleLoopSectionByPosition(i) end end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Select&Add to Schedule&Loop Section by Position " .. section_id,invoke=function() tknaSelectAddScheduleLoopSectionByPosition(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select&Add to Schedule&Loop Section by Position " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectAddScheduleLoopSectionByPosition(i) end end}
+  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Trigger and Loop by Position:Select, Trigger and Loop Section by Position " .. section_id,invoke=function() tknaSelectTriggerLoopSectionByPosition(i) end}
+  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Schedule and Loop by Position:Select, Schedule and Loop Section by Position " .. section_id,invoke=function() tknaSelectScheduleLoopSectionByPosition(i) end}
+  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add to Schedule and Loop by Position:Select, Add to Schedule and Loop Section by Position " .. section_id,invoke=function() tknaSelectAddScheduleLoopSectionByPosition(i) end}
+end
 

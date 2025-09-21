@@ -299,7 +299,7 @@ end
 
 -- Intelligent BPM detection - finds the beat count that gives reasonable BPM (from PakettiRender.lua)
 function pakettiBPMDetectFromSample(sample_length_frames, sample_rate)
-    local beat_counts = {1, 2, 4, 8, 16, 32}
+    local beat_counts = {1, 2, 3, 4, 6, 8, 16, 32}
     local reasonable_bpm_min = 80
     local reasonable_bpm_max = 180
     
