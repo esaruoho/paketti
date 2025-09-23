@@ -4,9 +4,18 @@
 
 local vb = renoise.ViewBuilder()
 
+local row_devices = {}   -- [row] = selected device
+local row_parameters = {} -- [row] = selected parameter
+local device_lists = {}  -- [row] = available devices for that row
+local parameter_lists = {} -- [row] = available parameters for selected device
+-- Observers
+local track_change_notifier = nil
+local device_change_notifier = nil
+
+
 -- Constants
 local NUM_ROWS = 8
-local MAX_STEPS = 32
+MAX_STEPS = 256  -- Global, support up to 256 steps
 
 -- Dialog state
 local hyperedit_dialog = nil
@@ -40,7 +49,19 @@ function PakettiHyperEditGetTrackColor()
   print("DEBUG: Raw track color: " .. track_color[1] .. ", " .. track_color[2] .. ", " .. track_color[3])
   print("DEBUG: Track color blend: " .. color_blend .. "%")
   
-  -- Ensure minimum brightness - if track color is too dark, boost it
+  -- When blend is 0%, it means "no blending" in Renoise - use raw color with boost
+  if color_blend == 0 then
+    print("DEBUG: 0% blend - using raw track color with brightness boost")
+    local boosted_color = {
+      math.max(track_color[1], 100),  -- Ensure minimum 100 for visibility
+      math.max(track_color[2], 100),
+      math.max(track_color[3], 100)
+    }
+    print("DEBUG: 0% blend result: " .. boosted_color[1] .. ", " .. boosted_color[2] .. ", " .. boosted_color[3])
+    return boosted_color
+  end
+  
+  -- For non-zero blend, use normal blending
   local min_brightness = 80  -- Minimum component value for visibility
   local boosted_color = {
     math.max(track_color[1], min_brightness),
@@ -48,8 +69,8 @@ function PakettiHyperEditGetTrackColor()
     math.max(track_color[3], min_brightness)
   }
   
-  -- If blend is too low, use minimum 60% for visibility
-  local effective_blend = math.max(color_blend, 60) / 100.0
+  -- Use actual blend percentage (don't force minimum)
+  local effective_blend = color_blend / 100.0
   
   -- Apply blending with darker background for contrast
   local background = {30, 30, 30}  -- Slightly lighter background for better contrast
@@ -225,7 +246,7 @@ function PakettiHyperEditDetectPatternLength(automation_points)
   for _, point in ipairs(automation_points) do
     local step = point.time
     local value = point.value
-    if step >= 1 and step <= 32 then  -- Only consider first 32 steps
+    if step >= 1 and step <= 256 then  -- Only consider first 256 steps
       step_values[step] = value
       if step > max_step then
         max_step = step
@@ -238,7 +259,7 @@ function PakettiHyperEditDetectPatternLength(automation_points)
   end
   
   -- Test different pattern lengths starting from shortest
-  for pattern_length = 1, 16 do
+  for pattern_length = 1, 256 do
     local is_repeating = true
     
     -- Check if this pattern length creates a repeating cycle
@@ -270,8 +291,22 @@ function PakettiHyperEditDetectPatternLength(automation_points)
   -- No repeating pattern found, use max step count or default
   if max_step <= 16 then
     return 16
-  else
+  elseif max_step <= 32 then
     return 32
+  elseif max_step <= 48 then
+    return 48
+  elseif max_step <= 64 then
+    return 64
+  elseif max_step <= 96 then
+    return 96
+  elseif max_step <= 112 then
+    return 112
+  elseif max_step <= 128 then
+    return 128
+  elseif max_step <= 192 then
+    return 192
+  else
+    return 256
   end
 end
 
@@ -387,17 +422,9 @@ function PakettiHyperEditFillRowEveryN(row, interval)
   renoise.app():show_status(string.format("HyperEdit Row %d: Filled every %d steps (%d total steps)", row, interval, row_step_count))
 end
 
-local row_devices = {}   -- [row] = selected device
-local row_parameters = {} -- [row] = selected parameter
-local device_lists = {}  -- [row] = available devices for that row
-local parameter_lists = {} -- [row] = available parameters for selected device
 
--- Observers
-local track_change_notifier = nil
-local device_change_notifier = nil
 
--- Stepsequencer state
-local MAX_STEPS = 32  -- Maximum steps per row
+-- Stepsequencer state (MAX_STEPS already defined above as global)
 NUM_ROWS = 8  -- Global as per project rules
 step_data = {}  -- [row][step] = value (0.0 to 1.0) - Global 
 step_active = {}  -- [row][step] = boolean - Global
@@ -412,11 +439,11 @@ local content_margin = 2
 local mouse_is_down = false
 local current_row_drawing = 0
 
--- Colors for visualization
-local COLOR_ACTIVE_STEP = {120, 40, 160, 255}     -- Purple for active steps
-local COLOR_INACTIVE_STEP = {40, 40, 40, 255}     -- Dark gray for inactive steps
-local COLOR_GRID = {80, 80, 80, 255}              -- Grid lines
-local COLOR_BACKGROUND = {20, 20, 20, 255}        -- Dark background
+-- Colors for visualization (GLOBAL so PakettiHyperEditUpdateColors can modify them)
+COLOR_ACTIVE_STEP = {120, 40, 160, 255}     -- Purple for active steps (will be updated by track color capture)
+COLOR_INACTIVE_STEP = {40, 40, 40, 255}     -- Dark gray for inactive steps  
+COLOR_GRID = {80, 80, 80, 255}              -- Grid lines
+COLOR_BACKGROUND = {20, 20, 20, 255}        -- Dark background
 
 -- Initialize step data for all rows
 function PakettiHyperEditInitStepData()
@@ -990,6 +1017,14 @@ function PakettiHyperEditPopulateFromExistingAutomation()
   
   -- Get all existing automation envelopes by scanning devices and parameters
   local device_list = PakettiHyperEditGetDevices()
+  local device_names = {}
+  for i, device_info in ipairs(device_list) do
+    table.insert(device_names, device_info.name)
+  end
+  if #device_names == 0 then
+    device_names = {"No devices available"}
+  end
+  
   local found_automations = {}
   print("DEBUG: Found " .. #device_list .. " devices to scan")
   
@@ -1114,7 +1149,37 @@ function PakettiHyperEditPopulateFromExistingAutomation()
   try_automation_iteration()
   
   if #found_automations == 0 then
-    print("DEBUG: No automation envelopes found on track")
+    print("DEBUG: No automation envelopes found on track - clearing all step data")
+    
+    -- Clear all step data and reset to defaults
+    for row = 1, NUM_ROWS do
+      for step = 1, MAX_STEPS do
+        step_active[row][step] = false
+        step_data[row][step] = 0.5
+      end
+      
+      -- Reset row parameters
+      row_parameters[row] = nil
+      row_devices[row] = nil
+      
+      -- Reset dropdowns to first available options
+      if dialog_vb then
+        if dialog_vb.views["device_popup_" .. row] and #device_names > 0 then
+          dialog_vb.views["device_popup_" .. row].value = 1
+        end
+        if dialog_vb.views["parameter_popup_" .. row] then
+          dialog_vb.views["parameter_popup_" .. row].items = {"No Device Selected"}
+          dialog_vb.views["parameter_popup_" .. row].value = 1
+        end
+      end
+      
+      -- Update canvases to show empty state
+      if row_canvases[row] then
+        row_canvases[row]:update()
+      end
+    end
+    
+    print("DEBUG: All rows cleared for track with no automation")
     return
   end
   
@@ -1260,25 +1325,45 @@ function PakettiHyperEditDrawRowCanvas(row)
     
     -- Vertical lines (steps) within content area with every 4th beat highlighting
     local step_width = content_width / row_step_count
-    for step = 0, row_step_count do
-      local x = content_x + (step * step_width)
-      
-      -- Make every 4th step line bright white, all others pale grey (like PakettiSliceEffectStepSequencer)
-      if step > 0 and (step % 4) == 0 then
-        ctx.stroke_color = {255, 255, 255, 255}  -- Bright white for 4-step separators
-        ctx.line_width = 3  -- 3px thick
-      elseif step > 0 then
-        ctx.stroke_color = {80, 80, 80, 255}  -- Pale grey for regular step separators
-        ctx.line_width = 3  -- 3px thick (same as 4-step separators)
-      else
-        ctx.stroke_color = COLOR_GRID  -- Use original grid color for edges
-        ctx.line_width = 1  -- Thin line for edge
+    
+    -- Adaptive line width based on step density to preserve visibility
+    local adaptive_line_width
+    if step_width >= 20 then
+      adaptive_line_width = 3  -- Wide steps: thick lines like original
+    elseif step_width >= 10 then
+      adaptive_line_width = 2  -- Medium steps: medium lines  
+    elseif step_width >= 5 then
+      adaptive_line_width = 1  -- Narrow steps: thin lines
+    else
+      adaptive_line_width = 0.5  -- Very narrow steps: hair-thin lines
+    end
+    
+    -- Skip grid lines entirely if steps are extremely narrow (< 3px)
+    local show_grid_lines = step_width >= 3
+    
+    if show_grid_lines then
+      for step = 0, row_step_count do
+        local x = content_x + (step * step_width)
+        
+        -- Make every 4th step line bright white, all others pale grey (like PakettiSliceEffectStepSequencer)
+        if step > 0 and (step % 4) == 0 then
+          ctx.stroke_color = {255, 255, 255, 255}  -- Bright white for 4-step separators
+          ctx.line_width = adaptive_line_width
+        elseif step > 0 then
+          ctx.stroke_color = {80, 80, 80, 255}  -- Pale grey for regular step separators
+          ctx.line_width = adaptive_line_width
+        else
+          ctx.stroke_color = COLOR_GRID  -- Use original grid color for edges
+          ctx.line_width = math.max(0.5, adaptive_line_width * 0.5)  -- Even thinner for edges
+        end
+        
+        ctx:begin_path()
+        ctx:move_to(x, content_y)
+        ctx:line_to(x, content_y + content_height)
+        ctx:stroke()
       end
-      
-      ctx:begin_path()
-      ctx:move_to(x, content_y)
-      ctx:line_to(x, content_y + content_height)
-      ctx:stroke()
+    else
+      print("DEBUG: Skipping grid lines - steps too narrow (" .. string.format("%.1f", step_width) .. "px per step)")
     end
     
     -- Removed horizontal center line to avoid confusion across multiple steps
@@ -1301,7 +1386,24 @@ function PakettiHyperEditDrawRowCanvas(row)
         
         local bar_height = value * content_height
         local bar_y = content_y + content_height - bar_height
-        ctx:fill_rect(step_x + 1, bar_y, step_width - 2, bar_height)
+        
+        -- Make step bars fatter at high step counts for better visibility
+        local bar_x_offset, bar_width
+        if row_step_count >= 192 then
+          -- At 192+ steps: use full width, overlap slightly  
+          bar_x_offset = 0
+          bar_width = step_width + 1  -- Slight overlap for better visibility
+        elseif row_step_count >= 128 then
+          -- At 128+ steps: minimal margin
+          bar_x_offset = 0.5
+          bar_width = step_width - 1
+        else
+          -- Lower step counts: keep original thin appearance  
+          bar_x_offset = 1
+          bar_width = step_width - 2
+        end
+        
+        ctx:fill_rect(step_x + bar_x_offset, bar_y, bar_width, bar_height)
       end
     end
     
@@ -1359,13 +1461,31 @@ function PakettiHyperEditSetupObservers()
   if not track_change_notifier then
     track_change_notifier = function()
       if hyperedit_dialog and hyperedit_dialog.visible then
+        print("DEBUG: === Track changed - refreshing HyperEdit ===")
+        
+        -- Clear old step data first
+        PakettiHyperEditInitStepData()
+        
+        -- Update device lists and observers
         PakettiHyperEditSetupDeviceObserver()
         PakettiHyperEditUpdateAllDeviceLists()
+        
+        -- Repopulate with new track's automation
+        PakettiHyperEditPopulateFromExistingAutomation()
         
         -- Update colors if track color capture is enabled
         if capture_track_color then
           PakettiHyperEditUpdateColors()
         end
+        
+        -- Refresh all canvases
+        for row = 1, NUM_ROWS do
+          if row_canvases[row] then
+            row_canvases[row]:update()
+          end
+        end
+        
+        print("DEBUG: === Track change refresh complete ===")
       end
     end
     
@@ -1528,7 +1648,7 @@ function PakettiHyperEditCreateDialog()
       vb:text { text = "Loop", width = 40 },
       vb:valuebox {
         min = 1,
-        max = 32,
+        max = 256,
         value = loop_length,
         width = 50,
         notifier = function(value)
@@ -1606,11 +1726,75 @@ function PakettiHyperEditCreateDialog()
             PakettiHyperEditChangeRowStepCount(row, 8)
           end
         },
+        vb:button {
+          text = "32",
+          width = 25,
+          tooltip = "Set step count to 32",
+          notifier = function()
+            PakettiHyperEditChangeRowStepCount(row, 32)
+          end
+        },
+        vb:button {
+          text = "48",
+          width = 25,
+          tooltip = "Set step count to 48",
+          notifier = function()
+            PakettiHyperEditChangeRowStepCount(row, 48)
+          end
+        },
+        vb:button {
+          text = "64",
+          width = 25,
+          tooltip = "Set step count to 64",
+          notifier = function()
+            PakettiHyperEditChangeRowStepCount(row, 64)
+          end
+        },
+        vb:button {
+          text = "96",
+          width = 25,
+          tooltip = "Set step count to 96",
+          notifier = function()
+            PakettiHyperEditChangeRowStepCount(row, 96)
+          end
+        },
+        vb:button {
+          text = "112",
+          width = 30,
+          tooltip = "Set step count to 112",
+          notifier = function()
+            PakettiHyperEditChangeRowStepCount(row, 112)
+          end
+        },
+        vb:button {
+          text = "128",
+          width = 30,
+          tooltip = "Set step count to 128",
+          notifier = function()
+            PakettiHyperEditChangeRowStepCount(row, 128)
+          end
+        },
+        vb:button {
+          text = "192",
+          width = 30,
+          tooltip = "Set step count to 192",
+          notifier = function()
+            PakettiHyperEditChangeRowStepCount(row, 192)
+          end
+        },
+        vb:button {
+          text = "256",
+          width = 30,
+          tooltip = "Set step count to 256",
+          notifier = function()
+            PakettiHyperEditChangeRowStepCount(row, 256)
+          end
+        },
         
         vb:valuebox {
           id = "steps_" .. row,
           min = 1,  -- Allow any pattern length from smart detection
-          max = 32,
+          max = 256,
           value = 16,
           width = 50,  -- Made wider so you can see the number
           tooltip = "Steps for this row (smart-detected from automation)",
