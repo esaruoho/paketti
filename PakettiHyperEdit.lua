@@ -22,9 +22,110 @@ local playhead_color = nil
 -- Row state variables (must be declared early for playhead functions)
 local row_steps = {}  -- [row] = step count for this row (individual per row)
 
+-- Track color capture
+local capture_track_color = false  -- Checkbox state
+
+-- Get current track color with blending
+function PakettiHyperEditGetTrackColor()
+  local song = renoise.song()
+  if not song then return {120, 40, 160} end  -- Default purple
+  
+  local track = song.selected_track
+  if not track then return {120, 40, 160} end
+  
+  -- Get track color (RGB 0-255) and blend amount (0-100)
+  local track_color = track.color  -- RGB array
+  local color_blend = track.color_blend or 50  -- Default 50% blend
+  
+  print("DEBUG: Raw track color: " .. track_color[1] .. ", " .. track_color[2] .. ", " .. track_color[3])
+  print("DEBUG: Track color blend: " .. color_blend .. "%")
+  
+  -- Ensure minimum brightness - if track color is too dark, boost it
+  local min_brightness = 80  -- Minimum component value for visibility
+  local boosted_color = {
+    math.max(track_color[1], min_brightness),
+    math.max(track_color[2], min_brightness),
+    math.max(track_color[3], min_brightness)
+  }
+  
+  -- If blend is too low, use minimum 60% for visibility
+  local effective_blend = math.max(color_blend, 60) / 100.0
+  
+  -- Apply blending with darker background for contrast
+  local background = {30, 30, 30}  -- Slightly lighter background for better contrast
+  
+  local blended_color = {
+    math.floor(boosted_color[1] * effective_blend + background[1] * (1 - effective_blend)),
+    math.floor(boosted_color[2] * effective_blend + background[2] * (1 - effective_blend)),
+    math.floor(boosted_color[3] * effective_blend + background[3] * (1 - effective_blend))
+  }
+  
+  print("DEBUG: Boosted color: " .. boosted_color[1] .. ", " .. boosted_color[2] .. ", " .. boosted_color[3])
+  print("DEBUG: Final blended color: " .. blended_color[1] .. ", " .. blended_color[2] .. ", " .. blended_color[3])
+  
+  return blended_color
+end
+
+-- Update colors based on capture track color setting
+function PakettiHyperEditUpdateColors()
+  print("DEBUG: PakettiHyperEditUpdateColors() started, capture_track_color = " .. tostring(capture_track_color))
+  
+  if capture_track_color then
+    print("DEBUG: Getting track color...")
+    local track_color = PakettiHyperEditGetTrackColor()
+    print("DEBUG: Got track color: " .. track_color[1] .. ", " .. track_color[2] .. ", " .. track_color[3])
+    
+    COLOR_ACTIVE_STEP = {track_color[1], track_color[2], track_color[3], 255}
+    print("DEBUG: Set COLOR_ACTIVE_STEP to: " .. COLOR_ACTIVE_STEP[1] .. ", " .. COLOR_ACTIVE_STEP[2] .. ", " .. COLOR_ACTIVE_STEP[3] .. ", " .. COLOR_ACTIVE_STEP[4])
+  else
+    COLOR_ACTIVE_STEP = {120, 40, 160, 255}  -- Default purple
+    print("DEBUG: Set COLOR_ACTIVE_STEP to default purple: " .. COLOR_ACTIVE_STEP[1] .. ", " .. COLOR_ACTIVE_STEP[2] .. ", " .. COLOR_ACTIVE_STEP[3] .. ", " .. COLOR_ACTIVE_STEP[4])
+  end
+  
+  -- Update playhead color too
+  print("DEBUG: Updating playhead color...")
+  playhead_color = PakettiHyperEditResolvePlayheadColor()
+  if playhead_color then
+    print("DEBUG: Set playhead_color to: " .. playhead_color[1] .. ", " .. playhead_color[2] .. ", " .. playhead_color[3])
+  else
+    print("DEBUG: Set playhead_color to nil (no playhead)")
+  end
+  
+  -- Update all canvases
+  print("DEBUG: Updating " .. NUM_ROWS .. " canvases...")
+  local updated_count = 0
+  for row = 1, NUM_ROWS do
+    if row_canvases[row] then
+      row_canvases[row]:update()
+      updated_count = updated_count + 1
+    end
+  end
+  print("DEBUG: Updated " .. updated_count .. " canvases out of " .. NUM_ROWS)
+  print("DEBUG: PakettiHyperEditUpdateColors() completed")
+end
+
 -- Playhead color resolution function
 function PakettiHyperEditResolvePlayheadColor()
+  print("DEBUG: PakettiHyperEditResolvePlayheadColor() called, capture_track_color = " .. tostring(capture_track_color))
+  
+  -- If track color capture is enabled, use track color for playhead too
+  if capture_track_color then
+    print("DEBUG: Using track color for playhead...")
+    local track_color = PakettiHyperEditGetTrackColor()
+    -- Make playhead brighter than active steps for visibility
+    local playhead_result = {
+      math.min(255, track_color[1] + 60),
+      math.min(255, track_color[2] + 60), 
+      math.min(255, track_color[3] + 60)
+    }
+    print("DEBUG: Playhead color result: " .. playhead_result[1] .. ", " .. playhead_result[2] .. ", " .. playhead_result[3])
+    return playhead_result
+  end
+  
+  -- Otherwise use preferences
+  print("DEBUG: Using preference-based playhead color...")
   local choice = (preferences and preferences.PakettiGrooveboxPlayheadColor and preferences.PakettiGrooveboxPlayheadColor.value) or 2
+  print("DEBUG: Playhead color preference choice: " .. choice)
   if choice == 1 then return nil end -- None
   if choice == 2 then return {255,128,0} end -- Bright Orange
   if choice == 3 then return {64,0,96} end -- Deeper Purple
@@ -176,13 +277,22 @@ end
 
 -- Set all steps in row to a specific value
 function PakettiHyperEditSetAllStepsToValue(row, value)
-  if not step_data[row] then return end
+  print("DEBUG: PakettiHyperEditSetAllStepsToValue called - row: " .. row .. ", value: " .. value)
+  
+  if not step_data[row] then 
+    print("DEBUG: step_data[" .. row .. "] does not exist, initializing...")
+    step_data[row] = {}
+    step_active[row] = {}
+  end
+  
   if not row_parameters[row] then 
     renoise.app():show_status("HyperEdit Row " .. row .. ": Select parameter first")
+    print("DEBUG: No parameter selected for row " .. row)
     return 
   end
   
   local row_step_count = row_steps[row] or 16
+  print("DEBUG: Setting " .. row_step_count .. " steps to value " .. value .. " for row " .. row)
   
   -- Set all steps to the specified value
   for step = 1, row_step_count do
@@ -190,15 +300,21 @@ function PakettiHyperEditSetAllStepsToValue(row, value)
     step_data[row][step] = value
   end
   
+  print("DEBUG: Set " .. row_step_count .. " steps, now updating canvas...")
+  
   -- Redraw canvas
   if row_canvases[row] then
     row_canvases[row]:update()
+    print("DEBUG: Canvas updated for row " .. row)
+  else
+    print("DEBUG: No canvas found for row " .. row)
   end
   
   -- Apply to automation immediately
+  print("DEBUG: Applying to automation...")
   PakettiHyperEditWriteAutomationPattern(row)
   
-  renoise.app():show_status("HyperEdit Row " .. row .. ": Set all steps to " .. value)
+  renoise.app():show_status("HyperEdit Row " .. row .. ": Set all " .. row_step_count .. " steps to " .. value)
 end
 
 -- Change row step count and update UI
@@ -282,9 +398,9 @@ local device_change_notifier = nil
 
 -- Stepsequencer state
 local MAX_STEPS = 32  -- Maximum steps per row
-local NUM_ROWS = 8
-local step_data = {}  -- [row][step] = value (0.0 to 1.0)
-local step_active = {}  -- [row][step] = boolean
+NUM_ROWS = 8  -- Global as per project rules
+step_data = {}  -- [row][step] = value (0.0 to 1.0) - Global 
+step_active = {}  -- [row][step] = boolean - Global
 local loop_length = 16  -- Loop repetition
 
 -- Canvas dimensions per row - taller as requested
@@ -743,6 +859,34 @@ function PakettiHyperEditApplyStep(row, step)
   
   -- Write the entire repeating automation pattern
   PakettiHyperEditWriteAutomationPattern(row)
+  
+  -- Switch automation view to show this parameter's envelope (like PakettiCanvasExperiments)
+  PakettiHyperEditSwitchToAutomationView(row)
+end
+
+-- Switch automation view to show the parameter being edited (like PakettiCanvasExperiments)
+function PakettiHyperEditSwitchToAutomationView(row)
+  if not row_parameters[row] then return end
+  
+  local parameter = row_parameters[row].parameter
+  if not parameter then return end
+  
+  -- Switch to automation view and select this parameter's envelope
+  local success, error_msg = pcall(function()
+    local song = renoise.song()
+    
+    -- Show automation frame and make it active (like PakettiCanvasExperiments)
+    renoise.app().window.lower_frame_is_visible = true
+    renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+    
+    -- Select this parameter's automation envelope
+    song.selected_automation_parameter = parameter
+    print("DEBUG: Switched automation view to " .. parameter.name .. " (Row " .. row .. ")")
+  end)
+  
+  if not success then
+    print("DEBUG: Failed to switch automation view: " .. tostring(error_msg))
+  end
 end
 
 -- Auto-read automation when parameter is selected (silent, automatic)
@@ -828,44 +972,6 @@ function PakettiHyperEditAutoReadAutomation(row)
   end
 end
 
--- Detect currently edited automation envelope in lower frame (like PakettiCanvasExperiments)
-function PakettiHyperEditDetectCurrentAutomationSelection()
-  local song = renoise.song()
-  if not song then return nil end
-  
-  -- Check if automation frame is displayed
-  local automation_frame_active = (renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION)
-  
-  if automation_frame_active then
-    -- Check if there's a selected automation parameter and device
-    local selected_automation_param = song.selected_automation_parameter
-    local selected_automation_device = song.selected_automation_device
-    
-    if selected_automation_param and selected_automation_param.is_automatable and selected_automation_device then
-      print("DEBUG: Automation frame active - parameter: " .. selected_automation_param.name .. ", device: " .. selected_automation_device.display_name)
-      
-      -- Find the device index in the current track
-      local current_track = song.selected_track
-      for device_index, device in ipairs(current_track.devices) do
-        if device.display_name == selected_automation_device.display_name then
-          print("DEBUG: Found currently edited automation - device at index " .. device_index .. ": " .. device.display_name)
-          
-          return {
-            parameter = selected_automation_param,
-            device = selected_automation_device,
-            device_index = device_index
-          }
-        end
-      end
-      
-      print("DEBUG: Device not found in current track devices")
-    end
-  end
-  
-  print("DEBUG: No automation frame active or no selected parameter")
-  return nil
-end
-
 -- Scan track for existing automation and populate rows
 function PakettiHyperEditPopulateFromExistingAutomation()
   print("DEBUG: === Starting PakettiHyperEditPopulateFromExistingAutomation ===")
@@ -882,28 +988,10 @@ function PakettiHyperEditPopulateFromExistingAutomation()
   
   print("DEBUG: Scanning pattern " .. current_pattern .. ", track " .. track_index)
   
-  -- PRIORITY: Check if user is currently editing an automation envelope in lower frame
-  local current_automation = PakettiHyperEditDetectCurrentAutomationSelection()
-  local found_automations = {}
+  -- Get all existing automation envelopes by scanning devices and parameters
   local device_list = PakettiHyperEditGetDevices()
+  local found_automations = {}
   print("DEBUG: Found " .. #device_list .. " devices to scan")
-  
-  -- Add currently edited automation as first priority if found
-  if current_automation then
-    local automation = pattern_track:find_automation(current_automation.parameter)
-    if automation then
-      print("DEBUG: PRIORITY: Using currently edited automation as Row 1")
-      table.insert(found_automations, {
-        automation = automation,
-        parameter = current_automation.parameter,
-        device_idx = current_automation.device_index,
-        device_info = {
-          device = current_automation.device,
-          name = current_automation.device.display_name
-        }
-      })
-    end
-  end
   
   -- BETTER APPROACH: Scan pattern track's existing automations directly
   print("DEBUG: Alternative scan - checking pattern_track automations directly...")
@@ -919,36 +1007,27 @@ function PakettiHyperEditPopulateFromExistingAutomation()
     
     for param_idx, param in ipairs(device_info.device.parameters) do
       if param.is_automatable then
-        -- Skip if this is already the prioritized current automation
-        local is_current_automation = current_automation and 
-                                     current_automation.parameter.name == param.name and
-                                     current_automation.device.display_name == device_info.device.display_name
-        
-        if not is_current_automation then
-          local automation = pattern_track:find_automation(param)
-          if automation then
-            print("DEBUG: Found automation for " .. device_info.name .. " -> " .. param.name)
-            table.insert(found_automations, {
-              automation = automation,
-              parameter = param,
-              device_idx = device_idx,
-              device_info = device_info
-            })
-            device_automation_count = device_automation_count + 1
-          else
-            -- Check if parameter has any automation points at all
-            print("DEBUG: Checking for automation points on " .. device_info.name .. " -> " .. param.name)
-          end
+        local automation = pattern_track:find_automation(param)
+        if automation then
+          print("DEBUG: Found automation for " .. device_info.name .. " -> " .. param.name)
+          table.insert(found_automations, {
+            automation = automation,
+            parameter = param,
+            device_idx = device_idx,
+            device_info = device_info
+          })
+          device_automation_count = device_automation_count + 1
         else
-          print("DEBUG: Skipping already prioritized current automation: " .. device_info.name .. " -> " .. param.name)
+          -- Check if parameter has any automation points at all
+          print("DEBUG: Checking for automation points on " .. device_info.name .. " -> " .. param.name)
         end
       end
     end
     
     if device_automation_count == 0 then
-      print("DEBUG: No additional automation found on device " .. device_info.name)
+      print("DEBUG: No automation found on device " .. device_info.name)
     else
-      print("DEBUG: Found " .. device_automation_count .. " additional automations on " .. device_info.name)
+      print("DEBUG: Found " .. device_automation_count .. " automations on " .. device_info.name)
     end
   end
   
@@ -1250,8 +1329,13 @@ function PakettiHyperEditDrawRowCanvas(row)
       end
     end
     
-    -- Draw content area border (like PakettiCanvasExperiments)
-    ctx.stroke_color = {80, 0, 120, 255}
+    -- Draw content area border (like PakettiCanvasExperiments) with track color if enabled
+    if capture_track_color then
+      local track_color = PakettiHyperEditGetTrackColor()
+      ctx.stroke_color = {track_color[1], track_color[2], track_color[3], 255}
+    else
+      ctx.stroke_color = {80, 0, 120, 255}  -- Default purple border
+    end
     ctx.line_width = 2
     ctx:begin_path()
     ctx:rect(content_x, content_y, content_width, content_height)
@@ -1277,6 +1361,11 @@ function PakettiHyperEditSetupObservers()
       if hyperedit_dialog and hyperedit_dialog.visible then
         PakettiHyperEditSetupDeviceObserver()
         PakettiHyperEditUpdateAllDeviceLists()
+        
+        -- Update colors if track color capture is enabled
+        if capture_track_color then
+          PakettiHyperEditUpdateColors()
+        end
       end
     end
     
@@ -1446,6 +1535,29 @@ function PakettiHyperEditCreateDialog()
           PakettiHyperEditChangeLoopLength(value)
         end
       },
+      vb:space { width = 10 },
+      vb:checkbox {
+        id = "capture_track_color",
+        value = capture_track_color,
+        notifier = function(value)
+          print("DEBUG: === Capture Track Color checkbox toggled to: " .. tostring(value) .. " ===")
+          capture_track_color = value
+          print("DEBUG: capture_track_color variable set to: " .. tostring(capture_track_color))
+          
+          print("DEBUG: About to call PakettiHyperEditUpdateColors()")
+          PakettiHyperEditUpdateColors()
+          print("DEBUG: PakettiHyperEditUpdateColors() completed")
+          
+          if value then
+            renoise.app():show_status("HyperEdit: Using track color for active steps")
+          else
+            renoise.app():show_status("HyperEdit: Using default purple color")
+          end
+          print("DEBUG: === Checkbox notifier complete ===")
+        end
+      },
+      vb:text { text = "Capture Track Color", width = 120 },
+      vb:space { width = 10 },
       vb:button {
         text = "Clear All",
         width = 70,
@@ -1543,6 +1655,14 @@ function PakettiHyperEditCreateDialog()
           notifier = function()
             PakettiHyperEditSetAllStepsToValue(row, 0.5)
           end
+        },
+        vb:button {
+          text = "1.0",
+          width = 30,
+          tooltip = "Set all steps to 1.0 (maximum)",
+          notifier = function()
+            PakettiHyperEditSetAllStepsToValue(row, 1.0)
+          end
         }
       },
       
@@ -1603,6 +1723,9 @@ function PakettiHyperEditCreateDialog()
   
   -- Setup playhead
   PakettiHyperEditSetupPlayhead()
+  
+  -- Initialize colors based on track color capture setting
+  PakettiHyperEditUpdateColors()
   
   -- CRITICAL: Initialize with existing automation or default to first device
   if #devices > 0 then
