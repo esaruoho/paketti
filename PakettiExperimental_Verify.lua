@@ -1384,14 +1384,13 @@ function table_contains(tbl, value)
   return false
 end
 
--- Function to unmute all tracks and send tracks except the master track
+-- Function to unmute all sequencer tracks except the master track (ignores send tracks)
 function PakettiToggleSoloTracksUnmuteAllTracks()
   local song=renoise.song()
-  local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
 
   print("----")
-  print("Unmuting all tracks")
-  for i = 1, total_track_count do
+  print("Unmuting all sequencer tracks (ignoring send tracks)")
+  for i = 1, song.sequencer_track_count do
     if song:track(i).type ~= renoise.Track.TRACK_TYPE_MASTER then
       song:track(i).mute_state = renoise.Track.MUTE_STATE_ACTIVE
       print("Unmuting track index: " .. i .. " (" .. song:track(i).name .. ")")
@@ -1402,7 +1401,8 @@ end
 -- Function to mute all tracks except a specific range, and not the master track
 function PakettiToggleSoloTracksMuteAllExceptRange(start_track, end_track)
   local song=renoise.song()
-  local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
+  -- Only consider sequencer tracks, ignore send tracks entirely
+  local total_track_count = song.sequencer_track_count
   local group_parents = {}
 
   print("----")
@@ -1451,7 +1451,8 @@ end
 -- Function to mute all tracks except a specific track and its group, and not the master track
 function PakettiToggleSoloTracksMuteAllExceptSelectedTrack(track_index)
   local song=renoise.song()
-  local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
+  -- Only consider sequencer tracks, ignore send tracks entirely
+  local total_track_count = song.sequencer_track_count
   local selected_track = song:track(track_index)
   local group_tracks = {}
 
@@ -1461,12 +1462,23 @@ function PakettiToggleSoloTracksMuteAllExceptSelectedTrack(track_index)
   if selected_track.type == renoise.Track.TRACK_TYPE_GROUP then
     table.insert(group_tracks, track_index)
     print("Group name is " .. selected_track.name .. ", Number of Members is " .. #selected_track.members)
-    for i = track_index + 1, track_index + #selected_track.members do
-      if song:track(i).group_parent and song:track(i).group_parent.name == selected_track.name then
+    -- Group members come BEFORE the group track
+    for i = track_index - #selected_track.members, track_index - 1 do
+      if i >= 1 then
         table.insert(group_tracks, i)
         print("Member index: " .. i .. " (" .. song:track(i).name .. ")")
-      else
-        break
+      end
+    end
+    
+    -- If this group has a parent group (nested group), include the parent too
+    if selected_track.group_parent then
+      local parent_group_name = selected_track.group_parent.name
+      for i = 1, song.sequencer_track_count do
+        if song:track(i).type == renoise.Track.TRACK_TYPE_GROUP and song:track(i).name == parent_group_name then
+          table.insert(group_tracks, i)
+          print("Parent group index: " .. i .. " (" .. parent_group_name .. ")")
+          break
+        end
       end
     end
   elseif selected_track.group_parent then
@@ -1518,15 +1530,26 @@ function PakettiToggleSoloTracksAllOthersMutedExceptSelected(track_index)
   local song=renoise.song()
   local selected_track = song:track(track_index)
   local group_tracks = {}
-  local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
+  -- Only consider sequencer tracks, ignore send tracks entirely
+  local total_track_count = song.sequencer_track_count
 
   if selected_track.type == renoise.Track.TRACK_TYPE_GROUP then
+    -- For group tracks, add the group track and its members (members come before the group)
     table.insert(group_tracks, track_index)
-    for i = track_index + 1, song.sequencer_track_count do
-      if song:track(i).group_parent and song:track(i).group_parent.name == selected_track.name then
+    for i = track_index - #selected_track.members, track_index - 1 do
+      if i >= 1 then
         table.insert(group_tracks, i)
-      else
-        break
+      end
+    end
+    
+    -- If this group has a parent group (nested group), include the parent too
+    if selected_track.group_parent then
+      local parent_group_name = selected_track.group_parent.name
+      for i = 1, song.sequencer_track_count do
+        if song:track(i).type == renoise.Track.TRACK_TYPE_GROUP and song:track(i).name == parent_group_name then
+          table.insert(group_tracks, i)
+          break
+        end
       end
     end
   elseif selected_track.group_parent then
@@ -1542,18 +1565,31 @@ function PakettiToggleSoloTracksAllOthersMutedExceptSelected(track_index)
     table.insert(group_tracks, track_index)
   end
 
+  -- Check if all tracks outside the group are muted
   for i = 1, total_track_count do
-    if song:track(i).type ~= renoise.Track.TRACK_TYPE_MASTER and not table_contains(group_tracks, i) and song:track(i).mute_state ~= renoise.Track.MUTE_STATE_OFF then
+    if song:track(i).type ~= renoise.Track.TRACK_TYPE_MASTER and not table_contains(group_tracks, i) then
+      if song:track(i).mute_state ~= renoise.Track.MUTE_STATE_OFF then
+        return false
+      end
+    end
+  end
+  
+  -- Check if all tracks in the group are active (unmuted)
+  for _, group_track_index in ipairs(group_tracks) do
+    if song:track(group_track_index).mute_state ~= renoise.Track.MUTE_STATE_ACTIVE then
       return false
     end
   end
-  return selected_track.mute_state == renoise.Track.MUTE_STATE_ACTIVE
+  
+  -- If all other tracks are muted and all group tracks are active, we're in a solo state that should be toggled off
+  return true
 end
 
 -- Function to check if all tracks except the selected range are muted
 function PakettiToggleSoloTracksAllOthersMutedExceptRange(start_track, end_track)
   local song=renoise.song()
-  local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
+  -- Only consider sequencer tracks, ignore send tracks entirely
+  local total_track_count = song.sequencer_track_count
   local group_parents = {}
 
   print("Selection In Pattern is from index " .. start_track .. " to index " .. end_track)
@@ -1649,15 +1685,29 @@ function PakettiToggleSoloTracks()
       print("Detecting all-tracks-should-be-unmuted situation")
       PakettiToggleSoloTracksUnmuteAllTracks()
     else
-      for i = 1, song.sequencer_track_count + song.send_track_count do
+      -- First mute all sequencer tracks except master (ignore send tracks entirely)
+      for i = 1, song.sequencer_track_count do
         if song:track(i).type ~= renoise.Track.TRACK_TYPE_MASTER then
           song:track(i).mute_state = renoise.Track.MUTE_STATE_OFF
           print("Muting track index: " .. i .. " (" .. song:track(i).name .. ")")
         end
       end
+      -- Then unmute the group and its members (members come before the group track)  
       for i = selected_track_index - #selected_track.members, selected_track_index do
         song:track(i).mute_state = renoise.Track.MUTE_STATE_ACTIVE
         print("Unmuting track index: " .. i .. " (" .. song:track(i).name .. ")")
+      end
+      
+      -- If this group has a parent group (nested group), unmute the parent too
+      if selected_track.group_parent then
+        local parent_group_name = selected_track.group_parent.name
+        for i = 1, song.sequencer_track_count do
+          if song:track(i).type == renoise.Track.TRACK_TYPE_GROUP and song:track(i).name == parent_group_name then
+            song:track(i).mute_state = renoise.Track.MUTE_STATE_ACTIVE
+            print("Unmuting parent group track index: " .. i .. " (" .. parent_group_name .. ")")
+            break
+          end
+        end
       end
     end
   else
@@ -1697,21 +1747,23 @@ function toggle_mute_tracks()
     end_track = song.selected_track_index
   end
 
-  -- Check if any track in the selection is muted, ignoring the master track
-  local any_track_muted = false
+  -- Check if any track in the selection is unmuted (active), ignoring the master track
+  local any_track_unmuted = false
   for track_index = start_track, end_track do
     local track = song:track(track_index)
     if track.type ~= renoise.Track.TRACK_TYPE_MASTER and track.mute_state == renoise.Track.MUTE_STATE_ACTIVE then
-      any_track_muted = true
+      any_track_unmuted = true
       break
     end
   end
 
   -- Determine the desired mute state for all tracks
   local new_mute_state
-  if any_track_muted then
-    new_mute_state = renoise.Track.MUTE_STATE_OFF
+  if any_track_unmuted then
+    -- If any tracks are unmuted, mute them all
+    new_mute_state = renoise.Track.MUTE_STATE_MUTED
   else
+    -- If all tracks are muted, unmute them all
     new_mute_state = renoise.Track.MUTE_STATE_ACTIVE
   end
 
@@ -1723,27 +1775,31 @@ function toggle_mute_tracks()
     end
   end
 
-  -- Additionally, handle groups if they are within the selected range
+  -- Additionally, handle group members and parent groups when a group is in the selection
   for track_index = start_track, end_track do
     local track = song:track(track_index)
     if track.type == renoise.Track.TRACK_TYPE_GROUP then
-      local group = track.group_parent
-      if group then
-        -- Set the mute state for the group and its member tracks, ignoring the master track
-        set_group_mute_state(group, new_mute_state)
+      -- Set the mute state for all member tracks of this group
+      set_group_mute_state(track, new_mute_state)
+      
+      -- If this group has a parent group (nested group), ensure parent group has same mute state
+      if track.group_parent then
+        local parent_group_name = track.group_parent.name
+        for i = 1, song.sequencer_track_count do
+          if song:track(i).type == renoise.Track.TRACK_TYPE_GROUP and song:track(i).name == parent_group_name then
+            song:track(i).mute_state = new_mute_state
+            break
+          end
+        end
       end
     end
   end
 end
 
--- Helper function to set mute state for a group and its member tracks
+-- Helper function to set mute state for a group's member tracks only (group itself is handled in main loop)
 function set_group_mute_state(group, mute_state)
-  -- Ensure we don't attempt to mute the master track
-  if group.type ~= renoise.Track.TRACK_TYPE_MASTER then
-    group.mute_state = mute_state
-  end
-
   -- Set mute state for all member tracks of the group, ignoring the master track
+  -- Note: The group track itself is already handled in the main loop
   for _, track in ipairs(group.members) do
     if track.type ~= renoise.Track.TRACK_TYPE_MASTER then
       track.mute_state = mute_state

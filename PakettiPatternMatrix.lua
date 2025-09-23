@@ -22,6 +22,9 @@ function duplicate_pattern_and_clear_muted_above()
   local new_sequence_index = current_sequence_index
   local new_pattern_index = song.sequencer:insert_new_pattern_at(new_sequence_index)
 
+  -- Set the new pattern length to match the original pattern length
+  song.patterns[new_pattern_index].number_of_lines = song.patterns[current_pattern_index].number_of_lines
+  
   -- Copy the current pattern into the newly created pattern
   song.patterns[new_pattern_index]:copy_from(song.patterns[current_pattern_index])
 
@@ -99,6 +102,9 @@ function duplicate_pattern_and_clear_muted()
   local new_sequence_index = current_sequence_index + 1
   local new_pattern_index = song.sequencer:insert_new_pattern_at(new_sequence_index)
 
+  -- Set the new pattern length to match the original pattern length
+  song.patterns[new_pattern_index].number_of_lines = song.patterns[current_pattern_index].number_of_lines
+  
   -- Copy the current pattern into the newly created pattern
   song.patterns[new_pattern_index]:copy_from(song.patterns[current_pattern_index])
 
@@ -172,6 +178,9 @@ function PakettiDuplicatePattern()
   local new_sequence_index = current_sequence_index + 1
   local new_pattern_index = song.sequencer:insert_new_pattern_at(new_sequence_index)
 
+  -- Set the new pattern length to match the original pattern length
+  song.patterns[new_pattern_index].number_of_lines = song.patterns[current_pattern_index].number_of_lines
+  
   song.patterns[new_pattern_index]:copy_from(song.patterns[current_pattern_index])
 
   local original_name = song.patterns[current_pattern_index].name
@@ -698,4 +707,43 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Swap Two Pattern Slot
 
 -- MIDI mapping for Swap Two Pattern Slots function
 renoise.tool():add_midi_mapping{name="Paketti:Swap Two Pattern Slots",invoke=PakettiSwapTwoPatternSlots}
+
+-- Resize all patterns to current pattern length
+function PakettiResizeAllPatternsToCurrentLength()
+  local song = renoise.song()
+  local current_pattern_index = song.selected_pattern_index
+  local current_pattern_length = song.patterns[current_pattern_index].number_of_lines
+  
+  local patterns_resized = 0
+  local total_patterns = #song.patterns
+  
+  -- Loop through all patterns and resize them to match current pattern length
+  for pattern_index = 1, total_patterns do
+    local pattern = song.patterns[pattern_index]
+    if pattern.number_of_lines ~= current_pattern_length then
+      pattern.number_of_lines = current_pattern_length
+      patterns_resized = patterns_resized + 1
+    end
+  end
+  
+  if patterns_resized > 0 then
+    renoise.app():show_status("Resized " .. patterns_resized .. " patterns to " .. current_pattern_length .. " lines (current pattern length)")
+  else
+    renoise.app():show_status("All patterns already have " .. current_pattern_length .. " lines (current pattern length)")
+  end
+end
+
+-- Menu entries for Resize All Patterns function
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
+
+-- Keybindings for Resize All Patterns function
+renoise.tool():add_keybinding{name="Global:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
+
+-- MIDI mapping for Resize All Patterns function
+renoise.tool():add_midi_mapping{name="Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
 

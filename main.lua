@@ -804,6 +804,8 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiSampleEffectGenerator")
   timed_require("PakettiNotepadRun")
   timed_require("PakettiEQ30")
+  timed_require("PakettiSliceEffectStepSequencer")
+  timed_require("PakettiHyperEdit")
   --timed_require("PakettiMultitapExperiment")
   --timed_require("PakettiPlayerProWaveformViewer")
   --timed_require("PakettiAutomationStack")
@@ -822,8 +824,8 @@ timed_require("PakettiAutocomplete")
 --timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
 --timed_require("PakettiAKAI")
 
-timed_require("PakettiSliceEffectStepSequencer")
 timed_require("PakettiEightOneTwenty")
+
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")
