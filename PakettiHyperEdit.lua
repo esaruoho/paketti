@@ -21,6 +21,7 @@ MAX_STEPS = 256  -- Global, support up to 256 steps
 local hyperedit_dialog = nil
 local dialog_vb = nil    -- Store ViewBuilder instance
 local row_canvases = {}  -- [row] = canvas
+local pre_configuration_applied = false
 
 -- Playhead variables (like PakettiGater)
 local playhead_timer_fn = nil
@@ -31,8 +32,7 @@ local playhead_color = nil
 -- Row state variables (must be declared early for playhead functions)
 local row_steps = {}  -- [row] = step count for this row (individual per row)
 
--- Track color capture
-local capture_track_color = false  -- Checkbox state
+-- Track color capture state is now stored in preferences (PakettiHyperEditCaptureTrackColor)
 
 -- Get current track color with blending
 function PakettiHyperEditGetTrackColor()
@@ -46,18 +46,14 @@ function PakettiHyperEditGetTrackColor()
   local track_color = track.color  -- RGB array
   local color_blend = track.color_blend or 50  -- Default 50% blend
   
-  print("DEBUG: Raw track color: " .. track_color[1] .. ", " .. track_color[2] .. ", " .. track_color[3])
-  print("DEBUG: Track color blend: " .. color_blend .. "%")
   
   -- When blend is 0%, it means "no blending" in Renoise - use raw color with boost
   if color_blend == 0 then
-    print("DEBUG: 0% blend - using raw track color with brightness boost")
     local boosted_color = {
       math.max(track_color[1], 100),  -- Ensure minimum 100 for visibility
       math.max(track_color[2], 100),
       math.max(track_color[3], 100)
     }
-    print("DEBUG: 0% blend result: " .. boosted_color[1] .. ", " .. boosted_color[2] .. ", " .. boosted_color[3])
     return boosted_color
   end
   
@@ -81,39 +77,29 @@ function PakettiHyperEditGetTrackColor()
     math.floor(boosted_color[3] * effective_blend + background[3] * (1 - effective_blend))
   }
   
-  print("DEBUG: Boosted color: " .. boosted_color[1] .. ", " .. boosted_color[2] .. ", " .. boosted_color[3])
-  print("DEBUG: Final blended color: " .. blended_color[1] .. ", " .. blended_color[2] .. ", " .. blended_color[3])
   
   return blended_color
 end
 
 -- Update colors based on capture track color setting
 function PakettiHyperEditUpdateColors()
-  print("DEBUG: PakettiHyperEditUpdateColors() started, capture_track_color = " .. tostring(capture_track_color))
   
-  if capture_track_color then
-    print("DEBUG: Getting track color...")
+  if preferences.PakettiHyperEditCaptureTrackColor.value then
     local track_color = PakettiHyperEditGetTrackColor()
-    print("DEBUG: Got track color: " .. track_color[1] .. ", " .. track_color[2] .. ", " .. track_color[3])
-    
     COLOR_ACTIVE_STEP = {track_color[1], track_color[2], track_color[3], 255}
-    print("DEBUG: Set COLOR_ACTIVE_STEP to: " .. COLOR_ACTIVE_STEP[1] .. ", " .. COLOR_ACTIVE_STEP[2] .. ", " .. COLOR_ACTIVE_STEP[3] .. ", " .. COLOR_ACTIVE_STEP[4])
   else
     COLOR_ACTIVE_STEP = {120, 40, 160, 255}  -- Default purple
-    print("DEBUG: Set COLOR_ACTIVE_STEP to default purple: " .. COLOR_ACTIVE_STEP[1] .. ", " .. COLOR_ACTIVE_STEP[2] .. ", " .. COLOR_ACTIVE_STEP[3] .. ", " .. COLOR_ACTIVE_STEP[4])
   end
   
   -- Update playhead color too
-  print("DEBUG: Updating playhead color...")
   playhead_color = PakettiHyperEditResolvePlayheadColor()
-  if playhead_color then
-    print("DEBUG: Set playhead_color to: " .. playhead_color[1] .. ", " .. playhead_color[2] .. ", " .. playhead_color[3])
-  else
-    print("DEBUG: Set playhead_color to nil (no playhead)")
-  end
   
   -- Update all canvases
-  print("DEBUG: Updating " .. NUM_ROWS .. " canvases...")
+  -- Update all step count button colors
+  for row = 1, NUM_ROWS do
+    PakettiHyperEditUpdateStepButtonColors(row)
+  end
+  
   local updated_count = 0
   for row = 1, NUM_ROWS do
     if row_canvases[row] then
@@ -121,17 +107,13 @@ function PakettiHyperEditUpdateColors()
       updated_count = updated_count + 1
     end
   end
-  print("DEBUG: Updated " .. updated_count .. " canvases out of " .. NUM_ROWS)
-  print("DEBUG: PakettiHyperEditUpdateColors() completed")
 end
 
 -- Playhead color resolution function
 function PakettiHyperEditResolvePlayheadColor()
-  print("DEBUG: PakettiHyperEditResolvePlayheadColor() called, capture_track_color = " .. tostring(capture_track_color))
   
   -- If track color capture is enabled, use track color for playhead too
-  if capture_track_color then
-    print("DEBUG: Using track color for playhead...")
+  if preferences.PakettiHyperEditCaptureTrackColor.value then
     local track_color = PakettiHyperEditGetTrackColor()
     -- Make playhead brighter than active steps for visibility
     local playhead_result = {
@@ -139,14 +121,11 @@ function PakettiHyperEditResolvePlayheadColor()
       math.min(255, track_color[2] + 60), 
       math.min(255, track_color[3] + 60)
     }
-    print("DEBUG: Playhead color result: " .. playhead_result[1] .. ", " .. playhead_result[2] .. ", " .. playhead_result[3])
     return playhead_result
   end
   
   -- Otherwise use preferences
-  print("DEBUG: Using preference-based playhead color...")
   local choice = (preferences and preferences.PakettiGrooveboxPlayheadColor and preferences.PakettiGrooveboxPlayheadColor.value) or 2
-  print("DEBUG: Playhead color preference choice: " .. choice)
   if choice == 1 then return nil end -- None
   if choice == 2 then return {255,128,0} end -- Bright Orange
   if choice == 3 then return {64,0,96} end -- Deeper Purple
@@ -428,12 +407,11 @@ end
 NUM_ROWS = 8  -- Global as per project rules
 step_data = {}  -- [row][step] = value (0.0 to 1.0) - Global 
 step_active = {}  -- [row][step] = boolean - Global
-local loop_length = 16  -- Loop repetition
 
 -- Canvas dimensions per row - taller as requested
-local canvas_width = 600
+local canvas_width = 777
 local canvas_height_per_row = 60  -- 2x taller (was 40)
-local content_margin = 2
+local content_margin = 1
 
 -- Mouse state
 local mouse_is_down = false
@@ -444,6 +422,102 @@ COLOR_ACTIVE_STEP = {120, 40, 160, 255}     -- Purple for active steps (will be 
 COLOR_INACTIVE_STEP = {40, 40, 40, 255}     -- Dark gray for inactive steps  
 COLOR_GRID = {80, 80, 80, 255}              -- Grid lines
 COLOR_BACKGROUND = {20, 20, 20, 255}        -- Dark background
+
+-- Pre-configure parameters when opening on empty channel
+function PakettiHyperEditPreConfigureParameters()
+  local song = renoise.song()
+  if not song then return end
+  
+  local track = song.selected_track
+  if not track then return end
+  
+  -- Check if there are any existing automations on this track - if so, skip pre-configuration
+  local current_pattern = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local pattern_track = song:pattern(current_pattern):track(track_index)
+  
+  -- Quick check for any existing automations 
+  local has_automation = false
+  for i = 2, #track.devices do -- Skip Track Vol/Pan
+    local device = track.devices[i]
+    for j = 1, #device.parameters do
+      local param = device.parameters[j]
+      if param.is_automatable then
+        local automation = pattern_track:find_automation(param)
+        if automation and #automation.points > 0 then
+          has_automation = true
+          break
+        end
+      end
+    end
+    if has_automation then break end
+  end
+  
+  if has_automation then
+    -- If automation exists, populate from it instead
+    PakettiHyperEditPopulateFromExistingAutomation()
+    return
+  end
+  
+  -- Get available devices
+  local devices = PakettiHyperEditGetDevices()
+  if #devices == 0 then return end
+  
+  -- Use first device
+  local first_device_info = devices[1]
+  local first_device_params = PakettiHyperEditGetParameters(first_device_info.device)
+  if #first_device_params == 0 then return end
+  
+  -- Pre-configure first 8 rows with first 8 parameters from first device
+  local max_rows = math.min(NUM_ROWS, 8, #first_device_params)
+  for row = 1, max_rows do
+    local param_info = first_device_params[row]
+    local param_index = row
+    
+    -- If we encounter X_PitchBend, look for Pitchbend instead
+    if param_info.name == "X_PitchBend" then
+      for i, p in ipairs(first_device_params) do
+        if p.name == "Pitchbend" then
+          param_info = p
+          param_index = i
+          break
+        end
+      end
+    end
+    
+    -- Set device for this row
+    row_devices[row] = first_device_info
+    parameter_lists[row] = first_device_params
+    
+    -- Set parameter for this row
+    row_parameters[row] = param_info
+    
+    -- Update UI elements if they exist
+    if dialog_vb then
+      -- Update device popup (set to first device)
+      local device_popup = dialog_vb.views["device_popup_" .. row]
+      if device_popup then
+        device_popup.value = 1 -- First device
+      end
+      
+      -- Update parameter popup
+      local param_popup = dialog_vb.views["parameter_popup_" .. row]
+      if param_popup then
+        local param_names = {}
+        for _, p in ipairs(first_device_params) do
+          table.insert(param_names, p.name)
+        end
+        param_popup.items = param_names
+        param_popup.value = param_index -- Select the correct parameter index
+      end
+    end
+  end
+  
+  -- Set flag to indicate pre-configuration was applied
+  pre_configuration_applied = true
+  
+  renoise.app():show_status("HyperEdit: Pre-configured first " .. max_rows .. " rows with " .. first_device_info.name .. " parameters")
+end
 
 -- Initialize step data for all rows
 function PakettiHyperEditInitStepData()
@@ -551,18 +625,68 @@ function PakettiHyperEditUpdateAllDeviceLists()
         
         for i, device_info in ipairs(devices) do
           if device_info.device.display_name == current_device_name then
-            device_popup.value = i
-            found_current = true
-            print("DEBUG: Successfully maintained selection for row " .. row .. " - device '" .. current_device_name .. "' at index " .. i)
+            -- Check if this is actually the same device object
+            if row_devices[row] and row_devices[row].device == device_info.device then
+              -- Same device object - just update popup index, preserve all parameter data
+              device_popup.value = i
+              row_devices[row] = device_info  -- Update device info but keep parameter data
+              found_current = true
+              print("DEBUG: Same device found for row " .. row .. " - preserved parameter: " .. (row_parameters[row] and row_parameters[row].name or "none"))
+              
+              -- Update parameter popup to show correct items and selection
+              local param_popup = dialog_vb.views["parameter_popup_" .. row]
+              if param_popup and parameter_lists[row] and #parameter_lists[row] > 0 then
+                local param_names = {}
+                local current_param_index = 1
+                for j, param_info in ipairs(parameter_lists[row]) do
+                  table.insert(param_names, param_info.name)
+                  if row_parameters[row] and param_info.parameter == row_parameters[row].parameter then
+                    current_param_index = j
+                  end
+                end
+                param_popup.items = param_names
+                param_popup.value = current_param_index
+              end
+            else
+              -- Same name but different device object - need to re-select  
+              device_popup.value = i
+              found_current = true
+              print("DEBUG: Device name match for row " .. row .. " but different object - need to re-select parameters")
+              PakettiHyperEditSelectDevice(row, i)
+            end
             break
           end
         end
         
         if not found_current then
           print("DEBUG: Could not find device '" .. current_device_name .. "' in new list for row " .. row)
-          -- Device was removed - let it default to index 1 but don't call SelectDevice
+          -- Device was removed - clear parameter data
+          row_devices[row] = nil
+          row_parameters[row] = nil
+          parameter_lists[row] = {}
+          
+          -- Clear parameter popup
+          local param_popup = dialog_vb.views["parameter_popup_" .. row]
+          if param_popup then
+            param_popup.items = {"Select device first"}
+            param_popup.value = 1
+          end
+          
+          -- Clear visual step data for this row since device was removed
+          if step_data[row] then
+            for step = 1, MAX_STEPS do
+              step_data[row][step] = 0.5
+              step_active[row][step] = false
+            end
+            -- Update canvas
+            if row_canvases[row] then
+              row_canvases[row]:update()
+            end
+          end
+          
           if #devices > 0 then
             device_popup.value = 1
+            -- Don't auto-select new device - let user choose
           end
         end
       else
@@ -577,7 +701,34 @@ function PakettiHyperEditUpdateAllDeviceLists()
     end
   end
   
-  renoise.app():show_status("HyperEdit: Updated device lists (" .. #devices .. " devices)")
+  -- Count how many rows preserved their automation data
+  local preserved_count = 0
+  local cleared_count = 0
+  for row = 1, NUM_ROWS do
+    if row_parameters[row] then
+      preserved_count = preserved_count + 1
+    elseif row_devices[row] == nil and (step_data[row] and step_active[row]) then
+      -- Count rows that had data but now don't have devices
+      local had_data = false
+      for step = 1, MAX_STEPS do
+        if step_active[row][step] then
+          had_data = true
+          break
+        end
+      end
+      if had_data then cleared_count = cleared_count + 1 end
+    end
+  end
+  
+  local status_msg = "HyperEdit: Updated device lists (" .. #devices .. " devices)"
+  if preserved_count > 0 then
+    status_msg = status_msg .. ", " .. preserved_count .. " automation(s) preserved"
+  end
+  if cleared_count > 0 then
+    status_msg = status_msg .. ", " .. cleared_count .. " cleared (devices removed)"
+  end
+  
+  renoise.app():show_status(status_msg)
 end
 
 -- Select device for specific row
@@ -678,7 +829,14 @@ function PakettiHyperEditHandleRowMouse(row)
     if ev.type == "down" then
       mouse_is_down = true
       current_row_drawing = row
-      PakettiHyperEditHandleRowClick(row, x, y)
+      
+      -- Check for right-click or Ctrl+click to delete automation envelope
+      if ev.button == "right" or (ev.button == "left" and ev.modifiers == "control") then
+        PakettiHyperEditDeleteAutomation(row)
+      else
+        -- Regular left-click
+        PakettiHyperEditHandleRowClick(row, x, y)
+      end
     elseif ev.type == "up" then
       mouse_is_down = false
       current_row_drawing = 0
@@ -772,6 +930,40 @@ function PakettiHyperEditHandleRowClick(row, x, y)
     local actual_value = param_min + (normalized_y * (param_max - param_min))
     renoise.app():show_status(string.format("HyperEdit Row %d: %s Step %d = %.3f", row, param_name, step, actual_value))
   end
+end
+
+-- Delete automation envelope for a row
+function PakettiHyperEditDeleteAutomation(row)
+  if not row_parameters[row] then 
+    renoise.app():show_status("HyperEdit Row " .. row .. ": No parameter selected")
+    return 
+  end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  local current_pattern = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local pattern_track = song:pattern(current_pattern):track(track_index)
+  local parameter = row_parameters[row].parameter
+  
+  -- Delete the automation envelope
+  pattern_track:delete_automation(parameter)
+  
+  -- Clear visual canvas data for this row
+  for step = 1, MAX_STEPS do
+    step_active[row][step] = false
+    step_data[row][step] = 0.5  -- Reset to center value
+  end
+  
+  -- Redraw the canvas
+  if row_canvases[row] then
+    row_canvases[row]:update()
+  end
+  
+  local param_name = row_parameters[row].name or "Unknown"
+  renoise.app():show_status("HyperEdit Row " .. row .. ": Deleted automation for " .. param_name)
+  print("DEBUG: Deleted automation for row " .. row .. " parameter: " .. param_name)
 end
 
 -- Apply step change immediately
@@ -960,6 +1152,9 @@ function PakettiHyperEditAutoReadAutomation(row)
   if dialog_vb and dialog_vb.views["steps_" .. row] then
     dialog_vb.views["steps_" .. row].value = detected_step_count
   end
+  
+  -- Update step count button colors
+  PakettiHyperEditUpdateStepButtonColors(row)
   
   -- Clear existing step data
   for step = 1, MAX_STEPS do
@@ -1257,6 +1452,9 @@ function PakettiHyperEditPopulateFromExistingAutomation()
         dialog_vb.views["steps_" .. row].value = detected_step_count
       end
       
+      -- Update step count button colors
+      PakettiHyperEditUpdateStepButtonColors(row)
+      
       -- Read automation points and consolidate to detected pattern length
       local points_read = 0
       for _, point in ipairs(automation.points) do
@@ -1432,7 +1630,7 @@ function PakettiHyperEditDrawRowCanvas(row)
     end
     
     -- Draw content area border (like PakettiCanvasExperiments) with track color if enabled
-    if capture_track_color then
+    if preferences.PakettiHyperEditCaptureTrackColor.value then
       local track_color = PakettiHyperEditGetTrackColor()
       ctx.stroke_color = {track_color[1], track_color[2], track_color[3], 255}
     else
@@ -1474,8 +1672,13 @@ function PakettiHyperEditSetupObservers()
         PakettiHyperEditPopulateFromExistingAutomation()
         
         -- Update colors if track color capture is enabled
-        if capture_track_color then
+        if preferences.PakettiHyperEditCaptureTrackColor.value then
           PakettiHyperEditUpdateColors()
+        else
+          -- Update step count button colors even if track color capture is disabled
+          for row = 1, NUM_ROWS do
+            PakettiHyperEditUpdateStepButtonColors(row)
+          end
         end
         
         -- Refresh all canvases
@@ -1558,8 +1761,37 @@ function PakettiHyperEditRemoveObservers()
 end
 
 -- Change step count for specific row
+--- Update step count button colors for a specific row
+function PakettiHyperEditUpdateStepButtonColors(row)
+  if not dialog_vb then return end
+  
+  local step_counts = {1, 2, 4, 8, 16, 32, 48, 64, 96, 112, 128, 192, 256}
+  local active_color = {0x00, 0x80, 0x00}  -- Default green for active step count
+  local inactive_color = {0x40, 0x40, 0x40}  -- Default button color for inactive
+  
+  -- Use track color if "Capture Track Color" is enabled
+  if preferences.PakettiHyperEditCaptureTrackColor.value then
+    local track_color = PakettiHyperEditGetTrackColor()
+    if track_color then
+      active_color = track_color
+    end
+  end
+  
+  for _, step_count in ipairs(step_counts) do
+    local button_id = "step_btn_" .. row .. "_" .. step_count
+    if dialog_vb.views[button_id] then
+      -- Use active color for current step count, inactive color for others (never nil)
+      dialog_vb.views[button_id].color = (row_steps[row] == step_count) and active_color or inactive_color
+    end
+  end
+end
+
 function PakettiHyperEditChangeRowStepCount(row, steps)
   row_steps[row] = steps
+  
+  -- Update button colors to highlight the new step count
+  PakettiHyperEditUpdateStepButtonColors(row)
+  
   -- Update only this row's canvas
   if row_canvases[row] then
     row_canvases[row]:update()
@@ -1567,21 +1799,44 @@ function PakettiHyperEditChangeRowStepCount(row, steps)
   renoise.app():show_status("HyperEdit Row " .. row .. ": Changed to " .. steps .. " steps")
 end
 
--- Change loop length
-function PakettiHyperEditChangeLoopLength(loop_len)
-  loop_length = loop_len
-  renoise.app():show_status("HyperEdit: Loop length set to " .. loop_len .. " steps")
-end
-
--- Clear all data
+-- Clear all automation data AND visual canvas
 function PakettiHyperEditClearAll()
+  local song = renoise.song()
+  if not song then return end
+  
+  local current_pattern = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local pattern_track = song:pattern(current_pattern):track(track_index)
+  local cleared_count = 0
+  
+  -- Clear automation for each row that has a parameter selected
+  for row = 1, NUM_ROWS do
+    if row_parameters[row] then
+      local parameter = row_parameters[row]
+      local automation = pattern_track:find_automation(parameter)
+      
+      if automation and #automation.points > 0 then
+        -- Clear all automation points
+        automation.points = {}
+        cleared_count = cleared_count + 1
+        print("DEBUG: Cleared automation for row " .. row .. " parameter: " .. parameter.name)
+      end
+    end
+  end
+  
+  -- Clear visual canvas data
   PakettiHyperEditInitStepData()
   for row = 1, NUM_ROWS do
     if row_canvases[row] then
       row_canvases[row]:update()
     end
   end
-  renoise.app():show_status("HyperEdit: Cleared all step data")
+  
+  if cleared_count > 0 then
+    renoise.app():show_status("HyperEdit: Cleared " .. cleared_count .. " automation envelope(s) and canvas data")
+  else
+    renoise.app():show_status("HyperEdit: Cleared canvas data (no automation to clear)")
+  end
 end
 
 -- Key handler
@@ -1619,6 +1874,9 @@ function PakettiHyperEditCreateDialog()
     hyperedit_dialog:close()
   end
   
+  -- Reset pre-configuration flag for new dialog
+  pre_configuration_applied = false
+  
   -- Initialize data
   PakettiHyperEditInitStepData()
   
@@ -1645,33 +1903,23 @@ function PakettiHyperEditCreateDialog()
   local dialog_content = vb:column {
     -- Global controls
     vb:row {
-      vb:text { text = "Loop", width = 40 },
-      vb:valuebox {
-        min = 1,
-        max = 256,
-        value = loop_length,
-        width = 50,
-        notifier = function(value)
-          PakettiHyperEditChangeLoopLength(value)
-        end
-      },
-      vb:space { width = 10 },
       vb:checkbox {
         id = "capture_track_color",
-        value = capture_track_color,
+        value = preferences.PakettiHyperEditCaptureTrackColor.value,
         notifier = function(value)
           print("DEBUG: === Capture Track Color checkbox toggled to: " .. tostring(value) .. " ===")
-          capture_track_color = value
-          print("DEBUG: capture_track_color variable set to: " .. tostring(capture_track_color))
+          preferences.PakettiHyperEditCaptureTrackColor.value = value
+          preferences:save_as("preferences.xml")
+          print("DEBUG: capture_track_color preference set to: " .. tostring(preferences.PakettiHyperEditCaptureTrackColor.value))
           
           print("DEBUG: About to call PakettiHyperEditUpdateColors()")
           PakettiHyperEditUpdateColors()
           print("DEBUG: PakettiHyperEditUpdateColors() completed")
           
           if value then
-            renoise.app():show_status("HyperEdit: Using track color for active steps")
+            renoise.app():show_status("HyperEdit: Using track color for active steps (saved to preferences)")
           else
-            renoise.app():show_status("HyperEdit: Using default purple color")
+            renoise.app():show_status("HyperEdit: Using default colors (saved to preferences)")
           end
           print("DEBUG: === Checkbox notifier complete ===")
         end
@@ -1693,98 +1941,132 @@ function PakettiHyperEditCreateDialog()
     local row_content = vb:column {
       -- Row header with device/parameter selection and individual step count (no row labels, no read button)
       vb:row {
-        -- Step count quick buttons (supports smart pattern detection)
+        -- Step count quick buttons (supports smart pattern detection with color highlighting)
         vb:button {
+          id = "step_btn_" .. row .. "_1",
           text = "1",
           width = 20,
+          color = (row_steps[row] == 1) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 1 (constant value)",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 1)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_2",
           text = "2",
           width = 20,
+          color = (row_steps[row] == 2) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 2",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 2)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_4",
           text = "4", 
           width = 20,
+          color = (row_steps[row] == 4) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 4",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 4)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_8",
           text = "8",
           width = 20,
+          color = (row_steps[row] == 8) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 8",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 8)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_16",
+          text = "16",
+          width = 20,
+          color = (row_steps[row] == 16) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
+          tooltip = "Set step count to 16",
+          notifier = function()
+            PakettiHyperEditChangeRowStepCount(row, 16)
+          end
+        },        
+        vb:button {
+          id = "step_btn_" .. row .. "_32",
           text = "32",
           width = 25,
+          color = (row_steps[row] == 32) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 32",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 32)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_48",
           text = "48",
           width = 25,
+          color = (row_steps[row] == 48) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 48",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 48)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_64",
           text = "64",
           width = 25,
+          color = (row_steps[row] == 64) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 64",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 64)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_96",
           text = "96",
           width = 25,
+          color = (row_steps[row] == 96) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 96",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 96)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_112",
           text = "112",
           width = 30,
+          color = (row_steps[row] == 112) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 112",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 112)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_128",
           text = "128",
           width = 30,
+          color = (row_steps[row] == 128) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 128",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 128)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_192",
           text = "192",
           width = 30,
+          color = (row_steps[row] == 192) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 192",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 192)
           end
         },
         vb:button {
+          id = "step_btn_" .. row .. "_256",
           text = "256",
           width = 30,
+          color = (row_steps[row] == 256) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 256",
           notifier = function()
             PakettiHyperEditChangeRowStepCount(row, 256)
@@ -1806,7 +2088,7 @@ function PakettiHyperEditCreateDialog()
           id = "device_popup_" .. row,
           items = device_names,
           value = (#devices > 0) and 1 or 1,  -- Select first device if available
-          width = 200,  -- Made even wider without Read button
+          width = 200,
           notifier = function(index)
             print("DEBUG: Device popup " .. row .. " notifier called with index " .. index)
             PakettiHyperEditSelectDevice(row, index)
@@ -1816,7 +2098,7 @@ function PakettiHyperEditCreateDialog()
           id = "parameter_popup_" .. row,
           items = {"Select device first"},
           value = 1,
-          width = 200,  -- Made even wider without Read button
+          width = 100,
           tooltip = "Selecting parameter auto-reads existing automation and sets to POINTS mode",
           notifier = function(index)
             PakettiHyperEditSelectParameter(row, index)
@@ -1865,7 +2147,7 @@ function PakettiHyperEditCreateDialog()
     dialog_content:add_child(row_content)
   end
   
-  -- Bottom controls
+--[[  -- Bottom control
   dialog_content:add_child(vb:row {
     vb:button {
       text = "Close",
@@ -1875,7 +2157,7 @@ function PakettiHyperEditCreateDialog()
         hyperedit_dialog:close()
       end
     }
-  })
+  })--]]
   
   -- Store the ViewBuilder instance for later use
   dialog_vb = vb
@@ -1911,15 +2193,18 @@ function PakettiHyperEditCreateDialog()
   -- Initialize colors based on track color capture setting
   PakettiHyperEditUpdateColors()
   
+  -- Try to pre-configure parameters for empty channels
+  PakettiHyperEditPreConfigureParameters()
+  
   -- CRITICAL: Initialize with existing automation or default to first device
   if #devices > 0 then
-    print("DEBUG: Setting up initialization timer with " .. #devices .. " devices")
     local init_timer
     init_timer = function()
-      print("DEBUG: === Initialization timer executing ===")
-      
-      -- First, try to populate from existing automation
-      PakettiHyperEditPopulateFromExistingAutomation()
+      -- Only populate from existing automation if pre-configuration didn't already handle it
+      if not pre_configuration_applied then
+        -- First, try to populate from existing automation
+        PakettiHyperEditPopulateFromExistingAutomation()
+      end
       
       -- For any rows not populated by automation, set to first device
       print("DEBUG: Checking which rows need default device setup...")

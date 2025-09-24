@@ -184,6 +184,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiUnisonDetuneFluctuation=true,
   pakettiUnisonDetuneHardSync=false,
   pakettiUnisonDuplicateInstrument=true,
+  PakettiHyperEditCaptureTrackColor=false,
   pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni",
   pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
   ActionSelector = {
