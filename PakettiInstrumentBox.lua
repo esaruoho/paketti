@@ -633,4 +633,35 @@ for i = 0, 15 do
     invoke=function(message) if message:is_trigger() then select_chunk(chunk_index) end end}
 end
 
+function PakettiInsertNewInstrument()
+  local rs = renoise.song()
+  local current_index = rs.selected_instrument_index
+  local new_index = current_index + 1
+  
+  rs:insert_instrument_at(new_index)
+  rs.selected_instrument_index = new_index
+  
+  renoise.app():show_status("New instrument inserted at index " .. tostring(new_index))
+end
+
+function PakettiDeleteCurrentInstrument()
+  local rs = renoise.song()
+  local current_index = rs.selected_instrument_index
+  
+  -- Check if there's more than one instrument to prevent deleting the last one
+  if #rs.instruments <= 1 then
+    renoise.app():show_status("Cannot delete the last instrument")
+    return
+  end
+  
+  rs:delete_instrument_at(current_index)
+  renoise.app():show_status("Instrument at index " .. tostring(current_index) .. " deleted")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Insert New Instrument", invoke=function() PakettiInsertNewInstrument() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Insert New Instrument (2nd)", invoke=function() PakettiInsertNewInstrument() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Delete Current Instrument", invoke=function() PakettiDeleteCurrentInstrument() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Delete Current Instrument (2nd)", invoke=function() PakettiDeleteCurrentInstrument() end}
+
 
