@@ -1953,7 +1953,7 @@ function PakettiPresetPlusPlusCreateNewMultibandSend()
   loadnative("Audio/Effects/Native/#Multiband Send", nil, "./Presets/PakettiMultiSend.xml", nil, true)
   
   -- Configure parameters based on mode
-  local suffix, status_msg
+  local status_msg
   local send_device = song.selected_device
   if send_device and send_device.name == "#Multiband Send" then
     -- Set send destination (find DestSendTrack parameter)
@@ -1970,14 +1970,12 @@ function PakettiPresetPlusPlusCreateNewMultibandSend()
       send_device.parameters[3].value = 1.0  -- Band2Volume MAXIMUM
       send_device.parameters[5].value = 1.0  -- Band3Volume MAXIMUM
       -- Note: MultibandSend doesn't have MuteSource parameter
-      suffix = " (MB Mute)"
       status_msg = "with Mute Source Multiband Send device"
 -- Silent mode removed
     else -- "keep" mode (default)
       send_device.parameters[1].value = 0.0  -- Band1Volume MINIMUM (-inf dB)
       send_device.parameters[3].value = 0.0  -- Band2Volume MINIMUM (-inf dB)
       send_device.parameters[5].value = 0.0  -- Band3Volume MINIMUM (-inf dB)
-      suffix = " (MB)"
       status_msg = "and connected Multiband Send device"
     end
     
@@ -1989,7 +1987,7 @@ function PakettiPresetPlusPlusCreateNewMultibandSend()
     send_device.parameters[8].show_in_mixer = true  -- SplitFrequency2
     
     send_device.is_maximized = false
-    send_device.display_name = send_track_name .. suffix
+    send_device.display_name = send_track_name
     
     -- Select the newly created send track
     song.selected_track_index = new_send_position
@@ -2052,28 +2050,24 @@ function PakettiPresetPlusPlusCreateNewSendWithMode(mode)
   loadnative("Audio/Effects/Native/#Send", nil, "./Presets/PakettiSend.xml", nil, true)
   
   -- Configure parameters based on mode
-  local suffix, status_msg
+  local status_msg
   local send_device = song.selected_device
   if send_device and send_device.name == "#Send" then
     -- Set send destination to the newly created send track (send_track_count = index of new track)
     send_device.parameters[3].value = send_track_count
     
-    -- Configure volume and mute based on mode
+    -- Configure volume based on mode
     if mode == "mute" then
       send_device.parameters[1].value = 1.0  -- SendAmount to MAXIMUM volume
-      send_device.parameters[4].value = 1    -- MuteSource = true (mutes original track)
-      suffix = " (Mute)"
-      status_msg = "with Mute Source Send device"
+      status_msg = "with Send device at maximum volume"
     else -- "keep" mode (default)
       send_device.parameters[1].value = 0.0  -- SendAmount to MINIMUM volume (-inf dB)
-      send_device.parameters[4].value = 0    -- MuteSource = false (keeps original source)
-      suffix = ""
       status_msg = "and connected Send device"
     end
     
     send_device.parameters[2].show_in_mixer = false
     send_device.is_maximized = false
-    send_device.display_name = send_track_name .. suffix
+    send_device.display_name = send_track_name
     
     -- Select the newly created send track
     song.selected_track_index = new_send_position
@@ -2128,7 +2122,7 @@ function PakettiPresetPlusPlusCreateNewMultibandSendWithMode(mode)
   loadnative("Audio/Effects/Native/#Multiband Send", nil, "./Presets/PakettiMultiSend.xml", nil, true)
   
   -- Configure parameters based on mode
-  local suffix, status_msg
+  local status_msg
   local send_device = song.selected_device
   if send_device and send_device.name == "#Multiband Send" then
     -- Set send destination (find DestSendTrack parameter)
@@ -2145,14 +2139,12 @@ function PakettiPresetPlusPlusCreateNewMultibandSendWithMode(mode)
       send_device.parameters[3].value = 1.0  -- Band2Volume MAXIMUM
       send_device.parameters[5].value = 1.0  -- Band3Volume MAXIMUM
       -- Note: MultibandSend doesn't have MuteSource parameter
-      suffix = " (MB Mute)"
       status_msg = "with Mute Source Multiband Send device"
 -- Silent mode removed
     else -- "keep" mode (default)
       send_device.parameters[1].value = 0.0  -- Band1Volume MINIMUM (-inf dB)
       send_device.parameters[3].value = 0.0  -- Band2Volume MINIMUM (-inf dB)
       send_device.parameters[5].value = 0.0  -- Band3Volume MINIMUM (-inf dB)
-      suffix = " (MB)"
       status_msg = "and connected Multiband Send device"
     end
     
@@ -2164,7 +2156,7 @@ function PakettiPresetPlusPlusCreateNewMultibandSendWithMode(mode)
     send_device.parameters[8].show_in_mixer = true  -- SplitFrequency2
     
     send_device.is_maximized = false
-    send_device.display_name = send_track_name .. suffix
+    send_device.display_name = send_track_name
     
     renoise.app():show_status("Created Send Track '" .. send_track_name .. "' " .. status_msg)
   else
