@@ -562,6 +562,10 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     HalfSize = false,
     HalfSizeFont = false
   },
+  -- Create New Send Settings
+  pakettiCreateNewSends = {
+    Collapsed = false
+  },
   -- PlayerPro Waveform Viewer Settings
   pakettiPlayerProWaveformViewer = {
     OnlySelectedTrack = false,
@@ -1602,6 +1606,20 @@ vb:row{
               tooltip="On: Always use smaller text. Off: Use small text only with Half Size canvas",
               notifier=function(value) 
                 preferences.pakettiParameterEditor.HalfSizeFont.value=(value==2)
+              end
+            }
+          },
+
+          -- Create New Send Settings
+          vb:text{style="strong",font="bold",text="Create New Sends"},
+          vb:row{
+            vb:text{text="Collapsed",width=150,tooltip="When enabled, newly created Send Tracks will be collapsed by default"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiCreateNewSends.Collapsed.value and 2 or 1,
+              width=200,
+              tooltip="When enabled, newly created Send Tracks will be collapsed by default",
+              notifier=function(value) 
+                preferences.pakettiCreateNewSends.Collapsed.value=(value==2)
               end
             }
           },

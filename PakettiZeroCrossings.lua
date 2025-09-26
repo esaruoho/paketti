@@ -598,5 +598,3 @@ renoise.tool():add_midi_mapping{name="Paketti:Zero Crossings Advanced Dialog", i
 renoise.tool():add_midi_mapping{name="Paketti:Zero Cross Wipe&Slice (016)", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsWipeSlice016() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Slice Positions", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsQuickRandomizeSlices() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Create Random Distributed Slices", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsQuickRandomSlices() end end}
-
-print("PakettiZeroCrossings.lua loaded - Advanced slice operations with zero-crossing detection")

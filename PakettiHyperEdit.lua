@@ -3,6 +3,8 @@
 -- Each row has its own canvas with device and parameter dropdowns
 
 local vb = renoise.ViewBuilder()
+-- Global flag to prevent auto-read during device list updates
+local is_updating_device_lists = false
 
 local row_devices = {}   -- [row] = selected device
 local row_parameters = {} -- [row] = selected parameter
@@ -13,9 +15,26 @@ local track_change_notifier = nil
 local device_change_notifier = nil
 
 
--- Constants
-local NUM_ROWS = 8
+-- Constants  
 MAX_STEPS = 256  -- Global, support up to 256 steps
+
+-- Dynamic row count - will be set from preferences
+local NUM_ROWS = 8
+
+-- Update NUM_ROWS from preferences
+function PakettiHyperEditUpdateRowCount()
+  -- Initialize preference if it doesn't exist
+  if preferences and not preferences.PakettiHyperEditRowCount then
+    preferences:add_property("PakettiHyperEditRowCount", renoise.Document.ObservableNumber(8))
+    preferences:save_as("preferences.xml")
+  end
+  
+  if preferences and preferences.PakettiHyperEditRowCount then
+    NUM_ROWS = preferences.PakettiHyperEditRowCount.value
+  else
+    NUM_ROWS = 8  -- Default fallback
+  end
+end
 
 -- Dialog state
 local hyperedit_dialog = nil
@@ -404,7 +423,7 @@ end
 
 
 -- Stepsequencer state (MAX_STEPS already defined above as global)
-NUM_ROWS = 8  -- Global as per project rules
+-- Row count is now dynamic based on preferences
 step_data = {}  -- [row][step] = value (0.0 to 1.0) - Global 
 step_active = {}  -- [row][step] = boolean - Global
 
@@ -416,6 +435,11 @@ local content_margin = 1
 -- Mouse state
 local mouse_is_down = false
 local current_row_drawing = 0
+local mouse_state_monitor_timer = nil
+local last_mouse_move_time = 0
+
+-- Track switching state
+local is_track_switching = false
 
 -- Colors for visualization (GLOBAL so PakettiHyperEditUpdateColors can modify them)
 COLOR_ACTIVE_STEP = {120, 40, 160, 255}     -- Purple for active steps (will be updated by track color capture)
@@ -454,8 +478,10 @@ function PakettiHyperEditPreConfigureParameters()
   end
   
   if has_automation then
-    -- If automation exists, populate from it instead
+    -- If automation exists, populate from it instead of pre-configuring
+    print("DEBUG: Automation detected - populating from existing automation envelopes")
     PakettiHyperEditPopulateFromExistingAutomation()
+    pre_configuration_applied = true  -- Prevent init timer from running automation population again
     return
   end
   
@@ -468,11 +494,27 @@ function PakettiHyperEditPreConfigureParameters()
   local first_device_params = PakettiHyperEditGetParameters(first_device_info.device)
   if #first_device_params == 0 then return end
   
-  -- Pre-configure first 8 rows with first 8 parameters from first device
-  local max_rows = math.min(NUM_ROWS, 8, #first_device_params)
+  -- Pre-configure first 8 rows with parameters from first device
+  -- For *Instr. Macros devices, skip parameter 1 and map parameters 2-8
+  local param_offset = 0
+  local max_params = 8
+  if first_device_info.name:find("Instr") and first_device_info.name:find("Macro") then
+    param_offset = 1  -- Skip first parameter for Instrument Macros
+    print("DEBUG: Detected Instrument Macros device, using parameters 2-8")
+  end
+  
+  local available_params = #first_device_params - param_offset
+  local max_rows = math.min(NUM_ROWS, max_params, available_params)
+  
+  print("DEBUG: Device has " .. #first_device_params .. " parameters, offset: " .. param_offset .. ", available: " .. available_params .. ", max_rows: " .. max_rows)
+  
   for row = 1, max_rows do
-    local param_info = first_device_params[row]
-    local param_index = row
+    local param_index = row + param_offset
+    if param_index > #first_device_params then
+      print("DEBUG: Skipping row " .. row .. " - param index " .. param_index .. " exceeds available parameters (" .. #first_device_params .. ")")
+      break
+    end
+    local param_info = first_device_params[param_index]
     
     -- If we encounter X_PitchBend, look for Pitchbend instead
     if param_info.name == "X_PitchBend" then
@@ -485,8 +527,8 @@ function PakettiHyperEditPreConfigureParameters()
       end
     end
     
-    -- Set device for this row
-    row_devices[row] = first_device_info
+    -- Set device for this row (store AudioDevice directly for consistency)
+    row_devices[row] = first_device_info.device
     parameter_lists[row] = first_device_params
     
     -- Set parameter for this row
@@ -559,16 +601,53 @@ function PakettiHyperEditGetDevices()
   return devices
 end
 
--- Get automatable parameters from device
+-- Device parameter whitelists for cleaner parameter selection
+local DEVICE_PARAMETER_WHITELISTS = {
+  ["AU: Valhalla DSP, LLC: ValhallaDelay"] = {
+    "Mix",
+    "Feedback", 
+    "DelayL_Ms",
+    "DelayR_Ms",
+    "DelayStyle",
+    "Width",
+    "Age",
+    "DriveIn",
+    "ModRate",
+    "ModDepth",
+    "LowCut",
+    "HighCut",
+    "Diffusion",
+    "Mode",
+    "Era"
+  },
+  ["Wavetable Mod *LFO"] = {
+    "Amplitude",
+    "Frequency",
+    "Offset"
+  },
+  ["*Instr. Macros"] = {
+    "Cutoff",
+    "Resonance", 
+    "Pitchbend",
+    "Drive",
+    "ParallelComp",
+    "CutLfoAmp",
+    "CutLfoFreq",
+    "PB Inertia"
+  }
+}
+
+-- Get automatable parameters from device (with optional whitelist filtering)
 function PakettiHyperEditGetParameters(device)
   if not device then return {} end
   
-  local params = {}
+  local all_params = {}
   
+  -- First, get all automatable parameters
   for i = 1, #device.parameters do
     local param = device.parameters[i]
     if param.is_automatable then
-      table.insert(params, {
+      table.insert(all_params, {
         index = i,
         parameter = param,
         name = param.name,
@@ -579,7 +658,35 @@ function PakettiHyperEditGetParameters(device)
     end
   end
   
-  return params
+  -- Check if this device has a whitelist
+  local device_name = device.display_name or ""
+  local whitelist = DEVICE_PARAMETER_WHITELISTS[device_name]
+  
+  if not whitelist then
+    -- No whitelist - return all parameters
+    print("DEBUG: No whitelist found for device: " .. device_name .. " - showing all " .. #all_params .. " parameters")
+    return all_params
+  end
+  
+  -- Apply whitelist filtering
+  local filtered_params = {}
+  local whitelist_lookup = {}
+  
+  -- Create lookup table for faster searching
+  for _, whitelisted_name in ipairs(whitelist) do
+    whitelist_lookup[whitelisted_name] = true
+  end
+  
+  -- Filter parameters based on whitelist
+  for _, param_info in ipairs(all_params) do
+    if whitelist_lookup[param_info.name] then
+      table.insert(filtered_params, param_info)
+    end
+  end
+  
+  print("DEBUG: Applied whitelist for " .. device_name .. " - filtered from " .. #all_params .. " to " .. #filtered_params .. " parameters")
+  
+  return filtered_params
 end
 
 -- Update all device lists
@@ -587,6 +694,9 @@ function PakettiHyperEditUpdateAllDeviceLists()
   if not hyperedit_dialog or not hyperedit_dialog.visible then
     return
   end
+  
+  -- CRITICAL: Set flag to prevent auto-read from clearing existing step data
+  is_updating_device_lists = true
   
   local devices = PakettiHyperEditGetDevices()
   local device_names = {}
@@ -626,10 +736,10 @@ function PakettiHyperEditUpdateAllDeviceLists()
         for i, device_info in ipairs(devices) do
           if device_info.device.display_name == current_device_name then
             -- Check if this is actually the same device object
-            if row_devices[row] and row_devices[row].device == device_info.device then
+            if row_devices[row] and row_devices[row].display_name == device_info.device.display_name then
               -- Same device object - just update popup index, preserve all parameter data
               device_popup.value = i
-              row_devices[row] = device_info  -- Update device info but keep parameter data
+              row_devices[row] = device_info.device  -- Keep consistent: store AudioDevice directly
               found_current = true
               print("DEBUG: Same device found for row " .. row .. " - preserved parameter: " .. (row_parameters[row] and row_parameters[row].name or "none"))
               
@@ -640,12 +750,14 @@ function PakettiHyperEditUpdateAllDeviceLists()
                 local current_param_index = 1
                 for j, param_info in ipairs(parameter_lists[row]) do
                   table.insert(param_names, param_info.name)
-                  if row_parameters[row] and param_info.parameter == row_parameters[row].parameter then
+                  if row_parameters[row] and param_info.name == row_parameters[row].name then
                     current_param_index = j
                   end
                 end
                 param_popup.items = param_names
                 param_popup.value = current_param_index
+                
+                -- Parameter popup updated - existing assignments preserved by UI state
               end
             else
               -- Same name but different device object - need to re-select  
@@ -729,6 +841,197 @@ function PakettiHyperEditUpdateAllDeviceLists()
   end
   
   renoise.app():show_status(status_msg)
+  
+  -- CRITICAL: Clear flag to re-enable auto-read for future parameter selections
+  is_updating_device_lists = false
+  print("DEBUG: Device list update complete - auto-read re-enabled")
+  
+  -- CORRECT APPROACH: Fix dropdown indices to match new device list (preserve existing assignments and canvas data)
+  print("DEBUG: Updating dropdown indices to match new device list - preserving existing assignments")
+  PakettiHyperEditFixDropdownIndices()
+end
+
+-- Fix dropdown indices after device list changes (preserve existing assignments and canvas data)
+function PakettiHyperEditFixDropdownIndices()
+  print("DEBUG: === Fixing dropdown indices - SIMPLE APPROACH ===")
+  
+  for row = 1, NUM_ROWS do
+    if row_devices[row] and row_parameters[row] then
+      local existing_device_name = row_devices[row].display_name
+      print("DEBUG: Row " .. row .. " has device: " .. existing_device_name)
+      
+      -- Find this device by name in the current device list
+      local devices = PakettiHyperEditGetDevices()
+      local found_device_idx = nil
+      
+      for i, device_info in ipairs(devices) do
+        if device_info.name == existing_device_name then
+          found_device_idx = i
+          print("DEBUG: Found device " .. existing_device_name .. " at new index " .. i)
+          break
+        end
+      end
+      
+      if found_device_idx then
+        -- ONLY update the dropdown index - don't touch anything else!
+        device_lists[row] = devices
+        if dialog_vb and dialog_vb.views["device_popup_" .. row] then
+          dialog_vb.views["device_popup_" .. row].value = found_device_idx
+          print("DEBUG: Updated dropdown for row " .. row .. " to index " .. found_device_idx .. " - DONE!")
+        end
+      else
+        print("DEBUG: Device " .. existing_device_name .. " no longer exists - keeping old assignment")
+      end
+    end
+  end
+  
+  print("DEBUG: === Simple dropdown fix complete - canvas data untouched ===")
+end
+
+-- Refresh automation data for existing assignments (preserve assignments, just update data)
+function PakettiHyperEditRefreshExistingAutomation()
+  local song = renoise.song()
+  if not song then return end
+  
+  local current_pattern = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local pattern_track = song:pattern(current_pattern):track(track_index)
+  
+  print("DEBUG: Refreshing automation for existing assignments without clearing")
+  
+  for row = 1, NUM_ROWS do
+    if row_parameters[row] and row_devices[row] then
+      local param_name = row_parameters[row].name
+      local device_name = row_devices[row].display_name
+      print("DEBUG: Checking row " .. row .. ": " .. device_name .. " -> " .. param_name)
+      
+      -- Find automation for this existing parameter
+      local automation = pattern_track:find_automation(row_parameters[row].parameter)
+      
+      if automation then
+        print("DEBUG: Found automation for " .. param_name .. " - refreshing step data")
+        
+        -- Set automation to POINTS mode
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        
+        -- Detect pattern length
+        local detected_step_count = PakettiHyperEditDetectPatternLength(automation.points)
+        row_steps[row] = detected_step_count
+        
+        -- Clear and re-read step data from automation
+        for step = 1, MAX_STEPS do
+          step_active[row][step] = false
+          step_data[row][step] = 0.5
+        end
+        
+        -- Read automation points
+        for _, point in ipairs(automation.points) do
+          local line_pos = point.time_stamp + 1
+          local consolidated_step = ((line_pos - 1) % detected_step_count) + 1
+          
+          step_active[row][consolidated_step] = true
+          step_data[row][consolidated_step] = point.value
+        end
+        
+        print("DEBUG: Refreshed " .. #automation.points .. " automation points for " .. param_name .. " (Row " .. row .. ")")
+        
+        -- Update canvas
+        if row_canvases[row] then
+          row_canvases[row]:update()
+        end
+      else
+        print("DEBUG: No automation found for " .. param_name .. " - keeping user-drawn data")
+      end
+    end
+  end
+  
+  print("DEBUG: Automation refresh complete")
+end
+
+-- Smart device switching when all parameters of current device are used
+function PakettiHyperEditTrySwitchDevice(row, current_device_name, used_param_names)
+  -- Device switching priority based on current device
+  local device_switch_map = {
+    ["Wavetable Mod *LFO"] = {"*Instr. Macros"},
+    ["*Instr. Macros"] = {"AU: Valhalla DSP, LLC: ValhallaDelay", "AU: Valhalla DSP, LLC: ValhallaVintageVerb"},
+    -- Add more device switching rules as needed
+  }
+  
+  local preferred_devices = device_switch_map[current_device_name]
+  if not preferred_devices then
+    print("DEBUG: SMART-SWITCH: No switching rules for device: " .. current_device_name)
+    return nil
+  end
+  
+  -- Try each preferred device in order
+  for _, preferred_device_name in ipairs(preferred_devices) do
+    -- Find this device in the available device list
+    local target_device_info = nil
+    local target_device_index = nil
+    
+    for i, device_info in ipairs(device_lists[row]) do
+      if device_info.name == preferred_device_name then
+        target_device_info = device_info
+        target_device_index = i
+        break
+      end
+    end
+    
+    if target_device_info then
+      -- Check if this target device has unused parameters
+      local target_params = PakettiHyperEditGetParameters(target_device_info.device)
+      local has_unused_params = false
+      
+      for _, param_info in ipairs(target_params) do
+        if not used_param_names[param_info.name] then
+          has_unused_params = true
+          break
+        end
+      end
+      
+      if has_unused_params then
+        print("DEBUG: SMART-SWITCH: Found suitable target device: " .. preferred_device_name .. " with unused parameters")
+        
+        -- Switch to the target device
+        row_devices[row] = target_device_info.device
+        parameter_lists[row] = target_params
+        
+        -- Update device dropdown
+        local device_popup = dialog_vb and dialog_vb.views["device_popup_" .. row]
+        if device_popup then
+          device_popup.value = target_device_index
+        end
+        
+        -- Update parameter dropdown
+        local param_popup = dialog_vb and dialog_vb.views["parameter_popup_" .. row]
+        if param_popup then
+          local param_names = {}
+          for _, p in ipairs(target_params) do
+            table.insert(param_names, p.name)
+          end
+          param_popup.items = param_names
+          
+          -- Find first unused parameter
+          for i, param_info in ipairs(target_params) do
+            if not used_param_names[param_info.name] then
+              param_popup.value = i
+              PakettiHyperEditSelectParameter(row, i)
+              break
+            end
+          end
+        end
+        
+        return target_device_info
+      else
+        print("DEBUG: SMART-SWITCH: Target device " .. preferred_device_name .. " has no unused parameters")
+      end
+    else
+      print("DEBUG: SMART-SWITCH: Target device " .. preferred_device_name .. " not available on this track")
+    end
+  end
+  
+  print("DEBUG: SMART-SWITCH: No suitable device switch found for " .. current_device_name)
+  return nil
 end
 
 -- Select device for specific row
@@ -776,7 +1079,10 @@ function PakettiHyperEditSelectDevice(row, device_index)
     print("DEBUG: Updating parameter popup for row " .. row .. " with " .. #param_names .. " items")
     param_popup.items = param_names
     param_popup.value = 1
+    
     if #parameter_lists[row] > 0 then
+      -- Simple default: select first parameter (automation re-read will fix this properly)
+      param_popup.value = 1
       PakettiHyperEditSelectParameter(row, 1)
     end
   else
@@ -796,8 +1102,13 @@ function PakettiHyperEditSelectParameter(row, param_index)
   local param_info = parameter_lists[row][param_index]
   row_parameters[row] = param_info
   
-  -- Auto-read automation when parameter is selected
-  PakettiHyperEditAutoReadAutomation(row)
+  -- CRITICAL: Skip auto-read during device list updates to preserve existing step data
+  if not is_updating_device_lists then
+    -- Auto-read automation when parameter is selected
+    PakettiHyperEditAutoReadAutomation(row)
+  else
+    print("DEBUG: Skipping auto-read for " .. param_info.name .. " during device list update - preserving existing step data")
+  end
   
   renoise.app():show_status("HyperEdit Row " .. row .. ": Selected parameter - " .. param_info.name)
 end
@@ -829,6 +1140,7 @@ function PakettiHyperEditHandleRowMouse(row)
     if ev.type == "down" then
       mouse_is_down = true
       current_row_drawing = row
+      last_mouse_move_time = os.clock() * 1000 -- Set initial timestamp
       
       -- Check for right-click or Ctrl+click to delete automation envelope
       if ev.button == "right" or (ev.button == "left" and ev.modifiers == "control") then
@@ -841,6 +1153,7 @@ function PakettiHyperEditHandleRowMouse(row)
       mouse_is_down = false
       current_row_drawing = 0
     elseif ev.type == "move" and mouse_is_down and current_row_drawing == row then
+      last_mouse_move_time = os.clock() * 1000 -- Update timestamp on move
       PakettiHyperEditHandleRowClick(row, x, y)
     elseif ev.type == "double" then
       -- Double-click to center pitchbend parameters
@@ -1108,9 +1421,23 @@ function PakettiHyperEditSwitchToAutomationView(row)
   end
 end
 
+
+
 -- Auto-read automation when parameter is selected (silent, automatic)
 function PakettiHyperEditAutoReadAutomation(row)
   if not row_parameters[row] then return end
+  
+  -- Skip auto-read during track switching to prevent interference
+  if is_track_switching then
+    print("DEBUG: Skipping auto-read automation during track switching for row " .. row)
+    return
+  end
+  
+  -- Skip auto-read during device list updates to preserve existing data
+  if is_updating_device_lists then
+    print("DEBUG: Skipping auto-read automation during device list update for row " .. row .. " - preserving existing step data")
+    return
+  end
   
   local song = renoise.song()
   if not song then return end
@@ -1123,18 +1450,23 @@ function PakettiHyperEditAutoReadAutomation(row)
   -- Find existing automation
   local automation = pattern_track:find_automation(parameter)
   if not automation then
-    -- No automation exists - clear step data and leave empty for user to draw
-    for step = 1, MAX_STEPS do
-      step_active[row][step] = false
-      step_data[row][step] = 0.5
+    -- CRITICAL: Don't clear step data during device list updates - preserve existing data
+    if not is_updating_device_lists then
+      -- No automation exists - clear step data and leave empty for user to draw
+      for step = 1, MAX_STEPS do
+        step_active[row][step] = false
+        step_data[row][step] = 0.5
+      end
+      
+      -- Update canvas
+      if row_canvases[row] then
+        row_canvases[row]:update()
+      end
+      
+      print("DEBUG: No automation found for " .. row_parameters[row].name .. " - cleared step data")
+    else
+      print("DEBUG: No automation found for " .. row_parameters[row].name .. " - preserving existing step data during device list update")
     end
-    
-    -- Update canvas
-    if row_canvases[row] then
-      row_canvases[row]:update()
-    end
-    
-    print("DEBUG: No automation found for " .. row_parameters[row].name .. " - cleared step data")
     return
   end
   
@@ -1156,10 +1488,13 @@ function PakettiHyperEditAutoReadAutomation(row)
   -- Update step count button colors
   PakettiHyperEditUpdateStepButtonColors(row)
   
-  -- Clear existing step data
-  for step = 1, MAX_STEPS do
-    step_active[row][step] = false
-    step_data[row][step] = 0.5
+  -- CRITICAL: Don't clear existing step data during device list updates - preserve it
+  if not is_updating_device_lists then
+    -- Clear existing step data
+    for step = 1, MAX_STEPS do
+      step_active[row][step] = false
+      step_data[row][step] = 0.5
+    end
   end
   
   local points_read = 0
@@ -1198,6 +1533,19 @@ end
 function PakettiHyperEditPopulateFromExistingAutomation()
   print("DEBUG: === Starting PakettiHyperEditPopulateFromExistingAutomation ===")
   
+  -- CRITICAL: Only clear data if NOT during device updates (preserve existing canvas data)
+  if not is_updating_device_lists then
+    print("DEBUG: Clearing all existing row data to prevent duplicates")
+    for row = 1, NUM_ROWS do
+      row_devices[row] = nil
+      row_parameters[row] = nil
+      parameter_lists[row] = nil
+      device_lists[row] = nil
+    end
+  else
+    print("DEBUG: Device update in progress - preserving existing row data, only updating assignments")
+  end
+  
   local song = renoise.song()
   if not song then 
     print("DEBUG: No song available")
@@ -1207,10 +1555,19 @@ function PakettiHyperEditPopulateFromExistingAutomation()
   local current_pattern = song.selected_pattern_index
   local track_index = song.selected_track_index
   local pattern_track = song:pattern(current_pattern):track(track_index)
+  local track = song.tracks[track_index]
   
   print("DEBUG: Scanning pattern " .. current_pattern .. ", track " .. track_index)
   
-  -- Get all existing automation envelopes by scanning devices and parameters
+  -- Clean automation detection approach (based on PakettiAutomationStack.lua)
+  local found_automations = {}
+  
+  if not track then
+    print("DEBUG: No track available")
+    return
+  end
+  
+  -- Get device list for UI consistency
   local device_list = PakettiHyperEditGetDevices()
   local device_names = {}
   for i, device_info in ipairs(device_list) do
@@ -1220,128 +1577,81 @@ function PakettiHyperEditPopulateFromExistingAutomation()
     device_names = {"No devices available"}
   end
   
-  local found_automations = {}
-  print("DEBUG: Found " .. #device_list .. " devices to scan")
-  
-  -- BETTER APPROACH: Scan pattern track's existing automations directly
-  print("DEBUG: Alternative scan - checking pattern_track automations directly...")
-  
-  -- First, try to get all existing automations from pattern track directly
-  local track_automations = {}
-  
-  -- Method 1: Scan devices and parameters (current method)
-  print("DEBUG: === Method 1: Device/Parameter Scan ===")
-  for device_idx, device_info in ipairs(device_list) do
-    print("DEBUG: Scanning device " .. device_idx .. ": " .. device_info.name)
-    local device_automation_count = 0
+  -- Method: Scan devices and parameters (clean approach from AutomationStack)
+  -- Skip device 1 (Track Vol/Pan) to match UI device list
+  print("DEBUG: === Clean Device/Parameter Scan ===")
+  for d = 2, #track.devices do
+    local dev = track.devices[d]
+    local device_name = dev.display_name or "Device"
+    print("DEBUG: Scanning device " .. d .. ": " .. device_name)
     
-    for param_idx, param in ipairs(device_info.device.parameters) do
+    for pi = 1, #dev.parameters do
+      local param = dev.parameters[pi]
       if param.is_automatable then
-        local automation = pattern_track:find_automation(param)
-        if automation then
-          print("DEBUG: Found automation for " .. device_info.name .. " -> " .. param.name)
-          table.insert(found_automations, {
-            automation = automation,
-            parameter = param,
-            device_idx = device_idx,
-            device_info = device_info
-          })
-          device_automation_count = device_automation_count + 1
-        else
-          -- Check if parameter has any automation points at all
-          print("DEBUG: Checking for automation points on " .. device_info.name .. " -> " .. param.name)
-        end
-      end
-    end
-    
-    if device_automation_count == 0 then
-      print("DEBUG: No automation found on device " .. device_info.name)
-    else
-      print("DEBUG: Found " .. device_automation_count .. " automations on " .. device_info.name)
-    end
-  end
-  
-  -- Method 2: Try direct automation enumeration (if API supports it)
-  print("DEBUG: === Method 2: Direct Pattern Track Scan ===")
-  
-  -- Method 2: Try to access automations property directly
-  local function try_automation_property_access()
-    local status, result = pcall(function()
-      -- Check if pattern_track has an automations property
-      local automations = pattern_track.automations
-      if automations then
-        print("DEBUG: Found automations property with " .. #automations .. " items")
-        for i, automation in ipairs(automations) do
-          local dest_param = automation.dest_parameter
-          if dest_param then
-            print("DEBUG: Automation " .. i .. " -> " .. dest_param.name)
-            
-            -- Find the device this belongs to
-            for device_idx, device_info in ipairs(device_list) do
-              for param_idx, param in ipairs(device_info.device.parameters) do
-                if param.name == dest_param.name then
-                  print("DEBUG: Property method found: " .. device_info.name .. " -> " .. param.name)
-                  -- Add to found_automations if not already there
-                  local already_found = false
-                  for _, found_auto in ipairs(found_automations) do
-                    if found_auto.parameter.name == param.name then
-                      already_found = true
-                      break
-                    end
-                  end
-                  if not already_found then
-                    table.insert(found_automations, {
-                      automation = automation,
-                      parameter = param,
-                      device_idx = device_idx,
-                      device_info = device_info
-                    })
-                    print("DEBUG: Added automation via property method: " .. device_info.name .. " -> " .. param.name)
-                  end
-                  break
-                end
-              end
+        local a = pattern_track:find_automation(param)
+        if a then
+          print("DEBUG: Found automation for " .. device_name .. " -> " .. (param.name or "Parameter"))
+          
+          -- Find the matching device in device_list for UI consistency
+          local ui_device_idx = nil
+          for ui_idx, ui_device_info in ipairs(device_list) do
+            if ui_device_info.device.display_name == dev.display_name then
+              ui_device_idx = ui_idx
+              break
             end
           end
-        end
-      else
-        print("DEBUG: No automations property found")
-      end
-    end)
-    
-    if not status then
-      print("DEBUG: Automation property access failed: " .. tostring(result))
-    end
-  end
-  
-  try_automation_property_access()
-  
-  -- Method 3: Alternative iterator approach
-  local function try_automation_iteration()
-    local status, result = pcall(function()
-      print("DEBUG: Trying automation iteration...")
-      local automation_count = 0
-      -- Try different iteration methods
-      for automation in pattern_track:automations_iter() do
-        automation_count = automation_count + 1
-        print("DEBUG: Iter method found automation " .. automation_count)
-        local dest_param = automation.dest_parameter
-        if dest_param then
-          print("DEBUG: Iter automation -> " .. dest_param.name)
+          
+          -- Store automation data with all needed info
+          local automation_data = {
+            automation = a,
+            parameter = param,
+            device_idx = ui_device_idx or d, -- Use UI index if found, otherwise track device index
+            param_idx = pi,
+            device_info = { device = dev, name = device_name }
+          }
+          found_automations[#found_automations + 1] = automation_data
+        else
+          print("DEBUG: Checking for automation points on " .. device_name .. " -> " .. (param.name or "Parameter"))
         end
       end
       
-      if automation_count == 0 then
-        print("DEBUG: No automations found via iteration")
+    end
+    if d > 1 then -- Skip Track Vol/Pan device when counting
+      local device_automation_count = 0
+      for pi = 1, #dev.parameters do
+        local param = dev.parameters[pi]
+        if param.is_automatable then
+          local a = pattern_track:find_automation(param)
+          if a then device_automation_count = device_automation_count + 1 end
+        end
       end
-    end)
-    
-    if not status then
-      print("DEBUG: Automation iteration failed: " .. tostring(result))
+      if device_automation_count == 0 then
+        print("DEBUG: No automation found on device " .. device_name)
+      else
+        print("DEBUG: Found " .. device_automation_count .. " automations on " .. device_name)
+      end
     end
   end
   
-  try_automation_iteration()
+  
+  -- Note: Direct pattern track automation access not available in Renoise API
+  -- Using device/parameter scan method only (which is the correct approach)
+  
+  -- CRITICAL: Update ALL UI popups with current track's device list FIRST
+  -- This prevents popup index out of range errors when switching tracks
+  print("DEBUG: Updating all UI popups with current track's device list (" .. #device_list .. " devices)")
+  for row = 1, NUM_ROWS do
+    if dialog_vb and dialog_vb.views["device_popup_" .. row] then
+      local device_popup = dialog_vb.views["device_popup_" .. row]
+      device_popup.items = device_names
+      device_popup.value = 1 -- Safe default
+      device_lists[row] = device_list -- Update the row's device list
+    end
+    if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
+      dialog_vb.views["parameter_popup_" .. row].items = {"Select device first"}
+      dialog_vb.views["parameter_popup_" .. row].value = 1
+    end
+  end
   
   if #found_automations == 0 then
     print("DEBUG: No automation envelopes found on track - clearing all step data")
@@ -1357,17 +1667,6 @@ function PakettiHyperEditPopulateFromExistingAutomation()
       row_parameters[row] = nil
       row_devices[row] = nil
       
-      -- Reset dropdowns to first available options
-      if dialog_vb then
-        if dialog_vb.views["device_popup_" .. row] and #device_names > 0 then
-          dialog_vb.views["device_popup_" .. row].value = 1
-        end
-        if dialog_vb.views["parameter_popup_" .. row] then
-          dialog_vb.views["parameter_popup_" .. row].items = {"No Device Selected"}
-          dialog_vb.views["parameter_popup_" .. row].value = 1
-        end
-      end
-      
       -- Update canvases to show empty state
       if row_canvases[row] then
         row_canvases[row]:update()
@@ -1380,20 +1679,82 @@ function PakettiHyperEditPopulateFromExistingAutomation()
   
   print("DEBUG: Found " .. #found_automations .. " automation envelopes - populating rows")
   
-  -- Take the first 8 automations and assign to rows
+  -- Take all available automations and assign to rows (up to 32 max)
+  -- ANTI-DUPLICATE: Track used parameter names to avoid duplicates like multiple "Mix" parameters
+  local used_parameter_names = {}
   local populated_rows = 0
+  local max_automations = math.min(32, #found_automations)  -- Cap at 32 rows max
+  
   for _, automation_data in ipairs(found_automations) do
-    if populated_rows >= NUM_ROWS then break end  -- Max 8 rows
+    if populated_rows >= max_automations then break end  -- Use all available automations
     
     local row = populated_rows + 1
     local automation = automation_data.automation
     local parameter = automation_data.parameter
+    local param_name = parameter.name
     
-    print("DEBUG: Row " .. row .. " → " .. parameter.name)
+    -- ANTI-DUPLICATE: If this parameter name is already used, find the NEXT parameter from same device
+    local should_process_row = true  -- Flag to track if we should process this row
     
-    -- Use the device info from our found automation data (already resolved)
-    local found_device_idx = automation_data.device_idx
-    local device_info = automation_data.device_info
+    if used_parameter_names[param_name] then
+      print("DEBUG: Parameter name '" .. param_name .. "' already used - looking for next parameter from same device")
+      
+      -- Get device's parameter list to find what comes after this duplicate parameter
+      local device_params = PakettiHyperEditGetParameters(automation_data.device_info.device)
+      local current_param_index = nil
+      
+      -- Find current parameter's index in the device
+      for i, param_info in ipairs(device_params) do
+        if param_info.parameter.name == param_name then
+          current_param_index = i
+          break
+        end
+      end
+      
+      -- Look for next available parameter from same device that's not already used
+      local next_param_found = false
+      if current_param_index then
+        for next_i = current_param_index + 1, #device_params do
+          local next_param_info = device_params[next_i]
+          local next_param_name = next_param_info.parameter.name
+          
+          if not used_parameter_names[next_param_name] then
+            -- Check if this next parameter has automation
+            local track_index = renoise.song().selected_track_index
+            local pattern_track = renoise.song():pattern(renoise.song().selected_pattern_index):track(track_index)
+            local next_automation = pattern_track:find_automation(next_param_info.parameter)
+            
+            if next_automation then
+              print("DEBUG: Found next parameter with automation: '" .. next_param_name .. "' (was going to use duplicate '" .. param_name .. "')")
+              -- Use the next parameter instead
+              automation_data.parameter = next_param_info.parameter
+              automation_data.automation = next_automation
+              automation_data.param_idx = next_i
+              param_name = next_param_name
+              next_param_found = true
+              break
+            end
+          end
+        end
+      end
+      
+      -- If no suitable next parameter found, skip this duplicate entirely
+      if not next_param_found then
+        print("DEBUG: No suitable next parameter found for duplicate '" .. param_name .. "' - skipping this automation")
+        should_process_row = false
+      end
+    end
+    
+    -- Only process this row if we found a valid (non-duplicate) parameter
+    if should_process_row then
+      -- Mark this parameter name as used
+      used_parameter_names[param_name] = true
+      
+      print("DEBUG: Row " .. row .. " → " .. param_name)
+      
+      -- Use the device info from our found automation data (already resolved)
+      local found_device_idx = automation_data.device_idx
+      local device_info = automation_data.device_info
     
     -- Find parameter index in the device's parameter list
     local found_param_idx = nil
@@ -1406,17 +1767,24 @@ function PakettiHyperEditPopulateFromExistingAutomation()
     
     if found_device_idx and found_param_idx then
       -- Set up this row
-      device_lists[row] = device_list
       row_devices[row] = device_list[found_device_idx].device
       parameter_lists[row] = PakettiHyperEditGetParameters(row_devices[row])
       row_parameters[row] = parameter_lists[row][found_param_idx]
       
-      -- Update UI dropdowns
+      -- Update UI dropdowns (popups already updated with correct device list above)
       print("DEBUG: Updating UI for row " .. row .. " - device idx " .. found_device_idx .. ", param idx " .. found_param_idx)
       
       if dialog_vb and dialog_vb.views["device_popup_" .. row] then
-        dialog_vb.views["device_popup_" .. row].value = found_device_idx
-        print("DEBUG: Set device dropdown for row " .. row .. " to index " .. found_device_idx)
+        local ui_device_popup = dialog_vb.views["device_popup_" .. row]
+        -- Since we already updated all popups with current device_list, we can use found_device_idx directly
+        local max_items = #device_list
+        if found_device_idx > 0 and found_device_idx <= max_items then
+          ui_device_popup.value = found_device_idx
+          print("DEBUG: Set device dropdown for row " .. row .. " to index " .. found_device_idx)
+        else
+          print("DEBUG: ERROR - Device index " .. found_device_idx .. " out of range (max: " .. max_items .. ") for row " .. row)
+          ui_device_popup.value = 1  -- Safe fallback
+        end
       else
         print("DEBUG: ERROR - Could not find device_popup_" .. row)
       end
@@ -1427,8 +1795,14 @@ function PakettiHyperEditPopulateFromExistingAutomation()
           table.insert(param_names, param_info.name)
         end
         dialog_vb.views["parameter_popup_" .. row].items = param_names
-        dialog_vb.views["parameter_popup_" .. row].value = found_param_idx
-        print("DEBUG: Set parameter dropdown for row " .. row .. " to '" .. parameter.name .. "' at index " .. found_param_idx)
+        -- Validate parameter index before setting it
+        if found_param_idx > 0 and found_param_idx <= #param_names then
+          dialog_vb.views["parameter_popup_" .. row].value = found_param_idx
+          print("DEBUG: Set parameter dropdown for row " .. row .. " to '" .. parameter.name .. "' at index " .. found_param_idx)
+        else
+          print("DEBUG: ERROR - Parameter index " .. found_param_idx .. " out of range (max: " .. #param_names .. ") for row " .. row)
+          dialog_vb.views["parameter_popup_" .. row].value = 1  -- Safe fallback
+        end
       else
         print("DEBUG: ERROR - Could not find parameter_popup_" .. row)
       end
@@ -1485,13 +1859,42 @@ function PakettiHyperEditPopulateFromExistingAutomation()
     else
       print("DEBUG: Could not find device for parameter " .. parameter.name)
     end
+    end  -- End of should_process_row conditional
   end
   
   print("DEBUG: Successfully populated " .. populated_rows .. " rows with existing automation")
   
-  if populated_rows > 0 then
+  -- Auto-adjust NUM_ROWS if we found more automations than current setting
+  if populated_rows > NUM_ROWS then
+    print("DEBUG: Found " .. populated_rows .. " automations but NUM_ROWS was only " .. NUM_ROWS .. " - expanding to show all")
+    local old_num_rows = NUM_ROWS
+    NUM_ROWS = populated_rows
+    
+    -- Update preferences to persist the change
+    if preferences and preferences.PakettiHyperEditRowCount then
+      preferences.PakettiHyperEditRowCount.value = NUM_ROWS
+      preferences:save_as("preferences.xml")
+    end
+    
+    print("DEBUG: NUM_ROWS expanded from " .. old_num_rows .. " to " .. NUM_ROWS .. " - dialog recreation needed")
+    renoise.app():show_status("HyperEdit: Auto-expanded to " .. populated_rows .. " rows - reopening dialog...")
+    
+    -- Close current dialog and reopen with new row count
+    if hyperedit_dialog then
+      hyperedit_dialog:close()
+      -- Reopen after a brief delay to ensure cleanup is complete
+      renoise.tool():add_timer(function()
+        PakettiHyperEditInit()
+        renoise.tool():remove_timer(PakettiHyperEditInit)
+      end, 100)
+    end
+  elseif populated_rows > 0 then
     renoise.app():show_status("HyperEdit: Loaded " .. populated_rows .. " existing automations into rows")
   end
+  
+  -- Ensure track switching flag is always cleared after automation population
+  is_track_switching = false
+  print("DEBUG: === Automation population complete - track switching flag cleared ===")
 end
 
 -- Draw canvas for specific row
@@ -1535,6 +1938,7 @@ function PakettiHyperEditDrawRowCanvas(row)
     else
       adaptive_line_width = 0.5  -- Very narrow steps: hair-thin lines
     end
+    
     
     -- Skip grid lines entirely if steps are extremely narrow (< 3px)
     local show_grid_lines = step_width >= 3
@@ -1661,15 +2065,25 @@ function PakettiHyperEditSetupObservers()
       if hyperedit_dialog and hyperedit_dialog.visible then
         print("DEBUG: === Track changed - refreshing HyperEdit ===")
         
+        -- Set flag to prevent auto-read automation from interfering
+        is_track_switching = true
+        
         -- Clear old step data first
         PakettiHyperEditInitStepData()
         
         -- Update device lists and observers
         PakettiHyperEditSetupDeviceObserver()
-        PakettiHyperEditUpdateAllDeviceLists()
         
-        -- Repopulate with new track's automation
+        -- CRITICAL: Populate automation FIRST, before updating device lists
+        -- This prevents PakettiHyperEditSelectDevice from clearing automation data
         PakettiHyperEditPopulateFromExistingAutomation()
+        
+        -- Clear flag IMMEDIATELY after automation population so auto-read works
+        is_track_switching = false
+        print("DEBUG: === Track switching flag cleared - auto-read now enabled ===")
+        
+        -- Update device lists (this may call SelectDevice and auto-read automation now)
+        PakettiHyperEditUpdateAllDeviceLists()
         
         -- Update colors if track color capture is enabled
         if preferences.PakettiHyperEditCaptureTrackColor.value then
@@ -1856,6 +2270,7 @@ end
 function PakettiHyperEditCleanup()
   PakettiHyperEditRemoveObservers()
   PakettiHyperEditCleanupPlayhead()
+  PakettiHyperEditStopMouseMonitor()
   
   hyperedit_dialog = nil
   dialog_vb = nil  -- Clear ViewBuilder reference
@@ -1868,6 +2283,48 @@ function PakettiHyperEditCleanup()
   current_row_drawing = 0
 end
 
+-- Mouse state monitor to handle mouse releases outside canvas
+function PakettiHyperEditStartMouseMonitor()
+  -- Stop any existing monitor
+  PakettiHyperEditStopMouseMonitor()
+  
+  -- Start new monitor that checks mouse state every 100ms
+  mouse_state_monitor_timer = renoise.tool():add_timer(function()
+    if not hyperedit_dialog or not hyperedit_dialog.visible then
+      PakettiHyperEditStopMouseMonitor()
+      return
+    end
+    
+    -- If mouse is down but we haven't received a move event for 5000ms (5 seconds),
+    -- assume mouse was released outside canvas (increased timeout for long holds)
+    if mouse_is_down then
+      local current_time = os.clock() * 1000 -- Convert to milliseconds
+      if current_time - last_mouse_move_time > 5000 then
+        print("DEBUG: Mouse release detected outside canvas - stopping drawing")
+        mouse_is_down = false
+        current_row_drawing = 0
+        
+        -- Update all canvases to reflect the stopped drawing
+        for row = 1, NUM_ROWS do
+          if row_canvases[row] then
+            row_canvases[row]:update()
+          end
+        end
+      end
+    end
+  end, 100)
+  
+  print("DEBUG: Mouse state monitor started")
+end
+
+function PakettiHyperEditStopMouseMonitor()
+  if mouse_state_monitor_timer then
+    renoise.tool():remove_timer(mouse_state_monitor_timer)
+    mouse_state_monitor_timer = nil
+    print("DEBUG: Mouse state monitor stopped")
+  end
+end
+
 -- Create main dialog
 function PakettiHyperEditCreateDialog()
   if hyperedit_dialog and hyperedit_dialog.visible then
@@ -1876,6 +2333,9 @@ function PakettiHyperEditCreateDialog()
   
   -- Reset pre-configuration flag for new dialog
   pre_configuration_applied = false
+  
+  -- Update row count from preferences
+  PakettiHyperEditUpdateRowCount()
   
   -- Initialize data
   PakettiHyperEditInitStepData()
@@ -1924,7 +2384,38 @@ function PakettiHyperEditCreateDialog()
           print("DEBUG: === Checkbox notifier complete ===")
         end
       },
-      vb:text { text = "Capture Track Color", width = 120 },
+      vb:text { text = "Capture Track Color", style="strong",font="bold",width = 120 },
+      vb:text{text="|",style="strong",font="bold"},
+      vb:text { text = "Rows", width = 40, style="strong",font="bold" },
+      vb:popup {
+        id = "row_count_popup",
+        items = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32"},
+        value = math.max(1, math.min(32, NUM_ROWS)), -- Direct mapping: NUM_ROWS = popup index
+        width = 60,
+        tooltip = "Number of parameter rows to display",
+        notifier = function(index)
+          local new_row_count = index -- Direct mapping: popup index = row count (1-32)
+          
+          if preferences and preferences.PakettiHyperEditRowCount then
+            preferences.PakettiHyperEditRowCount.value = new_row_count
+          end
+          if preferences then
+            preferences:save_as("preferences.xml")
+          end
+          
+          renoise.app():show_status("HyperEdit: Changed to " .. new_row_count .. " rows - please reopen dialog")
+          
+          -- Close dialog to force recreation with new row count
+          if hyperedit_dialog and hyperedit_dialog.visible then
+            hyperedit_dialog:close()
+            -- Reopen after a brief delay
+            renoise.tool():add_timer(function()
+              PakettiHyperEditInit()
+              renoise.tool():remove_timer(PakettiHyperEditInit)
+            end, 100)
+          end
+        end
+      },
       vb:space { width = 10 },
       vb:button {
         text = "Clear All",
@@ -2187,6 +2678,9 @@ function PakettiHyperEditCreateDialog()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   PakettiHyperEditSetupObservers()
   
+  -- Start mouse state monitor to handle mouse releases outside canvas
+  PakettiHyperEditStartMouseMonitor()
+  
   -- Setup playhead
   PakettiHyperEditSetupPlayhead()
   
@@ -2206,12 +2700,68 @@ function PakettiHyperEditCreateDialog()
         PakettiHyperEditPopulateFromExistingAutomation()
       end
       
-      -- For any rows not populated by automation, set to first device
+      -- For any rows not populated by automation, set up with smart parameter distribution
       print("DEBUG: Checking which rows need default device setup...")
+      
+      -- First, collect what parameters are already in use
+      local used_param_names = {}
+      for check_row = 1, NUM_ROWS do
+        if row_parameters[check_row] then
+          used_param_names[row_parameters[check_row].name] = true
+          print("DEBUG: Row " .. check_row .. " already uses parameter: " .. row_parameters[check_row].name)
+        end
+      end
+      
       for row = 1, NUM_ROWS do
         if not row_devices[row] then
-          print("DEBUG: Row " .. row .. " not populated by automation - setting to first device")
-          PakettiHyperEditSelectDevice(row, 1)
+          print("DEBUG: Row " .. row .. " not populated by automation - setting up with smart parameter assignment")
+          
+          -- Get devices and try each one until we find unused parameters
+          local devices = PakettiHyperEditGetDevices()
+          local assigned = false
+          
+          for device_idx, device_info in ipairs(devices) do
+            if assigned then break end
+            
+            local params = PakettiHyperEditGetParameters(device_info.device)
+            print("DEBUG: Trying device " .. device_info.name .. " with " .. #params .. " parameters for row " .. row)
+            
+            -- Find first unused parameter in this device
+            for i, param_info in ipairs(params) do
+              if not used_param_names[param_info.name] then
+                -- Found unused parameter - assign it
+                used_param_names[param_info.name] = true -- Mark as used
+                print("DEBUG: Row " .. row .. " assigned " .. device_info.name .. " -> " .. param_info.name)
+                
+                -- Set device and parameter
+                device_lists[row] = devices
+                parameter_lists[row] = params
+                row_devices[row] = device_info.device
+                
+                -- Update UI
+                if dialog_vb and dialog_vb.views["device_popup_" .. row] then
+                  dialog_vb.views["device_popup_" .. row].value = device_idx
+                end
+                if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
+                  local param_names = {}
+                  for _, p in ipairs(params) do
+                    table.insert(param_names, p.name)
+                  end
+                  dialog_vb.views["parameter_popup_" .. row].items = param_names
+                  dialog_vb.views["parameter_popup_" .. row].value = i
+                end
+                
+                -- Set parameter without triggering automation read
+                row_parameters[row] = param_info
+                assigned = true
+                break
+              end
+            end
+          end
+          
+          if not assigned then
+            print("DEBUG: Row " .. row .. " - no unused parameters found across all devices")
+          end
         else
           print("DEBUG: Row " .. row .. " already has device: " .. (row_devices[row].display_name or "unknown"))
         end

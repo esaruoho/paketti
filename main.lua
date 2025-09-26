@@ -797,6 +797,7 @@ end
 if renoise.API_VERSION >= 6.2 then
   timed_require("Paketti35")
   timed_require("PakettiPCMWriter")
+  timed_require("PakettiImageToSample")
   --timed_require("PakettiZyklusMPS1")
   timed_require("PakettiCanvasFont")
   timed_require("PakettiCanvasFontPreview")

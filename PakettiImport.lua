@@ -105,7 +105,7 @@ function pakettiLoadExeAsSample(file_path)
 end
 
 
-renoise.tool():add_file_import_hook{category="sample",extensions={"exe","dll","bin","sys","dylib","png","jpg","jpeg","gif","bmp"},invoke=pakettiLoadExeAsSample}
+renoise.tool():add_file_import_hook{category="sample",extensions={"exe","dll","bin","sys","dylib"},invoke=pakettiLoadExeAsSample}
 
 
 -------

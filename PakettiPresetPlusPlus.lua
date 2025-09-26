@@ -1388,7 +1388,7 @@ function PakettiMultibandSendDevicePresetPlusPlus(send_track_name)
   end
 end
 
--- Keybindings and menu entries for standalone Send devices
+-- ADD SEND DEVICE ONLY (connects to existing send tracks via dropdown)
 renoise.tool():add_keybinding{name="Global:Paketti:Send Device (Preset++)", invoke = function() PakettiSendDevicePresetPlusPlus() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Multiband Send Device (Preset++)", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Send Device", invoke = function() PakettiSendDevicePresetPlusPlus() end}
@@ -1558,15 +1558,9 @@ function MultibandSendPresetPlusPlus()
   renoise.song().selected_device.display_name = "Multiband Send (Preset++)"
 end
 
+-- ADD SEND/MULTIBAND DEVICE TO EXISTING SEND TRACKS (legacy functions)
 renoise.tool():add_keybinding{name="Global:Paketti:Send (Preset++)", invoke = SendPresetPlusPlus}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Send", invoke = SendPresetPlusPlus}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Send (Preset++)", invoke = SendPresetPlusPlus}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Send", invoke = SendPresetPlusPlus}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Multiband Send (Preset++)", invoke = MultibandSendPresetPlusPlus}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Multiband Send", invoke = MultibandSendPresetPlusPlus}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Multiband Send (Preset++)", invoke = MultibandSendPresetPlusPlus}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Multiband Send", invoke = MultibandSendPresetPlusPlus}
 
 
 function inspectTrackDeviceChainTEST()
@@ -1857,9 +1851,352 @@ end
 
 --inspectTrackDeviceChainTEST()
 
+-- Create New Send function for PakettiPresetPlusPlus
+function PakettiPresetPlusPlusCreateNewSend()
+  local song = renoise.song()
+  
+  -- Get current track info
+  local current_track = song.selected_track
+  local current_track_name = current_track.name
+  
+  -- Count existing send tracks to determine numbering
+  local send_track_count = song.send_track_count
+  local next_send_number = send_track_count + 1
+  
+  -- Calculate position for new send track
+  local new_send_position
+  if send_track_count == 0 then
+    -- No send tracks exist: sequencer_track_count + 2 (sequencer + master + after master)
+    new_send_position = song.sequencer_track_count + 2
+  else
+    -- Send tracks exist: sequencer_track_count + 1 + send_track_count
+    new_send_position = song.sequencer_track_count + 1 + send_track_count
+  end
+  
+  -- Create new send track name
+  local send_track_name = string.format("S%02d %s", next_send_number, current_track_name)
+  
+  -- Insert new send track
+  song:insert_track_at(new_send_position)
+  local new_send_track = song.tracks[new_send_position]
+  new_send_track.name = send_track_name
+  
+  -- Select the original track to add the send device
+  song.selected_track_index = song.selected_track_index
+  
+  -- Load Send device using XML injection
+  loadnative("Audio/Effects/Native/#Send", nil, nil, nil, true)
+  
+  local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="SendDevice">
+    <IsMaximized>false</IsMaximized>
+    <Volume>
+      <Value>0.706923366</Value>
+    </Volume>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+    <DestSendTrack>]=] .. (send_track_count) .. [=[</DestSendTrack>
+    <Mute>false</Mute>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+  
+  -- Apply XML and configure the Send device
+  local send_device = song.selected_device
+  if send_device and send_device.name == "#Send" then
+    send_device.active_preset_data = device_xml
+    send_device.parameters[3].value = send_track_count  -- Set send destination to the new send track
+    send_device.parameters[1].show_in_mixer = true      -- Show volume in mixer
+    send_device.is_maximized = false
+    send_device.display_name = send_track_name
+    
+    renoise.app():show_status("Created Send Track '" .. send_track_name .. "' and connected Send device")
+  else
+    renoise.app():show_status("ERROR - Failed to load Send device")
+  end
+end
+
+-- Create New Multiband Send function for PakettiPresetPlusPlus
+function PakettiPresetPlusPlusCreateNewMultibandSend()
+  local song = renoise.song()
+  
+  -- Get current track info
+  local current_track = song.selected_track
+  local current_track_name = current_track.name
+  
+  -- Count existing send tracks to determine numbering
+  local send_track_count = song.send_track_count
+  local next_send_number = send_track_count + 1
+  
+  -- Calculate position for new send track
+  local new_send_position
+  if send_track_count == 0 then
+    -- No send tracks exist: sequencer_track_count + 2 (sequencer + master + after master)
+    new_send_position = song.sequencer_track_count + 2
+  else
+    -- Send tracks exist: sequencer_track_count + 1 + send_track_count
+    new_send_position = song.sequencer_track_count + 1 + send_track_count
+  end
+  
+  -- Create new send track name
+  local send_track_name = string.format("S%02d %s", next_send_number, current_track_name)
+  
+  -- Insert new send track
+  song:insert_track_at(new_send_position)
+  local new_send_track = song.tracks[new_send_position]
+  new_send_track.name = send_track_name
+  
+  -- Select the original track to add the send device
+  song.selected_track_index = song.selected_track_index
+  
+  -- Load Multiband Send device using existing working preset (like PakettiLoaders.lua does)
+  loadnative("Audio/Effects/Native/#Multiband Send", nil, "./Presets/PakettiMultiSend.xml", nil, true)
+  
+  -- Configure parameters based on mode
+  local suffix, status_msg
+  local send_device = song.selected_device
+  if send_device and send_device.name == "#Multiband Send" then
+    -- Set send destination (find DestSendTrack parameter)
+    for i = 1, #send_device.parameters do
+      if send_device.parameters[i].name == "DestSendTrack" then
+        send_device.parameters[i].value = send_track_count
+        break
+      end
+    end
+    
+    -- Configure volume and mute based on mode
+    if mode == "mute" then
+      send_device.parameters[1].value = 1.0  -- Band1Volume MAXIMUM
+      send_device.parameters[3].value = 1.0  -- Band2Volume MAXIMUM
+      send_device.parameters[5].value = 1.0  -- Band3Volume MAXIMUM
+      -- Note: MultibandSend doesn't have MuteSource parameter
+      suffix = " (MB Mute)"
+      status_msg = "with Mute Source Multiband Send device"
+-- Silent mode removed
+    else -- "keep" mode (default)
+      send_device.parameters[1].value = 0.0  -- Band1Volume MINIMUM (-inf dB)
+      send_device.parameters[3].value = 0.0  -- Band2Volume MINIMUM (-inf dB)
+      send_device.parameters[5].value = 0.0  -- Band3Volume MINIMUM (-inf dB)
+      suffix = " (MB)"
+      status_msg = "and connected Multiband Send device"
+    end
+    
+    -- Show parameters in mixer (following PakettiLoaders.lua style)
+    send_device.parameters[1].show_in_mixer = false
+    send_device.parameters[3].show_in_mixer = false
+    send_device.parameters[5].show_in_mixer = false
+    send_device.parameters[7].show_in_mixer = true  -- SplitFrequency1
+    send_device.parameters[8].show_in_mixer = true  -- SplitFrequency2
+    
+    send_device.is_maximized = false
+    send_device.display_name = send_track_name .. suffix
+    
+    -- Select the newly created send track
+    song.selected_track_index = new_send_position
+    
+    renoise.app():show_status("Created Send Track '" .. send_track_name .. "' " .. status_msg)
+  else
+    renoise.app():show_status("ERROR - Failed to load Multiband Send device")
+  end
+end
+
+-- CREATE NEW SEND TRACK + DEVICE (creates both track and device)
+renoise.tool():add_keybinding{name="Global:Paketti:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Create New Send Track", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Create New Send Track", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+
+-- DRY Create New Send function with mode parameter
+-- mode: "keep" (keep source, send at minimum volume), "mute" (mute source, send at maximum volume)
+function PakettiPresetPlusPlusCreateNewSendWithMode(mode)
+  local song = renoise.song()
+  mode = mode or "keep"
+  
+  -- Get current track info
+  local current_track = song.selected_track
+  local current_track_name = current_track.name
+  
+  -- Count existing send tracks to determine numbering
+  local send_track_count = song.send_track_count
+  local next_send_number = send_track_count + 1
+  
+  -- Calculate position for new send track
+  local new_send_position
+  if send_track_count == 0 then
+    -- No send tracks exist: after master track
+    new_send_position = song.sequencer_track_count + 2
+  else
+    -- Send tracks exist: after the last existing send track
+    new_send_position = song.sequencer_track_count + 1 + send_track_count + 1
+  end
+  
+  -- Create new send track name
+  local send_track_name = string.format("S%02d %s", next_send_number, current_track_name)
+  
+  -- Insert new send track
+  song:insert_track_at(new_send_position)
+  local new_send_track = song.tracks[new_send_position]
+  new_send_track.name = send_track_name
+  
+  -- Set collapsed state based on preference
+  if renoise.tool().preferences.pakettiCreateNewSends.Collapsed.value then
+    new_send_track.collapsed = true
+  end
+  
+  -- Select the original track to add the send device
+  song.selected_track_index = song.selected_track_index
+  
+  -- Load Send device using existing working preset (like PakettiLoaders.lua does)
+  loadnative("Audio/Effects/Native/#Send", nil, "./Presets/PakettiSend.xml", nil, true)
+  
+  -- Configure parameters based on mode
+  local suffix, status_msg
+  local send_device = song.selected_device
+  if send_device and send_device.name == "#Send" then
+    -- Set send destination to the newly created send track (send_track_count = index of new track)
+    send_device.parameters[3].value = send_track_count
+    
+    -- Configure volume and mute based on mode
+    if mode == "mute" then
+      send_device.parameters[1].value = 1.0  -- SendAmount to MAXIMUM volume
+      send_device.parameters[4].value = 1    -- MuteSource = true (mutes original track)
+      suffix = " (Mute)"
+      status_msg = "with Mute Source Send device"
+    else -- "keep" mode (default)
+      send_device.parameters[1].value = 0.0  -- SendAmount to MINIMUM volume (-inf dB)
+      send_device.parameters[4].value = 0    -- MuteSource = false (keeps original source)
+      suffix = ""
+      status_msg = "and connected Send device"
+    end
+    
+    send_device.parameters[2].show_in_mixer = false
+    send_device.is_maximized = false
+    send_device.display_name = send_track_name .. suffix
+    
+    -- Select the newly created send track
+    song.selected_track_index = new_send_position
+    
+    renoise.app():show_status("Created Send Track '" .. send_track_name .. "' " .. status_msg)
+  else
+    renoise.app():show_status("ERROR - Failed to load Send device")
+  end
+end
+
+-- DRY Create New Multiband Send function with mode parameter
+-- mode: "keep" (keep source, send at minimum volume), "mute" (send at maximum volume)
+function PakettiPresetPlusPlusCreateNewMultibandSendWithMode(mode)
+  local song = renoise.song()
+  mode = mode or "keep"
+  
+  -- Get current track info
+  local current_track = song.selected_track
+  local current_track_name = current_track.name
+  
+  -- Count existing send tracks to determine numbering
+  local send_track_count = song.send_track_count
+  local next_send_number = send_track_count + 1
+  
+  -- Calculate position for new send track
+  local new_send_position
+  if send_track_count == 0 then
+    -- No send tracks exist: after master track
+    new_send_position = song.sequencer_track_count + 2
+  else
+    -- Send tracks exist: after the last existing send track
+    new_send_position = song.sequencer_track_count + 1 + send_track_count + 1
+  end
+  
+  -- Create new send track name
+  local send_track_name = string.format("S%02d %s", next_send_number, current_track_name)
+  
+  -- Insert new send track
+  song:insert_track_at(new_send_position)
+  local new_send_track = song.tracks[new_send_position]
+  new_send_track.name = send_track_name
+  
+  -- Set collapsed state based on preference
+  if renoise.tool().preferences.pakettiCreateNewSends.Collapsed.value then
+    new_send_track.collapsed = true
+  end
+  
+  -- Select the original track to add the send device
+  song.selected_track_index = song.selected_track_index
+  
+  -- Load Multiband Send device using existing working preset (like PakettiLoaders.lua does)
+  loadnative("Audio/Effects/Native/#Multiband Send", nil, "./Presets/PakettiMultiSend.xml", nil, true)
+  
+  -- Configure parameters based on mode
+  local suffix, status_msg
+  local send_device = song.selected_device
+  if send_device and send_device.name == "#Multiband Send" then
+    -- Set send destination (find DestSendTrack parameter)
+    for i = 1, #send_device.parameters do
+      if send_device.parameters[i].name == "DestSendTrack" then
+        send_device.parameters[i].value = send_track_count
+        break
+      end
+    end
+    
+    -- Configure volume and mute based on mode
+    if mode == "mute" then
+      send_device.parameters[1].value = 1.0  -- Band1Volume MAXIMUM
+      send_device.parameters[3].value = 1.0  -- Band2Volume MAXIMUM
+      send_device.parameters[5].value = 1.0  -- Band3Volume MAXIMUM
+      -- Note: MultibandSend doesn't have MuteSource parameter
+      suffix = " (MB Mute)"
+      status_msg = "with Mute Source Multiband Send device"
+-- Silent mode removed
+    else -- "keep" mode (default)
+      send_device.parameters[1].value = 0.0  -- Band1Volume MINIMUM (-inf dB)
+      send_device.parameters[3].value = 0.0  -- Band2Volume MINIMUM (-inf dB)
+      send_device.parameters[5].value = 0.0  -- Band3Volume MINIMUM (-inf dB)
+      suffix = " (MB)"
+      status_msg = "and connected Multiband Send device"
+    end
+    
+    -- Show parameters in mixer (following PakettiLoaders.lua style)
+    send_device.parameters[1].show_in_mixer = false
+    send_device.parameters[3].show_in_mixer = false
+    send_device.parameters[5].show_in_mixer = false
+    send_device.parameters[7].show_in_mixer = true  -- SplitFrequency1
+    send_device.parameters[8].show_in_mixer = true  -- SplitFrequency2
+    
+    send_device.is_maximized = false
+    send_device.display_name = send_track_name .. suffix
+    
+    renoise.app():show_status("Created Send Track '" .. send_track_name .. "' " .. status_msg)
+  else
+    renoise.app():show_status("ERROR - Failed to load Multiband Send device")
+  end
+end
 
 
+-- COMPLETE DRY KEYBINDINGS (4 total - all modes covered)
+renoise.tool():add_keybinding{name="Global:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 
-
-
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Create New Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Preset++:Create New Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Preset++:Create New Multiband Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Preset++:Create New Multiband Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Create New Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Preset++:Create New Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Preset++:Create New Multiband Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Preset++:Create New Multiband Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 
