@@ -2018,7 +2018,25 @@ function PakettiPresetPlusPlusCreateNewSendWithMode(mode)
   
   -- Count existing send tracks to determine numbering
   local send_track_count = song.send_track_count
-  local next_send_number = send_track_count + 1
+  local next_send_number
+  
+  -- Use preference to determine naming scheme
+  if PakettiCreateNewSends.SendNamingPerTrack.value then
+    -- Per-track naming: count sends for this specific track
+    local track_send_count = 0
+    for i = 1, #song.tracks do
+      if song.tracks[i].type == renoise.Track.TRACK_TYPE_SEND then
+        -- Check if this send track name contains our current track name
+        if song.tracks[i].name:find(current_track_name, 1, true) then
+          track_send_count = track_send_count + 1
+        end
+      end
+    end
+    next_send_number = track_send_count + 1
+  else
+    -- Global naming: increment across all tracks
+    next_send_number = send_track_count + 1
+  end
   
   -- Calculate position for new send track
   local new_send_position
@@ -2090,7 +2108,25 @@ function PakettiPresetPlusPlusCreateNewMultibandSendWithMode(mode)
   
   -- Count existing send tracks to determine numbering
   local send_track_count = song.send_track_count
-  local next_send_number = send_track_count + 1
+  local next_send_number
+  
+  -- Use preference to determine naming scheme
+  if PakettiCreateNewSends.SendNamingPerTrack.value then
+    -- Per-track naming: count sends for this specific track
+    local track_send_count = 0
+    for i = 1, #song.tracks do
+      if song.tracks[i].type == renoise.Track.TRACK_TYPE_SEND then
+        -- Check if this send track name contains our current track name
+        if song.tracks[i].name:find(current_track_name, 1, true) then
+          track_send_count = track_send_count + 1
+        end
+      end
+    end
+    next_send_number = track_send_count + 1
+  else
+    -- Global naming: increment across all tracks
+    next_send_number = send_track_count + 1
+  end
   
   -- Calculate position for new send track
   local new_send_position

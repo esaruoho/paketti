@@ -1080,11 +1080,18 @@ end
 
 -- Clean up observers when dialog closes
 function PakettiCanvasExperimentsCleanup()
-  print("CLEANUP: Starting cleanup - turning off automation sync")
+  -- Only print cleanup messages if there's actually something to clean up
+  local needs_cleanup = follow_automation or device_selection_notifier or canvas_experiments_dialog
+  
+  if needs_cleanup then
+    print("CLEANUP: Starting cleanup - turning off automation sync")
+  end
   
   -- CRITICAL: Turn off automation sync to stop all automation writing
-  follow_automation = false
-  print("CLEANUP: Automation sync turned OFF")
+  if follow_automation then
+    follow_automation = false
+    print("CLEANUP: Automation sync turned OFF")
+  end
   
   -- AGGRESSIVELY remove device selection observer with multiple attempts
   if device_selection_notifier then
@@ -1217,8 +1224,8 @@ function PakettiCanvasExperimentsCreateDialog()
     -- Automation controls
     vb:row {
       vb:button {
-        text = "Add Snapshot to Automation",
-        width = 160,
+        text = "Add Snapshot",
+        width = 80,
         tooltip = "Add current parameter values as automation points",
         notifier = function()
           PakettiCanvasExperimentsSnapshotToAutomation()
@@ -1226,15 +1233,15 @@ function PakettiCanvasExperimentsCreateDialog()
       },
       vb:button {
         text = "Clear",
-        width = 50,
+        width = 40,
         tooltip = "Clear all automation for selected device - parameters become stable",
         notifier = function()
           PakettiCanvasExperimentsClearAutomation()
         end
       },
       vb:button {
-        text = "Clean & Snap",
-        width = 60,
+        text = "Clean&Snap",
+        width = 50,
         tooltip = "Clear automation + write current parameter values at line 1",
         notifier = function()
           PakettiCanvasExperimentsCleanAndSnap()
@@ -1243,7 +1250,7 @@ function PakettiCanvasExperimentsCreateDialog()
       vb:button {
         id = "follow_automation_button",
         text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF",
-        width = 180,
+        width = 150,
         color = follow_automation and {0, 120, 0} or {96, 96, 96},
         tooltip = "Toggle bidirectional automation: read automation playback + write when drawing",
         notifier = function()
@@ -1275,7 +1282,7 @@ function PakettiCanvasExperimentsCreateDialog()
       vb:text{text="Randomize",style="strong",font="bold",width=50},
       vb:button {
         text = "Automation",
-        width = 80,
+        width = 60,
         tooltip = "Randomize current Edit A/B and write snapshot to automation",
         notifier = function()
           PakettiCanvasExperimentsRandomizeAutomation()
@@ -1283,7 +1290,7 @@ function PakettiCanvasExperimentsCreateDialog()
       },
       vb:button {
         text = "by EditStep",
-        width = 80,
+        width = 70,
         tooltip = "Randomize automation at EditStep intervals (clear all, write at steps, set to Point mode)",
         notifier = function()
           PakettiCanvasExperimentsRandomizeByEditStep()
@@ -1322,7 +1329,7 @@ function PakettiCanvasExperimentsCreateDialog()
       
       vb:button {
         text = "Toggle External Editor",
-        width = 141,
+        width = 120,
         notifier = function()
           if current_device and current_device.external_editor_available then
             current_device.external_editor_visible = not current_device.external_editor_visible
@@ -1332,12 +1339,31 @@ function PakettiCanvasExperimentsCreateDialog()
         end
       },
       
+      -- Pattern automation buttons
+      vb:button {
+        text = "Duplicate to Next Pattern",
+        width = 130,
+        tooltip = "Copy all automation of current device parameters to next pattern",
+        notifier = function()
+          PakettiCanvasExperimentsDuplicateToNextPattern()
+        end
+      },
+      
+      vb:button {
+        text = "Snapshot to Next Pattern", 
+        width = 140,
+        tooltip = "Create automation points in next pattern using current parameter values",
+        notifier = function()
+          PakettiCanvasExperimentsSnapshotToNextPattern()
+        end
+      },
+      
       -- Device status text at the end of this row
       vb:text{
         id="status_text_view",
         text=PakettiCanvasExperimentsGetStatusText(),
         font="bold",style="strong",
-        width=400}
+        width=300}
 
 
     },
@@ -2195,7 +2221,12 @@ function RemoveCanvasUpdateTimer()
 end
 
 -- EMERGENCY: Force cleanup any lingering state on tool load
-if canvas_experiments_dialog or device_parameter_observers or canvas_update_timer then
+-- Only run cleanup if there's actually lingering state that needs cleaning
+if (canvas_experiments_dialog and canvas_experiments_dialog.visible) or 
+   device_parameter_observers or 
+   canvas_update_timer or
+   follow_automation then
+  print("TOOL_LOAD: Found lingering Canvas Experiments state, cleaning up...")
   PakettiCanvasExperimentsCleanup()
 end
 
@@ -2229,5 +2260,133 @@ function PakettiCanvasExperimentsEmergencyReset()
   print("EMERGENCY_RESET: Complete")
 end
 
+-- Duplicate current device parameter automation to next pattern
+function PakettiCanvasExperimentsDuplicateToNextPattern()
+  local song = renoise.song()
+  if not current_device or not device_parameters or #device_parameters == 0 then
+    renoise.app():show_status("No device or parameters available for duplication")
+    return
+  end
+  
+  local current_pattern_index = song.selected_pattern_index
+  local current_sequence_index = song.selected_sequence_index
+  local track_index = song.selected_track_index
+  
+  -- Get next pattern in sequence or create new one
+  local next_sequence_index = current_sequence_index + 1
+  local next_pattern_index = nil
+  
+  if next_sequence_index > #song.sequencer.pattern_sequence then
+    -- Create new pattern after current sequence
+    next_pattern_index = song.sequencer:insert_new_pattern_at(next_sequence_index)
+    renoise.app():show_status("Created new pattern " .. next_pattern_index .. " at sequence " .. next_sequence_index)
+  else
+    -- Use existing pattern at next sequence position
+    next_pattern_index = song.sequencer.pattern_sequence[next_sequence_index]
+  end
+  
+  local current_track = song:pattern(current_pattern_index):track(track_index)
+  local next_track = song:pattern(next_pattern_index):track(track_index)
+  
+  local copied_count = 0
+  
+  -- Copy automation for all parameters of the current device
+  for _, param_info in ipairs(device_parameters) do
+    local parameter = param_info.parameter
+    local current_automation = current_track:find_automation(parameter)
+    
+    if current_automation then
+      -- Find or create automation in next pattern
+      local next_automation = next_track:find_automation(parameter)
+      if not next_automation then
+        next_automation = next_track:create_automation(parameter)
+      end
+      
+      -- Copy the automation data
+      next_automation:copy_from(current_automation)
+      copied_count = copied_count + 1
+      print("Copied automation for parameter: " .. parameter.name)
+    end
+  end
+  
+  -- CRITICAL: Jump to the next pattern after duplication
+  song.selected_sequence_index = next_sequence_index
+  
+  if copied_count > 0 then
+    renoise.app():show_status("Duplicated " .. copied_count .. " parameter automations to next pattern and jumped to it")
+  else
+    renoise.app():show_status("No automation found for current device parameters")
+  end
+end
+
+-- Snapshot current parameter values to next pattern as automation
+function PakettiCanvasExperimentsSnapshotToNextPattern()
+  local song = renoise.song()
+  if not current_device or not device_parameters or #device_parameters == 0 then
+    renoise.app():show_status("No device or parameters available for snapshot")
+    return
+  end
+  
+  local current_pattern_index = song.selected_pattern_index
+  local current_sequence_index = song.selected_sequence_index
+  local track_index = song.selected_track_index
+  
+  -- Get next pattern in sequence or create new one
+  local next_sequence_index = current_sequence_index + 1
+  local next_pattern_index = nil
+  
+  if next_sequence_index > #song.sequencer.pattern_sequence then
+    -- Create new pattern after current sequence
+    next_pattern_index = song.sequencer:insert_new_pattern_at(next_sequence_index)
+    renoise.app():show_status("Created new pattern " .. next_pattern_index .. " at sequence " .. next_sequence_index)
+  else
+    -- Use existing pattern at next sequence position
+    next_pattern_index = song.sequencer.pattern_sequence[next_sequence_index]
+  end
+  
+  local next_track = song:pattern(next_pattern_index):track(track_index)
+  local next_pattern = song:pattern(next_pattern_index)
+  
+  local snapshot_count = 0
+  
+  -- Create automation points for all parameters at their current values
+  for _, param_info in ipairs(device_parameters) do
+    local parameter = param_info.parameter
+    local current_value = parameter.value
+    
+    -- Find or create automation in next pattern
+    local next_automation = next_track:find_automation(parameter)
+    if not next_automation then
+      next_automation = next_track:create_automation(parameter)
+    end
+    
+    -- Clear existing automation and add single point at start with current value
+    next_automation:clear()
+    
+    -- Convert device parameter value to normalized automation value (0.0 to 1.0)
+    local normalized_value = (current_value - parameter.value_min) / (parameter.value_max - parameter.value_min)
+    normalized_value = math.max(0.0, math.min(1.0, normalized_value))
+    
+    -- Add automation point at the beginning of the pattern
+    next_automation:add_point_at(1, normalized_value)
+    
+    snapshot_count = snapshot_count + 1
+    print("Snapshot parameter " .. parameter.name .. " = " .. current_value .. " (normalized: " .. normalized_value .. ")")
+  end
+  
+  -- CRITICAL: Jump to the next pattern after snapshot
+  song.selected_sequence_index = next_sequence_index
+  
+  if snapshot_count > 0 then
+    renoise.app():show_status("Snapshot " .. snapshot_count .. " parameter values to next pattern and jumped to it")
+  else
+    renoise.app():show_status("No parameters available for snapshot")
+  end
+end
+
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Selected Device Parameter Editor",invoke = PakettiCanvasExperimentsInit}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Selected Device Parameter Editor",invoke = PakettiCanvasExperimentsInit}
+
+-- Parameter Editor Pattern Functions
+renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Duplicate to Next Pattern",invoke = PakettiCanvasExperimentsDuplicateToNextPattern}
+renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Snapshot to Next Pattern",invoke = PakettiCanvasExperimentsSnapshotToNextPattern}

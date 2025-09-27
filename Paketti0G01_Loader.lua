@@ -185,6 +185,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiUnisonDetuneHardSync=false,
   pakettiUnisonDuplicateInstrument=true,
   PakettiHyperEditCaptureTrackColor=false,
+  PakettiHyperEditAutoFit=true,
+  PakettiHyperEditManualRows=8,
   pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni",
   pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
   ActionSelector = {
@@ -564,7 +566,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   },
   -- Create New Send Settings
   pakettiCreateNewSends = {
-    Collapsed = false
+    Collapsed = false,
+    SendNamingPerTrack = true  -- true = per-track naming (S01-S04 per track), false = global naming (S01, S02, S03...)
   },
   -- PlayerPro Waveform Viewer Settings
   pakettiPlayerProWaveformViewer = {
@@ -612,6 +615,8 @@ PatternSequencer = renoise.tool().preferences.pakettiPatternSequencer
 PakettiExecute = renoise.tool().preferences.pakettiExecute
 -- Add parameter editor preferences accessor
 PakettiParameterEditor = renoise.tool().preferences.pakettiParameterEditor
+-- Add Create New Sends preferences accessor
+PakettiCreateNewSends = renoise.tool().preferences.pakettiCreateNewSends
 -- Add PlayerPro Waveform Viewer preferences accessor
 PakettiPlayerProWaveformViewer = renoise.tool().preferences.pakettiPlayerProWaveformViewer
 
@@ -1623,6 +1628,17 @@ vb:row{
               end
             }
           },
+          vb:row{
+            vb:text{text="Send Naming Per Track",width=150,tooltip="When enabled, each track gets its own S01-S04 send numbering. When disabled, sends are numbered globally (S01, S02, S03...)"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiCreateNewSends.SendNamingPerTrack.value and 2 or 1,
+              width=200,
+              tooltip="When enabled, each track gets its own S01-S04 send numbering. When disabled, sends are numbered globally (S01, S02, S03...)",
+              notifier=function(value) 
+                preferences.pakettiCreateNewSends.SendNamingPerTrack.value=(value==2)
+              end
+            }
+          },
 
           -- Unison Generator Settings wrapped in group
 
@@ -1820,6 +1836,30 @@ vb:row{
               notifier=function(value)
                 preferences.PakettiEQ30MinimizeDevices.value = (value==2)
                 preferences:save_as("preferences.xml")
+              end}
+          },
+          
+          vb:text{style="strong",font="bold",text="HyperEdit"},
+          vb:row{
+            vb:text{text="Auto-Fit Rows",width=150,tooltip="Automatically expand rows to show all existing automation"},
+            vb:switch{items={"Off","On"},width=200,value=preferences.PakettiHyperEditAutoFit.value and 2 or 1,tooltip="Automatically expand rows to show all existing automation",
+              notifier=function(value)
+                preferences.PakettiHyperEditAutoFit.value = (value==2)
+                preferences:save_as("preferences.xml")
+                local mode = value == 2 and "enabled" or "disabled"
+                renoise.app():show_status("HyperEdit Auto-Fit " .. mode)
+              end}
+          },
+          vb:row{
+            vb:text{text="Manual Row Count",width=150,tooltip="Fixed number of rows when Auto-Fit is disabled"},
+            vb:popup{items={"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32"},
+              value=preferences.PakettiHyperEditManualRows.value,
+              width=200,
+              tooltip="Fixed number of rows when Auto-Fit is disabled",
+              notifier=function(value)
+                preferences.PakettiHyperEditManualRows.value = value
+                preferences:save_as("preferences.xml")
+                renoise.app():show_status("HyperEdit Manual Row Count set to " .. value)
               end}
           },
           
