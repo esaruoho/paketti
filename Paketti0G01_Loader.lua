@@ -189,6 +189,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiHyperEditManualRows=8,
   pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni",
   pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
+  pakettiPresetPlusPlusDeviceChain = "DeviceChains" .. separator .. "hipass_lopass_dcoffset.xrnt",
   ActionSelector = {
  Index01="",
  Index02="",
@@ -667,6 +668,33 @@ local function pakettiGetXRNIDefaultPresetFiles()
     return files
 end
 
+-- Function to get available .xrnt device chain files
+local function pakettiGetXRNTDeviceChainFiles()
+    local deviceChainsFolder = renoise.tool().bundle_path .. "DeviceChains" .. separator
+    local files = {}
+    
+    -- Try to get files from the DeviceChains folder
+    local success, result = pcall(os.filenames, deviceChainsFolder, "*.xrnt")
+    if success and result then
+        files = result
+    end
+    
+    if #files == 0 then
+        return { "<No Device Chain Files Found>" }
+    end
+    
+    -- Process filenames to remove path and use correct separator
+    for i, file in ipairs(files) do
+        -- Extract just the filename from the full path
+        files[i] = file:match("[^"..separator.."]+$")
+    end
+    
+    -- Sort the files alphabetically for better user experience
+    table.sort(files, function(a, b) return a:lower() < b:lower() end)
+    
+    return files
+end
+
 -- Function to create horizontal rule
 function horizontal_rule()
     return vb:horizontal_aligner{mode="justify",width="100%", vb:space{width=2}, vb:row{height=2,width="30%", style="panel"}, vb:space{width=2}}
@@ -867,6 +895,21 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
     -- Get the initial value (index) for the popup
     local pakettiDefaultXRNIDisplayId = "pakettiDefaultXRNIDisplay_" .. tostring(math.random(2,30000))
     local pakettiDefaultDrumkitXRNIDisplayId = "pakettiDefaultDrumkitXRNIDisplay_" .. tostring(math.random(2,30000))
+
+  -- Get device chain files and find current selection
+  local deviceChainFiles = pakettiGetXRNTDeviceChainFiles()
+  local currentDeviceChainIndex = 1
+  
+  -- Find the index of currently selected device chain
+  local currentFileName = preferences.pakettiPresetPlusPlusDeviceChain.value:match("[^/\\]+$")
+  if currentFileName then
+    for i, file in ipairs(deviceChainFiles) do
+      if file == currentFileName then
+        currentDeviceChainIndex = i
+        break
+      end
+    end
+  end
 
   local dialog_content = vb:column{
       --margin=5,
@@ -1275,6 +1318,66 @@ vb:row{
           notifier=function(value)
             preferences.pakettiDialogClose.value = dialog_close_keys[value]
           end},},
+    vb:text{style="strong", font="bold", text="Preset++"},
+    vb:row{
+        vb:text{text="Create Track w/ Channelstrip",width=150,tooltip="Device chain file (.xrnt) to load when creating new track with channelstrip"},
+        vb:popup{
+            items = deviceChainFiles,
+            value = currentDeviceChainIndex,
+            width=200,
+            id = "pakettiPresetPlusPlusDeviceChainPopup",
+            tooltip="Device chain file (.xrnt) to load when creating new track with channelstrip",
+            notifier=function(value)
+                if value > 0 and value <= #deviceChainFiles then
+                    local selected_file = deviceChainFiles[value]
+                    if selected_file == "<No Device Chain Files Found>" then
+                        return
+                    end
+                    preferences.pakettiPresetPlusPlusDeviceChain.value = "DeviceChains" .. separator .. selected_file
+                    preferences:save_as("preferences.xml")
+                    renoise.app():show_status("Device chain updated: " .. selected_file)
+                end
+            end
+        },
+        vb:button{
+            text="Browse",
+            width=60,
+            notifier=function()
+                local filePath = renoise.app():prompt_for_filename_to_read({"*.xrnt"}, "Select Device Chain for Preset++ Channelstrip")
+                if filePath and filePath ~= "" then
+                    -- Store relative path from tool root
+                    local tool_path = renoise.tool().bundle_path
+                    if filePath:find(tool_path, 1, true) == 1 then
+                        -- File is inside tool bundle, use relative path
+                        local relative_path = filePath:sub(#tool_path + 1)
+                        if relative_path:sub(1, 1) == separator then
+                            relative_path = relative_path:sub(2)  -- Remove leading separator
+                        end
+                        preferences.pakettiPresetPlusPlusDeviceChain.value = relative_path
+                    else
+                        -- File is outside tool bundle, use absolute path
+                        preferences.pakettiPresetPlusPlusDeviceChain.value = filePath
+                    end
+                    
+                    -- Update the popup selection (refresh the dropdown)
+                    local refreshedFiles = pakettiGetXRNTDeviceChainFiles()
+                    vb.views["pakettiPresetPlusPlusDeviceChainPopup"].items = refreshedFiles
+                    local filename = filePath:match("[^/\\]+$")
+                    for i, file in ipairs(refreshedFiles) do
+                        if file == filename then
+                            vb.views["pakettiPresetPlusPlusDeviceChainPopup"].value = i
+                            break
+                        end
+                    end
+                    
+                    preferences:save_as("preferences.xml")
+                    renoise.app():show_status("Device chain updated: " .. filename)
+                else
+                    renoise.app():show_status("No device chain file selected")
+                end
+            end
+        }
+    },
     vb:text{style="strong", font="bold", text="Random Device Chain Loader Path"},
     vb:row{
         vb:textfield{

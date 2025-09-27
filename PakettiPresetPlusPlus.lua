@@ -2228,3 +2228,43 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Create New Send Track
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 
+-- Create New Track with Channelstrip function
+function PakettiCreateNewTrackWithChannelstrip()
+  local song = renoise.song()
+  local current_track_index = song.selected_track_index
+  local new_track_index = current_track_index + 1
+  
+  -- Insert new track at the position after current track
+  song:insert_track_at(new_track_index)
+  
+  -- Select the newly created track
+  song.selected_track_index = new_track_index
+  
+  -- Get device chain path from preferences
+  local device_chain_path = renoise.tool().preferences.pakettiPresetPlusPlusDeviceChain.value
+  
+  -- If it's a relative path, make it absolute from tool bundle
+  if not device_chain_path:match("^[/\\]") and not device_chain_path:match("^%a:") then
+    device_chain_path = renoise.tool().bundle_path .. device_chain_path
+  end
+  
+  -- Load the device chain to the selected track with error handling
+  local success, error_message = pcall(function()
+    renoise.app():load_track_device_chain(device_chain_path)
+  end)
+  
+  if success then
+    local chain_name = device_chain_path:match("[^/\\]+$") or device_chain_path
+    renoise.app():show_status("Created new track with device chain: " .. chain_name)
+  else
+    renoise.app():show_status("ERROR: Could not load device chain - " .. (error_message or "file not found"))
+  end
+end
+
+-- Add keybinding and menu entries for Create New Track with Channelstrip
+renoise.tool():add_keybinding{name="Global:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+

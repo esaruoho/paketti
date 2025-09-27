@@ -2,6 +2,25 @@
 -- 8-Row Interchangeable Stepsequencer with individual device/parameter selection
 -- Each row has its own canvas with device and parameter dropdowns
 
+-- Helper function to clean parameter names by removing "CC XX " prefix
+-- e.g., "CC 1 (Mod Wheel)" becomes "Mod Wheel"
+function PakettiHyperEditCleanParameterName(param_name)
+  if not param_name then
+    return param_name
+  end
+  
+  -- Remove "CC XX " pattern (e.g., "CC 54 (Cutoff)" becomes "(Cutoff)")
+  local cleaned = param_name:gsub("^CC %d+ ", "")
+  
+  -- Remove parentheses if the entire remaining string is wrapped in them
+  -- e.g., "(Cutoff)" becomes "Cutoff"
+  if cleaned:match("^%((.+)%)$") then
+    cleaned = cleaned:match("^%((.+)%)$")
+  end
+  
+  return cleaned
+end
+
 -- Device parameter whitelists for cleaner parameter selection
 local DEVICE_PARAMETER_WHITELISTS = {
   ["AU: Valhalla DSP, LLC: ValhallaDelay"] = {
@@ -81,11 +100,11 @@ function PakettiHyperEditUpdateRowCount()
   
   -- Use manual row count if auto-fit is disabled, otherwise use saved row count
   if preferences and preferences.PakettiHyperEditAutoFit and not preferences.PakettiHyperEditAutoFit.value then
-    -- Auto-fit disabled: use manual row count
-    NUM_ROWS = preferences.PakettiHyperEditManualRows.value
+    -- Auto-fit disabled: use manual row count (capped at 16 to prevent dialog being too large)
+    NUM_ROWS = math.min(16, preferences.PakettiHyperEditManualRows.value)
   elseif preferences and preferences.PakettiHyperEditRowCount then
-    -- Auto-fit enabled: use saved row count (which may have been auto-expanded)
-    NUM_ROWS = preferences.PakettiHyperEditRowCount.value
+    -- Auto-fit enabled: use saved row count (capped at 16 to prevent dialog being too large)
+    NUM_ROWS = math.min(16, preferences.PakettiHyperEditRowCount.value)
   else
     NUM_ROWS = 8  -- Default fallback
   end
@@ -624,7 +643,7 @@ function PakettiHyperEditPreConfigureParameters()
       param_index = row + (target_device_info.name:find("Instr") and target_device_info.name:find("Macro") and 1 or 0)
       if param_index <= #device_params then
         param_info = device_params[param_index]
-        print("DEBUG: Row " .. row .. " using sequential parameter: " .. (param_info.name or "unknown"))
+        print("DEBUG: Row " .. row .. " using sequential parameter: " .. (PakettiHyperEditCleanParameterName(param_info.name) or "unknown"))
       end
     end
     
@@ -1138,8 +1157,8 @@ function PakettiHyperEditSelectDevice(row, device_index)
   
   local param_names = {}
   for i, param_info in ipairs(parameter_lists[row]) do
-    table.insert(param_names, param_info.name)
-    print("DEBUG: Parameter " .. i .. " for row " .. row .. ": " .. param_info.name)
+    table.insert(param_names, PakettiHyperEditCleanParameterName(param_info.name))
+    print("DEBUG: Parameter " .. i .. " for row " .. row .. ": " .. PakettiHyperEditCleanParameterName(param_info.name))
   end
   
   if #param_names == 0 then
@@ -1186,7 +1205,7 @@ function PakettiHyperEditSelectParameter(row, param_index)
     print("DEBUG: Skipping auto-read for " .. param_info.name .. " during device list update - preserving existing step data")
   end
   
-  renoise.app():show_status("HyperEdit Row " .. row .. ": Selected parameter - " .. param_info.name)
+  renoise.app():show_status("HyperEdit Row " .. row .. ": Selected parameter - " .. PakettiHyperEditCleanParameterName(param_info.name))
 end
 
 -- Handle mouse input on specific row canvas
@@ -1872,11 +1891,11 @@ function PakettiHyperEditPopulateFromExistingAutomation()
   
   local sorted_automations = sort_automations_by_preference(found_automations)
   
-  -- Take all available automations and assign to rows (up to 32 max)
+  -- Take all available automations and assign to rows (up to 16 max)
   -- ANTI-DUPLICATE: Track used parameter names to avoid duplicates like multiple "Mix" parameters
   local used_parameter_names = {}
   local populated_rows = 0
-  local max_automations = math.min(32, #sorted_automations)  -- Cap at 32 rows max
+  local max_automations = math.min(16, #sorted_automations)  -- Cap at 16 rows max to prevent dialog being too large
   
   for _, automation_data in ipairs(sorted_automations) do
     if populated_rows >= max_automations then break end  -- Use all available automations
@@ -1985,13 +2004,13 @@ function PakettiHyperEditPopulateFromExistingAutomation()
       if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
         local param_names = {}
         for i, param_info in ipairs(parameter_lists[row]) do
-          table.insert(param_names, param_info.name)
+          table.insert(param_names, PakettiHyperEditCleanParameterName(param_info.name))
         end
         dialog_vb.views["parameter_popup_" .. row].items = param_names
         -- Validate parameter index before setting it
         if found_param_idx > 0 and found_param_idx <= #param_names then
           dialog_vb.views["parameter_popup_" .. row].value = found_param_idx
-          print("DEBUG: Set parameter dropdown for row " .. row .. " to '" .. parameter.name .. "' at index " .. found_param_idx)
+          print("DEBUG: Set parameter dropdown for row " .. row .. " to '" .. PakettiHyperEditCleanParameterName(parameter.name) .. "' at index " .. found_param_idx)
         else
           print("DEBUG: ERROR - Parameter index " .. found_param_idx .. " out of range (max: " .. #param_names .. ") for row " .. row)
           dialog_vb.views["parameter_popup_" .. row].value = 1  -- Safe fallback
@@ -2071,7 +2090,7 @@ function PakettiHyperEditPopulateFromExistingAutomation()
   if populated_rows > NUM_ROWS and preferences and preferences.PakettiHyperEditAutoFit and preferences.PakettiHyperEditAutoFit.value then
     print("DEBUG: Found " .. populated_rows .. " automations but NUM_ROWS was only " .. NUM_ROWS .. " - expanding to show all")
     local old_num_rows = NUM_ROWS
-    NUM_ROWS = populated_rows
+    NUM_ROWS = math.min(16, populated_rows)  -- Cap at 16 rows max to prevent dialog from being too large
     
     -- Update preferences to persist the change
     if preferences.PakettiHyperEditRowCount then
@@ -2296,7 +2315,7 @@ function PakettiHyperEditSetupObservers()
         for check_row = 1, NUM_ROWS do
           if row_parameters[check_row] then
             used_param_names[row_parameters[check_row].name] = true
-            print("DEBUG: Row " .. check_row .. " already uses parameter: " .. row_parameters[check_row].name)
+            print("DEBUG: Row " .. check_row .. " already uses parameter: " .. PakettiHyperEditCleanParameterName(row_parameters[check_row].name))
           end
         end
         
@@ -2314,7 +2333,7 @@ function PakettiHyperEditSetupObservers()
                   -- Found unused parameter - assign it
                   used_param_names[param_info.name] = true -- Mark as used
                   row_parameters[row] = param_info
-                  print("DEBUG: Row " .. row .. " assigned parameter: " .. param_info.name)
+                  print("DEBUG: Row " .. row .. " assigned parameter: " .. PakettiHyperEditCleanParameterName(param_info.name))
                   
                   -- Update parameter dropdown
                   if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
@@ -2426,7 +2445,7 @@ function PakettiHyperEditSetupDeviceObserver()
                 if param_popup and #parameter_lists[row] > 0 then
                   local param_names = {}
                   for j, param_info in ipairs(parameter_lists[row]) do
-                    table.insert(param_names, param_info.name)
+                    table.insert(param_names, PakettiHyperEditCleanParameterName(param_info.name))
                   end
                   param_popup.items = param_names
                   -- DON'T automatically select parameter - let deduplication logic handle it
@@ -2459,7 +2478,7 @@ function PakettiHyperEditSetupDeviceObserver()
           for check_row = 1, NUM_ROWS do
             if row_parameters[check_row] then
               used_param_names[row_parameters[check_row].name] = true
-              print("DEBUG: Row " .. check_row .. " already uses parameter: " .. row_parameters[check_row].name)
+              print("DEBUG: Row " .. check_row .. " already uses parameter: " .. PakettiHyperEditCleanParameterName(row_parameters[check_row].name))
             end
           end
           
@@ -2477,7 +2496,7 @@ function PakettiHyperEditSetupDeviceObserver()
                     -- Found unused parameter - assign it
                     used_param_names[param_info.name] = true -- Mark as used
                     row_parameters[row] = param_info
-                    print("DEBUG: Row " .. row .. " assigned parameter: " .. param_info.name)
+                    print("DEBUG: Row " .. row .. " assigned parameter: " .. PakettiHyperEditCleanParameterName(param_info.name))
                     
                     -- Update parameter dropdown
                     if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
@@ -2874,7 +2893,7 @@ function PakettiHyperEditCreateDialog()
           if value then
             -- Auto-fit enabled: check if we need to expand immediately
             local populated_rows = 0
-            for row = 1, 32 do  -- Check all possible rows
+            for row = 1, 16 do  -- Check all possible rows (max 16 to prevent dialog being too large)
               if row_parameters[row] then
                 populated_rows = populated_rows + 1
               end
@@ -2917,12 +2936,12 @@ function PakettiHyperEditCreateDialog()
       vb:text { text = "Rows", width = 40, style="strong",font="bold" },
       vb:popup {
         id = "row_count_popup",
-        items = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32"},
-        value = math.max(1, math.min(32, NUM_ROWS)), -- Direct mapping: NUM_ROWS = popup index
+        items = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"},
+        value = math.max(1, math.min(16, NUM_ROWS)), -- Direct mapping: NUM_ROWS = popup index
         width = 60,
-        tooltip = "Number of parameter rows to display",
+        tooltip = "Number of parameter rows to display (max 16 to prevent dialog being too large)",
         notifier = function(index)
-          local new_row_count = index -- Direct mapping: popup index = row count (1-32)
+          local new_row_count = index -- Direct mapping: popup index = row count (1-16)
           
           if preferences then
             if preferences.PakettiHyperEditAutoFit and not preferences.PakettiHyperEditAutoFit.value then
@@ -3258,7 +3277,7 @@ function PakettiHyperEditCreateDialog()
       for check_row = 1, NUM_ROWS do
         if row_parameters[check_row] then
           used_param_names[row_parameters[check_row].name] = true
-          print("DEBUG: Row " .. check_row .. " already uses parameter: " .. row_parameters[check_row].name)
+          print("DEBUG: Row " .. check_row .. " already uses parameter: " .. PakettiHyperEditCleanParameterName(row_parameters[check_row].name))
         end
       end
       
@@ -3295,7 +3314,7 @@ function PakettiHyperEditCreateDialog()
                 if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
                   local param_names = {}
                   for _, p in ipairs(params) do
-                    table.insert(param_names, p.name)
+                    table.insert(param_names, PakettiHyperEditCleanParameterName(p.name))
                   end
                   dialog_vb.views["parameter_popup_" .. row].items = param_names
                   dialog_vb.views["parameter_popup_" .. row].value = i
@@ -3335,16 +3354,27 @@ function PakettiHyperEditInit()
     return
   end
   
+  -- Check if Instr. Macros device exists on selected track, load if missing
+  local s = renoise.song()
+  local track = s.selected_track
+  local instr_macros_found = false
+  
+  -- Check existing devices for Instr. Macros
+  for i = 1, #track.devices do
+    if track.devices[i].display_name == "Instr. Macros" then
+      instr_macros_found = true
+      break
+    end
+  end
+  
+  -- Load Instr. Macros if not found
+  if not instr_macros_found then
+    loadnative("Audio/Effects/Native/*Instr. Macros")
+    renoise.app():show_status("HyperEdit: Loaded Instr. Macros device")
+  end
+  
   PakettiHyperEditCreateDialog()
 end
 
--- Menu entries
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti HyperEdit",
-  invoke = PakettiHyperEditInit
-}
-
-renoise.tool():add_keybinding {
-  name = "Global:Paketti:Paketti HyperEdit",
-  invoke = PakettiHyperEditInit
-}
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit",invoke = PakettiHyperEditInit}

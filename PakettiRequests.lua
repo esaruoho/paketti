@@ -411,23 +411,26 @@ end
 -- Menu entries and keybindings for distributing samples to separate FX chains
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 
+
 -- Menu entries and keybindings for deleting all sample FX chains
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 
-
 -- Menu entries and keybindings for modulation set distribution/deletion
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
@@ -435,6 +438,7 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Distribute All Samples
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 

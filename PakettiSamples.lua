@@ -2711,6 +2711,23 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Instrument Modulation Filter Type",invoke=function()
 filterTypeRandom() end}
+-- Helper function to apply Paketti Loader settings to a sample
+function PakettiInjectApplyLoaderSettings(sample)
+  if not sample or not preferences then return end
+  
+  -- Apply Paketti Loader preferences to the sample
+  sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+  sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+  sample.autofade = preferences.pakettiLoaderAutofade.value
+  sample.autoseek = preferences.pakettiLoaderAutoseek.value
+  sample.oneshot = preferences.pakettiLoaderOneshot.value
+  sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+  sample.new_note_action = preferences.pakettiLoaderNNA.value
+  sample.loop_release = preferences.pakettiLoaderLoopExit.value
+  
+  print(string.format("Applied Paketti loader settings to sample: %s", sample.name))
+end
+
 --------------
 function PakettiInjectDefaultXRNI()
   local instVol = renoise.song().selected_instrument.volume
@@ -2893,6 +2910,9 @@ function PakettiInjectDefaultXRNI()
         print("Slices restored for sample #" .. i)
       end
       
+      -- Apply Paketti Loader settings to the restored sample
+      PakettiInjectApplyLoaderSettings(to_sample)
+      
       print("Sample properties restored for sample #" .. i)
     end
 
@@ -3028,6 +3048,9 @@ function PakettiInjectDefaultXRNI()
         to_sample.oversample_enabled = from_sample.oversample_enabled
         to_sample.device_chain_index = 1
 
+        -- Apply Paketti Loader settings to the main sample
+        PakettiInjectApplyLoaderSettings(to_sample)
+        
         print("Slices copied for sample #" .. i .. " - name: " .. to_sample.name)
         
         -- Now copy properties for each slice alias (samples 2, 3, 4, etc.)
@@ -3059,6 +3082,10 @@ function PakettiInjectDefaultXRNI()
             to_slice.mute_group = from_slice.mute_group
             to_slice.interpolation_mode = from_slice.interpolation_mode
             to_slice.oversample_enabled = from_slice.oversample_enabled
+            
+            -- Apply Paketti Loader settings to each slice
+            PakettiInjectApplyLoaderSettings(to_slice)
+            
             print("Copied ALL properties for slice #" .. slice_idx .. " (transpose: " .. from_slice.transpose .. ", fine_tune: " .. from_slice.fine_tune .. ", loop_mode: " .. from_slice.loop_mode .. ", autofade: " .. tostring(from_slice.autofade) .. ")")
           end
         end
@@ -3074,6 +3101,10 @@ function PakettiInjectDefaultXRNI()
         local to_sample = new_instrument:sample(i)
         to_sample:copy_from(from_sample)
         to_sample.device_chain_index = 1 
+        
+        -- Apply Paketti Loader settings to the copied sample
+        PakettiInjectApplyLoaderSettings(to_sample)
+        
         print("Sample properties copied from sample #" .. i .. " of instrument index " .. selected_instrument_index)
       end
     end

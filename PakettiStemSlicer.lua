@@ -1009,7 +1009,7 @@ function insertHeaderInstrumentForLoader(title)
   local idx = song.selected_instrument_index + 1
   song:insert_instrument_at(idx)
   song.selected_instrument_index = idx
-  -- Do NOT pakettify the header; keep it empty without samples
+  
   local inst = song:instrument(idx)
   inst.name = title
   return idx

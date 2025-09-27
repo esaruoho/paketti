@@ -118,6 +118,25 @@ local function load_ccizer_file(filepath)
     return mappings
 end
 
+-- Helper function to clean parameter names by removing "CC XX " prefix
+-- e.g., "CC 1 (Mod Wheel)" becomes "Mod Wheel"
+function paketti_clean_cc_parameter_name(param_name)
+  if not param_name then
+    return param_name
+  end
+  
+  -- Remove "CC XX " pattern (e.g., "CC 54 (Cutoff)" becomes "(Cutoff)")
+  local cleaned = param_name:gsub("^CC %d+ ", "")
+  
+  -- Remove parentheses if the entire remaining string is wrapped in them
+  -- e.g., "(Cutoff)" becomes "Cutoff"
+  if cleaned:match("^%((.+)%)$") then
+    cleaned = cleaned:match("^%((.+)%)$")
+  end
+  
+  return cleaned
+end
+
 -- SHARED: Helper function to generate the MIDI Control device XML
 -- This function is used by both CCizer Loader and MIDI Populator
 function paketti_generate_midi_control_xml(cc_mappings)
@@ -154,7 +173,7 @@ function paketti_generate_midi_control_xml(cc_mappings)
             -- For pitchbend, use controller number 0 instead of -1 to enable it
             local controller_number = (mapping.type == "PB") and 0 or mapping.cc
             table.insert(xml_lines, string.format('    <ControllerNumber%d>%d</ControllerNumber%d>', i, controller_number, i))
-            table.insert(xml_lines, string.format('    <ControllerName%d>%s</ControllerName%d>', i, mapping.name, i))
+            table.insert(xml_lines, string.format('    <ControllerName%d>%s</ControllerName%d>', i, paketti_clean_cc_parameter_name(mapping.name), i))
             table.insert(xml_lines, string.format('    <ControllerType%d>%s</ControllerType%d>', i, mapping.type or "CC", i))
             table.insert(xml_lines, string.format('    <ControllerEnabled%d>true</ControllerEnabled%d>', i, i))
         else
