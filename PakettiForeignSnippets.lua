@@ -3780,3 +3780,191 @@ renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert SFZ to XRNI & L
 renoise.tool():add_midi_mapping{name="Paketti:Batch Convert SFZ to XRNI (Save Only) [Trigger]", invoke = function(message) if message:is_trigger() then PakettiBatchSFZToXRNI() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Batch Convert SFZ to XRNI & Load [Trigger]", invoke = function(message) if message:is_trigger() then PakettiBatchSFZToXRNI(true) end end}
 
+-- ======================================
+-- Paketti Pattern Alias Identical Slots
+-- ======================================
+-- Based on joule.no0b.AliasIdenticalSlots - automatically alias identical pattern slots to save memory and improve organization
+
+-- Get selected pattern slots, with fallback to all slots if only one is selected
+function PakettiPatternAliasGetSelectedSlots()
+  local song = renoise.song()
+  local range = {}
+  local added_patterns = {}
+  local sequencer = song.sequencer
+  
+  for track_i = 1, #song.tracks do
+    for seq, pattern_i in ipairs(sequencer.pattern_sequence) do
+      if sequencer:track_sequence_slot_is_selected(track_i, seq) then
+        if not added_patterns[pattern_i] then
+          added_patterns[pattern_i] = track_i
+          range[#range+1] = {
+            pattern = pattern_i,
+            track = track_i,
+            sequence = seq
+          }
+        end
+      end
+    end
+    added_patterns = {}
+  end
+  
+  -- If only one slot selected, expand to all slots (fallback behavior)
+  if #range == 1 then
+    range = {}
+    added_patterns = {}
+    for track_i = 1, #song.tracks do
+      for seq, pattern_i in ipairs(sequencer.pattern_sequence) do
+        if not added_patterns[pattern_i] then
+          added_patterns[pattern_i] = track_i
+          range[#range+1] = {
+            pattern = pattern_i,
+            track = track_i,
+            sequence = seq
+          }
+        end
+      end
+      added_patterns = {}
+    end
+  end
+  
+  return range
+end
+
+-- Create a hash signature for a pattern track based on its content
+function PakettiPatternAliasHashPatternTrack(pattern_i, track_i, patterntrack)
+  local hash_string = ""
+  
+  for line_index, line in ipairs(patterntrack.lines) do
+    if not line.is_empty then
+      hash_string = hash_string .. line_index .. tostring(line)
+    end
+  end
+  
+  return hash_string .. track_i
+end
+
+-- Main function to alias identical pattern slots
+function PakettiPatternAliasIdenticalSlots()
+  local song = renoise.song()
+  local pt_hash
+  local hash_table = {}
+  local patterntrack
+  local aliased_count = 0
+  local processed_count = 0
+  
+  renoise.app():show_status("Paketti Pattern Alias: Analyzing pattern slots...")
+  print("-- Paketti Pattern Alias: Starting analysis of pattern slots")
+  
+  local selected_slots = PakettiPatternAliasGetSelectedSlots()
+  
+  if #selected_slots == 0 then
+    renoise.app():show_status("No pattern slots to process")
+    print("-- Paketti Pattern Alias: No pattern slots found to process")
+    return
+  end
+  
+  print(string.format("-- Paketti Pattern Alias: Processing %d pattern slots", #selected_slots))
+  
+  for i, slot in ipairs(selected_slots) do
+    patterntrack = song:pattern(slot.pattern):track(slot.track)
+    processed_count = processed_count + 1
+    
+    if (not patterntrack.is_alias) and (not patterntrack.is_empty) then
+      pt_hash = PakettiPatternAliasHashPatternTrack(slot.pattern, slot.track, patterntrack)
+      
+      if not hash_table[pt_hash] then
+        -- First occurrence of this pattern content
+        hash_table[pt_hash] = {
+          pattern = slot.pattern,
+          track = slot.track
+        }
+        print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - original (hash: %s...)", 
+          slot.pattern, slot.track, pt_hash:sub(1, 8)))
+      elseif hash_table[pt_hash].track == slot.track then
+        -- Same track, same content - create alias
+        patterntrack.alias_pattern_index = hash_table[pt_hash].pattern
+        aliased_count = aliased_count + 1
+        print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d -> aliased to Pattern %d", 
+          slot.pattern, slot.track, hash_table[pt_hash].pattern))
+      else
+        print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - skipped (different track %d)", 
+          slot.pattern, slot.track, hash_table[pt_hash].track))
+      end
+    else
+      if patterntrack.is_alias then
+        print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - skipped (already aliased)", 
+          slot.pattern, slot.track))
+      else
+        print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - skipped (empty)", 
+          slot.pattern, slot.track))
+      end
+    end
+  end
+  
+  local status_message = string.format("Paketti Pattern Alias: %d aliases created from %d slots processed", 
+    aliased_count, processed_count)
+  renoise.app():show_status(status_message)
+  print("-- " .. status_message)
+  
+  if aliased_count == 0 then
+    print("-- Paketti Pattern Alias: No identical patterns found to alias")
+  else
+    print(string.format("-- Paketti Pattern Alias: Successfully created %d pattern aliases", aliased_count))
+  end
+end
+
+-- Clear all pattern aliases in selected slots (or all slots if none selected)
+function PakettiPatternAliasClearAliases()
+  local song = renoise.song()
+  local selected_slots = PakettiPatternAliasGetSelectedSlots()
+  local cleared_count = 0
+  local processed_count = 0
+  
+  if #selected_slots == 0 then
+    renoise.app():show_status("No pattern slots to process")
+    return
+  end
+  
+  renoise.app():show_status("Paketti Pattern Alias: Clearing aliases...")
+  print(string.format("-- Paketti Pattern Alias: Processing %d pattern slots to clear aliases", #selected_slots))
+  
+  for i, slot in ipairs(selected_slots) do
+    local patterntrack = song:pattern(slot.pattern):track(slot.track)
+    processed_count = processed_count + 1
+    
+    if patterntrack.is_alias then
+      patterntrack.alias_pattern_index = 0  -- Clear the alias
+      cleared_count = cleared_count + 1
+      print(string.format("-- Paketti Pattern Alias: Cleared alias in Pattern %d Track %d", 
+        slot.pattern, slot.track))
+    end
+  end
+  
+  local status_message = string.format("Paketti Pattern Alias: %d aliases cleared from %d slots processed", 
+    cleared_count, processed_count)
+  renoise.app():show_status(status_message)
+  print("-- " .. status_message)
+  
+  if cleared_count == 0 then
+    print("-- Paketti Pattern Alias: No aliases found to clear")
+  end
+end
+
+-- Menu entries
+renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
+renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
+
+-- Keybindings
+renoise.tool():add_keybinding{name = "Global:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_keybinding{name = "Global:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
+renoise.tool():add_keybinding{name = "Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_keybinding{name = "Pattern Matrix:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name = "Paketti:Alias Identical Pattern Slots", invoke = function(message) if message:is_trigger() then PakettiPatternAliasIdenticalSlots() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Clear Pattern Aliases", invoke = function(message) if message:is_trigger() then PakettiPatternAliasClearAliases() end end}
+

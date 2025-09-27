@@ -713,6 +713,12 @@ NoteSorterAscending() end}
 function RandomChord()
   local song=renoise.song()
   
+  -- Check if we have a selected note column
+  if not song.selected_note_column then
+      renoise.app():show_status("No note column selected, doing nothing.")
+      return
+  end
+  
   -- Check if we're on a valid note
   if song.selected_note_column.note_value >= 120 then
       renoise.app():show_status("There is no basenote to start with, doing nothing.")
