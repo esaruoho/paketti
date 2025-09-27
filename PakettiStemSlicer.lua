@@ -23,13 +23,13 @@ local dialog = nil
 local process_slicer = nil
 
 -- Configuration
-local ALL_BEAT_LENGTHS = {4, 8, 16, 32, 64}
+local ALL_BEAT_LENGTHS = {1, 2, 4, 8, 16, 32, 64}
 local SILENCE_THRESHOLD = 0.001 -- RMS threshold for silence detection
 local SUPPORTED_FORMATS = {"*.wav", "*.aif", "*.aiff", "*.flac"}
 
 -- User-configurable options
 local master_beat_length = 64  -- The base slice size to create first
-local extract_beat_lengths = {32, 16, 8, 4}  -- Which subdivisions to extract
+local extract_beat_lengths = {32, 16, 8, 4, 2, 1}  -- Which subdivisions to extract
 
 -- State variables
 local selected_folder = ""
@@ -648,6 +648,12 @@ function updateExtractBeatLengths()
     if vb.views.extract_4 and vb.views.extract_4.value and master_beat_length > 4 then
         table.insert(extract_beat_lengths, 4)
     end
+    if vb.views.extract_2 and vb.views.extract_2.value and master_beat_length > 2 then
+        table.insert(extract_beat_lengths, 2)
+    end
+    if vb.views.extract_1 and vb.views.extract_1.value and master_beat_length > 1 then
+        table.insert(extract_beat_lengths, 1)
+    end
     -- Sort from largest to smallest
     table.sort(extract_beat_lengths, function(a, b) return a > b end)
 end
@@ -694,13 +700,16 @@ function showStemSlicerSummary()
     vb_local:space{height=1},
     vb_local:text{text = "Quick Load (per instrument):", style = "strong"},
     vb_local:row{
-
       vb_local:button{ text = "Load 64", notifier = function() onQuickLoadSlices(last_output_folder, {64}, vb_local.views.grouping_popup.value) end},
       vb_local:button{ text = "Load 32", notifier = function() onQuickLoadSlices(last_output_folder, {32}, vb_local.views.grouping_popup.value) end},
       vb_local:button{ text = "Load 16", notifier = function() onQuickLoadSlices(last_output_folder, {16}, vb_local.views.grouping_popup.value) end},
       vb_local:button{ text = "Load 8",  notifier = function() onQuickLoadSlices(last_output_folder, {8 }, vb_local.views.grouping_popup.value) end},
-      vb_local:button{ text = "Load 4",  notifier = function() onQuickLoadSlices(last_output_folder, {4 }, vb_local.views.grouping_popup.value) end},
-      vb_local:button{ text = "Load All", notifier = function() onQuickLoadSlices(last_output_folder, {64,32,16,8,4}, vb_local.views.grouping_popup.value) end}
+      vb_local:button{ text = "Load 4",  notifier = function() onQuickLoadSlices(last_output_folder, {4 }, vb_local.views.grouping_popup.value) end}
+    },
+    vb_local:row{
+      vb_local:button{ text = "Load 2",  notifier = function() onQuickLoadSlices(last_output_folder, {2 }, vb_local.views.grouping_popup.value) end},
+      vb_local:button{ text = "Load 1",  notifier = function() onQuickLoadSlices(last_output_folder, {1 }, vb_local.views.grouping_popup.value) end},
+      vb_local:button{ text = "Load All", notifier = function() onQuickLoadSlices(last_output_folder, {64,32,16,8,4,2,1}, vb_local.views.grouping_popup.value) end}
     },
     vb_local:space{height=6},
     vb_local:row{
@@ -708,7 +717,7 @@ function showStemSlicerSummary()
         openFolderInFinder(last_output_folder)
       end},
       vb_local:button{ text = "Load All Non-Silent Slices", notifier = function()
-        onQuickLoadSlices(last_output_folder, {64,32,16,8,4}, vb_local.views.grouping_popup.value)
+        onQuickLoadSlices(last_output_folder, {64,32,16,8,4,2,1}, vb_local.views.grouping_popup.value)
       end}
     }
   }
@@ -772,7 +781,7 @@ function loadNonSilentSlicesIntoInstruments(folder)
   -- Load grouped: per sample -> descending beats
   for sample_base, beats_table in pairs(by_sample_then_beats) do
     insert_header_instrument(string.format("== %s =", sample_base))
-    local ordered_beats = {64,32,16,8,4}
+    local ordered_beats = {64,32,16,8,4,2,1}
     for _, beats in ipairs(ordered_beats) do
       if beats_table[beats] then
         insert_header_instrument(string.format("== %02d Beats of %s ==", beats, sample_base))
@@ -824,8 +833,21 @@ function onQuickLoadSlices(folder, beats_filter, grouping_mode_index)
       table.insert(map[base][beats], f)
     end
   end
+  
+  -- Sort files within each beats group by slice number (numerical, not alphabetical)
+  for base, beats_tbl in pairs(map) do
+    for beats, file_list in pairs(beats_tbl) do
+      table.sort(file_list, function(a, b)
+        local name_a = a:match("[^/\\]+$") or a
+        local name_b = b:match("[^/\\]+$") or b
+        local slice_a = tonumber(name_a:match("_slice(%d+)")) or 0
+        local slice_b = tonumber(name_b:match("_slice(%d+)")) or 0
+        return slice_a < slice_b
+      end)
+    end
+  end
 
-  local ordered_beats = {64,32,16,8,4}
+  local ordered_beats = {64,32,16,8,4,2,1}
   local want = {}
   for _, b in ipairs(ordered_beats) do
     for _, wf in ipairs(beats_filter) do if b == wf then table.insert(want, b) end end
@@ -863,7 +885,7 @@ function loadAsDrumkitsFromFolder(folder)
   local files = PakettiGetFilesInDirectory(folder)
   if #files == 0 then renoise.app():show_status("No files to drumkit-load.") return end
 
-  local per_beat = { [4]={}, [8]={}, [16]={}, [32]={}, [64]={} }
+  local per_beat = { [1]={}, [2]={}, [4]={}, [8]={}, [16]={}, [32]={}, [64]={} }
   local per_sample_order = {}
 
   for _, f in ipairs(files) do
@@ -878,10 +900,10 @@ function loadAsDrumkitsFromFolder(folder)
     end
   end
 
-  local ordered_beats = {4,8,16,32,64}
+  local ordered_beats = {1,2,4,8,16,32,64}
   local per_beat_tasks = {}
   -- Summary header before all-samples drumkits
-  table.insert(per_beat_tasks, {kind="header", title="== All Samples Drumkit (64, 32, 16, 08, 04) =="})
+  table.insert(per_beat_tasks, {kind="header", title="== All Samples Drumkit (64, 32, 16, 08, 04, 02, 01) =="})
   for _, b in ipairs(ordered_beats) do
     if #per_beat[b] > 0 then
       table.insert(per_beat_tasks, {kind="drumkit", title=string.format("All Samples (%02d beats) drumkit", b), files=per_beat[b], reverse_threshold=0})
@@ -982,7 +1004,7 @@ function makeEverythingFromFolder(folder)
   -- 1) Combined drumkits per beats and all-beats combined
   loadAsDrumkitsFromFolder(folder)
   -- 2) Then per-sample instrument groupings using default XRNI, one slice/instrument
-  onQuickLoadSlices(folder, {64,32,16,8,4}, 1)
+  onQuickLoadSlices(folder, {64,32,16,8,4,2,1}, 1)
 end
 
 -- ProcessSlicer wrapper for drumkit creation to avoid yield across C boundary
@@ -1053,6 +1075,11 @@ function startQuickLoadProcess(tasks)
         if #inst.samples == 0 then inst:insert_sample_at(1) end
         song.selected_sample_index = 1
         inst.samples[1].sample_buffer:load_from(t.path)
+        -- Set sample name to match filename (without extension)
+        local filename = t.path:match("[^/\\]+$") or t.path
+        inst.samples[1].name = filename:gsub("%.%w+$", "")  -- Remove file extension
+        -- Apply Paketti loader preferences to the loaded sample
+        PakettiInjectApplyLoaderSettings(inst.samples[1])
       end
       coroutine.yield()
     end
@@ -1679,7 +1706,7 @@ local function processSingleFile(file_path, output_folder)
             local is_silent = checkSilenceUsingMap(slice_start, slice_end, silence_map)
             local silence_suffix = is_silent and "_silence" or ""
             
-            local output_filename = string.format("%s_%02dbeats_slice%02d%s.wav", 
+            local output_filename = string.format("%s_%02dbeats_slice%03d%s.wav", 
                 clean_name, master_beat_length, slice_idx, silence_suffix)
             local output_path = output_folder .. "/" .. output_filename
             
@@ -1764,7 +1791,7 @@ local function processSingleFile(file_path, output_folder)
                         local is_silent = checkSilenceUsingMap(sub_start, sub_end, silence_map)
                         local silence_suffix = is_silent and "_silence" or ""
                         
-                        local output_filename = string.format("%s_%02dbeats_slice%02d%s.wav", 
+                        local output_filename = string.format("%s_%02dbeats_slice%03d%s.wav", 
                             clean_name, beat_length, overall_slice_num, silence_suffix)
                         local output_path = output_folder .. "/" .. output_filename
                         
@@ -2196,18 +2223,22 @@ function pakettiStemSlicerDialogInternal()
         },
             vb:popup{
                 id = "master_beat_popup",
-                items = {"4 beats", "8 beats", "16 beats", "32 beats", "64 beats"},
-                value = 5, -- Default to 64 beats
+                items = {"1 beats", "2 beats", "4 beats", "8 beats", "16 beats", "32 beats", "64 beats"},
+                value = 7, -- Default to 64 beats
                 width = 100,
                 notifier = function(index)
                     master_beat_length = ALL_BEAT_LENGTHS[index]
                     -- Update subdivision checkboxes availability
+                    vb.views.extract_1.active = (master_beat_length > 1)
+                    vb.views.extract_2.active = (master_beat_length > 2)
                     vb.views.extract_4.active = (master_beat_length > 4)
                     vb.views.extract_8.active = (master_beat_length > 8)
                     vb.views.extract_16.active = (master_beat_length > 16)
                     vb.views.extract_32.active = (master_beat_length > 32)
                     
                     -- Auto-check available subdivisions
+                    if master_beat_length > 1 then vb.views.extract_1.value = true end
+                    if master_beat_length > 2 then vb.views.extract_2.value = true end
                     if master_beat_length > 4 then vb.views.extract_4.value = true end
                     if master_beat_length > 8 then vb.views.extract_8.value = true end
                     if master_beat_length > 16 then vb.views.extract_16.value = true end
@@ -2263,6 +2294,26 @@ function pakettiStemSlicerDialogInternal()
                     end
                 },
                 vb:text{text = "04 beats"}
+            },
+            vb:row{
+                vb:checkbox{
+                    id = "extract_2",
+                    value = true,
+                    notifier = function(value)
+                        updateExtractBeatLengths()
+                    end
+                },
+                vb:text{text = "02 beats"}
+            },
+            vb:row{
+                vb:checkbox{
+                    id = "extract_1",
+                    value = true,
+                    notifier = function(value)
+                        updateExtractBeatLengths()
+                    end
+                },
+                vb:text{text = "01 beats"}
             }
         },  
         -- Control buttons
@@ -2278,7 +2329,7 @@ function pakettiStemSlicerDialogInternal()
                 text = "Quick Load",
                 width = 70,
                 notifier = function()
-                    onQuickLoadSlices(getOutputFolderPath(), {64,32,16,8,4}, 1)
+                    onQuickLoadSlices(getOutputFolderPath(), {64,32,16,8,4,2,1}, 1)
                 end
             },
             vb:button{
