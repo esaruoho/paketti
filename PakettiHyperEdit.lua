@@ -2,6 +2,46 @@
 -- 8-Row Interchangeable Stepsequencer with individual device/parameter selection
 -- Each row has its own canvas with device and parameter dropdowns
 
+-- Device parameter whitelists for cleaner parameter selection
+local DEVICE_PARAMETER_WHITELISTS = {
+  ["AU: Valhalla DSP, LLC: ValhallaDelay"] = {
+    "Mix",
+    "Feedback", 
+    "DelayL_Ms",
+    "DelayR_Ms",
+    "DelayStyle",
+    "Width",
+    "Age",
+    "DriveIn",
+    "ModRate",
+    "ModDepth",
+    "LowCut",
+    "HighCut",
+    "Diffusion",
+    "Mode",
+    "Era"
+  },
+  ["Wavetable Mod *LFO"] = {
+    "Amplitude",
+    "Frequency",
+    "Offset"
+  },
+  ["*Instr. Macros"] = {
+    "Cutoff",
+    "Resonance", 
+    "Pitchbend",
+    "Drive",
+    "ParallelComp",
+    "CutLfoAmp",
+    "CutLfoFreq",
+    "PB Inertia"
+  },
+  ["Gainer"] = {
+    "Gain"
+  }
+}
+
+
 local vb = renoise.ViewBuilder()
 -- Global flag to prevent auto-read during device list updates
 local is_updating_device_lists = false
@@ -450,6 +490,7 @@ local content_margin = 1
 -- Mouse state
 local mouse_is_down = false
 local current_row_drawing = 0
+local current_focused_row = 1  -- Track which row is currently focused for key operations
 local mouse_state_monitor_timer = nil
 local last_mouse_move_time = 0
 
@@ -504,36 +545,97 @@ function PakettiHyperEditPreConfigureParameters()
   local devices = PakettiHyperEditGetDevices()
   if #devices == 0 then return end
   
-  -- Use first device
-  local first_device_info = devices[1]
-  local first_device_params = PakettiHyperEditGetParameters(first_device_info.device)
-  if #first_device_params == 0 then return end
+  -- Look for *Instr. Macros device first, otherwise use first suitable device (avoid EQs, etc.)
+  local target_device_info = nil
+  local blacklisted_devices = {"Pro-Q", "EQ", "Equalizer", "Filter", "Compressor"}
   
-  -- Pre-configure first 8 rows with parameters from first device
-  -- For *Instr. Macros devices, skip parameter 1 and map parameters 2-8
-  local param_offset = 0
-  local max_params = 8
-  if first_device_info.name:find("Instr") and first_device_info.name:find("Macro") then
-    param_offset = 1  -- Skip first parameter for Instrument Macros
-    print("DEBUG: Detected Instrument Macros device, using parameters 2-8")
-  end
-  
-  local available_params = #first_device_params - param_offset
-  local max_rows = math.min(NUM_ROWS, max_params, available_params)
-  
-  print("DEBUG: Device has " .. #first_device_params .. " parameters, offset: " .. param_offset .. ", available: " .. available_params .. ", max_rows: " .. max_rows)
-  
-  for row = 1, max_rows do
-    local param_index = row + param_offset
-    if param_index > #first_device_params then
-      print("DEBUG: Skipping row " .. row .. " - param index " .. param_index .. " exceeds available parameters (" .. #first_device_params .. ")")
+  for _, device_info in ipairs(devices) do
+    if device_info.name:find("Instr") and device_info.name:find("Macro") then
+      target_device_info = device_info
+      print("DEBUG: Found *Instr. Macros device - using preferred parameter order")
       break
     end
-    local param_info = first_device_params[param_index]
+  end
+  
+  if not target_device_info then
+    -- Look for a suitable device (skip blacklisted ones)
+    for _, device_info in ipairs(devices) do
+      local is_blacklisted = false
+      for _, blacklisted in ipairs(blacklisted_devices) do
+        if device_info.name:find(blacklisted) then
+          is_blacklisted = true
+          print("DEBUG: Skipping blacklisted device: " .. device_info.name)
+          break
+        end
+      end
+      if not is_blacklisted then
+        target_device_info = device_info
+        print("DEBUG: Selected suitable device: " .. device_info.name)
+        break
+      end
+    end
+  end
+  
+  if not target_device_info then
+    print("DEBUG: No suitable devices found - only blacklisted devices available, skipping pre-configuration")
+    return
+  end
+  
+  local device_params = PakettiHyperEditGetParameters(target_device_info.device)
+  if #device_params == 0 then return end
+  
+  -- Pre-configure rows with parameters using preferred order (NO automation case)
+  local max_params = 8
+  local max_rows = math.min(NUM_ROWS, max_params)
+  
+  print("DEBUG: Pre-configuring " .. max_rows .. " rows using preferred parameter order (no existing automation)")
+  
+  -- Use preferred order for Instrument Macros, or sequential for other devices
+  local preferred_order = nil
+  if target_device_info.name:find("Instr") and target_device_info.name:find("Macro") then
+    preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "ParallelComp", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
+    print("DEBUG: Using Instrument Macros preferred order: " .. table.concat(preferred_order, ", "))
+  end
+  
+  for row = 1, max_rows do
+    local param_info = nil
+    local param_index = nil
+    
+    if preferred_order and row <= #preferred_order then
+      -- Use preferred order
+      local preferred_param_name = preferred_order[row]
+      print("DEBUG: Row " .. row .. " looking for preferred parameter: " .. preferred_param_name)
+      
+      -- Find the parameter by name
+      for i, p in ipairs(device_params) do
+        if p.name == preferred_param_name then
+          param_info = p
+          param_index = i
+          print("DEBUG: Row " .. row .. " found preferred parameter: " .. preferred_param_name)
+          break
+        end
+      end
+      
+      if not param_info then
+        print("DEBUG: Row " .. row .. " - preferred parameter '" .. preferred_param_name .. "' not found, skipping")
+      end
+    else
+      -- Fallback to sequential assignment for non-Instr.Macros or when preferred list is exhausted
+      param_index = row + (target_device_info.name:find("Instr") and target_device_info.name:find("Macro") and 1 or 0)
+      if param_index <= #device_params then
+        param_info = device_params[param_index]
+        print("DEBUG: Row " .. row .. " using sequential parameter: " .. (param_info.name or "unknown"))
+      end
+    end
+    
+    if not param_info then
+      print("DEBUG: Row " .. row .. " - no suitable parameter found, stopping pre-configuration")
+      break
+    end
     
     -- If we encounter X_PitchBend, look for Pitchbend instead
     if param_info.name == "X_PitchBend" then
-      for i, p in ipairs(first_device_params) do
+      for i, p in ipairs(device_params) do
         if p.name == "Pitchbend" then
           param_info = p
           param_index = i
@@ -543,8 +645,8 @@ function PakettiHyperEditPreConfigureParameters()
     end
     
     -- Set device for this row (store AudioDevice directly for consistency)
-    row_devices[row] = first_device_info.device
-    parameter_lists[row] = first_device_params
+    row_devices[row] = target_device_info.device
+    parameter_lists[row] = device_params
     
     -- Set parameter for this row
     row_parameters[row] = param_info
@@ -561,11 +663,13 @@ function PakettiHyperEditPreConfigureParameters()
       local param_popup = dialog_vb.views["parameter_popup_" .. row]
       if param_popup then
         local param_names = {}
-        for _, p in ipairs(first_device_params) do
+        for _, p in ipairs(device_params) do
           table.insert(param_names, p.name)
         end
         param_popup.items = param_names
-        param_popup.value = param_index -- Select the correct parameter index
+        if param_index then
+          param_popup.value = param_index -- Select the correct parameter index
+        end
       end
     end
   end
@@ -573,7 +677,7 @@ function PakettiHyperEditPreConfigureParameters()
   -- Set flag to indicate pre-configuration was applied
   pre_configuration_applied = true
   
-  renoise.app():show_status("HyperEdit: Pre-configured first " .. max_rows .. " rows with " .. first_device_info.name .. " parameters")
+  renoise.app():show_status("HyperEdit: Pre-configured first " .. max_rows .. " rows with " .. target_device_info.name .. " parameters")
 end
 
 -- Initialize step data for all rows
@@ -616,44 +720,6 @@ function PakettiHyperEditGetDevices()
   return devices
 end
 
--- Device parameter whitelists for cleaner parameter selection
-local DEVICE_PARAMETER_WHITELISTS = {
-  ["AU: Valhalla DSP, LLC: ValhallaDelay"] = {
-    "Mix",
-    "Feedback", 
-    "DelayL_Ms",
-    "DelayR_Ms",
-    "DelayStyle",
-    "Width",
-    "Age",
-    "DriveIn",
-    "ModRate",
-    "ModDepth",
-    "LowCut",
-    "HighCut",
-    "Diffusion",
-    "Mode",
-    "Era"
-  },
-  ["Wavetable Mod *LFO"] = {
-    "Amplitude",
-    "Frequency",
-    "Offset"
-  },
-  ["*Instr. Macros"] = {
-    "Cutoff",
-    "Resonance", 
-    "Pitchbend",
-    "Drive",
-    "ParallelComp",
-    "CutLfoAmp",
-    "CutLfoFreq",
-    "PB Inertia"
-  },
-  ["Gainer"] = {
-    "Gain"
-  }
-}
 
 -- Get automatable parameters from device (with optional whitelist filtering)
 function PakettiHyperEditGetParameters(device)
@@ -1150,6 +1216,7 @@ function PakettiHyperEditHandleRowMouse(row)
     if ev.type == "down" then
       mouse_is_down = true
       current_row_drawing = row
+      current_focused_row = row  -- Update focused row when interacting with canvas
       last_mouse_move_time = os.clock() * 1000 -- Set initial timestamp
       
       -- Check for right-click or Ctrl+click to delete automation envelope
@@ -1746,13 +1813,72 @@ function PakettiHyperEditPopulateFromExistingAutomation()
   
   print("DEBUG: Found " .. #found_automations .. " automation envelopes - populating rows")
   
+  -- Sort automations based on preferred parameter order
+  local function sort_automations_by_preference(automations)
+    local sorted_automations = {}
+    local remaining_automations = {}
+    
+    -- First, check if we have *Instr. Macros device automations to prioritize
+    local has_instr_macros = false
+    for _, auto_data in ipairs(automations) do
+      local device_name = auto_data.device_info.name
+      if device_name:find("Instr") and device_name:find("Macro") then
+        has_instr_macros = true
+        break
+      end
+    end
+    
+      if has_instr_macros then
+        print("DEBUG: Instrument Macros detected - sorting by preferred parameter order")
+        local preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "ParallelComp", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
+      
+      -- First pass: Add automations in preferred order
+      for _, preferred_param in ipairs(preferred_order) do
+        for _, auto_data in ipairs(automations) do
+          local device_name = auto_data.device_info.name
+          local param_name = auto_data.parameter.name
+          if (device_name:find("Instr") and device_name:find("Macro")) and param_name == preferred_param then
+            table.insert(sorted_automations, auto_data)
+            print("DEBUG: Added " .. param_name .. " in preferred order position " .. #sorted_automations)
+          end
+        end
+      end
+      
+      -- Second pass: Add any remaining automations not in preferred list
+      for _, auto_data in ipairs(automations) do
+        local device_name = auto_data.device_info.name
+        local param_name = auto_data.parameter.name
+        local found_in_sorted = false
+        
+        for _, sorted_auto in ipairs(sorted_automations) do
+          if sorted_auto.parameter.name == param_name and sorted_auto.device_info.name == device_name then
+            found_in_sorted = true
+            break
+          end
+        end
+        
+        if not found_in_sorted then
+          table.insert(sorted_automations, auto_data)
+          print("DEBUG: Added remaining parameter " .. param_name .. " at position " .. #sorted_automations)
+        end
+      end
+      
+      return sorted_automations
+    else
+      -- No Instrument Macros, return as-is
+      return automations
+    end
+  end
+  
+  local sorted_automations = sort_automations_by_preference(found_automations)
+  
   -- Take all available automations and assign to rows (up to 32 max)
   -- ANTI-DUPLICATE: Track used parameter names to avoid duplicates like multiple "Mix" parameters
   local used_parameter_names = {}
   local populated_rows = 0
-  local max_automations = math.min(32, #found_automations)  -- Cap at 32 rows max
+  local max_automations = math.min(32, #sorted_automations)  -- Cap at 32 rows max
   
-  for _, automation_data in ipairs(found_automations) do
+  for _, automation_data in ipairs(sorted_automations) do
     if populated_rows >= max_automations then break end  -- Use all available automations
     
     local row = populated_rows + 1
@@ -2565,14 +2691,47 @@ function PakettiHyperEditDebugAutomation()
   renoise.app():show_status("HyperEdit DEBUG: Found " .. total_automations .. " automation envelopes - check console")
 end
 
+-- Show external editor for the device in the currently focused row
+function PakettiHyperEditShowExternalEditor(row)
+  -- Check if we have a valid row and device
+  if not row or not row_devices[row] then
+    renoise.app():show_status("HyperEdit: No device selected for row " .. (row or "?"))
+    return false
+  end
+  
+  local device = row_devices[row]
+  
+  -- Check if external editor is available
+  if not device.external_editor_available then
+    renoise.app():show_status("HyperEdit: Device '" .. device.display_name .. "' has no external editor available")
+    return false
+  end
+  
+  -- Check current visibility state
+  if device.external_editor_visible then
+    renoise.app():show_status("HyperEdit: External editor for '" .. device.display_name .. "' is already visible")
+    return false
+  end
+  
+  -- Show the external editor
+  device.external_editor_visible = true
+  renoise.app():show_status("HyperEdit: Opened external editor for '" .. device.display_name .. "' (Row " .. row .. ")")
+  return true
+end
+
 -- Key handler
 function paketti_hyperedit_keyhandler_func(dialog, key)
   if key.modifiers == "command" and key.name == "h" then
-    PakettiHyperEditCleanup()
     if hyperedit_dialog then
-      hyperedit_dialog:close()
+      hyperedit_dialog:close()  -- Cleanup will be handled by close callback
     end
     return nil
+  end
+  
+  -- Handle space key to show external editor for current focused row
+  if key.name == "space" and key.modifiers == "" then
+    PakettiHyperEditShowExternalEditor(current_focused_row)
+    return nil  -- Consume the key event
   end
   
   return key
@@ -2593,6 +2752,7 @@ function PakettiHyperEditCleanup()
   parameter_lists = {}
   mouse_is_down = false
   current_row_drawing = 0
+  current_focused_row = 1
 end
 
 -- Mouse state monitor to handle mouse releases outside canvas
@@ -2639,8 +2799,14 @@ end
 
 -- Create main dialog
 function PakettiHyperEditCreateDialog()
-  if hyperedit_dialog and hyperedit_dialog.visible then
-    hyperedit_dialog:close()
+  -- Close any existing dialog before creating a new one
+  if hyperedit_dialog then
+    if hyperedit_dialog.visible then
+      hyperedit_dialog:close()
+    else
+      -- Dialog exists but not visible, clean up manually
+      PakettiHyperEditCleanup()
+    end
   end
   
   -- Reset pre-configuration flag for new dialog
@@ -2951,6 +3117,7 @@ function PakettiHyperEditCreateDialog()
           width = 50,  -- Made wider so you can see the number
           tooltip = "Steps for this row (smart-detected from automation)",
           notifier = function(value)
+            current_focused_row = row  -- Update focused row when step count is changed
             PakettiHyperEditChangeRowStepCount(row, value)
           end
         },
@@ -2961,6 +3128,7 @@ function PakettiHyperEditCreateDialog()
           width = 200,
           notifier = function(index)
             print("DEBUG: Device popup " .. row .. " notifier called with index " .. index)
+            current_focused_row = row  -- Update focused row when device is selected
             PakettiHyperEditSelectDevice(row, index)
           end
         },
@@ -2971,6 +3139,7 @@ function PakettiHyperEditCreateDialog()
           width = 100,
           tooltip = "Selecting parameter auto-reads existing automation and sets to POINTS mode",
           notifier = function(index)
+            current_focused_row = row  -- Update focused row when parameter is selected
             PakettiHyperEditSelectParameter(row, index)
           end
         },
@@ -3023,8 +3192,7 @@ function PakettiHyperEditCreateDialog()
       text = "Close",
       width = 60,
       notifier = function()
-        PakettiHyperEditCleanup()
-        hyperedit_dialog:close()
+        hyperedit_dialog:close()  -- Cleanup will be handled by close callback
       end
     }
   })--]]
@@ -3036,7 +3204,10 @@ function PakettiHyperEditCreateDialog()
   hyperedit_dialog = renoise.app():show_custom_dialog(
     "Paketti HyperEdit",
     dialog_content,
-    paketti_hyperedit_keyhandler_func
+    paketti_hyperedit_keyhandler_func,
+    function() -- Close callback - ensures cleanup when dialog is closed by any method
+      PakettiHyperEditCleanup()
+    end
   )
   
   -- Store canvas references and check if views are accessible

@@ -2879,6 +2879,7 @@ function ShowRenameDialogForTrack(index)
   dialog = renoise.app():show_custom_dialog("Paketti Track Renamer", dialog_content, key_handler)
 end
 
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Track Renamer Dialog...",invoke=pakettiTrackRenamerDialog}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Track Renamer Dialog...",invoke=pakettiTrackRenamerDialog}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Paketti Track Renamer Dialog...",invoke=pakettiTrackRenamerDialog}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Track Renamer Dialog...",invoke=pakettiTrackRenamerDialog}
