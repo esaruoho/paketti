@@ -3950,21 +3950,21 @@ function PakettiPatternAliasClearAliases()
   end
 end
 
--- Menu entries
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
+
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
+
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
--- Keybindings
 renoise.tool():add_keybinding{name = "Global:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_keybinding{name = "Global:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
+
 renoise.tool():add_keybinding{name = "Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_keybinding{name = "Pattern Matrix:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
--- MIDI mappings
 renoise.tool():add_midi_mapping{name = "Paketti:Alias Identical Pattern Slots", invoke = function(message) if message:is_trigger() then PakettiPatternAliasIdenticalSlots() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Clear Pattern Aliases", invoke = function(message) if message:is_trigger() then PakettiPatternAliasClearAliases() end end}
 

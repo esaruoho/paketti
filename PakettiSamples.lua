@@ -419,31 +419,13 @@ renoise.app():load_instrument(defaultInstrument)
   else
     renoise.app():show_status("Failed to load the sample.")
   end
--- Set additional sample properties
   
-  sample.interpolation_mode=preferences.pakettiLoaderInterpolation.value
-  sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-  sample.autofade = preferences.pakettiLoaderAutofade.value
-  sample.autoseek = preferences.pakettiLoaderAutoseek.value
-  sample.oneshot = preferences.pakettiLoaderOneshot.value
-  sample.loop_mode = preferences.pakettiLoaderLoopMode.value
-  sample.new_note_action = preferences.pakettiLoaderNNA.value
-  sample.loop_release = preferences.pakettiLoaderLoopExit.value
+  -- Apply all Paketti Loader settings including large sample normalization
+  PakettiInjectApplyLoaderSettings(sample)
 
   -- Iterate over the rest of the selected files and insert them sequentially
   for i = 2, num_samples_to_load do
     selected_sample_filename = selected_sample_filenames[i]
-
-  sample.interpolation_mode=preferences.pakettiLoaderInterpolation.value
-  sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-  sample.oneshot = preferences.pakettiLoaderOneshot.value
-  sample.autofade = preferences.pakettiLoaderAutofade.value
-  sample.autoseek = preferences.pakettiLoaderAutoseek.value
-  sample.loop_mode = preferences.pakettiLoaderLoopMode.value
-  sample.oneshot = preferences.pakettiLoaderOneshot.value
-  sample.new_note_action = preferences.pakettiLoaderNNA.value
-  sample.loop_release = preferences.pakettiLoaderLoopExit.value
-
 
     -- Insert a new sample slot if necessary
     if #current_instrument.samples < i then
@@ -463,6 +445,9 @@ renoise.app():load_instrument(defaultInstrument)
     else
       renoise.app():show_status("Failed to load the sample.")
     end
+    
+    -- Apply all Paketti Loader settings including large sample normalization
+    PakettiInjectApplyLoaderSettings(sample)
     if preferences.pakettiLoaderMoveSilenceToEnd.value ~= false then PakettiMoveSilence() end
     if preferences.pakettiLoaderNormalizeSamples.value ~= false then normalize_selected_sample() end
  
@@ -2711,9 +2696,153 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Instrument Modulation Filter Type",invoke=function()
 filterTypeRandom() end}
+-- Helper function for log10 (Lua 5.1 doesn't have it)
+local function log10(x)
+  return math.log(x) / math.log(10)
+end
+
+-- Coroutine function for normalization with ProcessSlicer
+local function PakettiNormalizeSampleCoroutine(sample, normalize_reason)
+  local buffer = sample.sample_buffer
+  local frames = buffer.number_of_frames
+  local channels = buffer.number_of_channels
+  local YIELD_EVERY = 100000 -- Yield every 100,000 frames for even better performance
+  
+  print("DEBUG: Finding peak amplitude...")
+  
+  -- Step 1: Find peak value across all channels (optimized)
+  local peak = 0
+  local processed_frames = 0
+  local abs = math.abs  -- Local reference for faster access
+  
+  -- Process all channels, but with early termination and optimizations
+  for c = 1, channels do
+    for f = 1, frames do
+      local abs_value = abs(buffer:sample_data(c, f))
+      if abs_value > peak then
+        peak = abs_value
+        -- Early termination: if we find perfect peak, no point continuing
+        if peak >= 0.999 then
+          processed_frames = frames * channels  -- Set to max for progress calculation
+          print("DEBUG: Found perfect peak (≥0.999), early termination")
+          goto peak_found
+        end
+      end
+      
+      processed_frames = processed_frames + 1
+      
+      -- Yield less frequently for better performance
+      if processed_frames % YIELD_EVERY == 0 then
+        local progress = (processed_frames / (frames * channels)) * 50 -- First half of progress
+        -- Only print every 10% to avoid spam
+        if math.floor(progress / 10) > math.floor((progress - 0.1) / 10) then
+          print(string.format("DEBUG: Finding peak amplitude... %.0f%%", progress))
+        end
+        coroutine.yield()
+      end
+    end
+  end
+  
+  ::peak_found::
+  
+  print(string.format("DEBUG: Peak found = %.6f for %s '%s'", peak, normalize_reason, sample.name))
+  
+  -- Check if we should normalize (optimized thresholds)
+  if peak <= 0 then
+    print(string.format("DEBUG: Skipping normalization - %s '%s' is silent (peak = %.6f)", normalize_reason, sample.name, peak))
+    return false
+  end
+  
+  -- More precise threshold for already-normalized samples
+  if peak >= 0.995 then
+    print(string.format("DEBUG: Skipping normalization - %s '%s' already at peak (%.6f)", normalize_reason, sample.name, peak))
+    renoise.app():show_status(string.format("%s '%s' already at peak level - no normalization needed", normalize_reason, sample.name))
+    return false
+  end
+  
+  -- Skip near-silent samples that would need extreme amplification (>60dB gain)
+  if peak < 0.001 then
+    local potential_gain = 20 * log10(1.0 / peak)
+    print(string.format("DEBUG: Skipping normalization - %s '%s' too quiet (peak: %.6f, would amplify by %.1f dB)", 
+                       normalize_reason, sample.name, peak, potential_gain))
+    renoise.app():show_status(string.format("Skipped normalizing very quiet %s (would amplify by %.1f dB)", sample.name, potential_gain))
+    return false
+  end
+  
+  -- Step 2: Apply normalization
+  local scale = 1.0 / peak
+  local db_increase = 20 * log10(scale)
+  
+  print(string.format("DEBUG: Normalizing %s '%s' - Peak: %.6f, Scale: %.6f, dB increase: %.2f", 
+                     normalize_reason, sample.name, peak, scale, db_increase))
+  
+  print("DEBUG: Applying normalization...")
+  
+  buffer:prepare_sample_data_changes()
+  processed_frames = 0
+  
+  -- Process in channel-major order for better performance
+  for c = 1, channels do
+    for f = 1, frames do
+      local sample_value = buffer:sample_data(c, f)
+      buffer:set_sample_data(c, f, sample_value * scale)
+      
+      processed_frames = processed_frames + 1
+      
+      -- Yield less frequently during normalization (it's typically faster than peak detection)
+      if processed_frames % YIELD_EVERY == 0 then
+        local progress = 50 + ((processed_frames / (frames * channels)) * 50) -- Second half of progress
+        -- Only print every 10% to avoid spam
+        if math.floor(progress / 10) > math.floor((progress - 0.1) / 10) then
+          print(string.format("DEBUG: Applying normalization... %.0f%%", progress))
+        end
+        coroutine.yield()
+      end
+    end
+  end
+  
+  buffer:finalize_sample_data_changes()
+  
+  -- Step 3: Verify normalization worked (optimized sampling approach)
+  print("DEBUG: Verifying normalization...")
+  
+  -- Sample-based verification (much faster, still accurate for verification purposes)
+  local new_peak = 0
+  local sample_step = math.max(1, math.floor(frames / 1000)) -- Sample every ~1000th of the audio
+  
+  for c = 1, channels do
+    for f = 1, frames, sample_step do
+      local abs_value = abs(buffer:sample_data(c, f))
+      if abs_value > new_peak then
+        new_peak = abs_value
+        -- Early exit if we find perfect normalization
+        if new_peak >= 0.999 then
+          goto verification_done
+        end
+      end
+    end
+  end
+  
+  ::verification_done::
+  
+  print(string.format("DEBUG: Normalization complete - Old peak: %.6f, New peak: %.6f", peak, new_peak))
+  print(string.format("Normalized %s: %s (%.2f dB increase)", normalize_reason, sample.name, db_increase))
+  renoise.app():show_status(string.format("Normalized %s: %s (%.2f dB increase)", normalize_reason, sample.name, db_increase))
+  
+  -- Normalization complete - coroutine will end and ProcessSlicer will detect completion
+  return true
+end
+
 -- Helper function to apply Paketti Loader settings to a sample
 function PakettiInjectApplyLoaderSettings(sample)
   if not sample or not preferences then return end
+  
+  -- Debug: Which sample are we working on?
+  local song = renoise.song()
+  local current_instr = song.selected_instrument_index
+  local current_sample = song.selected_sample_index
+  print(string.format("DEBUG: PakettiInjectApplyLoaderSettings called for '%s' (currently selected: instr %d, sample %d)", 
+                     sample.name, current_instr, current_sample))
   
   -- Apply Paketti Loader preferences to the sample
   sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
@@ -2724,6 +2853,80 @@ function PakettiInjectApplyLoaderSettings(sample)
   sample.loop_mode = preferences.pakettiLoaderLoopMode.value
   sample.new_note_action = preferences.pakettiLoaderNNA.value
   sample.loop_release = preferences.pakettiLoaderLoopExit.value
+  
+  -- Debug preference values
+  print(string.format("DEBUG: Normalization preferences - Regular: %s, Large: %s", 
+                     tostring(preferences.pakettiLoaderNormalizeSamples.value), 
+                     tostring(preferences.pakettiLoaderNormalizeLargeSamples.value)))
+  
+  -- Check if normalization is enabled and apply appropriately
+  if sample.sample_buffer.has_sample_data then
+    local buffer = sample.sample_buffer
+    local frames = buffer.number_of_frames
+    local channels = buffer.number_of_channels
+    local bytes_per_sample = buffer.bit_depth / 8
+    local total_bytes = frames * channels * bytes_per_sample
+    local size_threshold = 10 * 1024 * 1024  -- 10MB in bytes
+    local is_large_sample = total_bytes >= size_threshold
+    
+    local should_normalize = false
+    local normalize_reason = ""
+    
+    -- Check large sample normalization first (higher priority)
+    if preferences.pakettiLoaderNormalizeLargeSamples.value and is_large_sample then
+      should_normalize = true
+      local size_mb = math.floor(total_bytes / (1024 * 1024) * 10) / 10
+      normalize_reason = string.format("large sample (%s MB)", size_mb)
+      print(string.format("DEBUG: Will normalize as large sample (%.1f MB)", size_mb))
+    -- Check regular normalization (only if not handled by large sample setting)
+    elseif preferences.pakettiLoaderNormalizeSamples.value and not is_large_sample then
+      should_normalize = true
+      normalize_reason = "sample"
+      print(string.format("DEBUG: Will normalize as regular sample (%.1f MB)", total_bytes / (1024 * 1024)))
+    else
+      local reason = "unknown"
+      if is_large_sample and not preferences.pakettiLoaderNormalizeLargeSamples.value then
+        reason = "large sample but large sample normalization disabled"
+      elseif not is_large_sample and not preferences.pakettiLoaderNormalizeSamples.value then
+        reason = "regular sample but sample normalization disabled"
+      end
+      print(string.format("DEBUG: Will NOT normalize - %s", reason))
+    end
+    
+    if should_normalize then
+      -- Use ProcessSlicer for normalization with progress dialog
+      local dialog_title = string.format("Normalizing %s '%s'", normalize_reason, sample.name)
+      
+      -- Create ProcessSlicer with our coroutine function
+      local slicer = ProcessSlicer(function()
+        PakettiNormalizeSampleCoroutine(sample, normalize_reason)
+      end)
+      
+      -- Create progress dialog 
+      local dialog, vb = slicer:create_dialog(dialog_title)
+      
+      -- Start the normalization process
+      slicer:start()
+      
+      -- Add a timer to check for completion and close dialog
+      local completion_timer_func
+      completion_timer_func = function()
+        if not slicer:running() then
+          -- Process completed, clean up
+          renoise.tool():remove_timer(completion_timer_func)
+          if dialog and dialog.visible then
+            dialog:close()
+          end
+          if slicer:was_cancelled() then
+            renoise.app():show_status("Normalization cancelled")
+          end
+        end
+      end
+      renoise.tool():add_timer(completion_timer_func, 100)  -- Check every 100ms
+      
+      print(string.format("DEBUG: Started ProcessSlicer normalization for %s '%s'", normalize_reason, sample.name))
+    end
+  end
   
   print(string.format("Applied Paketti loader settings to sample: %s", sample.name))
 end
@@ -6461,4 +6664,317 @@ renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Pakett
 renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
+
+-----------------------------------------------------------------------
+-- Automatic Sample Loader Settings Application System
+-- Monitors instruments and applies Paketti loader settings when new samples are detected
+-----------------------------------------------------------------------
+
+-- Global state tracking for selected sample slot only
+local previous_selected_sample_state = nil
+local monitoring_enabled = true
+
+-- Function to get the current selected sample slot state
+function PakettiGetSelectedSampleState()
+  local song = renoise.song()
+  if not song then
+    return { exists = false, has_data = false, instrument_index = nil, sample_index = nil }
+  end
+  
+  local instrument_index = song.selected_instrument_index
+  local sample_index = song.selected_sample_index
+  
+  if instrument_index < 1 or instrument_index > #song.instruments then
+    return { exists = false, has_data = false, instrument_index = instrument_index, sample_index = sample_index }
+  end
+  
+  local instrument = song.instruments[instrument_index]
+  if not instrument then
+    return { exists = false, has_data = false, instrument_index = instrument_index, sample_index = sample_index }
+  end
+  
+  -- Check if sample slot exists
+  local sample_exists = (sample_index >= 1 and sample_index <= #instrument.samples)
+  local has_sample_data = false
+  
+  if sample_exists then
+    local sample = instrument.samples[sample_index]
+    has_sample_data = (sample.sample_buffer and sample.sample_buffer.has_sample_data)
+  end
+  
+  return {
+    exists = sample_exists,
+    has_data = has_sample_data,
+    instrument_index = instrument_index,
+    sample_index = sample_index
+  }
+end
+
+-- Function to check if instrument is already Pakettified
+function PakettiIsInstrumentPakettified(instrument)
+  -- Check for plugins
+  if instrument.plugin_properties and instrument.plugin_properties.plugin_device then
+    return true
+  end
+  
+  -- Check for active AHDSR envelope
+  if instrument.sample_modulation_sets[1] and instrument.sample_modulation_sets[1].devices[2] and instrument.sample_modulation_sets[1].devices[2].is_active then
+    return true
+  end
+  
+  -- Check for macro assignments (if any macros are assigned to parameters)
+  for i = 1, 8 do
+    if instrument.macros[i] and #instrument.macros[i].mappings > 0 then
+      return true
+    end
+  end
+  
+  return false
+end
+
+-- Function to apply Paketti loader settings to the selected sample
+function PakettiApplyLoaderSettingsToSelectedSample()
+  if not monitoring_enabled then return end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  local current_state = PakettiGetSelectedSampleState()
+  if not current_state.exists or not current_state.has_data then
+    return
+  end
+  
+  local source_instrument = song.instruments[current_state.instrument_index]
+  local source_sample = source_instrument.samples[current_state.sample_index]
+  
+  -- Store sample data before processing
+  local sample_name = source_sample.name
+  local is_pakettified = PakettiIsInstrumentPakettified(source_instrument)
+  local has_other_samples = #source_instrument.samples > 1 or (current_state.sample_index > 1)
+  
+  print(string.format("Processing sample '%s' from instrument %d, slot %d (pakettified: %s, has_other_samples: %s)", 
+                     sample_name, current_state.instrument_index, current_state.sample_index, 
+                     tostring(is_pakettified), tostring(has_other_samples)))
+  
+  -- If instrument is already pakettified and has other samples, just apply loader settings in place
+  if is_pakettified and has_other_samples then
+    print("Instrument already pakettified with other samples - applying loader settings in place")
+    PakettiInjectApplyLoaderSettings(source_sample)
+    renoise.app():show_status(string.format("Applied Paketti settings to '%s' in existing pakettified instrument", sample_name))
+    return
+  end
+  
+  -- Create new instrument after current one
+  local new_instrument_index = current_state.instrument_index + 1
+  song:insert_instrument_at(new_instrument_index)
+  song.selected_instrument_index = new_instrument_index
+  
+  -- Apply the default XRNI settings to the new instrument
+  print(string.format("Loading default XRNI into new instrument %d", new_instrument_index))
+  pakettiPreferencesDefaultInstrumentLoader()
+  
+  -- Get the new instrument and clear its default sample if it exists
+  local new_instrument = song.instruments[new_instrument_index]
+  if #new_instrument.samples > 0 then
+    for i = #new_instrument.samples, 1, -1 do
+      new_instrument:delete_sample_at(i)
+    end
+  end
+  
+  -- Insert new sample slot and copy the sample data
+  new_instrument:insert_sample_at(1)
+  song.selected_sample_index = 1
+  local new_sample = new_instrument.samples[1]
+  
+  -- Copy sample data (use copy_from on the sample, not the buffer!)
+  new_sample:copy_from(source_sample)
+  new_sample.name = sample_name
+  new_instrument.name = sample_name
+  
+  -- Apply sample-specific loader settings to the new sample
+  PakettiInjectApplyLoaderSettings(new_sample)
+  
+  -- Delete the original source sample since it's now redundant (identical frame count)
+  if source_instrument.samples[current_state.sample_index] then
+    source_instrument:delete_sample_at(current_state.sample_index)
+    print(string.format("Deleted original source sample from instrument %d, slot %d", 
+                       current_state.instrument_index, current_state.sample_index))
+  end
+  
+  print(string.format("Successfully Pakettified '%s' in new instrument %d with XRNI + loader settings", 
+                     sample_name, new_instrument_index))
+  
+  renoise.app():show_status(string.format("Auto-Pakettified '%s' to new instrument %d (original deleted)", 
+                                        sample_name, new_instrument_index))
+end
+
+-- Function to check for new samples in the currently selected sample slot
+function PakettiCheckForNewSamples()
+  if not monitoring_enabled then return end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  local current_state = PakettiGetSelectedSampleState()
+  
+  -- Only log when there are actual changes
+  local state_changed = false
+  if previous_selected_sample_state ~= nil then
+    state_changed = (previous_selected_sample_state.exists ~= current_state.exists or
+                    previous_selected_sample_state.has_data ~= current_state.has_data or
+                    previous_selected_sample_state.instrument_index ~= current_state.instrument_index or
+                    previous_selected_sample_state.sample_index ~= current_state.sample_index)
+  end
+  
+  -- Check if we should apply settings
+  local should_apply = false
+  
+  if previous_selected_sample_state == nil then
+    -- First run, just initialize
+    previous_selected_sample_state = current_state
+    return
+  end
+  
+  -- Only show debug info when state actually changes
+  if state_changed then
+    print(string.format("STATE CHANGE: Instr %d, Slot %d", 
+                       current_state.instrument_index, current_state.sample_index))
+    print(string.format("  Previous: exists=%s, has_data=%s", 
+                       tostring(previous_selected_sample_state.exists), 
+                       tostring(previous_selected_sample_state.has_data)))
+    print(string.format("  Current:  exists=%s, has_data=%s", 
+                       tostring(current_state.exists), 
+                       tostring(current_state.has_data)))
+  end
+  
+  -- Check for transitions that should trigger settings application:
+  -- 1. Sample slot didn't exist before, now exists with data
+  -- 2. Sample slot existed but was empty before, now has data
+  if current_state.exists and current_state.has_data then
+    local was_nonexistent = not previous_selected_sample_state.exists
+    local was_empty = previous_selected_sample_state.exists and not previous_selected_sample_state.has_data
+    local same_slot = (previous_selected_sample_state.instrument_index == current_state.instrument_index and 
+                      previous_selected_sample_state.sample_index == current_state.sample_index)
+    
+    if same_slot and (was_nonexistent or was_empty) then
+      should_apply = true
+      print(string.format("TRIGGER: Detected new sample in slot %d of instrument %d (was %s, now has data)", 
+                         current_state.sample_index, current_state.instrument_index,
+                         was_nonexistent and "nonexistent" or "empty"))
+    end
+  end
+  
+  -- Apply settings if needed
+  if should_apply then
+    PakettiApplyLoaderSettingsToSelectedSample()
+  end
+  
+  -- Update previous state
+  previous_selected_sample_state = current_state
+end
+
+-- Function to initialize the monitoring system
+function PakettiInitializeNewSampleMonitoring()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Initialize with current selected sample state
+  previous_selected_sample_state = PakettiGetSelectedSampleState()
+  
+  print("Paketti sample monitoring system initialized for selected sample slot")
+end
+
+-- Function to enable/disable monitoring
+function PakettiToggleNewSampleMonitoring()
+  monitoring_enabled = not monitoring_enabled
+  local status = monitoring_enabled and "enabled" or "disabled"
+  renoise.app():show_status("Paketti new sample monitoring: " .. status)
+  print("Paketti new sample monitoring: " .. status)
+end
+
+-- Function to temporarily disable monitoring (returns previous state)
+function PakettiTemporarilyDisableNewSampleMonitoring()
+  local was_enabled = monitoring_enabled
+  monitoring_enabled = false
+  print("Paketti sample monitoring temporarily disabled")
+  return was_enabled
+end
+
+-- Function to restore monitoring to previous state
+function PakettiRestoreNewSampleMonitoring(previous_state)
+  monitoring_enabled = previous_state
+  local status = monitoring_enabled and "enabled" or "disabled"
+  print("Paketti sample monitoring restored to: " .. status)
+end
+
+-- Timer-based monitoring function
+function PakettiMonitorNewSamplesTimer()
+  PakettiCheckForNewSamples()
+end
+
+-- Set up the monitoring system with observers and timer
+local sample_monitoring_timer = nil
+
+function PakettiStartNewSampleMonitoring()
+  -- Initialize states
+  PakettiInitializeNewSampleMonitoring()
+  
+  -- Set up timer for periodic checking (every 100ms)
+  if not renoise.tool():has_timer(PakettiMonitorNewSamplesTimer) then
+    sample_monitoring_timer = renoise.tool():add_timer(PakettiMonitorNewSamplesTimer, 100)
+  end
+  
+  -- Add notifiers for song changes
+  if renoise.song().selected_instrument_index_observable:has_notifier(PakettiCheckForNewSamples) then
+    renoise.song().selected_instrument_index_observable:remove_notifier(PakettiCheckForNewSamples)
+  end
+  renoise.song().selected_instrument_index_observable:add_notifier(PakettiCheckForNewSamples)
+  
+  -- Also monitor selected sample changes (note: uses selected_sample_observable, not selected_sample_index_observable)
+  if renoise.song().selected_sample_observable:has_notifier(PakettiCheckForNewSamples) then
+    renoise.song().selected_sample_observable:remove_notifier(PakettiCheckForNewSamples)
+  end
+  renoise.song().selected_sample_observable:add_notifier(PakettiCheckForNewSamples)
+  
+  print("Paketti new sample monitoring started")
+end
+
+function PakettiStopNewSampleMonitoring()
+  -- Remove timer
+  if renoise.tool():has_timer(PakettiMonitorNewSamplesTimer) then
+    renoise.tool():remove_timer(PakettiMonitorNewSamplesTimer)
+    sample_monitoring_timer = nil
+  end
+  
+  -- Remove notifiers
+  if renoise.song() and renoise.song().selected_instrument_index_observable:has_notifier(PakettiCheckForNewSamples) then
+    renoise.song().selected_instrument_index_observable:remove_notifier(PakettiCheckForNewSamples)
+  end
+  
+  if renoise.song() and renoise.song().selected_sample_observable:has_notifier(PakettiCheckForNewSamples) then
+    renoise.song().selected_sample_observable:remove_notifier(PakettiCheckForNewSamples)
+  end
+  
+  print("Paketti new sample monitoring stopped")
+end
+
+-- Add notifiers for app events
+renoise.tool().app_new_document_observable:add_notifier(function()
+  if monitoring_enabled then
+    PakettiStartNewSampleMonitoring()
+  end
+end)
+
+renoise.tool().app_release_document_observable:add_notifier(function()
+  PakettiStopNewSampleMonitoring()
+end)
+
+-- Initialize monitoring when tool loads
+if renoise.song() then
+  PakettiStartNewSampleMonitoring()
+end
+
+-- Add keybindings and menu entries for manual control
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle New Sample Auto-Settings", invoke=PakettiToggleNewSampleMonitoring}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Toggle New Sample Auto-Settings", invoke=PakettiToggleNewSampleMonitoring}
 

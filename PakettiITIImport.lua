@@ -1276,5 +1276,4 @@ local iti_integration = {
 
 if not renoise.tool():has_file_import_hook("instrument", { "iti" }) then
   renoise.tool():add_file_import_hook(iti_integration)
-  dprint("ITI file import hook registered")
 end

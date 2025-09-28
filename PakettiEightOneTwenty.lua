@@ -1,6 +1,7 @@
 -- Paketti Groovebox 8120 Script
 
 -- Configuration: Maximum steps per row (16 or 32)
+
 local MAX_STEPS = 16  -- Can be changed dynamically via UI switch
 -- Globals used across features (declare early, avoid overengineering)
 gbx_transpose_baseline = {nil,nil,nil,nil,nil,nil,nil,nil}
@@ -846,7 +847,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   local instrument_popup = vb:popup{
     items = instrument_names,
     value = row_index,  -- Set default instrument index to row number
-    width=150,
+    width=120,
     notifier=function(value)
       row_elements.print_to_pattern()
       row_elements.update_sample_name_label()
@@ -1259,12 +1260,22 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       value = false,
       width=30,
       notifier=function()
+        -- Prevent recursive calls
+        if row_elements.updating_checkboxes then 
+          print("8120 AUTOMATION DEBUG: *** RECURSIVE CALL BLOCKED ***")
+          return 
+        end
+        row_elements.updating_checkboxes = true
+        
+        local current_step = i  -- Capture the correct step index
+        local current_row = row_index  -- Capture the current row index
+        local saved_device, saved_param = nil, nil
         local current_track = renoise.song().selected_track_index
         local target_track = track_indices[row_elements.track_popup.value]
         local current_track_name = renoise.song().tracks[current_track] and renoise.song().tracks[current_track].name or "Unknown"
         local target_track_name = target_track and renoise.song().tracks[target_track] and renoise.song().tracks[target_track].name or "Unknown"
         
-        print("8120 AUTOMATION DEBUG: *** BUTTON CLICKED ROW " .. row_index .. " *** STARTING")
+        print("8120 AUTOMATION DEBUG: *** BUTTON CLICKED STEP " .. current_step .. " ROW " .. current_row .. " *** STARTING")
         print("8120 AUTOMATION DEBUG: Current track: " .. current_track .. " ('" .. current_track_name .. "') → Target track: " .. (target_track or "nil") .. " ('" .. target_track_name .. "')")
         
         -- CAPTURE automation selection at VERY START before ANYTHING happens
@@ -1281,21 +1292,18 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
 
         
         
-        if not row_elements.updating_checkboxes then
-          -- Get and select the track first
-          local track_index = track_indices[row_elements.track_popup.value]
-          if track_index then
-            local current_before = renoise.song().selected_track_index
-            print("8120 AUTOMATION DEBUG: *** ABOUT TO SELECT TRACK " .. track_index .. " (from " .. current_before .. ") *** This will destroy automation selection!")
-            
-            if track_index == current_before then
-              print("8120 AUTOMATION DEBUG: *** NO TRACK CHANGE NEEDED *** Already on target track " .. track_index)
-              PakettiEightOneTwentyHighlightRow(row_index)
-              return
-            end
-            
+        -- Get and select the track first
+        local track_index = track_indices[row_elements.track_popup.value]
+        if track_index then
+          local current_before = renoise.song().selected_track_index
+          print("8120 AUTOMATION DEBUG: *** ABOUT TO SELECT TRACK " .. track_index .. " (from " .. current_before .. ") *** This will destroy automation selection!")
+          
+          if track_index == current_before then
+            print("8120 AUTOMATION DEBUG: *** NO TRACK CHANGE NEEDED *** Already on target track " .. track_index)
+            PakettiEightOneTwentyHighlightRow(row_index)
+            -- Don't return here - still need to print to pattern
+          else
             -- CAPTURE automation BEFORE track selection destroys it
-            local saved_device, saved_param = nil, nil
             if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
               saved_device = renoise.song().selected_automation_device
               saved_param = renoise.song().selected_automation_parameter
@@ -1317,37 +1325,41 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
             
             -- Now highlight the row after automation is restored
             PakettiEightOneTwentyHighlightRow(row_index)
-          else
-            print("8120 AUTOMATION DEBUG: *** NO TRACK INDEX *** track_indices[" .. row_elements.track_popup.value .. "] = nil")
-            PakettiEightOneTwentyHighlightRow(row_index)
           end
+        else
+          print("8120 AUTOMATION DEBUG: *** NO TRACK INDEX *** track_indices[" .. row_elements.track_popup.value .. "] = nil")
+          PakettiEightOneTwentyHighlightRow(row_index)
+        end
+        
+        -- If we're in sample editor view, select the instrument and its active sample
+        if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+          -- Select the instrument
+          local instrument_index = row_elements.instrument_popup.value
+          renoise.song().selected_instrument_index = instrument_index
           
-          -- If we're in sample editor view, select the instrument and its active sample
-          if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
-            -- Select the instrument
-            local instrument_index = row_elements.instrument_popup.value
-            renoise.song().selected_instrument_index = instrument_index
-            
-            -- Find and select the sample with 00-7F velocity mapping
-            local instrument = renoise.song().instruments[instrument_index]
-            if instrument then
-              for sample_idx, sample in ipairs(instrument.samples) do
-                local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
-                local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2]
-                if velocity_min == 0x00 and velocity_max == 0x7F then
-                  renoise.song().selected_sample_index = sample_idx
-                  break
-                end
+          -- Find and select the sample with 00-7F velocity mapping
+          local instrument = renoise.song().instruments[instrument_index]
+          if instrument then
+            for sample_idx, sample in ipairs(instrument.samples) do
+              local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
+              local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2]
+              if velocity_min == 0x00 and velocity_max == 0x7F then
+                renoise.song().selected_sample_index = sample_idx
+                break
               end
             end
           end
-          
-          -- Then print to pattern
-          row_elements.print_to_pattern()
-          if track_index and saved_device and saved_param then
-            PakettiEightOneTwentyRestoreAutomationSelection(saved_device, saved_param, track_index)
-          end
         end
+        
+        -- Always print to pattern regardless of updating_checkboxes flag
+        print("8120 AUTOMATION DEBUG: *** CALLING print_to_pattern() ***")
+        row_elements.print_to_pattern()
+        if track_index then
+          PakettiEightOneTwentyRestoreAutomationSelection(saved_device, saved_param, track_index)
+        end
+        
+        -- Always clear the updating flag at the end
+        row_elements.updating_checkboxes = false
       end
     }
     table.insert(checkbox_row_elements, checkboxes[i])
@@ -1421,7 +1433,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   }
   -- Try to left-align the sample name within the button by adding leading space removal when updating text
   row_elements.update_sample_name_label = function()
-    local instrument_index = instrument_popup.value
+    local instrument_index = row_elements.instrument_popup.value
     local instrument = renoise.song().instruments[instrument_index]
     local sample_name = ""
     if instrument and #instrument.samples > 0 then
@@ -1434,7 +1446,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     else
       sample_name = instrument and (instrument.name ~= "" and instrument.name or ("Instrument " .. tostring(instrument_index))) or "Sample Name"
     end
-    sample_name_label.text = sample_name
+    row_elements.sample_name_label.text = sample_name
   end
 
   -- Append valuebox and sample name label after checkboxes
@@ -1892,24 +1904,30 @@ function row_elements.print_to_pattern()
   end
 
   -- Only write notes to the first MAX_STEPS steps
+  local notes_written = 0
+  print("8120 PATTERN DEBUG: Starting pattern write for track " .. track_index .. ", steps=" .. steps)
   for line = 1, math.min(MAX_STEPS, steps) do
-    local note_checkbox_value = checkboxes[line].value
-    local yxx_checkbox_value = yxx_checkboxes[line].value
+    local note_checkbox_value = row_elements.checkboxes[line].value
+    local yxx_checkbox_value = row_elements.yxx_checkboxes[line].value
+    print("8120 PATTERN DEBUG: Line " .. line .. " checkbox=" .. tostring(note_checkbox_value))
     local note_line = track_in_pattern:line(line).note_columns[1]
     local effect_column = track_in_pattern:line(line).effect_columns[1]
 
     if note_checkbox_value then
       note_line.note_string = "C-4"
       note_line.instrument_value = instrument_index - 1
+      notes_written = notes_written + 1
+      print("8120 PATTERN DEBUG: Wrote note at line " .. line)
 
       if yxx_checkbox_value then
         effect_column.number_string = "0Y"
-        effect_column.amount_value = yxx_valuebox.value
+        effect_column.amount_value = row_elements.yxx_valuebox.value
       else
         effect_column:clear()
       end
     end
   end
+  print("8120 PATTERN DEBUG: Total notes written: " .. notes_written)
 
   -- Repeat the pattern if needed
   if pattern_length > steps then
@@ -1928,7 +1946,7 @@ end
 
   -- Function to Update Sample Name Label
   function row_elements.update_sample_name_label()
-    local instrument = renoise.song().instruments[instrument_popup.value]
+    local instrument = renoise.song().instruments[row_elements.instrument_popup.value]
     local sample_name = "No sample available"
     if instrument and #instrument.samples > 0 then
       for sample_idx, sample in ipairs(instrument.samples) do
@@ -1946,10 +1964,10 @@ end
       -- Only show status if we have an instrument but couldn't find a valid sample
       if sample_name == "No sample available" then
         renoise.app():show_status(string.format("Instrument %d ('%s') has no samples with full velocity range (00-7F)", 
-          instrument_popup.value, instrument.name))
+          row_elements.instrument_popup.value, instrument.name))
       end
     end
-    sample_name_label.text = sample_name
+    row_elements.sample_name_label.text = sample_name
   end
 
   -- Function to Initialize Row
@@ -2229,6 +2247,15 @@ end
       end
     else
       print("8120 AUTOMATION DEBUG: *** ALREADY ON CORRECT TRACK *** " .. track_index)
+      -- Still need to set up automation even when already on correct track
+      if saved_device and saved_param then
+        print("8120 AUTOMATION DEBUG: *** RESTORING AUTOMATION ON SAME TRACK *** to prevent Volume fallback")
+        PakettiEightOneTwentyRestoreAutomationSelection(saved_device, saved_param, track_index)
+      else
+        print("8120 AUTOMATION DEBUG: *** NO AUTOMATION TO RESTORE ON SAME TRACK *** - will create Pitchbend")
+        -- If no previous automation, create Pitchbend on *Instr. Macros device
+        PakettiEightOneTwentyRestoreAutomationSelection(nil, nil, track_index)
+      end
     end
     
     song.selected_instrument_index = instrument_index
@@ -2345,6 +2372,16 @@ end
     end)(row_index)
   }
 
+  local hyper_edit_button = vb:button{ text="HyperEdit", notifier=(function(idx)
+    return function()
+      PakettiEightOneTwentyHighlightRow(row_index)
+      local ti = track_indices and row_elements.track_popup and row_elements.track_popup.value and track_indices[row_elements.track_popup.value]
+      if ti then renoise.song().selected_track_index = ti end
+      local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
+      if ii then renoise.song().selected_instrument_index = ii end
+      PakettiHyperEditInit()
+    end
+  end)(row_index)}
 
   -- Define the Row Column Layout
   local solo_checkbox = vb:checkbox{value=false,width=30,notifier=function(value)
@@ -2534,7 +2571,7 @@ end
       vb:button{text="Show", notifier = row_elements.select_instrument},
       vb:button{text="Automation", notifier = row_elements.show_automation},
       --      vb:button{text="Macros", notifier=row_elements.show_macros},
-      reverse_button, eq30_button, steppers_button, gater_button, record_button,
+      reverse_button, eq30_button, steppers_button, gater_button, record_button, hyper_edit_button,
     
   },
     },
@@ -2551,6 +2588,7 @@ end
   row_elements.mute_checkbox = mute_checkbox
   row_elements.output_delay_slider = output_delay_slider
   row_elements.output_delay_value_label = output_delay_value_label
+  row_elements.sample_name_label = sample_name_label
   row_elements.transpose_rotary = transpose_rotary
   row_elements.volume_rotary = volume_rotary
   row_elements.row_container = row
@@ -2666,7 +2704,7 @@ local randomize_all_yxx_button = vb:button{
           dialog:close()
           dialog = nil
           rows = {}
-          -- Reopen immediately with new settings
+          -- Reopen immediately with new settings (monitoring will be handled by the dialog function)
           pakettiEightSlotsByOneTwentyDialog()
         end
         renoise.app():show_status("Switched to " .. new_max_steps .. " steps mode")
@@ -3256,9 +3294,6 @@ end
 function random_all()
   if initializing then return end
   
-  -- Initialize random seed for true randomness
-  math.randomseed(os.time())
-  
   -- Check if we have enough instruments
   local song=renoise.song()
   if #song.instruments < 8 then
@@ -3280,42 +3315,14 @@ function random_all()
     return
   end
   
-  -- Store original selected instrument to restore later
-  local original_selected_instrument = song.selected_instrument_index
-  
-  -- Directly set random sample indices for instruments 1-8
-  for i = 1, 8 do
-    local instrument = song.instruments[i]
-    if instrument and #instrument.samples > 0 then
-      -- Skip if instrument has slice markers
-      if instrument.samples[1] and instrument.samples[1].slice_markers and #instrument.samples[1].slice_markers > 0 then
-        -- Skip this instrument, it contains slices
-      else
-        -- Select this instrument temporarily
-        song.selected_instrument_index = i
-        
-        -- Pick random sample index (1-based, clamped to available samples)
-        local random_sample_index = math.random(1, #instrument.samples)
-        
-        -- Set velocity ranges and selected sample
-        pakettiSampleVelocityRangeChoke(random_sample_index)
-        
-        -- Update the corresponding slider
-        if rows[i] and rows[i].slider then
-          rows[i].slider.value = random_sample_index
-        end
-        
-        -- Update sample name label
-        if rows[i] and rows[i].update_sample_name_label then
-          rows[i].update_sample_name_label()
-        end
-      end
+  -- Now proceed with randomization only if we have samples
+  for _, row_elements in ipairs(rows) do
+    if row_elements.random_button_pressed then
+      row_elements.random_button_pressed()
+    else
+      renoise.app():show_status("Error: random_button_pressed not found for a row.")
     end
   end
-  
-  -- Restore original selected instrument
-  song.selected_instrument_index = original_selected_instrument
-  
   renoise.app():show_status("Each Instrument Bank now has a Random Selected Sample.")
 end
 
@@ -3507,6 +3514,9 @@ function pakettiEightSlotsByOneTwentyDialog()
     dialog = nil
     return
   end
+
+  -- Temporarily disable sample monitoring to prevent interference during dialog initialization
+  local monitoring_was_enabled = PakettiTemporarilyDisableNewSampleMonitoring()
 
   initializing = true  -- Set initializing flag to true
   local song = renoise.song()
@@ -4038,6 +4048,9 @@ function pakettiEightSlotsByOneTwentyDialog()
   setup_bpm_observable()
   -- Setup playhead highlight updates after dialog is created
   PakettiEightOneTwentySetupPlayhead()
+
+  -- Re-enable sample monitoring after dialog initialization is complete
+  PakettiRestoreNewSampleMonitoring(monitoring_was_enabled)
 
   -- No post-create visibility toggling required
 
@@ -4609,16 +4622,9 @@ function loadSequentialSamplesWithFolderPrompts()
   -- Function to process a single instrument (regular sample loading)
   local function processInstrument(instrument_index, folder_path)
     local song = renoise.song()
-    
-    -- Ensure instrument slot exists
-    while #song.instruments < instrument_index do
-      song:insert_instrument_at(#song.instruments + 1)
-    end
-    
-    -- Select the specific instrument slot
-    song.selected_instrument_index = instrument_index
     song.selected_track_index = instrument_index
-    local instrument = song.instruments[instrument_index]  -- Direct reference to prevent confusion
+    song.selected_instrument_index = instrument_index
+    local instrument = song.selected_instrument
     
     -- Get all valid audio files in the directory
     local sample_files = PakettiGetFilesInDirectory(folder_path)
@@ -4894,75 +4900,41 @@ function loadSequentialDrumkitSamples()
       return false, "No audio files found in folder " .. folder_path
     end
 
-    -- STEP 1: Set up the instrument - ensure we target the correct slot
-    local song = renoise.song()
-    
-    -- Ensure instrument slot exists
-    while #song.instruments < instrument_index do
-      song:insert_instrument_at(#song.instruments + 1)
-    end
-    
-    -- STEP 2: Select the specific instrument slot BEFORE loading
-    song.selected_instrument_index = instrument_index
+    -- Set up the instrument
+    local song=renoise.song()
     song.selected_track_index = instrument_index
+    song.selected_instrument_index = instrument_index
+    local instrument = song.selected_instrument
     
-    -- STEP 3: Load the default drumkit instrument FIRST (this creates the base structure)
+    -- Load the default drumkit instrument
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-    print(string.format("8120 SEQUENTIAL: Step 3 - Loading XRNI FIRST for instrument %d", instrument_index))
-    
-    -- CRITICAL: Force selection before loading
-    song.selected_instrument_index = instrument_index
-    song.selected_track_index = instrument_index
-    
     renoise.app():load_instrument(defaultInstrument)
     
-    -- CRITICAL: IMMEDIATELY re-select and verify the target instrument
-    song.selected_instrument_index = instrument_index
-    song.selected_track_index = instrument_index
-    local instrument = song.instruments[instrument_index]
-    
-    -- Double-check we're on the right instrument
-    if song.selected_instrument_index ~= instrument_index then
-      print(string.format("8120 SEQUENTIAL: ERROR - Selection changed! Expected %d, got %d", instrument_index, song.selected_instrument_index))
-      song.selected_instrument_index = instrument_index
-      instrument = song.instruments[instrument_index]
-    end
-    
-    print(string.format("8120 SEQUENTIAL: Step 4 - XRNI loaded, now REPLACING samples for instrument %d (verified selection: %d)", 
-      instrument_index, song.selected_instrument_index))
+    -- Update instrument reference and name
+    instrument = song.selected_instrument
+    instrument.name = string.format("8120_%02d Kit", instrument_index)
+    instrument.macros_visible = true
 
-    -- STEP 4: Now REPLACE the XRNI samples with our samples
+    -- Load samples
     local max_samples = 120
     local num_samples_to_load = math.min(#sample_files, max_samples)
     local failed_files = {}
     
     for i = 1, num_samples_to_load do
-      -- CRITICAL: Re-verify we're still on the correct instrument every 10 samples
-      if i % 10 == 1 then
-        if song.selected_instrument_index ~= instrument_index then
-          print(string.format("8120 SEQUENTIAL: CORRECTING selection at sample %d - was %d, should be %d", 
-            i, song.selected_instrument_index, instrument_index))
-          song.selected_instrument_index = instrument_index
-          song.selected_track_index = instrument_index
-          instrument = song.instruments[instrument_index]
-        end
-      end
-      
       local random_index = math.random(1, #sample_files)
       local selected_file = sample_files[random_index]
       table.remove(sample_files, random_index)
       
       local file_size = getFileSize(selected_file)
 
-      -- Make sure we have a sample slot (XRNI should have provided some, but ensure we have enough)
-      while #instrument.samples < i do
-        instrument:insert_sample_at(#instrument.samples + 1)
+      if #instrument.samples < i then
+        instrument:insert_sample_at(i)
       end
       
       local load_failed = false
       local error_msg = ""
       
-      -- Try to load the sample OVER the existing slot
+      -- Try to load the sample
       local ok = pcall(function()
         local buffer = instrument.samples[i].sample_buffer
         if not buffer then
@@ -5018,7 +4990,7 @@ function loadSequentialDrumkitSamples()
       -- Update status display
       if dialog and dialog.visible then
         local display_name = capFilename(getFilename(selected_file))
-        status_labels[instrument_index].text = string.format("Part %d/8: Replacing sample %03d/%03d: %s", 
+        status_labels[instrument_index].text = string.format("Part %d/8: Loading sample %03d/%03d: %s", 
           instrument_index, i, num_samples_to_load, display_name)
         status_labels[instrument_index].font = "bold"
         status_labels[instrument_index].style = "strong"
@@ -5038,56 +5010,6 @@ function loadSequentialDrumkitSamples()
       end
       print("----------------------------------------")
     end
-
-    -- FINAL VERIFICATION: Make sure we're still on the correct instrument after loading
-    if song.selected_instrument_index ~= instrument_index then
-      print(string.format("8120 SEQUENTIAL: FINAL CORRECTION - was %d, should be %d", 
-        song.selected_instrument_index, instrument_index))
-      song.selected_instrument_index = instrument_index
-      song.selected_track_index = instrument_index
-      instrument = song.instruments[instrument_index]
-    end
-    
-    -- STEP 5: Clear any placeholder samples (samples beyond what we loaded)
-    print(string.format("8120 SEQUENTIAL: Step 5 - Clearing placeholder samples for instrument %d", instrument_index))
-    local samples_to_keep = num_samples_to_load
-    while #instrument.samples > samples_to_keep do
-      local last_sample_index = #instrument.samples
-      local sample_to_check = instrument.samples[last_sample_index]
-      
-      -- Check if this looks like a placeholder (empty name, no data, etc.)
-      local is_placeholder = false
-      if sample_to_check.name == "" or 
-         sample_to_check.name:find("Placeholder") or
-         sample_to_check.name:find("placeholder") or
-         (sample_to_check.sample_buffer and not sample_to_check.sample_buffer.has_sample_data) then
-        is_placeholder = true
-      end
-      
-      if is_placeholder then
-        print(string.format("8120 SEQUENTIAL: Removing placeholder sample %d: '%s'", last_sample_index, sample_to_check.name))
-        instrument:delete_sample_at(last_sample_index)
-      else
-        -- If it's not a placeholder, stop clearing
-        break
-      end
-    end
-
-    -- STEP 6: Set proper instrument name
-    -- FINAL FINAL verification before naming
-    if song.selected_instrument_index ~= instrument_index then
-      print(string.format("8120 SEQUENTIAL: NAMING CORRECTION - was %d, should be %d", 
-        song.selected_instrument_index, instrument_index))
-      song.selected_instrument_index = instrument_index
-      instrument = song.instruments[instrument_index]
-    end
-    
-    local target_name = string.format("8120_%02d Kit", instrument_index)
-    instrument.name = target_name
-    instrument.macros_visible = true
-    
-    print(string.format("8120 SEQUENTIAL: Step 6 - Final setup complete for instrument %d: '%s' (%d samples)", 
-      instrument_index, instrument.name, #instrument.samples))
 
     return true
   end
@@ -5314,75 +5236,35 @@ function loadSequentialRandomLoadAll()
       return false, "No audio files found in folder " .. folder_path
     end
 
-    -- STEP 1: Set up the instrument - ensure we target the correct slot
-    local song = renoise.song()
-    
-    -- Ensure instrument slot exists
-    while #song.instruments < instrument_index do
-      song:insert_instrument_at(#song.instruments + 1)
-    end
-    
-    -- STEP 2: Select the specific instrument slot BEFORE loading
-    song.selected_instrument_index = instrument_index
+    local song=renoise.song()
     song.selected_track_index = instrument_index
-    
-    -- STEP 3: Load the default drumkit instrument FIRST (this creates the base structure)
-    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-    print(string.format("8120 SEQUENTIAL ALL: Step 3 - Loading XRNI FIRST for instrument %d", instrument_index))
-    
-    -- CRITICAL: Force selection before loading
     song.selected_instrument_index = instrument_index
-    song.selected_track_index = instrument_index
-    
-    renoise.app():load_instrument(defaultInstrument)
-    
-    -- CRITICAL: IMMEDIATELY re-select and verify the target instrument
-    song.selected_instrument_index = instrument_index
-    song.selected_track_index = instrument_index
-    local instrument = song.instruments[instrument_index]
-    
-    -- Double-check we're on the right instrument
-    if song.selected_instrument_index ~= instrument_index then
-      print(string.format("8120 SEQUENTIAL ALL: ERROR - Selection changed! Expected %d, got %d", instrument_index, song.selected_instrument_index))
-      song.selected_instrument_index = instrument_index
-      instrument = song.instruments[instrument_index]
-    end
-    
-    print(string.format("8120 SEQUENTIAL ALL: Step 4 - XRNI loaded, now REPLACING samples for instrument %d (verified selection: %d)", 
-      instrument_index, song.selected_instrument_index))
+    local instrument = song.selected_instrument
 
-    -- STEP 4: Now REPLACE the XRNI samples with our samples
+    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
+    renoise.app():load_instrument(defaultInstrument)
+    instrument = song.selected_instrument
+    instrument.name = string.format("8120_%02d Kit", instrument_index)
+    instrument.macros_visible = true
+
     local max_samples = 120
     local num_samples_to_load = math.min(#sample_files, max_samples)
     local failed_files = {}
 
     for i = 1, num_samples_to_load do
-      -- CRITICAL: Re-verify we're still on the correct instrument every 10 samples
-      if i % 10 == 1 then
-        if song.selected_instrument_index ~= instrument_index then
-          print(string.format("8120 SEQUENTIAL ALL: CORRECTING selection at sample %d - was %d, should be %d", 
-            i, song.selected_instrument_index, instrument_index))
-          song.selected_instrument_index = instrument_index
-          song.selected_track_index = instrument_index
-          instrument = song.instruments[instrument_index]
-        end
-      end
-      
       local random_index = math.random(1, #sample_files)
       local selected_file = sample_files[random_index]
       table.remove(sample_files, random_index)
 
       local file_size = getFileSize(selected_file)
 
-      -- Make sure we have a sample slot (XRNI should have provided some, but ensure we have enough)
-      while #instrument.samples < i do
-        instrument:insert_sample_at(#instrument.samples + 1)
+      if #instrument.samples < i then
+        instrument:insert_sample_at(i)
       end
 
       local load_failed = false
       local error_msg = ""
 
-      -- Try to load the sample OVER the existing slot
       local ok = pcall(function()
         local buffer = instrument.samples[i].sample_buffer
         if not buffer then
@@ -5426,7 +5308,7 @@ function loadSequentialRandomLoadAll()
 
       if dialog and dialog.visible then
         local display_name = capFilename(getFilename(selected_file))
-        status_labels[instrument_index].text = string.format("Part %d/8: Replacing sample %03d/%03d: %s",
+        status_labels[instrument_index].text = string.format("Part %d/8: Loading sample %03d/%03d: %s",
           instrument_index, i, num_samples_to_load, display_name)
         status_labels[instrument_index].font = "bold"
         status_labels[instrument_index].style = "strong"
@@ -5446,61 +5328,10 @@ function loadSequentialRandomLoadAll()
       print("----------------------------------------")
     end
 
-    -- FINAL VERIFICATION: Make sure we're still on the correct instrument after loading
-    if song.selected_instrument_index ~= instrument_index then
-      print(string.format("8120 SEQUENTIAL ALL: FINAL CORRECTION - was %d, should be %d", 
-        song.selected_instrument_index, instrument_index))
-      song.selected_instrument_index = instrument_index
-      song.selected_track_index = instrument_index
-      instrument = song.instruments[instrument_index]
-    end
-    
-    -- STEP 5: Clear any placeholder samples (samples beyond what we loaded)
-    print(string.format("8120 SEQUENTIAL ALL: Step 5 - Clearing placeholder samples for instrument %d", instrument_index))
-    local samples_to_keep = num_samples_to_load
-    while #instrument.samples > samples_to_keep do
-      local last_sample_index = #instrument.samples
-      local sample_to_check = instrument.samples[last_sample_index]
-      
-      -- Check if this looks like a placeholder (empty name, no data, etc.)
-      local is_placeholder = false
-      if sample_to_check.name == "" or 
-         sample_to_check.name:find("Placeholder") or
-         sample_to_check.name:find("placeholder") or
-         (sample_to_check.sample_buffer and not sample_to_check.sample_buffer.has_sample_data) then
-        is_placeholder = true
-      end
-      
-      if is_placeholder then
-        print(string.format("8120 SEQUENTIAL ALL: Removing placeholder sample %d: '%s'", last_sample_index, sample_to_check.name))
-        instrument:delete_sample_at(last_sample_index)
-      else
-        -- If it's not a placeholder, stop clearing
-        break
-      end
-    end
-
-    -- STEP 6: Set proper instrument name
-    -- FINAL FINAL verification before naming
-    if song.selected_instrument_index ~= instrument_index then
-      print(string.format("8120 SEQUENTIAL ALL: NAMING CORRECTION - was %d, should be %d", 
-        song.selected_instrument_index, instrument_index))
-      song.selected_instrument_index = instrument_index
-      instrument = song.instruments[instrument_index]
-    end
-    
-    local target_name = string.format("8120_%02d Kit", instrument_index)
-    instrument.name = target_name
-    instrument.macros_visible = true
-    
-    print(string.format("8120 SEQUENTIAL ALL: Step 6 - Final setup complete for instrument %d: '%s' (%d samples)", 
-      instrument_index, instrument.name, #instrument.samples))
-
     return true
   end
 
   local function process()
-    
     for i = 1, 8 do
       if slicer:was_cancelled() then
         renoise.app():show_status("Sequential loading cancelled")

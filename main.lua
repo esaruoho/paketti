@@ -341,6 +341,7 @@ function PakettiGetAllLuaFiles()
     return files
 end
 
+
 -- Global function to get files from directory with improved error handling and debugging
 function PakettiGetFilesInDirectory(dir)
     local files = {}

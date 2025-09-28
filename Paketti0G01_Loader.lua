@@ -171,6 +171,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiLoaderLoopExit=false,
   pakettiLoaderMoveSilenceToEnd=false,
   pakettiLoaderNormalizeSamples=false,
+  pakettiLoaderNormalizeLargeSamples=false,
   pakettiPolyendOpenDialog=true,
   pakettiExplodeTrackNaming=true,  -- Enable note+instrument naming for exploded tracks (e.g. "C-4 MyInstrument")
   selectionNewInstrumentSelect=false,
@@ -184,6 +185,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiUnisonDetuneFluctuation=true,
   pakettiUnisonDetuneHardSync=false,
   pakettiUnisonDuplicateInstrument=true,
+  pakettiMaxFrameSize=10000000,  -- Default 10MB worth of frames
   PakettiHyperEditCaptureTrackColor=false,
   PakettiHyperEditAutoFit=true,
   PakettiHyperEditManualRows=8,
@@ -871,6 +873,11 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
     text = tostring(preferences.pakettiUnisonDetune.value)
   }
 
+  local max_frame_size_value_label = vb:text{
+    width=100,
+    text = string.format("%.0f MB (%d frames)", preferences.pakettiMaxFrameSize.value / 1000000, preferences.pakettiMaxFrameSize.value)
+  }
+
   local threshold_label = vb:text{
         text = string.format("%.3f%%", preferences.PakettiStripSilenceThreshold.value * 100),width=100
     }
@@ -1231,8 +1238,27 @@ vb:row{
             vb:row{vb:text{text="Paketti Loader Settings (Drumkit Loader)", font="bold", style="strong"}},
             vb:row{vb:text{text="Move Beginning Silence",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderMoveSilenceToEnd.value and 2 or 1,width=200,
               notifier=function(value) preferences.pakettiLoaderMoveSilenceToEnd.value=(value==2) end}},
-          vb:row{vb:text{text="Normalize Samples",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderNormalizeSamples.value and 2 or 1,width=200,
+          vb:row{vb:text{text="Normalize Samples",width=150,tooltip="Automatically normalize all samples after loading (works with drag & drop too)"},vb:switch{items={"No","Yes"},value=preferences.pakettiLoaderNormalizeSamples.value and 2 or 1,width=200,tooltip="Automatically normalize all samples after loading (works with drag & drop too)",
             notifier=function(value) preferences.pakettiLoaderNormalizeSamples.value=(value==2) end}},
+          vb:row{vb:text{text="Normalize Large Samples (>10MB)",width=150,tooltip="Automatically normalize samples larger than 10MB after loading"},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderNormalizeLargeSamples.value and 2 or 1,width=200,tooltip="Automatically normalize samples larger than 10MB after loading",
+            notifier=function(value) preferences.pakettiLoaderNormalizeLargeSamples.value=(value==2) end}},
+            vb:text{style="strong",font="bold",text="Maximum Sample Frame Size Settings"},
+            vb:row{
+                vb:text{text="Max Frame Size",width=150,tooltip="Maximum frame size for sample processing (5MB to 100MB)"},
+                vb:slider{
+                    min = 5000000,    -- 5MB worth of frames
+                    max = 100000000,  -- 100MB worth of frames
+                    value = preferences.pakettiMaxFrameSize.value,
+                    width=200,
+                    tooltip="Maximum frame size for sample processing (5MB to 100MB)",
+                    notifier=function(value)
+                        value = math.floor(value)  -- Ensure integer value
+                        preferences.pakettiMaxFrameSize.value = value
+                        max_frame_size_value_label.text = string.format("%.0f MB (%d frames)", value / 1000000, value)
+                    end
+                },
+                max_frame_size_value_label
+            },
             vb:row{vb:text{text="Default XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default XRNI Selector Dialog")
               if filePath and filePath~="" then
@@ -1325,7 +1351,7 @@ vb:row{
             items = deviceChainFiles,
             value = currentDeviceChainIndex,
             width=200,
-            id = "pakettiPresetPlusPlusDeviceChainPopup",
+            id = "pakettiPresetPlusPlusDeviceChainPopup_" .. tostring(math.random(2, 30000)),
             tooltip="Device chain file (.xrnt) to load when creating new track with channelstrip",
             notifier=function(value)
                 if value > 0 and value <= #deviceChainFiles then

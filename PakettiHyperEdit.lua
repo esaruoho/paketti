@@ -2,6 +2,9 @@
 -- 8-Row Interchangeable Stepsequencer with individual device/parameter selection
 -- Each row has its own canvas with device and parameter dropdowns
 
+-- Debug control flag - set to true to enable verbose logging
+local DEBUG_HYPEREDIT = false
+
 -- Helper function to clean parameter names by removing "CC XX " prefix
 -- e.g., "CC 1 (Mod Wheel)" becomes "Mod Wheel"
 function PakettiHyperEditCleanParameterName(param_name)
@@ -51,9 +54,9 @@ local DEVICE_PARAMETER_WHITELISTS = {
     "Pitchbend",
     "Drive",
     "ParallelComp",
+    "PB Inertia",
     "CutLfoAmp",
     "CutLfoFreq",
-    "PB Inertia"
   },
   ["Gainer"] = {
     "Gain"
@@ -612,7 +615,7 @@ function PakettiHyperEditPreConfigureParameters()
   -- Use preferred order for Instrument Macros, or sequential for other devices
   local preferred_order = nil
   if target_device_info.name:find("Instr") and target_device_info.name:find("Macro") then
-    preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "ParallelComp", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
+    preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
     print("DEBUG: Using Instrument Macros preferred order: " .. table.concat(preferred_order, ", "))
   end
   
@@ -670,12 +673,30 @@ function PakettiHyperEditPreConfigureParameters()
     -- Set parameter for this row
     row_parameters[row] = param_info
     
+    -- Auto-populate pitchbend parameters with 0.5 values when dialog opens
+    local param_name = param_info.name:lower()
+    if param_name:find("pitchbend") or param_name:find("x_pitchbend") then
+      print("DEBUG: Pre-configuring Pitchbend parameter for row " .. row .. " - auto-populating with 0.5 values")
+      PakettiHyperEditSetAllStepsToValue(row, 0.5)
+    end
+    
     -- Update UI elements if they exist
     if dialog_vb then
-      -- Update device popup (set to first device)
+      -- Find the correct device index for target_device_info
+      local target_device_index = 1 -- fallback
+      for i, device_info in ipairs(devices) do
+        if device_info.name == target_device_info.name then
+          target_device_index = i
+          print("DEBUG: Found target device " .. target_device_info.name .. " at index " .. i)
+          break
+        end
+      end
+      
+      -- Update device popup (set to target device)
       local device_popup = dialog_vb.views["device_popup_" .. row]
       if device_popup then
-        device_popup.value = 1 -- First device
+        print("DEBUG: Pre-config setting device popup for row " .. row .. " to index " .. target_device_index .. " (" .. target_device_info.name .. ")")
+        device_popup.value = target_device_index
       end
       
       -- Update parameter popup
@@ -789,19 +810,16 @@ function PakettiHyperEditGetParameters(device)
     return all_params
   end
   
-  -- Apply whitelist filtering
+  -- Apply whitelist filtering in PREFERRED ORDER
   local filtered_params = {}
-  local whitelist_lookup = {}
   
-  -- Create lookup table for faster searching
+  -- Add parameters in whitelist order (preserves preferred order)
   for _, whitelisted_name in ipairs(whitelist) do
-    whitelist_lookup[whitelisted_name] = true
-  end
-  
-  -- Filter parameters based on whitelist
-  for _, param_info in ipairs(all_params) do
-    if whitelist_lookup[param_info.name] then
-      table.insert(filtered_params, param_info)
+    for _, param_info in ipairs(all_params) do
+      if param_info.name == whitelisted_name then
+        table.insert(filtered_params, param_info)
+        break -- Found this parameter, move to next in whitelist
+      end
     end
   end
   
@@ -997,7 +1015,7 @@ function PakettiHyperEditRefreshExistingAutomation()
         
         -- Read automation points
         for _, point in ipairs(automation.points) do
-          local line_pos = point.time_stamp + 1
+          local line_pos = point.time
           local consolidated_step = ((line_pos - 1) % detected_step_count) + 1
           
           step_active[row][consolidated_step] = true
@@ -1400,58 +1418,6 @@ function PakettiHyperEditDeleteAutomation(row)
   print("DEBUG: Deleted automation for row " .. row .. " parameter: " .. param_name)
 end
 
--- Apply step change immediately
-function PakettiHyperEditApplyStep(row, step)
-  if not row_parameters[row] then return end
-  
-  local param_info = row_parameters[row]
-  local parameter = param_info.parameter
-  
-  if step_active[row][step] then
-    -- Convert normalized value to parameter range
-    local param_value = param_info.value_min + (step_data[row][step] * (param_info.value_max - param_info.value_min))
-    
-    -- Check if this is a volume-related parameter
-    local is_volume = param_info.name:lower():find("volume") ~= nil
-    
-    if is_volume then
-      -- Write to pattern editor volume column
-      PakettiHyperEditWriteVolumeToPattern(row, step, step_data[row][step])
-    else
-      -- Write to automation immediately
-      PakettiHyperEditWriteAutomationPoint(parameter, step, param_value)
-    end
-  end
-end
-
--- Write volume to pattern editor
-function PakettiHyperEditWriteVolumeToPattern(row, step, normalized_value)
-  local song = renoise.song()
-  if not song then return end
-  
-  local pattern = song.selected_pattern
-  local track_index = song.selected_track_index
-  local track = song.selected_track
-  
-  -- Ensure enough note columns
-  if track.visible_note_columns < row then
-    track.visible_note_columns = row
-  end
-  
-  -- Calculate which pattern line this step represents
-  local current_line = song.selected_line_index
-  local target_line = current_line + (step - 1)
-  
-  if target_line <= pattern.number_of_lines then
-    local pattern_line = pattern:track(track_index):line(target_line)
-    local note_col = pattern_line:note_column(row)
-    
-    -- Convert to volume (0-127) and then to hex
-    local volume_value = math.floor(normalized_value * 127)
-    volume_value = math.max(0, math.min(127, volume_value))
-    note_col.volume_string = string.format("%02X", volume_value)
-  end
-end
 
 -- Write automation pattern (repeating across full pattern length)
 function PakettiHyperEditWriteAutomationPattern(row)
@@ -1546,6 +1512,74 @@ function PakettiHyperEditSwitchToAutomationView(row)
     -- Select this parameter's automation envelope
     song.selected_automation_parameter = parameter
     print("DEBUG: Switched automation view to " .. parameter.name .. " (Row " .. row .. ")")
+    
+    -- Check if this is a Pitchbend parameter and if envelope is empty, set to 0.5 across pattern length
+    local param_name = parameter.name:lower()
+    if param_name:find("pitchbend") or param_name:find("x_pitchbend") then
+      local current_pattern = song.selected_pattern_index
+      local track_index = song.selected_track_index  
+      local pattern_track = song:pattern(current_pattern):track(track_index)
+      
+      local automation = pattern_track:find_automation(parameter)
+      if not automation then
+        -- No automation exists, create one with 0.5 value across the pattern
+        automation = pattern_track:create_automation(parameter)
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        
+        -- Get pattern length and add 0.5 points at every row in the pattern
+        local pattern_length = song:pattern(current_pattern).number_of_lines
+        for line = 1, pattern_length do
+          automation:add_point_at(line, 0.5)
+        end
+        print("DEBUG: Created new Pitchbend automation envelope with 0.5 value at every row (" .. pattern_length .. " lines)")
+        
+        -- Immediately set row_steps and visual buffers to match pattern length
+        row_steps[row] = pattern_length
+        -- Pre-fill visual buffers so the canvas shows the 0.5 line grid right away
+        for i = 1, MAX_STEPS do
+          if i <= pattern_length then
+            step_active[row][i] = true
+            step_data[row][i] = 0.5
+          else
+            step_active[row][i] = false
+            step_data[row][i] = 0.0
+          end
+        end
+        if dialog_vb and dialog_vb.views["steps_" .. row] then
+          dialog_vb.views["steps_" .. row].value = pattern_length
+        end
+        if row_canvases[row] then row_canvases[row]:update() end
+        
+      elseif #automation.points == 0 then
+        -- Automation exists but is empty, add 0.5 value across the pattern
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        
+        -- Get pattern length and add 0.5 points at every row in the pattern
+        local pattern_length = song:pattern(current_pattern).number_of_lines
+        for line = 1, pattern_length do
+          automation:add_point_at(line, 0.5)
+        end
+        print("DEBUG: Added 0.5 value to empty Pitchbend automation envelope at every row (" .. pattern_length .. " lines)")
+        
+        -- Immediately set row_steps and visual buffers to match pattern length
+        row_steps[row] = pattern_length
+        -- Pre-fill visual buffers so the canvas shows the 0.5 line grid right away
+        for i = 1, MAX_STEPS do
+          if i <= pattern_length then
+            step_active[row][i] = true
+            step_data[row][i] = 0.5
+          else
+            step_active[row][i] = false
+            step_data[row][i] = 0.0
+          end
+        end
+        if dialog_vb and dialog_vb.views["steps_" .. row] then
+          dialog_vb.views["steps_" .. row].value = pattern_length
+        end
+        if row_canvases[row] then row_canvases[row]:update() end
+        
+      end
+    end
   end)
   
   if not success then
@@ -1849,7 +1883,7 @@ function PakettiHyperEditPopulateFromExistingAutomation()
     
       if has_instr_macros then
         print("DEBUG: Instrument Macros detected - sorting by preferred parameter order")
-        local preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "ParallelComp", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
+        local preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
       
       -- First pass: Add automations in preferred order
       for _, preferred_param in ipairs(preferred_order) do
@@ -2640,7 +2674,8 @@ function PakettiHyperEditClearAll()
         -- Clear all automation points
         automation.points = {}
         cleared_count = cleared_count + 1
-        print("DEBUG: Cleared automation for row " .. row .. " parameter: " .. parameter.name)
+        local pname = row_parameters[row] and row_parameters[row].name or "unknown"
+        print("DEBUG: Cleared automation for row " .. row .. " parameter: " .. pname)
       end
     end
   end
@@ -2657,6 +2692,77 @@ function PakettiHyperEditClearAll()
     renoise.app():show_status("HyperEdit: Cleared " .. cleared_count .. " automation envelope(s) and canvas data")
   else
     renoise.app():show_status("HyperEdit: Cleared canvas data (no automation to clear)")
+  end
+end
+
+-- Duplicate current row parameter automations to next pattern (like PakettiCanvasExperiments)
+function PakettiHyperEditDuplicateToNextPattern()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Count active rows with parameters
+  local active_rows = 0
+  for row = 1, NUM_ROWS do
+    if row_parameters[row] then
+      active_rows = active_rows + 1
+    end
+  end
+  
+  if active_rows == 0 then
+    renoise.app():show_status("HyperEdit: No row parameters available for duplication")
+    return
+  end
+  
+  local current_pattern_index = song.selected_pattern_index
+  local current_sequence_index = song.selected_sequence_index
+  local track_index = song.selected_track_index
+  
+  -- Get next pattern in sequence or create new one
+  local next_sequence_index = current_sequence_index + 1
+  local next_pattern_index = nil
+  
+  if next_sequence_index > #song.sequencer.pattern_sequence then
+    -- Create new pattern after current sequence
+    next_pattern_index = song.sequencer:insert_new_pattern_at(next_sequence_index)
+    print("DEBUG: Created new pattern " .. next_pattern_index .. " at sequence " .. next_sequence_index)
+  else
+    -- Use existing pattern at next sequence position
+    next_pattern_index = song.sequencer.pattern_sequence[next_sequence_index]
+  end
+  
+  local current_track = song:pattern(current_pattern_index):track(track_index)
+  local next_track = song:pattern(next_pattern_index):track(track_index)
+  
+  local copied_count = 0
+  
+  -- Copy automation for all active row parameters
+  for row = 1, NUM_ROWS do
+    if row_parameters[row] then
+      local parameter = row_parameters[row].parameter
+      local current_automation = current_track:find_automation(parameter)
+      
+      if current_automation then
+        -- Find or create automation in next pattern
+        local next_automation = next_track:find_automation(parameter)
+        if not next_automation then
+          next_automation = next_track:create_automation(parameter)
+        end
+        
+        -- Copy the automation data
+        next_automation:copy_from(current_automation)
+        copied_count = copied_count + 1
+        print("DEBUG: Copied automation for parameter: " .. parameter.name .. " (Row " .. row .. ")")
+      end
+    end
+  end
+  
+  -- CRITICAL: Jump to the next pattern after duplication
+  song.selected_sequence_index = next_sequence_index
+  
+  if copied_count > 0 then
+    renoise.app():show_status("HyperEdit: Duplicated " .. copied_count .. " parameter automations to next pattern and jumped to it")
+  else
+    renoise.app():show_status("HyperEdit: No automation found for current row parameters")
   end
 end
 
@@ -2839,7 +2945,7 @@ function PakettiHyperEditCreateDialog()
   
   local vb = renoise.ViewBuilder()
   
-  -- Get initial device list
+  -- Get initial device list - ensure fresh references
   local devices = PakettiHyperEditGetDevices()
   local device_names = {}
   for i, device_info in ipairs(devices) do
@@ -2847,6 +2953,11 @@ function PakettiHyperEditCreateDialog()
   end
   if #device_names == 0 then
     device_names = {"No devices available"}
+  end
+  
+  print("DEBUG: Dialog creation - found " .. #devices .. " devices")
+  for i, name in ipairs(device_names) do
+    print("DEBUG: Device " .. i .. ": " .. name)
   end
   
   -- Initialize all rows with same device list
@@ -2977,6 +3088,15 @@ function PakettiHyperEditCreateDialog()
         width = 70,
         notifier = function()
           PakettiHyperEditClearAll()
+        end
+      },
+      vb:space { width = 10 },
+      vb:button {
+        text = "Duplicate to Next Pattern",
+        width = 140,
+        tooltip = "Copy all row parameter automations to next pattern and jump to it",
+        notifier = function()
+          PakettiHyperEditDuplicateToNextPattern()
         end
       },
 --[[      vb:space { width = 10 },
@@ -3140,17 +3260,21 @@ function PakettiHyperEditCreateDialog()
             PakettiHyperEditChangeRowStepCount(row, value)
           end
         },
-        vb:popup {
-          id = "device_popup_" .. row,
+        -- Create device popup with debug info
+        (function()
+          print("DEBUG: Creating device popup for row " .. row .. " with device_names: " .. (#device_names > 0 and table.concat(device_names, ", ") or "EMPTY"))
+          return vb:popup {
+            id = "device_popup_" .. row,
           items = device_names,
           value = (#devices > 0) and 1 or 1,  -- Select first device if available
           width = 200,
           notifier = function(index)
-            print("DEBUG: Device popup " .. row .. " notifier called with index " .. index)
+            print("DEBUG: Device popup " .. row .. " notifier called with index " .. index .. " (items: " .. (#device_names > 0 and table.concat(device_names, ", ") or "none") .. ")")
             current_focused_row = row  -- Update focused row when device is selected
             PakettiHyperEditSelectDevice(row, index)
           end
-        },
+        }
+        end)(),
         vb:popup {
           id = "parameter_popup_" .. row,
           items = {"Select device first"},
@@ -3281,6 +3405,13 @@ function PakettiHyperEditCreateDialog()
         end
       end
       
+      -- Debug: show what parameters are currently marked as used
+      local used_list = {}
+      for param_name, _ in pairs(used_param_names) do
+        table.insert(used_list, param_name)
+      end
+      print("DEBUG: Currently used parameters: " .. (table.concat(used_list, ", ") or "none"))
+      
       for row = 1, NUM_ROWS do
         if not row_devices[row] then
           print("DEBUG: Row " .. row .. " not populated by automation - setting up with smart parameter assignment")
@@ -3289,8 +3420,107 @@ function PakettiHyperEditCreateDialog()
           local devices = PakettiHyperEditGetDevices()
           local assigned = false
           
+          -- PRIORITY: Look for *Instr. Macros device first
+          local preferred_device_info = nil
+          local preferred_device_idx = nil
+          
+          for device_idx, device_info in ipairs(devices) do
+            if device_info.name:find("Instr") and device_info.name:find("Macro") then
+              preferred_device_info = device_info
+              preferred_device_idx = device_idx
+              print("DEBUG: Found *Instr. Macros device at index " .. device_idx .. " - prioritizing for row " .. row)
+              break
+            end
+          end
+          
+          -- Try preferred device first if found
+          if preferred_device_info then
+            local params = PakettiHyperEditGetParameters(preferred_device_info.device)
+            print("DEBUG: Trying PREFERRED device " .. preferred_device_info.name .. " with " .. #params .. " parameters for row " .. row)
+            
+            -- Find first unused parameter in preferred device
+            for i, param_info in ipairs(params) do
+              if not used_param_names[param_info.name] then
+                -- If we encounter X_PitchBend, look for Pitchbend instead
+                if param_info.name == "X_PitchBend" then
+                  for j, p in ipairs(params) do
+                    if p.name == "Pitchbend" then
+                      param_info = p
+                      i = j -- Update the index for UI purposes
+                      break
+                    end
+                  end
+                end
+                
+                -- Check if the final parameter (after conversion) is already used
+                if not used_param_names[param_info.name] then
+                  -- Found unused parameter - assign it
+                  used_param_names[param_info.name] = true -- Mark as used (final name after conversion)
+                
+                  print("DEBUG: Row " .. row .. " assigned " .. preferred_device_info.name .. " -> " .. param_info.name)
+                  
+                  -- Set device and parameter
+                  device_lists[row] = devices
+                  parameter_lists[row] = params
+                  row_devices[row] = preferred_device_info.device
+                  
+                  -- Update UI
+                  if dialog_vb and dialog_vb.views["device_popup_" .. row] then
+                    print("DEBUG: Setting device popup for row " .. row .. " to index " .. preferred_device_idx .. " (" .. preferred_device_info.name .. ")")
+                    dialog_vb.views["device_popup_" .. row].value = preferred_device_idx
+                  end
+                  if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
+                    local param_names = {}
+                    for _, p in ipairs(params) do
+                      table.insert(param_names, PakettiHyperEditCleanParameterName(p.name))
+                    end
+                    dialog_vb.views["parameter_popup_" .. row].items = param_names
+                    dialog_vb.views["parameter_popup_" .. row].value = i
+                  end
+                  
+                  -- Set parameter without triggering automation read
+                  row_parameters[row] = param_info
+                  
+                  -- Initialize Pitchbend parameters to 0.5 across all steps ONLY if no automation exists
+                  local param_name = param_info.name:lower()
+                  if param_name:find("pitchbend") or param_name:find("x_pitchbend") then
+                    -- Check if this row already has step data from automation
+                    local has_automation_data = false
+                    for step = 1, MAX_STEPS do
+                      if step_data[row] and step_data[row][step] then
+                        has_automation_data = true
+                        break
+                      end
+                    end
+                    
+                    if not has_automation_data then
+                      print("DEBUG: Initializing Pitchbend parameter to 0.5 for row " .. row .. " (no automation found)")
+                      for step = 1, MAX_STEPS do
+                        step_data[row][step] = 0.5
+                        step_active[row][step] = true
+                      end
+                      -- Update UI to show the initialized values
+                      if dialog_vb then
+                        PakettiHyperEditUpdateStepButtonColors(row)
+                      end
+                    else
+                      print("DEBUG: Skipping Pitchbend initialization for row " .. row .. " (automation data exists)")
+                    end
+                  end
+                  
+                  assigned = true
+                  break
+                end
+              end
+            end
+          end
+          
+          -- If not assigned from preferred device, try other devices
           for device_idx, device_info in ipairs(devices) do
             if assigned then break end
+            
+            -- Skip if this is the preferred device (already tried)
+            if not (preferred_device_info and device_info == preferred_device_info) then
             
             local params = PakettiHyperEditGetParameters(device_info.device)
             print("DEBUG: Trying device " .. device_info.name .. " with " .. #params .. " parameters for row " .. row)
@@ -3298,34 +3528,80 @@ function PakettiHyperEditCreateDialog()
             -- Find first unused parameter in this device
             for i, param_info in ipairs(params) do
               if not used_param_names[param_info.name] then
-                -- Found unused parameter - assign it
-                used_param_names[param_info.name] = true -- Mark as used
-                print("DEBUG: Row " .. row .. " assigned " .. device_info.name .. " -> " .. param_info.name)
-                
-                -- Set device and parameter
-                device_lists[row] = devices
-                parameter_lists[row] = params
-                row_devices[row] = device_info.device
-                
-                -- Update UI
-                if dialog_vb and dialog_vb.views["device_popup_" .. row] then
-                  dialog_vb.views["device_popup_" .. row].value = device_idx
-                end
-                if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
-                  local param_names = {}
-                  for _, p in ipairs(params) do
-                    table.insert(param_names, PakettiHyperEditCleanParameterName(p.name))
+                -- If we encounter X_PitchBend, look for Pitchbend instead
+                if param_info.name == "X_PitchBend" then
+                  for j, p in ipairs(params) do
+                    if p.name == "Pitchbend" then
+                      param_info = p
+                      i = j -- Update the index for UI purposes
+                      break
+                    end
                   end
-                  dialog_vb.views["parameter_popup_" .. row].items = param_names
-                  dialog_vb.views["parameter_popup_" .. row].value = i
                 end
                 
-                -- Set parameter without triggering automation read
-                row_parameters[row] = param_info
-                assigned = true
-                break
+                -- Check if the final parameter (after conversion) is already used
+                if not used_param_names[param_info.name] then
+                  -- Found unused parameter - assign it
+                  used_param_names[param_info.name] = true -- Mark as used (final name after conversion)
+                  
+                  print("DEBUG: Row " .. row .. " assigned " .. device_info.name .. " -> " .. param_info.name)
+                  
+                  -- Set device and parameter
+                  device_lists[row] = devices
+                  parameter_lists[row] = params
+                  row_devices[row] = device_info.device
+                  
+                  -- Update UI
+                  if dialog_vb and dialog_vb.views["device_popup_" .. row] then
+                    print("DEBUG: Setting device popup for row " .. row .. " to index " .. device_idx .. " (" .. device_info.name .. ")")
+                    dialog_vb.views["device_popup_" .. row].value = device_idx
+                  end
+                  if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
+                    local param_names = {}
+                    for _, p in ipairs(params) do
+                      table.insert(param_names, PakettiHyperEditCleanParameterName(p.name))
+                    end
+                    dialog_vb.views["parameter_popup_" .. row].items = param_names
+                    dialog_vb.views["parameter_popup_" .. row].value = i
+                  end
+                  
+                  -- Set parameter without triggering automation read
+                  row_parameters[row] = param_info
+                  
+                  -- Initialize Pitchbend parameters to 0.5 across all steps ONLY if no automation exists
+                  local param_name = param_info.name:lower()
+                  if param_name:find("pitchbend") or param_name:find("x_pitchbend") then
+                    -- Check if this row already has step data from automation
+                    local has_automation_data = false
+                    for step = 1, MAX_STEPS do
+                      if step_data[row] and step_data[row][step] then
+                        has_automation_data = true
+                        break
+                      end
+                    end
+                    
+                    if not has_automation_data then
+                      print("DEBUG: Initializing Pitchbend parameter to 0.5 for row " .. row .. " (no automation found)")
+                      for step = 1, MAX_STEPS do
+                        step_data[row][step] = 0.5
+                        step_active[row][step] = true
+                      end
+                      -- Update UI to show the initialized values
+                      if dialog_vb then
+                        PakettiHyperEditUpdateStepButtonColors(row)
+                      end
+                    else
+                      print("DEBUG: Skipping Pitchbend initialization for row " .. row .. " (automation data exists)")
+                    end
+                  end
+                  
+                  assigned = true
+                  break
+                end
               end
             end
+            
+            end -- end skip check
           end
           
           if not assigned then
@@ -3359,18 +3635,30 @@ function PakettiHyperEditInit()
   local track = s.selected_track
   local instr_macros_found = false
   
-  -- Check existing devices for Instr. Macros
+  -- Check existing devices for Instr. Macros (check device_path, not just display_name)
   for i = 1, #track.devices do
-    if track.devices[i].display_name == "Instr. Macros" then
+    local device = track.devices[i]
+    -- Check device_path to identify Instr. Macros regardless of display name (could be renamed to 00_Drumkit etc.)
+    if device.device_path == "Audio/Effects/Native/*Instr. Macros" or 
+       (device.name and device.name:find("Instr") and device.name:find("Macro")) or
+       device.display_name == "*Instr. Macros" then
       instr_macros_found = true
+      print("DEBUG: Found Instr. Macros device - display_name: '" .. (device.display_name or "nil") .. "', device_path: '" .. (device.device_path or "nil") .. "', name: '" .. (device.name or "nil") .. "'")
       break
     end
   end
   
   -- Load Instr. Macros if not found
   if not instr_macros_found then
-    loadnative("Audio/Effects/Native/*Instr. Macros")
-    renoise.app():show_status("HyperEdit: Loaded Instr. Macros device")
+    local ok, err = pcall(function()
+      -- Insert at end; adjust index if you want a fixed slot
+      track:insert_device_at("Audio/Effects/Native/*Instr. Macros", #track.devices + 1)
+    end)
+    if ok then
+      renoise.app():show_status("HyperEdit: Loaded Instr. Macros device")
+    else
+      renoise.app():show_status("HyperEdit: Failed to load Instr. Macros: " .. tostring(err))
+    end
   end
   
   PakettiHyperEditCreateDialog()
@@ -3378,3 +3666,6 @@ end
 
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+
+-- HyperEdit Pattern Functions
+renoise.tool():add_keybinding {name = "Global:Paketti:HyperEdit Duplicate to Next Pattern",invoke = PakettiHyperEditDuplicateToNextPattern}
