@@ -2261,8 +2261,12 @@ function PakettiCreateNewTrackWithChannelstrip()
   end
 end
 
+
 -- Add keybinding and menu entries for Create New Track with Channelstrip
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
 renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
