@@ -298,8 +298,6 @@ function ensure_instruments_exist()
   end
 end
 
-
-
 -- Function to update instrument and track lists
 function update_instrument_list_and_popups()
   instrument_names = {}
@@ -418,6 +416,33 @@ end
 -- Global Solo logic: allow multi-solo by muting non-solo rows
 gbx_solo_active = false
 gbx_prev_mute_states = {}
+
+-- Function to add *Instr. Macros device to a track
+function PakettiEightOneTwentyAddInstrMacrosToTrack(track_index)
+  local song = renoise.song()
+  -- First select the matching instrument
+  song.selected_instrument_index = track_index
+  -- Then select the track
+  song.selected_track_index = track_index
+  
+  if song.selected_track.type ~= renoise.Track.TRACK_TYPE_MASTER then -- Don't add to master track
+    -- Remove any existing *Instr. Macros device first
+    for i = #song.selected_track.devices, 1, -1 do
+      local device = song.selected_track.devices[i]
+      if device.name == "*Instr. Macros" then
+        song.selected_track:delete_device_at(i)
+      end
+    end
+    -- Add new *Instr. Macros device
+    loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
+    local macro_device = song.selected_track:device(#song.selected_track.devices)
+    macro_device.display_name = string.format("%02X_Drumkit", track_index - 1)
+    macro_device.is_maximized = false
+    
+    -- Print debug info
+    print(string.format("Added *Instr. Macros to track %d, linked to instrument %d", track_index, song.selected_instrument_index))
+  end
+end
 
 function PakettiEightOneTwentyApplySoloMutePolicy()
   local song = renoise.song()
@@ -2379,7 +2404,11 @@ end
       if ti then renoise.song().selected_track_index = ti end
       local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
       if ii then renoise.song().selected_instrument_index = ii end
-      PakettiHyperEditInit()
+      if type(PakettiHyperEditLoadAndShow) == "function" then
+        PakettiHyperEditLoadAndShow()
+      else
+        PakettiHyperEditInit()
+      end
     end
   end)(row_index)}
 
@@ -4609,6 +4638,9 @@ end}
 
 -- Function to load samples sequentially from 8 folders with nice prompts (regular samples)
 function loadSequentialSamplesWithFolderPrompts()
+  -- Set flag to prevent automatic sample loader from running (we handle pakettification ourselves)
+  PakettiDontRunAutomaticSampleLoader = true
+  
   local folders = {}
   local current_folder = 1
   local dialog = nil
@@ -4704,6 +4736,13 @@ function loadSequentialSamplesWithFolderPrompts()
   local function process()
 
     for i = 1, 8 do
+      if slicer:was_cancelled() then
+        renoise.app():show_status("Sequential loading cancelled")
+        -- Reset flag if cancelled
+        PakettiDontRunAutomaticSampleLoader = false
+        break
+      end
+      
       -- Update status to show which part is processing
       for j = i + 1, 8 do
         if status_labels[j] then
@@ -4739,6 +4778,8 @@ function loadSequentialSamplesWithFolderPrompts()
     
     update_instrument_list_and_popups()
     renoise.app():show_status("Sequential loading completed - All instruments loaded")
+    -- Reset flag after successful completion
+    PakettiDontRunAutomaticSampleLoader = false
   end
 
   -- Function to start the processing
@@ -4777,6 +4818,8 @@ function loadSequentialSamplesWithFolderPrompts()
           dialog:close()
         end
         renoise.app():show_status("Sequential loading cancelled by user")
+        -- Reset flag if cancelled
+        PakettiDontRunAutomaticSampleLoader = false
       end
     })
     
@@ -4812,6 +4855,8 @@ function loadSequentialSamplesWithFolderPrompts()
         dialog:close()
       end
       renoise.app():show_status("Sequential loading cancelled - folder selection aborted")
+      -- Reset flag if cancelled
+      PakettiDontRunAutomaticSampleLoader = false
       return
     end
   end
@@ -4822,6 +4867,9 @@ end
 
 -- Function to load samples sequentially from 8 folders using ProcessSlicer
 function loadSequentialDrumkitSamples()
+  -- Set flag to prevent automatic sample loader from running (we handle pakettification ourselves)
+  PakettiDontRunAutomaticSampleLoader = true
+  
   local folders = {}
   local current_folder = 1
   local slicer = nil
@@ -4864,32 +4912,6 @@ function loadSequentialDrumkitSamples()
     return filename
   end
 
-  -- Function to add *Instr. Macros device to a track
-  local function addInstrMacrosToTrack(track_index)
-    local song=renoise.song()
-    -- First select the matching instrument
-    song.selected_instrument_index = track_index
-    -- Then select the track
-    song.selected_track_index = track_index
-    
-    if song.selected_track.type ~= renoise.Track.TRACK_TYPE_MASTER then -- Don't add to master track
-      -- Remove any existing *Instr. Macros device first
-      for i = #song.selected_track.devices, 1, -1 do
-        local device = song.selected_track.devices[i]
-        if device.name == "*Instr. Macros" then
-          song.selected_track:delete_device_at(i)
-        end
-      end
-      -- Add new *Instr. Macros device
-      loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
-      local macro_device = song.selected_track:device(#song.selected_track.devices)
-      macro_device.display_name = string.format("%02X_Drumkit", track_index - 1)
-      macro_device.is_maximized = false
-      
-      -- Print debug info
-      print(string.format("Added *Instr. Macros to track %d, linked to instrument %d", track_index, song.selected_instrument_index))
-    end
-  end
   
   -- Function to process a single instrument
   local function processInstrument(instrument_index, folder_path)
@@ -5020,6 +5042,8 @@ function loadSequentialDrumkitSamples()
     for i = 1, 8 do
       if slicer:was_cancelled() then
         renoise.app():show_status("Sequential loading cancelled")
+        -- Reset flag if cancelled
+        PakettiDontRunAutomaticSampleLoader = false
         break
       end
       
@@ -5062,7 +5086,7 @@ function loadSequentialDrumkitSamples()
       -- Add *Instr. Macros device to each track if enabled in preferences
       if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
           renoise.song().selected_track_index = i
-          addInstrMacrosToTrack(i)
+          PakettiEightOneTwentyAddInstrMacrosToTrack(i)
         end
       end
     
@@ -5072,6 +5096,8 @@ function loadSequentialDrumkitSamples()
     -- Switch back to pattern editor when done
    --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     renoise.app():show_status("Sequential loading completed - All instruments loaded")
+    -- Reset flag after successful completion
+    PakettiDontRunAutomaticSampleLoader = false
   end
 
   -- Function to start the processing
@@ -5110,6 +5136,8 @@ function loadSequentialDrumkitSamples()
           dialog:close()
         end
         renoise.app():show_status("Sequential loading cancelled by user")
+        -- Reset flag if cancelled
+        PakettiDontRunAutomaticSampleLoader = false
       end
     })
     
@@ -5145,6 +5173,8 @@ function loadSequentialDrumkitSamples()
         dialog:close()
       end
       renoise.app():show_status("Sequential loading cancelled - folder selection aborted")
+      -- Reset flag if cancelled
+      PakettiDontRunAutomaticSampleLoader = false
       return
     end
   end
@@ -5155,9 +5185,14 @@ end
 
 -- Function to load samples sequentially from ONE folder for all 8 parts (RandomLoadAll)
 function loadSequentialRandomLoadAll()
+  -- Set flag to prevent automatic sample loader from running (we handle pakettification ourselves)
+  PakettiDontRunAutomaticSampleLoader = true
+  
   local base_folder = renoise.app():prompt_for_path("Select a single base folder for RandomLoadAll (used for all 8 parts)")
   if not base_folder then
     renoise.app():show_status("RandomLoadAll cancelled - no folder selected")
+    -- Reset flag if cancelled
+    PakettiDontRunAutomaticSampleLoader = false
     return
   end
 
@@ -5209,24 +5244,6 @@ function loadSequentialRandomLoadAll()
       return filename:sub(1, 77) .. "..."
     end
     return filename
-  end
-
-  local function addInstrMacrosToTrack(track_index)
-    local song=renoise.song()
-    song.selected_instrument_index = track_index
-    song.selected_track_index = track_index
-    if song.selected_track.type ~= renoise.Track.TRACK_TYPE_MASTER then
-      for i = #song.selected_track.devices, 1, -1 do
-        local device = song.selected_track.devices[i]
-        if device.name == "*Instr. Macros" then
-          song.selected_track:delete_device_at(i)
-        end
-      end
-      loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
-      local macro_device = song.selected_track:device(#song.selected_track.devices)
-      macro_device.display_name = string.format("%02X_Drumkit", track_index - 1)
-      macro_device.is_maximized = false
-    end
   end
 
   local function processInstrument(instrument_index, folder_path)
@@ -5335,6 +5352,8 @@ function loadSequentialRandomLoadAll()
     for i = 1, 8 do
       if slicer:was_cancelled() then
         renoise.app():show_status("Sequential loading cancelled")
+        -- Reset flag if cancelled
+        PakettiDontRunAutomaticSampleLoader = false
         break
       end
 
@@ -5370,13 +5389,15 @@ function loadSequentialRandomLoadAll()
         end
         if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
           renoise.song().selected_track_index = i
-          addInstrMacrosToTrack(i)
+          PakettiEightOneTwentyAddInstrMacrosToTrack(i)
         end
       end
     end
 
     update_instrument_list_and_popups()
     renoise.app():show_status("Sequential loading completed - All instruments loaded")
+    -- Reset flag after successful completion
+    PakettiDontRunAutomaticSampleLoader = false
   end
 
   local function startProcessing()
@@ -5396,6 +5417,8 @@ function loadSequentialRandomLoadAll()
       slicer:cancel()
       if dialog and dialog.visible then dialog:close() end
       renoise.app():show_status("Sequential loading cancelled by user")
+      -- Reset flag if cancelled
+      PakettiDontRunAutomaticSampleLoader = false
     end})
 
     local keyhandler = create_keyhandler_for_dialog(

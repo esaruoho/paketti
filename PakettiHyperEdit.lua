@@ -24,6 +24,78 @@ function PakettiHyperEditCleanParameterName(param_name)
   return cleaned
 end
 
+-- Function to find best available instrument control device with priority:
+-- 1. *Instr. MIDI Control (highest priority)
+-- 2. *Instr. Automation (medium priority)  
+-- 3. *Instr. Macros (lowest priority - fallback)
+function PakettiHyperEditFindBestInstrControlDevice(track, expected_display_name)
+  local device_priorities = {
+    {name = "*Instr. MIDI Control", path = "Audio/Effects/Native/*Instr. MIDI Control"},
+    {name = "*Instr. Automation", path = "Audio/Effects/Native/*Instr. Automation"},
+    {name = "*Instr. Macros", path = "Audio/Effects/Native/*Instr. Macros"}
+  }
+  
+  for priority, device_info in ipairs(device_priorities) do
+    for i, device in ipairs(track.devices) do
+      -- Check for device name OR display name match (for renamed devices)
+      if device.name == device_info.name or 
+         (expected_display_name and device.display_name == expected_display_name) then
+        print("HYPEREDIT DEVICE PRIORITY: Found " .. device_info.name .. " device at index " .. i .. " (priority " .. priority .. ")")
+        return {
+          device = device,
+          index = i, 
+          priority = priority,
+          device_type = device_info.name
+        }
+      end
+    end
+  end
+  
+  print("HYPEREDIT DEVICE PRIORITY: No instrument control device found")
+  return nil
+end
+
+-- Function to create best available instrument control device with priority
+function PakettiHyperEditCreateBestInstrControlDevice(track, expected_display_name)
+  local device_priorities = {
+    {name = "*Instr. MIDI Control", path = "Audio/Effects/Native/*Instr. MIDI Control"},
+    {name = "*Instr. Automation", path = "Audio/Effects/Native/*Instr. Automation"},
+    {name = "*Instr. Macros", path = "Audio/Effects/Native/*Instr. Macros"}
+  }
+  
+  -- Check if any priority device already exists - if so, don't create another
+  local existing = PakettiHyperEditFindBestInstrControlDevice(track, expected_display_name)
+  if existing then
+    return existing
+  end
+  
+  -- Create the highest priority device (MIDI Control) if none exist
+  local device_info = device_priorities[1] -- *Instr. MIDI Control
+  print("HYPEREDIT DEVICE PRIORITY: Creating " .. device_info.name .. " device")
+  
+  local ok, err = pcall(function()
+    track:insert_device_at(device_info.path, #track.devices + 1)
+  end)
+  
+  if not ok then
+    print("HYPEREDIT ERROR: Failed to create " .. device_info.name .. " device: " .. tostring(err))
+    return nil
+  end
+  
+  local new_device = track:device(#track.devices)
+  if expected_display_name then
+    new_device.display_name = expected_display_name
+  end
+  new_device.is_maximized = false
+  
+  return {
+    device = new_device,
+    index = #track.devices,
+    priority = 1,
+    device_type = device_info.name
+  }
+end
+
 -- Device parameter whitelists for cleaner parameter selection
 local DEVICE_PARAMETER_WHITELISTS = {
   ["AU: Valhalla DSP, LLC: ValhallaDelay"] = {
@@ -47,6 +119,26 @@ local DEVICE_PARAMETER_WHITELISTS = {
     "Amplitude",
     "Frequency",
     "Offset"
+  },
+  ["*Instr. MIDI Control"] = {
+    "Cutoff",
+    "Resonance", 
+    "Pitchbend",
+    "Drive",
+    "ParallelComp",
+    "PB Inertia",
+    "CutLfoAmp",
+    "CutLfoFreq",
+  },
+  ["*Instr. Automation"] = {
+    "Cutoff",
+    "Resonance", 
+    "Pitchbend",
+    "Drive",
+    "ParallelComp",
+    "PB Inertia",
+    "CutLfoAmp",
+    "CutLfoFreq",
   },
   ["*Instr. Macros"] = {
     "Cutoff",
@@ -567,15 +659,21 @@ function PakettiHyperEditPreConfigureParameters()
   local devices = PakettiHyperEditGetDevices()
   if #devices == 0 then return end
   
-  -- Look for *Instr. Macros device first, otherwise use first suitable device (avoid EQs, etc.)
+  -- Use priority system to find best instrument control device first, otherwise use first suitable device (avoid EQs, etc.)
   local target_device_info = nil
   local blacklisted_devices = {"Pro-Q", "EQ", "Equalizer", "Filter", "Compressor"}
   
-  for _, device_info in ipairs(devices) do
-    if device_info.name:find("Instr") and device_info.name:find("Macro") then
-      target_device_info = device_info
-      print("DEBUG: Found *Instr. Macros device - using preferred parameter order")
-      break
+  -- First try to find any priority instrument control device
+  local priority_device = PakettiHyperEditFindBestInstrControlDevice(track)
+  if priority_device then
+    -- Convert to device_info format expected by the rest of the code
+    for _, device_info in ipairs(devices) do
+      if device_info.track_index == song.selected_track_index and 
+         device_info.device_index == priority_device.index then
+        target_device_info = device_info
+        print("DEBUG: Found " .. priority_device.device_type .. " device (priority " .. priority_device.priority .. ") - using preferred parameter order")
+        break
+      end
     end
   end
   
@@ -612,11 +710,21 @@ function PakettiHyperEditPreConfigureParameters()
   
   print("DEBUG: Pre-configuring " .. max_rows .. " rows using preferred parameter order (no existing automation)")
   
-  -- Use preferred order for Instrument Macros, or sequential for other devices
+  -- Use preferred order for all priority instrument control devices, or sequential for other devices
   local preferred_order = nil
-  if target_device_info.name:find("Instr") and target_device_info.name:find("Macro") then
+  local priority_device_types = {"*Instr. MIDI Control", "*Instr. Automation", "*Instr. Macros"}
+  local is_priority_device = false
+  
+  for _, device_type in ipairs(priority_device_types) do
+    if target_device_info.name == device_type then
+      is_priority_device = true
+      break
+    end
+  end
+  
+  if is_priority_device then
     preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
-    print("DEBUG: Using Instrument Macros preferred order: " .. table.concat(preferred_order, ", "))
+    print("DEBUG: Using " .. target_device_info.name .. " preferred order: " .. table.concat(preferred_order, ", "))
   end
   
   for row = 1, max_rows do
@@ -642,8 +750,8 @@ function PakettiHyperEditPreConfigureParameters()
         print("DEBUG: Row " .. row .. " - preferred parameter '" .. preferred_param_name .. "' not found, skipping")
       end
     else
-      -- Fallback to sequential assignment for non-Instr.Macros or when preferred list is exhausted
-      param_index = row + (target_device_info.name:find("Instr") and target_device_info.name:find("Macro") and 1 or 0)
+      -- Fallback to sequential assignment for non-priority devices or when preferred list is exhausted
+      param_index = row + (is_priority_device and 1 or 0)
       if param_index <= #device_params then
         param_info = device_params[param_index]
         print("DEBUG: Row " .. row .. " using sequential parameter: " .. (PakettiHyperEditCleanParameterName(param_info.name) or "unknown"))
@@ -704,7 +812,7 @@ function PakettiHyperEditPreConfigureParameters()
       if param_popup then
         local param_names = {}
         for _, p in ipairs(device_params) do
-          table.insert(param_names, p.name)
+          table.insert(param_names, PakettiHyperEditCleanParameterName(p.name))
         end
         param_popup.items = param_names
         if param_index then
@@ -771,32 +879,38 @@ function PakettiHyperEditGetParameters(device)
   for i = 1, #device.parameters do
     local param = device.parameters[i]
     if param.is_automatable then
-      -- Special handling for Gainer device - custom range mapping
-      local device_name = device.display_name or ""
-      local param_min = param.value_min
-      local param_max = param.value_max 
-      local param_default = param.value_default
-      
-      if device_name == "Gainer" and param.name == "Gain" then
-        -- Custom mapping: HyperEdit 0.0-1.0 maps to Renoise 0.0-1.0 (not 0.0-4.0)
-        param_min = 0.0
-        param_max = 1.0
-        param_default = 1.0
-        print("DEBUG: Gainer Gain parameter - using custom range 0.0-1.0 (instead of " .. param.value_min .. "-" .. param.value_max .. ")")
+      -- UNIVERSAL FILTER: Skip X_PitchBend parameters entirely - they should never be shown
+      if param.name == "X_PitchBend" then
+        -- Skip this parameter completely
+        print("DEBUG: Filtered out X_PitchBend parameter - should never be displayed")
+      else
+        -- Special handling for Gainer device - custom range mapping
+        local device_name = device.display_name or ""
+        local param_min = param.value_min
+        local param_max = param.value_max 
+        local param_default = param.value_default
+        
+        if device_name == "Gainer" and param.name == "Gain" then
+          -- Custom mapping: HyperEdit 0.0-1.0 maps to Renoise 0.0-1.0 (not 0.0-4.0)
+          param_min = 0.0
+          param_max = 1.0
+          param_default = 1.0
+          print("DEBUG: Gainer Gain parameter - using custom range 0.0-1.0 (instead of " .. param.value_min .. "-" .. param.value_max .. ")")
+        end
+        
+        table.insert(all_params, {
+          index = i,
+          parameter = param,
+          name = param.name,
+          value_min = param_min,
+          value_max = param_max,
+          value_default = param_default,
+          -- Store original parameter info for custom mapping
+          original_min = param.value_min,
+          original_max = param.value_max,
+          is_custom_mapped = (device_name == "Gainer" and param.name == "Gain")
+        })
       end
-      
-      table.insert(all_params, {
-        index = i,
-        parameter = param,
-        name = param.name,
-        value_min = param_min,
-        value_max = param_max,
-        value_default = param_default,
-        -- Store original parameter info for custom mapping
-        original_min = param.value_min,
-        original_max = param.value_max,
-        is_custom_mapped = (device_name == "Gainer" and param.name == "Gain")
-      })
     end
   end
   
@@ -1055,8 +1169,10 @@ end
 function PakettiHyperEditTrySwitchDevice(row, current_device_name, used_param_names)
   -- Device switching priority based on current device
   local device_switch_map = {
-    ["Wavetable Mod *LFO"] = {"*Instr. Macros"},
-    ["*Instr. Macros"] = {"AU: Valhalla DSP, LLC: ValhallaDelay", "AU: Valhalla DSP, LLC: ValhallaVintageVerb"},
+    ["Wavetable Mod *LFO"] = {"*Instr. MIDI Control", "*Instr. Automation", "*Instr. Macros"},
+    ["*Instr. MIDI Control"] = {"*Instr. Automation", "*Instr. Macros", "AU: Valhalla DSP, LLC: ValhallaDelay"},
+    ["*Instr. Automation"] = {"*Instr. MIDI Control", "*Instr. Macros", "AU: Valhalla DSP, LLC: ValhallaDelay"},
+    ["*Instr. Macros"] = {"*Instr. MIDI Control", "*Instr. Automation", "AU: Valhalla DSP, LLC: ValhallaDelay", "AU: Valhalla DSP, LLC: ValhallaVintageVerb"},
     -- Add more device switching rules as needed
   }
   
@@ -1110,7 +1226,7 @@ function PakettiHyperEditTrySwitchDevice(row, current_device_name, used_param_na
         if param_popup then
           local param_names = {}
           for _, p in ipairs(target_params) do
-            table.insert(param_names, p.name)
+            table.insert(param_names, PakettiHyperEditCleanParameterName(p.name))
           end
           param_popup.items = param_names
           
@@ -1620,18 +1736,25 @@ function PakettiHyperEditAutoReadAutomation(row)
   if not automation then
     -- CRITICAL: Don't clear step data during device list updates - preserve existing data
     if not is_updating_device_lists then
-      -- No automation exists - clear step data and leave empty for user to draw
-      for step = 1, MAX_STEPS do
-        step_active[row][step] = false
-        step_data[row][step] = 0.5
+      -- Check if this is a pitchbend parameter - auto-populate with 0.5
+      local param_name = row_parameters[row].name:lower()
+      if param_name:find("pitchbend") or param_name:find("x_pitchbend") then
+        print("DEBUG: No automation found for Pitchbend parameter - auto-populating with 0.5 values")
+        PakettiHyperEditSetAllStepsToValue(row, 0.5)
+      else
+        -- No automation exists - clear step data and leave empty for user to draw
+        for step = 1, MAX_STEPS do
+          step_active[row][step] = false
+          step_data[row][step] = 0.5
+        end
+        
+        -- Update canvas
+        if row_canvases[row] then
+          row_canvases[row]:update()
+        end
+        
+        print("DEBUG: No automation found for " .. row_parameters[row].name .. " - cleared step data")
       end
-      
-      -- Update canvas
-      if row_canvases[row] then
-        row_canvases[row]:update()
-      end
-      
-      print("DEBUG: No automation found for " .. row_parameters[row].name .. " - cleared step data")
     else
       print("DEBUG: No automation found for " .. row_parameters[row].name .. " - preserving existing step data during device list update")
     end
@@ -1640,6 +1763,50 @@ function PakettiHyperEditAutoReadAutomation(row)
   
   -- IMPORTANT: Set automation to POINTS mode first
   automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+  
+  -- Check if this is pitchbend with sparse automation - auto-populate if needed
+  local param_name = row_parameters[row].name:lower()
+  if param_name:find("pitchbend") or param_name:find("x_pitchbend") then
+    local song = renoise.song()
+    local pattern_length = song:pattern(song.selected_pattern_index).number_of_lines
+    
+    -- Check if automation is sparse (has few points compared to pattern length)
+    if #automation.points < (pattern_length / 4) then -- Less than 25% coverage
+      print("DEBUG: Pitchbend automation is sparse (" .. #automation.points .. " points for " .. pattern_length .. " lines) - auto-populating with 0.5")
+      
+      -- Clear existing points and populate with 0.5 across pattern length
+      automation:clear()
+      for line = 1, pattern_length do
+        automation:add_point_at(line, 0.5)
+      end
+      
+      -- Set row steps to pattern length and update UI
+      row_steps[row] = pattern_length
+      if dialog_vb and dialog_vb.views["steps_" .. row] then
+        dialog_vb.views["steps_" .. row].value = pattern_length
+      end
+      
+      -- Update step data to show 0.5 values
+      for step = 1, MAX_STEPS do
+        if step <= pattern_length then
+          step_active[row][step] = true
+          step_data[row][step] = 0.5
+        else
+          step_active[row][step] = false
+          step_data[row][step] = 0.5
+        end
+      end
+      
+      -- Update UI
+      PakettiHyperEditUpdateStepButtonColors(row)
+      if row_canvases[row] then 
+        row_canvases[row]:update() 
+      end
+      
+      print("DEBUG: Auto-populated Pitchbend with " .. pattern_length .. " points at 0.5 value")
+      return
+    end
+  end
   
   -- SMART PATTERN DETECTION: Find shortest repeating cycle
   local detected_step_count = PakettiHyperEditDetectPatternLength(automation.points)
@@ -1871,28 +2038,44 @@ function PakettiHyperEditPopulateFromExistingAutomation()
     local sorted_automations = {}
     local remaining_automations = {}
     
-    -- First, check if we have *Instr. Macros device automations to prioritize
-    local has_instr_macros = false
+    -- First, check if we have any priority instrument control device automations to prioritize
+    local has_priority_device = false
+    local priority_device_types = {"*Instr. MIDI Control", "*Instr. Automation", "*Instr. Macros"}
+    local detected_device_type = nil
+    
     for _, auto_data in ipairs(automations) do
       local device_name = auto_data.device_info.name
-      if device_name:find("Instr") and device_name:find("Macro") then
-        has_instr_macros = true
-        break
+      for _, device_type in ipairs(priority_device_types) do
+        if device_name == device_type then
+          has_priority_device = true
+          detected_device_type = device_type
+          break
+        end
       end
+      if has_priority_device then break end
     end
     
-      if has_instr_macros then
-        print("DEBUG: Instrument Macros detected - sorting by preferred parameter order")
-        local preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
-      
-      -- First pass: Add automations in preferred order
+    if has_priority_device then
+      print("DEBUG: " .. detected_device_type .. " detected - sorting by preferred parameter order")
+      local preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
+    
+      -- First pass: Add automations in preferred order for priority devices
       for _, preferred_param in ipairs(preferred_order) do
         for _, auto_data in ipairs(automations) do
           local device_name = auto_data.device_info.name
           local param_name = auto_data.parameter.name
-          if (device_name:find("Instr") and device_name:find("Macro")) and param_name == preferred_param then
+          local is_priority_device = false
+          
+          for _, device_type in ipairs(priority_device_types) do
+            if device_name == device_type then
+              is_priority_device = true
+              break
+            end
+          end
+          
+          if is_priority_device and param_name == preferred_param then
             table.insert(sorted_automations, auto_data)
-            print("DEBUG: Added " .. param_name .. " in preferred order position " .. #sorted_automations)
+            print("DEBUG: Added " .. param_name .. " from " .. device_name .. " in preferred order position " .. #sorted_automations)
           end
         end
       end
@@ -3420,16 +3603,26 @@ function PakettiHyperEditCreateDialog()
           local devices = PakettiHyperEditGetDevices()
           local assigned = false
           
-          -- PRIORITY: Look for *Instr. Macros device first
+          -- PRIORITY: Look for best instrument control device using priority system
           local preferred_device_info = nil
           local preferred_device_idx = nil
           
-          for device_idx, device_info in ipairs(devices) do
-            if device_info.name:find("Instr") and device_info.name:find("Macro") then
-              preferred_device_info = device_info
-              preferred_device_idx = device_idx
-              print("DEBUG: Found *Instr. Macros device at index " .. device_idx .. " - prioritizing for row " .. row)
-              break
+          -- Get the current track 
+          local song = renoise.song()
+          local current_track = song.selected_track
+          
+          -- Find best priority device
+          local priority_device = PakettiHyperEditFindBestInstrControlDevice(current_track)
+          if priority_device then
+            -- Find the corresponding device_info in the devices list
+            for device_idx, device_info in ipairs(devices) do
+              if device_info.track_index == song.selected_track_index and 
+                 device_info.device_index == priority_device.index then
+                preferred_device_info = device_info
+                preferred_device_idx = device_idx
+                print("DEBUG: Found " .. priority_device.device_type .. " device (priority " .. priority_device.priority .. ") at index " .. device_idx .. " - prioritizing for row " .. row)
+                break
+              end
             end
           end
           
@@ -3630,38 +3823,40 @@ function PakettiHyperEditInit()
     return
   end
   
-  -- Check if Instr. Macros device exists on selected track, load if missing
+  -- Check if any priority instrument control device exists on selected track, create best one if missing
   local s = renoise.song()
   local track = s.selected_track
-  local instr_macros_found = false
   
-  -- Check existing devices for Instr. Macros (check device_path, not just display_name)
-  for i = 1, #track.devices do
-    local device = track.devices[i]
-    -- Check device_path to identify Instr. Macros regardless of display name (could be renamed to 00_Drumkit etc.)
-    if device.device_path == "Audio/Effects/Native/*Instr. Macros" or 
-       (device.name and device.name:find("Instr") and device.name:find("Macro")) or
-       device.display_name == "*Instr. Macros" then
-      instr_macros_found = true
-      print("DEBUG: Found Instr. Macros device - display_name: '" .. (device.display_name or "nil") .. "', device_path: '" .. (device.device_path or "nil") .. "', name: '" .. (device.name or "nil") .. "'")
-      break
-    end
-  end
+  -- Use priority system to check for existing devices
+  local existing_device = PakettiHyperEditFindBestInstrControlDevice(track)
   
-  -- Load Instr. Macros if not found
-  if not instr_macros_found then
-    local ok, err = pcall(function()
-      -- Insert at end; adjust index if you want a fixed slot
-      track:insert_device_at("Audio/Effects/Native/*Instr. Macros", #track.devices + 1)
-    end)
-    if ok then
-      renoise.app():show_status("HyperEdit: Loaded Instr. Macros device")
+  if existing_device then
+    print("DEBUG: Found existing " .. existing_device.device_type .. " device (priority " .. existing_device.priority .. ") - display_name: '" .. (existing_device.device.display_name or "nil") .. "'")
+  else
+    -- Create the best priority device if none exist
+    local created_device = PakettiHyperEditCreateBestInstrControlDevice(track)
+    if created_device then
+      renoise.app():show_status("HyperEdit: Loaded " .. created_device.device_type .. " device")
     else
-      renoise.app():show_status("HyperEdit: Failed to load Instr. Macros: " .. tostring(err))
+      renoise.app():show_status("HyperEdit: Failed to load instrument control device")
     end
   end
   
   PakettiHyperEditCreateDialog()
+end
+
+function PakettiHyperEditLoadAndShow()
+  if hyperedit_dialog and hyperedit_dialog.visible then
+    -- Dialog is already open - just refresh to show the current track/instrument
+    -- The EightOneTwenty button already sets the selected track and instrument before calling this
+    -- The existing track/device observers will automatically update the dialog content
+    renoise.app():show_status("HyperEdit: Switched to current track/instrument")
+    return
+  end
+  
+  PakettiHyperEditInit()
+  -- Ensure Renoise keeps keyboard focus after opening
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti HyperEdit",invoke = PakettiHyperEditInit}

@@ -250,6 +250,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F5 Start Play
 ----------------------------------------------------------------------------------------------------------------
 -- F6, or Impulse Tracker Play Pattern.
 function playPattern()
+
+  InitSBx()
+
 local s = renoise.song()
 local t = s.transport
 local startpos = t.playback_pos
@@ -1713,6 +1716,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-F10 (Solo
 local vb = renoise.ViewBuilder()
 local dialog = nil  -- Declare dialog variable
 
+-- Global variable to prevent automatic sample loader from running when not desired
+PakettiDontRunAutomaticSampleLoader = false
+
 -- Variables to store the state of each section
 local patterns_state = "Keep"
 local instruments_state = "Keep"
@@ -3127,6 +3133,9 @@ function PakettiImpulseTrackerPatternToSample()
   local pattern_index = song.selected_pattern_index
   local pattern = song:pattern(pattern_index)
   
+  -- Set flag to prevent automatic sample loader from running (we'll handle pakettification ourselves)
+  PakettiDontRunAutomaticSampleLoader = true
+  
   print("DEBUG: Starting Pattern to Sample render")
   print("DEBUG: Pattern " .. pattern_index .. " - " .. pattern.number_of_lines .. " lines")
   
@@ -3162,6 +3171,8 @@ function PakettiImpulseTrackerPatternToSample()
   if not success then
     print("ERROR: Render failed: " .. (error_message or "unknown error"))
     renoise.app():show_status("Pattern render failed: " .. (error_message or "unknown error"))
+    -- Reset flag if render fails
+    PakettiDontRunAutomaticSampleLoader = false
     return
   end
   
@@ -3246,6 +3257,9 @@ function PakettiPatternToSampleRenderComplete(temp_path, pattern_index)
     print("STATUS: " .. status_msg)
     renoise.app():show_status(status_msg)
     
+    -- Reset flag to allow automatic sample loader to work normally again
+    PakettiDontRunAutomaticSampleLoader = false
+    
   else
     print("ERROR: Failed to load rendered file as sample: " .. tostring(load_error))
     renoise.app():show_status("Failed to load rendered audio as sample")
@@ -3257,6 +3271,9 @@ function PakettiPatternToSampleRenderComplete(temp_path, pattern_index)
     if #instrument.samples == 0 then
       song:delete_instrument_at(song.selected_instrument_index)
     end
+    
+    -- Reset flag even in error case to allow automatic sample loader to work normally again
+    PakettiDontRunAutomaticSampleLoader = false
   end
 end
 

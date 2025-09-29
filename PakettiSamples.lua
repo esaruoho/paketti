@@ -6736,6 +6736,9 @@ end
 function PakettiApplyLoaderSettingsToSelectedSample()
   if not monitoring_enabled then return end
   
+  -- Check if we should skip automatic processing (e.g., when CTRL-O Pattern to Sample is handling it)
+  if PakettiDontRunAutomaticSampleLoader then return end
+  
   local song = renoise.song()
   if not song then return end
   
@@ -6793,24 +6796,20 @@ function PakettiApplyLoaderSettingsToSelectedSample()
   
   -- Apply sample-specific loader settings to the new sample
   PakettiInjectApplyLoaderSettings(new_sample)
-  
-  -- Delete the original source sample since it's now redundant (identical frame count)
-  if source_instrument.samples[current_state.sample_index] then
-    source_instrument:delete_sample_at(current_state.sample_index)
-    print(string.format("Deleted original source sample from instrument %d, slot %d", 
-                       current_state.instrument_index, current_state.sample_index))
-  end
-  
+
   print(string.format("Successfully Pakettified '%s' in new instrument %d with XRNI + loader settings", 
                      sample_name, new_instrument_index))
   
-  renoise.app():show_status(string.format("Auto-Pakettified '%s' to new instrument %d (original deleted)", 
+  renoise.app():show_status(string.format("Auto-Pakettified '%s' to new instrument %d", 
                                         sample_name, new_instrument_index))
 end
 
 -- Function to check for new samples in the currently selected sample slot
 function PakettiCheckForNewSamples()
   if not monitoring_enabled then return end
+  
+  -- Check if we should skip automatic processing (e.g., when CTRL-O Pattern to Sample is handling it)
+  if PakettiDontRunAutomaticSampleLoader then return end
   
   local song = renoise.song()
   if not song then return end

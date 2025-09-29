@@ -203,6 +203,9 @@ local loop_pairs = {}
 -- Scan the Master Track for all SB0/SBX pairs
 
 function analyze_loops()
+  if not renoise.song() then
+    return false
+  end
   local song=renoise.song()
   local master_track_index = renoise.song().sequencer_track_count + 1
   local master_track = song.selected_pattern.tracks[master_track_index]
@@ -4042,3 +4045,6 @@ renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Solo Tracks with Patt
 renoise.tool():add_keybinding{name="Global:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
 renoise.tool():add_midi_mapping{name="Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
 renoise.tool():add_midi_mapping{name="Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
+
+
+InitSBx()

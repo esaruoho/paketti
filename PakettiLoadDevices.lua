@@ -746,6 +746,56 @@ function pakettiQuickLoadDialog()
     renoise.app():show_status("Quick Load: '" .. search_text .. "' - " .. tostring(#device_items) .. " matches")
   end
 
+  -- Helper function to load device to all FX chains
+  local function load_to_all_fx_chains(device_path)
+    local instrument = renoise.song().selected_instrument
+    if not instrument or #instrument.sample_device_chains == 0 then
+      renoise.app():show_status("No sample FX chains available")
+      return false
+    end
+    
+    local num_chains = #instrument.sample_device_chains
+    local loaded_count = 0
+    
+    for chain_index = 1, num_chains do
+      local chain = instrument.sample_device_chains[chain_index]
+      if chain then
+        -- Determine insertion position (same logic as loadnative)
+        local sample_devices = chain.devices
+        local load_at_end = preferences.pakettiLoadOrder and preferences.pakettiLoadOrder.value or false
+        local checkline
+        
+        if load_at_end then
+          checkline = #sample_devices + 1
+        else
+          checkline = (table.count and table.count(sample_devices) or #sample_devices) < 2 and 2 or 
+                     (sample_devices[2] and sample_devices[2].name == "#Line Input" and 3 or 2)
+        end
+        checkline = math.min(checkline, #sample_devices + 1)
+        
+        -- Insert the device
+        local success, err = pcall(function()
+          chain:insert_device_at(device_path, checkline)
+        end)
+        
+        if success then
+          loaded_count = loaded_count + 1
+          print("Loaded device to FX chain " .. chain_index .. " at position " .. checkline)
+        else
+          print("Failed to load device to FX chain " .. chain_index .. ": " .. tostring(err))
+        end
+      end
+    end
+    
+    if loaded_count > 0 then
+      renoise.app():show_status("Loaded device to " .. loaded_count .. "/" .. num_chains .. " FX chains")
+      return true
+    else
+      renoise.app():show_status("Failed to load device to any FX chains")
+      return false
+    end
+  end
+
   local function execute_selected()
     if #device_items == 0 then return end
     local idx = vb.views.device_selector.value
@@ -786,6 +836,13 @@ function pakettiQuickLoadDialog()
       renoise.app():show_status("Cannot load Line Input in Sample FX chain")
       return
     end
+    
+    -- Check if "Load to All FX Chains" is enabled and we're in sample FX mode
+    if in_sample_fx and vb.views.load_to_all_fx_checkbox and vb.views.load_to_all_fx_checkbox.value then
+      load_to_all_fx_chains(device_path)
+      return
+    end
+    
     print("QuickLoad Execute: in_sample_fx=" .. tostring(in_sample_fx) .. " line_input_index=" .. tostring(line_input_index))
     if device_path:find("Native/") then
       print(string.format("QuickLoad Execute: calling loadnative(\"%s\", %s, %s, nil, false)", tostring(device_path), tostring(line_input_index), tostring(in_sample_fx)))
@@ -797,6 +854,12 @@ function pakettiQuickLoadDialog()
     renoise.app():show_status("Loaded: " .. selected_name)
   end
   
+  -- Check if we're in sample FX mode to show the checkbox
+  local in_sample_fx = (
+    renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
+    and renoise.song().selected_sample_index > 0
+  )
+  
   local content = vb:column{
     vb:row{
       (function()
@@ -804,6 +867,14 @@ function pakettiQuickLoadDialog()
         return search_display
       end)()
     },
+    -- Add the "Load to All FX Chains" checkbox if we're in sample FX mode
+    (in_sample_fx and vb:row{
+      vb:checkbox{
+        id = "load_to_all_fx_checkbox",
+        value = false
+      },
+      vb:text{ text = "Load to All FX Chains", width = 150 }
+    } or vb:space{}),
     vb:row{
       vb:popup{
         id = "device_selector",
@@ -861,7 +932,13 @@ function pakettiQuickLoadDialog()
             return
           end
           
-          -- Load the device
+          -- Check if "Load to All FX Chains" is enabled and we're in sample FX mode
+          if in_sample_fx and vb.views.load_to_all_fx_checkbox and vb.views.load_to_all_fx_checkbox.value then
+            load_to_all_fx_chains(device_path)
+            return
+          end
+          
+          -- Load the device normally
           print("QuickLoad Button: in_sample_fx=" .. tostring(in_sample_fx) .. " line_input_index=" .. tostring(line_input_index))
           if device_path:find("Native/") then
             print(string.format("QuickLoad Button: calling loadnative(\"%s\", %s, %s, nil, false)", tostring(device_path), tostring(line_input_index), tostring(in_sample_fx)))
