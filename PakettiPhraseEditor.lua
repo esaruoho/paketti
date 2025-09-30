@@ -53,6 +53,7 @@ function pakettiPhraseSettingsApplyPhraseSettings()
   phrase.shuffle = preferences.pakettiPhraseInitDialog.Shuffle.value / 100
   phrase.lpb = preferences.pakettiPhraseInitDialog.LPB.value
   phrase.number_of_lines = preferences.pakettiPhraseInitDialog.Length.value
+  phrase.looping = preferences.pakettiPhraseInitDialog.PhraseLooping.value
 end
 
 -- Function to create a new phrase and apply settings

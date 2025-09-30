@@ -397,28 +397,100 @@ function selectedInstrumentInjectLFOsToAllFxChains()
       local sample_devices = chain.devices
       local start_position = #sample_devices + 1
       
-      -- Insert LFO device first
-      local lfo_success, lfo_err = pcall(function()
-        chain:insert_device_at("Audio/Effects/Native/*LFO", start_position)
+      -- Insert Send device first (at start_position)
+      local send_success, send_err = pcall(function()
+        chain:insert_device_at("Audio/Effects/Native/#Send", start_position)
       end)
       
-      if lfo_success then
-        local lfo_device = sample_devices[start_position]
-        if lfo_device then
-          -- Calculate which position should be 0 (rising pattern)
-          -- Chain 1: position 1 = 0, Chain 2: position 2 = 0, etc.
-          -- Chain 120: position 120 = 0
-          local zero_position = chain_index
+      if send_success then
+        -- Refresh the devices list after insertion
+        sample_devices = chain.devices
+        local send_device = sample_devices[start_position]
+        if send_device then
+          -- Apply Send XML preset
+          local send_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="SendDevice">
+    <IsMaximized>true</IsMaximized>
+    <SendAmount>
+      <Value>1.0</Value>
+    </SendAmount>
+    <SendPan>
+      <Value>0.5</Value>
+    </SendPan>
+    <DestSendTrack>
+      <Value>120</Value>
+    </DestSendTrack>
+    <MuteSource>true</MuteSource>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+    <ApplyPostVolume>false</ApplyPostVolume>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
           
-          -- Build the XML with the appropriate zero position
-          local xml_points = {}
-          for i = 0, 120 do
-            local value = (i == zero_position) and "0.0" or "1.0"
-            table.insert(xml_points, string.format('<Point>%d,%s,0.0</Point>', i, value))
-          end
-          local points_xml = table.concat(xml_points, "\n        ")
+          send_device.active_preset_data = send_xml
+          send_device.display_name = "#Send"
+          send_device.parameters[1].value = 1    -- Amount
+          send_device.parameters[2].value = 0.5  -- Panning
+          send_device.parameters[3].value = 1    -- Receiver
+          send_device.parameters[1].show_in_mixer = true
           
-          local lfo_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
+          -- Insert Gainer device BEFORE the Send (at start_position)
+          local gainer_success, gainer_err = pcall(function()
+            chain:insert_device_at("Audio/Effects/Native/Gainer", start_position)
+          end)
+          
+          if gainer_success then
+            -- Refresh the devices list after insertion
+            sample_devices = chain.devices
+            local gainer_device = sample_devices[start_position]
+            if gainer_device then
+              -- Apply Gainer XML preset
+              local gainer_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="GainerDevice">
+    <IsMaximized>true</IsMaximized>
+    <Volume>
+      <Value>0.0</Value>
+    </Volume>
+    <Panning>
+      <Value>0.5</Value>
+    </Panning>
+    <LPhaseInvert>false</LPhaseInvert>
+    <RPhaseInvert>false</RPhaseInvert>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
+              
+              gainer_device.active_preset_data = gainer_xml
+              gainer_device.display_name = "Gainer"
+              gainer_device.parameters[1].value = 0    -- Gain (-INF dB)
+              gainer_device.parameters[2].value = 0.5  -- Panning
+              gainer_device.parameters[1].show_in_mixer = true
+              
+              -- Insert LFO device BEFORE the Gainer (at start_position)
+              local lfo_success, lfo_err = pcall(function()
+                chain:insert_device_at("Audio/Effects/Native/*LFO", start_position)
+              end)
+              
+              if lfo_success then
+                -- Refresh the devices list after insertion
+                sample_devices = chain.devices
+                local lfo_device = sample_devices[start_position]
+                if lfo_device then
+                  -- Calculate which position should be 0 (rising pattern)
+                  -- Chain 1: position 1 = 0, Chain 2: position 2 = 0, etc.
+                  -- Chain 120: position 120 = 0
+                  local zero_position = chain_index
+                  
+                  -- Build the XML with the appropriate zero position
+                  local xml_points = {}
+                  for i = 0, 120 do
+                    local value = (i == zero_position) and "0.0" or "1.0"
+                    table.insert(xml_points, string.format('<Point>%d,%s,0.0</Point>', i, value))
+                  end
+                  local points_xml = table.concat(xml_points, "\n        ")
+                  
+                  local lfo_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="LfoDevice">
     <IsMaximized>true</IsMaximized>
@@ -447,91 +519,26 @@ function selectedInstrumentInjectLFOsToAllFxChains()
     <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
   </DeviceSlot>
 </FilterDevicePreset>]=], points_xml)
-          
-          -- Apply the LFO XML preset
-          lfo_device.active_preset_data = lfo_xml
-          lfo_device.display_name = "LFO Chain " .. chain_index
-          
-          -- Set LFO parameters for connection to Gainer
-          lfo_device.parameters[1].value = -1  -- Dest. Track
-          lfo_device.parameters[2].value = 2   -- Dest. Effect  
-          lfo_device.parameters[3].value = 0   -- Dest. Parameter
-          lfo_device.parameters[4].value = 0.5 -- Amplitude
-          lfo_device.parameters[5].value = 0   -- Offset
-          lfo_device.parameters[6].value = 9.9999999747524e-07 -- Frequency
-          lfo_device.parameters[7].value = 4   -- Type
-          
-          -- Insert Gainer device (after LFO)
-          local gainer_success, gainer_err = pcall(function()
-            chain:insert_device_at("Audio/Effects/Native/Gainer", start_position + 1)
-          end)
-          
-          if gainer_success then
-            local gainer_device = sample_devices[start_position + 1]
-            if gainer_device then
-              -- Apply Gainer XML preset
-              local gainer_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
-<FilterDevicePreset doc_version="14">
-  <DeviceSlot type="GainerDevice">
-    <IsMaximized>true</IsMaximized>
-    <Volume>
-      <Value>0.0</Value>
-    </Volume>
-    <Panning>
-      <Value>0.5</Value>
-    </Panning>
-    <LPhaseInvert>false</LPhaseInvert>
-    <RPhaseInvert>false</RPhaseInvert>
-    <SmoothParameterChanges>true</SmoothParameterChanges>
-  </DeviceSlot>
-</FilterDevicePreset>]=]
-              
-              gainer_device.active_preset_data = gainer_xml
-              gainer_device.display_name = "Gainer"
-              gainer_device.parameters[1].value = 0    -- Gain (-INF dB)
-              gainer_device.parameters[2].value = 0.5  -- Panning
-              gainer_device.parameters[1].show_in_mixer = true
-              
-              -- Insert Send device (after Gainer)
-              local send_success, send_err = pcall(function()
-                chain:insert_device_at("Audio/Effects/Native/#Send", start_position + 2)
-              end)
-              
-              if send_success then
-                local send_device = sample_devices[start_position + 2]
-                if send_device then
-                  -- Apply Send XML preset
-                  local send_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
-<FilterDevicePreset doc_version="14">
-  <DeviceSlot type="SendDevice">
-    <IsMaximized>true</IsMaximized>
-    <SendAmount>
-      <Value>1.0</Value>
-    </SendAmount>
-    <SendPan>
-      <Value>0.5</Value>
-    </SendPan>
-    <DestSendTrack>
-      <Value>1.0</Value>
-    </DestSendTrack>
-    <MuteSource>true</MuteSource>
-    <SmoothParameterChanges>true</SmoothParameterChanges>
-    <ApplyPostVolume>false</ApplyPostVolume>
-  </DeviceSlot>
-</FilterDevicePreset>]=]
                   
-                  send_device.active_preset_data = send_xml
-                  send_device.display_name = "#Send"
-                  send_device.parameters[1].value = 1    -- Amount
-                  send_device.parameters[2].value = 0.5  -- Panning
-                  send_device.parameters[3].value = 1    -- Receiver
-                  send_device.parameters[1].show_in_mixer = true
+                  -- Apply the LFO XML preset
+                  lfo_device.active_preset_data = lfo_xml
+                  lfo_device.display_name = "LFO Chain " .. chain_index
+                  
+                  -- Set LFO parameters for connection to Gainer (which is now at start_position + 1)
+                  local gainer_device_index = start_position + 1
+                  lfo_device.parameters[1].value = -1  -- Dest. Track
+                  lfo_device.parameters[2].value = gainer_device_index - 1  -- Dest. Effect (0-based index)
+                  lfo_device.parameters[3].value = 0   -- Dest. Parameter (Gain)
+                  lfo_device.parameters[4].value = 0.5 -- Amplitude
+                  lfo_device.parameters[5].value = 0   -- Offset
+                  lfo_device.parameters[6].value = 9.9999999747524e-07 -- Frequency
+                  lfo_device.parameters[7].value = 4   -- Type
                   
                   loaded_count = loaded_count + 1
-                  print("Injected LFO->Gainer->Send chain to FX chain " .. chain_index .. " with LFO zero at position " .. zero_position)
+                  print("Injected LFO->Gainer->Send chain to FX chain " .. chain_index .. " with LFO zero at position " .. zero_position .. " (LFO targets Gainer at index " .. gainer_device_index .. ")")
                 end
               else
-                print("Failed to load Send to FX chain " .. chain_index .. ": " .. tostring(send_err))
+                print("Failed to load LFO to FX chain " .. chain_index .. ": " .. tostring(lfo_err))
               end
             end
           else
@@ -539,7 +546,7 @@ function selectedInstrumentInjectLFOsToAllFxChains()
           end
         end
       else
-        print("Failed to load LFO to FX chain " .. chain_index .. ": " .. tostring(lfo_err))
+        print("Failed to load Send to FX chain " .. chain_index .. ": " .. tostring(send_err))
       end
     end
   end
