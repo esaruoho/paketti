@@ -31,6 +31,17 @@ function DEC_HEX(IN)
   return OUT
 end
 
+-- Debug print  
+function dbug(msg)  
+ local base_types = {  
+ ["nil"]=true, ["boolean"]=true, ["number"]=true,  
+ ["string"]=true, ["thread"]=true, ["table"]=true  
+ }  
+ if not base_types[type(msg)] then oprint(msg)  
+ elseif type(msg) == 'table' then rprint(msg)  
+ else print(msg) end  
+end
+
 -- Global function for truly random seeding - used throughout Paketti
 function trueRandomSeed()
   math.randomseed(os.time())
@@ -836,4 +847,4 @@ print(string.format("Total load time: %.2f ms (%.3f seconds)", total_time * 1000
 
 _AUTO_RELOAD_DEBUG = true
 
-
+--dbug(renoise.song())

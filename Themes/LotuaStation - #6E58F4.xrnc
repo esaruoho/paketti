@@ -57,7 +57,7 @@
   <Pattern_Mute_State>110,88,244</Pattern_Mute_State>
   <Automation_Grid>144,144,144</Automation_Grid>
   <Automation_Line_Edge>255,255,255</Automation_Line_Edge>
-  <Automation_Line_Fill>0,0,0</Automation_Line_Fill>
+  <Automation_Line_Fill>110,88,244</Automation_Line_Fill>
   <Automation_Point>255,255,255</Automation_Point>
   <Automation_Marker_Play>110,88,244</Automation_Marker_Play>
   <Automation_Marker_Single>255,255,255</Automation_Marker_Single>

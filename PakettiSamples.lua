@@ -350,11 +350,19 @@ function pakettiPreferencesDefaultInstrumentLoader()
   print("Loading instrument from path: " .. defaultInstrument)
   renoise.app():load_instrument(defaultInstrument)
 
-  if preferences.pakettiPitchbendLoaderEnvelope.value then
-renoise.song().selected_instrument.sample_modulation_sets[1].devices[2].is_active = true end
+  -- Check if sample modulation sets exist before accessing them
+  local instrument = renoise.song().selected_instrument
+  if instrument.sample_modulation_sets and #instrument.sample_modulation_sets > 0 then
+    local modset = instrument.sample_modulation_sets[1]
+    
+    if preferences.pakettiPitchbendLoaderEnvelope.value and modset.devices and #modset.devices >= 2 then
+      modset.devices[2].is_active = true 
+    end
 
-  if preferences.pakettiLoaderFilterType.value then
-  renoise.song().selected_instrument.sample_modulation_sets[1].filter_type=preferences.pakettiLoaderFilterType.value end
+    if preferences.pakettiLoaderFilterType.value and modset.filter_type then
+      modset.filter_type = preferences.pakettiLoaderFilterType.value 
+    end
+  end
 end
 
 

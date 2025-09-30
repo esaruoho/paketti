@@ -376,6 +376,181 @@ function selectedInstrumentDistributeToSeparateFxAndModChains()
   renoise.app():show_status("Distributed " .. num_samples .. " sample(s) to separate FX chains and modulation sets")
 end
 
+-- Function to inject LFO->Gainer->Send chain into all sample FX chains with rising pattern
+function selectedInstrumentInjectLFOsToAllFxChains()
+  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+  
+  -- Check if the instrument exists and has sample device chains
+  if not instrument or #instrument.sample_device_chains == 0 then
+    renoise.app():show_status("No sample FX chains available")
+    return
+  end
+  
+  local num_chains = #instrument.sample_device_chains
+  local loaded_count = 0
+  
+  -- Iterate through all FX chains
+  for chain_index = 1, num_chains do
+    local chain = instrument.sample_device_chains[chain_index]
+    if chain then
+      -- Determine insertion position (load at end)
+      local sample_devices = chain.devices
+      local start_position = #sample_devices + 1
+      
+      -- Insert LFO device first
+      local lfo_success, lfo_err = pcall(function()
+        chain:insert_device_at("Audio/Effects/Native/*LFO", start_position)
+      end)
+      
+      if lfo_success then
+        local lfo_device = sample_devices[start_position]
+        if lfo_device then
+          -- Calculate which position should be 0 (rising pattern)
+          -- Chain 1: position 1 = 0, Chain 2: position 2 = 0, etc.
+          -- Chain 120: position 120 = 0
+          local zero_position = chain_index
+          
+          -- Build the XML with the appropriate zero position
+          local xml_points = {}
+          for i = 0, 120 do
+            local value = (i == zero_position) and "0.0" or "1.0"
+            table.insert(xml_points, string.format('<Point>%d,%s,0.0</Point>', i, value))
+          end
+          local points_xml = table.concat(xml_points, "\n        ")
+          
+          local lfo_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="LfoDevice">
+    <IsMaximized>true</IsMaximized>
+    <Amplitude>
+      <Value>0.5</Value>
+    </Amplitude>
+    <Offset>
+      <Value>0.0</Value>
+    </Offset>
+    <Frequency>
+      <Value>0.93749994</Value>
+    </Frequency>
+    <Type>
+      <Value>4</Value>
+    </Type>
+    <CustomEnvelope>
+      <PlayMode>Points</PlayMode>
+      <Length>120</Length>
+      <ValueQuantum>0.0</ValueQuantum>
+      <Polarity>Unipolar</Polarity>
+      <Points>
+        %s
+      </Points>
+    </CustomEnvelope>
+    <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
+    <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
+  </DeviceSlot>
+</FilterDevicePreset>]=], points_xml)
+          
+          -- Apply the LFO XML preset
+          lfo_device.active_preset_data = lfo_xml
+          lfo_device.display_name = "LFO Chain " .. chain_index
+          
+          -- Set LFO parameters for connection to Gainer
+          lfo_device.parameters[1].value = -1  -- Dest. Track
+          lfo_device.parameters[2].value = 2   -- Dest. Effect  
+          lfo_device.parameters[3].value = 0   -- Dest. Parameter
+          lfo_device.parameters[4].value = 0.5 -- Amplitude
+          lfo_device.parameters[5].value = 0   -- Offset
+          lfo_device.parameters[6].value = 9.9999999747524e-07 -- Frequency
+          lfo_device.parameters[7].value = 4   -- Type
+          
+          -- Insert Gainer device (after LFO)
+          local gainer_success, gainer_err = pcall(function()
+            chain:insert_device_at("Audio/Effects/Native/Gainer", start_position + 1)
+          end)
+          
+          if gainer_success then
+            local gainer_device = sample_devices[start_position + 1]
+            if gainer_device then
+              -- Apply Gainer XML preset
+              local gainer_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="GainerDevice">
+    <IsMaximized>true</IsMaximized>
+    <Volume>
+      <Value>0.0</Value>
+    </Volume>
+    <Panning>
+      <Value>0.5</Value>
+    </Panning>
+    <LPhaseInvert>false</LPhaseInvert>
+    <RPhaseInvert>false</RPhaseInvert>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
+              
+              gainer_device.active_preset_data = gainer_xml
+              gainer_device.display_name = "Gainer"
+              gainer_device.parameters[1].value = 0    -- Gain (-INF dB)
+              gainer_device.parameters[2].value = 0.5  -- Panning
+              gainer_device.parameters[1].show_in_mixer = true
+              
+              -- Insert Send device (after Gainer)
+              local send_success, send_err = pcall(function()
+                chain:insert_device_at("Audio/Effects/Native/#Send", start_position + 2)
+              end)
+              
+              if send_success then
+                local send_device = sample_devices[start_position + 2]
+                if send_device then
+                  -- Apply Send XML preset
+                  local send_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="SendDevice">
+    <IsMaximized>true</IsMaximized>
+    <SendAmount>
+      <Value>1.0</Value>
+    </SendAmount>
+    <SendPan>
+      <Value>0.5</Value>
+    </SendPan>
+    <DestSendTrack>
+      <Value>1.0</Value>
+    </DestSendTrack>
+    <MuteSource>true</MuteSource>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+    <ApplyPostVolume>false</ApplyPostVolume>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
+                  
+                  send_device.active_preset_data = send_xml
+                  send_device.display_name = "#Send"
+                  send_device.parameters[1].value = 1    -- Amount
+                  send_device.parameters[2].value = 0.5  -- Panning
+                  send_device.parameters[3].value = 1    -- Receiver
+                  send_device.parameters[1].show_in_mixer = true
+                  
+                  loaded_count = loaded_count + 1
+                  print("Injected LFO->Gainer->Send chain to FX chain " .. chain_index .. " with LFO zero at position " .. zero_position)
+                end
+              else
+                print("Failed to load Send to FX chain " .. chain_index .. ": " .. tostring(send_err))
+              end
+            end
+          else
+            print("Failed to load Gainer to FX chain " .. chain_index .. ": " .. tostring(gainer_err))
+          end
+        end
+      else
+        print("Failed to load LFO to FX chain " .. chain_index .. ": " .. tostring(lfo_err))
+      end
+    end
+  end
+  
+  if loaded_count > 0 then
+    renoise.app():show_status("Injected LFO->Gainer->Send chains to " .. loaded_count .. "/" .. num_chains .. " FX chains")
+  else
+    renoise.app():show_status("Failed to inject chains to any FX chains")
+  end
+end
+
 -- Function to delete all sample Modulation Sets (keeps only the first one)
 function selectedInstrumentDeleteAllSampleModulationSets()
   local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
@@ -446,6 +621,15 @@ renoise.tool():add_keybinding{name="Global:Paketti:Distribute All Samples to Sep
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
+
+-- Menu entries and keybindings for injecting LFO->Gainer->Send chains
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 
