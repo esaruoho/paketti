@@ -96,6 +96,7 @@ function PakettiHyperEditCreateBestInstrControlDevice(track, expected_display_na
   }
 end
 
+
 -- Device parameter whitelists for cleaner parameter selection
 local DEVICE_PARAMETER_WHITELISTS = {
   ["AU: Valhalla DSP, LLC: ValhallaDelay"] = {
@@ -661,7 +662,7 @@ function PakettiHyperEditPreConfigureParameters()
   
   -- Use priority system to find best instrument control device first, otherwise use first suitable device (avoid EQs, etc.)
   local target_device_info = nil
-  local blacklisted_devices = {"Pro-Q", "EQ", "Equalizer", "Filter", "Compressor"}
+  local blacklisted_devices = {"Pro-Q", "FabFilter", "EQ", "Equalizer", "Filter", "Compressor"}
   
   -- First try to find any priority instrument control device
   local priority_device = PakettiHyperEditFindBestInstrControlDevice(track)
@@ -2527,12 +2528,13 @@ function PakettiHyperEditSetupObservers()
           print("DEBUG: Row " .. debug_row .. " - Device: " .. has_device .. ", Parameter: " .. has_param)
         end
         
-        -- First, collect what parameters are already in use
+        -- First, collect what parameters are already in use (using cleaned names for proper deduplication)
         local used_param_names = {}
         for check_row = 1, NUM_ROWS do
           if row_parameters[check_row] then
-            used_param_names[row_parameters[check_row].name] = true
-            print("DEBUG: Row " .. check_row .. " already uses parameter: " .. PakettiHyperEditCleanParameterName(row_parameters[check_row].name))
+            local cleaned_name = PakettiHyperEditCleanParameterName(row_parameters[check_row].name)
+            used_param_names[cleaned_name] = true
+            print("DEBUG: Row " .. check_row .. " already uses parameter: " .. cleaned_name)
           end
         end
         
@@ -2546,11 +2548,12 @@ function PakettiHyperEditSetupObservers()
               -- Find first unused parameter in this device
               local assigned = false
               for i, param_info in ipairs(params) do
-                if not used_param_names[param_info.name] then
+                local cleaned_param_name = PakettiHyperEditCleanParameterName(param_info.name)
+                if not used_param_names[cleaned_param_name] then
                   -- Found unused parameter - assign it
-                  used_param_names[param_info.name] = true -- Mark as used
+                  used_param_names[cleaned_param_name] = true -- Mark as used (cleaned name for proper deduplication)
                   row_parameters[row] = param_info
-                  print("DEBUG: Row " .. row .. " assigned parameter: " .. PakettiHyperEditCleanParameterName(param_info.name))
+                  print("DEBUG: Row " .. row .. " assigned parameter: " .. cleaned_param_name)
                   
                   -- Update parameter dropdown
                   if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
@@ -2690,12 +2693,13 @@ function PakettiHyperEditSetupDeviceObserver()
           -- CRITICAL: Smart assignment for free rows (with device but no parameter)
           print("DEBUG: Running smart parameter assignment for free rows")
           
-          -- First, collect what parameters are already in use
+          -- First, collect what parameters are already in use (using cleaned names for proper deduplication)
           local used_param_names = {}
           for check_row = 1, NUM_ROWS do
             if row_parameters[check_row] then
-              used_param_names[row_parameters[check_row].name] = true
-              print("DEBUG: Row " .. check_row .. " already uses parameter: " .. PakettiHyperEditCleanParameterName(row_parameters[check_row].name))
+              local cleaned_name = PakettiHyperEditCleanParameterName(row_parameters[check_row].name)
+              used_param_names[cleaned_name] = true
+              print("DEBUG: Row " .. check_row .. " already uses parameter: " .. cleaned_name)
             end
           end
           
@@ -2709,11 +2713,12 @@ function PakettiHyperEditSetupDeviceObserver()
                 -- Find first unused parameter in this device
                 local assigned = false
                 for i, param_info in ipairs(params) do
-                  if not used_param_names[param_info.name] then
+                  local cleaned_param_name = PakettiHyperEditCleanParameterName(param_info.name)
+                  if not used_param_names[cleaned_param_name] then
                     -- Found unused parameter - assign it
-                    used_param_names[param_info.name] = true -- Mark as used
+                    used_param_names[cleaned_param_name] = true -- Mark as used (cleaned name for proper deduplication)
                     row_parameters[row] = param_info
-                    print("DEBUG: Row " .. row .. " assigned parameter: " .. PakettiHyperEditCleanParameterName(param_info.name))
+                    print("DEBUG: Row " .. row .. " assigned parameter: " .. cleaned_param_name)
                     
                     -- Update parameter dropdown
                     if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
@@ -3452,7 +3457,13 @@ function PakettiHyperEditCreateDialog()
           value = (#devices > 0) and 1 or 1,  -- Select first device if available
           width = 200,
           notifier = function(index)
-            print("DEBUG: Device popup " .. row .. " notifier called with index " .. index .. " (items: " .. (#device_names > 0 and table.concat(device_names, ", ") or "none") .. ")")
+            -- Get current device names dynamically instead of using captured closure
+            local current_devices = PakettiHyperEditGetDevices()
+            local current_device_names = {}
+            for i, device_info in ipairs(current_devices) do
+              table.insert(current_device_names, device_info.name)
+            end
+            print("DEBUG: Device popup " .. row .. " notifier called with index " .. index .. " (items: " .. (#current_device_names > 0 and table.concat(current_device_names, ", ") or "none") .. ")")
             current_focused_row = row  -- Update focused row when device is selected
             PakettiHyperEditSelectDevice(row, index)
           end
@@ -3579,12 +3590,13 @@ function PakettiHyperEditCreateDialog()
       -- For any rows not populated by automation, set up with smart parameter distribution
       print("DEBUG: Checking which rows need default device setup...")
       
-      -- First, collect what parameters are already in use
+      -- First, collect what parameters are already in use (using cleaned names for proper deduplication)
       local used_param_names = {}
       for check_row = 1, NUM_ROWS do
         if row_parameters[check_row] then
-          used_param_names[row_parameters[check_row].name] = true
-          print("DEBUG: Row " .. check_row .. " already uses parameter: " .. PakettiHyperEditCleanParameterName(row_parameters[check_row].name))
+          local cleaned_name = PakettiHyperEditCleanParameterName(row_parameters[check_row].name)
+          used_param_names[cleaned_name] = true
+          print("DEBUG: Row " .. check_row .. " already uses parameter: " .. cleaned_name)
         end
       end
       
@@ -3633,22 +3645,24 @@ function PakettiHyperEditCreateDialog()
             
             -- Find first unused parameter in preferred device
             for i, param_info in ipairs(params) do
-              if not used_param_names[param_info.name] then
+              local cleaned_param_name = PakettiHyperEditCleanParameterName(param_info.name)
+              if not used_param_names[cleaned_param_name] then
                 -- If we encounter X_PitchBend, look for Pitchbend instead
                 if param_info.name == "X_PitchBend" then
                   for j, p in ipairs(params) do
                     if p.name == "Pitchbend" then
                       param_info = p
                       i = j -- Update the index for UI purposes
+                      cleaned_param_name = PakettiHyperEditCleanParameterName(param_info.name)
                       break
                     end
                   end
                 end
                 
                 -- Check if the final parameter (after conversion) is already used
-                if not used_param_names[param_info.name] then
+                if not used_param_names[cleaned_param_name] then
                   -- Found unused parameter - assign it
-                  used_param_names[param_info.name] = true -- Mark as used (final name after conversion)
+                  used_param_names[cleaned_param_name] = true -- Mark as used (cleaned name for proper deduplication)
                 
                   print("DEBUG: Row " .. row .. " assigned " .. preferred_device_info.name .. " -> " .. param_info.name)
                   
@@ -3709,33 +3723,48 @@ function PakettiHyperEditCreateDialog()
           end
           
           -- If not assigned from preferred device, try other devices
+          local blacklisted_devices = {"Pro-Q", "FabFilter", "EQ", "Equalizer", "Filter", "Compressor"}
+          
           for device_idx, device_info in ipairs(devices) do
             if assigned then break end
             
             -- Skip if this is the preferred device (already tried)
             if not (preferred_device_info and device_info == preferred_device_info) then
             
+            -- Check if device is blacklisted
+            local is_blacklisted = false
+            for _, blacklisted in ipairs(blacklisted_devices) do
+              if device_info.name:find(blacklisted) then
+                is_blacklisted = true
+                print("DEBUG: Skipping blacklisted device for smart assignment: " .. device_info.name)
+                break
+              end
+            end
+            
+            if not is_blacklisted then
             local params = PakettiHyperEditGetParameters(device_info.device)
             print("DEBUG: Trying device " .. device_info.name .. " with " .. #params .. " parameters for row " .. row)
             
             -- Find first unused parameter in this device
             for i, param_info in ipairs(params) do
-              if not used_param_names[param_info.name] then
+              local cleaned_param_name = PakettiHyperEditCleanParameterName(param_info.name)
+              if not used_param_names[cleaned_param_name] then
                 -- If we encounter X_PitchBend, look for Pitchbend instead
                 if param_info.name == "X_PitchBend" then
                   for j, p in ipairs(params) do
                     if p.name == "Pitchbend" then
                       param_info = p
                       i = j -- Update the index for UI purposes
+                      cleaned_param_name = PakettiHyperEditCleanParameterName(param_info.name)
                       break
                     end
                   end
                 end
                 
                 -- Check if the final parameter (after conversion) is already used
-                if not used_param_names[param_info.name] then
+                if not used_param_names[cleaned_param_name] then
                   -- Found unused parameter - assign it
-                  used_param_names[param_info.name] = true -- Mark as used (final name after conversion)
+                  used_param_names[cleaned_param_name] = true -- Mark as used (cleaned name for proper deduplication)
                   
                   print("DEBUG: Row " .. row .. " assigned " .. device_info.name .. " -> " .. param_info.name)
                   
@@ -3794,6 +3823,7 @@ function PakettiHyperEditCreateDialog()
               end
             end
             
+            end -- end blacklist check
             end -- end skip check
           end
           
@@ -3823,7 +3853,7 @@ function PakettiHyperEditInit()
     return
   end
   
-  -- Check if any priority instrument control device exists on selected track, create best one if missing
+  -- Check if any priority instrument control device exists on selected track, create only if none exist
   local s = renoise.song()
   local track = s.selected_track
   

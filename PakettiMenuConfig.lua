@@ -662,6 +662,9 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Load:Convert WAV to
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Export:Export Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Export:Export .PTI Instrument",invoke=pti_savesample}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Paketti Drumkit Loader MuteTrig (Randomize)",invoke=function() selectedInstrumentLoadMuteTrigDrumkit() end}
+
+
 
 
 
@@ -974,7 +977,7 @@ if preferences.pakettiMenuConfig.PatternEditor then
   end}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:(WIP) Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
 
-  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Automation:Convert FX to Automation",invoke = read_fx_to_automation}
   
@@ -1144,13 +1147,13 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Paketti Stacker:Write
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Paketti Stacker:Write Velocity Random for Stacked Instrument",invoke=function() write_random_velocity_notes() end}
 
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Pattern:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:--Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Delete all Pattern Sequences",invoke=function() delete_all_pattern_sequences() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delete Unused Columns", invoke = deleteUnusedColumns}
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Instrument Properties:Hide All Properties",invoke=function() hideAllInstrumentProperties() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Instrument Properties:Show All Properties",invoke=function() showAllInstrumentProperties() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Instruments:Hide All Instrument Properties",invoke=function() hideAllInstrumentProperties() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Instruments:Show All Instrument Properties",invoke=function() showAllInstrumentProperties() end}
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delay Output:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delay Output:Nudge Delay Output -01ms",invoke=function() nudge_output_delay(-1, false) end}

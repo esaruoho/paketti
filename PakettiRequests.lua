@@ -558,6 +558,455 @@ function selectedInstrumentInjectLFOsToAllFxChains()
   end
 end
 
+-- Function to inject 14 Key Trackers and 14 Hydras to the last FX chain (chain 120)
+function selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain()
+  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+  
+  -- Check if the instrument exists and has sample device chains
+  if not instrument or #instrument.sample_device_chains == 0 then
+    renoise.app():show_status("No sample FX chains available")
+    return
+  end
+  
+  local num_chains = #instrument.sample_device_chains
+  if num_chains < 120 then
+    renoise.app():show_status("Need at least 120 FX chains, found " .. num_chains)
+    return
+  end
+  
+  -- Work with the last FX chain (chain 120)
+  local chain = instrument.sample_device_chains[123]
+  if not chain then
+    renoise.app():show_status("FX chain 123 not found")
+    return
+  end
+  
+  local sample_devices = chain.devices
+  local start_position = #sample_devices + 1
+  local loaded_count = 0
+  
+  -- Create 14 Key Tracker + Hydra pairs (insert in reverse order so lowest ranges appear first)
+  for pair_index = 13, 0, -1 do
+    local note_start = pair_index * 9  -- C0=0, A0=9, G#0=18, etc.
+    local note_end = note_start + 8    -- G#0=8, F#0=17, F0=26, etc.
+    local fx_chain_start = pair_index * 9 + 1  -- FX chains 1, 10, 19, etc.
+    local fx_chain_end = fx_chain_start + 8    -- FX chains 9, 18, 27, etc.
+    
+    -- Insert Hydra first (at start_position)
+    local hydra_success, hydra_err = pcall(function()
+      chain:insert_device_at("Audio/Effects/Native/*Hydra", start_position)
+    end)
+    
+    if hydra_success then
+      -- Refresh the devices list after insertion
+      sample_devices = chain.devices
+      local hydra_device = sample_devices[start_position]
+      if hydra_device then
+        -- Apply Hydra XML preset
+        local hydra_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="HydraDevice">
+    <IsMaximized>true</IsMaximized>
+    <VisiblePages>2</VisiblePages>
+    <InputValue>
+      <Value>0.0</Value>
+    </InputValue>
+    <Out1Min>
+      <Value>0.0</Value>
+    </Out1Min>
+    <Out1Max>
+      <Value>1.0</Value>
+    </Out1Max>
+    <Out1Scaling>Linear</Out1Scaling>
+    <Out2Min>
+      <Value>0.0</Value>
+    </Out2Min>
+    <Out2Max>
+      <Value>1.0</Value>
+    </Out2Max>
+    <Out2Scaling>Linear</Out2Scaling>
+    <Out3Min>
+      <Value>0.0</Value>
+    </Out3Min>
+    <Out3Max>
+      <Value>1.0</Value>
+    </Out3Max>
+    <Out3Scaling>Linear</Out3Scaling>
+    <Out4Min>
+      <Value>0.0</Value>
+    </Out4Min>
+    <Out4Max>
+      <Value>1.0</Value>
+    </Out4Max>
+    <Out4Scaling>Linear</Out4Scaling>
+    <Out5Min>
+      <Value>0.0</Value>
+    </Out5Min>
+    <Out5Max>
+      <Value>1.0</Value>
+    </Out5Max>
+    <Out5Scaling>Linear</Out5Scaling>
+    <Out6Min>
+      <Value>0.0</Value>
+    </Out6Min>
+    <Out6Max>
+      <Value>1.0</Value>
+    </Out6Max>
+    <Out6Scaling>Linear</Out6Scaling>
+    <Out7Min>
+      <Value>0.0</Value>
+    </Out7Min>
+    <Out7Max>
+      <Value>1.0</Value>
+    </Out7Max>
+    <Out7Scaling>Linear</Out7Scaling>
+    <Out8Min>
+      <Value>0.0</Value>
+    </Out8Min>
+    <Out8Max>
+      <Value>1.0</Value>
+    </Out8Max>
+    <Out8Scaling>Linear</Out8Scaling>
+    <Out9Min>
+      <Value>0.0</Value>
+    </Out9Min>
+    <Out9Max>
+      <Value>1.0</Value>
+    </Out9Max>
+    <Out9Scaling>Linear</Out9Scaling>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
+        
+        hydra_device.active_preset_data = hydra_xml
+        hydra_device.display_name = string.format("C-%d", pair_index)
+        hydra_device.parameters[1].value = 0  -- Input
+        hydra_device.parameters[1].show_in_mixer = true
+        
+        -- Configure Hydra outputs to route to FX chains
+        for output_index = 1, 9 do
+          local fx_chain_index = fx_chain_start + output_index - 1
+          local param_base = (output_index - 1) * 5 + 2  -- Out1 starts at param 2, Out2 at param 7, etc.
+          
+          hydra_device.parameters[param_base].value = fx_chain_index - 1     -- Track (0-based)
+          hydra_device.parameters[param_base + 1].value = 1                 -- Effect (1 = first device in chain)
+          hydra_device.parameters[param_base + 2].value = 8                 -- Parameter (8 = gain parameter)
+          hydra_device.parameters[param_base + 3].value = 0                 -- Min
+          hydra_device.parameters[param_base + 4].value = 1                 -- Max
+        end
+        
+        -- Insert Key Tracker BEFORE the Hydra (at start_position)
+        local keytracker_success, keytracker_err = pcall(function()
+          chain:insert_device_at("Audio/Effects/Native/*Key Tracker", start_position)
+        end)
+        
+        if keytracker_success then
+          -- Refresh the devices list after insertion
+          sample_devices = chain.devices
+          local keytracker_device = sample_devices[start_position]
+          if keytracker_device then
+            -- Apply Key Tracker XML preset with CORRECT key tracking range
+            local keytracker_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="KeyTrackingDevice">
+    <IsMaximized>true</IsMaximized>
+    <SrcInstrument>0</SrcInstrument>
+    <DestScaling>Linear</DestScaling>
+    <KeyTrackingMode>Clamp</KeyTrackingMode>
+    <KeyTrackingMin>%d</KeyTrackingMin>
+    <KeyTrackingMax>%d</KeyTrackingMax>
+    <DestMin>
+      <Value>0.0</Value>
+    </DestMin>
+    <DestMax>
+      <Value>1.0</Value>
+    </DestMax>
+  </DeviceSlot>
+</FilterDevicePreset>]=], note_start, note_end)
+            
+            keytracker_device.active_preset_data = keytracker_xml
+            keytracker_device.display_name = string.format("KeyTracker %d-%d", note_start, note_end)
+            
+            -- Set Key Tracker parameters for connection to Hydra (which is now at start_position + 1)
+            local hydra_device_index = start_position + 1
+            keytracker_device.parameters[1].value = -1  -- Dest. Track
+            keytracker_device.parameters[2].value = hydra_device_index - 1  -- Dest. Effect (0-based index)
+            keytracker_device.parameters[3].value = 1   -- Dest. Parameter (Input)
+            keytracker_device.parameters[4].value = 0   -- Dest. Min
+            keytracker_device.parameters[5].value = 1   -- Dest. Max
+            
+            loaded_count = loaded_count + 1
+            print(string.format("Injected KeyTracker %d-%d -> Hydra C-%d -> FX Chains %d-%d", 
+                  note_start, note_end, pair_index, fx_chain_start, fx_chain_end))
+          end
+        else
+          print("Failed to load Key Tracker " .. pair_index .. ": " .. tostring(keytracker_err))
+        end
+      end
+    else
+      print("Failed to load Hydra " .. pair_index .. ": " .. tostring(hydra_err))
+    end
+  end
+  
+  if loaded_count > 0 then
+    renoise.app():show_status("Injected " .. loaded_count .. " Key Tracker + Hydra pairs to FX chain 120")
+  else
+    renoise.app():show_status("Failed to inject any Key Tracker + Hydra pairs")
+  end
+end
+
+-- Function to set all Send devices in selected instrument to route to "Output" track FX chain
+function selectedInstrumentSetAllSendsToOutputTrack()
+  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+  
+  -- Check if the instrument exists and has sample device chains
+  if not instrument or #instrument.sample_device_chains == 0 then
+    renoise.app():show_status("No sample FX chains available")
+    return
+  end
+  
+  local num_chains = #instrument.sample_device_chains
+  local send_count = 0
+  local updated_count = 0
+  
+  -- Iterate through all FX chains
+  for chain_index = 1, num_chains do
+    local chain = instrument.sample_device_chains[chain_index]
+    if chain then
+      local sample_devices = chain.devices
+      
+      -- Check each device in the chain
+      for device_index = 1, #sample_devices do
+        local device = sample_devices[device_index]
+        if device and device.name == "#Send" then
+          send_count = send_count + 1
+          
+          -- Set the Send to route to "Output" track FX chain
+          -- Parameter 3 is the Receiver parameter (DestSendTrack)
+          -- Set to value 120 for "Output" track (as shown in your example)
+          device.parameters[3].value = 120
+          
+          updated_count = updated_count + 1
+          print("Updated Send device in FX chain " .. chain_index .. " to route to Output track")
+        end
+      end
+    end
+  end
+  
+  if send_count > 0 then
+    renoise.app():show_status("Updated " .. updated_count .. "/" .. send_count .. " Send devices to route to Output track")
+  else
+    renoise.app():show_status("No Send devices found in any FX chains")
+  end
+end
+
+-- Function to load MuteTrig drumkit with 120 samples and configure Key Trackers
+function selectedInstrumentLoadMuteTrigDrumkit()
+  -- Seed the random number generator with current time
+  math.randomseed(os.time())
+  -- Add some random calls to further randomize the sequence
+  math.random(); math.random(); math.random()
+
+  -- If no folder_path provided, prompt the user to select a folder
+  local folder_path = renoise.app():prompt_for_path("Select Folder to Randomize Drumkit Loading From")
+  if not folder_path then
+    renoise.app():show_status("No folder selected.")
+    return nil
+  end
+
+  -- Get all valid audio files in the selected directory and subdirectories using global function
+  local original_sample_files = PakettiGetFilesInDirectory(folder_path)
+  
+  -- Check if there are enough files to choose from
+  if #original_sample_files == 0 then
+    renoise.app():show_status("No audio files found in the selected folder.")
+    return nil
+  end
+
+  -- Create a working copy of the files table for this run
+  local sample_files = {}
+  for i, file in ipairs(original_sample_files) do
+    sample_files[i] = file
+  end
+
+  -- Check if the selected instrument slot is empty or contains a plugin
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if #instrument.samples > 0 or instrument.plugin_properties.plugin_loaded then
+    song:insert_instrument_at(song.selected_instrument_index + 1)
+    song.selected_instrument_index = song.selected_instrument_index + 1
+    instrument = song.selected_instrument
+  end
+
+  -- Load the 12st_Pitchbend_Drumkit_C0_mutegroup.xrni instrument (the scaffolding)
+  local mutetrig_instrument_path = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0_mutegroup.xrni"
+  renoise.app():load_instrument(mutetrig_instrument_path)
+
+  -- Update the instrument reference after loading the instrument
+  instrument = song.selected_instrument
+
+  -- Set the instrument name based on slot
+  local instrument_slot_hex = string.format("%02X", song.selected_instrument_index - 1)
+  instrument.name = instrument_slot_hex .. "_MuteTrig"
+
+  -- Limit the number of samples to load to the requested amount
+  local num_samples_to_load = math.min(#sample_files, 120)
+
+  -- Create a table to store failed loads
+  local failed_loads = {}
+  
+  -- Create ProcessSlicer instance and dialog
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+
+  -- Define the process function
+  local function process_func()
+    -- Load each sample as a new drum zone with specified properties
+    for i = 1, num_samples_to_load do
+      -- Update progress
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Loading sample %d/%d...", 
+          i, num_samples_to_load)
+      end
+
+      -- Get a random file from our working copy
+      local random_index = math.random(1, #sample_files)
+      local selected_file = sample_files[random_index]
+      table.remove(sample_files, random_index)
+
+      local file_name = selected_file:match("([^/\\]+)%.%w+$")
+
+      if #instrument.samples < i then
+        instrument:insert_sample_at(i)
+      end
+
+      local sample = instrument.samples[i]
+      local sample_buffer = sample.sample_buffer
+
+      -- Load the sample file into the sample buffer
+      local success, error_message = pcall(function()
+        return sample_buffer:load_from(selected_file)
+      end)
+
+      if success and error_message then
+        sample.name = file_name
+        sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+        sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+        sample.oneshot = preferences.pakettiLoaderOneshot.value
+        sample.autofade = preferences.pakettiLoaderAutofade.value
+        sample.autoseek = preferences.pakettiLoaderAutoseek.value
+        sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+        sample.new_note_action = preferences.pakettiLoaderNNA.value
+        sample.loop_release = preferences.pakettiLoaderLoopExit.value
+        
+        renoise.app():show_status(formatDigits(3,i) .. ": Loaded sample: " .. file_name)
+      else
+        -- Get file info for better error reporting
+        local folder_path = selected_file:match("(.*[/\\])")
+        local file_size = "unknown"
+        local file_handle = io.open(selected_file, "rb")
+        if file_handle then
+          file_size = string.format("%.2f MB", file_handle:seek("end") / 1024 / 1024)
+          file_handle:close()
+        end
+        
+        -- Store failed loads with their index and error message
+        table.insert(failed_loads, {
+          index = i,
+          file = selected_file,
+          folder = folder_path,
+          size = file_size,
+          error = tostring(error_message)
+        })
+      end
+
+      -- Yield every few samples to keep UI responsive
+      if i % 5 == 0 then
+        if slicer:was_cancelled() then
+          return
+        end
+        coroutine.yield()
+      end
+    end
+
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+
+    -- Create one more sample slot (sample 121) BEFORE distributing to FX chains
+    instrument:insert_sample_at(121)
+    local mutetrig_sample = instrument.samples[121]
+    
+    -- Set the sample name
+    mutetrig_sample.name = "MuteTrig"
+    
+    -- Create a 1-frame sample buffer
+    local sample_buffer = mutetrig_sample.sample_buffer
+    sample_buffer:create_sample_data(44100, 16, 1, 1)  -- 44.1kHz, 16-bit, mono, 1 frame
+    
+    -- Set the sample to play from C0 to B9 (notes 0-119)
+    mutetrig_sample.sample_mapping.note_range = {0, 119}
+    mutetrig_sample.sample_mapping.base_note = 0  -- C0
+    
+    -- NOW distribute all samples (including the MuteTrig sample) to separate FX chains
+    selectedInstrumentDistributeToSeparateFxChains()
+    
+    -- Find and modify all Key Tracker devices in the "MuteTrig" FX chain
+    -- The MuteTrig sample should be using FX chain 121 (since it's sample 121)
+    local mutetrig_fx_chain = instrument.sample_device_chains[121]
+    if mutetrig_fx_chain then
+      local devices = mutetrig_fx_chain.devices
+      
+      for device_index = 1, #devices do
+        local device = devices[device_index]
+        if device and device.name == "*Key Tracker" then
+          -- Modify the Key Tracker to use SrcInstrument 121 (the MuteTrig sample)
+          device.parameters[1].value = 121  -- SrcInstrument parameter
+          
+          print("Updated Key Tracker in MuteTrig FX chain to use SrcInstrument 121")
+        end
+      end
+    else
+      print("Could not find FX chain 121 for MuteTrig sample")
+    end
+
+    -- Add the *Instr. Macros device like pitchBendDrumkitLoader does
+    if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
+      -- Load the *Instr. Macros device and rename it
+      if song.selected_track.type == 2 then 
+        renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") 
+      else
+        loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
+        
+        -- Check if device 2 exists before accessing it
+        if #song.selected_track.devices >= 2 then
+          local macro_device = song.selected_track:device(2)
+          macro_device.display_name = instrument_slot_hex .. "_MuteTrig"
+          song.selected_track.devices[2].is_maximized = false
+        end
+      end
+    end
+
+    -- Show summary of failed loads if any
+    if #failed_loads > 0 then
+      local message = "Failed to load " .. #failed_loads .. " samples:\n"
+      for _, fail in ipairs(failed_loads) do
+        message = message .. string.format("\nIndex %d: %s\nFolder: %s\nSize: %s\nError: %s\n",
+          fail.index, fail.file:match("([^/\\]+)$"), fail.folder, fail.size, fail.error)
+      end
+      renoise.app():show_warning(message)
+    end
+  end
+
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Loading Random MuteTrig Drumkit Samples")
+  slicer:start()
+
+  -- Return the loaded instrument
+  return instrument
+end
+
 -- Function to delete all sample Modulation Sets (keeps only the first one)
 function selectedInstrumentDeleteAllSampleModulationSets()
   local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
@@ -637,6 +1086,28 @@ renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Inject LFO->Gainer->
 
 renoise.tool():add_keybinding{name="Global:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
+
+-- Menu entries and keybindings for injecting Key Trackers and Hydras to last FX chain
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
+
+-- Menu entries and keybindings for setting all Sends to Output track
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Drumkit Loader MuteTrig (Randomize)",invoke=function() selectedInstrumentLoadMuteTrigDrumkit() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Paketti Drumkit Loader MuteTrig (Randomize)",invoke=function() selectedInstrumentLoadMuteTrigDrumkit() end}
+
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 

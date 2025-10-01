@@ -2330,6 +2330,8 @@ function rename_tracks_by_played_samples()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
+
 -----
 -- Function to modify selected XY Pad parameter
 local function modify_selected_xy_pad_param(param_name, midi_message)
