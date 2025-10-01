@@ -983,7 +983,7 @@ if preferences.pakettiMenuConfig.PatternEditor then
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Automation:Convert FX to Automation",invoke = read_fx_to_automation}
   
-  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:LFO Write:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:LFO Write:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:LFO Write:LFO Write to Effect Column 1 (0Yxx)",invoke=function() toggle_fx_amount_following("0Y") end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:LFO Write:LFO Write to Effect Column 1 (0Sxx)",invoke=function() toggle_fx_amount_following("0S") end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:LFO Write:LFO Write to Effect Column 1 (0Dxx)",invoke=function() toggle_fx_amount_following("0D") end}
@@ -1029,7 +1029,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Effect Columns:Wipe
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Wipe All Effect Columns on Selected Track on Song",invoke=function() wipe_effect_columns(false, true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Wipe All Effect Columns on Selected Pattern",invoke=function() wipe_effect_columns(true, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Wipe All Effect Columns on Song",invoke=function() wipe_effect_columns(true, true) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:BPM&LPB:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM&LPB:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM&LPB:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Instruments:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Instruments:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
@@ -1112,8 +1112,8 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Resize all no
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Resize all non-empty Patterns:Resize all non-empty Patterns to 384",invoke=function() resize_all_non_empty_patterns_to(384) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Resize all non-empty Patterns:Resize all non-empty Patterns to 512",invoke=function() resize_all_non_empty_patterns_to(512) end}
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Random",invoke=function() writeNotesMethod("random") end}
@@ -1134,17 +1134,17 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Increase All T
 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Paketti Stacker:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Toggle All Columns",invoke=function() toggleColumns(true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Toggle All Columns",invoke=function() toggleColumns(true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Toggle Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Toggle Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Toggle Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Toggle Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Toggle Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Toggle Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Toggle Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Toggle Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Paketti Stacker:Write Velocity Ramp Up for Stacked Instrument",invoke=function() write_velocity_ramp_up() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Paketti Stacker:Write Velocity Ramp Down for Stacked Instrument",invoke=function() write_velocity_ramp_down() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Paketti Stacker:Write Velocity Random for Stacked Instrument",invoke=function() write_random_velocity_notes() end}
@@ -1216,7 +1216,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:(Gxx) 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Effect Columns:Switch Effect Column/Note Column",invoke=function() switchcolumns() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Effect Columns:ZBxx Jump To Row (Next)",invoke=function() JumpToNextRow() end}
   
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Xperimental/WIP:Match Effect Column EditStep with Note Placement",invoke=function() toggle_match_editstep_effect() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Match Effect Column EditStep with Note Placement",invoke=function() toggle_match_editstep_effect() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Match Note Column EditStep with Note Placement",invoke=function() toggle_match_editstep_note() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Clear Selected Track Above Current Row",invoke=function() clear_track_direction("above",false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Clear Selected Track Below Current Row",invoke=function() clear_track_direction("below",false) end}
@@ -1295,18 +1295,18 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Record:Paketti Overdu
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Record:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Columns:Interpolate Notes",invoke=function() note_interpolation() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Global Visible Column (All)",invoke=function() globalChangeVisibleColumnState("volume",true)
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Global Visible Column (All)",invoke=function() globalChangeVisibleColumnState("volume",true)
 globalChangeVisibleColumnState("panning",true) globalChangeVisibleColumnState("delay",true) globalChangeVisibleColumnState("sample_effects",true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Global Visible Column (None)",invoke=function() globalChangeVisibleColumnState("volume",false)
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Global Visible Column (None)",invoke=function() globalChangeVisibleColumnState("volume",false)
 globalChangeVisibleColumnState("panning",false) globalChangeVisibleColumnState("delay",false) globalChangeVisibleColumnState("sample_effects",false) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Visible Columns:Toggle Visible Column (Volume) Globally",invoke=function() globalToggleVisibleColumnState("volume") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Toggle Visible Column (Panning) Globally",invoke=function() globalToggleVisibleColumnState("panning") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Toggle Visible Column (Delay) Globally",invoke=function() globalToggleVisibleColumnState("delay") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Toggle Visible Column (Sample Effects) Globally",invoke=function() globalToggleVisibleColumnState("sample_effects") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Global Visible Column (Volume)",invoke=function() globalChangeVisibleColumnState("volume",true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Global Visible Column (Panning)",invoke=function() globalChangeVisibleColumnState("panning",true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Global Visible Column (Delay)",invoke=function() globalChangeVisibleColumnState("delay",true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Visible Columns:Global Visible Column (Sample Effects)",invoke=function() globalChangeVisibleColumnState("sample_effects",true) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Tracks:Visible Columns:Toggle Visible Column (Volume) Globally",invoke=function() globalToggleVisibleColumnState("volume") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Toggle Visible Column (Panning) Globally",invoke=function() globalToggleVisibleColumnState("panning") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Toggle Visible Column (Delay) Globally",invoke=function() globalToggleVisibleColumnState("delay") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Toggle Visible Column (Sample Effects) Globally",invoke=function() globalToggleVisibleColumnState("sample_effects") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Global Visible Column (Volume)",invoke=function() globalChangeVisibleColumnState("volume",true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Global Visible Column (Panning)",invoke=function() globalChangeVisibleColumnState("panning",true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Global Visible Column (Delay)",invoke=function() globalChangeVisibleColumnState("delay",true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Global Visible Column (Sample Effects)",invoke=function() globalChangeVisibleColumnState("sample_effects",true) end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus:Transposer Row -03",invoke=function() PakettiTransposer(-3, false) end}
