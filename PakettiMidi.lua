@@ -2237,6 +2237,10 @@ function rename_tracks_by_played_samples()
   local song=renoise.song()
   local pattern = song:pattern(song.selected_pattern_index)
   
+  -- Cache for instrument data to avoid repeated lookups
+  local instrument_cache = {}
+  local renamed_count = 0
+  
   -- Store used samples for each track
   local track_samples = {}
   
@@ -2247,52 +2251,61 @@ function rename_tracks_by_played_samples()
     
     -- Skip master, send tracks, and group tracks
     if song_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-      for line_idx, line in ipairs(track.lines) do
-        for _, note_col in ipairs(line.note_columns) do
-          if note_col.note_value >= 0 and note_col.instrument_value >= 0 then
-            local instr = song.instruments[note_col.instrument_value + 1]
-            if instr then
-              local found_sample = false
-              
-              print(string.format("\nTrack %d Line %d: Note %d Instrument '%s'", 
-                track_idx, line_idx, note_col.note_value, instr.name))
-              
-              -- Check each mapping group
-              for map_group_idx, map_group in ipairs(instr.sample_mappings) do
-                -- Check each individual mapping in the group
-                for map_idx = 1, #map_group do
-                  local mapping = map_group[map_idx]
-                  if mapping and mapping.note_range then
-                    print(string.format("  Checking mapping group %d index %d", map_group_idx, map_idx))
-                    print(string.format("  Note range: %d to %d", mapping.note_range[1], mapping.note_range[2]))
-                    
-                    -- Check if note is in range
-                    if note_col.note_value >= mapping.note_range[1] and 
-                       note_col.note_value <= mapping.note_range[2] then
-                      -- Get the sample directly from the mapping
-                      if mapping.sample then
-                        local name = mapping.sample.name
-                        if name and name ~= "" then
-                          track_samples[track_idx][name] = true
-                          found_sample = true
-                          print(string.format("  Found match! Using sample '%s'", name))
-                          break
+      -- Early exit if track has no lines
+      if #track.lines > 0 then
+        for line_idx, line in ipairs(track.lines) do
+          -- Early exit if line has no note columns
+          if #line.note_columns > 0 then
+        
+            for _, note_col in ipairs(line.note_columns) do
+              if note_col.note_value >= 0 and note_col.instrument_value >= 0 then
+                local instr_idx = note_col.instrument_value + 1
+                
+                -- Use cached instrument data
+                local instr = instrument_cache[instr_idx]
+                if not instr then
+                  instr = song.instruments[instr_idx]
+                  if instr then
+                    instrument_cache[instr_idx] = instr
+                  end
+                end
+                
+                if instr then
+                  local found_sample = false
+                  
+                  -- Check each mapping group
+                  for map_group_idx, map_group in ipairs(instr.sample_mappings) do
+                    -- Check each individual mapping in the group
+                    for map_idx = 1, #map_group do
+                      local mapping = map_group[map_idx]
+                      if mapping and mapping.note_range then
+                        -- Check if note is in range
+                        if note_col.note_value >= mapping.note_range[1] and 
+                           note_col.note_value <= mapping.note_range[2] then
+                          -- Get the sample directly from the mapping
+                          if mapping.sample then
+                            local name = mapping.sample.name
+                            if name and name ~= "" then
+                              track_samples[track_idx][name] = true
+                              found_sample = true
+                              break
+                            end
+                          end
                         end
                       end
                     end
+                    if found_sample then break end
                   end
-                end
-                if found_sample then break end
-              end
-              
-              -- Only use first sample as fallback if no mapping was found
-              if not found_sample and #instr.samples > 0 then
-                local sample = instr.samples[1]
-                if sample and sample.sample_buffer.has_sample_data then
-                  local name = sample.name
-                  if name and name ~= "" then
-                    track_samples[track_idx][name] = true
-                    print(string.format("No mapping found, using first sample '%s'", name))
+                  
+                  -- Only use first sample as fallback if no mapping was found
+                  if not found_sample and #instr.samples > 0 then
+                    local sample = instr.samples[1]
+                    if sample and sample.sample_buffer.has_sample_data then
+                      local name = sample.name
+                      if name and name ~= "" then
+                        track_samples[track_idx][name] = true
+                      end
+                    end
                   end
                 end
               end
@@ -2321,16 +2334,60 @@ function rename_tracks_by_played_samples()
           end
           song_track.name = new_name
         end
-        renoise.app():show_status("Renamed track " .. track_idx .. " to: " .. song_track.name)
-      else
-        print(string.format("No samples found for track %d", track_idx))
+        renamed_count = renamed_count + 1
       end
     end
+  end
+  
+  -- Single status update instead of individual ones
+  if renamed_count > 0 then
+    renoise.app():show_status("Renamed " .. renamed_count .. " tracks based on played samples")
+  else
+    renoise.app():show_status("No tracks renamed - no samples found in pattern")
+  end
+end
+
+-- Function to rename current track to selected instrument name
+function PakettiRenameCurrentTrackToSelectedInstrument()
+  local song = renoise.song()
+  local selected_track = song.selected_track
+  
+  if not selected_track then
+    renoise.app():show_status("No track selected")
+    return
+  end
+  
+  if selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Can only rename sequencer tracks")
+    return
+  end
+  
+  local selected_instrument = song.selected_instrument
+  if not selected_instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local instrument_name = selected_instrument.name
+  if not instrument_name or instrument_name == "" then
+    renoise.app():show_status("Selected instrument has no name")
+    return
+  end
+  
+  local old_name = selected_track.name or ""
+  selected_track.name = instrument_name
+  
+  if old_name == "" then
+    renoise.app():show_status("Renamed track to: " .. instrument_name)
+  else
+    renoise.app():show_status("Renamed track from '" .. old_name .. "' to: " .. instrument_name)
   end
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rename Current Track to Selected Instrument Name",invoke=function() PakettiRenameCurrentTrackToSelectedInstrument() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Rename Current Track to Selected Instrument Name",invoke=function() PakettiRenameCurrentTrackToSelectedInstrument() end}
 
 -----
 -- Function to modify selected XY Pad parameter
@@ -3186,4 +3243,5 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:De
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",
   invoke=function() paketti_delete_all_repeaters() end
+}
 }

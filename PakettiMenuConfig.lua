@@ -910,6 +910,8 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti:Randomize Devices and Plugin
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Tracks:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Tracks:Rename Current Track to Selected Instrument Name",invoke=function() PakettiRenameCurrentTrackToSelectedInstrument() end}
+
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Clean Render:Clean Render Selected Track/Group LPB*2",invoke=function() pakettiCleanRenderSelectionLPB() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Clean Render:Clean Render Seamless Selected Track/Group",invoke=function() PakettiSeamlessCleanRenderSelection() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Clean Render:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
@@ -1018,7 +1020,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Invert All Su
 
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
-  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Instruments:Duplicate and Reverse Instrument",invoke=PakettiDuplicateAndReverseInstrument}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Instruments:Duplicate and Reverse Instrument",invoke=PakettiDuplicateAndReverseInstrument}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Automation:Wipe All Automation in Track on Current Pattern",invoke=function() delete_automation(false, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
@@ -1060,6 +1062,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All De
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Generate&Randomize:Write 0Sxx Command Random Slice/Offset",invoke=function() write_random_slice_command() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Tracks:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Tracks:Rename Current Track to Selected Instrument Name",invoke=function() PakettiRenameCurrentTrackToSelectedInstrument() end}
 
 
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Interpolate Column Values (Volume)",invoke=function() volume_interpolation() end}
@@ -1147,7 +1150,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Paketti Stacker:Write
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Paketti Stacker:Write Velocity Random for Stacked Instrument",invoke=function() write_random_velocity_notes() end}
 
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:--Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Delete all Pattern Sequences",invoke=function() delete_all_pattern_sequences() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delete Unused Columns", invoke = deleteUnusedColumns}

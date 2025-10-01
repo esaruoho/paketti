@@ -2638,7 +2638,10 @@ function PakettiHyperEditSetupDeviceObserver()
         local timer_func
         timer_func = function()
           print("DEBUG: Device change - calling PopulateFromExistingAutomation with FRESH references")
+          -- Set flag to prevent clearing row data during device updates
+          is_updating_device_lists = true
           PakettiHyperEditPopulateFromExistingAutomation()
+          is_updating_device_lists = false
           
           -- Step 4: Update device dropdowns AFTER automation population (with fresh references)
           local fresh_devices = PakettiHyperEditGetDevices() -- Get fresh device list
