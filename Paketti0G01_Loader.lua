@@ -130,6 +130,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiEnableGlobalGrooveOnStartup=false,
   pakettiRandomizeBPMOnNewSong=false,
   pakettiPatternStatusMonitor=false,
+  pakettiFrameCalculatorLiveUpdate=1, -- 1=Off, 2=Song to Line, 3=Pattern to Line, 4=Both
   
   pakettiCaptureLastTakeSmartNoteOff=true,
   pakettiSwitcharooAutoGrab=true,
@@ -1010,6 +1011,17 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 vb:text{text="Pattern Status Monitor",width=150,tooltip="Show real-time effect/note column information in status bar",},
                 vb:switch{items={"Off","On"},tooltip="Show real-time effect/note column information in status bar",value=preferences.pakettiPatternStatusMonitor.value and 2 or 1,width=200,
                   notifier=function(value) preferences.pakettiPatternStatusMonitor.value=(value==2) end}},
+              vb:row{
+                vb:text{text="Frame Calculator Live Update",width=150,tooltip="Continuously show frame information in status bar when line changes",},
+                vb:switch{items={"Off","Song to Line","Pattern to Line","Both"},tooltip="Continuously show frame information in status bar when line changes",value=preferences.pakettiFrameCalculatorLiveUpdate.value,width=300,
+                  notifier=function(value) 
+                    preferences.pakettiFrameCalculatorLiveUpdate.value=value
+                    if value == 1 then
+                      pakettiFrameCalculatorStopLiveUpdate()
+                    else
+                      pakettiFrameCalculatorStartLiveUpdate()
+                    end
+                  end}},
               vb:row{
                 vb:text{text="Switcharoo Auto-Grab",width=150,tooltip="Automatically grab chords from pattern when opening Paketti Switcharoo dialog",},
                 vb:switch{items={"Off","On"},tooltip="Automatically grab chords from pattern when opening Paketti Switcharoo dialog",value=preferences.pakettiSwitcharooAutoGrab.value and 2 or 1,width=200,
@@ -2228,6 +2240,7 @@ end
 
 function initialize_tool()
     update_0G01_loader_menu_entries()
+    pakettiFrameCalculatorInitializeLiveUpdate()
 end
 
 function safe_initialize()
@@ -2270,6 +2283,123 @@ end
 
 -- Initialize the tool
 safe_initialize()
+
+-- Frame Calculator Live Update Timer
+local pakettiFrameCalculatorTimer = nil
+
+-- Frame Calculator Live Update Functions
+function pakettiFrameCalculatorLiveUpdate()
+  local mode = preferences.pakettiFrameCalculatorLiveUpdate.value
+  if mode == 1 then -- Off
+    return
+  end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  local transport = song.transport
+  local sequencer = song.sequencer
+  
+  -- Get current transport settings
+  local bpm = transport.bpm
+  local lpb = transport.lpb
+  local sample_rate = 44100
+  
+  -- Get current sequence position and selected line
+  local current_sequence_pos = song.selected_sequence_index
+  local selected_line = song.selected_line_index
+  
+  local status_parts = {}
+  
+  -- Calculate Song to Line if needed
+  if mode == 2 or mode == 4 then -- Song to Line or Both
+    local song_frames = 0
+    local song_seconds = 0
+    local song_rows = 0
+    
+    -- Calculate frames for all patterns before current sequence position
+    for i = 1, current_sequence_pos - 1 do
+      local pattern_index = sequencer.pattern_sequence[i]
+      local pattern = song:pattern(pattern_index)
+      local pattern_lines = pattern.number_of_lines
+      
+      local pattern_beats = pattern_lines / lpb
+      local pattern_seconds = (pattern_beats * 60) / bpm
+      local pattern_frames = math.floor(pattern_seconds * sample_rate + 0.5)
+      
+      song_frames = song_frames + pattern_frames
+      song_seconds = song_seconds + pattern_seconds
+      song_rows = song_rows + pattern_lines
+    end
+    
+    -- Add frames from current pattern to selected line
+    local current_pattern = song:pattern(sequencer.pattern_sequence[current_sequence_pos])
+    local lines_to_selected = selected_line - 1
+    local beats_to_selected = lines_to_selected / lpb
+    local seconds_to_selected = (beats_to_selected * 60) / bpm
+    local frames_to_selected = math.floor(seconds_to_selected * sample_rate + 0.5)
+    
+    song_frames = song_frames + frames_to_selected
+    song_seconds = song_seconds + seconds_to_selected
+    song_rows = song_rows + lines_to_selected
+    
+    local song_minutes = math.floor(song_seconds / 60)
+    local song_secs = song_seconds - (song_minutes * 60)
+    
+    table.insert(status_parts, string.format(
+      "Song to line %d: %.2fs | %d frames | %d rows | %d:%05.2f",
+      selected_line, song_seconds, song_frames, song_rows, song_minutes, song_secs
+    ))
+  end
+  
+  -- Calculate Pattern to Line if needed
+  if mode == 3 or mode == 4 then -- Pattern to Line or Both
+    local current_pattern = song:pattern(sequencer.pattern_sequence[current_sequence_pos])
+    local lines_to_selected = selected_line - 1
+    local beats_to_selected = lines_to_selected / lpb
+    local seconds_to_selected = (beats_to_selected * 60) / bpm
+    local frames_to_selected = math.floor(seconds_to_selected * sample_rate + 0.5)
+    
+    local pattern_minutes = math.floor(seconds_to_selected / 60)
+    local pattern_secs = seconds_to_selected - (pattern_minutes * 60)
+    
+    table.insert(status_parts, string.format(
+      "Pattern to line %d: %.2fs | %d frames | %d rows | %d:%05.2f",
+      selected_line, seconds_to_selected, frames_to_selected, lines_to_selected, pattern_minutes, pattern_secs
+    ))
+  end
+  
+  -- Combine results
+  local status_text = table.concat(status_parts, " | ")
+  renoise.app():show_status(status_text)
+end
+
+function pakettiFrameCalculatorStartLiveUpdate()
+  -- Stop any existing timer first
+  pakettiFrameCalculatorStopLiveUpdate()
+  
+  -- Start timer that updates every 100ms using app_idle_observable
+  pakettiFrameCalculatorTimer = renoise.tool().app_idle_observable:add_notifier(function()
+    pakettiFrameCalculatorLiveUpdate()
+  end)
+  
+  -- Show initial status
+  pakettiFrameCalculatorLiveUpdate()
+end
+
+function pakettiFrameCalculatorStopLiveUpdate()
+  -- Remove the timer if it exists
+  if pakettiFrameCalculatorTimer then
+    renoise.tool().app_idle_observable:remove_notifier(pakettiFrameCalculatorTimer)
+    pakettiFrameCalculatorTimer = nil
+  end
+end
+
+function pakettiFrameCalculatorInitializeLiveUpdate()
+  if preferences.pakettiFrameCalculatorLiveUpdate.value > 1 then
+    pakettiFrameCalculatorStartLiveUpdate()
+  end
+end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Preferences...",invoke=pakettiPreferences}
 
