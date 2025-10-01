@@ -3244,4 +3244,3 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:De
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",
   invoke=function() paketti_delete_all_repeaters() end
 }
-}
