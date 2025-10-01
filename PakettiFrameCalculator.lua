@@ -1,44 +1,6 @@
 local vb = renoise.ViewBuilder()
 local dialog
 
--- Parse pattern effects to find BPM and LPB changes
-function PakettiFrameCalculatorParsePatternEffects(pattern)
-  local bpm = nil
-  local lpb = nil
-  
-  -- Check all tracks in the pattern
-  for track_index = 1, #pattern.tracks do
-    local track = pattern.tracks[track_index]
-    
-    -- Check all lines in the track
-    for line_index = 1, pattern.number_of_lines do
-      local line = track:line(line_index)
-      
-      -- Check all effect columns in the line
-      for effect_column = 1, #line.effect_columns do
-        local effect = line.effect_columns[effect_column]
-        
-        -- Check for ZTxx (BPM change) - ZT00 to ZTFF (0-255 BPM)
-        if effect.number_string == "ZT" then
-          local bpm_value = tonumber(effect.amount_string, 16)
-          if bpm_value and bpm_value >= 32 and bpm_value <= 255 then
-            bpm = bpm_value
-          end
-        end
-        
-        -- Check for ZLxx (LPB change) - ZL01 to ZL10 (1-16 LPB)
-        if effect.number_string == "ZL" then
-          local lpb_value = tonumber(effect.amount_string, 16)
-          if lpb_value and lpb_value >= 1 and lpb_value <= 16 then
-            lpb = lpb_value
-          end
-        end
-      end
-    end
-  end
-  
-  return bpm, lpb
-end
 
 -- Calculate frame length of current pattern
 function PakettiFrameCalculatorGetPatternFrames()
@@ -106,20 +68,18 @@ function PakettiFrameCalculatorShowSequenceInfo()
   local transport = song.transport
   local sequencer = song.sequencer
   
-  -- Get current transport settings as defaults
-  local default_bpm = transport.bpm
-  local default_lpb = transport.lpb
+  -- Get current transport settings
+  local bpm = transport.bpm
+  local lpb = transport.lpb
   local sample_rate = 44100
   
   print("=== SEQUENCE FRAME CALCULATION ===")
-  print("Default BPM:", default_bpm, "| Default LPB:", default_lpb, "| Sample Rate:", sample_rate)
+  print("BPM:", bpm, "| LPB:", lpb, "| Sample Rate:", sample_rate)
   print("")
   
   local total_frames = 0
   local total_seconds = 0
   local pattern_count = 0
-  local current_bpm = default_bpm
-  local current_lpb = default_lpb
   
   -- Calculate frames for each pattern in sequence
   for i = 1, #sequencer.pattern_sequence do
@@ -127,35 +87,17 @@ function PakettiFrameCalculatorShowSequenceInfo()
     local pattern = song:pattern(pattern_index)
     local pattern_lines = pattern.number_of_lines
     
-    -- Check for pattern-specific BPM/LPB changes
-    local pattern_bpm, pattern_lpb = PakettiFrameCalculatorParsePatternEffects(pattern)
-    if pattern_bpm then
-      current_bpm = pattern_bpm
-    end
-    if pattern_lpb then
-      current_lpb = pattern_lpb
-    end
-    
-    -- Calculate pattern duration using current BPM/LPB
-    local pattern_beats = pattern_lines / current_lpb
-    local pattern_seconds = (pattern_beats * 60) / current_bpm
+    -- Calculate pattern duration
+    local pattern_beats = pattern_lines / lpb
+    local pattern_seconds = (pattern_beats * 60) / bpm
     local pattern_frames = math.floor(pattern_seconds * sample_rate + 0.5)
     
     total_frames = total_frames + pattern_frames
     total_seconds = total_seconds + pattern_seconds
     pattern_count = pattern_count + 1
     
-    local bpm_info = ""
-    local lpb_info = ""
-    if pattern_bpm then
-      bpm_info = string.format(" (BPM: %d)", pattern_bpm)
-    end
-    if pattern_lpb then
-      lpb_info = string.format(" (LPB: %d)", pattern_lpb)
-    end
-    
-    print(string.format("Pattern %d (seq pos %d): %d lines | %.2f beats | %.2fs | %d frames%s%s", 
-      pattern_index, i, pattern_lines, pattern_beats, pattern_seconds, pattern_frames, bpm_info, lpb_info))
+    print(string.format("Pattern %d (seq pos %d): %d lines | %.2f beats | %.2fs | %d frames", 
+      pattern_index, i, pattern_lines, pattern_beats, pattern_seconds, pattern_frames))
   end
   
   print("")
@@ -231,9 +173,9 @@ function PakettiFrameCalculatorShowSongToLineInfo()
   local transport = song.transport
   local sequencer = song.sequencer
   
-  -- Get current transport settings as defaults
-  local default_bpm = transport.bpm
-  local default_lpb = transport.lpb
+  -- Get current transport settings
+  local bpm = transport.bpm
+  local lpb = transport.lpb
   local sample_rate = 44100
   
   -- Get current sequence position and selected line
@@ -243,13 +185,11 @@ function PakettiFrameCalculatorShowSongToLineInfo()
   print("=== SONG TO SELECTED LINE ===")
   print("Current sequence position:", current_sequence_pos)
   print("Selected line:", selected_line)
-  print("Default BPM:", default_bpm, "| Default LPB:", default_lpb, "| Sample Rate:", sample_rate)
+  print("BPM:", bpm, "| LPB:", lpb, "| Sample Rate:", sample_rate)
   print("")
   
   local total_frames = 0
   local total_seconds = 0
-  local current_bpm = default_bpm
-  local current_lpb = default_lpb
   
   -- Calculate frames for all patterns before current sequence position
   for i = 1, current_sequence_pos - 1 do
@@ -257,50 +197,22 @@ function PakettiFrameCalculatorShowSongToLineInfo()
     local pattern = song:pattern(pattern_index)
     local pattern_lines = pattern.number_of_lines
     
-    -- Check for pattern-specific BPM/LPB changes
-    local pattern_bpm, pattern_lpb = PakettiFrameCalculatorParsePatternEffects(pattern)
-    if pattern_bpm then
-      current_bpm = pattern_bpm
-    end
-    if pattern_lpb then
-      current_lpb = pattern_lpb
-    end
-    
-    local pattern_beats = pattern_lines / current_lpb
-    local pattern_seconds = (pattern_beats * 60) / current_bpm
+    local pattern_beats = pattern_lines / lpb
+    local pattern_seconds = (pattern_beats * 60) / bpm
     local pattern_frames = math.floor(pattern_seconds * sample_rate + 0.5)
     
     total_frames = total_frames + pattern_frames
     total_seconds = total_seconds + pattern_seconds
     
-    local bpm_info = ""
-    local lpb_info = ""
-    if pattern_bpm then
-      bpm_info = string.format(" (BPM: %d)", pattern_bpm)
-    end
-    if pattern_lpb then
-      lpb_info = string.format(" (LPB: %d)", pattern_lpb)
-    end
-    
-    print(string.format("Pattern %d (seq pos %d): %d lines | %.2f beats | %.2fs | %d frames%s%s", 
-      pattern_index, i, pattern_lines, pattern_beats, pattern_seconds, pattern_frames, bpm_info, lpb_info))
+    print(string.format("Pattern %d (seq pos %d): %d lines | %.2f beats | %.2fs | %d frames", 
+      pattern_index, i, pattern_lines, pattern_beats, pattern_seconds, pattern_frames))
   end
   
   -- Add frames from current pattern to selected line
   local current_pattern = song:pattern(sequencer.pattern_sequence[current_sequence_pos])
-  
-  -- Check for BPM/LPB changes in current pattern
-  local pattern_bpm, pattern_lpb = PakettiFrameCalculatorParsePatternEffects(current_pattern)
-  if pattern_bpm then
-    current_bpm = pattern_bpm
-  end
-  if pattern_lpb then
-    current_lpb = pattern_lpb
-  end
-  
   local lines_to_selected = selected_line - 1
-  local beats_to_selected = lines_to_selected / current_lpb
-  local seconds_to_selected = (beats_to_selected * 60) / current_bpm
+  local beats_to_selected = lines_to_selected / lpb
+  local seconds_to_selected = (beats_to_selected * 60) / bpm
   local frames_to_selected = math.floor(seconds_to_selected * sample_rate + 0.5)
   
   total_frames = total_frames + frames_to_selected
@@ -540,16 +452,14 @@ function PakettiFrameCalculatorDialog()
       local sequencer = song.sequencer
       local transport = song.transport
       
-      local default_bpm = transport.bpm
-      local default_lpb = transport.lpb
-      local current_bpm = default_bpm
-      local current_lpb = default_lpb
+      local bpm = transport.bpm
+      local lpb = transport.lpb
       
       local total_frames = 0
       local total_seconds = 0
       local pattern_count = 0
       
-      combined_text = string.format("=== WHOLE SONG ===\nDefault BPM: %d | Default LPB: %d | Sample Rate: %d\n\n", default_bpm, default_lpb, sample_rate)
+      combined_text = string.format("=== WHOLE SONG ===\nBPM: %d | LPB: %d | Sample Rate: %d\n\n", bpm, lpb, sample_rate)
       
       -- Calculate frames for each pattern in sequence
       for i = 1, #sequencer.pattern_sequence do
@@ -557,36 +467,18 @@ function PakettiFrameCalculatorDialog()
         local pattern = song:pattern(pattern_index)
         local pattern_lines_calc = pattern.number_of_lines
         
-        -- Check for pattern-specific BPM/LPB changes
-        local pattern_bpm, pattern_lpb = PakettiFrameCalculatorParsePatternEffects(pattern)
-        if pattern_bpm then
-          current_bpm = pattern_bpm
-        end
-        if pattern_lpb then
-          current_lpb = pattern_lpb
-        end
-        
-        -- Calculate pattern duration using current BPM/LPB
-        local pattern_beats = pattern_lines_calc / current_lpb
-        local pattern_seconds = (pattern_beats * 60) / current_bpm
+        -- Calculate pattern duration
+        local pattern_beats = pattern_lines_calc / lpb
+        local pattern_seconds = (pattern_beats * 60) / bpm
         local pattern_frames = math.floor(pattern_seconds * sample_rate + 0.5)
         
         total_frames = total_frames + pattern_frames
         total_seconds = total_seconds + pattern_seconds
         pattern_count = pattern_count + 1
         
-        local bpm_info = ""
-        local lpb_info = ""
-        if pattern_bpm then
-          bpm_info = string.format(" (BPM: %d)", pattern_bpm)
-        end
-        if pattern_lpb then
-          lpb_info = string.format(" (LPB: %d)", pattern_lpb)
-        end
-        
         combined_text = combined_text .. string.format(
-          "Pattern %d (seq pos %d): %d lines | %.2f beats | %.2fs | %d frames%s%s\n",
-          pattern_index, i, pattern_lines_calc, pattern_beats, pattern_seconds, pattern_frames, bpm_info, lpb_info
+          "Pattern %d (seq pos %d): %d lines | %.2f beats | %.2fs | %d frames\n",
+          pattern_index, i, pattern_lines_calc, pattern_beats, pattern_seconds, pattern_frames
         )
       end
       
@@ -603,20 +495,18 @@ function PakettiFrameCalculatorDialog()
       local transport = song.transport
       local sequencer = song.sequencer
       
-      local default_bpm = transport.bpm
-      local default_lpb = transport.lpb
+      local bpm = transport.bpm
+      local lpb = transport.lpb
       local sample_rate_calc = 44100
       local current_sequence_pos = song.selected_sequence_index
       local selected_line = song.selected_line_index
-      local current_bpm = default_bpm
-      local current_lpb = default_lpb
       
       local total_frames = 0
       local total_seconds = 0
       
       combined_text = string.format(
-        "=== SONG TO LINE %d ===\nDefault BPM: %d | Default LPB: %d | Sample Rate: %d\nCurrent Sequence Position: %d\nSelected Line: %d\n\n",
-        selected_line, default_bpm, default_lpb, sample_rate_calc, current_sequence_pos, selected_line
+        "=== SONG TO LINE %d ===\nBPM: %d | LPB: %d | Sample Rate: %d\nCurrent Sequence Position: %d\nSelected Line: %d\n\n",
+        selected_line, bpm, lpb, sample_rate_calc, current_sequence_pos, selected_line
       )
       
       -- Calculate frames for all patterns before current sequence position
@@ -625,52 +515,24 @@ function PakettiFrameCalculatorDialog()
         local pattern = song:pattern(pattern_index)
         local pattern_lines_calc = pattern.number_of_lines
         
-        -- Check for pattern-specific BPM/LPB changes
-        local pattern_bpm, pattern_lpb = PakettiFrameCalculatorParsePatternEffects(pattern)
-        if pattern_bpm then
-          current_bpm = pattern_bpm
-        end
-        if pattern_lpb then
-          current_lpb = pattern_lpb
-        end
-        
-        local pattern_beats = pattern_lines_calc / current_lpb
-        local pattern_seconds = (pattern_beats * 60) / current_bpm
+        local pattern_beats = pattern_lines_calc / lpb
+        local pattern_seconds = (pattern_beats * 60) / bpm
         local pattern_frames = math.floor(pattern_seconds * sample_rate_calc + 0.5)
         
         total_frames = total_frames + pattern_frames
         total_seconds = total_seconds + pattern_seconds
         
-        local bpm_info = ""
-        local lpb_info = ""
-        if pattern_bpm then
-          bpm_info = string.format(" (BPM: %d)", pattern_bpm)
-        end
-        if pattern_lpb then
-          lpb_info = string.format(" (LPB: %d)", pattern_lpb)
-        end
-        
         combined_text = combined_text .. string.format(
-          "Pattern %d (seq pos %d): %d lines | %.2f beats | %.2fs | %d frames%s%s\n",
-          pattern_index, i, pattern_lines_calc, pattern_beats, pattern_seconds, pattern_frames, bpm_info, lpb_info
+          "Pattern %d (seq pos %d): %d lines | %.2f beats | %.2fs | %d frames\n",
+          pattern_index, i, pattern_lines_calc, pattern_beats, pattern_seconds, pattern_frames
         )
       end
       
       -- Add frames from current pattern to selected line
       local current_pattern = song:pattern(sequencer.pattern_sequence[current_sequence_pos])
-      
-      -- Check for BPM/LPB changes in current pattern
-      local pattern_bpm, pattern_lpb = PakettiFrameCalculatorParsePatternEffects(current_pattern)
-      if pattern_bpm then
-        current_bpm = pattern_bpm
-      end
-      if pattern_lpb then
-        current_lpb = pattern_lpb
-      end
-      
       local lines_to_selected = selected_line - 1
-      local beats_to_selected = lines_to_selected / current_lpb
-      local seconds_to_selected = (beats_to_selected * 60) / current_bpm
+      local beats_to_selected = lines_to_selected / lpb
+      local seconds_to_selected = (beats_to_selected * 60) / bpm
       local frames_to_selected = math.floor(seconds_to_selected * sample_rate_calc + 0.5)
       
       total_frames = total_frames + frames_to_selected
@@ -690,35 +552,21 @@ function PakettiFrameCalculatorDialog()
       local selected_line = song.selected_line_index
       local current_pattern = song.selected_pattern
       
-      local default_bpm = transport.bpm
-      local default_lpb = transport.lpb
+      local bpm = transport.bpm
+      local lpb = transport.lpb
       local sample_rate_calc = 44100
       
-      -- Check for pattern-specific BPM/LPB changes
-      local pattern_bpm, pattern_lpb = PakettiFrameCalculatorParsePatternEffects(current_pattern)
-      local current_bpm = pattern_bpm or default_bpm
-      local current_lpb = pattern_lpb or default_lpb
-      
       local lines_to_selected = selected_line - 1
-      local beats_to_selected = lines_to_selected / current_lpb
-      local seconds_to_selected = (beats_to_selected * 60) / current_bpm
+      local beats_to_selected = lines_to_selected / lpb
+      local seconds_to_selected = (beats_to_selected * 60) / bpm
       local frames_to_selected = math.floor(seconds_to_selected * sample_rate_calc + 0.5)
       
       local minutes = math.floor(seconds_to_selected / 60)
       local seconds = seconds_to_selected - (minutes * 60)
       
-      local bpm_info = ""
-      local lpb_info = ""
-      if pattern_bpm then
-        bpm_info = string.format(" (Pattern BPM: %d)", pattern_bpm)
-      end
-      if pattern_lpb then
-        lpb_info = string.format(" (Pattern LPB: %d)", pattern_lpb)
-      end
-      
       combined_text = string.format(
-        "=== PATTERN TO LINE %d ===\nDefault BPM: %d | Default LPB: %d | Sample Rate: %d%s%s\nSelected Line: %d\n\nLines to Selected: %d\nPattern Beats: %.2f\nDuration (sec): %.2f\nDuration (frames): %d\nTime Format: %d:%05.2f",
-        selected_line, default_bpm, default_lpb, sample_rate_calc, bpm_info, lpb_info, selected_line, lines_to_selected, beats_to_selected, seconds_to_selected, frames_to_selected, minutes, seconds
+        "=== PATTERN TO LINE %d ===\nBPM: %d | LPB: %d | Sample Rate: %d\nSelected Line: %d\n\nLines to Selected: %d\nPattern Beats: %.2f\nDuration (sec): %.2f\nDuration (frames): %d\nTime Format: %d:%05.2f",
+        selected_line, bpm, lpb, sample_rate_calc, selected_line, lines_to_selected, beats_to_selected, seconds_to_selected, frames_to_selected, minutes, seconds
       )
     end
     
@@ -826,8 +674,6 @@ function PakettiFrameCalculatorDialog()
       }
     })
     
-    -- Combined output
-    table.insert(rows, vb:text{ text = "Frame Calculator Results:", font = "bold", style = "strong" })
     table.insert(rows, output_textfield)
         
     
@@ -880,3 +726,121 @@ renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Frame Calculator Di
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
+
+-- Frame Calculator Live Update Timer
+local pakettiFrameCalculatorTimer = nil
+
+-- Frame Calculator Live Update Functions
+function pakettiFrameCalculatorLiveUpdate()
+  local mode = preferences.pakettiFrameCalculatorLiveUpdate.value
+  if mode == 1 then -- Off
+    return
+  end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  local transport = song.transport
+  local sequencer = song.sequencer
+  
+  -- Get current transport settings as defaults
+  local default_bpm = transport.bpm
+  local default_lpb = transport.lpb
+  local sample_rate = 44100
+  
+  -- Get current sequence position and selected line
+  local current_sequence_pos = song.selected_sequence_index
+  local selected_line = song.selected_line_index
+  
+  local status_parts = {}
+  
+  -- Calculate Song to Line if needed
+  if mode == 2 or mode == 4 then -- Song to Line or Both
+    local song_frames = 0
+    local song_seconds = 0
+    local song_rows = 0
+    
+    -- Calculate frames for all patterns before current sequence position
+    for i = 1, current_sequence_pos - 1 do
+      local pattern_index = sequencer.pattern_sequence[i]
+      local pattern = song:pattern(pattern_index)
+      local pattern_lines = pattern.number_of_lines
+      
+      local pattern_beats = pattern_lines / default_lpb
+      local pattern_seconds = (pattern_beats * 60) / default_bpm
+      local pattern_frames = math.floor(pattern_seconds * sample_rate + 0.5)
+      
+      song_frames = song_frames + pattern_frames
+      song_seconds = song_seconds + pattern_seconds
+      song_rows = song_rows + pattern_lines
+    end
+    
+    -- Add frames from current pattern to selected line
+    local current_pattern = song:pattern(sequencer.pattern_sequence[current_sequence_pos])
+    local lines_to_selected = selected_line - 1
+    local beats_to_selected = lines_to_selected / default_lpb
+    local seconds_to_selected = (beats_to_selected * 60) / default_bpm
+    local frames_to_selected = math.floor(seconds_to_selected * sample_rate + 0.5)
+    
+    song_frames = song_frames + frames_to_selected
+    song_seconds = song_seconds + seconds_to_selected
+    song_rows = song_rows + lines_to_selected
+    
+    local song_minutes = math.floor(song_seconds / 60)
+    local song_secs = song_seconds - (song_minutes * 60)
+    
+    table.insert(status_parts, string.format(
+      "Song to line %d: %.2fs | %d frames | %d rows | %d:%05.2f",
+      selected_line, song_seconds, song_frames, song_rows, song_minutes, song_secs
+    ))
+  end
+  
+  -- Calculate Pattern to Line if needed
+  if mode == 3 or mode == 4 then -- Pattern to Line or Both
+    local current_pattern = song:pattern(sequencer.pattern_sequence[current_sequence_pos])
+    
+    local lines_to_selected = selected_line - 1
+    local beats_to_selected = lines_to_selected / default_lpb
+    local seconds_to_selected = (beats_to_selected * 60) / default_bpm
+    local frames_to_selected = math.floor(seconds_to_selected * sample_rate + 0.5)
+    
+    local pattern_minutes = math.floor(seconds_to_selected / 60)
+    local pattern_secs = seconds_to_selected - (pattern_minutes * 60)
+    
+    table.insert(status_parts, string.format(
+      "Pattern to line %d: %.2fs | %d frames | %d rows | %d:%05.2f",
+      selected_line, seconds_to_selected, frames_to_selected, lines_to_selected, pattern_minutes, pattern_secs
+    ))
+  end
+  
+  -- Combine results
+  local status_text = table.concat(status_parts, " | ")
+  renoise.app():show_status(status_text)
+end
+
+function pakettiFrameCalculatorStartLiveUpdate()
+  -- Stop any existing timer first
+  pakettiFrameCalculatorStopLiveUpdate()
+  
+  -- Start timer that updates every 100ms using app_idle_observable
+  pakettiFrameCalculatorTimer = renoise.tool().app_idle_observable:add_notifier(function()
+    pakettiFrameCalculatorLiveUpdate()
+  end)
+  
+  -- Show initial status
+  pakettiFrameCalculatorLiveUpdate()
+end
+
+function pakettiFrameCalculatorStopLiveUpdate()
+  -- Remove the timer if it exists
+  if pakettiFrameCalculatorTimer then
+    renoise.tool().app_idle_observable:remove_notifier(pakettiFrameCalculatorTimer)
+    pakettiFrameCalculatorTimer = nil
+  end
+end
+
+function pakettiFrameCalculatorInitializeLiveUpdate()
+  if preferences.pakettiFrameCalculatorLiveUpdate.value > 1 then
+    pakettiFrameCalculatorStartLiveUpdate()
+  end
+end
