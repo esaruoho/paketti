@@ -2699,9 +2699,7 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
           preferences.pakettiPlayerProNoteCanvasClearSelection.value = value
         end
       },
-      vb:text {
-        text = "Clear Selection Before Write"
-      }
+      vb:text {text = "Clear Selection Before Write",style="strong",font="bold"}
     },
     vb:row {
       vb:checkbox {
@@ -2711,9 +2709,7 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
           preferences.pakettiPlayerProSmartSubColumn.value = value
         end
       },
-      vb:text {
-        text = "Smart SubColumn"
-      }
+      vb:text {text = "Smart SubColumn",style="strong",font="bold"}
     },
     vb:row {
       vb:checkbox {
@@ -2729,9 +2725,7 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
           end
         end
       },
-      vb:text {
-        text = "Always Open Dialog"
-      }
+      vb:text {text = "Always Open Dialog",style="strong",font="bold"}
     },
     vb:row {
       vb:button {
@@ -2761,12 +2755,9 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
         notifier = function()
           preferences.pakettiPlayerProNoteCanvasPianoKeys.value = not preferences.pakettiPlayerProNoteCanvasPianoKeys.value
           
-          -- Update canvas immediately
           if note_canvas then
             note_canvas:update()
           end
-          
-          -- No need to restart dialog for piano mode toggle
         end
       }
     }
@@ -2774,11 +2765,7 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
   
   local keyhandler = my_keyhandler_func
   note_canvas_dialog = renoise.app():show_custom_dialog("PlayerPro Note Grid Dialog", dialog_content, keyhandler)
-  
-  -- Add instrument observer after dialog is created
   canvas_instrument_observer = PakettiPlayerProCreateInstrumentObserver(vb, "canvas_instrument_popup", note_canvas_dialog)
-  
-  -- Set focus to pattern editor
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
@@ -4511,6 +4498,7 @@ local always_open_observers = {}
 local always_open_current_context = nil
 local always_open_last_cursor_state = nil
 local always_open_timer = nil
+local always_open_context_delay_timer = nil
 
 -- Middle Frame Observer for Auto-Hide
 local middle_frame_observer = nil
@@ -4711,8 +4699,21 @@ function pakettiPlayerProGetCurrentContext()
   local song = renoise.song()
   local selected_track = song.selected_track
   
-  -- Only handle sequencer tracks
-  if selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+  -- Handle different track types
+  if selected_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    -- Sequencer tracks can have both note and effect contexts
+  elseif selected_track.type == renoise.Track.TRACK_TYPE_MASTER or 
+         selected_track.type == renoise.Track.TRACK_TYPE_SEND then
+    -- Master and Send tracks only have effect columns, so always return effect context
+    local track_index = song.selected_track_index
+    local effect_column_index = song.selected_effect_column_index
+    if effect_column_index > 0 then
+      return "effect:" .. track_index .. ":" .. effect_column_index
+    else
+      return "effect:" .. track_index .. ":1"  -- Default to first effect column
+    end
+  else
+    -- Group tracks have no editable columns
     return "none"
   end
   
@@ -4723,11 +4724,12 @@ function pakettiPlayerProGetCurrentContext()
   local sub_column_type = song.selected_sub_column_type
   
   -- Check if we're in an effect column
-  if effect_column_index > 0 then
+  if effect_column_index and effect_column_index > 0 then
     return "effect:" .. track_index .. ":" .. effect_column_index
   end
   
   -- Check if smart subcolumn is enabled and we're in a non-note subcolumn
+  -- These subcolumns should show effect dialog
   if preferences.pakettiPlayerProSmartSubColumn and preferences.pakettiPlayerProSmartSubColumn.value then
     if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME or
        sub_column_type == renoise.Song.SUB_COLUMN_PANNING or
@@ -4738,8 +4740,13 @@ function pakettiPlayerProGetCurrentContext()
     end
   end
   
-  -- Default to note context with position
-  return "note:" .. track_index .. ":" .. note_column_index
+  -- Check if we're in a note column (not effect column)
+  if note_column_index and note_column_index > 0 then
+    return "note:" .. track_index .. ":" .. note_column_index
+  end
+  
+  -- If neither note nor effect column is selected, return none
+  return "none"
 end
 
 -- Timer function to monitor cursor position changes
@@ -4775,10 +4782,24 @@ function pakettiPlayerProTimerContextMonitor()
   
   -- Check if cursor state changed
   if current_state ~= always_open_last_cursor_state then
-    print("DEBUG: Cursor state changed from '" .. tostring(always_open_last_cursor_state) .. "' to '" .. current_state .. "'")
     always_open_last_cursor_state = current_state
-    pakettiPlayerProHandleContextChange()
+    
+    -- Add small delay to prevent rapid context switching during track changes
+    if always_open_context_delay_timer then
+      always_open_context_delay_timer:remove()
+    end
+    always_open_context_delay_timer = renoise.tool():add_timer(function()
+      pakettiPlayerProHandleContextChange()
+      always_open_context_delay_timer = nil
+    end, 100) -- 100ms delay
   end
+end
+
+-- Function to handle track changes
+function pakettiPlayerProHandleTrackChange()
+  -- Reset cursor state so timer can detect the change properly
+  always_open_last_cursor_state = nil
+  -- Don't call context change handler directly - let the timer handle it
 end
 
 -- Function to handle context changes
@@ -4789,18 +4810,15 @@ function pakettiPlayerProHandleContextChange()
   
   local new_context = pakettiPlayerProGetCurrentContext()
   
-  print("DEBUG: Context changed from '" .. tostring(always_open_current_context) .. "' to '" .. new_context .. "'")
-  
   -- Only act if context actually changed
   if new_context == always_open_current_context then
-    print("DEBUG: Context unchanged, skipping")
     return
   end
   
-  always_open_current_context = new_context
-  
   -- Parse context type (note:track:column or effect:track:column)
   local context_type = new_context:match("^([^:]+)")
+  
+  always_open_current_context = new_context
   
   if context_type == "note" then
     -- Close effect dialog if open, open note dialog
@@ -4879,9 +4897,9 @@ function pakettiPlayerProStartAlwaysOpen()
   local song = renoise.song()
   
   -- Add observers for track changes only
-  if not song.selected_track_index_observable:has_notifier(pakettiPlayerProHandleContextChange) then
-    song.selected_track_index_observable:add_notifier(pakettiPlayerProHandleContextChange)
-    table.insert(always_open_observers, {observable = song.selected_track_index_observable, func = pakettiPlayerProHandleContextChange})
+  if not song.selected_track_index_observable:has_notifier(pakettiPlayerProHandleTrackChange) then
+    song.selected_track_index_observable:add_notifier(pakettiPlayerProHandleTrackChange)
+    table.insert(always_open_observers, {observable = song.selected_track_index_observable, func = pakettiPlayerProHandleTrackChange})
   end
   
   -- Start timer to monitor cursor position changes (note/effect column changes and subcolumns)
@@ -4921,6 +4939,12 @@ function pakettiPlayerProStopAlwaysOpen()
   if always_open_timer then
     renoise.tool():remove_timer(pakettiPlayerProTimerContextMonitor)
     always_open_timer = nil
+  end
+  
+  -- Stop delay timer if running
+  if always_open_context_delay_timer then
+    always_open_context_delay_timer:remove()
+    always_open_context_delay_timer = nil
   end
   
   always_open_current_context = nil

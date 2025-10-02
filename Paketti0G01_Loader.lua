@@ -116,6 +116,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiRotateSampleBufferFine=10,
   pakettiBlendValue = 40,
   pakettiDialogClose="esc",
+  pakettiObliqueStrategiesOnStartup = true,
   pakettiPlayerProEffectDialogDarkMode = false,
   pakettiPlayerProEffectCanvasWrite = false,
   pakettiPlayerProEffectCanvasSubColumn = false,
@@ -875,7 +876,7 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
   }
 
   local max_frame_size_value_label = vb:text{
-    width=100,
+    width=150,
     text = string.format("%.0f MB (%d frames)", preferences.pakettiMaxFrameSize.value / 1000000, preferences.pakettiMaxFrameSize.value)
   }
 
@@ -924,9 +925,17 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
       horizontal_rule(),
       vb:row{ -- this is where the row structure starts.
         vb:column{ -- first column.
-          margin=5,width=600,style="group",      
+          width=575,style="group",margin=5,
           vb:column{
-            style="group",margin=10,width="100%",
+            style="group",width="100%",--margin=10,
+            vb:row{
+              vb:button{text="Load Pale Green Theme",width=150,notifier=function() update_loadPaleGreenTheme_preferences() end},
+              vb:button{text="Load Plaid Zap .XRNI",width=150,notifier=function() renoise.app():load_instrument("Gifts/plaidzap.xrni") end},
+              vb:button{text="Load 200 Drum Machines (.zip)",width=150,notifier=function() 
+              renoise.app():open_url("http://www.hexawe.net/mess/200.Drum.Machines/") end}
+              },
+  
+
             vb:text{style="strong",font="bold",text="Miscellaneous Settings"},
             --[[vb:row{
               vb:text{text="Upper Frame",width=150,tooltip="Whether F2,F3,F4,F11 change the Upper Frame Scope state or not"},
@@ -1022,21 +1031,19 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                       pakettiFrameCalculatorStartLiveUpdate()
                     end
                   end}},
-              vb:row{
-                vb:text{text="Switcharoo Auto-Grab",width=150,tooltip="Automatically grab chords from pattern when opening Paketti Switcharoo dialog",},
-                vb:switch{items={"Off","On"},tooltip="Automatically grab chords from pattern when opening Paketti Switcharoo dialog",value=preferences.pakettiSwitcharooAutoGrab.value and 2 or 1,width=200,
-                  notifier=function(value) preferences.pakettiSwitcharooAutoGrab.value=(value==2) end}},
+            vb:row{
+              vb:text{text="Switcharoo Auto-Grab",width=150,tooltip="Automatically grab chords from pattern when opening Paketti Switcharoo dialog",},
+              vb:switch{items={"Off","On"},tooltip="Automatically grab chords from pattern when opening Paketti Switcharoo dialog",value=preferences.pakettiSwitcharooAutoGrab.value and 2 or 1,width=200,
+                notifier=function(value) preferences.pakettiSwitcharooAutoGrab.value=(value==2) end}},
+            vb:row{
+              vb:text{text="Oblique Strategies",width=150,tooltip="Show Oblique Strategies message on startup"},
+              vb:switch{items={"Off","On"},tooltip="Show Oblique Strategies message on startup",value=preferences.pakettiObliqueStrategiesOnStartup.value and 2 or 1,width=200,
+                notifier=function(value) preferences.pakettiObliqueStrategiesOnStartup.value=(value==2) end}},
             vb:text{text="Slice StepSeq", font="bold",style = "strong"},
             vb:row{
               vb:text{text="Show Velocity",width=150},
               vb:switch{items={"Off","On"},value=preferences.pakettiSliceStepSeqShowVelocity.value and 2 or 1,width=200,
                 notifier=function(value) preferences.pakettiSliceStepSeqShowVelocity.value=(value==2) end}},
-            vb:row{
-            vb:button{text="Load Pale Green Theme",width=150,notifier=function() update_loadPaleGreenTheme_preferences() end},
-            vb:button{text="Load Plaid Zap .XRNI",width=150,notifier=function() renoise.app():load_instrument("Gifts/plaidzap.xrni") end},
-            vb:button{text="Load 200 Drum Machines (.zip)",width=150,notifier=function() 
-            renoise.app():open_url("http://www.hexawe.net/mess/200.Drum.Machines/") end}
-            },
                 vb:row{vb:text{text="Create New Instrument & Loop from Selection", font="bold",style = "strong"}},
                 vb:row{vb:text{text="Select Newly Created",width=150},
                     vb:switch{items = {"Off", "On"},
@@ -1204,7 +1211,7 @@ vb:row{
           style="group",margin=5,width=600,
           -- Paketti Loader Settings wrapped in group
           vb:column{
-            style="group",margin=10,width="100%",
+            style="group",width="100%",--margin=10,
             
             vb:text{style="strong",font="bold",text="Paketti Loader Settings"},
             vb:row{
@@ -1254,7 +1261,7 @@ vb:row{
             notifier=function(value) preferences.pakettiLoaderNormalizeSamples.value=(value==2) end}},
           vb:row{vb:text{text="Normalize Large Samples (>10MB)",width=150,tooltip="Automatically normalize samples larger than 10MB after loading"},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderNormalizeLargeSamples.value and 2 or 1,width=200,tooltip="Automatically normalize samples larger than 10MB after loading",
             notifier=function(value) preferences.pakettiLoaderNormalizeLargeSamples.value=(value==2) end}},
-            vb:text{style="strong",font="bold",text="Maximum Sample Frame Size Settings"},
+            vb:text{style="strong",font="bold",text="Maximum Sample Frame Size Settings (for Auto-normalization)"},
             vb:row{
                 vb:text{text="Max Frame Size",width=150,tooltip="Maximum frame size for sample processing (5MB to 100MB)"},
                 vb:slider{
@@ -1269,7 +1276,7 @@ vb:row{
                         max_frame_size_value_label.text = string.format("%.0f MB (%d frames)", value / 1000000, value)
                     end
                 },
-                max_frame_size_value_label
+                vb:column{max_frame_size_value_label}
             },
             vb:row{vb:text{text="Default XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default XRNI Selector Dialog")
@@ -1506,7 +1513,7 @@ vb:row{
     vb:row{
       vb:text{text="Device Load Behavior", style="strong",font="bold",width=150,tooltip="Controls behavior when loading VST/AU plugins and native devices"},
       vb:switch{
-        items={"<do nothing>", "Open External Editor", "Open Selected Parameter Dialog"},
+        items={"<nothing>", "External Editor", "Parameter Editor"},
         value=(preferences.pakettiDeviceLoadBehaviour.value == 3 and 1 or preferences.pakettiDeviceLoadBehaviour.value == 1 and 2 or 3),
         tooltip="Controls behavior when loading VST/AU plugins and native devices",
         width=400,
@@ -1585,7 +1592,7 @@ vb:row{
         vb:column{
           style="group",margin=5,width=600,
           vb:column{
-            style="group",margin=10,width="100%",
+            style="group",width="100%",--margin=10,
             vb:text{style="strong",font="bold",text="Player Pro Settings"},
           vb:row{
             vb:text{text="Dialog Dark Mode",width=150},
@@ -2047,7 +2054,7 @@ vb:row{
           
           vb:text{style="strong",font="bold",text="Impulse Tracker"},
           vb:row{
-            vb:text{text="Impulse Tracker F8",width=150},
+            vb:text{text="F8 (Stop Playback)",width=150},
             vb:switch{
               items={"Do Nothing","Enable Follow","Stop Follow"},
               value=preferences.PakettiImpulseTrackerF8.value,
@@ -2090,7 +2097,7 @@ vb:row{
           
           vb:text{style="strong",font="bold",text="Jump Forward/Backward Commands"},
           vb:row{
-            vb:text{text="Enable Jump Forward/Backward",width=150,tooltip="Enable 1,024 'Jump Forward/Backward Within Pattern/Song' keybindings and MIDI mappings (001-128). When enabled, creates 'Jump Forward/Backward by 001-128' commands. Warning: Increases startup time."},
+            vb:text{text="Enable Jump FWD/Backward",width=150,tooltip="Enable 1,024 'Jump Forward/Backward Within Pattern/Song' keybindings and MIDI mappings (001-128). When enabled, creates 'Jump Forward/Backward by 001-128' commands. Warning: Increases startup time."},
             vb:switch{items={"Off","On"},
               value=preferences.PakettiJumpForwardBackwardCommands.value and 2 or 1,
               width=200,

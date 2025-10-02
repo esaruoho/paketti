@@ -601,7 +601,9 @@ function startup()
     pakettiThemeSelectorRenoiseStartFavorites()
   end
   end
-       shuffle_oblique_strategies()
+       if preferences.pakettiObliqueStrategiesOnStartup.value then
+         shuffle_oblique_strategies()
+       end
  if PakettiAutomationDoofer==true then
  
   local masterTrack=renoise.song().sequencer_track_count+1

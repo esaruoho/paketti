@@ -262,12 +262,13 @@ function PakettiFrameCalculatorDialog()
   local pattern_lines = song.selected_pattern.number_of_lines
   local sample_rate = 44100
   
-  -- Combined output multiline textfield
+  -- Combined output text field
   local output_textfield = vb:multiline_textfield{ 
     text = "", 
     width = 500, 
+    edit_mode=true,
+    active=true,
     height = 300,
-    active = false  -- Read-only for easy selection
   }
   
   -- Input field views for updating
@@ -570,8 +571,10 @@ function PakettiFrameCalculatorDialog()
       )
     end
     
-    -- Update the combined multiline textfield
+    -- Update the combined textfield
     output_textfield.text = combined_text
+    output_textfield.edit_mode = true
+    output_textfield.active = true
   end
   
   -- Build dialog content
