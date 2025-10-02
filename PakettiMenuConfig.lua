@@ -1877,29 +1877,29 @@ renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Devices:Insert Ster
 
 
 -- Pattern Matrix Automation
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Center to Top (Exp) for Pattern Matrix Selection",invoke=automation_center_to_top_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Top to Center (Exp) for Pattern Matrix Selection",invoke=automation_top_to_center_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Center to Bottom (Exp) for Pattern Matrix Selection",invoke=automation_center_to_bottom_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Bottom to Center (Exp) for Pattern Matrix Selection",invoke=automation_bottom_to_center_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Center to Top (Lin) for Pattern Matrix Selection",invoke=automation_center_to_top_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Top to Center (Lin) for Pattern Matrix Selection",invoke=automation_top_to_center_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Center to Bottom (Lin) for Pattern Matrix Selection",invoke=automation_center_to_bottom_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Bottom to Center (Lin) for Pattern Matrix Selection",invoke=automation_bottom_to_center_lin }
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation Curves:Automation Ramp Up (Exp) for Pattern Matrix Selection",invoke=automation_ramp_up_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Automation Ramp Down (Exp) for Pattern Matrix Selection",invoke=automation_ramp_down_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Automation Ramp Up (Lin) for Pattern Matrix Selection",invoke=automation_ramp_up_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation Curves:Automation Ramp Down (Lin) for Pattern Matrix Selection",invoke=automation_ramp_down_lin }
-renoise.tool():add_menu_entry({name="--Pattern Matrix:Paketti:Automation Curves:Top to Top",invoke=function() apply_constant_automation_top_to_top() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation Curves:Bottom to Bottom (One Pattern)",invoke=function() apply_constant_automation_bottom_to_bottom() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation Curves:Selection Up (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curveUP() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation Curves:Selection Up (Linear) (One Pattern)",invoke=function() apply_selection_up_linear() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation Curves:Selection Down (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curveDOWN() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation Curves:Selection Down (Linear) (One Pattern)",invoke=function() apply_selection_down_linear() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation Curves:Center to Top (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_center_to_top() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation Curves:Center to Bottom (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_center_to_bottom() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation Curves:Top to Center (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_top_to_center() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation Curves:Bottom to Center (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_bottom_to_center() end})
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Center to Top (Exp) for Pattern Matrix Selection",invoke=automation_center_to_top_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Top to Center (Exp) for Pattern Matrix Selection",invoke=automation_top_to_center_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Center to Bottom (Exp) for Pattern Matrix Selection",invoke=automation_center_to_bottom_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Bottom to Center (Exp) for Pattern Matrix Selection",invoke=automation_bottom_to_center_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Center to Top (Lin) for Pattern Matrix Selection",invoke=automation_center_to_top_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Top to Center (Lin) for Pattern Matrix Selection",invoke=automation_top_to_center_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Center to Bottom (Lin) for Pattern Matrix Selection",invoke=automation_center_to_bottom_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Bottom to Center (Lin) for Pattern Matrix Selection",invoke=automation_bottom_to_center_lin }
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Automation Ramp Up (Exp) for Pattern Matrix Selection",invoke=automation_ramp_up_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Automation Ramp Down (Exp) for Pattern Matrix Selection",invoke=automation_ramp_down_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Automation Ramp Up (Lin) for Pattern Matrix Selection",invoke=automation_ramp_up_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Automation Ramp Down (Lin) for Pattern Matrix Selection",invoke=automation_ramp_down_lin }
+renoise.tool():add_menu_entry({name="--Pattern Matrix:Paketti:Automation:Top to Top",invoke=function() apply_constant_automation_top_to_top() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Bottom to Bottom (One Pattern)",invoke=function() apply_constant_automation_bottom_to_bottom() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Selection Up (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curveUP() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Selection Up (Linear) (One Pattern)",invoke=function() apply_selection_up_linear() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Selection Down (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curveDOWN() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Selection Down (Linear) (One Pattern)",invoke=function() apply_selection_down_linear() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Center to Top (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_center_to_top() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Center to Bottom (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_center_to_bottom() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Top to Center (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_top_to_center() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Bottom to Center (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_bottom_to_center() end})
 
 -- Pattern Matrix Root
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}

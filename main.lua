@@ -819,6 +819,7 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiEQ30")
   timed_require("PakettiSliceEffectStepSequencer")
   timed_require("PakettiHyperEdit")
+  timed_require("PakettiEquationCalculator")
   --timed_require("PakettiMultitapExperiment")
   --timed_require("PakettiPlayerProWaveformViewer")
   --timed_require("PakettiAutomationStack")

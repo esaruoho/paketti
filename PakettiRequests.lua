@@ -11673,3 +11673,53 @@ renoise.tool():add_midi_mapping{name="Paketti:Show/Hide Slot " .. slot .. " on S
   end
 }
 end
+
+-- Instrument Rename Dialog
+local instrument_rename_dialog = nil
+
+function PakettiInstrumentRenameDialog()
+  if instrument_rename_dialog and instrument_rename_dialog.visible then
+    instrument_rename_dialog:close()
+    instrument_rename_dialog = nil
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  local current_instrument_name = ""
+  
+  -- Get current instrument name safely
+  if renoise.song() and renoise.song().selected_instrument then
+    current_instrument_name = renoise.song().selected_instrument.name
+  end
+  
+  local dialog_content = vb:row{
+    vb:textfield {
+      id = "instrument_name_input",
+      width=200,
+      active = true,
+      edit_mode = true,
+      text = current_instrument_name,
+      notifier=function(text)
+        if renoise.song() and renoise.song().selected_instrument then
+          renoise.song().selected_instrument.name = text
+          instrument_rename_dialog:close()
+          instrument_rename_dialog = nil
+        end
+      end
+    }
+  }
+
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return instrument_rename_dialog end,
+    function(value) instrument_rename_dialog = value end
+  )
+  instrument_rename_dialog = renoise.app():show_custom_dialog("Rename Instrument", dialog_content, keyhandler)
+  
+  -- Set focus back to active middle frame after dialog opens
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}

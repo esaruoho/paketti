@@ -3869,9 +3869,9 @@ function PakettiPatternAliasIdenticalSlots()
     patterntrack = song:pattern(slot.pattern):track(slot.track)
     processed_count = processed_count + 1
     
+    pt_hash = PakettiPatternAliasHashPatternTrack(slot.pattern, slot.track, patterntrack)
+    
     if (not patterntrack.is_alias) and (not patterntrack.is_empty) then
-      pt_hash = PakettiPatternAliasHashPatternTrack(slot.pattern, slot.track, patterntrack)
-      
       if not hash_table[pt_hash] then
         -- First occurrence of this pattern content
         hash_table[pt_hash] = {
@@ -3950,7 +3950,7 @@ function PakettiPatternAliasClearAliases()
   end
 end
 
-renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}

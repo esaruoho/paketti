@@ -6382,6 +6382,7 @@ function pakettiVolumeInterpolationLooper()
   local start_val = 0
   local end_val = 128
   local current_mode = "volume"  -- Default mode
+  local pingpong_enabled = false
 
   local function formatValue(value, mode)
     if mode == "delay" then
@@ -6389,7 +6390,7 @@ function pakettiVolumeInterpolationLooper()
     else
       -- For volume/panning, we need to show the hex value correctly
       -- value is in decimal (0-128), but we want to show it as 00-80 hex
-      return string.format("%02d (%02X)", value, value)
+      return string.format("%02X (%d)", value, value)
     end
   end
 
@@ -6438,8 +6439,29 @@ function pakettiVolumeInterpolationLooper()
     -- Calculate interpolation
     for i = 1, #notes do
       local cycle_position = ((i - 1) % notes_count)
-      local factor = cycle_position / (math.max(1, notes_count - 1))
-      local interpolated_val = math.floor(start_val + (end_val - start_val) * factor)
+      local factor
+      local interpolated_val
+      
+      if pingpong_enabled then
+        -- PingPong mode: go from start to end and back, but start value only hit once
+        -- With 32 notes: 0→16→31, where 0 is start, 16 is end, 31 is almost start
+        local half_cycle = math.floor(notes_count / 2)
+        
+        if cycle_position <= half_cycle then
+          -- First half: start to end
+          factor = cycle_position / half_cycle
+          interpolated_val = math.floor(start_val + (end_val - start_val) * factor + 0.5)
+        else
+          -- Second half: end back to start (but not reaching start value again)
+          local remaining_steps = notes_count - half_cycle
+          factor = (cycle_position - half_cycle) / remaining_steps
+          interpolated_val = math.floor(end_val - (end_val - start_val) * factor + 0.5)
+        end
+      else
+        -- Normal mode: start to end
+        factor = cycle_position / (math.max(1, notes_count - 1))
+        interpolated_val = math.floor(start_val + (end_val - start_val) * factor)
+      end
       
       -- Clamp values based on mode
       if current_mode == "delay" then
@@ -6511,6 +6533,16 @@ function pakettiVolumeInterpolationLooper()
             notes_count = value
           end
         }
+      },
+      vb:row{
+        width=250,
+        vb:checkbox{
+          value = pingpong_enabled,
+          notifier=function(value)
+            pingpong_enabled = value
+          end
+        },
+        vb:text{text="PingPong", style="strong", font="bold" }
       },
       vb:row{
         width=250,
