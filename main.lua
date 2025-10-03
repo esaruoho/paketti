@@ -829,6 +829,7 @@ end
 
 --timed_require("PakettiExperimentalDialog")
 timed_require("PakettiRequests")
+timed_require("PakettiAutoSamplify")
 timed_require("PakettiInstrumentTranspose")
 timed_require("PakettiRender")
 timed_require("PakettiBPM")

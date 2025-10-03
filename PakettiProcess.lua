@@ -3373,7 +3373,7 @@ then applies a 6-frame fade-in & fade-out.
 
 ----------------------------------------------------------------------------]]--
 
-local function crossfade_with_fades()
+function crossfade_with_fades()
   local song   = renoise.song()
   local sample = song.selected_sample
   if not sample then

@@ -194,6 +194,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni",
   pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
   pakettiPresetPlusPlusDeviceChain = "DeviceChains" .. separator .. "hipass_lopass_dcoffset.xrnt",
+  -- AutoSamplify Settings
+  pakettiAutoSamplifyPakettify = true,
   ActionSelector = {
  Index01="",
  Index02="",
@@ -1213,6 +1215,13 @@ vb:row{
           vb:column{
             style="group",width="100%",--margin=10,
             
+            vb:text{style="strong",font="bold",text="AutoSamplify Settings"},
+            vb:row{
+              vb:text{text="Pakettify",width=150,tooltip="When On: Creates new instrument with XRNI + loader settings. When Off: Only applies sample settings and normalizes in current instrument."},
+              vb:switch{items={"Off","On"},value=preferences.pakettiAutoSamplifyPakettify.value and 2 or 1,width=200,
+                tooltip="When On: Creates new instrument with XRNI + loader settings. When Off: Only applies sample settings and normalizes in current instrument.",
+                notifier=function(value) preferences.pakettiAutoSamplifyPakettify.value=(value==2) end}
+            },
             vb:text{style="strong",font="bold",text="Paketti Loader Settings"},
             vb:row{
               vb:text{text="Skip Automation Device",width=150},
