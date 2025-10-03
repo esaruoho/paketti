@@ -66,7 +66,7 @@ end
 --end
 
 -------------------------------------------------------------------------------
--- when accessing via paranthesis ()
+-- when accessing via parenthesis ()
 
 function cValue:__call(key)
   --TRACE("cValue:__call",key)

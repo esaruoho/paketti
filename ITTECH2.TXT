@@ -35,7 +35,7 @@ xxxx: │ 'Long' Offset of patterns, Length = PatNum*4 (3)              │
         Note that if the (long) offset to a pattern = 0, then the
         pattern is assumed to be a 64 row empty pattern.
 
-      PHiliht = Pattern row hilight information. Only relevant for pattern
+      PHiliht = Pattern row highlight information. Only relevant for pattern
                 editing situations.
 
       Cwt:      Created with tracker.
@@ -484,7 +484,7 @@ Oxx             Offsets to samples are to the 'xx00th' SAMPLE. (ie. for
                 is ON, in which case the Oxx will play from the end of the
                 sample.
 Yxy             This uses a table 4 times larger (hence 4 times slower) than
-                vibrato or tremelo. If the waveform is set to random, then
+                vibrato or tremolo. If the waveform is set to random, then
                 the 'speed' part of the command is interpreted as a delay.
 
 If you read through this document and there are ANY points which you have
@@ -780,7 +780,7 @@ detailed, but all of the important steps are outlined.
            │         ┌─────────────────────┴──────────────────────────┐
            │         │ CurrentRow = ProcessRow                        │
            │         │ Update Pattern Variables (includes jumping to  │
-           │         │  the appropriate row if requried and getting   │
+           │         │  the appropriate row if required and getting   │
            │         │  the NumberOfRows for the pattern)             │
            │         └─────────────────────┬──────────────────────────┘
            │                               │
@@ -794,7 +794,7 @@ detailed, but all of the important steps are outlined.
            │                                  │ Process sample vibrato if req │
        ┌───┴─────────────────────────────────┐└───────────────┬───────────────┘
        │ Calculate final volume if required  │                │
-       │ Calculate final pan if requried     │                │
+       │ Calculate final pan if required     │                │
        │ Process sample vibrato if required  │                │
        └───┬─────────────────────────────────┘                │
            │                                                  │

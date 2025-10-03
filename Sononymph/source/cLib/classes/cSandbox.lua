@@ -247,7 +247,7 @@ function cSandbox:compile()
 end
 
 -------------------------------------------------------------------------------
--- nested block comments/longstrings are depricated and will fail
+-- nested block comments/longstrings are deprecated and will fail
 
 function cSandbox.contains_comment_blocks(str)
   TRACE("cSandbox.contains_comment_blocks(str)")

@@ -91,7 +91,7 @@ function AppUI:dialog_keyhandler(dialog, key)
 end
 
 ---------------------------------------------------------------------------------------------------
--- create/re-use existing dialog 
+-- create/reuse existing dialog 
 function AppUI:show()
   TRACE("AppUI:show()")
 

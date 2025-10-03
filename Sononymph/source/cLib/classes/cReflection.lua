@@ -227,7 +227,7 @@ function cReflection.evaluate_string(x)
 end
 
 ---------------------------------------------------------------------------------------------------
--- @param str (string), name of indentifier 
+-- @param str (string), name of identifier 
 -- @return boolean, string (error message when failed)
 
 function cReflection.is_valid_identifier(str)

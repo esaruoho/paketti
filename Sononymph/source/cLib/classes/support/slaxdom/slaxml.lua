@@ -50,7 +50,7 @@ function SLAXML:parse(xml,options)
 	local textStart = 1
 	local currentElement={}
 	local currentAttributes={}
-	local currentAttributeCt -- manually track length since the table is re-used
+	local currentAttributeCt -- manually track length since the table is reused
 	local nsStack = {}
 	local anyElement = false
 
@@ -118,8 +118,8 @@ function SLAXML:parse(xml,options)
 		anyElement = true
 		first, last, match1 = find( xml, '^<([%a_][%w_.-]*)', pos )
 		if first then
-			currentElement[2] = nil -- reset the nsURI, since this table is re-used
-			currentElement[3] = nil -- reset the nsPrefix, since this table is re-used
+			currentElement[2] = nil -- reset the nsURI, since this table is reused
+			currentElement[3] = nil -- reset the nsPrefix, since this table is reused
 			finishText()
 			pos = last+1
 			first,last,match2 = find(xml, '^:([%a_][%w_.-]*)', pos )

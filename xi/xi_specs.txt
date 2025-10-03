@@ -46,7 +46,7 @@ Pos(h) Len(h) Len(d)  Meaning
 010f   B01            Vibrato rate
 
 0110   W02            Volume fadeout (0..fff)
-0112   B16    B22     ????? (Zeroes or extened info for PsyTexx (vol,finetune,pan,relative,flags))
+0112   B16    B22     ????? (Zeroes or extended info for PsyTexx (vol,finetune,pan,relative,flags))
 
 0128   W02            Number of Samples
 

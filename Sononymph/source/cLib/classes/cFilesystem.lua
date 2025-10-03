@@ -94,7 +94,7 @@ function cFilesystem.get_resource_folder()
 end
 
 ---------------------------------------------------------------------------------------------------
--- split path into parts, seperated by slashes
+-- split path into parts, separated by slashes
 -- important - folders should end with a slash
 -- note: this is a virtual function which doesn't require I/O access 
 -- @param file_path (string)
