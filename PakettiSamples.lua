@@ -2318,7 +2318,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Flip Sample Buffer Selection Forwa
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
 renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
-renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
 

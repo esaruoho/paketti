@@ -3145,7 +3145,7 @@ end
 
 
 -------
-function read_fx_to_automation()
+function read_fx_to_automation(move)
   local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
@@ -3203,8 +3203,8 @@ function read_fx_to_automation()
                 print(string.format("Added mixer point to automation for %s at line %d with value %.3f", 
                                  param.name, line_index, amount))
                                  
-                -- Clear the effect if preference is set
-                if preferences.pakettiAutomationWipeAfterSwitch.value then
+                -- Clear the effect if preference is set or move is true
+                if preferences.pakettiAutomationWipeAfterSwitch.value or move then
                   fx.number_string = ""
                   fx.amount_value = 0
                 end
@@ -3253,8 +3253,8 @@ function read_fx_to_automation()
                         print(string.format("Added point to automation for device %d %s at line %d with value %.3f", 
                                         device_num, param.name, line_index, amount))
                         
-                        -- Clear the effect if preference is set
-                        if preferences.pakettiAutomationWipeAfterSwitch.value then
+                        -- Clear the effect if preference is set or move is true
+                        if preferences.pakettiAutomationWipeAfterSwitch.value or move then
                           fx.number_string = ""
                           fx.amount_value = 0
                         end
@@ -3300,7 +3300,217 @@ function read_fx_to_automation()
                        device_num, param_name, #automation.points))
     end
   end
+  
+  if move then
+    print(string.format("\nFX to Automation (Move) completed! Converted FX commands to automation and wiped effect columns."))
+    renoise.app():show_status("FX moved to automation")
+  end
 end
+
+----------
+function write_automation_to_fx(move)
+  local song = renoise.song()
+  local pattern_index = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local track = song.tracks[track_index]
+  local pattern = song.patterns[pattern_index]
+  local track_pattern = pattern.tracks[track_index]
+  
+  if move then
+    print(string.format("\nConverting automation to FX (Move) for track %d, pattern %d", track_index, pattern_index))
+  else
+    print(string.format("\nConverting automation to FX for track %d, pattern %d", track_index, pattern_index))
+  end
+  print(string.format("Track has %d effect columns visible", track.visible_effect_columns))
+  print(string.format("Pattern has %d lines", #track_pattern.lines))
+  if #track_pattern.lines > 0 then
+    print(string.format("First line has %d effect columns", #track_pattern.lines[1].effect_columns))
+  end
+  
+  -- Count how many different automation parameters we need to convert
+  local automation_count = 0
+  local max_effect_columns = 8
+  
+  -- Check mixer automation
+  local mixer = track.devices[1]
+  if mixer then
+    for param_index = 1, #mixer.parameters do
+      local param = mixer.parameters[param_index]
+      if param.is_automatable then
+        local automation = pattern.tracks[track_index]:find_automation(param)
+        if automation and #automation.points > 0 then
+          automation_count = automation_count + 1
+        end
+      end
+    end
+  end
+  
+  -- Check device automation
+  for device_index = 2, #track.devices do
+    local device = track.devices[device_index]
+    for param_index = 1, #device.parameters do
+      local param = device.parameters[param_index]
+      if param.is_automatable then
+        local automation = pattern.tracks[track_index]:find_automation(param)
+        if automation and #automation.points > 0 then
+          automation_count = automation_count + 1
+        end
+      end
+    end
+  end
+  
+  -- Set visible effect columns based on automation count (max 8)
+  local needed_columns = math.min(automation_count, max_effect_columns)
+  if needed_columns > 0 then
+    track.visible_effect_columns = needed_columns
+    print(string.format("Setting %d effect columns visible for %d automation parameters", needed_columns, automation_count))
+  else
+    print("No automation found to convert")
+    return
+  end
+  print("")
+  
+  local total_conversions = 0
+  
+  -- Process mixer automation (device 0)
+  local mixer = track.devices[1]  -- Mixer is always first device
+  local current_column = 1
+  
+  if mixer then
+    -- Process mixer parameters by name
+    for param_index = 1, #mixer.parameters do
+      local param = mixer.parameters[param_index]
+      if param.is_automatable then
+        local automation = pattern.tracks[track_index]:find_automation(param)
+        if automation and #automation.points > 0 then
+          local fx_command = ""
+          local param_name = string.lower(param.name)
+          
+          -- Determine FX command based on parameter name
+          if string.find(param_name, "volume") then
+            fx_command = "0L"
+          elseif string.find(param_name, "pan") then
+            fx_command = "0P"
+          elseif string.find(param_name, "width") then
+            fx_command = "0W"
+          else
+            -- Skip unknown mixer parameters
+            print(string.format("Skipping unknown mixer parameter: %s", param.name))
+            goto continue
+          end
+          
+          print(string.format("Processing mixer %s automation with %d points", param.name, #automation.points))
+          for _, point in ipairs(automation.points) do
+            local line_index = math.floor(point.time)
+            if line_index >= 1 and line_index <= #track_pattern.lines then
+              local line = track_pattern.lines[line_index]
+              local fx_amount = math.floor(point.value * 255)
+              -- Use current effect column
+              if current_column <= #line.effect_columns then
+                line.effect_columns[current_column].number_string = fx_command
+                line.effect_columns[current_column].amount_value = fx_amount
+                print(string.format("Line %d: Set %s to %02x (value %.3f)", line_index, fx_command, fx_amount, point.value))
+                total_conversions = total_conversions + 1
+              end
+            end
+          end
+          current_column = current_column + 1
+        end
+      end
+      ::continue::
+    end
+  end
+  
+  -- Process device automation (devices 1-35, mapped to 1Y-YY)
+  for device_index = 2, #track.devices do  -- Start from 2 because mixer is device 1
+    local device = track.devices[device_index]
+    local device_num = device_index - 1  -- Convert to 1-based for FX notation
+    
+    -- Convert device number to FX notation (1-9, A-Y)
+    local device_char
+    if device_num <= 9 then
+      device_char = tostring(device_num)
+    else
+      -- Convert 10-35 to A-Y (25 letters)
+      device_char = string.char(string.byte("A") + device_num - 10)
+    end
+    
+    print(string.format("Processing device %s (%d)", device_char, device_num))
+    
+    -- Process each parameter in the device
+    for param_index = 1, #device.parameters do
+      local param = device.parameters[param_index]
+      if param.is_automatable then
+        local automation = pattern.tracks[track_index]:find_automation(param)
+        if automation and #automation.points > 0 then
+          -- Convert parameter index to base 36 character
+          local param_char
+          if param_index <= 9 then
+            param_char = tostring(param_index)
+          else
+            -- Convert 10-35 to A-Y
+            param_char = string.char(string.byte("A") + param_index - 10)
+          end
+          
+          local fx_command = device_char .. param_char
+          print(string.format("Processing device %s parameter %s (%s) with %d automation points", 
+                            device_char, param_char, param.name, #automation.points))
+          
+          for _, point in ipairs(automation.points) do
+            local line_index = math.floor(point.time)
+            if line_index >= 1 and line_index <= #track_pattern.lines then
+              local line = track_pattern.lines[line_index]
+              local fx_amount = math.floor(point.value * 255)
+              
+              -- Use current effect column
+              if current_column <= #line.effect_columns then
+                line.effect_columns[current_column].number_string = fx_command
+                line.effect_columns[current_column].amount_value = fx_amount
+                print(string.format("Line %d, Column %d: Set %s to %02x (value %.3f)", 
+                                  line_index, current_column, fx_command, fx_amount, point.value))
+                total_conversions = total_conversions + 1
+              end
+            end
+          end
+          
+          -- Wipe the automation envelope if move is true
+          if move then
+            print(string.format("Wiping automation envelope for device %s parameter %s", device_char, param.name))
+            automation:clear()
+          end
+          
+          current_column = current_column + 1
+        end
+      end
+    end
+  end
+  
+  -- Wipe mixer automation envelopes if move is true
+  if move then
+    local mixer = track.devices[1]
+    if mixer then
+      for param_index = 1, #mixer.parameters do
+        local param = mixer.parameters[param_index]
+        if param.is_automatable then
+          local automation = pattern.tracks[track_index]:find_automation(param)
+          if automation and #automation.points > 0 then
+            print(string.format("Wiping automation envelope for mixer %s", param.name))
+            automation:clear()
+          end
+        end
+      end
+    end
+  end
+  
+  if move then
+    print(string.format("\nAutomation to FX (Move) completed! Converted %d automation points to FX commands and wiped automation envelopes.", total_conversions))
+    renoise.app():show_status(string.format("Automation moved to FX commands (%d points)", total_conversions))
+  else
+    print(string.format("\nAutomation to FX conversion completed! Converted %d automation points to FX commands.", total_conversions))
+    renoise.app():show_status(string.format("Automation converted to FX commands (%d points)", total_conversions))
+  end
+end
+
 
 ----------
 function snapshot_all_devices_to_automation()
@@ -3418,7 +3628,10 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_keybinding{name="Global:Paketti:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Convert FX to Automation",invoke = read_fx_to_automation}
+renoise.tool():add_keybinding{name="Global:Paketti:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
 
 
 ---

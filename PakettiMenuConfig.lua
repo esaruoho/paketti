@@ -804,7 +804,10 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Selected Device",inv
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Automation:Convert FX to Automation",invoke = read_fx_to_automation}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Automation:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Automation:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Automation:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Automation:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:LFO Write:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
 
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:LFO Write:LFO Write to Phrase LPB (1-255)",invoke=function() toggle_lpb_following(255) end}
@@ -981,7 +984,10 @@ if preferences.pakettiMenuConfig.PatternEditor then
 
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
-  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Automation:Convert FX to Automation",invoke = read_fx_to_automation}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Automation:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Automation:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
   
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:LFO Write:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:LFO Write:LFO Write to Effect Column 1 (0Yxx)",invoke=function() toggle_fx_amount_following("0Y") end}
@@ -1609,7 +1615,10 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:LFO Write:Single Par
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Convert FX to Automation",invoke = read_fx_to_automation}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Auto Assign Outputs",invoke=AutoAssignOutputs}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Toggle Mute Tracks",invoke=toggle_mute_tracks}
