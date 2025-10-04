@@ -954,8 +954,8 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
             },
             
               vb:row{
-                vb:text{text="Always Open Track DSPs",width=150},
-                vb:switch{items={"Off","On"},value=preferences.pakettiAlwaysOpenDSPsOnTrack.value and 2 or 1,width=200,
+                vb:text{text="Always Open Track DSPs",width=150,tooltip="Automatically open external editors for all Track DSP devices when switching tracks"},
+                vb:switch{items={"Off","On"},value=preferences.pakettiAlwaysOpenDSPsOnTrack.value and 2 or 1,width=200,tooltip="Automatically open external editors for all Track DSP devices when switching tracks",
                   notifier=function(value) 
                     preferences.pakettiAlwaysOpenDSPsOnTrack.value=(value==2)
                     PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
@@ -965,8 +965,8 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 vb:switch{items={"Off","On"},value=preferences.pakettifyReplaceInstrument.value and 2 or 1,width=200,tooltip="Pakettification replaces current instrument instead of creating new one",
                   notifier=function(value) preferences.pakettifyReplaceInstrument.value=(value==2) end}},
               vb:row{
-                vb:text{text="Wipe Exploded Track",width=150},
-                vb:switch{items={"Off","On"},value=preferences.pakettiWipeExplodedTrack.value and 2 or 1,width=200,
+                vb:text{text="Wipe Exploded Track",width=150,tooltip="Delete the original track after exploding it into separate tracks by note"},
+                vb:switch{items={"Off","On"},value=preferences.pakettiWipeExplodedTrack.value and 2 or 1,width=200,tooltip="Delete the original track after exploding it into separate tracks by note",
                   notifier=function(value) preferences.pakettiWipeExplodedTrack.value=(value==2) end}},
               vb:row{
                 vb:text{text="Instrument Properties",width=150,tooltip="Control Instrument Properties panel visibility on startup and when changed",},
@@ -1007,12 +1007,12 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                     update_0G01_loader_menu_entries()
                   end}},
               vb:row{
-                vb:text{text="Random BPM",width=150},
-                vb:switch{items={"Off","On"},value=preferences.RandomBPM.value and 2 or 1,width=200,
+                vb:text{text="Random BPM",width=150,tooltip="Write BPM to file when using random BPM functions (Random BPM from List: 80, 100, 115, 123, 128, 132, 135, 138, 160)"},
+                vb:switch{items={"Off","On"},value=preferences.RandomBPM.value and 2 or 1,width=200,tooltip="Write BPM to file when using random BPM functions (Random BPM from List: 80, 100, 115, 123, 128, 132, 135, 138, 160)",
                   notifier=function(value) preferences.RandomBPM.value=(value==2) end}},
               vb:row{
-                vb:text{text="Global Groove on Startup",width=150,tooltip="Automatically enable Global Groove when creating/loading songs",},
-                vb:switch{items={"Off","On"},tooltip="Automatically enable Global Groove when creating/loading songs",value=preferences.pakettiEnableGlobalGrooveOnStartup.value and 2 or 1,width=200,
+                vb:text{text="Global Groove on Startup",width=150,tooltip="This enables Global Groove at the start of a new song or opening of Renoise"},
+                vb:switch{items={"Off","On"},tooltip="This enables Global Groove at the start of a new song or opening of Renoise",value=preferences.pakettiEnableGlobalGrooveOnStartup.value and 2 or 1,width=200,
                   notifier=function(value) preferences.pakettiEnableGlobalGrooveOnStartup.value=(value==2) end}},
               vb:row{
                 vb:text{text="New Song BPM Randomizer",width=150,tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)",},
@@ -1043,8 +1043,8 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 notifier=function(value) preferences.pakettiObliqueStrategiesOnStartup.value=(value==2) end}},
             vb:text{text="Slice StepSeq", font="bold",style = "strong"},
             vb:row{
-              vb:text{text="Show Velocity",width=150},
-              vb:switch{items={"Off","On"},value=preferences.pakettiSliceStepSeqShowVelocity.value and 2 or 1,width=200,
+              vb:text{text="Show Velocity",width=150,tooltip="Opens the Slice Step Sequencer dialog with Velocity add-on dialog opened by default"},
+              vb:switch{items={"Off","On"},value=preferences.pakettiSliceStepSeqShowVelocity.value and 2 or 1,width=200,tooltip="Opens the Slice Step Sequencer dialog with Velocity add-on dialog opened by default",
                 notifier=function(value) preferences.pakettiSliceStepSeqShowVelocity.value=(value==2) end}},
                 vb:row{vb:text{text="Create New Instrument & Loop from Selection", font="bold",style = "strong"}},
                 vb:row{vb:text{text="Select Newly Created",width=150},
