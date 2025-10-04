@@ -3244,3 +3244,58 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:De
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",
   invoke=function() paketti_delete_all_repeaters() end
 }
+
+-----------------------------------------------------------------------
+-- Pattern Teleportation MIDI Mappings
+-- 16 trigger buttons for "Play & Loop Pattern 01" through "Play & Loop Pattern 16"
+-- Teleports across pattern-space while maintaining play position
+-----------------------------------------------------------------------
+
+-- Function to teleport to a specific pattern while maintaining current row position
+function PakettiPlayAndLoopPattern(pattern_number)
+  local song = renoise.song()
+  local transport = song.transport
+  
+  -- Check if the pattern exists (pattern numbers 01-16 correspond to sequence positions 01-16)
+  if pattern_number > #song.sequencer.pattern_sequence then
+    renoise.app():show_status(string.format("Pattern %02d doesn't exist, doing nothing.", pattern_number))
+    return
+  end
+  
+  -- Get current playback position
+  local current_pos = transport.playback_pos
+  local current_line = current_pos.line
+  
+  -- Set the new sequence position (pattern number corresponds to sequence position)
+  song.selected_sequence_index = pattern_number
+  
+  -- Set the loop range to just this pattern
+  transport.loop_sequence_range = {pattern_number, pattern_number}
+  
+  -- Jump to the same line in the new pattern, maintaining play position
+  local new_pos = renoise.SongPos(pattern_number, current_line)
+  transport.playback_pos = new_pos
+  
+  -- Start playback if not already playing
+  if not transport.playing then
+    transport.playing = true
+  end
+  
+  -- Show status message
+  renoise.app():show_status(string.format("Play & Loop Pattern %02d (Row %d)", pattern_number, current_line))
+end
+
+-- Create 16 MIDI mappings for pattern teleportation
+for i = 1, 16 do
+  local pattern_id = string.format("%02d", i)
+  local mapping_name = string.format("Paketti:Play & Loop Pattern %s", pattern_id)
+  
+  renoise.tool():add_midi_mapping{
+    name = mapping_name,
+    invoke = function(message)
+      if message:is_trigger() then
+        PakettiPlayAndLoopPattern(i)
+      end
+    end
+  }
+end
