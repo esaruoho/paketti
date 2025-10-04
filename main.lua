@@ -824,7 +824,7 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiEquationCalculator")
   --timed_require("PakettiMultitapExperiment")
   --timed_require("PakettiPlayerProWaveformViewer")
-  --timed_require("PakettiAutomationStack")
+  timed_require("PakettiAutomationStack")
 end
 
 --timed_require("PakettiExperimentalDialog")

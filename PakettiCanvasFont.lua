@@ -594,6 +594,22 @@ function PakettiCanvasFontDrawGreater(ctx, x, y, size)
   ctx:stroke()
 end
 
+function PakettiCanvasFontDrawAsterisk(ctx, x, y, size)
+  ctx:begin_path()
+  -- Vertical line (full height)
+  ctx:move_to(x + size/2, y)
+  ctx:line_to(x + size/2, y + size)
+  -- Horizontal line (full width)
+  ctx:move_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  -- Diagonal lines (corner to corner)
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y + size)
+  ctx:move_to(x + size, y)
+  ctx:line_to(x, y + size)
+  ctx:stroke()
+end
+
 -- EXTENDED GLYPHS -----------------------------------------------------
 -- Scandinavian letters: ä ö å (lowercase and uppercase forms)
 local function draw_umlaut_bars(ctx, x, y, size)
@@ -785,7 +801,7 @@ PakettiCanvasFontLetterFunctions = {
   ["\\"] = PakettiCanvasFontDrawBackslash, ["&"] = PakettiCanvasFontDrawAmpersand, ["("] = PakettiCanvasFontDrawParenLeft,
   [")"] = PakettiCanvasFontDrawParenRight, ["%"] = PakettiCanvasFontDrawPercent, ['"'] = PakettiCanvasFontDrawDoubleQuote,
   ["'"] = PakettiCanvasFontDrawSingleQuote, ["^"] = PakettiCanvasFontDrawCaret, ["<"] = PakettiCanvasFontDrawLess,
-  [">"] = PakettiCanvasFontDrawGreater,
+  [">"] = PakettiCanvasFontDrawGreater, ["*"] = PakettiCanvasFontDrawAsterisk,
   -- Extended
   ["ä"] = PakettiCanvasFontDrawLowerA_Umlaut, ["Ä"] = PakettiCanvasFontDrawLowerA_Umlaut,
   ["ö"] = PakettiCanvasFontDrawLowerO_Umlaut, ["Ö"] = PakettiCanvasFontDrawLowerO_Umlaut,

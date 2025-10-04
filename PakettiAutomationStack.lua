@@ -14,10 +14,10 @@ PakettiAutomationStack_vb = nil
 PakettiAutomationStack_header_canvas = nil
 PakettiAutomationStack_container = nil
 PakettiAutomationStack_track_canvases = {}
-PakettiAutomationStack_canvas_width = 1200
+PakettiAutomationStack_canvas_width = 1400
 PakettiAutomationStack_lane_height = 80
 PakettiAutomationStack_gutter_height = 18
-PakettiAutomationStack_gutter_width = 28
+PakettiAutomationStack_gutter_width = 0
 PakettiAutomationStack_zoom_levels = {1.0, 0.5, 0.25, 0.125}
 PakettiAutomationStack_zoom_index = 1
 PakettiAutomationStack_view_start_line = 1
@@ -248,10 +248,14 @@ end
 function PakettiAutomationStack_MapTimeToX(t, total_lines)
   local win = PakettiAutomationStack_GetWindowLines(total_lines)
   local view_start_t = (PakettiAutomationStack_view_start_line - 1)
-  local gutter = PakettiAutomationStack_gutter_width
-  local drawable = PakettiAutomationStack_canvas_width - (gutter * 2)
-  if drawable < 1 then drawable = 1 end
-  local x = gutter + ((t - view_start_t) / win) * drawable
+  -- Account for gutters - use effective width, not full canvas width
+  local eff_w = math.max(1, PakettiAutomationStack_canvas_width - (2*PakettiAutomationStack_gutter_width))
+  if win <= 1 then
+    return PakettiAutomationStack_gutter_width + eff_w / 2
+  end
+  -- Map the full pattern length to the full canvas width for proper end-to-end drawing
+  local divisor = total_lines  -- Use total pattern length so we can draw to the very end
+  local x = PakettiAutomationStack_gutter_width + ((t - view_start_t) / divisor) * eff_w
   return x
 end
 
@@ -262,17 +266,12 @@ end
 -- Inverse mapping: canvas x to pattern line
 function PakettiAutomationStack_XToLine(x, total_lines)
   local win = PakettiAutomationStack_GetWindowLines(total_lines)
-  local gutter = PakettiAutomationStack_gutter_width
-  local drawable = PakettiAutomationStack_canvas_width - (gutter * 2)
-  if drawable < 1 then drawable = 1 end
-  local xt = x - gutter
-  if xt < 0 then xt = 0 end
-  if xt > drawable then xt = drawable end
-  local t = (xt / drawable) * win + (PakettiAutomationStack_view_start_line - 1)
-  local line = math.floor(t) + 1
-  if line < 1 then line = 1 end
-  if line > total_lines then line = total_lines end
-  return line
+  local eff_w = math.max(1, PakettiAutomationStack_canvas_width - (2*PakettiAutomationStack_gutter_width))
+  -- Map the full canvas width to the full pattern length for proper end-to-end drawing
+  local t = (x / eff_w) * total_lines + (PakettiAutomationStack_view_start_line - 1)
+  -- Convert from 0-based time back to 1-based line number
+  -- Allow writing beyond pattern length (e.g., line 65 in a 64-line pattern)
+  return math.max(1, math.floor(t + 1.5))
 end
 
 function PakettiAutomationStack_UpdateScrollbars()
@@ -693,10 +692,12 @@ function PakettiAutomationStack_DrawGrid(ctx, W, H, num_lines, lpb)
   ctx:add_fill_color_stop(0, {25,25,35,255})
   ctx:add_fill_color_stop(1, {15,15,25,255})
   ctx:begin_path(); ctx:rect(0,0,W,H); ctx:fill()
-  -- gutters
+  -- gutters (only if gutter_width > 0)
   local gutter = PakettiAutomationStack_gutter_width
-  ctx.fill_color = {18,18,24,255}; ctx:fill_rect(0, 0, gutter, H)
-  ctx.fill_color = {14,14,20,255}; ctx:fill_rect(W - gutter, 0, gutter, H)
+  if gutter > 0 then
+    ctx.fill_color = {18,18,24,255}; ctx:fill_rect(0, 0, gutter, H)
+    ctx.fill_color = {14,14,20,255}; ctx:fill_rect(W - gutter, 0, gutter, H)
+  end
   -- grid
   if pixels_per_line >= 6 then
     for line = PakettiAutomationStack_view_start_line, math.min(num_lines, PakettiAutomationStack_view_start_line + win - 1) do
@@ -748,8 +749,11 @@ function PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, colo
       local p = points[i]
       local x = PakettiAutomationStack_MapTimeToX((p.time or 1) - 1, num_lines)
       local y = PakettiAutomationStack_ValueToY(p.value, H)
-      if x < gutter then x = gutter end
-      if x > W - gutter then x = W - gutter end
+      -- Remove gutter constraints since gutter_width = 0
+      if gutter > 0 then
+        if x < gutter then x = gutter end
+        if x > W - gutter then x = W - gutter end
+      end
       ctx:begin_path(); ctx:move_to(x, H-1); ctx:line_to(x, y); ctx:stroke()
       ctx.stroke_color = point_color
       ctx.line_width = math.max(1, line_width - 1)
@@ -771,8 +775,11 @@ function PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, colo
       local p = points[i]
       local x = PakettiAutomationStack_MapTimeToX((p.time or 1) - 1, num_lines)
       local y = PakettiAutomationStack_ValueToY(p.value, H)
-      if x < gutter then x = gutter end
-      if x > W - gutter then x = W - gutter end
+      -- Remove gutter constraints since gutter_width = 0
+      if gutter > 0 then
+        if x < gutter then x = gutter end
+        if x > W - gutter then x = W - gutter end
+      end
       ctx:line_to(x, y)
     end
     ctx:stroke()
@@ -907,6 +914,8 @@ function PakettiAutomationStack_SingleMouse(ev, lane_h)
       local entry = PakettiAutomationStack_automations[idx]
       if entry and entry.track_index then
         PakettiAutomationStack_ToggleTrackMute(entry.track_index)
+        -- Also show the automation envelope for this parameter
+        PakettiAutomationStack_ShowAutomationEnvelope(entry)
         PakettiAutomationStack_RequestUpdate()
         return
       end
@@ -915,6 +924,13 @@ function PakettiAutomationStack_SingleMouse(ev, lane_h)
     PakettiAutomationStack_last_draw_line = line
     PakettiAutomationStack_last_draw_idx = idx
     PakettiAutomationStack_last_draw_value = value
+    
+    -- Show automation envelope in lower frame for visual feedback
+    local entry = PakettiAutomationStack_automations[idx]
+    if entry then
+      PakettiAutomationStack_ShowAutomationEnvelope(entry)
+    end
+    
     PakettiAutomationStack_WritePoint(idx, line, value, is_alt)
     PakettiAutomationStack_RequestUpdate()
   elseif ev.type == "down" and ev.button == "right" then
@@ -1046,6 +1062,34 @@ function PakettiAutomationStack_PlaymodeForIndex(idx)
   return renoise.PatternTrackAutomation.PLAYMODE_LINES
 end
 
+-- Show automation envelope in lower frame for visual feedback
+function PakettiAutomationStack_ShowAutomationEnvelope(entry)
+  if not entry or not entry.parameter then return end
+  
+  local success, error_msg = pcall(function()
+    local song = renoise.song()
+    
+    -- Show automation frame and make it active
+    renoise.app().window.lower_frame_is_visible = true
+    renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+    
+    -- Make sure we're looking at the right track
+    if entry.track_index then
+      song.selected_track_index = entry.track_index
+    end
+    
+    -- Select this parameter's automation envelope
+    song.selected_automation_parameter = entry.parameter
+    
+    -- Force a refresh of the automation data to ensure consistency
+    PakettiAutomationStack_RequestUpdate()
+  end)
+  
+  if not success then
+    print("AUTOMATION_ERROR: Failed to select parameter '" .. (entry.parameter.name or "Unknown") .. "': " .. tostring(error_msg))
+  end
+end
+
 -- Write or remove point for a lane
 function PakettiAutomationStack_WritePoint(automation_index, line, value, remove)
   local song, patt, ptrack = PakettiAutomationStack_GetSongPatternTrack(); if not song or not patt or not ptrack then return end
@@ -1091,9 +1135,12 @@ function PakettiAutomationStack_WritePoint(automation_index, line, value, remove
     return -- Can't remove from non-existent automation
   end
   
-  -- Ensure envelope playmode follows current draw mode
-  local desired = PakettiAutomationStack_PlaymodeForIndex(PakettiAutomationStack_draw_playmode_index)
-  if a.playmode ~= desired then a.playmode = desired end
+  -- Only set playmode for new automation, don't change existing automation's mode
+  -- This preserves the original automation mode (curves stay curves, lines stay lines)
+  if not entry.automation then
+    local desired = PakettiAutomationStack_PlaymodeForIndex(PakettiAutomationStack_draw_playmode_index)
+    a.playmode = desired
+  end
   
   if remove then
     if a:has_point_at(line) then a:remove_point_at(line) end
@@ -1121,6 +1168,8 @@ function PakettiAutomationStack_LaneMouse(automation_index, ev, lane_h)
       local entry = PakettiAutomationStack_automations[automation_index]
       if entry and entry.track_index then
         PakettiAutomationStack_ToggleTrackMute(entry.track_index)
+        -- Also show the automation envelope for this parameter
+        PakettiAutomationStack_ShowAutomationEnvelope(entry)
         PakettiAutomationStack_RequestUpdate()
         return
       end
@@ -1139,6 +1188,13 @@ function PakettiAutomationStack_LaneMouse(automation_index, ev, lane_h)
     PakettiAutomationStack_last_draw_line = line
     PakettiAutomationStack_last_draw_idx = automation_index
     PakettiAutomationStack_last_draw_value = value
+    
+    -- Show automation envelope in lower frame for visual feedback
+    local entry = PakettiAutomationStack_automations[automation_index]
+    if entry then
+      PakettiAutomationStack_ShowAutomationEnvelope(entry)
+    end
+    
     PakettiAutomationStack_WritePoint(automation_index, line, value, is_alt)
     PakettiAutomationStack_RequestUpdate()
   elseif ev.type == "down" and ev.button == "right" then
@@ -1258,7 +1314,9 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
     -- Draw zero-line reference
     ctx.stroke_color = {80,80,100,200}
     ctx.line_width = 1
-    ctx:begin_path(); ctx:move_to(gutter, PakettiAutomationStack_ValueToY(0.5, H)); ctx:line_to(W - gutter, PakettiAutomationStack_ValueToY(0.5, H)); ctx:stroke()
+    local start_x = (gutter > 0) and gutter or 0
+    local end_x = (gutter > 0) and (W - gutter) or W
+    ctx:begin_path(); ctx:move_to(start_x, PakettiAutomationStack_ValueToY(0.5, H)); ctx:line_to(end_x, PakettiAutomationStack_ValueToY(0.5, H)); ctx:stroke()
 
     if #points == 0 then
       -- Empty lane - show as ready for drawing with a subtle indicator
@@ -1268,10 +1326,12 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
       ctx.line_width = 1
       -- Draw dotted line to indicate this is a drawable empty lane
       local step = 20
-      for x = gutter, W - gutter, step do
+      local start_x = (gutter > 0) and gutter or 0
+      local end_x = (gutter > 0) and (W - gutter) or W
+      for x = start_x, end_x, step do
         ctx:begin_path()
         ctx:move_to(x, PakettiAutomationStack_ValueToY(0.5, H))
-        ctx:line_to(math.min(x + 10, W - gutter), PakettiAutomationStack_ValueToY(0.5, H))
+        ctx:line_to(math.min(x + 10, end_x), PakettiAutomationStack_ValueToY(0.5, H))
         ctx:stroke()
       end
       return
@@ -1398,25 +1458,39 @@ function PakettiAutomationStack_RenderHeaderCanvas(canvas_w, canvas_h)
     ctx:add_fill_color_stop(0, {22,22,30,255})
     ctx:add_fill_color_stop(1, {12,12,20,255})
     ctx:begin_path(); ctx:rect(0,0,W,H); ctx:fill()
-    ctx.fill_color = {18,18,24,255}; ctx:fill_rect(0, 0, gutter, H)
-    ctx.fill_color = {14,14,20,255}; ctx:fill_rect(W - gutter, 0, gutter, H)
-    -- Always show "00" at leftmost position, then regular step intervals
+    -- gutters (only if gutter_width > 0)
+    if gutter > 0 then
+      ctx.fill_color = {18,18,24,255}; ctx:fill_rect(0, 0, gutter, H)
+      ctx.fill_color = {14,14,20,255}; ctx:fill_rect(W - gutter, 0, gutter, H)
+    end
+    -- Grid ticks and row labels along the header timeline
     local row_label_size = 7
-    local step = (lpb >= 2) and lpb or 1
+    local eff_w = math.max(1, W - (2*PakettiAutomationStack_gutter_width))
+    local pixels_per_line = eff_w / win
+    -- Use smaller step size when zoomed in enough to show individual lines
+    local step = (pixels_per_line >= 12) and 1 or ((lpb >= 2) and lpb or 1)
     
-    -- Always draw "00" at the leftmost drawable position
-    ctx.stroke_color = {90,90,120,255}
-    ctx:begin_path(); ctx:move_to(gutter, 0); ctx:line_to(gutter, H); ctx:stroke()
-    PakettiAutomationStack_DrawText(ctx, "00", gutter + 2, 2, row_label_size)
-    
-    -- Then draw regular step intervals
     for line = view_start, view_end, step do
-      if line > view_start or (line == view_start and view_start > 1) then
-        local x = PakettiAutomationStack_LineToX(line, num_lines)
-        ctx.stroke_color = {90,90,120,255}
-        ctx:begin_path(); ctx:move_to(x, 0); ctx:line_to(x, H); ctx:stroke()
-        local label = string.format("%02d", (line-1) % 100)
+      local x = PakettiAutomationStack_LineToX(line, num_lines)
+      -- tick
+      ctx.stroke_color = {90,90,120,255}
+      ctx:begin_path(); ctx:move_to(x, 0); ctx:line_to(x, H); ctx:stroke()
+      
+      -- Smart row labeling: every 4th line when > 32 lines, otherwise every line
+      local should_show_label = true
+      if num_lines > 32 then
+        -- Only show labels on "Grey Lines" (every 4th line: 1, 5, 9, 13, etc.)
+        should_show_label = ((line - 1) % 4 == 0)
+      end
+      
+      if should_show_label then
+        -- label above the tick - show full range without artificial 100-limit
+        local label = string.format("%03d", (line - 1))  -- Convert 1-based internal to 0-based visual display
+        -- Set bright white color for better visibility
+        ctx.stroke_color = {255,255,255,255}
         PakettiAutomationStack_DrawText(ctx, label, x + 2, 2, row_label_size)
+        -- Restore original color for tick marks
+        ctx.stroke_color = {90,90,120,255}
       end
     end
     -- playhead
@@ -1434,7 +1508,8 @@ function PakettiAutomationStack_RenderHeaderCanvas(canvas_w, canvas_h)
     if x_play then
       ctx.stroke_color = {255,200,120,255}; ctx.line_width = 3
       -- FAT PINK LINE at the absolute leftmost drawable position
-      ctx:begin_path(); ctx:move_to(gutter, 0); ctx:line_to(gutter, H); ctx:stroke()
+      local start_x = (gutter > 0) and gutter or 0
+      ctx:begin_path(); ctx:move_to(start_x, 0); ctx:line_to(start_x, H); ctx:stroke()
       -- Also draw the timeline position indicator
       ctx.line_width = 2
       ctx:begin_path(); ctx:move_to(x_play, 0); ctx:line_to(x_play, H); ctx:stroke()
@@ -1479,6 +1554,11 @@ function PakettiAutomationStack_RebuildCanvases()
       popup_view.value = PakettiAutomationStack_single_selected_index
       popup_view.notifier = function(val)
         PakettiAutomationStack_single_selected_index = val
+        -- Show automation envelope for the selected parameter
+        local entry = PakettiAutomationStack_automations[val]
+        if entry then
+          PakettiAutomationStack_ShowAutomationEnvelope(entry)
+        end
         PakettiAutomationStack_RequestUpdate()
       end
     else
@@ -1489,6 +1569,11 @@ function PakettiAutomationStack_RebuildCanvases()
         value = PakettiAutomationStack_single_selected_index, 
         notifier = function(val)
           PakettiAutomationStack_single_selected_index = val
+          -- Show automation envelope for the selected parameter
+          local entry = PakettiAutomationStack_automations[val]
+          if entry then
+            PakettiAutomationStack_ShowAutomationEnvelope(entry)
+          end
           PakettiAutomationStack_RequestUpdate()
         end 
       }
@@ -1714,7 +1799,7 @@ function PakettiAutomationStack_ShowParameterSelectionDialog()
   
   -- Add just a cancel button at the bottom for convenience
   local bottom_button_row = PakettiAutomationStack_arbitrary_vb:row{
-    PakettiAutomationStack_arbitrary_vb:space{ width = 150 },
+    PakettiAutomationStack_arbitrary_vb:space{ width = 100 },
     PakettiAutomationStack_arbitrary_vb:button{ 
       text = "Cancel", 
       width = 100, 
@@ -1727,7 +1812,7 @@ function PakettiAutomationStack_ShowParameterSelectionDialog()
   
   -- Create scrollable content
   local content_column = PakettiAutomationStack_arbitrary_vb:column{
-    spacing = 2,
+    --spacing = 2,
     views = rows
   }
   
@@ -1780,7 +1865,7 @@ function PakettiAutomationStack_BuildContent()
     PakettiAutomationStack_vb:switch{
       id = "pas_zoom_switch",
       items = {"Full","1/2","1/4","1/8"},
-      width = 300,
+      width = 100,
       value = PakettiAutomationStack_zoom_index,
       notifier = function(val) PakettiAutomationStack_SetZoomIndex(val) end
     },
@@ -1788,7 +1873,7 @@ function PakettiAutomationStack_BuildContent()
     PakettiAutomationStack_vb:switch{
       id = "pas_mode_switch",
       items = {"Points","Lines","Curves"},
-      width = 300,
+      width = 150,
       value = PakettiAutomationStack_draw_playmode_index,
       notifier = function(val)
         PakettiAutomationStack_draw_playmode_index = val
@@ -1804,7 +1889,7 @@ function PakettiAutomationStack_BuildContent()
     PakettiAutomationStack_vb:switch{
       id = "pas_view_switch",
       items = {"Stack","Single"},
-      width = 300,
+      width = 80,
       value = (PakettiAutomationStack_view_mode == 2) and 2 or 1,
       notifier = function(val)
         PakettiAutomationStack_view_mode = (val == 2) and 2 or 1
@@ -1816,7 +1901,7 @@ function PakettiAutomationStack_BuildContent()
     PakettiAutomationStack_vb:switch{
       id = "pas_show_switch",
       items = {"Page","All"},
-      width = 300,
+      width = 70,
       value = PakettiAutomationStack_show_all_vertically and 2 or 1,
       notifier = function(val)
         PakettiAutomationStack_show_all_vertically = (val == 2)
@@ -1834,12 +1919,12 @@ function PakettiAutomationStack_BuildContent()
     PakettiAutomationStack_vb:text{ id = "pas_count_text", text = "(0)" },
     PakettiAutomationStack_vb:button{ 
       text = "Arbitrary Parameters", 
-      width = 150, 
+      width = 100, 
       notifier = function() PakettiAutomationStack_ShowParameterSelectionDialog() end 
     },
     PakettiAutomationStack_vb:button{ 
       text = "Current Track", 
-      width = 100, 
+      width = 80, 
       notifier = function() 
         PakettiAutomationStack_arbitrary_mode = false
         PakettiAutomationStack_show_same_mode = false
@@ -1849,7 +1934,7 @@ function PakettiAutomationStack_BuildContent()
         renoise.app():show_status("Automation Stack: Showing current track")
       end 
     },
-    PakettiAutomationStack_vb:button{ text = "Refresh", width = 80, notifier = function() PakettiAutomationStack_ForceRefresh() end }
+    PakettiAutomationStack_vb:button{ text = "Refresh", width = 50, notifier = function() PakettiAutomationStack_ForceRefresh() end }
   }
 
   local show_same_row = PakettiAutomationStack_vb:row{
@@ -1908,7 +1993,13 @@ function PakettiAutomationStack_BuildContent()
     end }
   }
 
-  return PakettiAutomationStack_vb:column{ controls_row, show_same_row, header_row, tracks_col, bottom_row }
+  local main_content = PakettiAutomationStack_vb:column{ controls_row, show_same_row, header_row, tracks_col, bottom_row }
+  
+  -- Wrap in a container with exact canvas width to match dialog to canvas
+  return PakettiAutomationStack_vb:column{
+    PakettiAutomationStack_vb:space{ width = PakettiAutomationStack_canvas_width, height = 1 },
+    main_content
+  }
 end
 
 -- Reopen / build dialog

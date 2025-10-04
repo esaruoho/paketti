@@ -17,7 +17,7 @@ PakettiCanvasFontPreviewLines = {
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
   "abcdefghijklmnopqrstuvwxyz",
   "0123456789",
-  ".,:;!? _+-# % & () <> \" ' ^ / \\",
+  ".,:;!? _+-# % & () <> \" ' ^ / \\ *",
   "= §",
   "ä Ä ö Ö å Å",
   "⌘ ⌥ ⌃ ⇧  ↑ ↓ ← →  ↩"
