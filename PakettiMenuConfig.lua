@@ -1881,6 +1881,13 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Paketti Seque
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Fuzzy Search Track Dialog...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 
+
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
+
+
 -- Pattern Matrix Devices
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Devices:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 
