@@ -3396,28 +3396,29 @@ function write_automation_to_fx(move)
           else
             -- Skip unknown mixer parameters
             print(string.format("Skipping unknown mixer parameter: %s", param.name))
-            goto continue
           end
           
-          print(string.format("Processing mixer %s automation with %d points", param.name, #automation.points))
-          for _, point in ipairs(automation.points) do
-            local line_index = math.floor(point.time)
-            if line_index >= 1 and line_index <= #track_pattern.lines then
-              local line = track_pattern.lines[line_index]
-              local fx_amount = math.floor(point.value * 255)
-              -- Use current effect column
-              if current_column <= #line.effect_columns then
-                line.effect_columns[current_column].number_string = fx_command
-                line.effect_columns[current_column].amount_value = fx_amount
-                print(string.format("Line %d: Set %s to %02x (value %.3f)", line_index, fx_command, fx_amount, point.value))
-                total_conversions = total_conversions + 1
+          -- Only process if we have a valid FX command
+          if fx_command ~= "" then
+            print(string.format("Processing mixer %s automation with %d points", param.name, #automation.points))
+            for _, point in ipairs(automation.points) do
+              local line_index = math.floor(point.time)
+              if line_index >= 1 and line_index <= #track_pattern.lines then
+                local line = track_pattern.lines[line_index]
+                local fx_amount = math.floor(point.value * 255)
+                -- Use current effect column
+                if current_column <= #line.effect_columns then
+                  line.effect_columns[current_column].number_string = fx_command
+                  line.effect_columns[current_column].amount_value = fx_amount
+                  print(string.format("Line %d: Set %s to %02x (value %.3f)", line_index, fx_command, fx_amount, point.value))
+                  total_conversions = total_conversions + 1
+                end
               end
             end
+            current_column = current_column + 1
           end
-          current_column = current_column + 1
         end
       end
-      ::continue::
     end
   end
   
