@@ -336,6 +336,8 @@ function PakettiZeroCrossingsMoveSliceEnd(beat_fraction, direction)
     direction_text, beat_text, math.abs(frame_offset)))
 end
 
+local PakettiZeroCrossingsDialog = nil
+
 -- Interactive dialog for advanced slice operations
 function PakettiZeroCrossingsAdvancedDialog()
   if PakettiZeroCrossingsDialog then
@@ -349,16 +351,14 @@ function PakettiZeroCrossingsAdvancedDialog()
   local DEFAULT_CONTROL_SPACING = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
 
   local dialog_content = vb:column {
-    margin = DEFAULT_DIALOG_MARGIN,
-    spacing = DEFAULT_CONTROL_SPACING,
+--    margin = DEFAULT_DIALOG_MARGIN,
+--    spacing = DEFAULT_CONTROL_SPACING,
     
-    vb:text { text = "Zero Crossing Advanced Slice Operations", font = "bold" },
-    
-    vb:column {
+    vb:column {width=300,
       style = "group",
-      margin = DEFAULT_DIALOG_MARGIN,
+      --margin = DEFAULT_DIALOG_MARGIN,
       
-      vb:text { text = "Wipe & Slice with Zero Crossing Snap" },
+      vb:text { text = "Wipe & Slice with Zero Crossing Snap",style="strong",font="bold", },
       
       vb:row {
         vb:text { text = "Slices:" },
@@ -375,7 +375,7 @@ function PakettiZeroCrossingsAdvancedDialog()
       
       vb:button {
         text = "Wipe & Slice",
-        width = 200,
+        width = 300,
         notifier = function()
           PakettiZeroCrossingsWipeSlice(
             vb.views.slice_count.value,
@@ -388,9 +388,10 @@ function PakettiZeroCrossingsAdvancedDialog()
     
     vb:column {
       style = "group",
-      margin = DEFAULT_DIALOG_MARGIN,
+      width=300,
+      --margin = DEFAULT_DIALOG_MARGIN,
       
-      vb:text { text = "Randomize Existing Slices" },
+      vb:text { text = "Randomize Existing Slices",style="strong",font="bold", },
       
       vb:row {
         vb:text { text = "Amount:" },
@@ -400,7 +401,7 @@ function PakettiZeroCrossingsAdvancedDialog()
       
       vb:button {
         text = "Randomize Slices",
-        width = 200,
+        width = 300,
         notifier = function()
           PakettiZeroCrossingsRandomizeSlices(
             vb.views.random_amount.value,
@@ -412,10 +413,11 @@ function PakettiZeroCrossingsAdvancedDialog()
     },
     
     vb:column {
+      width=300,
       style = "group",
-      margin = DEFAULT_DIALOG_MARGIN,
+      --margin = DEFAULT_DIALOG_MARGIN,
       
-      vb:text { text = "Random Distributed Slices" },
+      vb:text { text = "Random Distributed Slices",style="strong",font="bold", },
       
       vb:row {
         vb:text { text = "Min:" },
@@ -426,7 +428,7 @@ function PakettiZeroCrossingsAdvancedDialog()
       
       vb:button {
         text = "Create Random Slices",
-        width = 200,
+        width = 300,
         notifier = function()
           PakettiZeroCrossingsRandomDistributedSlices(
             vb.views.min_random_slices.value,
@@ -440,40 +442,41 @@ function PakettiZeroCrossingsAdvancedDialog()
     
     vb:column {
       style = "group",
-      margin = DEFAULT_DIALOG_MARGIN,
+      width=300,
+      --margin = DEFAULT_DIALOG_MARGIN,
       
-      vb:text { text = "BPM-Based Slice Movement" },
+      vb:text { text = "BPM-Based Slice Movement",style="strong",font="bold", },
       
       vb:row {
         vb:text { text = "Current BPM: " .. renoise.song().transport.bpm },
       },
       
       vb:row {
-        vb:button { text = "Start -1/4", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.25, -1) end },
-        vb:button { text = "Start +1/4", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.25, 1) end },
-        vb:button { text = "End -1/4", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.25, -1) end },
-        vb:button { text = "End +1/4", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.25, 1) end },
+        vb:button {width=75, text = "Start -1/4", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.25, -1) end},
+        vb:button {width=75, text = "Start +1/4", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.25, 1) end },
+        vb:button {width=75, text = "End -1/4", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.25, -1) end },
+        vb:button {width=75, text = "End +1/4", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.25, 1) end },
       },
       
       vb:row {
-        vb:button { text = "Start -1/8", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.125, -1) end },
-        vb:button { text = "Start +1/8", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.125, 1) end },
-        vb:button { text = "End -1/8", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.125, -1) end },
-        vb:button { text = "End +1/8", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.125, 1) end },
+        vb:button {width=75, text = "Start -1/8", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.125, -1) end },
+        vb:button {width=75, text = "Start +1/8", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.125, 1) end },
+        vb:button {width=75, text = "End -1/8", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.125, -1) end },
+        vb:button {width=75, text = "End +1/8", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.125, 1) end },
       },
       
       vb:row {
-        vb:button { text = "Start -1/16", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.0625, -1) end },
-        vb:button { text = "Start +1/16", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.0625, 1) end },
-        vb:button { text = "End -1/16", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.0625, -1) end },
-        vb:button { text = "End +1/16", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.0625, 1) end },
+        vb:button {width=75, text = "Start -1/16", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.0625, -1) end },
+        vb:button {width=75, text = "Start +1/16", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.0625, 1) end },
+        vb:button {width=75, text = "End -1/16", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.0625, -1) end },
+        vb:button {width=75, text = "End +1/16", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.0625, 1) end },
       },
       
       vb:row {
-        vb:button { text = "Start -1/32", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.03125, -1) end },
-        vb:button { text = "Start +1/32", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.03125, 1) end },
-        vb:button { text = "End -1/32", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.03125, -1) end },
-        vb:button { text = "End +1/32", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.03125, 1) end },
+        vb:button {width=75, text = "Start -1/32", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.03125, -1) end },
+        vb:button {width=75, text = "Start +1/32", notifier = function() PakettiZeroCrossingsMoveSliceStart(0.03125, 1) end },
+        vb:button {width=75, text = "End -1/32", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.03125, -1) end },
+        vb:button {width=75, text = "End +1/32", notifier = function() PakettiZeroCrossingsMoveSliceEnd(0.03125, 1) end },
       },
     },
   }

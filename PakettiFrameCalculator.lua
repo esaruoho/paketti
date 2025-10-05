@@ -712,21 +712,20 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Show Pattern to Line Frame 
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Song to Line Frame Info", invoke = PakettiFrameCalculatorShowSongToLineInfo}
 renoise.tool():add_keybinding{name = "Global:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
 
-renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
+renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
 
-renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
+renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
-
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Show Pattern to Line Frame Info", invoke = PakettiFrameCalculatorShowPatternToLineInfo}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Show Song to Line Frame Info", invoke = PakettiFrameCalculatorShowSongToLineInfo}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
 
-renoise.tool():add_menu_entry{name = "Mixer:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
+renoise.tool():add_menu_entry{name = "--Mixer:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
 

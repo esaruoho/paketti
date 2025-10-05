@@ -210,8 +210,6 @@ function inspectSampleDevice()
   oprint("-- Total parameters exposed in Mixer: " .. #mixer_params)
 end
 
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Inspect Selected Sample Device", invoke = inspectSampleDevice}
-
 function inspectTrackDeviceChain(debug_mode)
   -- Set to true for debug output, false for clean script generation
   local generate_debug_prints = debug_mode ~= false  -- Default to true unless explicitly set to false
@@ -428,9 +426,10 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Track Device Chain",invoke=function() inspectTrackDeviceChain() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Track Device Chain (Clean)",invoke=function() inspectTrackDeviceChainClean() end}
 renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Inspect Track Device Chain", invoke = inspectTrackDeviceChain}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Inspect Track Device Chain (Clean)", invoke = inspectTrackDeviceChainClean}
+renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Inspect Track Device Chain (Clean)", invoke = inspectTrackDeviceChainClean}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Track Device Chain", invoke = inspectTrackDeviceChain}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Track Device Chain (Clean)", invoke = inspectTrackDeviceChainClean}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Inspect Track Device Chain (Clean)", invoke = inspectTrackDeviceChainClean}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
 
 
 

@@ -3893,6 +3893,10 @@ function PakettiHyperEditLoadAndShow()
 end
 
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+renoise.tool():add_menu_entry {name = "--Pattern Editor:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+renoise.tool():add_menu_entry {name = "--Mixer:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+renoise.tool():add_menu_entry {name = "--Pattern Matrix:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+renoise.tool():add_menu_entry {name = "--Track Automation:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 
 -- HyperEdit Pattern Functions

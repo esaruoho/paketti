@@ -509,7 +509,7 @@ renoise.tool():add_menu_entry{name="--Sample FX Mixer:Paketti:Enable All Sample 
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
-
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti Gadgets:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
 end
 
 --- Sample Navigator Config
@@ -526,7 +526,7 @@ renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Set Loop Mode to 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set Loop Mode to Forward",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_FORWARD) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set Loop Mode to PingPong",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_PING_PONG) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set Loop Mode to Reverse",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_REVERSE) end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti Gadgets:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Stack All Samples in Instrument with Velocity Mapping Split",invoke=function() fix_sample_velocity_mappings() end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Process:Invert Sample",invoke=PakettiSampleInvertEntireSample}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Invert Left Channel",invoke=PakettiSampleInvertLeftChannel}
@@ -539,7 +539,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Load Samples from .
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti Gadgets:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Duplicate All Samples at -36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate All Samples at -24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate All Samples at -12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12) end}
@@ -646,7 +646,7 @@ renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Isolate Slices or
 
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Protracker MOD Modulation...",invoke = showProtrackerModDialog}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti Gadgets:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Wipe Song Retain Sample",invoke=function() WipeRetain() end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
@@ -661,7 +661,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Load:Convert IFF to
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Load:Convert WAV to IFF...",invoke = convertWAVToIFF}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Export:Export Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Export:Export .PTI Instrument",invoke=pti_savesample}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti Gadgets:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Paketti Drumkit Loader MuteTrig (Randomize)",invoke=function() selectedInstrumentLoadMuteTrigDrumkit() end}
 
 
@@ -733,7 +733,7 @@ renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Convert Ster
 
 
 -- Sample Mappings Phrases
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Phrases:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Phrases:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Phrases:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Phrases:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}        
 
@@ -798,14 +798,11 @@ if preferences.pakettiMenuConfig.Mixer then
 renoise.tool():add_menu_entry{name="Mixer:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
 renoise.tool():add_menu_entry{name="Mixer:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
-
-
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Automation:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Automation:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Automation:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Automation:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Automation:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:LFO Write:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
@@ -827,7 +824,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti:LFO Write:LFO Write to Effect 
 
 
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Delay Output:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Delay Output:Nudge Delay Output -01ms",invoke=function() nudge_output_delay(-1, false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Delay Output:Nudge Delay Output +05ms",invoke=function() nudge_output_delay(5, false) end}
@@ -886,7 +883,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti:Initialize for Groovebox 8120"
   renoise.tool():add_menu_entry{name="Mixer:Paketti:Pattern:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
   renoise.tool():add_menu_entry{name="--Mixer:Paketti:Uncollapse All Tracks",invoke=function() Uncollapser() end}
   renoise.tool():add_menu_entry{name="Mixer:Paketti:Collapse All Tracks",invoke=function() Collapser() end}
-  renoise.tool():add_menu_entry{name="Mixer:Paketti:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
+
 renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus:Duplicate Highest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus:Duplicate Highest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
@@ -909,7 +906,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti:Bypass/Enable All Other Track 
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Insert Stereo -> Mono device to Beginning of DSP Chain",invoke=function() insertMonoToBeginning() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Insert Stereo -> Mono device to End of DSP Chain",invoke=function() insertMonoToEnd() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Randomize Selected Device Parameters",invoke=function()randomize_selected_device()end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Randomize Devices and Plugins Dialog...",invoke=function() pakettiRandomizerDialog() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Randomize Devices and Plugins Dialog...",invoke=function() pakettiRandomizerDialog() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Tracks:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
@@ -956,7 +953,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti:Convolver:Export Convolver IR 
   create_instrument_from_convolver(selected_device, selected_track_index, selected_device_index)
 end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Convolver:Show Convolver Selection Dialog",invoke=function() pakettiConvolverSelectionDialog(handle_convolver_action) end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 
 
 end
@@ -985,7 +982,7 @@ if preferences.pakettiMenuConfig.PatternEditor then
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Automation:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
-  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Automation:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
   
@@ -1563,7 +1560,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Group Sa
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Delete Unused Columns", invoke = deleteUnusedColumns}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Global Groove on Startup On/Off",invoke=pakettiToggleGlobalGrooveOnStartup}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Toggle BPM Randomization on New Songs On/Off",invoke=pakettiToggleRandomizeBPMOnNewSong}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Song:BPM&LPB:Randomize BPM Now (60-220, Bell Curve)",invoke=pakettiRandomizeBPMNow}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Transport:BPM&LPB:Randomize BPM Now (60-220, Bell Curve)",invoke=pakettiRandomizeBPMNow}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize BPM Now (60-220, Bell Curve)",invoke=pakettiRandomizeBPMNow}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Paketti Speed and Tempo to BPM Dialog...",invoke=pakettiSpeedTempoDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
@@ -1615,7 +1612,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:LFO Write:Single Par
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
@@ -1884,13 +1881,11 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Paketti BPM t
 
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
 
-
 -- Pattern Matrix Devices
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Devices:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
-
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Devices:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 
 -- Pattern Matrix Automation
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
@@ -1920,21 +1915,21 @@ renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Bottom to
 -- Pattern Matrix Root
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Selection in Pattern Matrix to Group",invoke=function() SelectionInPatternMatrixToGroup() end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Pattern Matrix Selection Expand",invoke=PatternMatrixExpand }
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Pattern Matrix Selection Expand",invoke=PatternMatrixExpand }
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Pattern Matrix Selection Shrink",invoke=PatternMatrixShrink }
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Wipe All Automation in Track on Current Pattern",invoke=function() delete_automation(false, false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wipe All Automation in All Tracks on Whole Song",invoke=function() delete_automation(true, true) end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Wipe All Automation in Track on Current Pattern",invoke=function() delete_automation(false, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Wipe All Automation in All Tracks on Whole Song",invoke=function() delete_automation(true, true) end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Switch to Automation",invoke=function() showAutomation() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Bypass EFX (Write to Pattern)",invoke=function() effectbypasspattern()  end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Enable EFX (Write to Pattern)",invoke=function() effectenablepattern() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Bypass All Devices on Channel",invoke=function() effectbypass() end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Enable All Devices on Channel",invoke=function() effectenable() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Play at 75% Speed (Song BPM)",invoke=function() playat75() end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Play at 100% Speed (Song BPM)",invoke=function() returnbackto100()  end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Switch to Automation",invoke=function() showAutomation() end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Devices:Bypass EFX (Write to Pattern)",invoke=function() effectbypasspattern()  end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Devices:Enable EFX (Write to Pattern)",invoke=function() effectenablepattern() end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Devices:Bypass All Devices on Channel",invoke=function() effectbypass() end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Devices:Enable All Devices on Channel",invoke=function() effectenable() end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Transport:Play at 75% Speed (Song BPM)",invoke=function() playat75() end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Transport:Play at 100% Speed (Song BPM)",invoke=function() returnbackto100()  end}
 
 
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Clone Current Sequence",invoke=clone_current_sequence}
@@ -2087,6 +2082,9 @@ if preferences.pakettiMenuConfig.TrackDSPDevice then
 renoise.tool():add_menu_entry{name="DSP Device Automation:Follow Off",invoke=function() renoise.song().transport.follow_player=false end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Open Visible Pages to Fit Plugin Parameter Count",invoke=openVisiblePagesToFitParameters}
 
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Inspect Selected Sample Device", invoke = inspectSampleDevice}
+
 
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
@@ -2094,13 +2092,13 @@ renoise.tool():add_menu_entry{name="DSP Device:Paketti:Automation:Snapshot Selec
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti Gadgets:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Automation:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Device Chains:Open Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Clear/Wipe Selected Track TrackDSPs",invoke=function() wipeSelectedTrackTrackDSPs() end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
+
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Insert Stereo -> Mono device to Beginning of DSP Chain",invoke=function() insertMonoToBeginning() end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Insert Stereo -> Mono device to End of DSP Chain",invoke=function() insertMonoToEnd() end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Randomize Devices and Plugins Dialog...",invoke=function() pakettiRandomizerDialog() end}
@@ -2147,7 +2145,7 @@ renoise.tool():add_menu_entry{name="Track Automation:Paketti:Start/Stop Pattern 
 
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
 
 

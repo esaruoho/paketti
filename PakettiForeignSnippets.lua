@@ -2580,38 +2580,13 @@ function pakettiUIowaImporter()
   end
 end
 
--- Menu entries
-renoise.tool():add_menu_entry{
-  name = "--Main Menu:Tools:Paketti:Samples:UIOWA Sample Importer",
-  invoke = pakettiUIowaImporter
-}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:UIOWA Sample Importer",invoke = pakettiUIowaImporter}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:UIOWA Sample Processor",invoke = pakettiUIowaProcessor}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:UIOWA Sample Importer",invoke = pakettiUIowaImporter}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:UIOWA Sample Processor",invoke = pakettiUIowaProcessor}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Load:UIOWA Sample Importer",invoke = pakettiUIowaImporter}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load:UIOWA Sample Processor",invoke = pakettiUIowaProcessor}
 
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Samples:UIOWA Sample Processor",
-  invoke = pakettiUIowaProcessor
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Instrument Box:Paketti:Load:UIOWA Sample Importer",
-  invoke = pakettiUIowaImporter
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Load:UIOWA Sample Processor",
-  invoke = pakettiUIowaProcessor
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Sample Editor:Paketti:Load:UIOWA Sample Importer",
-  invoke = pakettiUIowaImporter
-}
-
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Load:UIOWA Sample Processor",
-  invoke = pakettiUIowaProcessor
-}
-
--- Keybindings
 renoise.tool():add_keybinding{
   name = "Global:Paketti:UIOWA Sample Importer",
   invoke = pakettiUIowaImporter
@@ -3953,7 +3928,7 @@ end
 renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
-renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}

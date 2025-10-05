@@ -1695,13 +1695,13 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Poly
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
-
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Project", invoke=PakettiImportPolyendProject}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend WIP:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Polyend WIP:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
+--[[
+renoise.tool():add_menu_entry{name="Main Menu:Tools::Paketti:Xperimental/WIP:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Project", invoke=PakettiImportPolyendProject}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend WIP:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Polyend Pattern Browser", invoke=PakettiPolyendPatternBrowser}
 renoise.tool():add_keybinding{name="Global:Paketti:Import Polyend Project", invoke=PakettiImportPolyendProject}
@@ -1709,7 +1709,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Import Polyend Pattern", invo
 renoise.tool():add_keybinding{name="Global:Paketti:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
 renoise.tool():add_keybinding{name="Global:Paketti:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
 renoise.tool():add_keybinding{name="Global:Paketti:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
-
+]]--
 -- Main MT project import function  
 function PakettiImportPolyendMTProject(filepath)
     if not filepath then

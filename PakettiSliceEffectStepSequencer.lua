@@ -4757,10 +4757,10 @@ end
 
 -- Menu entries and keybindings
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets: Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti Gadgets: Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets: Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets: Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
+renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Paketti Sample Offset / Slice Step Sequencer...",

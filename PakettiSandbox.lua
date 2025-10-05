@@ -565,7 +565,7 @@ end
 
 -- Sectionizer menu entries and keybinding
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
-renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
+renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
 renoise.tool():add_keybinding{name = "Global:Paketti:Sectionizer...", invoke = PakettiSectionizer}
 
 

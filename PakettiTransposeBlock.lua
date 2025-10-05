@@ -424,7 +424,7 @@ function show_transpose_block_dialog()
 end
 
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
-renoise.tool():add_menu_entry {name = "Mixer:Paketti GadgetsTranspose Blocks Dialog...",invoke = show_transpose_block_dialog}
+renoise.tool():add_menu_entry {name = "Mixer:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
