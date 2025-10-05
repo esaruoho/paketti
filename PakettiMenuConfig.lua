@@ -2138,6 +2138,12 @@ if preferences.pakettiMenuConfig.Automation then
   debugPrint("Automation Menus Are Enabled")
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Start/Stop Pattern Follow",invoke=function() local fp=renoise.song().transport.follow_player if not fp then fp=true else fp=false end end}
 
+renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}
+renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Convert Automation to FX",invoke = function() write_automation_to_fx(false) end}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Convert Automation to FX (Move)",invoke = function() write_automation_to_fx(true) end}
+
+
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 

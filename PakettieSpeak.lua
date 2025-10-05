@@ -174,7 +174,21 @@ local exe_button = vb:button{id="PakettieSpeak_exe_button",
             vb.views.PakettieSpeak_exe_button.width=math.min(#vb.views.PakettieSpeak_exe_button.text * 8, control_width)
           end end}
 
+local test_exe_button = vb:button{id="PakettieSpeak_test_exe_button",
+        width=control_width,
+        height = 24,
+        text = "Test eSpeak Installation",
+        notifier=function()
+          local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+          if is_valid then
+            renoise.app():show_status("eSpeak installation is working correctly!")
+          else
+            renoise.app():show_error(error_message)
+          end
+        end}
+
 local horalign=vb:horizontal_aligner{mode="right",path_to_espeak,exe_button}
+local test_align=vb:horizontal_aligner{mode="right",vb:text{width=control_width,height=24,text="",font="normal"},test_exe_button}
 local consonants_vowels=vb:row{randomize_consonants,randomize_vowels,}
 
 local loadtext_refresh=vb:row{
@@ -666,6 +680,7 @@ local lastbuttons=    vb:horizontal_aligner{
  local wholegui=vb:column{
     width=dialog_width,
     horalign,
+    test_align,
     randomize_everything,
     consonants_vowels,
     loadtext_refresh,
@@ -719,7 +734,14 @@ function PakettieSpeakPrepare()
   if espeak_location ~= "" then
     eSpeak.executable = PakettieSpeakConvertPath(espeak_location)
   else
-    renoise.app():show_alert("Please set the eSpeak path before running.")
+    renoise.app():show_error("Please set the eSpeak path before running.")
+    return
+  end
+
+  -- Validate the eSpeak executable before showing the dialog
+  local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+  if not is_valid then
+    renoise.app():show_error(error_message)
     return
   end
 
@@ -782,6 +804,13 @@ function PakettieSpeakCreateSample(custom_text)
   local text_to_render = custom_text or eSpeak.text.value
   print(text_to_render)
 
+  -- Validate eSpeak executable before starting the process
+  local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+  if not is_valid then
+    renoise.app():show_error(error_message)
+    return
+  end
+
   -- Create the process slicer with our process function
   local process = ProcessSlicer(function(text_to_render, dialog, vb)
     -- This is the actual process function that will be run by ProcessSlicer
@@ -815,10 +844,20 @@ function PakettieSpeakCreateSample(custom_text)
     -- Allow UI to update
     coroutine.yield()
     
-    os.execute(cmd)
+    local exit_code = os.execute(cmd)
+    
+    -- Check if the command failed
+    if exit_code ~= 0 then
+      error("eSpeak command failed with exit code: " .. tostring(exit_code) .. ". Please check the executable path and eSpeak installation.")
+    end
 
     -- Allow UI to update
     coroutine.yield()
+
+    -- Check if the output file was actually created
+    if not PakettieSpeakFileExists(path) then
+      error("eSpeak command completed but no output file was created. Please check the executable path and eSpeak installation.")
+    end
 
     if dialog and dialog.visible then
       vb.views.progress_text.text="Setting up instrument..."
@@ -910,10 +949,6 @@ function PakettieSpeakCreateSample(custom_text)
       local buffer = sample.sample_buffer
       if not buffer then error("No sample buffer available") end
 
-      if not PakettieSpeakFileExists(path) then
-        error("Sample was not rendered")
-      end
-
       print("Loading sample from:", path)
       local success = buffer:load_from(path)
       if not success then
@@ -992,14 +1027,50 @@ function PakettieSpeakFileExists(path)
   return f ~= nil and io.close(f)
 end
 
+-- Check if eSpeak executable exists and is accessible
+function PakettieSpeakValidateExecutable(executable_path)
+  if not executable_path or executable_path == "" then
+    return false, "No eSpeak executable path is set. Please configure the eSpeak path in the dialog."
+  end
+  
+  -- Check if the file exists
+  if not PakettieSpeakFileExists(executable_path) then
+    return false, "eSpeak executable not found at: " .. PakettieSpeakRevertPath(executable_path) .. "\n\nPlease check the path and ensure eSpeak is properly installed."
+  end
+  
+  -- Try to run eSpeak with --version to test if it's working
+  local test_cmd = '"' .. executable_path .. '" --version'
+  local exit_code = os.execute(test_cmd)
+  
+  if exit_code ~= 0 then
+    return false, "eSpeak executable found but failed to run properly.\n\nPath: " .. PakettieSpeakRevertPath(executable_path) .. "\nExit code: " .. tostring(exit_code) .. "\n\nPlease ensure eSpeak is properly installed and accessible."
+  end
+  
+  return true, "eSpeak executable is valid and working"
+end
+
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Text-to-Speech Dialog...",invoke=function() pakettieSpeakDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Sample",invoke=function()
+    -- Validate eSpeak before attempting to generate
+    local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+    if not is_valid then
+      renoise.app():show_error(error_message)
+      return
+    end
+    
     if dialog and dialog.visible then
       eSpeak.text.value = vb.views.PakettieSpeak_text_field.text
       PakettieSpeakCreateSample()
     else PakettieSpeakPrepare() end end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Selection",invoke=function()
+    -- Validate eSpeak before attempting to generate
+    local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+    if not is_valid then
+      renoise.app():show_error(error_message)
+      return
+    end
+    
     if dialog and dialog.visible then
       local text = vb.views.PakettieSpeak_text_field.text
       local start = vb.views.PakettieSpeak_start_pos.value
@@ -1018,6 +1089,13 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Selec
 
 for value = 0, 31 do
   renoise.tool():add_keybinding{name=("Global:Paketti:Paketti eSpeak Generate Row %02d"):format(value),invoke=function()
+      -- Validate eSpeak before attempting to generate
+      local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+      if not is_valid then
+        renoise.app():show_error(error_message)
+        return
+      end
+      
       local text = vb.views.PakettieSpeak_text_field.text
       local lines = PakettieSpeakGetLines(text)
       -- If value is 0, take all the content, otherwise select the specific line.
