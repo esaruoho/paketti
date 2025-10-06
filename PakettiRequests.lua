@@ -846,7 +846,7 @@ function selectedInstrumentLoadMuteTrigDrumkit()
 
   -- Set the instrument name based on slot
   local instrument_slot_hex = string.format("%02X", song.selected_instrument_index - 1)
-  instrument.name = instrument_slot_hex .. "_MuteTrig"
+  instrument.name = instrument_slot_hex .. "_MuteTrigDrumkit"
 
   -- Limit the number of samples to load to the requested amount
   local num_samples_to_load = math.min(#sample_files, 120)
@@ -948,26 +948,65 @@ function selectedInstrumentLoadMuteTrigDrumkit()
     mutetrig_sample.sample_mapping.note_range = {0, 119}
     mutetrig_sample.sample_mapping.base_note = 0  -- C0
     
-    -- NOW distribute all samples (including the MuteTrig sample) to separate FX chains
+    -- NOW distribute all samples to separate FX chains
     selectedInstrumentDistributeToSeparateFxChains()
+
+    -- Assign note mapping: lowest sample to C-0, highest sample to B-9
+    for i = 1, num_samples_to_load do
+      local sample = instrument.samples[i]
+      if sample then
+        -- Map each sample to a single note, spanning from C-0 (0) to B-9 (119)
+        local note = i - 1  -- C-0 = 0, so sample 1 maps to note 0
+        sample.sample_mapping.note_range = {note, note}
+        sample.sample_mapping.base_note = note
+      end
+    end
+
+    -- The scaffolding instrument already has a MuteTrig sample at position 121
+    -- Just reassign it to FX chain 123
+    local mutetrig_sample = instrument.samples[121]
+    if mutetrig_sample then
+      mutetrig_sample.device_chain_index = 123
+    end
     
-    -- Find and modify all Key Tracker devices in the "MuteTrig" FX chain
-    -- The MuteTrig sample should be using FX chain 121 (since it's sample 121)
-    local mutetrig_fx_chain = instrument.sample_device_chains[121]
+    -- Configure the Tracker device in FX chain 123 via XML injection
+    local mutetrig_fx_chain = instrument.sample_device_chains[123]
     if mutetrig_fx_chain then
       local devices = mutetrig_fx_chain.devices
       
       for device_index = 1, #devices do
         local device = devices[device_index]
         if device and device.name == "*Key Tracker" then
-          -- Modify the Key Tracker to use SrcInstrument 121 (the MuteTrig sample)
-          device.parameters[1].value = 121  -- SrcInstrument parameter
+          -- Set display name to "TRACKER"
+          device.display_name = "TRACKER"
           
-          print("Updated Key Tracker in MuteTrig FX chain to use SrcInstrument 121")
+          -- Inject XML configuration with SrcInstrument -1
+          local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="KeyTrackingDevice">
+    <IsMaximized>true</IsMaximized>
+    <SrcInstrument>-1</SrcInstrument>
+    <DestScaling>Linear</DestScaling>
+    <KeyTrackingMode>Clamp</KeyTrackingMode>
+    <KeyTrackingMin>0</KeyTrackingMin>
+    <KeyTrackingMax>119</KeyTrackingMax>
+    <DestMin>
+      <Value>1.00000007e-05</Value>
+    </DestMin>
+    <DestMax>
+      <Value>0.00119999994</Value>
+    </DestMax>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+          device.active_preset_data = device_xml
+          device.is_maximized = true
+          
+          print("Configured Tracker device in FX chain 123 with SrcInstrument -1")
         end
       end
     else
-      print("Could not find FX chain 121 for MuteTrig sample")
+      print("Could not find FX chain 123 for MuteTrig sample")
     end
 
     -- Add the *Instr. Macros device like pitchBendDrumkitLoader does
@@ -981,7 +1020,7 @@ function selectedInstrumentLoadMuteTrigDrumkit()
         -- Check if device 2 exists before accessing it
         if #song.selected_track.devices >= 2 then
           local macro_device = song.selected_track:device(2)
-          macro_device.display_name = instrument_slot_hex .. "_MuteTrig"
+          macro_device.display_name = instrument_slot_hex .. "_MuteTrigDrumkit"
           song.selected_track.devices[2].is_maximized = false
         end
       end
