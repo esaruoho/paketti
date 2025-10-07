@@ -267,11 +267,14 @@ end
 function PakettiAutomationStack_XToLine(x, total_lines)
   local win = PakettiAutomationStack_GetWindowLines(total_lines)
   local eff_w = math.max(1, PakettiAutomationStack_canvas_width - (2*PakettiAutomationStack_gutter_width))
-  -- Map the full canvas width to the full pattern length for proper end-to-end drawing
-  local t = (x / eff_w) * total_lines + (PakettiAutomationStack_view_start_line - 1)
+  -- Remove gutter offset first (inverse of forward mapping)
+  local x_eff = x - PakettiAutomationStack_gutter_width
+  -- Map effective canvas width to 0-based time (inverse of forward mapping)
+  local t_0based = (x_eff / eff_w) * total_lines
   -- Convert from 0-based time back to 1-based line number
-  -- Allow writing beyond pattern length (e.g., line 65 in a 64-line pattern)
-  return math.max(1, math.floor(t + 1.5))
+  -- Allow drawing slightly beyond for canvas, but clamp for automation writing
+  local line = math.max(1, math.floor(t_0based + 0.5))
+  return line
 end
 
 function PakettiAutomationStack_UpdateScrollbars()
@@ -649,18 +652,18 @@ function PakettiAutomationStack_RebuildAutomations()
         local param = dev.parameters[pi]
         if param.is_automatable then
           local a = ptrack:find_automation(param)
-          if a then
-            local entry = {
-              automation = a,
-              parameter = param,
-              name = param.name or "Parameter",
-              device_name = dev.display_name or "Device",
-              track_name = PakettiAutomationStack_GetTrackName(song.selected_track_index),
-              track_index = song.selected_track_index,
-              playmode = a.playmode
-            }
-            PakettiAutomationStack_automations[#PakettiAutomationStack_automations+1] = entry
-          end
+          -- Include parameter even if no automation exists yet (allows creating new automation)
+          local entry = {
+            automation = a, -- May be nil for new automation
+            parameter = param,
+            pattern_track = ptrack, -- Store for creating automation later
+            name = param.name or "Parameter",
+            device_name = dev.display_name or "Device",
+            track_name = PakettiAutomationStack_GetTrackName(song.selected_track_index),
+            track_index = song.selected_track_index,
+            playmode = a and a.playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES
+          }
+          PakettiAutomationStack_automations[#PakettiAutomationStack_automations+1] = entry
         end
       end
     end
@@ -982,7 +985,9 @@ end
 -- Update popup items from current automations
 function PakettiAutomationStack_UpdateEnvPopup()
   if not PakettiAutomationStack_env_popup_view then return end
-  local items = {}
+  local items_with_content = {}
+  local items_without_content = {}
+  
   for i = 1, #PakettiAutomationStack_automations do
     local e = PakettiAutomationStack_automations[i]
     local label
@@ -991,8 +996,29 @@ function PakettiAutomationStack_UpdateEnvPopup()
     else
       label = string.format("%s: %s", (e.device_name or "Device"), (e.name or "Param"))
     end
-    items[#items+1] = label
+    
+    -- Check if this automation has content (points)
+    local has_content = false
+    if e.automation and e.automation.points and #e.automation.points > 0 then
+      has_content = true
+    end
+    
+    if has_content then
+      items_with_content[#items_with_content+1] = label
+    else
+      items_without_content[#items_without_content+1] = label
+    end
   end
+  
+  -- Combine: content first, then empty ones
+  local items = {}
+  for i = 1, #items_with_content do
+    items[#items+1] = items_with_content[i]
+  end
+  for i = 1, #items_without_content do
+    items[#items+1] = items_without_content[i]
+  end
+  
   if #items == 0 then items = {"(none)"} end
   PakettiAutomationStack_env_popup_view.items = items
   if PakettiAutomationStack_single_selected_index < 1 then PakettiAutomationStack_single_selected_index = 1 end
@@ -1094,6 +1120,10 @@ end
 function PakettiAutomationStack_WritePoint(automation_index, line, value, remove)
   local song, patt, ptrack = PakettiAutomationStack_GetSongPatternTrack(); if not song or not patt or not ptrack then return end
   local entry = PakettiAutomationStack_automations[automation_index]; if not entry then return end
+  
+  -- Clamp line to valid pattern range for automation writing
+  local num_lines = patt.number_of_lines
+  line = math.max(1, math.min(num_lines, line))
   
   local a = entry.automation
   
@@ -1552,15 +1582,7 @@ function PakettiAutomationStack_RebuildCanvases()
       popup_view = PakettiAutomationStack_vb.views.pas_env_popup
       popup_view.items = {"(none)"}
       popup_view.value = PakettiAutomationStack_single_selected_index
-      popup_view.notifier = function(val)
-        PakettiAutomationStack_single_selected_index = val
-        -- Show automation envelope for the selected parameter
-        local entry = PakettiAutomationStack_automations[val]
-        if entry then
-          PakettiAutomationStack_ShowAutomationEnvelope(entry)
-        end
-        PakettiAutomationStack_RequestUpdate()
-      end
+      -- Note: Cannot reassign notifier to existing popup, it's already set during creation
     else
       popup_view = PakettiAutomationStack_vb:popup{ 
         id = "pas_env_popup", 
@@ -1590,9 +1612,6 @@ function PakettiAutomationStack_RebuildCanvases()
     PakettiAutomationStack_UpdateEnvPopup()
   else
     -- Stack view: paged lanes
-    if PakettiAutomationStack_show_all_vertically then
-      PakettiAutomationStack_vertical_page_size = math.max(1, total)
-    end
     local start_idx = ((PakettiAutomationStack_vertical_page_index - 1) * PakettiAutomationStack_vertical_page_size) + 1
     if start_idx < 1 then start_idx = 1 end
     if start_idx > total then start_idx = math.max(1, total - PakettiAutomationStack_vertical_page_size + 1) end
@@ -1900,11 +1919,16 @@ function PakettiAutomationStack_BuildContent()
     PakettiAutomationStack_vb:text{ text = "Show:" },
     PakettiAutomationStack_vb:switch{
       id = "pas_show_switch",
-      items = {"Page","All"},
+      items = {"8","16"},
       width = 70,
       value = PakettiAutomationStack_show_all_vertically and 2 or 1,
       notifier = function(val)
         PakettiAutomationStack_show_all_vertically = (val == 2)
+        if val == 1 then
+          PakettiAutomationStack_vertical_page_size = 8
+        else
+          PakettiAutomationStack_vertical_page_size = 16
+        end
         PakettiAutomationStack_vertical_page_index = 1
         PakettiAutomationStack_RebuildCanvases()
         PakettiAutomationStack_RequestUpdate()

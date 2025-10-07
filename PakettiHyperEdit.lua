@@ -122,24 +122,10 @@ local DEVICE_PARAMETER_WHITELISTS = {
     "Offset"
   },
   ["*Instr. MIDI Control"] = {
-    "Cutoff",
-    "Resonance", 
-    "Pitchbend",
-    "Drive",
-    "ParallelComp",
-    "PB Inertia",
-    "CutLfoAmp",
-    "CutLfoFreq",
+    -- Dynamic parameters - will be queried from device
   },
   ["*Instr. Automation"] = {
-    "Cutoff",
-    "Resonance", 
-    "Pitchbend",
-    "Drive",
-    "ParallelComp",
-    "PB Inertia",
-    "CutLfoAmp",
-    "CutLfoFreq",
+    -- Dynamic parameters - will be queried from device
   },
   ["*Instr. Macros"] = {
     "Cutoff",
@@ -715,17 +701,33 @@ function PakettiHyperEditPreConfigureParameters()
   local preferred_order = nil
   local priority_device_types = {"*Instr. MIDI Control", "*Instr. Automation", "*Instr. Macros"}
   local is_priority_device = false
+  local is_instr_automation = false
   
   for _, device_type in ipairs(priority_device_types) do
     if target_device_info.name == device_type then
       is_priority_device = true
+      if device_type == "*Instr. Automation" then
+        is_instr_automation = true
+      end
       break
     end
   end
   
   if is_priority_device then
-    preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
-    print("DEBUG: Using " .. target_device_info.name .. " preferred order: " .. table.concat(preferred_order, ", "))
+    if is_instr_automation or target_device_info.name == "*Instr. MIDI Control" then
+      -- For *Instr. Automation and *Instr. MIDI Control, use first 8 parameters directly instead of searching for specific names
+      preferred_order = nil -- Will use sequential assignment
+      print("DEBUG: Using " .. target_device_info.name .. " - will assign first 8 parameters sequentially")
+    else
+      -- Use the whitelist from DEVICE_PARAMETER_WHITELISTS for this device type (only *Instr. Macros has a hardcoded list)
+      preferred_order = DEVICE_PARAMETER_WHITELISTS[target_device_info.name]
+      if preferred_order and #preferred_order > 0 then
+        print("DEBUG: Using " .. target_device_info.name .. " preferred order: " .. table.concat(preferred_order, ", "))
+      else
+        print("DEBUG: No preferred order found for " .. target_device_info.name .. " - using sequential assignment")
+        preferred_order = nil
+      end
+    end
   end
   
   for row = 1, max_rows do
@@ -919,9 +921,9 @@ function PakettiHyperEditGetParameters(device)
   local device_name = device.display_name or ""
   local whitelist = DEVICE_PARAMETER_WHITELISTS[device_name]
   
-  if not whitelist then
-    -- No whitelist - return all parameters
-    print("DEBUG: No whitelist found for device: " .. device_name .. " - showing all " .. #all_params .. " parameters")
+  if not whitelist or #whitelist == 0 then
+    -- No whitelist or empty whitelist - return all parameters
+    print("DEBUG: No whitelist or empty whitelist for device: " .. device_name .. " - showing all " .. #all_params .. " parameters")
     return all_params
   end
   
@@ -1308,10 +1310,26 @@ function PakettiHyperEditSelectDevice(row, device_index)
     param_popup.value = 1
     
     if #parameter_lists[row] > 0 and not is_updating_device_lists then
-      -- Simple default: select first parameter (automation re-read will fix this properly)
-      -- Skip during device list updates to allow smart assignment to handle deduplication
-      param_popup.value = 1
-      PakettiHyperEditSelectParameter(row, 1)
+      -- Smart parameter assignment for *Instr. Automation and *Instr. MIDI Control devices
+      if device_info.name == "*Instr. Automation" or device_info.name == "*Instr. MIDI Control" then
+        -- For *Instr. Automation and *Instr. MIDI Control, assign parameters sequentially (first 8 parameters)
+        local param_index = row -- Use row number as parameter index (1-based)
+        if param_index <= #parameter_lists[row] then
+          param_popup.value = param_index
+          PakettiHyperEditSelectParameter(row, param_index)
+          print("DEBUG: Row " .. row .. " assigned " .. device_info.name .. " parameter " .. param_index .. ": " .. PakettiHyperEditCleanParameterName(parameter_lists[row][param_index].name))
+        else
+          -- Fallback to first parameter if row number exceeds available parameters
+          param_popup.value = 1
+          PakettiHyperEditSelectParameter(row, 1)
+          print("DEBUG: Row " .. row .. " assigned " .. device_info.name .. " parameter 1 (fallback): " .. PakettiHyperEditCleanParameterName(parameter_lists[row][1].name))
+        end
+      else
+        -- For other devices, use simple default: select first parameter
+        param_popup.value = 1
+        PakettiHyperEditSelectParameter(row, 1)
+        print("DEBUG: Row " .. row .. " assigned " .. device_info.name .. " parameter 1: " .. PakettiHyperEditCleanParameterName(parameter_lists[row][1].name))
+      end
     elseif is_updating_device_lists then
       print("DEBUG: Skipping auto-parameter assignment for row " .. row .. " - letting smart assignment handle deduplication")
     end
@@ -2058,25 +2076,45 @@ function PakettiHyperEditPopulateFromExistingAutomation()
     
     if has_priority_device then
       print("DEBUG: " .. detected_device_type .. " detected - sorting by preferred parameter order")
-      local preferred_order = {"Cutoff", "Resonance", "Pitchbend", "Drive", "CutLfoAmp", "CutLfoFreq", "PB Inertia"}
-    
-      -- First pass: Add automations in preferred order for priority devices
-      for _, preferred_param in ipairs(preferred_order) do
+      
+      if detected_device_type == "*Instr. Automation" or detected_device_type == "*Instr. MIDI Control" then
+        -- For *Instr. Automation and *Instr. MIDI Control, add automations in the order they appear (first 8 parameters)
+        print("DEBUG: " .. detected_device_type .. " detected - adding automations in parameter order")
         for _, auto_data in ipairs(automations) do
           local device_name = auto_data.device_info.name
-          local param_name = auto_data.parameter.name
-          local is_priority_device = false
-          
-          for _, device_type in ipairs(priority_device_types) do
-            if device_name == device_type then
-              is_priority_device = true
-              break
-            end
-          end
-          
-          if is_priority_device and param_name == preferred_param then
+          if device_name == detected_device_type then
             table.insert(sorted_automations, auto_data)
-            print("DEBUG: Added " .. param_name .. " from " .. device_name .. " in preferred order position " .. #sorted_automations)
+            print("DEBUG: Added " .. auto_data.parameter.name .. " from " .. device_name .. " in parameter order position " .. #sorted_automations)
+          end
+        end
+      else
+        -- For other priority devices, use the whitelist from DEVICE_PARAMETER_WHITELISTS (only *Instr. Macros has a hardcoded list)
+        local preferred_order = DEVICE_PARAMETER_WHITELISTS[detected_device_type]
+        if preferred_order and #preferred_order > 0 then
+          print("DEBUG: Using preferred order for " .. detected_device_type)
+        else
+          print("DEBUG: No preferred order found for " .. detected_device_type .. " - using sequential assignment")
+          preferred_order = nil
+        end
+        
+        -- First pass: Add automations in preferred order for priority devices
+        for _, preferred_param in ipairs(preferred_order) do
+          for _, auto_data in ipairs(automations) do
+            local device_name = auto_data.device_info.name
+            local param_name = auto_data.parameter.name
+            local is_priority_device = false
+            
+            for _, device_type in ipairs(priority_device_types) do
+              if device_name == device_type then
+                is_priority_device = true
+                break
+              end
+            end
+            
+            if is_priority_device and param_name == preferred_param then
+              table.insert(sorted_automations, auto_data)
+              print("DEBUG: Added " .. param_name .. " from " .. device_name .. " in preferred order position " .. #sorted_automations)
+            end
           end
         end
       end
