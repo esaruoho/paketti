@@ -272,8 +272,8 @@ function PakettiAutomationStack_XToLine(x, total_lines)
   -- Map effective canvas width to 0-based time (inverse of forward mapping)
   local t_0based = (x_eff / eff_w) * total_lines
   -- Convert from 0-based time back to 1-based line number
-  -- Allow drawing slightly beyond for canvas, but clamp for automation writing
-  local line = math.max(1, math.floor(t_0based + 0.5))
+  -- Allow drawing to the very last pixel by using +1.0 instead of +0.5
+  local line = math.max(1, math.floor(t_0based + 1.0))
   return line
 end
 
@@ -2106,18 +2106,34 @@ function PakettiAutomationStack_SetupObservables()
   if not song then return end
   
   -- Track list observable (for when tracks are added/removed)
-  if song.tracks_observable and not song.tracks_observable:has_notifier(PakettiAutomationStack_OnTracksChanged) then
-    song.tracks_observable:add_notifier(PakettiAutomationStack_OnTracksChanged)
-    PakettiAutomationStack_tracks_observable = song.tracks_observable
+  if song.tracks_observable then
+    -- Use pcall to safely check and add notifier in case the observable becomes invalid
+    local success, result = pcall(function()
+      if not song.tracks_observable:has_notifier(PakettiAutomationStack_OnTracksChanged) then
+        song.tracks_observable:add_notifier(PakettiAutomationStack_OnTracksChanged)
+        PakettiAutomationStack_tracks_observable = song.tracks_observable
+      end
+    end)
+    -- If pcall failed, the observable is no longer valid, so skip it
+    if not success then
+      -- Observable is no longer valid, skip setting it up
+    end
   end
   
   -- Individual track mute state observables
   for track_idx = 1, #song.tracks do
     local track = song.tracks[track_idx]
     if track and track.type ~= renoise.Track.TRACK_TYPE_MASTER and track.mute_state_observable then
-      if not track.mute_state_observable:has_notifier(PakettiAutomationStack_OnTrackMuteChanged) then
-        track.mute_state_observable:add_notifier(PakettiAutomationStack_OnTrackMuteChanged)
-        PakettiAutomationStack_track_observables[track_idx] = track.mute_state_observable
+      -- Use pcall to safely check and add notifier in case the observable becomes invalid
+      local success, result = pcall(function()
+        if not track.mute_state_observable:has_notifier(PakettiAutomationStack_OnTrackMuteChanged) then
+          track.mute_state_observable:add_notifier(PakettiAutomationStack_OnTrackMuteChanged)
+          PakettiAutomationStack_track_observables[track_idx] = track.mute_state_observable
+        end
+      end)
+      -- If pcall failed, the observable is no longer valid, so skip it
+      if not success then
+        -- Observable is no longer valid, skip setting it up
       end
     end
   end
@@ -2127,16 +2143,32 @@ end
 function PakettiAutomationStack_CleanupObservables()
   -- Clean up tracks observable
   if PakettiAutomationStack_tracks_observable then
-    if PakettiAutomationStack_tracks_observable:has_notifier(PakettiAutomationStack_OnTracksChanged) then
-      PakettiAutomationStack_tracks_observable:remove_notifier(PakettiAutomationStack_OnTracksChanged)
+    -- Use pcall to safely check and remove notifier in case the observable becomes invalid
+    local success, result = pcall(function()
+      if PakettiAutomationStack_tracks_observable:has_notifier(PakettiAutomationStack_OnTracksChanged) then
+        PakettiAutomationStack_tracks_observable:remove_notifier(PakettiAutomationStack_OnTracksChanged)
+      end
+    end)
+    -- If pcall failed, the observable is no longer valid, so just clear it
+    if not success then
+      -- Observable is no longer valid, just clear the reference
     end
     PakettiAutomationStack_tracks_observable = nil
   end
   
   -- Clean up track mute observables
   for track_idx, observable in pairs(PakettiAutomationStack_track_observables) do
-    if observable and observable:has_notifier(PakettiAutomationStack_OnTrackMuteChanged) then
-      observable:remove_notifier(PakettiAutomationStack_OnTrackMuteChanged)
+    if observable then
+      -- Use pcall to safely check and remove notifier in case the observable becomes invalid
+      local success, result = pcall(function()
+        if observable:has_notifier(PakettiAutomationStack_OnTrackMuteChanged) then
+          observable:remove_notifier(PakettiAutomationStack_OnTrackMuteChanged)
+        end
+      end)
+      -- If pcall failed, the observable is no longer valid, so just continue
+      if not success then
+        -- Observable is no longer valid, just continue to next one
+      end
     end
   end
   PakettiAutomationStack_track_observables = {}
