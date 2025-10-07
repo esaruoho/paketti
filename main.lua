@@ -565,6 +565,10 @@ function startup()
   if preferences.pakettiAlwaysOpenDSPsOnTrack.value then
     PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
   end
+  
+  if preferences.pakettiAlwaysOpenSampleFXChainDevices.value then
+    PakettiInitializeSampleFXChainAutoOpen()
+  end
 
   if preferences.pakettiEditMode.value == 2 and renoise.song().transport.edit_mode then 
     for i = 1,#renoise.song().tracks do

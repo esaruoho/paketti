@@ -1097,6 +1097,12 @@ renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Delete All Sample FX
 renoise.tool():add_keybinding{name="Global:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 
+-- Menu entries and keybindings for automatically opening sample FX chain device editors
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
+
 -- Menu entries and keybindings for modulation set distribution/deletion
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}

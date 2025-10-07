@@ -103,6 +103,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiShowSampleDetailsFrequencyAnalysis=true,
   pakettiSampleDetailsCycles=1,
   pakettiAlwaysOpenDSPsOnTrack=false,
+  pakettiAlwaysOpenSampleFXChainDevices=false,
   pakettiLoaderDontCreateAutomationDevice=false,
   pakettiWipeExplodedTrack=false,
   pakettiAutomationFormat=2,
@@ -959,6 +960,13 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                   notifier=function(value) 
                     preferences.pakettiAlwaysOpenDSPsOnTrack.value=(value==2)
                     PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
+                  end}},
+              vb:row{
+                vb:text{text="Always Open Sample FX Chain Devices",width=150,tooltip="Automatically open external editors for all Sample FX Chain devices when switching samples"},
+                vb:switch{items={"Off","On"},value=preferences.pakettiAlwaysOpenSampleFXChainDevices.value and 2 or 1,width=200,tooltip="Automatically open external editors for all Sample FX Chain devices when switching samples",
+                  notifier=function(value) 
+                    preferences.pakettiAlwaysOpenSampleFXChainDevices.value=(value==2)
+                    PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode()
                   end}},
               vb:row{
                 vb:text{text="Replace Current Instrument",width=150,tooltip="Pakettification replaces current instrument instead of creating new one"},

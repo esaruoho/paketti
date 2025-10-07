@@ -3315,6 +3315,112 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 -------
+
+---------
+-- Sample FX Chain Automatic Device Editor Opening System
+---------
+-- Globals for tracking sample FX chain mode and open editors
+local current_sample_device_chain_index = nil
+
+-- Function to open external editors on a sample device chain
+local function PakettiHandleSampleDeviceChainDevices(chain)
+  if not chain or #chain.devices == 0 then return end
+  
+  for i=2, #chain.devices do -- Skip Sample Mixer Device
+    local device = chain.devices[i]
+    -- Only try to open external editors that actually exist
+    if device.external_editor_available then
+      device.external_editor_visible = true
+    end
+  end
+end
+
+-- Function to close only the editors that are open on a sample device chain
+local function PakettiCloseSampleDeviceChainEditors(chain)
+  if not chain or #chain.devices == 0 then return end
+  
+  for i=2, #chain.devices do -- Skip Sample Mixer Device
+    local device = chain.devices[i]
+    -- Only try to close external editors that are actually open
+    if device.external_editor_available and device.external_editor_visible then
+      device.external_editor_visible = false
+    end
+  end
+end
+
+-- Called when the sample device chain index changes
+local function PakettiSampleDeviceChainIndexChanged()
+  -- Check if the preference is enabled
+  if not preferences.pakettiAlwaysOpenSampleFXChainDevices.value then return end
+
+  local new_chain = renoise.song().selected_sample_device_chain
+  local new_chain_index = renoise.song().selected_sample_device_chain_index
+
+  -- Close editors from the previous chain
+  if current_sample_device_chain_index and current_sample_device_chain_index ~= new_chain_index then
+    local instrument = renoise.song().selected_instrument
+    if instrument and instrument.sample_device_chains[current_sample_device_chain_index] then
+      local prev_chain = instrument.sample_device_chains[current_sample_device_chain_index]
+      PakettiCloseSampleDeviceChainEditors(prev_chain)
+    end
+  end
+
+  -- Open editors for the new chain
+  if new_chain then
+    PakettiHandleSampleDeviceChainDevices(new_chain)
+  end
+
+  -- Update the current chain index
+  current_sample_device_chain_index = new_chain_index
+end
+
+-- Initialize the sample FX chain automatic system based on preference
+function PakettiInitializeSampleFXChainAutoOpen()
+  if preferences.pakettiAlwaysOpenSampleFXChainDevices.value then
+    -- Initialize the current chain index and open its devices
+    current_sample_device_chain_index = renoise.song().selected_sample_device_chain_index
+    local current_chain = renoise.song().selected_sample_device_chain
+    if current_chain then
+      PakettiHandleSampleDeviceChainDevices(current_chain)
+    end
+
+    -- Add notifier for sample device chain index changes
+    if not renoise.song().selected_sample_device_chain_observable:has_notifier(PakettiSampleDeviceChainIndexChanged) then
+      renoise.song().selected_sample_device_chain_observable:add_notifier(PakettiSampleDeviceChainIndexChanged)
+    end
+  else
+    -- Remove the notifier if it exists
+    if renoise.song().selected_sample_device_chain_observable:has_notifier(PakettiSampleDeviceChainIndexChanged) then
+      renoise.song().selected_sample_device_chain_observable:remove_notifier(PakettiSampleDeviceChainIndexChanged)
+    end
+    
+    -- Close any open editors
+    local current_chain = renoise.song().selected_sample_device_chain
+    if current_chain then
+      PakettiCloseSampleDeviceChainEditors(current_chain)
+    end
+    
+    current_sample_device_chain_index = nil
+  end
+end
+
+-- Toggle the automatic mode for sample FX chains (for manual toggle via keybinding/menu)
+function PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode()
+  preferences.pakettiAlwaysOpenSampleFXChainDevices.value = not preferences.pakettiAlwaysOpenSampleFXChainDevices.value
+  
+  if preferences.pakettiAlwaysOpenSampleFXChainDevices.value then
+    renoise.app():show_status("Automatically Open Selected Sample FX Chain Devices Toggled ON")
+  else
+    renoise.app():show_status("Automatically Open Selected Sample FX Chain Devices Toggled OFF")
+  end
+  
+  -- Apply the setting
+  PakettiInitializeSampleFXChainAutoOpen()
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Auto-Open Sample FX Chain Devices",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
+-------
 function XOPointCloud()
   local au_path = "Audio/Generators/AU/aumu:xAXO:xlnA"
   local vst_path = "Audio/Generators/VST/XO"

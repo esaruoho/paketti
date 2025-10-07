@@ -26,6 +26,8 @@ local donations = {
   {"2025-08-31", "grymmjack", 9.11, {"YouTube", "https://youtube.com/grymmjack"}, {"Soundcloud","https://soundcloud.com/grymmjack"},{"GitHub","https://github.com/grymmjack"}},
   {"2025-08-30", "Bloodclot", 7.22, {"Linktree", "https://linktr.ee/bclbclbcl"}},
   {"2025-09-18", "Untilde", 3.11},
+  {"2025-10-06", "Brandon Hale", 7.37, {"bthale", "https://bthale.com"}, {"YouTube", "https://www.youtube.com/@brandonhale7574"}},
+
 }
 
 local total_amount = 0
@@ -102,24 +104,24 @@ table.insert(donation_section, vb:horizontal_aligner{mode="distribute",
 
 -- Create dialog content
 local dialog_content = vb:column{
-  margin=10,
+  --margin=10,
   vb:text{text="Thanks for the support / assistance:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height=40,text= 
   -- THANKS
   "dBlue, danoise, cortex, pandabot, ffx, Joule, Avaruus, astu/flo, syflom, Protman, vV, Bantai, taktik, Snowrobot, MXB, Jenoki, Kmaki, aleksip, Unless, martblek, schmuzoo, Sandroid, ylmrx, onetwentyeight and the whole Renoise community."},
 
   vb:text{text="Ideas provided by:", style = "strong", font = "bold"},
-  vb:multiline_textfield{width=textfield_width, height = 80, text = 
+  vb:multiline_textfield{width=textfield_width, height = 100, text = 
   -- IDEAS
   "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, super_lsd, sodiufas, amenburoda, davide, Hyena lord, zolipapa420, Amethyst, JTPE, Cosmic Ollie, Newtined, Kusoipilled, Spencer Williams (spnw), RENEGADE ANDROiD, Phill Tew, croay, ishineee, user22c, Helge H., ShasuraMk2, Mastrcode, Cthonic, Kavoli, polyplexmescalia" ..
   ", Josh Montgomery, Filthy Animal, " ..
   " and many others."},
 
   vb:text{text="Who made it possible:", style = "strong", font = "bold"},
-  vb:multiline_textfield{width=textfield_width, height = 40, text="Lassi Nikko aka Brothomstates told me, early on, that he thought I could learn LUA. So here we are. Thanks for everything, all the mentoring in trackers and musicmaking, and all the inspiration."},
+  vb:multiline_textfield{width=textfield_width, height = 35, text="Lassi Nikko aka Brothomstates told me, early on, that he thought I could learn LUA. So here we are. Thanks for everything, all the mentoring in trackers and musicmaking, and all the inspiration."},
 
   vb:text{text="Kudos:", style = "strong", font = "bold"},
-  vb:multiline_textfield{width=textfield_width, height = 60, text = 
+  vb:multiline_textfield{width=textfield_width, height = 45, text = 
   -- KUDOS
   "Massive kudos to martblek for allowing me to take his abandoned ReSpeak tool and make it into Paketti eSpeak Text-to-Speech, Kaidiak for donating ClippyClip device, and also for smdkun for letting me tweak their KeyBind Visualizer code and incorporate it into Paketti further down the line. mxb for the original ReCycle import code which i heavily reworked. Jaap3 for the work reverse-engineering the PTI format. Also many thanks to Phill Tew for the idea for the Additive Record Follow Pattern!, ryrun for the SFZ2XRNI Gist on GitHub."},
 
