@@ -243,27 +243,56 @@ local function copy_sample_settings(from_sample, to_sample)
   to_sample.name = from_sample.name
 end
 
--- Function to limit the sample to avoid clipping
+-- OPTIMIZED: Function to limit the sample to avoid clipping with aggressive caching
 local function limit_sample(buffer)
   local max_value = 0
-  for c = 1, buffer.number_of_channels do
-    for f = 1, buffer.number_of_frames do
-      local value = math.abs(buffer:sample_data(c, f))
-      if value > max_value then max_value = value end
+  local total_frames = buffer.number_of_frames
+  local total_channels = buffer.number_of_channels
+  
+  -- Pre-allocate cache for entire sample
+  local sample_cache = {}
+  for c = 1, total_channels do
+    sample_cache[c] = {}
+  end
+  
+  print(string.format("Caching %d frames across %d channels for limit_sample...", total_frames, total_channels))
+  
+  -- Single pass: Cache and find peak simultaneously
+  for f = 1, total_frames do
+    for c = 1, total_channels do
+      local value = buffer:sample_data(c, f)
+      sample_cache[c][f] = value
+      
+      -- Find peak during caching
+      local abs_value = math.abs(value)
+      if abs_value > max_value then 
+        max_value = abs_value 
+      end
     end
   end
 
   if max_value > 0 then
     local normalization_factor = 1 / max_value
+    print(string.format("Applying limit normalization with factor %.6f", normalization_factor))
+    
     buffer:prepare_sample_data_changes()
-    for c = 1, buffer.number_of_channels do
-      for f = 1, buffer.number_of_frames do
-        local normalized_value = buffer:sample_data(c, f) * normalization_factor
+    
+    -- Vectorized normalization using cached data
+    for f = 1, total_frames do
+      for c = 1, total_channels do
+        -- Direct access to cached data (no buffer reads!)
+        local normalized_value = sample_cache[c][f] * normalization_factor
         buffer:set_sample_data(c, f, normalized_value)
       end
     end
+    
     buffer:finalize_sample_data_changes()
+    print(string.format("Limit normalization complete. Peak was %.6f, increased by %.1f dB", 
+      max_value, 20 * math.log10(normalization_factor)))
   end
+  
+  -- Clear cache
+  sample_cache = nil
 end
 
 
@@ -775,7 +804,7 @@ vb:button{text="Mono->Stereo (Blank L)", notifier=function() mono_to_blank(0,1) 
 vb:button{text="Mono->Stereo (Blank R)", notifier=function() mono_to_blank(1,0) end},
 }},
 vb:column{style="group",margin=5,width=365,
-vb:row{vb:button{text="Normalize Sample",notifier=function() normalize_selected_sample() end},
+vb:row{vb:button{text="Normalize Sample",notifier=function() normalize_selected_sample_ultra_fast() end},
 }},
 
 

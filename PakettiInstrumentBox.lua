@@ -361,23 +361,81 @@ function capture_ins_oct(state)
    -- Check if we're in an effect column
    local in_effect_column = (renoise.song().selected_effect_column_index > 0)
    
-   -- Check if any notes exist for current instrument in track
+   -- Find current position in pattern sequence
+   local current_sequence_pos = 1
+   local sequence = renoise.song().sequencer.pattern_sequence
+   for i, pattern_index in ipairs(sequence) do
+      if pattern_index == current_pattern then
+         current_sequence_pos = i
+         break
+      end
+   end
+   
+   -- Function to search for notes in a specific pattern
+   local function search_pattern_for_notes(pattern_idx, search_for_current_instrument)
+      local found_any_note = false
+      local found_current_instrument_note = false
+      
+      for pos, line in renoise.song().pattern_iterator:lines_in_pattern_track(pattern_idx, current_track) do
+         if (not line.is_empty) then
+            for i = 1, renoise.song().tracks[current_track].visible_note_columns do
+               local notecol = line.note_columns[i]
+               if (not notecol.is_empty and notecol.note_string ~= "OFF") then
+                  found_any_note = true
+                  
+                  -- Check if this is the current instrument
+                  if search_for_current_instrument and notecol.instrument_value + 1 == renoise.song().selected_instrument_index then
+                     found_current_instrument_note = true
+                     break
+                  end
+                  
+                  -- Calculate distance from current edit position
+                  local distance = math.abs(pos.line - renoise.song().transport.edit_pos.line)
+                  local sequence_distance = math.abs(i - current_sequence_pos)
+                  local total_distance = distance + (sequence_distance * 1000) -- Weight sequence distance heavily
+                  
+                  if (closest_note.oct == nil) then
+                     closest_note.oct = math.min(math.floor(notecol.note_value / 12), 8)
+                     closest_note.line = pos.line
+                     closest_note.ins = notecol.instrument_value + 1
+                     closest_note.note = notecol.note_value
+                     closest_note.pattern = pattern_idx
+                     closest_note.distance = total_distance
+                  elseif (total_distance < closest_note.distance) then
+                     closest_note.oct = math.min(math.floor(notecol.note_value / 12), 8)
+                     closest_note.line = pos.line
+                     closest_note.ins = notecol.instrument_value + 1
+                     closest_note.note = notecol.note_value
+                     closest_note.pattern = pattern_idx
+                     closest_note.distance = total_distance
+                  end
+               end
+            end
+         end
+         if found_current_instrument_note then break end
+      end
+      
+      return found_any_note, found_current_instrument_note
+   end
+   
+   -- First, check current pattern for current instrument notes
+   local found_current_instrument_note = false
    for pos, line in renoise.song().pattern_iterator:lines_in_pattern_track(current_pattern, current_track) do
       if (not line.is_empty) then
          for i = 1, renoise.song().tracks[current_track].visible_note_columns do
             local notecol = line.note_columns[i]
             if (not notecol.is_empty and notecol.note_string ~= "OFF" and 
                 notecol.instrument_value + 1 == renoise.song().selected_instrument_index) then
-               found_note = true
+               found_current_instrument_note = true
                break
             end
          end
       end
-      if found_note then break end
+      if found_current_instrument_note then break end
    end
 
    -- If we're in Sample Editor and no notes found, try to go to Phrase Editor
-   if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR and not found_note then
+   if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR and not found_current_instrument_note then
       local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
       if instrument and #instrument.phrases > 0 then
          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
@@ -398,35 +456,36 @@ function capture_ins_oct(state)
       return
    end
 
-   for pos, line in renoise.song().pattern_iterator:lines_in_pattern_track(current_pattern, current_track) do
-      if (not line.is_empty) then
-         local t = {}
-         if (renoise.song().selected_note_column_index == 0) then
-            for i = 1, renoise.song().tracks[current_track].visible_note_columns do
-               table.insert(t, i)
-            end
-         else 
-            table.insert(t, renoise.song().selected_note_column_index)
-         end  
+   -- Search current pattern first
+   search_pattern_for_notes(current_pattern, false)
+   
+   -- If no notes found in current pattern, expand search to nearby patterns in sequence
+   if not closest_note.ins then
+      local max_search_distance = 10 -- Maximum patterns to search in each direction
+      local patterns_searched = 0
+      
+      for distance = 1, max_search_distance do
+         local found_any = false
          
-         for _, v in ipairs(t) do 
-            local notecol = line.note_columns[v]
-            
-            if (not notecol.is_empty and notecol.note_string ~= "OFF") then
-               if (closest_note.oct == nil) then
-                  closest_note.oct = math.min(math.floor(notecol.note_value / 12), 8)
-                  closest_note.line = pos.line
-                  closest_note.ins = notecol.instrument_value + 1
-                  closest_note.note = notecol.note_value
-               elseif (math.abs(pos.line - renoise.song().transport.edit_pos.line) < math.abs(closest_note.line - renoise.song().transport.edit_pos.line)) then
-                  closest_note.oct = math.min(math.floor(notecol.note_value / 12), 8)
-                  closest_note.line = pos.line
-                  closest_note.ins = notecol.instrument_value + 1
-                  closest_note.note = notecol.note_value
-               end         
-            end 
-         end 
-      end 
+         -- Search patterns before current position
+         local prev_pattern_pos = current_sequence_pos - distance
+         if prev_pattern_pos >= 1 and prev_pattern_pos <= #sequence then
+            local prev_pattern = sequence[prev_pattern_pos]
+            local found_prev, _ = search_pattern_for_notes(prev_pattern, false)
+            if found_prev then found_any = true end
+         end
+         
+         -- Search patterns after current position
+         local next_pattern_pos = current_sequence_pos + distance
+         if next_pattern_pos >= 1 and next_pattern_pos <= #sequence then
+            local next_pattern = sequence[next_pattern_pos]
+            local found_next, _ = search_pattern_for_notes(next_pattern, false)
+            if found_next then found_any = true end
+         end
+         
+         -- If we found notes at this distance, stop searching further
+         if found_any then break end
+      end
    end
    
 

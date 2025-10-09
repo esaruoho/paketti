@@ -360,7 +360,7 @@ renoise.tool():add_menu_entry {name="Sample Editor:Paketti:Process:Scale Unsigne
 renoise.tool():add_menu_entry {name="Sample Editor:Paketti:Process:Create Wrecked Sample Variants",invoke=paketti_build_sample_variants}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Process:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Offset Dialog...",invoke=pakettiOffsetDialog }
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize Sample",invoke=function() normalize_selected_sample() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize Sample",invoke=function() normalize_selected_sample_ultra_fast() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize Selected Sample -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize Selected Instrument -12dB (All Samples & Slices)",invoke=function() normalize_and_reduce("all_samples", -12) end}
@@ -579,7 +579,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Bea
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
 
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize Sample",invoke=function() normalize_selected_sample() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize Sample",invoke=function() normalize_selected_sample_ultra_fast() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Convert to 8-bit", invoke=function() convert_bit_depth(8) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Convert to 16-bit", invoke=function() convert_bit_depth(16) end}
@@ -699,7 +699,7 @@ renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Save:Save All Samp
 -- Sample Mappings Export
 
 -- Sample Mappings Process
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Normalize Sample",invoke=function() normalize_selected_sample() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Normalize Sample",invoke=function() normalize_selected_sample_ultra_fast() end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Process:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Process:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}

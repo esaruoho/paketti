@@ -735,38 +735,80 @@ function map_midi_value_to_macro_with_automation(macro_index, midi_message, writ
   -- Always set the macro value directly
   instrument.macros[macro_index].value = new_value
 
-  -- Write automation if requested AND record_parameter_mode is AUTOMATION (2)
-  if write_automation and song.transport.record_parameter_mode == 2 then
-    -- Find or create *Instr. Macros device on selected track
-    local track = song.selected_track
-    local macro_device = nil
+  -- Write to automation or pattern if requested
+  if write_automation then
+    local record_mode = song.transport.record_parameter_mode
     
-    -- Search for existing *Instr. Macros device
-    for _, device in ipairs(track.devices) do
-      if device.device_path == "Audio/Effects/Native/*Instr. Macros" then
-        macro_device = device
-        break
+    if record_mode == 2 then
+      -- AUTOMATION MODE: Write to automation envelope
+      -- Find or create *Instr. Macros device on selected track
+      local track = song.selected_track
+      local macro_device = nil
+      
+      -- Search for existing *Instr. Macros device
+      for _, device in ipairs(track.devices) do
+        if device.device_path == "Audio/Effects/Native/*Instr. Macros" then
+          macro_device = device
+          break
+        end
       end
-    end
-    
-    -- Create *Instr. Macros if not found
-    if not macro_device then
-      track:insert_device_at("Audio/Effects/Native/*Instr. Macros", 2)
-      macro_device = track.devices[2]
-    end
-    
-    -- Get the device parameter for this macro (parameters 1-8 = macros 1-8)
-    local parameter = macro_device.parameters[macro_index]
-    
-    if parameter and parameter.is_automatable then
+      
+      -- Create *Instr. Macros if not found
+      if not macro_device then
+        track:insert_device_at("Audio/Effects/Native/*Instr. Macros", 2)
+        macro_device = track.devices[2]
+      end
+      
+      -- Get the device parameter for this macro (parameters 1-8 = macros 1-8)
+      local parameter = macro_device.parameters[macro_index]
+      
+      if parameter and parameter.is_automatable then
+        local pattern_index = song.selected_pattern_index
+        local track_index = song.selected_track_index
+        local track_automation = song:pattern(pattern_index):track(track_index)
+        
+        -- Find or create automation envelope
+        local envelope = track_automation:find_automation(parameter)
+        if not envelope then
+          envelope = track_automation:create_automation(parameter)
+        end
+        
+        -- Determine write position based on follow_player state
+        local write_line
+        if song.transport.follow_player then
+          write_line = song.transport.playback_pos.line
+        else
+          write_line = song.selected_line_index
+        end
+        
+        -- Write automation point
+        envelope:add_point_at(write_line, new_value)
+      end
+      
+    elseif record_mode == 1 then
+      -- PATTERN MODE: Write to effect columns
+      local track = song.selected_track
       local pattern_index = song.selected_pattern_index
       local track_index = song.selected_track_index
-      local track_automation = song:pattern(pattern_index):track(track_index)
+      local macro_device_index = nil
       
-      -- Find or create automation envelope
-      local envelope = track_automation:find_automation(parameter)
-      if not envelope then
-        envelope = track_automation:create_automation(parameter)
+      -- Find the *Instr. Macros device to know which effect command to use
+      for i, device in ipairs(track.devices) do
+        if device.device_path == "Audio/Effects/Native/*Instr. Macros" then
+          macro_device_index = i
+          break
+        end
+      end
+      
+      -- Create *Instr. Macros if not found
+      if not macro_device_index then
+        track:insert_device_at("Audio/Effects/Native/*Instr. Macros", 2)
+        macro_device_index = 2
+      end
+      
+      -- Ensure effect columns are visible
+      if track.visible_effect_columns == 0 then
+        track.visible_effect_columns = 1
       end
       
       -- Determine write position based on follow_player state
@@ -777,8 +819,20 @@ function map_midi_value_to_macro_with_automation(macro_index, midi_message, writ
         write_line = song.selected_line_index
       end
       
-      -- Write automation point
-      envelope:add_point_at(write_line, new_value)
+      -- Get the pattern track and line
+      local pattern_track = song:pattern(pattern_index):track(track_index)
+      local line = pattern_track:line(write_line)
+      
+      -- Write macro value to first effect column using the correct device index
+      local effect_column = line:effect_column(1)
+      if effect_column then
+        -- Convert macro value (0-1) to hex (00-FF)
+        local hex_value = string.format("%02X", math.floor(new_value * 255 + 0.5))
+        -- Use the device index as the effect command (e.g., "02" for device 2, "03" for device 3)
+        local effect_command = string.format("%02d", macro_device_index)
+        effect_column.number_string = effect_command
+        effect_column.amount_string = hex_value
+      end
     end
   end
 end

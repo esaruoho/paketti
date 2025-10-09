@@ -684,7 +684,7 @@ function normalize_all_samples_in_instrument()
   slicer:start()
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample",invoke=function() normalize_selected_sample() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample",invoke=function() normalize_selected_sample_ultra_fast() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 
 ------
@@ -757,6 +757,259 @@ renoise.tool():add_midi_mapping{name="Paketti:Normalize All Instruments to -12dB
 
 -- Configuration for process yielding (in seconds)
 local PROCESS_YIELD_INTERVAL = 1.5  -- Adjust this value to control how often the process yields
+
+-- STREAMING: Memory-efficient normalization for huge samples (like 344MB)
+function normalize_selected_sample_streaming_coroutine()
+    local song = renoise.song()
+    local sample = song.selected_sample
+    
+    if not sample or not sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No valid sample selected")
+        return
+    end
+    
+    local buffer = sample.sample_buffer
+    local total_frames = buffer.number_of_frames
+    local total_channels = buffer.number_of_channels
+    
+    print(string.format("STREAMING: Processing %d frames across %d channels (%.1f MB)", 
+        total_frames, total_channels, (total_frames * total_channels * 4) / (1024 * 1024)))
+    
+    -- For huge samples, use streaming approach - no full caching!
+    local channel_peaks = {}
+    for c = 1, total_channels do
+        channel_peaks[c] = 0
+    end
+    
+    buffer:prepare_sample_data_changes()
+    
+    -- STREAMING: First pass - find peak without caching (memory efficient)
+    local start_time = os.clock()
+    local processed_samples = 0
+    local YIELD_EVERY = 1000  -- EXTREMELY frequent yielding for huge samples
+    local last_yield_time = os.clock()
+    local YIELD_TIME_INTERVAL = 0.1  -- Yield every 100ms as backup
+    
+    print("Phase 1: Finding peak (streaming, no cache)...")
+    
+    for f = 1, total_frames do
+        for c = 1, total_channels do
+            local value = buffer:sample_data(c, f)
+            
+            -- Find peak during streaming read
+            local abs_value = value >= 0 and value or -value
+            if abs_value > channel_peaks[c] then
+                channel_peaks[c] = abs_value
+            end
+            
+            processed_samples = processed_samples + 1
+            
+            -- Yield EXTREMELY frequently for huge samples (both count and time-based)
+            local current_time = os.clock()
+            if processed_samples % YIELD_EVERY == 0 or (current_time - last_yield_time) >= YIELD_TIME_INTERVAL then
+                local progress = (processed_samples / (total_frames * total_channels)) * 100
+                renoise.app():show_status(string.format("Finding peak... %.1f%%", progress))
+                last_yield_time = current_time
+                coroutine.yield()
+            end
+        end
+    end
+    
+    local peak_time = os.clock() - start_time
+    print(string.format("Peak finding completed in %.3f seconds", peak_time))
+    
+    -- Find overall peak
+    local peak = 0
+    for _, channel_peak in ipairs(channel_peaks) do
+        if channel_peak > peak then
+            peak = channel_peak
+        end
+    end
+    
+    if peak == 0 then
+        print("Sample is silent, no normalization needed")
+        buffer:finalize_sample_data_changes()
+        return
+    end
+    
+    local scale = 1.0 / peak
+    local db_increase = 20 * math.log10(scale)
+    print(string.format("Peak: %.6f, Scale: %.6f, Increase: %.1f dB", peak, scale, db_increase))
+    
+    -- STREAMING: Second pass - normalize directly (no cache needed!)
+    print("Phase 2: Normalizing (streaming, no cache)...")
+    start_time = os.clock()
+    processed_samples = 0
+    last_yield_time = os.clock()
+    
+    for f = 1, total_frames do
+        for c = 1, total_channels do
+            local value = buffer:sample_data(c, f)
+            local normalized_value = value * scale
+            buffer:set_sample_data(c, f, normalized_value)
+            
+            processed_samples = processed_samples + 1
+            
+            -- Yield EXTREMELY frequently for responsiveness (both count and time-based)
+            local current_time = os.clock()
+            if processed_samples % YIELD_EVERY == 0 or (current_time - last_yield_time) >= YIELD_TIME_INTERVAL then
+                local progress = (processed_samples / (total_frames * total_channels)) * 100
+                renoise.app():show_status(string.format("Normalizing... %.1f%%", progress))
+                last_yield_time = current_time
+                coroutine.yield()
+            end
+        end
+    end
+    
+    local normalize_time = os.clock() - start_time
+    print(string.format("Normalization completed in %.3f seconds", normalize_time))
+    
+    buffer:finalize_sample_data_changes()
+    
+    local total_time = peak_time + normalize_time
+    local frames_per_second = (total_frames * total_channels) / total_time
+    print(string.format("STREAMING normalization complete: %.2f seconds total (%.1fM samples/sec)", 
+        total_time, frames_per_second / 1000000))
+    
+    renoise.app():show_status(string.format("Streaming normalization: %.1f dB increase", db_increase))
+end
+
+-- ULTRA-OPTIMIZED: Super-fast normalization coroutine with maximum caching (for smaller samples)
+function normalize_selected_sample_ultra_fast_coroutine()
+    local song = renoise.song()
+    local sample = song.selected_sample
+    
+    if not sample or not sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No valid sample selected")
+        return
+    end
+    
+    local buffer = sample.sample_buffer
+    local total_frames = buffer.number_of_frames
+    local total_channels = buffer.number_of_channels
+    local sample_size_mb = (total_frames * total_channels * 4) / (1024 * 1024)
+    
+    -- For samples larger than 50MB, use streaming approach (more aggressive threshold)
+    if sample_size_mb > 50 then
+        print(string.format("Large sample detected (%.1f MB), using streaming approach", sample_size_mb))
+        return normalize_selected_sample_streaming_coroutine()
+    end
+    
+    print(string.format("ULTRA-FAST: Processing %d frames across %d channels (%.1f MB)", 
+        total_frames, total_channels, sample_size_mb))
+    
+    -- Pre-allocate flat arrays for maximum cache performance
+    local sample_data = {}
+    local channel_peaks = {}
+    
+    -- Initialize channel peaks
+    for c = 1, total_channels do
+        channel_peaks[c] = 0
+    end
+    
+    buffer:prepare_sample_data_changes()
+    
+    -- OPTIMIZED: Ultra-fast caching with vectorized peak finding
+    local start_time = os.clock()
+    local processed_samples = 0
+    local YIELD_EVERY = 300000  -- Yield every 300k samples (much more aggressive!)
+    
+    -- OPTIMIZED: Adaptive chunk size based on sample size for maximum performance
+    local CHUNK_SIZE = math.min(50000, math.max(10000, total_frames / 20))  -- Adaptive: 5-50k frames
+    print(string.format("Using chunk size: %d frames for optimal performance", CHUNK_SIZE))
+    
+    for chunk_start = 1, total_frames, CHUNK_SIZE do
+        local chunk_end = math.min(chunk_start + CHUNK_SIZE - 1, total_frames)
+        
+        -- Process this chunk across all channels
+        for f = chunk_start, chunk_end do
+            for c = 1, total_channels do
+                local value = buffer:sample_data(c, f)
+                sample_data[(c-1) * total_frames + f] = value
+                
+                -- OPTIMIZED: Use faster abs calculation and batch peak updates
+                local abs_value = value >= 0 and value or -value  -- Faster than math.abs()
+                if abs_value > channel_peaks[c] then
+                    channel_peaks[c] = abs_value
+                end
+                
+                processed_samples = processed_samples + 1
+            end
+        end
+        
+        -- Yield after processing each chunk (much less frequent)
+        local progress = (processed_samples / (total_frames * total_channels)) * 100
+        renoise.app():show_status(string.format("Caching & finding peak... %.1f%%", progress))
+        coroutine.yield()
+    end
+    
+    local cache_time = os.clock() - start_time
+    print(string.format("Caching completed in %.3f seconds", cache_time))
+    
+    -- Find overall peak
+    local peak = 0
+    for _, channel_peak in ipairs(channel_peaks) do
+        if channel_peak > peak then
+            peak = channel_peak
+        end
+    end
+    
+    if peak == 0 then
+        print("Sample is silent, no normalization needed")
+        buffer:finalize_sample_data_changes()
+        return
+    end
+    
+    local scale = 1.0 / peak
+    local db_increase = 20 * math.log10(scale)
+    print(string.format("Peak: %.6f, Scale: %.6f, Increase: %.1f dB", peak, scale, db_increase))
+    
+    -- OPTIMIZED: Ultra-fast normalization pass with chunked processing
+    start_time = os.clock()
+    processed_samples = 0
+    
+    -- Use same chunked approach for normalization
+    for chunk_start = 1, total_frames, CHUNK_SIZE do
+        local chunk_end = math.min(chunk_start + CHUNK_SIZE - 1, total_frames)
+        
+        -- Process this chunk across all channels
+        for f = chunk_start, chunk_end do
+            for c = 1, total_channels do
+                local index = (c-1) * total_frames + f
+                local normalized_value = sample_data[index] * scale
+                buffer:set_sample_data(c, f, normalized_value)
+                
+                processed_samples = processed_samples + 1
+            end
+        end
+        
+        -- Yield after processing each chunk
+        local progress = (processed_samples / (total_frames * total_channels)) * 100
+        renoise.app():show_status(string.format("Normalizing... %.1f%%", progress))
+        coroutine.yield()
+    end
+    
+    local normalize_time = os.clock() - start_time
+    print(string.format("Normalization completed in %.3f seconds", normalize_time))
+    
+    buffer:finalize_sample_data_changes()
+    
+    -- Clear cache
+    sample_data = nil
+    
+    local total_time = cache_time + normalize_time
+    local frames_per_second = (total_frames * total_channels) / total_time
+    print(string.format("ULTRA-FAST normalization complete: %.2f seconds total (%.1fM samples/sec)", 
+        total_time, frames_per_second / 1000000))
+    
+    renoise.app():show_status(string.format("Ultra-fast normalization: %.1f dB increase", db_increase))
+end
+
+-- Wrapper function that uses ProcessSlicer
+function normalize_selected_sample_ultra_fast()
+    local slicer = ProcessSlicer(normalize_selected_sample_ultra_fast_coroutine)
+    slicer:start()
+end
 
 function normalize_selected_sample()
     -- Use pcall for all potentially dangerous operations
@@ -853,61 +1106,55 @@ function normalize_selected_sample()
             total_frames / buffer.sample_rate,
             buffer.sample_rate))
         
-        -- First pass: Find peak and cache data
+        -- OPTIMIZED: Full-sample caching strategy
         local peak = 0
         local processed_frames = 0
         
-        -- Pre-allocate tables for better performance
-        local channel_peaks = {}
+        -- Pre-allocate full sample cache for maximum performance
         local sample_cache = {}
+        local channel_peaks = {}
         for channel = 1, buffer.number_of_channels do
             channel_peaks[channel] = 0
             sample_cache[channel] = {}
+            -- Pre-allocate the entire channel array
+            for frame = slice_start, slice_end do
+                sample_cache[channel][frame] = 0
+            end
         end
         
         buffer:prepare_sample_data_changes()
         
-        -- Process in blocks
-        for frame = slice_start, slice_end, CHUNK_SIZE do
-            local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
-            local block_size = block_end - frame + 1
-            
-            -- Read and process each channel
+        print(string.format("Caching %d frames across %d channels...", total_frames, buffer.number_of_channels))
+        
+        -- Single pass: Cache entire sample and find peak simultaneously
+        for frame = slice_start, slice_end do
             for channel = 1, buffer.number_of_channels do
-                local read_start = os.clock()
-                local channel_peak = 0
+                local sample_value = buffer:sample_data(channel, frame)
+                sample_cache[channel][frame] = sample_value
                 
-                -- Cache the data while finding peak
-                sample_cache[channel][frame] = {}
-                for i = 0, block_size - 1 do
-                    local sample_value = buffer:sample_data(channel, frame + i)
-                    sample_cache[channel][frame][i] = sample_value
-                    local abs_value = math.abs(sample_value)
-                    if abs_value > channel_peak then
-                        channel_peak = abs_value
-                    end
-                end
-                
-                time_reading = time_reading + (os.clock() - read_start)
-                if channel_peak > channel_peaks[channel] then
-                    channel_peaks[channel] = channel_peak
+                -- Find peak during caching (no redundant reads!)
+                local abs_value = math.abs(sample_value)
+                if abs_value > channel_peaks[channel] then
+                    channel_peaks[channel] = abs_value
                 end
             end
             
-            -- Update progress and check if we should yield
-            processed_frames = processed_frames + block_size
-            local progress = processed_frames / total_frames
-            if dialog and dialog.visible then
-                vb.views.progress_text.text = string.format("Finding peak... %.1f%%", progress * 100)
-            end
-            
-            if slicer:was_cancelled() then
-                buffer:finalize_sample_data_changes()
-                return
-            end
-            
-            if should_yield() then
-              coroutine.yield()
+            -- Update progress and yield periodically
+            processed_frames = processed_frames + 1
+            if processed_frames % 10000 == 0 then
+                local progress = processed_frames / total_frames
+                if dialog and dialog.visible then
+                    vb.views.progress_text.text = string.format("Caching & finding peak... %.1f%%", progress * 100)
+                end
+                
+                if slicer:was_cancelled() then
+                    buffer:finalize_sample_data_changes()
+                    return
+                end
+                
+                if should_yield() then
+                    coroutine.yield()
+                end
             end
         end
         
@@ -934,32 +1181,32 @@ function normalize_selected_sample()
         print(string.format("\nPeak amplitude: %.6f (%.1f dB below full scale)", peak, -db_increase))
         print(string.format("Will increase volume by %.1f dB", db_increase))
         
-        -- Reset progress for second pass
+        -- OPTIMIZED: Vectorized normalization pass using cached data
         processed_frames = 0
-        last_yield_time = os.clock()  -- Reset yield timer for second pass
+        last_yield_time = os.clock()
         
-        -- Second pass: Apply normalization using cached data
-        for frame = slice_start, slice_end, CHUNK_SIZE do
-            local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
+        print(string.format("Applying normalization with scale factor %.6f...", scale))
+        
+        -- Process in larger chunks for better cache locality
+        local NORMALIZE_CHUNK_SIZE = CHUNK_SIZE * 4  -- Process 4x larger chunks
+        
+        for frame = slice_start, slice_end, NORMALIZE_CHUNK_SIZE do
+            local block_end = math.min(frame + NORMALIZE_CHUNK_SIZE - 1, slice_end)
             local block_size = block_end - frame + 1
             
-            -- Process each channel
+            -- Process each channel in the chunk
             for channel = 1, buffer.number_of_channels do
                 local process_start = os.clock()
                 
+                -- Vectorized processing: apply scale to entire chunk at once
                 for i = 0, block_size - 1 do
                     local current_frame = frame + i
-                    -- Use cached data instead of reading from buffer again
-                    local sample_value = sample_cache[channel][frame][i]
+                    -- Direct access to cached data (no nested table lookup)
+                    local sample_value = sample_cache[channel][current_frame]
                     buffer:set_sample_data(channel, current_frame, sample_value * scale)
                 end
                 
                 time_processing = time_processing + (os.clock() - process_start)
-            end
-            
-            -- Clear cache for this chunk to free memory
-            for channel = 1, buffer.number_of_channels do
-                sample_cache[channel][frame] = nil
             end
             
             -- Update progress and check if we should yield
@@ -975,11 +1222,11 @@ function normalize_selected_sample()
             end
             
             if should_yield() then
-              coroutine.yield()
+                coroutine.yield()
             end
         end
         
-        -- Clear the entire cache
+        -- Clear the entire cache to free memory
         sample_cache = nil
         
         -- Finalize changes
