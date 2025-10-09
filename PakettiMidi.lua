@@ -709,30 +709,83 @@ renoise.tool():add_midi_mapping{name="Paketti:Create New Instrument & Loop from 
 -- Global table to keep track of added MIDI mappings
 local added_midi_mappings = {}
 
--- Function to map MIDI values to macro values
--- Function to map MIDI values to macro values
-function map_midi_value_to_macro(macro_index, midi_message)
-  -- Ensure the macro index is within the valid range (1 to 8)
+-- Function to map MIDI values to macro values with optional automation writing
+function map_midi_value_to_macro_with_automation(macro_index, midi_message, write_automation)
+  -- Validate macro index (1-8)
   if macro_index < 1 or macro_index > 8 then
     renoise.app():show_status("Macro index must be between 1 and 8")
     return
   end
 
-  local current_value = renoise.song().selected_instrument.macros[macro_index].value
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local current_value = instrument.macros[macro_index].value
+  local new_value = nil
 
+  -- Calculate new macro value (same logic as existing function)
   if midi_message:is_abs_value() then
-    -- Convert the absolute MIDI value (0 to 127) to a range of 0 to 1
-    local macro_value = midi_message.int_value / 127
-    renoise.song().selected_instrument.macros[macro_index].value = macro_value
+    new_value = midi_message.int_value / 127
   elseif midi_message:is_rel_value() then
-    -- Handle relative values (-63 to +63)
-    -- Scale the relative change to be smaller for finer control
     local relative_change = midi_message.int_value / 127
-    local new_value = current_value + relative_change
-    -- Clamp between 0 and 1
-    new_value = math.max(0, math.min(1, new_value))
-    renoise.song().selected_instrument.macros[macro_index].value = new_value
+    new_value = math.max(0, math.min(1, current_value + relative_change))
   end
+
+  if not new_value then return end
+
+  -- Always set the macro value directly
+  instrument.macros[macro_index].value = new_value
+
+  -- Write automation if requested AND record_parameter_mode is AUTOMATION (2)
+  if write_automation and song.transport.record_parameter_mode == 2 then
+    -- Find or create *Instr. Macros device on selected track
+    local track = song.selected_track
+    local macro_device = nil
+    
+    -- Search for existing *Instr. Macros device
+    for _, device in ipairs(track.devices) do
+      if device.device_path == "Audio/Effects/Native/*Instr. Macros" then
+        macro_device = device
+        break
+      end
+    end
+    
+    -- Create *Instr. Macros if not found
+    if not macro_device then
+      track:insert_device_at("Audio/Effects/Native/*Instr. Macros", 2)
+      macro_device = track.devices[2]
+    end
+    
+    -- Get the device parameter for this macro (parameters 1-8 = macros 1-8)
+    local parameter = macro_device.parameters[macro_index]
+    
+    if parameter and parameter.is_automatable then
+      local pattern_index = song.selected_pattern_index
+      local track_index = song.selected_track_index
+      local track_automation = song:pattern(pattern_index):track(track_index)
+      
+      -- Find or create automation envelope
+      local envelope = track_automation:find_automation(parameter)
+      if not envelope then
+        envelope = track_automation:create_automation(parameter)
+      end
+      
+      -- Determine write position based on follow_player state
+      local write_line
+      if song.transport.follow_player then
+        write_line = song.transport.playback_pos.line
+      else
+        write_line = song.selected_line_index
+      end
+      
+      -- Write automation point
+      envelope:add_point_at(write_line, new_value)
+    end
+  end
+end
+
+-- Function to map MIDI values to macro values (non-writing version)
+function map_midi_value_to_macro(macro_index, midi_message)
+  map_midi_value_to_macro_with_automation(macro_index, midi_message, false)
 end
 
 -- Static MIDI mappings for each of the 8 macros
@@ -754,6 +807,15 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 6 (
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 7 (2nd) (ParallelCompression)",invoke=function(midi_message) map_midi_value_to_macro(7, midi_message) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (2nd) (PB Inertia)",invoke=function(midi_message) map_midi_value_to_macro(8, midi_message) end}
 
+-- Automation-writing versions of macro mappings
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 1 (PitchBend) Write Automation",invoke=function(midi_message) map_midi_value_to_macro_with_automation(1, midi_message, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 2 (Cutoff) Write Automation",invoke=function(midi_message) map_midi_value_to_macro_with_automation(2, midi_message, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 3 (Resonance) Write Automation",invoke=function(midi_message) map_midi_value_to_macro_with_automation(3, midi_message, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 4 (Cutoff LfoAmp) Write Automation",invoke=function(midi_message) map_midi_value_to_macro_with_automation(4, midi_message, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 5 (Cutoff LfoFreq) Write Automation",invoke=function(midi_message) map_midi_value_to_macro_with_automation(5, midi_message, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 6 (Overdrive) Write Automation",invoke=function(midi_message) map_midi_value_to_macro_with_automation(6, midi_message, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 7 (ParallelCompression) Write Automation",invoke=function(midi_message) map_midi_value_to_macro_with_automation(7, midi_message, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (PB Inertia) Write Automation",invoke=function(midi_message) map_midi_value_to_macro_with_automation(8, midi_message, true) end}
 
 ----------------
 -- Script to map MIDI values to sample modulation set filter types in Renoise

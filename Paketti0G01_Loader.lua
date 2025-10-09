@@ -307,6 +307,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   UserDefinedSampleFolders08="",
   UserDefinedSampleFolders09="",
   UserDefinedSampleFolders10="",
+  PakettiFuzzySampleSearchPath="",
 
   pakettieSpeak = {
     word_gap=3,

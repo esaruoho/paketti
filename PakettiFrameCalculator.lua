@@ -244,6 +244,132 @@ function PakettiFrameCalculatorShowSongToLineInfo()
   renoise.app():show_status(status_text)
 end
 
+-- Calculate total song length
+function PakettiFrameCalculatorGetSongLength()
+  local song = renoise.song()
+  local transport = song.transport
+  local sequencer = song.sequencer
+  
+  -- Get current transport settings
+  local bpm = transport.bpm
+  local lpb = transport.lpb
+  local sample_rate = 44100
+  
+  local total_frames = 0
+  local total_seconds = 0
+  local pattern_count = 0
+  
+  -- Calculate frames for each pattern in sequence
+  for i = 1, #sequencer.pattern_sequence do
+    local pattern_index = sequencer.pattern_sequence[i]
+    local pattern = song:pattern(pattern_index)
+    local pattern_lines = pattern.number_of_lines
+    
+    -- Calculate pattern duration
+    local pattern_beats = pattern_lines / lpb
+    local pattern_seconds = (pattern_beats * 60) / bpm
+    local pattern_frames = math.floor(pattern_seconds * sample_rate + 0.5)
+    
+    total_frames = total_frames + pattern_frames
+    total_seconds = total_seconds + pattern_seconds
+    pattern_count = pattern_count + 1
+  end
+  
+  -- Calculate hours, minutes, seconds, and milliseconds
+  local total_hours = math.floor(total_seconds / 3600)
+  local remaining_seconds = total_seconds - (total_hours * 3600)
+  local total_minutes = math.floor(remaining_seconds / 60)
+  local final_seconds = remaining_seconds - (total_minutes * 60)
+  local milliseconds = math.floor((final_seconds - math.floor(final_seconds)) * 1000)
+  local whole_seconds = math.floor(final_seconds)
+  
+  return {
+    total_seconds = total_seconds,
+    total_frames = total_frames,
+    pattern_count = pattern_count,
+    hours = total_hours,
+    minutes = total_minutes,
+    seconds = whole_seconds,
+    milliseconds = milliseconds,
+    bpm = bpm,
+    lpb = lpb,
+    sample_rate = sample_rate
+  }
+end
+
+-- Show song length in status bar
+function PakettiFrameCalculatorShowSongLength()
+  local info = PakettiFrameCalculatorGetSongLength()
+  
+  local time_format = string.format("%02d:%02d:%02d:%03d", 
+    info.hours, info.minutes, info.seconds, info.milliseconds)
+  
+  local status_text = string.format(
+    "Total song time: %s | %d patterns | %.2fs | %d frames @ %dHz | %d BPM | %d LPB",
+    time_format, info.pattern_count, info.total_seconds, info.total_frames, 
+    info.sample_rate, info.bpm, info.lpb
+  )
+  
+  renoise.app():show_status(status_text)
+end
+
+-- Show song length dialog
+function PakettiFrameCalculatorShowSongLengthDialog()
+  local info = PakettiFrameCalculatorGetSongLength()
+  
+  local time_format = string.format("%02d:%02d:%02d:%03d", 
+    info.hours, info.minutes, info.seconds, info.milliseconds)
+  
+  local dialog_content = vb:column {
+    vb:row {
+      vb:text { text = "Total song time:", width=100, style = "strong" },
+      vb:text { text = time_format, style = "strong", font = "bold" }
+    },
+    vb:row {
+      vb:text { text = "Patterns:", width = 100 },
+      vb:text { text = tostring(info.pattern_count) }
+    },
+    vb:row {
+      vb:text { text = "Duration:", width = 100 },
+      vb:text { text = string.format("%.2f seconds", info.total_seconds) }
+    },
+    vb:row {
+      vb:text { text = "Frames:", width = 100 },
+      vb:text { text = string.format("%d @ %dHz", info.total_frames, info.sample_rate) }
+    },
+    vb:row {
+      vb:text { text = "BPM:", width = 100 },
+      vb:text { text = tostring(info.bpm) }
+    },
+    vb:row {
+      vb:text { text = "LPB:", width = 100 },
+      vb:text { text = tostring(info.lpb) }
+    },
+    vb:button {
+      text = "OK",
+      width = 100,
+      notifier = function()
+        if dialog then
+          dialog:close()
+          dialog = nil
+        end
+      end
+    }
+  }
+  
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) 
+      dialog = value
+    end
+  )
+  
+  dialog = renoise.app():show_custom_dialog("Total Song Time", dialog_content, keyhandler)
+  
+  -- Set active middle frame to ensure keyboard input works
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
 -- Frame calculator dialog
 function PakettiFrameCalculatorDialog()
   if dialog and dialog.visible then
@@ -710,23 +836,33 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Show Pattern Frame Info", i
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Pattern to Line Frame Info", invoke = PakettiFrameCalculatorShowPatternToLineInfo}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Song to Line Frame Info", invoke = PakettiFrameCalculatorShowSongToLineInfo}
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Song Length", invoke = PakettiFrameCalculatorShowSongLength}
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Song Length Dialog", invoke = PakettiFrameCalculatorShowSongLengthDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
 
 renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
+renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Show Song Length", invoke = PakettiFrameCalculatorShowSongLength}
+renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Show Song Length Dialog", invoke = PakettiFrameCalculatorShowSongLengthDialog}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
 
 renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
+renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Show Song Length", invoke = PakettiFrameCalculatorShowSongLength}
+renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Show Song Length Dialog", invoke = PakettiFrameCalculatorShowSongLengthDialog}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Show Pattern to Line Frame Info", invoke = PakettiFrameCalculatorShowPatternToLineInfo}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Show Song to Line Frame Info", invoke = PakettiFrameCalculatorShowSongToLineInfo}
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Show Song Length", invoke = PakettiFrameCalculatorShowSongLength}
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Show Song Length Dialog", invoke = PakettiFrameCalculatorShowSongLengthDialog}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
 
 renoise.tool():add_menu_entry{name = "--Mixer:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
+renoise.tool():add_menu_entry{name = "Mixer:Paketti:Show Song Length", invoke = PakettiFrameCalculatorShowSongLength}
+renoise.tool():add_menu_entry{name = "Mixer:Paketti:Show Song Length Dialog", invoke = PakettiFrameCalculatorShowSongLengthDialog}
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
 
 -- Frame Calculator Live Update Timer
