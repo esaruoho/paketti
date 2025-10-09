@@ -12,6 +12,11 @@ local max_results_per_column = 30
 local columns_count = 5
 local current_page = 1
 local results_per_page = 150 -- Maximum buttons to create at once
+local max_safe_results_per_page = 100 -- Reduced for very large file sets
+
+-- Colors for button highlighting (from PakettiGater.lua)
+local normal_color = {0, 0, 0}  -- Default black
+local selected_color = {0x80, 0x00, 0x80}  -- Deep purple for selected
 
 -- Optimization: Cache search results and pagination data
 local cached_search_query = ""
@@ -372,28 +377,42 @@ function PakettiFuzzySampleSearchCalculateFilteredResults(force_recalc)
   if search_query == "" then
     cached_search_results = current_files
   else
-    cached_search_results = PakettiFuzzySearchUtil(current_files, search_query, {
-      search_type = "substring",
-      field_extractor = function(file)
-        return {file.display_name, file.name}
+    -- For very large file sets, use simple substring matching instead of fuzzy search
+    -- This is much faster and prevents timeouts
+    if #current_files > 50000 then
+      cached_search_results = {}
+      local query_lower = search_query:lower()
+      for _, file in ipairs(current_files) do
+        if file.display_name:lower():find(query_lower, 1, true) or 
+           file.name:lower():find(query_lower, 1, true) then
+          table.insert(cached_search_results, file)
+        end
       end
-    })
+    else
+      -- Use fuzzy search for smaller file sets
+      cached_search_results = PakettiFuzzySearchUtil(current_files, search_query, {
+        search_type = "substring",
+        field_extractor = function(file)
+          return {file.display_name, file.name}
+        end
+      })
+    end
   end
   
-  -- Update pagination info
+  -- Update pagination info - use appropriate page size for large file sets
   cached_pagination_info.total_results = #cached_search_results
-  cached_pagination_info.max_pages = math.ceil(cached_pagination_info.total_results / results_per_page)
+  local effective_page_size = (#cached_search_results > 100000) and max_safe_results_per_page or results_per_page
+  cached_pagination_info.max_pages = math.ceil(cached_pagination_info.total_results / effective_page_size)
   
   return cached_search_results
 end
 
--- Update the file list display by rebuilding the dialog
+-- Update the file list display efficiently without recreating dialog
 function PakettiFuzzySampleSearchUpdateDisplay(force_recalc)
   if not dialog or not dialog.visible then return end
   
   -- Get filtered results (uses cache if possible)
   local all_filtered = PakettiFuzzySampleSearchCalculateFilteredResults(force_recalc)
-  filtered_files = all_filtered
   
   -- Use cached pagination info
   local total_results = cached_pagination_info.total_results
@@ -406,14 +425,21 @@ function PakettiFuzzySampleSearchUpdateDisplay(force_recalc)
     current_page = 1
   end
   
-  -- Get current page of results
-  local start_index = ((current_page - 1) * results_per_page) + 1
-  local end_index = math.min(start_index + results_per_page - 1, total_results)
+  -- Get current page of results - use smaller page size for very large file sets
+  local effective_results_per_page = results_per_page
+  if total_results > 100000 then
+    effective_results_per_page = max_safe_results_per_page
+  end
+  
+  local start_index = ((current_page - 1) * effective_results_per_page) + 1
+  local end_index = math.min(start_index + effective_results_per_page - 1, total_results)
   local page_files = {}
   for i = start_index, end_index do
     table.insert(page_files, all_filtered[i])
   end
   filtered_files = page_files
+  
+  print("DEBUG: Pagination - current_page=" .. current_page .. ", start_index=" .. start_index .. ", end_index=" .. end_index .. ", page_files_count=" .. #page_files .. ", total_results=" .. total_results)
   
   -- Ensure selected index is valid
   if selected_index > #filtered_files then
@@ -423,6 +449,16 @@ function PakettiFuzzySampleSearchUpdateDisplay(force_recalc)
     selected_index = 1
   end
   
+  -- For large file sets, use in-place updates instead of recreating dialog
+  if total_results > 1000 then
+    -- Update buttons in-place for large file sets
+    PakettiFuzzySampleSearchUpdateButtonsInPlace()
+    PakettiFuzzySampleSearchUpdateStatusInPlace()
+    PakettiFuzzySampleSearchUpdateSelection()
+    return
+  end
+  
+  -- For smaller file sets, still recreate dialog (original behavior)
   -- Clear button references since we're recreating the dialog
   file_buttons = {}
   
@@ -434,10 +470,20 @@ function PakettiFuzzySampleSearchUpdateDisplay(force_recalc)
     PakettiFuzzySampleSearchCreateDialog()
   end
   
-  -- Update search display text
+  -- Update search display text and status text styling
   if dialog and vb and vb.views.search_display then
     vb.views.search_display.text = search_query == "" and "(type to search)" or search_query
     vb.views.search_display.style = search_query == "" and "disabled" or "normal"
+  end
+  
+  -- ALWAYS apply bold styling to status text
+  if dialog and vb and vb.views.file_count then
+    vb.views.file_count.style = "strong"
+    vb.views.file_count.font = "bold"
+  end
+  if dialog and vb and vb.views.pagination_text then
+    local max_pages = cached_pagination_info.max_pages
+    vb.views.pagination_text.text = string.format("P%d/%d", current_page, max_pages)
   end
 end
 
@@ -470,7 +516,16 @@ function PakettiFuzzySampleSearchGetStatusText()
   local showing_count = #filtered_files
   
   if max_pages > 1 then
-    return string.format("Files: %d/%d (Page %d/%d)", showing_count, total_filtered, current_page, max_pages)
+    -- Calculate the actual range of files being displayed
+    local effective_results_per_page = results_per_page
+    if total_filtered > 100000 then
+      effective_results_per_page = max_safe_results_per_page
+    end
+    
+    local start_index = ((current_page - 1) * effective_results_per_page) + 1
+    local end_index = math.min(start_index + showing_count - 1, total_filtered)
+    
+    return string.format("Files: %d-%d/%d", start_index, end_index, total_filtered)
   else
     return string.format("Files: %d", total_filtered)
   end
@@ -511,8 +566,11 @@ function PakettiFuzzySampleSearchCreatePaginationControlsCompact()
       end
     },
     vb:text{
+      id = "pagination_text",
       text = string.format("P%d/%d", current_page, max_pages),
-      width = 40
+      width = 40,
+      style = "strong",
+      font = "bold"
     },
     vb:button{
       text = ">",
@@ -543,20 +601,40 @@ end
 
 -- Create the file display section
 function PakettiFuzzySampleSearchCreateFileDisplay()
+  print("DEBUG: PakettiFuzzySampleSearchCreateFileDisplay called")
+  print("DEBUG: #filtered_files = " .. #filtered_files)
+  print("DEBUG: results_per_page = " .. results_per_page)
+  print("DEBUG: columns_count = " .. columns_count)
+  print("DEBUG: max_results_per_column = " .. max_results_per_column)
+  
   local file_columns = {}
+  
+  -- For large file sets, create maximum possible buttons to avoid recreation
+  local max_buttons_needed = results_per_page
+  local files_to_display = math.min(#filtered_files, max_buttons_needed)
+  
+  print("DEBUG: max_buttons_needed = " .. max_buttons_needed)
+  print("DEBUG: files_to_display = " .. files_to_display)
   
   -- Create columns
   for col = 1, columns_count do
     local column_start = (col - 1) * max_results_per_column + 1
-    local column_end = math.min(col * max_results_per_column, #filtered_files)
+    local column_end = math.min(col * max_results_per_column, files_to_display)
     
-    if column_start <= #filtered_files then
+    print("DEBUG: Column " .. col .. " - start: " .. column_start .. ", end: " .. column_end)
+    
+    if column_start <= files_to_display then
       local column_views = {}
       
       for i = column_start, column_end do
         local file = filtered_files[i]
+        if file then
+          print("DEBUG: Creating button " .. i .. " for file: " .. file.display_name)
+        else
+          print("DEBUG: ERROR - file is nil at index " .. i)
+        end
         local is_selected = (i == selected_index)
-        local button_text = file.display_name
+        local button_text = file and file.display_name or "ERROR"
         
         -- Show full text when selected, truncate when not selected  
         if is_selected then
@@ -576,8 +654,8 @@ function PakettiFuzzySampleSearchCreateFileDisplay()
           width = 240, -- Reasonable width without waste
           height = 22,
           align = "left", -- Left-align the filename text
-          font = is_selected and "bold" or "normal",
-          color = is_selected and {0x80, 0xC0, 0xFF} or {0x00, 0x00, 0x00},
+          font = "normal", -- Keep font consistent
+          color = is_selected and selected_color or normal_color,
           notifier = function()
             selected_index = i
             PakettiFuzzySampleSearchUpdateSelection()
@@ -589,11 +667,31 @@ function PakettiFuzzySampleSearchCreateFileDisplay()
         table.insert(column_views, button)
       end
       
+      -- For large file sets, create extra invisible buttons to avoid recreation
+      if files_to_display < max_buttons_needed then
+        local remaining_buttons = max_buttons_needed - files_to_display
+        local remaining_in_column = math.min(remaining_buttons, max_results_per_column - (column_end - column_start + 1))
+        
+        for i = 1, remaining_in_column do
+          local button = vb:button{
+            text = "",
+            width = 240,
+            height = 22,
+            visible = false, -- Hidden by default
+            notifier = function() end -- Empty notifier
+          }
+          table.insert(column_views, button)
+        end
+      end
+      
       table.insert(file_columns, vb:column{
         views = column_views
       })
     end
   end
+  
+  print("DEBUG: Created " .. #file_columns .. " columns")
+  print("DEBUG: Total file_buttons stored: " .. #file_buttons)
   
   return vb:horizontal_aligner{
     mode = "left",
@@ -605,6 +703,39 @@ end
 
 -- Create the main dialog content
 function PakettiFuzzySampleSearchCreateDialog()
+  print("DEBUG: PakettiFuzzySampleSearchCreateDialog called")
+  print("DEBUG: #current_files = " .. #current_files)
+  print("DEBUG: #filtered_files = " .. #filtered_files)
+  
+  -- Apply pagination to filtered_files before creating dialog
+  if #filtered_files > 0 then
+    local all_filtered = filtered_files -- Store all files
+    local total_results = #all_filtered
+    local max_pages = math.ceil(total_results / results_per_page)
+    
+    if current_page > max_pages then
+      current_page = max_pages
+    end
+    if current_page < 1 then
+      current_page = 1
+    end
+    
+    local effective_results_per_page = results_per_page
+    if total_results > 100000 then
+      effective_results_per_page = max_safe_results_per_page
+    end
+    
+    local start_index = ((current_page - 1) * effective_results_per_page) + 1
+    local end_index = math.min(start_index + effective_results_per_page - 1, total_results)
+    local page_files = {}
+    for i = start_index, end_index do
+      table.insert(page_files, all_filtered[i])
+    end
+    filtered_files = page_files
+    
+    print("DEBUG: Pagination applied - current_page=" .. current_page .. ", start_index=" .. start_index .. ", end_index=" .. end_index .. ", page_files_count=" .. #page_files .. ", total_results=" .. total_results)
+  end
+  
   -- Create a new ViewBuilder instance each time to avoid ID conflicts
   vb = renoise.ViewBuilder()
   
@@ -616,8 +747,26 @@ function PakettiFuzzySampleSearchCreateDialog()
       vb:text{
         id = "current_directory",
         text = current_directory ~= "" and ("Directory: " .. current_directory) or "No directory selected",
-        width = 250
+        width = 400,
+        font = "bold",
+        style = "strong"
       },
+      vb:text{
+        text = "Search:",
+        width = 50,
+        style = "strong",
+        font = "bold"
+      },
+      vb:text{
+        id = "search_display",
+        text = search_query == "" and "(type to search)" or search_query,
+        width = 200,
+        style = search_query == "" and "disabled" or "normal",
+        font = "mono"
+      }
+    },
+    
+    vb:row{
       vb:button{
         text = "Browse...",
         width = 70,
@@ -647,12 +796,16 @@ function PakettiFuzzySampleSearchCreateDialog()
             -- Scan directory with callback
             PakettiFuzzySampleSearchScanDirectory(current_directory, function(files)
               current_files = files
+              filtered_files = files
               search_query = ""
               selected_index = 1
-              -- Invalidate cache to force fresh display
-              cached_search_query = "__INVALID__"
-              cached_search_results = {}
-              cached_pagination_info = {total_results = 0, max_pages = 1}
+              -- Set up search cache properly for loaded files
+              cached_search_query = ""
+              cached_search_results = files
+              local total_files = #files
+              local effective_page_size = (total_files > 100000) and max_safe_results_per_page or results_per_page
+              local max_pages = math.ceil(total_files / effective_page_size)
+              cached_pagination_info = {total_results = total_files, max_pages = max_pages}
               
               if dialog and dialog.visible then
                 -- Force display update to show all files immediately
@@ -678,20 +831,7 @@ function PakettiFuzzySampleSearchCreateDialog()
           end
         end
       } or vb:space{width = 70},
-      vb:text{
-        text = "Search:",
-        width = 50
-      },
-      vb:text{
-        id = "search_display",
-        text = search_query == "" and "(type to search)" or search_query,
-        width = 200,
-        style = search_query == "" and "disabled" or "normal",
-        font = "mono"
-      }
-    },
-    
-    vb:row{
+      vb:space{width = 1}, -- Spacer
       vb:popup{
         id = "columns_popup",
         items = {"2 Columns", "3 Columns", "4 Columns", "5 Columns", "6 Columns"},
@@ -731,7 +871,9 @@ function PakettiFuzzySampleSearchCreateDialog()
       vb:text{
         id = "file_count", 
         text = PakettiFuzzySampleSearchGetStatusText(),
-        width = 150
+        width = 150,
+        style = "strong",
+        font = "bold"
       }
     },
     
@@ -887,33 +1029,82 @@ function PakettiFuzzySampleSearchNavigate(direction)
   if #filtered_files == 0 then return end
   
   local old_index = selected_index
+  local max_pages = cached_pagination_info.max_pages
+  local current_page_size = #filtered_files -- Current page has this many files
+  
+  print("DEBUG: Navigation start - current_page=" .. current_page .. ", selected_index=" .. selected_index .. ", page_size=" .. current_page_size)
   
   if direction == "up" then
     selected_index = selected_index - 1
     if selected_index < 1 then
-      selected_index = #filtered_files
+      -- Go to previous page if available
+      if current_page > 1 then
+        current_page = current_page - 1
+        selected_index = current_page_size -- Last item of previous page
+        print("DEBUG: Up navigation - went to previous page " .. current_page .. ", index " .. selected_index)
+        PakettiFuzzySampleSearchUpdateDisplay(true)
+        return
+      else
+        selected_index = current_page_size -- Wrap to last item of current page
+        print("DEBUG: Up navigation - wrapped to end of current page, index " .. selected_index)
+      end
+    else
+      print("DEBUG: Up navigation - moved to index " .. selected_index)
     end
   elseif direction == "down" then
     selected_index = selected_index + 1
-    if selected_index > #filtered_files then
-      selected_index = 1
+    if selected_index > current_page_size then
+      -- Go to next page if available
+      if current_page < max_pages then
+        current_page = current_page + 1
+        selected_index = 1 -- First item of next page
+        print("DEBUG: Down navigation - went to next page " .. current_page .. ", index " .. selected_index)
+        PakettiFuzzySampleSearchUpdateDisplay(true)
+        return
+      else
+        selected_index = 1 -- Wrap to first item of current page
+        print("DEBUG: Down navigation - wrapped to beginning of current page, index " .. selected_index)
+      end
+    else
+      print("DEBUG: Down navigation - moved to index " .. selected_index)
     end
   elseif direction == "left" then
     -- Move to previous column (subtract max_results_per_column)
     selected_index = selected_index - max_results_per_column
     if selected_index < 1 then
-      -- Wrap to end, find equivalent position in last column
-      local position_in_column = ((selected_index - 1) % max_results_per_column) + 1
-      local last_column_start = math.floor((#filtered_files - 1) / max_results_per_column) * max_results_per_column + 1
-      selected_index = math.min(last_column_start + position_in_column - 1, #filtered_files)
+      -- Go to previous page if available
+      if current_page > 1 then
+        current_page = current_page - 1
+        selected_index = current_page_size -- Last item of previous page
+        print("DEBUG: Left navigation - went to previous page " .. current_page .. ", index " .. selected_index)
+        PakettiFuzzySampleSearchUpdateDisplay(true)
+        return
+      else
+        -- Wrap to end of current page
+        selected_index = current_page_size
+        print("DEBUG: Left navigation - wrapped to end of current page, index " .. selected_index)
+      end
+    else
+      print("DEBUG: Left navigation - moved to index " .. selected_index)
     end
   elseif direction == "right" then
     -- Move to next column (add max_results_per_column)
     selected_index = selected_index + max_results_per_column
-    if selected_index > #filtered_files then
-      -- Wrap to beginning, find equivalent position in first column
-      local position_in_column = ((selected_index - 1) % max_results_per_column) + 1
-      selected_index = position_in_column
+    if selected_index > current_page_size then
+      -- Go to next page if available
+      if current_page < max_pages then
+        current_page = current_page + 1
+        selected_index = 1 -- First item of next page
+        print("DEBUG: Right navigation - went to next page " .. current_page .. ", index " .. selected_index)
+        PakettiFuzzySampleSearchUpdateDisplay(true)
+        return
+      else
+        -- Wrap to beginning of current page
+        selected_index = 1
+        print("DEBUG: Right navigation - wrapped to beginning of current page, index " .. selected_index)
+      end
+    else
+      print("DEBUG: Right navigation - moved to index " .. selected_index)
     end
   end
   
@@ -925,15 +1116,13 @@ end
 
 -- Fast selection update without dialog recreation
 function PakettiFuzzySampleSearchUpdateSelection()
-  -- Update button colors efficiently like Dialog of Dialogs does
+  -- Update button colors efficiently like PakettiGater does
   for i, button in pairs(file_buttons) do
     if button and button.color then
       if i == selected_index then
-        button.color = {0x80, 0xC0, 0xFF} -- Light blue for selected
-        button.font = "bold"
+        button.color = selected_color -- Deep purple for selected
       else
-        button.color = {0x00, 0x00, 0x00} -- Default for unselected
-        button.font = "normal"
+        button.color = normal_color -- Default black for unselected
       end
     end
   end
@@ -967,11 +1156,15 @@ end
 
 -- Optimization: Update button text/colors without recreating dialog
 function PakettiFuzzySampleSearchUpdateButtonsInPlace()
+  -- Update existing buttons
   for i = 1, #filtered_files do
     local button = file_buttons[i]
     if button then
       local file = filtered_files[i]
       local is_selected = (i == selected_index)
+      
+      -- Show the button
+      button.visible = true
       
       -- Update button text - show full text when selected
       local button_text = file.display_name
@@ -989,8 +1182,16 @@ function PakettiFuzzySampleSearchUpdateButtonsInPlace()
       button.text = button_text
       
       -- Update button appearance
-      button.font = is_selected and "bold" or "normal"
-      button.color = is_selected and {0x80, 0xC0, 0xFF} or {0x00, 0x00, 0x00}
+      button.font = "normal" -- Keep font consistent
+      button.color = is_selected and selected_color or normal_color
+    end
+  end
+  
+  -- Hide any extra buttons that aren't needed
+  for i = #filtered_files + 1, #file_buttons do
+    local button = file_buttons[i]
+    if button then
+      button.visible = false
     end
   end
 end
@@ -998,11 +1199,20 @@ end
 -- Optimization: Update status text without dialog recreation
 function PakettiFuzzySampleSearchUpdateStatusInPlace()
   if dialog and vb and vb.views.file_count then
-    vb.views.file_count.text = PakettiFuzzySampleSearchGetStatusText()
+    local status_text = PakettiFuzzySampleSearchGetStatusText()
+    vb.views.file_count.text = status_text
+    
+    -- ALWAYS apply bold styling to status text
+    vb.views.file_count.style = "strong"
+    vb.views.file_count.font = "bold"
   end
   if dialog and vb and vb.views.search_display then
     vb.views.search_display.text = search_query == "" and "(type to search)" or search_query
     vb.views.search_display.style = search_query == "" and "disabled" or "normal"
+  end
+  if dialog and vb and vb.views.pagination_text then
+    local max_pages = cached_pagination_info.max_pages
+    vb.views.pagination_text.text = string.format("P%d/%d", current_page, max_pages)
   end
 end
 
@@ -1031,12 +1241,16 @@ function PakettiFuzzySampleSearchBrowseDirectory()
     -- Scan new directory with callback
     PakettiFuzzySampleSearchScanDirectory(current_directory, function(files)
       current_files = files
+      filtered_files = files
       search_query = ""
       selected_index = 1
-      -- Invalidate cache to force fresh display
-      cached_search_query = "__INVALID__"
-      cached_search_results = {}
-      cached_pagination_info = {total_results = 0, max_pages = 1}
+      -- Set up search cache properly for loaded files
+      cached_search_query = ""
+      cached_search_results = files
+      local total_files = #files
+      local effective_page_size = (total_files > 100000) and max_safe_results_per_page or results_per_page
+      local max_pages = math.ceil(total_files / effective_page_size)
+      cached_pagination_info = {total_results = total_files, max_pages = max_pages}
       
       if dialog and dialog.visible then
         -- Force display update to show all files immediately
@@ -1149,9 +1363,41 @@ function PakettiFuzzySampleSearchDialog()
   -- Get starting directory 
   local last_directory = PakettiFuzzySampleSearchGetLastDirectory()
   
-  -- Only reset files if directory changed or no directory set
-  if current_directory ~= last_directory then
+  -- Check if directory exists and is accessible
+  local function directory_exists(path)
+    if path == "" then return false end
+    local success, result = pcall(function()
+      local handle = io.popen('test -d "' .. path .. '" && echo "exists" 2>/dev/null')
+      if handle then
+        local output = handle:read("*l")
+        handle:close()
+        return output == "exists"
+      end
+      return false
+    end)
+    return success and result or false
+  end
+  
+  -- If no directory is set or directory doesn't exist, immediately prompt for one
+  if last_directory == "" or not directory_exists(last_directory) then
+    if last_directory ~= "" then
+      renoise.app():show_status("Previous directory no longer exists: " .. last_directory)
+    end
+    local new_directory = renoise.app():prompt_for_path("Select Sample Directory")
+    if not new_directory or new_directory == "" then
+      renoise.app():show_status("No directory selected - Sample Search cancelled")
+      return
+    end
+    -- Set the new directory and save it
+    current_directory = new_directory
+    PakettiFuzzySampleSearchSaveLastDirectory(current_directory)
+    renoise.app():show_status("Directory selected: " .. current_directory)
+  else
     current_directory = last_directory
+  end
+  
+  -- Always reset files if we have a directory (either new or existing)
+  if current_directory ~= "" then
     current_files = {}
     filtered_files = {}
     search_query = ""
@@ -1159,17 +1405,37 @@ function PakettiFuzzySampleSearchDialog()
     current_page = 1
     
     -- Try to load from cache if directory is set
-    if current_directory ~= "" and PakettiFuzzySampleSearchIsCacheValid(current_directory) then
+    print("DEBUG: Checking cache for directory: " .. current_directory)
+    local cache_valid = PakettiFuzzySampleSearchIsCacheValid(current_directory)
+    print("DEBUG: Cache valid: " .. tostring(cache_valid))
+    
+    if current_directory ~= "" and cache_valid then
       local cache_data = PakettiFuzzySampleSearchLoadCache(current_directory)
       if cache_data and cache_data.files then
+        print("DEBUG: Loading " .. #cache_data.files .. " files from cache")
         current_files = cache_data.files
         filtered_files = cache_data.files
-        -- Invalidate search cache to ensure fresh display
-        cached_search_query = "__INVALID__"
-        cached_search_results = {}
-        cached_pagination_info = {total_results = 0, max_pages = 1}
+        -- Set up search cache properly for loaded files
+        cached_search_query = ""
+        cached_search_results = cache_data.files
+        local total_files = #cache_data.files
+        local effective_page_size = (total_files > 100000) and max_safe_results_per_page or results_per_page
+        local max_pages = math.ceil(total_files / effective_page_size)
+        cached_pagination_info = {total_results = total_files, max_pages = max_pages}
         renoise.app():show_status("Loaded " .. #current_files .. " files from cache")
+      else
+        print("DEBUG: Cache data is nil or has no files")
+        -- No cache available, set scanning state and auto-scan after dialog creation
+        renoise.app():show_status("Will scan directory: " .. current_directory)
+        -- Mark that we need to auto-scan after dialog creation
+        local needs_auto_scan = true
       end
+    else
+      print("DEBUG: No cache available, will auto-scan")
+      -- No cache available, set scanning state and auto-scan after dialog creation
+      renoise.app():show_status("Will scan directory: " .. current_directory)
+      -- Mark that we need to auto-scan after dialog creation
+      local needs_auto_scan = true
     end
   end
   
@@ -1183,10 +1449,42 @@ function PakettiFuzzySampleSearchDialog()
   if current_directory ~= "" then
     if #current_files > 0 then
       renoise.app():show_status("Sample Search opened - " .. #current_files .. " files ready from: " .. current_directory)
-      -- Ensure files are visible immediately
-      PakettiFuzzySampleSearchUpdateDisplay(true)
+      -- For cached files, force dialog recreation to ensure buttons are created
+      local was_visible = dialog.visible
+      dialog:close()
+      if was_visible then
+        PakettiFuzzySampleSearchCreateDialog()
+      end
     else
-      renoise.app():show_status("Sample Search opened - Previous directory: " .. current_directory .. " (click Scan to load)")
+      -- No files loaded, auto-scan the directory
+      print("DEBUG: Starting auto-scan for directory: " .. current_directory)
+      renoise.app():show_status("Scanning directory: " .. current_directory)
+      PakettiFuzzySampleSearchScanDirectory(current_directory, function(files)
+        print("DEBUG: Auto-scan completed, found " .. #files .. " files")
+        current_files = files
+        filtered_files = files
+        search_query = ""
+        selected_index = 1
+        -- Set up search cache properly for loaded files
+        cached_search_query = ""
+        cached_search_results = files
+        local total_files = #files
+        local effective_page_size = (total_files > 100000) and max_safe_results_per_page or results_per_page
+        local max_pages = math.ceil(total_files / effective_page_size)
+        cached_pagination_info = {total_results = total_files, max_pages = max_pages}
+        
+        if dialog and dialog.visible then
+          print("DEBUG: Dialog is visible, forcing dialog recreation with " .. #files .. " files")
+          -- Force dialog recreation to ensure buttons are created with the loaded files
+          local was_visible = dialog.visible
+          dialog:close()
+          if was_visible then
+            PakettiFuzzySampleSearchCreateDialog()
+          end
+        else
+          print("DEBUG: Dialog is not visible, cannot update display")
+        end
+      end)
     end
   else
     renoise.app():show_status("Sample Search opened - Click Browse to select a directory")
