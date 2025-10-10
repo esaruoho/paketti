@@ -735,8 +735,8 @@ function map_midi_value_to_macro_with_automation(macro_index, midi_message, writ
   -- Always set the macro value directly
   instrument.macros[macro_index].value = new_value
 
-  -- Write to automation or pattern if requested
-  if write_automation then
+  -- Write to automation or pattern if requested AND edit mode is ON
+  if write_automation and song.transport.edit_mode then
     local record_mode = song.transport.record_parameter_mode
     
     if record_mode == 2 then
