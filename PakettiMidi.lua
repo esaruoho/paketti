@@ -9,6 +9,8 @@ local function clean_device_name(name)
   local cleaned = name:gsub("[^%w%s%-]", ""):gsub("%s+", "_")
   return cleaned
 end
+
+
 -------------------------------------------------------------------------------------------------------------------------------
 -- Helper function for handling groove settings
 local function handle_groove_setting(midi_message, indices)
@@ -823,13 +825,36 @@ function map_midi_value_to_macro_with_automation(macro_index, midi_message, writ
       local pattern_track = song:pattern(pattern_index):track(track_index)
       local line = pattern_track:line(write_line)
       
-      -- Write macro value to first effect column using the correct device index
-      local effect_column = line:effect_column(1)
+      -- Look for existing 12XX effect command to overwrite
+      local target_column = nil
+      local effect_column = nil
+      local effect_command = string.format("1%d", macro_index) -- e.g., "12", "13", etc.
+      
+      -- Ensure we have enough effect columns visible for this macro
+      if track.visible_effect_columns < macro_index then
+        track.visible_effect_columns = macro_index
+      end
+      
+      -- First, search for existing 12XX effect command to overwrite
+      for col = 1, track.visible_effect_columns do
+        effect_column = line:effect_column(col)
+        if effect_column and effect_column.number_string == effect_command then
+          -- Found existing 12XX command, overwrite it
+          target_column = col
+          break
+        end
+      end
+      
+      -- If no existing 12XX command found, use the macro's preferred column
+      if not target_column then
+        target_column = macro_index
+        effect_column = line:effect_column(target_column)
+      end
+      
+      -- Write macro value to the target effect column
       if effect_column then
         -- Convert macro value (0-1) to hex (00-FF)
         local hex_value = string.format("%02X", math.floor(new_value * 255 + 0.5))
-        -- Use the device index as the effect command (e.g., "02" for device 2, "03" for device 3)
-        local effect_command = string.format("%02d", macro_device_index)
         effect_column.number_string = effect_command
         effect_column.amount_string = hex_value
       end
@@ -839,6 +864,7 @@ end
 
 -- Function to map MIDI values to macro values (non-writing version)
 function map_midi_value_to_macro(macro_index, midi_message)
+  print("MIDI Macro " .. macro_index .. " value: " .. midi_message.int_value)
   map_midi_value_to_macro_with_automation(macro_index, midi_message, false)
 end
 
@@ -1409,6 +1435,7 @@ function MidiSelectedAutomationParameter(number, message)
     print("No device selected.")
     return
   end
+  
 
   -- Validate that the parameter exists at the given index (1-128)
   local device_parameter = selected_device.parameters[number]
@@ -1500,6 +1527,7 @@ function record_midi_value(value)
     print("No automatable parameter selected.")
     return
   end
+  
 
   -- Find or create the automation envelope for the selected parameter
   local track_automation = song:pattern(song.selected_pattern_index):track(song.selected_track_index)
@@ -1585,6 +1613,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Record Automation to Selected Para
     record_midi_value(normalized_value)
   end
 }
+
 
 
 ------------
