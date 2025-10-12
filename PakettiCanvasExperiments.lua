@@ -26,6 +26,8 @@ local last_mouse_x = -1
 local last_mouse_y = -1
 -- Device selection observer
 local device_selection_notifier = nil
+-- Song change observer
+local song_change_notifier = nil
 -- Dynamic status text view
 local status_text_view = nil
 -- Current drawing parameter info
@@ -547,6 +549,24 @@ function PakettiCanvasExperimentsInit()
   end
   
   song.selected_device_observable:add_notifier(device_selection_notifier)
+  
+  -- Setup app new document observer to handle new songs
+  if song_change_notifier then
+    pcall(function()
+      if renoise.tool().app_new_document_observable:has_notifier(song_change_notifier) then
+        renoise.tool().app_new_document_observable:remove_notifier(song_change_notifier)
+        print("INIT: Removed existing app new document observer")
+      end
+    end)
+    song_change_notifier = nil
+  end
+  
+  song_change_notifier = function()
+    print("SONG_CHANGE: New document loaded - refreshing device state")
+    PakettiCanvasExperimentsRefreshDevice()
+  end
+  
+  renoise.tool().app_new_document_observable:add_notifier(song_change_notifier)
 end
 
 -- Handle mouse input
@@ -791,6 +811,34 @@ function PakettiCanvasExperimentsDrawCanvas(ctx)
   -- Use the exact same clear pattern as working PCMWriter
   ctx:clear_rect(0, 0, w, h)
   
+  -- CRITICAL: Check if dialog is still open and valid
+  if not canvas_experiments_dialog or not canvas_experiments_dialog.visible then
+    return
+  end
+  
+  -- CRITICAL: Check if current device is still valid
+  if not current_device then
+    -- Draw "no device" message
+    ctx.stroke_color = {128, 128, 128, 255}  -- Gray - friendly message
+    ctx.line_width = 2
+    
+    local center_x = w / 2
+    local center_y = h / 2
+    
+    -- Draw "No Device Selected" text using simple lines
+    ctx:begin_path()
+    ctx:move_to(center_x - 80, center_y)
+    ctx:line_to(center_x + 80, center_y)
+    ctx:stroke()
+    
+    ctx:begin_path()
+    ctx:move_to(center_x, center_y - 20)
+    ctx:line_to(center_x, center_y + 20)
+    ctx:stroke()
+    
+    return
+  end
+  
   -- print("DEBUG: Canvas size: " .. w .. "x" .. h)
   -- print("DEBUG: Content area: " .. content_width .. "x" .. content_height .. " at " .. content_x .. "," .. content_y)
   -- print("DEBUG: Device parameters count: " .. #device_parameters)
@@ -848,132 +896,142 @@ function PakettiCanvasExperimentsDrawCanvas(ctx)
       -- Draw parameter bars - SIMPLE AND CLEAR like PakettiPCMWriter
     
     for i, param_info in ipairs(device_parameters) do
-      local column_start_x = content_x + (i - 1) * parameter_width
-      local column_center_x = column_start_x + (parameter_width / 2)
-      local column_end_x = column_start_x + parameter_width
-      
-      -- Draw parameter column background - light gray
-      ctx.stroke_color = {64, 64, 64, 255}  -- Dark gray
-      ctx.line_width = 1
-      ctx:begin_path()
-      ctx:move_to(column_start_x, content_y)
-      ctx:line_to(column_start_x, content_y + content_height)
-      ctx:stroke()
-      
-      local value_min = param_info.value_min
-      local value_max = param_info.value_max
-      local bar_width = parameter_width - 4  -- Leave 2px margin on each side
-      local bar_x = column_start_x + 2
-      
-      -- Check what data we have
-      local has_stored_a = parameter_values_A[i] ~= nil
-      local has_stored_b = parameter_values_B[i] ~= nil
-      
-      if current_edit_mode == "A" then
-        -- EDIT A MODE: Show current device parameters as bold purple (Edit A IS the device)
-        local param_value = param_info.parameter.value
-        local normalized_current = (param_value - value_min) / (value_max - value_min)
-        normalized_current = math.max(0, math.min(1, normalized_current))
-        local current_height = normalized_current * content_height
-        local current_y = content_y + content_height - current_height
-        ctx.fill_color = COLOR_EDIT_A_ACTIVE  -- Bold purple for current device values
-        ctx:fill_rect(bar_x, current_y, bar_width, current_height)
+      -- CRITICAL: Check if parameter info is valid
+      if param_info and param_info.parameter then
+        -- CRITICAL: Check if parameter is still valid (not nil object)
+        local success, param_value = pcall(function() return param_info.parameter.value end)
+        if success then
+          local column_start_x = content_x + (i - 1) * parameter_width
+          local column_center_x = column_start_x + (parameter_width / 2)
+          local column_end_x = column_start_x + parameter_width
+          
+          -- Draw parameter column background - light gray
+          ctx.stroke_color = {64, 64, 64, 255}  -- Dark gray
+          ctx.line_width = 1
+          ctx:begin_path()
+          ctx:move_to(column_start_x, content_y)
+          ctx:line_to(column_start_x, content_y + content_height)
+          ctx:stroke()
+          
+          local value_min = param_info.value_min
+          local value_max = param_info.value_max
+          local bar_width = parameter_width - 4  -- Leave 2px margin on each side
+          local bar_x = column_start_x + 2
+          
+          -- Check what data we have
+          local has_stored_a = parameter_values_A[i] ~= nil
+          local has_stored_b = parameter_values_B[i] ~= nil
+          
+          if current_edit_mode == "A" then
+            -- EDIT A MODE: Show current device parameters as bold purple (Edit A IS the device)
+            -- param_value already retrieved safely above
+            local normalized_current = (param_value - value_min) / (value_max - value_min)
+            normalized_current = math.max(0, math.min(1, normalized_current))
+            local current_height = normalized_current * content_height
+            local current_y = content_y + content_height - current_height
+            ctx.fill_color = COLOR_EDIT_A_ACTIVE  -- Bold purple for current device values
+            ctx:fill_rect(bar_x, current_y, bar_width, current_height)
+            
+            -- Show stored B values as faded yellow background (if they exist)
+            if has_stored_b then
+              local value_b = parameter_values_B[i]
+              local b_normalized = (value_b - value_min) / (value_max - value_min)
+              b_normalized = math.max(0, math.min(1, b_normalized))
+              local b_height = b_normalized * content_height
+              local b_y = content_y + content_height - b_height
+              ctx.fill_color = COLOR_EDIT_B_INACTIVE  -- Faded yellow for B reference
+              ctx:fill_rect(bar_x, b_y, bar_width, b_height)
+            end
+            
+          elseif current_edit_mode == "B" then
+            -- EDIT B MODE: Show stored A as faded purple background, stored B as bold yellow
+            
+            -- Show stored A values as faded purple background (if they exist)
+            if has_stored_a then
+              local value_a = parameter_values_A[i]
+              local a_normalized = (value_a - value_min) / (value_max - value_min)
+              a_normalized = math.max(0, math.min(1, a_normalized))
+              local a_height = a_normalized * content_height
+              local a_y = content_y + content_height - a_height
+              ctx.fill_color = COLOR_EDIT_A_INACTIVE  -- Faded purple for A reference
+              ctx:fill_rect(bar_x, a_y, bar_width, a_height)
+            end
+            
+            -- Show stored B values as bold yellow (if they exist)
+            if has_stored_b then
+              local value_b = parameter_values_B[i]
+              local b_normalized = (value_b - value_min) / (value_max - value_min)
+              b_normalized = math.max(0, math.min(1, b_normalized))
+              local b_height = b_normalized * content_height
+              local b_y = content_y + content_height - b_height
+              ctx.fill_color = COLOR_EDIT_B_ACTIVE  -- Bold yellow for B editing
+              ctx:fill_rect(bar_x, b_y, bar_width, b_height)
+            end
+          end
+          
+          -- CROSSFADE: Draw FAT HORIZONTAL LINE at crossfaded value (NOT outline mess!)
+          if has_stored_a and has_stored_b then
+            local value_a = parameter_values_A[i]
+            local value_b = parameter_values_B[i]
+            local crossfaded_value = value_a + (value_b - value_a) * crossfade_amount
+            
+            local crossfade_normalized = (crossfaded_value - value_min) / (value_max - value_min)
+            crossfade_normalized = math.max(0, math.min(1, crossfade_normalized))
+            local crossfade_y = content_y + content_height - (crossfade_normalized * content_height)
+            
+            -- Draw FAT GREEN LINE at crossfaded level
+            ctx.stroke_color = COLOR_CROSSFADE  -- Green
+            ctx.line_width = 4
+            ctx:begin_path()
+            ctx:move_to(bar_x, crossfade_y)
+            ctx:line_to(bar_x + bar_width, crossfade_y)
+            ctx:stroke()
+          end
         
-        -- Show stored B values as faded yellow background (if they exist)
-        if has_stored_b then
-          local value_b = parameter_values_B[i]
-          local b_normalized = (value_b - value_min) / (value_max - value_min)
-          b_normalized = math.max(0, math.min(1, b_normalized))
-          local b_height = b_normalized * content_height
-          local b_y = content_y + content_height - b_height
-          ctx.fill_color = COLOR_EDIT_B_INACTIVE  -- Faded yellow for B reference
-          ctx:fill_rect(bar_x, b_y, bar_width, b_height)
-        end
         
-      elseif current_edit_mode == "B" then
-        -- EDIT B MODE: Show stored A as faded purple background, stored B as bold yellow
-        
-        -- Show stored A values as faded purple background (if they exist)
-        if has_stored_a then
-          local value_a = parameter_values_A[i]
-          local a_normalized = (value_a - value_min) / (value_max - value_min)
-          a_normalized = math.max(0, math.min(1, a_normalized))
-          local a_height = a_normalized * content_height
-          local a_y = content_y + content_height - a_height
-          ctx.fill_color = COLOR_EDIT_A_INACTIVE  -- Faded purple for A reference
-          ctx:fill_rect(bar_x, a_y, bar_width, a_height)
-        end
-        
-        -- Show stored B values as bold yellow (if they exist)
-        if has_stored_b then
-          local value_b = parameter_values_B[i]
-          local b_normalized = (value_b - value_min) / (value_max - value_min)
-          b_normalized = math.max(0, math.min(1, b_normalized))
-          local b_height = b_normalized * content_height
-          local b_y = content_y + content_height - b_height
-          ctx.fill_color = COLOR_EDIT_B_ACTIVE  -- Bold yellow for B editing
-          ctx:fill_rect(bar_x, b_y, bar_width, b_height)
-        end
-      end
-      
-      -- CROSSFADE: Draw FAT HORIZONTAL LINE at crossfaded value (NOT outline mess!)
-      if has_stored_a and has_stored_b then
-        local value_a = parameter_values_A[i]
-        local value_b = parameter_values_B[i]
-        local crossfaded_value = value_a + (value_b - value_a) * crossfade_amount
-        
-        local crossfade_normalized = (crossfaded_value - value_min) / (value_max - value_min)
-        crossfade_normalized = math.max(0, math.min(1, crossfade_normalized))
-        local crossfade_y = content_y + content_height - (crossfade_normalized * content_height)
-        
-        -- Draw FAT GREEN LINE at crossfaded level
-        ctx.stroke_color = COLOR_CROSSFADE  -- Green
-        ctx.line_width = 4
-        ctx:begin_path()
-        ctx:move_to(bar_x, crossfade_y)
-        ctx:line_to(bar_x + bar_width, crossfade_y)
-        ctx:stroke()
-      end
-    
-    
-    -- Draw parameter name vertically using custom text rendering
-    if parameter_width > 20 then  -- Only draw text if there's enough space
-      ctx.stroke_color = {200, 200, 200, 255}  -- Light gray text
-      ctx.line_width = 2  -- Make text bold by using thicker lines
-      
-      -- Draw parameter name vertically (rotated text effect)
-      local base_text_size = math.max(4, math.min(12, parameter_width * 0.6))  -- Scale text reasonably to fit column
-      -- Apply half-size font scaling based on preferences:
-      -- If HalfSizeFont is On: Always use small text
-      -- If HalfSizeFont is Off: Use small text only when HalfSize canvas is enabled
-      local use_small_text = preferences.pakettiParameterEditor.HalfSizeFont.value or preferences.pakettiParameterEditor.HalfSize.value
-      local text_size = use_small_text and math.floor(base_text_size * 0.75) or base_text_size
-      local text_start_y = content_y + 10  -- Start near top
-      
-      -- Draw each character of the parameter name vertically
-      local param_name = get_clean_parameter_name(param_info.name)
-      local letter_spacing = text_size + 4  -- Add 4 pixels between letters for better readability
-      -- Calculate how many characters can fit vertically
-      local max_chars = math.floor((content_height - 20) / letter_spacing)
-      if #param_name > max_chars then
-        param_name = param_name:sub(1, max_chars - 3) .. "..."
-      end
-      
-      for char_index = 1, #param_name do
-        local char = param_name:sub(char_index, char_index)
-        local char_y = text_start_y + (char_index - 1) * letter_spacing
-        if char_y < content_y + content_height - text_size - 5 then  -- Don't draw outside content area
-          local char_func = PakettiCanvasFontLetterFunctions[char:upper()]
-          if char_func then
-            char_func(ctx, column_center_x - text_size/2, char_y, text_size)
+        -- Draw parameter name vertically using custom text rendering
+        if parameter_width > 20 then  -- Only draw text if there's enough space
+          ctx.stroke_color = {200, 200, 200, 255}  -- Light gray text
+          ctx.line_width = 2  -- Make text bold by using thicker lines
+          
+          -- Draw parameter name vertically (rotated text effect)
+          local base_text_size = math.max(4, math.min(12, parameter_width * 0.6))  -- Scale text reasonably to fit column
+          -- Apply half-size font scaling based on preferences:
+          -- If HalfSizeFont is On: Always use small text
+          -- If HalfSizeFont is Off: Use small text only when HalfSize canvas is enabled
+          local use_small_text = preferences.pakettiParameterEditor.HalfSizeFont.value or preferences.pakettiParameterEditor.HalfSize.value
+          local text_size = use_small_text and math.floor(base_text_size * 0.75) or base_text_size
+          local text_start_y = content_y + 10  -- Start near top
+          
+          -- Draw each character of the parameter name vertically
+          local param_name = get_clean_parameter_name(param_info.name)
+          local letter_spacing = text_size + 4  -- Add 4 pixels between letters for better readability
+          -- Calculate how many characters can fit vertically
+          local max_chars = math.floor((content_height - 20) / letter_spacing)
+          if #param_name > max_chars then
+            param_name = param_name:sub(1, max_chars - 3) .. "..."
+          end
+          
+          for char_index = 1, #param_name do
+            local char = param_name:sub(char_index, char_index)
+            local char_y = text_start_y + (char_index - 1) * letter_spacing
+            if char_y < content_y + content_height - text_size - 5 then  -- Don't draw outside content area
+              local char_func = PakettiCanvasFontLetterFunctions[char:upper()]
+              if char_func then
+                char_func(ctx, column_center_x - text_size/2, char_y, text_size)
+              end
+            end
           end
         end
+        
+        -- print("DEBUG: Drew parameter " .. i .. " - A:" .. tostring(has_stored_a) .. " B:" .. tostring(has_stored_b) .. " mode=" .. current_edit_mode)
+        else
+          print("DRAW_ERROR: Parameter " .. i .. " became invalid - skipping")
+        end
+      else
+        print("DRAW_ERROR: Invalid parameter info at index " .. i .. " - skipping")
       end
     end
-    
-    
-    -- print("DEBUG: Drew parameter " .. i .. " - A:" .. tostring(has_stored_a) .. " B:" .. tostring(has_stored_b) .. " mode=" .. current_edit_mode)
-  end
   
   -- Draw content area border (dark purple to show the active area)
   ctx.stroke_color = {80, 0, 120, 255}  -- Dark purple border for content area
@@ -1103,6 +1161,17 @@ function PakettiCanvasExperimentsCleanup()
       end
     end)
     device_selection_notifier = nil
+  end
+  
+  -- AGGRESSIVELY remove app new document observer with multiple attempts
+  if song_change_notifier then
+    pcall(function()
+      if renoise.tool().app_new_document_observable:has_notifier(song_change_notifier) then
+        renoise.tool().app_new_document_observable:remove_notifier(song_change_notifier)
+        print("CLEANUP: Removed app new document observer")
+      end
+    end)
+    song_change_notifier = nil
   end
   
   RemoveParameterObservers()
@@ -2224,6 +2293,8 @@ end
 -- Only run cleanup if there's actually lingering state that needs cleaning
 if (canvas_experiments_dialog and canvas_experiments_dialog.visible) or 
    device_parameter_observers or 
+   device_selection_notifier or
+   song_change_notifier or
    canvas_update_timer or
    follow_automation then
   print("TOOL_LOAD: Found lingering Canvas Experiments state, cleaning up...")
@@ -2253,6 +2324,7 @@ function PakettiCanvasExperimentsEmergencyReset()
     -- Clear all observers aggressively
     device_parameter_observers = {}
     device_selection_notifier = nil
+    song_change_notifier = nil
     canvas_update_timer = nil
   end)
   

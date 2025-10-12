@@ -297,6 +297,24 @@ local sample_oversample_enabled = true
 -- Applied in all creation/export paths before pitch correction
 sample_loop_mode = renoise.Sample.LOOP_MODE_FORWARD
 
+-- Flag to prevent AutoSamplify from processing during PCM Writer operations
+local pcm_writer_creating_samples = false
+
+-- Function to check if PCM Writer is currently creating samples
+function PCMWriterIsCreatingSamples()
+  return pcm_writer_creating_samples
+end
+
+-- Function to set the PCM Writer creation flag
+function PCMWriterSetCreatingSamples(creating)
+  pcm_writer_creating_samples = creating
+  if creating then
+    print("DEBUG: PCM Writer flag set - AutoSamplify will be disabled")
+  else
+    print("DEBUG: PCM Writer flag cleared - AutoSamplify will be enabled")
+  end
+end
+
 -- Wavetable state
 local wavetable_waves = {}
 local current_wave_index = 1
@@ -3280,6 +3298,7 @@ function PCMWriterExportMorphToInstrument()
     end
     
     sample.oversample_enabled = sample_oversample_enabled
+    sample.autofade = preferences.pakettiLoaderAutofade.value
     
     -- AUTOMATIC PITCH CORRECTION using danoise algorithm
     local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
@@ -3720,6 +3739,7 @@ function PCMWriterExportWavetableToSample()
                  end
                  
                  sample.oversample_enabled = sample_oversample_enabled
+                 sample.autofade = preferences.pakettiLoaderAutofade.value
                  
                  -- AUTOMATIC PITCH CORRECTION using danoise algorithm
                  local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
@@ -4954,6 +4974,12 @@ function PCMWriterGenerateRandomWaveformWithEntropy(entropy_seed, forced_method)
 end
 
 function PCMWriterCreate12RandomInstrument()
+  -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
+  local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  then preferences.pakettiAutoSamplifyPakettify.value = false
+  end
+  
   -- Clear existing wavetable
   wavetable_waves = {}
   
@@ -5036,6 +5062,7 @@ function PCMWriterCreate12RandomInstrument()
     end
     
     sample.oversample_enabled = sample_oversample_enabled
+    sample.autofade = preferences.pakettiLoaderAutofade.value
     
     -- AUTOMATIC PITCH CORRECTION using danoise algorithm
     local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
@@ -5082,9 +5109,18 @@ function PCMWriterCreate12RandomInstrument()
   -- Return focus to Renoise main window
 --  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+  
+  -- Restore AutoSamplify Pakettify state
+  preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
 end
 
 function PCMWriterCreate12ChebyshevInstrument()
+  -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
+  local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  then preferences.pakettiAutoSamplifyPakettify.value = false
+  end
+  
   -- Clear existing wavetable
   wavetable_waves = {}
   
@@ -5203,6 +5239,7 @@ function PCMWriterCreate12ChebyshevInstrument()
     end
     
     sample.oversample_enabled = sample_oversample_enabled
+    sample.autofade = preferences.pakettiLoaderAutofade.value
   end
   
   inst.name = string.format("PCM Chebyshev Wavetable (%d waves, %d frames)", #wavetable_waves, wave_size)
@@ -5221,6 +5258,9 @@ function PCMWriterCreate12ChebyshevInstrument()
   -- Return focus to Renoise main window
 --  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+  
+  -- Restore AutoSamplify Pakettify state
+  preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
 end
 
 function PCMWriterSaveWavetable()
@@ -5260,6 +5300,12 @@ function PCMWriterSaveWavetable()
 end
 
 function PCMWriterExportToSample()
+  -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
+  local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  then preferences.pakettiAutoSamplifyPakettify.value = false
+  end
+  
   local song = renoise.song()
   local inst = song.selected_instrument
   
@@ -5375,12 +5421,16 @@ function PCMWriterExportToSample()
   
   -- Enable oversampling based on setting
   sample.oversample_enabled = sample_oversample_enabled
+  sample.autofade = preferences.pakettiLoaderAutofade.value
   
   -- Remove all placeholder samples if they exist
   PCMWriterRemovePlaceholderSamples(inst, sample_slot)
   
   print("DEBUG: Export completed successfully")
   renoise.app():show_status(string.format("Crossfaded wave exported (X%.0f%%) with %s interpolation, oversampling %s, auto-pitch correction", crossfade_amount * 100, sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
+  
+  -- Restore AutoSamplify Pakettify state
+  preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
 end
 
 function PCMWriterRandomExportToSlot()
@@ -5394,6 +5444,12 @@ function PCMWriterRandomExportToSlot()
 end
 
 function PCMWriterExportWaveAToSample()
+  -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
+  local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  then preferences.pakettiAutoSamplifyPakettify.value = false
+  end
+  
   local song = renoise.song()
   local inst = song.selected_instrument
   
@@ -5466,14 +5522,24 @@ function PCMWriterExportWaveAToSample()
   end
   
   sample.oversample_enabled = sample_oversample_enabled
+  sample.autofade = preferences.pakettiLoaderAutofade.value
   
   -- Remove all placeholder samples if they exist
   PCMWriterRemovePlaceholderSamples(inst, sample_slot)
   
   renoise.app():show_status(string.format("Wave A exported with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
+  
+  -- Restore AutoSamplify Pakettify state
+  preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
 end
 
 function PCMWriterExportWaveBToSample()
+  -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
+  local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  then preferences.pakettiAutoSamplifyPakettify.value = false
+  end
+  
   local song = renoise.song()
   local inst = song.selected_instrument
   
@@ -5546,11 +5612,15 @@ function PCMWriterExportWaveBToSample()
   end
   
   sample.oversample_enabled = sample_oversample_enabled
+  sample.autofade = preferences.pakettiLoaderAutofade.value
   
   -- Remove all placeholder samples if they exist
   PCMWriterRemovePlaceholderSamples(inst, sample_slot)
   
   renoise.app():show_status(string.format("Wave B exported with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
+  
+  -- Restore AutoSamplify Pakettify state
+  preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
 end
 
 function PCMWriterExportWaveAAndBToSample()
@@ -5558,6 +5628,15 @@ function PCMWriterExportWaveAAndBToSample()
   if not PCMWriterValidateTrackForWavetable() then
     return
   end
+  
+  -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
+  local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  then preferences.pakettiAutoSamplifyPakettify.value = false
+  end
+  
+  -- Set flag to prevent AutoSamplify from processing during sample creation
+  PCMWriterSetCreatingSamples(true)
   
   local song = renoise.song()
   local inst = song.selected_instrument
@@ -5615,9 +5694,11 @@ function PCMWriterExportWaveAAndBToSample()
   sample_a.name = string.format("PCM Wave A (%d frames)", wave_size)
   
   -- Enable loop mode and set properties for Wave A
+  print("DEBUG: Setting Wave A loop mode to: " .. tostring(sample_loop_mode))
   sample_a.loop_mode = sample_loop_mode
   sample_a.loop_start = 1
   sample_a.loop_end = wave_size
+  print("DEBUG: Wave A loop mode after setting: " .. tostring(sample_a.loop_mode))
   
   -- AUTOMATIC PITCH CORRECTION for Wave A
   local pitch_correction_a = calculate_pitch_correction(44100, wave_size, 1)
@@ -5647,6 +5728,7 @@ function PCMWriterExportWaveAAndBToSample()
   end
   
   sample_a.oversample_enabled = sample_oversample_enabled
+  sample_a.autofade = preferences.pakettiLoaderAutofade.value
   
   -- Create second sample slot for Wave B
   local sample_slot_b = #inst.samples + 1
@@ -5669,9 +5751,11 @@ function PCMWriterExportWaveAAndBToSample()
   sample_b.name = string.format("PCM Wave B (%d frames)", wave_size)
   
   -- Enable loop mode and set properties for Wave B
+  print("DEBUG: Setting Wave B loop mode to: " .. tostring(sample_loop_mode))
   sample_b.loop_mode = sample_loop_mode
   sample_b.loop_start = 1
   sample_b.loop_end = wave_size
+  print("DEBUG: Wave B loop mode after setting: " .. tostring(sample_b.loop_mode))
   
   -- AUTOMATIC PITCH CORRECTION for Wave B
   local pitch_correction_b = calculate_pitch_correction(44100, wave_size, 1)
@@ -5701,6 +5785,7 @@ function PCMWriterExportWaveAAndBToSample()
   end
   
   sample_b.oversample_enabled = sample_oversample_enabled
+  sample_b.autofade = preferences.pakettiLoaderAutofade.value
   
   -- Assign each sample to its corresponding FX chain (the 12st_WT.xrni already has chains configured)
   sample_a.device_chain_index = 1
@@ -5735,20 +5820,42 @@ function PCMWriterExportWaveAAndBToSample()
   -- Apply XML for device 2: *Instr. Macros
   for i, device in ipairs(renoise.song().selected_track.devices) do
     if device.display_name == "PAKETTI_PLACEHOLDER_002" then
-      device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
+      -- Safely check device type and set preset data with error handling
+      local success, device_name = pcall(function() return device.name end)
+      if success and device_name == "*Instr. Macros" then
+        local success2, err = pcall(function()
+          device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="InstrumentMacroDevice">
     <IsMaximized>false</IsMaximized>
   </DeviceSlot>
 </FilterDevicePreset>
 ]=]
+        end)
+        if success2 then
+          print("DEBUG: Successfully applied preset data to *Instr. Macros device")
+        else
+          print("DEBUG: Error applying preset data to *Instr. Macros device: " .. tostring(err))
+        end
+      else
+        if success then
+          print("DEBUG: Device type mismatch - expected *Instr. Macros, got: " .. tostring(device_name))
+          renoise.app():show_status("Warning: Device type mismatch for *Instr. Macros - got " .. tostring(device_name))
+        else
+          print("DEBUG: Error accessing device name: " .. tostring(device_name))
+        end
+      end
       break
     end
   end
   -- Apply XML for device 1: *LFO
   for i, device in ipairs(renoise.song().selected_track.devices) do
     if device.display_name == "PAKETTI_PLACEHOLDER_001" then
-      device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
+      -- Safely check device type and set preset data with error handling
+      local success, device_name = pcall(function() return device.name end)
+      if success and device_name == "*LFO" then
+        local success2, err = pcall(function()
+          device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="LfoDevice">
     <IsMaximized>true</IsMaximized>
@@ -5779,6 +5886,20 @@ function PCMWriterExportWaveAAndBToSample()
   </DeviceSlot>
 </FilterDevicePreset>
 ]=]
+        end)
+        if success2 then
+          print("DEBUG: Successfully applied preset data to *LFO device")
+        else
+          print("DEBUG: Error applying preset data to *LFO device: " .. tostring(err))
+        end
+      else
+        if success then
+          print("DEBUG: Device type mismatch - expected *LFO, got: " .. tostring(device_name))
+          renoise.app():show_status("Warning: Device type mismatch for *LFO - got " .. tostring(device_name))
+        else
+          print("DEBUG: Error accessing device name: " .. tostring(device_name))
+        end
+      end
       break
     end
   end
@@ -5786,23 +5907,57 @@ function PCMWriterExportWaveAAndBToSample()
   -- Apply parameters for device 2: *Instr. Macros
   for i, device in ipairs(renoise.song().selected_track.devices) do
     if device.display_name == "PAKETTI_PLACEHOLDER_002" then
-      device.parameters[2].value = 1
-      device.parameters[3].value = 0
-      device.parameters[4].value = 0
-      device.parameters[5].value = 0
-      device.parameters[6].value = 0
-      device.parameters[7].value = 0
-      device.parameters[8].value = 0.99599993228912
-      device.parameters[10].value = 0.5
+      -- Safely check device type and set parameters with error handling
+      local success, device_name = pcall(function() return device.name end)
+      if success and device_name == "*Instr. Macros" then
+        local success2, err = pcall(function()
+          device.parameters[2].value = 1
+          device.parameters[3].value = 0
+          device.parameters[4].value = 0
+          device.parameters[5].value = 0
+          device.parameters[6].value = 0
+          device.parameters[7].value = 0
+          device.parameters[8].value = 0.99599993228912
+          device.parameters[10].value = 0.5
+        end)
+        if success2 then
+          print("DEBUG: Successfully applied parameters to *Instr. Macros device")
+        else
+          print("DEBUG: Error applying parameters to *Instr. Macros device: " .. tostring(err))
+        end
+      else
+        if success then
+          print("DEBUG: Skipping parameter setting for device type mismatch - expected *Instr. Macros, got: " .. tostring(device_name))
+        else
+          print("DEBUG: Error accessing device name: " .. tostring(device_name))
+        end
+      end
       break
     end
   end
   -- Apply parameters for device 1: *LFO
   for i, device in ipairs(renoise.song().selected_track.devices) do
     if device.display_name == "PAKETTI_PLACEHOLDER_001" then
-      device.parameters[2].value = 2
-      device.parameters[3].value = 10
-      device.parameters[4].value = 0
+      -- Safely check device type and set parameters with error handling
+      local success, device_name = pcall(function() return device.name end)
+      if success and device_name == "*LFO" then
+        local success2, err = pcall(function()
+          device.parameters[2].value = 2
+          device.parameters[3].value = 10
+          device.parameters[4].value = 0
+        end)
+        if success2 then
+          print("DEBUG: Successfully applied parameters to *LFO device")
+        else
+          print("DEBUG: Error applying parameters to *LFO device: " .. tostring(err))
+        end
+      else
+        if success then
+          print("DEBUG: Skipping parameter setting for device type mismatch - expected *LFO, got: " .. tostring(device_name))
+        else
+          print("DEBUG: Error accessing device name: " .. tostring(device_name))
+        end
+      end
       break
     end
   end
@@ -5810,24 +5965,58 @@ function PCMWriterExportWaveAAndBToSample()
   -- Apply properties for device 2: *Instr. Macros
   for i, device in ipairs(renoise.song().selected_track.devices) do
     if device.display_name == "PAKETTI_PLACEHOLDER_002" then
-      device.display_name = "*Instr. Macros"
-      device.is_maximized = false
-      device.is_active = true
+      -- Safely check device type and properties with error handling
+      local success, device_name = pcall(function() return device.name end)
+      if success and device_name == "*Instr. Macros" then
+        local success2, err = pcall(function()
+          device.display_name = "*Instr. Macros"
+          device.is_maximized = false
+          device.is_active = true
+        end)
+        if success2 then
+          print("DEBUG: Successfully applied properties to *Instr. Macros device")
+        else
+          print("DEBUG: Error applying properties to *Instr. Macros device: " .. tostring(err))
+        end
+      else
+        if success then
+          print("DEBUG: Skipping property setting for device type mismatch - expected *Instr. Macros, got: " .. tostring(device_name))
+        else
+          print("DEBUG: Error accessing device name: " .. tostring(device_name))
+        end
+      end
       break
     end
   end
   -- Apply properties for device 1: *LFO
   for i, device in ipairs(renoise.song().selected_track.devices) do
     if device.display_name == "PAKETTI_PLACEHOLDER_001" then
-      -- Keeping default LFO name "*LFO" - allowing parameter-based renaming
-      device.display_name = "Wavetable Mod *LFO"
-      device.is_maximized = true
-      device.parameters[4].show_in_mixer = true
-      device.parameters[5].show_in_mixer = true
-      device.parameters[6].show_in_mixer = true      
-      device.is_active = true
-      if device.external_editor_available then
-        device.external_editor_visible = false
+      -- Safely check device type and properties with error handling
+      local success, device_name = pcall(function() return device.name end)
+      if success and device_name == "*LFO" then
+        local success2, err = pcall(function()
+          -- Keeping default LFO name "*LFO" - allowing parameter-based renaming
+          device.display_name = "Wavetable Mod *LFO"
+          device.is_maximized = true
+          device.parameters[4].show_in_mixer = true
+          device.parameters[5].show_in_mixer = true
+          device.parameters[6].show_in_mixer = true      
+          device.is_active = true
+          if device.external_editor_available then
+            device.external_editor_visible = false
+          end
+        end)
+        if success2 then
+          print("DEBUG: Successfully applied properties to *LFO device")
+        else
+          print("DEBUG: Error applying properties to *LFO device: " .. tostring(err))
+        end
+      else
+        if success then
+          print("DEBUG: Skipping property setting for device type mismatch - expected *LFO, got: " .. tostring(device_name))
+        else
+          print("DEBUG: Error accessing device name: " .. tostring(device_name))
+        end
       end
       break
     end
@@ -5850,6 +6039,12 @@ function PCMWriterExportWaveAAndBToSample()
   else
     renoise.app():show_status(string.format("Waves A&B exported to new instrument with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
   end
+  
+  -- Clear flag to re-enable AutoSamplify processing (BEFORE restoring auto-pakettify)
+  PCMWriterSetCreatingSamples(false)
+  
+  -- Restore AutoSamplify Pakettify state (AFTER clearing flag)
+  preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
 end
 
 -- Wrapper function for Write A&B followed by Unison processing
@@ -5858,6 +6053,15 @@ function PCMWriterExportWaveAAndBToSampleWithUnison()
   if not PCMWriterValidateTrackForWavetable() then
     return
   end
+  
+  -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
+  local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  then preferences.pakettiAutoSamplifyPakettify.value = false
+  end
+  
+  -- Set flag to prevent AutoSamplify from processing during sample creation
+  PCMWriterSetCreatingSamples(true)
   
   -- Check if Live Pickup Mode was active before Wave A&B creation
   local was_live_pickup_active = live_pickup_mode
@@ -5874,6 +6078,12 @@ function PCMWriterExportWaveAAndBToSampleWithUnison()
   else
     renoise.app():show_status("Waves A&B exported and unison processing applied")
   end
+  
+  -- Clear flag to re-enable AutoSamplify processing (BEFORE restoring auto-pakettify)
+  PCMWriterSetCreatingSamples(false)
+  
+  -- Restore AutoSamplify Pakettify state (AFTER clearing flag)
+  preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
 end
 
 -- Wrapper function for Write AKWF A&B followed by Unison processing
@@ -5883,6 +6093,12 @@ function PCMWriterLoad2RandomAKWFAndExportWithUnison()
     return
   end
   
+  -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
+  local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  then preferences.pakettiAutoSamplifyPakettify.value = false
+  end
+  
   -- First call the regular Write AKWF A&B function
   PCMWriterLoad2RandomAKWFAndExport()
   
@@ -5890,6 +6106,9 @@ function PCMWriterLoad2RandomAKWFAndExportWithUnison()
   PakettiCreateUnisonSamples()
   
   renoise.app():show_status("Random AKWF files loaded as A&B and unison processing applied")
+  
+  -- Restore AutoSamplify Pakettify state
+  preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
 end
 
 -- Remaining selection operation functions

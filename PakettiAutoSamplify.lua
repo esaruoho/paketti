@@ -26,18 +26,34 @@ function PakettiAutoSamplifyApplyLoaderSettings(sample)
   
   print(string.format("DEBUG: PakettiAutoSamplifyApplyLoaderSettings called for '%s'", sample.name))
   
+  -- Check if PCM Writer is currently creating samples - if so, skip AutoSamplify processing
+  if PCMWriterIsCreatingSamples and PCMWriterIsCreatingSamples() then
+    print(string.format("DEBUG: Skipping AutoSamplify processing for '%s' - PCM Writer is creating samples", sample.name))
+    return
+  end
+  
+  -- Detect if this is a PCM Writer sample (they have specific naming patterns)
+  local is_pcm_writer_sample = string.find(sample.name, "^PCM ") ~= nil
+  
   -- Apply Paketti Loader preferences to the sample
   sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
   sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
   sample.autofade = preferences.pakettiLoaderAutofade.value
   sample.autoseek = preferences.pakettiLoaderAutoseek.value
   sample.oneshot = preferences.pakettiLoaderOneshot.value
-  sample.loop_mode = preferences.pakettiLoaderLoopMode.value
-  sample.new_note_action = preferences.pakettiLoaderNNA.value
+  
+  -- For PCM Writer samples, preserve their loop_mode and NNA (they set these explicitly)
+  if not is_pcm_writer_sample then
+    sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+    sample.new_note_action = preferences.pakettiLoaderNNA.value
+  else
+    print(string.format("DEBUG: Preserving loop_mode and NNA for PCM Writer sample '%s'", sample.name))
+  end
+  
   sample.loop_release = preferences.pakettiLoaderLoopExit.value
   
   -- NO normalization in AutoSamplify - just apply sample settings
-  print(string.format("Applied Paketti loader settings to sample: %s (no normalization)", sample.name))
+  print(string.format("Applied Paketti loader settings to sample: %s (no normalization)%s", sample.name, is_pcm_writer_sample and " - loop_mode and NNA preserved" or ""))
 end
 
 -- Function to get the current selected sample slot state
@@ -508,6 +524,9 @@ function PakettiCheckForNewSamplesComprehensive()
   -- Check if we should skip automatic processing (e.g., when CTRL-O Pattern to Sample is handling it)
   if PakettiDontRunAutomaticSampleLoader then return end
   
+  -- Check if PCM Writer is currently creating samples
+  if PCMWriterIsCreatingSamples and PCMWriterIsCreatingSamples() then return end
+  
   local song = renoise.song()
   if not song then return end
   
@@ -592,6 +611,9 @@ function PakettiCheckForNewSamples()
   
   -- Check if we should skip automatic processing (e.g., when CTRL-O Pattern to Sample is handling it)
   if PakettiDontRunAutomaticSampleLoader then return end
+  
+  -- Check if PCM Writer is currently creating samples
+  if PCMWriterIsCreatingSamples and PCMWriterIsCreatingSamples() then return end
   
   local song = renoise.song()
   if not song then return end

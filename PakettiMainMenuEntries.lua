@@ -234,6 +234,7 @@ local function create_button_list()
   local buttons = {
     {"About Paketti/Donations", "pakettiAboutDonations"},
     {"Paketti Preferences", "pakettiPreferences"},
+    {"Paketti Menu Configuration", "pakettiMenuConfigDialog"},
     {"Theme Selector", "pakettiThemeSelectorDialogShow"},
     {"Gater", "pakettiGaterDialog"},
     {"Effect Column CheatSheet", "pakettiPatternEditorCheatsheetDialog"},

@@ -737,14 +737,10 @@ invoke=function() loadnative("Audio/Effects/Native/*Hydra") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Instr. Automation",
 invoke=function() loadnative("Audio/Effects/Native/*Instr. Automation") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Instr. Macros",
-invoke=function() 
-if renoise.app().window.active_lower_frame == 2 then 
+invoke=function()  if renoise.app().window.active_lower_frame == 2 then 
 loadnative("Audio/Effects/Native/*Instr. Macros") 
 renoise.app().window.active_lower_frame = 2
-else
-loadnative("Audio/Effects/Native/*Instr. Macros") 
-end
-end}
+else loadnative("Audio/Effects/Native/*Instr. Macros") end end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Instr. MIDI Control",
 invoke=function() loadnative("Audio/Effects/Native/*Instr. MIDI Control") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Key Tracker",

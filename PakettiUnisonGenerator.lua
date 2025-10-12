@@ -130,12 +130,20 @@ function PakettiCreateUnisonSamples()
   then preferences._0G01_Loader.value = false
   end
   manage_sample_count_observer(preferences._0G01_Loader.value)
+  
+  -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
+  local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  then preferences.pakettiAutoSamplifyPakettify.value = false
+  end
 
   if not instrument then
     renoise.app():show_status("No instrument selected.")
     -- Restore 0G01 state before returning
     preferences._0G01_Loader.value=G01CurrentState 
     manage_sample_count_observer(preferences._0G01_Loader.value)
+    -- Restore AutoSamplify Pakettify state before returning
+    preferences.pakettiAutoSamplifyPakettify.value=AutoSamplifyPakettifyState
     return
   end
 
@@ -144,6 +152,8 @@ function PakettiCreateUnisonSamples()
     -- Restore 0G01 state before returning
     preferences._0G01_Loader.value=G01CurrentState 
     manage_sample_count_observer(preferences._0G01_Loader.value)
+    -- Restore AutoSamplify Pakettify state before returning
+    preferences.pakettiAutoSamplifyPakettify.value=AutoSamplifyPakettifyState
     return
   end
 
@@ -154,6 +164,8 @@ function PakettiCreateUnisonSamples()
     -- Restore 0G01 state before returning
     preferences._0G01_Loader.value=G01CurrentState 
     manage_sample_count_observer(preferences._0G01_Loader.value)
+    -- Restore AutoSamplify Pakettify state before returning
+    preferences.pakettiAutoSamplifyPakettify.value=AutoSamplifyPakettifyState
     return
   end
 
@@ -314,6 +326,8 @@ function PakettiCreateUnisonSamples()
       -- Restore 0G01 state before returning
       preferences._0G01_Loader.value=G01CurrentState 
       manage_sample_count_observer(preferences._0G01_Loader.value)
+      -- Restore AutoSamplify Pakettify state before returning
+      preferences.pakettiAutoSamplifyPakettify.value=AutoSamplifyPakettifyState
       return
     end
   else
@@ -340,6 +354,8 @@ function PakettiCreateUnisonSamples()
       -- Restore 0G01 state before returning
       preferences._0G01_Loader.value=G01CurrentState 
       manage_sample_count_observer(preferences._0G01_Loader.value)
+      -- Restore AutoSamplify Pakettify state before returning
+      preferences.pakettiAutoSamplifyPakettify.value=AutoSamplifyPakettifyState
       return
     end
   end
@@ -357,6 +373,8 @@ function PakettiCreateUnisonSamples()
     -- Restore 0G01 state before returning
     preferences._0G01_Loader.value=G01CurrentState 
     manage_sample_count_observer(preferences._0G01_Loader.value)
+    -- Restore AutoSamplify Pakettify state before returning
+    preferences.pakettiAutoSamplifyPakettify.value=AutoSamplifyPakettifyState
     return
   end
 
@@ -733,6 +751,8 @@ print(string.format("Restored selected_phrase_index to: %d", renoise.song().sele
   -- Restore 0G01 state before returning
   preferences._0G01_Loader.value=G01CurrentState 
   manage_sample_count_observer(preferences._0G01_Loader.value)
+  -- Restore AutoSamplify Pakettify state before returning
+  preferences.pakettiAutoSamplifyPakettify.value=AutoSamplifyPakettifyState
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Unison Generator",invoke=PakettiCreateUnisonSamples}

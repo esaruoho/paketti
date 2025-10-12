@@ -1525,6 +1525,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Options:Toggle Automatically Ope
 
 -- Tools Preferences
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Preferences...",invoke=pakettiPreferences}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Menu Configuration...",invoke=pakettiMenuConfigDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Paketti Dynamic View Preferences Dialog 1-4...", invoke=function() pakettiDynamicViewDialog(1, 4) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Dynamic View Preferences Dialog 5-8...", invoke=function() pakettiDynamicViewDialog(5, 8) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Save Dynamic Views as a Textfile", invoke=function() save_dynamic_views_to_txt() end}
@@ -2169,6 +2170,9 @@ renoise.tool():add_menu_entry({name="--Track Automation:Paketti:Automation Curve
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Open External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack",invoke=function() PakettiAutomationStackShowDialog() end}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack - Single View",invoke=function() PakettiAutomationStackShowSingleView() end}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack - Select Arbitrary Parameters",invoke=function() PakettiAutomationStack_ShowParameterSelectionDialog() end}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Set Automation Range to Max (1.0)",invoke=function() SetAutomationRangeValue(1.0) end}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set Automation Range to Middle (0.5)",invoke=function() SetAutomationRangeValue(0.5) end}
@@ -2187,6 +2191,9 @@ renoise.tool():add_menu_entry{name="--Track Automation List:Paketti:Generate Aut
 add_automation_points_for_notes() end}
 renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
 renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
+renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack",invoke=function() PakettiAutomationStackShowDialog() end}
+renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack - Single View",invoke=function() PakettiAutomationStackShowSingleView() end}
+renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack - Select Arbitrary Parameters",invoke=function() PakettiAutomationStack_ShowParameterSelectionDialog() end}
 end
 
 --- Disk Browser Files Config

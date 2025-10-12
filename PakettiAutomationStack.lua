@@ -253,8 +253,9 @@ function PakettiAutomationStack_MapTimeToX(t, total_lines)
   if win <= 1 then
     return PakettiAutomationStack_gutter_width + eff_w / 2
   end
-  -- Map the full pattern length to the full canvas width for proper end-to-end drawing
-  local divisor = total_lines  -- Use total pattern length so we can draw to the very end
+  -- Map the pattern length to canvas width, but extend slightly beyond the last line
+  -- This allows clicking at the right edge to map to the last valid line
+  local divisor = total_lines + 0.9  -- Add 0.9 to allow clicking at right edge to reach line 64
   local x = PakettiAutomationStack_gutter_width + ((t - view_start_t) / divisor) * eff_w
   return x
 end
@@ -266,14 +267,22 @@ end
 -- Inverse mapping: canvas x to pattern line
 function PakettiAutomationStack_XToLine(x, total_lines)
   local win = PakettiAutomationStack_GetWindowLines(total_lines)
+  local view_start_t = (PakettiAutomationStack_view_start_line - 1)
   local eff_w = math.max(1, PakettiAutomationStack_canvas_width - (2*PakettiAutomationStack_gutter_width))
   -- Remove gutter offset first (inverse of forward mapping)
   local x_eff = x - PakettiAutomationStack_gutter_width
   -- Map effective canvas width to 0-based time (inverse of forward mapping)
-  local t_0based = (x_eff / eff_w) * total_lines
+  -- Use the same extended divisor as the forward mapping
+  local divisor = total_lines + 0.9
+  local t_0based = (x_eff / eff_w) * divisor
+  -- Add back the view start offset to get the actual time
+  local actual_time = t_0based + view_start_t
   -- Convert from 0-based time back to 1-based line number
-  -- Allow drawing to the very last pixel by using +1.0 instead of +0.5
-  local line = math.max(1, math.floor(t_0based + 1.0))
+  -- Use proper rounding to avoid off-by-one errors
+  -- Allow clicking at right edge to reach line 65 (the actual end)
+  local line = math.max(1, math.min(total_lines + 1, math.floor(actual_time + 0.5) + 1))
+  
+  
   return line
 end
 
@@ -642,17 +651,21 @@ function PakettiAutomationStack_RebuildAutomations()
       end
     end
   else
-    -- Current track mode: original behavior
+    -- Current track mode: prioritize parameters with automation data
     if not ptrack then return end
     local track = song.tracks[song.selected_track_index]
     if not track then return end
+    
+    local automations_with_data = {}
+    local automations_without_data = {}
+    
+    -- First pass: collect all automatable parameters
     for d = 1, #track.devices do
       local dev = track.devices[d]
       for pi = 1, #dev.parameters do
         local param = dev.parameters[pi]
         if param.is_automatable then
           local a = ptrack:find_automation(param)
-          -- Include parameter even if no automation exists yet (allows creating new automation)
           local entry = {
             automation = a, -- May be nil for new automation
             parameter = param,
@@ -661,10 +674,48 @@ function PakettiAutomationStack_RebuildAutomations()
             device_name = dev.display_name or "Device",
             track_name = PakettiAutomationStack_GetTrackName(song.selected_track_index),
             track_index = song.selected_track_index,
-            playmode = a and a.playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES
+            playmode = a and a.playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES,
+            device_index = d,
+            param_index = pi
           }
-          PakettiAutomationStack_automations[#PakettiAutomationStack_automations+1] = entry
+          
+          -- Check if this parameter has automation data
+          local has_data = false
+          if a and a.points and #a.points > 0 then
+            has_data = true
+          end
+          
+          if has_data then
+            automations_with_data[#automations_with_data+1] = entry
+          else
+            -- Skip mixer parameters unless they have data
+            local is_mixer_param = (param.name == "Panning" or param.name == "Volume" or param.name == "Width")
+            if not is_mixer_param then
+              automations_without_data[#automations_without_data+1] = entry
+            end
+          end
         end
+      end
+    end
+    
+    -- Add automations with data first
+    for i = 1, #automations_with_data do
+      PakettiAutomationStack_automations[#PakettiAutomationStack_automations+1] = automations_with_data[i]
+    end
+    
+    -- If no automations with data, show first device's first few parameters
+    if #automations_with_data == 0 then
+      local first_device_params = {}
+      for i = 1, #automations_without_data do
+        local entry = automations_without_data[i]
+        if entry.device_index == 1 then -- First device only
+          first_device_params[#first_device_params+1] = entry
+        end
+      end
+      
+      -- Add first 4 parameters from first device
+      for i = 1, math.min(4, #first_device_params) do
+        PakettiAutomationStack_automations[#PakettiAutomationStack_automations+1] = first_device_params[i]
       end
     end
   end
@@ -784,6 +835,14 @@ function PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, colo
         if x > W - gutter then x = W - gutter end
       end
       ctx:line_to(x, y)
+    end
+    -- Draw line from last point to end of pattern (finishing line)
+    if #points > 0 then
+      local last_point = points[#points]
+      local last_y = PakettiAutomationStack_ValueToY(last_point.value, H)
+      -- Extend to the actual end of the canvas (right edge) - no gutter constraints
+      local end_x = W
+      ctx:line_to(end_x, last_y)
     end
     ctx:stroke()
   else
@@ -1019,7 +1078,28 @@ function PakettiAutomationStack_UpdateEnvPopup()
     items[#items+1] = items_without_content[i]
   end
   
-  if #items == 0 then items = {"(none)"} end
+  -- If no automations exist, show all available parameters for the current track
+  if #items == 0 then
+    local song = renoise.song()
+    if song and not PakettiAutomationStack_arbitrary_mode then
+      local current_track = song.tracks[song.selected_track_index]
+      if current_track then
+        for dev_idx = 1, #current_track.devices do
+          local dev = current_track.devices[dev_idx]
+          for param_idx = 1, #dev.parameters do
+            local param = dev.parameters[param_idx]
+            if param.is_automatable then
+              local label = string.format("%s: %s", (dev.display_name or "Device"), (param.name or "Parameter"))
+              items[#items+1] = label
+            end
+          end
+        end
+      end
+    end
+    -- If still no items, show "(none)"
+    if #items == 0 then items = {"(none)"} end
+  end
+  
   PakettiAutomationStack_env_popup_view.items = items
   if PakettiAutomationStack_single_selected_index < 1 then PakettiAutomationStack_single_selected_index = 1 end
   if PakettiAutomationStack_single_selected_index > #items then PakettiAutomationStack_single_selected_index = #items end
@@ -1072,11 +1152,19 @@ end
 function PakettiAutomationStack_ValueToY(v, H)
   if v < 0 then v = 0 end
   if v > 1 then v = 1 end
-  return (H - (v * H))
+  -- Account for the red rectangle area: rect(2, 2, W - 4, 12) goes from y=2 to y=14
+  local header_start = 2
+  local header_end = 14
+  local drawing_height = H - header_end
+  return header_end + (drawing_height - (v * drawing_height))
 end
 
 function PakettiAutomationStack_YToValue(y, H)
-  local v = 1.0 - (y / H)
+  -- Account for the red rectangle area: rect(2, 2, W - 4, 12) goes from y=2 to y=14
+  local header_start = 2
+  local header_end = 14
+  local drawing_height = H - header_end
+  local v = 1.0 - ((y - header_end) / drawing_height)
   if v < 0 then v = 0 end
   if v > 1 then v = 1 end
   return v
@@ -1123,17 +1211,28 @@ function PakettiAutomationStack_WritePoint(automation_index, line, value, remove
   
   -- Clamp line to valid pattern range for automation writing
   local num_lines = patt.number_of_lines
-  line = math.max(1, math.min(num_lines, line))
+  local original_line = line
+  -- Allow writing to the precise end of the pattern (64.99609375 for 64-line pattern)
+  if line > num_lines then
+    line = num_lines + (num_lines - 1) / num_lines  -- This gives 64.99609375 for 64-line pattern
+  end
+  line = math.max(1, line)
+  
+  -- DEBUG: Show what we're trying to write
+  print("WRITE DEBUG: original_line=" .. original_line .. ", clamped_line=" .. line .. ", num_lines=" .. num_lines .. ", value=" .. value .. ", remove=" .. tostring(remove))
+  
   
   local a = entry.automation
   
   -- If no automation exists yet, create it by adding the first point
   if not a and not remove then
+    print("DEBUG: No automation exists, creating new one...")
     -- Use the stored pattern_track if available, otherwise use current ptrack
     local target_ptrack = entry.pattern_track or ptrack
     -- Adding a point automatically creates the automation envelope in Renoise
     -- We need to get the automation after creating the first point
     local param = entry.parameter
+    print("DEBUG: param=" .. (param and param.name or "nil") .. ", is_automatable=" .. (param and tostring(param.is_automatable) or "nil"))
     if param and param.is_automatable then
       -- Create automation by adding first point - this automatically creates the envelope
       local desired = PakettiAutomationStack_PlaymodeForIndex(PakettiAutomationStack_draw_playmode_index)
@@ -1144,18 +1243,23 @@ function PakettiAutomationStack_WritePoint(automation_index, line, value, remove
       
       -- Create automation envelope if it doesn't exist
       if not target_ptrack:find_automation(param) then
+        print("DEBUG: Creating new automation envelope...")
         -- Create the automation envelope for this parameter
         a = target_ptrack:create_automation(param)
         if a then
+          print("DEBUG: Automation envelope created successfully")
           entry.automation = a -- Store it back in the entry for next time
-          a.playmode = desired
+          a.playmode = desired -- Only set playmode for newly created automation
+        else
+          print("DEBUG: Failed to create automation envelope")
         end
       else
-        -- Get existing automation
+        print("DEBUG: Found existing automation envelope")
+        -- Get existing automation - DON'T change its playmode
         a = target_ptrack:find_automation(param)
         if a then
           entry.automation = a -- Store it back in the entry for next time
-          a.playmode = desired
+          -- Keep existing playmode - don't modify it
         end
       end
     end
@@ -1165,12 +1269,8 @@ function PakettiAutomationStack_WritePoint(automation_index, line, value, remove
     return -- Can't remove from non-existent automation
   end
   
-  -- Only set playmode for new automation, don't change existing automation's mode
-  -- This preserves the original automation mode (curves stay curves, lines stay lines)
-  if not entry.automation then
-    local desired = PakettiAutomationStack_PlaymodeForIndex(PakettiAutomationStack_draw_playmode_index)
-    a.playmode = desired
-  end
+  -- Don't change playmode of existing automation - preserve original mode
+  -- Only new automation envelopes get the playmode set during creation above
   
   if remove then
     if a:has_point_at(line) then a:remove_point_at(line) end
@@ -1178,6 +1278,7 @@ function PakettiAutomationStack_WritePoint(automation_index, line, value, remove
     -- Normalize already 0..1
     if a:has_point_at(line) then a:remove_point_at(line) end
     a:add_point_at(line, value)
+    print("ADDED point at line " .. line .. " with value " .. value)
   end
 end
 
@@ -1382,10 +1483,9 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
         if x < gutter then x = gutter end
         if x > W - gutter then x = W - gutter end
         ctx:begin_path(); ctx:move_to(x, H-1); ctx:line_to(x, y); ctx:stroke()
-        -- round marker
-        ctx.stroke_color = bright_color
-        ctx.line_width = 2
-        ctx:begin_path(); ctx:move_to(x-1, y); ctx:line_to(x+1, y); ctx:stroke()
+        -- square marker to properly cover grid lines
+        ctx.fill_color = bright_color
+        ctx:fill_rect(x-2, y-2, 4, 4)
         ctx.stroke_color = base_color; ctx.line_width = 2
       end
     elseif mode == renoise.PatternTrackAutomation.PLAYMODE_LINES then
@@ -1407,17 +1507,24 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
         if x > W - gutter then x = W - gutter end
         ctx:line_to(x, y)
       end
+      -- Draw line from last point to end of pattern (finishing line)
+      if #points > 0 then
+        local last_point = points[#points]
+        local last_y = PakettiAutomationStack_ValueToY(last_point.value, H)
+        -- Extend to the actual end of the canvas (right edge) - no gutter constraints
+        local end_x = W
+        ctx:line_to(end_x, last_y)
+      end
       ctx:stroke()
-      -- small point markers
-      ctx.stroke_color = bright_color
-      ctx.line_width = 2
+      -- square point markers to properly cover grid lines
+      ctx.fill_color = bright_color
       for i = 1, #points do
         local p = points[i]
         local x = PakettiAutomationStack_MapTimeToX((p.time or 1) - 1, num_lines)
         local y = PakettiAutomationStack_ValueToY(p.value, H)
         if x < gutter then x = gutter end
         if x > W - gutter then x = W - gutter end
-        ctx:begin_path(); ctx:move_to(x-1, y); ctx:line_to(x+1, y); ctx:stroke()
+        ctx:fill_rect(x-2, y-2, 4, 4)
       end
     else
       -- Curves: smooth by Catmull-Rom / Hermite sampling between points
@@ -1576,30 +1683,24 @@ function PakettiAutomationStack_RebuildCanvases()
     PakettiAutomationStack_container:add_child(single_canvas)
     PakettiAutomationStack_track_canvases[#PakettiAutomationStack_track_canvases+1] = single_canvas
 
-    -- Check if popup already exists, if so reuse it, otherwise create new one
-    local popup_view
-    if PakettiAutomationStack_vb.views.pas_env_popup then
-      popup_view = PakettiAutomationStack_vb.views.pas_env_popup
-      popup_view.items = {"(none)"}
-      popup_view.value = PakettiAutomationStack_single_selected_index
-      -- Note: Cannot reassign notifier to existing popup, it's already set during creation
-    else
-      popup_view = PakettiAutomationStack_vb:popup{ 
-        id = "pas_env_popup", 
-        items = {"(none)"}, 
-        width = 400, 
-        value = PakettiAutomationStack_single_selected_index, 
-        notifier = function(val)
-          PakettiAutomationStack_single_selected_index = val
-          -- Show automation envelope for the selected parameter
-          local entry = PakettiAutomationStack_automations[val]
-          if entry then
-            PakettiAutomationStack_ShowAutomationEnvelope(entry)
-          end
-          PakettiAutomationStack_RequestUpdate()
-        end 
-      }
-    end
+    -- Always create a new popup view to avoid ViewBuilder reuse errors
+    -- Use a unique ID to prevent duplicate ID errors
+    local popup_id = "pas_env_popup_" .. tostring(os.clock() * 1000000) -- Unique ID based on timestamp
+    local popup_view = PakettiAutomationStack_vb:popup{ 
+      id = popup_id, 
+      items = {"(none)"}, 
+      width = 400, 
+      value = 1, -- Always start with value 1 to avoid index errors
+      notifier = function(val)
+        PakettiAutomationStack_single_selected_index = val
+        -- Show automation envelope for the selected parameter
+        local entry = PakettiAutomationStack_automations[val]
+        if entry then
+          PakettiAutomationStack_ShowAutomationEnvelope(entry)
+        end
+        PakettiAutomationStack_RequestUpdate()
+      end 
+    }
     
     local select_row = PakettiAutomationStack_vb:row{
       PakettiAutomationStack_vb:text{ text = "Envelope:" },
@@ -1608,7 +1709,7 @@ function PakettiAutomationStack_RebuildCanvases()
       PakettiAutomationStack_vb:button{ text = "Paste", notifier = function() PakettiAutomationStack_PasteIntoSelectedEnvelope() end }
     }
     PakettiAutomationStack_container:add_child(select_row)
-    PakettiAutomationStack_env_popup_view = PakettiAutomationStack_vb.views.pas_env_popup
+    PakettiAutomationStack_env_popup_view = PakettiAutomationStack_vb.views[popup_id]
     PakettiAutomationStack_UpdateEnvPopup()
   else
     -- Stack view: paged lanes
@@ -1687,13 +1788,20 @@ function PakettiAutomationStack_ShowParameterSelectionDialog()
       end
       PakettiAutomationStack_UpdateParameterSelection()
     end },
-    PakettiAutomationStack_arbitrary_vb:space{ width = 20 },
+    
     PakettiAutomationStack_arbitrary_vb:button{ 
-      text = "APPLY - Show Selected Parameters", 
-      width = 280, 
-      height = 24,
+      text = "Show Selected Parameters", 
+      --width = 280, 
+      --height = 24,
       notifier = function()
         PakettiAutomationStack_UpdateParameterSelection()
+        
+        -- Check if any parameters are selected
+        if #PakettiAutomationStack_selected_parameters == 0 then
+          renoise.app():show_status("Automation Stack: Please select at least one parameter before applying")
+          return
+        end
+        
         PakettiAutomationStack_SaveSelectedParameters()
         PakettiAutomationStack_arbitrary_mode = true
         PakettiAutomationStack_show_same_mode = false -- Clear show same mode
@@ -1727,42 +1835,97 @@ function PakettiAutomationStack_ShowParameterSelectionDialog()
   -- Helper function to flush device parameters with their label
   local function flush_device_params()
     if #device_params > 0 then
-      -- Add device label first
-      if not device_label_added and device_params[1] then
-        local device_label_row = PakettiAutomationStack_arbitrary_vb:row{
-          PakettiAutomationStack_arbitrary_vb:space{ width = 30 },
+      -- For mixer parameters, show them in a single line with checkboxes
+      if device_params[1] and device_params[1].device_name == "Mixer" then
+        -- Create a single row with track name, "Mixer:" text, and checkboxes
+        local mixer_row_views = {
           PakettiAutomationStack_arbitrary_vb:text{ 
-            text = device_params[1].device_name .. ":", 
-            font = "bold",
-            width = 120
+            text = device_params[1].track_name .. ": ", 
+            font = "bold", 
+            style = "strong"
+          },
+          PakettiAutomationStack_arbitrary_vb:text{ 
+            text = "Mixer ", 
+            font = "bold"
           }
-        }
-        rows[#rows+1] = device_label_row
-      end
-      
-      -- Split parameters into rows of max 10 each
-      local params_per_row = 10
-      
-      for start_idx = 1, #device_params, params_per_row do
-        local end_idx = math.min(start_idx + params_per_row - 1, #device_params)
-        local device_row_views = {
-          PakettiAutomationStack_arbitrary_vb:space{ width = 20 }
         }
         
-        -- Add checkboxes and labels for this chunk of parameters
-        for j = start_idx, end_idx do
-          local dp = device_params[j]
-          device_row_views[#device_row_views+1] = dp.checkbox
-          device_row_views[#device_row_views+1] = PakettiAutomationStack_arbitrary_vb:text{ 
-            text = dp.param_name, width = 80
+        for i = 1, #device_params do
+          local dp = device_params[i]
+          mixer_row_views[#mixer_row_views+1] = dp.checkbox
+          mixer_row_views[#mixer_row_views+1] = PakettiAutomationStack_arbitrary_vb:text{ 
+            text = dp.param_name
           }
-          if j < end_idx then
-            device_row_views[#device_row_views+1] = PakettiAutomationStack_arbitrary_vb:space{ width = 10 }
+          if i < #device_params then
+            mixer_row_views[#mixer_row_views+1] = PakettiAutomationStack_arbitrary_vb:space{ width = 3 }
           end
         end
         
-        local device_row = PakettiAutomationStack_arbitrary_vb:row{ views = device_row_views }
-        rows[#rows+1] = device_row
+        local mixer_row = PakettiAutomationStack_arbitrary_vb:row{ views = mixer_row_views }
+        rows[#rows+1] = mixer_row
+      elseif device_params[1] and device_params[1].device_name == "Mixer & Transport" then
+        -- Special handling for Master track: put everything on one single row
+        local mixer_row_views = {
+          PakettiAutomationStack_arbitrary_vb:text{ 
+            text = device_params[1].track_name .. ": ", 
+            font = "bold", 
+            style = "strong"
+          },
+          PakettiAutomationStack_arbitrary_vb:text{ 
+            text = "Mixer ", 
+            font = "bold"
+          }
+        }
+        
+        for i = 1, #device_params do
+          local dp = device_params[i]
+          mixer_row_views[#mixer_row_views+1] = dp.checkbox
+          mixer_row_views[#mixer_row_views+1] = PakettiAutomationStack_arbitrary_vb:text{ 
+            text = dp.param_name
+          }
+          if i < #device_params then
+            mixer_row_views[#mixer_row_views+1] = PakettiAutomationStack_arbitrary_vb:space{ width = 3 }
+          end
+        end
+        
+        local mixer_row = PakettiAutomationStack_arbitrary_vb:row{ views = mixer_row_views }
+        rows[#rows+1] = mixer_row
+      else
+        -- Add device label first for non-mixer devices
+        if not device_label_added and device_params[1] then
+          local device_label_row = PakettiAutomationStack_arbitrary_vb:row{
+            
+            PakettiAutomationStack_arbitrary_vb:text{ 
+              text = device_params[1].device_name .. ":", 
+              font = "bold",
+              width = 120
+            }
+          }
+          rows[#rows+1] = device_label_row
+        end
+        
+        -- Split parameters into rows with consistent column widths
+        local params_per_row = 5  -- Reduced from 10 for better alignment
+        local column_width = 120  -- Fixed column width for consistent alignment
+        
+        for start_idx = 1, #device_params, params_per_row do
+          local end_idx = math.min(start_idx + params_per_row - 1, #device_params)
+          local device_row_views = {
+            
+          }
+          
+          -- Add checkboxes and labels for this chunk of parameters
+          for j = start_idx, end_idx do
+            local dp = device_params[j]
+            device_row_views[#device_row_views+1] = dp.checkbox
+            device_row_views[#device_row_views+1] = PakettiAutomationStack_arbitrary_vb:text{ 
+              text = dp.param_name, width = column_width
+            }
+          end
+          
+          local device_row = PakettiAutomationStack_arbitrary_vb:row{ views = device_row_views }
+          rows[#rows+1] = device_row
+        end
       end
       
       device_params = {}
@@ -1780,11 +1943,7 @@ function PakettiAutomationStack_ShowParameterSelectionDialog()
       flush_device_params()
       
       current_track = param.track_index
-      local track_sep = PakettiAutomationStack_arbitrary_vb:row{
-        PakettiAutomationStack_arbitrary_vb:space{ width = 10 },
-        PakettiAutomationStack_arbitrary_vb:text{ text = param.track_name, font = "bold", style = "strong" }
-      }
-      rows[#rows+1] = track_sep
+      -- Don't add track separator here - we'll add it with the mixer parameters
       current_device_key = "" -- Reset device key for new track
     end
     
@@ -1809,16 +1968,50 @@ function PakettiAutomationStack_ShowParameterSelectionDialog()
     device_params[#device_params+1] = {
       checkbox = checkbox,
       param_name = param.param_name,
-      device_name = param.device_name
+      device_name = param.device_name,
+      track_name = param.track_name
     }
   end
   
   -- Flush final device params
   flush_device_params()
   
-  -- Add just a cancel button at the bottom for convenience
+  -- Add apply and cancel buttons at the bottom for convenience
   local bottom_button_row = PakettiAutomationStack_arbitrary_vb:row{
-    PakettiAutomationStack_arbitrary_vb:space{ width = 100 },
+    PakettiAutomationStack_arbitrary_vb:button{ 
+      text = "Show Selected Parameters", 
+      --width = 280, 
+      notifier = function()
+        PakettiAutomationStack_UpdateParameterSelection()
+        
+        -- Check if any parameters are selected
+        if #PakettiAutomationStack_selected_parameters == 0 then
+          renoise.app():show_status("Automation Stack: Please select at least one parameter before applying")
+          return
+        end
+        
+        PakettiAutomationStack_SaveSelectedParameters()
+        PakettiAutomationStack_arbitrary_mode = true
+        PakettiAutomationStack_show_same_mode = false -- Clear show same mode
+        
+        -- Close the parameter selection dialog first
+        PakettiAutomationStack_arbitrary_dialog:close()
+        
+        -- Ensure main automation stack dialog is open and updated
+        if not PakettiAutomationStack_dialog or not PakettiAutomationStack_dialog.visible then
+          -- Main dialog not visible, reopen it
+          PakettiAutomationStack_ReopenDialog()
+        else
+          -- Main dialog is open, just update it
+          PakettiAutomationStack_RebuildAutomations()
+          PakettiAutomationStack_RebuildCanvases()
+          PakettiAutomationStack_RequestUpdate()
+        end
+        
+        renoise.app():show_status("Automation Stack: Showing " .. tostring(#PakettiAutomationStack_selected_parameters) .. " selected parameters from multiple tracks")
+      end 
+    },
+    PakettiAutomationStack_arbitrary_vb:space{ width = 20 },
     PakettiAutomationStack_arbitrary_vb:button{ 
       text = "Cancel", 
       width = 100, 
@@ -1888,7 +2081,7 @@ function PakettiAutomationStack_BuildContent()
       value = PakettiAutomationStack_zoom_index,
       notifier = function(val) PakettiAutomationStack_SetZoomIndex(val) end
     },
-    PakettiAutomationStack_vb:text{ text = "Mode:" },
+    PakettiAutomationStack_vb:text{ text = "New Envelope:" },
     PakettiAutomationStack_vb:switch{
       id = "pas_mode_switch",
       items = {"Points","Lines","Curves"},
@@ -1896,12 +2089,8 @@ function PakettiAutomationStack_BuildContent()
       value = PakettiAutomationStack_draw_playmode_index,
       notifier = function(val)
         PakettiAutomationStack_draw_playmode_index = val
-        -- Apply immediately to visible envelopes
-        for i = 1, #PakettiAutomationStack_automations do
-          local e = PakettiAutomationStack_automations[i]
-          if e and e.automation then e.automation.playmode = PakettiAutomationStack_PlaymodeForIndex(val) end
-        end
-        PakettiAutomationStack_RequestUpdate()
+        -- Only update the setting for new envelopes - don't modify existing ones
+        renoise.app():show_status("Automation Stack: New envelopes will be created as " .. (val == 1 and "Points" or val == 2 and "Lines" or "Curves"))
       end
     },
     PakettiAutomationStack_vb:text{ text = "View:" },
@@ -2009,7 +2198,7 @@ function PakettiAutomationStack_BuildContent()
 
   local tracks_col = PakettiAutomationStack_vb:column{ id = "pas_tracks_container", spacing = 0 }
   local bottom_row = PakettiAutomationStack_vb:row{
-    PakettiAutomationStack_vb:text{ text = "Scroll:" }, PakettiAutomationStack_vb:space{ width = 10 },
+    PakettiAutomationStack_vb:text{ text = "Scroll:" },
     PakettiAutomationStack_vb:scrollbar{ id = "pas_hscroll", min = 1, max = 2, value = 1, step = 1, pagestep = 1, autohide = false, notifier = function(val)
       PakettiAutomationStack_view_start_line = val
       PakettiAutomationStack_UpdateScrollbars()
@@ -2225,13 +2414,91 @@ function PakettiAutomationStack_Cleanup()
   PakettiAutomationStack_show_same_popup_view = nil
 end
 
+-- Show Automation Stack in single view mode
+function PakettiAutomationStackShowSingleView()
+  PakettiAutomationStack_view_mode = 2 -- Set to single view mode
+  PakettiAutomationStackShowDialog()
+end
+
+-- Debug function to print all automation points for currently selected automation
+function PakettiAutomationStackDebugPrintAutomationPoints()
+  local song = renoise.song()
+  if not song then
+    print("DEBUG: No song loaded")
+    return
+  end
+  
+  local selected_parameter = song.selected_automation_parameter
+  if not selected_parameter then
+    print("DEBUG: No automation parameter selected")
+    return
+  end
+  
+  local selected_device = song.selected_automation_device
+  if not selected_device then
+    print("DEBUG: No automation device selected")
+    return
+  end
+  
+  local pattern = song.selected_pattern
+  if not pattern then
+    print("DEBUG: No pattern selected")
+    return
+  end
+  
+  local track_index = song.selected_track_index
+  local pattern_track = pattern:track(track_index)
+  if not pattern_track then
+    print("DEBUG: No pattern track found")
+    return
+  end
+  
+  local automation = pattern_track:find_automation(selected_parameter)
+  if not automation then
+    print("DEBUG: No automation found for selected parameter")
+    return
+  end
+  
+  print("=== AUTOMATION POINTS DEBUG ===")
+  print("Parameter: " .. (selected_parameter.name or "unnamed"))
+  print("Device: " .. (selected_device.display_name or "unnamed"))
+  print("Track: " .. song.selected_track.name)
+  print("Pattern: " .. pattern.name)
+  print("Number of points: " .. #automation.points)
+  print("---")
+  
+  if #automation.points == 0 then
+    print("No automation points found")
+  else
+    for i, point in ipairs(automation.points) do
+      print(string.format("Point %d: Line=%.2f, Value=%.6f", i, point.time, point.value))
+    end
+    
+    -- Show the last point specifically
+    local last_point = automation.points[#automation.points]
+    print("---")
+    print("LAST POINT:")
+    print("  Line: " .. last_point.time)
+    print("  Value: " .. last_point.value)
+    print("  Raw time: " .. tostring(last_point.time))
+    print("  Raw value: " .. tostring(last_point.value))
+  end
+  
+  print("=== END DEBUG ===")
+end
+
 -- Menu + Keybinding entries
 renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack", invoke = function() PakettiAutomationStackShowDialog() end }
+renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Single View", invoke = function() PakettiAutomationStackShowSingleView() end }
 renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Select Arbitrary Parameters", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
 renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack", invoke = function() PakettiAutomationStackShowDialog() end }
+renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Single View", invoke = function() PakettiAutomationStackShowSingleView() end }
 renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Select Arbitrary Parameters", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack...", invoke = function() PakettiAutomationStackShowDialog() end }
+renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack - Single View...", invoke = function() PakettiAutomationStackShowSingleView() end }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack - Select Arbitrary Parameters...", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
+renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Debug Print Points", invoke = function() PakettiAutomationStackDebugPrintAutomationPoints() end }
+renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Debug Print Points", invoke = function() PakettiAutomationStackDebugPrintAutomationPoints() end }
 
 
 
