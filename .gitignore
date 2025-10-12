@@ -1,4 +1,14 @@
 .DS_Store
+autocomplete_cache.txt
+paketti_commands.txt
+paketti_complete_menu_list.txt
+paketti_sorted_menu_list.txt
+ITTECH2.TXTxm-form.txt
+akaisampleformat.txt
+akais5000-akais6000.txt
+autocomplete_usage.txt
+analyze_ot_comparison.lua
+
 cache*.json
 .cursor/*
 prune-tags.sh
