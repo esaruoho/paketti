@@ -1114,10 +1114,31 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Slide 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Slide Selected Track Content Up",invoke=PakettiImpulseTrackerSlideTrackUp}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Select Current Row",invoke=PakettiSelectCurrentRow}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Tracks:Convert Global Groove to Delay on Selected Track/Group",invoke=pakettiGrooveToDelay}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Enable All Devices on Track",invoke=function() effectenable() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Devices on Track",invoke=function() effectbypass() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Enable All Devices on Track",invoke=effectenable}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Devices on Track",invoke=effectbypass}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All Devices on Track",invoke=PakettiToggleAllDevices}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Devices on All Tracks",invoke=PakettiEnableAllDevicesAllTracks}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Devices on All Tracks",invoke=PakettiBypassAllDevicesAllTracks}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Favorited Devices on Track",invoke=PakettiEnableAllFavorited}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Favorited Devices on Track",invoke=PakettiBypassAllFavorited}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All AudioUnit (AU) on Track",invoke=PakettiEnableAllAU}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All AudioUnit (AU) on Track",invoke=PakettiBypassAllAU}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All AudioUnit (AU) on Track",invoke=PakettiToggleAllAU}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All VST on Track",invoke=PakettiEnableAllVST}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All VST on Track",invoke=PakettiBypassAllVST}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All VST on Track",invoke=PakettiToggleAllVST}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All VST3 on Track",invoke=PakettiEnableAllVST3}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All VST3 on Track",invoke=PakettiBypassAllVST3}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All VST3 on Track",invoke=PakettiToggleAllVST3}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Native on Track",invoke=PakettiEnableAllNative}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Native on Track",invoke=PakettiBypassAllNative}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All Native on Track",invoke=PakettiToggleAllNative}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Meta DSP on Track",invoke=PakettiEnableAllMetaDSP}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Meta DSP on Track",invoke=PakettiBypassAllMetaDSP}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All Meta DSP on Track",invoke=PakettiToggleAllMetaDSP}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Routing on Track",invoke=PakettiEnableAllRouting}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Routing on Track",invoke=PakettiBypassAllRouting}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All Routing on Track",invoke=PakettiToggleAllRouting}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Generate&Randomize:Write 0Sxx Command Random Slice/Offset",invoke=function() write_random_slice_command() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Tracks:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}

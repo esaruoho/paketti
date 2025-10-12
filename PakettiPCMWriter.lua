@@ -5917,7 +5917,7 @@ function PCMWriterExportWaveAAndBToSample()
           device.parameters[5].value = 0
           device.parameters[6].value = 0
           device.parameters[7].value = 0
-          device.parameters[8].value = 0.99599993228912
+          device.parameters[8].value = 0.0
           device.parameters[10].value = 0.5
         end)
         if success2 then
@@ -9504,4 +9504,3 @@ renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Paketti Sing
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Load 2 Random AKWF as 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Write AKWF A&B to 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
-
