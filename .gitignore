@@ -9,7 +9,8 @@ akaisampleformat.txt
 akais5000-akais6000.txt
 autocomplete_usage.txt
 analyze_ot_comparison.lua
-
+KeyBindings/Debug_Paketti_KeyBindings.log
+KeyBindings/Debug_Renoise_KeyBindings.log
 cache*.json
 .cursor/*
 prune-tags.sh
