@@ -1,4 +1,5 @@
 .DS_Store
+cache*.json
 .cursor/*
 prune-tags.sh
 paketti.sublime-project
