@@ -163,6 +163,62 @@ end
 -- Global helpers for adding/removing menu entries safely
 -- Removed dynamic helpers/updater to keep File menu configuration localized below
 
+function PakettiMenuToggle(menu_prefix, enabled, label)
+  if enabled then
+    renoise.app():show_status(label .. " menus enabled - reload tool to add entries")
+  else
+    renoise.app():show_status(label .. " menus disabled - reload tool to remove all entries")
+  end
+end
+
+function PakettiMenuApplyInstrumentBoxMenus(enabled)
+  PakettiMenuToggle("Instrument Box:", enabled, "Instrument Box")
+end
+
+function PakettiMenuApplySampleEditorMenus(enabled)
+  PakettiMenuToggle("Sample Editor:", enabled, "Sample Editor")
+end
+
+function PakettiMenuApplySampleNavigatorMenus(enabled)
+  PakettiMenuToggle("Sample Navigator:", enabled, "Sample Navigator")
+end
+
+function PakettiMenuApplySampleKeyzoneMenus(enabled)
+  PakettiMenuToggle("Sample Keyzone:", enabled, "Sample Keyzone")
+end
+
+function PakettiMenuApplyMixerMenus(enabled)
+  PakettiMenuToggle("Mixer:", enabled, "Mixer")
+end
+
+function PakettiMenuApplyPatternEditorMenus(enabled)
+  PakettiMenuToggle("Pattern Editor:", enabled, "Pattern Editor")
+end
+
+function PakettiMenuApplyPatternMatrixMenus(enabled)
+  PakettiMenuToggle("Pattern Matrix:", enabled, "Pattern Matrix")
+end
+
+function PakettiMenuApplyPatternSequencerMenus(enabled)
+  PakettiMenuToggle("Pattern Sequencer:", enabled, "Pattern Sequencer")
+end
+
+function PakettiMenuApplyPhraseEditorMenus(enabled)
+  PakettiMenuToggle("Phrase Editor:", enabled, "Phrase Editor")
+end
+
+function PakettiMenuApplyTrackDSPDeviceMenus(enabled)
+  PakettiMenuToggle("DSP Device:", enabled, "Track DSP Device")
+end
+
+function PakettiMenuApplyAutomationMenus(enabled)
+  PakettiMenuToggle("Automation:", enabled, "Automation")
+end
+
+function PakettiMenuApplyDiskBrowserFilesMenus(enabled)
+  PakettiMenuToggle("Disk Browser Files:", enabled, "Disk Browser Files")
+end
+
 --- Instrument Box Config
 if preferences.pakettiMenuConfig.InstrumentBox then
   debugPrint("Instrument Box Menus Are Enabled")

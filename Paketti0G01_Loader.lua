@@ -925,7 +925,6 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
   end
 
   local dialog_content = vb:column{
-      --margin=5,
       horizontal_rule(),
       vb:row{ -- this is where the row structure starts.
         vb:column{ -- first column.
@@ -2196,14 +2195,16 @@ function pakettiMenuConfigDialog()
     return
   end
 
-  local function create_menu_checkbox(label, preference_key, width)
+  local function create_menu_checkbox(label, preference_key, update_function, width)
     return vb:row{
       vb:checkbox{
-        value = preferences.pakettiMenuConfig[preference_key],
+        value = preferences.pakettiMenuConfig[preference_key].value,
         notifier = function(value)
-          preferences.pakettiMenuConfig[preference_key] = value
+          preferences.pakettiMenuConfig[preference_key].value = value
           preferences:save_as("preferences.xml")
-          renoise.app():show_status("Menu Config: " .. label .. " " .. (value and "enabled" or "disabled") .. " (restart Renoise to apply)")
+          if update_function and type(update_function) == "function" then
+            update_function(value)
+          end
         end
       },
       vb:text{text = label, width = width or 200}
@@ -2211,63 +2212,26 @@ function pakettiMenuConfigDialog()
   end
 
   menu_config_dialog_content = vb:column{
-    margin = 10,
-    spacing = 5,
-    vb:text{
-      style = "strong",
-      font = "bold",
-      text = "Paketti Menu Configuration"
-    },
-    vb:space{height = 5},
-    vb:text{
-      text = "Enable or disable menu entries in different sections.",
-      font = "italic"
-    },
-    vb:text{
-      text = "Changes require Renoise restart to take effect.",
-      font = "italic",
-      style = "strong"
-    },
-    vb:space{height = 10},
-    vb:row{style = "panel", height = 2, width = "100%"},
-    vb:space{height = 10},
-    
-    create_menu_checkbox("Instrument Box Menus", "InstrumentBox", 250),
-    create_menu_checkbox("Sample Editor Menus", "SampleEditor", 250),
-    create_menu_checkbox("Sample Navigator Menus", "SampleNavigator", 250),
-    create_menu_checkbox("Sample Keyzone Menus", "SampleKeyzone", 250),
-    create_menu_checkbox("Mixer Menus", "Mixer", 250),
-    create_menu_checkbox("Pattern Editor Menus", "PatternEditor", 250),
-    create_menu_checkbox("Main Menu: Tools", "MainMenuTools", 250),
-    create_menu_checkbox("Main Menu: View", "MainMenuView", 250),
-    create_menu_checkbox("Main Menu: File", "MainMenuFile", 250),
-    create_menu_checkbox("Pattern Matrix Menus", "PatternMatrix", 250),
-    create_menu_checkbox("Pattern Sequencer Menus", "PatternSequencer", 250),
-    create_menu_checkbox("Phrase Editor Menus", "PhraseEditor", 250),
-    create_menu_checkbox("Paketti Gadgets Menus", "PakettiGadgets", 250),
-    create_menu_checkbox("Track DSP Device Menus", "TrackDSPDevice", 250),
-    create_menu_checkbox("Automation Menus", "Automation", 250),
-    create_menu_checkbox("Disk Browser Files Menus", "DiskBrowserFiles", 250),
-    
-    vb:space{height = 10},
-    vb:row{style = "panel", height = 2, width = "100%"},
-    vb:space{height = 10},
-    vb:button{
-      text = "Close",
-      width = "100%",
-      notifier = function()
-        menu_config_dialog:close()
-      end
-    }
+    create_menu_checkbox("Instrument Box Menus", "InstrumentBox", PakettiMenuApplyInstrumentBoxMenus, 250),
+    create_menu_checkbox("Sample Editor Menus", "SampleEditor", PakettiMenuApplySampleEditorMenus, 250),
+    create_menu_checkbox("Sample Navigator Menus", "SampleNavigator", PakettiMenuApplySampleNavigatorMenus, 250),
+    create_menu_checkbox("Sample Keyzone Menus", "SampleKeyzone", PakettiMenuApplySampleKeyzoneMenus, 250),
+    create_menu_checkbox("Mixer Menus", "Mixer", PakettiMenuApplyMixerMenus, 250),
+    create_menu_checkbox("Pattern Editor Menus", "PatternEditor", PakettiMenuApplyPatternEditorMenus, 250),
+    create_menu_checkbox("Main Menu: Tools", "MainMenuTools", nil, 250),
+    create_menu_checkbox("Main Menu: View", "MainMenuView", nil, 250),
+    create_menu_checkbox("Main Menu: File", "MainMenuFile", nil, 250),
+    create_menu_checkbox("Pattern Matrix Menus", "PatternMatrix", PakettiMenuApplyPatternMatrixMenus, 250),
+    create_menu_checkbox("Pattern Sequencer Menus", "PatternSequencer", PakettiMenuApplyPatternSequencerMenus, 250),
+    create_menu_checkbox("Phrase Editor Menus", "PhraseEditor", PakettiMenuApplyPhraseEditorMenus, 250),
+    create_menu_checkbox("Paketti Gadgets Menus", "PakettiGadgets", nil, 250),
+    create_menu_checkbox("Track DSP Device Menus", "TrackDSPDevice", PakettiMenuApplyTrackDSPDeviceMenus, 250),
+    create_menu_checkbox("Automation Menus", "Automation", PakettiMenuApplyAutomationMenus, 250),
+    create_menu_checkbox("Disk Browser Files Menus", "DiskBrowserFiles", PakettiMenuApplyDiskBrowserFilesMenus, 250)
   }
 
-  menu_config_dialog = renoise.app():show_custom_dialog(
-    "Paketti Menu Configuration",
-    menu_config_dialog_content,
-    my_keyhandler_func
-  )
+  menu_config_dialog = renoise.app():show_custom_dialog("Paketti Menu Configuration",menu_config_dialog_content,my_keyhandler_func)
   
-  -- Set focus to Renoise after dialog opens for key capture
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 

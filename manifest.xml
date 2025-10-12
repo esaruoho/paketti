@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RenoiseScriptingTool doc_version="0">
   <ApiVersion>6</ApiVersion>
-  <AutoUpgraded>true</AutoUpgraded>
   <Id>org.lackluster.Paketti</Id>
   <Version>3.54</Version>
   <Author>lackluster | esaruoho@icloud.com</Author>
