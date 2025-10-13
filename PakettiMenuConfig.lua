@@ -1121,24 +1121,25 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Devices on All Tracks",invoke=PakettiBypassAllDevicesAllTracks}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Favorited Devices on Track",invoke=PakettiEnableAllFavorited}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Favorited Devices on Track",invoke=PakettiBypassAllFavorited}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All AudioUnit (AU) on Track",invoke=PakettiEnableAllAU}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All AudioUnit (AU) on Track",invoke=PakettiBypassAllAU}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All AudioUnit (AU) on Track",invoke=PakettiToggleAllAU}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All VST on Track",invoke=PakettiEnableAllVST}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All VST on Track",invoke=PakettiBypassAllVST}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All VST on Track",invoke=PakettiToggleAllVST}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All VST3 on Track",invoke=PakettiEnableAllVST3}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All VST3 on Track",invoke=PakettiBypassAllVST3}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All VST3 on Track",invoke=PakettiToggleAllVST3}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All Favorited Devices on Track",invoke=PakettiToggleAllFavorited}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All AudioUnit (AU) on Track",invoke=function() PakettiDevicesByPathPattern("/AU/", "AudioUnit", "enable") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All AudioUnit (AU) on Track",invoke=function() PakettiDevicesByPathPattern("/AU/", "AudioUnit", "bypass") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All AudioUnit (AU) on Track",invoke=function() PakettiDevicesByPathPattern("/AU/", "AudioUnit", "toggle") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All VST on Track",invoke=function() PakettiDevicesByPathPattern("/VST/", "VST", "enable") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All VST on Track",invoke=function() PakettiDevicesByPathPattern("/VST/", "VST", "bypass") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All VST on Track",invoke=function() PakettiDevicesByPathPattern("/VST/", "VST", "toggle") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All VST3 on Track",invoke=function() PakettiDevicesByPathPattern("/VST3/", "VST3", "enable") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All VST3 on Track",invoke=function() PakettiDevicesByPathPattern("/VST3/", "VST3", "bypass") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All VST3 on Track",invoke=function() PakettiDevicesByPathPattern("/VST3/", "VST3", "toggle") end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Native on Track",invoke=PakettiEnableAllNative}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Native on Track",invoke=PakettiBypassAllNative}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All Native on Track",invoke=PakettiToggleAllNative}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Meta DSP on Track",invoke=PakettiEnableAllMetaDSP}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Meta DSP on Track",invoke=PakettiBypassAllMetaDSP}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All Meta DSP on Track",invoke=PakettiToggleAllMetaDSP}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Routing on Track",invoke=PakettiEnableAllRouting}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Routing on Track",invoke=PakettiBypassAllRouting}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All Routing on Track",invoke=PakettiToggleAllRouting}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Meta DSP on Track",invoke=function() PakettiDevicesByPathPattern("/Native/%*", "Meta DSP", "enable") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Meta DSP on Track",invoke=function() PakettiDevicesByPathPattern("/Native/%*", "Meta DSP", "bypass") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All Meta DSP on Track",invoke=function() PakettiDevicesByPathPattern("/Native/%*", "Meta DSP", "toggle") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable All Routing on Track",invoke=function() PakettiDevicesByPathPattern("/Native/#", "Routing", "enable") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass All Routing on Track",invoke=function() PakettiDevicesByPathPattern("/Native/#", "Routing", "bypass") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Toggle All Routing on Track",invoke=function() PakettiDevicesByPathPattern("/Native/#", "Routing", "toggle") end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Generate&Randomize:Write 0Sxx Command Random Slice/Offset",invoke=function() write_random_slice_command() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Tracks:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}

@@ -1885,50 +1885,42 @@ function PakettiToggleAllDevices()
   renoise.app():show_status("Toggled all Track DSP Devices on Selected Track")
 end
 
--- Helper function to get device info for the selected track
-function PakettiGetDeviceInfo()
+-- Helper function to check if a device is favorited
+function PakettiIsDeviceFavorited(device_path)
   local song = renoise.song()
-  local track = song.selected_track
-  local available_devices = song.tracks[song.selected_track_index].available_devices
+  local available_device_infos = song.selected_track.available_device_infos
   
-  local device_info = {}
-  for _, device in ipairs(track.devices) do
-    if device.name ~= "Track Input" then
-      for _, info in ipairs(available_devices) do
-        if device.device_path == info.path then
-          device_info[device.device_path] = {
-            device = device,
-            is_favorite = info.is_favorite,
-            path = info.path,
-            name = info.name
-          }
-          break
-        end
-      end
+  for _, info in ipairs(available_device_infos) do
+    if info.path == device_path and info.is_favorite then
+      return true
     end
   end
   
-  return device_info, track
+  return false
 end
 
 -- Enable All Favorited Devices on Selected Track
 function PakettiEnableAllFavorited()
-  local device_info, track = PakettiGetDeviceInfo()
+  local song = renoise.song()
+  local track = song.selected_track
   local count = 0
   local already_in_state = 0
+  local found_count = 0
   
-  for _, info in pairs(device_info) do
-    if info.is_favorite then
-      if info.device.is_active then
+  for i = 2, #track.devices do
+    local device = track.devices[i]
+    if PakettiIsDeviceFavorited(device.device_path) then
+      found_count = found_count + 1
+      if device.is_active then
         already_in_state = already_in_state + 1
       else
-        info.device.is_active = true
+        device.is_active = true
         count = count + 1
       end
     end
   end
   
-  if count == 0 and already_in_state == 0 then
+  if found_count == 0 then
     renoise.app():show_status("No Favorited Track DSP Devices found on Selected Track, doing nothing")
   elseif count == 0 and already_in_state > 0 then
     renoise.app():show_status("All Favorited Track DSP Devices already enabled, doing nothing")
@@ -1939,27 +1931,52 @@ end
 
 -- Bypass All Favorited Devices on Selected Track
 function PakettiBypassAllFavorited()
-  local device_info, track = PakettiGetDeviceInfo()
+  local song = renoise.song()
+  local track = song.selected_track
   local count = 0
   local already_in_state = 0
+  local found_count = 0
   
-  for _, info in pairs(device_info) do
-    if info.is_favorite then
-      if not info.device.is_active then
+  for i = 2, #track.devices do
+    local device = track.devices[i]
+    if PakettiIsDeviceFavorited(device.device_path) then
+      found_count = found_count + 1
+      if not device.is_active then
         already_in_state = already_in_state + 1
       else
-        info.device.is_active = false
+        device.is_active = false
         count = count + 1
       end
     end
   end
   
-  if count == 0 and already_in_state == 0 then
+  if found_count == 0 then
     renoise.app():show_status("No Favorited Track DSP Devices found on Selected Track, doing nothing")
   elseif count == 0 and already_in_state > 0 then
     renoise.app():show_status("All Favorited Track DSP Devices already bypassed, doing nothing")
   else
     renoise.app():show_status("Bypassed " .. count .. " Favorited Track DSP Device" .. (count > 1 and "s" or ""))
+  end
+end
+
+-- Toggle All Favorited Devices on Selected Track
+function PakettiToggleAllFavorited()
+  local song = renoise.song()
+  local track = song.selected_track
+  local count = 0
+  
+  for i = 2, #track.devices do
+    local device = track.devices[i]
+    if PakettiIsDeviceFavorited(device.device_path) then
+      device.is_active = not device.is_active
+      count = count + 1
+    end
+  end
+  
+  if count == 0 then
+    renoise.app():show_status("No Favorited Track DSP Devices found on Selected Track, doing nothing")
+  else
+    renoise.app():show_status("Toggled " .. count .. " Favorited Track DSP Device" .. (count > 1 and "s" or ""))
   end
 end
 
@@ -2004,71 +2021,6 @@ function PakettiDevicesByPathPattern(pattern, pattern_name, action)
     local action_text = action == "enable" and "Enabled" or (action == "bypass" and "Bypassed" or "Toggled")
     renoise.app():show_status(action_text .. " " .. count .. " " .. pattern_name .. " Track DSP Device" .. (count > 1 and "s" or ""))
   end
-end
-
--- AudioUnit (AU) functions
-function PakettiEnableAllAU()
-  PakettiDevicesByPathPattern("/AU/", "AudioUnit", "enable")
-end
-
-function PakettiBypassAllAU()
-  PakettiDevicesByPathPattern("/AU/", "AudioUnit", "bypass")
-end
-
-function PakettiToggleAllAU()
-  PakettiDevicesByPathPattern("/AU/", "AudioUnit", "toggle")
-end
-
--- VST functions
-function PakettiEnableAllVST()
-  PakettiDevicesByPathPattern("/VST/", "VST", "enable")
-end
-
-function PakettiBypassAllVST()
-  PakettiDevicesByPathPattern("/VST/", "VST", "bypass")
-end
-
-function PakettiToggleAllVST()
-  PakettiDevicesByPathPattern("/VST/", "VST", "toggle")
-end
-
--- VST3 functions
-function PakettiEnableAllVST3()
-  PakettiDevicesByPathPattern("/VST3/", "VST3", "enable")
-end
-
-function PakettiBypassAllVST3()
-  PakettiDevicesByPathPattern("/VST3/", "VST3", "bypass")
-end
-
-function PakettiToggleAllVST3()
-  PakettiDevicesByPathPattern("/VST3/", "VST3", "toggle")
-end
-
--- LADSPA functions
-function PakettiEnableAllLADSPA()
-  PakettiDevicesByPathPattern("/LADSPA/", "LADSPA", "enable")
-end
-
-function PakettiBypassAllLADSPA()
-  PakettiDevicesByPathPattern("/LADSPA/", "LADSPA", "bypass")
-end
-
-function PakettiToggleAllLADSPA()
-  PakettiDevicesByPathPattern("/LADSPA/", "LADSPA", "toggle")
-end
-
--- DSSI functions
-function PakettiEnableAllDSSI()
-  PakettiDevicesByPathPattern("/DSSI/", "DSSI", "enable")
-end
-
-function PakettiBypassAllDSSI()
-  PakettiDevicesByPathPattern("/DSSI/", "DSSI", "bypass")
-end
-
-function PakettiToggleAllDSSI()
-  PakettiDevicesByPathPattern("/DSSI/", "DSSI", "toggle")
 end
 
 -- Native (non-meta) functions
@@ -2153,69 +2105,44 @@ function PakettiToggleAllNative()
   end
 end
 
--- Meta DSP functions (Native/*)
-function PakettiEnableAllMetaDSP()
-  PakettiDevicesByPathPattern("/Native/%*", "Meta DSP", "enable")
-end
-
-function PakettiBypassAllMetaDSP()
-  PakettiDevicesByPathPattern("/Native/%*", "Meta DSP", "bypass")
-end
-
-function PakettiToggleAllMetaDSP()
-  PakettiDevicesByPathPattern("/Native/%*", "Meta DSP", "toggle")
-end
-
--- Routing functions (Native/#)
-function PakettiEnableAllRouting()
-  PakettiDevicesByPathPattern("/Native/#", "Routing", "enable")
-end
-
-function PakettiBypassAllRouting()
-  PakettiDevicesByPathPattern("/Native/#", "Routing", "bypass")
-end
-
-function PakettiToggleAllRouting()
-  PakettiDevicesByPathPattern("/Native/#", "Routing", "toggle")
-end
-
 -- Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Track DSP Devices on Selected Track", invoke=PakettiToggleAllDevices}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Enable All Favorited Track DSP Devices on Selected Track", invoke=PakettiEnableAllFavorited}
 renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Favorited Track DSP Devices on Selected Track", invoke=PakettiBypassAllFavorited}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Favorited Track DSP Devices on Selected Track", invoke=PakettiToggleAllFavorited}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Enable All AudioUnit (AU) Track DSP Devices on Selected Track", invoke=PakettiEnableAllAU}
-renoise.tool():add_keybinding{name="Global:Paketti:Bypass All AudioUnit (AU) Track DSP Devices on Selected Track", invoke=PakettiBypassAllAU}
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle All AudioUnit (AU) Track DSP Devices on Selected Track", invoke=PakettiToggleAllAU}
+renoise.tool():add_keybinding{name="Global:Paketti:Enable All AudioUnit (AU) Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/AU/", "AudioUnit", "enable") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Bypass All AudioUnit (AU) Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/AU/", "AudioUnit", "bypass") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle All AudioUnit (AU) Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/AU/", "AudioUnit", "toggle") end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Enable All VST Track DSP Devices on Selected Track", invoke=PakettiEnableAllVST}
-renoise.tool():add_keybinding{name="Global:Paketti:Bypass All VST Track DSP Devices on Selected Track", invoke=PakettiBypassAllVST}
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle All VST Track DSP Devices on Selected Track", invoke=PakettiToggleAllVST}
+renoise.tool():add_keybinding{name="Global:Paketti:Enable All VST Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/VST/", "VST", "enable") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Bypass All VST Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/VST/", "VST", "bypass") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle All VST Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/VST/", "VST", "toggle") end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Enable All VST3 Track DSP Devices on Selected Track", invoke=PakettiEnableAllVST3}
-renoise.tool():add_keybinding{name="Global:Paketti:Bypass All VST3 Track DSP Devices on Selected Track", invoke=PakettiBypassAllVST3}
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle All VST3 Track DSP Devices on Selected Track", invoke=PakettiToggleAllVST3}
+renoise.tool():add_keybinding{name="Global:Paketti:Enable All VST3 Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/VST3/", "VST3", "enable") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Bypass All VST3 Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/VST3/", "VST3", "bypass") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle All VST3 Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/VST3/", "VST3", "toggle") end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Enable All LADSPA Track DSP Devices on Selected Track", invoke=PakettiEnableAllLADSPA}
-renoise.tool():add_keybinding{name="Global:Paketti:Bypass All LADSPA Track DSP Devices on Selected Track", invoke=PakettiBypassAllLADSPA}
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle All LADSPA Track DSP Devices on Selected Track", invoke=PakettiToggleAllLADSPA}
+renoise.tool():add_keybinding{name="Global:Paketti:Enable All LADSPA Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/LADSPA/", "LADSPA", "enable") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Bypass All LADSPA Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/LADSPA/", "LADSPA", "bypass") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle All LADSPA Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/LADSPA/", "LADSPA", "toggle") end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Enable All DSSI Track DSP Devices on Selected Track", invoke=PakettiEnableAllDSSI}
-renoise.tool():add_keybinding{name="Global:Paketti:Bypass All DSSI Track DSP Devices on Selected Track", invoke=PakettiBypassAllDSSI}
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle All DSSI Track DSP Devices on Selected Track", invoke=PakettiToggleAllDSSI}
+renoise.tool():add_keybinding{name="Global:Paketti:Enable All DSSI Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/DSSI/", "DSSI", "enable") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Bypass All DSSI Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/DSSI/", "DSSI", "bypass") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle All DSSI Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/DSSI/", "DSSI", "toggle") end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Enable All Native Track DSP Devices on Selected Track", invoke=PakettiEnableAllNative}
 renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Native Track DSP Devices on Selected Track", invoke=PakettiBypassAllNative}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Native Track DSP Devices on Selected Track", invoke=PakettiToggleAllNative}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Enable All Meta DSP Track Devices on Selected Track", invoke=PakettiEnableAllMetaDSP}
-renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Meta DSP Track Devices on Selected Track", invoke=PakettiBypassAllMetaDSP}
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Meta DSP Track Devices on Selected Track", invoke=PakettiToggleAllMetaDSP}
+renoise.tool():add_keybinding{name="Global:Paketti:Enable All Meta DSP Track Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/Native/%*", "Meta DSP", "enable") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Meta DSP Track Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/Native/%*", "Meta DSP", "bypass") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Meta DSP Track Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/Native/%*", "Meta DSP", "toggle") end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Enable All Routing Track DSP Devices on Selected Track", invoke=PakettiEnableAllRouting}
-renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Routing Track DSP Devices on Selected Track", invoke=PakettiBypassAllRouting}
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Routing Track DSP Devices on Selected Track", invoke=PakettiToggleAllRouting}
+renoise.tool():add_keybinding{name="Global:Paketti:Enable All Routing Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/Native/#", "Routing", "enable") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Routing Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/Native/#", "Routing", "bypass") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Routing Track DSP Devices on Selected Track", invoke=function() PakettiDevicesByPathPattern("/Native/#", "Routing", "toggle") end}
 
 
 -- Utility function to print a formatted list from the provided items
