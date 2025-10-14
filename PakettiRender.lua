@@ -848,6 +848,251 @@ renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Tr
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Track/Group (.FLAC)",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
 
 -------
+-- MP3 Rendering Functions using ffmpeg
+-------
+
+-- Define render context for MP3 rendering
+render_context_mp3 = {
+  source_track = 0,
+  target_track = 0,
+  target_instrument = 0,
+  temp_file_path = "",
+  format = nil,
+  render_type = "track",
+  output_mp3_path = ""
+}
+
+-- Function to initiate MP3 rendering for track
+function CleanRenderAndSaveMP3Start(render_type)
+  local render_priority = "high"
+  local selected_track = renoise.song().selected_track
+
+  for _, device in ipairs(selected_track.devices) do
+      if device.name == "#Line Input" then
+          render_priority = "realtime"
+          break
+      end
+  end
+
+  -- Set up rendering options based on render type
+  local render_options = {
+      sample_rate = preferences.renderSampleRate.value,
+      bit_depth = preferences.renderBitDepth.value,
+      interpolation = "precise",
+      priority = render_priority,
+      start_pos = renoise.SongPos(renoise.song().selected_sequence_index, 1),
+      end_pos = renoise.SongPos(renoise.song().selected_sequence_index, renoise.song().patterns[renoise.song().selected_pattern_index].number_of_lines),
+  }
+
+  -- Set render context
+  render_context_mp3.source_track = renoise.song().selected_track_index
+  render_context_mp3.target_track = render_context_mp3.source_track + 1
+  render_context_mp3.target_instrument = renoise.song().selected_instrument_index + 1
+  render_context_mp3.temp_file_path = pakettiGetTempFilePath(".wav")
+  render_context_mp3.format = "MP3"
+  render_context_mp3.render_type = render_type
+
+  -- Start rendering with the correct function call
+  local success, error_message = renoise.song():render(render_options, render_context_mp3.temp_file_path, CleanRenderAndSaveMP3DoneCallback)
+  if not success then
+      print("MP3 Rendering failed: " .. error_message)
+  else
+      -- Start a timer to monitor rendering progress
+      renoise.tool():add_timer(CleanRenderAndSaveMP3Monitor, 500)
+  end
+end
+
+-- Callback function that gets called when rendering is complete
+function CleanRenderAndSaveMP3DoneCallback()
+  local song = renoise.song()
+  local sourceTrackName = song.tracks[render_context_mp3.source_track].name
+
+  -- Remove the monitoring timer
+  renoise.tool():remove_timer(CleanRenderAndSaveMP3Monitor)
+
+  -- Un-solo the source track
+  song.tracks[render_context_mp3.source_track].solo_state = false
+
+  print("DEBUG MP3: WAV rendering complete, starting ffmpeg conversion")
+  
+  -- Check if temp WAV file exists before conversion
+  local temp_file = io.open(render_context_mp3.temp_file_path, "r")
+  if temp_file then
+    temp_file:close()
+    print("DEBUG MP3: Temp WAV file exists, size:", renoise.song().selected_sample.sample_buffer.number_of_frames or "unknown")
+  else
+    print("DEBUG MP3: ERROR - Temp WAV file does not exist!")
+    renoise.app():show_status("ERROR: Rendered WAV file not found")
+    return
+  end
+  
+  -- Find ffmpeg path
+  local ffmpeg_path = FindFFmpegPath()
+  if not ffmpeg_path then
+    print("DEBUG MP3: ERROR - ffmpeg not found!")
+    renoise.app():show_status("ERROR: ffmpeg not found. Install: brew install ffmpeg")
+    os.remove(render_context_mp3.temp_file_path)
+    return
+  end
+  
+  -- Build ffmpeg command to convert WAV to MP3 (320k bitrate) directly to the output path
+  -- Use -y to overwrite without prompting
+  -- Redirect stderr to stdout so we can see errors
+  local ffmpeg_command = string.format('"%s" -y -i "%s" -codec:a libmp3lame -b:a 320k "%s" 2>&1', 
+    ffmpeg_path, render_context_mp3.temp_file_path, render_context_mp3.output_mp3_path)
+  
+  print("DEBUG MP3: Running ffmpeg command:", ffmpeg_command)
+  
+  -- Execute ffmpeg conversion
+  local result = os.execute(ffmpeg_command)
+  
+  print("DEBUG MP3: ffmpeg returned:", result)
+  
+  -- Decode return value (on Unix, os.execute returns exit_status << 8)
+  local exit_code = result
+  if type(result) == "number" and result > 255 then
+    exit_code = result / 256
+  end
+  print("DEBUG MP3: ffmpeg exit code:", exit_code)
+  
+  if exit_code == 127 then
+    print("DEBUG MP3: ERROR - ffmpeg command not found!")
+    renoise.app():show_status("ERROR: ffmpeg not found in PATH. Install: brew install ffmpeg")
+    os.remove(render_context_mp3.temp_file_path)
+    return
+  end
+  
+  -- Check if output MP3 file was created
+  local output_file = io.open(render_context_mp3.output_mp3_path, "r")
+  if output_file then
+    output_file:close()
+    print("DEBUG MP3: MP3 file created successfully")
+    renoise.app():show_status("Saved MP3 to " .. render_context_mp3.output_mp3_path)
+    print("DEBUG MP3: Saved MP3 to", render_context_mp3.output_mp3_path)
+  else
+    print("DEBUG MP3: ERROR - MP3 file was not created!")
+    print("DEBUG MP3: ffmpeg result was:", result)
+    renoise.app():show_status("ERROR: ffmpeg conversion failed - MP3 file not created. Check if ffmpeg is installed and in PATH.")
+  end
+  
+  -- Clean up temp WAV file
+  os.remove(render_context_mp3.temp_file_path)
+  print("DEBUG MP3: Cleaned up temp WAV file")
+end
+
+-- Function to monitor rendering progress
+function CleanRenderAndSaveMP3Monitor()
+  if renoise.song().rendering then
+      local progress = renoise.song().rendering_progress
+      print("MP3 Rendering in progress: " .. (progress * 100) .. "% complete")
+  else
+      -- Remove the monitoring timer once rendering is complete or if it wasn't started
+      renoise.tool():remove_timer(CleanRenderAndSaveMP3Monitor)
+      print("MP3 Rendering not in progress or already completed.")
+  end
+end
+
+-- Function to handle rendering for a group track
+function CleanRenderAndSaveMP3GroupTrack()
+  local song = renoise.song()
+  local group_track_index = song.selected_track_index
+  local group_track = song:track(group_track_index)
+  local start_track_index = group_track_index + 1
+  local end_track_index = start_track_index + group_track.visible_note_columns - 1
+
+  for i = start_track_index, end_track_index do
+      song:track(i):solo()
+  end
+
+  -- Set rendering options and start rendering
+  CleanRenderAndSaveMP3Start("track")
+end
+
+-- Function to find ffmpeg path
+function FindFFmpegPath()
+  -- Common locations where ffmpeg might be installed
+  local common_paths = {
+    "/opt/homebrew/bin/ffmpeg",  -- Apple Silicon Homebrew
+    "/usr/local/bin/ffmpeg",      -- Intel Mac Homebrew
+    "/usr/bin/ffmpeg",            -- System install
+    "ffmpeg"                      -- In PATH
+  }
+  
+  for _, path in ipairs(common_paths) do
+    local test_cmd
+    if os.platform() == "WINDOWS" then
+      test_cmd = string.format('where "%s" >nul 2>&1', path)
+    else
+      test_cmd = string.format('test -f "%s"', path)
+    end
+    
+    local result = os.execute(test_cmd)
+    if result == 0 or result == true then
+      print("DEBUG MP3: Found ffmpeg at:", path)
+      return path
+    end
+  end
+  
+  print("DEBUG MP3: ffmpeg not found in common locations")
+  return nil
+end
+
+-- Function to check if ffmpeg is available
+function CheckFFmpegAvailable()
+  local ffmpeg_path = FindFFmpegPath()
+  return ffmpeg_path ~= nil
+end
+
+-- Function to clean render and save the selection as MP3
+function CleanRenderAndSaveSelectionMP3()
+  local song = renoise.song()
+  local renderTrack = song.selected_track_index
+
+  -- Check if ffmpeg is available FIRST
+  if not CheckFFmpegAvailable() then
+    renoise.app():show_status("ERROR: ffmpeg not found! Please install ffmpeg and ensure it's in your PATH")
+    print("DEBUG MP3: ffmpeg not found in PATH")
+    print("DEBUG MP3: Install ffmpeg:")
+    print("  macOS: brew install ffmpeg")
+    print("  Linux: sudo apt-get install ffmpeg (or your distro's package manager)")
+    print("  Windows: Download from ffmpeg.org and add to PATH")
+    return
+  end
+  
+  print("DEBUG MP3: ffmpeg found and available")
+
+  -- Prompt user for save location FIRST, before rendering
+  local filename = renoise.app():prompt_for_filename_to_write("mp3", "Save Rendered Track as MP3")
+  
+  if filename == "" then
+    renoise.app():show_status("MP3 render cancelled")
+    print("DEBUG MP3: User cancelled save - aborting render")
+    return
+  end
+  
+  -- Store the output path in render context
+  render_context_mp3.output_mp3_path = filename
+  print("DEBUG MP3: Will save to:", filename)
+
+  -- Check if the selected track is a group track
+  if song:track(renderTrack).type == renoise.Track.TRACK_TYPE_GROUP then
+      -- Render the group track
+      CleanRenderAndSaveMP3GroupTrack()
+  else
+      -- Solo Selected Track
+      song.tracks[renderTrack]:solo()
+
+      -- Render Selected Track
+      CleanRenderAndSaveMP3Start("track")
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Track/Group (.MP3)",invoke=function() CleanRenderAndSaveSelectionMP3() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render&Save Selected Track/Group (.MP3)",invoke=function() CleanRenderAndSaveSelectionMP3() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Render Pattern to MP3",invoke=function() CleanRenderAndSaveSelectionMP3() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Clean Render&Save Selected Track/Group (.MP3)",invoke=function() CleanRenderAndSaveSelectionMP3() end}
+
+-------
 render_context = {
   source_track = 0,
   target_track = 0,

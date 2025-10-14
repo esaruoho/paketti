@@ -1,0 +1,57 @@
+PB Pitchbend
+1 Mod Wheel
+74 Filter Cutoff
+71 Filter Emphasis
+47 Filter 1 Attack
+5 Filter 1 Decay
+53 Filter 1 Sustain
+62 Filter Release
+73 Filter 2 Attack
+75 Filter 2 Decay
+56 Filter 2 Sustain
+48 Osc 1 Mix
+22 Osc 1 Range
+24 Osc 1 Waveform
+27 Osc 1 Fine
+4 Osc 2 Mix
+19 Osc 2 Range
+20 Osc 2 Waveform
+28 Osc 2 Fine
+50 Osc 3 Mix
+25 Osc 3 Range
+26 Osc 3 Waveform
+41 Noise Mix
+21 Osc Sync
+29 Osc 1 Env Amt
+16 X-Mod 02→FLT
+17 X-Mod 03→TO
+18 X-Mod 03→PW
+102 LFO Rate
+103 LFO→Osc
+104 LFO Wave
+105 LFO→Filter
+82 Delay Time
+83 Delay Regen
+91 Delay Amount
+9 Control Glide Type
+13 Filter Keytrack
+30 Osc Keyboard
+31 Osc X-Mod to ModWheel
+51 Mix Feedback
+60 Filter MTRIG
+61 Filter Normal/Invert
+63 Filter Gate/LFO
+80 Mod Sens
+81 Dynamics
+84 Aftertouch Sens 1
+85 Aftertouch Sens 2
+87 Bend Range
+106 LFO ModWheel→Osc SW
+107 LFO ModWheel→FLT SW
+108 LFO Mode SW
+109 LFO Sync SW
+112 Octave Shift
+113 Transpose
+114 Transpose SW
+115 Patch Volume
+

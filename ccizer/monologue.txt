@@ -1,0 +1,26 @@
+PB Pitchbend
+1 Mod Wheel
+43 Filter Cutoff
+44 Filter Resonance
+28 Drive
+36 VCO1 Shape
+39 VCO1 Level
+50 VCO1 Wave
+35 VCO2 Pitch
+37 VCO2 Shape
+40 VCO2 Level
+49 VCO2 Octave
+51 VCO2 Wave
+60 Sync/Ring
+16 EG Attack
+17 EG Decay
+25 EG Intensity
+61 EG Type
+62 EG Target
+24 LFO Rate
+26 LFO Depth
+56 LFO Target
+58 LFO Wave
+59 LFO Mode
+
+

@@ -940,6 +940,7 @@ local function create_ccizer_menu_entries()
         renoise.tool():add_menu_entry{name = "DSP Device:Paketti:CCizer:Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
         renoise.tool():add_menu_entry{name = "Sample FX Mixer:Paketti:CCizer:Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
         renoise.tool():add_menu_entry{name = "Mixer:Paketti:CCizer:Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
+        renoise.tool():add_keybinding{name = "Global:Paketti:CCizer:Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
     end
 end
 

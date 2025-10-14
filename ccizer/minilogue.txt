@@ -1,0 +1,41 @@
+PB Pitchbend
+1 Mod Wheel
+43 Filter Cutoff
+44 Filter Resonance
+45 Filter EG Intensity
+34 VCO1 Pitch
+36 VCO1 Shape
+39 VCO1 Level
+48 VCO1 Octave
+50 VCO1 Wave
+35 VCO2 Pitch
+37 VCO2 Shape
+40 VCO2 Level
+49 VCO2 Octave
+51 VCO2 Wave
+41 Cross Mod Depth
+33 Noise Level
+20 EG Attack
+21 EG Decay
+22 EG Sustain
+23 EG Release
+16 Amp EG Attack
+17 Amp EG Decay
+18 Amp EG Sustain
+19 Amp EG Release
+42 Pitch EG Intensity
+24 LFO Rate
+26 LFO Depth
+56 LFO Target
+57 LFO EG Mod
+58 LFO Wave
+29 Delay Hi-pass
+30 Delay Time
+31 Delay Feedback
+83 Keyboard Track
+80 Sync
+81 Ring
+82 Velocity Key Track
+84 Filter Type
+88 Delay Output Routing
+

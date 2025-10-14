@@ -1,0 +1,25 @@
+PB Pitchbend
+1 Mod Wheel
+23 Filter Cutoff
+83 Filter Resonance
+26 Filter Env Amount
+9 Osc Type
+10 Osc Wave
+12 Osc Timbre
+13 Osc Shape
+105 Amp Env Attack
+106 Amp Env Decay
+29 Amp Env Sustain
+102 Cycling Env Rise
+103 Cycling Env Fall
+28 Cycling Env Hold
+24 Cycling Env Amount
+93 LFO Rate (Free)
+94 LFO Rate (Sync)
+91 ARP/SEQ Rate (Free)
+92 ARP/SEQ Rate (Sync)
+2 Keyboard Spice
+5 Glide
+64 Keyboard Hold
+
+
