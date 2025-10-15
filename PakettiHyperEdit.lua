@@ -594,6 +594,9 @@ local current_row_drawing = 0
 local current_focused_row = 1  -- Track which row is currently focused for key operations
 local mouse_state_monitor_timer = nil
 local last_mouse_move_time = 0
+-- Previous mouse position for interpolation (prevent bucktooth drawing)
+local previous_mouse_step = {}  -- [row] = step
+local previous_mouse_value = {}  -- [row] = normalized y value
 
 -- Track switching state
 local is_track_switching = false
@@ -1391,6 +1394,10 @@ function PakettiHyperEditHandleRowMouse(row)
       current_focused_row = row  -- Update focused row when interacting with canvas
       last_mouse_move_time = os.clock() * 1000 -- Set initial timestamp
       
+      -- Reset previous mouse position for this row (start fresh stroke)
+      previous_mouse_step[row] = nil
+      previous_mouse_value[row] = nil
+      
       -- Check for right-click or Ctrl+click to delete automation envelope
       if ev.button == "right" or (ev.button == "left" and ev.modifiers == "control") then
         PakettiHyperEditDeleteAutomation(row)
@@ -1401,6 +1408,9 @@ function PakettiHyperEditHandleRowMouse(row)
     elseif ev.type == "up" then
       mouse_is_down = false
       current_row_drawing = 0
+      -- Clear previous mouse position when mouse is released
+      previous_mouse_step[row] = nil
+      previous_mouse_value[row] = nil
     elseif ev.type == "move" and mouse_is_down and current_row_drawing == row then
       last_mouse_move_time = os.clock() * 1000 -- Update timestamp on move
       PakettiHyperEditHandleRowClick(row, x, y)
@@ -1465,7 +1475,12 @@ function PakettiHyperEditHandleRowMouse(row)
   end
 end
 
--- Handle click on specific row
+-- Helper function to linear interpolate between two values
+function PakettiHyperEditLerp(a, b, t)
+  return a + (b - a) * t
+end
+
+-- Handle click on specific row with interpolation to prevent bucktooth drawing
 function PakettiHyperEditHandleRowClick(row, x, y)
   if not row_parameters[row] then
     renoise.app():show_status("HyperEdit Row " .. row .. ": Select device and parameter first")
@@ -1493,16 +1508,47 @@ function PakettiHyperEditHandleRowClick(row, x, y)
   local step = math.floor((x - content_x) / step_width) + 1
   step = math.max(1, math.min(row_step_count, step))
   
-  -- Always activate the step (no toggling - just set values like PakettiCanvasExperiments)
-  step_active[row][step] = true
-  
   -- Set step value from Y position using content area (like PakettiCanvasExperiments)
   local normalized_y = 1.0 - ((y - content_y) / content_height)
   normalized_y = math.max(0.0, math.min(1.0, normalized_y))
-  step_data[row][step] = normalized_y
   
-  -- Apply immediately to device parameter or pattern
-  PakettiHyperEditApplyStep(row, step)
+  -- Interpolate between previous and current position if we have previous data and mouse is down
+  if mouse_is_down and previous_mouse_step[row] and previous_mouse_value[row] then
+    local prev_step = previous_mouse_step[row]
+    local prev_value = previous_mouse_value[row]
+    
+    -- Calculate step range to fill
+    local step_start = math.min(prev_step, step)
+    local step_end = math.max(prev_step, step)
+    
+    -- Fill in all steps between previous and current position
+    for s = step_start, step_end do
+      -- Calculate interpolation factor (0.0 to 1.0)
+      local t = 0.5
+      if step_end > step_start then
+        t = (s - step_start) / (step_end - step_start)
+      end
+      
+      -- Interpolate value
+      local interpolated_value = PakettiHyperEditLerp(prev_value, normalized_y, t)
+      
+      -- Activate step and set value
+      step_active[row][s] = true
+      step_data[row][s] = interpolated_value
+      
+      -- Apply immediately to device parameter or pattern
+      PakettiHyperEditApplyStep(row, s)
+    end
+  else
+    -- First click or no previous data - just set current step
+    step_active[row][step] = true
+    step_data[row][step] = normalized_y
+    PakettiHyperEditApplyStep(row, step)
+  end
+  
+  -- Store current position as previous for next interpolation
+  previous_mouse_step[row] = step
+  previous_mouse_value[row] = normalized_y
   
   -- Update canvas
   if row_canvases[row] then

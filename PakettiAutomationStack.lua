@@ -30,6 +30,8 @@ PakettiAutomationStack_vertical_page_index = 1
 PakettiAutomationStack_vertical_page_size = 8
 PakettiAutomationStack_vscrollbar_view = nil
 PakettiAutomationStack_min_redraw_ms = 60
+PakettiAutomationStack_min_redraw_ms_idle = 100 -- Slower refresh when not drawing
+PakettiAutomationStack_min_redraw_ms_active = 16 -- ~60 FPS when actively drawing
 PakettiAutomationStack_last_redraw_ms = 0
 PakettiAutomationStack_is_drawing = false
 PakettiAutomationStack_last_draw_line = -1
@@ -48,6 +50,18 @@ PakettiAutomationStack_single_selected_index = 1
 PakettiAutomationStack_single_canvas_height = 320
 PakettiAutomationStack_copy_buffer = nil
 PakettiAutomationStack_automation_hashes = {} -- Individual automation hashes for change detection
+
+-- Single view background caching for performance
+PakettiAutomationStack_background_cache = nil -- Cached rendering function for non-selected automations
+PakettiAutomationStack_background_cache_valid = false -- Whether cache is valid
+PakettiAutomationStack_cached_selected_index = nil -- Track which index was selected when cache was built
+PakettiAutomationStack_cached_num_lines = nil -- Track pattern length when cache was built
+
+-- Grid caching for performance
+PakettiAutomationStack_grid_cache = nil -- Cached grid rendering function
+PakettiAutomationStack_grid_cache_valid = false -- Whether grid cache is valid
+PakettiAutomationStack_cached_grid_num_lines = nil -- Track pattern length for grid cache
+PakettiAutomationStack_cached_grid_lpb = nil -- Track LPB for grid cache
 
 -- Observable management for auto-updating
 PakettiAutomationStack_track_observables = {} -- Track mute state observables
@@ -720,12 +734,17 @@ function PakettiAutomationStack_RebuildAutomations()
     end
   end
   PakettiAutomationStack_UpdateEnvPopup()
+  
+  -- Invalidate background cache since automation list changed
+  PakettiAutomationStack_InvalidateBackgroundCache()
 end
 
--- Redraw throttling
+-- Redraw throttling with context-aware rates
 function PakettiAutomationStack_RequestUpdate()
   local now_ms = os.clock() * 1000
-  if (now_ms - PakettiAutomationStack_last_redraw_ms) >= PakettiAutomationStack_min_redraw_ms then
+  -- Use faster throttle when actively drawing, slower when idle
+  local throttle_ms = PakettiAutomationStack_is_drawing and PakettiAutomationStack_min_redraw_ms_active or PakettiAutomationStack_min_redraw_ms_idle
+  if (now_ms - PakettiAutomationStack_last_redraw_ms) >= throttle_ms then
     if PakettiAutomationStack_header_canvas and PakettiAutomationStack_header_canvas.visible then PakettiAutomationStack_header_canvas:update() end
     if PakettiAutomationStack_track_canvases and #PakettiAutomationStack_track_canvases > 0 then
       for i = 1, #PakettiAutomationStack_track_canvases do
@@ -882,6 +901,225 @@ function PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, colo
   end
 end
 
+-- Invalidate the background cache for Single view
+function PakettiAutomationStack_InvalidateBackgroundCache()
+  PakettiAutomationStack_background_cache_valid = false
+end
+
+-- Invalidate the grid cache
+function PakettiAutomationStack_InvalidateGridCache()
+  PakettiAutomationStack_grid_cache_valid = false
+end
+
+-- Build cached grid rendering
+function PakettiAutomationStack_BuildGridCache(W, H, num_lines, lpb)
+  local win = PakettiAutomationStack_GetWindowLines(num_lines)
+  local pixels_per_line = W / win
+  local gutter = PakettiAutomationStack_gutter_width
+  
+  -- Pre-calculate all grid line positions and styles
+  local grid_lines = {}
+  
+  if pixels_per_line >= 6 then
+    for line = PakettiAutomationStack_view_start_line, math.min(num_lines, PakettiAutomationStack_view_start_line + win - 1) do
+      local x = PakettiAutomationStack_LineToX(line, num_lines)
+      local style
+      if ((line-1) % (lpb*4)) == 0 then
+        style = {color = {110,110,160,255}, width = 3}
+      elseif ((line-1) % lpb) == 0 then
+        style = {color = {80,80,120,220}, width = 2}
+      else
+        style = {color = {40,40,60,130}, width = 1}
+      end
+      grid_lines[#grid_lines+1] = {x=x, style=style}
+    end
+  else
+    for line = PakettiAutomationStack_view_start_line, math.min(num_lines, PakettiAutomationStack_view_start_line + win - 1) do
+      if ((line-1) % lpb) == 0 then
+        local x = PakettiAutomationStack_LineToX(line, num_lines)
+        grid_lines[#grid_lines+1] = {x=x, style={color={70,70,100,220}, width=1}}
+      end
+    end
+  end
+  
+  -- Return a rendering function
+  return function(ctx)
+    -- Background
+    ctx:set_fill_linear_gradient(0, 0, 0, H)
+    ctx:add_fill_color_stop(0, {25,25,35,255})
+    ctx:add_fill_color_stop(1, {15,15,25,255})
+    ctx:begin_path(); ctx:rect(0,0,W,H); ctx:fill()
+    
+    -- Gutters (only if gutter_width > 0)
+    if gutter > 0 then
+      ctx.fill_color = {18,18,24,255}; ctx:fill_rect(0, 0, gutter, H)
+      ctx.fill_color = {14,14,20,255}; ctx:fill_rect(W - gutter, 0, gutter, H)
+    end
+    
+    -- Grid lines from cache
+    for i = 1, #grid_lines do
+      local line_data = grid_lines[i]
+      ctx.stroke_color = line_data.style.color
+      ctx.line_width = line_data.style.width
+      ctx:begin_path(); ctx:move_to(line_data.x, 0); ctx:line_to(line_data.x, H); ctx:stroke()
+    end
+  end
+end
+
+-- Build cached background rendering for non-selected automations in Single view
+function PakettiAutomationStack_BuildBackgroundCache(W, H, num_lines, sel)
+  -- Build a closure that captures all the drawing commands for non-selected automations
+  local cached_commands = {}
+  
+  for i = 1, #PakettiAutomationStack_automations do
+    if i ~= sel then
+      local entry = PakettiAutomationStack_automations[i]
+      local automation_commands = {}
+      
+      if entry and entry.automation then
+        local a = entry.automation
+        local points = a.points or {}
+        local mode = a.playmode or renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        
+        if #points > 0 then
+          -- Determine colors
+          local main_color, point_color
+          if entry.track_index then
+            main_color = PakettiAutomationStack_TrackColorToCanvas(entry.track_index, 90, 0.7)
+            point_color = PakettiAutomationStack_TrackColorToCanvas(entry.track_index, 80, 1.0)
+          else
+            main_color = {90,190,170,90}
+            point_color = {200,255,255,80}
+          end
+          
+          automation_commands.main_color = main_color
+          automation_commands.point_color = point_color
+          automation_commands.mode = mode
+          automation_commands.points = points
+          automation_commands.paths = {}
+          
+          -- Pre-calculate all curve segments
+          if mode == renoise.PatternTrackAutomation.PLAYMODE_LINES or 
+             mode == renoise.PatternTrackAutomation.PLAYMODE_CURVES then
+            for seg = 1, (#points - 1) do
+              local p0 = points[math.max(1, seg-1)]
+              local p1c = points[seg]
+              local p2 = points[seg+1]
+              local p3 = points[math.min(#points, seg+2)]
+              local x1 = PakettiAutomationStack_MapTimeToX((p1c.time or 1) - 1, num_lines)
+              local y1 = PakettiAutomationStack_ValueToY(p1c.value, H)
+              local x2 = PakettiAutomationStack_MapTimeToX((p2.time or 1) - 1, num_lines)
+              local y2 = PakettiAutomationStack_ValueToY(p2.value, H)
+              if x2 <= x1 then x2 = x1 + 1 end
+              
+              -- VIEWPORT CULLING: Skip segments entirely outside visible canvas
+              if x2 >= 0 and x1 <= W then
+                local path = {x1=x1, y1=y1, x2=x2, y2=y2, points_data={}}
+                
+                if mode == renoise.PatternTrackAutomation.PLAYMODE_CURVES then
+                  -- Reduce quality for background automations (half the steps)
+                  local steps = math.max(4, math.floor((x2 - x1) / 10))
+                  local function hermite(t, y_0, y_1, y_2, y_3)
+                  local m1 = 0.5 * (y_2 - y_0)
+                  local m2 = 0.5 * (y_3 - y_1)
+                  local t2 = t * t
+                  local t3 = t2 * t
+                  local h00 = 2*t3 - 3*t2 + 1
+                  local h10 = t3 - 2*t2 + t
+                  local h01 = -2*t3 + 3*t2
+                  local h11 = t3 - t2
+                  return h00*y_1 + h10*m1 + h01*y_2 + h11*m2
+                end
+                
+                for s = 0, steps do
+                  local t = s / steps
+                  local x = x1 + (x2 - x1) * t
+                  local y = hermite(t, PakettiAutomationStack_ValueToY(p0.value, H), y1, y2, PakettiAutomationStack_ValueToY(p3.value, H))
+                  path.points_data[#path.points_data+1] = {x=x, y=y}
+                end
+              end
+              
+              automation_commands.paths[#automation_commands.paths+1] = path
+              end -- End viewport culling check
+            end
+          end
+          
+          cached_commands[#cached_commands+1] = automation_commands
+        end
+      end
+    end
+  end
+  
+  -- Return a function that renders the cached commands
+  return function(ctx)
+    for _, auto_cmd in ipairs(cached_commands) do
+      -- Draw the automation using cached data
+      ctx.stroke_color = auto_cmd.main_color
+      ctx.line_width = 2
+      
+      if auto_cmd.mode == renoise.PatternTrackAutomation.PLAYMODE_POINTS then
+        -- Draw points mode (no lines)
+        ctx.fill_color = auto_cmd.point_color
+        for _, pt in ipairs(auto_cmd.points) do
+          local x = PakettiAutomationStack_MapTimeToX((pt.time or 1) - 1, num_lines)
+          local y = PakettiAutomationStack_ValueToY(pt.value, H)
+          -- VIEWPORT CULLING: Skip points outside visible canvas
+          if x >= -4 and x <= W + 4 then
+            ctx:begin_path()
+            ctx:rect(x-2, y-2, 4, 4)
+            ctx:fill()
+          end
+        end
+      elseif auto_cmd.mode == renoise.PatternTrackAutomation.PLAYMODE_LINES then
+        -- Draw lines mode
+        for _, path in ipairs(auto_cmd.paths) do
+          ctx:begin_path()
+          ctx:move_to(path.x1, path.y1)
+          ctx:line_to(path.x2, path.y2)
+          ctx:stroke()
+        end
+        -- Draw points
+        ctx.fill_color = auto_cmd.point_color
+        for _, pt in ipairs(auto_cmd.points) do
+          local x = PakettiAutomationStack_MapTimeToX((pt.time or 1) - 1, num_lines)
+          local y = PakettiAutomationStack_ValueToY(pt.value, H)
+          -- VIEWPORT CULLING: Skip points outside visible canvas
+          if x >= -4 and x <= W + 4 then
+            ctx:begin_path()
+            ctx:rect(x-2, y-2, 4, 4)
+            ctx:fill()
+          end
+        end
+      elseif auto_cmd.mode == renoise.PatternTrackAutomation.PLAYMODE_CURVES then
+        -- Draw curves mode using pre-calculated points
+        for _, path in ipairs(auto_cmd.paths) do
+          ctx:begin_path()
+          for i, pt in ipairs(path.points_data) do
+            if i == 1 then
+              ctx:move_to(pt.x, pt.y)
+            else
+              ctx:line_to(pt.x, pt.y)
+            end
+          end
+          ctx:stroke()
+        end
+        -- Draw points
+        ctx.fill_color = auto_cmd.point_color
+        for _, pt in ipairs(auto_cmd.points) do
+          local x = PakettiAutomationStack_MapTimeToX((pt.time or 1) - 1, num_lines)
+          local y = PakettiAutomationStack_ValueToY(pt.value, H)
+          -- VIEWPORT CULLING: Skip points outside visible canvas
+          if x >= -4 and x <= W + 4 then
+            ctx:begin_path()
+            ctx:rect(x-2, y-2, 4, 4)
+            ctx:fill()
+          end
+        end
+      end
+    end
+  end
+end
+
 -- Single view renderer (overlay all automations, highlight selected)
 function PakettiAutomationStack_RenderSingleCanvas(canvas_w, canvas_h)
   return function(ctx)
@@ -892,26 +1130,44 @@ function PakettiAutomationStack_RenderSingleCanvas(canvas_w, canvas_h)
     if not song or not patt then return end
     local num_lines = patt.number_of_lines
     local lpb = song.transport.lpb
-    PakettiAutomationStack_DrawGrid(ctx, W, H, num_lines, lpb)
+    
+    -- Check if we need to rebuild the grid cache
+    if not PakettiAutomationStack_grid_cache_valid or
+       PakettiAutomationStack_cached_grid_num_lines ~= num_lines or
+       PakettiAutomationStack_cached_grid_lpb ~= lpb then
+      -- Rebuild grid cache
+      PakettiAutomationStack_grid_cache = PakettiAutomationStack_BuildGridCache(W, H, num_lines, lpb)
+      PakettiAutomationStack_grid_cache_valid = true
+      PakettiAutomationStack_cached_grid_num_lines = num_lines
+      PakettiAutomationStack_cached_grid_lpb = lpb
+    end
+    
+    -- Draw cached grid
+    if PakettiAutomationStack_grid_cache then
+      PakettiAutomationStack_grid_cache(ctx)
+    end
 
     if #PakettiAutomationStack_automations == 0 then return end
     local sel = PakettiAutomationStack_single_selected_index
     if sel < 1 then sel = 1 end
     if sel > #PakettiAutomationStack_automations then sel = #PakettiAutomationStack_automations end
 
-    -- Draw background automations dimmed (using track colors with reduced alpha)
-    for i = 1, #PakettiAutomationStack_automations do
-      if i ~= sel then
-        local entry = PakettiAutomationStack_automations[i]
-        if entry.track_index then
-          local dim_main = PakettiAutomationStack_TrackColorToCanvas(entry.track_index, 90, 0.7)
-          local dim_point = PakettiAutomationStack_TrackColorToCanvas(entry.track_index, 80, 1.0)
-          PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, dim_main, dim_point, 2, false)
-        else
-          PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, {90,190,170,90}, {200,255,255,80}, 2, false)
-        end
-      end
+    -- Check if we need to rebuild the background cache
+    if not PakettiAutomationStack_background_cache_valid or 
+       PakettiAutomationStack_cached_selected_index ~= sel or
+       PakettiAutomationStack_cached_num_lines ~= num_lines then
+      -- Rebuild cache
+      PakettiAutomationStack_background_cache = PakettiAutomationStack_BuildBackgroundCache(W, H, num_lines, sel)
+      PakettiAutomationStack_background_cache_valid = true
+      PakettiAutomationStack_cached_selected_index = sel
+      PakettiAutomationStack_cached_num_lines = num_lines
     end
+    
+    -- Draw cached background (all non-selected automations as static composite)
+    if PakettiAutomationStack_background_cache then
+      PakettiAutomationStack_background_cache(ctx)
+    end
+    
     -- Draw selected on top (using track colors with full opacity)
     local sel_entry = PakettiAutomationStack_automations[sel]
     if sel_entry then
@@ -1145,6 +1401,9 @@ function PakettiAutomationStack_PasteIntoSelectedEnvelope()
     local p = PakettiAutomationStack_copy_buffer.points[i]
     a:add_point_at(math.floor(p.time), p.value)
   end
+  
+  -- Invalidate background cache since automation was modified
+  PakettiAutomationStack_InvalidateBackgroundCache()
   PakettiAutomationStack_RequestUpdate()
   renoise.app():show_status("Automation Stack: Pasted " .. tostring(#PakettiAutomationStack_copy_buffer.points) .. " points")
 end
@@ -1280,6 +1539,9 @@ function PakettiAutomationStack_WritePoint(automation_index, line, value, remove
     a:add_point_at(line, value)
     print("ADDED point at line " .. line .. " with value " .. value)
   end
+  
+  -- Invalidate background cache since automation was modified
+  PakettiAutomationStack_InvalidateBackgroundCache()
 end
 
 -- Mouse handler per lane
