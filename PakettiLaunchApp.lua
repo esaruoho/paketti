@@ -88,7 +88,14 @@ end
 
 -- Function to save selected sample range to temp and open with the selected app
 function saveSelectedSampleRangeToTempAndOpen(app_path)
-    if renoise.song() == nil then return end
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
+    if renoise.song() == nil then 
+        -- Restore AutoSamplify monitoring state
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+        return 
+    end
     
     -- Check if app path is valid
     if app_path == nil or app_path == "" or app_path == "None" then
@@ -177,6 +184,9 @@ function saveSelectedSampleRangeToTempAndOpen(app_path)
     local duration_ms = (selection_length / sample_buffer.sample_rate) * 1000
     renoise.app():show_status(string.format("Sample range sent to %s (frames %d-%d, %.1fms)", 
         app_path, selection_start, selection_end, duration_ms))
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Create the dialog UI

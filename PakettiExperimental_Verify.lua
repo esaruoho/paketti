@@ -367,6 +367,9 @@ renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playbac
 --InitSBx()
 
 function crossfade_loop(crossfade_length)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- User-adjustable fade length for loop start/end fades
   local fade_length = 20
 
@@ -501,6 +504,9 @@ function crossfade_loop(crossfade_length)
   sample_buffer:finalize_sample_data_changes()
 
   renoise.app():show_status("Crossfade and 20-frame fades applied to create a smooth X-shaped loop.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Helper function to determine crossfade_length based on the current selection
@@ -3285,6 +3291,9 @@ end
 
 -- Function to create a sine wave sample in Renoise
 function createSinewaveSample(sample_rate, frequency, duration)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   
   -- Check if we have a selected instrument
@@ -3355,6 +3364,9 @@ function createSinewaveSample(sample_rate, frequency, duration)
     renoise.app():show_status("Error: Could not create sample data")
     print("Error: Sample buffer has no data")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to generate amplitude modulated sine wave
@@ -3406,6 +3418,9 @@ end
 
 -- Function to create amplitude modulated sine wave sample in Renoise
 function createAmplitudeModulatedSinewaveSample(sample_rate, frequency, modulation_multiplier, modulation_amplitude)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   
   -- Check if we have a selected instrument
@@ -3467,6 +3482,9 @@ function createAmplitudeModulatedSinewaveSample(sample_rate, frequency, modulati
     renoise.app():show_status("Error: Could not create sample data")
     print("Error: Sample buffer has no data")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function for custom frequency sine wave generation

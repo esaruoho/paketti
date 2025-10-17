@@ -2472,6 +2472,9 @@ end
 
 -- Import UIOWA samples with automatic keyzone mapping
 function pakettiUIowaImporter()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Prompt for multiple sample files
   local file_paths = renoise.app():prompt_for_multiple_filenames_to_read(
     {"*.wav", "*.aif", "*.aiff", "*.flac", "*.ogg"}, 
@@ -2578,6 +2581,9 @@ function pakettiUIowaImporter()
     renoise.app():show_warning("No UIOWA samples could be imported. Check filename patterns (e.g., 'Flute_C4.wav')")
     print("-- Paketti UIOWA Importer: No samples imported. Expected filename patterns like 'Instrument_C4.wav', 'Piano_Db5.aif', etc.")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:UIOWA Sample Importer",invoke = pakettiUIowaImporter}
@@ -2691,20 +2697,29 @@ renoise.tool():add_midi_mapping{
 }
 -- Trim a single sample based on mode
 local function pakettiTrimSample(instr, sample_idx, mode)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local sample = instr.samples[sample_idx]
   if not sample then
     print("-- Paketti Trimmer: Could not locate sample at index " .. sample_idx)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false, "Sample not found"
   end
   
   local sbuf = sample.sample_buffer
   if not sbuf.has_sample_data then
     print(string.format("-- Paketti Trimmer: Sample '%s' has no sample data", sample.name))
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false, "No sample data"
   end
   
   if sbuf.read_only then
     print(string.format("-- Paketti Trimmer: Sample '%s' is read-only (sliced?)", sample.name))
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false, "Sample is read-only"
   end
   

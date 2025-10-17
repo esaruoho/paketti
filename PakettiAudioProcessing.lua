@@ -101,16 +101,23 @@ local function createProtrackerModDialog()
 end
 
 function processProtrackerMod()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local sample = song.selected_sample
   
   if not sample or not sample.sample_buffer.has_sample_data then
     renoise.app():show_status("No valid sample selected")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   
   if protrackerModSpeed == 0 then
     renoise.app():show_status("The Mod Speed must be non-zero")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   
@@ -171,6 +178,9 @@ function processProtrackerMod()
   
   renoise.app():show_status("ProTracker MOD modulation applied with speed " .. protrackerModSpeed)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function showProtrackerModDialog()
@@ -245,6 +255,9 @@ end
 
 -- OPTIMIZED: Function to limit the sample to avoid clipping with aggressive caching
 local function limit_sample(buffer)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local max_value = 0
   local total_frames = buffer.number_of_frames
   local total_channels = buffer.number_of_channels
@@ -293,20 +306,32 @@ local function limit_sample(buffer)
   
   -- Clear cache
   sample_cache = nil
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 
 -- Function to create an audio diff sample
 function create_audio_diff_sample()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local sample = song.selected_sample
   local duplicate = duplicate_sample()
-  if not duplicate then return end
+  if not duplicate then 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return 
+  end
 
   local buffer1 = sample.sample_buffer
   local buffer2 = duplicate.sample_buffer
   if not buffer1.has_sample_data or not buffer2.has_sample_data then 
     renoise.app():show_status("The Sample Buffer has no data.") 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return 
   end
 
@@ -329,21 +354,40 @@ function create_audio_diff_sample()
 
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   renoise.app():show_status("Audio Diff applied.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 
 -- Function to duplicate a sample
 local function duplicate_sample()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local instrument = song.selected_instrument
-  if not instrument then renoise.app():show_status("There is no Instrument selected.") return nil end
+  if not instrument then 
+    renoise.app():show_status("There is no Instrument selected.") 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return nil 
+  end
   local sample = song.selected_sample
-  if not sample then renoise.app():show_status("There is no Sample selected.") return nil end
+  if not sample then 
+    renoise.app():show_status("There is no Sample selected.") 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return nil 
+  end
 
   -- Create a duplicate of the selected sample
   local duplicate = instrument:insert_sample_at(#instrument.samples + 1)
   duplicate:copy_from(sample)
 
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  
   return duplicate
 end
 
@@ -356,15 +400,24 @@ end
 
 -- Function to mix and process samples with various operations
 local function mix_and_process_samples(operation, mod_function)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local sample = song.selected_sample
   local duplicate = duplicate_sample()
-  if not duplicate then return end
+  if not duplicate then 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return 
+  end
 
   local buffer1 = sample.sample_buffer
   local buffer2 = duplicate.sample_buffer
   if not buffer1.has_sample_data or not buffer2.has_sample_data then 
     renoise.app():show_status("The Sample Buffer has no data.") 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return 
   end
 
@@ -405,20 +458,32 @@ local function mix_and_process_samples(operation, mod_function)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 
   renoise.app():show_status("Sample " .. operation .. " applied and mixed.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 
 -- Function to perform phase inversion (subtraction) on a sample
 local function phase_invert_sample()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local sample = song.selected_sample
   local duplicate = duplicate_sample()
-  if not duplicate then return end
+  if not duplicate then 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return 
+  end
 
   local buffer1 = sample.sample_buffer
   local buffer2 = duplicate.sample_buffer
   if not buffer1.has_sample_data or not buffer2.has_sample_data then 
     renoise.app():show_status("The Sample Buffer has no data.") 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return 
   end
 
@@ -440,6 +505,9 @@ local function phase_invert_sample()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 
   renoise.app():show_status("Phase Inversion (Subtraction) applied.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to handle Phase Inversion and Audio Diff
@@ -450,12 +518,17 @@ end
 
 -- Function to perform inversion of right channel and summing to mono
 local function invert_right_sum_mono()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
   if buffer.number_of_channels ~= 2 then
     renoise.app():show_status("The sample needs to be stereo")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -493,23 +566,40 @@ local function invert_right_sum_mono()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 
   renoise.app():show_status("Invert Right, Sum Mono applied.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 
 
 -- Function to perform pitch shifting and subtraction
 local function pitch_shift_sample(shift_amount)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   if shift_amount == 0 then
     renoise.app():show_status("Set pitch valuebox to something other than 0, otherwise nothing happens.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
   local song=renoise.song()
   local duplicate = duplicate_sample()
-  if not duplicate then return end
+  if not duplicate then 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return 
+  end
 
   local buffer = duplicate.sample_buffer
-  if not buffer.has_sample_data then renoise.app():show_status("The Sample Buffer has no data.") return end
+  if not buffer.has_sample_data then 
+    renoise.app():show_status("The Sample Buffer has no data.") 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return 
+  end
 
   buffer:prepare_sample_data_changes()
   local num_frames = buffer.number_of_frames
@@ -532,6 +622,9 @@ local function pitch_shift_sample(shift_amount)
   copy_sample_settings(song.selected_sample, duplicate)
 
   mix_and_process_samples("diff")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to handle Pitch Shift and Audio Diff
@@ -547,7 +640,13 @@ end
 
 -- Function to perform modulation
 local function modulate_samples()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   mix_and_process_samples("modulate")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to handle Modulation and Audio Diff
@@ -558,6 +657,9 @@ end
 
 -- Function to render the sample at a new sample rate without changing its sound
 function RenderSampleAtNewRate(target_sample_rate, target_bit_depth)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local instrument = song.selected_instrument
   local sample_index = song.selected_sample_index
@@ -598,10 +700,16 @@ function RenderSampleAtNewRate(target_sample_rate, target_bit_depth)
   else
     renoise.app():show_status("Sample buffer is either not loaded or is not at the correct sample rate.")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to destructively resample the selected sample to a specified sample rate
 local function DestructiveResample(target_sample_rate, target_bit_depth)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local instrument = song.selected_instrument
   local sample_index = song.selected_sample_index
@@ -650,6 +758,9 @@ local function DestructiveResample(target_sample_rate, target_bit_depth)
   else
     renoise.app():show_status("Sample buffer is either not loaded or is not at the correct sample rate.")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 
@@ -1058,6 +1169,9 @@ end
 
 -- ProcessSlicer coroutine version of PakettiStripSilence
 function PakettiStripSilenceCoroutine()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local sample_index = song.selected_sample_index
   local instrument = song.selected_instrument
@@ -1065,6 +1179,8 @@ function PakettiStripSilenceCoroutine()
   
   if not instrument or sample_index == 0 or not instrument:sample(sample_index) then
     renoise.app():show_status("No valid instrument/sample/sample buffer.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -1072,6 +1188,8 @@ function PakettiStripSilenceCoroutine()
   local buffer = sample.sample_buffer
   if not buffer.has_sample_data then
     renoise.app():show_status("Sample buffer is empty.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -1137,6 +1255,8 @@ function PakettiStripSilenceCoroutine()
   if new_num_frames < 1 then
     renoise.app():show_status("No non-silent data found.")
     buffer:finalize_sample_data_changes()
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -1200,6 +1320,9 @@ function PakettiStripSilenceCoroutine()
   song.selected_sample_index = sample_index
 
   renoise.app():show_status("Removed Silence from beginning + end of sample at threshold " .. (threshold * 100) .. "%")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function PakettiStripSilence()
@@ -1209,6 +1332,9 @@ end
 
 -- ProcessSlicer coroutine version of PakettiMoveSilence
 function PakettiMoveSilenceCoroutine()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local sample_index = song.selected_sample_index
   local instrument = song.selected_instrument
@@ -1218,6 +1344,8 @@ function PakettiMoveSilenceCoroutine()
   
   if not instrument or sample_index == 0 or not instrument:sample(sample_index) then
     renoise.app():show_status("No valid instrument/sample/sample buffer.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -1225,6 +1353,8 @@ function PakettiMoveSilenceCoroutine()
   local buffer = sample.sample_buffer
   if not buffer.has_sample_data then
     renoise.app():show_status("Sample buffer is empty.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -1314,6 +1444,9 @@ function PakettiMoveSilenceCoroutine()
   instrument:delete_sample_at(#instrument.samples)
 
   renoise.app():show_status("Moved beginning silence to the end of the sample.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function PakettiMoveSilence()
@@ -1334,16 +1467,23 @@ renoise.tool():add_midi_mapping{name="Paketti:Move Beginning Silence to End",inv
 
 -- ProcessSlicer coroutine version of PakettiMoveSilenceAllSamples
 function PakettiMoveSilenceAllSamplesCoroutine()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local instrument = song.selected_instrument
   
   if not instrument then
     renoise.app():show_status("No instrument selected.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   
   if #instrument.samples == 0 then
     renoise.app():show_status("Selected instrument has no samples.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   
@@ -1429,6 +1569,9 @@ function PakettiMoveSilenceAllSamplesCoroutine()
   else
     renoise.app():show_status("No samples with significant initial silence found (minimum 50 frames).")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function PakettiMoveSilenceAllSamples()
@@ -1440,16 +1583,23 @@ renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End
 
 -- ProcessSlicer coroutine version of PakettiStripSilenceAllSamples
 function PakettiStripSilenceAllSamplesCoroutine()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local instrument = song.selected_instrument
   
   if not instrument then
     renoise.app():show_status("No instrument selected.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   
   if #instrument.samples == 0 then
     renoise.app():show_status("Selected instrument has no samples.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   
@@ -1558,6 +1708,9 @@ function PakettiStripSilenceAllSamplesCoroutine()
   else
     renoise.app():show_status("No samples with significant silence found (minimum 50 frames).")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function PakettiStripSilenceAllSamples()
@@ -1569,9 +1722,14 @@ renoise.tool():add_keybinding{name="Global:Paketti:Strip Silence from All Sample
 
 --------
 function PakettiSampleInvertEntireSample()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local sample = renoise.song().selected_sample
   if not sample or not sample.sample_buffer.has_sample_data then
     renoise.app():show_status("No valid sample selected")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -1587,14 +1745,22 @@ function PakettiSampleInvertEntireSample()
   
   buffer:finalize_sample_data_changes()
   renoise.app():show_status("Entire sample inverted (waveform flipped)")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Invert Left Channel
 function PakettiSampleInvertLeftChannel()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local sample = song.selected_sample
   if not sample or not sample.sample_buffer or sample.sample_buffer.number_of_channels < 2 then
     renoise.app():show_status("No stereo sample available")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   local buffer = sample.sample_buffer
@@ -1604,14 +1770,22 @@ function PakettiSampleInvertLeftChannel()
   end
   buffer:finalize_sample_data_changes()
   renoise.app():show_status("Left channel inverted")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Invert Right Channel
 function PakettiSampleInvertRightChannel()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local sample = song.selected_sample
   if not sample or not sample.sample_buffer or sample.sample_buffer.number_of_channels < 2 then
     renoise.app():show_status("No stereo sample available")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   local buffer = sample.sample_buffer
@@ -1621,13 +1795,21 @@ function PakettiSampleInvertRightChannel()
   end
   buffer:finalize_sample_data_changes()
   renoise.app():show_status("Right channel inverted")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Random invert function
 function PakettiInvertRandomSamplesInInstrument()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local instrument = renoise.song().selected_instrument
   if not instrument or #instrument.samples == 0 then
     renoise.app():show_status("No instrument selected or instrument has no samples")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -1646,6 +1828,9 @@ function PakettiInvertRandomSamplesInInstrument()
   -- Restore original selection
   renoise.song().selected_sample_index = original_index
   renoise.app():show_status(string.format("Randomly inverted %d/%d samples in instrument", inverted_count, #instrument.samples))
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Invert Sample",invoke=function() PakettiSampleInvertEntireSample() end}
@@ -1655,15 +1840,30 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Right Channel",
 renoise.tool():add_keybinding{name="Global:Paketti:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 ---
 function apply_fade_in_out()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local instrument=renoise.song().selected_instrument
-  if not instrument or #instrument.samples==0 then return end
+  if not instrument or #instrument.samples==0 then 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return 
+  end
 
   local sample=instrument.samples[renoise.song().selected_sample_index]
   local buffer=sample.sample_buffer
-  if not buffer or not buffer.has_sample_data then return end
+  if not buffer or not buffer.has_sample_data then 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return 
+  end
 renoise.song().selected_sample.sample_buffer:prepare_sample_data_changes()
   local frames=buffer.number_of_frames
-  if frames<=30 then return end
+  if frames<=30 then 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return 
+  end
 
   -- Apply Fade-In
   for i=1,15 do
@@ -1684,6 +1884,9 @@ renoise.song().selected_sample.sample_buffer:prepare_sample_data_changes()
   end
 renoise.song().selected_sample.sample_buffer:finalize_sample_data_changes()
   renoise.app():show_status("15-frame fade-in and fade-out applied")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:15 Frame Fade In & Fade Out",invoke=function() apply_fade_in_out() end}
@@ -1691,6 +1894,9 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:15 Frame Fade In & Fad
 ---
 -- Function to create max amplitude DC offset kick
 function pakettiMaxAmplitudeDCOffsetKickCreator()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Insert a new instrument after the currently selected one
   local selected_index = renoise.song().selected_instrument_index
   local new_instrument_index = selected_index + 1
@@ -1723,16 +1929,24 @@ function pakettiMaxAmplitudeDCOffsetKickCreator()
 renoise.app().window.active_middle_frame=5
   
   renoise.app():show_status("Max Amp DC Offset Kick Generated!")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end}
 
 -- Function to apply the recursive DC offset correction algorithm
 function remove_dc_offset_recursive()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local sample_buffer = renoise.song().selected_sample.sample_buffer
 
   if not sample_buffer.has_sample_data then
     renoise.app():show_status("No sample data found.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -1768,22 +1982,34 @@ function remove_dc_offset_recursive()
   end
 
   renoise.app():show_status("Recursive DC Offset correction applied successfully.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Process:Recursive Remove DC Offset",invoke=function() remove_dc_offset_recursive() end}
 
 function remove_dc_offset_recursive_1to50()
-local iterations = math.random(1, 50)
-for i = 1, iterations do
-  remove_dc_offset_recursive()
-end
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
+  local iterations = math.random(1, 50)
+  for i = 1, iterations do
+    remove_dc_offset_recursive()
+  end
   renoise.app():show_status("Ran Recursive DC Offset " .. iterations .. " times.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Process:Recursive Remove DC Offset Random Times",invoke=function() remove_dc_offset_recursive_1to50() end}
 ---------------
 
 function Paketti_Diagonal_Line_to_Sample()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local selected_instrument_index = renoise.song().selected_instrument_index
   local new_instrument_index = math.max(1, selected_instrument_index - 1)
   renoise.song():insert_instrument_at(new_instrument_index)
@@ -1804,6 +2030,9 @@ function Paketti_Diagonal_Line_to_Sample()
 
   buffer:finalize_sample_data_changes()
   renoise.app():show_status("Paketti Diagonal Line to Sample created successfully.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Diagonal Line to 16800 length Sample",invoke=function() Paketti_Diagonal_Line_to_Sample() end}
@@ -2142,18 +2371,25 @@ end
 
 -- Master conversion function: converts sample rate, bit depth, and channels in one atomic operation
 function paketti_convert_sample(target_rate, target_bit_depth, target_channel_mode, target_invert_mode)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
   
   if not sample or not buffer.has_sample_data then
     renoise.app():show_status("No valid sample selected")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   
   -- Check if this is a sliced sample
   if #sample.slice_markers > 0 then
     renoise.app():show_status("Sliced samples not supported yet")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   
@@ -2216,6 +2452,8 @@ function paketti_convert_sample(target_rate, target_bit_depth, target_channel_mo
   local current_mode = current_channels == 1 and "mono" or "stereo"
   if target_rate == current_rate and target_bit_depth == current_bit_depth and target_channel_mode == current_mode and (target_invert_mode == "none" or not target_invert_mode) then
     renoise.app():show_status("No conversion needed - sample already at target settings")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   
@@ -2316,12 +2554,20 @@ function paketti_convert_sample(target_rate, target_bit_depth, target_channel_mo
   renoise.app():show_status(status_message)
   print("Conversion completed successfully!")
   
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  
   return true
 end
 
 -- Helper function to apply channel inversion
 function apply_inversion(buffer, invert_mode)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   if not invert_mode or invert_mode == "none" then
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return  -- No inversion needed
   end
   
@@ -2347,6 +2593,9 @@ function apply_inversion(buffer, invert_mode)
   end
   
   buffer:finalize_sample_data_changes()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to process the sample adjustments using the master conversion function

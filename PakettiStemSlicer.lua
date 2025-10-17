@@ -547,6 +547,9 @@ end
 
 -- Reverse samples in instruments whose names match selected beat lengths, using ProcessSlicer
 function startReverseBuiltDrumkitsProcess(beats_to_reverse)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local beats_set = {}
   for _, b in ipairs(beats_to_reverse) do beats_set[b] = true end
 
@@ -596,6 +599,9 @@ function startReverseBuiltDrumkitsProcess(beats_to_reverse)
   end
   local slicer = ProcessSlicer(runner)
   slicer:start()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function setupStemSlicerBpmObservable()
@@ -949,6 +955,9 @@ end
 
 -- Create one drumkit instrument from file list (up to 120 zones)
 function makeDrumkitInstrument(file_list, title, reverse_threshold)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local max_zones = 120
   table.sort(file_list)
   local take = {}
@@ -997,6 +1006,9 @@ function makeDrumkitInstrument(file_list, title, reverse_threshold)
 
   -- No auto-reverse here per request; keep ProcessSlicer responsive by avoiding heavy in-place transforms
   finalizeInstrumentPaketti(inst)
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Make-everything workflow
@@ -1038,6 +1050,9 @@ function insertHeaderInstrumentForLoader(title)
 end
 
 function loadFilesAsInstruments(file_list)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   table.sort(file_list)
   for _, filepath in ipairs(file_list) do
@@ -1056,6 +1071,9 @@ function loadFilesAsInstruments(file_list)
     inst.samples[1].name = sample_name
   end
   finalizeInstrumentPaketti(song:instrument(song.selected_instrument_index))
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Run quick-load tasks inside ProcessSlicer (avoids yield across C boundary)

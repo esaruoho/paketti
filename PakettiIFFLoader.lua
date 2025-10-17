@@ -147,9 +147,14 @@ local failed_imports = {}
 
 -- File-import hook
 local function loadIFFSample(file_path)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local lower = file_path:lower()
   if not (lower:match("%.iff$") or lower:match("%.8svx$")
       or lower:match("%.16sv$")) then
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return nil
   end
 
@@ -165,6 +170,8 @@ local function loadIFFSample(file_path)
     print(string.format(
       "Failed to convert IFF file: %s (Error: %s)", file_path, err))
     renoise.app():show_status("IFF conversion failed")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return nil
   end
 
@@ -173,6 +180,8 @@ local function loadIFFSample(file_path)
   local idx = song.selected_instrument_index
   if not idx then
     renoise.app():show_status("Select an instrument first")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return nil
   end
 
@@ -206,17 +215,25 @@ local function loadIFFSample(file_path)
     print(string.format(
       "Failed to load IFF file: %s (Error: %s)", file_path, load_err))
     song:delete_instrument_at(new_idx)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return nil
   end
 
   renoise.app():show_status(
     string.format("Loaded %s at %d Hz", name, sample_rate))
   print(string.format("Successfully loaded: %s", file_path))
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
   return nil
 end
 
 -- Function to prompt for IFF file and load it
 function loadIFFSampleFromDialog()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local file_path = renoise.app():prompt_for_filename_to_read(
     {"*.iff", "*.8svx", "*.16sv"}, 
     "Load IFF Sample File"
@@ -225,6 +242,9 @@ function loadIFFSampleFromDialog()
   if file_path and file_path ~= "" then
     loadIFFSample(file_path)
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_file_import_hook{
@@ -264,10 +284,15 @@ local function getIFFFiles(dir)
 end
 
 function loadRandomIFF(num_samples)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Prompt the user to select a folder
   local folder_path = renoise.app():prompt_for_path("Select Folder Containing IFF/8SVX Files")
   if not folder_path then
       renoise.app():show_status("No folder selected.")
+      -- Restore AutoSamplify monitoring state
+      PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
       return nil
   end
 
@@ -277,6 +302,8 @@ function loadRandomIFF(num_samples)
   -- Check if there are enough files to choose from
   if #iff_files == 0 then
       renoise.app():show_status("No IFF/8SVX files found in the selected folder.")
+      -- Restore AutoSamplify monitoring state
+      PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
       return nil
   end
 
@@ -334,6 +361,9 @@ function loadRandomIFF(num_samples)
           print(string.format("Failed to convert IFF file: %s (Error: %s)", selected_file, err))
       end
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 

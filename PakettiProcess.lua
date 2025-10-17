@@ -760,15 +760,20 @@ local PROCESS_YIELD_INTERVAL = 1.5  -- Adjust this value to control how often th
 
 -- STREAMING: Memory-efficient normalization for huge samples (like 344MB)
 function normalize_selected_sample_streaming_coroutine()
-    local song = renoise.song()
-    local sample = song.selected_sample
-    
-    if not sample or not sample.sample_buffer.has_sample_data then
-        renoise.app():show_status("No valid sample selected")
-        return
-    end
-    
-    local buffer = sample.sample_buffer
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
+  local song = renoise.song()
+  local sample = song.selected_sample
+
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No valid sample selected")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+
+  local buffer = sample.sample_buffer
     local total_frames = buffer.number_of_frames
     local total_channels = buffer.number_of_channels
     
@@ -872,18 +877,26 @@ function normalize_selected_sample_streaming_coroutine()
         total_time, frames_per_second / 1000000))
     
     renoise.app():show_status(string.format("Streaming normalization: %.1f dB increase", db_increase))
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- ULTRA-OPTIMIZED: Super-fast normalization coroutine with maximum caching (for smaller samples)
 function normalize_selected_sample_ultra_fast_coroutine()
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
     local song = renoise.song()
     local sample = song.selected_sample
-    
+
     if not sample or not sample.sample_buffer.has_sample_data then
         renoise.app():show_status("No valid sample selected")
+        -- Restore AutoSamplify monitoring state
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
         return
     end
-    
+
     local buffer = sample.sample_buffer
     local total_frames = buffer.number_of_frames
     local total_channels = buffer.number_of_channels
@@ -1003,6 +1016,9 @@ function normalize_selected_sample_ultra_fast_coroutine()
         total_time, frames_per_second / 1000000))
     
     renoise.app():show_status(string.format("Ultra-fast normalization: %.1f dB increase", db_increase))
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Wrapper function that uses ProcessSlicer
@@ -1012,10 +1028,15 @@ function normalize_selected_sample_ultra_fast()
 end
 
 function normalize_selected_sample()
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
     -- Use pcall for all potentially dangerous operations
     local success, song = pcall(function() return renoise.song() end)
     if not success then
         print("Could not access song")
+        -- Restore AutoSamplify monitoring state
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
         return false
     end
 
@@ -1259,10 +1280,16 @@ function normalize_selected_sample()
     slicer = ProcessSlicer(process_func)
     dialog, vb = slicer:create_dialog("Normalizing Sample")
     slicer:start()
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 
 function ReverseSelectedSliceInSample()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local instrument = song.selected_instrument
   local current_slice = song.selected_sample_index
@@ -1478,10 +1505,16 @@ function ReverseSelectedSliceInSample()
   slicer = ProcessSlicer(process_func)
   dialog, vb = slicer:create_dialog("Reversing Sample")
   slicer:start()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Reverse All Samples in Selected Instrument
 function ReverseAllSamplesInSelectedInstrument()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local last_yield_time = os.clock()
   
@@ -1639,6 +1672,9 @@ function ReverseAllSamplesInSelectedInstrument()
   slicer = ProcessSlicer(process_func)
   dialog, vb = slicer:create_dialog(dialog_title)
   slicer:start()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}

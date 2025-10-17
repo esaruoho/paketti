@@ -1549,6 +1549,9 @@ render_context = {
 
 
 function StrRender()
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
     local song=renoise.song()
     local current_bpm = render_context.current_bpm or song.transport.bpm
     
@@ -1558,6 +1561,9 @@ function StrRender()
     -- Use unified render function with timestretch mode
     -- muteOriginal=false, justwav=true, newtrack=false, timestretch_mode=true, current_bpm=current_bpm
     pakettiCleanRenderSelection(false, true, false, true, current_bpm)
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Improved time resolution calculation

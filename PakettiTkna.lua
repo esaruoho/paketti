@@ -1649,6 +1649,9 @@ local SLICE_SETTINGS = {
 }
 
 function sliceDrumKit(mode)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local s = renoise.song()
   
   -- Check if any instruments exist
@@ -1692,6 +1695,9 @@ function sliceDrumKit(mode)
   end
   
   renoise.app():show_status(string.format("Applied %s drum kit slice settings", mode))
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function slicePercussionDrumKit() sliceDrumKit("percussion") end

@@ -1,4 +1,7 @@
 function load_random_akwf_sample(amount)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Ultra-random seeding using multiple entropy sources
   math.randomseed(os.time())
   math.random(); math.random(); math.random()
@@ -19,6 +22,8 @@ function load_random_akwf_sample(amount)
     file:close()
   else
     renoise.app():show_status("akwf.txt not found in " .. tool_folder)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -82,6 +87,9 @@ function load_random_akwf_sample(amount)
     renoise.app():show_status("No .wav files found in AKWF folder.")
   end
   PakettiFillPitchStepperDigits(0.015,64)
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random AKWF Sample",invoke=function() load_random_akwf_sample(1) end}

@@ -1998,6 +1998,9 @@ end
 
 -- Create and load sample into Renoise
 function PakettiSampleEffectGeneratorCreateAndLoadSample(sample_data, sample_rate)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   print("SAMPLE_GENERATOR: Creating sample buffer...")
   
   local song = renoise.song()
@@ -2109,6 +2112,9 @@ function PakettiSampleEffectGeneratorCreateAndLoadSample(sample_data, sample_rat
   
   print("SAMPLE_GENERATOR: Sample loaded successfully: " .. sample.name)
   renoise.app():show_status("Sample loaded: " .. sample.name)
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 

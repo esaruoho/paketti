@@ -370,6 +370,9 @@ end
 -- etc. Also trims 959 frames from the end of the recorded sample, sets autofade/autoseek.
 --------------------------------------------------------------------------------
 function finalrecord()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   print(">>> finalrecord triggered!")
   local s = renoise.song()
   local curr_track_idx = s.selected_track_index
@@ -569,6 +572,9 @@ function finalrecord()
   print("finalrecord complete. Timer removed, variables cleared.")
   print ("Sample is frames: " .. renoise.song().selected_sample.sample_buffer.number_of_frames)
   print (renoise.song().instruments[renoise.song().selected_instrument_index].samples[1].name) 
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 
 end
 

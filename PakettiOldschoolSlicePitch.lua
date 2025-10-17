@@ -1533,6 +1533,9 @@ end
 
 
 function pakettiOldschoolSlicePitchWorkflow(use_reversed_audio, use_detected_bpm)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   use_reversed_audio = use_reversed_audio == nil and true or use_reversed_audio -- Default to true for backwards compatibility
   use_detected_bpm = use_detected_bpm or false -- Default to project BPM
   
@@ -1673,6 +1676,9 @@ function pakettiOldschoolSlicePitchWorkflow(use_reversed_audio, use_detected_bpm
   
   -- Start timer (check every 500ms)
   renoise.tool():add_timer(check_timer, 500)
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Menu entries

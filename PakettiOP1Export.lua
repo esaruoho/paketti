@@ -250,6 +250,9 @@ end
 
 -- Function to export OP-1 drum kit
 function PakettiOP1ExportDrumKit()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local instrument = song.selected_instrument
   
@@ -318,6 +321,9 @@ function PakettiOP1ExportDrumKit()
   else
     renoise.app():show_error("Failed to write OP-1 drum kit file")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to export OP-1 tape

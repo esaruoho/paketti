@@ -13,10 +13,15 @@ local function read_dword(data, pos)
 end
 
 function rex_loadsample(filename)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Check if filename is nil or empty (user cancelled dialog)
   if not filename or filename == "" then
     dprint("REX import cancelled - no file selected")
     renoise.app():show_status("REX import cancelled - no file selected")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   
@@ -43,6 +48,8 @@ function rex_loadsample(filename)
   if not f_in then
     dprint("ERROR: Cannot open source file")
     renoise.app():show_status("REX Import Error: Cannot open source file.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   dprint("Opened source file successfully")
@@ -52,6 +59,8 @@ function rex_loadsample(filename)
     dprint("ERROR: Cannot create temp file")
     f_in:close()
     renoise.app():show_status("REX Import Error: Cannot create temp file.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   dprint("Created temporary file successfully")
@@ -73,6 +82,8 @@ function rex_loadsample(filename)
     dprint("ERROR: Failed to load sample")
     renoise.app():show_status("REX Import Error: Failed to load sample.")
     os.remove(aiff_copy)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   
@@ -80,6 +91,8 @@ function rex_loadsample(filename)
     dprint("ERROR: No audio data loaded")
     renoise.app():show_status("REX Import Error: No audio data loaded.")
     os.remove(aiff_copy)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   dprint("Sample loaded successfully")
@@ -90,6 +103,8 @@ function rex_loadsample(filename)
     dprint("ERROR: Invalid sample buffer")
     renoise.app():show_status("REX Import Error: Invalid sample buffer.")
     os.remove(aiff_copy)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   dprint("Sample buffer is valid")
@@ -103,6 +118,8 @@ function rex_loadsample(filename)
     dprint("ERROR: Invalid sample dimensions")
     renoise.app():show_status("REX Import Error: Invalid sample data dimensions.")
     os.remove(aiff_copy)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
 
@@ -111,6 +128,8 @@ function rex_loadsample(filename)
     dprint("ERROR: REX chunk not found in file")
     renoise.app():show_status("REX chunk not found")
     os.remove(aiff_copy)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return true
   end
   dprint("Found REX chunk at offset:", rex_start)
@@ -132,6 +151,8 @@ function rex_loadsample(filename)
     dprint("ERROR: No slice offsets found")
     renoise.app():show_status("REX contained no slice offsets.")
     os.remove(aiff_copy)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
 
@@ -240,6 +261,8 @@ function rex_loadsample(filename)
     dprint("ERROR: Failed to create new sample buffer")
     renoise.app():show_status("REX Import Error: Failed to create new sample buffer.")
     os.remove(aiff_copy)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
 
@@ -249,6 +272,8 @@ function rex_loadsample(filename)
     dprint("ERROR: New sample buffer is invalid")
     renoise.app():show_status("REX Import Error: New sample buffer is invalid.")
     os.remove(aiff_copy)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
 
@@ -272,6 +297,8 @@ function rex_loadsample(filename)
     dprint("ERROR: Failed to write processed data")
     renoise.app():show_status("REX Import Error: Failed to write processed data.")
     os.remove(aiff_copy)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
 
@@ -354,6 +381,9 @@ function rex_loadsample(filename)
   end
 end
   renoise.app():show_status(string.format("REX cleaned and imported with %d slice markers", #slice_offsets))
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
   return true
 end
 

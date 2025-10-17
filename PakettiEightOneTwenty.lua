@@ -3120,10 +3120,11 @@ function fetch_pattern()
   --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-
-
 -- Function to reverse sample
 function reverse_sample(row_elements)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local instrument_index = row_elements.instrument_popup.value
   local instrument = renoise.song().instruments[instrument_index]
   if not instrument then
@@ -3167,11 +3168,21 @@ function reverse_sample(row_elements)
   local sample_name = sample_to_reverse.name ~= "" and sample_to_reverse.name or "Sample " .. sample_to_reverse.index
   local instrument_name = instrument.name ~= "" and instrument.name or "Instrument " .. instrument_index
   renoise.app():show_status(string.format("Reversed Sample '%s' of Instrument '%s' for Row.", sample_name, instrument_name))
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to reverse all samples
 function reverse_all()
-  if initializing then return end
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
+  if initializing then 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return 
+  end
   local reversed_count = 0
   local reversed_samples = {}
   
@@ -3224,6 +3235,9 @@ function reverse_all()
   else
     renoise.app():show_status("No samples found to reverse in any instrument.")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function random_gate()
@@ -4638,6 +4652,9 @@ end}
 
 -- Function to load samples sequentially from 8 folders with nice prompts (regular samples)
 function loadSequentialSamplesWithFolderPrompts()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Set flag to prevent automatic sample loader from running (we handle pakettification ourselves)
   PakettiDontRunAutomaticSampleLoader = true
   
@@ -4863,10 +4880,16 @@ function loadSequentialSamplesWithFolderPrompts()
 
   -- Start by prompting for folders
   promptNextFolder()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to load samples sequentially from 8 folders using ProcessSlicer
 function loadSequentialDrumkitSamples()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Set flag to prevent automatic sample loader from running (we handle pakettification ourselves)
   PakettiDontRunAutomaticSampleLoader = true
   
@@ -5181,10 +5204,16 @@ function loadSequentialDrumkitSamples()
 
   -- Start by prompting for folders
   promptNextFolder()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to load samples sequentially from ONE folder for all 8 parts (RandomLoadAll)
 function loadSequentialRandomLoadAll()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Set flag to prevent automatic sample loader from running (we handle pakettification ourselves)
   PakettiDontRunAutomaticSampleLoader = true
   
@@ -5430,6 +5459,9 @@ function loadSequentialRandomLoadAll()
   end
 
   startProcessing()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Groovebox-specific Expand Selection Replicate function

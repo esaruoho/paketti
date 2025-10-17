@@ -91,6 +91,9 @@ local ENV_LOOP = 2         -- Bit 1: loop on/off
 local ENV_SUSTAIN_LOOP = 4 -- Bit 2: sustain loop on/off
 
 function iti_loadinstrument(filename)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Check if filename is nil or empty (user cancelled dialog)
   if not filename or filename == "" then
     dprint("ITI import cancelled - no file selected")
@@ -257,6 +260,10 @@ function iti_loadinstrument(filename)
     renoise.app():show_status(string.format("ITI instrument '%s' imported (instrument properties only)", instrument_data.name))
     dprint("ITI import completed - no samples loaded")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  
   return true
 end
 

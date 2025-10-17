@@ -5300,6 +5300,9 @@ function PCMWriterSaveWavetable()
 end
 
 function PCMWriterExportToSample()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
   local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
   if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
@@ -5431,6 +5434,9 @@ function PCMWriterExportToSample()
   
   -- Restore AutoSamplify Pakettify state
   preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function PCMWriterRandomExportToSlot()

@@ -41,6 +41,9 @@ end
 
 -- Core Wipe & Slice function with Zero Crossing Snap
 function PakettiZeroCrossingsWipeSlice(slice_count, use_zero_crossing, zero_crossing_sensitivity)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Limit slice count to 255 (Renoise's maximum)
   if slice_count > 255 then
     print("-- Zero Crossing Wipe&Slice: Limited slice count from " .. slice_count .. " to 255 (Renoise maximum)")
@@ -144,11 +147,18 @@ function PakettiZeroCrossingsWipeSlice(slice_count, use_zero_crossing, zero_cros
 
   renoise.app():show_status("Zero Crossing Wipe & Slice: Created " .. slice_count .. " slices" .. 
     (use_zero_crossing and " with zero-crossing snap" or ""))
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  
   return true
 end
 
 -- Randomize existing slice positions
 function PakettiZeroCrossingsRandomizeSlices(randomization_amount, use_zero_crossing, zero_crossing_sensitivity)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local s = renoise.song()
   local sample = s.selected_sample
   
@@ -201,10 +211,16 @@ function PakettiZeroCrossingsRandomizeSlices(randomization_amount, use_zero_cros
   end
   
   renoise.app():show_status("Randomized " .. #new_positions .. " slice positions (±" .. randomization_amount .. "%)")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Put random slices distributed along the sample
 function PakettiZeroCrossingsRandomDistributedSlices(min_slices, max_slices, use_zero_crossing, zero_crossing_sensitivity)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local s = renoise.song()
   local sample = s.selected_sample
   
@@ -259,6 +275,9 @@ function PakettiZeroCrossingsRandomDistributedSlices(min_slices, max_slices, use
   
   renoise.app():show_status("Created " .. slice_count .. " random distributed slices" .. 
     (use_zero_crossing and " with zero-crossing snap" or ""))
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Calculate frame offset for BPM-based movement

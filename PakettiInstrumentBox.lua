@@ -221,6 +221,9 @@ function DuplicateInstrumentAndSelectNewInstrument_Wrong()
 end
 
 function DuplicateInstrumentAndSelectNewInstrument()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local rs = renoise.song()
   if rs == nil or rs.selected_instrument == nil then
     renoise.app():show_status("No instrument selected to duplicate.")
@@ -241,6 +244,9 @@ function DuplicateInstrumentAndSelectNewInstrument()
       rs.selected_instrument_index = i + 1
     end
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument",invoke=function() DuplicateInstrumentAndSelectNewInstrument() end}

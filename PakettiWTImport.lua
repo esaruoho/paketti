@@ -365,6 +365,9 @@ end
 
 -- Main wavetable loader function (file import hook)
 function wt_loadsample(filename)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Check if filename is nil or empty (user cancelled dialog)
   if not filename or filename == "" then
     print("DEBUG: WT import cancelled - no file selected")
@@ -405,6 +408,10 @@ function wt_loadsample(filename)
   
   print("STATUS:","Imported wavetable: " .. instrument.name .. " with " .. wavetable_data.wave_count .. " waves, " .. 
                            wavetable_data.wave_size .. " samples each (all looped + velocity choke on first sample)")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  
   return true
 end
 

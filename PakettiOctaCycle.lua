@@ -50,6 +50,9 @@ end
 
 -- Main OctaCycle generation function
 function PakettiOctaCycle()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local sample = song.selected_sample
   
@@ -225,6 +228,9 @@ function PakettiOctaCycle()
   }
   
   param_dialog = renoise.app():show_custom_dialog("OctaCycle Generator", dialog_content)
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Generate the actual OctaCycle sample

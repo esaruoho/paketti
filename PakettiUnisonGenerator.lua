@@ -118,6 +118,9 @@ function PakettiApplyFractionalShifting(sample, original_sample, fraction)
 end
 
 function PakettiCreateUnisonSamples()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   trueRandomSeed()
 
   local song=renoise.song()
@@ -753,6 +756,9 @@ print(string.format("Restored selected_phrase_index to: %d", renoise.song().sele
   manage_sample_count_observer(preferences._0G01_Loader.value)
   -- Restore AutoSamplify Pakettify state before returning
   preferences.pakettiAutoSamplifyPakettify.value=AutoSamplifyPakettifyState
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Unison Generator",invoke=PakettiCreateUnisonSamples}

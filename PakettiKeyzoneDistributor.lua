@@ -416,7 +416,12 @@ end
 
 -- Load samples from folder and apply filename-based keyrange mapping
 function PakettiKeyzoneDistributorApplyFilenameMapping(file_info_list)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   if #file_info_list == 0 then
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     renoise.app():show_status("No files to load!")
     return
   end
@@ -833,6 +838,9 @@ local function distribute_samples(keys_per_sample, base_note_mode)
       mapped_samples, keys_per_sample
     ))
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Show or toggle the Keyzone Distributor dialog

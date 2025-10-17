@@ -801,6 +801,9 @@ function pakettieSpeakDialog()
 end
 
 function PakettieSpeakCreateSample(custom_text)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local text_to_render = custom_text or eSpeak.text.value
   print(text_to_render)
 
@@ -808,6 +811,8 @@ function PakettieSpeakCreateSample(custom_text)
   local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
   if not is_valid then
     renoise.app():show_error(error_message)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
 
@@ -1011,6 +1016,9 @@ function PakettieSpeakCreateSample(custom_text)
     if dialog and dialog.visible then
       dialog:close()
     end
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
   end)
   
   -- Create the progress dialog

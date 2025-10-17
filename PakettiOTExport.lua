@@ -1186,6 +1186,9 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Octatrack Set .ot Loop
 
 
 function PakettiOTExport()
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
     -- Check if there's a song
     if not renoise.song() then
         renoise.app():show_status("No song loaded")
@@ -1416,8 +1419,15 @@ local function RenderSampleAtNewRate(target_sample_rate, target_bit_depth)
     return true
   else
     print("PakettiOTExport: Sample buffer is either not loaded or has no data")
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    
     return false
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 --------------------------------------------------------------------------------
@@ -1876,6 +1886,9 @@ end
 
 -- Smart version - converts to stereo if any sample is stereo, otherwise mono (64 slices max)
 function PakettiOTDrumkitSmart()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local source_instrument = song.selected_instrument
   
@@ -1919,6 +1932,9 @@ function PakettiOTDrumkitSmart()
   
   dialog, vb = process_slicer:create_dialog("Creating Octatrack Drumkit...")
   process_slicer:start()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Efficient worker function for ProcessSlicer (Smart version) - yields every 20 samples
@@ -2731,6 +2747,9 @@ end
 
 -- Mono version - converts all samples to mono (64 slices max)  
 function PakettiOTDrumkitMono()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local source_instrument = song.selected_instrument
   
@@ -2774,6 +2793,9 @@ function PakettiOTDrumkitMono()
   
   dialog, vb = process_slicer:create_dialog("Creating Octatrack Mono Drumkit...")
   process_slicer:start()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Legacy Mono version without ProcessSlicer (keeping for reference)  
@@ -3362,6 +3384,9 @@ end
 
 -- Function to create drumkit where all slices play to the end of the full sample
 function PakettiOTDrumkitPlayToEnd()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local source_instrument = song.selected_instrument
   
@@ -3405,6 +3430,9 @@ function PakettiOTDrumkitPlayToEnd()
   
   dialog, vb = process_slicer:create_dialog("Creating Play-To-End Octatrack Drumkit...")
   process_slicer:start()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Worker function for play-to-end drumkit generation

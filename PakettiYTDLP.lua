@@ -756,6 +756,9 @@ local async_loading_state = nil
 function PakettiYTDLPAsyncSampleLoader()
   if not async_loading_state then return end
   
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local state = async_loading_state
   local current_index = state.current_index
   local sample_files = state.sample_files
@@ -785,6 +788,9 @@ function PakettiYTDLPAsyncSampleLoader()
     -- Switch to sample editor view
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
     PakettiYTDLPLogMessage("=== Sample import complete ===")
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   
@@ -824,6 +830,9 @@ function PakettiYTDLPAsyncSampleLoader()
   
   -- Move to next sample
   async_loading_state.current_index = current_index + 1
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to start async sample loading

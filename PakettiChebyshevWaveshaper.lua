@@ -1827,6 +1827,9 @@ end
 
 -- Main apply function using ProcessSlicer
 local function apply_chebyshev_waveshaping(sample)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Create progress dialog first
   local slicer = ProcessSlicer(apply_chebyshev_waveshaping_process)
   local prog_dialog, prog_vb = slicer:create_dialog("Applying Chebyshev Waveshaper")
@@ -1836,6 +1839,9 @@ local function apply_chebyshev_waveshaping(sample)
   
   -- Start processing
   slicer:start()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
   
   return true
 end

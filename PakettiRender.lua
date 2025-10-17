@@ -176,6 +176,9 @@ function start_rendering(render_context)
 end
 
 function rendering_done_callback(render_context)
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
     print("DEBUG 7: rendering_done_callback started - muteOriginal:", render_context.muteOriginal, "justwav:", render_context.justwav, "newtrack:", render_context.newtrack)
     local song=renoise.song()
     local renderTrack = render_context.source_track
@@ -375,6 +378,9 @@ function rendering_done_callback(render_context)
             song.tracks[i].mute_state = 1
         end 
     end
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to monitor rendering progress
@@ -510,6 +516,9 @@ end
 
 -- Callback function that gets called when rendering is complete
 function rendering_done_callbackLPB()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
 local song=renoise.song()
 local renderTrack = render_context.source_track
 
@@ -617,6 +626,8 @@ for i=1,#song.tracks do
 renoise.song().tracks[i].mute_state=1
 end 
 
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to monitor rendering progress
@@ -740,6 +751,9 @@ function CleanRenderAndSaveStart(format)
   
 -- Callback function that gets called when rendering is complete
 function CleanRenderAndSaveDoneCallback()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local sourceTrackName = song.tracks[render_context.source_track].name
 
@@ -780,6 +794,9 @@ function CleanRenderAndSaveDoneCallback()
       -- Save the rendered sample using the specified format
       CleanRenderAndSaveSample(render_context.format)
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to monitor rendering progress
@@ -904,6 +921,9 @@ end
 
 -- Callback function that gets called when rendering is complete
 function CleanRenderAndSaveMP3DoneCallback()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local sourceTrackName = song.tracks[render_context_mp3.source_track].name
 
@@ -978,6 +998,9 @@ function CleanRenderAndSaveMP3DoneCallback()
   -- Clean up temp WAV file
   os.remove(render_context_mp3.temp_file_path)
   print("DEBUG MP3: Cleaned up temp WAV file")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to monitor rendering progress
@@ -1199,6 +1222,9 @@ end
 
 -- Callback function that gets called when rendering is complete
 function PakettiSeamlessRenderingDoneCallback()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
 local song=renoise.song()
 local renderTrack = render_context.source_track
 
@@ -1252,6 +1278,9 @@ renoise.song().selected_instrument.name = renoise.song().selected_track.name
   for i=1,#song.tracks do
     renoise.song().tracks[i].mute_state=1
 end     
+
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function PakettiSeamlessMonitorRendering()
@@ -1487,6 +1516,9 @@ function start_selection_rendering(render_context, track_index)
 end
 
 function selection_rendering_done_callback(render_context)
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
     print("DEBUG: selection_rendering_done_callback started")
     local song = renoise.song()
     local renderTrack = render_context.source_track
@@ -1610,6 +1642,9 @@ function selection_rendering_done_callback(render_context)
     end
     
     renoise.app():show_status("Selection rendered: " .. selection_name)
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function monitor_selection_rendering()
@@ -2230,6 +2265,9 @@ function start_experimental_rendering()
 end
 
 function experimental_rendering_done_callback()
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
     local song = renoise.song()
     
     print("DEBUG EXP: Rendering completed, processing result")
@@ -2349,6 +2387,9 @@ function experimental_rendering_done_callback()
     
     -- Cleanup and restore original state
     cleanup_experimental_render()
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 function monitor_experimental_rendering()

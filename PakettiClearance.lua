@@ -440,6 +440,9 @@ end
 
 
 function deleteUnusedSamples(skip_confirmation)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local used_samples = findUsedSamples()
   local total_unused = 0
@@ -505,6 +508,8 @@ function deleteUnusedSamples(skip_confirmation)
 
 print("Like I deleted stuff or something")
 
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 

@@ -2,6 +2,9 @@
 -- Creates a new sample where all slices are normalized to the longest slice duration
 
 function paketti_manual_slicer()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   print("--- Paketti Manual Slicer ---")
   
   local song = renoise.song()
@@ -50,8 +53,15 @@ function paketti_manual_slicer()
   else
     renoise.app():show_status("No slices or multiple samples found")
     print("Error: Instrument needs either slices in first sample or multiple samples")
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    
     return
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Original slice-based processing (direct, no ProcessSlicer)

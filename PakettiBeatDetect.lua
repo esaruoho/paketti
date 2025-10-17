@@ -122,6 +122,9 @@ end
 
 -- Analyze the sample and insert slice markers
 function AnalyzeSample(detection_mode)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local instrument = renoise.song().selected_instrument
   local sample = renoise.song().selected_sample
 
@@ -232,6 +235,9 @@ function AnalyzeSample(detection_mode)
       break
     end
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Headless mode function (Combined detection)

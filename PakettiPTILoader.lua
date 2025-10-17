@@ -54,6 +54,9 @@ function PakettiPTIDetectAndPrintSliceNotes(playback_mode, slice_count, slice_fr
 end
 
 function pti_loadsample(filepath)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- Start ProcessSlicer for PTI loading
   local dialog, vb
   local process_slicer = ProcessSlicer(function()
@@ -62,6 +65,9 @@ function pti_loadsample(filepath)
   
   dialog, vb = process_slicer:create_dialog("Loading PTI Sample...")
   process_slicer:start()
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 --- ProcessSlicer worker function for PTI loading
@@ -725,6 +731,9 @@ function find_corresponding_wav(mti_filepath)
 end
 
 function mti_loadsample(filepath)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   print("------------")
   print(string.format("-- MTI: Import filename: %s", filepath))
   
@@ -733,6 +742,8 @@ function mti_loadsample(filepath)
   
   if not wav_path then
     renoise.app():show_error("MTI Import Error: Cannot find corresponding WAV file for " .. filepath)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   
@@ -756,6 +767,8 @@ function mti_loadsample(filepath)
   
   if not success or not load_result then
     renoise.app():show_error("MTI Import Error: Failed to load WAV file: " .. wav_path)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   
@@ -763,6 +776,8 @@ function mti_loadsample(filepath)
   local mti_file = io.open(filepath, "rb")
   if not mti_file then
     renoise.app():show_warning("MTI Import Warning: Cannot read MTI file for settings: " .. filepath)
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return
   end
   
@@ -915,6 +930,9 @@ function mti_loadsample(filepath)
   end
   
   print("-- MTI: Import complete")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- New MTI integration hook

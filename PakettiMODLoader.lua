@@ -17,12 +17,17 @@ local function le_u32(n)
 end
 
 function load_samples_from_mod()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   -- pick a .mod
   local mod_file = renoise.app():prompt_for_filename_to_read(
     { "*.mod","mod.*" }, "Load .MOD file"
   )
   if not mod_file then 
     renoise.app():show_status("No MOD selected.") 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return 
   end
 
@@ -30,6 +35,8 @@ function load_samples_from_mod()
   local f = io.open(mod_file, "rb")
   if not f then 
     renoise.app():show_status("Cannot open .MOD") 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return 
   end
   local data = f:read("*all")
@@ -185,6 +192,9 @@ function load_samples_from_mod()
   end
 
   renoise.app():show_status("All MOD samples loaded.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 ---

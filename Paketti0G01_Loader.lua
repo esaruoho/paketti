@@ -175,6 +175,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiLoaderMoveSilenceToEnd=false,
   pakettiLoaderNormalizeSamples=false,
   pakettiLoaderNormalizeLargeSamples=false,
+  pakettiLoadToAllTracksPosition=true,  -- false = First (position 2), true = Last (end of chain)
   pakettiPolyendOpenDialog=true,
   pakettiExplodeTrackNaming=true,  -- Enable note+instrument naming for exploded tracks (e.g. "C-4 MyInstrument")
   selectionNewInstrumentSelect=false,
@@ -189,6 +190,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiUnisonDetuneHardSync=false,
   pakettiUnisonDuplicateInstrument=true,
   pakettiMaxFrameSize=10000000,  -- Default 10MB worth of frames
+  pakettiAutomaticRenameTrack=false,  -- Automatic track renaming based on played samples
   PakettiHyperEditCaptureTrackColor=false,
   PakettiHyperEditAutoFit=true,
   PakettiHyperEditManualRows=8,
@@ -196,7 +198,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
   pakettiPresetPlusPlusDeviceChain = "DeviceChains" .. separator .. "hipass_lopass_dcoffset.xrnt",
   -- AutoSamplify Settings
-  pakettiAutoSamplifyPakettify = true,
+  pakettiAutoSamplifyPakettify = false,
   ActionSelector = {
  Index01="",
  Index02="",
@@ -1049,6 +1051,18 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
               vb:text{text="Oblique Strategies",width=150,tooltip="Show Oblique Strategies message on startup"},
               vb:switch{items={"Off","On"},tooltip="Show Oblique Strategies message on startup",value=preferences.pakettiObliqueStrategiesOnStartup.value and 2 or 1,width=200,
                 notifier=function(value) preferences.pakettiObliqueStrategiesOnStartup.value=(value==2) end}},
+            vb:row{
+              vb:text{text="Automatic Rename Track",width=150,tooltip="Automatically rename tracks based on played samples every 200ms"},
+              vb:switch{items={"Off","On"},tooltip="Automatically rename tracks based on played samples every 200ms",value=preferences.pakettiAutomaticRenameTrack.value and 2 or 1,width=200,
+                notifier=function(value) 
+                  preferences.pakettiAutomaticRenameTrack.value=(value==2)
+                  -- Update the automatic rename system immediately
+                  if preferences.pakettiAutomaticRenameTrack.value then
+                    pakettiStartAutomaticRenameTrack()
+                  else
+                    pakettiStopAutomaticRenameTrack()
+                  end
+                end}},
             vb:text{text="Slice StepSeq", font="bold",style = "strong"},
             vb:row{
               vb:text{text="Show Velocity",width=150,tooltip="Opens the Slice Step Sequencer dialog with Velocity add-on dialog opened by default"},
@@ -1527,34 +1541,48 @@ vb:row{
     }
   },
   
-    vb:row{
-      vb:text{text="Device Load Behavior", style="strong",font="bold",width=150,tooltip="Controls behavior when loading VST/AU plugins and native devices"},
-      vb:switch{
-        items={"<nothing>", "External Editor", "Parameter Editor"},
-        value=(preferences.pakettiDeviceLoadBehaviour.value == 3 and 1 or preferences.pakettiDeviceLoadBehaviour.value == 1 and 2 or 3),
-        tooltip="Controls behavior when loading VST/AU plugins and native devices",
-        width=400,
-        notifier=function(value) 
-          -- Map UI order (1:DoNothing,2:External,3:Parameter) back to stored 1/2/3
-          if value == 1 then
-            preferences.pakettiDeviceLoadBehaviour.value = 3
-          elseif value == 2 then
-            preferences.pakettiDeviceLoadBehaviour.value = 1
-          else
-            preferences.pakettiDeviceLoadBehaviour.value = 2
-          end
-          local behavior_text = ""
-          if preferences.pakettiDeviceLoadBehaviour.value == 1 then
-            behavior_text = "Open External Editor"
-          elseif preferences.pakettiDeviceLoadBehaviour.value == 2 then
-            behavior_text = "Open Selected Parameter Dialog"
-          else
-            behavior_text = "<do nothing>"
-          end
-          print("Device Load Behavior set to: " .. behavior_text)
-        end
-      }
-    },
+            vb:row{
+              vb:text{text="Device Load Behavior", style="strong",font="bold",width=150,tooltip="Controls behavior when loading VST/AU plugins and native devices"},
+              vb:switch{
+                items={"<nothing>", "External Editor", "Parameter Editor"},
+                value=(preferences.pakettiDeviceLoadBehaviour.value == 3 and 1 or preferences.pakettiDeviceLoadBehaviour.value == 1 and 2 or 3),
+                tooltip="Controls behavior when loading VST/AU plugins and native devices",
+                width=400,
+                notifier=function(value) 
+                  -- Map UI order (1:DoNothing,2:External,3:Parameter) back to stored 1/2/3
+                  if value == 1 then
+                    preferences.pakettiDeviceLoadBehaviour.value = 3
+                  elseif value == 2 then
+                    preferences.pakettiDeviceLoadBehaviour.value = 1
+                  else
+                    preferences.pakettiDeviceLoadBehaviour.value = 2
+                  end
+                  local behavior_text = ""
+                  if preferences.pakettiDeviceLoadBehaviour.value == 1 then
+                    behavior_text = "Open External Editor"
+                  elseif preferences.pakettiDeviceLoadBehaviour.value == 2 then
+                    behavior_text = "Open Selected Parameter Dialog"
+                  else
+                    behavior_text = "<do nothing>"
+                  end
+                  print("Device Load Behavior set to: " .. behavior_text)
+                end
+              }
+            },
+            vb:row{
+              vb:text{text="Load to All Tracks Position", style="strong",font="bold",width=150,tooltip="Controls whether devices are loaded at the first (position 2) or last position when using 'Load to All Tracks'"},
+              vb:switch{
+                items={"First", "Last"},
+                value=preferences.pakettiLoadToAllTracksPosition.value and 2 or 1,
+                tooltip="Controls whether devices are loaded at the first (position 2) or last position when using 'Load to All Tracks'",
+                width=200,
+                notifier=function(value) 
+                  preferences.pakettiLoadToAllTracksPosition.value = (value == 2)
+                  local position_text = value == 2 and "last" or "first"
+                  print("Load to All Tracks Position set to: " .. position_text)
+                end
+              }
+            },
     vb:row{
       vb:text{text="LFO Write Device Delete",style="strong",font="bold",width=150},
       vb:switch{

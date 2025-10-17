@@ -20,6 +20,9 @@ local COLOR_CENTER_LINE = {128, 128, 128, 255}
 
 -- Convert image brightness to waveform amplitude
 function PakettiImageToSampleConvertImageToWaveform(image_path)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   if not image_path then
     -- Create a default sine wave for demonstration
     local samples = 512  -- Short single-cycle waveform
@@ -324,6 +327,9 @@ function PakettiImageToSampleExportToSample()
   sample.loop_end = #current_sample_data
   
   renoise.app():show_status("Waveform exported to sample: " .. (sample.name or "Sample 01") .. " (Loop: Forward)")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Create the image to sample dialog

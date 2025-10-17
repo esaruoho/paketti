@@ -400,6 +400,9 @@ end
 
 -- Function to export M8 sample chain
 function PakettiM8Export()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local instrument = song.selected_instrument
   
@@ -479,6 +482,9 @@ function PakettiM8Export()
   else
     renoise.app():show_error("Failed to write M8 sample chain file")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Function to export M8 sample instrument

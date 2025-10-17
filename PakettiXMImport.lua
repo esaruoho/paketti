@@ -221,6 +221,9 @@ end
 
 -- Main import function
 local function import_xm_file(filename)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   print(string.rep("=", 80))
   print("Importing XM:", filename)
   rns = renoise.song()
@@ -395,6 +398,10 @@ local function import_xm_file(filename)
   end
 
   renoise.app():show_status("XM import completed: " .. filename)
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  
   return true
 end
 

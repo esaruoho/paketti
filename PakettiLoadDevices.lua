@@ -796,6 +796,211 @@ function pakettiQuickLoadDialog()
     end
   end
 
+  -- Helper function to load device to all sequencer tracks
+  local function load_to_all_tracks(device_path)
+    local song = renoise.song()
+    local tracks = song.tracks
+    local loaded_count = 0
+    local total_sequencer_tracks = 0
+    
+    -- Count sequencer tracks first
+    for i = 1, #tracks do
+      local track = tracks[i]
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        total_sequencer_tracks = total_sequencer_tracks + 1
+      end
+    end
+    
+    if total_sequencer_tracks == 0 then
+      renoise.app():show_status("No sequencer tracks found")
+      return false
+    end
+    
+    -- Check device restrictions for sequencer tracks
+    if device_path:find("*Instr.") or device_path:find("*Key Tracker") or 
+       device_path:find("*Velocity Tracker") or device_path:find("*MIDI Control") then
+      renoise.app():show_status("Cannot load MIDI/Instrument devices on sequencer tracks")
+      return false
+    end
+    
+    -- Load device to all sequencer tracks
+    for i = 1, #tracks do
+      local track = tracks[i]
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local track_devices = track.devices
+        local load_at_end = preferences.pakettiLoadToAllTracksPosition and preferences.pakettiLoadToAllTracksPosition.value or false
+        local checkline
+        
+        if load_at_end then
+          -- Load at end of track devices
+          checkline = #track_devices + 1
+        else
+          -- Load at start (after mixer device at position 1)
+          checkline = 2
+        end
+        
+        -- Insert the device
+        local success, err = pcall(function()
+          track:insert_device_at(device_path, checkline)
+        end)
+        
+        if success then
+          -- Minimize the device after loading
+          local device = track.devices[checkline]
+          if device and device.is_maximized ~= nil then
+            device.is_maximized = false
+          end
+          
+          loaded_count = loaded_count + 1
+          print("Loaded device to track " .. i .. " (" .. track.name .. ") at position " .. checkline .. " (minimized)")
+        else
+          print("Failed to load device to track " .. i .. " (" .. track.name .. "): " .. tostring(err))
+        end
+      end
+    end
+    
+    if loaded_count > 0 then
+      local position_text = preferences.pakettiLoadToAllTracksPosition and preferences.pakettiLoadToAllTracksPosition.value and "last" or "first"
+      renoise.app():show_status("Loaded device to " .. loaded_count .. "/" .. total_sequencer_tracks .. " sequencer tracks (" .. position_text .. " position, minimized)")
+      return true
+    else
+      renoise.app():show_status("Failed to load device to any sequencer tracks")
+      return false
+    end
+  end
+
+  -- Helper function to find all instances of a device across all tracks
+  local function find_all_device_instances(device_name, device_path)
+    local song = renoise.song()
+    local instances = {}
+    
+    -- Search track devices
+    for track_idx = 1, #song.tracks do
+      local track = song.tracks[track_idx]
+      for device_idx = 1, #track.devices do
+        local device = track.devices[device_idx]
+        
+        -- Try matching by name first, then by device_path if available
+        if device.name == device_name or (device.device_path and device.device_path == device_path) then
+          table.insert(instances, {
+            type = "track",
+            track_idx = track_idx,
+            device_idx = device_idx,
+            device = device,
+            track_name = track.name
+          })
+        end
+      end
+    end
+    
+    -- Search sample FX chain devices
+    for instr_idx = 1, #song.instruments do
+      local instrument = song.instruments[instr_idx]
+      for chain_idx = 1, #instrument.sample_device_chains do
+        local chain = instrument.sample_device_chains[chain_idx]
+        for device_idx = 1, #chain.devices do
+          local device = chain.devices[device_idx]
+          
+          -- Try matching by name first, then by device_path if available
+          if device.name == device_name or (device.device_path and device.device_path == device_path) then
+            table.insert(instances, {
+              type = "sample_fx",
+              instr_idx = instr_idx,
+              chain_idx = chain_idx,
+              device_idx = device_idx,
+              device = device,
+              instrument_name = instrument.name,
+              chain_name = chain.name
+            })
+          end
+        end
+      end
+    end
+    
+    return instances
+  end
+
+  -- Helper function to toggle all instances of a device
+  local function toggle_all_device_instances(device_name, device_path)
+    local instances = find_all_device_instances(device_name, device_path)
+    
+    if #instances == 0 then
+      renoise.app():show_status("No instances of '" .. device_name .. "' found")
+      return
+    end
+    
+    local toggled_count = 0
+    local current_state = nil
+    
+    for _, instance in ipairs(instances) do
+      local device = instance.device
+      -- Store the first device's state to determine toggle direction
+      if current_state == nil then
+        current_state = device.is_active
+      end
+      
+      -- Toggle the device
+      device.is_active = not current_state
+      toggled_count = toggled_count + 1
+      
+      local location = ""
+      if instance.type == "track" then
+        location = "Track " .. instance.track_idx .. " (" .. instance.track_name .. ")"
+      else
+        location = "Instrument " .. instance.instr_idx .. " (" .. instance.instrument_name .. ") FX Chain " .. instance.chain_idx
+      end
+      print("Toggled " .. device_name .. " on " .. location .. " to " .. (device.is_active and "ON" or "OFF"))
+    end
+    
+    local new_state = current_state and "OFF" or "ON"
+    renoise.app():show_status("Toggled " .. toggled_count .. " instances of '" .. device_name .. "' to " .. new_state)
+  end
+
+  -- Helper function to toggle external editors for all instances of a device
+  local function toggle_all_device_editors(device_name, device_path)
+    local instances = find_all_device_instances(device_name, device_path)
+    
+    if #instances == 0 then
+      renoise.app():show_status("No instances of '" .. device_name .. "' found")
+      return
+    end
+    
+    local toggled_count = 0
+    local current_editor_state = nil
+    local devices_with_editors = 0
+    
+    for _, instance in ipairs(instances) do
+      local device = instance.device
+      if device.external_editor_available then
+        devices_with_editors = devices_with_editors + 1
+        
+        -- Store the first device's editor state to determine toggle direction
+        if current_editor_state == nil then
+          current_editor_state = device.external_editor_visible
+        end
+        
+        -- Toggle the external editor
+        device.external_editor_visible = not current_editor_state
+        toggled_count = toggled_count + 1
+        
+        local location = ""
+        if instance.type == "track" then
+          location = "Track " .. instance.track_idx .. " (" .. instance.track_name .. ")"
+        else
+          location = "Instrument " .. instance.instr_idx .. " (" .. instance.instrument_name .. ") FX Chain " .. instance.chain_idx
+        end
+        print("Toggled " .. device_name .. " external editor on " .. location .. " to " .. (device.external_editor_visible and "VISIBLE" or "HIDDEN"))
+      end
+    end
+    
+    if devices_with_editors == 0 then
+      renoise.app():show_status("No instances of '" .. device_name .. "' have external editors available")
+    else
+      local new_state = current_editor_state and "HIDDEN" or "VISIBLE"
+      renoise.app():show_status("Toggled external editors for " .. toggled_count .. "/" .. devices_with_editors .. " instances of '" .. device_name .. "' to " .. new_state)
+    end
+  end
+
   local function execute_selected()
     if #device_items == 0 then return end
     local idx = vb.views.device_selector.value
@@ -843,6 +1048,12 @@ function pakettiQuickLoadDialog()
       return
     end
     
+    -- Check if "Load to All Tracks" is enabled and we're NOT in sample FX mode
+    if not in_sample_fx and vb.views.load_to_all_tracks_checkbox and vb.views.load_to_all_tracks_checkbox.value then
+      load_to_all_tracks(device_path)
+      return
+    end
+    
     print("QuickLoad Execute: in_sample_fx=" .. tostring(in_sample_fx) .. " line_input_index=" .. tostring(line_input_index))
     if device_path:find("Native/") then
       print(string.format("QuickLoad Execute: calling loadnative(\"%s\", %s, %s, nil, false)", tostring(device_path), tostring(line_input_index), tostring(in_sample_fx)))
@@ -874,6 +1085,14 @@ function pakettiQuickLoadDialog()
         value = false
       },
       vb:text{ text = "Load to All FX Chains", width = 150 }
+    } or vb:space{}),
+    -- Add the "Load to All Tracks" checkbox if we're NOT in sample FX mode
+    (not in_sample_fx and vb:row{
+      vb:checkbox{
+        id = "load_to_all_tracks_checkbox",
+        value = false
+      },
+      vb:text{ text = "Load to All Tracks (" .. (preferences.pakettiLoadToAllTracksPosition and preferences.pakettiLoadToAllTracksPosition.value and "Last" or "First") .. ")", width = 200 }
     } or vb:space{}),
     vb:row{
       vb:popup{
@@ -938,6 +1157,12 @@ function pakettiQuickLoadDialog()
             return
           end
           
+          -- Check if "Load to All Tracks" is enabled and we're NOT in sample FX mode
+          if not in_sample_fx and vb.views.load_to_all_tracks_checkbox and vb.views.load_to_all_tracks_checkbox.value then
+            load_to_all_tracks(device_path)
+            return
+          end
+          
           -- Load the device normally
           print("QuickLoad Button: in_sample_fx=" .. tostring(in_sample_fx) .. " line_input_index=" .. tostring(line_input_index))
           if device_path:find("Native/") then
@@ -949,6 +1174,50 @@ function pakettiQuickLoadDialog()
           end
           
           renoise.app():show_status("Loaded: " .. selected_name)
+        end
+      },
+      vb:button{
+        text="Enable/Disable",
+        width=100,
+        notifier=function()
+          local selected_name = device_items[vb.views.device_selector.value]
+          local device_path = device_paths[selected_name]
+          if not device_path or device_path == "" then
+            renoise.app():show_status("Quick Load: No path found for '" .. tostring(selected_name) .. "'")
+            return
+          end
+          
+          -- Extract device name from path for matching
+          local device_name = device_path:match("([^/]+)$")
+          if not device_name then
+            renoise.app():show_status("Could not extract device name from path")
+            return
+          end
+          
+          -- Toggle all instances of this device across all tracks
+          toggle_all_device_instances(device_name, device_path)
+        end
+      },
+      vb:button{
+        text="Show/Hide Editors",
+        width=120,
+        notifier=function()
+          local selected_name = device_items[vb.views.device_selector.value]
+          local device_path = device_paths[selected_name]
+          if not device_path or device_path == "" then
+            renoise.app():show_status("Quick Load: No path found for '" .. tostring(selected_name) .. "'")
+            return
+          end
+          
+          -- Extract device name from path for matching
+          local device_name = device_path:match("([^/]+)$")
+          if not device_name then
+            renoise.app():show_status("Could not extract device name from path")
+            return
+          end
+          
+          -- Toggle external editors for all instances of this device
+          toggle_all_device_editors(device_name, device_path)
         end
       }
     }
@@ -1052,7 +1321,97 @@ function pakettiQuickLoadDialog()
   end
 end
 
+-- Global functions for device control that can be called from keybindings and MIDI mappings
+function PakettiToggleAllDeviceInstances(device_name)
+  if not device_name or device_name == "" then
+    renoise.app():show_status("No device name provided")
+    return
+  end
+  
+  local song = renoise.song()
+  local instances = {}
+  
+  print("DEBUG: Global function searching for device_name='" .. tostring(device_name) .. "'")
+  
+  -- Search track devices
+  for track_idx = 1, #song.tracks do
+    local track = song.tracks[track_idx]
+    for device_idx = 1, #track.devices do
+      local device = track.devices[device_idx]
+      print("DEBUG: Global Track " .. track_idx .. " Device " .. device_idx .. " name='" .. tostring(device.name) .. "' path='" .. tostring(device.device_path) .. "'")
+      
+      if device.name == device_name then
+        table.insert(instances, {
+          type = "track",
+          track_idx = track_idx,
+          device_idx = device_idx,
+          device = device,
+          track_name = track.name
+        })
+        print("DEBUG: Global found match on track " .. track_idx .. " device " .. device_idx)
+      end
+    end
+  end
+  
+  -- Search sample FX chain devices
+  for instr_idx = 1, #song.instruments do
+    local instrument = song.instruments[instr_idx]
+    for chain_idx = 1, #instrument.sample_device_chains do
+      local chain = instrument.sample_device_chains[chain_idx]
+      for device_idx = 1, #chain.devices do
+        local device = chain.devices[device_idx]
+        print("DEBUG: Global SampleFX Instr " .. instr_idx .. " Chain " .. chain_idx .. " Device " .. device_idx .. " name='" .. tostring(device.name) .. "' path='" .. tostring(device.device_path) .. "'")
+        
+        if device.name == device_name then
+          table.insert(instances, {
+            type = "sample_fx",
+            instr_idx = instr_idx,
+            chain_idx = chain_idx,
+            device_idx = device_idx,
+            device = device,
+            instrument_name = instrument.name,
+            chain_name = chain.name
+          })
+          print("DEBUG: Global found match on sample FX instr " .. instr_idx .. " chain " .. chain_idx .. " device " .. device_idx)
+        end
+      end
+    end
+  end
+  
+  print("DEBUG: Global found " .. #instances .. " total instances")
+  
+  if #instances == 0 then
+    renoise.app():show_status("No instances of '" .. device_name .. "' found")
+    return
+  end
+  
+  local toggled_count = 0
+  local current_state = nil
+  
+  for _, instance in ipairs(instances) do
+    local device = instance.device
+    -- Store the first device's state to determine toggle direction
+    if current_state == nil then
+      current_state = device.is_active
+    end
+    
+    -- Toggle the device
+    device.is_active = not current_state
+    toggled_count = toggled_count + 1
+  end
+  
+  local new_state = current_state and "OFF" or "ON"
+  renoise.app():show_status("Toggled " .. toggled_count .. " instances of '" .. device_name .. "' to " .. new_state)
+end
+
+
 renoise.tool():add_keybinding{name="Global:Paketti:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
 
+-- Add keybindings for common device control functions
+--renoise.tool():add_keybinding{name="Global:Paketti:Toggle All EQ 10 Instances", invoke=function() PakettiToggleAllDeviceInstances("EQ 10") end}
+--renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Filter Instances", invoke=function() PakettiToggleAllDeviceInstances("Filter") end}
+--renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Reverb Instances", invoke=function() PakettiToggleAllDeviceInstances("Reverb") end}
+--renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Delay Instances", invoke=function() PakettiToggleAllDeviceInstances("Delay") end}
+--renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Compressor Instances", invoke=function() PakettiToggleAllDeviceInstances("Compressor") end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Quick Load Device Dialog... [Trigger]", invoke=function(message) if message:is_trigger() then pakettiQuickLoadDialog() end end}

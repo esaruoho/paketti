@@ -3181,6 +3181,9 @@ end
 
 -- Completion callback called when render is completely finished
 function PakettiPatternToSampleRenderComplete(temp_path, pattern_index)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   print("DEBUG: Render completion callback triggered - file should be ready")
   
   local song = renoise.song()
@@ -3275,6 +3278,9 @@ function PakettiPatternToSampleRenderComplete(temp_path, pattern_index)
     -- Reset flag even in error case to allow automatic sample loader to work normally again
     PakettiDontRunAutomaticSampleLoader = false
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-O Pattern to Sample", invoke = PakettiImpulseTrackerPatternToSample}

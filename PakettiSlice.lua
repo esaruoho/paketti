@@ -84,6 +84,9 @@ renoise.tool():add_midi_mapping{name="Paketti:Delete Slice Markers in Selection"
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 
 function WipeSliceAndWrite()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local s = renoise.song()
   local currInst = s.selected_instrument_index
   local pattern = s.selected_pattern
@@ -240,6 +243,9 @@ function WipeSliceAndWrite()
   renoise.app():show_status(sample_name .. " now has " .. num_slices .. " slices and " .. notes_written .. " notes written to pattern.")
   
   print("Wipe&Slice&Write completed: " .. num_slices .. " slices created, " .. notes_written .. " notes written")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 ---
@@ -960,6 +966,9 @@ end
 
 -- Core BPM-based slicing function
 function pakettiBPMBasedSlice(sample_bpm, beats_per_slice)
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
     print("=== BPM Based Slice: " .. sample_bpm .. " BPM, " .. beats_per_slice .. " beats per slice ===")
     
     local song, sample = validate_sample()
@@ -1092,6 +1101,9 @@ function pakettiBPMBasedSlice(sample_bpm, beats_per_slice)
     
     renoise.app():show_status("Sliced to " .. beats_per_slice .. " beats per slice at " .. sample_bpm .. " BPM (" .. #sample.slice_markers .. " slices)")
     focus_sample_editor()
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 -- Wrapper functions for common beat counts

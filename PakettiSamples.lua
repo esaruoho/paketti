@@ -492,6 +492,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sam
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sample Loader",invoke=function(message) if message:is_trigger() then pitchBendDrumkitLoader() end end}
 
 function loadRandomDrumkitSamples(num_samples, folder_path, create_automation_device)
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
     -- Seed the random number generator with current time
     math.randomseed(os.time())
     -- Add some random calls to further randomize the sequence
@@ -657,6 +660,9 @@ function loadRandomDrumkitSamples(num_samples, folder_path, create_automation_de
     dialog, vb = slicer:create_dialog("Loading Random Drumkit Samples")
     slicer:start()
 
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    
     -- Return the loaded instrument
     return instrument
 end
@@ -666,6 +672,9 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sam
 
 -- Function to create a new instrument from the selected sample buffer range
 function create_new_instrument_from_selection()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local selected_sample = song.selected_sample
   local selected_instrument_index = song.selected_instrument_index
@@ -803,6 +812,9 @@ end
 else
 renoise.app():show_status("There is no sample in the sample slot, doing nothing.")
 end
+
+-- Restore AutoSamplify monitoring state
+PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
@@ -2087,6 +2099,9 @@ function CopySliceSettings(from_sample, to_sample)
 end
 
 function PakettiDuplicateAndReverseInstrument()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local current_index = song.selected_instrument_index
   local current_instrument = song.selected_instrument
@@ -2166,6 +2181,9 @@ function PakettiDuplicateAndReverseInstrument()
 
   song.selected_instrument_index = current_index + 1
   renoise.song().selected_instrument.name = renoise.song().instruments[current_index].name .. " (Reversed)"
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
@@ -2420,6 +2438,9 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Detect and Select S
 
 -------
 function pakettiSaveSampleRange(format)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local original_instrument_index = song.selected_instrument_index
   local selected_sample = song.selected_sample
@@ -2469,6 +2490,9 @@ function pakettiSaveSampleRange(format)
   -- Clean up: delete the instrument and reselect original instrument
   song:delete_instrument_at(#song.instruments)
   song.selected_instrument_index = original_instrument_index
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Save Selected Sample Range .WAV",invoke=function() pakettiSaveSampleRange("wav") end}
@@ -2477,6 +2501,9 @@ renoise.tool():add_midi_mapping{name="Paketti:Save Selected Sample Range .WAV",i
 renoise.tool():add_midi_mapping{name="Paketti:Save Selected Sample Range .FLAC",invoke=function(message) if message:is_trigger() then pakettiSaveSampleRange("flac") end end}
 ---
 function pakettiMinimizeToLoopEnd()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local original_instrument_index = song.selected_instrument_index
   local selected_sample = song.selected_sample
@@ -2521,6 +2548,9 @@ function pakettiMinimizeToLoopEnd()
   
   os.remove(temp_file_path)
   renoise.app():show_status("Sample minimized to loop end.")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 
@@ -2532,6 +2562,9 @@ local rotation_amount = 5  -- You can set this to any desired default value
 
 -- Function to rotate sample buffer content based on knob movement
 function rotate_sample_buffer(midi_message, rotation_amount)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
 if renoise.song().selected_sample.sample_buffer.number_of_frames > 64000 then
 renoise.app():show_status("This sample is far too large to be rotated, would cause a significant performance hit and crash Renoise - aborting..")
 return
@@ -2582,6 +2615,9 @@ end
   else
     renoise.app():show_status("No sample data to rotate.")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Rotate Sample Buffer Left/Right Fine x[Knob]",invoke=function(midi_message) rotate_sample_buffer(midi_message, rotation_amount) end}
@@ -2591,6 +2627,8 @@ local previous_value_coarse = nil
 
 -- Function to rotate sample buffer content based on coarse knob movement
 function rotate_sample_buffer_coarse(midi_message, rotation_amount)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
 
 if renoise.song().selected_sample.sample_buffer.number_of_frames > 64000 then
 renoise.app():show_status("This sample is far too large to be rotated, would cause a significant performance hit and crash Renoise - aborting..")
@@ -2641,12 +2679,18 @@ end
   else
     renoise.app():show_status("No sample data to rotate.")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Rotate Sample Buffer Left/Right Coarse x[Knob]",invoke=function(midi_message) rotate_sample_buffer_coarse(midi_message, coarse_rotation_amount) end}
 
 -- Function to rotate sample buffer content forward or backward by a specified amount
 function rotate_sample_buffer_fixed(rotation_amount)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
 if renoise.song().selected_sample.sample_buffer.number_of_frames > 64000 then
 renoise.app():show_status("This sample is far too large to be rotated, would cause a significant performance hit and crash Renoise - aborted")
 return
@@ -2676,6 +2720,9 @@ end
   else
     renoise.app():show_status("No sample data to rotate.")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Right 10",invoke=function() rotate_sample_buffer_fixed(10) end}
@@ -2711,6 +2758,9 @@ end
 
 -- Coroutine function for normalization with ProcessSlicer
 function PakettiNormalizeSampleCoroutine(sample, normalize_reason)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local buffer = sample.sample_buffer
   local frames = buffer.number_of_frames
   local channels = buffer.number_of_channels
@@ -2836,6 +2886,9 @@ function PakettiNormalizeSampleCoroutine(sample, normalize_reason)
   print(string.format("DEBUG: Normalization complete - Old peak: %.6f, New peak: %.6f", peak, new_peak))
   print(string.format("Normalized %s: %s (%.2f dB increase)", normalize_reason, sample.name, db_increase))
   renoise.app():show_status(string.format("Normalized %s: %s (%.2f dB increase)", normalize_reason, sample.name, db_increase))
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
   
   -- Normalization complete - coroutine will end and ProcessSlicer will detect completion
   return true
@@ -3488,6 +3541,9 @@ BeatSyncFromSelection() end}
 --
 --
 function PakettiFlipSample(fraction)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
@@ -3512,6 +3568,9 @@ function PakettiFlipSample(fraction)
   else
     renoise.app():show_status("No sample data to flip.")
   end
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Flip Sample by 1/4",invoke=function() PakettiFlipSample(1/4) end}
@@ -4034,6 +4093,9 @@ end
 
 
 function duplicate_sample_with_transpose(transpose_amount)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song=renoise.song()
   local instrument = song.selected_instrument
   local selected_sample_index = song.selected_sample_index
@@ -4065,6 +4127,9 @@ function duplicate_sample_with_transpose(transpose_amount)
 
   -- Confirm the duplication
   renoise.app():show_status("Sample duplicated and transposed by " .. transpose_amount .. ".")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}

@@ -130,14 +130,21 @@ end
 -- Main RX2 import function using the external decoder
 --------------------------------------------------------------------------------
 function rx2_loadsample(filename)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   if not filename then
     renoise.app():show_error("RX2 Import Error: No filename provided!")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
 
   -- Set up OS-specific paths and requirements
   local setup_success, rex_decoder_path, sdk_path = setup_os_specific_paths()
   if not setup_success then
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
 
@@ -300,6 +307,8 @@ if (result ~= 0) then
   else
     print("Decoder returned error code", result)
     renoise.app():show_status("External decoder failed with error code " .. tostring(result))
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
 end
@@ -317,6 +326,8 @@ end
   if not load_success then
     print("Failed to load WAV file:", wav_output)
     renoise.app():show_status("RX2 Import Error: Failed to load decoded sample.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   
@@ -331,6 +342,8 @@ end
   if not smp.sample_buffer.has_sample_data then
     print("Loaded WAV file has no sample data")
     renoise.app():show_status("RX2 Import Error: No audio data in decoded sample.")
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
   end
   print("Sample loaded successfully from external decoder")
@@ -415,6 +428,9 @@ end
   pcall(function() os.remove(txt_output) end)
   
   renoise.app():show_status("RX2 imported successfully with slice markers")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
   return true
 end
 

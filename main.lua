@@ -598,6 +598,10 @@ function startup()
         pakettiPlayerProStartMiddleFrameObserver()
       end
 
+      -- Initialize Automatic Rename Track system
+      if preferences.pakettiAutomaticRenameTrack.value then
+        pakettiStartAutomaticRenameTrack()
+      end
       
       if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then 
       pakettiThemeSelectorPickRandomThemeFromAll()
@@ -686,6 +690,37 @@ function pakettiRandomizeBPMNow()
   local random_bpm = pakettiGenerateBellCurveBPM()
   renoise.song().transport.bpm = random_bpm
   renoise.app():show_status(string.format("Paketti: Manually randomized BPM to %d", random_bpm))
+end
+
+-- Automatic Rename Track system
+local automatic_rename_timer = nil
+local last_rename_time = 0
+
+function pakettiStartAutomaticRenameTrack()
+  -- Stop any existing timer first
+  pakettiStopAutomaticRenameTrack()
+  
+  -- Start the automatic rename timer using app_idle_observable
+  automatic_rename_timer = renoise.tool().app_idle_observable:add_notifier(function()
+    local current_time = os.clock()
+    
+    -- Only run every 200ms (0.2 seconds)
+    if current_time - last_rename_time >= 0.2 then
+      last_rename_time = current_time
+      
+      -- Only run if the function exists (PakettiMidi.lua is loaded)
+      if type(rename_tracks_by_played_samples) == "function" then
+        rename_tracks_by_played_samples()
+      end
+    end
+  end)
+end
+
+function pakettiStopAutomaticRenameTrack()
+  if automatic_rename_timer then
+    renoise.tool().app_idle_observable:remove_notifier(automatic_rename_timer)
+    automatic_rename_timer = nil
+  end
 end
 --------
 timed_require("rx")
