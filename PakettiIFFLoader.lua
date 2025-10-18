@@ -1075,7 +1075,9 @@ function saveCurrentSampleAs8SVX()
     return
   end
 
-  local output_path = renoise.app():prompt_for_filename_to_write("*.8svx","Save Sample as 8SVX File")
+  -- Windows needs dot prefix, Unix doesn't
+  local ext = (separator == "\\") and ".8svx" or "8svx"
+  local output_path = renoise.app():prompt_for_filename_to_write({ext}, "Save Sample as 8SVX File")
   
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")
@@ -1083,6 +1085,13 @@ function saveCurrentSampleAs8SVX()
   end
   
   debug_print("Original path from dialog:", output_path)
+  
+  -- CRITICAL: Windows may append the filter pattern to the filename! Clean it up
+  -- Example: "ropo.8svx*..8svx" needs to become "ropo.8svx"
+  output_path = output_path:gsub("%*%.%.8svx$", "")  -- Remove *.8svx suffix if present
+  output_path = output_path:gsub("%.8svx%*", ".8svx")  -- Remove * if it appears before extension
+  
+  debug_print("After cleanup:", output_path)
   
   if not output_path:lower():match("%.8svx$") then
     output_path = change_extension(output_path, "8svx")
@@ -1213,7 +1222,9 @@ function saveCurrentSampleAs16SV()
     return
   end
 
-  local output_path = renoise.app():prompt_for_filename_to_write("*.16sv","Save Sample as 16SV File")
+  -- Windows needs dot prefix, Unix doesn't
+  local ext = (separator == "\\") and ".16sv" or "16sv"
+  local output_path = renoise.app():prompt_for_filename_to_write({ext}, "Save Sample as 16SV File")
   
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")
@@ -1221,6 +1232,13 @@ function saveCurrentSampleAs16SV()
   end
   
   debug_print("Original path from dialog:", output_path)
+  
+  -- CRITICAL: Windows may append the filter pattern to the filename! Clean it up
+  -- Example: "ropo.16sv*..16sv" needs to become "ropo.16sv"
+  output_path = output_path:gsub("%*%.%.16sv$", "")  -- Remove *..16sv suffix if present
+  output_path = output_path:gsub("%.16sv%*", ".16sv")  -- Remove * if it appears before extension
+  
+  debug_print("After cleanup:", output_path)
   
   if not output_path:lower():match("%.16sv$") then
     output_path = change_extension(output_path, "16sv")
