@@ -3840,4 +3840,14 @@ renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Generate .
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Octatrack:Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Octatrack Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
 
+-- Main Menu File:Paketti Export entries for Octatrack
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Export:Octatrack Export (.WAV+.ot)...", invoke=function() PakettiOTExport() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Octatrack Export (.ot only)...", invoke=function() PakettiOTExportOtOnly() end}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Export:Octatrack Generate Drumkit (Smart Mono/Stereo)...", invoke=function() PakettiOTDrumkitSmart() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Octatrack Generate Drumkit (Force Mono)...", invoke=function() PakettiOTDrumkitMono() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Octatrack Generate Drumkit (Play to End)...", invoke=function() PakettiOTDrumkitPlayToEnd() end}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Export:Octatrack Generate OctaCycle...", invoke=function() PakettiOctaCycle() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Octatrack Quick OctaCycle (C, Oct 1-7)...", invoke=function() PakettiOctaCycleQuick() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Octatrack Export OctaCycle...", invoke=function() PakettiOctaCycleExport() end}
+
 

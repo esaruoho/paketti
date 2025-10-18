@@ -5232,3 +5232,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Polyend Buddy (PTI File Brows
 renoise.tool():add_midi_mapping{name="Paketti:Polyend Buddy (PTI File Browser)",invoke=function(message) if message:is_trigger() then show_polyend_buddy_dialog() end end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Polyend Buddy (PTI File Browser)",invoke = show_polyend_buddy_dialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Polyend Buddy (PTI File Browser)",invoke=show_polyend_buddy_dialog}
+
+-- Main Menu File:Paketti Export entries for PTI Drumkit
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:PTI Save Current as Drumkit (Mono)...", invoke=function() save_pti_as_drumkit_mono(false) end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:PTI Save Current as Drumkit (Stereo)...", invoke=function() save_pti_as_drumkit_stereo(false) end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:PTI Create 48 Slice Drumkit (Mono)...", invoke=function() pitchBendDrumkitLoader() save_pti_as_drumkit_mono(false) end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:PTI Create 48 Slice Drumkit (Stereo)...", invoke=function() pitchBendDrumkitLoader() save_pti_as_drumkit_stereo(false) end}

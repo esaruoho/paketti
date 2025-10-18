@@ -1021,6 +1021,9 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:.WT:Import Wavetabl
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:.WT:Export Wavetable...", invoke = paketti_export_wavetable}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:.WT:Export Wavetable...", invoke = paketti_export_wavetable}
 
+-- Main Menu File:Paketti Export entries for WT
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Export:Export Wavetable (.WT)...", invoke = paketti_export_wavetable}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Wavetable Control", invoke = show_wavetable_dialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Export Wavetable", invoke = paketti_export_wavetable} 
 renoise.tool():add_keybinding{name="Global:Paketti:Import Wavetable", invoke = paketti_import_wavetable}

@@ -784,10 +784,11 @@ timed_require("PakettiSteppers")
 --- File Import / Export business
 timed_require("PakettiREXLoader")
 timed_require("PakettiRX2Loader")
-
-timed_require("PakettiPTILoader")
-timed_require("PakettiSF2Loader")
 timed_require("PakettiIFFLoader")
+
+
+timed_require("PakettiSF2Loader")
+
 timed_require("PakettiMODLoader")
 timed_require("PakettiITIImport")
 timed_require("PakettiOTExport")
@@ -838,6 +839,7 @@ timed_require("PakettiCaptureLastTake")
 timed_require("PakettiOpenMPTLinearKeyboardLayer")
 timed_require("PakettiSlabOPatterns")
 timed_require("PakettiSwitcharoo")
+timed_require("PakettiPTILoader")
 timed_require("PakettiPolyendSuite")
 timed_require("PakettiPolyendSliceSwitcher")
 timed_require("PakettiPolyendMelodicSliceExport")

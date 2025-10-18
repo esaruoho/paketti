@@ -1172,21 +1172,6 @@ function saveCurrentSampleAs8SVX()
       status_msg = status_msg .. " (" .. table.concat(operations, ", ") .. ")"
     end
     
-    -- Show detailed success dialog with path info
-    local success_msg = string.format(
-      "SUCCESS!\n\n" ..
-      "Sample: %s\n" ..
-      "Saved to: %s\n\n" ..
-      "Operations: %s\n\n" ..
-      "OS: %s\n" ..
-      "Separator: %s",
-      sample.name,
-      output_path,
-      #operations > 0 and table.concat(operations, ", ") or "none",
-      package.config:sub(1,1) == "\\" and "Windows" or "Unix/Mac",
-      package.config:sub(1,1) == "\\" and "\\" or "/"
-    )
-    renoise.app():show_error(success_msg)
     renoise.app():show_status(status_msg)
     print(string.format("Successfully saved: %s -> %s", sample.name, output_path))
   else
@@ -1320,21 +1305,6 @@ function saveCurrentSampleAs16SV()
       status_msg = status_msg .. " (" .. table.concat(operations, ", ") .. ")"
     end
     
-    -- Show detailed success dialog with path info
-    local success_msg = string.format(
-      "SUCCESS!\n\n" ..
-      "Sample: %s\n" ..
-      "Saved to: %s\n\n" ..
-      "Operations: %s\n\n" ..
-      "OS: %s\n" ..
-      "Separator: %s",
-      sample.name,
-      output_path,
-      #operations > 0 and table.concat(operations, ", ") or "none",
-      package.config:sub(1,1) == "\\" and "Windows" or "Unix/Mac",
-      package.config:sub(1,1) == "\\" and "\\" or "/"
-    )
-    renoise.app():show_error(success_msg)
     renoise.app():show_status(status_msg)
     print(string.format("Successfully saved: %s -> %s", sample.name, output_path))
   else

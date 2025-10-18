@@ -2161,4 +2161,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:PTI Export",invoke = pti_save
 renoise.tool():add_keybinding{name="Global:Paketti:Export Subfolders as Melodic Slices",invoke = PakettiExportSubfoldersAsMelodicSlices}
 renoise.tool():add_keybinding{name="Global:Paketti:Export Subfolders as Drum Slices",invoke = PakettiExportSubfoldersAsDrumSlices}
 
+-- Main Menu File:Paketti Export entries for PTI
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Export:PTI Save Current Sample as...", invoke = pti_savesample}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:PTI Export Subfolders as Melodic Slices...", invoke = PakettiExportSubfoldersAsMelodicSlices}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:PTI Export Subfolders as Drum Slices...", invoke = PakettiExportSubfoldersAsDrumSlices}
+
 
