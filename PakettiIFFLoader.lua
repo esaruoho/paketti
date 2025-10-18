@@ -2,6 +2,9 @@
 main.lua — IFF (8SVX/16SV) → WAV converter with debug printing and auto-loading into new instruments
 ============================================================================]]--
 
+-- Get proper path separator for current OS (\ for Windows, / for Unix)
+local separator = package.config:sub(1,1)
+
 -- Helper: debug print
 local function debug_print(...)
   print("[IFF→WAV]", ...)
@@ -1079,12 +1082,16 @@ function saveCurrentSampleAs8SVX()
     return
   end
   
+  debug_print("Original path from dialog:", output_path)
+  
   if not output_path:lower():match("%.8svx$") then
     output_path = change_extension(output_path, "8svx")
+    debug_print("Changed extension, new path:", output_path)
   end
 
   print("---------------------------------")
   debug_print("Saving current sample as 8SVX (22kHz 8-bit mono):", sample.name)
+  debug_print("Final output path:", output_path)
 
   local buffer = sample.sample_buffer
   local original_rate = buffer.sample_rate
@@ -1142,11 +1149,41 @@ function saveCurrentSampleAs8SVX()
     if #operations > 0 then
       status_msg = status_msg .. " (" .. table.concat(operations, ", ") .. ")"
     end
+    
+    -- Show detailed success dialog with path info
+    local success_msg = string.format(
+      "SUCCESS!\n\n" ..
+      "Sample: %s\n" ..
+      "Saved to: %s\n\n" ..
+      "Operations: %s\n\n" ..
+      "OS: %s\n" ..
+      "Separator: %s",
+      sample.name,
+      output_path,
+      #operations > 0 and table.concat(operations, ", ") or "none",
+      package.config:sub(1,1) == "\\" and "Windows" or "Unix/Mac",
+      package.config:sub(1,1) == "\\" and "\\" or "/"
+    )
+    renoise.app():show_error(success_msg)
     renoise.app():show_status(status_msg)
     print(string.format("Successfully saved: %s -> %s", sample.name, output_path))
   else
+    -- Show detailed error dialog with path info
+    local error_msg = string.format(
+      "FAILED TO SAVE 8SVX!\n\n" ..
+      "Sample: %s\n" ..
+      "Attempted path: %s\n\n" ..
+      "Error: %s\n\n" ..
+      "OS: %s\n" ..
+      "Separator: %s",
+      sample.name,
+      output_path,
+      write_err,
+      package.config:sub(1,1) == "\\" and "Windows" or "Unix/Mac",
+      package.config:sub(1,1) == "\\" and "\\" or "/"
+    )
+    renoise.app():show_error(error_msg)
     print(string.format("Failed to write 8SVX file: %s (Error: %s)", output_path, write_err))
-    renoise.app():show_status("8SVX save failed: " .. write_err)
   end
 end
 
@@ -1183,12 +1220,16 @@ function saveCurrentSampleAs16SV()
     return
   end
   
+  debug_print("Original path from dialog:", output_path)
+  
   if not output_path:lower():match("%.16sv$") then
     output_path = change_extension(output_path, "16sv")
+    debug_print("Changed extension, new path:", output_path)
   end
 
   print("---------------------------------")
   debug_print("Saving current sample as 16SV (16-bit mono, original rate):", sample.name)
+  debug_print("Final output path:", output_path)
 
   local buffer = sample.sample_buffer
   local original_rate = buffer.sample_rate
@@ -1241,11 +1282,41 @@ function saveCurrentSampleAs16SV()
     if #operations > 0 then
       status_msg = status_msg .. " (" .. table.concat(operations, ", ") .. ")"
     end
+    
+    -- Show detailed success dialog with path info
+    local success_msg = string.format(
+      "SUCCESS!\n\n" ..
+      "Sample: %s\n" ..
+      "Saved to: %s\n\n" ..
+      "Operations: %s\n\n" ..
+      "OS: %s\n" ..
+      "Separator: %s",
+      sample.name,
+      output_path,
+      #operations > 0 and table.concat(operations, ", ") or "none",
+      package.config:sub(1,1) == "\\" and "Windows" or "Unix/Mac",
+      package.config:sub(1,1) == "\\" and "\\" or "/"
+    )
+    renoise.app():show_error(success_msg)
     renoise.app():show_status(status_msg)
     print(string.format("Successfully saved: %s -> %s", sample.name, output_path))
   else
+    -- Show detailed error dialog with path info
+    local error_msg = string.format(
+      "FAILED TO SAVE 16SV!\n\n" ..
+      "Sample: %s\n" ..
+      "Attempted path: %s\n\n" ..
+      "Error: %s\n\n" ..
+      "OS: %s\n" ..
+      "Separator: %s",
+      sample.name,
+      output_path,
+      write_err,
+      package.config:sub(1,1) == "\\" and "Windows" or "Unix/Mac",
+      package.config:sub(1,1) == "\\" and "\\" or "/"
+    )
+    renoise.app():show_error(error_msg)
     print(string.format("Failed to write 16SV file: %s (Error: %s)", output_path, write_err))
-    renoise.app():show_status("16SV save failed: " .. write_err)
   end
 end
 
@@ -1431,7 +1502,6 @@ renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current 
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as 16SV...",invoke = saveCurrentSampleAs16SV}
 renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Export:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
-
 
 renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti Export:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Convert IFF to WAV...",invoke = convertIFFToWAV}
