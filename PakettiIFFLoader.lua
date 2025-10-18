@@ -837,8 +837,15 @@ function saveCurrentSampleAsIFF()
     return
   end
 
-  -- Prompt for output file path
-  local output_path = renoise.app():prompt_for_filename_to_write("*.iff","Save Sample as IFF File")
+  -- OS-specific extension format (matching PTI loader pattern)
+  local os_name = os.platform()
+  local ext
+  if os_name == "WINDOWS" then
+    ext = "iff"  -- Windows: no asterisk, no dot
+  else
+    ext = "*.iff"  -- macOS/Linux: asterisk + dot
+  end
+  local output_path = renoise.app():prompt_for_filename_to_write(ext, "Save Sample as IFF File")
   
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")
@@ -1075,9 +1082,15 @@ function saveCurrentSampleAs8SVX()
     return
   end
 
-  -- Windows needs dot prefix, Unix doesn't
-  local ext = (separator == "\\") and ".8svx" or "8svx"
-  local output_path = renoise.app():prompt_for_filename_to_write({ext}, "Save Sample as 8SVX File")
+  -- OS-specific extension format (matching PTI loader pattern)
+  local os_name = os.platform()
+  local ext
+  if os_name == "WINDOWS" then
+    ext = "8svx"  -- Windows: no asterisk, no dot
+  else
+    ext = "*.8svx"  -- macOS/Linux: asterisk + dot
+  end
+  local output_path = renoise.app():prompt_for_filename_to_write(ext, "Save Sample as 8SVX File")
   
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")
@@ -1222,9 +1235,15 @@ function saveCurrentSampleAs16SV()
     return
   end
 
-  -- Windows needs dot prefix, Unix doesn't
-  local ext = (separator == "\\") and ".16sv" or "16sv"
-  local output_path = renoise.app():prompt_for_filename_to_write({ext}, "Save Sample as 16SV File")
+  -- OS-specific extension format (matching PTI loader pattern)
+  local os_name = os.platform()
+  local ext
+  if os_name == "WINDOWS" then
+    ext = "16sv"  -- Windows: no asterisk, no dot
+  else
+    ext = "*.16sv"  -- macOS/Linux: asterisk + dot
+  end
+  local output_path = renoise.app():prompt_for_filename_to_write(ext, "Save Sample as 16SV File")
   
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")
@@ -1509,10 +1528,167 @@ function batchConvertTo16SV()
   print(status_msg)
 end
 
+-- Batch conversion: folder of IFF/8SVX/16SV files to WAV
+function batchConvertIFFToWAV()
+  local folder_path = renoise.app():prompt_for_path("Select Folder Containing IFF/8SVX/16SV Files to Convert to WAV")
+  if not folder_path then
+    renoise.app():show_status("No folder selected")
+    return
+  end
+
+  print("---------------------------------")
+  debug_print("Batch converting IFF/8SVX/16SV files to WAV from:", folder_path)
+
+  local files = {}
+  local command
+  
+  if package.config:sub(1,1) == "\\" then
+    command = string.format('dir "%s" /b /s', folder_path:gsub('"', '\\"'))
+  else
+    command = string.format("find '%s' -type f", folder_path:gsub("'", "'\\''"))
+  end
+  
+  local handle = io.popen(command)
+  if handle then
+    for line in handle:lines() do
+      local lower_path = line:lower()
+      if lower_path:match("%.iff$") or lower_path:match("%.8svx$") or lower_path:match("%.16sv$") then
+        table.insert(files, line)
+      end
+    end
+    handle:close()
+  end
+  
+  if #files == 0 then
+    renoise.app():show_status("No IFF/8SVX/16SV files found in folder")
+    return
+  end
+
+  local success_count = 0
+  local fail_count = 0
+
+  for i, file_path in ipairs(files) do
+    print(string.format("Processing %d/%d: %s", i, #files, filename_from_path(file_path)))
+    
+    local buffer_data, sample_rate
+    local ok, err = pcall(function()
+      buffer_data, sample_rate = convert_iff_to_buffer(file_path)
+    end)
+
+    if ok then
+      local output_path = change_extension(file_path, "wav")
+      
+      local write_ok, write_err = pcall(function()
+        write_wav_file(output_path, buffer_data, sample_rate, 16)
+      end)
+
+      if write_ok then
+        success_count = success_count + 1
+        debug_print("Converted:", filename_from_path(file_path))
+      else
+        fail_count = fail_count + 1
+        print(string.format("Failed to write: %s (Error: %s)", file_path, write_err))
+      end
+    else
+      fail_count = fail_count + 1
+      print(string.format("Failed to read: %s (Error: %s)", file_path, err))
+    end
+  end
+
+  local status_msg = string.format("Batch IFF to WAV complete: %d succeeded, %d failed", success_count, fail_count)
+  renoise.app():show_status(status_msg)
+  print(status_msg)
+end
+
+-- Batch conversion: folder of WAV files to IFF (22kHz 8-bit)
+function batchConvertWAVToIFF()
+  local folder_path = renoise.app():prompt_for_path("Select Folder Containing WAV Files to Convert to IFF")
+  if not folder_path then
+    renoise.app():show_status("No folder selected")
+    return
+  end
+
+  print("---------------------------------")
+  debug_print("Batch converting WAV files to IFF (22kHz 8-bit) from:", folder_path)
+
+  local files = {}
+  local command
+  
+  if package.config:sub(1,1) == "\\" then
+    command = string.format('dir "%s" /b /s', folder_path:gsub('"', '\\"'))
+  else
+    command = string.format("find '%s' -type f", folder_path:gsub("'", "'\\''"))
+  end
+  
+  local handle = io.popen(command)
+  if handle then
+    for line in handle:lines() do
+      local lower_path = line:lower()
+      if lower_path:match("%.wav$") then
+        table.insert(files, line)
+      end
+    end
+    handle:close()
+  end
+  
+  if #files == 0 then
+    renoise.app():show_status("No WAV files found in folder")
+    return
+  end
+
+  local success_count = 0
+  local fail_count = 0
+
+  for i, file_path in ipairs(files) do
+    print(string.format("Processing %d/%d: %s", i, #files, filename_from_path(file_path)))
+    
+    local buffer_data, sample_rate, bits_per_sample
+    local ok, err = pcall(function()
+      buffer_data, sample_rate, bits_per_sample = convert_wav_to_buffer(file_path)
+    end)
+
+    if ok then
+      local target_rate = 22050
+      local resampled_data = resample_buffer(buffer_data, sample_rate, target_rate)
+      
+      if #resampled_data > 65535 then
+        local truncated_data = {}
+        for j = 1, 65534 do
+          truncated_data[j] = resampled_data[j]
+        end
+        resampled_data = truncated_data
+      end
+      
+      local output_path = change_extension(file_path, "iff")
+      
+      local write_ok, write_err = pcall(function()
+        write_iff_file(output_path, resampled_data, target_rate, 8)
+      end)
+
+      if write_ok then
+        success_count = success_count + 1
+        debug_print("Converted:", filename_from_path(file_path))
+      else
+        fail_count = fail_count + 1
+        print(string.format("Failed to write: %s (Error: %s)", file_path, write_err))
+      end
+    else
+      fail_count = fail_count + 1
+      print(string.format("Failed to read: %s (Error: %s)", file_path, err))
+    end
+  end
+
+  local status_msg = string.format("Batch WAV to IFF complete: %d succeeded, %d failed", success_count, fail_count)
+  renoise.app():show_status(status_msg)
+  print(status_msg)
+end
+
 renoise.tool():add_keybinding{name = "Global:Paketti:Save Current Sample as 8SVX...",invoke = saveCurrentSampleAs8SVX}
 renoise.tool():add_keybinding{name = "Global:Paketti:Save Current Sample as 16SV...",invoke = saveCurrentSampleAs16SV}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
+renoise.tool():add_keybinding{name = "Global:Paketti:Batch Convert IFF/8SVX/16SV to WAV...",invoke = batchConvertIFFToWAV}
+renoise.tool():add_keybinding{name = "Global:Paketti:Batch Convert WAV to IFF...",invoke = batchConvertWAVToIFF}
 
 
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
@@ -1520,9 +1696,15 @@ renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current 
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as 16SV...",invoke = saveCurrentSampleAs16SV}
 renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Export:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Batch Convert IFF/8SVX/16SV to WAV...",invoke = batchConvertIFFToWAV}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Batch Convert WAV to IFF...",invoke = batchConvertWAVToIFF}
 
 renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti Export:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Convert IFF to WAV...",invoke = convertIFFToWAV}
 renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Convert WAV to IFF...",invoke = convertWAVToIFF}
+renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti Export:Save Selected Sample as 8SVX...",invoke = saveCurrentSampleAs8SVX}
+renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Save Selected Sample as 16SV...",invoke = saveCurrentSampleAs16SV}
 renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti Export:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
 renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
+renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Batch Convert IFF/8SVX/16SV to WAV...",invoke = batchConvertIFFToWAV}
+renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Batch Convert WAV to IFF...",invoke = batchConvertWAVToIFF}
