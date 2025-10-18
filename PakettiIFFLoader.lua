@@ -1424,3 +1424,15 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Save Current Sample as 8SVX
 renoise.tool():add_keybinding{name = "Global:Paketti:Save Current Sample as 16SV...",invoke = saveCurrentSampleAs16SV}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
+
+
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as 8SVX...",invoke = saveCurrentSampleAs8SVX}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as 16SV...",invoke = saveCurrentSampleAs16SV}
+renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Export:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
+renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti:Export:Convert IFF to WAV...",invoke = convertIFFToWAV}
+renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti:Export:Convert WAV to IFF...",invoke = convertWAVToIFF}
+renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti:Export:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
+renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti:Export:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
