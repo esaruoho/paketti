@@ -309,57 +309,77 @@ function iti_build_envelopes(instrument)
   local function bw(v) return iti_write_word(v or 0) end
   local function bb(v) return iti_write_byte(v or 0) end
 
-  -- Emit one 81-byte envelope block:
-  -- [Flags][NumNodes][VLS][VLE][SLS][SLE] + 25 * ([Val BYTE][Tick WORD])
-  local function emit_envelope(flags, nodes, vls, vle, sls, sle)
+  -- Emit block with VALUE->TICK node encoding (used by rio.iti for VOLUME)
+  local function emit_VAL_TICK(flags, nodes, vls, vle, sls, sle)
     local e = {}
-    table.insert(e, bb(flags or 0))        -- Flags: bit0=On, bit1=Loop, bit2=Sustain, bit3=Carry
-    table.insert(e, bb(#nodes))            -- NumNodes
-    table.insert(e, bb(vls or 0))          -- VLS
-    table.insert(e, bb(vle or 0))          -- VLE
-    table.insert(e, bb(sls or 0))          -- SLS
-    table.insert(e, bb(sle or 0))          -- SLE
-
-    -- Nodes: Value (BYTE), then Tick (WORD) - matches ITI import format
-    for i = 1, math.min(#nodes, 25) do
+    table.insert(e, bb(flags or 0))              -- Flags
+    table.insert(e, bb(#nodes))                  -- NumNodes
+    table.insert(e, bb(vls or 0))                -- VLS
+    table.insert(e, bb(vle or 0))                -- VLE
+    table.insert(e, bb(sls or 0))                -- SLS
+    table.insert(e, bb(sle or 0))                -- SLE
+    for i = 1, math.min(#nodes, 25) do           -- Node: VALUE (BYTE), then TICK (WORD)
       local n = nodes[i]
       table.insert(e, bb(n.val))
       table.insert(e, bw(n.tick))
     end
-    -- Pad remaining nodes to 25
     for i = #nodes + 1, 25 do
-      table.insert(e, bb(0))
-      table.insert(e, bw(0))
+      table.insert(e, bb(0)); table.insert(e, bw(0))
     end
     return table.concat(e)
   end
 
-  -- Volume: 0..64; sustain at max volume (flat line)
-  local vol_flags = 1  -- enable volume envelope
-  local vol_nodes = {
-    { tick = 0,  val = 64 },   -- Start at max volume (64)
-    { tick = 8,  val = 64 },   -- End at max volume (64) - flat sustain
-  }
-  table.insert(out, emit_envelope(vol_flags, vol_nodes, 0, 0, 0, 0))
+  -- Emit block with TICK->VALUE node encoding (used by rio.iti for PANNING when present)
+  local function emit_TICK_VAL(flags, nodes, vls, vle, sls, sle)
+    local e = {}
+    table.insert(e, bb(flags or 0))
+    table.insert(e, bb(#nodes))
+    table.insert(e, bb(vls or 0))
+    table.insert(e, bb(vle or 0))
+    table.insert(e, bb(sls or 0))
+    table.insert(e, bb(sle or 0))
+    for i = 1, math.min(#nodes, 25) do           -- Node: TICK (WORD), then VALUE (BYTE)
+      local n = nodes[i]
+      table.insert(e, bw(n.tick))
+      table.insert(e, bb(n.val))
+    end
+    for i = #nodes + 1, 25 do
+      table.insert(e, bw(0)); table.insert(e, bb(0))
+    end
+    return table.concat(e)
+  end
 
-  -- Panning: 0..64; 32=center (neutral, no panning change)
-  local pan_flags = 1  -- enable panning envelope (neutral curve)
-  local pan_nodes = {
-    { tick = 0,  val = 32 },   -- Start at center
-    { tick = 8,  val = 32 },   -- End at center
-  }
-  table.insert(out, emit_envelope(pan_flags, pan_nodes, 0, 0, 0, 0))
+  -- === EXACT match to rio.iti ===
 
-  -- Pitch: 0..64; 32=center/no pitch change (neutral)
-  local pit_flags = 1  -- enable pitch envelope (neutral curve)
-  local pit_nodes = {
-    { tick = 0,  val = 32 },   -- Start at center (no pitch change)
-    { tick = 8,  val = 32 },   -- End at center (no pitch change)
-  }
-  table.insert(out, emit_envelope(pit_flags, pit_nodes, 0, 0, 0, 0))
+  -- Volume: flags=1, nodes=2, VALUE->TICK; nodes (64@0), (64@16)
+  table.insert(out, emit_VAL_TICK(0x01, {
+    { tick = 0,  val = 64 },
+    { tick = 16, val = 64 },
+  }, 0, 0, 0, 0))
+
+  -- Panning: flags=0, nodes=2, VLS=2, VLE=0, TICK->VALUE; nodes (0,0), (0,32)
+  table.insert(out, emit_TICK_VAL(0x00, {
+    { tick = 0, val = 0  },
+    { tick = 0, val = 32 },
+  }, 2, 0, 0, 0))
+
+  -- Pitch/Frequency: flags=0, nodes=0, VLS=0, VLE=2, no nodes
+  do
+    local e = {}
+    table.insert(e, bb(0x00))  -- Flags
+    table.insert(e, bb(0x00))  -- NumNodes
+    table.insert(e, bb(0x00))  -- VLS
+    table.insert(e, bb(0x02))  -- VLE  (rio.iti sets this to 2)
+    table.insert(e, bb(0x00))  -- SLS
+    table.insert(e, bb(0x00))  -- SLE
+    for i = 1, 25 do           -- pad node area
+      table.insert(e, bw(0)); table.insert(e, bb(0))
+    end
+    table.insert(out, table.concat(e))
+  end
 
   local result = table.concat(out)
-  dprint("Built envelopes:", #result, "bytes (vol/pan/pitch enabled, neutral, staggered ticks)")
+  dprint("Built envelopes to match rio.iti exactly:", #result, "bytes")
   return result
 end
 
