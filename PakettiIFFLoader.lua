@@ -899,14 +899,15 @@ function saveCurrentSampleAsIFF()
   -- Check length and truncate if necessary
   local was_truncated = false
   if #sample_data > 65535 then
-    debug_print(string.format("Sample too long (%d frames), truncating to 65534 frames", #sample_data))
+    local original_length = #sample_data
+    debug_print(string.format("Sample too long (%d frames), truncating to 65534 frames", original_length))
     local truncated_data = {}
     for i = 1, 65534 do
       truncated_data[i] = sample_data[i]
     end
     sample_data = truncated_data
     was_truncated = true
-    table.insert(operations, string.format("truncated from %d to 65534 frames", #sample_data > 65534 and #sample_data or "unknown"))
+    table.insert(operations, string.format("truncated from %d to 65534 frames", original_length))
   end
   
   -- Convert to mono if it was stereo

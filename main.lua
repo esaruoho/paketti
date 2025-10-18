@@ -791,6 +791,7 @@ timed_require("PakettiSF2Loader")
 
 timed_require("PakettiMODLoader")
 timed_require("PakettiITIImport")
+timed_require("PakettiITIExport")
 timed_require("PakettiOTExport")
 timed_require("PakettiXIExport")
 timed_require("PakettiWTImport")
