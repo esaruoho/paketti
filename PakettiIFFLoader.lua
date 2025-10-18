@@ -929,3 +929,498 @@ function saveCurrentSampleAsIFF()
 end
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
+
+-- Function to read AIFF files
+function convert_aiff_to_buffer(aiff_path)
+  debug_print("Opening AIFF file:", aiff_path)
+  local f, err = io.open(aiff_path, "rb")
+  if not f then
+    error("Could not open file: " .. err)
+  end
+
+  -- read FORM header
+  local form_header = f:read(4)
+  if form_header ~= "FORM" then
+    f:close()
+    error("Not a valid AIFF file (missing FORM header)")
+  end
+
+  local file_size = read_be_u32(f)
+  local aiff_header = f:read(4)
+  if aiff_header ~= "AIFF" and aiff_header ~= "AIFC" then
+    f:close()
+    error("Not a valid AIFF file (missing AIFF/AIFC header)")
+  end
+
+  local sample_rate, bits_per_sample, num_channels
+  local raw_data
+
+  -- read chunks
+  while true do
+    local chunk_id = f:read(4)
+    if not chunk_id or #chunk_id < 4 then break end
+    
+    local chunk_size = read_be_u32(f)
+    debug_print(string.format("AIFF Chunk: '%s' (%d bytes)", chunk_id, chunk_size))
+
+    if chunk_id == "COMM" then
+      num_channels = read_be_u16(f)
+      local num_sample_frames = read_be_u32(f)
+      bits_per_sample = read_be_u16(f)
+      
+      -- read 80-bit extended precision sample rate (we'll simplify this)
+      local exp_bytes = f:read(10)
+      -- Simple conversion from 80-bit extended to integer sample rate
+      local exp = exp_bytes:byte(1) * 256 + exp_bytes:byte(2)
+      local mantissa_hi = exp_bytes:byte(3) * 16777216 + exp_bytes:byte(4) * 65536 + 
+                          exp_bytes:byte(5) * 256 + exp_bytes:byte(6)
+      -- approximate conversion
+      if exp > 0 then
+        sample_rate = math.floor(mantissa_hi * math.pow(2, exp - 16414))
+      else
+        sample_rate = 44100 -- default fallback
+      end
+      
+      debug_print("AIFF Format - Sample rate:", sample_rate, "Bits:", bits_per_sample, "Channels:", num_channels)
+      
+      -- skip any extra COMM bytes
+      if chunk_size > 18 then
+        f:seek("cur", chunk_size - 18)
+      end
+      
+    elseif chunk_id == "SSND" then
+      local offset = read_be_u32(f)
+      local block_size = read_be_u32(f)
+      f:seek("cur", offset) -- skip offset bytes
+      raw_data = f:read(chunk_size - 8 - offset)
+      debug_print("AIFF sound data length:", raw_data and #raw_data)
+      
+    else
+      -- skip unknown chunks
+      f:seek("cur", chunk_size)
+      debug_print("Skipped AIFF chunk:", chunk_id)
+    end
+
+    -- skip pad byte if chunk size is odd
+    if chunk_size % 2 ~= 0 then
+      f:seek("cur", 1)
+    end
+  end
+
+  f:close()
+  
+  assert(sample_rate and raw_data and bits_per_sample, "Missing required AIFF chunks")
+  
+  if num_channels ~= 1 then
+    error("Only mono AIFF files are supported for IFF conversion")
+  end
+
+  -- decode samples into normalized floats
+  local buffer_data = {}
+  
+  if bits_per_sample == 8 then
+    -- 8-bit AIFF is signed
+    for i = 1, #raw_data do
+      local b = raw_data:byte(i)
+      local s8 = (b < 128) and b or (b - 256)
+      buffer_data[i] = s8 / 128.0
+    end
+    
+  elseif bits_per_sample == 16 then
+    -- 16-bit AIFF is signed big-endian
+    assert(#raw_data % 2 == 0, "Odd byte count in 16-bit AIFF data")
+    local idx = 1
+    for i = 1, #raw_data, 2 do
+      local hi, lo = raw_data:byte(i, i+1)
+      local val = hi * 256 + lo
+      if val >= 0x8000 then val = val - 0x10000 end
+      buffer_data[idx] = val / 32768.0
+      idx = idx + 1
+    end
+    
+  else
+    error("Unsupported bit depth: " .. bits_per_sample .. " (only 8 and 16-bit supported)")
+  end
+
+  debug_print("Converted AIFF frames:", #buffer_data)
+  return buffer_data, sample_rate, bits_per_sample
+end
+
+-- Function to save current selected sample as 8SVX (22kHz 8-bit mono .8svx)
+function saveCurrentSampleAs8SVX()
+  local song = renoise.song()
+  
+  if not song.selected_instrument_index or song.selected_instrument_index == 0 then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No samples in selected instrument")
+    return
+  end
+  
+  if not song.selected_sample_index or song.selected_sample_index == 0 then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local sample = instrument.samples[song.selected_sample_index]
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no data")
+    return
+  end
+
+  local output_path = renoise.app():prompt_for_filename_to_write("*.8svx","Save Sample as 8SVX File")
+  
+  if not output_path or output_path == "" then
+    renoise.app():show_status("No file selected")
+    return
+  end
+  
+  if not output_path:lower():match("%.8svx$") then
+    output_path = change_extension(output_path, "8svx")
+  end
+
+  print("---------------------------------")
+  debug_print("Saving current sample as 8SVX (22kHz 8-bit mono):", sample.name)
+
+  local buffer = sample.sample_buffer
+  local original_rate = buffer.sample_rate
+  local original_frames = buffer.number_of_frames
+  local original_channels = buffer.number_of_channels
+  
+  debug_print(string.format("Original sample: %d Hz, %d frames, %d channels", 
+    original_rate, original_frames, original_channels))
+
+  local sample_data = {}
+  if original_channels == 1 then
+    for i = 1, original_frames do
+      sample_data[i] = buffer:sample_data(1, i)
+    end
+  else
+    for i = 1, original_frames do
+      local sum = 0
+      for ch = 1, original_channels do
+        sum = sum + buffer:sample_data(ch, i)
+      end
+      sample_data[i] = sum / original_channels
+    end
+  end
+
+  local operations = {}
+  local target_rate = 22050
+  if original_rate ~= target_rate then
+    sample_data = resample_buffer(sample_data, original_rate, target_rate)
+    table.insert(operations, string.format("resampled from %d Hz to %d Hz", original_rate, target_rate))
+  end
+  
+  if #sample_data > 65535 then
+    debug_print(string.format("Sample too long (%d frames), truncating to 65534 frames", #sample_data))
+    local truncated_data = {}
+    for i = 1, 65534 do
+      truncated_data[i] = sample_data[i]
+    end
+    sample_data = truncated_data
+    table.insert(operations, "truncated to 65534 frames")
+  end
+  
+  if original_channels > 1 then
+    table.insert(operations, string.format("converted from %d channels to mono", original_channels))
+  end
+  
+  table.insert(operations, "converted to 8-bit")
+
+  local write_ok, write_err = pcall(function()
+    write_iff_file(output_path, sample_data, target_rate, 8)
+  end)
+
+  if write_ok then
+    local filename = filename_from_path(output_path)
+    local status_msg = string.format("Saved as 8SVX: %s", filename)
+    if #operations > 0 then
+      status_msg = status_msg .. " (" .. table.concat(operations, ", ") .. ")"
+    end
+    renoise.app():show_status(status_msg)
+    print(string.format("Successfully saved: %s -> %s", sample.name, output_path))
+  else
+    print(string.format("Failed to write 8SVX file: %s (Error: %s)", output_path, write_err))
+    renoise.app():show_status("8SVX save failed: " .. write_err)
+  end
+end
+
+-- Function to save current selected sample as 16SV (preserves sample rate, 16-bit mono .16sv)
+function saveCurrentSampleAs16SV()
+  local song = renoise.song()
+  
+  if not song.selected_instrument_index or song.selected_instrument_index == 0 then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No samples in selected instrument")
+    return
+  end
+  
+  if not song.selected_sample_index or song.selected_sample_index == 0 then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local sample = instrument.samples[song.selected_sample_index]
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no data")
+    return
+  end
+
+  local output_path = renoise.app():prompt_for_filename_to_write("*.16sv","Save Sample as 16SV File")
+  
+  if not output_path or output_path == "" then
+    renoise.app():show_status("No file selected")
+    return
+  end
+  
+  if not output_path:lower():match("%.16sv$") then
+    output_path = change_extension(output_path, "16sv")
+  end
+
+  print("---------------------------------")
+  debug_print("Saving current sample as 16SV (16-bit mono, original rate):", sample.name)
+
+  local buffer = sample.sample_buffer
+  local original_rate = buffer.sample_rate
+  local original_frames = buffer.number_of_frames
+  local original_channels = buffer.number_of_channels
+  
+  debug_print(string.format("Original sample: %d Hz, %d frames, %d channels", 
+    original_rate, original_frames, original_channels))
+
+  local sample_data = {}
+  if original_channels == 1 then
+    for i = 1, original_frames do
+      sample_data[i] = buffer:sample_data(1, i)
+    end
+  else
+    for i = 1, original_frames do
+      local sum = 0
+      for ch = 1, original_channels do
+        sum = sum + buffer:sample_data(ch, i)
+      end
+      sample_data[i] = sum / original_channels
+    end
+  end
+
+  local operations = {}
+  
+  if #sample_data > 65535 then
+    debug_print(string.format("Sample too long (%d frames), truncating to 65534 frames", #sample_data))
+    local truncated_data = {}
+    for i = 1, 65534 do
+      truncated_data[i] = sample_data[i]
+    end
+    sample_data = truncated_data
+    table.insert(operations, "truncated to 65534 frames")
+  end
+  
+  if original_channels > 1 then
+    table.insert(operations, string.format("converted from %d channels to mono", original_channels))
+  end
+  
+  table.insert(operations, "converted to 16-bit")
+
+  local write_ok, write_err = pcall(function()
+    write_iff_file(output_path, sample_data, original_rate, 16)
+  end)
+
+  if write_ok then
+    local filename = filename_from_path(output_path)
+    local status_msg = string.format("Saved as 16SV: %s", filename)
+    if #operations > 0 then
+      status_msg = status_msg .. " (" .. table.concat(operations, ", ") .. ")"
+    end
+    renoise.app():show_status(status_msg)
+    print(string.format("Successfully saved: %s -> %s", sample.name, output_path))
+  else
+    print(string.format("Failed to write 16SV file: %s (Error: %s)", output_path, write_err))
+    renoise.app():show_status("16SV save failed: " .. write_err)
+  end
+end
+
+-- Batch conversion: folder of WAV/AIFF files to 8SVX
+function batchConvertToIFF()
+  local folder_path = renoise.app():prompt_for_path("Select Folder Containing WAV/AIFF Files to Convert")
+  if not folder_path then
+    renoise.app():show_status("No folder selected")
+    return
+  end
+
+  print("---------------------------------")
+  debug_print("Batch converting WAV/AIFF files to 8SVX from:", folder_path)
+
+  local files = {}
+  local command
+  
+  if package.config:sub(1,1) == "\\" then
+    command = string.format('dir "%s" /b /s', folder_path:gsub('"', '\\"'))
+  else
+    command = string.format("find '%s' -type f", folder_path:gsub("'", "'\\''"))
+  end
+  
+  local handle = io.popen(command)
+  if handle then
+    for line in handle:lines() do
+      local lower_path = line:lower()
+      if lower_path:match("%.wav$") or lower_path:match("%.aiff$") or lower_path:match("%.aif$") then
+        table.insert(files, line)
+      end
+    end
+    handle:close()
+  end
+  
+  if #files == 0 then
+    renoise.app():show_status("No WAV/AIFF files found in folder")
+    return
+  end
+
+  local success_count = 0
+  local fail_count = 0
+
+  for i, file_path in ipairs(files) do
+    print(string.format("Processing %d/%d: %s", i, #files, filename_from_path(file_path)))
+    
+    local buffer_data, sample_rate, bits_per_sample
+    local ok, err = pcall(function()
+      if file_path:lower():match("%.wav$") then
+        buffer_data, sample_rate, bits_per_sample = convert_wav_to_buffer(file_path)
+      else
+        buffer_data, sample_rate, bits_per_sample = convert_aiff_to_buffer(file_path)
+      end
+    end)
+
+    if ok then
+      local target_rate = 22050
+      local resampled_data = resample_buffer(buffer_data, sample_rate, target_rate)
+      
+      if #resampled_data > 65535 then
+        local truncated_data = {}
+        for j = 1, 65534 do
+          truncated_data[j] = resampled_data[j]
+        end
+        resampled_data = truncated_data
+      end
+      
+      local output_path = change_extension(file_path, "8svx")
+      
+      local write_ok, write_err = pcall(function()
+        write_iff_file(output_path, resampled_data, target_rate, 8)
+      end)
+
+      if write_ok then
+        success_count = success_count + 1
+        debug_print("Converted:", filename_from_path(file_path))
+      else
+        fail_count = fail_count + 1
+        print(string.format("Failed to write: %s (Error: %s)", file_path, write_err))
+      end
+    else
+      fail_count = fail_count + 1
+      print(string.format("Failed to read: %s (Error: %s)", file_path, err))
+    end
+  end
+
+  local status_msg = string.format("Batch conversion complete: %d succeeded, %d failed", success_count, fail_count)
+  renoise.app():show_status(status_msg)
+  print(status_msg)
+end
+
+-- Batch conversion: folder of WAV/AIFF files to 16SV (preserves sample rate)
+function batchConvertTo16SV()
+  local folder_path = renoise.app():prompt_for_path("Select Folder Containing WAV/AIFF Files to Convert to 16SV")
+  if not folder_path then
+    renoise.app():show_status("No folder selected")
+    return
+  end
+
+  print("---------------------------------")
+  debug_print("Batch converting WAV/AIFF files to 16SV from:", folder_path)
+
+  local files = {}
+  local command
+  
+  if package.config:sub(1,1) == "\\" then
+    command = string.format('dir "%s" /b /s', folder_path:gsub('"', '\\"'))
+  else
+    command = string.format("find '%s' -type f", folder_path:gsub("'", "'\\''"))
+  end
+  
+  local handle = io.popen(command)
+  if handle then
+    for line in handle:lines() do
+      local lower_path = line:lower()
+      if lower_path:match("%.wav$") or lower_path:match("%.aiff$") or lower_path:match("%.aif$") then
+        table.insert(files, line)
+      end
+    end
+    handle:close()
+  end
+  
+  if #files == 0 then
+    renoise.app():show_status("No WAV/AIFF files found in folder")
+    return
+  end
+
+  local success_count = 0
+  local fail_count = 0
+
+  for i, file_path in ipairs(files) do
+    print(string.format("Processing %d/%d: %s", i, #files, filename_from_path(file_path)))
+    
+    local buffer_data, sample_rate, bits_per_sample
+    local ok, err = pcall(function()
+      if file_path:lower():match("%.wav$") then
+        buffer_data, sample_rate, bits_per_sample = convert_wav_to_buffer(file_path)
+      else
+        buffer_data, sample_rate, bits_per_sample = convert_aiff_to_buffer(file_path)
+      end
+    end)
+
+    if ok then
+      if #buffer_data > 65535 then
+        local truncated_data = {}
+        for j = 1, 65534 do
+          truncated_data[j] = buffer_data[j]
+        end
+        buffer_data = truncated_data
+      end
+      
+      local output_path = change_extension(file_path, "16sv")
+      
+      local write_ok, write_err = pcall(function()
+        write_iff_file(output_path, buffer_data, sample_rate, 16)
+      end)
+
+      if write_ok then
+        success_count = success_count + 1
+        debug_print("Converted:", filename_from_path(file_path))
+      else
+        fail_count = fail_count + 1
+        print(string.format("Failed to write: %s (Error: %s)", file_path, write_err))
+      end
+    else
+      fail_count = fail_count + 1
+      print(string.format("Failed to read: %s (Error: %s)", file_path, err))
+    end
+  end
+
+  local status_msg = string.format("Batch conversion complete: %d succeeded, %d failed", success_count, fail_count)
+  renoise.app():show_status(status_msg)
+  print(status_msg)
+end
+
+renoise.tool():add_keybinding{name = "Global:Paketti:Save Current Sample as 8SVX...",invoke = saveCurrentSampleAs8SVX}
+renoise.tool():add_keybinding{name = "Global:Paketti:Save Current Sample as 16SV...",invoke = saveCurrentSampleAs16SV}
+renoise.tool():add_keybinding{name = "Global:Paketti:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
+renoise.tool():add_keybinding{name = "Global:Paketti:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
