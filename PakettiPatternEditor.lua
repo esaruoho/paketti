@@ -3355,12 +3355,103 @@ renoise.tool():add_midi_mapping{name="Paketti:Insert Random Panning to Selected 
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Volume to Selected Row",invoke=function()insert_random_value("volume")end}
 
 
--- Function to replicate current note or effect column content
-function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
+-- Generic replication function that handles both selection and cursor-based replication
+function PakettiGenericReplicate(row_option, replicate_callback, status_message_callback)
   local song = renoise.song()
   local pattern = song.selected_pattern
   local cursor_row = song.selected_line_index
   local pattern_length = pattern.number_of_lines
+  local selected_track_index = song.selected_track_index
+  local selection = song.selection_in_pattern
+  
+  local repeat_length, start_row, source_start_row
+  local status_suffix
+  
+  -- Check if there's a selection
+  if selection then
+    -- Selection-based replication
+    local selection_start = selection.start_line
+    local selection_end = selection.end_line
+    
+    -- Validate that the selection is in the current track
+    if selection.start_track ~= selected_track_index or selection.end_track ~= selected_track_index then
+      renoise.app():show_status("Selection must be within a single track column.")
+      return
+    end
+    
+    -- Calculate repeat length from selection
+    repeat_length = selection_end - selection_start + 1
+    
+    -- Start replicating from the row after the selection
+    start_row = selection_end + 1
+    
+    -- Source starts from the beginning of the selection
+    source_start_row = selection_start
+    
+    if start_row > pattern_length then
+      renoise.app():show_status("Selection is at the end of pattern, nothing to replicate.")
+      return
+    end
+    
+    status_suffix = " (from selection)"
+  else
+    -- No selection: use original "above cursor" or "above + current" logic
+    if (cursor_row == pattern_length and row_option == "above_and_current") then
+      renoise.app():show_status("No rows to replicate.")
+      return
+    end
+    if (cursor_row == 1 and row_option == "above_current") then
+      row_option = "above_and_current"
+    end
+
+    -- Determine the repeat_length and starting row based on row_option
+    if row_option == "above_current" then
+      if cursor_row == 1 then
+        renoise.app():show_status("You are on the first row, nothing to replicate.")
+        return
+      end
+      repeat_length = cursor_row - 1
+      start_row = cursor_row
+      source_start_row = 1
+    elseif row_option == "above_and_current" then
+      repeat_length = cursor_row
+      start_row = cursor_row + 1
+      source_start_row = 1
+      if cursor_row == pattern_length then
+        renoise.app():show_status("You are on the last row, nothing to replicate.")
+        return
+      end
+    else
+      renoise.app():show_status("Invalid row option: " .. tostring(row_option))
+      return
+    end
+
+    status_suffix = (row_option == "above_current") and " (above current)" or " (above + current)"
+  end
+
+  if repeat_length == 0 then
+    renoise.app():show_status("No rows to replicate.")
+    return
+  end
+  
+  -- Perform the replication using the callback
+  for row = start_row, pattern_length do
+    local source_row = source_start_row + ((row - start_row) % repeat_length)
+    local source_line = pattern:track(selected_track_index):line(source_row)
+    local dest_line = pattern:track(selected_track_index):line(row)
+    
+    replicate_callback(source_line, dest_line)
+  end
+
+  -- Display status message
+  if status_message_callback then
+    renoise.app():show_status(status_message_callback() .. status_suffix)
+  end
+end
+
+-- Function to replicate current note or effect column content
+function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
+  local song = renoise.song()
   local selected_track_index = song.selected_track_index
   local selected_note_column_index = song.selected_note_column_index
   local selected_effect_column_index = song.selected_effect_column_index
@@ -3368,41 +3459,6 @@ function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
   -- Determine if we're on a note column or effect column
   local is_effect_column = (selected_effect_column_index > 0)
   
-  -- Check if there is content to replicate
-  if (cursor_row == pattern_length and row_option == "above_and_current") then
-    renoise.app():show_status("No rows to replicate.")
-    return
-  end
-  if (cursor_row == 1 and row_option == "above_current") then
-    row_option = "above_and_current"
-  end
-
-  -- Determine the repeat_length and starting row based on row_option
-  local repeat_length, start_row
-  if row_option == "above_current" then
-    if cursor_row == 1 then
-      renoise.app():show_status("You are on the first row, nothing to replicate.")
-      return
-    end
-    repeat_length = cursor_row - 1
-    start_row = cursor_row
-  elseif row_option == "above_and_current" then
-    repeat_length = cursor_row
-    start_row = cursor_row + 1
-    if cursor_row == pattern_length then
-      renoise.app():show_status("You are on the last row, nothing to replicate.")
-      return
-    end
-  else
-    renoise.app():show_status("Invalid row option: " .. tostring(row_option))
-    return
-  end
-
-  if repeat_length == 0 then
-    renoise.app():show_status("No rows to replicate.")
-    return
-  end
-
   transpose = transpose or 0
 
   local function transpose_note(note_value, transpose_amount)
@@ -3418,12 +3474,8 @@ function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
     end
   end
 
-  -- Replicate the selected column (either note or effect)
-  for row = start_row, pattern_length do
-    local source_row = ((row - start_row) % repeat_length) + 1
-    local source_line = pattern:track(selected_track_index):line(source_row)
-    local dest_line = pattern:track(selected_track_index):line(row)
-
+  -- Callback function for full column replication
+  local function replicate_full_column(source_line, dest_line)
     if is_effect_column then
       -- Handle effect column replication
       local source_fx = source_line.effect_columns[selected_effect_column_index]
@@ -3450,11 +3502,16 @@ function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
     end
   end
 
-  if is_effect_column then
-    renoise.app():show_status("Replicated effect column")
-  else
-    renoise.app():show_status("Replicated note column with transpose: " .. transpose)
+  -- Status message callback
+  local function status_message()
+    if is_effect_column then
+      return "Replicated effect column"
+    else
+      return "Replicated note column with transpose: " .. transpose
+    end
   end
+
+  PakettiGenericReplicate(row_option, replicate_full_column, status_message)
 end
 
 -- Helper function for subcolumn replication logic
@@ -3529,10 +3586,6 @@ end
 -- Function to replicate the currently selected subcolumn
 function PakettiReplicateSelectedSubcolumn(row_option)
   local song = renoise.song()
-  local pattern = song.selected_pattern
-  local cursor_row = song.selected_line_index
-  local pattern_length = pattern.number_of_lines
-  local selected_track_index = song.selected_track_index
   local selected_note_column_index = song.selected_note_column_index
   local selected_effect_column_index = song.selected_effect_column_index
   
@@ -3548,53 +3601,19 @@ function PakettiReplicateSelectedSubcolumn(row_option)
     return
   end
   
-  -- Check if there is content to replicate based on row_option
-  if (cursor_row == pattern_length and row_option == "above_and_current") then
-    renoise.app():show_status("No rows to replicate.")
-    return
-  end
-  if (cursor_row == 1 and row_option == "above_current") then
-    row_option = "above_and_current"
-  end
-
-  -- Determine the repeat_length and starting row based on row_option
-  local repeat_length, start_row
-  if row_option == "above_current" then
-    if cursor_row == 1 then
-      renoise.app():show_status("You are on the first row, nothing to replicate.")
-      return
-    end
-    repeat_length = cursor_row - 1
-    start_row = cursor_row
-  elseif row_option == "above_and_current" then
-    repeat_length = cursor_row
-    start_row = cursor_row + 1
-    if cursor_row == pattern_length then
-      renoise.app():show_status("You are on the last row, nothing to replicate.")
-      return
-    end
-  else
-    renoise.app():show_status("Invalid row option: " .. tostring(row_option))
-    return
-  end
-
-  if repeat_length == 0 then
-    renoise.app():show_status("No rows to replicate.")
-    return
-  end
-  
-  for row = start_row, pattern_length do
-    local source_row = ((row - start_row) % repeat_length) + 1
-    local source_line = pattern:track(selected_track_index):line(source_row)
-    local dest_line = pattern:track(selected_track_index):line(row)
-    
+  -- Callback function for subcolumn replication
+  local function replicate_subcolumn(source_line, dest_line)
     replicate_subcolumn_content(subcolumn_type, is_note_column, is_effect_column,
                                selected_note_column_index, selected_effect_column_index,
                                source_line, dest_line)
   end
-
-  local status_suffix = (row_option == "above_current") and " (above current)" or " (above + current)"
-  renoise.app():show_status("Replicated " .. subcolumn_name .. " subcolumn" .. status_suffix)
+  
+  -- Status message callback
+  local function status_message()
+    return "Replicated " .. subcolumn_name .. " subcolumn"
+  end
+  
+  PakettiGenericReplicate(row_option, replicate_subcolumn, status_message)
 end
 
 -- Helper function for column replication
