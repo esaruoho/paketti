@@ -1065,10 +1065,9 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                     pakettiStopAutomaticRenameTrack()
                   end
                 end}},
-            vb:text{text="Slice StepSeq", font="bold",style = "strong"},
             vb:row{
-              vb:text{text="Show Velocity",width=150,tooltip="Opens the Slice Step Sequencer dialog with Velocity add-on dialog opened by default"},
-              vb:switch{items={"Off","On"},value=preferences.pakettiSliceStepSeqShowVelocity.value and 2 or 1,width=200,tooltip="Opens the Slice Step Sequencer dialog with Velocity add-on dialog opened by default",
+              vb:text{text="Slice StepSeq Velocity",width=150,font="bold",style="strong",tooltip="Opens the Slice Step Sequencer dialog with Velocity add-on dialog opened by default"},
+              vb:switch{items={"Hide","Show"},value=preferences.pakettiSliceStepSeqShowVelocity.value and 2 or 1,width=200,tooltip="Opens the Slice Step Sequencer dialog with Velocity add-on dialog opened by default",
                 notifier=function(value) preferences.pakettiSliceStepSeqShowVelocity.value=(value==2) end}},
                 vb:row{vb:text{text="Create New Instrument & Loop from Selection", font="bold",style = "strong"}},
                 vb:row{vb:text{text="Select Newly Created",width=150},
@@ -1168,12 +1167,10 @@ vb:row{
           preferences.PakettiMoveSilenceThreshold.value = value
           update_move_silence_preview(value)
       end},begthreshold_label,},
-              vb:text{style="strong",font="bold",text="Edit Mode Colouring"}
-
-              
-            ,
-            vb:row{vb:text{text="Edit Mode",width=150},vb:switch{items={"None","Selected Track","All Tracks"},value=preferences.pakettiEditMode.value,width=300,
-              notifier=function(value) preferences.pakettiEditMode.value=value end}
+            vb:row{
+              vb:text{text="Edit Mode Colouring",width=150,style="strong",font="bold"},
+              vb:switch{items={"None","Selected Track","All Tracks"},value=preferences.pakettiEditMode.value,width=300,
+                notifier=function(value) preferences.pakettiEditMode.value=value end}
             },
             vb:row{vb:text{style="strong",text="Enable Scope Highlight by going to Settings -> GUI -> Show Track Color Blends."} },
 
@@ -2018,7 +2015,7 @@ vb:row{
 
           vb:text{style="strong",font="bold",text="EQ30 Behavior"},
           vb:row{
-            vb:text{text="Autofocus selected EQ10 device",width=150},
+            vb:text{text="Autofocus selected EQ10",width=150},
             vb:switch{items={"False","True"},width=200,value=preferences.PakettiEQ30Autofocus.value and 2 or 1,
               notifier=function(value)
                 preferences.PakettiEQ30Autofocus.value = (value==2)
@@ -2065,11 +2062,10 @@ vb:row{
               notifier=function(value) preferences.pakettiExplodeTrackNaming.value=(value==2) end}
           },
           
-          vb:text{style="strong",font="bold",text="Paketti Gater"},
           (function()
             local panning_intensity_label = vb:text{text=tostring(preferences.PakettiGaterPanningIntensity.value) .. "%",width=50}
             return vb:row{
-              vb:text{text="Panning Intensity",width=150,tooltip="Controls panning range: 100% = full hard left/right (P00/PFF), 30% = moderate panning, 0% = center only. Live-updates current track panning."},
+              vb:text{text="Paketti Gater Panning",width=150,style="strong",font="bold",tooltip="Controls panning range: 100% = full hard left/right (P00/PFF), 30% = moderate panning, 0% = center only. Live-updates current track panning."},
               vb:slider{
                 min = 0,
                 max = 100,
@@ -2126,13 +2122,13 @@ vb:row{
               end}
           },
           
-          vb:text{style="strong",font="bold",text="Impulse Tracker"},
           vb:row{
-            vb:text{text="F8 (Stop Playback)",width=150},
+            vb:text{text="Impulse Tracker F8",width=150,style="strong",font="bold",tooltip="F8 (Stop Playback) behavior"},
             vb:switch{
               items={"Do Nothing","Enable Follow","Stop Follow"},
               value=preferences.PakettiImpulseTrackerF8.value,
               width=400,
+              tooltip="F8 (Stop Playback) behavior",
               notifier=function(value)
                 preferences.PakettiImpulseTrackerF8.value = value
               end
@@ -2155,9 +2151,9 @@ vb:row{
           vb:row{vb:text{text="Open Slice Dialog",width=150,tooltip="Automatically open Polyend Slice Switcher dialog when loading PTI files with slices"},vb:switch{items={"Off","On"},value=preferences.pakettiPolyendOpenDialog.value and 2 or 1,width=200,tooltip="Automatically open Polyend Slice Switcher dialog when loading PTI files with slices",
             notifier=function(value) preferences.pakettiPolyendOpenDialog.value=(value==2) end}},
           
-          vb:text{style="strong",font="bold",text="Jump Row Commands"},
+          vb:text{style="strong",font="bold",text="Large Chunk of Keyboard Shortcuts"},
           vb:row{
-            vb:text{text="Enable Jump Row",width=150,tooltip="Enable 2,048 'Play at Row' keybindings and MIDI mappings (000-511). When enabled, creates 'Play at Row 000-511' commands. Warning: Significantly increases startup time."},
+            vb:text{text="Jump Row Commands",width=150,tooltip="Enable 2,048 'Play at Row' keybindings and MIDI mappings (000-511). When enabled, creates 'Play at Row 000-511' commands. Warning: Significantly increases startup time."},
             vb:switch{items={"Off","On"},
               value=preferences.PakettiJumpRowCommands.value and 2 or 1,
               width=200,
@@ -2168,10 +2164,8 @@ vb:row{
                 renoise.app():show_status("Jump Row Commands " .. status .. ".")
               end}
           },
-          
-          vb:text{style="strong",font="bold",text="Jump Forward/Backward Commands"},
           vb:row{
-            vb:text{text="Enable Jump FWD/Backward",width=150,tooltip="Enable 1,024 'Jump Forward/Backward Within Pattern/Song' keybindings and MIDI mappings (001-128). When enabled, creates 'Jump Forward/Backward by 001-128' commands. Warning: Increases startup time."},
+            vb:text{text="Jump Forward/Backward",width=150,tooltip="Enable 1,024 'Jump Forward/Backward Within Pattern/Song' keybindings and MIDI mappings (001-128). When enabled, creates 'Jump Forward/Backward by 001-128' commands. Warning: Increases startup time."},
             vb:switch{items={"Off","On"},
               value=preferences.PakettiJumpForwardBackwardCommands.value and 2 or 1,
               width=200,
@@ -2182,10 +2176,8 @@ vb:row{
                 renoise.app():show_status("Jump Forward/Backward Commands " .. status .. ".")
               end}
           },
-          
-          vb:text{style="strong",font="bold",text="Trigger Pattern Line Commands"},
           vb:row{
-            vb:text{text="Enable Trigger Pattern Line",width=150,tooltip="Enable 1,024 'Trigger Pattern Line' keybindings and MIDI mappings (001-512). When enabled, creates 'Trigger Pattern Line 001-512' commands. Default: OFF."},
+            vb:text{text="Trigger Pattern Line",width=150,tooltip="Enable 1,024 'Trigger Pattern Line' keybindings and MIDI mappings (001-512). When enabled, creates 'Trigger Pattern Line 001-512' commands. Default: OFF."},
             vb:switch{items={"Off","On"},
               value=preferences.PakettiTriggerPatternLineCommands.value and 2 or 1,
               width=200,
@@ -2196,10 +2188,8 @@ vb:row{
                 renoise.app():show_status("Trigger Pattern Line Commands " .. status .. ".")
               end}
           },
-          
-          vb:text{style="strong",font="bold",text="Instrument Transpose Commands"},
           vb:row{
-            vb:text{text="Enable Instrument Transpose",width=150,tooltip="Enable 4,338 instrument transpose controls (1,928 keybindings + 1,928 menu entries + 482 MIDI mappings). When enabled, creates all transpose controls (keybindings, menu entries, MIDI mappings). Warning: Significantly increases startup time. Default: OFF for faster startup."},
+            vb:text{text="Instrument Transpose",width=150,tooltip="Enable 4,338 instrument transpose controls (1,928 keybindings + 1,928 menu entries + 482 MIDI mappings). When enabled, creates all transpose controls (keybindings, menu entries, MIDI mappings). Warning: Significantly increases startup time. Default: OFF for faster startup."},
             vb:switch{items={"Off","On"},
               value=preferences.PakettiInstrumentTransposeCommands.value and 2 or 1,
               width=200,
