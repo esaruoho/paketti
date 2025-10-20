@@ -2,6 +2,100 @@
 local MAX_STEPS = 16  -- Can be changed dynamically via UI switch
 
 local vb = renoise.ViewBuilder()
+
+-- Helper functions to calculate panning values based on intensity preference
+function PakettiGaterGetPanningIntensity()
+  if preferences and preferences.PakettiGaterPanningIntensity then
+    return preferences.PakettiGaterPanningIntensity.value
+  end
+  return 100  -- Default to 100% if preference not found
+end
+
+function PakettiGaterCalculateFXPanningLeft()
+  local intensity = PakettiGaterGetPanningIntensity()
+  return string.format("%02X", 127 - math.floor(127 * intensity / 100))
+end
+
+function PakettiGaterCalculateFXPanningRight()
+  local intensity = PakettiGaterGetPanningIntensity()
+  return string.format("%02X", 127 + math.floor(128 * intensity / 100))
+end
+
+function PakettiGaterCalculatePanningColumnLeft()
+  local intensity = PakettiGaterGetPanningIntensity()
+  return string.format("%02X", 64 - math.floor(64 * intensity / 100))
+end
+
+function PakettiGaterCalculatePanningColumnRight()
+  local intensity = PakettiGaterGetPanningIntensity()
+  return string.format("%02X", 64 + math.floor(64 * intensity / 100))
+end
+
+-- Function to update panning values in the current track when intensity slider changes
+function PakettiGaterUpdatePanningIntensityInPattern(old_intensity, new_intensity)
+  local song = renoise.song()
+  if not song then return end
+  
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local track = song.tracks[track_index]
+  
+  -- Calculate old values (what to look for)
+  local old_fx_left = string.format("%02X", 127 - math.floor(127 * old_intensity / 100))
+  local old_fx_right = string.format("%02X", 127 + math.floor(128 * old_intensity / 100))
+  local old_pan_left = string.format("%02X", 64 - math.floor(64 * old_intensity / 100))
+  local old_pan_right = string.format("%02X", 64 + math.floor(64 * old_intensity / 100))
+  
+  -- Calculate new values (what to replace with)
+  local new_fx_left = PakettiGaterCalculateFXPanningLeft()
+  local new_fx_right = PakettiGaterCalculateFXPanningRight()
+  local new_pan_left = PakettiGaterCalculatePanningColumnLeft()
+  local new_pan_right = PakettiGaterCalculatePanningColumnRight()
+  
+  local updates_count = 0
+  
+  -- Scan through all lines in the pattern
+  for line_idx = 1, pattern.number_of_lines do
+    local line = pattern:track(track_index):line(line_idx)
+    
+    -- Update FX Column panning (P commands)
+    for fx_col = 1, track.visible_effect_columns do
+      if line.effect_columns[fx_col].number_string == "0P" then
+        local current_value = line.effect_columns[fx_col].amount_string
+        if current_value == old_fx_left then
+          line.effect_columns[fx_col].amount_string = new_fx_left
+          updates_count = updates_count + 1
+        elseif current_value == old_fx_right then
+          line.effect_columns[fx_col].amount_string = new_fx_right
+          updates_count = updates_count + 1
+        end
+      end
+    end
+    
+    -- Update Panning Column values
+    for note_col = 1, track.visible_note_columns do
+      local note_column = line:note_column(note_col)
+      local current_pan = note_column.panning_string
+      -- Only update if it's not a retrig command (doesn't start with R)
+      if current_pan ~= "" and string.sub(current_pan, 1, 1) ~= "R" then
+        if current_pan == old_pan_left then
+          note_column.panning_string = new_pan_left
+          updates_count = updates_count + 1
+        elseif current_pan == old_pan_right then
+          note_column.panning_string = new_pan_right
+          updates_count = updates_count + 1
+        end
+      end
+    end
+  end
+  
+  if updates_count > 0 then
+    renoise.app():show_status(string.format("Updated %d panning values to %d%% intensity", updates_count, new_intensity))
+  else
+    renoise.app():show_status(string.format("Panning intensity set to %d%% (no existing values found in pattern)", new_intensity))
+  end
+end
+
 local dialog
 local checkboxes = {}
 local retrig_checkboxes = {}
@@ -1053,12 +1147,14 @@ local function receive_panning_checkboxes()
 
     if panning_column_choice == "Panning Column" then
       renoise.song().selected_track.panning_column_visible = true
-      if line:note_column(1).panning_string == "00" then
+      local pan_left_val = PakettiGaterCalculatePanningColumnLeft()
+      local pan_right_val = PakettiGaterCalculatePanningColumnRight()
+      if line:note_column(1).panning_string == pan_left_val then
         panning_left_checkboxes[i].value = true
         panning_center_checkboxes[i].value = false
         panning_right_checkboxes[i].value = false
         has_panning_data = true
-      elseif line:note_column(1).panning_string == "80" then
+      elseif line:note_column(1).panning_string == pan_right_val then
         panning_left_checkboxes[i].value = false
         panning_center_checkboxes[i].value = false
         panning_right_checkboxes[i].value = true
@@ -1071,12 +1167,14 @@ local function receive_panning_checkboxes()
       end
     elseif panning_column_choice == "FX Column" then
       if line.effect_columns[4].number_string == "0P" then
-        if line.effect_columns[4].amount_string == "00" then
+        local pan_left_val = PakettiGaterCalculateFXPanningLeft()
+        local pan_right_val = PakettiGaterCalculateFXPanningRight()
+        if line.effect_columns[4].amount_string == pan_left_val then
           panning_left_checkboxes[i].value = true
           panning_center_checkboxes[i].value = false
           panning_right_checkboxes[i].value = false
           has_panning_data = true
-        elseif line.effect_columns[4].amount_string == "FF" then
+        elseif line.effect_columns[4].amount_string == pan_right_val then
           panning_left_checkboxes[i].value = false
           panning_center_checkboxes[i].value = false
           panning_right_checkboxes[i].value = true
@@ -1798,10 +1896,10 @@ function apply_gating_to_selection(selection_info)
           else
             if panning_left_checkboxes[checkbox_idx].value then
               line.effect_columns[4].number_string = "0P"
-              line.effect_columns[4].amount_string = "00"
+              line.effect_columns[4].amount_string = PakettiGaterCalculateFXPanningLeft()
             elseif panning_right_checkboxes[checkbox_idx].value then
               line.effect_columns[4].number_string = "0P"
-              line.effect_columns[4].amount_string = "FF"
+              line.effect_columns[4].amount_string = PakettiGaterCalculateFXPanningRight()
             else
               line.effect_columns[4].number_string = "0P"
               line.effect_columns[4].amount_string = "7F"
@@ -1815,9 +1913,9 @@ function apply_gating_to_selection(selection_info)
               note_column.panning_string = "40"
             else
               if panning_left_checkboxes[checkbox_idx].value then
-                note_column.panning_string = "00"
+                note_column.panning_string = PakettiGaterCalculatePanningColumnLeft()
               elseif panning_right_checkboxes[checkbox_idx].value then
-                note_column.panning_string = "80"
+                note_column.panning_string = PakettiGaterCalculatePanningColumnRight()
               else
                 note_column.panning_string = "40"
               end
@@ -2016,10 +2114,10 @@ function apply_gating_print_once()
         else
           if panning_left_checkboxes[checkbox_idx].value then
             line.effect_columns[4].number_string = "0P"
-            line.effect_columns[4].amount_string = "00"
+            line.effect_columns[4].amount_string = PakettiGaterCalculateFXPanningLeft()
           elseif panning_right_checkboxes[checkbox_idx].value then
             line.effect_columns[4].number_string = "0P"
-            line.effect_columns[4].amount_string = "FF"
+            line.effect_columns[4].amount_string = PakettiGaterCalculateFXPanningRight()
           else
             line.effect_columns[4].number_string = "0P"
             line.effect_columns[4].amount_string = "7F"
@@ -2033,9 +2131,9 @@ function apply_gating_print_once()
             note_column.panning_string = "40"
           else
             if panning_left_checkboxes[checkbox_idx].value then
-              note_column.panning_string = "00"
+              note_column.panning_string = PakettiGaterCalculatePanningColumnLeft()
             elseif panning_right_checkboxes[checkbox_idx].value then
-              note_column.panning_string = "80"
+              note_column.panning_string = PakettiGaterCalculatePanningColumnRight()
             else
               note_column.panning_string = "40"
             end
@@ -2230,9 +2328,9 @@ function insert_commands()
             line:note_column(1).panning_string = "40"
           else
             if panning_left_checkboxes[checkbox_idx].value then
-              line:note_column(1).panning_string = "00"
+              line:note_column(1).panning_string = PakettiGaterCalculatePanningColumnLeft()
             elseif panning_right_checkboxes[checkbox_idx].value then
-              line:note_column(1).panning_string = "80"
+              line:note_column(1).panning_string = PakettiGaterCalculatePanningColumnRight()
             else
               line:note_column(1).panning_string = "40"
             end
@@ -2244,10 +2342,10 @@ function insert_commands()
           else
             if panning_left_checkboxes[checkbox_idx].value then
               line.effect_columns[4].number_string = "0P"
-              line.effect_columns[4].amount_string = "00"
+              line.effect_columns[4].amount_string = PakettiGaterCalculateFXPanningLeft()
             elseif panning_right_checkboxes[checkbox_idx].value then
               line.effect_columns[4].number_string = "0P"
-              line.effect_columns[4].amount_string = "FF"
+              line.effect_columns[4].amount_string = PakettiGaterCalculateFXPanningRight()
             else
               line.effect_columns[4].number_string = "0P"
               line.effect_columns[4].amount_string = "7F"

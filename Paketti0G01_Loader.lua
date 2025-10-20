@@ -504,6 +504,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiGroovebox8120AdditionalOptions = false,
   -- Groovebox 8120 playhead highlight color (1=None, 2=Bright Orange, 3=Deeper Purple, 4=Black, 5=White, 6=Dark Grey)
   PakettiGrooveboxPlayheadColor = 3,
+  -- Paketti Gater panning intensity (0-100%, controls how extreme left/right panning is)
+  PakettiGaterPanningIntensity = 100,
   -- Groovebox 8120 main preferences
   PakettiGroovebox8120 = {
     Collapse = false,
@@ -1288,7 +1290,7 @@ vb:row{
             vb:row{vb:text{text="Paketti Loader Settings (Drumkit Loader)", font="bold", style="strong"}},
             vb:row{vb:text{text="Move Beginning Silence",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderMoveSilenceToEnd.value and 2 or 1,width=200,
               notifier=function(value) preferences.pakettiLoaderMoveSilenceToEnd.value=(value==2) end}},
-          vb:row{vb:text{text="Normalize Samples",width=150,tooltip="Automatically normalize all samples after loading (works with drag & drop too)"},vb:switch{items={"No","Yes"},value=preferences.pakettiLoaderNormalizeSamples.value and 2 or 1,width=200,tooltip="Automatically normalize all samples after loading (works with drag & drop too)",
+          vb:row{vb:text{text="Normalize Samples",width=150,tooltip="Automatically normalize all samples after loading (works with drag & drop too)"},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderNormalizeSamples.value and 2 or 1,width=200,tooltip="Automatically normalize all samples after loading (works with drag & drop too)",
             notifier=function(value) preferences.pakettiLoaderNormalizeSamples.value=(value==2) end}},
           vb:row{vb:text{text="Normalize Large Samples (>10MB)",width=150,tooltip="Automatically normalize samples larger than 10MB after loading"},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderNormalizeLargeSamples.value and 2 or 1,width=200,tooltip="Automatically normalize samples larger than 10MB after loading",
             notifier=function(value) preferences.pakettiLoaderNormalizeLargeSamples.value=(value==2) end}},
@@ -2062,6 +2064,33 @@ vb:row{
             vb:switch{items={"Off","On"},value=preferences.pakettiExplodeTrackNaming.value and 2 or 1,width=200,tooltip="Use 'C-4 InstrumentName' format for exploded tracks instead of 'C-4 Notes'",
               notifier=function(value) preferences.pakettiExplodeTrackNaming.value=(value==2) end}
           },
+          
+          vb:text{style="strong",font="bold",text="Paketti Gater"},
+          (function()
+            local panning_intensity_label = vb:text{text=tostring(preferences.PakettiGaterPanningIntensity.value) .. "%",width=50}
+            return vb:row{
+              vb:text{text="Panning Intensity",width=150,tooltip="Controls panning range: 100% = full hard left/right (P00/PFF), 30% = moderate panning, 0% = center only. Live-updates current track panning."},
+              vb:slider{
+                min = 0,
+                max = 100,
+                value = preferences.PakettiGaterPanningIntensity.value,
+                width=200,
+                tooltip="Controls panning range: 100% = full hard left/right (P00/PFF), 30% = moderate panning, 0% = center only. Live-updates current track panning.",
+                notifier=function(value)
+                  value = math.floor(value)
+                  local old_value = preferences.PakettiGaterPanningIntensity.value
+                  preferences.PakettiGaterPanningIntensity.value = value
+                  panning_intensity_label.text = tostring(value) .. "%"
+                  
+                  -- Live update: if current track has panning gater values, update them
+                  if type(PakettiGaterUpdatePanningIntensityInPattern) == "function" then
+                    PakettiGaterUpdatePanningIntensityInPattern(old_value, value)
+                  end
+                end
+              },
+              panning_intensity_label
+            }
+          end)(),
           
           vb:text{style="strong",font="bold",text="Groovebox 8120"},
           vb:row{
