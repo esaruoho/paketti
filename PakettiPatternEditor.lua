@@ -3356,7 +3356,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Insert Random Volume to Selected R
 
 
 -- Generic replication function that handles both selection and cursor-based replication
-function PakettiGenericReplicate(row_option, replicate_callback, status_message_callback)
+function PakettiGenericReplicate(row_option, replicate_callback, status_message_callback, ignore_selection)
   local song = renoise.song()
   local pattern = song.selected_pattern
   local cursor_row = song.selected_line_index
@@ -3367,8 +3367,8 @@ function PakettiGenericReplicate(row_option, replicate_callback, status_message_
   local repeat_length, start_row, source_start_row
   local status_suffix
   
-  -- Check if there's a selection
-  if selection then
+  -- Check if there's a selection (and we're not ignoring it)
+  if selection and not ignore_selection then
     -- Selection-based replication
     local selection_start = selection.start_line
     local selection_end = selection.end_line
@@ -3511,7 +3511,8 @@ function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
     end
   end
 
-  PakettiGenericReplicate(row_option, replicate_full_column, status_message)
+  -- Always ignore selections for full column replication (true = ignore_selection)
+  PakettiGenericReplicate(row_option, replicate_full_column, status_message, true)
 end
 
 -- Helper function for subcolumn replication logic
@@ -3613,7 +3614,8 @@ function PakettiReplicateSelectedSubcolumn(row_option)
     return "Replicated " .. subcolumn_name .. " subcolumn"
   end
   
-  PakettiGenericReplicate(row_option, replicate_subcolumn, status_message)
+  -- Allow selections for subcolumn replication (false = don't ignore_selection)
+  PakettiGenericReplicate(row_option, replicate_subcolumn, status_message, false)
 end
 
 -- Helper function for column replication

@@ -1267,6 +1267,98 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker ALT-L Mark Track/Mark Pattern",invoke=function() MarkTrackMarkPattern() end}  
 
+-- ALT-B: Modify Selection Start (Keep End)
+function PakettiImpulseTrackerModifySelectionStart()
+  local s = renoise.song()
+  local sip = s.selection_in_pattern
+  local current_track = s.selected_track_index
+  local current_line = s.selected_line_index
+  local current_track_obj = s.tracks[current_track]
+  
+  -- Calculate column range for current track
+  local last_column = current_track_obj.visible_effect_columns + current_track_obj.visible_note_columns
+  
+  -- If no selection exists, create one for just the current row
+  if not sip then
+    s.selection_in_pattern = {
+      start_track = current_track,
+      end_track = current_track,
+      start_line = current_line,
+      end_line = current_line,
+      start_column = 1,
+      end_column = last_column
+    }
+    return
+  end
+  
+  -- Get existing selection bounds
+  local st = sip.start_track
+  local et = sip.end_track
+  local sl = sip.start_line
+  local el = sip.end_line
+  local sc = sip.start_column
+  local ec = sip.end_column
+  
+  -- Debug: Show original state
+  print(string.format("ALT-B DEBUG: Cursor at track %d line %d", current_track, current_line))
+  print(string.format("ALT-B DEBUG: Original selection - tracks %d-%d, lines %d-%d", st, et, sl, el))
+  
+  -- Strategy: NO DATA LOSS on tracks - extend to include cursor track if needed
+  -- Modify start_line to cursor line, keep end_line
+  -- Tracks: from min(st, et, cursor) to max(st, et, cursor)
+  local new_st = math.min(st, et, current_track)
+  local new_et = math.max(st, et, current_track)
+  local new_sl = current_line
+  local new_el = el
+  local new_sc = sc
+  local new_ec = ec
+  
+  print(string.format("ALT-B DEBUG: Before flip - new_st=%d new_et=%d new_sl=%d new_el=%d", new_st, new_et, new_sl, new_el))
+  
+  -- Check if we need to flip the selection to make it valid
+  -- Renoise requires: start_track <= end_track AND start_line <= end_line
+  
+  if new_st > new_et then
+    -- Start track is after end track, must flip everything
+    new_st, new_et = new_et, new_st
+    new_sl, new_el = new_el, new_sl
+    new_sc, new_ec = new_ec, new_sc
+  end
+  
+  -- ALWAYS ensure start_line <= end_line, even if tracks are different
+  if new_sl > new_el then
+    new_sl, new_el = new_el, new_sl
+  end
+  
+  -- Debug output
+  print(string.format("ALT-B: Setting selection - tracks %d-%d, lines %d-%d", new_st, new_et, new_sl, new_el))
+  
+  -- Validate before applying
+  if new_st > new_et then
+    renoise.app():show_status("ERROR: start_track > end_track!")
+    return
+  end
+  if new_sl > new_el then
+    renoise.app():show_status("ERROR: start_line > end_line!")
+    return
+  end
+  
+  -- Apply the new selection
+  s.selection_in_pattern = {
+    start_track = new_st,
+    end_track = new_et,
+    start_line = new_sl,
+    end_line = new_el,
+    start_column = new_sc,
+    end_column = new_ec
+  }
+  
+  -- Update automation selection if applicable
+  selectPatternRangeInAutomation()
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker ALT-B Modify Selection Start (Keep End)",invoke=function() PakettiImpulseTrackerModifySelectionStart() end}
+
 -- Shift-ALT-L: Mark Note Column/Mark Pattern (select only current note column content)
 function MarkNoteColumnMarkPattern()
   local s = renoise.song()
