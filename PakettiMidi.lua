@@ -2293,21 +2293,21 @@ function MidiWriteEffectToLine(effect_number, range_min, range_max, clear_on_zer
 end
 
 -- Example mappings using the new system
-renoise.tool():add_midi_mapping{name="Paketti:Write 0Sxx Command x[Knob]",
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Sxx Command (Selection / Row) 00-7F x[Knob]",
   invoke=function(message)
     if message:is_abs_value() then
-      local slice_count = get_slice_marker_count()
-      if slice_count then
-        -- If we have slice markers, adjust range to match slice count (1 to slice_count)
-        MidiWriteEffectToLine("0S", 1, slice_count)(message.int_value)
-        -- Show additional info about slice mapping
-        renoise.app():show_status(string.format("Using slice range: 1 to %d", slice_count))
-      else
-        -- No slice markers, use full range
-        MidiWriteEffectToLine("0S", 0, 255)(message.int_value)
-      end
+      PakettiMidiWriteEffectCommand("0S", PakettiMidiToHex7F(message.int_value))
     end
-  end}
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Sxx Command (Selection / Row) 00-FF x[Knob]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommand("0S", PakettiMidiToHexFF(message.int_value))
+    end
+  end
+}
   
 
 renoise.tool():add_midi_mapping{name="Paketti:Write ZLxx Command x[Knob]",
@@ -3444,3 +3444,307 @@ for i = 1, 16 do
     end
   }
 end
+
+-----------------------------------------------------------------------
+-- Write Effect Commands to Selection/Row with selection_in_pattern_pro
+-----------------------------------------------------------------------
+
+-- Helper function: Convert MIDI value (0-127) to hex string (00-FF range)
+function PakettiMidiToHexFF(midi_value)
+  return string.format("%02X", math.floor((midi_value / 127) * 255))
+end
+
+-- Helper function: Convert MIDI value (0-127) to hex string (00-7F range)
+function PakettiMidiToHex7F(midi_value)
+  return string.format("%02X", midi_value)
+end
+
+-- Helper function: Convert MIDI value (0-127) to single hex digit (0-F range)
+function PakettiMidiToHexF(midi_value)
+  return string.format("%X", math.floor((midi_value / 127) * 15))
+end
+
+-- Function to write xy effect command (two nibbles: 0-F each)
+-- nibble_position: 1 for x (first nibble), 2 for y (second nibble)
+function PakettiMidiWriteEffectCommandXY(effect_number, nibble_value, nibble_position)
+  local song = renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  
+  -- Try to get selection using selection_in_pattern_pro
+  local selection_data = selection_in_pattern_pro()
+  
+  if selection_data then
+    -- We have a selection - write to all selected effect columns
+    local effects_written = 0
+    
+    for _, track_info in ipairs(selection_data) do
+      local track_index = track_info.track_index
+      local track = song.tracks[track_index]
+      
+      -- Only process if there are selected effect columns
+      if #track_info.effect_columns > 0 then
+        -- Make sure we have enough visible effect columns
+        local max_effect_col = track_info.effect_columns[#track_info.effect_columns]
+        if track.visible_effect_columns < max_effect_col then
+          track.visible_effect_columns = max_effect_col
+        end
+        
+        -- Write to all selected lines
+        local selection = song.selection_in_pattern
+        for line_idx = selection.start_line, selection.end_line do
+          local pattern_track = pattern:track(track_index)
+          local line = pattern_track:line(line_idx)
+          
+          -- Write to all selected effect columns in this track
+          for _, effect_col_idx in ipairs(track_info.effect_columns) do
+            local effect_column = line.effect_columns[effect_col_idx]
+            if effect_column then
+              -- Read current value to preserve the other nibble
+              local current_x = 0
+              local current_y = 0
+              if effect_column.number_string == effect_number and effect_column.amount_string ~= "" then
+                local current_value = tonumber(effect_column.amount_string, 16) or 0
+                current_x = math.floor(current_value / 16)
+                current_y = current_value % 16
+              end
+              
+              -- Update the appropriate nibble
+              if nibble_position == 1 then
+                current_x = tonumber(nibble_value, 16)
+              else
+                current_y = tonumber(nibble_value, 16)
+              end
+              
+              -- Write back the combined value
+              local final_value = string.format("%X%X", current_x, current_y)
+              effect_column.number_string = effect_number
+              effect_column.amount_string = final_value
+              effects_written = effects_written + 1
+            end
+          end
+        end
+      end
+    end
+    
+    if effects_written > 0 then
+      local param_name = (nibble_position == 1) and "Param 1" or "Param 2"
+      renoise.app():show_status(string.format("Wrote %s%s %s to %d effect columns in selection", 
+        effect_number, nibble_value, param_name, effects_written))
+    else
+      renoise.app():show_status("No effect columns selected")
+    end
+    
+  else
+    -- No selection - write to current row only
+    local current_track = song.selected_track
+    local current_line = song.selected_line
+    
+    -- Determine which effect column to write to
+    local target_effect_column_index = 1
+    if song.selected_effect_column_index > 0 then
+      target_effect_column_index = song.selected_effect_column_index
+    end
+    
+    -- Ensure we have at least the target effect column visible
+    if current_track.visible_effect_columns < target_effect_column_index then
+      current_track.visible_effect_columns = target_effect_column_index
+    end
+    
+    -- Write to the effect column
+    local effect_column = current_line.effect_columns[target_effect_column_index]
+    if effect_column then
+      -- Read current value to preserve the other nibble
+      local current_x = 0
+      local current_y = 0
+      if effect_column.number_string == effect_number and effect_column.amount_string ~= "" then
+        local current_value = tonumber(effect_column.amount_string, 16) or 0
+        current_x = math.floor(current_value / 16)
+        current_y = current_value % 16
+      end
+      
+      -- Update the appropriate nibble
+      if nibble_position == 1 then
+        current_x = tonumber(nibble_value, 16)
+      else
+        current_y = tonumber(nibble_value, 16)
+      end
+      
+      -- Write back the combined value
+      local final_value = string.format("%X%X", current_x, current_y)
+      effect_column.number_string = effect_number
+      effect_column.amount_string = final_value
+      
+      local param_name = (nibble_position == 1) and "Param 1 (x)" or "Param 2 (y)"
+      renoise.app():show_status(string.format("Wrote %s%s %s to effect column %d", 
+        effect_number, final_value, param_name, target_effect_column_index))
+    else
+      renoise.app():show_status("Failed to write effect command")
+    end
+  end
+end
+
+-- Function to write effect command to selection or current row
+-- Uses selection_in_pattern_pro for proper selection handling
+function PakettiMidiWriteEffectCommand(effect_number, hex_value)
+  local song = renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  
+  -- Try to get selection using selection_in_pattern_pro
+  local selection_data = selection_in_pattern_pro()
+  
+  if selection_data then
+    -- We have a selection - write to all selected effect columns
+    local effects_written = 0
+    
+    for _, track_info in ipairs(selection_data) do
+      local track_index = track_info.track_index
+      local track = song.tracks[track_index]
+      
+      -- Only process if there are selected effect columns
+      if #track_info.effect_columns > 0 then
+        -- Make sure we have enough visible effect columns
+        local max_effect_col = track_info.effect_columns[#track_info.effect_columns]
+        if track.visible_effect_columns < max_effect_col then
+          track.visible_effect_columns = max_effect_col
+        end
+        
+        -- Write to all selected lines
+        local selection = song.selection_in_pattern
+        for line_idx = selection.start_line, selection.end_line do
+          local pattern_track = pattern:track(track_index)
+          local line = pattern_track:line(line_idx)
+          
+          -- Write to all selected effect columns in this track
+          for _, effect_col_idx in ipairs(track_info.effect_columns) do
+            local effect_column = line.effect_columns[effect_col_idx]
+            if effect_column then
+              effect_column.number_string = effect_number
+              effect_column.amount_string = hex_value
+              effects_written = effects_written + 1
+            end
+          end
+        end
+      end
+    end
+    
+    if effects_written > 0 then
+      renoise.app():show_status(string.format("Wrote %s%s to %d effect columns in selection", 
+        effect_number, hex_value, effects_written))
+    else
+      renoise.app():show_status("No effect columns selected")
+    end
+    
+  else
+    -- No selection - write to current row only
+    local current_track = song.selected_track
+    local current_line = song.selected_line
+    
+    -- Determine which effect column to write to
+    local target_effect_column_index = 1
+    if song.selected_effect_column_index > 0 then
+      -- A specific effect column is selected
+      target_effect_column_index = song.selected_effect_column_index
+    end
+    
+    -- Ensure we have at least the target effect column visible
+    if current_track.visible_effect_columns < target_effect_column_index then
+      current_track.visible_effect_columns = target_effect_column_index
+    end
+    
+    -- Write to the effect column
+    local effect_column = current_line.effect_columns[target_effect_column_index]
+    if effect_column then
+      effect_column.number_string = effect_number
+      effect_column.amount_string = hex_value
+      renoise.app():show_status(string.format("Wrote %s%s to effect column %d", 
+        effect_number, hex_value, target_effect_column_index))
+    else
+      renoise.app():show_status("Failed to write effect command")
+    end
+  end
+end
+
+-- MIDI mappings for Write 0Dxx command with both ranges
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Dxx Command (Selection / Row) 00-7F x[Knob]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommand("0D", PakettiMidiToHex7F(message.int_value))
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Dxx Command (Selection / Row) 00-FF x[Knob]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommand("0D", PakettiMidiToHexFF(message.int_value))
+    end
+  end
+}
+
+-- MIDI mappings for Write 0Uxx command with both ranges
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Uxx Command (Selection / Row) 00-7F x[Knob]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommand("0U", PakettiMidiToHex7F(message.int_value))
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Uxx Command (Selection / Row) 00-FF x[Knob]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommand("0U", PakettiMidiToHexFF(message.int_value))
+    end
+  end
+}
+
+-- MIDI mappings for Write 0Axy command (Arpeggio - first/second note offset)
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Axy Command (Selection / Row) Param 1 (x) x[Slider]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommandXY("0A", PakettiMidiToHexF(message.int_value), 1)
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Axy Command (Selection / Row) Param 2 (y) x[Slider]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommandXY("0A", PakettiMidiToHexF(message.int_value), 2)
+    end
+  end
+}
+
+-- MIDI mappings for Write 0Vxy command (Vibrato - speed/depth)
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Vxy Command (Selection / Row) Param 1 (x) x[Slider]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommandXY("0V", PakettiMidiToHexF(message.int_value), 1)
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Vxy Command (Selection / Row) Param 2 (y) x[Slider]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommandXY("0V", PakettiMidiToHexF(message.int_value), 2)
+    end
+  end
+}
+
+-- MIDI mappings for Write 0Txy command (Tremolo - speed/depth)
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Txy Command (Selection / Row) Param 1 (x) x[Slider]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommandXY("0T", PakettiMidiToHexF(message.int_value), 1)
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Txy Command (Selection / Row) Param 2 (y) x[Slider]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      PakettiMidiWriteEffectCommandXY("0T", PakettiMidiToHexF(message.int_value), 2)
+    end
+  end
+}
