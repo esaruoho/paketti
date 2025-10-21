@@ -3748,3 +3748,442 @@ renoise.tool():add_midi_mapping{name="Paketti:Write 0Txy Command (Selection / Ro
     end
   end
 }
+
+-----------------------------------------------------------------------
+-- MIDI Aftertouch / Single Controller Effect Writer
+-----------------------------------------------------------------------
+
+-- Global state for the MIDI Effect Writer
+PakettiMidiEffectWriterDialog = nil
+PakettiMidiEffectWriterVB = nil
+PakettiMidiEffectWriterDevice = nil
+PakettiMidiEffectWriterEnabled = false
+PakettiMidiEffectWriterMode = 1  -- 1 = Aftertouch, 2 = Single Controller, 3 = Manual Slider
+PakettiMidiEffectWriterCC = 1    -- CC number for Single Controller mode
+PakettiMidiEffectWriterEffect = 4 -- 1=0A, 2=0V, 3=0T, 4=0D, 5=0U
+PakettiMidiEffectWriterRange = 1  -- 1 = 7F (0-127), 2 = FF (0-255)
+PakettiMidiEffectWriterDeviceName = ""
+PakettiMidiEffectWriterLastValue = 0
+PakettiMidiEffectWriterSliderValue = 0
+
+-- Helper function: Write full effect command (00-FF or 00-7F)
+function PakettiMidiEffectWriterWrite(effect_number, value_string)
+  local song = renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  
+  -- Try to get selection using selection_in_pattern_pro
+  local selection_data = selection_in_pattern_pro()
+  
+  if selection_data then
+    -- We have a selection - write to all selected effect columns
+    local effects_written = 0
+    
+    for _, track_info in ipairs(selection_data) do
+      local track_index = track_info.track_index
+      local track = song.tracks[track_index]
+      
+      -- Only process if there are selected effect columns
+      if #track_info.effect_columns > 0 then
+        -- Make sure we have enough visible effect columns
+        local max_effect_col = track_info.effect_columns[#track_info.effect_columns]
+        if track.visible_effect_columns < max_effect_col then
+          track.visible_effect_columns = max_effect_col
+        end
+        
+        -- Write to all selected lines
+        local selection = song.selection_in_pattern
+        for line_idx = selection.start_line, selection.end_line do
+          local pattern_track = pattern:track(track_index)
+          local line = pattern_track:line(line_idx)
+          
+          -- Write to all selected effect columns in this track
+          for _, effect_col_idx in ipairs(track_info.effect_columns) do
+            local effect_column = line.effect_columns[effect_col_idx]
+            if effect_column then
+              effect_column.number_string = effect_number
+              effect_column.amount_string = value_string
+              effects_written = effects_written + 1
+            end
+          end
+        end
+      end
+    end
+    
+    if effects_written > 0 then
+      renoise.app():show_status(string.format("Wrote %s%s to %d effect columns", 
+        effect_number, value_string, effects_written))
+    end
+    
+  else
+    -- No selection - write to current row only
+    local current_track = song.selected_track
+    local current_line = song.selected_line
+    
+    -- Determine which effect column to write to
+    local target_effect_column_index = 1
+    if song.selected_effect_column_index > 0 then
+      target_effect_column_index = song.selected_effect_column_index
+    end
+    
+    -- Ensure we have at least the target effect column visible
+    if current_track.visible_effect_columns < target_effect_column_index then
+      current_track.visible_effect_columns = target_effect_column_index
+    end
+    
+    -- Get the effect column
+    local effect_column = current_line.effect_columns[target_effect_column_index]
+    if effect_column then
+      effect_column.number_string = effect_number
+      effect_column.amount_string = value_string
+      renoise.app():show_status(string.format("Wrote %s%s to current row", 
+        effect_number, value_string))
+    end
+  end
+end
+
+-- MIDI callback for Aftertouch / Controller input
+function PakettiMidiEffectWriterCallback(message)
+  if not PakettiMidiEffectWriterEnabled then
+    return
+  end
+  
+  -- Only process MIDI for Aftertouch and CC modes, not Slider mode
+  if PakettiMidiEffectWriterMode == 3 then
+    return
+  end
+  
+  local pressure_value = nil
+  local status_byte = message[1]
+  
+  if PakettiMidiEffectWriterMode == 1 then
+    -- Aftertouch mode - check for Channel Pressure (0xD0-0xDF)
+    if status_byte >= 0xD0 and status_byte <= 0xDF then
+      pressure_value = message[2]
+    end
+  elseif PakettiMidiEffectWriterMode == 2 then
+    -- Single Controller mode - check for CC (0xB0-0xBF)
+    if status_byte >= 0xB0 and status_byte <= 0xBF then
+      local cc_number = message[2]
+      if cc_number == PakettiMidiEffectWriterCC then
+        pressure_value = message[3]
+      end
+    end
+  end
+  
+  if pressure_value then
+    -- Store last value for display
+    PakettiMidiEffectWriterLastValue = pressure_value
+    
+    -- Convert to hex based on range setting
+    local hex_value
+    if PakettiMidiEffectWriterRange == 1 then
+      -- 7F range (0-127 direct)
+      hex_value = string.format("%02X", pressure_value)
+    else
+      -- FF range (0-127 mapped to 0-255)
+      hex_value = string.format("%02X", math.floor((pressure_value / 127) * 255))
+    end
+    
+    -- Get effect number string
+    local effect_names = {"0A", "0V", "0T", "0D", "0U"}
+    local effect_number = effect_names[PakettiMidiEffectWriterEffect]
+    
+    -- Write to pattern
+    PakettiMidiEffectWriterWrite(effect_number, hex_value)
+    
+    -- Update dialog display if it exists
+    if PakettiMidiEffectWriterVB and PakettiMidiEffectWriterVB.views.last_value then
+      PakettiMidiEffectWriterVB.views.last_value.text = string.format("Last Value: %d (0x%s)", 
+        pressure_value, hex_value)
+    end
+  end
+end
+
+-- Manual slider write function
+function PakettiMidiEffectWriterSliderWrite(slider_value)
+  if not PakettiMidiEffectWriterEnabled then
+    return
+  end
+  
+  -- Store last value for display
+  PakettiMidiEffectWriterLastValue = slider_value
+  PakettiMidiEffectWriterSliderValue = slider_value
+  
+  -- Convert to hex based on range setting
+  local hex_value
+  if PakettiMidiEffectWriterRange == 1 then
+    -- 7F range (0-127 direct)
+    hex_value = string.format("%02X", slider_value)
+  else
+    -- FF range (0-127 mapped to 0-255)
+    hex_value = string.format("%02X", math.floor((slider_value / 127) * 255))
+  end
+  
+  -- Get effect number string
+  local effect_names = {"0A", "0V", "0T", "0D", "0U"}
+  local effect_number = effect_names[PakettiMidiEffectWriterEffect]
+  
+  -- Write to pattern
+  PakettiMidiEffectWriterWrite(effect_number, hex_value)
+  
+  -- Update dialog display if it exists
+  if PakettiMidiEffectWriterVB and PakettiMidiEffectWriterVB.views.last_value then
+    PakettiMidiEffectWriterVB.views.last_value.text = string.format("Last Value: %d (0x%s)", 
+      slider_value, hex_value)
+  end
+end
+
+-- Update MIDI device based on settings
+function PakettiMidiEffectWriterUpdateDevice()
+  -- Close existing device
+  if PakettiMidiEffectWriterDevice then
+    if PakettiMidiEffectWriterDevice.is_open then
+      PakettiMidiEffectWriterDevice:close()
+    end
+    PakettiMidiEffectWriterDevice = nil
+  end
+  
+  -- Only open device if we have a valid device name and not in slider mode
+  if PakettiMidiEffectWriterDeviceName ~= "" and PakettiMidiEffectWriterMode ~= 3 then
+    local success, err = pcall(function()
+      PakettiMidiEffectWriterDevice = renoise.Midi.create_input_device(
+        PakettiMidiEffectWriterDeviceName,
+        PakettiMidiEffectWriterCallback
+      )
+    end)
+    
+    if not success then
+      renoise.app():show_status("Failed to open MIDI device: " .. PakettiMidiEffectWriterDeviceName)
+      PakettiMidiEffectWriterDevice = nil
+    end
+  end
+end
+
+-- Close MIDI device
+function PakettiMidiEffectWriterCloseDevice()
+  if PakettiMidiEffectWriterDevice then
+    if PakettiMidiEffectWriterDevice.is_open then
+      PakettiMidiEffectWriterDevice:close()
+    end
+    PakettiMidiEffectWriterDevice = nil
+  end
+end
+
+-- Create the MIDI Effect Writer dialog
+function PakettiMidiEffectWriterShowDialog()
+  if PakettiMidiEffectWriterDialog and PakettiMidiEffectWriterDialog.visible then
+    PakettiMidiEffectWriterDialog:show()
+    return
+  end
+  
+  local vb = renoise.ViewBuilder()
+  PakettiMidiEffectWriterVB = vb
+  
+  -- Get available MIDI input devices
+  local midi_devices = renoise.Midi.available_input_devices()
+  local device_items = {""}
+  for _, device_name in ipairs(midi_devices) do
+    table.insert(device_items, device_name)
+  end
+  
+  -- Find current device index
+  local current_device_index = 1
+  for i, device_name in ipairs(device_items) do
+    if device_name == PakettiMidiEffectWriterDeviceName then
+      current_device_index = i
+      break
+    end
+  end
+  
+  local dialog_content = vb:column {
+    
+    vb:row {
+      
+      vb:checkbox {
+        id = "enable_checkbox",
+        value = PakettiMidiEffectWriterEnabled,
+        notifier = function(value)
+          PakettiMidiEffectWriterEnabled = value
+          renoise.app():show_status(value and "MIDI Effect Writer Enabled" or "MIDI Effect Writer Disabled")
+        end
+      },
+      vb:text {
+        text = "Enable MIDI Effect Writer",
+        font = "bold"
+      }
+    },
+    
+    vb:horizontal_aligner {
+      mode = "justify",
+      vb:column {
+        spacing = 5,
+        
+        vb:text {
+          text = "Input Mode:",
+          font = "bold"
+        },
+        
+        vb:switch {
+          id = "mode_switch",
+          items = {"Aftertouch", "Single CC", "Manual Slider"},
+          value = PakettiMidiEffectWriterMode,
+          width = 300,
+          notifier = function(value)
+            PakettiMidiEffectWriterMode = value
+            vb.views.device_section.visible = (value ~= 3)
+            vb.views.cc_row.visible = (value == 2)
+            vb.views.slider_row.visible = (value == 3)
+            PakettiMidiEffectWriterUpdateDevice()
+          end
+        },
+        
+        vb:column {
+          id = "device_section",
+          visible = (PakettiMidiEffectWriterMode ~= 3),
+          spacing = 5,
+          
+          vb:text {
+            text = "MIDI Input Device:",
+            font = "bold"
+          },
+          
+          vb:popup {
+            id = "device_popup",
+            items = device_items,
+            value = current_device_index,
+            width = 300,
+            notifier = function(index)
+              PakettiMidiEffectWriterDeviceName = device_items[index]
+              PakettiMidiEffectWriterUpdateDevice()
+              renoise.app():show_status("MIDI Device: " .. (PakettiMidiEffectWriterDeviceName ~= "" and PakettiMidiEffectWriterDeviceName or "None"))
+            end
+          }
+        },
+        
+        vb:row {
+          id = "cc_row",
+          visible = (PakettiMidiEffectWriterMode == 2),
+          spacing = 5,
+          vb:text {
+            text = "CC Number:",
+            width = 80
+          },
+          vb:valuebox {
+            id = "cc_valuebox",
+            min = 0,
+            max = 127,
+            value = PakettiMidiEffectWriterCC,
+            notifier = function(value)
+              PakettiMidiEffectWriterCC = value
+            end
+          }
+        },
+        
+        vb:row {
+          id = "slider_row",
+          visible = (PakettiMidiEffectWriterMode == 3),
+          spacing = 5,
+          vb:text {
+            text = "Manual Value:",
+            width = 100
+          },
+          vb:slider {
+            id = "manual_slider",
+            min = 0,
+            max = 127,
+            value = PakettiMidiEffectWriterSliderValue,
+            width = 200,
+            notifier = function(value)
+              PakettiMidiEffectWriterSliderWrite(value)
+            end
+          },
+          vb:valuebox {
+            id = "manual_valuebox",
+            min = 0,
+            max = 127,
+            value = PakettiMidiEffectWriterSliderValue,
+            notifier = function(value)
+              PakettiMidiEffectWriterSliderWrite(value)
+              vb.views.manual_slider.value = value
+            end
+          }
+        },
+        
+        vb:text {
+          text = "Effect Column:",
+          font = "bold"
+        },
+        
+        vb:switch {
+          id = "effect_switch",
+          items = {"0A", "0V", "0T", "0D", "0U"},
+          value = PakettiMidiEffectWriterEffect,
+          width = 300,
+          notifier = function(value)
+            PakettiMidiEffectWriterEffect = value
+          end
+        },
+        
+        vb:text {
+          text = "Value Range:",
+          font = "bold"
+        },
+        
+        vb:switch {
+          id = "range_switch",
+          items = {"00-7F (0-127)", "00-FF (0-255)"},
+          value = PakettiMidiEffectWriterRange,
+          width = 300,
+          notifier = function(value)
+            PakettiMidiEffectWriterRange = value
+          end
+        },
+        
+        vb:text {
+          id = "last_value",
+          text = "Last Value: --",
+          font = "mono"
+        },
+        
+        vb:horizontal_aligner {
+          mode = "center",
+          vb:button {
+            text = "Close",
+            width = 100,
+            notifier = function()
+              if PakettiMidiEffectWriterDialog and PakettiMidiEffectWriterDialog.visible then
+                PakettiMidiEffectWriterCloseDevice()
+                PakettiMidiEffectWriterDialog:close()
+              end
+            end
+          }
+        }
+      }
+    }
+  }
+  
+  PakettiMidiEffectWriterDialog = renoise.app():show_custom_dialog(
+    "Paketti MIDI Aftertouch / CC Effect Writer",
+    dialog_content,
+    my_keyhandler_func
+  )
+  
+  -- Open MIDI device when dialog opens (if not in slider mode)
+  PakettiMidiEffectWriterUpdateDevice()
+  
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Clean up when dialog closes
+renoise.tool().app_idle_observable:add_notifier(function()
+  if PakettiMidiEffectWriterDialog and not PakettiMidiEffectWriterDialog.visible then
+    PakettiMidiEffectWriterCloseDevice()
+  end
+end)
+
+-- Menu entry and keybinding
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI:MIDI Aftertouch / CC Effect Writer...",
+  invoke=function() PakettiMidiEffectWriterShowDialog() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:MIDI Aftertouch / CC Effect Writer...",
+  invoke=function() PakettiMidiEffectWriterShowDialog() end}
