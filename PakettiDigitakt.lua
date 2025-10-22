@@ -286,8 +286,24 @@ local function process_spaced_mode(processed_samples, options)
     print(string.format("PakettiDigitakt: Fixed slot count %d, calculated slot length: %d", 
       options.fixed_slot_count, slot_length))
   else
-    print(string.format("PakettiDigitakt: Auto slot count %d, max sample length: %d", 
-      target_slot_count, slot_length))
+    -- Auto mode: round up to next valid Digitakt slot count
+    local valid_slot_counts = {4, 8, 16, 32, 64, 128}
+    target_slot_count = #processed_samples
+    
+    for _, count in ipairs(valid_slot_counts) do
+      if count >= #processed_samples then
+        target_slot_count = count
+        break
+      end
+    end
+    
+    -- If we still don't have a valid count (more than 128 samples), use the sample count
+    if target_slot_count < #processed_samples then
+      target_slot_count = #processed_samples
+    end
+    
+    print(string.format("PakettiDigitakt: Auto slot count %d (from %d samples), max sample length: %d", 
+      target_slot_count, #processed_samples, slot_length))
   end
   
   -- Account for zero padding in slot length
@@ -638,13 +654,7 @@ function PakettiDigitaktDialog()
   update_current_instrument_display()
   
   local content = vb:column{
-    
-    vb:text{
-      text = "Export instrument samples as Digitakt-compatible sample chain",
-      width = 350
-    },
-    
-    -- Current instrument display
+   -- Current instrument display
     current_instrument_info,
     
     -- Digitakt version selection
@@ -790,7 +800,7 @@ function PakettiDigitaktDialog()
     }
   }
   
-  dialog = renoise.app():show_custom_dialog("Digitakt Sample Chain", content)
+  dialog = renoise.app():show_custom_dialog("Digitakt Sample Chain Exporter", content)
 end
 
 -- Quick export functions for menu integration

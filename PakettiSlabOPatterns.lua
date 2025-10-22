@@ -21,6 +21,7 @@ PakettiSlabOPatternsPresetAppend = false
 PakettiSlabOPatternsValues = {}
 
 -- Presets (labels used on buttons; values injected to rows)
+-- NOTE: Preset values are defined for 4 LPB reference. They will be scaled by (LPB/4) when creating patterns.
 PakettiSlabOPatternsPresets = {
   { label = "14/8", values = { "0x40", "0x30" } },
   { label = "15/8", values = { "0x40", "0x38" } },
@@ -174,6 +175,10 @@ function PakettiSlabOPatternsCreate()
   local s = renoise.song()
   if not s then return end
 
+  -- Get current LPB and calculate multiplier (reference is 4 LPB)
+  local lpb = s.transport.lpb
+  local lpb_multiplier = lpb / 4
+
   local insert_at = s.selected_sequence_index + 1
   local created = 0
   local first_created_seq_index = insert_at
@@ -186,6 +191,11 @@ function PakettiSlabOPatternsCreate()
       renoise.app():show_status("Invalid slab value: " .. tostring(v))
       return
     end
+
+    -- Apply LPB multiplier to get actual line count
+    lines = math.floor(lines * lpb_multiplier)
+    if lines < 1 then lines = 1 end
+    if lines > 512 then lines = 512 end
 
     -- Insert unique new pattern after the current one
     s.sequencer:insert_new_pattern_at(insert_at)
@@ -218,8 +228,9 @@ function PakettiSlabOPatternsCreate()
   end
   local preset_part = (PakettiSlabOPatternsActivePresetLabel ~= "" and (" (" .. PakettiSlabOPatternsActivePresetLabel .. ")") or "")
   local section_part = (section_name ~= "" and (" - Section Name: '" .. section_name .. "'") or "")
+  local lpb_part = " [LPB: " .. tostring(lpb) .. "]"
 
-  renoise.app():show_status("Added " .. tostring(created) .. " pattern(s) at lengths: " .. lengths_text .. preset_part .. section_part)
+  renoise.app():show_status("Added " .. tostring(created) .. " pattern(s) at lengths: " .. lengths_text .. preset_part .. lpb_part .. section_part)
 end
 
 -- Selection and typing ------------------------------------------------------
@@ -291,6 +302,19 @@ function PakettiSlabOPatternsUpdateRowLabels(idx)
   if not row then return end
   local val = tostring(PakettiSlabOPatternsValues[idx] or "")
   local dec = PakettiSlabOPatternsParseToLines(val) or 0
+  
+  -- Apply LPB multiplier to show actual line count (reference is 4 LPB)
+  if renoise.song then
+    local s = renoise.song()
+    if s then
+      local lpb = s.transport.lpb
+      local lpb_multiplier = lpb / 4
+      dec = math.floor(dec * lpb_multiplier)
+      if dec < 1 then dec = 1 end
+      if dec > 512 then dec = 512 end
+    end
+  end
+  
   if row.val then row.val.text = val end
   if row.dec then row.dec.text = tostring(dec) end
 end
@@ -321,6 +345,19 @@ function PakettiSlabOPatternsBuildContent()
       font = "bold"
     }
     local dec_val = PakettiSlabOPatternsParseToLines(PakettiSlabOPatternsValues[i]) or 0
+    
+    -- Apply LPB multiplier to show actual line count (reference is 4 LPB)
+    if renoise.song then
+      local s = renoise.song()
+      if s then
+        local lpb = s.transport.lpb
+        local lpb_multiplier = lpb / 4
+        dec_val = math.floor(dec_val * lpb_multiplier)
+        if dec_val < 1 then dec_val = 1 end
+        if dec_val > 512 then dec_val = 512 end
+      end
+    end
+    
     local dec_label = vb:text{
       text = tostring(dec_val),
       width = 40,
