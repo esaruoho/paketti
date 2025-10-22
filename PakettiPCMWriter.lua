@@ -1145,29 +1145,28 @@ function PCMWriterGenerateWaveform(type, target_data, size)
     elseif type == "square" then
       value = phase < 0.5 and 1 or -1
     elseif type == "square_rounded" then
-      -- Rounded square wave - square wave with smoothed transitions
-      -- This creates a shape between a square and sine wave, ideal for smooth pulsing
-      local transition_width = 0.1  -- Width of the rounded corners (0.1 = 10% of cycle)
-      local half_transition = transition_width / 2
+      -- Rounded square wave - square wave with smoothed corners
+      -- Creates flat tops/bottoms with smooth cosine-curved transitions
+      -- Starts at zero crossing for proper phase alignment
+      local transition_width = 0.15  -- Width of the rounded corners (15% of cycle)
       
-      if phase < (0.5 - half_transition) then
-        -- High state
+      -- Shift phase so waveform starts at zero crossing (middle of rising edge)
+      local shifted_phase = (phase + transition_width / 2) % 1.0
+      
+      if shifted_phase < transition_width then
+        -- Rising transition with cosine curve for rounded corner
+        local t = shifted_phase / transition_width
+        value = -math.cos(t * math.pi) -- Smooth curve from -1 to 1
+      elseif shifted_phase < 0.5 then
+        -- High state (flat top)
         value = 1
-      elseif phase < (0.5 + half_transition) then
-        -- Falling transition with smooth curve
-        local t = (phase - (0.5 - half_transition)) / transition_width
-        -- Use smoothstep for gentle curve
-        local smooth = t * t * (3 - 2 * t)
-        value = 1 - (smooth * 2)
-      elseif phase < (1.0 - half_transition) then
-        -- Low state
-        value = -1
+      elseif shifted_phase < (0.5 + transition_width) then
+        -- Falling transition with cosine curve for rounded corner
+        local t = (shifted_phase - 0.5) / transition_width
+        value = math.cos(t * math.pi) -- Smooth curve from 1 to -1
       else
-        -- Rising transition with smooth curve
-        local t = (phase - (1.0 - half_transition)) / transition_width
-        -- Use smoothstep for gentle curve
-        local smooth = t * t * (3 - 2 * t)
-        value = -1 + (smooth * 2)
+        -- Low state (flat bottom)
+        value = -1
       end
     elseif type == "saw" then
       -- Saw wave starting from 0.5 (center)
@@ -7648,7 +7647,7 @@ function PCMWriterShowPcmDialog()
           end
           popup.value = new_value
           -- Manually trigger waveform generation
-          local types = {"sine", "square", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
+          local types = {"sine", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
                          "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
                          "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
                          "organ", "metallic", "vocal", "digital", "wobble",
@@ -7689,7 +7688,7 @@ function PCMWriterShowPcmDialog()
         if dialog_rebuilding then
           return
         end
-        local types = {"sine", "square", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
+        local types = {"sine", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
                        "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
                        "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
                        "organ", "metallic", "vocal", "digital", "wobble",
@@ -7723,7 +7722,7 @@ function PCMWriterShowPcmDialog()
           end
           popup.value = new_value
           -- Manually trigger waveform generation
-          local types = {"sine", "square", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
+          local types = {"sine", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
                          "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
                          "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
                          "organ", "metallic", "vocal", "digital", "wobble",

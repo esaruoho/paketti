@@ -17,18 +17,19 @@ PakettiSlabOPatternsActivePresetLabel = ""
 PakettiSlabOPatternsSeedValues = {}
 PakettiSlabOPatternsPresetAppend = false
 
--- Data model: list of string values like "0x40"
+-- Data model: list of entries stored as "beats:lpb" strings (e.g. "4:8" = 4 beats at 8 LPB)
+-- If lpb is omitted (e.g. "4"), use current song LPB
 PakettiSlabOPatternsValues = {}
 
 -- Presets (labels used on buttons; values injected to rows)
--- NOTE: Preset values are defined for 4 LPB reference. They will be scaled by (LPB/4) when creating patterns.
+-- Values are in format "beats:lpb" where beats * lpb = lines
 PakettiSlabOPatternsPresets = {
-  { label = "14/8", values = { "0x40", "0x30" } },
-  { label = "15/8", values = { "0x40", "0x38" } },
-  { label = "14/8 - 15/8", values = { "0x40", "0x30", "0x40", "0x38" } },
-  { label = "14/8 - 15/8 - 15/8 - 14/8", values = { "0x40", "0x30", "0x40", "0x38", "0x40", "0x38", "0x40", "0x30" } },
-  { label = "6/4 8/4", values = { "0x30", "0x30", "0x40", "0x40" } },
-  { label = "8/4 6/4", values = { "0x40", "0x40", "0x30", "0x30" } }
+  { label = "14/8", values = { "4", "3" } },
+  { label = "15/8", values = { "4", "3.5" } },
+  { label = "14/8 - 15/8", values = { "4", "3", "4", "3.5" } },
+  { label = "14/8 - 15/8 - 15/8 - 14/8", values = { "4", "3", "4", "3.5", "4", "3.5", "4", "3" } },
+  { label = "6/4 8/4", values = { "3", "3", "4", "4" } },
+  { label = "8/4 6/4", values = { "4", "4", "3", "3" } }
 }
 
 function PakettiSlabOPatternsApplyPreset(preset_index)
@@ -78,8 +79,8 @@ function PakettiSlabOPatternsLoad()
   end
 
   if #PakettiSlabOPatternsValues == 0 then
-    -- default set
-    table.insert(PakettiSlabOPatternsValues, "0x40")
+    -- default set: 4 beats
+    table.insert(PakettiSlabOPatternsValues, "4")
   end
 
   -- Capture current configuration as seed for '+' duplication
@@ -105,29 +106,62 @@ function PakettiSlabOPatternsSave()
   f:close()
 end
 
--- Utility: parse value to number of lines (supports 0x.. or decimal)
-function PakettiSlabOPatternsParseToLines(v)
+-- Utility: parse value to beats and optional LPB
+-- Format: "beats" or "beats:lpb" (e.g. "4" or "4:8")
+-- Returns: beats, lpb (lpb is nil if not specified)
+function PakettiSlabOPatternsParseEntry(v)
   if type(v) ~= "string" then
-    return nil
+    return nil, nil
   end
   local trimmed = v:match("^%s*(.-)%s*$") or v
-  local num = nil
-  if trimmed:match("^0[xX]%x+$") then
-    num = tonumber(trimmed:sub(3), 16)
-  else
-    num = tonumber(trimmed)
+  
+  -- Check for "beats:lpb" format
+  local beats_str, lpb_str = trimmed:match("^([%d%.]+):([%d%.]+)$")
+  if beats_str and lpb_str then
+    local beats = tonumber(beats_str)
+    local lpb = tonumber(lpb_str)
+    if beats and lpb and beats > 0 and lpb > 0 then
+      return beats, lpb
+    end
   end
-  if not num then return nil end
-  if num < 1 then num = 1 end
-  if num > 512 then num = 512 end
-  return math.floor(num)
+  
+  -- Just "beats" format
+  local beats = tonumber(trimmed)
+  if beats and beats > 0 then
+    return beats, nil
+  end
+  
+  return nil, nil
+end
+
+-- Calculate lines from beats and LPB
+function PakettiSlabOPatternsCalculateLines(beats, lpb)
+  if not beats then return nil end
+  if not lpb then
+    -- Use current song LPB if not specified
+    if renoise.song then
+      local s = renoise.song()
+      if s then
+        lpb = s.transport.lpb
+      else
+        lpb = 4  -- fallback
+      end
+    else
+      lpb = 4  -- fallback
+    end
+  end
+  
+  local lines = math.floor(beats * lpb + 0.5)  -- round to nearest
+  if lines < 1 then lines = 1 end
+  if lines > 512 then lines = 512 end
+  return lines
 end
 
 -- Add/remove rows -----------------------------------------------------------
 
 function PakettiSlabOPatternsAddRow()
-  -- Always add a fresh entry prompting for hex input
-  table.insert(PakettiSlabOPatternsValues, "0x")
+  -- Add a fresh entry with default 4 beats
+  table.insert(PakettiSlabOPatternsValues, "4")
   PakettiSlabOPatternsSelectedIndex = #PakettiSlabOPatternsValues
   PakettiSlabOPatternsSave()
   PakettiSlabOPatternsRebuild()
@@ -142,8 +176,8 @@ function PakettiSlabOPatternsRemoveRow()
     PakettiSlabOPatternsSave()
     PakettiSlabOPatternsRebuild()
   else
-    -- Single slot: wipe to fresh hex starter
-    PakettiSlabOPatternsValues[1] = "0x"
+    -- Single slot: wipe to fresh default
+    PakettiSlabOPatternsValues[1] = "4"
     PakettiSlabOPatternsSelectedIndex = 1
     PakettiSlabOPatternsSave()
     -- Update UI minimally
@@ -153,19 +187,19 @@ function PakettiSlabOPatternsRemoveRow()
     else
       PakettiSlabOPatternsRebuild()
     end
-    renoise.app():show_status("Cleared the only slot to '0x'")
+    renoise.app():show_status("Cleared the only slot to '4' beats")
   end
 end
 
 -- Clear all to single fresh slot
 function PakettiSlabOPatternsClear()
-  PakettiSlabOPatternsValues = { "0x" }
+  PakettiSlabOPatternsValues = { "4" }
   PakettiSlabOPatternsSelectedIndex = 1
   PakettiSlabOPatternsActivePresetLabel = ""
-  PakettiSlabOPatternsSeedValues = { "0x" }
+  PakettiSlabOPatternsSeedValues = { "4" }
   PakettiSlabOPatternsSave()
   PakettiSlabOPatternsRebuild()
-  renoise.app():show_status("Cleared: reset to single '0x' slot")
+  renoise.app():show_status("Cleared: reset to single '4' beats slot")
 end
 
 -- Create patterns -----------------------------------------------------------
@@ -175,27 +209,26 @@ function PakettiSlabOPatternsCreate()
   local s = renoise.song()
   if not s then return end
 
-  -- Get current LPB and calculate multiplier (reference is 4 LPB)
-  local lpb = s.transport.lpb
-  local lpb_multiplier = lpb / 4
-
   local insert_at = s.selected_sequence_index + 1
   local created = 0
   local first_created_seq_index = insert_at
   local created_lengths = {}
+  local master_track = s:track(s.sequencer_track_count + 1)
 
   for i = 1, #PakettiSlabOPatternsValues do
     local v = PakettiSlabOPatternsValues[i]
-    local lines = PakettiSlabOPatternsParseToLines(v)
-    if not lines then
+    local beats, entry_lpb = PakettiSlabOPatternsParseEntry(v)
+    
+    if not beats then
       renoise.app():show_status("Invalid slab value: " .. tostring(v))
       return
     end
 
-    -- Apply LPB multiplier to get actual line count
-    lines = math.floor(lines * lpb_multiplier)
-    if lines < 1 then lines = 1 end
-    if lines > 512 then lines = 512 end
+    local lines = PakettiSlabOPatternsCalculateLines(beats, entry_lpb)
+    if not lines then
+      renoise.app():show_status("Could not calculate lines for: " .. tostring(v))
+      return
+    end
 
     -- Insert unique new pattern after the current one
     s.sequencer:insert_new_pattern_at(insert_at)
@@ -203,6 +236,15 @@ function PakettiSlabOPatternsCreate()
     local pat = s.patterns[pat_index]
     if pat then
       pat.number_of_lines = lines
+      
+      -- Write LPB to master track at line 1 if LPB is specified
+      if entry_lpb and master_track then
+        local line = pat:track(master_track.index):line(1)
+        if line and line.effect_columns[1] then
+          line.effect_columns[1].number_string = "ZL"
+          line.effect_columns[1].amount_value = math.floor(entry_lpb)
+        end
+      end
     end
     table.insert(created_lengths, lines)
     insert_at = insert_at + 1
@@ -228,9 +270,8 @@ function PakettiSlabOPatternsCreate()
   end
   local preset_part = (PakettiSlabOPatternsActivePresetLabel ~= "" and (" (" .. PakettiSlabOPatternsActivePresetLabel .. ")") or "")
   local section_part = (section_name ~= "" and (" - Section Name: '" .. section_name .. "'") or "")
-  local lpb_part = " [LPB: " .. tostring(lpb) .. "]"
 
-  renoise.app():show_status("Added " .. tostring(created) .. " pattern(s) at lengths: " .. lengths_text .. preset_part .. lpb_part .. section_part)
+  renoise.app():show_status("Added " .. tostring(created) .. " pattern(s) with line counts: " .. lengths_text .. preset_part .. section_part)
 end
 
 -- Selection and typing ------------------------------------------------------
@@ -251,21 +292,30 @@ function PakettiSlabOPatternsAppendChar(ch)
   local idx = PakettiSlabOPatternsSelectedIndex
   if idx < 1 then idx = 1 PakettiSlabOPatternsSelectedIndex = 1 end
   local cur = tostring(PakettiSlabOPatternsValues[idx] or "")
-  -- If value starts with 0x, allow only hex digits and max 3 digits after 0x
-  if cur:match("^0[xX]") then
-    if ch == "x" or ch == "X" then
-      -- Do not allow adding another x/X into an already 0x-prefixed value
+  
+  -- Allow digits, decimal point, and colon for "beats:lpb" format
+  if not ch:match("[0-9%.:]") then
+    return nil
+  end
+  
+  -- Don't allow multiple colons
+  if ch == ":" and cur:find(":") then
+    renoise.app():show_status("Only one colon allowed (format: beats:lpb)")
+    return nil
+  end
+  
+  -- Don't allow multiple decimal points in same section
+  local before_colon, after_colon = cur:match("^([^:]*):?(.*)$")
+  if ch == "." then
+    if not cur:find(":") and before_colon:find("%.") then
+      renoise.app():show_status("Only one decimal point per number")
       return nil
-    end
-    local digits = cur:sub(3)
-    if #digits >= 3 then
-      renoise.app():show_status("Max 3 hex digits after 0x")
-      return nil
-    end
-    if not ch:match("[0-9a-fA-F]") then
+    elseif cur:find(":") and after_colon:find("%.") then
+      renoise.app():show_status("Only one decimal point per number")
       return nil
     end
   end
+  
   PakettiSlabOPatternsValues[idx] = cur .. ch
   PakettiSlabOPatternsUpdateRowLabels(idx)
 end
@@ -301,22 +351,11 @@ function PakettiSlabOPatternsUpdateRowLabels(idx)
   local row = PakettiSlabOPatternsRows[idx]
   if not row then return end
   local val = tostring(PakettiSlabOPatternsValues[idx] or "")
-  local dec = PakettiSlabOPatternsParseToLines(val) or 0
-  
-  -- Apply LPB multiplier to show actual line count (reference is 4 LPB)
-  if renoise.song then
-    local s = renoise.song()
-    if s then
-      local lpb = s.transport.lpb
-      local lpb_multiplier = lpb / 4
-      dec = math.floor(dec * lpb_multiplier)
-      if dec < 1 then dec = 1 end
-      if dec > 512 then dec = 512 end
-    end
-  end
+  local beats, lpb = PakettiSlabOPatternsParseEntry(val)
+  local lines = PakettiSlabOPatternsCalculateLines(beats, lpb) or 0
   
   if row.val then row.val.text = val end
-  if row.dec then row.dec.text = tostring(dec) end
+  if row.dec then row.dec.text = tostring(lines) end
 end
 
 function PakettiSlabOPatternsBuildContent()
@@ -324,7 +363,7 @@ function PakettiSlabOPatternsBuildContent()
   local vb = PakettiSlabOPatternsVB
 
   local rows = {}
-  table.insert(rows, vb:text{ text = "Length", style = "strong",font="bold" })
+  table.insert(rows, vb:text{ text = "Beats", style = "strong",font="bold" })
 
   for i = 1, #PakettiSlabOPatternsValues do
     local idx = i
@@ -344,22 +383,11 @@ function PakettiSlabOPatternsBuildContent()
       style = "strong",
       font = "bold"
     }
-    local dec_val = PakettiSlabOPatternsParseToLines(PakettiSlabOPatternsValues[i]) or 0
-    
-    -- Apply LPB multiplier to show actual line count (reference is 4 LPB)
-    if renoise.song then
-      local s = renoise.song()
-      if s then
-        local lpb = s.transport.lpb
-        local lpb_multiplier = lpb / 4
-        dec_val = math.floor(dec_val * lpb_multiplier)
-        if dec_val < 1 then dec_val = 1 end
-        if dec_val > 512 then dec_val = 512 end
-      end
-    end
+    local beats, lpb = PakettiSlabOPatternsParseEntry(PakettiSlabOPatternsValues[i])
+    local lines = PakettiSlabOPatternsCalculateLines(beats, lpb) or 0
     
     local dec_label = vb:text{
-      text = tostring(dec_val),
+      text = tostring(lines),
       width = 40,
       style = "strong",
       font = "bold"
@@ -456,13 +484,10 @@ function PakettiSlabOPatternsKeyHandler(dialog, key)
   elseif key.name == "esc" then
     dialog:close()
     return nil
-  elseif key.name == "space" then
-    PakettiSlabOPatternsAppendChar(" ")
-    return nil
   elseif string.len(key.name) == 1 then
-    -- Accept typical hex/decimal characters
+    -- Accept digits, decimal point, and colon for "beats:lpb" format
     local ch = key.name
-    if ch:match("[0-9a-fA-FxX]") then
+    if ch:match("[0-9%.:]") then
       PakettiSlabOPatternsAppendChar(ch)
       return nil
     end
