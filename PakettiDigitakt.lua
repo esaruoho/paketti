@@ -596,13 +596,13 @@ function PakettiDigitaktDialog()
   -- Info display elements
   local export_info = vb:text{
     text = "Ready to export",
-    width = 400
+    width = 350,style="strong",font="bold"
   }
   
   local current_instrument_info = vb:text{
     text = "",
-    width = 400,
-    style = "strong"
+    width = 350,
+    style = "strong",font="bold"
   }
   
   local function update_current_instrument_display()
@@ -640,14 +640,8 @@ function PakettiDigitaktDialog()
   local content = vb:column{
     
     vb:text{
-      text = "Digitakt Sample Chain Exporter",
-      font = "big",
-      style = "strong"
-    },
-    
-    vb:text{
       text = "Export instrument samples as Digitakt-compatible sample chain",
-      width = 400
+      width = 350
     },
     
     -- Current instrument display
@@ -655,7 +649,7 @@ function PakettiDigitaktDialog()
     
     -- Digitakt version selection
     vb:row{
-      vb:text{text = "Target Device:", width = 120},
+      vb:text{text = "Target Device", width = 120,style="strong",font="bold"},
       vb:popup{
         items = version_items,
         value = 2, -- Default to Digitakt 2
@@ -669,7 +663,7 @@ function PakettiDigitaktDialog()
     
     -- Export mode selection
     vb:row{
-      vb:text{text = "Export Mode:", width = 120},
+      vb:text{text = "Export Mode", width = 120,style="strong",font="bold"},
       vb:popup{
         items = mode_items,
         value = 1, -- Default to spaced
@@ -683,11 +677,11 @@ function PakettiDigitaktDialog()
     
     -- Slot count selection (for spaced mode)
     vb:row{
-      vb:text{text = "Slot Count:", width = 120},
+      vb:text{text = "Slot Count", width = 120,style="strong",font="bold"},
       vb:popup{
         items = slot_items,
         value = 1, -- Default to Auto
-        width = 100,
+        width = 200,
         notifier = function(value)
           params.slot_count = slot_options[value].value
           print("PakettiDigitakt: Selected slot count: " .. tostring(params.slot_count or "auto"))
@@ -697,11 +691,11 @@ function PakettiDigitaktDialog()
     
     -- Mono conversion method
     vb:row{
-      vb:text{text = "Mono Conversion:", width = 120},
+      vb:text{text = "Mono Conversion", width = 120,style="strong",font="bold"},
       vb:popup{
         items = mono_items,
         value = 1, -- Default to average
-        width = 150,
+        width = 200,
         notifier = function(value)
           params.mono_method = mono_keys[value]
           print("PakettiDigitakt: Selected mono method: " .. params.mono_method)
@@ -709,13 +703,11 @@ function PakettiDigitaktDialog()
       }
     },
     
-    vb:space{height = 5},
-    
     -- Audio processing options
     vb:column{
-      style = "group",
+      width="100%",
       
-      vb:text{text = "Audio Processing Options:", style = "strong"},
+      vb:text{text = "Audio Processing Options", style = "strong",font="bold"},
       
       vb:row{
         vb:checkbox{
@@ -751,17 +743,12 @@ function PakettiDigitaktDialog()
       }
     },
     
-    vb:space{height = 5},
-    
     -- Export info display
     export_info,
     
-    vb:space{height = 10},
-    
     -- Action buttons
     vb:horizontal_aligner{
-      mode = "distribute",
-      
+      mode = "distribute",      
       vb:button{
         text = "Export Chain",
         width = 120,
@@ -789,16 +776,16 @@ function PakettiDigitaktDialog()
       }
     },
     
-    vb:space{height = 5},
+
     
     -- Help text
     vb:multiline_text{
-      text = "- Digitakt: Original hardware, mono samples only (48kHz)\n" ..
-             "- Digitakt 2: New hardware with stereo sample support\n" ..
+      text = "- Digitakt: Mono samples only (48kHz)\n" ..
+             "- Digitakt 2: Stereo sample support\n" ..
              "- Spaced mode: Fixed-length slots for consistent timing\n" ..
              "- Chain mode: Direct concatenation for maximum efficiency\n" ..
              "- Samples are automatically converted to 48kHz/16-bit format",
-      width = 400,
+      width = 350,
       height = 80
     }
   }
