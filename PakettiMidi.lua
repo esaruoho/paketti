@@ -3758,13 +3758,22 @@ PakettiMidiEffectWriterDialog = nil
 PakettiMidiEffectWriterVB = nil
 PakettiMidiEffectWriterDevice = nil
 PakettiMidiEffectWriterEnabled = false
-PakettiMidiEffectWriterMode = 1  -- 1 = Aftertouch, 2 = Single Controller, 3 = Manual Slider
+PakettiMidiEffectWriterMode = 1  -- 1 = Aftertouch, 2 = Single Controller
 PakettiMidiEffectWriterCC = 1    -- CC number for Single Controller mode
 PakettiMidiEffectWriterEffect = 4 -- 1=0A, 2=0V, 3=0T, 4=0D, 5=0U
 PakettiMidiEffectWriterRange = 1  -- 1 = 7F (0-127), 2 = FF (0-255)
 PakettiMidiEffectWriterDeviceName = ""
 PakettiMidiEffectWriterLastValue = 0
 PakettiMidiEffectWriterSliderValue = 0
+-- For xy effects (0A, 0V, 0T)
+PakettiMidiEffectWriterParamMode = 1  -- 1 = Both (XY), 2 = X only, 3 = Y only
+PakettiMidiEffectWriterXValue = 0     -- Current X slider value (0-15)
+PakettiMidiEffectWriterYValue = 0     -- Current Y slider value (0-15)
+
+-- Helper function: Map MIDI value (0-127) to hex nibble (0-F)
+function PakettiMidiEffectWriterMapToNibble(midi_value)
+  return math.floor((midi_value / 127) * 15)
+end
 
 -- Helper function: Write full effect command (00-FF or 00-7F)
 function PakettiMidiEffectWriterWrite(effect_number, value_string)
@@ -3847,11 +3856,6 @@ function PakettiMidiEffectWriterCallback(message)
     return
   end
   
-  -- Only process MIDI for Aftertouch and CC modes, not Slider mode
-  if PakettiMidiEffectWriterMode == 3 then
-    return
-  end
-  
   local pressure_value = nil
   local status_byte = message[1]
   
@@ -3874,19 +3878,45 @@ function PakettiMidiEffectWriterCallback(message)
     -- Store last value for display
     PakettiMidiEffectWriterLastValue = pressure_value
     
-    -- Convert to hex based on range setting
-    local hex_value
-    if PakettiMidiEffectWriterRange == 1 then
-      -- 7F range (0-127 direct)
-      hex_value = string.format("%02X", pressure_value)
-    else
-      -- FF range (0-127 mapped to 0-255)
-      hex_value = string.format("%02X", math.floor((pressure_value / 127) * 255))
-    end
-    
     -- Get effect number string
     local effect_names = {"0A", "0V", "0T", "0D", "0U"}
     local effect_number = effect_names[PakettiMidiEffectWriterEffect]
+    
+    local hex_value
+    
+    -- Check if this is an xy effect (0A, 0V, 0T)
+    if PakettiMidiEffectWriterEffect <= 3 then
+      -- xy effect
+      local x_val, y_val
+      
+      if PakettiMidiEffectWriterParamMode == 1 then
+        -- Both XY - map pressure to both X and Y (same value)
+        x_val = PakettiMidiEffectWriterMapToNibble(pressure_value)
+        y_val = x_val
+        PakettiMidiEffectWriterXValue = x_val
+        PakettiMidiEffectWriterYValue = y_val
+        hex_value = string.format("%X%X", x_val, y_val)
+      elseif PakettiMidiEffectWriterParamMode == 2 then
+        -- X only - map pressure to X, use Y slider value
+        x_val = PakettiMidiEffectWriterMapToNibble(pressure_value)
+        y_val = PakettiMidiEffectWriterYValue
+        PakettiMidiEffectWriterXValue = x_val
+        hex_value = string.format("%X%X", x_val, y_val)
+      else
+        -- Y only - use X slider value, map pressure to Y
+        x_val = PakettiMidiEffectWriterXValue
+        y_val = PakettiMidiEffectWriterMapToNibble(pressure_value)
+        PakettiMidiEffectWriterYValue = y_val
+        hex_value = string.format("%X%X", x_val, y_val)
+      end
+    else
+      -- Full value effect (0D, 0U)
+      if PakettiMidiEffectWriterRange == 1 then
+        hex_value = string.format("%02X", pressure_value)
+      else
+        hex_value = string.format("%02X", math.floor((pressure_value / 127) * 255))
+      end
+    end
     
     -- Write to pattern
     PakettiMidiEffectWriterWrite(effect_number, hex_value)
@@ -3895,41 +3925,66 @@ function PakettiMidiEffectWriterCallback(message)
     if PakettiMidiEffectWriterVB and PakettiMidiEffectWriterVB.views.last_value then
       PakettiMidiEffectWriterVB.views.last_value.text = string.format("Last Value: %d (0x%s)", 
         pressure_value, hex_value)
+      -- Update XY sliders if visible
+      if PakettiMidiEffectWriterEffect <= 3 then
+        if PakettiMidiEffectWriterVB.views.x_slider then
+          PakettiMidiEffectWriterVB.views.x_slider.value = PakettiMidiEffectWriterXValue
+          PakettiMidiEffectWriterVB.views.x_valuebox.value = PakettiMidiEffectWriterXValue
+        end
+        if PakettiMidiEffectWriterVB.views.y_slider then
+          PakettiMidiEffectWriterVB.views.y_slider.value = PakettiMidiEffectWriterYValue
+          PakettiMidiEffectWriterVB.views.y_valuebox.value = PakettiMidiEffectWriterYValue
+        end
+      end
     end
   end
 end
 
--- Manual slider write function
-function PakettiMidiEffectWriterSliderWrite(slider_value)
-  if not PakettiMidiEffectWriterEnabled then
-    return
-  end
-  
+-- Manual slider write functions - ALWAYS work, no enable check
+function PakettiMidiEffectWriterWriteFullValue(slider_value)
   -- Store last value for display
   PakettiMidiEffectWriterLastValue = slider_value
   PakettiMidiEffectWriterSliderValue = slider_value
   
-  -- Convert to hex based on range setting
-  local hex_value
-  if PakettiMidiEffectWriterRange == 1 then
-    -- 7F range (0-127 direct)
-    hex_value = string.format("%02X", slider_value)
-  else
-    -- FF range (0-127 mapped to 0-255)
-    hex_value = string.format("%02X", math.floor((slider_value / 127) * 255))
-  end
-  
   -- Get effect number string
   local effect_names = {"0A", "0V", "0T", "0D", "0U"}
   local effect_number = effect_names[PakettiMidiEffectWriterEffect]
+  
+  local hex_value
+  if PakettiMidiEffectWriterRange == 1 then
+    hex_value = string.format("%02X", slider_value)
+  else
+    hex_value = string.format("%02X", math.floor((slider_value / 127) * 255))
+  end
   
   -- Write to pattern
   PakettiMidiEffectWriterWrite(effect_number, hex_value)
   
   -- Update dialog display if it exists
   if PakettiMidiEffectWriterVB and PakettiMidiEffectWriterVB.views.last_value then
-    PakettiMidiEffectWriterVB.views.last_value.text = string.format("Last Value: %d (0x%s)", 
+    PakettiMidiEffectWriterVB.views.last_value.text = string.format("Full: %d (0x%s)", 
       slider_value, hex_value)
+  end
+end
+
+function PakettiMidiEffectWriterWriteXY()
+  -- Get effect number string
+  local effect_names = {"0A", "0V", "0T", "0D", "0U"}
+  local effect_number = effect_names[PakettiMidiEffectWriterEffect]
+  
+  -- Values are already integers from the slider notifiers
+  local x = PakettiMidiEffectWriterXValue
+  local y = PakettiMidiEffectWriterYValue
+  
+  local hex_value = string.format("%X%X", x, y)
+  
+  -- Write to pattern
+  PakettiMidiEffectWriterWrite(effect_number, hex_value)
+  
+  -- Update dialog display if it exists
+  if PakettiMidiEffectWriterVB and PakettiMidiEffectWriterVB.views.last_value then
+    PakettiMidiEffectWriterVB.views.last_value.text = string.format("X:%X Y:%X (0x%s)", 
+      x, y, hex_value)
   end
 end
 
@@ -3943,8 +3998,8 @@ function PakettiMidiEffectWriterUpdateDevice()
     PakettiMidiEffectWriterDevice = nil
   end
   
-  -- Only open device if we have a valid device name and not in slider mode
-  if PakettiMidiEffectWriterDeviceName ~= "" and PakettiMidiEffectWriterMode ~= 3 then
+  -- Only open device if we have a valid device name
+  if PakettiMidiEffectWriterDeviceName ~= "" then
     local success, err = pcall(function()
       PakettiMidiEffectWriterDevice = renoise.Midi.create_input_device(
         PakettiMidiEffectWriterDeviceName,
@@ -4016,7 +4071,6 @@ function PakettiMidiEffectWriterShowDialog()
     vb:horizontal_aligner {
       mode = "justify",
       vb:column {
-        spacing = 5,
         
         vb:text {
           text = "Input Mode:",
@@ -4025,22 +4079,18 @@ function PakettiMidiEffectWriterShowDialog()
         
         vb:switch {
           id = "mode_switch",
-          items = {"Aftertouch", "Single CC", "Manual Slider"},
+          items = {"Aftertouch", "Single CC"},
           value = PakettiMidiEffectWriterMode,
           width = 300,
           notifier = function(value)
             PakettiMidiEffectWriterMode = value
-            vb.views.device_section.visible = (value ~= 3)
             vb.views.cc_row.visible = (value == 2)
-            vb.views.slider_row.visible = (value == 3)
             PakettiMidiEffectWriterUpdateDevice()
           end
         },
         
         vb:column {
           id = "device_section",
-          visible = (PakettiMidiEffectWriterMode ~= 3),
-          spacing = 5,
           
           vb:text {
             text = "MIDI Input Device:",
@@ -4063,12 +4113,12 @@ function PakettiMidiEffectWriterShowDialog()
         vb:row {
           id = "cc_row",
           visible = (PakettiMidiEffectWriterMode == 2),
-          spacing = 5,
           vb:text {
             text = "CC Number:",
             width = 80
           },
           vb:valuebox {
+            width=55,
             id = "cc_valuebox",
             min = 0,
             max = 127,
@@ -4079,35 +4129,6 @@ function PakettiMidiEffectWriterShowDialog()
           }
         },
         
-        vb:row {
-          id = "slider_row",
-          visible = (PakettiMidiEffectWriterMode == 3),
-          spacing = 5,
-          vb:text {
-            text = "Manual Value:",
-            width = 100
-          },
-          vb:slider {
-            id = "manual_slider",
-            min = 0,
-            max = 127,
-            value = PakettiMidiEffectWriterSliderValue,
-            width = 200,
-            notifier = function(value)
-              PakettiMidiEffectWriterSliderWrite(value)
-            end
-          },
-          vb:valuebox {
-            id = "manual_valuebox",
-            min = 0,
-            max = 127,
-            value = PakettiMidiEffectWriterSliderValue,
-            notifier = function(value)
-              PakettiMidiEffectWriterSliderWrite(value)
-              vb.views.manual_slider.value = value
-            end
-          }
-        },
         
         vb:text {
           text = "Effect Column:",
@@ -4121,8 +4142,141 @@ function PakettiMidiEffectWriterShowDialog()
           width = 300,
           notifier = function(value)
             PakettiMidiEffectWriterEffect = value
+            local is_xy = (value <= 3)
+            vb.views.param_mode_switch.active = is_xy
+            vb.views.range_switch.active = not is_xy
+            vb.views.y_slider.active = is_xy
+            vb.views.y_valuebox.active = is_xy
+            -- Update X slider max value
+            vb.views.x_slider.max = is_xy and 15 or 127
+            vb.views.x_valuebox.max = is_xy and 15 or 127
+            -- Reset X value if it exceeds new max
+            if not is_xy and PakettiMidiEffectWriterXValue > 127 then
+              PakettiMidiEffectWriterXValue = 127
+              vb.views.x_slider.value = 127
+              vb.views.x_valuebox.value = 127
+            elseif is_xy and PakettiMidiEffectWriterXValue > 15 then
+              PakettiMidiEffectWriterXValue = 15
+              vb.views.x_slider.value = 15
+              vb.views.x_valuebox.value = 15
+            end
+            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
           end
         },
+        
+        vb:column {
+          id = "xy_section",
+          spacing = 5,
+          
+          vb:text {
+            text = "Control Mode (XY):",
+            font = "bold"
+          },
+          
+          vb:switch {
+            id = "param_mode_switch",
+            items = {"Both (XY)", "X only", "Y only"},
+            value = PakettiMidiEffectWriterParamMode,
+            width = 300,
+            active = (PakettiMidiEffectWriterEffect <= 3),
+            notifier = function(value)
+              PakettiMidiEffectWriterParamMode = value
+            end
+          }
+        },
+        
+        vb:column {
+          id = "xy_sliders",
+          
+          vb:text {
+            text = "Manual XY Control:",
+            font = "bold"
+          },
+          
+          vb:row {
+            
+            vb:text {
+              text = "X",
+              width = 20
+            },
+            vb:slider {
+              id = "x_slider",
+              min = 0,
+              max = (PakettiMidiEffectWriterEffect <= 3) and 15 or 127,
+              steps = {1, 1},
+              value = PakettiMidiEffectWriterXValue,
+              width = 225,
+              notifier = function(value)
+                local rounded = math.floor(value + 0.5)
+                PakettiMidiEffectWriterXValue = rounded
+                vb.views.x_valuebox.value = rounded
+                vb.views.x_slider.value = rounded
+                if PakettiMidiEffectWriterEffect <= 3 then
+                  PakettiMidiEffectWriterWriteXY()
+                else
+                  PakettiMidiEffectWriterWriteFullValue(rounded)
+                end
+              end
+            },
+            vb:valuebox {
+              width=55,
+              id = "x_valuebox",
+              min = 0,
+              max = (PakettiMidiEffectWriterEffect <= 3) and 15 or 127,
+              value = PakettiMidiEffectWriterXValue,
+              notifier = function(value)
+                PakettiMidiEffectWriterXValue = value
+                vb.views.x_slider.value = value
+                if PakettiMidiEffectWriterEffect <= 3 then
+                  PakettiMidiEffectWriterWriteXY()
+                else
+                  PakettiMidiEffectWriterWriteFullValue(value)
+                end
+              end
+            }
+          },
+          
+          vb:row {
+            
+            vb:text {
+              text = "Y",
+              width = 20
+            },
+            vb:slider {
+              id = "y_slider",
+              min = 0,
+              max = 15,
+              steps = {1, 1},
+              value = PakettiMidiEffectWriterYValue,
+              width = 225,
+              active = (PakettiMidiEffectWriterEffect <= 3),
+              notifier = function(value)
+                local rounded = math.floor(value + 0.5)
+                PakettiMidiEffectWriterYValue = rounded
+                vb.views.y_valuebox.value = rounded
+                vb.views.y_slider.value = rounded
+                PakettiMidiEffectWriterWriteXY()
+              end
+            },
+            vb:valuebox {
+              width=55,
+              id = "y_valuebox",
+              min = 0,
+              max = 15,
+              value = PakettiMidiEffectWriterYValue,
+              active = (PakettiMidiEffectWriterEffect <= 3),
+              notifier = function(value)
+                PakettiMidiEffectWriterYValue = value
+                vb.views.y_slider.value = value
+                PakettiMidiEffectWriterWriteXY()
+              end
+            }
+          }
+        },
+        
+        vb:column {
+          id = "range_section",
+          
         
         vb:text {
           text = "Value Range:",
@@ -4134,9 +4288,11 @@ function PakettiMidiEffectWriterShowDialog()
           items = {"00-7F (0-127)", "00-FF (0-255)"},
           value = PakettiMidiEffectWriterRange,
           width = 300,
+          active = (PakettiMidiEffectWriterEffect > 3),
           notifier = function(value)
             PakettiMidiEffectWriterRange = value
           end
+        }
         },
         
         vb:text {
@@ -4181,8 +4337,11 @@ renoise.tool().app_idle_observable:add_notifier(function()
   end
 end)
 
--- Menu entry and keybinding
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI:MIDI Aftertouch / CC Effect Writer...",
+-- Menu entries and keybinding
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:MIDI Aftertouch / CC Effect Writer...",
+  invoke=function() PakettiMidiEffectWriterShowDialog() end}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:MIDI Aftertouch / CC Effect Writer...",
   invoke=function() PakettiMidiEffectWriterShowDialog() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:MIDI Aftertouch / CC Effect Writer...",
