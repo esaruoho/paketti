@@ -547,13 +547,25 @@ local function export_digitakt_chain(params)
 end
 
 -- Create export dialog
+local selected_instrument_notifier = nil
+
 function PakettiDigitaktDialog()
   if dialog and dialog.visible then
+    -- Clean up observable notifier before closing
+    local song = renoise.song()
+    if selected_instrument_notifier then
+      if song.selected_instrument_index_observable:has_notifier(selected_instrument_notifier) then
+        song.selected_instrument_index_observable:remove_notifier(selected_instrument_notifier)
+      end
+      selected_instrument_notifier = nil
+    end
     dialog:close()
+    dialog = nil
     return
   end
   
   local vb = renoise.ViewBuilder()
+  local song = renoise.song()
   
   -- Default parameters
   local params = {
@@ -587,6 +599,23 @@ function PakettiDigitaktDialog()
     width = 400
   }
   
+  local current_instrument_info = vb:text{
+    text = "",
+    width = 400,
+    style = "strong"
+  }
+  
+  local function update_current_instrument_display()
+    local instrument = song.selected_instrument
+    local instrument_name = instrument.name
+    if instrument_name == "" then
+      instrument_name = "Unnamed"
+    end
+    local sample_count = #instrument.samples
+    current_instrument_info.text = string.format("Current: [%02X] %s (%d samples)", 
+      song.selected_instrument_index - 1, instrument_name, sample_count)
+  end
+  
   local function update_export_info()
     if last_export_info.sample_count > 0 then
       local info_text = string.format("Last export: %d samples, %.3f sec/slot, %.2f sec total (%s, %dHz)",
@@ -599,9 +628,16 @@ function PakettiDigitaktDialog()
     end
   end
   
+  -- Observable for tracking instrument changes
+  selected_instrument_notifier = update_current_instrument_display
+  if not song.selected_instrument_index_observable:has_notifier(selected_instrument_notifier) then
+    song.selected_instrument_index_observable:add_notifier(selected_instrument_notifier)
+  end
+  
+  -- Initialize the current instrument display
+  update_current_instrument_display()
+  
   local content = vb:column{
-    margin = 15,
-    spacing = 8,
     
     vb:text{
       text = "Digitakt Sample Chain Exporter",
@@ -614,7 +650,8 @@ function PakettiDigitaktDialog()
       width = 400
     },
     
-    vb:space{height = 5},
+    -- Current instrument display
+    current_instrument_info,
     
     -- Digitakt version selection
     vb:row{
@@ -677,7 +714,6 @@ function PakettiDigitaktDialog()
     -- Audio processing options
     vb:column{
       style = "group",
-      margin = 5,
       
       vb:text{text = "Audio Processing Options:", style = "strong"},
       
@@ -740,6 +776,13 @@ function PakettiDigitaktDialog()
         text = "Close",
         width = 80,
         notifier = function()
+          -- Clean up observable notifier
+          if selected_instrument_notifier then
+            if song.selected_instrument_index_observable:has_notifier(selected_instrument_notifier) then
+              song.selected_instrument_index_observable:remove_notifier(selected_instrument_notifier)
+            end
+            selected_instrument_notifier = nil
+          end
           dialog:close()
           dialog = nil
         end
@@ -750,11 +793,11 @@ function PakettiDigitaktDialog()
     
     -- Help text
     vb:multiline_text{
-      text = "• Digitakt: Original hardware, mono samples only (48kHz)\n" ..
-             "• Digitakt 2: New hardware with stereo sample support\n" ..
-             "• Spaced mode: Fixed-length slots for consistent timing\n" ..
-             "• Chain mode: Direct concatenation for maximum efficiency\n" ..
-             "• Samples are automatically converted to 48kHz/16-bit format",
+      text = "- Digitakt: Original hardware, mono samples only (48kHz)\n" ..
+             "- Digitakt 2: New hardware with stereo sample support\n" ..
+             "- Spaced mode: Fixed-length slots for consistent timing\n" ..
+             "- Chain mode: Direct concatenation for maximum efficiency\n" ..
+             "- Samples are automatically converted to 48kHz/16-bit format",
       width = 400,
       height = 80
     }
