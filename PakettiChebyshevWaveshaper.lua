@@ -61,6 +61,12 @@ local bezier_canvas = nil  -- NEW: Bézier curve visualization canvas
 local backup_sample_data = nil
 local backup_range = nil
 
+-- Observable notifiers for sample/instrument changes
+local sample_index_change_notifier = nil
+local instrument_change_notifier = nil
+local sample_data_change_notifier = nil
+local current_watched_sample = nil
+
 
 -- Debouncing system for performance
 local dirty = false
@@ -1085,6 +1091,65 @@ local function idle_tick()
   end
 end
 
+-- Attach sample data observable to current sample
+local function attach_sample_data_observable()
+  -- Remove old observable if exists
+  if current_watched_sample and sample_data_change_notifier then
+    pcall(function()
+      if current_watched_sample.sample_buffer and 
+         current_watched_sample.sample_buffer.sample_data_changed_observable:has_notifier(sample_data_change_notifier) then
+        current_watched_sample.sample_buffer.sample_data_changed_observable:remove_notifier(sample_data_change_notifier)
+      end
+    end)
+  end
+  
+  -- Attach to new sample
+  local sample = renoise.song().selected_sample
+  if sample and sample.sample_buffer and sample.sample_buffer.has_sample_data then
+    current_watched_sample = sample
+    
+    sample_data_change_notifier = function()
+      -- Sample buffer was modified - update waveform display
+      waveform_token = nil
+      if cache_sample_waveform() then
+        generate_processed_waveform_cache()
+      end
+      update_canvas_displays()
+    end
+    
+    pcall(function()
+      if not sample.sample_buffer.sample_data_changed_observable:has_notifier(sample_data_change_notifier) then
+        sample.sample_buffer.sample_data_changed_observable:add_notifier(sample_data_change_notifier)
+      end
+    end)
+  end
+end
+
+-- Handle sample/instrument changes - update waveform display
+local function handle_sample_change()
+  -- Clear waveform cache token to force refresh
+  waveform_token = nil
+  
+  -- Disable preview mode when switching samples (can't preview on different sample!)
+  if preview_enabled then
+    preview_enabled = false
+    backup_sample_data = nil
+    backup_range = nil
+    if vb and vb.views and vb.views.preview_button then
+      vb.views.preview_button.text = "Enable Preview"
+    end
+  end
+  
+  -- Re-attach sample data observable to new sample
+  attach_sample_data_observable()
+  
+  -- Update canvas displays with new sample
+  if cache_sample_waveform() then
+    generate_processed_waveform_cache()
+  end
+  update_canvas_displays()
+end
+
 -- Update harmonic value text displays
 -- update_harmonic_value_displays removed - labels and values now drawn directly on canvas
 
@@ -2031,6 +2096,39 @@ local function my_keyhandler_func(dialog, key)
     -- Clear backup data
     backup_sample_data = nil
     
+    -- Remove observables to prevent memory leaks
+    pcall(function()
+      if sample_index_change_notifier and renoise.song().selected_sample_index_observable:has_notifier(sample_index_change_notifier) then
+        renoise.song().selected_sample_index_observable:remove_notifier(sample_index_change_notifier)
+      end
+      sample_index_change_notifier = nil
+    end)
+    
+    pcall(function()
+      if instrument_change_notifier and renoise.song().selected_instrument_index_observable:has_notifier(instrument_change_notifier) then
+        renoise.song().selected_instrument_index_observable:remove_notifier(instrument_change_notifier)
+      end
+      instrument_change_notifier = nil
+    end)
+    
+    pcall(function()
+      if current_watched_sample and sample_data_change_notifier then
+        if current_watched_sample.sample_buffer and 
+           current_watched_sample.sample_buffer.sample_data_changed_observable:has_notifier(sample_data_change_notifier) then
+          current_watched_sample.sample_buffer.sample_data_changed_observable:remove_notifier(sample_data_change_notifier)
+        end
+      end
+      sample_data_change_notifier = nil
+      current_watched_sample = nil
+    end)
+    
+    -- Remove idle notifier to prevent memory leaks
+    pcall(function()
+      if renoise.tool().app_idle_observable:has_notifier(idle_tick) then
+        renoise.tool().app_idle_observable:remove_notifier(idle_tick)
+      end
+    end)
+    
     dialog:close()
     return nil
   else
@@ -2048,6 +2146,38 @@ function show_chebyshev_waveshaper()
 
   -- Close existing dialog if open
   if dialog and dialog.visible then
+    -- Clean up observables before closing
+    pcall(function()
+      if sample_index_change_notifier and renoise.song().selected_sample_index_observable:has_notifier(sample_index_change_notifier) then
+        renoise.song().selected_sample_index_observable:remove_notifier(sample_index_change_notifier)
+      end
+      sample_index_change_notifier = nil
+    end)
+    
+    pcall(function()
+      if instrument_change_notifier and renoise.song().selected_instrument_index_observable:has_notifier(instrument_change_notifier) then
+        renoise.song().selected_instrument_index_observable:remove_notifier(instrument_change_notifier)
+      end
+      instrument_change_notifier = nil
+    end)
+    
+    pcall(function()
+      if current_watched_sample and sample_data_change_notifier then
+        if current_watched_sample.sample_buffer and 
+           current_watched_sample.sample_buffer.sample_data_changed_observable:has_notifier(sample_data_change_notifier) then
+          current_watched_sample.sample_buffer.sample_data_changed_observable:remove_notifier(sample_data_change_notifier)
+        end
+      end
+      sample_data_change_notifier = nil
+      current_watched_sample = nil
+    end)
+    
+    pcall(function()
+      if renoise.tool().app_idle_observable:has_notifier(idle_tick) then
+        renoise.tool().app_idle_observable:remove_notifier(idle_tick)
+      end
+    end)
+    
     dialog:close()
   end
 
@@ -2062,6 +2192,27 @@ function show_chebyshev_waveshaper()
   processor_function = nil
   original_waveform_cache = nil
   processed_waveform_cache = nil
+  waveform_token = nil
+  
+  -- Reset all parameter values to defaults
+  for i = 1, 12 do
+    harmonic_gains[i] = 0.0
+  end
+  curve_yL, curve_yC, curve_yR = -1.0, 0.0, 1.0
+  dry_value = 1.0
+  wet_value = 1.0
+  output_gain_value = 1.0
+  oversampling_factor = 1
+  auto_normalize_enabled = false
+  shaper_mode = "cheby"
+  
+  -- Reset Magnet Shaper parameters
+  mag_drive = 1.0
+  mag_tilt = 0.0
+  mag_tilt_bias = 0.0
+  mag_tilt_limit = 0.5
+  mag_feedback = 0.0
+  mag_out = 1.0
 
   -- Create fresh ViewBuilder
   vb = renoise.ViewBuilder()
@@ -2074,10 +2225,6 @@ function show_chebyshev_waveshaper()
       style = "group",
       width = 780,
       
-      vb:text{
-        text = "Waveshaper Mode:",
-        font = "bold"
-      },
       
       vb:row{
         vb:switch{
@@ -2105,11 +2252,11 @@ function show_chebyshev_waveshaper()
         },
         
         vb:row{
-          vb:text{text = "Oversampling:", font = "bold"},
+          vb:text{text = "Oversampling", font = "bold"},
           vb:switch{
             items = {"Auto", "1x", "2x", "4x"},
             value = (function(f) for i,v in ipairs(OS_VALUES) do if v==f then return i end end return 1 end)(oversampling_factor),
-            width = 200,
+            width = 150,
             notifier = function(idx)
               oversampling_factor = OS_VALUES[math.max(1, math.min(#OS_VALUES, idx))] or 1
               mark_dirty()
@@ -2394,89 +2541,87 @@ function show_chebyshev_waveshaper()
       
       -- Second row: Wet/Dry and Output
       vb:row{
-        
         vb:column{
-      vb:row{
-      vb:text{
-          text = "Dry:",
-        font = "bold"
-        },
-        vb:slider{
+          vb:row{
+            vb:text{
+              text = "Dry",
+              font = "bold",
+              width = 50
+            },
+            vb:slider{
               id = "dry_slider",
               min = 0.0,
               max = 1.0,
               value = dry_value,
-              width = 120,
-          notifier = function(value)
+              width = 160,
+              notifier = function(value)
                 dry_value = value
                 if vb.views.dry_value then
                   vb.views.dry_value.text = string.format("%.2f", value)
-            end
-            mark_dirty()
-          end
-        },
-        vb:text{
+                end
+                mark_dirty()
+              end
+            },
+            vb:text{
               id = "dry_value",
               text = string.format("%.2f", dry_value),
-          width = 40
+              width = 40
             }
-        }
-      },
-      
-        vb:column{
-      vb:row{
-        vb:text{
-              text = "Wet:",
-              font = "bold"
+          }
         },
-  
-        vb:slider{
-          id = "wet_slider",
-          min = 0.0,
-          max = 1.0,
+        vb:column{
+          vb:row{
+            vb:text{
+              text = "Wet",
+              font = "bold",
+              width = 50
+            },
+            vb:slider{
+              id = "wet_slider",
+              min = 0.0,
+              max = 1.0,
               value = wet_value,
-              width = 120,
-          notifier = function(value)
+              width = 160,
+              notifier = function(value)
                 wet_value = value
                 if vb.views.wet_value then
                   vb.views.wet_value.text = string.format("%.2f", value)
-            end
-            mark_dirty()
-          end
-        },
-        vb:text{
+                end
+                mark_dirty()
+              end
+            },
+            vb:text{
               id = "wet_value",
               text = string.format("%.2f", wet_value),
-          width = 40
+              width = 40
             }
-        }
-      },
-      
+          }
+        },
         vb:column{
-   
-      vb:row{
-        vb:text{
-          text = "Output:",
-                font = "bold"
-        },
-        vb:slider{
-          id = "output_slider",
-          min = 0.1,
-          max = 2.0,
-          value = output_gain_value,
-              width = 120,
-          notifier = function(value)
-            output_gain_value = value
-            if vb.views.output_value then
-              vb.views.output_value.text = string.format("%.2f", value)
-            end
-            mark_dirty()
-          end
-        },
-        vb:text{
-          id = "output_value",
-          text = string.format("%.2f", output_gain_value),
-          width = 40
+          vb:row{
+            vb:text{
+              text = "Output",
+              font = "bold",
+              width = 50
+            },
+            vb:slider{
+              id = "output_slider",
+              min = 0.1,
+              max = 2.0,
+              value = output_gain_value,
+              width = 160,
+              notifier = function(value)
+                output_gain_value = value
+                if vb.views.output_value then
+                  vb.views.output_value.text = string.format("%.2f", value)
+                end
+                mark_dirty()
+              end
+            },
+            vb:text{
+              id = "output_value",
+              text = string.format("%.2f", output_gain_value),
+              width = 40
             }
           }
         }
@@ -2530,10 +2675,6 @@ function show_chebyshev_waveshaper()
     vb:column{
       style = "group",
       
-      vb:text{
-        text = "Post-Processing:",
-        font = "bold"
-      },
       
       vb:row{
         vb:checkbox{
@@ -2552,13 +2693,13 @@ function show_chebyshev_waveshaper()
     vb:column{
       style = "group",
       
-      vb:text{
-        text = "Harmonic Presets:",
-        font = "bold"
-      },
       
       vb:row{
-        
+        vb:text{
+          text = "Harmonic Presets",
+          font = "bold",style="strong"
+        },
+          
         vb:button{
           text = "Equal",
           width = 70,
@@ -2616,12 +2757,13 @@ function show_chebyshev_waveshaper()
     vb:column{
       style = "group",
       
-      vb:text{
-        text = "Musical Macros:",
-        font = "bold"
-      },
       
       vb:row{
+        vb:text{
+          text = "Musical Macros",
+          font = "bold",style="strong"
+        },
+  
         vb:button{
           text = "Scale -6dB",
           width = 80,
@@ -2668,10 +2810,9 @@ function show_chebyshev_waveshaper()
             mark_dirty()
             renoise.app():show_status("Applied downward tilt (higher harmonics boosted)")
           end
-        }
-      },
+        },
       
-      vb:row{
+      
         vb:button{
           text = "Odd +2dB",
           width = 80,
@@ -2726,7 +2867,17 @@ function show_chebyshev_waveshaper()
     vb:column{
       style = "group",
       
+
+      
+      
       vb:row{
+        
+        vb:button{
+          text = "Apply",
+          width = 80,
+          notifier = apply_processing
+        },
+
         vb:button{
           text = preview_enabled and "Disable Preview" or "Enable Preview",
           width = 120,
@@ -2738,18 +2889,8 @@ function show_chebyshev_waveshaper()
           text = "Reset",
           width = 80,
           notifier = reset_sample
-        }
-      },
-      
-      
-      vb:row{
-        
-        vb:button{
-          text = "Apply",
-          width = 80,
-          notifier = apply_processing
         },
-        
+
         vb:button{
           text = "Normalize",
           width = 80,
@@ -2765,8 +2906,39 @@ function show_chebyshev_waveshaper()
               restore_sample_range()
             end
             backup_sample_data = nil
+            
+            -- Remove observables to prevent memory leaks
+            pcall(function()
+              if sample_index_change_notifier and renoise.song().selected_sample_index_observable:has_notifier(sample_index_change_notifier) then
+                renoise.song().selected_sample_index_observable:remove_notifier(sample_index_change_notifier)
+              end
+              sample_index_change_notifier = nil
+            end)
+            
+            pcall(function()
+              if instrument_change_notifier and renoise.song().selected_instrument_index_observable:has_notifier(instrument_change_notifier) then
+                renoise.song().selected_instrument_index_observable:remove_notifier(instrument_change_notifier)
+              end
+              instrument_change_notifier = nil
+            end)
+            
+            pcall(function()
+              if current_watched_sample and sample_data_change_notifier then
+                if current_watched_sample.sample_buffer and 
+                   current_watched_sample.sample_buffer.sample_data_changed_observable:has_notifier(sample_data_change_notifier) then
+                  current_watched_sample.sample_buffer.sample_data_changed_observable:remove_notifier(sample_data_change_notifier)
+                end
+              end
+              sample_data_change_notifier = nil
+              current_watched_sample = nil
+            end)
+            
             -- Remove idle notifier to prevent memory leaks
-            pcall(function() renoise.tool().app_idle_observable:remove_notifier(idle_tick) end)
+            pcall(function()
+              if renoise.tool().app_idle_observable:has_notifier(idle_tick) then
+                renoise.tool().app_idle_observable:remove_notifier(idle_tick)
+              end
+            end)
             dialog:close()
           end
         }
@@ -2778,7 +2950,31 @@ function show_chebyshev_waveshaper()
   dialog = renoise.app():show_custom_dialog("Paketti Chebyshev/Magnet Waveshaper", content, my_keyhandler_func)
   
   -- Add idle notifier for debounced rebuilds
-  renoise.tool().app_idle_observable:add_notifier(idle_tick)
+  if not renoise.tool().app_idle_observable:has_notifier(idle_tick) then
+    renoise.tool().app_idle_observable:add_notifier(idle_tick)
+  end
+  
+  -- Add observables for sample/instrument changes
+  sample_change_notifier = function()
+    handle_sample_change()
+  end
+  
+  instrument_change_notifier = function()
+    handle_sample_change()
+  end
+  
+  -- Attach observables (check first to prevent double-add)
+  pcall(function()
+    if not renoise.song().selected_sample_observable:has_notifier(sample_change_notifier) then
+      renoise.song().selected_sample_observable:add_notifier(sample_change_notifier)
+    end
+  end)
+  
+  pcall(function()
+    if not renoise.song().selected_instrument_index_observable:has_notifier(instrument_change_notifier) then
+      renoise.song().selected_instrument_index_observable:add_notifier(instrument_change_notifier)
+    end
+  end)
   
   -- Initialize canvas references
   parameter_canvas = vb.views.parameter_canvas
