@@ -1144,6 +1144,31 @@ function PCMWriterGenerateWaveform(type, target_data, size)
       value = math.sin(phase * math.pi * 2)
     elseif type == "square" then
       value = phase < 0.5 and 1 or -1
+    elseif type == "square_rounded" then
+      -- Rounded square wave - square wave with smoothed transitions
+      -- This creates a shape between a square and sine wave, ideal for smooth pulsing
+      local transition_width = 0.1  -- Width of the rounded corners (0.1 = 10% of cycle)
+      local half_transition = transition_width / 2
+      
+      if phase < (0.5 - half_transition) then
+        -- High state
+        value = 1
+      elseif phase < (0.5 + half_transition) then
+        -- Falling transition with smooth curve
+        local t = (phase - (0.5 - half_transition)) / transition_width
+        -- Use smoothstep for gentle curve
+        local smooth = t * t * (3 - 2 * t)
+        value = 1 - (smooth * 2)
+      elseif phase < (1.0 - half_transition) then
+        -- Low state
+        value = -1
+      else
+        -- Rising transition with smooth curve
+        local t = (phase - (1.0 - half_transition)) / transition_width
+        -- Use smoothstep for gentle curve
+        local smooth = t * t * (3 - 2 * t)
+        value = -1 + (smooth * 2)
+      end
     elseif type == "saw" then
       -- Saw wave starting from 0.5 (center)
       local shifted_phase = (phase + 0.5) % 1
@@ -7647,7 +7672,7 @@ function PCMWriterShowPcmDialog()
     },
 
     vb:popup{
-      items = {"sine", "square", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
+      items = {"sine", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
                "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
                "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
                "organ", "metallic", "vocal", "digital", "wobble",

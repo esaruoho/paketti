@@ -3958,3 +3958,643 @@ renoise.tool():add_keybinding{name = "Pattern Matrix:Paketti:Clear Pattern Alias
 renoise.tool():add_midi_mapping{name = "Paketti:Alias Identical Pattern Slots", invoke = function(message) if message:is_trigger() then PakettiPatternAliasIdenticalSlots() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Clear Pattern Aliases", invoke = function(message) if message:is_trigger() then PakettiPatternAliasClearAliases() end end}
 
+-- ======================================
+-- Paketti Auto Capture Track from Instrument
+-- ======================================
+-- Based on ledger.scripts.AutoCaptureInstrumentToTrack - automatically selects track when instrument changes
+-- Optimized with caching, four-mode operation (Disabled/Pattern Editor/Not Pattern Editor/All Frames), and Paketti integration
+
+-- State tracking for auto-capture
+PakettiCaptureTrackLastInstrument = 0
+PakettiCaptureTrackContentCache = nil
+PakettiCaptureTrackCacheValid = false
+
+-- Build content cache of all non-empty pattern tracks
+-- This is expensive, so we cache it and only rebuild when needed
+function PakettiCaptureTrackBuildContentCache()
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local content = {}
+  local added_patterntracks = {}
+  local order_in_track = 0
+  
+  -- Scan all tracks and patterns to build content map
+  for track_idx = 1, #song.tracks do
+    order_in_track = 0
+    for pattern_idx = 1, #song.patterns do
+      local cache_key = pattern_idx .. "#" .. track_idx
+      if not added_patterntracks[cache_key] then
+        added_patterntracks[cache_key] = true
+        local patterntrack = song:pattern(pattern_idx):track(track_idx)
+        if not patterntrack.is_empty then
+          order_in_track = order_in_track + 1
+          table.insert(content, {
+            track_idx = track_idx,
+            sort_order = order_in_track + (track_idx / 1000),
+            patterntrack = patterntrack,
+            pattern_idx = pattern_idx
+          })
+        end
+      end
+    end
+  end
+  
+  -- Sort by track order
+  table.sort(content, function(a, b) return a.sort_order < b.sort_order end)
+  
+  return content
+end
+
+-- Invalidate cache when song structure changes
+function PakettiCaptureTrackInvalidateCache()
+  PakettiCaptureTrackCacheValid = false
+  PakettiCaptureTrackContentCache = nil
+end
+
+-- Find which track the current instrument is used in
+function PakettiCaptureTrackFindTrackForInstrument(instrument_idx)
+  local song = renoise.song()
+  if not song then return false end
+  
+  -- Build or use cached content
+  if not PakettiCaptureTrackCacheValid or not PakettiCaptureTrackContentCache then
+    PakettiCaptureTrackContentCache = PakettiCaptureTrackBuildContentCache()
+    PakettiCaptureTrackCacheValid = true
+  end
+  
+  local content = PakettiCaptureTrackContentCache
+  if not content or #content == 0 then return false end
+  
+  local selected_instrument_idx = instrument_idx - 1  -- Convert to 0-based
+  
+  -- Quick search: check first line of all non-empty patterntracks
+  for i = 1, #content do
+    local val = content[i]
+    local line = val.patterntrack:line(1)
+    if not line.is_empty then
+      local track = song:track(val.track_idx)
+      for ncol_idx = 1, track.visible_note_columns do
+        local ncol = line:note_column(ncol_idx)
+        if not ncol.is_empty then
+          if ncol.instrument_value == selected_instrument_idx then
+            song.selected_track_index = val.track_idx
+            return true
+          end
+        end
+      end
+    end
+  end
+  
+  -- Full search: check all lines (only if quick search failed and instrument hasn't changed)
+  if selected_instrument_idx + 1 == PakettiCaptureTrackLastInstrument then
+    for i = 1, #content do
+      local val = content[i]
+      local patterntrack = val.patterntrack
+      local track = song:track(val.track_idx)
+      
+      for line_idx = 1, #patterntrack.lines do
+        local line = patterntrack.lines[line_idx]
+        if not line.is_empty then
+          for ncol_idx = 1, track.visible_note_columns do
+            local ncol = line:note_column(ncol_idx)
+            if not ncol.is_empty then
+              if ncol.instrument_value == selected_instrument_idx then
+                song.selected_track_index = val.track_idx
+                return true
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  return false
+end
+
+-- Main idle check function for auto-capture
+function PakettiCaptureTrackIdleCheck()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Check if feature is enabled
+  local mode = preferences.PakettiCaptureTrackFromInstrumentMode.value
+  if mode == 0 then return end  -- Disabled
+  
+  -- Check pattern editor visibility based on mode
+  if mode ~= 3 then  -- Mode 3 = All Frames (skip visibility check)
+    local in_pattern_editor = renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    
+    if mode == 1 then
+      -- Mode 1: Only capture when IN pattern editor
+      if not in_pattern_editor then return end
+    elseif mode == 2 then
+      -- Mode 2: Only capture when NOT in pattern editor
+      if in_pattern_editor then return end
+    end
+  end
+  -- Mode 3: All Frames - no frame visibility check, continues to capture
+  
+  -- Check if instrument has changed
+  local current_instrument = song.selected_instrument_index
+  if current_instrument == PakettiCaptureTrackLastInstrument then
+    return  -- No change, nothing to do
+  end
+  
+  -- Update last instrument
+  PakettiCaptureTrackLastInstrument = current_instrument
+  
+  -- Skip instruments with names starting with "--" or empty names
+  local instrument_name = song.selected_instrument.name
+  if instrument_name:sub(1, 2) == "--" or #instrument_name == 0 then
+    return
+  end
+  
+  -- Find and select the track
+  PakettiCaptureTrackFindTrackForInstrument(current_instrument)
+end
+
+-- Manual capture function (for keybinding/menu)
+function PakettiCaptureTrackManual()
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_status("No song loaded")
+    return
+  end
+  
+  local current_instrument = song.selected_instrument_index
+  local found = PakettiCaptureTrackFindTrackForInstrument(current_instrument)
+  
+  if found then
+    renoise.app():show_status(string.format("Found instrument '%s' in track %d", 
+      song.selected_instrument.name, song.selected_track_index))
+    print(string.format("-- Paketti Capture Track: Found instrument #%d '%s' in track %d", 
+      current_instrument, song.selected_instrument.name, song.selected_track_index))
+  else
+    renoise.app():show_status(string.format("Instrument '%s' not found in any pattern", 
+      song.selected_instrument.name))
+    print(string.format("-- Paketti Capture Track: Instrument #%d '%s' not found in patterns", 
+      current_instrument, song.selected_instrument.name))
+  end
+end
+
+-- Toggle auto-capture mode (cycle through 4 states)
+function PakettiCaptureTrackToggleMode()
+  local current_mode = preferences.PakettiCaptureTrackFromInstrumentMode.value
+  local new_mode = (current_mode + 1) % 4
+  
+  preferences.PakettiCaptureTrackFromInstrumentMode.value = new_mode
+  
+  local mode_names = {
+    [0] = "Disabled",
+    [1] = "Pattern Editor Only",
+    [2] = "Not Pattern Editor",
+    [3] = "All Frames"
+  }
+  
+  local status_msg = "Auto Capture Track: " .. mode_names[new_mode]
+  renoise.app():show_status(status_msg)
+  print("-- Paketti Capture Track: " .. status_msg)
+  
+  -- Reset state when changing modes
+  PakettiCaptureTrackLastInstrument = 0
+  PakettiCaptureTrackInvalidateCache()
+end
+
+-- Get current mode name (for menu display)
+function PakettiCaptureTrackGetModeName()
+  local mode = preferences.PakettiCaptureTrackFromInstrumentMode.value
+  local mode_names = {
+    [0] = "Disabled",
+    [1] = "Pattern Editor Only",
+    [2] = "Not Pattern Editor",
+    [3] = "All Frames"
+  }
+  return mode_names[mode] or "Unknown"
+end
+
+-- Check if auto-capture is enabled (for menu checkmark)
+function PakettiCaptureTrackIsEnabled()
+  return preferences.PakettiCaptureTrackFromInstrumentMode.value ~= 0
+end
+
+-- Simple enable/disable toggle (toggles between 0 and last non-zero mode, or defaults to mode 3)
+PakettiCaptureTrackLastNonZeroMode = 3  -- Default to "All Frames" when first enabled
+
+function PakettiCaptureTrackToggleEnable()
+  local current_mode = preferences.PakettiCaptureTrackFromInstrumentMode.value
+  
+  if current_mode == 0 then
+    -- Currently disabled, enable to last used mode (or default)
+    preferences.PakettiCaptureTrackFromInstrumentMode.value = PakettiCaptureTrackLastNonZeroMode
+    local mode_names = {
+      [1] = "Pattern Editor Only",
+      [2] = "Not Pattern Editor",
+      [3] = "All Frames"
+    }
+    renoise.app():show_status("Auto Capture Track: Enabled (" .. mode_names[PakettiCaptureTrackLastNonZeroMode] .. ")")
+    print("-- Paketti Capture Track: Enabled (" .. mode_names[PakettiCaptureTrackLastNonZeroMode] .. ")")
+  else
+    -- Currently enabled, remember mode and disable
+    PakettiCaptureTrackLastNonZeroMode = current_mode
+    preferences.PakettiCaptureTrackFromInstrumentMode.value = 0
+    renoise.app():show_status("Auto Capture Track: Disabled")
+    print("-- Paketti Capture Track: Disabled")
+  end
+  
+  -- Reset state when toggling
+  PakettiCaptureTrackLastInstrument = 0
+  PakettiCaptureTrackInvalidateCache()
+end
+
+-- Toggle between Disabled and Pattern Editor Only
+function PakettiCaptureTrackTogglePatternEditor()
+  local current_mode = preferences.PakettiCaptureTrackFromInstrumentMode.value
+  
+  if current_mode == 1 then
+    preferences.PakettiCaptureTrackFromInstrumentMode.value = 0
+    renoise.app():show_status("Auto Capture Track: Disabled")
+    print("-- Paketti Capture Track: Disabled")
+  else
+    preferences.PakettiCaptureTrackFromInstrumentMode.value = 1
+    PakettiCaptureTrackLastNonZeroMode = 1
+    renoise.app():show_status("Auto Capture Track: Pattern Editor Only")
+    print("-- Paketti Capture Track: Pattern Editor Only")
+  end
+  
+  PakettiCaptureTrackLastInstrument = 0
+  PakettiCaptureTrackInvalidateCache()
+end
+
+-- Toggle between Disabled and Not Pattern Editor
+function PakettiCaptureTrackToggleNotPatternEditor()
+  local current_mode = preferences.PakettiCaptureTrackFromInstrumentMode.value
+  
+  if current_mode == 2 then
+    preferences.PakettiCaptureTrackFromInstrumentMode.value = 0
+    renoise.app():show_status("Auto Capture Track: Disabled")
+    print("-- Paketti Capture Track: Disabled")
+  else
+    preferences.PakettiCaptureTrackFromInstrumentMode.value = 2
+    PakettiCaptureTrackLastNonZeroMode = 2
+    renoise.app():show_status("Auto Capture Track: Not Pattern Editor")
+    print("-- Paketti Capture Track: Not Pattern Editor")
+  end
+  
+  PakettiCaptureTrackLastInstrument = 0
+  PakettiCaptureTrackInvalidateCache()
+end
+
+-- Toggle between Disabled and All Frames
+function PakettiCaptureTrackToggleAllFrames()
+  local current_mode = preferences.PakettiCaptureTrackFromInstrumentMode.value
+  
+  if current_mode == 3 then
+    preferences.PakettiCaptureTrackFromInstrumentMode.value = 0
+    renoise.app():show_status("Auto Capture Track: Disabled")
+    print("-- Paketti Capture Track: Disabled")
+  else
+    preferences.PakettiCaptureTrackFromInstrumentMode.value = 3
+    PakettiCaptureTrackLastNonZeroMode = 3
+    renoise.app():show_status("Auto Capture Track: All Frames")
+    print("-- Paketti Capture Track: All Frames")
+  end
+  
+  PakettiCaptureTrackLastInstrument = 0
+  PakettiCaptureTrackInvalidateCache()
+end
+
+-- Check functions for menu checkmarks
+function PakettiCaptureTrackIsPatternEditorMode()
+  return preferences.PakettiCaptureTrackFromInstrumentMode.value == 1
+end
+
+function PakettiCaptureTrackIsNotPatternEditorMode()
+  return preferences.PakettiCaptureTrackFromInstrumentMode.value == 2
+end
+
+function PakettiCaptureTrackIsAllFramesMode()
+  return preferences.PakettiCaptureTrackFromInstrumentMode.value == 3
+end
+
+-- Initialize on new document
+function PakettiCaptureTrackInitialize()
+  local song = renoise.song()
+  if not song then return end
+  
+  PakettiCaptureTrackLastInstrument = song.selected_instrument_index
+  PakettiCaptureTrackInvalidateCache()
+  
+  -- Do initial capture if enabled
+  if preferences.PakettiCaptureTrackFromInstrumentMode.value ~= 0 then
+    PakettiCaptureTrackManual()
+  end
+end
+
+-- Set up notifiers for cache invalidation
+function PakettiCaptureTrackSetupNotifiers()
+  -- Invalidate cache when patterns change
+  renoise.tool().app_new_document_observable:add_notifier(function()
+    PakettiCaptureTrackInitialize()
+  end)
+  
+  -- Add idle observer for auto-capture
+  renoise.tool().app_idle_observable:add_notifier(function()
+    PakettiCaptureTrackIdleCheck()
+  end)
+end
+
+-- Set up notifiers
+PakettiCaptureTrackSetupNotifiers()
+
+-- Menu entries - Main Menu:Tools:Paketti:Instruments
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Instruments:Capture Track from Instrument",
+  invoke = PakettiCaptureTrackManual
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Instruments:Enable/Disable Auto-Capture Track",
+  invoke = PakettiCaptureTrackToggleEnable,
+  selected = PakettiCaptureTrackIsEnabled
+}
+
+renoise.tool():add_menu_entry{
+  name = "--Main Menu:Tools:Paketti:Instruments:Auto-Capture (Cycle All Modes)",
+  invoke = PakettiCaptureTrackToggleMode,
+  selected = PakettiCaptureTrackIsEnabled
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Instruments:Auto-Capture (Pattern Editor Only)",
+  invoke = PakettiCaptureTrackTogglePatternEditor,
+  selected = PakettiCaptureTrackIsPatternEditorMode
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Instruments:Auto-Capture (Not Pattern Editor)",
+  invoke = PakettiCaptureTrackToggleNotPatternEditor,
+  selected = PakettiCaptureTrackIsNotPatternEditorMode
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Instruments:Auto-Capture (All Frames)",
+  invoke = PakettiCaptureTrackToggleAllFrames,
+  selected = PakettiCaptureTrackIsAllFramesMode
+}
+
+-- Menu entries - Instrument Box
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Capture Track from Instrument",
+  invoke = PakettiCaptureTrackManual
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Enable/Disable Auto-Capture Track",
+  invoke = PakettiCaptureTrackToggleEnable,
+  selected = PakettiCaptureTrackIsEnabled
+}
+
+renoise.tool():add_menu_entry{
+  name = "--Instrument Box:Paketti:Auto-Capture (Cycle All Modes)",
+  invoke = PakettiCaptureTrackToggleMode,
+  selected = PakettiCaptureTrackIsEnabled
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Auto-Capture (Pattern Editor Only)",
+  invoke = PakettiCaptureTrackTogglePatternEditor,
+  selected = PakettiCaptureTrackIsPatternEditorMode
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Auto-Capture (Not Pattern Editor)",
+  invoke = PakettiCaptureTrackToggleNotPatternEditor,
+  selected = PakettiCaptureTrackIsNotPatternEditorMode
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Auto-Capture (All Frames)",
+  invoke = PakettiCaptureTrackToggleAllFrames,
+  selected = PakettiCaptureTrackIsAllFramesMode
+}
+
+-- Menu entries - Pattern Editor
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti:Navigation:Capture Track from Instrument",
+  invoke = PakettiCaptureTrackManual
+}
+
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti:Navigation:Enable/Disable Auto-Capture Track",
+  invoke = PakettiCaptureTrackToggleEnable,
+  selected = PakettiCaptureTrackIsEnabled
+}
+
+renoise.tool():add_menu_entry{
+  name = "--Pattern Editor:Paketti:Navigation:Auto-Capture (Cycle All Modes)",
+  invoke = PakettiCaptureTrackToggleMode,
+  selected = PakettiCaptureTrackIsEnabled
+}
+
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti:Navigation:Auto-Capture (Pattern Editor Only)",
+  invoke = PakettiCaptureTrackTogglePatternEditor,
+  selected = PakettiCaptureTrackIsPatternEditorMode
+}
+
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti:Navigation:Auto-Capture (Not Pattern Editor)",
+  invoke = PakettiCaptureTrackToggleNotPatternEditor,
+  selected = PakettiCaptureTrackIsNotPatternEditorMode
+}
+
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti:Navigation:Auto-Capture (All Frames)",
+  invoke = PakettiCaptureTrackToggleAllFrames,
+  selected = PakettiCaptureTrackIsAllFramesMode
+}
+
+-- Menu entries - Mixer
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti:Capture Track from Instrument",
+  invoke = PakettiCaptureTrackManual
+}
+
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti:Enable/Disable Auto-Capture Track",
+  invoke = PakettiCaptureTrackToggleEnable,
+  selected = PakettiCaptureTrackIsEnabled
+}
+
+renoise.tool():add_menu_entry{
+  name = "--Mixer:Paketti:Auto-Capture (Cycle All Modes)",
+  invoke = PakettiCaptureTrackToggleMode,
+  selected = PakettiCaptureTrackIsEnabled
+}
+
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti:Auto-Capture (Pattern Editor Only)",
+  invoke = PakettiCaptureTrackTogglePatternEditor,
+  selected = PakettiCaptureTrackIsPatternEditorMode
+}
+
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti:Auto-Capture (Not Pattern Editor)",
+  invoke = PakettiCaptureTrackToggleNotPatternEditor,
+  selected = PakettiCaptureTrackIsNotPatternEditorMode
+}
+
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti:Auto-Capture (All Frames)",
+  invoke = PakettiCaptureTrackToggleAllFrames,
+  selected = PakettiCaptureTrackIsAllFramesMode
+}
+
+-- Keybindings
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Capture Track from Instrument",
+  invoke = PakettiCaptureTrackManual
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Enable/Disable Auto-Capture Track",
+  invoke = PakettiCaptureTrackToggleEnable
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Auto-Capture Track (Cycle All Modes)",
+  invoke = PakettiCaptureTrackToggleMode
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Auto-Capture Track (Pattern Editor Only)",
+  invoke = PakettiCaptureTrackTogglePatternEditor
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Auto-Capture Track (Not Pattern Editor)",
+  invoke = PakettiCaptureTrackToggleNotPatternEditor
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Auto-Capture Track (All Frames)",
+  invoke = PakettiCaptureTrackToggleAllFrames
+}
+
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Capture Track from Instrument",
+  invoke = PakettiCaptureTrackManual
+}
+
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Enable/Disable Auto-Capture Track",
+  invoke = PakettiCaptureTrackToggleEnable
+}
+
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Auto-Capture Track (Cycle All Modes)",
+  invoke = PakettiCaptureTrackToggleMode
+}
+
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Auto-Capture Track (Pattern Editor Only)",
+  invoke = PakettiCaptureTrackTogglePatternEditor
+}
+
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Auto-Capture Track (Not Pattern Editor)",
+  invoke = PakettiCaptureTrackToggleNotPatternEditor
+}
+
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Auto-Capture Track (All Frames)",
+  invoke = PakettiCaptureTrackToggleAllFrames
+}
+
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Capture Track from Instrument",
+  invoke = PakettiCaptureTrackManual
+}
+
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Enable/Disable Auto-Capture Track",
+  invoke = PakettiCaptureTrackToggleEnable
+}
+
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Auto-Capture Track (Cycle All Modes)",
+  invoke = PakettiCaptureTrackToggleMode
+}
+
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Auto-Capture Track (Pattern Editor Only)",
+  invoke = PakettiCaptureTrackTogglePatternEditor
+}
+
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Auto-Capture Track (Not Pattern Editor)",
+  invoke = PakettiCaptureTrackToggleNotPatternEditor
+}
+
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Auto-Capture Track (All Frames)",
+  invoke = PakettiCaptureTrackToggleAllFrames
+}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Capture Track from Instrument",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiCaptureTrackManual()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Enable/Disable Auto-Capture Track",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiCaptureTrackToggleEnable()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Auto-Capture Track (Cycle All Modes)",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiCaptureTrackToggleMode()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Auto-Capture Track (Pattern Editor Only)",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiCaptureTrackTogglePatternEditor()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Auto-Capture Track (Not Pattern Editor)",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiCaptureTrackToggleNotPatternEditor()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Auto-Capture Track (All Frames)",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiCaptureTrackToggleAllFrames()
+    end
+  end
+}
+

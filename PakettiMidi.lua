@@ -4206,6 +4206,7 @@ function PakettiMidiEffectWriterShowDialog()
               steps = {1, 1},
               value = PakettiMidiEffectWriterXValue,
               width = 225,
+              midi_mapping = "Paketti:MIDI Effect Writer:X Slider",
               notifier = function(value)
                 local rounded = math.floor(value + 0.5)
                 PakettiMidiEffectWriterXValue = rounded
@@ -4250,6 +4251,7 @@ function PakettiMidiEffectWriterShowDialog()
               value = PakettiMidiEffectWriterYValue,
               width = 225,
               active = (PakettiMidiEffectWriterEffect <= 3),
+              midi_mapping = "Paketti:MIDI Effect Writer:Y Slider",
               notifier = function(value)
                 local rounded = math.floor(value + 0.5)
                 PakettiMidiEffectWriterYValue = rounded
@@ -4346,3 +4348,36 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:MIDI Aftertouch / CC Effect 
 
 renoise.tool():add_keybinding{name="Global:Paketti:MIDI Aftertouch / CC Effect Writer...",
   invoke=function() PakettiMidiEffectWriterShowDialog() end}
+
+-- MIDI mappings for the sliders
+renoise.tool():add_midi_mapping{name="Paketti:MIDI Effect Writer:X Slider",
+  invoke=function(message)
+    if not PakettiMidiEffectWriterVB then return end
+    
+    if message:is_abs_value() then
+      local is_xy = (PakettiMidiEffectWriterEffect <= 3)
+      local max_value = is_xy and 15 or 127
+      local slider_value = math.floor((message.int_value / 127) * max_value + 0.5)
+      
+      -- Update the slider if it exists
+      if PakettiMidiEffectWriterVB.views.x_slider then
+        PakettiMidiEffectWriterVB.views.x_slider.value = slider_value
+      end
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:MIDI Effect Writer:Y Slider",
+  invoke=function(message)
+    if not PakettiMidiEffectWriterVB then return end
+    
+    if message:is_abs_value() then
+      local slider_value = math.floor((message.int_value / 127) * 15 + 0.5)
+      
+      -- Update the slider if it exists
+      if PakettiMidiEffectWriterVB.views.y_slider then
+        PakettiMidiEffectWriterVB.views.y_slider.value = slider_value
+      end
+    end
+  end
+}

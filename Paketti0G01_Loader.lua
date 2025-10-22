@@ -137,6 +137,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiCaptureLastTakeSmartNoteOff=true,
   pakettiSwitcharooAutoGrab=true,
   PakettiImpulseTrackerF8=1,
+  PakettiCaptureTrackFromInstrumentMode=0, -- 0=Disabled, 1=Pattern Editor, 2=Not Pattern Editor, 3=All Frames
   PakettiDeviceChainPath = "." .. separator .. "DeviceChains" .. separator,
   PakettiIRPath = "." .. separator .. "IR" .. separator,
   PakettiLFOWriteDelete=true,
