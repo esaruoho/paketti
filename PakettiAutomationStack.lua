@@ -1838,7 +1838,7 @@ function PakettiAutomationStack_RenderHeaderCanvas(canvas_w, canvas_h)
     if target_line < 1 then target_line = 1 end
     if target_line > num_lines then target_line = num_lines end
     song.selected_line_index = target_line
-    song.transport:start_at{sequence = renoise.song().selected_sequence_index, line = target_line}
+    song.transport:start_at(renoise.SongPos(renoise.song().selected_sequence_index, target_line))
   end
   return function(ctx)
     local song, patt, _ptrack = PakettiAutomationStack_GetSongPatternTrack()

@@ -2462,6 +2462,8 @@ function create_matrix_render_context()
         target_instrument = 0,
         selection_start_sequence = 0,
         selection_end_sequence = 0,
+        min_track = nil,
+        max_track = nil,
         dc_offset_added = false,
         dc_offset_position = 0,
         num_tracks_before = 0
@@ -2475,18 +2477,32 @@ function pakettiRenderMatrixSelection()
     -- Read Pattern Matrix selection by checking all tracks and sequence slots
     local min_seq = nil
     local max_seq = nil
+    local min_track = nil
+    local max_track = nil
     local has_selection = false
+    local selected_tracks = {}
     
     for track_idx = 1, #song.tracks do
+        local track_has_selection = false
         for seq_idx = 1, #sequencer.pattern_sequence do
             if sequencer:track_sequence_slot_is_selected(track_idx, seq_idx) then
                 has_selection = true
+                track_has_selection = true
                 if not min_seq or seq_idx < min_seq then
                     min_seq = seq_idx
                 end
                 if not max_seq or seq_idx > max_seq then
                     max_seq = seq_idx
                 end
+            end
+        end
+        if track_has_selection then
+            selected_tracks[track_idx] = true
+            if not min_track or track_idx < min_track then
+                min_track = track_idx
+            end
+            if not max_track or track_idx > max_track then
+                max_track = track_idx
             end
         end
     end
@@ -2500,7 +2516,8 @@ function pakettiRenderMatrixSelection()
     local start_pos = min_seq
     local end_pos = max_seq
     
-    print("DEBUG MATRIX: Rendering matrix selection from", start_pos, "to", end_pos)
+    print("DEBUG MATRIX: Rendering matrix selection from sequence", start_pos, "to", end_pos)
+    print("DEBUG MATRIX: Tracks involved:", min_track, "to", max_track)
     
     -- Create New Instrument
     local target_instrument = song.selected_instrument_index + 1
@@ -2511,6 +2528,8 @@ function pakettiRenderMatrixSelection()
     local render_context = create_matrix_render_context()
     render_context.selection_start_sequence = start_pos
     render_context.selection_end_sequence = end_pos
+    render_context.min_track = min_track
+    render_context.max_track = max_track
     render_context.target_instrument = target_instrument
     
     -- Start rendering
@@ -2693,11 +2712,31 @@ function matrix_rendering_done_callback(render_context)
     -- Set the selected_instrument_index
     song.selected_instrument_index = target_instrument
     
-    -- Name the result with track name
-    local track_name = song.selected_track.name
-    if track_name == "" then
-        track_name = string.format("Track%02d", song.selected_track_index)
+    -- Name the result with track range
+    local track_name = ""
+    if render_context.min_track and render_context.max_track then
+        if render_context.min_track == render_context.max_track then
+            -- Single track
+            local track = song.tracks[render_context.min_track]
+            if track.name ~= "" then
+                track_name = track.name
+            else
+                track_name = string.format("Track%02d", render_context.min_track)
+            end
+        else
+            -- Multiple tracks - create range
+            track_name = string.format("Track%02d-%02d", render_context.min_track, render_context.max_track)
+        end
+    else
+        -- Fallback to selected track
+        local track = song.selected_track
+        if track.name ~= "" then
+            track_name = track.name
+        else
+            track_name = string.format("Track%02d", song.selected_track_index)
+        end
     end
+    
     local result_name = string.format("%s (Render S%02d-S%02d)", 
         track_name,
         render_context.selection_start_sequence, 
