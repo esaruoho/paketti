@@ -17,13 +17,21 @@ PakettiSlabOPatternsActivePresetLabel = ""
 PakettiSlabOPatternsSeedValues = {}
 PakettiSlabOPatternsPresetAppend = false
 
--- Data model: list of entries stored as "beats:lpb" strings (e.g. "4:8" = 4 beats at 8 LPB)
--- If lpb is omitted (e.g. "4"), use current song LPB
+-- Data model: list of entries stored as "beats" or "beats:lpb" strings
+-- Format examples:
+--   "4"     = 4 beats using current song LPB (e.g. at 4 LPB = 16 lines, at 8 LPB = 32 lines)
+--   "4:8"   = 4 beats at 8 LPB = 32 lines (LPB will be written to pattern master track)
+--   "7"     = 7 beats using current song LPB (e.g. at 4 LPB = 28 lines, at 5 LPB = 35 lines)
+--   "3.5:4" = 3.5 beats at 4 LPB = 14 lines
+-- This beats-based approach adapts to any LPB, so patterns maintain their rhythmic structure
 PakettiSlabOPatternsValues = {}
 
 -- Presets (labels used on buttons; values injected to rows)
--- Values are in format "beats:lpb" where beats * lpb = lines
+-- Values are in format "beats" or "beats:lpb"
+-- When LPB is specified, it will be written to the pattern's master track (ZL command)
 PakettiSlabOPatternsPresets = {
+  { label = "7/4 (7 beats)", values = { "7" } },
+  { label = "5/4 (5 beats)", values = { "5" } },
   { label = "14/8", values = { "4", "3" } },
   { label = "15/8", values = { "4", "3.5" } },
   { label = "14/8 - 15/8", values = { "4", "3", "4", "3.5" } },
@@ -354,7 +362,23 @@ function PakettiSlabOPatternsUpdateRowLabels(idx)
   local beats, lpb = PakettiSlabOPatternsParseEntry(val)
   local lines = PakettiSlabOPatternsCalculateLines(beats, lpb) or 0
   
+  -- Get actual LPB that will be used (specified or current)
+  local display_lpb = lpb
+  if not display_lpb then
+    if renoise.song then
+      local s = renoise.song()
+      if s then
+        display_lpb = s.transport.lpb
+      else
+        display_lpb = 4
+      end
+    else
+      display_lpb = 4
+    end
+  end
+  
   if row.val then row.val.text = val end
+  if row.lpb_label then row.lpb_label.text = tostring(display_lpb) end
   if row.dec then row.dec.text = tostring(lines) end
 end
 
@@ -363,7 +387,15 @@ function PakettiSlabOPatternsBuildContent()
   local vb = PakettiSlabOPatternsVB
 
   local rows = {}
-  table.insert(rows, vb:text{ text = "Beats", style = "strong",font="bold" })
+  -- Header row with column labels
+  table.insert(rows, vb:row{
+    vb:text{ text = "", width = 22 },
+    vb:text{ text = "Beats", width = 56, style = "strong", font = "bold" },
+    vb:text{ text = "", width = 6 },
+    vb:text{ text = "LPB", width = 40, style = "strong", font = "bold" },
+    vb:text{ text = "", width = 6 },
+    vb:text{ text = "Lines", width = 40, style = "strong", font = "bold" }
+  })
 
   for i = 1, #PakettiSlabOPatternsValues do
     local idx = i
@@ -386,14 +418,36 @@ function PakettiSlabOPatternsBuildContent()
     local beats, lpb = PakettiSlabOPatternsParseEntry(PakettiSlabOPatternsValues[i])
     local lines = PakettiSlabOPatternsCalculateLines(beats, lpb) or 0
     
+    -- Get actual LPB that will be used (specified or current)
+    local display_lpb = lpb
+    if not display_lpb then
+      if renoise.song then
+        local s = renoise.song()
+        if s then
+          display_lpb = s.transport.lpb
+        else
+          display_lpb = 4
+        end
+      else
+        display_lpb = 4
+      end
+    end
+    
+    local lpb_label = vb:text{
+      text = tostring(display_lpb),
+      width = 40,
+      style = "strong",
+      font = "bold"
+    }
+    
     local dec_label = vb:text{
       text = tostring(lines),
       width = 40,
       style = "strong",
       font = "bold"
     }
-    PakettiSlabOPatternsRows[i] = { sel = sel_btn, val = val_label, dec = dec_label }
-    table.insert(rows, vb:row{sel_btn, val_label, vb:text{ text = "→", width = 6, style = "disabled" }, dec_label })
+    PakettiSlabOPatternsRows[i] = { sel = sel_btn, val = val_label, lpb_label = lpb_label, dec = dec_label }
+    table.insert(rows, vb:row{sel_btn, val_label, vb:text{ text = "→", width = 6, style = "disabled" }, lpb_label, vb:text{ text = "→", width = 6, style = "disabled" }, dec_label })
   end
 
   -- Presets live at file scope to follow Paketti global rules; use helper below
@@ -407,7 +461,9 @@ function PakettiSlabOPatternsBuildContent()
     vb:button{ text = PakettiSlabOPatternsPresets[3].label, width = 180, notifier = function() PakettiSlabOPatternsApplyPreset(3) end },
     vb:button{ text = PakettiSlabOPatternsPresets[4].label, width = 180, notifier = function() PakettiSlabOPatternsApplyPreset(4) end },
     vb:button{ text = PakettiSlabOPatternsPresets[5].label, width = 180, notifier = function() PakettiSlabOPatternsApplyPreset(5) end },
-    vb:button{ text = PakettiSlabOPatternsPresets[6].label, width = 180, notifier = function() PakettiSlabOPatternsApplyPreset(6) end }
+    vb:button{ text = PakettiSlabOPatternsPresets[6].label, width = 180, notifier = function() PakettiSlabOPatternsApplyPreset(6) end },
+    vb:button{ text = PakettiSlabOPatternsPresets[7].label, width = 180, notifier = function() PakettiSlabOPatternsApplyPreset(7) end },
+    vb:button{ text = PakettiSlabOPatternsPresets[8].label, width = 180, notifier = function() PakettiSlabOPatternsApplyPreset(8) end }
   }
 
   -- Optional section name

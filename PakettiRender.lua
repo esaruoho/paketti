@@ -2452,3 +2452,280 @@ renoise.tool():add_keybinding{name="Global:Paketti:Test Peak Detection",invoke=f
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 
+--------
+-- Pattern Matrix Selection Rendering
+--------
+
+function create_matrix_render_context()
+    return {
+        temp_file_path = "",
+        target_instrument = 0,
+        selection_start_sequence = 0,
+        selection_end_sequence = 0,
+        dc_offset_added = false,
+        dc_offset_position = 0,
+        num_tracks_before = 0
+    }
+end
+
+function pakettiRenderMatrixSelection()
+    local song = renoise.song()
+    local sequencer = song.sequencer
+    
+    -- Read Pattern Matrix selection by checking all tracks and sequence slots
+    local min_seq = nil
+    local max_seq = nil
+    local has_selection = false
+    
+    for track_idx = 1, #song.tracks do
+        for seq_idx = 1, #sequencer.pattern_sequence do
+            if sequencer:track_sequence_slot_is_selected(track_idx, seq_idx) then
+                has_selection = true
+                if not min_seq or seq_idx < min_seq then
+                    min_seq = seq_idx
+                end
+                if not max_seq or seq_idx > max_seq then
+                    max_seq = seq_idx
+                end
+            end
+        end
+    end
+    
+    -- Check if there's a valid selection
+    if not has_selection or not min_seq or not max_seq then
+        renoise.app():show_status("No Pattern Matrix selection found. Please select slots in Pattern Matrix first.")
+        return
+    end
+    
+    local start_pos = min_seq
+    local end_pos = max_seq
+    
+    print("DEBUG MATRIX: Rendering matrix selection from", start_pos, "to", end_pos)
+    
+    -- Create New Instrument
+    local target_instrument = song.selected_instrument_index + 1
+    song:insert_instrument_at(target_instrument)
+    song.selected_instrument_index = target_instrument
+    
+    -- Create render context
+    local render_context = create_matrix_render_context()
+    render_context.selection_start_sequence = start_pos
+    render_context.selection_end_sequence = end_pos
+    render_context.target_instrument = target_instrument
+    
+    -- Start rendering
+    start_matrix_rendering(render_context)
+end
+
+function start_matrix_rendering(render_context)
+    local song = renoise.song()
+    local render_priority = "high"
+    local dc_offset_added = false
+    local dc_offset_position = 0
+    
+    print("DEBUG MATRIX: Starting matrix render")
+    
+    -- Check if ANY track has Line Input (need to check all tracks for matrix render)
+    for _, track in ipairs(song.tracks) do
+        for _, device in ipairs(track.devices) do
+            if device.name == "#Line Input" then
+                render_priority = "realtime"
+                print("DEBUG MATRIX: Found Line Input device, using realtime priority")
+                break
+            end
+        end
+        if render_priority == "realtime" then
+            break
+        end
+    end
+    
+    -- Add DC Offset if enabled in preferences (to master track for full render)
+    if preferences.RenderDCOffset.value then
+        print("DEBUG MATRIX DC: RenderDCOffset preference is enabled")
+        local master_track = song:track(song.sequencer_track_count + 1)
+        
+        -- Check if DC Offset already exists
+        for i, device in ipairs(master_track.devices) do
+            if device.display_name == "Render DC Offset" then
+                dc_offset_position = i
+                print("DEBUG MATRIX DC: Found existing DC Offset at position", i)
+                break
+            end
+        end
+        
+        if dc_offset_position == 0 then
+            print("DEBUG MATRIX DC: Adding DC Offset to master track")
+            local original_track_index = song.selected_track_index
+            song.selected_track_index = song.sequencer_track_count + 1
+            loadnative("Audio/Effects/Native/DC Offset","Render DC Offset")
+            song.selected_track_index = original_track_index
+            
+            -- Find the newly added DC Offset
+            for i, device in ipairs(master_track.devices) do
+                if device.display_name == "Render DC Offset" then
+                    dc_offset_position = i
+                    device.parameters[2].value = 1
+                    dc_offset_added = true
+                    print("DEBUG MATRIX DC: Added new DC Offset at position", i)
+                    break
+                end
+            end
+        end
+    else
+        print("DEBUG MATRIX DC: RenderDCOffset preference is disabled")
+    end
+    
+    -- Store DC Offset information
+    render_context.dc_offset_added = dc_offset_added
+    render_context.dc_offset_position = dc_offset_position
+    
+    -- Calculate start and end positions
+    local start_sequence = render_context.selection_start_sequence
+    local end_sequence = render_context.selection_end_sequence
+    
+    -- Get the pattern index at start position
+    local start_pattern_index = song.sequencer.pattern_sequence[start_sequence]
+    -- Get the pattern index at end position
+    local end_pattern_index = song.sequencer.pattern_sequence[end_sequence]
+    local end_pattern_lines = song.patterns[end_pattern_index].number_of_lines
+    
+    -- Set up rendering options
+    local render_options = {
+        sample_rate = preferences.renderSampleRate.value,
+        bit_depth = preferences.renderBitDepth.value,
+        interpolation = "precise",
+        priority = render_priority,
+        start_pos = renoise.SongPos(start_sequence, 1),
+        end_pos = renoise.SongPos(end_sequence, end_pattern_lines),
+    }
+    
+    print("DEBUG MATRIX: Render options - sequence", start_sequence, "to", end_sequence)
+    print("DEBUG MATRIX: Start pos:", render_options.start_pos.sequence, render_options.start_pos.line)
+    print("DEBUG MATRIX: End pos:", render_options.end_pos.sequence, render_options.end_pos.line)
+    
+    -- Save current solo and mute states
+    track_states = {}
+    render_context.num_tracks_before = #song.tracks
+    print("DEBUG MATRIX: Saving solo/mute states for", render_context.num_tracks_before, "tracks")
+    for i, track in ipairs(song.tracks) do
+        track_states[i] = {
+            solo_state = track.solo_state,
+            mute_state = track.mute_state
+        }
+    end
+    
+    -- Unsolo all tracks (we want to render everything in the selection)
+    for i, track in ipairs(song.tracks) do
+        track.solo_state = false
+    end
+    
+    render_context.temp_file_path = pakettiGetTempFilePath(".wav")
+    
+    -- Start rendering
+    local success, error_message = song:render(render_options, render_context.temp_file_path, function() matrix_rendering_done_callback(render_context) end)
+    if not success then
+        print("Sequencer rendering failed: " .. error_message)
+        -- Remove DC Offset if it was added
+        if dc_offset_added and dc_offset_position > 0 then
+            local master_track = song:track(song.sequencer_track_count + 1)
+            master_track:delete_device_at(dc_offset_position)
+        end
+    else
+        -- Start a timer to monitor rendering progress
+        renoise.tool():add_timer(monitor_matrix_rendering, 500)
+    end
+end
+
+function matrix_rendering_done_callback(render_context)
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
+    print("DEBUG MATRIX: Rendering completed")
+    local song = renoise.song()
+    
+    -- Remove the monitoring timer
+    renoise.tool():remove_timer(monitor_matrix_rendering)
+    
+    -- Handle DC Offset removal
+    if render_context.dc_offset_position > 0 then
+        print("DEBUG MATRIX DC: Removing DC Offset from master track")
+        local master_track = song:track(song.sequencer_track_count + 1)
+        
+        if master_track.devices[render_context.dc_offset_position] and
+           master_track.devices[render_context.dc_offset_position].display_name == "Render DC Offset" then
+            master_track:delete_device_at(render_context.dc_offset_position)
+            print("DEBUG MATRIX DC: Successfully removed DC Offset")
+        end
+    end
+    
+    -- Restore solo and mute states
+    for i = 1, song.sequencer_track_count do
+        if song.tracks[i] then
+            song.tracks[i].solo_state = false
+            song.tracks[i].mute_state = renoise.Track.MUTE_STATE_ACTIVE
+        end
+    end
+    
+    local send_track_start = song.sequencer_track_count + 2
+    for i = send_track_start, send_track_start + song.send_track_count - 1 do
+        if song.tracks[i] then
+            song.tracks[i].solo_state = false
+            song.tracks[i].mute_state = renoise.Track.MUTE_STATE_ACTIVE
+        end
+    end
+    
+    -- Restore original states
+    for i = 1, render_context.num_tracks_before do
+        if track_states[i] then
+            song.tracks[i].solo_state = track_states[i].solo_state
+            song.tracks[i].mute_state = track_states[i].mute_state
+        end
+    end
+    
+    -- Load result into new instrument
+    local target_instrument = render_context.target_instrument
+    pakettiPreferencesDefaultInstrumentLoader()
+    
+    local new_instrument = song:instrument(target_instrument)
+    new_instrument.samples[1].sample_buffer:load_from(render_context.temp_file_path)
+    os.remove(render_context.temp_file_path)
+    
+    -- Set the selected_instrument_index
+    song.selected_instrument_index = target_instrument
+    
+    -- Name the result with track name
+    local track_name = song.selected_track.name
+    if track_name == "" then
+        track_name = string.format("Track%02d", song.selected_track_index)
+    end
+    local result_name = string.format("%s (Render S%02d-S%02d)", 
+        track_name,
+        render_context.selection_start_sequence, 
+        render_context.selection_end_sequence)
+    new_instrument.name = result_name
+    new_instrument.samples[1].name = result_name
+    new_instrument.samples[1].autofade = true
+    
+    print("DEBUG MATRIX: Created instrument:", result_name)
+    renoise.app():show_status("Rendered Pattern Matrix selection: " .. result_name)
+    
+    -- Restore AutoSamplify monitoring state
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+end
+
+function monitor_matrix_rendering()
+    if renoise.song().rendering then
+        local progress = renoise.song().rendering_progress
+        print("Sequencer rendering in progress: " .. (progress * 100) .. "% complete")
+    else
+        renoise.tool():remove_timer(monitor_matrix_rendering)
+        print("Sequencer rendering not in progress or already completed.")
+    end
+end
+
+-- Key bindings and menu entries
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
+
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
