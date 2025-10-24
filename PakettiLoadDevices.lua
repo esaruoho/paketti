@@ -596,12 +596,14 @@ end
 loadDeviceFromPreferences()
 -------
 local dialog = nil  -- Keep track of dialog state
+local gainer_slider_row = nil  -- Keep track of gainer slider row
 
 function pakettiQuickLoadDialog()
   -- Toggle dialog if it exists
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
+    gainer_slider_row = nil
     return
   end
 
@@ -744,6 +746,64 @@ function pakettiQuickLoadDialog()
       search_display.text = "Type to search: '" .. search_text .. "' (" .. tostring(count) .. ")"
     end
     renoise.app():show_status("Quick Load: '" .. search_text .. "' - " .. tostring(#device_items) .. " matches")
+  end
+
+  -- Helper function to convert linear gain to dB
+  local function linear_to_db(linear_value)
+    if linear_value <= 0 then
+      return -math.huge
+    end
+    return 20 * math.log10(linear_value)
+  end
+  
+  -- Helper function to check if any Gainer devices exist in the song
+  local function has_gainer_devices()
+    local song = renoise.song()
+    for track_idx = 1, #song.tracks do
+      local track = song.tracks[track_idx]
+      for device_idx = 1, #track.devices do
+        local device = track.devices[device_idx]
+        if device.name == "Gainer" then
+          return true
+        end
+      end
+    end
+    return false
+  end
+  
+  -- Helper function to get current Gainer value (from first instance found)
+  local function get_first_gainer_value()
+    local song = renoise.song()
+    for track_idx = 1, #song.tracks do
+      local track = song.tracks[track_idx]
+      for device_idx = 1, #track.devices do
+        local device = track.devices[device_idx]
+        if device.name == "Gainer" then
+          return device.parameters[1].value
+        end
+      end
+    end
+    return 1.0  -- Default value (0dB)
+  end
+  
+  -- Helper function to update all Gainer instances with new gain value
+  local function update_all_gainer_values(gain_value)
+    local song = renoise.song()
+    local updated_count = 0
+    
+    -- Update all track Gainer devices
+    for track_idx = 1, #song.tracks do
+      local track = song.tracks[track_idx]
+      for device_idx = 1, #track.devices do
+        local device = track.devices[device_idx]
+        if device.name == "Gainer" then
+          device.parameters[1].value = gain_value
+          updated_count = updated_count + 1
+        end
+      end
+    end
+    
+    return updated_count
   end
 
   -- Helper function to load device to all FX chains
@@ -1051,6 +1111,17 @@ function pakettiQuickLoadDialog()
     -- Check if "Load to All Tracks" is enabled and we're NOT in sample FX mode
     if not in_sample_fx and vb.views.load_to_all_tracks_checkbox and vb.views.load_to_all_tracks_checkbox.value then
       load_to_all_tracks(device_path)
+      -- If Gainer was loaded, show the slider and update its value
+      if device_path:find("Gainer") and gainer_slider_row then
+        local new_gainer_value = get_first_gainer_value()
+        gainer_slider_row.visible = true
+        if vb.views.gainer_gain_slider then
+          vb.views.gainer_gain_slider.value = new_gainer_value
+        end
+        if vb.views.gainer_gain_label then
+          vb.views.gainer_gain_label.text = string.format("%.2fdB", linear_to_db(new_gainer_value))
+        end
+      end
       return
     end
     
@@ -1070,6 +1141,9 @@ function pakettiQuickLoadDialog()
     renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
     and renoise.song().selected_sample_index > 0
   )
+  
+  local has_gainers = has_gainer_devices()
+  local gainer_gain_value = has_gainers and get_first_gainer_value() or 1.0
   
   local content = vb:column{
     vb:row{
@@ -1094,6 +1168,39 @@ function pakettiQuickLoadDialog()
       },
       vb:text{ text = "Load to All Tracks (" .. (preferences.pakettiLoadToAllTracksPosition and preferences.pakettiLoadToAllTracksPosition.value and "Last" or "First") .. ")", width = 200 }
     } or vb:space{}),
+    -- Add Gainer slider row (dynamically shown/hidden based on Gainer existence)
+    (not in_sample_fx and (function()
+      gainer_slider_row = vb:row{
+        visible = has_gainers,
+        vb:text{ text = "Gainer Gain:", width = 80 },
+        vb:slider{
+          id = "gainer_gain_slider",
+          min = 1.584893107065e-05,
+          max = 4.0,
+          value = gainer_gain_value,
+          width = 200,
+          notifier = function(value)
+            gainer_gain_value = value
+            local db_value = linear_to_db(value)
+            local db_text = string.format("%.2fdB", db_value)
+            if vb.views.gainer_gain_label then
+              vb.views.gainer_gain_label.text = db_text
+            end
+            local count = update_all_gainer_values(value)
+            if count > 0 then
+              renoise.app():show_status("Updated " .. count .. " Gainer instances to " .. db_text)
+            end
+          end
+        },
+        vb:text{ 
+          id = "gainer_gain_label",
+          text = string.format("%.2fdB", linear_to_db(gainer_gain_value)), 
+          width = 60,
+          style = "strong"
+        }
+      }
+      return gainer_slider_row
+    end)() or vb:space{}),
     vb:row{
       vb:popup{
         id = "device_selector",
@@ -1160,6 +1267,17 @@ function pakettiQuickLoadDialog()
           -- Check if "Load to All Tracks" is enabled and we're NOT in sample FX mode
           if not in_sample_fx and vb.views.load_to_all_tracks_checkbox and vb.views.load_to_all_tracks_checkbox.value then
             load_to_all_tracks(device_path)
+            -- If Gainer was loaded, show the slider and update its value
+            if device_path:find("Gainer") and gainer_slider_row then
+              local new_gainer_value = get_first_gainer_value()
+              gainer_slider_row.visible = true
+              if vb.views.gainer_gain_slider then
+                vb.views.gainer_gain_slider.value = new_gainer_value
+              end
+              if vb.views.gainer_gain_label then
+                vb.views.gainer_gain_label.text = string.format("%.2fdB", linear_to_db(new_gainer_value))
+              end
+            end
             return
           end
           

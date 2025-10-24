@@ -887,7 +887,146 @@ function pakettiPlayerProTranspose(steps, range, playback)
     end
   end
   
-  -- If playback is enabled, trigger the current line
+  -- If playback is enabled, trigger only notes with the selected instrument
+  if playback then
+    if song.transport.playing then
+      renoise.app():show_status("Transpose & Play Line will only work if Playback is stopped, doing nothing.")
+    else
+      -- Get the selected instrument from the selected note column
+      local selected_track_index = song.selected_track_index
+      local selected_line = song.selected_line_index
+      local selected_note_column_index = song.selected_note_column_index
+      local pattern = song.selected_pattern
+      local track = pattern:track(selected_track_index)
+      local line = track:line(selected_line)
+      local selected_note_column = line:note_column(selected_note_column_index)
+      
+      -- Get the instrument from the selected note column
+      if not selected_note_column.is_empty and selected_note_column.note_value < 120 then
+        local selected_instrument_index = selected_note_column.instrument_value
+        
+        -- Now trigger ALL notes in the current line that use this same instrument
+        for track_index = 1, #song.tracks do
+          local current_track = pattern:track(track_index)
+          local current_line = current_track:line(selected_line)
+          
+          for column_index = 1, song.tracks[track_index].visible_note_columns do
+            local note_column = current_line:note_column(column_index)
+            if not note_column.is_empty and note_column.note_value < 120 then
+              local instrument_index = note_column.instrument_value
+              
+              -- Only trigger if it matches the selected instrument
+              if instrument_index == selected_instrument_index and instrument_index < #song.instruments then
+                local note_value = note_column.note_value
+                local velocity = note_column.volume_value < 128 and note_column.volume_value or 127
+                local instrument = song.instruments[instrument_index + 1]
+                instrument:trigger_note(note_value, velocity, track_index, column_index)
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  -- Experimental playback: play transposed notes if transport is playing
+  if experimentalPlay and song.transport.playing and #transposed_notes > 0 then
+    pakettiPlayerProPlayTransposedNotes(transposed_notes)
+  end
+end
+
+function pakettiPlayerProTransposeAllInstruments(steps, range, playback)
+  local song=renoise.song()
+  local selection = song.selection_in_pattern
+  local pattern = song.selected_pattern
+
+  -- Determine the range to transpose
+  local start_track, end_track, start_line, end_line, start_column, end_column
+  
+  -- For experimental playback, collect transposed notes with timing info
+  local transposed_notes = {}
+
+  if selection ~= nil then
+    start_track = selection.start_track
+    end_track = selection.end_track
+    start_line = selection.start_line
+    end_line = selection.end_line
+    start_column = selection.start_column
+    end_column = selection.end_column
+  else
+    start_track = song.selected_track_index
+    end_track = song.selected_track_index
+    start_line = song.selected_line_index
+    end_line = song.selected_line_index
+    
+    if range == "notecolumn" then
+      -- For notecolumn range, only affect the selected column
+      start_column = song.selected_note_column_index
+      end_column = song.selected_note_column_index
+    else -- "row"
+      -- For row range, affect all visible columns
+      start_column = 1
+      end_column = song.tracks[start_track].visible_note_columns
+    end
+  end
+
+  -- Iterate through each track in the determined range
+  for track_index = start_track, end_track do
+    local track = pattern:track(track_index)
+    local tracks = renoise.song().tracks[track_index]
+
+    -- Set the column range for each track based on the selection
+    local first_column, last_column
+    local max_columns = math.min(12, tracks.visible_note_columns)
+    
+    if start_track == end_track then
+      -- Single track selection: use exact column range but clamp to available columns
+      first_column = math.max(1, math.min(start_column, max_columns))
+      last_column = math.max(1, math.min(end_column, max_columns))
+    else
+      -- Multi-track selection: handle edge tracks differently than middle tracks
+      if track_index == start_track then
+        first_column = math.max(1, math.min(start_column, max_columns))
+        last_column = max_columns
+      elseif track_index == end_track then
+        first_column = 1
+        last_column = math.max(1, math.min(end_column, max_columns))
+      else
+        -- Middle tracks: use all visible columns
+        first_column = 1
+        last_column = max_columns
+      end
+    end
+
+    -- Iterate through each line in the determined range
+    for line_index = start_line, end_line do
+      local line = track:line(line_index)
+
+      -- Iterate through each note column in the line within the selected range
+      for column_index = first_column, last_column do
+        local note_column = line:note_column(column_index)
+        if not note_column.is_empty then
+          -- Skip transposing if note_value is 120 or 121
+          if note_column.note_value < 120 then
+            local new_note_value = (note_column.note_value + steps) % 120
+            note_column.note_value = new_note_value
+            
+            -- Collect transposed note for experimental playback with timing info
+            if experimentalPlay and song.transport.playing then
+              table.insert(transposed_notes, {
+                note = new_note_value,
+                line = line_index,
+                track = track_index,
+                column = column_index
+              })
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  -- If playback is enabled, trigger ALL instruments on the current line
   if playback then
     if song.transport.playing then
       renoise.app():show_status("Transpose & Play Line will only work if Playback is stopped, doing nothing.")
@@ -921,6 +1060,16 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -1 with Play",invoke=function() pakettiPlayerProTranspose(-1, "notecolumn", true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +12 with Play",invoke=function() pakettiPlayerProTranspose(12, "notecolumn", true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -12 with Play",invoke=function() pakettiPlayerProTranspose(-12, "notecolumn", true) end}
+
+-- Transpose with Play/Audition versions (All Instruments)
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row +1 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(1, "row", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row -1 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(-1, "row", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row +12 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(12, "row", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row -12 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(-12, "row", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +1 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(1, "notecolumn", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -1 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(-1, "notecolumn", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +12 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(12, "notecolumn", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -12 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(-12, "notecolumn", true) end}
 --------------------
 local effect_dialog_vb = renoise.ViewBuilder()
 local effect_dialog
