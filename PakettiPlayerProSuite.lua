@@ -892,39 +892,67 @@ function pakettiPlayerProTranspose(steps, range, playback)
     if song.transport.playing then
       renoise.app():show_status("Transpose & Play Line will only work if Playback is stopped, doing nothing.")
     else
-      -- Get the selected instrument from the selected note column
       local selected_track_index = song.selected_track_index
-      local selected_line = song.selected_line_index
+      local selected_line_index = song.selected_line_index
       local selected_note_column_index = song.selected_note_column_index
       local pattern = song.selected_pattern
       local track = pattern:track(selected_track_index)
-      local line = track:line(selected_line)
+      local line = track:line(selected_line_index)
       local selected_note_column = line:note_column(selected_note_column_index)
       
       -- Get the instrument from the selected note column
       if not selected_note_column.is_empty and selected_note_column.note_value < 120 then
         local selected_instrument_index = selected_note_column.instrument_value
         
-        -- Now trigger ALL notes in the current line that use this same instrument
+        -- Store notes that don't match the selected instrument, then clear them temporarily
+        local stored_notes = {}
         for track_index = 1, #song.tracks do
           local current_track = pattern:track(track_index)
-          local current_line = current_track:line(selected_line)
+          local current_line = current_track:line(selected_line_index)
           
           for column_index = 1, song.tracks[track_index].visible_note_columns do
             local note_column = current_line:note_column(column_index)
             if not note_column.is_empty and note_column.note_value < 120 then
               local instrument_index = note_column.instrument_value
               
-              -- Only trigger if it matches the selected instrument
-              if instrument_index == selected_instrument_index and instrument_index < #song.instruments then
-                local note_value = note_column.note_value
-                local velocity = note_column.volume_value < 128 and note_column.volume_value or 127
-                local instrument = song.instruments[instrument_index + 1]
-                instrument:trigger_note(note_value, velocity, track_index, column_index)
+              -- Store and clear notes that DON'T match the selected instrument
+              if instrument_index ~= selected_instrument_index then
+                stored_notes[#stored_notes + 1] = {
+                  track = track_index,
+                  column = column_index,
+                  note_value = note_column.note_value,
+                  instrument_value = note_column.instrument_value,
+                  volume_value = note_column.volume_value,
+                  panning_value = note_column.panning_value,
+                  delay_value = note_column.delay_value,
+                  effect_number_value = note_column.effect_number_value,
+                  effect_amount_value = note_column.effect_amount_value
+                }
+                note_column:clear()
               end
             end
           end
         end
+        
+        -- Trigger the line (only matching instruments will play)
+        song:trigger_pattern_line(selected_line_index)
+        
+        -- Restore the cleared notes
+        for _, stored in ipairs(stored_notes) do
+          local restore_track = pattern:track(stored.track)
+          local restore_line = restore_track:line(selected_line_index)
+          local restore_column = restore_line:note_column(stored.column)
+          restore_column.note_value = stored.note_value
+          restore_column.instrument_value = stored.instrument_value
+          restore_column.volume_value = stored.volume_value
+          restore_column.panning_value = stored.panning_value
+          restore_column.delay_value = stored.delay_value
+          restore_column.effect_number_value = stored.effect_number_value
+          restore_column.effect_amount_value = stored.effect_amount_value
+        end
+      else
+        -- No valid note selected, just play the whole row
+        song:trigger_pattern_line(selected_line_index)
       end
     end
   end

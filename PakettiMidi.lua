@@ -3392,7 +3392,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Dele
 
 -----------------------------------------------------------------------
 -- Pattern Teleportation MIDI Mappings
--- 16 trigger buttons for "Play & Loop Pattern 01" through "Play & Loop Pattern 16"
+-- 64 trigger buttons for "Play & Loop Pattern 01" through "Play & Loop Pattern 64"
 -- Teleports across pattern-space while maintaining play position
 -----------------------------------------------------------------------
 
@@ -3401,7 +3401,7 @@ function PakettiPlayAndLoopPattern(pattern_number)
   local song = renoise.song()
   local transport = song.transport
   
-  -- Check if the pattern exists (pattern numbers 01-16 correspond to sequence positions 01-16)
+  -- Check if the pattern exists (pattern numbers 01-64 correspond to sequence positions 01-64)
   if pattern_number > #song.sequencer.pattern_sequence then
     renoise.app():show_status(string.format("Pattern %02d doesn't exist, doing nothing.", pattern_number))
     return
@@ -3430,8 +3430,8 @@ function PakettiPlayAndLoopPattern(pattern_number)
   renoise.app():show_status(string.format("Play & Loop Pattern %02d (Row %d)", pattern_number, current_line))
 end
 
--- Create 16 MIDI mappings for pattern teleportation
-for i = 1, 16 do
+-- Create 64 MIDI mappings for pattern teleportation
+for i = 1, 64 do
   local pattern_id = string.format("%02d", i)
   local mapping_name = string.format("Paketti:Play & Loop Pattern %s", pattern_id)
   
