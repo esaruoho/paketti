@@ -1267,7 +1267,7 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker ALT-L Mark Track/Mark Pattern",invoke=function() MarkTrackMarkPattern() end}  
 
--- ALT-B: Modify Selection Start (Keep End)
+-- ALT-B: Extend Selection from End to Cursor
 function PakettiImpulseTrackerModifySelectionStart()
   local s = renoise.song()
   local sip = s.selection_in_pattern
@@ -1303,29 +1303,24 @@ function PakettiImpulseTrackerModifySelectionStart()
   print(string.format("ALT-B DEBUG: Cursor at track %d line %d", current_track, current_line))
   print(string.format("ALT-B DEBUG: Original selection - tracks %d-%d, lines %d-%d", st, et, sl, el))
   
-  -- Strategy: NO DATA LOSS on tracks - extend to include cursor track if needed
-  -- Modify start_line to cursor line, keep end_line
-  -- Tracks: from min(st, et, cursor) to max(st, et, cursor)
-  local new_st = math.min(st, et, current_track)
-  local new_et = math.max(st, et, current_track)
-  local new_sl = current_line
-  local new_el = el
+  -- Strategy: Draw from END of current selection to new cursor position
+  -- The new start is the old end position
+  -- The new end is the current cursor position
+  local new_st = et
+  local new_et = current_track
+  local new_sl = el
+  local new_el = current_line
   local new_sc = sc
   local new_ec = ec
   
   print(string.format("ALT-B DEBUG: Before flip - new_st=%d new_et=%d new_sl=%d new_el=%d", new_st, new_et, new_sl, new_el))
   
-  -- Check if we need to flip the selection to make it valid
-  -- Renoise requires: start_track <= end_track AND start_line <= end_line
-  
+  -- Normalize the selection: Renoise requires start_track <= end_track
   if new_st > new_et then
-    -- Start track is after end track, must flip everything
     new_st, new_et = new_et, new_st
-    new_sl, new_el = new_el, new_sl
-    new_sc, new_ec = new_ec, new_sc
   end
   
-  -- ALWAYS ensure start_line <= end_line, even if tracks are different
+  -- Normalize lines: Renoise requires start_line <= end_line
   if new_sl > new_el then
     new_sl, new_el = new_el, new_sl
   end

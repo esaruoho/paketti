@@ -300,6 +300,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiJumpForwardBackwardCommands = false,
   PakettiTriggerPatternLineCommands = false,
   PakettiInstrumentTransposeCommands = false,
+  PakettiPlayAndLoopPatternCommands = true,
   UserDefinedSampleFolders01="",
   UserDefinedSampleFolders02="",
   UserDefinedSampleFolders03="",
@@ -2199,6 +2200,18 @@ vb:row{
                 preferences.PakettiInstrumentTransposeCommands.value = (value == 2)
                 local status = value == 2 and "enabled" or "disabled"
                 renoise.app():show_status("Instrument Transpose Commands " .. status .. ".")
+              end}
+          },
+          vb:row{
+            vb:text{text="Play & Loop Pattern",width=150,tooltip="Enable 192 Play & Loop Pattern controls (64 MIDI mappings + 64 Pattern Editor keybindings + 64 Global keybindings). When enabled, creates 'Play & Loop Pattern 01-64' commands. Default: ON."},
+            vb:switch{items={"Off","On"},
+              value=preferences.PakettiPlayAndLoopPatternCommands.value and 2 or 1,
+              width=200,
+              tooltip="Enable 192 Play & Loop Pattern controls (64 MIDI mappings + 64 Pattern Editor keybindings + 64 Global keybindings). When enabled, creates 'Play & Loop Pattern 01-64' commands. Default: ON.",
+              notifier=function(value)
+                preferences.PakettiPlayAndLoopPatternCommands.value = (value == 2)
+                local status = value == 2 and "enabled" or "disabled"
+                renoise.app():show_status("Play & Loop Pattern Commands " .. status .. ".")
               end}
           },
 

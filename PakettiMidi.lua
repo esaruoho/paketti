@@ -3432,33 +3432,18 @@ end
 
 
 -- Create 64 MIDI mappings for pattern teleportation
-for i = 1, 64 do
-  local pattern_id = string.format("%02d", i)
-  local mapping_name = string.format("Paketti:Play & Loop Pattern %s", pattern_id)
-  local keybinding_name_pattern = string.format("Pattern Editor:Paketti:Play & Loop Pattern %s", pattern_id)
-  local keybinding_name_global = string.format("Global:Paketti:Play & Loop Pattern %s", pattern_id)
-  
-  renoise.tool():add_midi_mapping{
-    name = mapping_name,
-    invoke = function(message)
-      if message:is_trigger() then
-        PakettiPlayAndLoopPattern(i)
-      end
-    end
-  }
-  renoise.tool():add_keybinding{
-    name = keybinding_name_pattern,
-    invoke = function()
-        PakettiPlayAndLoopPattern(i)
-    end
-  }
-  renoise.tool():add_keybinding{
-    name = keybinding_name_global,
-    invoke = function()
-        PakettiPlayAndLoopPattern(i)
-    end
-  }
-
+-- Check preference before creating mappings to allow disabling for faster startup
+if preferences.PakettiPlayAndLoopPatternCommands.value then
+  for i = 1, 64 do
+    local pattern_id = string.format("%02d", i)
+    local mapping_name = string.format("Paketti:Play & Loop Pattern %s", pattern_id)
+    local keybinding_name_pattern = string.format("Pattern Editor:Paketti:Play & Loop Pattern %s", pattern_id)
+    local keybinding_name_global = string.format("Global:Paketti:Play & Loop Pattern %s", pattern_id)
+    
+    renoise.tool():add_midi_mapping{name = mapping_name,invoke = function(message) if message:is_trigger() then PakettiPlayAndLoopPattern(i) end end}
+    renoise.tool():add_keybinding{name = keybinding_name_pattern,invoke = function() PakettiPlayAndLoopPattern(i) end}
+    renoise.tool():add_keybinding{name = keybinding_name_global,invoke = function() PakettiPlayAndLoopPattern(i) end}
+  end
 end
 
 -----------------------------------------------------------------------
