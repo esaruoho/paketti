@@ -247,6 +247,20 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load Waldorf Attack (VST)",in
 
 
 function loadnative(effect, name, preset_path, force_insertion_order, silent)
+  -- Check if Sample Range Device Loader toggle is ON
+  local sample_range_loader_used = false
+  local original_sample_name = nil
+  if PakettiSampleRangeDeviceLoaderEnabled and PakettiSampleRangePrepareNewInstrument then
+    local success, sname = PakettiSampleRangePrepareNewInstrument()
+    if success then
+      -- Successfully prepared new instrument, force load into sample FX at BEGINNING
+      force_insertion_order = false
+      preset_path = true  -- This forces sample FX mode
+      sample_range_loader_used = true
+      original_sample_name = sname
+    end
+  end
+  
   local checkline=nil
   local s=renoise.song()
   local w=renoise.app().window
@@ -442,6 +456,15 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
         local instrument_name = s.selected_instrument.name
         local chain_name = chain.name
         renoise.app():show_status("Loaded " .. get_device_name(effect) .. " to " .. instrument_name .. " FX Chain named: " .. chain_name)
+        
+        -- If Sample Range Device Loader was used, update names and switch back to Sample Editor view
+        if sample_range_loader_used and original_sample_name then
+          local effect_name = get_device_name(effect)
+          local new_name = original_sample_name .. " Region Excerpt (" .. effect_name .. ")"
+          s.selected_instrument.name = new_name
+          s.selected_sample.name = new_name
+          w.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+        end
       end
     else
       renoise.app():show_status("No sample selected.")
@@ -782,6 +805,20 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise (Hidden) S
 -- ValhallaDSP ValhallaVintageVerb opens with 50% Wet instead of 100% Wet, and a long tail
 -- And each line input will become first.
 function loadvst(vstname, name, preset_path, force_insertion_order, silent)
+  -- Check if Sample Range Device Loader toggle is ON
+  local sample_range_loader_used = false
+  local original_sample_name = nil
+  if PakettiSampleRangeDeviceLoaderEnabled and PakettiSampleRangePrepareNewInstrument then
+    local success, sname = PakettiSampleRangePrepareNewInstrument()
+    if success then
+      -- Successfully prepared new instrument, force load into sample FX at BEGINNING
+      force_insertion_order = false
+      preset_path = true  -- This forces sample FX mode
+      sample_range_loader_used = true
+      original_sample_name = sname
+    end
+  end
+  
   local s = renoise.song()
   local raw = renoise.app().window
   local checkline = nil
@@ -979,6 +1016,20 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
       end
 
       renoise.song().selected_sample_device_index = checkline
+      
+      -- If Sample Range Device Loader was used, update names and switch back to Sample Editor view
+      if sample_range_loader_used and original_sample_name then
+        -- Simplify device name: extract just the plugin name from AU/VST paths
+        local device_name = inserted_device.name
+        -- For AU plugins like "AU: ValhallaDSP, LLC: ValhallaVintageVerb", extract just "ValhallaVintageVerb"
+        local simplified_name = device_name:match(":([^:]+)$") or device_name
+        simplified_name = simplified_name:gsub("^%s+", ""):gsub("%s+$", "") -- trim whitespace
+        
+        local new_name = original_sample_name .. " Region Excerpt (" .. simplified_name .. ")"
+        s.selected_instrument.name = new_name
+        s.selected_sample.name = new_name
+        raw.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+      end
     end
   else
     -- Track device handling

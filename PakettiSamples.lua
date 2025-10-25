@@ -6738,3 +6738,125 @@ renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Instruments:Pakett
 renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 
+-- Destructive Repeat Sample Range: Duplicates the selected sample range right after itself
+function PakettiSamplesDestructiveRepeatRange()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local sample = song.selected_sample
+  
+  if not sample then
+    renoise.app():show_status("PakettiSamplesDestructiveRepeatRange: No sample selected")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  
+  if not buffer.has_sample_data then
+    renoise.app():show_status("PakettiSamplesDestructiveRepeatRange: No sample data available")
+    return
+  end
+  
+  if buffer.read_only then
+    renoise.app():show_status("PakettiSamplesDestructiveRepeatRange: Sample buffer is read-only")
+    return
+  end
+  
+  local selection_start = buffer.selection_start
+  local selection_end = buffer.selection_end
+  local original_frames = buffer.number_of_frames
+  
+  -- Check if there's an actual selection (not just the whole buffer)
+  if selection_start == 1 and selection_end == original_frames then
+    renoise.app():show_status("PakettiSamplesDestructiveRepeatRange: Please make a selection first (entire buffer is selected)")
+    return
+  end
+  
+  local selection_length = selection_end - selection_start + 1
+  local num_channels = buffer.number_of_channels
+  local sample_rate = buffer.sample_rate
+  local bit_depth = buffer.bit_depth
+  
+  -- Calculate where we want to paste (right after the selection)
+  local paste_start = selection_end + 1
+  local paste_end = paste_start + selection_length - 1
+  local needs_extension = paste_end > original_frames
+  
+  if needs_extension then
+    -- Need to extend buffer - read selection data first
+    local selection_data = {}
+    for channel = 1, num_channels do
+      selection_data[channel] = {}
+      for frame = selection_start, selection_end do
+        selection_data[channel][frame] = buffer:sample_data(channel, frame)
+      end
+    end
+    
+    -- Read all original data
+    local original_data = {}
+    for channel = 1, num_channels do
+      original_data[channel] = {}
+      for frame = 1, original_frames do
+        original_data[channel][frame] = buffer:sample_data(channel, frame)
+      end
+    end
+    
+    -- Create new buffer with extended size
+    local new_frames = paste_end
+    local success = buffer:create_sample_data(sample_rate, bit_depth, num_channels, new_frames)
+    
+    if not success then
+      renoise.app():show_status("PakettiSamplesDestructiveRepeatRange: Failed to create extended buffer (out of memory?)")
+      return
+    end
+    
+    buffer:prepare_sample_data_changes()
+    
+    -- Write all original data
+    for channel = 1, num_channels do
+      for frame = 1, original_frames do
+        buffer:set_sample_data(channel, frame, original_data[channel][frame])
+      end
+    end
+    
+    -- Write the selection right after itself
+    local target_frame = paste_start
+    for source_frame = selection_start, selection_end do
+      for channel = 1, num_channels do
+        buffer:set_sample_data(channel, target_frame, selection_data[channel][source_frame])
+      end
+      target_frame = target_frame + 1
+    end
+    
+    buffer:finalize_sample_data_changes()
+    
+    -- Select the newly written range so user can repeat again
+    buffer.selection_range = {paste_start, paste_end}
+    
+    renoise.app():show_status(string.format("PakettiSamplesDestructiveRepeatRange: Extended and repeated %d frames, new total: %d frames", 
+      selection_length, new_frames))
+  else
+    -- Destructive overwrite - just copy selection to right after itself
+    buffer:prepare_sample_data_changes()
+    
+    local target_frame = paste_start
+    for source_frame = selection_start, selection_end do
+      for channel = 1, num_channels do
+        local sample_value = buffer:sample_data(channel, source_frame)
+        buffer:set_sample_data(channel, target_frame, sample_value)
+      end
+      target_frame = target_frame + 1
+    end
+    
+    buffer:finalize_sample_data_changes()
+    
+    -- Select the newly written range so user can repeat again
+    buffer.selection_range = {paste_start, paste_end}
+    
+    renoise.app():show_status(string.format("PakettiSamplesDestructiveRepeatRange: Repeated %d frames (overwrite)", 
+      selection_length))
+  end
+end
+
+renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Destructive Repeat Sample Range", invoke = PakettiSamplesDestructiveRepeatRange}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Destructive Repeat Sample Range", invoke = PakettiSamplesDestructiveRepeatRange}
+
