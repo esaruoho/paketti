@@ -447,6 +447,14 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 1-64 x[Knob]"
     if message:is_abs_value() then
       -- Pass the actual property object, not just the value
       midiValues(1, 64, renoise.song().transport, 'lpb', message)
+    elseif message:is_rel_value() then
+      -- Handle relative values
+      local transport = renoise.song().transport
+      local current_lpb = transport.lpb
+      local new_lpb = current_lpb + message.int_value
+      -- Clamp between 1 and 256 (Renoise max LPB)
+      new_lpb = math.max(1, math.min(256, new_lpb))
+      transport.lpb = new_lpb
     end
   end}
 
@@ -520,6 +528,33 @@ function changeGroupTrackWithMidi(message)
         local group_count = #groupTrackIndices()
         local index = scaleValue(message.int_value, 0, 127, 1, group_count)
         selectGroupTrackByIndex(math.floor(index))
+    elseif message:is_rel_value() then
+        -- Handle relative values
+        local song = renoise.song()
+        local groups = groupTrackIndices()
+        if #groups == 0 then return end
+        
+        -- Find current group track index in the groups array
+        local current_track_index = song.selected_track_index
+        local current_group_index = nil
+        for i, group_track_index in ipairs(groups) do
+            if group_track_index == current_track_index then
+                current_group_index = i
+                break
+            end
+        end
+        
+        -- If current track is not a group, select first group
+        if not current_group_index then
+            selectGroupTrackByIndex(1)
+            return
+        end
+        
+        -- Calculate new group index
+        local new_group_index = current_group_index + message.int_value
+        -- Clamp between 1 and group count
+        new_group_index = math.max(1, math.min(#groups, new_group_index))
+        selectGroupTrackByIndex(new_group_index)
     end
 end
 
@@ -531,26 +566,56 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Octave x[Knob]",
   invoke=function(message)
     if message:is_abs_value() then
       midiValues(0, 8, renoise.song().transport, 'octave', message)
+    elseif message:is_rel_value() then
+      -- Handle relative values
+      local transport = renoise.song().transport
+      local current_octave = transport.octave
+      local new_octave = current_octave + message.int_value
+      -- Clamp between 0 and 8
+      new_octave = math.max(0, math.min(8, new_octave))
+      transport.octave = new_octave
     end
 end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Track x[Knob]",
   invoke=function(message)
     if message:is_abs_value() then
-    local trackCount = #renoise.song().tracks
+      local trackCount = #renoise.song().tracks
       midiValues(1, trackCount, renoise.song(), 'selected_track_index', message)
+    elseif message:is_rel_value() then
+      -- Handle relative values
+      local song = renoise.song()
+      local trackCount = #song.tracks
+      local current_index = song.selected_track_index
+      local new_index = current_index + message.int_value
+      -- Clamp between 1 and trackCount
+      new_index = math.max(1, math.min(trackCount, new_index))
+      song.selected_track_index = new_index
     end
 end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Track DSP Device x[Knob]",
   invoke=function(message)
     if message:is_abs_value() then
-    local deviceCount = #renoise.song().selected_track.devices
-    if deviceCount < 2 then 
-    renoise.app():show_status("There are no Track DSP Devices on this channel.")
-    else
-      midiValues(2, deviceCount, renoise.song(), 'selected_device_index', message)
-    end
+      local deviceCount = #renoise.song().selected_track.devices
+      if deviceCount < 2 then 
+        renoise.app():show_status("There are no Track DSP Devices on this channel.")
+      else
+        midiValues(2, deviceCount, renoise.song(), 'selected_device_index', message)
+      end
+    elseif message:is_rel_value() then
+      -- Handle relative values
+      local song = renoise.song()
+      local deviceCount = #song.selected_track.devices
+      if deviceCount < 2 then 
+        renoise.app():show_status("There are no Track DSP Devices on this channel.")
+      else
+        local current_index = song.selected_device_index
+        local new_index = current_index + message.int_value
+        -- Clamp between 2 and deviceCount
+        new_index = math.max(2, math.min(deviceCount, new_index))
+        song.selected_device_index = new_index
+      end
     end
 end}
 
@@ -4388,6 +4453,79 @@ renoise.tool():add_midi_mapping{name="Paketti:MIDI Effect Writer:Y Slider",
       if PakettiMidiEffectWriterVB.views.y_slider then
         PakettiMidiEffectWriterVB.views.y_slider.value = slider_value
       end
+    end
+  end
+}
+
+-----------------------------------------------------------------------
+-- Pattern Sequencer Navigation MIDI Mappings
+-----------------------------------------------------------------------
+
+-- Function to navigate to next pattern sequence
+function PakettiMidiPatternSequenceNext()
+  local song = renoise.song()
+  local current_index = song.selected_sequence_index
+  local max_index = #song.sequencer.pattern_sequence
+  
+  if current_index < max_index then
+    song.selected_sequence_index = current_index + 1
+    renoise.app():show_status(string.format("Pattern Sequence: %d/%d", current_index + 1, max_index))
+  else
+    renoise.app():show_status("Already at last pattern sequence")
+  end
+end
+
+-- Function to navigate to previous pattern sequence
+function PakettiMidiPatternSequencePrevious()
+  local song = renoise.song()
+  local current_index = song.selected_sequence_index
+  local max_index = #song.sequencer.pattern_sequence
+  
+  if current_index > 1 then
+    song.selected_sequence_index = current_index - 1
+    renoise.app():show_status(string.format("Pattern Sequence: %d/%d", current_index - 1, max_index))
+  else
+    renoise.app():show_status("Already at first pattern sequence")
+  end
+end
+
+-- MIDI mappings for pattern sequence navigation buttons
+renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Sequence (Next) x[Toggle]",
+  invoke=function(message) 
+    if message:is_trigger() then 
+      PakettiMidiPatternSequenceNext() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Sequence (Previous) x[Toggle]",
+  invoke=function(message) 
+    if message:is_trigger() then 
+      PakettiMidiPatternSequencePrevious() 
+    end 
+  end
+}
+
+-- MIDI mapping for pattern sequence knob with absolute and relative support
+renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Sequence x[Knob]",
+  invoke=function(message)
+    local song = renoise.song()
+    local max_index = #song.sequencer.pattern_sequence
+    
+    if message:is_abs_value() then
+      -- Map MIDI value (0-127) to sequence index (1 to max_index)
+      local new_index = math.floor((message.int_value / 127) * (max_index - 1)) + 1
+      new_index = math.max(1, math.min(max_index, new_index))
+      song.selected_sequence_index = new_index
+      renoise.app():show_status(string.format("Pattern Sequence: %d/%d", new_index, max_index))
+    elseif message:is_rel_value() then
+      -- Handle relative values
+      local current_index = song.selected_sequence_index
+      local new_index = current_index + message.int_value
+      -- Clamp between 1 and max_index
+      new_index = math.max(1, math.min(max_index, new_index))
+      song.selected_sequence_index = new_index
+      renoise.app():show_status(string.format("Pattern Sequence: %d/%d", new_index, max_index))
     end
   end
 }
