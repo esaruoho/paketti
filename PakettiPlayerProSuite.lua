@@ -894,65 +894,34 @@ function pakettiPlayerProTranspose(steps, range, playback)
     else
       local selected_track_index = song.selected_track_index
       local selected_line_index = song.selected_line_index
-      local selected_note_column_index = song.selected_note_column_index
+      local selected_track = song.tracks[selected_track_index]
       local pattern = song.selected_pattern
       local track = pattern:track(selected_track_index)
       local line = track:line(selected_line_index)
-      local selected_note_column = line:note_column(selected_note_column_index)
       
-      -- Get the instrument from the selected note column
-      if not selected_note_column.is_empty and selected_note_column.note_value < 120 then
-        local selected_instrument_index = selected_note_column.instrument_value
-        
-        -- Store notes that don't match the selected instrument, then clear them temporarily
-        local stored_notes = {}
-        for track_index = 1, #song.tracks do
-          local current_track = pattern:track(track_index)
-          local current_line = current_track:line(selected_line_index)
-          
-          for column_index = 1, song.tracks[track_index].visible_note_columns do
-            local note_column = current_line:note_column(column_index)
-            if not note_column.is_empty and note_column.note_value < 120 then
-              local instrument_index = note_column.instrument_value
-              
-              -- Store and clear notes that DON'T match the selected instrument
-              if instrument_index ~= selected_instrument_index then
-                stored_notes[#stored_notes + 1] = {
-                  track = track_index,
-                  column = column_index,
-                  note_value = note_column.note_value,
-                  instrument_value = note_column.instrument_value,
-                  volume_value = note_column.volume_value,
-                  panning_value = note_column.panning_value,
-                  delay_value = note_column.delay_value,
-                  effect_number_value = note_column.effect_number_value,
-                  effect_amount_value = note_column.effect_amount_value
-                }
-                note_column:clear()
-              end
-            end
-          end
+      -- Check if the line has any notes
+      local has_notes = false
+      for column_index = 1, selected_track.visible_note_columns do
+        local note_column = line:note_column(column_index)
+        if not note_column.is_empty and note_column.note_value < 120 then
+          has_notes = true
+          break
         end
+      end
+      
+      -- Only trigger if there are notes on the line
+      if has_notes then
+        -- Store the solo state of the track
+        local was_soloed = selected_track.solo_state
         
-        -- Trigger the line (only matching instruments will play)
+        -- Solo the selected track to ensure only it plays
+        selected_track.solo_state = true
+        
+        -- Trigger the line (only the soloed track will play)
         song:trigger_pattern_line(selected_line_index)
         
-        -- Restore the cleared notes
-        for _, stored in ipairs(stored_notes) do
-          local restore_track = pattern:track(stored.track)
-          local restore_line = restore_track:line(selected_line_index)
-          local restore_column = restore_line:note_column(stored.column)
-          restore_column.note_value = stored.note_value
-          restore_column.instrument_value = stored.instrument_value
-          restore_column.volume_value = stored.volume_value
-          restore_column.panning_value = stored.panning_value
-          restore_column.delay_value = stored.delay_value
-          restore_column.effect_number_value = stored.effect_number_value
-          restore_column.effect_amount_value = stored.effect_amount_value
-        end
-      else
-        -- No valid note selected, just play the whole row
-        song:trigger_pattern_line(selected_line_index)
+        -- Restore the original solo state
+        selected_track.solo_state = was_soloed
       end
     end
   end
@@ -1098,6 +1067,105 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -1 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(-1, "notecolumn", true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +12 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(12, "notecolumn", true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -12 with Play (All Instruments)",invoke=function() pakettiPlayerProTransposeAllInstruments(-12, "notecolumn", true) end}
+
+-- Player Pro Scanner
+local pakettiPlayerProScannerTimer = nil
+local pakettiPlayerProScannerActive = false
+
+function pakettiPlayerProStopScanner()
+  if pakettiPlayerProScannerTimer then
+    renoise.tool():remove_timer(pakettiPlayerProStopScanner)
+    pakettiPlayerProScannerTimer = nil
+  end
+  pakettiPlayerProScannerActive = false
+  renoise.app():show_status("Player Pro Scanner stopped")
+end
+
+function pakettiPlayerProScanner()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  
+  if not selection then
+    renoise.app():show_status("Player Pro Scanner: No selection found")
+    return
+  end
+  
+  if song.transport.playing then
+    renoise.app():show_status("Player Pro Scanner: Stop playback first")
+    return
+  end
+  
+  -- Stop any existing scanner
+  if pakettiPlayerProScannerActive then
+    pakettiPlayerProStopScanner()
+    return
+  end
+  
+  local selected_track_index = song.selected_track_index
+  local selected_track = song.tracks[selected_track_index]
+  local pattern = song.selected_pattern
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  local current_line = start_line
+  
+  -- Store original solo state
+  local was_soloed = selected_track.solo_state
+  
+  -- Calculate timing based on BPM and LPB
+  local bpm = song.transport.bpm
+  local lpb = song.transport.lpb
+  local ms_per_line = (60000 / bpm) / lpb
+  
+  pakettiPlayerProScannerActive = true
+  renoise.app():show_status("Player Pro Scanner started")
+  
+  local function scan_next_line()
+    if not pakettiPlayerProScannerActive or current_line > end_line then
+      -- Restore solo state and stop
+      selected_track.solo_state = was_soloed
+      pakettiPlayerProStopScanner()
+      return
+    end
+    
+    -- Move cursor to current line
+    song.selected_line_index = current_line
+    
+    -- Check if line has notes
+    local track = pattern:track(selected_track_index)
+    local line = track:line(current_line)
+    local has_notes = false
+    
+    for column_index = 1, selected_track.visible_note_columns do
+      local note_column = line:note_column(column_index)
+      if not note_column.is_empty and note_column.note_value < 120 then
+        has_notes = true
+        break
+      end
+    end
+    
+    -- Play line if it has notes
+    if has_notes then
+      selected_track.solo_state = true
+      song:trigger_pattern_line(current_line)
+      selected_track.solo_state = was_soloed
+    end
+    
+    -- Move to next line
+    current_line = current_line + 1
+    
+    -- Schedule next scan
+    if current_line <= end_line then
+      pakettiPlayerProScannerTimer = renoise.tool():add_timer(scan_next_line, math.max(50, math.floor(ms_per_line)))
+    else
+      pakettiPlayerProStopScanner()
+    end
+  end
+  
+  -- Start scanning
+  scan_next_line()
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Scanner (Start/Stop)",invoke=pakettiPlayerProScanner}
 --------------------
 local effect_dialog_vb = renoise.ViewBuilder()
 local effect_dialog

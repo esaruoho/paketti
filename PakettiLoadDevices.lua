@@ -883,46 +883,71 @@ function pakettiQuickLoadDialog()
       return false
     end
     
-    -- Load device to all sequencer tracks
+    -- Extract device name from path for duplicate checking
+    local device_name = device_path:match("([^/]+)$")
+    
+    -- Load device to all sequencer tracks (skip tracks that already have this device)
+    local skipped_count = 0
     for i = 1, #tracks do
       local track = tracks[i]
       if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-        local track_devices = track.devices
-        local load_at_end = preferences.pakettiLoadToAllTracksPosition and preferences.pakettiLoadToAllTracksPosition.value or false
-        local checkline
-        
-        if load_at_end then
-          -- Load at end of track devices
-          checkline = #track_devices + 1
-        else
-          -- Load at start (after mixer device at position 1)
-          checkline = 2
+        -- Check if this device already exists on the track
+        local device_exists = false
+        for _, existing_device in ipairs(track.devices) do
+          if existing_device.name == device_name then
+            device_exists = true
+            break
+          end
         end
         
-        -- Insert the device
-        local success, err = pcall(function()
-          track:insert_device_at(device_path, checkline)
-        end)
-        
-        if success then
-          -- Minimize the device after loading
-          local device = track.devices[checkline]
-          if device and device.is_maximized ~= nil then
-            device.is_maximized = false
+        if device_exists then
+          skipped_count = skipped_count + 1
+          print("Skipped track " .. i .. " (" .. track.name .. ") - already has " .. device_name)
+        else
+          local track_devices = track.devices
+          local load_at_end = preferences.pakettiLoadToAllTracksPosition and preferences.pakettiLoadToAllTracksPosition.value or false
+          local checkline
+          
+          if load_at_end then
+            -- Load at end of track devices
+            checkline = #track_devices + 1
+          else
+            -- Load at start (after mixer device at position 1)
+            checkline = 2
           end
           
-          loaded_count = loaded_count + 1
-          print("Loaded device to track " .. i .. " (" .. track.name .. ") at position " .. checkline .. " (minimized)")
-        else
-          print("Failed to load device to track " .. i .. " (" .. track.name .. "): " .. tostring(err))
+          -- Insert the device
+          local success, err = pcall(function()
+            track:insert_device_at(device_path, checkline)
+          end)
+          
+          if success then
+            -- Minimize the device after loading
+            local device = track.devices[checkline]
+            if device and device.is_maximized ~= nil then
+              device.is_maximized = false
+            end
+            
+            loaded_count = loaded_count + 1
+            print("Loaded device to track " .. i .. " (" .. track.name .. ") at position " .. checkline .. " (minimized)")
+          else
+            print("Failed to load device to track " .. i .. " (" .. track.name .. "): " .. tostring(err))
+          end
         end
       end
     end
     
     if loaded_count > 0 then
       local position_text = preferences.pakettiLoadToAllTracksPosition and preferences.pakettiLoadToAllTracksPosition.value and "last" or "first"
-      renoise.app():show_status("Loaded device to " .. loaded_count .. "/" .. total_sequencer_tracks .. " sequencer tracks (" .. position_text .. " position, minimized)")
+      local status_msg = "Loaded device to " .. loaded_count .. "/" .. total_sequencer_tracks .. " sequencer tracks (" .. position_text .. " position, minimized)"
+      if skipped_count > 0 then
+        status_msg = status_msg .. " - skipped " .. skipped_count .. " (already present)"
+      end
+      renoise.app():show_status(status_msg)
       return true
+    elseif skipped_count > 0 then
+      renoise.app():show_status("All " .. skipped_count .. " sequencer tracks already have " .. device_name)
+      return false
     else
       renoise.app():show_status("Failed to load device to any sequencer tracks")
       return false
@@ -1172,13 +1197,13 @@ function pakettiQuickLoadDialog()
     (not in_sample_fx and (function()
       gainer_slider_row = vb:row{
         visible = has_gainers,
-        vb:text{ text = "Gainer Gain:", width = 80 },
+        vb:text{ text = "Gainer Gain", width = 50,style = "strong",font="bold" },
         vb:slider{
           id = "gainer_gain_slider",
           min = 1.584893107065e-05,
           max = 4.0,
           value = gainer_gain_value,
-          width = 200,
+          width = 500,
           notifier = function(value)
             gainer_gain_value = value
             local db_value = linear_to_db(value)
