@@ -557,8 +557,17 @@ end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Instrument x[Knob]",
   invoke=function(message)
     if message:is_abs_value() then
-    local instrumentCount = #renoise.song().instruments
+      local instrumentCount = #renoise.song().instruments
       midiValues(1, instrumentCount, renoise.song(), 'selected_instrument_index', message)
+    elseif message:is_rel_value() then
+      -- Handle relative values
+      local song = renoise.song()
+      local instrumentCount = #song.instruments
+      local current_index = song.selected_instrument_index
+      local new_index = current_index + message.int_value
+      -- Clamp between 1 and instrumentCount
+      new_index = math.max(1, math.min(instrumentCount, new_index))
+      song.selected_instrument_index = new_index
     end
 end}
 ----------------

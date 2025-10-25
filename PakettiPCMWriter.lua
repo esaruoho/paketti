@@ -9,6 +9,9 @@ local live_pickup_instrument = nil
 local live_pickup_sample_index = -1
 local live_pickup_instrument_index = -1
 
+-- Flag to prevent circular notifications between device and dialog
+local lfo_updating_from_device = false
+
 
 -- Debug print function
 local _DEBUG = true
@@ -6815,10 +6818,151 @@ local function cleanup_sample_notifier()
   end
 end
 
+-- LFO Device Parameter Notifiers - Update dialog sliders when device parameters change
+local function update_lfo_amplitude_from_device()
+  if lfo_updating_from_device or not pcm_dialog or not pcm_dialog.visible then
+    return
+  end
+  lfo_updating_from_device = true
+  
+  -- Read value directly from device parameter
+  local lfo_device = PCMWriterFindWavetableLFODevice()
+  if not lfo_device then
+    lfo_updating_from_device = false
+    return
+  end
+  
+  local value = lfo_device.parameters[4].value
+  local amp_slider = vb.views.lfo_amplitude_slider
+  local amp_label = vb.views.lfo_amplitude_label
+  -- Clamp value to slider's min/max range
+  local clamped_value = math.max(0.0, math.min(1.0, value))
+  if amp_slider then 
+    amp_slider.value = clamped_value
+  end
+  if amp_label then 
+    amp_label.text = string.format("%.2f", clamped_value)
+  end
+  
+  lfo_updating_from_device = false
+end
+
+local function update_lfo_offset_from_device()
+  if lfo_updating_from_device or not pcm_dialog or not pcm_dialog.visible then
+    return
+  end
+  lfo_updating_from_device = true
+  
+  -- Read value directly from device parameter
+  local lfo_device = PCMWriterFindWavetableLFODevice()
+  if not lfo_device then
+    lfo_updating_from_device = false
+    return
+  end
+  
+  local value = lfo_device.parameters[5].value
+  local offset_slider = vb.views.lfo_offset_slider
+  local offset_label = vb.views.lfo_offset_label
+  -- Clamp value to slider's min/max range
+  local clamped_value = math.max(-0.5, math.min(0.5, value))
+  if offset_slider then 
+    offset_slider.value = clamped_value
+  end
+  if offset_label then 
+    offset_label.text = string.format("%.2f", clamped_value)
+  end
+  
+  lfo_updating_from_device = false
+end
+
+local function update_lfo_frequency_from_device()
+  if lfo_updating_from_device or not pcm_dialog or not pcm_dialog.visible then
+    return
+  end
+  lfo_updating_from_device = true
+  
+  -- Read value directly from device parameter
+  local lfo_device = PCMWriterFindWavetableLFODevice()
+  if not lfo_device then
+    lfo_updating_from_device = false
+    return
+  end
+  
+  local value = lfo_device.parameters[6].value
+  local freq_slider = vb.views.lfo_frequency_slider
+  local freq_label = vb.views.lfo_frequency_label
+  -- Clamp value to slider's min/max range
+  local clamped_value = math.max(0.000001, math.min(60, value))
+  if freq_slider then 
+    freq_slider.value = clamped_value
+  end
+  if freq_label then
+    local lpc_value = 60 / clamped_value
+    local display_text = (clamped_value <= 0.000001) and "INF" or string.format("%.2fLPC", lpc_value)
+    freq_label.text = display_text
+  end
+  
+  lfo_updating_from_device = false
+end
+
+-- Helper function to attach LFO device parameter notifiers
+function PCMWriterAttachLFODeviceNotifiers()
+  local lfo_device = PCMWriterFindWavetableLFODevice()
+  if not lfo_device then
+    return
+  end
+  
+  -- Amplitude parameter (parameter 4)
+  if lfo_device.parameters[4].value_observable:has_notifier(update_lfo_amplitude_from_device) then
+    lfo_device.parameters[4].value_observable:remove_notifier(update_lfo_amplitude_from_device)
+  end
+  lfo_device.parameters[4].value_observable:add_notifier(update_lfo_amplitude_from_device)
+  
+  -- Offset parameter (parameter 5)
+  if lfo_device.parameters[5].value_observable:has_notifier(update_lfo_offset_from_device) then
+    lfo_device.parameters[5].value_observable:remove_notifier(update_lfo_offset_from_device)
+  end
+  lfo_device.parameters[5].value_observable:add_notifier(update_lfo_offset_from_device)
+  
+  -- Frequency parameter (parameter 6)
+  if lfo_device.parameters[6].value_observable:has_notifier(update_lfo_frequency_from_device) then
+    lfo_device.parameters[6].value_observable:remove_notifier(update_lfo_frequency_from_device)
+  end
+  lfo_device.parameters[6].value_observable:add_notifier(update_lfo_frequency_from_device)
+  
+  print("DEBUG: LFO device parameter notifiers attached")
+end
+
+-- Helper function to detach LFO device parameter notifiers
+function PCMWriterDetachLFODeviceNotifiers()
+  local lfo_device = PCMWriterFindWavetableLFODevice()
+  if not lfo_device then
+    return
+  end
+  
+  -- Amplitude parameter (parameter 4)
+  if lfo_device.parameters[4].value_observable:has_notifier(update_lfo_amplitude_from_device) then
+    lfo_device.parameters[4].value_observable:remove_notifier(update_lfo_amplitude_from_device)
+  end
+  
+  -- Offset parameter (parameter 5)
+  if lfo_device.parameters[5].value_observable:has_notifier(update_lfo_offset_from_device) then
+    lfo_device.parameters[5].value_observable:remove_notifier(update_lfo_offset_from_device)
+  end
+  
+  -- Frequency parameter (parameter 6)
+  if lfo_device.parameters[6].value_observable:has_notifier(update_lfo_frequency_from_device) then
+    lfo_device.parameters[6].value_observable:remove_notifier(update_lfo_frequency_from_device)
+  end
+  
+  print("DEBUG: LFO device parameter notifiers detached")
+end
+
 -- Tool idle notifier to clean up sample notifier when dialog is closed by other means
 function cleanup_on_dialog_close()
   if not pcm_dialog or not pcm_dialog.visible then
     cleanup_sample_notifier()
+    PCMWriterDetachLFODeviceNotifiers()
     if renoise.tool().app_idle_observable:has_notifier(cleanup_on_dialog_close) then
       renoise.tool().app_idle_observable:remove_notifier(cleanup_on_dialog_close)
     end
@@ -7398,6 +7542,9 @@ function PCMWriterInitializeLFOControls()
     
     print(string.format("LFO Controls Initialized: Amp=%.2f, Offset=%.2f, Freq=%.2f", amplitude, offset, frequency))
   end
+  
+  -- Attach device parameter notifiers to keep dialog in sync with device changes
+  PCMWriterAttachLFODeviceNotifiers()
 end
 
 -- Function to enter Live Pickup Mode and setup LFO controls for 12st_WT
@@ -8098,8 +8245,8 @@ function PCMWriterShowPcmDialog()
     vb:row{ -- LFO_CONTROLS_ROW STARTS
       id = "lfo_controls_row",
       visible = false, -- Initially hidden, shown when entering Live Pickup Mode with 12st_WT setup
-      vb:text{ text = "Wavetable LFO:", style = "strong" },
-      vb:text{ text = "Amplitude:", style = "normal" },
+      vb:text{ text = "Wavetable LFO", style = "strong",font="bold" },
+      vb:text{ text = "Amplitude", style = "strong",font="bold" },
       vb:slider{
         id = "lfo_amplitude_slider",
         min = 0.0,
@@ -8108,6 +8255,9 @@ function PCMWriterShowPcmDialog()
         width = 150,
         tooltip = "LFO Amplitude",
         notifier = function(value)
+          if lfo_updating_from_device then
+            return
+          end
           local lfo_device = PCMWriterFindWavetableLFODevice()
           if lfo_device then
             lfo_device.parameters[4].value = value -- Amplitude parameter
@@ -8123,9 +8273,9 @@ function PCMWriterShowPcmDialog()
       vb:text{
         id = "lfo_amplitude_label",
         text = "0.00",
-        width = 30
+        width = 30,style="strong",font="bold"
       },
-      vb:text{ text = "Offset:", style = "normal" },
+      vb:text{ text = "Offset:", style = "strong",font="bold" },
       vb:slider{
         id = "lfo_offset_slider",
         min = -0.5,
@@ -8134,6 +8284,9 @@ function PCMWriterShowPcmDialog()
         width = 150,
         tooltip = "LFO Offset",
         notifier = function(value)
+          if lfo_updating_from_device then
+            return
+          end
           local lfo_device = PCMWriterFindWavetableLFODevice()
           if lfo_device then
             lfo_device.parameters[5].value = value -- Offset parameter
@@ -8149,9 +8302,10 @@ function PCMWriterShowPcmDialog()
       vb:text{
         id = "lfo_offset_label",
         text = "0.00",
-        width = 30
+        width = 30,
+        style="strong",font="bold"
       },
-      vb:text{ text = "Frequency:", style = "normal" },
+      vb:text{ text = "Frequency:", style = "strong",font="bold" },
       vb:slider{
         id = "lfo_frequency_slider",
         min = 0.000001,
@@ -8160,6 +8314,9 @@ function PCMWriterShowPcmDialog()
         width = 150,
         tooltip = "LFO Frequency",
         notifier = function(value)
+          if lfo_updating_from_device then
+            return
+          end
           local lfo_device = PCMWriterFindWavetableLFODevice()
           if lfo_device then
             lfo_device.parameters[6].value = value -- Frequency parameter
@@ -8178,7 +8335,8 @@ function PCMWriterShowPcmDialog()
       vb:text{
         id = "lfo_frequency_label",
         text = "1.00",
-        width = 30
+        width = 30,
+        style="strong",font="bold"
       },
       vb:button{
         text = "Random",
@@ -8191,6 +8349,9 @@ function PCMWriterShowPcmDialog()
           
           local lfo_device = PCMWriterFindWavetableLFODevice()
           if lfo_device then
+            -- Set flag to prevent device observable callbacks from interfering
+            lfo_updating_from_device = true
+            
             lfo_device.parameters[4].value = amp
             lfo_device.parameters[5].value = offset
             lfo_device.parameters[6].value = freq
@@ -8217,6 +8378,8 @@ function PCMWriterShowPcmDialog()
               end
             end
             
+            lfo_updating_from_device = false
+            
             -- Convert frequency to LPC for status display
             local freq_lpc = 60 / freq  -- Inverted: lower freq = higher LPC
             local freq_display = (freq <= 0.000001) and "INF" or string.format("%.2fLPC", freq_lpc)
@@ -8228,7 +8391,7 @@ function PCMWriterShowPcmDialog()
     
     -- Chebyshev controls row (conditional)
     not hideChebyshev and vb:row{ -- CHEBYSHEV_ROW STARTS
-      vb:text{ text = "Chebyshev:", style = "strong" },
+      vb:text{ text = "Chebyshev", style = "strong",font="bold" },
       vb:popup{
         items = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"},
         value = chebyshev_order,
@@ -8638,7 +8801,7 @@ function PCMWriterShowPcmDialog()
           notifier = PCMWriterSaveWavetable
         },
         vb:text{
-          text = "Morph Export:",
+          text = "Morph Export",
           style = "strong", font="bold"
         },
         vb:button{
