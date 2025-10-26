@@ -1807,3 +1807,258 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:BPM-Based Sample S
 renoise.tool():add_menu_entry{name="--Sample Editor Ruler:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_midi_mapping{name="Paketti:BPM-Based Sample Slicer Dialog",invoke=function(message) if message:is_trigger() then showBPMBasedSliceDialog() end end}
+
+--------------------------------------------------------------------------------
+-- Real-Time Slice Marker Creation During Playback
+--------------------------------------------------------------------------------
+
+-- Global state for playback monitoring
+local realtime_slice_state = {
+  is_monitoring = false,
+  start_time = 0,
+  sample_rate = 44100,
+  instrument_index = 0,
+  sample_index = 0,
+  beat_sync_enabled = false,
+  beat_sync_mode = 1,
+  beat_sync_lines = 1,
+  original_note = 48,  -- C-4
+  base_note = 48
+}
+
+-- Calculate current estimated playback frame position
+function pakettiRealtimeSliceGetCurrentFrame()
+  if not realtime_slice_state.is_monitoring then
+    return 0
+  end
+  
+  local elapsed_time = os.clock() - realtime_slice_state.start_time
+  local song = renoise.song()
+  
+  -- If beat sync is enabled, we need to adjust for tempo
+  if realtime_slice_state.beat_sync_enabled then
+    local bpm = song.transport.bpm
+    local lpb = song.transport.lpb
+    
+    -- Calculate how the beat sync affects playback speed
+    -- beat_sync_lines tells us how many pattern lines the sample should span
+    local beats_per_line = 1 / lpb
+    local total_beats = realtime_slice_state.beat_sync_lines * beats_per_line
+    local seconds_per_beat = 60 / bpm
+    local total_seconds = total_beats * seconds_per_beat
+    
+    -- Get the original sample length in seconds at normal pitch
+    local instrument = song.instruments[realtime_slice_state.instrument_index]
+    local sample = instrument.samples[realtime_slice_state.sample_index]
+    if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+      return 0
+    end
+    
+    local total_frames = sample.sample_buffer.number_of_frames
+    local playback_rate_multiplier = (total_frames / realtime_slice_state.sample_rate) / total_seconds
+    
+    -- Calculate frame position with beat sync compensation
+    local frame_position = math.floor(elapsed_time * realtime_slice_state.sample_rate * playback_rate_multiplier)
+    return frame_position
+  else
+    -- Normal playback without beat sync
+    local frame_position = math.floor(elapsed_time * realtime_slice_state.sample_rate)
+    return frame_position
+  end
+end
+
+-- Start monitoring/playback
+function pakettiRealtimeSliceStart()
+  local song = renoise.song()
+  
+  -- Validate sample
+  if not song.selected_instrument_index or song.selected_instrument_index == 0 then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument or not song.selected_sample_index or song.selected_sample_index == 0 then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local sample = song.selected_sample
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no data")
+    return
+  end
+  
+  -- Store sample information
+  realtime_slice_state.instrument_index = song.selected_instrument_index
+  realtime_slice_state.sample_index = song.selected_sample_index
+  realtime_slice_state.sample_rate = sample.sample_buffer.sample_rate
+  realtime_slice_state.beat_sync_enabled = sample.beat_sync_enabled
+  realtime_slice_state.beat_sync_mode = sample.beat_sync_mode
+  realtime_slice_state.beat_sync_lines = sample.beat_sync_lines or 1
+  realtime_slice_state.base_note = sample.sample_mapping.base_note
+  realtime_slice_state.original_note = realtime_slice_state.base_note
+  
+  -- Start timing
+  realtime_slice_state.start_time = os.clock()
+  realtime_slice_state.is_monitoring = true
+  
+  -- Trigger sample playback at base note
+  local track_index = song.selected_track_index
+  local note_column = song.selected_line.note_columns[1]
+  
+  -- Make sure we have visible note columns
+  if song.tracks[track_index].visible_note_columns == 0 then
+    song.tracks[track_index].visible_note_columns = 1
+  end
+  
+  -- Write note to trigger playback
+  note_column.note_value = realtime_slice_state.base_note
+  note_column.instrument_value = realtime_slice_state.instrument_index - 1  -- 0-based
+  
+  -- Start transport if not already playing
+  if not song.transport.playing then
+    song.transport.playing = true
+  end
+  
+  local status_msg = string.format("Real-time slice monitoring STARTED - Press assigned key/MIDI to drop markers (Sample rate: %d Hz)", 
+    realtime_slice_state.sample_rate)
+  renoise.app():show_status(status_msg)
+  print("=== Real-Time Slice Monitoring Started ===")
+  print("Sample rate: " .. realtime_slice_state.sample_rate .. " Hz")
+  print("Beat sync: " .. (realtime_slice_state.beat_sync_enabled and "enabled" or "disabled"))
+  if realtime_slice_state.beat_sync_enabled then
+    print("Beat sync lines: " .. realtime_slice_state.beat_sync_lines)
+  end
+end
+
+-- Stop monitoring
+function pakettiRealtimeSliceStop()
+  if not realtime_slice_state.is_monitoring then
+    renoise.app():show_status("Real-time slice monitoring not active")
+    return
+  end
+  
+  realtime_slice_state.is_monitoring = false
+  
+  renoise.app():show_status("Real-time slice monitoring STOPPED")
+  print("=== Real-Time Slice Monitoring Stopped ===")
+end
+
+-- Toggle monitoring on/off
+function pakettiRealtimeSliceToggle()
+  if realtime_slice_state.is_monitoring then
+    pakettiRealtimeSliceStop()
+  else
+    pakettiRealtimeSliceStart()
+  end
+end
+
+-- Insert slice marker at current playback position
+function pakettiRealtimeSliceInsertMarker()
+  if not realtime_slice_state.is_monitoring then
+    renoise.app():show_status("Real-time slice monitoring not active - start monitoring first")
+    return
+  end
+  
+  local song = renoise.song()
+  local instrument = song.instruments[realtime_slice_state.instrument_index]
+  local sample = instrument.samples[realtime_slice_state.sample_index]
+  
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Sample no longer valid")
+    pakettiRealtimeSliceStop()
+    return
+  end
+  
+  -- Get current estimated frame position
+  local frame_position = pakettiRealtimeSliceGetCurrentFrame()
+  local total_frames = sample.sample_buffer.number_of_frames
+  
+  -- Clamp to valid range
+  if frame_position < 1 then
+    frame_position = 1
+  elseif frame_position > total_frames then
+    frame_position = total_frames
+    renoise.app():show_status("Playback reached end of sample")
+    pakettiRealtimeSliceStop()
+    return
+  end
+  
+  -- Check if marker already exists very close to this position (within 100 frames)
+  local marker_exists = false
+  for i = 1, #sample.slice_markers do
+    local existing_marker = sample.slice_markers[i]
+    if math.abs(existing_marker - frame_position) < 100 then
+      marker_exists = true
+      print("Marker already exists near position " .. frame_position .. " (existing at " .. existing_marker .. ")")
+      break
+    end
+  end
+  
+  if not marker_exists then
+    -- Insert the slice marker
+    sample:insert_slice_marker(frame_position)
+    
+    local elapsed_time = os.clock() - realtime_slice_state.start_time
+    local marker_count = #sample.slice_markers
+    
+    print(string.format("Inserted slice marker #%d at frame %d (%.3f seconds into playback)", 
+      marker_count, frame_position, elapsed_time))
+    
+    renoise.app():show_status(string.format("Slice marker #%d inserted at frame %d", 
+      marker_count, frame_position))
+  else
+    renoise.app():show_status("Marker already exists at this position")
+  end
+end
+
+-- Keybindings and Menu Entries
+renoise.tool():add_keybinding{
+  name="Global:Paketti:Real-Time Slice Monitoring (Toggle Start/Stop)",
+  invoke=function() pakettiRealtimeSliceToggle() end
+}
+
+renoise.tool():add_keybinding{
+  name="Global:Paketti:Real-Time Slice Monitoring (Start)",
+  invoke=function() pakettiRealtimeSliceStart() end
+}
+
+renoise.tool():add_keybinding{
+  name="Global:Paketti:Real-Time Slice Monitoring (Stop)",
+  invoke=function() pakettiRealtimeSliceStop() end
+}
+
+renoise.tool():add_keybinding{
+  name="Global:Paketti:Real-Time Slice Insert Marker at Current Position",
+  invoke=function() pakettiRealtimeSliceInsertMarker() end
+}
+
+renoise.tool():add_menu_entry{
+  name="Main Menu:Tools:Paketti:Real-Time Slice Monitoring (Toggle)",
+  invoke=function() pakettiRealtimeSliceToggle() end
+}
+
+renoise.tool():add_menu_entry{
+  name="Sample Editor:Paketti:Real-Time Slice Monitoring (Toggle)",
+  invoke=function() pakettiRealtimeSliceToggle() end
+}
+
+-- MIDI Mappings
+renoise.tool():add_midi_mapping{
+  name="Paketti:Real-Time Slice Monitoring Toggle",
+  invoke=function(message) 
+    if message:is_trigger() then 
+      pakettiRealtimeSliceToggle() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name="Paketti:Real-Time Slice Insert Marker",
+  invoke=function(message) 
+    if message:is_trigger() then 
+      pakettiRealtimeSliceInsertMarker() 
+    end 
+  end
+}

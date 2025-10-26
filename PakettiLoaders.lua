@@ -250,7 +250,7 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
   -- Check if Sample Range Device Loader toggle is ON
   local sample_range_loader_used = false
   local original_sample_name = nil
-  if PakettiSampleRangeDeviceLoaderEnabled and PakettiSampleRangePrepareNewInstrument then
+  if preferences.pakettiSampleRangeDeviceLoaderEnabled.value and PakettiSampleRangePrepareNewInstrument then
     local success, sname = PakettiSampleRangePrepareNewInstrument()
     if success then
       -- Successfully prepared new instrument, force load into sample FX at BEGINNING
@@ -808,7 +808,7 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
   -- Check if Sample Range Device Loader toggle is ON
   local sample_range_loader_used = false
   local original_sample_name = nil
-  if PakettiSampleRangeDeviceLoaderEnabled and PakettiSampleRangePrepareNewInstrument then
+  if preferences.pakettiSampleRangeDeviceLoaderEnabled.value and PakettiSampleRangePrepareNewInstrument then
     local success, sname = PakettiSampleRangePrepareNewInstrument()
     if success then
       -- Successfully prepared new instrument, force load into sample FX at BEGINNING
@@ -3564,7 +3564,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
 ---------
 -- Globals for tracking mode and open editors
-local auto_open_mode = false
+PakettiAutomaticallyOpenTrackDeviceEditorsEnabled = false
 local current_track_index = nil
 
 -- Function to open external editors on a track
@@ -3613,9 +3613,9 @@ end
 
 -- Toggle the automatic mode
 function PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
-  auto_open_mode = not auto_open_mode
+  PakettiAutomaticallyOpenTrackDeviceEditorsEnabled = not PakettiAutomaticallyOpenTrackDeviceEditorsEnabled
 
-  if auto_open_mode then
+  if PakettiAutomaticallyOpenTrackDeviceEditorsEnabled then
     renoise.app():show_status("Automatically Open Selected Track Devices Toggled ON")
 
     -- Initialize the current track index and open its devices

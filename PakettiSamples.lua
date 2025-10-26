@@ -6859,4 +6859,212 @@ end
 
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Destructive Repeat Sample Range", invoke = PakettiSamplesDestructiveRepeatRange}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Destructive Repeat Sample Range", invoke = PakettiSamplesDestructiveRepeatRange}
+renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Destructive Repeat Sample Range", invoke = PakettiSamplesDestructiveRepeatRange}
+
+-- Append Selection to End: Pastes the selected sample range to the end of the sample
+function PakettiSamplesAppendSelectionToEnd()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample then
+    renoise.app():show_status("PakettiSamplesAppendSelectionToEnd: No sample selected")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  
+  if not buffer.has_sample_data then
+    renoise.app():show_status("PakettiSamplesAppendSelectionToEnd: No sample data available")
+    return
+  end
+  
+  if buffer.read_only then
+    renoise.app():show_status("PakettiSamplesAppendSelectionToEnd: Sample buffer is read-only")
+    return
+  end
+  
+  local selection_start = buffer.selection_start
+  local selection_end = buffer.selection_end
+  local original_frames = buffer.number_of_frames
+  
+  -- Check if there's an actual selection (not just the whole buffer)
+  if selection_start == 1 and selection_end == original_frames then
+    renoise.app():show_status("PakettiSamplesAppendSelectionToEnd: Please make a selection first (entire buffer is selected)")
+    return
+  end
+  
+  local selection_length = selection_end - selection_start + 1
+  local num_channels = buffer.number_of_channels
+  local sample_rate = buffer.sample_rate
+  local bit_depth = buffer.bit_depth
+  
+  -- Read selection data
+  local selection_data = {}
+  for channel = 1, num_channels do
+    selection_data[channel] = {}
+    for frame = selection_start, selection_end do
+      selection_data[channel][frame] = buffer:sample_data(channel, frame)
+    end
+  end
+  
+  -- Read all original data
+  local original_data = {}
+  for channel = 1, num_channels do
+    original_data[channel] = {}
+    for frame = 1, original_frames do
+      original_data[channel][frame] = buffer:sample_data(channel, frame)
+    end
+  end
+  
+  -- Create new buffer with extended size
+  local new_frames = original_frames + selection_length
+  local success = buffer:create_sample_data(sample_rate, bit_depth, num_channels, new_frames)
+  
+  if not success then
+    renoise.app():show_status("PakettiSamplesAppendSelectionToEnd: Failed to create extended buffer (out of memory?)")
+    return
+  end
+  
+  buffer:prepare_sample_data_changes()
+  
+  -- Write all original data
+  for channel = 1, num_channels do
+    for frame = 1, original_frames do
+      buffer:set_sample_data(channel, frame, original_data[channel][frame])
+    end
+  end
+  
+  -- Append selection to the end
+  local target_frame = original_frames + 1
+  for source_frame = selection_start, selection_end do
+    for channel = 1, num_channels do
+      buffer:set_sample_data(channel, target_frame, selection_data[channel][source_frame])
+    end
+    target_frame = target_frame + 1
+  end
+  
+  buffer:finalize_sample_data_changes()
+  
+  -- Select the newly appended range at the end
+  local append_start = original_frames + 1
+  local append_end = new_frames
+  buffer.selection_range = {append_start, append_end}
+  
+  renoise.app():show_status(string.format("PakettiSamplesAppendSelectionToEnd: Appended %d frames to end, new total: %d frames", 
+    selection_length, new_frames))
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Append Selection to End", invoke = PakettiSamplesAppendSelectionToEnd}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Append Selection to End", invoke = PakettiSamplesAppendSelectionToEnd}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Append Selection to End", invoke = PakettiSamplesAppendSelectionToEnd}
+renoise.tool():add_midi_mapping{name="Paketti:Append Selection to End", invoke = PakettiSamplesAppendSelectionToEnd}
+
+-- Insert Selection After Selection: Inserts the selection right after itself, pushing content forward
+function PakettiSamplesInsertSelectionAfterSelection()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample then
+    renoise.app():show_status("PakettiSamplesInsertSelectionAfterSelection: No sample selected")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  
+  if not buffer.has_sample_data then
+    renoise.app():show_status("PakettiSamplesInsertSelectionAfterSelection: No sample data available")
+    return
+  end
+  
+  if buffer.read_only then
+    renoise.app():show_status("PakettiSamplesInsertSelectionAfterSelection: Sample buffer is read-only")
+    return
+  end
+  
+  local selection_start = buffer.selection_start
+  local selection_end = buffer.selection_end
+  local original_frames = buffer.number_of_frames
+  
+  -- Check if there's an actual selection (not just the whole buffer)
+  if selection_start == 1 and selection_end == original_frames then
+    renoise.app():show_status("PakettiSamplesInsertSelectionAfterSelection: Please make a selection first (entire buffer is selected)")
+    return
+  end
+  
+  local selection_length = selection_end - selection_start + 1
+  local num_channels = buffer.number_of_channels
+  local sample_rate = buffer.sample_rate
+  local bit_depth = buffer.bit_depth
+  
+  -- Read all original data
+  local original_data = {}
+  for channel = 1, num_channels do
+    original_data[channel] = {}
+    for frame = 1, original_frames do
+      original_data[channel][frame] = buffer:sample_data(channel, frame)
+    end
+  end
+  
+  -- Create new buffer with extended size
+  local new_frames = original_frames + selection_length
+  local success = buffer:create_sample_data(sample_rate, bit_depth, num_channels, new_frames)
+  
+  if not success then
+    renoise.app():show_status("PakettiSamplesInsertSelectionAfterSelection: Failed to create extended buffer (out of memory?)")
+    return
+  end
+  
+  buffer:prepare_sample_data_changes()
+  
+  -- Write data before selection (unchanged)
+  if selection_start > 1 then
+    for channel = 1, num_channels do
+      for frame = 1, selection_start - 1 do
+        buffer:set_sample_data(channel, frame, original_data[channel][frame])
+      end
+    end
+  end
+  
+  -- Write original selection at its original position
+  for channel = 1, num_channels do
+    for frame = selection_start, selection_end do
+      buffer:set_sample_data(channel, frame, original_data[channel][frame])
+    end
+  end
+  
+  -- Insert duplicate of selection right after
+  local insert_start = selection_end + 1
+  local target_frame = insert_start
+  for source_frame = selection_start, selection_end do
+    for channel = 1, num_channels do
+      buffer:set_sample_data(channel, target_frame, original_data[channel][source_frame])
+    end
+    target_frame = target_frame + 1
+  end
+  
+  -- Write everything after selection, shifted forward
+  local shift_start = selection_end + 1
+  if shift_start <= original_frames then
+    local target_frame = selection_end + selection_length + 1
+    for source_frame = shift_start, original_frames do
+      for channel = 1, num_channels do
+        buffer:set_sample_data(channel, target_frame, original_data[channel][source_frame])
+      end
+      target_frame = target_frame + 1
+    end
+  end
+  
+  buffer:finalize_sample_data_changes()
+  
+  -- Select the newly inserted range
+  buffer.selection_range = {insert_start, insert_start + selection_length - 1}
+  
+  renoise.app():show_status(string.format("PakettiSamplesInsertSelectionAfterSelection: Inserted %d frames, new total: %d frames", 
+    selection_length, new_frames))
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
+renoise.tool():add_midi_mapping{name="Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
 

@@ -104,6 +104,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiSampleDetailsCycles=1,
   pakettiAlwaysOpenDSPsOnTrack=false,
   pakettiAlwaysOpenSampleFXChainDevices=false,
+  pakettiSampleRangeDeviceLoaderEnabled=false,
   pakettiLoaderDontCreateAutomationDevice=false,
   pakettiWipeExplodedTrack=false,
   pakettiAutomationFormat=2,

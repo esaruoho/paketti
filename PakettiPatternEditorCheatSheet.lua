@@ -1444,7 +1444,8 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Show Minimize Cheatsheet Ve
 
 
 -- Pattern Effect/Note Column Status Monitor
-local status_monitor_enabled = false
+-- Note: Initialized from preferences at startup in main.lua
+PakettiPatternStatusMonitorEnabled = false
 
 -- Function to get effect description from our effects table
 local function get_effect_description(effect_number)
@@ -1458,7 +1459,7 @@ end
 
 -- Function to show status for current selection
 function show_current_status()
-  if not status_monitor_enabled then return end
+  if not PakettiPatternStatusMonitorEnabled then return end
   
   local song = renoise.song()
   local status_text = ""
@@ -1542,7 +1543,7 @@ local last_status_position = nil
 
 -- Timer function for monitoring pattern editor status (based on PakettiTuningDisplay.lua approach)
 local function status_monitor_timer()
-  if not status_monitor_enabled then
+  if not PakettiPatternStatusMonitorEnabled then
     return
   end
   
@@ -1593,8 +1594,8 @@ end
 
 -- Function to enable status monitor (for startup)
 function enable_pattern_status_monitor()
-  if not status_monitor_enabled then
-    status_monitor_enabled = true
+  if not PakettiPatternStatusMonitorEnabled then
+    PakettiPatternStatusMonitorEnabled = true
     start_status_monitor()
     show_current_status()  -- Show initial status
     renoise.app():show_status("Pattern Status Monitor: ON - Effect/Note column info will be shown")
@@ -1603,9 +1604,11 @@ end
 
 -- Function to toggle status monitor
 function toggle_pattern_status_monitor()
-  status_monitor_enabled = not status_monitor_enabled
+  PakettiPatternStatusMonitorEnabled = not PakettiPatternStatusMonitorEnabled
+  preferences.pakettiPatternStatusMonitor.value = PakettiPatternStatusMonitorEnabled
+  preferences:save_as("preferences.xml")
   
-  if status_monitor_enabled then
+  if PakettiPatternStatusMonitorEnabled then
     start_status_monitor()
     show_current_status()  -- Show initial status
     renoise.app():show_status("Pattern Status Monitor: ON - Effect/Note column info will be shown")
@@ -1622,5 +1625,5 @@ end)
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}

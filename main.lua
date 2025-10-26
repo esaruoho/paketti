@@ -584,7 +584,9 @@ function startup()
         t.groove_enabled=true
       end
       
-      if preferences.pakettiPatternStatusMonitor.value then
+      -- Initialize Pattern Status Monitor from preference
+      PakettiPatternStatusMonitorEnabled = preferences.pakettiPatternStatusMonitor.value
+      if PakettiPatternStatusMonitorEnabled then
         enable_pattern_status_monitor()
       end
 
@@ -780,6 +782,7 @@ timed_require("PakettiZeroCrossings")
 timed_require("Research/FormulaDeviceManual")
 timed_require("PakettiXRNSProbe")
 timed_require("PakettiSteppers")
+timed_require("PakettiPatternIterator")
 
 
 --- File Import / Export business

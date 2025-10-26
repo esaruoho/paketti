@@ -1,8 +1,7 @@
 -- PakettiSampleFXChainSlicer.lua
 -- Sample Range Device Loader - copies sample selection to new pakettified instrument
 
--- Global toggle state
-PakettiSampleRangeDeviceLoaderEnabled = false
+-- Note: Toggle state is now persisted in preferences.pakettiSampleRangeDeviceLoaderEnabled
 
 -- Function to prepare the sample range in a new instrument
 function PakettiSampleRangePrepareNewInstrument()
@@ -138,9 +137,9 @@ end
 
 -- Toggle function
 function PakettiSampleRangeDeviceLoaderToggle()
-  PakettiSampleRangeDeviceLoaderEnabled = not PakettiSampleRangeDeviceLoaderEnabled
+  preferences.pakettiSampleRangeDeviceLoaderEnabled.value = not preferences.pakettiSampleRangeDeviceLoaderEnabled.value
   
-  if PakettiSampleRangeDeviceLoaderEnabled then
+  if preferences.pakettiSampleRangeDeviceLoaderEnabled.value then
     renoise.app():show_status("Sample Range Device Loader: ON - LoadNative/LoadVST will copy selection to new instrument first")
   else
     renoise.app():show_status("Sample Range Device Loader: OFF")
@@ -171,15 +170,18 @@ renoise.tool():add_midi_mapping{
 -- Menu entries
 renoise.tool():add_menu_entry{
   name="--Sample Editor:Paketti:Sample Range Device Loader Toggle",
-  invoke=function() PakettiSampleRangeDeviceLoaderToggle() end
+  invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,
+  selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end
 }
 
 renoise.tool():add_menu_entry{
   name="--Sample Editor Ruler:Sample Range Device Loader Toggle",
-  invoke=function() PakettiSampleRangeDeviceLoaderToggle() end
+  invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,
+  selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end
 }
 
 renoise.tool():add_menu_entry{
   name="--Main Menu:Tools:Paketti:Instruments:Sample Range Device Loader Toggle",
-  invoke=function() PakettiSampleRangeDeviceLoaderToggle() end
+  invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,
+  selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end
 }
