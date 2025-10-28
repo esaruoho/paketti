@@ -7093,7 +7093,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Decrease Pattern Leng
 --------------------------------------------------------------------------------
 if renoise.API_VERSION >= 6.2 then
   -- Global state for the audition feature
-  local audition_on_line_change_enabled = false
+  PakettiAuditionOnLineChangeEnabled = false
   local last_audition_pos = nil
   
   -- Save/restore state variables
@@ -7101,11 +7101,14 @@ if renoise.API_VERSION >= 6.2 then
   local saved_playing = false
   local saved_follow_player = nil
   local saved_edit_mode = nil
+  
+  -- Table to track triggered notes: {track_index, instrument_index, note_value, note_column}
+  local triggered_notes = {}
 
   -- Timer function that monitors cursor position changes
   local function audition_idle_notifier()
     -- Check if audition is enabled
-    if not audition_on_line_change_enabled then
+    if not PakettiAuditionOnLineChangeEnabled then
       return
     end
     
@@ -7139,6 +7142,40 @@ if renoise.API_VERSION >= 6.2 then
       
       -- Only trigger if playback is stopped (API requirement)
       if not song.transport.playing then
+        -- Send Note OFF to previously triggered notes before triggering new ones
+        for _, note_info in ipairs(triggered_notes) do
+          local track = song:track(note_info.track_index)
+          if track and note_info.instrument_index <= #song.instruments then
+            local instrument = song:instrument(note_info.instrument_index)
+            instrument:trigger_note_off(note_info.track_index, note_info.note_value, note_info.note_column)
+          end
+        end
+        
+        -- Clear the triggered notes table
+        triggered_notes = {}
+        
+        -- Get the current line to see what notes will be triggered
+        local pattern = song:pattern(song.selected_pattern_index)
+        local track = pattern:track(track_index)
+        local line = track:line(line_index)
+        
+        -- Store the notes that are about to be triggered
+        for col_index = 1, #line.note_columns do
+          local note_col = line.note_columns[col_index]
+          if not note_col.is_empty and note_col.note_value < 120 then
+            local instr_index = note_col.instrument_value + 1
+            if instr_index <= #song.instruments then
+              table.insert(triggered_notes, {
+                track_index = track_index,
+                instrument_index = instr_index,
+                note_value = note_col.note_value,
+                note_column = col_index
+              })
+            end
+          end
+        end
+        
+        -- Now trigger the line
         song:trigger_pattern_line(line_index)
       end
     end
@@ -7146,9 +7183,10 @@ if renoise.API_VERSION >= 6.2 then
 
   -- Function to toggle the audition feature on/off
   function PakettiToggleAuditionCurrentLineOnRowChange()
-    if audition_on_line_change_enabled then
+    if PakettiAuditionOnLineChangeEnabled then
       -- Turn OFF: Restore everything
-      audition_on_line_change_enabled = false
+      PakettiAuditionOnLineChangeEnabled = false
+      preferences.pakettiAuditionOnLineChangeEnabled.value = false
       
       -- Remove timer
       if renoise.tool():has_timer(audition_idle_notifier) then
@@ -7156,6 +7194,18 @@ if renoise.API_VERSION >= 6.2 then
       end
       
       local song = renoise.song()
+      
+      -- Send Note OFF to all tracked notes
+      for _, note_info in ipairs(triggered_notes) do
+        local track = song:track(note_info.track_index)
+        if track and note_info.instrument_index <= #song.instruments then
+          local instrument = song:instrument(note_info.instrument_index)
+          instrument:trigger_note_off(note_info.track_index, note_info.note_value, note_info.note_column)
+        end
+      end
+      
+      -- Clear the triggered notes table
+      triggered_notes = {}
       
       -- Restore edit mode
       if saved_edit_mode ~= nil then
@@ -7185,7 +7235,8 @@ if renoise.API_VERSION >= 6.2 then
       renoise.app():show_status(status_msg)
     else
       -- Turn ON: Save state and stop playback
-      audition_on_line_change_enabled = true
+      PakettiAuditionOnLineChangeEnabled = true
+      preferences.pakettiAuditionOnLineChangeEnabled.value = true
       
       local song = renoise.song()
       local transport = song.transport
@@ -7225,7 +7276,8 @@ if renoise.API_VERSION >= 6.2 then
   -- Add menu entry
   renoise.tool():add_menu_entry{
     name="Pattern Editor:Paketti:Toggle Audition Current Line on Pattern Row Change",
-    invoke=function() PakettiToggleAuditionCurrentLineOnRowChange() end
+    invoke=function() PakettiToggleAuditionCurrentLineOnRowChange() end,
+    selected=function() return PakettiAuditionOnLineChangeEnabled end
   }
 
   -- Add MIDI mapping for the toggle

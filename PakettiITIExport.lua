@@ -594,34 +594,8 @@ function pakettiITIExportDialog()
   end
 end
 
--- Register menu entries
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Impulse Tracker:Export Instrument to ITI...",
-  invoke = function() pakettiITIExportDialog() end
-}
-
--- Main Menu File:Paketti Export entries for ITI
-renoise.tool():add_menu_entry{
-  name = "--Main Menu:File:Paketti Export:Export Instrument to ITI...",
-  invoke = function() pakettiITIExportDialog() end
-}
-
--- Sample Editor Paketti Export entries for ITI
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Export:Export Instrument to ITI...",
-  invoke = function() pakettiITIExportDialog() end
-}
-
--- Register keybindings
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Export Instrument to ITI...",
-  invoke = function() pakettiITIExportDialog() end
-}
-
-renoise.tool():add_keybinding{
-  name = "Sample Editor:Paketti:Export Instrument to ITI...",
-  invoke = function() pakettiITIExportDialog() end
-}
-
-dprint("ITI Export module loaded")
-
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Impulse Tracker:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
+renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti Export:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
+renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}

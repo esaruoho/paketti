@@ -1904,8 +1904,17 @@ function pakettiMaxAmplitudeDCOffsetKickCreator()
   renoise.song():insert_instrument_at(new_instrument_index)
   renoise.song().selected_instrument_index = new_instrument_index
 
+  -- Load the default XRNI template into the new instrument
+  pakettiPreferencesDefaultInstrumentLoader()
+
+  -- Clear all existing samples and insert our generated sample
+  local instrument = renoise.song().instruments[new_instrument_index]
+  while #instrument.samples > 0 do
+    instrument:delete_sample_at(1)
+  end
+
   -- Insert a sample into the newly created instrument
-  local sample = renoise.song().instruments[new_instrument_index]:insert_sample_at(1)
+  local sample = instrument:insert_sample_at(1)
   sample.sample_buffer:create_sample_data(44100, 16, 1, 16800)
 
   -- Access the sample buffer
@@ -1926,6 +1935,7 @@ function pakettiMaxAmplitudeDCOffsetKickCreator()
   end
     renoise.song().selected_sample.name="Max Amp DC Offset Kick"
     renoise.song().selected_instrument.name="Max Amp DC Offset Kick"
+    renoise.song().selected_sample.transpose = -36
 renoise.app().window.active_middle_frame=5
   
   renoise.app():show_status("Max Amp DC Offset Kick Generated!")

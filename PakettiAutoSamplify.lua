@@ -5,7 +5,7 @@
 
 -- Global state tracking for selected sample slot only
 local previous_selected_sample_state = nil
-local monitoring_enabled = true
+local monitoring_enabled = true  -- Will be initialized from preferences on startup
 
 -- Global state tracking for all instruments and samples
 local previous_instrument_states = {}
@@ -696,6 +696,19 @@ end
 -- Function to enable/disable monitoring
 function PakettiToggleNewSampleMonitoring()
   monitoring_enabled = not monitoring_enabled
+  
+  -- Update preference to match
+  if preferences and preferences.pakettiAutoSamplifyMonitoring then
+    preferences.pakettiAutoSamplifyMonitoring.value = monitoring_enabled
+  end
+  
+  -- Actually start/stop monitoring
+  if monitoring_enabled then
+    PakettiStartNewSampleMonitoring()
+  else
+    PakettiStopNewSampleMonitoring()
+  end
+  
   local status = monitoring_enabled and "enabled" or "disabled"
   renoise.app():show_status("Paketti new sample monitoring: " .. status)
   print("Paketti new sample monitoring: " .. status)
@@ -770,8 +783,12 @@ end
 
 -- Add notifiers for app events
 renoise.tool().app_new_document_observable:add_notifier(function()
-  if monitoring_enabled then
+  -- Check preference before starting monitoring
+  if preferences and preferences.pakettiAutoSamplifyMonitoring and preferences.pakettiAutoSamplifyMonitoring.value then
+    monitoring_enabled = true
     PakettiStartNewSampleMonitoring()
+  else
+    monitoring_enabled = false
   end
 end)
 
@@ -779,9 +796,19 @@ renoise.tool().app_release_document_observable:add_notifier(function()
   PakettiStopNewSampleMonitoring()
 end)
 
--- Initialize monitoring when tool loads
+-- Initialize monitoring when tool loads (only if preference is enabled)
 if renoise.song() then
-  PakettiStartNewSampleMonitoring()
+  -- Initialize monitoring_enabled from preferences
+  if preferences and preferences.pakettiAutoSamplifyMonitoring then
+    monitoring_enabled = preferences.pakettiAutoSamplifyMonitoring.value
+    if monitoring_enabled then
+      PakettiStartNewSampleMonitoring()
+    end
+  else
+    -- Default to true if preference doesn't exist yet (first run)
+    monitoring_enabled = true
+    PakettiStartNewSampleMonitoring()
+  end
 end
 
 -- Add keybindings and menu entries for manual control

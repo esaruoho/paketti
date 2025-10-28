@@ -311,8 +311,6 @@ function InitSBx()
       print("SBX Monitoring started.")
       active = true
     end
-  else
-    print("Monitoring is disabled. SBX initialization skipped.")
   end
 end
 
@@ -329,6 +327,20 @@ local function disable_monitoring()
     renoise.tool().app_idle_observable:remove_notifier(monitor_playback)
     print("SBX Monitoring stopped.")
     active = false
+  end
+end
+
+-- Toggle SBx Follow (for menu entry)
+function PakettiToggleSBxFollow()
+  preferences.PakettiSBxFollowEnabled.value = not preferences.PakettiSBxFollowEnabled.value
+  preferences:save_as("preferences.xml")
+  
+  if preferences.PakettiSBxFollowEnabled.value then
+    enable_monitoring()
+    renoise.app():show_status("SBx Pattern Loop Follow: ON")
+  else
+    disable_monitoring()
+    renoise.app():show_status("SBx Pattern Loop Follow: OFF")
   end
 end
 
@@ -363,8 +375,20 @@ renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playbac
   invoke=function() reset_repeat_counts() renoise.song().transport:start() end}
 
 -- Tool Initialization
+-- Initialize monitoring_enabled from preferences, defaulting to true if not set
+if preferences.PakettiSBxFollowEnabled and preferences.PakettiSBxFollowEnabled.value ~= nil then
+  monitoring_enabled = preferences.PakettiSBxFollowEnabled.value
+else
   monitoring_enabled = true
---InitSBx()
+  if preferences.PakettiSBxFollowEnabled then
+    preferences.PakettiSBxFollowEnabled.value = true
+  end
+end
+
+-- Initialize SBx if monitoring is enabled
+if monitoring_enabled then
+  InitSBx()
+end
 
 function crossfade_loop(crossfade_length)
   -- Temporarily disable AutoSamplify monitoring to prevent interference

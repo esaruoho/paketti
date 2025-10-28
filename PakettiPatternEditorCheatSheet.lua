@@ -10,7 +10,6 @@ end
 
 function save_Cheatsheetpreferences()
   preferences:save_as("preferences.xml")
-  renoise.app():show_status("CheatSheet preferences saved")
 end
 
 function Cheatsheetclear_effect_columns()
@@ -18,8 +17,10 @@ function Cheatsheetclear_effect_columns()
   
   if s.selection_in_pattern then
     -- Clear selection
+    local pattern = s:pattern(s.selected_pattern_index)
     for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
       local track = s:track(t)
+      local pattern_track = pattern:track(t)
       local note_columns_visible = track.visible_note_columns
       local effect_columns_visible = track.visible_effect_columns
       local total_columns_visible = note_columns_visible + effect_columns_visible
@@ -28,10 +29,11 @@ function Cheatsheetclear_effect_columns()
       local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or total_columns_visible
       
       for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+        local line = pattern_track:line(i)
         for col = start_column, end_column do
           local column_index = col - note_columns_visible
           if column_index > 0 and column_index <= effect_columns_visible then
-            local effect_column = s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(column_index)
+            local effect_column = line:effect_column(column_index)
             if effect_column then
               effect_column:clear()
             end
@@ -170,9 +172,10 @@ function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min
 
   if selection then
     -- Apply to selection
+    local pattern = song:pattern(song.selected_pattern_index)
     for line_index = selection.start_line, selection.end_line do
       for t = selection.start_track, selection.end_track do
-        local track = song:pattern(song.selected_pattern_index):track(t)
+        local track = pattern:track(t)
         local trackvis = song:track(t)
         local note_columns_visible = trackvis.visible_note_columns
         local effect_columns_visible = trackvis.visible_effect_columns
@@ -180,11 +183,12 @@ function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min
 
         local start_column = (t == selection.start_track) and selection.start_column or 1
         local end_column = (t == selection.end_track) and selection.end_column or total_columns_visible
-
+        
+        local line = track:line(line_index)
         for col = start_column, end_column do
           local column_index = col - note_columns_visible
           if col > note_columns_visible and column_index > 0 and column_index <= effect_columns_visible then
-            apply_command(track:line(line_index), column_index, track, line_index, t)
+            apply_command(line, column_index, track, line_index, t)
           end
         end
       end
@@ -347,16 +351,19 @@ function randomizeNoteColumn(column_name)
 
   if s.selection_in_pattern then
     -- Iterate over selection
+    local pattern = s:pattern(s.selected_pattern_index)
     for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
       local track = s:track(t)
       if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local pattern_track = pattern:track(t)
         local note_columns_visible = track.visible_note_columns
         local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or 1
         local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or note_columns_visible
         for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+          local line = pattern_track:line(i)
           for col = start_column, end_column do
             if col <= note_columns_visible then
-              local note_column = s:pattern(s.selected_pattern_index):track(t):line(i).note_columns[col]
+              local note_column = line.note_columns[col]
               if note_column and is_subcolumn_not_empty(note_column) and should_apply() then
                 note_column[column_name] = random_value()
               end
@@ -379,11 +386,13 @@ function randomizeNoteColumn(column_name)
       if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
         for pattern_index = 1, #s.patterns do
           local pattern = s:pattern(pattern_index)
+          local pattern_track = pattern:track(track_index)
           local lines = pattern.number_of_lines
           local note_columns_visible = track.visible_note_columns
           for i = 1, lines do
+            local line = pattern_track:line(i)
             for col = 1, note_columns_visible do
-              local note_column = pattern:track(track_index):line(i).note_columns[col]
+              local note_column = line.note_columns[col]
               if note_column and is_subcolumn_not_empty(note_column) and should_apply() then
                 note_column[column_name] = random_value()
               end
@@ -423,19 +432,22 @@ function randomizeEffectAmount()
   end
 
   if s.selection_in_pattern then
+    local pattern = s:pattern(s.selected_pattern_index)
     for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
       local track = s:track(t)
       if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local pattern_track = pattern:track(t)
         local note_columns_visible = track.visible_note_columns
         local effect_columns_visible = track.visible_effect_columns
         local total_columns_visible = note_columns_visible + effect_columns_visible
         local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or note_columns_visible + 1
         local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or total_columns_visible
         for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+          local line = pattern_track:line(i)
           for col = start_column, end_column do
             local column_index = col - note_columns_visible
             if column_index > 0 and column_index <= effect_columns_visible then
-              local effect_column = s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(column_index)
+              local effect_column = line:effect_column(column_index)
               if effect_column and not effect_column.is_empty and should_apply() then
                 effect_column.amount_value = random_value()
               end
@@ -458,11 +470,13 @@ function randomizeEffectAmount()
       if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
         for pattern_index = 1, #s.patterns do
           local pattern = s:pattern(pattern_index)
+          local pattern_track = pattern:track(track_index)
           local lines = pattern.number_of_lines
           local effect_columns_visible = track.visible_effect_columns
           for i = 1, lines do
+            local line = pattern_track:line(i)
             for col = 1, effect_columns_visible do
-              local effect_column = pattern:track(track_index):line(i):effect_column(col)
+              local effect_column = line:effect_column(col)
               if effect_column and not effect_column.is_empty and should_apply() then
                 effect_column.amount_value = random_value()
               end
@@ -539,8 +553,10 @@ function effect_write(effect, status, command, min_value, max_value)
         return false
       end
     else
+      local pattern = s:pattern(s.selected_pattern_index)
       for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
         local track = s:track(t)
+        local pattern_track = pattern:track(t)
         local note_columns_visible = track.visible_note_columns
         local effect_columns_visible = track.visible_effect_columns
         local total_columns_visible = note_columns_visible + effect_columns_visible
@@ -549,10 +565,11 @@ function effect_write(effect, status, command, min_value, max_value)
         local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or total_columns_visible
 
         for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+          local line = pattern_track:line(i)
           for col = start_column, end_column do
             local column_index = col - note_columns_visible
             if column_index > 0 and column_index <= effect_columns_visible then
-              local effect_column = s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(column_index)
+              local effect_column = line:effect_column(column_index)
               if effect_column then
                 effect_column.number_string = effect
               end
@@ -626,7 +643,7 @@ function pakettiPatternEditorCheatsheetDialog()
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomize.value,
     notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomize.value = v
-     save_Cheatsheetpreferences()
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -645,8 +662,8 @@ function pakettiPatternEditorCheatsheetDialog()
       if preferences.pakettiCheatSheet.pakettiCheatSheetFillAll.value ~= percentage_value then
         preferences.pakettiCheatSheet.pakettiCheatSheetFillAll.value = percentage_value
         fill_probability_text.text = string.format("%d%% Fill Probability", percentage_value)
-         save_Cheatsheetpreferences()
       end
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -654,7 +671,7 @@ function pakettiPatternEditorCheatsheetDialog()
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeWholeTrack.value,
     notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeWholeTrack.value = v
-       save_Cheatsheetpreferences()
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -662,7 +679,7 @@ function pakettiPatternEditorCheatsheetDialog()
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value,
     notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value = v
-       save_Cheatsheetpreferences()
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -670,7 +687,7 @@ function pakettiPatternEditorCheatsheetDialog()
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value,
     notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value = v
-       save_Cheatsheetpreferences()
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -678,7 +695,7 @@ function pakettiPatternEditorCheatsheetDialog()
     value = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value,
     notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value = v
-      save_Cheatsheetpreferences()
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -686,7 +703,7 @@ function pakettiPatternEditorCheatsheetDialog()
     value = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value,
     notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value = v
-      save_Cheatsheetpreferences()
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -702,7 +719,111 @@ function pakettiPatternEditorCheatsheetDialog()
     notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value = v
       vb.views["min_text_unique"].text = string.format("%02X", v)
-      save_Cheatsheetpreferences()
+      
+      -- Check if Randomize is enabled first
+      local randomize_cb = preferences.pakettiCheatSheet.pakettiCheatSheetRandomize.value
+      if not randomize_cb then
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+        return
+      end
+      
+      trueRandomSeed()
+      sliderVisibleEffect()
+      local s = renoise.song()
+      local min_val = v
+      local max_val = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value
+      local randomize_switch = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value
+      local dont_overwrite = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value
+      local only_modify_effects = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value
+      local only_modify_notes = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value
+      local fill_percentage = preferences.pakettiCheatSheet.pakettiCheatSheetFillAll.value
+      
+      if min_val > max_val then
+        min_val, max_val = max_val, min_val
+      end
+      
+      local should_apply = function()
+        return math.random(100) <= fill_percentage
+      end
+      
+      local has_notes_in_line = function(track, line_index, track_index)
+        local line = track:line(line_index)
+        local visible_columns = s:track(track_index).visible_note_columns
+        for i = 1, visible_columns do
+          local note_column = line.note_columns[i]
+          if note_column.note_value ~= renoise.PatternLine.EMPTY_NOTE and 
+             note_column.note_string ~= "OFF" then
+            return true
+          end
+        end
+        return false
+      end
+      
+      if s.selection_in_pattern then
+        local pattern = s:pattern(s.selected_pattern_index)
+        for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
+          local track = s:track(t)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local pattern_track = pattern:track(t)
+            local note_columns_visible = track.visible_note_columns
+            local effect_columns_visible = track.visible_effect_columns
+            local total_columns_visible = note_columns_visible + effect_columns_visible
+            local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or note_columns_visible + 1
+            local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or total_columns_visible
+            for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+              local line = pattern_track:line(i)
+              for col = start_column, end_column do
+                local column_index = col - note_columns_visible
+                if column_index > 0 and column_index <= effect_columns_visible then
+                  local effect_column = line:effect_column(column_index)
+                  if effect_column then
+                    local should_modify = true
+                    
+                    if only_modify_notes and not has_notes_in_line(pattern_track, i, t) then
+                      should_modify = false
+                    end
+                    
+                    if dont_overwrite and not effect_column.is_empty then
+                      should_modify = false
+                    end
+                    
+                    if only_modify_effects and effect_column.is_empty then
+                      should_modify = false
+                    end
+                    
+                    if should_modify and should_apply() then
+                      if randomize_switch then
+                        effect_column.amount_value = math.random() < 0.5 and min_val or max_val
+                      else
+                        effect_column.amount_value = math.random(min_val, max_val)
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      else
+        if s.selected_effect_column then
+          if should_apply() then
+            if randomize_switch then
+              s.selected_effect_column.amount_value = math.random() < 0.5 and min_val or max_val
+            else
+              s.selected_effect_column.amount_value = math.random(min_val, max_val)
+            end
+          end
+        elseif s.selected_line then
+          if should_apply() then
+            if randomize_switch then
+              s.selected_line.effect_columns[1].amount_value = math.random() < 0.5 and min_val or max_val
+            else
+              s.selected_line.effect_columns[1].amount_value = math.random(min_val, max_val)
+            end
+          end
+        end
+      end
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -719,6 +840,7 @@ function pakettiPatternEditorCheatsheetDialog()
         current_value = current_value - 1
         min_slider.value = current_value
       end
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -730,6 +852,7 @@ function pakettiPatternEditorCheatsheetDialog()
         current_value = current_value + 1
         min_slider.value = current_value
       end
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -745,7 +868,111 @@ function pakettiPatternEditorCheatsheetDialog()
     notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value = v
       vb.views["max_text_unique"].text = string.format("%02X", v)
-       save_Cheatsheetpreferences()
+      
+      -- Check if Randomize is enabled first
+      local randomize_cb = preferences.pakettiCheatSheet.pakettiCheatSheetRandomize.value
+      if not randomize_cb then
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+        return
+      end
+      
+      trueRandomSeed()
+      sliderVisibleEffect()
+      local s = renoise.song()
+      local min_val = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value
+      local max_val = v
+      local randomize_switch = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value
+      local dont_overwrite = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value
+      local only_modify_effects = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value
+      local only_modify_notes = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value
+      local fill_percentage = preferences.pakettiCheatSheet.pakettiCheatSheetFillAll.value
+      
+      if min_val > max_val then
+        min_val, max_val = max_val, min_val
+      end
+      
+      local should_apply = function()
+        return math.random(100) <= fill_percentage
+      end
+      
+      local has_notes_in_line = function(track, line_index, track_index)
+        local line = track:line(line_index)
+        local visible_columns = s:track(track_index).visible_note_columns
+        for i = 1, visible_columns do
+          local note_column = line.note_columns[i]
+          if note_column.note_value ~= renoise.PatternLine.EMPTY_NOTE and 
+             note_column.note_string ~= "OFF" then
+            return true
+          end
+        end
+        return false
+      end
+      
+      if s.selection_in_pattern then
+        local pattern = s:pattern(s.selected_pattern_index)
+        for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
+          local track = s:track(t)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local pattern_track = pattern:track(t)
+            local note_columns_visible = track.visible_note_columns
+            local effect_columns_visible = track.visible_effect_columns
+            local total_columns_visible = note_columns_visible + effect_columns_visible
+            local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or note_columns_visible + 1
+            local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or total_columns_visible
+            for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+              local line = pattern_track:line(i)
+              for col = start_column, end_column do
+                local column_index = col - note_columns_visible
+                if column_index > 0 and column_index <= effect_columns_visible then
+                  local effect_column = line:effect_column(column_index)
+                  if effect_column then
+                    local should_modify = true
+                    
+                    if only_modify_notes and not has_notes_in_line(pattern_track, i, t) then
+                      should_modify = false
+                    end
+                    
+                    if dont_overwrite and not effect_column.is_empty then
+                      should_modify = false
+                    end
+                    
+                    if only_modify_effects and effect_column.is_empty then
+                      should_modify = false
+                    end
+                    
+                    if should_modify and should_apply() then
+                      if randomize_switch then
+                        effect_column.amount_value = math.random() < 0.5 and min_val or max_val
+                      else
+                        effect_column.amount_value = math.random(min_val, max_val)
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      else
+        if s.selected_effect_column then
+          if should_apply() then
+            if randomize_switch then
+              s.selected_effect_column.amount_value = math.random() < 0.5 and min_val or max_val
+            else
+              s.selected_effect_column.amount_value = math.random(min_val, max_val)
+            end
+          end
+        elseif s.selected_line then
+          if should_apply() then
+            if randomize_switch then
+              s.selected_line.effect_columns[1].amount_value = math.random() < 0.5 and min_val or max_val
+            else
+              s.selected_line.effect_columns[1].amount_value = math.random(min_val, max_val)
+            end
+          end
+        end
+      end
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -762,6 +989,7 @@ function pakettiPatternEditorCheatsheetDialog()
         current_value = current_value - 1
         max_slider.value = current_value
       end
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -773,6 +1001,7 @@ function pakettiPatternEditorCheatsheetDialog()
         current_value = current_value + 1
         max_slider.value = current_value
       end
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -843,16 +1072,19 @@ function pakettiPatternEditorCheatsheetDialog()
           sliderVisible("volume")
           local s = renoise.song()
           if s.selection_in_pattern then
+            local pattern = s:pattern(s.selected_pattern_index)
             for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
               local track = s:track(t)
               if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+                local pattern_track = pattern:track(t)
                 local note_columns_visible = track.visible_note_columns
                 local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or 1
                 local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or note_columns_visible
                 for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+                  local line = pattern_track:line(i)
                   for col = start_column, end_column do
                     if col <= note_columns_visible then
-                      local note_column = s:pattern(s.selected_pattern_index):track(t):line(i).note_columns[col]
+                      local note_column = line.note_columns[col]
                       if note_column then
                         note_column.volume_value = v
                       end
@@ -892,16 +1124,19 @@ function pakettiPatternEditorCheatsheetDialog()
           sliderVisible("panning")
           local s = renoise.song()
           if s.selection_in_pattern then
+            local pattern = s:pattern(s.selected_pattern_index)
             for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
               local track = s:track(t)
               if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+                local pattern_track = pattern:track(t)
                 local note_columns_visible = track.visible_note_columns
                 local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or 1
                 local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or note_columns_visible
                 for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+                  local line = pattern_track:line(i)
                   for col = start_column, end_column do
                     if col <= note_columns_visible then
-                      local note_column = s:pattern(s.selected_pattern_index):track(t):line(i).note_columns[col]
+                      local note_column = line.note_columns[col]
                       if note_column then
                         note_column.panning_value = v
                       end
@@ -941,16 +1176,19 @@ function pakettiPatternEditorCheatsheetDialog()
           sliderVisible("delay")
           local s = renoise.song()
           if s.selection_in_pattern then
+            local pattern = s:pattern(s.selected_pattern_index)
             for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
               local track = s:track(t)
               if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+                local pattern_track = pattern:track(t)
                 local note_columns_visible = track.visible_note_columns
                 local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or 1
                 local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or note_columns_visible
                 for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+                  local line = pattern_track:line(i)
                   for col = start_column, end_column do
                     if col <= note_columns_visible then
-                      local note_column = s:pattern(s.selected_pattern_index):track(t):line(i).note_columns[col]
+                      local note_column = line.note_columns[col]
                       if note_column then
                         note_column.delay_value = v
                       end
@@ -990,16 +1228,19 @@ function pakettiPatternEditorCheatsheetDialog()
           sliderVisible("samplefx")
           local s = renoise.song()
           if s.selection_in_pattern then
+            local pattern = s:pattern(s.selected_pattern_index)
             for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
               local track = s:track(t)
               if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+                local pattern_track = pattern:track(t)
                 local note_columns_visible = track.visible_note_columns
                 local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or 1
                 local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or note_columns_visible
                 for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+                  local line = pattern_track:line(i)
                   for col = start_column, end_column do
                     if col <= note_columns_visible then
-                      local note_column = s:pattern(s.selected_pattern_index):track(t):line(i).note_columns[col]
+                      local note_column = line.note_columns[col]
                       if note_column then
                         note_column.effect_amount_value = v
                       end
@@ -1039,19 +1280,22 @@ function pakettiPatternEditorCheatsheetDialog()
           sliderVisibleEffect()
           local s = renoise.song()
           if s.selection_in_pattern then
+            local pattern = s:pattern(s.selected_pattern_index)
             for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
               local track = s:track(t)
               if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+                local pattern_track = pattern:track(t)
                 local note_columns_visible = track.visible_note_columns
                 local effect_columns_visible = track.visible_effect_columns
                 local total_columns_visible = note_columns_visible + effect_columns_visible
                 local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or note_columns_visible + 1
                 local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or total_columns_visible
                 for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+                  local line = pattern_track:line(i)
                   for col = start_column, end_column do
                     local column_index = col - note_columns_visible
                     if column_index > 0 and column_index <= effect_columns_visible then
-                      local effect_column = s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(column_index)
+                      local effect_column = line:effect_column(column_index)
                       if effect_column then
                         effect_column.amount_value = v
                       end
@@ -1078,7 +1322,9 @@ function pakettiPatternEditorCheatsheetDialog()
 
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
-    function(value) dialog = value end
+    function(value) 
+      dialog = value 
+    end
   )
   dialog = a:show_custom_dialog("Paketti Pattern Effect Command CheatSheet", dialog_content, keyhandler)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -1132,19 +1378,22 @@ local function apply_mini_effect_direct(effect_command, hex_value)
   sliderVisibleEffect()
   local s = renoise.song()
   if s.selection_in_pattern then
+    local pattern = s:pattern(s.selected_pattern_index)
     for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
       local track = s:track(t)
       if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local pattern_track = pattern:track(t)
         local note_columns_visible = track.visible_note_columns
         local effect_columns_visible = track.visible_effect_columns
         local total_columns_visible = note_columns_visible + effect_columns_visible
         local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or note_columns_visible + 1
         local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or total_columns_visible
         for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+          local line = pattern_track:line(i)
           for col = start_column, end_column do
             local column_index = col - note_columns_visible
             if column_index > 0 and column_index <= effect_columns_visible then
-              local effect_column = s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(column_index)
+              local effect_column = line:effect_column(column_index)
               if effect_column then
                 effect_column.number_string = effect_command
                 effect_column.amount_value = hex_value

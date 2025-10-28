@@ -69,6 +69,9 @@ local band_being_drawn = nil
 local create_follow_enabled = false
 local track_index_notifier = nil
 
+-- Device selection observer for auto-opening EQ30 dialog
+local device_selection_notifier = nil
+
 -- Cleanup EQ30 dialog state
 function EQ30Cleanup()
   -- turn off automation sync on close to avoid accidental writes next time
@@ -94,7 +97,82 @@ function EQ30Cleanup()
   end)
   track_index_notifier = nil
   create_follow_enabled = false
+  -- Remove device selection observer
+  pcall(function()
+    local song = renoise.song()
+    if song and song.selected_device_observable and device_selection_notifier then
+      if song.selected_device_observable:has_notifier(device_selection_notifier) then
+        song.selected_device_observable:remove_notifier(device_selection_notifier)
+      end
+    end
+  end)
+  device_selection_notifier = nil
 end
+
+-- Check if selected device is an EQ30 device
+function is_eq30_device(device)
+  if not device or not device.display_name then
+    return false
+  end
+  
+  local display_name = device.display_name
+  -- Check for EQ30 Device 1-4 or EQ64 Device 1-8
+  return display_name:match("^EQ30 Device [1-4]$") or display_name:match("^EQ64 Device [1-8]$")
+end
+
+-- Setup device selection observer to auto-open EQ30 dialog
+function setup_eq30_device_observer()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Remove existing notifier if present
+  pcall(function()
+    if song.selected_device_observable and device_selection_notifier then
+      if song.selected_device_observable:has_notifier(device_selection_notifier) then
+        song.selected_device_observable:remove_notifier(device_selection_notifier)
+      end
+    end
+  end)
+  
+  -- Create notifier function
+  device_selection_notifier = function()
+    local song = renoise.song()
+    if not song or not song.selected_track or not song.selected_device_index then
+      return
+    end
+    
+    local device_index = song.selected_device_index
+    if device_index < 1 or device_index > #song.selected_track.devices then
+      return
+    end
+    
+    local device = song.selected_track.devices[device_index]
+    
+    -- Check if this is Pro-Q 3 - open external editor instead
+    if device.display_name and device.display_name:find("Pro%-Q 3") then
+      if device.external_editor_available then
+        device.external_editor_visible = true
+        print("Pro-Q 3 selected, opening external editor")
+      end
+      return
+    end
+    
+    -- Check if this is an EQ30/EQ64 device
+    if is_eq30_device(device) then
+      -- Only open if not already visible
+      if not (eq_dialog and eq_dialog.visible) then
+        print("EQ30 device selected, opening dialog: " .. device.display_name)
+        PakettiEQ30ShowAndFollow()
+      end
+    end
+  end
+  
+  -- Add the notifier
+  if song.selected_device_observable then
+    song.selected_device_observable:add_notifier(device_selection_notifier)
+  end
+end
+
 
 -- Canvas colors (using same pattern as PakettiPCMWriter)
 local COLOR_GRID_LINES = {32, 64, 32, 255}        -- Dark green grid
@@ -2313,7 +2391,6 @@ renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:P
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ64 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ64UnusedNoteFrequencyReductionFlavor}
 renoise.tool():add_midi_mapping{name = "Paketti:Paketti EQ64 Unused Note Frequency Reduction Flavor", invoke = function(message) if message:is_trigger() then PakettiEQ64UnusedNoteFrequencyReductionFlavor() end end}
 
-
-
-
+-- Initialize device selection observer to auto-open EQ30 dialog when EQ30 devices are selected
+setup_eq30_device_observer()
 

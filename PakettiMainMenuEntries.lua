@@ -108,7 +108,7 @@ local dialog_content = vb:column{
   vb:text{text="Thanks for the support / assistance:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height=40,text= 
   -- THANKS
-  "dBlue, danoise, cortex, pandabot, ffx, Joule, Avaruus, astu/flo, syflom, Protman, vV, Bantai, taktik, Snowrobot, MXB, Jenoki, Kmaki, aleksip, Unless, martblek, schmuzoo, Sandroid, ylmrx, onetwentyeight, Tobias Felsner and the whole Renoise community."},
+  "dBlue, danoise, cortex, pandabot, ffx, Joule, Avaruus, astu/flo, syflom, Protman, vV, Bantai, taktik, Snowrobot, MXB, Jenoki, Kmaki, aleksip, Unless, martblek, schmuzoo, Sandroid, ylmrx, onetwentyeight, Gabhonga (Tobias Felsner) and the whole Renoise community."},
 
   vb:text{text="Ideas provided by:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height = 100, text = 

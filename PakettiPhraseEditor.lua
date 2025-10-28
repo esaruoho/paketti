@@ -2,7 +2,11 @@
 local dialog = nil
 
 -- Phrase follow variables
-local phrase_follow_enabled = false  -- Track phrase follow state
+-- Initialize from preferences, defaulting to false if not set
+local phrase_follow_enabled = false
+if preferences and preferences.PakettiPhraseFollowPatternPlayback then
+  phrase_follow_enabled = preferences.PakettiPhraseFollowPatternPlayback.value
+end
 local current_cycle = 0  -- Track current cycle for phrase follow
 
 -- Function to load preferences
@@ -553,6 +557,12 @@ function observe_phrase_playhead()
   -- Toggle state
   phrase_follow_enabled = not phrase_follow_enabled
   
+  -- Save preference
+  if preferences and preferences.PakettiPhraseFollowPatternPlayback then
+    preferences.PakettiPhraseFollowPatternPlayback.value = phrase_follow_enabled
+    preferences:save_as("preferences.xml")
+  end
+  
   if phrase_follow_enabled then
     -- Enable follow player and set editstep to 0
     s.transport.follow_player = true
@@ -576,6 +586,11 @@ function observe_phrase_playhead()
     current_cycle = 0  -- Reset cycle when disabling
     renoise.app():show_status("Phrase Follow Pattern Playback: OFF")
   end
+end
+
+-- Toggle function for Main Menu Options (with checkbox state persistence)
+function PakettiTogglePhraseFollowPatternPlayback()
+  observe_phrase_playhead()
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
@@ -815,4 +830,9 @@ end
 if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-F Expand Selection Replicate",invoke=function() ExpandSelectionReplicatePhrase() end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Replicate",invoke=function() ShrinkSelectionReplicatePhrase() end}
+end
+
+-- Initialize phrase follow at startup if preference is enabled
+if renoise.API_VERSION >= 6.2 and phrase_follow_enabled then
+  enable_phrase_follow()
 end

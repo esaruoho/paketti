@@ -5207,3 +5207,15 @@ function pakettiPlayerProInitializeAlwaysOpen()
   -- Always start middle frame observer (it checks the preference internally)
   pakettiPlayerProStartMiddleFrameObserver()
 end
+
+-- Toggle function for PlayerPro Always Open
+function pakettiPlayerProToggleAlwaysOpen()
+  preferences.pakettiPlayerProAlwaysOpen.value = not preferences.pakettiPlayerProAlwaysOpen.value
+  --preferences:save_as("preferences.xml")
+  
+  if preferences.pakettiPlayerProAlwaysOpen.value then
+    pakettiPlayerProStartAlwaysOpen()
+  else
+    pakettiPlayerProStopAlwaysOpen()
+  end
+end

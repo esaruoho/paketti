@@ -235,5 +235,3 @@ for i = 1, 10 do
     invoke = function() PakettiExecuteRunSlot(i) end
   }
 end
-
-print("PakettiExecute.lua loaded successfully")

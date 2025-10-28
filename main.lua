@@ -1,5 +1,7 @@
 local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
 
+-- Global variable to control timed_require debug output (default: disabled)
+PakettiTimedRequireDebug = false
 
 sampleEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 patternEditor = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -216,9 +218,14 @@ function timed_require(module_name)
     dofile(file_path)
     local elapsed = (os.clock() - start_time) * 1000 -- convert to milliseconds
     
-    print(string.format("%s, %d lines, %.2f ms", module_name, line_count, elapsed))
+    if PakettiTimedRequireDebug then
+        print(string.format("%s, %d lines, %.2f ms", module_name, line_count, elapsed))
+    end
 end
-print ("---------------------")
+
+if PakettiTimedRequireDebug then
+    print("---------------------")
+end
 
 -- Helper function to create a keyhandler that can manage a specific dialog variable
 function create_keyhandler_for_dialog(dialog_var_getter, dialog_var_setter)
@@ -291,6 +298,17 @@ end
 -- Add menu entry and keybinding for whichSubcolumn function
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?", invoke=whichSubcolumn}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Which Sub-Column?", invoke=whichSubcolumn}
+
+-- Function to toggle timed_require debug output
+function pakettiToggleTimedRequireDebug()
+    PakettiTimedRequireDebug = not PakettiTimedRequireDebug
+    local state = PakettiTimedRequireDebug and "enabled" or "disabled"
+    renoise.app():show_status("Timed require debug output is now " .. state .. ". Restart Paketti to see changes.")
+end
+
+-- Add menu entry and keybinding for timed_require debug toggle
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
 
 
 ------------------------------------------------
@@ -589,6 +607,14 @@ function startup()
       if PakettiPatternStatusMonitorEnabled then
         enable_pattern_status_monitor()
       end
+      
+      -- Initialize Audition on Line Change from preference (API 6.2+ only)
+      if renoise.API_VERSION >= 6.2 and preferences.pakettiAuditionOnLineChangeEnabled then
+        PakettiAuditionOnLineChangeEnabled = preferences.pakettiAuditionOnLineChangeEnabled.value
+        if PakettiAuditionOnLineChangeEnabled then
+          PakettiToggleAuditionCurrentLineOnRowChange()
+        end
+      end
 
       
       -- Initialize PlayerPro Always Open Dialog system
@@ -783,6 +809,7 @@ timed_require("Research/FormulaDeviceManual")
 timed_require("PakettiXRNSProbe")
 timed_require("PakettiSteppers")
 timed_require("PakettiPatternIterator")
+timed_require("PakettiPatternDelayViewer")
 
 
 --- File Import / Export business
@@ -873,6 +900,7 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiAutomationStack")
 end
 
+
 --timed_require("PakettiExperimentalDialog")
 timed_require("PakettiRequests")
 timed_require("PakettiAutoSamplify")
@@ -894,7 +922,94 @@ timed_require("PakettiEightOneTwenty")
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")
 local total_time = os.clock() - init_time
-print(string.format("Total load time: %.2f ms (%.3f seconds)", total_time * 1000, total_time))
+if PakettiTimedRequireDebug then
+    print(string.format("Total load time: %.2f ms (%.3f seconds)", total_time * 1000, total_time))
+end
+
+-- Function to randomly pick a Paketti feature for documentation
+function pakettiRandomFeatureForDocumentation()
+  trueRandomSeed()
+  
+  local lua_files = PakettiGetAllLuaFiles()
+  local bundle_path = renoise.tool().bundle_path
+  local all_features = {}
+  
+  -- Parse each lua file for registrations
+  for _, lua_file in ipairs(lua_files) do
+    local file_path = bundle_path .. lua_file .. ".lua"
+    local file = io.open(file_path, "r")
+    
+    if file then
+      local content = file:read("*all")
+      file:close()
+      
+      -- More flexible pattern matching that handles multiline and various formats
+      -- Just match add_menu_entry/add_keybinding/add_midi_mapping regardless of what comes before
+      
+      -- Find all add_menu_entry with name parameter
+      for name in content:gmatch('add_menu_entry%s*{[^}]-name%s*=%s*"([^"]+)"') do
+        table.insert(all_features, {type = "Menu Entry", name = name, file = lua_file})
+      end
+      
+      -- Find all add_keybinding with name parameter
+      for name in content:gmatch('add_keybinding%s*{[^}]-name%s*=%s*"([^"]+)"') do
+        table.insert(all_features, {type = "Keybinding", name = name, file = lua_file})
+      end
+      
+      -- Find all add_midi_mapping with name parameter
+      for name in content:gmatch('add_midi_mapping%s*{[^}]-name%s*=%s*"([^"]+)"') do
+        table.insert(all_features, {type = "MIDI Mapping", name = name, file = lua_file})
+      end
+    end
+  end
+  
+  if #all_features == 0 then
+    print("No Paketti features found!")
+    return
+  end
+  
+  -- Pick random feature
+  local feature = all_features[math.random(1, #all_features)]
+  local short_name = feature.name:match(".*:(.+)$") or feature.name
+  
+  -- Strip ... suffixes for comparison purposes
+  local function strip_for_comparison(name)
+    -- Remove trailing ... (dialog indicator)
+    return name:gsub("%.%.%.$", "")
+  end
+  
+  local short_name_clean = strip_for_comparison(short_name)
+  
+  -- Find ALL registrations with the same short name (ignoring ... markers)
+  local related_features = {}
+  for _, f in ipairs(all_features) do
+    local f_short = f.name:match(".*:(.+)$") or f.name
+    local f_short_clean = strip_for_comparison(f_short)
+    if f_short_clean == short_name_clean then
+      table.insert(related_features, f)
+    end
+  end
+  
+  print("----------------------------------------")
+  print("RANDOM PAKETTI FEATURE FOR DOCUMENTATION")
+  print("----------------------------------------")
+  print("Feature: " .. short_name)
+  print("")
+  print("All Registrations (" .. #related_features .. "):")
+  for _, f in ipairs(related_features) do
+    print("  [" .. f.type .. "] " .. f.name .. " (" .. f.file .. ".lua)")
+  end
+  print("----------------------------------------")
+  
+  renoise.app():show_status(string.format("Random: %s (%d registrations)", short_name, #related_features))
+end
+
+-- Add menu entry and keybinding for the random feature picker
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Random Feature for Documentation", invoke=pakettiRandomFeatureForDocumentation}
+renoise.tool():add_keybinding{name="Global:Paketti:Random Feature for Documentation", invoke=pakettiRandomFeatureForDocumentation}
+
+-- Run the random feature picker automatically at startup
+pakettiRandomFeatureForDocumentation()
 
 _AUTO_RELOAD_DEBUG = true
 

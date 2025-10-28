@@ -923,7 +923,3 @@ function PakettiPatternIteratorFindLastNoteInTrack(song, track_index, visible_on
   return last_pos, last_column
 end
 
-------------------------------------------------------------------------------
-
-print("PakettiPatternIterator.lua loaded successfully")
-

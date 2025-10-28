@@ -355,6 +355,137 @@ function PakettiZeroCrossingsMoveSliceEnd(beat_fraction, direction)
     direction_text, beat_text, math.abs(frame_offset)))
 end
 
+-- Snap current selection range to nearest zero crossings
+function PakettiZeroCrossingsSnapSelection(zero_crossing_sensitivity)
+  local s = renoise.song()
+  local sample = s.selected_sample
+  
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample selected or sample has no data")
+    return
+  end
+
+  local buffer = sample.sample_buffer
+  
+  -- Check if there's a selection
+  if buffer.selection_start == 0 and buffer.selection_end == 0 then
+    renoise.app():show_status("No selection range to snap")
+    return
+  end
+  
+  local zero_threshold = (zero_crossing_sensitivity or 1.0) / 100
+  local search_range = math.floor(buffer.sample_rate * 0.01) -- 10ms search range
+  
+  local original_start = buffer.selection_start
+  local original_end = buffer.selection_end
+  
+  -- Find zero crossings for both start and end
+  local new_start = PakettiZeroCrossingsFind(buffer, original_start, search_range, zero_threshold)
+  local new_end = PakettiZeroCrossingsFind(buffer, original_end, search_range, zero_threshold)
+  
+  -- Make sure start is before end
+  if new_start >= new_end then
+    renoise.app():show_status("Could not find valid zero crossing positions")
+    return
+  end
+  
+  -- Apply the new selection
+  buffer.selection_start = new_start
+  buffer.selection_end = new_end
+  
+  local start_moved = math.abs(new_start - original_start)
+  local end_moved = math.abs(new_end - original_end)
+  
+  renoise.app():show_status(string.format("Snapped selection to zero crossings (moved start: %d, end: %d frames)", 
+    start_moved, end_moved))
+end
+
+-- Auto-zero-crossing observable management
+local PakettiZeroCrossingsSelectionObservable = nil
+local PakettiZeroCrossingsIsAdjusting = false
+
+function PakettiZeroCrossingsAttachSelectionObservable()
+  local s = renoise.song()
+  local sample = s.selected_sample
+  
+  if not sample or not sample.sample_buffer.has_sample_data then
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  
+  -- Remove existing observable if any
+  if PakettiZeroCrossingsSelectionObservable then
+    PakettiZeroCrossingsSelectionObservable:remove_notifier(PakettiZeroCrossingsSelectionObservable)
+    PakettiZeroCrossingsSelectionObservable = nil
+  end
+  
+  -- Add new observable
+  PakettiZeroCrossingsSelectionObservable = buffer.selection_range_observable:add_notifier(function()
+    -- Don't create feedback loops
+    if PakettiZeroCrossingsIsAdjusting then
+      return
+    end
+    
+    -- Check if preference is enabled
+    if not preferences.ZeroCrossings.AutoSnapSelection.value then
+      return
+    end
+    
+    -- Only auto-snap if there's a selection
+    if buffer.selection_start == 0 and buffer.selection_end == 0 then
+      return
+    end
+    
+    -- Set flag to prevent recursive calls
+    PakettiZeroCrossingsIsAdjusting = true
+    
+    local zero_threshold = 0.01 -- 1% default
+    local search_range = math.floor(buffer.sample_rate * 0.01) -- 10ms search range
+    
+    local original_start = buffer.selection_start
+    local original_end = buffer.selection_end
+    
+    -- Find zero crossings
+    local new_start = PakettiZeroCrossingsFind(buffer, original_start, search_range, zero_threshold)
+    local new_end = PakettiZeroCrossingsFind(buffer, original_end, search_range, zero_threshold)
+    
+    -- Only apply if valid range
+    if new_start < new_end then
+      buffer.selection_start = new_start
+      buffer.selection_end = new_end
+    end
+    
+    -- Clear flag
+    PakettiZeroCrossingsIsAdjusting = false
+  end)
+end
+
+-- Handler for new document
+function PakettiZeroCrossingsNewDocumentHandler()
+  local s = renoise.song()
+  if not s.selected_sample_observable:has_notifier(PakettiZeroCrossingsAttachSelectionObservable) then
+    s.selected_sample_observable:add_notifier(PakettiZeroCrossingsAttachSelectionObservable)
+  end
+  PakettiZeroCrossingsAttachSelectionObservable()
+end
+
+-- Attach observable when sample changes
+function PakettiZeroCrossingsInitAutoSnap()
+  if not renoise.tool().app_new_document_observable:has_notifier(PakettiZeroCrossingsNewDocumentHandler) then
+    renoise.tool().app_new_document_observable:add_notifier(PakettiZeroCrossingsNewDocumentHandler)
+  end
+  
+  -- Initialize for current song
+  if renoise.song() then
+    local s = renoise.song()
+    if not s.selected_sample_observable:has_notifier(PakettiZeroCrossingsAttachSelectionObservable) then
+      s.selected_sample_observable:add_notifier(PakettiZeroCrossingsAttachSelectionObservable)
+    end
+    PakettiZeroCrossingsAttachSelectionObservable()
+  end
+end
+
 local PakettiZeroCrossingsDialog = nil
 
 -- Interactive dialog for advanced slice operations
@@ -523,10 +654,24 @@ function PakettiZeroCrossingsQuickRandomizeSlices() PakettiZeroCrossingsRandomiz
 function PakettiZeroCrossingsQuickRandomSlices() PakettiZeroCrossingsRandomDistributedSlices(8, 32, true, 1.0) end
 
 --------------------------------------------------------------------------------
+-- Preferences
+--------------------------------------------------------------------------------
+
+if not preferences.ZeroCrossings then
+  preferences.ZeroCrossings = {
+    AutoSnapSelection = {value = false}
+  }
+end
+
+-- Initialize auto-snap feature
+PakettiZeroCrossingsInitAutoSnap()
+
+--------------------------------------------------------------------------------
 -- Key bindings
 --------------------------------------------------------------------------------
 
 renoise.tool():add_keybinding{name="Global:Paketti:Zero Crossings Advanced Dialog", invoke = PakettiZeroCrossingsAdvancedDialog}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Snap Selection to Zero Crossings", invoke = function() PakettiZeroCrossingsSnapSelection(1.0) end}
 
 -- Zero crossing wipe & slice keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Zero Crossing Wipe&Slice (002)", invoke = PakettiZeroCrossingsWipeSlice002}
@@ -566,8 +711,15 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Move Slice End +1/32 B
 -- Menu entries
 --------------------------------------------------------------------------------
 
+-- Main menu Options entry
+renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-Zero-Crossing Selection Range in Sample Editor", invoke = function()
+  preferences.ZeroCrossings.AutoSnapSelection.value = not preferences.ZeroCrossings.AutoSnapSelection.value
+  renoise.app():show_status("Auto-Zero-Crossing Selection Range: " .. (preferences.ZeroCrossings.AutoSnapSelection.value and "ON" or "OFF"))
+end, selected = function() return preferences.ZeroCrossings.AutoSnapSelection.value end}
+
 -- Sample Editor menu entries
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Zero Crossings:Advanced Dialog", invoke = PakettiZeroCrossingsAdvancedDialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Zero Crossings:Snap Selection to Zero Crossings", invoke = function() PakettiZeroCrossingsSnapSelection(1.0) end}
 
 -- Zero crossing wipe & slice menu entries
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (002)", invoke = PakettiZeroCrossingsWipeSlice002}
@@ -617,6 +769,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Zero Crossings:Zero
 --------------------------------------------------------------------------------
 
 renoise.tool():add_midi_mapping{name="Paketti:Zero Crossings Advanced Dialog", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsAdvancedDialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Snap Selection to Zero Crossings", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsSnapSelection(1.0) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Zero Cross Wipe&Slice (016)", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsWipeSlice016() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Slice Positions", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsQuickRandomizeSlices() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Create Random Distributed Slices", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsQuickRandomSlices() end end}

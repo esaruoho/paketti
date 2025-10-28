@@ -28,6 +28,11 @@ local show_only_with_shortcuts_checkbox = nil
 local MAX_VISIBLE_BUTTONS = 40
 local current_scroll_offset = 0
 
+-- Button display tracking variables (for optimization)
+local previous_suggestion_index = 0
+local last_commands_count = 0
+local last_commands_hash = ""
+
 -- Real Paketti commands (dynamically loaded)
 local paketti_commands = {}
 local command_descriptions = {}
@@ -592,6 +597,8 @@ local calculate_command_score
 local get_smart_ordered_commands
 local is_context_relevant
 local score_flip_and_reverse
+local update_scrollbar
+local ensure_selection_visible
 
 -- Helper function to get display category (show [MIDI] for MIDI mappings)
 local function get_display_category(command)
@@ -2481,8 +2488,29 @@ local function execute_command(command)
   
   -- Update the display to reflect new usage data
   if autocomplete_dialog and autocomplete_dialog.visible then
+    -- Save current selection and scroll position
+    local saved_selection = selected_suggestion_index
+    local saved_scroll = current_scroll_offset
+    
     -- Refresh the current filter to update rankings
     update_suggestions(current_search_text)
+    
+    -- Restore selection and scroll position if still valid
+    if saved_selection > 0 and saved_selection <= #current_filtered_commands then
+      selected_suggestion_index = saved_selection
+      current_scroll_offset = saved_scroll
+      
+      -- Reset the tracking variable so button display updates correctly
+      previous_suggestion_index = 0
+      
+      -- Make sure selection is visible
+      ensure_selection_visible()
+      
+      -- Force full button display refresh to show the purple selection highlight
+      update_scrollbar()
+      update_button_display(true)
+    end
+    
     autocomplete_dialog:show()
   end
 end
@@ -2511,7 +2539,7 @@ local function update_search_display()
 end
 
 -- Function to update scrollbar properties based on current commands
-local function update_scrollbar()
+function update_scrollbar()
   if suggestions_scrollbar then
     local commands_count = #current_filtered_commands
     if commands_count <= MAX_VISIBLE_BUTTONS then
@@ -2569,7 +2597,7 @@ local function go_to_next_page()
 end
 
 -- Function to ensure selected item is visible (auto-scroll)
-local function ensure_selection_visible()
+function ensure_selection_visible()
   if selected_suggestion_index <= 0 or #current_filtered_commands == 0 then
     local old_offset = current_scroll_offset
     current_scroll_offset = 0
@@ -2637,11 +2665,6 @@ local function move_selection_down()
     update_button_display()
   end
 end
-
--- Track previous selection to minimize updates
-local previous_suggestion_index = 0
-local last_commands_count = 0
-local last_commands_hash = ""
 
 -- Function to update button display (optimized to only update changed buttons)
 function update_button_display(force_full_refresh)

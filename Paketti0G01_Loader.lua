@@ -133,7 +133,10 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiEnableGlobalGrooveOnStartup=false,
   pakettiRandomizeBPMOnNewSong=false,
   pakettiPatternStatusMonitor=false,
+  pakettiAuditionOnLineChangeEnabled=false,
   pakettiFrameCalculatorLiveUpdate=1, -- 1=Off, 2=Song to Line, 3=Pattern to Line, 4=Both
+  PakettiSBxFollowEnabled=true,
+  PakettiPhraseFollowPatternPlayback=false,
   
   pakettiCaptureLastTakeSmartNoteOff=true,
   pakettiSwitcharooAutoGrab=true,
@@ -200,6 +203,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
   pakettiPresetPlusPlusDeviceChain = "DeviceChains" .. separator .. "hipass_lopass_dcoffset.xrnt",
   -- AutoSamplify Settings
+  pakettiAutoSamplifyMonitoring = true,
   pakettiAutoSamplifyPakettify = false,
   ActionSelector = {
  Index01="",
@@ -578,7 +582,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     AutomationPlaymode = true,
     RandomizeStrength = true,
     HalfSize = false,
-    HalfSizeFont = false
+    HalfSizeFont = false,
+    AutoOpen = false
   },
   -- Create New Send Settings
   pakettiCreateNewSends = {
@@ -965,15 +970,23 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 vb:text{text="Always Open Track DSPs",width=150,tooltip="Automatically open external editors for all Track DSP devices when switching tracks"},
                 vb:switch{items={"Off","On"},value=preferences.pakettiAlwaysOpenDSPsOnTrack.value and 2 or 1,width=200,tooltip="Automatically open external editors for all Track DSP devices when switching tracks",
                   notifier=function(value) 
-                    preferences.pakettiAlwaysOpenDSPsOnTrack.value=(value==2)
-                    PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
+                    local new_state = (value==2)
+                    preferences.pakettiAlwaysOpenDSPsOnTrack.value = new_state
+                    -- Only toggle if the current state doesn't match the desired state
+                    if PakettiAutomaticallyOpenTrackDeviceEditorsEnabled ~= new_state then
+                      PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
+                    end
                   end}},
               vb:row{
                 vb:text{text="Always Open Sample FX Chain Devices",width=150,tooltip="Automatically open external editors for all Sample FX Chain devices when switching samples"},
                 vb:switch{items={"Off","On"},value=preferences.pakettiAlwaysOpenSampleFXChainDevices.value and 2 or 1,width=200,tooltip="Automatically open external editors for all Sample FX Chain devices when switching samples",
                   notifier=function(value) 
-                    preferences.pakettiAlwaysOpenSampleFXChainDevices.value=(value==2)
-                    PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode()
+                    local new_state = (value==2)
+                    preferences.pakettiAlwaysOpenSampleFXChainDevices.value = new_state
+                    -- Only toggle if the current state doesn't match the desired state
+                    if PakettiAutomaticallyOpenSampleDeviceChainExternalEditorsEnabled ~= new_state then
+                      PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode()
+                    end
                   end}},
               vb:row{
                 vb:text{text="Replace Current Instrument",width=150,tooltip="Pakettification replaces current instrument instead of creating new one"},
@@ -1037,6 +1050,10 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 vb:text{text="Pattern Status Monitor",width=150,tooltip="Show real-time effect/note column information in status bar",},
                 vb:switch{items={"Off","On"},tooltip="Show real-time effect/note column information in status bar",value=preferences.pakettiPatternStatusMonitor.value and 2 or 1,width=200,
                   notifier=function(value) preferences.pakettiPatternStatusMonitor.value=(value==2) end}},
+              vb:row{
+                vb:text{text="Audition on Line Change",width=150,tooltip="Automatically audition the current line when moving cursor (API 6.2+ only)",},
+                vb:switch{items={"Off","On"},tooltip="Automatically audition the current line when moving cursor (API 6.2+ only)",value=preferences.pakettiAuditionOnLineChangeEnabled.value and 2 or 1,width=200,
+                  notifier=function(value) preferences.pakettiAuditionOnLineChangeEnabled.value=(value==2) end}},
               vb:row{
                 vb:text{text="Frame Calculator Live Update",width=150,tooltip="Continuously show frame information in status bar when line changes",},
                 vb:switch{items={"Off","Song to Line","Pattern to Line","Both"},tooltip="Continuously show frame information in status bar when line changes",value=preferences.pakettiFrameCalculatorLiveUpdate.value,width=300,
@@ -1240,6 +1257,23 @@ vb:row{
             style="group",width="100%",--margin=10,
             
             vb:text{style="strong",font="bold",text="AutoSamplify Settings"},
+            vb:row{
+              vb:text{text="Enable Monitoring",width=150,tooltip="Master switch: When Off, AutoSamplify is completely disabled. When On, AutoSamplify monitors for new samples."},
+              vb:switch{items={"Off","On"},value=preferences.pakettiAutoSamplifyMonitoring.value and 2 or 1,width=200,
+                tooltip="Master switch: When Off, AutoSamplify is completely disabled. When On, AutoSamplify monitors for new samples.",
+                notifier=function(value) 
+                  preferences.pakettiAutoSamplifyMonitoring.value=(value==2)
+                  if preferences.pakettiAutoSamplifyMonitoring.value then
+                    if PakettiStartNewSampleMonitoring then
+                      PakettiStartNewSampleMonitoring()
+                    end
+                  else
+                    if PakettiStopNewSampleMonitoring then
+                      PakettiStopNewSampleMonitoring()
+                    end
+                  end
+                end}
+            },
             vb:row{
               vb:text{text="Pakettify",width=150,tooltip="When On: Creates new instrument with XRNI + loader settings. When Off: Only applies sample settings and normalizes in current instrument."},
               vb:switch{items={"Off","On"},value=preferences.pakettiAutoSamplifyPakettify.value and 2 or 1,width=200,
@@ -1806,6 +1840,30 @@ vb:row{
               tooltip="On: Always use smaller text. Off: Use small text only with Half Size canvas",
               notifier=function(value) 
                 preferences.pakettiParameterEditor.HalfSizeFont.value=(value==2)
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Auto-Open upon Selection",width=150,tooltip="Automatically open Parameter Editor when selecting ANY device (excludes ProQ-3)"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiParameterEditor.AutoOpen.value and 2 or 1,
+              width=200,
+              tooltip="Automatically open Parameter Editor when selecting ANY device (excludes ProQ-3)",
+              notifier=function(value) 
+                preferences.pakettiParameterEditor.AutoOpen.value=(value==2)
+                if type(PakettiCanvasExperimentsToggleAutoOpen) == "function" then
+                  if preferences.pakettiParameterEditor.AutoOpen.value then
+                    if type(PakettiCanvasExperimentsSetupGlobalDeviceObserver) == "function" then
+                      PakettiCanvasExperimentsSetupGlobalDeviceObserver()
+                    end
+                  else
+                    if type(PakettiCanvasExperimentsRemoveGlobalDeviceObserver) == "function" then
+                      PakettiCanvasExperimentsRemoveGlobalDeviceObserver()
+                    end
+                  end
+                end
+                local status_text = value == 2 and "enabled" or "disabled"
+                renoise.app():show_status("Parameter Editor Auto-Open " .. status_text)
               end
             }
           },

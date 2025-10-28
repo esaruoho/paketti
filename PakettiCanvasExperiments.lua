@@ -35,6 +35,8 @@ local current_drawing_parameter = nil
 -- Track information for current device
 local current_track_index = nil
 local current_track_name = nil
+-- Global device selection observer for auto-open feature
+local global_device_observer = nil
 
 -- Edit A/B functionality (inspired by PakettiPCMWriter)
 local current_edit_mode = "A"  -- "A" or "B"
@@ -55,6 +57,10 @@ local clean_parameter_names = true
 -- Track which specific parameter is being manually edited (automation sync aware)
 local parameter_being_drawn = nil  -- Index of parameter currently being drawn
 local automation_reading_enabled = true
+
+-- Track initialization cooldown to prevent auto-open during track/device creation
+local last_device_change_time = 0
+local device_change_cooldown_ms = 500  -- 500ms cooldown to avoid opening during batch device adds
 
 -- Button colors for Edit A/B
 local COLOR_BUTTON_ACTIVE = {0xFF, 0x80, 0x80}    -- Light red for active
@@ -267,6 +273,41 @@ function PakettiCanvasExperimentsRefreshDevice()
   end
   
   local song = renoise.song()
+  
+  -- Check if selected device is Pro-Q 3 - if so, close Parameter Editor and open external editor
+  if song and song.selected_device and song.selected_device.display_name then
+    local device = song.selected_device
+    local device_name = device.display_name
+    
+    if device_name:find("Pro%-Q 3") then
+      print("DEVICE_SWITCH: Selected Pro-Q 3, closing Parameter Editor and opening external editor")
+      -- Close Parameter Editor
+      PakettiCanvasExperimentsCleanup()
+      if canvas_experiments_dialog then
+        canvas_experiments_dialog:close()
+        canvas_experiments_dialog = nil
+      end
+      -- Open external editor
+      if device.external_editor_available then
+        device.external_editor_visible = true
+      end
+      return
+    end
+    
+    -- Check if selected device is EQ30/EQ64 - if so, close Parameter Editor and open EQ30 dialog instead
+    if device_name:match("^EQ30 Device [1-4]$") or device_name:match("^EQ64 Device [1-8]$") then
+      print("DEVICE_SWITCH: Selected EQ30/EQ64 device '" .. device_name .. "', closing Parameter Editor and opening EQ30 dialog")
+      -- Close Parameter Editor
+      PakettiCanvasExperimentsCleanup()
+      if canvas_experiments_dialog then
+        canvas_experiments_dialog:close()
+        canvas_experiments_dialog = nil
+      end
+      -- Open EQ30 dialog
+      PakettiEQ30ShowAndFollow()
+      return
+    end
+  end
   
   print("=== Device Selection Changed ===")
   
@@ -1204,6 +1245,9 @@ function PakettiCanvasExperimentsCleanup()
   parameter_values_B = {}
   crossfade_amount = 0.0
   current_edit_mode = "A"
+  
+  -- Reset cooldown timer
+  last_device_change_time = 0
 end
 
 -- Update canvas dimensions based on current preferences
@@ -2292,7 +2336,7 @@ end
 -- EMERGENCY: Force cleanup any lingering state on tool load
 -- Only run cleanup if there's actually lingering state that needs cleaning
 if (canvas_experiments_dialog and canvas_experiments_dialog.visible) or 
-   device_parameter_observers or 
+   (device_parameter_observers and next(device_parameter_observers) ~= nil) or 
    device_selection_notifier or
    song_change_notifier or
    canvas_update_timer or
@@ -2326,10 +2370,117 @@ function PakettiCanvasExperimentsEmergencyReset()
     device_selection_notifier = nil
     song_change_notifier = nil
     canvas_update_timer = nil
+    
+    -- Reset cooldown timer
+    last_device_change_time = 0
   end)
   
   renoise.app():show_status("EMERGENCY RESET: Canvas Dialog state cleared")
   print("EMERGENCY_RESET: Complete")
+end
+
+-- Toggle auto-open Parameter Editor when device with external editor is selected
+function PakettiCanvasExperimentsToggleAutoOpen()
+  -- Toggle the preference value
+  local new_value = not preferences.pakettiParameterEditor.AutoOpen.value
+  preferences.pakettiParameterEditor.AutoOpen.value = new_value
+  preferences:save_as("preferences.xml")
+  
+  if new_value then
+    -- Enable: Setup global device observer
+    PakettiCanvasExperimentsSetupGlobalDeviceObserver()
+    renoise.app():show_status("Auto-open Parameter Editor: ENABLED")
+  else
+    -- Disable: Remove global device observer
+    PakettiCanvasExperimentsRemoveGlobalDeviceObserver()
+    renoise.app():show_status("Auto-open Parameter Editor: DISABLED")
+  end
+end
+
+-- Check if auto-open is enabled (for menu checkmark)
+function PakettiCanvasExperimentsAutoOpenEnabled()
+  return preferences.pakettiParameterEditor.AutoOpen.value
+end
+
+-- Setup global device selection observer for auto-open feature
+function PakettiCanvasExperimentsSetupGlobalDeviceObserver()
+  -- Remove existing observer first
+  PakettiCanvasExperimentsRemoveGlobalDeviceObserver()
+  
+  local song = renoise.song()
+  if not song then
+    return
+  end
+  
+  global_device_observer = function()
+    -- Only trigger if auto-open is enabled
+    if not preferences.pakettiParameterEditor.AutoOpen.value then
+      return
+    end
+    
+    -- Check cooldown to prevent opening during batch device additions (channel strips, etc.)
+    local current_time = os.clock() * 1000  -- Convert to milliseconds
+    local time_since_last_change = current_time - last_device_change_time
+    last_device_change_time = current_time
+    
+    if time_since_last_change < device_change_cooldown_ms then
+      print("AUTO_OPEN: Device change within cooldown period (" .. math.floor(time_since_last_change) .. "ms), skipping (likely batch device add)")
+      return
+    end
+    
+    -- Check if Parameter Editor dialog is already open
+    if canvas_experiments_dialog and canvas_experiments_dialog.visible then
+      print("AUTO_OPEN: Parameter Editor already open, skipping")
+      return
+    end
+    
+    -- Check if we have a selected device
+    local song = renoise.song()
+    if not song or not song.selected_device then
+      print("AUTO_OPEN: No device selected, skipping")
+      return
+    end
+    
+    local device = song.selected_device
+    
+    -- Exclude ProQ-3 specifically (it has its own UI and shouldn't use Parameter Editor)
+    if device.display_name and device.display_name:find("Pro%-Q 3") then
+      print("AUTO_OPEN: Device '" .. device.display_name .. "' is Pro-Q 3, excluded from auto-open")
+      return
+    end
+    
+    -- Exclude EQ30/EQ64 devices (they use PakettiEQ30 dialog instead)
+    if device.display_name and (device.display_name:match("^EQ30 Device [1-4]$") or device.display_name:match("^EQ64 Device [1-8]$")) then
+      print("AUTO_OPEN: Device '" .. device.display_name .. "' is EQ30/EQ64, excluded from auto-open (uses PakettiEQ30 dialog)")
+      return
+    end
+    
+    -- Open Parameter Editor for ALL devices (both with and without external editors)
+    print("AUTO_OPEN: Opening Parameter Editor for device: " .. device.display_name)
+    PakettiCanvasExperimentsInit()
+  end
+  
+  song.selected_device_observable:add_notifier(global_device_observer)
+end
+
+-- Remove global device selection observer
+function PakettiCanvasExperimentsRemoveGlobalDeviceObserver()
+  if global_device_observer then
+    pcall(function()
+      local song = renoise.song()
+      if song and song.selected_device_observable then
+        song.selected_device_observable:remove_notifier(global_device_observer)
+      end
+    end)
+    global_device_observer = nil
+  end
+end
+
+-- Handle new document - reinstall global observer if auto-open is enabled
+function PakettiCanvasExperimentsHandleNewDocument()
+  if preferences.pakettiParameterEditor.AutoOpen.value then
+    PakettiCanvasExperimentsSetupGlobalDeviceObserver()
+  end
 end
 
 -- Duplicate current device parameter automation to next pattern
@@ -2462,3 +2613,22 @@ renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Selected Device Pa
 -- Parameter Editor Pattern Functions
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Duplicate to Next Pattern",invoke = PakettiCanvasExperimentsDuplicateToNextPattern}
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Snapshot to Next Pattern",invoke = PakettiCanvasExperimentsSnapshotToNextPattern}
+
+-- Auto-open Parameter Editor option
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Options:Open Parameter Editor On Device Selection Toggle",
+  invoke = PakettiCanvasExperimentsToggleAutoOpen,
+  selected = PakettiCanvasExperimentsAutoOpenEnabled
+}
+
+-- Initialize global device observer on tool load if auto-open preference is enabled
+pcall(function()
+  if preferences and preferences.pakettiParameterEditor and preferences.pakettiParameterEditor.AutoOpen then
+    if preferences.pakettiParameterEditor.AutoOpen.value then
+      PakettiCanvasExperimentsSetupGlobalDeviceObserver()
+    end
+  end
+end)
+
+-- Handle new document to reinstall global observer if needed
+renoise.tool().app_new_document_observable:add_notifier(PakettiCanvasExperimentsHandleNewDocument)

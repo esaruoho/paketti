@@ -914,7 +914,15 @@ function pitchBendMultipleSampleLoader_update_progress()
   end
 end
 
+
 function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normalize)
+  -- Completely stop AutoSamplify monitoring to prevent double-processing
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
+  -- DISABLE Sample Range Device Loader to prevent it from creating duplicate instruments
+  local SampleRangeLoaderState = preferences.pakettiSampleRangeDeviceLoaderEnabled.value
+  preferences.pakettiSampleRangeDeviceLoaderEnabled.value = false
+  
   for index, filename in ipairs(selected_sample_filenames) do
     pitchbend_loader_progress.current_file_index = index
     pitchbend_loader_progress.current_filename = filename:match("^.+[/\\](.+)$") or filename
@@ -922,6 +930,9 @@ function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normal
     -- Check for cancellation
     if pitchbend_loader_progress.slicer and pitchbend_loader_progress.slicer:was_cancelled() then
       renoise.app():show_status("Sample loading cancelled by user.")
+      -- Restore states before breaking
+      PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+      preferences.pakettiSampleRangeDeviceLoaderEnabled.value = SampleRangeLoaderState
       break
     end
     
@@ -985,6 +996,10 @@ function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normal
     -- Yield control back to allow UI updates
     coroutine.yield()
   end
+  
+  -- Restore all states now that we're done
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  preferences.pakettiSampleRangeDeviceLoaderEnabled.value = SampleRangeLoaderState
   
   -- Reset progress tracking when complete
   pitchbend_loader_progress.current_file_index = 0
@@ -4950,10 +4965,9 @@ end
 
 -- Function to toggle the sample details display
 function toggleSampleDetails()
-  -- Check if sample editor is visible before allowing toggle
+  -- If not in sample editor, switch to it first
   if not isSampleEditorVisible() then
-    renoise.app():show_status("Sample selection info only available in Sample Editor")
-    return
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   end
 
   preferences.pakettiShowSampleDetails.value = not preferences.pakettiShowSampleDetails.value
