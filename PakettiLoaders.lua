@@ -3500,65 +3500,110 @@ renoise.tool():add_midi_mapping{name="Paketti:Load XRNI & Keep Phrases",invoke=f
 
 -------
 function loadNewWithCurrentSliceMarkers()
-  local song=renoise.song()
-  if song.selected_sample  == nil then
-  renoise.app():show_status("There is no sample in this instrument, doing nothing.")
-  return else  
-local originalSample = renoise.song().instruments[renoise.song().selected_instrument_index]
-local selected_sample =  song.selected_instrument.samples[1]
-
+  local song = renoise.song()
+  
+  -- Check if there's a sample in the current instrument
+  if song.selected_sample == nil then
+    renoise.app():show_status("There is no sample in this instrument, doing nothing.")
+    return
+  end
+  
   -- Check if the selected sample has slice markers
-if #selected_sample.slice_markers == 0 then
+  local selected_sample = song.selected_instrument.samples[1]
+  if #selected_sample.slice_markers == 0 then
     renoise.app():show_status("Please select an instrument with slice markers, doing nothing for now.")
-  else
-    -- Retain slice markers and sample settings
-    local saved_markers=selected_sample.slice_markers
-    local saved_sample=selected_sample
-
-    -- Trigger the file loader to load a new sample
-    pitchBendMultipleSampleLoader()
-
-    -- Wait for the sample to load and then apply markers and settings
-    local new_sample=song.selected_sample -- Assumes the loaded sample replaces selected_sample
-
-    if new_sample then
-      local new_sample_length=new_sample.sample_buffer.number_of_frames
-
-      -- Filter markers to fit within the new sample length
-      local valid_markers={}
-      for _, marker in ipairs(saved_markers) do
-        if marker<=new_sample_length then
-          table.insert(valid_markers,marker)
-        end
-      end
-
-      -- Apply the valid slice markers first
-      new_sample.slice_markers=valid_markers
-      
-      -- Copy general sample settings to the main sample
-      CopySampleSettings(originalSample.samples[1],renoise.song().selected_instrument.samples[1])
-
-      -- Wait for Renoise to create slice samples, then copy slice settings
-      local timer_func
-      timer_func = function()
-        -- Now copy slice settings for each individual slice sample (created by Renoise after applying slice markers)
-        for i=2, #originalSample.samples do  -- Slices start at index 2
-          if renoise.song().selected_instrument.samples[i] then
-            CopySliceSettings(originalSample.samples[i],renoise.song().selected_instrument.samples[i])
-          end
-        end
-        
-        -- Remove this timer after execution
-        renoise.tool():remove_timer(timer_func)
-        
-        renoise.app():show_status("Slice markers and all sample & slice settings applied to the newly loaded sample.")
-      end
-      renoise.tool():add_timer(timer_func, 100) -- 100ms delay to let Renoise create slice samples
-    else
-      renoise.app():show_status("No new sample loaded; settings not applied.")
+    return
+  end
+  
+  -- Save the original instrument reference and slice data BEFORE showing the file dialog
+  local original_instrument_index = song.selected_instrument_index
+  local original_instrument = song.instruments[original_instrument_index]
+  local saved_markers = {}
+  for _, marker in ipairs(selected_sample.slice_markers) do
+    table.insert(saved_markers, marker)
+  end
+  
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
+  -- Prompt for a single sample file
+  local file_path = renoise.app():prompt_for_filename_to_read(
+    {"*.wav", "*.aif", "*.aiff", "*.flac", "*.mp3"}, 
+    "Load Sample with Slice Markers from Current Instrument"
+  )
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  
+  if not file_path or file_path == "" then
+    renoise.app():show_status("No file selected, doing nothing.")
+    return
+  end
+  
+  -- Create a new instrument after the original one
+  local new_instrument_index = original_instrument_index + 1
+  song:insert_instrument_at(new_instrument_index)
+  song.selected_instrument_index = new_instrument_index
+  
+  -- Apply Paketti default instrument configuration
+  pakettiPreferencesDefaultInstrumentLoader()
+  
+  local new_instrument = song.selected_instrument
+  local filename_only = file_path:match("^.+[/\\](.+)$") or file_path
+  
+  -- Make sure there's a sample slot
+  if #new_instrument.samples == 0 then
+    new_instrument:insert_sample_at(1)
+  end
+  song.selected_sample_index = 1
+  
+  -- Load the sample
+  local success = new_instrument.samples[1].sample_buffer:load_from(file_path)
+  
+  if not success then
+    renoise.app():show_status("Failed to load sample: " .. filename_only)
+    return
+  end
+  
+  -- Set instrument and sample names
+  local name_without_ext = filename_only:match("(.+)%..+$") or filename_only
+  new_instrument.name = name_without_ext
+  new_instrument.samples[1].name = name_without_ext
+  
+  -- Get the newly loaded sample
+  local new_sample = new_instrument.samples[1]
+  local new_sample_length = new_sample.sample_buffer.number_of_frames
+  
+  -- Filter markers to fit within the new sample length
+  local valid_markers = {}
+  for _, marker in ipairs(saved_markers) do
+    if marker <= new_sample_length then
+      table.insert(valid_markers, marker)
     end
   end
-end
+  
+  -- Apply the valid slice markers first
+  new_sample.slice_markers = valid_markers
+  
+  -- Copy general sample settings to the main sample
+  CopySampleSettings(original_instrument.samples[1], new_instrument.samples[1])
+  
+  -- Wait for Renoise to create slice samples, then copy slice settings
+  local timer_func
+  timer_func = function()
+    -- Now copy slice settings for each individual slice sample (created by Renoise after applying slice markers)
+    for i = 2, #original_instrument.samples do  -- Slices start at index 2
+      if new_instrument.samples[i] then
+        CopySliceSettings(original_instrument.samples[i], new_instrument.samples[i])
+      end
+    end
+    
+    -- Remove this timer after execution
+    renoise.tool():remove_timer(timer_func)
+    
+    renoise.app():show_status("Slice markers and all sample & slice settings applied to the newly loaded sample.")
+  end
+  renoise.tool():add_timer(timer_func, 100) -- 100ms delay to let Renoise create slice samples
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
