@@ -385,10 +385,8 @@ else
   end
 end
 
--- Initialize SBx if monitoring is enabled
-if monitoring_enabled then
-  InitSBx()
-end
+-- Note: InitSBx() is called by enable_monitoring() when user explicitly enables it
+-- Never call InitSBx() at module load time to avoid accessing renoise.song() before it's available
 
 function crossfade_loop(crossfade_length)
   -- Temporarily disable AutoSamplify monitoring to prevent interference

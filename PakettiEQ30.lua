@@ -148,15 +148,6 @@ function setup_eq30_device_observer()
     
     local device = song.selected_track.devices[device_index]
     
-    -- Check if this is Pro-Q 3 - open external editor instead
-    if device.display_name and device.display_name:find("Pro%-Q 3") then
-      if device.external_editor_available then
-        device.external_editor_visible = true
-        print("Pro-Q 3 selected, opening external editor")
-      end
-      return
-    end
-    
     -- Check if this is an EQ30/EQ64 device
     if is_eq30_device(device) then
       -- Only open if not already visible

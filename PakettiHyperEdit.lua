@@ -1580,6 +1580,13 @@ function PakettiHyperEditDeleteAutomation(row)
   local pattern_track = song:pattern(current_pattern):track(track_index)
   local parameter = row_parameters[row].parameter
   
+  -- Check if automation exists before trying to delete it
+  if not pattern_track:has_automation(parameter) then
+    local param_name = row_parameters[row].name or "Unknown"
+    renoise.app():show_status("HyperEdit Row " .. row .. ": No automation to delete for " .. param_name)
+    return
+  end
+  
   -- Delete the automation envelope
   pattern_track:delete_automation(parameter)
   
@@ -2970,75 +2977,53 @@ function PakettiHyperEditClearAll()
   end
 end
 
--- Duplicate current row parameter automations to next pattern (like PakettiCanvasExperiments)
+-- Duplicate current pattern to next sequence position (like PakettiEightOneTwenty)
 function PakettiHyperEditDuplicateToNextPattern()
   local song = renoise.song()
   if not song then return end
   
-  -- Count active rows with parameters
-  local active_rows = 0
-  for row = 1, NUM_ROWS do
-    if row_parameters[row] then
-      active_rows = active_rows + 1
-    end
-  end
-  
-  if active_rows == 0 then
-    renoise.app():show_status("HyperEdit: No row parameters available for duplication")
-    return
-  end
-  
   local current_pattern_index = song.selected_pattern_index
   local current_sequence_index = song.selected_sequence_index
-  local track_index = song.selected_track_index
+  local current_pattern = song.patterns[current_pattern_index]
   
-  -- Get next pattern in sequence or create new one
+  -- ALWAYS create a NEW pattern at the next sequence position (non-destructive)
   local next_sequence_index = current_sequence_index + 1
-  local next_pattern_index = nil
+  local next_pattern_index = song.sequencer:insert_new_pattern_at(next_sequence_index)
   
-  if next_sequence_index > #song.sequencer.pattern_sequence then
-    -- Create new pattern after current sequence
-    next_pattern_index = song.sequencer:insert_new_pattern_at(next_sequence_index)
-    print("DEBUG: Created new pattern " .. next_pattern_index .. " at sequence " .. next_sequence_index)
-  else
-    -- Use existing pattern at next sequence position
-    next_pattern_index = song.sequencer.pattern_sequence[next_sequence_index]
+  -- Copy ALL pattern data (notes, effects, automation, everything)
+  song.patterns[next_pattern_index]:copy_from(current_pattern)
+  
+  -- Copy the pattern name
+  local original_name = current_pattern.name
+  if original_name == "" then
+    original_name = "Pattern " .. tostring(current_pattern_index)
+  end
+  song.patterns[next_pattern_index].name = original_name .. " (duplicate)"
+  
+  -- Copy track mute states from original sequence slot to new one
+  for track_index = 1, #song.tracks do
+    local is_muted = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+    song.sequencer:set_track_sequence_slot_is_muted(track_index, next_sequence_index, is_muted)
   end
   
-  local current_track = song:pattern(current_pattern_index):track(track_index)
-  local next_track = song:pattern(next_pattern_index):track(track_index)
-  
-  local copied_count = 0
-  
-  -- Copy automation for all active row parameters
-  for row = 1, NUM_ROWS do
-    if row_parameters[row] then
-      local parameter = row_parameters[row].parameter
-      local current_automation = current_track:find_automation(parameter)
-      
-      if current_automation then
-        -- Find or create automation in next pattern
-        local next_automation = next_track:find_automation(parameter)
-        if not next_automation then
-          next_automation = next_track:create_automation(parameter)
-        end
-        
-        -- Copy the automation data
-        next_automation:copy_from(current_automation)
-        copied_count = copied_count + 1
-        print("DEBUG: Copied automation for parameter: " .. parameter.name .. " (Row " .. row .. ")")
+  -- Copy automation data explicitly to ensure full duplication
+  for track_index = 1, #song.tracks do
+    local original_track = song.patterns[current_pattern_index].tracks[track_index]
+    local new_track = song.patterns[next_pattern_index].tracks[track_index]
+    for _, automation in ipairs(original_track.automation) do
+      local parameter = automation.dest_parameter
+      local new_automation = new_track:find_automation(parameter)
+      if not new_automation then
+        new_automation = new_track:create_automation(parameter)
       end
+      new_automation:copy_from(automation)
     end
   end
   
-  -- CRITICAL: Jump to the next pattern after duplication
+  -- Jump to the next pattern after duplication
   song.selected_sequence_index = next_sequence_index
   
-  if copied_count > 0 then
-    renoise.app():show_status("HyperEdit: Duplicated " .. copied_count .. " parameter automations to next pattern and jumped to it")
-  else
-    renoise.app():show_status("HyperEdit: No automation found for current row parameters")
-  end
+  renoise.app():show_status("HyperEdit: Duplicated pattern below and jumped to it")
 end
 
 -- DEBUG: Simple automation scanner - just print what exists
@@ -3107,16 +3092,18 @@ function PakettiHyperEditShowExternalEditor(row)
     return false
   end
   
-  -- Check current visibility state
+  -- Toggle external editor visibility
   if device.external_editor_visible then
-    renoise.app():show_status("HyperEdit: External editor for '" .. device.display_name .. "' is already visible")
-    return false
+    -- Close the external editor if it's already open
+    device.external_editor_visible = false
+    renoise.app():show_status("HyperEdit: Closed external editor for '" .. device.display_name .. "' (Row " .. row .. ")")
+    return true
+  else
+    -- Show the external editor if it's closed
+    device.external_editor_visible = true
+    renoise.app():show_status("HyperEdit: Opened external editor for '" .. device.display_name .. "' (Row " .. row .. ")")
+    return true
   end
-  
-  -- Show the external editor
-  device.external_editor_visible = true
-  renoise.app():show_status("HyperEdit: Opened external editor for '" .. device.display_name .. "' (Row " .. row .. ")")
-  return true
 end
 
 -- Key handler
@@ -3130,10 +3117,21 @@ function paketti_hyperedit_keyhandler_func(dialog, key)
   
   -- Handle space key to show external editor for current focused row
   if key.name == "space" and key.modifiers == "" then
-    PakettiHyperEditShowExternalEditor(current_focused_row)
-    return nil  -- Consume the key event
+    local success = PakettiHyperEditShowExternalEditor(current_focused_row)
+    if success then
+      return nil  -- Only consume the key event if we successfully showed the editor
+    end
+    -- If editor was already visible, pass the key through to Renoise
+    return key
   end
   
+  -- Only block keypresses when actively drawing on the canvas (mouse is down)
+  -- This prevents accidental triggering of Renoise shortcuts while drawing
+  if mouse_is_down then
+    return nil
+  end
+  
+  -- When not drawing, pass keypresses through to Renoise so shortcuts work normally
   return key
 end
 

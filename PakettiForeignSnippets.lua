@@ -3833,7 +3833,43 @@ function PakettiPatternAliasHashPatternTrack(pattern_i, track_i, patterntrack)
   return hash_string .. track_i
 end
 
--- Main function to alias identical pattern slots
+-- Helper function to copy automation from one pattern track to another
+function PakettiPatternAliasCopyAutomation(source_pattern, source_track, dest_pattern, dest_track)
+  local song = renoise.song()
+  local source_pt = song:pattern(source_pattern):track(source_track)
+  local dest_pt = song:pattern(dest_pattern):track(dest_track)
+  local automation_copied = 0
+  
+  -- Iterate through all automation in the source pattern track
+  for _, automation in ipairs(source_pt.automation) do
+    local param = automation.dest_parameter
+    
+    -- Check if this parameter already has automation in the destination
+    local dest_automation = dest_pt:find_automation(param)
+    
+    if not dest_automation then
+      -- Create automation in destination if it doesn't exist
+      dest_automation = dest_pt:create_automation(param)
+    end
+    
+    -- Clear existing points in destination
+    dest_automation:clear()
+    
+    -- Copy all points from source to destination
+    for _, point in ipairs(automation.points) do
+      dest_automation:add_point_at(point.time, point.value)
+    end
+    
+    -- Copy playback properties (length is read-only, set by pattern length)
+    dest_automation.playmode = automation.playmode
+    
+    automation_copied = automation_copied + 1
+  end
+  
+  return automation_copied
+end
+
+-- Main function to alias identical pattern slots with automation copying
 function PakettiPatternAliasIdenticalSlots()
   local song = renoise.song()
   local pt_hash
@@ -3841,6 +3877,7 @@ function PakettiPatternAliasIdenticalSlots()
   local patterntrack
   local aliased_count = 0
   local processed_count = 0
+  local automation_copied_total = 0
   
   renoise.app():show_status("Paketti Pattern Alias: Analyzing pattern slots...")
   print("-- Paketti Pattern Alias: Starting analysis of pattern slots")
@@ -3859,9 +3896,30 @@ function PakettiPatternAliasIdenticalSlots()
     patterntrack = song:pattern(slot.pattern):track(slot.track)
     processed_count = processed_count + 1
     
-    pt_hash = PakettiPatternAliasHashPatternTrack(slot.pattern, slot.track, patterntrack)
-    
-    if (not patterntrack.is_alias) and (not patterntrack.is_empty) then
+    -- If this slot is already an alias, resolve it to find the original and add to hash table
+    if patterntrack.is_alias then
+      local original_pattern = patterntrack.alias_pattern_index
+      local original_patterntrack = song:pattern(original_pattern):track(slot.track)
+      local original_hash = PakettiPatternAliasHashPatternTrack(original_pattern, slot.track, original_patterntrack)
+      
+      -- Add the original to hash table if not already there
+      if not hash_table[original_hash] then
+        hash_table[original_hash] = {
+          pattern = original_pattern,
+          track = slot.track
+        }
+        print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - found original for existing alias (Pattern %d)", 
+          original_pattern, slot.track, slot.pattern))
+      end
+      print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - skipped (already aliased to Pattern %d)", 
+        slot.pattern, slot.track, original_pattern))
+    elseif patterntrack.is_empty then
+      print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - skipped (empty)", 
+        slot.pattern, slot.track))
+    else
+      -- Not an alias, not empty - process normally
+      pt_hash = PakettiPatternAliasHashPatternTrack(slot.pattern, slot.track, patterntrack)
+      
       if not hash_table[pt_hash] then
         -- First occurrence of this pattern content
         hash_table[pt_hash] = {
@@ -3876,30 +3934,32 @@ function PakettiPatternAliasIdenticalSlots()
         aliased_count = aliased_count + 1
         print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d -> aliased to Pattern %d", 
           slot.pattern, slot.track, hash_table[pt_hash].pattern))
+        
+        -- Copy automation from original to alias
+        local auto_count = PakettiPatternAliasCopyAutomation(
+          hash_table[pt_hash].pattern, hash_table[pt_hash].track,
+          slot.pattern, slot.track
+        )
+        if auto_count > 0 then
+          automation_copied_total = automation_copied_total + auto_count
+          print(string.format("-- Paketti Pattern Alias: Copied %d automation envelopes", auto_count))
+        end
       else
         print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - skipped (different track %d)", 
           slot.pattern, slot.track, hash_table[pt_hash].track))
       end
-    else
-      if patterntrack.is_alias then
-        print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - skipped (already aliased)", 
-          slot.pattern, slot.track))
-      else
-        print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - skipped (empty)", 
-          slot.pattern, slot.track))
-      end
     end
   end
   
-  local status_message = string.format("Paketti Pattern Alias: %d aliases created from %d slots processed", 
-    aliased_count, processed_count)
+  local status_message = string.format("Paketti Pattern Alias: %d aliases created, %d automation envelopes copied from %d slots processed", 
+    aliased_count, automation_copied_total, processed_count)
   renoise.app():show_status(status_message)
   print("-- " .. status_message)
   
   if aliased_count == 0 then
     print("-- Paketti Pattern Alias: No identical patterns found to alias")
   else
-    print(string.format("-- Paketti Pattern Alias: Successfully created %d pattern aliases", aliased_count))
+    print(string.format("-- Paketti Pattern Alias: Successfully created %d pattern aliases with automation", aliased_count))
   end
 end
 
@@ -3940,22 +4000,82 @@ function PakettiPatternAliasClearAliases()
   end
 end
 
+-- Match automation from original patterns to all their aliases
+function PakettiPatternAliasMatchAutomation()
+  local song = renoise.song()
+  local selected_slots = PakettiPatternAliasGetSelectedSlots()
+  local automation_matched = 0
+  local aliases_processed = 0
+  local processed_count = 0
+  
+  if #selected_slots == 0 then
+    renoise.app():show_status("No pattern slots to process")
+    return
+  end
+  
+  renoise.app():show_status("Paketti Pattern Alias: Matching automation with aliases...")
+  print(string.format("-- Paketti Pattern Alias: Processing %d pattern slots to match automation", #selected_slots))
+  
+  for i, slot in ipairs(selected_slots) do
+    local patterntrack = song:pattern(slot.pattern):track(slot.track)
+    processed_count = processed_count + 1
+    
+    if patterntrack.is_alias then
+      local original_pattern = patterntrack.alias_pattern_index
+      local original_track = slot.track
+      
+      -- Copy automation from original to this alias
+      local auto_count = PakettiPatternAliasCopyAutomation(
+        original_pattern, original_track,
+        slot.pattern, slot.track
+      )
+      
+      if auto_count > 0 then
+        automation_matched = automation_matched + auto_count
+        aliases_processed = aliases_processed + 1
+        print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d <- copied %d automation envelopes from Pattern %d", 
+          slot.pattern, slot.track, auto_count, original_pattern))
+      else
+        print(string.format("-- Paketti Pattern Alias: Pattern %d Track %d - no automation in original Pattern %d", 
+          slot.pattern, slot.track, original_pattern))
+      end
+    end
+  end
+  
+  local status_message = string.format("Paketti Pattern Alias: %d automation envelopes matched across %d aliases from %d slots processed", 
+    automation_matched, aliases_processed, processed_count)
+  renoise.app():show_status(status_message)
+  print("-- " .. status_message)
+  
+  if aliases_processed == 0 then
+    print("-- Paketti Pattern Alias: No aliases found to match automation")
+  else
+    print(string.format("-- Paketti Pattern Alias: Successfully matched automation for %d aliases", aliases_processed))
+  end
+end
+
 renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
 renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_keybinding{name = "Global:Paketti:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
 renoise.tool():add_keybinding{name = "Global:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
 renoise.tool():add_keybinding{name = "Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_keybinding{name = "Pattern Matrix:Paketti:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
 renoise.tool():add_keybinding{name = "Pattern Matrix:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
 renoise.tool():add_midi_mapping{name = "Paketti:Alias Identical Pattern Slots", invoke = function(message) if message:is_trigger() then PakettiPatternAliasIdenticalSlots() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Match Automation with all Aliases", invoke = function(message) if message:is_trigger() then PakettiPatternAliasMatchAutomation() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Clear Pattern Aliases", invoke = function(message) if message:is_trigger() then PakettiPatternAliasClearAliases() end end}
 
 -- ======================================
@@ -4488,60 +4608,17 @@ renoise.tool():add_keybinding{
   invoke = PakettiCaptureTrackManual
 }
 
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Enable/Disable Auto-Capture Track",
-  invoke = PakettiCaptureTrackToggleEnable
-}
-
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Auto-Capture Track (Cycle All Modes)",
-  invoke = PakettiCaptureTrackToggleMode
-}
-
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Auto-Capture Track (Pattern Editor Only)",
-  invoke = PakettiCaptureTrackTogglePatternEditor
-}
-
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Auto-Capture Track (Not Pattern Editor)",
-  invoke = PakettiCaptureTrackToggleNotPatternEditor
-}
-
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Auto-Capture Track (All Frames)",
-  invoke = PakettiCaptureTrackToggleAllFrames
-}
-
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Capture Track from Instrument",
-  invoke = PakettiCaptureTrackManual
-}
-
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Enable/Disable Auto-Capture Track",
-  invoke = PakettiCaptureTrackToggleEnable
-}
-
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Auto-Capture Track (Cycle All Modes)",
-  invoke = PakettiCaptureTrackToggleMode
-}
-
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Auto-Capture Track (Pattern Editor Only)",
-  invoke = PakettiCaptureTrackTogglePatternEditor
-}
-
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Auto-Capture Track (Not Pattern Editor)",
-  invoke = PakettiCaptureTrackToggleNotPatternEditor
-}
-
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Auto-Capture Track (All Frames)",
-  invoke = PakettiCaptureTrackToggleAllFrames
-}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Enable/Disable Auto-Capture Track",invoke = PakettiCaptureTrackToggleEnable}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Auto-Capture Track (Cycle All Modes)",invoke = PakettiCaptureTrackToggleMode}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Auto-Capture Track (Pattern Editor Only)",invoke = PakettiCaptureTrackTogglePatternEditor}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Auto-Capture Track (Not Pattern Editor)",invoke = PakettiCaptureTrackToggleNotPatternEditor}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Auto-Capture Track (All Frames)",invoke = PakettiCaptureTrackToggleAllFrames}
+renoise.tool():add_keybinding{name = "Mixer:Paketti:Capture Track from Instrument",invoke = PakettiCaptureTrackManual}
+renoise.tool():add_keybinding{name = "Mixer:Paketti:Enable/Disable Auto-Capture Track",invoke = PakettiCaptureTrackToggleEnable}
+renoise.tool():add_keybinding{name = "Mixer:Paketti:Auto-Capture Track (Cycle All Modes)",invoke = PakettiCaptureTrackToggleMode}
+renoise.tool():add_keybinding{name = "Mixer:Paketti:Auto-Capture Track (Pattern Editor Only)",invoke = PakettiCaptureTrackTogglePatternEditor}
+renoise.tool():add_keybinding{name = "Mixer:Paketti:Auto-Capture Track (Not Pattern Editor)",invoke = PakettiCaptureTrackToggleNotPatternEditor}
+renoise.tool():add_keybinding{name = "Mixer:Paketti:Auto-Capture Track (All Frames)",invoke = PakettiCaptureTrackToggleAllFrames}
 
 -- MIDI mappings
 renoise.tool():add_midi_mapping{

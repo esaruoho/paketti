@@ -674,3 +674,61 @@ renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Clear Unused Patterns
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
+
+---------
+-- Function to duplicate current pattern and insert it as next sequence entry
+function PakettiDuplicatePatternAndInsertNext()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  
+  -- Step 1: Get current pattern and sequence position
+  local current_pattern_index = song.selected_pattern_index
+  local current_sequence_index = song.selected_sequence_index
+  local current_pattern = song.patterns[current_pattern_index]
+  
+  -- Step 2: Insert a NEW pattern at the next sequence position
+  -- This creates a brand new pattern automatically
+  local new_sequence_index = current_sequence_index + 1
+  local new_pattern_index = sequencer:insert_new_pattern_at(new_sequence_index)
+  
+  -- Step 3: Copy all data from current pattern to the new pattern
+  -- This copies everything: tracks, lines, name, etc.
+  song.patterns[new_pattern_index]:copy_from(current_pattern)
+  
+  -- Step 4: Copy the pattern name
+  local original_name = current_pattern.name
+  if original_name == "" then
+    original_name = "Pattern " .. tostring(current_pattern_index)
+  end
+  song.patterns[new_pattern_index].name = original_name .. " (duplicate)"
+  
+  -- Step 5: Move the playhead/selection to the new sequence position
+  song.selected_sequence_index = new_sequence_index
+  
+  -- Step 6: Copy track mute states from original sequence slot to new one
+  for track_index = 1, #song.tracks do
+    local is_muted = sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+    sequencer:set_track_sequence_slot_is_muted(track_index, new_sequence_index, is_muted)
+  end
+  
+  -- Step 7: Copy automation data explicitly to ensure full duplication
+  for track_index = 1, #song.tracks do
+    local original_track = song.patterns[current_pattern_index].tracks[track_index]
+    local new_track = song.patterns[new_pattern_index].tracks[track_index]
+    for _, automation in ipairs(original_track.automation) do
+      local parameter = automation.dest_parameter
+      local new_automation = new_track:find_automation(parameter)
+      if not new_automation then
+        new_automation = new_track:create_automation(parameter)
+      end
+      new_automation:copy_from(automation)
+    end
+  end
+  
+  -- Show confirmation
+  renoise.app():show_status("Duplicated pattern below and jumped to it.")
+end
+
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern and Insert Next", invoke=PakettiDuplicatePatternAndInsertNext}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Pattern and Insert Next", invoke=PakettiDuplicatePatternAndInsertNext}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern and Insert Next", invoke=PakettiDuplicatePatternAndInsertNext}
