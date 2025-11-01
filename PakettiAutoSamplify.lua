@@ -739,6 +739,13 @@ end
 local sample_monitoring_timer = nil
 
 function PakettiStartNewSampleMonitoring()
+  -- Guard: Check if song is available before setting up observables
+  local song = renoise.song()
+  if not song then
+    print("Paketti AutoSamplify: Cannot start monitoring - no song loaded")
+    return
+  end
+  
   -- Initialize states
   PakettiInitializeNewSampleMonitoring()
   
@@ -748,16 +755,16 @@ function PakettiStartNewSampleMonitoring()
   end
   
   -- Add notifiers for song changes
-  if renoise.song().selected_instrument_index_observable:has_notifier(PakettiCheckForNewSamples) then
-    renoise.song().selected_instrument_index_observable:remove_notifier(PakettiCheckForNewSamples)
+  if song.selected_instrument_index_observable:has_notifier(PakettiCheckForNewSamples) then
+    song.selected_instrument_index_observable:remove_notifier(PakettiCheckForNewSamples)
   end
-  renoise.song().selected_instrument_index_observable:add_notifier(PakettiCheckForNewSamples)
+  song.selected_instrument_index_observable:add_notifier(PakettiCheckForNewSamples)
   
   -- Also monitor selected sample changes (note: uses selected_sample_observable, not selected_sample_index_observable)
-  if renoise.song().selected_sample_observable:has_notifier(PakettiCheckForNewSamples) then
-    renoise.song().selected_sample_observable:remove_notifier(PakettiCheckForNewSamples)
+  if song.selected_sample_observable:has_notifier(PakettiCheckForNewSamples) then
+    song.selected_sample_observable:remove_notifier(PakettiCheckForNewSamples)
   end
-  renoise.song().selected_sample_observable:add_notifier(PakettiCheckForNewSamples)
+  song.selected_sample_observable:add_notifier(PakettiCheckForNewSamples)
   
   print("Paketti new sample monitoring started")
 end
@@ -797,8 +804,8 @@ renoise.tool().app_release_document_observable:add_notifier(function()
 end)
 
 -- Initialize monitoring when tool loads (only if preference is enabled and song is available)
-local song_available = pcall(function() return renoise.song() end)
-if song_available then
+local song_available, song = pcall(function() return renoise.song() end)
+if song_available and song then
   -- Initialize monitoring_enabled from preferences
   if preferences and preferences.pakettiAutoSamplifyMonitoring then
     monitoring_enabled = preferences.pakettiAutoSamplifyMonitoring.value
