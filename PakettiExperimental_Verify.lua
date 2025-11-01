@@ -203,6 +203,7 @@ local loop_pairs = {}
 -- Scan the Master Track for all SB0/SBX pairs
 
 function analyze_loops()
+  -- PLACEHOLDER TO SEE IF LINE CHANGES FROM 206 to 207 on error if there is error.
   if not renoise.song() then
     return false
   end
@@ -372,21 +373,29 @@ end
 
 
 renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playback",
-  invoke=function() reset_repeat_counts() renoise.song().transport:start() end}
+  invoke=function() 
+    if not renoise.song() then return end
+    reset_repeat_counts() 
+    renoise.song().transport:start() 
+  end}
 
 -- Tool Initialization
--- Initialize monitoring_enabled from preferences, defaulting to true if not set
+-- Initialize monitoring_enabled from preferences, defaulting to false if not set
 if preferences.PakettiSBxFollowEnabled and preferences.PakettiSBxFollowEnabled.value ~= nil then
   monitoring_enabled = preferences.PakettiSBxFollowEnabled.value
 else
-  monitoring_enabled = true
+  monitoring_enabled = false
   if preferences.PakettiSBxFollowEnabled then
-    preferences.PakettiSBxFollowEnabled.value = true
+    preferences.PakettiSBxFollowEnabled.value = false
   end
 end
 
--- Note: InitSBx() is called by enable_monitoring() when user explicitly enables it
--- Never call InitSBx() at module load time to avoid accessing renoise.song() before it's available
+-- Initialize monitoring when a document becomes available
+renoise.tool().app_new_document_observable:add_notifier(function()
+  if monitoring_enabled then
+    InitSBx()
+  end
+end)
 
 function crossfade_loop(crossfade_length)
   -- Temporarily disable AutoSamplify monitoring to prevent interference
@@ -4085,6 +4094,3 @@ renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Solo Tracks with Patt
 renoise.tool():add_keybinding{name="Global:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
 renoise.tool():add_midi_mapping{name="Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
 renoise.tool():add_midi_mapping{name="Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
-
-
-InitSBx()
