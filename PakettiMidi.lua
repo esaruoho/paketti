@@ -4529,3 +4529,165 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Sequence x[Kno
     end
   end
 }
+
+-----------------------------------------------------------------------
+-- Selected Sample Property Controls (Pitch, Pan, Volume)
+-----------------------------------------------------------------------
+
+-- Selected Sample Transpose (Pitch) Control - Multiple Range Options
+
+-- Pitch Control: -64 to +64 semitones
+renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Pitch -64/+64 x[Knob]",
+  invoke=function(midi_message)
+    local sample = renoise.song().selected_sample
+    if not sample then
+      renoise.app():show_status("No sample selected")
+      return
+    end
+    
+    renoise.app().window.active_middle_frame = 5
+    
+    if midi_message:is_abs_value() then
+      local new_value = math.floor((midi_message.int_value / 127) * 128 - 64)
+      sample.transpose = math.max(-120, math.min(120, new_value))
+      renoise.app():show_status(string.format("Sample Pitch: %+d semitones", sample.transpose))
+    elseif midi_message:is_rel_value() then
+      local new_value = sample.transpose + midi_message.int_value
+      sample.transpose = math.max(-120, math.min(120, new_value))
+      renoise.app():show_status(string.format("Sample Pitch: %+d semitones", sample.transpose))
+    end
+  end}
+
+-- Pitch Control: -48 to +48 semitones
+renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Pitch -48/+48 x[Knob]",
+  invoke=function(midi_message)
+    local sample = renoise.song().selected_sample
+    if not sample then
+      renoise.app():show_status("No sample selected")
+      return
+    end
+    
+    renoise.app().window.active_middle_frame = 5
+    
+    if midi_message:is_abs_value() then
+      local new_value = math.floor((midi_message.int_value / 127) * 96 - 48)
+      sample.transpose = math.max(-120, math.min(120, new_value))
+      renoise.app():show_status(string.format("Sample Pitch: %+d semitones", sample.transpose))
+    elseif midi_message:is_rel_value() then
+      local new_value = sample.transpose + midi_message.int_value
+      sample.transpose = math.max(-120, math.min(120, new_value))
+      renoise.app():show_status(string.format("Sample Pitch: %+d semitones", sample.transpose))
+    end
+  end}
+
+-- Pitch Control: -36 to +36 semitones
+renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Pitch -36/+36 x[Knob]",
+  invoke=function(midi_message)
+    local sample = renoise.song().selected_sample
+    if not sample then
+      renoise.app():show_status("No sample selected")
+      return
+    end
+    
+    renoise.app().window.active_middle_frame = 5
+    
+    if midi_message:is_abs_value() then
+      local new_value = math.floor((midi_message.int_value / 127) * 72 - 36)
+      sample.transpose = math.max(-120, math.min(120, new_value))
+      renoise.app():show_status(string.format("Sample Pitch: %+d semitones", sample.transpose))
+    elseif midi_message:is_rel_value() then
+      local new_value = sample.transpose + midi_message.int_value
+      sample.transpose = math.max(-120, math.min(120, new_value))
+      renoise.app():show_status(string.format("Sample Pitch: %+d semitones", sample.transpose))
+    end
+  end}
+
+-- Pitch Control: -24 to +24 semitones
+renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Pitch -24/+24 x[Knob]",
+  invoke=function(midi_message)
+    local sample = renoise.song().selected_sample
+    if not sample then
+      renoise.app():show_status("No sample selected")
+      return
+    end
+    
+    renoise.app().window.active_middle_frame = 5
+    
+    if midi_message:is_abs_value() then
+      local new_value = math.floor((midi_message.int_value / 127) * 48 - 24)
+      sample.transpose = math.max(-120, math.min(120, new_value))
+      renoise.app():show_status(string.format("Sample Pitch: %+d semitones", sample.transpose))
+    elseif midi_message:is_rel_value() then
+      local new_value = sample.transpose + midi_message.int_value
+      sample.transpose = math.max(-120, math.min(120, new_value))
+      renoise.app():show_status(string.format("Sample Pitch: %+d semitones", sample.transpose))
+    end
+  end}
+
+-- Pitch Control: -12 to +12 semitones
+renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Pitch -12/+12 x[Knob]",
+  invoke=function(midi_message)
+    local sample = renoise.song().selected_sample
+    if not sample then
+      renoise.app():show_status("No sample selected")
+      return
+    end
+    
+    renoise.app().window.active_middle_frame = 5
+    
+    if midi_message:is_abs_value() then
+      local new_value = math.floor((midi_message.int_value / 127) * 24 - 12)
+      sample.transpose = math.max(-120, math.min(120, new_value))
+      renoise.app():show_status(string.format("Sample Pitch: %+d semitones", sample.transpose))
+    elseif midi_message:is_rel_value() then
+      local new_value = sample.transpose + midi_message.int_value
+      sample.transpose = math.max(-120, math.min(120, new_value))
+      renoise.app():show_status(string.format("Sample Pitch: %+d semitones", sample.transpose))
+    end
+  end}
+
+-- Selected Sample Panning Control
+renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Pan x[Knob]",
+  invoke=function(midi_message)
+    local sample = renoise.song().selected_sample
+    if not sample then
+      renoise.app():show_status("No sample selected")
+      return
+    end
+    
+    renoise.app().window.active_middle_frame = 5
+    
+    if midi_message:is_abs_value() then
+      sample.panning = midi_message.int_value / 127
+      local pan_display = math.floor((sample.panning - 0.5) * 100)
+      renoise.app():show_status(string.format("Sample Pan: %+d%%", pan_display))
+    elseif midi_message:is_rel_value() then
+      local new_value = sample.panning + (midi_message.int_value / 127)
+      sample.panning = math.max(0, math.min(1, new_value))
+      local pan_display = math.floor((sample.panning - 0.5) * 100)
+      renoise.app():show_status(string.format("Sample Pan: %+d%%", pan_display))
+    end
+  end}
+
+-- Selected Sample Volume Control
+renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Volume x[Knob]",
+  invoke=function(midi_message)
+    local sample = renoise.song().selected_sample
+    if not sample then
+      renoise.app():show_status("No sample selected")
+      return
+    end
+    
+    renoise.app().window.active_middle_frame = 5
+    
+    if midi_message:is_abs_value() then
+      sample.volume = midi_message.int_value / 127
+      local db_display = math.floor((sample.volume - 1) * 60)
+      renoise.app():show_status(string.format("Sample Volume: %+d dB", db_display))
+    elseif midi_message:is_rel_value() then
+      local new_value = sample.volume + (midi_message.int_value / 127)
+      sample.volume = math.max(0, math.min(1, new_value))
+      local db_display = math.floor((sample.volume - 1) * 60)
+      renoise.app():show_status(string.format("Sample Volume: %+d dB", db_display))
+    end
+  end}
