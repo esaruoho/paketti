@@ -898,6 +898,15 @@ if renoise.API_VERSION >= 6.2 then
   --timed_require("PakettiMultitapExperiment")
   --timed_require("PakettiPlayerProWaveformViewer")
   timed_require("PakettiAutomationStack")
+else
+  -- Fallback stub for PCMWriter functions on older API versions
+  -- Always returns false so AutoSamplify works normally on non-6.2
+  function PCMWriterIsCreatingSamples()
+    return false
+  end
+  function PCMWriterSetCreatingSamples(creating)
+    -- No-op on older versions
+  end
 end
 
 
