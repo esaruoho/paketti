@@ -3611,6 +3611,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load New Instrument with Curr
 -- Globals for tracking mode and open editors
 PakettiAutomaticallyOpenTrackDeviceEditorsEnabled = false
 local current_track_index = nil
+local auto_open_mode = false
 
 -- Function to open external editors on a track
 local function PakettiHandleTrackDevices(track)

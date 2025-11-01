@@ -921,6 +921,12 @@ timed_require("PakettiEightOneTwenty")
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")
+
+-- Initialize Zero Crossings auto-snap system (must be called after all modules are loaded)
+if PakettiZeroCrossingsInitAutoSnap then
+  PakettiZeroCrossingsInitAutoSnap()
+end
+
 local total_time = os.clock() - init_time
 if PakettiTimedRequireDebug then
     print(string.format("Total load time: %.2f ms (%.3f seconds)", total_time * 1000, total_time))

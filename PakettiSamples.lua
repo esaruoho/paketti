@@ -2789,7 +2789,9 @@ function PakettiNormalizeSampleCoroutine(sample, normalize_reason)
   local abs = math.abs  -- Local reference for faster access
   
   -- Process all channels, but with early termination and optimizations
+  local peak_found = false
   for c = 1, channels do
+    if peak_found then break end
     for f = 1, frames do
       local abs_value = abs(buffer:sample_data(c, f))
       if abs_value > peak then
@@ -2798,7 +2800,8 @@ function PakettiNormalizeSampleCoroutine(sample, normalize_reason)
         if peak >= 0.999 then
           processed_frames = frames * channels  -- Set to max for progress calculation
           print("DEBUG: Found perfect peak (≥0.999), early termination")
-          goto peak_found
+          peak_found = true
+          break
         end
       end
       
@@ -2815,8 +2818,6 @@ function PakettiNormalizeSampleCoroutine(sample, normalize_reason)
       end
     end
   end
-  
-  ::peak_found::
   
   print(string.format("DEBUG: Peak found = %.6f for %s '%s'", peak, normalize_reason, sample.name))
   
@@ -2883,20 +2884,21 @@ function PakettiNormalizeSampleCoroutine(sample, normalize_reason)
   local new_peak = 0
   local sample_step = math.max(1, math.floor(frames / 1000)) -- Sample every ~1000th of the audio
   
+  local verification_done = false
   for c = 1, channels do
+    if verification_done then break end
     for f = 1, frames, sample_step do
       local abs_value = abs(buffer:sample_data(c, f))
       if abs_value > new_peak then
         new_peak = abs_value
         -- Early exit if we find perfect normalization
         if new_peak >= 0.999 then
-          goto verification_done
+          verification_done = true
+          break
         end
       end
     end
   end
-  
-  ::verification_done::
   
   print(string.format("DEBUG: Normalization complete - Old peak: %.6f, New peak: %.6f", peak, new_peak))
   print(string.format("Normalized %s: %s (%.2f dB increase)", normalize_reason, sample.name, db_increase))

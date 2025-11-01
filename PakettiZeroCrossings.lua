@@ -476,9 +476,9 @@ function PakettiZeroCrossingsInitAutoSnap()
     renoise.tool().app_new_document_observable:add_notifier(PakettiZeroCrossingsNewDocumentHandler)
   end
   
-  -- Initialize for current song
-  if renoise.song() then
-    local s = renoise.song()
+  -- Initialize for current song (safely check if song exists)
+  local song_available, s = pcall(function() return renoise.song() end)
+  if song_available and s then
     if not s.selected_sample_observable:has_notifier(PakettiZeroCrossingsAttachSelectionObservable) then
       s.selected_sample_observable:add_notifier(PakettiZeroCrossingsAttachSelectionObservable)
     end
@@ -598,7 +598,7 @@ function PakettiZeroCrossingsAdvancedDialog()
       vb:text { text = "BPM-Based Slice Movement",style="strong",font="bold", },
       
       vb:row {
-        vb:text { text = "Current BPM: " .. renoise.song().transport.bpm },
+        vb:text { text = "Current BPM: " .. (function() local ok, s = pcall(function() return renoise.song() end) return ok and s.transport.bpm or "N/A" end)() },
       },
       
       vb:row {
@@ -663,8 +663,8 @@ if not preferences.ZeroCrossings then
   }
 end
 
--- Initialize auto-snap feature
-PakettiZeroCrossingsInitAutoSnap()
+-- Note: PakettiZeroCrossingsInitAutoSnap() will be called when song is available
+-- Never call it at module load time to avoid accessing renoise.song() before it's available
 
 --------------------------------------------------------------------------------
 -- Key bindings

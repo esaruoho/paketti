@@ -796,8 +796,9 @@ renoise.tool().app_release_document_observable:add_notifier(function()
   PakettiStopNewSampleMonitoring()
 end)
 
--- Initialize monitoring when tool loads (only if preference is enabled)
-if renoise.song() then
+-- Initialize monitoring when tool loads (only if preference is enabled and song is available)
+local song_available = pcall(function() return renoise.song() end)
+if song_available then
   -- Initialize monitoring_enabled from preferences
   if preferences and preferences.pakettiAutoSamplifyMonitoring then
     monitoring_enabled = preferences.pakettiAutoSamplifyMonitoring.value

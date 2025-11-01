@@ -1500,7 +1500,7 @@ function PakettiFillShowDialog()
     
   -- Main layout
   local content = vb:column{
-    table.unpack(content_items)
+    unpack(content_items)
   }
   
   -- Create dialog with custom key handler that supports Enter for Fill Track

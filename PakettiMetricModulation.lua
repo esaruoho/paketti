@@ -1180,7 +1180,7 @@ function show_subdivision_calculator_dialog()
     
     updateSubdivisionTexts()
     
-    return vb:column { margin = 10, table.unpack(rows) }
+    return vb:column { margin = 10, unpack(rows) }
   end
   
   local keyhandler = create_keyhandler_for_dialog(
