@@ -529,8 +529,9 @@ end
 
 -- Dump a specific row to the current pattern line, fitting visible note columns
 -- skip_smart_noteoff: when true, ignores the Smart Note Off preference (used by automated functions)
-function PakettiCapture_DumpRow(index, skip_smart_noteoff)
-  print("  DumpRow called: index=" .. tostring(index) .. " skip_smart_noteoff=" .. tostring(skip_smart_noteoff))
+-- target_line: optional line number to write to (if nil, uses selected_line_index)
+function PakettiCapture_DumpRow(index, skip_smart_noteoff, target_line)
+  print("  DumpRow called: index=" .. tostring(index) .. " skip_smart_noteoff=" .. tostring(skip_smart_noteoff) .. " target_line=" .. tostring(target_line))
   if index < 1 or index > #PakettiCapture_sequences then 
     print("  DumpRow: index out of range")
     return 
@@ -547,7 +548,7 @@ function PakettiCapture_DumpRow(index, skip_smart_noteoff)
   end
   local patt = song:pattern(song.selected_pattern_index)
   local ptrack = patt:track(song.selected_track_index)
-  local target_line_index = song.selected_line_index
+  local target_line_index = target_line or song.selected_line_index
   local line = ptrack:line(target_line_index)
   print("  DumpRow: writing to line " .. tostring(target_line_index))
 
@@ -658,8 +659,7 @@ function PakettiCapture_FitSlotsToPattern()
   local original_line = song.selected_line_index
   for i = 1, total_slots do
     print("Writing slot " .. tostring(i) .. " to line " .. tostring(start_line))
-    song.selected_line_index = start_line
-    PakettiCapture_DumpRow(i, true)  -- Skip smart note-off, we handle it ourselves
+    PakettiCapture_DumpRow(i, true, start_line)  -- Skip smart note-off and write to specific line
     
     -- Place note-offs before the next slot (but not after the last slot)
     if i < total_slots then
