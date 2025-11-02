@@ -1359,3 +1359,389 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Even 2)",invoke=function() DistributeAcrossSelection("even2") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Even 4)",invoke=function() DistributeAcrossSelection("even4") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Uneven)",invoke=function() DistributeAcrossSelection("uneven") end}
+
+-- Function to spread notes from current row vertically with specified spacing
+function SpreadNotesVertically(spacing)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track = song.selected_track
+  local track_index = song.selected_track_index
+  local current_line = song.selected_line_index
+  local visible_columns = track.visible_note_columns
+  local visible_effect_columns = track.visible_effect_columns
+  local selected_column = song.selected_note_column_index
+  
+  -- Collect all notes from the current row with their column positions, starting from selected column going backwards
+  local notes = {}
+  local line = pattern.tracks[track_index]:line(current_line)
+  
+  -- Collect notes from selected column going backwards to column 1
+  for col_idx = selected_column, 1, -1 do
+    local note_col = line:note_column(col_idx)
+    if not note_col.is_empty and note_col.note_value < 120 then
+      table.insert(notes, {
+        note_value = note_col.note_value,
+        instrument_value = note_col.instrument_value,
+        volume_value = note_col.volume_value,
+        panning_value = note_col.panning_value,
+        delay_value = note_col.delay_value,
+        column = col_idx
+      })
+    end
+  end
+  
+  -- Then, wrap around and collect from the rightmost column backwards to after selected column
+  for col_idx = visible_columns, selected_column + 1, -1 do
+    local note_col = line:note_column(col_idx)
+    if not note_col.is_empty and note_col.note_value < 120 then
+      table.insert(notes, {
+        note_value = note_col.note_value,
+        instrument_value = note_col.instrument_value,
+        volume_value = note_col.volume_value,
+        panning_value = note_col.panning_value,
+        delay_value = note_col.delay_value,
+        column = col_idx
+      })
+    end
+  end
+  
+  -- Collect all effect columns from the current row
+  local effects = {}
+  for col_idx = 1, visible_effect_columns do
+    local effect_col = line:effect_column(col_idx)
+    if not effect_col.is_empty then
+      table.insert(effects, {
+        number_string = effect_col.number_string,
+        amount_value = effect_col.amount_value,
+        column = col_idx
+      })
+    end
+  end
+  
+  -- Check if we have notes to spread
+  if #notes == 0 then
+    renoise.app():show_status("No notes found on current row")
+    return
+  end
+  
+  if #notes == 1 then
+    renoise.app():show_status("Only one note found, nothing to spread")
+    return
+  end
+  
+  -- Calculate if we have enough space in the pattern
+  local required_lines = current_line + ((#notes - 1) * spacing)
+  local max_lines = pattern.number_of_lines
+  
+  if required_lines > max_lines then
+    renoise.app():show_status(string.format("Not enough space in pattern (need %d lines, have %d)", 
+      required_lines, max_lines))
+    return
+  end
+  
+  -- Clear the current row
+  for col_idx = 1, visible_columns do
+    line:note_column(col_idx):clear()
+  end
+  for col_idx = 1, visible_effect_columns do
+    line:effect_column(col_idx):clear()
+  end
+  
+  -- Place notes on new rows with specified spacing
+  for i, note in ipairs(notes) do
+    local target_row = current_line + ((i - 1) * spacing)
+    local target_line = pattern.tracks[track_index]:line(target_row)
+    local note_col = target_line:note_column(note.column)
+    
+    note_col.note_value = note.note_value
+    note_col.instrument_value = note.instrument_value
+    note_col.volume_value = note.volume_value
+    note_col.panning_value = note.panning_value
+    note_col.delay_value = note.delay_value
+  end
+  
+  -- Place effect columns on ALL new rows (they apply to all spread notes)
+  for i = 1, #notes do
+    local target_row = current_line + ((i - 1) * spacing)
+    local target_line = pattern.tracks[track_index]:line(target_row)
+    
+    for _, effect in ipairs(effects) do
+      local effect_col = target_line:effect_column(effect.column)
+      effect_col.number_string = effect.number_string
+      effect_col.amount_value = effect.amount_value
+    end
+  end
+  
+  -- Show status message with effect column info
+  local status_msg = string.format("Spread %d notes vertically with +%d row spacing", 
+    #notes, spacing)
+  if #effects > 0 then
+    status_msg = status_msg .. string.format(" (with %d effect column%s)", 
+      #effects, #effects == 1 and "" or "s")
+  end
+  renoise.app():show_status(status_msg)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Spread Notes Vertically (+1 Row)",invoke=function() SpreadNotesVertically(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Spread Notes Vertically (+2 Rows)",invoke=function() SpreadNotesVertically(2) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Spread Notes Vertically (+3 Rows)",invoke=function() SpreadNotesVertically(3) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Spread Notes Vertically (+4 Rows)",invoke=function() SpreadNotesVertically(4) end}
+
+-- Function to create arpeggio patterns from current row notes
+function CreateArpeggioPattern(pattern_type, num_rows)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track = song.selected_track
+  local track_index = song.selected_track_index
+  local current_line = song.selected_line_index
+  local visible_columns = track.visible_note_columns
+  local visible_effect_columns = track.visible_effect_columns
+  
+  -- Collect all notes from the current row
+  local notes = {}
+  local line = pattern.tracks[track_index]:line(current_line)
+  
+  for col_idx = 1, visible_columns do
+    local note_col = line:note_column(col_idx)
+    if not note_col.is_empty and note_col.note_value < 120 then
+      table.insert(notes, {
+        note_value = note_col.note_value,
+        instrument_value = note_col.instrument_value,
+        volume_value = note_col.volume_value,
+        panning_value = note_col.panning_value,
+        delay_value = note_col.delay_value
+      })
+    end
+  end
+  
+  -- Collect effect columns
+  local effects = {}
+  for col_idx = 1, visible_effect_columns do
+    local effect_col = line:effect_column(col_idx)
+    if not effect_col.is_empty then
+      table.insert(effects, {
+        number_string = effect_col.number_string,
+        amount_value = effect_col.amount_value,
+        column = col_idx
+      })
+    end
+  end
+  
+  -- Check if we have notes
+  if #notes == 0 then
+    renoise.app():show_status("No notes found on current row")
+    return
+  end
+  
+  if #notes == 1 then
+    renoise.app():show_status("Only one note found, cannot create arpeggio")
+    return
+  end
+  
+  -- Sort notes by pitch (ascending)
+  table.sort(notes, function(a, b) return a.note_value < b.note_value end)
+  
+  -- Check if we have enough space
+  local required_lines = current_line + num_rows - 1
+  if required_lines > pattern.number_of_lines then
+    renoise.app():show_status(string.format("Not enough space in pattern (need %d lines)", required_lines))
+    return
+  end
+  
+  -- Generate arpeggio pattern based on type
+  local arpeggio_sequence = {}
+  
+  if pattern_type == "up" then
+    -- Ascending: 1-2-3-4-1-2-3-4...
+    for i = 1, num_rows do
+      local idx = ((i - 1) % #notes) + 1
+      table.insert(arpeggio_sequence, notes[idx])
+    end
+    
+  elseif pattern_type == "down" then
+    -- Descending: 4-3-2-1-4-3-2-1...
+    for i = 1, num_rows do
+      local idx = #notes - ((i - 1) % #notes)
+      table.insert(arpeggio_sequence, notes[idx])
+    end
+    
+  elseif pattern_type == "updown" then
+    -- Up then down: 1-2-3-4-3-2-1-2-3-4...
+    local forward = {}
+    local backward = {}
+    for i = 1, #notes do
+      table.insert(forward, notes[i])
+    end
+    for i = #notes - 1, 2, -1 do
+      table.insert(backward, notes[i])
+    end
+    local full_pattern = {}
+    for _, n in ipairs(forward) do table.insert(full_pattern, n) end
+    for _, n in ipairs(backward) do table.insert(full_pattern, n) end
+    
+    for i = 1, num_rows do
+      local idx = ((i - 1) % #full_pattern) + 1
+      table.insert(arpeggio_sequence, full_pattern[idx])
+    end
+    
+  elseif pattern_type == "downup" then
+    -- Down then up: 4-3-2-1-2-3-4-3-2-1...
+    local forward = {}
+    local backward = {}
+    for i = #notes, 1, -1 do
+      table.insert(forward, notes[i])
+    end
+    for i = 2, #notes - 1 do
+      table.insert(backward, notes[i])
+    end
+    local full_pattern = {}
+    for _, n in ipairs(forward) do table.insert(full_pattern, n) end
+    for _, n in ipairs(backward) do table.insert(full_pattern, n) end
+    
+    for i = 1, num_rows do
+      local idx = ((i - 1) % #full_pattern) + 1
+      table.insert(arpeggio_sequence, full_pattern[idx])
+    end
+    
+  elseif pattern_type == "upupdown" then
+    -- Up-up-down: 1-2-3-2-1-2-3-2...
+    for i = 1, num_rows do
+      local cycle_pos = ((i - 1) % (#notes * 2 - 1))
+      local idx
+      if cycle_pos < #notes then
+        idx = cycle_pos + 1
+      else
+        idx = #notes - (cycle_pos - #notes + 1)
+      end
+      table.insert(arpeggio_sequence, notes[idx])
+    end
+    
+  elseif pattern_type == "updownup" then
+    -- Up-down-up variant: focuses on extremes
+    local pattern_seq = {1, #notes, 1}
+    if #notes > 2 then
+      pattern_seq = {1, math.ceil(#notes/2), #notes, math.ceil(#notes/2)}
+    end
+    for i = 1, num_rows do
+      local idx = pattern_seq[((i - 1) % #pattern_seq) + 1]
+      table.insert(arpeggio_sequence, notes[idx])
+    end
+    
+  elseif pattern_type == "random" then
+    -- Random selection
+    for i = 1, num_rows do
+      local idx = math.random(1, #notes)
+      table.insert(arpeggio_sequence, notes[idx])
+    end
+    
+  elseif pattern_type == "outin" then
+    -- Outside to inside: 1-4-2-3-1-4-2-3...
+    local pattern_seq = {}
+    local left_idx = 1
+    local right_idx = #notes
+    while left_idx <= right_idx do
+      table.insert(pattern_seq, notes[left_idx])
+      if left_idx < right_idx then
+        table.insert(pattern_seq, notes[right_idx])
+      end
+      left_idx = left_idx + 1
+      right_idx = right_idx - 1
+    end
+    for i = 1, num_rows do
+      local idx = ((i - 1) % #pattern_seq) + 1
+      table.insert(arpeggio_sequence, pattern_seq[idx])
+    end
+    
+  elseif pattern_type == "inout" then
+    -- Inside to outside (for chords with 4+ notes)
+    local pattern_seq = {}
+    local left_idx = math.ceil(#notes / 2)
+    local right_idx = math.ceil(#notes / 2) + 1
+    if #notes % 2 == 1 then
+      table.insert(pattern_seq, notes[left_idx])
+      left_idx = left_idx - 1
+    else
+      right_idx = left_idx + 1
+      left_idx = left_idx
+    end
+    while left_idx >= 1 and right_idx <= #notes do
+      table.insert(pattern_seq, notes[left_idx])
+      table.insert(pattern_seq, notes[right_idx])
+      left_idx = left_idx - 1
+      right_idx = right_idx + 1
+    end
+    for i = 1, num_rows do
+      local idx = ((i - 1) % #pattern_seq) + 1
+      table.insert(arpeggio_sequence, pattern_seq[idx])
+    end
+  end
+  
+  -- Clear the original row
+  for col_idx = 1, visible_columns do
+    line:note_column(col_idx):clear()
+  end
+  for col_idx = 1, visible_effect_columns do
+    line:effect_column(col_idx):clear()
+  end
+  
+  -- Write arpeggio pattern to rows
+  for i, note_data in ipairs(arpeggio_sequence) do
+    local target_row = current_line + i - 1
+    local target_line = pattern.tracks[track_index]:line(target_row)
+    local note_col = target_line:note_column(1)
+    
+    note_col.note_value = note_data.note_value
+    note_col.instrument_value = note_data.instrument_value
+    note_col.volume_value = note_data.volume_value
+    note_col.panning_value = note_data.panning_value
+    note_col.delay_value = note_data.delay_value
+    
+    -- Copy effect columns to each row
+    for _, effect in ipairs(effects) do
+      local effect_col = target_line:effect_column(effect.column)
+      effect_col.number_string = effect.number_string
+      effect_col.amount_value = effect.amount_value
+    end
+  end
+  
+  -- Set visible columns to 1 since we're writing arpeggios
+  track.visible_note_columns = 1
+  
+  -- Status message
+  local pattern_names = {
+    up = "Up (Ascending)",
+    down = "Down (Descending)",
+    updown = "Up-Down",
+    downup = "Down-Up",
+    upupdown = "Up-Up-Down",
+    updownup = "Up-Down-Up",
+    random = "Random",
+    outin = "Outside-In",
+    inout = "Inside-Out"
+  }
+  
+  renoise.app():show_status(string.format("Created %s arpeggio pattern (%d notes, %d rows)", 
+    pattern_names[pattern_type] or pattern_type, #notes, num_rows))
+end
+
+-- Keybindings for arpeggio patterns (16 rows by default)
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Up (16 rows)",invoke=function() CreateArpeggioPattern("up", 16) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Down (16 rows)",invoke=function() CreateArpeggioPattern("down", 16) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Up-Down (16 rows)",invoke=function() CreateArpeggioPattern("updown", 16) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Down-Up (16 rows)",invoke=function() CreateArpeggioPattern("downup", 16) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Up-Up-Down (16 rows)",invoke=function() CreateArpeggioPattern("upupdown", 16) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Random (16 rows)",invoke=function() CreateArpeggioPattern("random", 16) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Outside-In (16 rows)",invoke=function() CreateArpeggioPattern("outin", 16) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Inside-Out (16 rows)",invoke=function() CreateArpeggioPattern("inout", 16) end}
+
+-- 8-row versions for faster arpeggios
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Up (8 rows)",invoke=function() CreateArpeggioPattern("up", 8) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Down (8 rows)",invoke=function() CreateArpeggioPattern("down", 8) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Up-Down (8 rows)",invoke=function() CreateArpeggioPattern("updown", 8) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Down-Up (8 rows)",invoke=function() CreateArpeggioPattern("downup", 8) end}
+
+-- 4-row versions for very fast arpeggios
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Up (4 rows)",invoke=function() CreateArpeggioPattern("up", 4) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Down (4 rows)",invoke=function() CreateArpeggioPattern("down", 4) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Up-Down (4 rows)",invoke=function() CreateArpeggioPattern("updown", 4) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Down-Up (4 rows)",invoke=function() CreateArpeggioPattern("downup", 4) end}
