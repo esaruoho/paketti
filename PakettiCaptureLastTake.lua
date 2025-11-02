@@ -242,16 +242,21 @@ renoise.tool():add_keybinding{ name = "Global:Paketti:Toggle EditStep MIDI Gate"
 renoise.tool():add_midi_mapping{ name = "Paketti:Toggle EditStep MIDI Gate", invoke = PakettiGate_Toggle }
 
 -- Helper: place note-offs in all note columns of current line without toggling
-function PakettiCapture_PlaceNoteOffsAllColumns()
+-- target_line: optional line number to write to (if nil, uses selected_line_index)
+function PakettiCapture_PlaceNoteOffsAllColumns(target_line)
   local song = renoise.song()
   local track = song.selected_track
   if not track or track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then return end
   local patt = song:pattern(song.selected_pattern_index)
   local ptrack = patt:track(song.selected_track_index)
-  local line = ptrack:line(song.selected_line_index)
+  local current_line_index = target_line or song.selected_line_index
+  local line = ptrack:line(current_line_index)
+  
+  print("  PlaceNoteOffsAllColumns: Writing OFFs to line " .. tostring(current_line_index))
   
   -- Place note-offs in all visible note columns
   local max_cols = math.min(12, track.visible_note_columns or 1)
+  print("  PlaceNoteOffsAllColumns: Writing to " .. tostring(max_cols) .. " columns")
   for i = 1, max_cols do
     local ncol = line:note_column(i)
     ncol.note_string = "OFF"
@@ -523,23 +528,39 @@ function PakettiCapture_PickupFromPattern()
 end
 
 -- Dump a specific row to the current pattern line, fitting visible note columns
-function PakettiCapture_DumpRow(index)
-  if index < 1 or index > #PakettiCapture_sequences then return end
+-- skip_smart_noteoff: when true, ignores the Smart Note Off preference (used by automated functions)
+function PakettiCapture_DumpRow(index, skip_smart_noteoff)
+  print("  DumpRow called: index=" .. tostring(index) .. " skip_smart_noteoff=" .. tostring(skip_smart_noteoff))
+  if index < 1 or index > #PakettiCapture_sequences then 
+    print("  DumpRow: index out of range")
+    return 
+  end
   local song = renoise.song()
   local track = song.selected_track
-  if not track then return end
+  if not track then 
+    print("  DumpRow: no track")
+    return 
+  end
   if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
     renoise.app():show_status("PakettiCapture: Not a sequencer track")
     return
   end
   local patt = song:pattern(song.selected_pattern_index)
   local ptrack = patt:track(song.selected_track_index)
-  local line = ptrack:line(song.selected_line_index)
+  local target_line_index = song.selected_line_index
+  local line = ptrack:line(target_line_index)
+  print("  DumpRow: writing to line " .. tostring(target_line_index))
 
   local notes = PakettiCapture_sequences[index]
+  print("  DumpRow: notes from sequence = " .. table.concat(notes, " "))
   local sorted_notes = PakettiCapture_SortNotesAscending(notes)
+  print("  DumpRow: sorted_notes = " .. table.concat(sorted_notes, " "))
   local needed = #sorted_notes
-  if needed < 1 then return end
+  print("  DumpRow: needed = " .. tostring(needed))
+  if needed < 1 then 
+    print("  DumpRow: no notes needed")
+    return 
+  end
 
   -- Fit visible note columns
   local max_cols = 12 -- hard cap; sequencer tracks in Renoise max out at 12 note columns
@@ -550,7 +571,8 @@ function PakettiCapture_DumpRow(index)
     track.visible_note_columns = target_cols
   end
   -- Smart Note-Off above target line if enabled (after ensuring note column size)
-  if preferences and preferences.pakettiCaptureLastTakeSmartNoteOff and preferences.pakettiCaptureLastTakeSmartNoteOff.value then
+  -- Skip if called from automated function
+  if not skip_smart_noteoff and preferences and preferences.pakettiCaptureLastTakeSmartNoteOff and preferences.pakettiCaptureLastTakeSmartNoteOff.value then
     local prev = song.selected_line_index - 1
     if prev >= 1 then
       local original_line = song.selected_line_index
@@ -561,16 +583,20 @@ function PakettiCapture_DumpRow(index)
   end
 
   -- Write notes as strings; clear extra columns
+  print("  DumpRow: About to write " .. tostring(needed_cols) .. " notes")
   for i = 1, needed_cols do
     local ncol = line:note_column(i)
     local val = sorted_notes[i]
+    print("    Column " .. tostring(i) .. ": val = " .. tostring(val))
     if val and val ~= "OFF" then
       ncol.note_string = val
       ncol.instrument_value = song.selected_instrument_index - 1
+      print("    Wrote note: " .. tostring(val))
     else
       -- If empty or explicit OFF, clear instrument to avoid stale instrument values
       ncol.note_string = val == "OFF" and "OFF" or ""
       ncol.instrument_value = 255
+      print("    Wrote OFF or empty")
     end
   end
   -- Only clear extra columns if we actually have notes and more columns than needed
@@ -585,7 +611,8 @@ function PakettiCapture_DumpRow(index)
   end
 
   -- Also place note-offs on the last pattern line when enabled
-  if preferences and preferences.pakettiCaptureLastTakeSmartNoteOff and preferences.pakettiCaptureLastTakeSmartNoteOff.value then
+  -- Skip if called from automated function
+  if not skip_smart_noteoff and preferences and preferences.pakettiCaptureLastTakeSmartNoteOff and preferences.pakettiCaptureLastTakeSmartNoteOff.value then
     local original_line_final = song.selected_line_index
     local last_line = patt.number_of_lines
     if last_line and last_line >= 1 then
@@ -604,6 +631,11 @@ function PakettiCapture_FitSlotsToPattern()
   local patt = song:pattern(song.selected_pattern_index)
   local num_lines = patt.number_of_lines
   local total_slots = #PakettiCapture_sequences
+  
+  print("=== FitSlotsToPattern DEBUG START ===")
+  print("Total slots: " .. tostring(total_slots))
+  print("Pattern lines: " .. tostring(num_lines))
+  
   if total_slots == 0 then
     renoise.app():show_status("PakettiCapture: No slots to fit")
     return
@@ -613,22 +645,29 @@ function PakettiCapture_FitSlotsToPattern()
     return
   end
 
+  -- Debug: print what's in each slot
+  for s = 1, total_slots do
+    local seq = PakettiCapture_sequences[s]
+    print("Slot " .. tostring(s) .. " contains: " .. table.concat(seq, " "))
+  end
+
   local step = math.floor(num_lines / total_slots)
   if step < 1 then step = 1 end
 
   local start_line = 1
   local original_line = song.selected_line_index
   for i = 1, total_slots do
+    print("Writing slot " .. tostring(i) .. " to line " .. tostring(start_line))
     song.selected_line_index = start_line
-    PakettiCapture_DumpRow(i)
+    PakettiCapture_DumpRow(i, true)  -- Skip smart note-off, we handle it ourselves
     
     -- Place note-offs before the next slot (but not after the last slot)
     if i < total_slots then
       local next_slot_line = math.min(num_lines, start_line + step)
       local noteoff_line = math.max(1, next_slot_line - 1)
       if noteoff_line > start_line and noteoff_line <= num_lines then
-        song.selected_line_index = noteoff_line
-        PakettiCapture_PlaceNoteOffsAllColumns()
+        print("Writing note-offs to line " .. tostring(noteoff_line))
+        PakettiCapture_PlaceNoteOffsAllColumns(noteoff_line)
       end
     end
     
@@ -636,11 +675,12 @@ function PakettiCapture_FitSlotsToPattern()
   end
   
   -- Always place note-offs on the last pattern line for Fit Slots to Pattern
-  song.selected_line_index = num_lines
-  PakettiCapture_PlaceNoteOffsAllColumns()
+  print("Writing note-offs to last line: " .. tostring(num_lines))
+  PakettiCapture_PlaceNoteOffsAllColumns(num_lines)
   
   -- Restore user-facing selection
   song.selected_line_index = original_line
+  print("=== FitSlotsToPattern DEBUG END ===")
 end
 
 -- Randomly shift each note in each slot by ±12 or ±24 semitones
