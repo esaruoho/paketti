@@ -1425,30 +1425,6 @@ function PakettiMoveSliceEnd(delta)
   return true
 end
 
--- Button functions for specific delta amounts (using DRY principle)
-local slice_button_deltas = {10, 100, 300, 500}
-
--- Generate all button functions dynamically with proper closure capture
-for _, delta in ipairs(slice_button_deltas) do
-  local captured_delta = delta
-  
-  _G["move_slice_start_left_" .. captured_delta] = function()
-    PakettiMoveSliceStart(-captured_delta)
-  end
-  
-  _G["move_slice_start_right_" .. captured_delta] = function()
-    PakettiMoveSliceStart(captured_delta)
-  end
-  
-  _G["move_slice_end_left_" .. captured_delta] = function()
-    PakettiMoveSliceEnd(-captured_delta)
-  end
-  
-  _G["move_slice_end_right_" .. captured_delta] = function()
-    PakettiMoveSliceEnd(captured_delta)
-  end
-end
-
 -- Smart knob function for moving slice start with multiplier support
 function PakettiMoveSliceStartKnob(message, multiplier)
   multiplier = multiplier or 1
@@ -1572,40 +1548,44 @@ function PakettiMoveSliceEndKnob(message, multiplier)
 end
 
 ------
--- Generate MIDI mappings for button controls using DRY principle
+-- MIDI mappings for button controls using DRY principle
+local slice_button_deltas = {10, 100, 300, 500}
+
 for _, delta in ipairs(slice_button_deltas) do
+  local d = delta
+  
   renoise.tool():add_midi_mapping{
-    name = "Sample Editor:Paketti:Move Slice Start Left by " .. delta,
+    name = "Sample Editor:Paketti:Move Slice Start Left by " .. d,
     invoke = function(message) 
       if message:is_trigger() then 
-        _G["move_slice_start_left_" .. delta]() 
+        PakettiMoveSliceStart(-d)
       end 
     end
   }
   
   renoise.tool():add_midi_mapping{
-    name = "Sample Editor:Paketti:Move Slice Start Right by " .. delta,
+    name = "Sample Editor:Paketti:Move Slice Start Right by " .. d,
     invoke = function(message) 
       if message:is_trigger() then 
-        _G["move_slice_start_right_" .. delta]() 
+        PakettiMoveSliceStart(d)
       end 
     end
   }
   
   renoise.tool():add_midi_mapping{
-    name = "Sample Editor:Paketti:Move Slice End Left by " .. delta,
+    name = "Sample Editor:Paketti:Move Slice End Left by " .. d,
     invoke = function(message) 
       if message:is_trigger() then 
-        _G["move_slice_end_left_" .. delta]() 
+        PakettiMoveSliceEnd(-d)
       end 
     end
   }
   
   renoise.tool():add_midi_mapping{
-    name = "Sample Editor:Paketti:Move Slice End Right by " .. delta,
+    name = "Sample Editor:Paketti:Move Slice End Right by " .. d,
     invoke = function(message) 
       if message:is_trigger() then 
-        _G["move_slice_end_right_" .. delta]() 
+        PakettiMoveSliceEnd(d)
       end 
     end
   }
