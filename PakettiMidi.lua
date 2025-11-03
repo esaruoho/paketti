@@ -1306,6 +1306,14 @@ renoise.tool():add_midi_mapping{name="Paketti:EditStep Halve x[Button]",invoke=f
 -- Helper function to find the currently selected slice marker index
 function PakettiGetCurrentSliceIndex()
   local song = renoise.song()
+  local selected_sample_index = song.selected_sample_index
+  
+  -- If we're on a slice sample (not the first sample), use that slice index
+  if selected_sample_index > 1 then
+    return selected_sample_index - 1
+  end
+  
+  -- If we're on the first sample, use the selection position to determine slice
   local sample = song.selected_sample
   
   if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
@@ -1332,10 +1340,18 @@ end
 -- Core function to move slice start by delta
 function PakettiMoveSliceStart(delta)
   local song = renoise.song()
-  local sample = song.selected_sample
+  local instrument = song.selected_instrument
+  
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No instrument or samples available")
+    return false
+  end
+  
+  -- Always work with the first sample (which has the slice markers)
+  local sample = instrument.samples[1]
   
   if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
-    renoise.app():show_status("No sample selected or sample has no data")
+    renoise.app():show_status("No sample data available")
     return false
   end
   
@@ -1378,10 +1394,18 @@ end
 -- Core function to move slice end by delta
 function PakettiMoveSliceEnd(delta)
   local song = renoise.song()
-  local sample = song.selected_sample
+  local instrument = song.selected_instrument
+  
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No instrument or samples available")
+    return false
+  end
+  
+  -- Always work with the first sample (which has the slice markers)
+  local sample = instrument.samples[1]
   
   if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
-    renoise.app():show_status("No sample selected or sample has no data")
+    renoise.app():show_status("No sample data available")
     return false
   end
   
@@ -1429,10 +1453,18 @@ end
 function PakettiMoveSliceStartKnob(message, multiplier)
   multiplier = multiplier or 1
   local song = renoise.song()
-  local sample = song.selected_sample
+  local instrument = song.selected_instrument
+  
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No instrument or samples available")
+    return
+  end
+  
+  -- Always work with the first sample (which has the slice markers)
+  local sample = instrument.samples[1]
   
   if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
-    renoise.app():show_status("No sample selected or sample has no data")
+    renoise.app():show_status("No sample data available")
     return
   end
   
@@ -1488,10 +1520,18 @@ end
 function PakettiMoveSliceEndKnob(message, multiplier)
   multiplier = multiplier or 1
   local song = renoise.song()
-  local sample = song.selected_sample
+  local instrument = song.selected_instrument
+  
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No instrument or samples available")
+    return
+  end
+  
+  -- Always work with the first sample (which has the slice markers)
+  local sample = instrument.samples[1]
   
   if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
-    renoise.app():show_status("No sample selected or sample has no data")
+    renoise.app():show_status("No sample data available")
     return
   end
   
