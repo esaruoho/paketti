@@ -1299,23 +1299,337 @@ end
 
 renoise.tool():add_midi_mapping{name="Paketti:EditStep Double x[Button]",invoke=function(message) if message:is_trigger() then PakettiEditStepDouble() end end}
 renoise.tool():add_midi_mapping{name="Paketti:EditStep Halve x[Button]",invoke=function(message) if message:is_trigger() then PakettiEditStepHalve() end end}
+
+--------
+-- Slice Start/End Movement Functions
+
+-- Helper function to find the currently selected slice marker index
+function PakettiGetCurrentSliceIndex()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    return nil
+  end
+  
+  if #sample.slice_markers == 0 then
+    return nil
+  end
+  
+  local selection_start = sample.sample_buffer.selection_start
+  local slice_markers = sample.slice_markers
+  
+  -- Find which slice the selection_start is in
+  for i = #slice_markers, 1, -1 do
+    if selection_start >= slice_markers[i] then
+      return i
+    end
+  end
+  
+  return 1
+end
+
+-- Core function to move slice start by delta
+function PakettiMoveSliceStart(delta)
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample selected or sample has no data")
+    return false
+  end
+  
+  if #sample.slice_markers == 0 then
+    renoise.app():show_status("No slice markers found")
+    return false
+  end
+  
+  local slice_index = PakettiGetCurrentSliceIndex()
+  if not slice_index then
+    renoise.app():show_status("Could not determine current slice")
+    return false
+  end
+  
+  local slice_markers = sample.slice_markers
+  local current_pos = slice_markers[slice_index]
+  local min_pos, max_pos
+  
+  -- Calculate bounds
+  if slice_index == 1 then
+    min_pos = 1
+    max_pos = (slice_markers[slice_index + 1] or sample.sample_buffer.number_of_frames) - 1
+  elseif slice_index == #slice_markers then
+    min_pos = slice_markers[slice_index - 1] + 1
+    max_pos = sample.sample_buffer.number_of_frames - 1
+  else
+    min_pos = slice_markers[slice_index - 1] + 1
+    max_pos = slice_markers[slice_index + 1] - 1
+  end
+  
+  -- Calculate new position
+  local new_pos = current_pos + delta
+  new_pos = math.max(min_pos, math.min(new_pos, max_pos))
+  
+  -- Move the slice marker
+  sample:move_slice_marker(current_pos, new_pos)
+  return true
+end
+
+-- Core function to move slice end by delta
+function PakettiMoveSliceEnd(delta)
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample selected or sample has no data")
+    return false
+  end
+  
+  if #sample.slice_markers == 0 then
+    renoise.app():show_status("No slice markers found")
+    return false
+  end
+  
+  local slice_index = PakettiGetCurrentSliceIndex()
+  if not slice_index then
+    renoise.app():show_status("Could not determine current slice")
+    return false
+  end
+  
+  local slice_markers = sample.slice_markers
+  
+  -- For slice end, we need to move the NEXT marker (if it exists)
+  local next_index = slice_index + 1
+  if next_index > #slice_markers then
+    renoise.app():show_status("Already at last slice (no end marker to move)")
+    return false
+  end
+  
+  local current_pos = slice_markers[next_index]
+  local min_pos, max_pos
+  
+  -- Calculate bounds for the next marker
+  min_pos = slice_markers[next_index - 1] + 1
+  if next_index == #slice_markers then
+    max_pos = sample.sample_buffer.number_of_frames - 1
+  else
+    max_pos = slice_markers[next_index + 1] - 1
+  end
+  
+  -- Calculate new position
+  local new_pos = current_pos + delta
+  new_pos = math.max(min_pos, math.min(new_pos, max_pos))
+  
+  -- Move the slice marker
+  sample:move_slice_marker(current_pos, new_pos)
+  return true
+end
+
+-- Button functions for specific delta amounts (using DRY principle)
+local slice_button_deltas = {10, 100, 300, 500}
+
+-- Generate all button functions dynamically with proper closure capture
+for _, delta in ipairs(slice_button_deltas) do
+  local captured_delta = delta
+  
+  _G["move_slice_start_left_" .. captured_delta] = function()
+    PakettiMoveSliceStart(-captured_delta)
+  end
+  
+  _G["move_slice_start_right_" .. captured_delta] = function()
+    PakettiMoveSliceStart(captured_delta)
+  end
+  
+  _G["move_slice_end_left_" .. captured_delta] = function()
+    PakettiMoveSliceEnd(-captured_delta)
+  end
+  
+  _G["move_slice_end_right_" .. captured_delta] = function()
+    PakettiMoveSliceEnd(captured_delta)
+  end
+end
+
+-- Smart knob function for moving slice start with multiplier support
+function PakettiMoveSliceStartKnob(message, multiplier)
+  multiplier = multiplier or 1
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample selected or sample has no data")
+    return
+  end
+  
+  if #sample.slice_markers == 0 then
+    renoise.app():show_status("No slice markers found")
+    return
+  end
+  
+  local slice_index = PakettiGetCurrentSliceIndex()
+  if not slice_index then
+    renoise.app():show_status("Could not determine current slice")
+    return
+  end
+  
+  local slice_markers = sample.slice_markers
+  local current_pos = slice_markers[slice_index]
+  local min_pos, max_pos
+  
+  -- Calculate bounds
+  if slice_index == 1 then
+    min_pos = 1
+    max_pos = (slice_markers[slice_index + 1] or sample.sample_buffer.number_of_frames) - 1
+  elseif slice_index == #slice_markers then
+    min_pos = slice_markers[slice_index - 1] + 1
+    max_pos = sample.sample_buffer.number_of_frames - 1
+  else
+    min_pos = slice_markers[slice_index - 1] + 1
+    max_pos = slice_markers[slice_index + 1] - 1
+  end
+  
+  local new_pos
+  
+  if message:is_abs_value() then
+    -- Absolute mode: scale MIDI value (0-127) to the valid range
+    new_pos = min_pos + math.floor((max_pos - min_pos) * (message.int_value / 127))
+  else
+    -- Relative mode: adjust by the relative delta with multiplier
+    local delta = message.int_value
+    if delta > 64 then
+      delta = delta - 128  -- Convert to negative for CCW rotation
+    end
+    delta = delta * multiplier
+    new_pos = current_pos + delta
+    new_pos = math.max(min_pos, math.min(new_pos, max_pos))
+  end
+  
+  -- Move the slice marker
+  sample:move_slice_marker(current_pos, new_pos)
+  renoise.app():show_status(string.format("Slice %d start: %d", slice_index, new_pos))
+end
+
+-- Smart knob function for moving slice end with multiplier support
+function PakettiMoveSliceEndKnob(message, multiplier)
+  multiplier = multiplier or 1
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample selected or sample has no data")
+    return
+  end
+  
+  if #sample.slice_markers == 0 then
+    renoise.app():show_status("No slice markers found")
+    return
+  end
+  
+  local slice_index = PakettiGetCurrentSliceIndex()
+  if not slice_index then
+    renoise.app():show_status("Could not determine current slice")
+    return
+  end
+  
+  local slice_markers = sample.slice_markers
+  
+  -- For slice end, we need to move the NEXT marker (if it exists)
+  local next_index = slice_index + 1
+  if next_index > #slice_markers then
+    renoise.app():show_status("Already at last slice (no end marker to move)")
+    return
+  end
+  
+  local current_pos = slice_markers[next_index]
+  local min_pos, max_pos
+  
+  -- Calculate bounds for the next marker
+  min_pos = slice_markers[next_index - 1] + 1
+  if next_index == #slice_markers then
+    max_pos = sample.sample_buffer.number_of_frames - 1
+  else
+    max_pos = slice_markers[next_index + 1] - 1
+  end
+  
+  local new_pos
+  
+  if message:is_abs_value() then
+    -- Absolute mode: scale MIDI value (0-127) to the valid range
+    new_pos = min_pos + math.floor((max_pos - min_pos) * (message.int_value / 127))
+  else
+    -- Relative mode: adjust by the relative delta with multiplier
+    local delta = message.int_value
+    if delta > 64 then
+      delta = delta - 128  -- Convert to negative for CCW rotation
+    end
+    delta = delta * multiplier
+    new_pos = current_pos + delta
+    new_pos = math.max(min_pos, math.min(new_pos, max_pos))
+  end
+  
+  -- Move the slice marker
+  sample:move_slice_marker(current_pos, new_pos)
+  renoise.app():show_status(string.format("Slice %d end: %d", slice_index, new_pos))
+end
+
 ------
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice Start Left by 10",invoke=function(message) if message:is_trigger() then move_slice_start_left_10() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice Start Right by 10",invoke=function(message) if message:is_trigger() then move_slice_start_right_10() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Left by 10",invoke=function(message) if message:is_trigger() then move_slice_end_left_10() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Right by 10",invoke=function(message) if message:is_trigger() then move_slice_end_right_10() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice Start Left by 100",invoke=function(message) if message:is_trigger() then move_slice_start_left_100() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice Start Right by 100",invoke=function(message) if message:is_trigger() then move_slice_start_right_100() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Left by 100",invoke=function(message) if message:is_trigger() then move_slice_end_left_100() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Right by 100",invoke=function(message) if message:is_trigger() then move_slice_end_right_100() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice Start Left by 300",invoke=function(message) if message:is_trigger() then move_slice_start_left_300() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice Start Right by 300",invoke=function(message) if message:is_trigger() then move_slice_start_right_300() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Left by 300",invoke=function(message) if message:is_trigger() then move_slice_end_left_300() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Right by 300",invoke=function(message) if message:is_trigger() then move_slice_end_right_300() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice Start Left by 500",invoke=function(message) if message:is_trigger() then move_slice_start_left_500() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice Start Right by 500",invoke=function(message) if message:is_trigger() then move_slice_start_right_500() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Left by 500",invoke=function(message) if message:is_trigger() then move_slice_end_left_500() end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Right by 500",invoke=function(message) if message:is_trigger() then move_slice_end_right_500() end end}
+-- Generate MIDI mappings for button controls using DRY principle
+for _, delta in ipairs(slice_button_deltas) do
+  renoise.tool():add_midi_mapping{
+    name = "Sample Editor:Paketti:Move Slice Start Left by " .. delta,
+    invoke = function(message) 
+      if message:is_trigger() then 
+        _G["move_slice_start_left_" .. delta]() 
+      end 
+    end
+  }
+  
+  renoise.tool():add_midi_mapping{
+    name = "Sample Editor:Paketti:Move Slice Start Right by " .. delta,
+    invoke = function(message) 
+      if message:is_trigger() then 
+        _G["move_slice_start_right_" .. delta]() 
+      end 
+    end
+  }
+  
+  renoise.tool():add_midi_mapping{
+    name = "Sample Editor:Paketti:Move Slice End Left by " .. delta,
+    invoke = function(message) 
+      if message:is_trigger() then 
+        _G["move_slice_end_left_" .. delta]() 
+      end 
+    end
+  }
+  
+  renoise.tool():add_midi_mapping{
+    name = "Sample Editor:Paketti:Move Slice End Right by " .. delta,
+    invoke = function(message) 
+      if message:is_trigger() then 
+        _G["move_slice_end_right_" .. delta]() 
+      end 
+    end
+  }
+end
+
+-- Knob mappings for slice start/end with absolute and relative support
+-- Using DRY principle to generate multiple mappings with different multipliers
+local slice_knob_multipliers = {
+  {name = "x1", mult = 1},
+  {name = "x10", mult = 10},
+  {name = "x50", mult = 50},
+  {name = "x100", mult = 100}
+}
+
+for _, config in ipairs(slice_knob_multipliers) do
+  renoise.tool():add_midi_mapping{
+    name = "Sample Editor:Paketti:Move Slice Start x[Knob] " .. config.name,
+    invoke = function(message) PakettiMoveSliceStartKnob(message, config.mult) end
+  }
+  renoise.tool():add_midi_mapping{
+    name = "Sample Editor:Paketti:Move Slice End x[Knob] " .. config.name,
+    invoke = function(message) PakettiMoveSliceEndKnob(message, config.mult) end
+  }
+end
 
 ----------------
 renoise.tool():add_midi_mapping{name="Paketti:Set Beatsync Value for Selected Sample x[Knob]",invoke=function(message) 
