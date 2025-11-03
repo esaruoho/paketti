@@ -3870,4 +3870,225 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
 
+--------
+-- Sample Truncater: Duplicate each frame by multiplier (2x, 4x, 8x, 16x, 32x, 64x)
+function PakettiSampleTruncater(multiplier)
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local sample_index = song.selected_sample_index
+  local sample = instrument.samples[sample_index]
+  
+  if not sample then
+    renoise.app():show_status("No sample selected.")
+    return
+  end
+  
+  if not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no data.")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  local original_frames = buffer.number_of_frames
+  local num_channels = buffer.number_of_channels
+  local sample_rate = buffer.sample_rate
+  local bit_depth = buffer.bit_depth
+  local new_frames = original_frames * multiplier
+  
+  -- Check if the new size is reasonable
+  if new_frames > 16777216 then
+    renoise.app():show_status(string.format("Resulting sample would be too large: %d frames", new_frames))
+    return
+  end
+  
+  -- Store all sample properties
+  local properties = {
+    name = sample.name,
+    volume = sample.volume,
+    panning = sample.panning,
+    transpose = sample.transpose,
+    fine_tune = sample.fine_tune,
+    beat_sync_enabled = sample.beat_sync_enabled,
+    beat_sync_lines = sample.beat_sync_lines,
+    beat_sync_mode = sample.beat_sync_mode,
+    oneshot = sample.oneshot,
+    loop_release = sample.loop_release,
+    loop_mode = sample.loop_mode,
+    mute_group = sample.mute_group,
+    new_note_action = sample.new_note_action,
+    autoseek = sample.autoseek,
+    autofade = sample.autofade,
+    oversample_enabled = sample.oversample_enabled,
+    interpolation_mode = sample.interpolation_mode,
+    sample_mapping = {
+      base_note = sample.sample_mapping.base_note,
+      note_range = sample.sample_mapping.note_range,
+      velocity_range = sample.sample_mapping.velocity_range,
+      map_key_to_pitch = sample.sample_mapping.map_key_to_pitch,
+      map_velocity_to_volume = sample.sample_mapping.map_velocity_to_volume
+    }
+  }
+  
+  -- Create ProcessSlicer instance and dialog
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+  
+  -- Define the process function
+  local function process_func()
+    -- Cache the original sample data
+    local sample_cache = {}
+    for ch = 1, num_channels do
+      sample_cache[ch] = {}
+      for frame = 1, original_frames do
+        sample_cache[ch][frame] = buffer:sample_data(ch, frame)
+      end
+    end
+    
+    -- Update progress
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = string.format("Cached %d frames", original_frames)
+    end
+    
+    -- Create a new temporary sample slot
+    local temp_sample_index = #instrument.samples + 1
+    instrument:insert_sample_at(temp_sample_index)
+    local temp_sample = instrument:sample(temp_sample_index)
+    local temp_sample_buffer = temp_sample.sample_buffer
+    
+    -- Prepare the temporary sample buffer
+    temp_sample_buffer:create_sample_data(sample_rate, bit_depth, num_channels, new_frames)
+    temp_sample_buffer:prepare_sample_data_changes()
+    
+    -- Process in chunks
+    local processed_frames = 0
+    
+    -- Write duplicated frames
+    for orig_frame = 1, original_frames do
+      for rep = 0, multiplier - 1 do
+        local new_frame = (orig_frame - 1) * multiplier + rep + 1
+        for ch = 1, num_channels do
+          temp_sample_buffer:set_sample_data(ch, new_frame, sample_cache[ch][orig_frame])
+        end
+      end
+      
+      processed_frames = processed_frames + 1
+      
+      if processed_frames % 1000 == 0 then
+        if dialog and dialog.visible then
+          vb.views.progress_text.text = string.format("Processing... %.1f%%", (processed_frames / original_frames) * 100)
+        end
+        
+        if slicer:was_cancelled() then
+          temp_sample_buffer:finalize_sample_data_changes()
+          instrument:delete_sample_at(temp_sample_index)
+          return
+        end
+        
+        coroutine.yield()
+      end
+    end
+    
+    -- Finalize changes
+    temp_sample_buffer:finalize_sample_data_changes()
+    
+    -- Name the new temporary sample
+    temp_sample.name = properties.name .. string.format(" (%dx)", multiplier)
+    
+    -- Delete the original sample and insert the new sample into the same slot
+    instrument:delete_sample_at(sample_index)
+    instrument:insert_sample_at(sample_index)
+    local new_sample = instrument:sample(sample_index)
+    new_sample.name = properties.name .. string.format(" (%dx)", multiplier)
+    
+    -- Copy the data from the temporary sample buffer to the new sample buffer
+    local new_sample_buffer = new_sample.sample_buffer
+    new_sample_buffer:create_sample_data(sample_rate, bit_depth, num_channels, new_frames)
+    new_sample_buffer:prepare_sample_data_changes()
+    
+    for frame = 1, new_frames, CHUNK_SIZE do
+      local block_end = math.min(frame + CHUNK_SIZE - 1, new_frames)
+      
+      for f = frame, block_end do
+        for ch = 1, num_channels do
+          local value = temp_sample_buffer:sample_data(ch, f)
+          new_sample_buffer:set_sample_data(ch, f, value)
+        end
+      end
+      
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Finalizing... %.1f%%", (frame / new_frames) * 100)
+      end
+      
+      if slicer:was_cancelled() then
+        new_sample_buffer:finalize_sample_data_changes()
+        return
+      end
+      
+      coroutine.yield()
+    end
+    
+    new_sample_buffer:finalize_sample_data_changes()
+    
+    -- Restore the sample mapping properties
+    new_sample.volume = properties.volume
+    new_sample.panning = properties.panning
+    new_sample.transpose = properties.transpose
+    new_sample.fine_tune = properties.fine_tune
+    new_sample.beat_sync_enabled = properties.beat_sync_enabled
+    new_sample.beat_sync_lines = properties.beat_sync_lines
+    new_sample.beat_sync_mode = properties.beat_sync_mode
+    new_sample.oneshot = properties.oneshot
+    new_sample.loop_release = properties.loop_release
+    new_sample.loop_mode = properties.loop_mode
+    new_sample.mute_group = properties.mute_group
+    new_sample.new_note_action = properties.new_note_action
+    new_sample.autoseek = properties.autoseek
+    new_sample.autofade = properties.autofade
+    new_sample.oversample_enabled = properties.oversample_enabled
+    new_sample.interpolation_mode = properties.interpolation_mode
+    new_sample.sample_mapping.base_note = properties.sample_mapping.base_note
+    new_sample.sample_mapping.note_range = properties.sample_mapping.note_range
+    new_sample.sample_mapping.velocity_range = properties.sample_mapping.velocity_range
+    new_sample.sample_mapping.map_key_to_pitch = properties.sample_mapping.map_key_to_pitch
+    new_sample.sample_mapping.map_velocity_to_volume = properties.sample_mapping.map_velocity_to_volume
+    
+    -- Delete the temporary sample
+    instrument:delete_sample_at(temp_sample_index)
+    
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
+    -- Provide feedback
+    renoise.app():show_status(string.format("Sample truncated %dx: %d -> %d frames", multiplier, original_frames, new_frames))
+  end
+  
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog(string.format("Truncating Sample (%dx)", multiplier))
+  slicer:start()
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Truncate Sample 2x", invoke=function() PakettiSampleTruncater(2) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Truncate Sample 4x", invoke=function() PakettiSampleTruncater(4) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Truncate Sample 8x", invoke=function() PakettiSampleTruncater(8) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Truncate Sample 16x", invoke=function() PakettiSampleTruncater(16) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Truncate Sample 32x", invoke=function() PakettiSampleTruncater(32) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Truncate Sample 64x", invoke=function() PakettiSampleTruncater(64) end}
+
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Truncate Sample 2x", invoke=function() PakettiSampleTruncater(2) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Truncate Sample 4x", invoke=function() PakettiSampleTruncater(4) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Truncate Sample 8x", invoke=function() PakettiSampleTruncater(8) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Truncate Sample 16x", invoke=function() PakettiSampleTruncater(16) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Truncate Sample 32x", invoke=function() PakettiSampleTruncater(32) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Truncate Sample 64x", invoke=function() PakettiSampleTruncater(64) end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Truncate Sample 2x", invoke=function(message) if message:is_trigger() then PakettiSampleTruncater(2) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Truncate Sample 4x", invoke=function(message) if message:is_trigger() then PakettiSampleTruncater(4) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Truncate Sample 8x", invoke=function(message) if message:is_trigger() then PakettiSampleTruncater(8) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Truncate Sample 16x", invoke=function(message) if message:is_trigger() then PakettiSampleTruncater(16) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Truncate Sample 32x", invoke=function(message) if message:is_trigger() then PakettiSampleTruncater(32) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Truncate Sample 64x", invoke=function(message) if message:is_trigger() then PakettiSampleTruncater(64) end end}
+
 
