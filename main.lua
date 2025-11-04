@@ -750,6 +750,18 @@ function pakettiStopAutomaticRenameTrack()
     automatic_rename_timer = nil
   end
 end
+
+function pakettiToggleAutomaticRenameTrack()
+  preferences.pakettiAutomaticRenameTrack.value = not preferences.pakettiAutomaticRenameTrack.value
+  
+  if preferences.pakettiAutomaticRenameTrack.value then
+    pakettiStartAutomaticRenameTrack()
+    renoise.app():show_status("Automatic Rename Track enabled")
+  else
+    pakettiStopAutomaticRenameTrack()
+    renoise.app():show_status("Automatic Rename Track disabled")
+  end
+end
 --------
 timed_require("rx")
 timed_require("base64float")

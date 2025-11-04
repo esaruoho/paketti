@@ -181,6 +181,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiLoaderNormalizeSamples=false,
   pakettiLoaderNormalizeLargeSamples=false,
   pakettiLoadToAllTracksPosition=true,  -- false = First (position 2), true = Last (end of chain)
+  pakettiLazySlicerShowNewestSlice=false,  -- false = Show Original Sample, true = Show Newest Slice
   pakettiPolyendOpenDialog=true,
   pakettiExplodeTrackNaming=true,  -- Enable note+instrument naming for exploded tracks (e.g. "C-4 MyInstrument")
   selectionNewInstrumentSelect=false,
@@ -1320,6 +1321,13 @@ vb:row{
                   preferences:save_as("preferences.xml")
                 end
               }
+            },
+            vb:text{style="strong",font="bold",text="LazySlicer (Real-Time Slice)"},
+            vb:row{
+              vb:text{text="Sample View",width=150,tooltip="Show Original: keeps viewing the original sample while slicing. Show Newest Slice: automatically switches to newest created slice."},
+              vb:switch{items={"Show Original","Show Newest Slice"},value=preferences.pakettiLazySlicerShowNewestSlice.value and 2 or 1,width=300,
+                tooltip="Show Original: keeps viewing the original sample while slicing. Show Newest Slice: automatically switches to newest created slice.",
+                notifier=function(value) preferences.pakettiLazySlicerShowNewestSlice.value=(value==2) end}
             },
             vb:row{vb:text{text="Paketti Loader Settings (Drumkit Loader)", font="bold", style="strong"}},
             vb:row{vb:text{text="Move Beginning Silence",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderMoveSilenceToEnd.value and 2 or 1,width=200,
