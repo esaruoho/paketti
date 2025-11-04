@@ -671,6 +671,67 @@ local function detect_doubled_first_letter(text)
   return nil
 end
 
+-- Helper function to remove one instance of doubled substring from text
+-- Returns the corrected text if a doubling is found, nil otherwise
+local function remove_one_doubling(text)
+  if not text or #text < 2 then
+    return nil
+  end
+  
+  -- Check for repeated substrings of length 1, 2, and 3 (prioritize longer matches)
+  for substring_length = 3, 1, -1 do
+    if #text >= substring_length * 2 then
+      for i = 1, #text - (substring_length * 2) + 1 do
+        local substring = text:sub(i, i + substring_length - 1)
+        local next_substring = text:sub(i + substring_length, i + (substring_length * 2) - 1)
+        
+        -- Check if the substring is repeated immediately after itself
+        if substring == next_substring and substring:match("^[a-z]+$") then
+          -- Remove the duplicated substring and return
+          return text:sub(1, i - 1) .. text:sub(i + substring_length)
+        end
+      end
+    end
+  end
+  
+  return nil
+end
+
+-- New function to detect and fix any doubled characters or substrings in text
+-- Returns a table of all possible corrections (handles multiple typos in one word)
+-- Handles both single char repetition (pparameter) and substring repetition (paparameter)
+-- Can fix multiple typos: "paparameteter" -> "parameter" (fixes both "papa" and "tete")
+local function detect_any_doubled_chars(text)
+  if not text or #text < 2 then
+    return {}
+  end
+  
+  local variants = {}
+  local text_lower = text:lower()
+  local seen = {}
+  
+  -- Keep removing doublings until we can't find any more
+  local current = text_lower
+  local max_iterations = 10  -- Safety limit to prevent infinite loops
+  local iteration = 0
+  
+  while iteration < max_iterations do
+    local corrected = remove_one_doubling(current)
+    if corrected and corrected ~= current then
+      if not seen[corrected] then
+        seen[corrected] = true
+        table.insert(variants, corrected)
+      end
+      current = corrected
+      iteration = iteration + 1
+    else
+      break
+    end
+  end
+  
+  return variants
+end
+
 -- Test function for doubled letter detection (can be called from console for testing)
 function test_doubled_letter_detection()
   local test_cases = {
@@ -689,6 +750,35 @@ function test_doubled_letter_detection()
     local result = detect_doubled_first_letter(input)
     local status = (result == expected) and "PASS" or "FAIL"
     print(string.format("  %s: '%s' -> %s (expected %s)", status, input, tostring(result), tostring(expected)))
+  end
+  
+  print("\nTesting any doubled chars detection:")
+  local test_cases_any = {
+    {"paparameter", "parameter"},      -- "pa" is doubled
+    {"pparameter", "parameter"},       -- "p" is doubled
+    {"eexpose", "expose"},             -- "e" is doubled
+    {"paraameter", "parameter"},       -- "a" is doubled
+    {"parammeter", "parameter"},       -- "m" is doubled
+    {"parparameter", "parameter"},     -- "par" is doubled
+    {"paparameteter", "parameter"},    -- multiple typos: "pa" and "te" doubled
+    {"pparammeteter", "parameter"},    -- multiple typos: "p", "m", "te" doubled
+    {"parameter", ""},                 -- no doubled chars
+  }
+  
+  for _, case in ipairs(test_cases_any) do
+    local input, expected = case[1], case[2]
+    local results = detect_any_doubled_chars(input)
+    -- Get the final result (last in the list, which is most corrected)
+    local result_str = #results > 0 and results[#results] or ""
+    local status = (result_str == expected) and "PASS" or "FAIL"
+    print(string.format("  %s: '%s' -> '%s' (expected '%s')", 
+      status, 
+      input, 
+      result_str,
+      expected))
+    if #results > 1 then
+      print(string.format("       intermediate steps: [%s]", table.concat(results, " -> ")))
+    end
   end
 end
 
@@ -871,6 +961,17 @@ local function filter_commands(filter_text)
               candidate_indices[i] = true
             end
           end
+          
+          -- Try variants with any doubled characters removed
+          if not candidate_indices[i] then
+            local variants = detect_any_doubled_chars(term)
+            for _, variant in ipairs(variants) do
+              if string.find(name_lower, variant, 1, true) or string.find(category_lower, variant, 1, true) then
+                candidate_indices[i] = true
+                break
+              end
+            end
+          end
         end
         
         -- Abbreviation match
@@ -884,6 +985,15 @@ local function filter_commands(filter_text)
             if corrected_term and string.find(abbrev:lower(), corrected_term, 1, true) then
               candidate_indices[i] = true
               break
+            end
+            
+            -- Try variants with any doubled characters removed
+            local variants = detect_any_doubled_chars(term)
+            for _, variant in ipairs(variants) do
+              if string.find(abbrev:lower(), variant, 1, true) then
+                candidate_indices[i] = true
+                break
+              end
             end
           end
         end
@@ -922,6 +1032,18 @@ local function filter_commands(filter_text)
               found_match = true
             end
           end
+          
+          -- Try variants with any doubled characters removed
+          if not found_match then
+            local variants = detect_any_doubled_chars(term)
+            for _, variant in ipairs(variants) do
+              if string.find(name_lower, variant, 1, true) or string.find(category_lower, variant, 1, true) then
+                term_candidates[i] = true
+                found_match = true
+                break
+              end
+            end
+          end
         end
         
         -- Abbreviation match (only if no direct match found)
@@ -939,6 +1061,17 @@ local function filter_commands(filter_text)
                 found_match = true
                 break
               end
+              
+              -- Try variants with any doubled characters removed
+              local variants = detect_any_doubled_chars(term)
+              for _, variant in ipairs(variants) do
+                if string.find(abbrev:lower(), variant, 1, true) then
+                  term_candidates[i] = true
+                  found_match = true
+                  break
+                end
+              end
+              if found_match then break end
             end
           end
         end
@@ -960,6 +1093,19 @@ local function filter_commands(filter_text)
               if command.name:lower() == full_command:lower() then  -- Exact match only
                 term_candidates[i] = true
               end
+            end
+          end
+          
+          -- Try variants with any doubled characters removed
+          local variants = detect_any_doubled_chars(term)
+          for _, variant in ipairs(variants) do
+            if string.find(abbrev:lower(), variant, 1, true) then
+              for i, command in ipairs(base_commands) do
+                if command.name:lower() == full_command:lower() then  -- Exact match only
+                  term_candidates[i] = true
+                end
+              end
+              break
             end
           end
         end

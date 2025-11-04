@@ -714,6 +714,15 @@ function PakettiToggleNewSampleMonitoring()
   print("Paketti new sample monitoring: " .. status)
 end
 
+-- Function to toggle Pakettify
+function PakettiToggleAutoSamplifyPakettify()
+  if preferences and preferences.pakettiAutoSamplifyPakettify then
+    preferences.pakettiAutoSamplifyPakettify.value = not preferences.pakettiAutoSamplifyPakettify.value
+    local status = preferences.pakettiAutoSamplifyPakettify.value and "enabled" or "disabled"
+    renoise.app():show_status("Paketti Auto-samplify Pakettify: " .. status)
+  end
+end
+
 -- Function to temporarily disable monitoring (returns previous state)
 function PakettiTemporarilyDisableNewSampleMonitoring()
   local was_enabled = monitoring_enabled

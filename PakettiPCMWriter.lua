@@ -5656,10 +5656,15 @@ function PCMWriterExportWaveBToSample()
   preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
 end
 
-function PCMWriterExportWaveAAndBToSample()
+function PCMWriterExportWaveAAndBToSample(skip_devices)
   -- Validate track type before proceeding
   if not PCMWriterValidateTrackForWavetable() then
     return
+  end
+  
+  -- Default skip_devices to false if not provided
+  if skip_devices == nil then
+    skip_devices = false
   end
   
   -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
@@ -5832,6 +5837,38 @@ function PCMWriterExportWaveAAndBToSample()
     inst.sample_device_chains[2].name = sample_b.name
   end
   
+  -- Only load devices if skip_devices is false
+  if not skip_devices then
+    PCMWriterLoadABDevices()
+  end
+  
+  -- Set instrument name to match sample names (moved before status message)
+  inst.name = string.format("PCM Waves A&B (%d frames)", wave_size)
+  if correction_status_a ~= "" or correction_status_b ~= "" then
+    inst.name = inst.name .. " -> Auto-tuned"
+  end
+  
+  -- Remove all placeholder samples if they exist
+  PCMWriterRemovePlaceholderSamples(inst, sample_slot_b)
+  
+  -- Re-enable Live Pickup Mode if it was active OR if 12st_WT setup is detected
+  if was_live_pickup_active or PCMWriterDetect12stWTSetup() then
+    print("DEBUG: Re-enabling Live Pickup Mode for new Wave A&B instrument")
+    PCMWriterEnterLivePickupMode()
+    renoise.app():show_status(string.format("Waves A&B exported to new instrument with %s interpolation, oversampling %s, auto-pitch correction - Live Pickup Mode re-enabled", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
+  else
+    renoise.app():show_status(string.format("Waves A&B exported to new instrument with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
+  end
+  
+  -- Clear flag to re-enable AutoSamplify processing (BEFORE restoring auto-pakettify)
+  PCMWriterSetCreatingSamples(false)
+  
+  -- Restore AutoSamplify Pakettify state (AFTER clearing flag)
+  preferences.pakettiAutoSamplifyPakettify.value = AutoSamplifyPakettifyState
+end
+
+-- Helper function to load the A&B wavetable control devices
+function PCMWriterLoadABDevices()
   -- Add track device chain setup for controlling the instrument
   -- === TRACK DEVICE CHAIN RECREATION ===
   -- Loading device 2: *Instr. Macros (*Instr. Macros)
@@ -6099,11 +6136,14 @@ function PCMWriterExportWaveAAndBToSampleWithUnison()
   -- Check if Live Pickup Mode was active before Wave A&B creation
   local was_live_pickup_active = live_pickup_mode
   
-  -- First call the regular Write A&B function
-  PCMWriterExportWaveAAndBToSample()
+  -- First call the regular Write A&B function with skip_devices flag
+  PCMWriterExportWaveAAndBToSample(true)
   
-  -- Then call the unison generator
+  -- Then call the unison generator (this creates a NEW instrument)
   PakettiCreateUnisonSamples()
+  
+  -- NOW load the devices so they point to the NEW unison instrument
+  PCMWriterLoadABDevices()
   
   -- Update status message to include Live Pickup Mode information if relevant
   if was_live_pickup_active or live_pickup_mode then
@@ -6132,11 +6172,14 @@ function PCMWriterLoad2RandomAKWFAndExportWithUnison()
   then preferences.pakettiAutoSamplifyPakettify.value = false
   end
   
-  -- First call the regular Write AKWF A&B function
+  -- First call the regular Write AKWF A&B function (note: AKWF function doesn't create devices, so no skip parameter needed)
   PCMWriterLoad2RandomAKWFAndExport()
   
-  -- Then call the unison generator
+  -- Then call the unison generator (this creates a NEW instrument)
   PakettiCreateUnisonSamples()
+  
+  -- NOW load the devices so they point to the NEW unison instrument
+  PCMWriterLoadABDevices()
   
   renoise.app():show_status("Random AKWF files loaded as A&B and unison processing applied")
   

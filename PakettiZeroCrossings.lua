@@ -711,12 +711,6 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Move Slice End +1/32 B
 -- Menu entries
 --------------------------------------------------------------------------------
 
--- Main menu Options entry
-renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-Zero-Crossing Selection Range in Sample Editor", invoke = function()
-  preferences.ZeroCrossings.AutoSnapSelection.value = not preferences.ZeroCrossings.AutoSnapSelection.value
-  renoise.app():show_status("Auto-Zero-Crossing Selection Range: " .. (preferences.ZeroCrossings.AutoSnapSelection.value and "ON" or "OFF"))
-end, selected = function() return preferences.ZeroCrossings.AutoSnapSelection.value end}
-
 -- Sample Editor menu entries
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Zero Crossings:Advanced Dialog", invoke = PakettiZeroCrossingsAdvancedDialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Zero Crossings:Snap Selection to Zero Crossings", invoke = function() PakettiZeroCrossingsSnapSelection(1.0) end}

@@ -11719,6 +11719,94 @@ renoise.tool():add_midi_mapping{name="Paketti:Show/Hide Slot " .. slot .. " on S
 }
 end
 
+-- Plugin Instrument External Editor Show/Hide
+function PakettiPluginExternalEditorToggle(plugin_index)
+  local song = renoise.song()
+  if not song then 
+    renoise.app():show_status("No song loaded")
+    return 
+  end
+  
+  local plugin_count = 0
+  local found_instrument_index = nil
+  
+  -- Go through all instruments and find the Nth plugin instrument
+  for i = 1, #song.instruments do
+    local instrument = song.instruments[i]
+    if instrument and 
+       instrument.plugin_properties and 
+       instrument.plugin_properties.plugin_device and 
+       instrument.plugin_properties.plugin_device.external_editor_available then
+      plugin_count = plugin_count + 1
+      if plugin_count == plugin_index then
+        found_instrument_index = i
+        break
+      end
+    end
+  end
+  
+  -- Check if we found the plugin instrument
+  if not found_instrument_index then
+    if plugin_count == 0 then
+      renoise.app():show_status("This song has no plugin instruments")
+    else
+      renoise.app():show_status("This song doesn't have a " .. PakettiOrdinalNumber(plugin_index) .. " plugin instrument")
+    end
+    return
+  end
+  
+  -- Toggle the external editor visibility
+  local instrument = song.instruments[found_instrument_index]
+  local plugin_device = instrument.plugin_properties.plugin_device
+  plugin_device.external_editor_visible = not plugin_device.external_editor_visible
+  
+  local status = plugin_device.external_editor_visible and "shown" or "hidden"
+  renoise.app():show_status("Plugin instrument " .. PakettiOrdinalNumber(plugin_index) .. " (" .. instrument.name .. ") external editor " .. status)
+end
+
+-- Helper function to convert number to ordinal (1st, 2nd, 3rd, etc.)
+function PakettiOrdinalNumber(n)
+  local suffix = "th"
+  local last_digit = n % 10
+  local last_two_digits = n % 100
+  
+  if last_two_digits >= 11 and last_two_digits <= 13 then
+    suffix = "th"
+  elseif last_digit == 1 then
+    suffix = "st"
+  elseif last_digit == 2 then
+    suffix = "nd"
+  elseif last_digit == 3 then
+    suffix = "rd"
+  end
+  
+  return n .. suffix
+end
+
+-- Register 16 shortcuts for plugin external editors
+for i = 1, 16 do
+  local ordinal = PakettiOrdinalNumber(i)
+  
+  renoise.tool():add_menu_entry{
+    name = "Main Menu:Tools:Paketti:Plugins/Devices:Plugin External Editors:Show/Hide " .. ordinal .. " Plugin Instrument External Editor",
+    invoke = function() PakettiPluginExternalEditorToggle(i) end
+  }
+  
+  renoise.tool():add_keybinding{
+    name = "Global:Paketti:Show/Hide " .. ordinal .. " Plugin Instrument External Editor",
+    invoke = function() PakettiPluginExternalEditorToggle(i) end
+  }
+  
+  renoise.tool():add_midi_mapping{
+    name = "Paketti:Show/Hide " .. ordinal .. " Plugin Instrument External Editor",
+    invoke = function(message)
+      if message:is_trigger() then
+        PakettiPluginExternalEditorToggle(i)
+      end
+    end
+  }
+end
+
 -- Instrument Rename Dialog
 local instrument_rename_dialog = nil
 

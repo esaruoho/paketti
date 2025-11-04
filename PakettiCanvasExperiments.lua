@@ -427,12 +427,27 @@ function PakettiCanvasExperimentsRefreshDevice()
     current_device = selected_device
     device_parameters = {}
     
+    -- Check if this is a Wavetable Mod *LFO device (partial blacklist)
+    local is_wavetable_lfo = false
+    local device_name = selected_device.display_name or ""
+    local actual_device_name = selected_device.name or ""
+    -- Check for Wavetable Mod *LFO by display name OR by placeholder name OR by device type
+    if device_name == "Wavetable Mod *LFO" or 
+       device_name == "PAKETTI_PLACEHOLDER_001" or 
+       (actual_device_name == "*LFO" and #selected_device.parameters == 8) then
+      is_wavetable_lfo = true
+      print("DEVICE_INFO: Wavetable Mod *LFO detected - hiding first 3 routing parameters")
+    end
+    
     -- Get all automatable parameters from the device
     for i = 1, #current_device.parameters do
       local param = current_device.parameters[i]
       print("  Parameter " .. i .. ": " .. param.name .. " (automatable: " .. tostring(param.is_automatable) .. ")")
       
-      if param.is_automatable then
+      -- Skip first 3 parameters for Wavetable Mod *LFO devices
+      local should_skip = is_wavetable_lfo and (i <= 3)
+      
+      if param.is_automatable and not should_skip then
         print("    Value: " .. param.value .. " (min: " .. param.value_min .. ", max: " .. param.value_max .. ", default: " .. param.value_default .. ")")
         table.insert(device_parameters, {
           parameter = param,
@@ -443,6 +458,8 @@ function PakettiCanvasExperimentsRefreshDevice()
           value_default = param.value_default,
           index = i
         })
+      elseif should_skip then
+        print("    SKIPPED: Parameter hidden for Wavetable Mod *LFO")
       end
     end
   else
@@ -528,12 +545,27 @@ function PakettiCanvasExperimentsInit()
     current_device = selected_device
     device_parameters = {}
     
+    -- Check if this is a Wavetable Mod *LFO device (partial blacklist)
+    local is_wavetable_lfo = false
+    local device_name = selected_device.display_name or ""
+    local actual_device_name = selected_device.name or ""
+    -- Check for Wavetable Mod *LFO by display name OR by placeholder name OR by device type
+    if device_name == "Wavetable Mod *LFO" or 
+       device_name == "PAKETTI_PLACEHOLDER_001" or 
+       (actual_device_name == "*LFO" and #selected_device.parameters == 8) then
+      is_wavetable_lfo = true
+      print("DEVICE_INFO: Wavetable Mod *LFO detected - hiding first 3 routing parameters")
+    end
+    
     -- Get all automatable parameters from the device
     for i = 1, #current_device.parameters do
       local param = current_device.parameters[i]
       print("  Parameter " .. i .. ": " .. param.name .. " (automatable: " .. tostring(param.is_automatable) .. ")")
       
-      if param.is_automatable then
+      -- Skip first 3 parameters for Wavetable Mod *LFO devices
+      local should_skip = is_wavetable_lfo and (i <= 3)
+      
+      if param.is_automatable and not should_skip then
         print("    Value: " .. param.value .. " (min: " .. param.value_min .. ", max: " .. param.value_max .. ", default: " .. param.value_default .. ")")
         table.insert(device_parameters, {
           parameter = param,
@@ -544,6 +576,8 @@ function PakettiCanvasExperimentsInit()
           value_default = param.value_default,
           index = i
         })
+      elseif should_skip then
+        print("    SKIPPED: Parameter hidden for Wavetable Mod *LFO")
       end
     end
   else
@@ -1451,11 +1485,11 @@ function PakettiCanvasExperimentsCreateDialog()
           end
         end
       },
-      
+      vb:text{text="Next Pattern",width=100,style="strong",font="bold"},
       -- Pattern automation buttons
       vb:button {
-        text = "Duplicate to Next Pattern",
-        width = 130,
+        text = "Duplicate to",
+        width = 60,
         tooltip = "Copy all automation of current device parameters to next pattern",
         notifier = function()
           PakettiCanvasExperimentsDuplicateToNextPattern()
@@ -1463,8 +1497,8 @@ function PakettiCanvasExperimentsCreateDialog()
       },
       
       vb:button {
-        text = "Snapshot to Next Pattern", 
-        width = 140,
+        text = "Snapshot to", 
+        width = 60,
         tooltip = "Create automation points in next pattern using current parameter values",
         notifier = function()
           PakettiCanvasExperimentsSnapshotToNextPattern()
@@ -2442,21 +2476,35 @@ function PakettiCanvasExperimentsSetupGlobalDeviceObserver()
     end
     
     local device = song.selected_device
+    local device_name = device.display_name or ""
     
     -- Exclude ProQ-3 specifically (it has its own UI and shouldn't use Parameter Editor)
-    if device.display_name and device.display_name:find("Pro%-Q 3") then
-      print("AUTO_OPEN: Device '" .. device.display_name .. "' is Pro-Q 3, excluded from auto-open")
+    if device_name:find("Pro%-Q 3") then
+      print("AUTO_OPEN: Device '" .. device_name .. "' is Pro-Q 3, excluded from auto-open")
       return
     end
     
     -- Exclude EQ30/EQ64 devices (they use PakettiEQ30 dialog instead)
-    if device.display_name and (device.display_name:match("^EQ30 Device [1-4]$") or device.display_name:match("^EQ64 Device [1-8]$")) then
-      print("AUTO_OPEN: Device '" .. device.display_name .. "' is EQ30/EQ64, excluded from auto-open (uses PakettiEQ30 dialog)")
+    if device_name:match("^EQ30 Device [1-4]$") or device_name:match("^EQ64 Device [1-8]$") then
+      print("AUTO_OPEN: Device '" .. device_name .. "' is EQ30/EQ64, excluded from auto-open (uses PakettiEQ30 dialog)")
       return
     end
     
-    -- Open Parameter Editor for ALL devices (both with and without external editors)
-    print("AUTO_OPEN: Opening Parameter Editor for device: " .. device.display_name)
+    -- For Wavetable Mod *LFO devices during auto-open, add a small delay to ensure device is fully initialized
+    if device_name == "Wavetable Mod *LFO" then
+      print("AUTO_OPEN: Wavetable Mod *LFO detected - adding delay before opening Parameter Editor")
+      renoise.tool():add_timer(function()
+        renoise.tool():remove_timer(PakettiCanvasExperimentsInit)
+        if song.selected_device and song.selected_device.display_name == "Wavetable Mod *LFO" then
+          print("AUTO_OPEN: Opening Parameter Editor for Wavetable Mod *LFO after delay")
+          PakettiCanvasExperimentsInit()
+        end
+      end, 100)  -- 100ms delay
+      return
+    end
+    
+    -- Open Parameter Editor for ALL other devices (both with and without external editors)
+    print("AUTO_OPEN: Opening Parameter Editor for device: " .. device_name)
     PakettiCanvasExperimentsInit()
   end
   
@@ -2613,13 +2661,6 @@ renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Selected Device Pa
 -- Parameter Editor Pattern Functions
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Duplicate to Next Pattern",invoke = PakettiCanvasExperimentsDuplicateToNextPattern}
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Snapshot to Next Pattern",invoke = PakettiCanvasExperimentsSnapshotToNextPattern}
-
--- Auto-open Parameter Editor option
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Options:Open Parameter Editor On Device Selection Toggle",
-  invoke = PakettiCanvasExperimentsToggleAutoOpen,
-  selected = PakettiCanvasExperimentsAutoOpenEnabled
-}
 
 -- Initialize global device observer on tool load if auto-open preference is enabled
 pcall(function()

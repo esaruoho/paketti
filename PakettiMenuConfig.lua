@@ -1601,6 +1601,7 @@ end
 
 -- Main Menu Options
 renoise.tool():add_menu_entry{name="Main Menu:Options:Automatically Open Selected Track Device Editors Toggle",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,selected=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Open Parameter Editor On Device Selection Toggle",invoke=PakettiCanvasExperimentsToggleAutoOpen,selected=PakettiCanvasExperimentsAutoOpenEnabled}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sample Selection Info Toggle",invoke=toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Pattern Status Monitor Toggle",invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
@@ -1612,6 +1613,12 @@ renoise.tool():add_menu_entry{name="Main Menu:Options:Sononym Auto-Transfer Togg
 renoise.tool():add_menu_entry{name="Main Menu:Options:SBx Pattern Loop Follow Toggle",invoke=function() PakettiToggleSBxFollow() end,selected=function() return preferences.PakettiSBxFollowEnabled.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Phrase Follow Pattern Playback Hack Toggle",invoke=function() PakettiTogglePhraseFollowPatternPlayback() end,selected=function() return preferences.PakettiPhraseFollowPatternPlayback.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Automatic Rename Track Toggle",invoke=function() pakettiToggleAutomaticRenameTrack() end,selected=function() return preferences.pakettiAutomaticRenameTrack.value end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-Zero-Crossing Selection Range in Sample Editor",invoke=function() preferences.ZeroCrossings.AutoSnapSelection.value = not preferences.ZeroCrossings.AutoSnapSelection.value renoise.app():show_status("Auto-Zero-Crossing Selection Range: " .. (preferences.ZeroCrossings.AutoSnapSelection.value and "ON" or "OFF")) end,selected=function() return preferences.ZeroCrossings.AutoSnapSelection.value end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-samplify Enable Monitoring Toggle",invoke=function() PakettiToggleNewSampleMonitoring() end,selected=function() return preferences.pakettiAutoSamplifyMonitoring.value end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-samplify Pakettify Toggle",invoke=function() PakettiToggleAutoSamplifyPakettify() end,selected=function() return preferences.pakettiAutoSamplifyPakettify.value end}
+
+
+renoise.tool():add_menu_entry{name="--Main Menu:Options:Paketti Preferences...",invoke=pakettiPreferences}
 
 
 -- Tools Preferences

@@ -1826,8 +1826,44 @@ local realtime_slice_state = {
   base_note = 48,
   triggered_notes = {},  -- Store triggered notes for stopping later
   autosamplify_state = nil,  -- Store AutoSamplify state to restore later
-  timer_func = nil  -- Store timer function reference for has_timer/remove_timer
+  timer_func = nil,  -- Store timer function reference for has_timer/remove_timer
+  selection_update_timer = nil  -- Continuous timer to update selection
 }
+
+-- Update sample selection to follow playhead
+function pakettiRealtimeSliceUpdateSelection()
+  if not realtime_slice_state.is_monitoring then
+    return
+  end
+  
+  local song = renoise.song()
+  local instrument = song.instruments[realtime_slice_state.instrument_index]
+  if not instrument then return end
+  
+  local sample = instrument.samples[realtime_slice_state.sample_index]
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    return
+  end
+  
+  -- Get current playback position
+  local current_frame = pakettiRealtimeSliceGetCurrentFrame()
+  local total_frames = sample.sample_buffer.number_of_frames
+  
+  -- Check if playback has reached the end
+  if current_frame >= total_frames then
+    print("Playback reached end of sample (frame " .. current_frame .. " >= " .. total_frames .. "), auto-stopping monitoring")
+    pakettiRealtimeSliceStop()
+    return
+  end
+  
+  -- Clamp to valid range
+  if current_frame < 1 then current_frame = 1 end
+  if current_frame > total_frames then current_frame = total_frames end
+  
+  -- Update selection to follow playhead
+  sample.sample_buffer.selection_start = current_frame
+  sample.sample_buffer.selection_end = total_frames
+end
 
 -- Calculate current estimated playback frame position
 function pakettiRealtimeSliceGetCurrentFrame()
@@ -1902,95 +1938,64 @@ function pakettiRealtimeSliceStart()
   realtime_slice_state.beat_sync_enabled = sample.beat_sync_enabled
   realtime_slice_state.beat_sync_mode = sample.beat_sync_mode
   realtime_slice_state.beat_sync_lines = sample.beat_sync_lines or 1
-  realtime_slice_state.base_note = sample.sample_mapping.base_note
-  realtime_slice_state.original_note = realtime_slice_state.base_note
   
-  -- Start timing
-  realtime_slice_state.start_time = os.clock()
+  -- Always play at C-4 (note 48) for normal pitched playback
+  realtime_slice_state.base_note = 48  -- C-4
+  realtime_slice_state.original_note = 48
+  print("Will trigger at note: 48 (C-4) for normal pitch playback")
+  
+  -- Auto-create first slice at frame 1 (beginning of sample) BEFORE starting playback
+  if #sample.slice_markers == 0 then
+    sample:insert_slice_marker(1)
+    print("Auto-created first slice at frame 1")
+  end
+  
   realtime_slice_state.is_monitoring = true
   
   local track_index = song.selected_track_index
+  local total_frames = sample.sample_buffer.number_of_frames
   
-  -- Check if we have no slices yet - if so, auto-create slice 0 at frame 0
-  if #sample.slice_markers == 0 then
-    print("No slices exist - auto-creating slice 0 at frame 0")
-    sample:insert_slice_marker(1)  -- Frame 1 (closest to 0 we can get)
-    renoise.app():show_status("Auto-created slice 0 at frame 0")
-    
-    -- Wait briefly for Renoise to create the slice sample, then trigger it
-    realtime_slice_state.timer_func = function()
-      if realtime_slice_state.timer_func and renoise.tool():has_timer(realtime_slice_state.timer_func) then
-        renoise.tool():remove_timer(realtime_slice_state.timer_func)
-      end
-      realtime_slice_state.timer_func = nil
-      
-      if realtime_slice_state.is_monitoring then
-        -- Find the first slice note from sample mappings
-        local note_to_trigger = nil
-        local note_on_mappings = instrument.sample_mappings[1]
-        
-        if note_on_mappings and #note_on_mappings > 0 then
-          local all_notes = {}
-          for i = 1, #note_on_mappings do
-            local mapping = note_on_mappings[i]
-            if mapping and mapping.note_range then
-              for note = mapping.note_range[1], mapping.note_range[2] do
-                table.insert(all_notes, note)
-              end
-            end
-          end
-          
-          if #all_notes > 1 then
-            table.sort(all_notes)
-            note_to_trigger = all_notes[2]  -- First slice (index 2, after original at index 1)
-            print("Found first slice mapped to note " .. note_to_trigger)
-          end
-        end
-        
-        if not note_to_trigger then
-          note_to_trigger = realtime_slice_state.base_note + 1
-          print("Fallback: Using base_note + 1 = " .. note_to_trigger)
-        end
-        
-        local note_values = {note_to_trigger}
-        realtime_slice_state.triggered_notes = note_values
-        
-        song:trigger_instrument_note_on(
-          realtime_slice_state.instrument_index,
-          track_index,
-          note_values,
-          1.0
-        )
-        print("Triggered first slice note " .. note_to_trigger)
-        
-        -- If "Show Original" mode, switch to sample 1
-        if preferences and preferences.pakettiLazySlicerShowNewestSlice and not preferences.pakettiLazySlicerShowNewestSlice.value then
-          song.selected_sample_index = 1
-          print("Show Original mode: viewing sample 1")
-        else
-          -- "Show Newest Slice" mode - stay on slice sample
-          song.selected_sample_index = 2  -- First slice is at index 2
-          print("Show Newest Slice mode: viewing sample 2")
-        end
-      end
+  -- Always view sample 1 (original) at start
+  song.selected_sample_index = 1
+  
+  -- Set sample buffer selection to play from start to end
+  sample.sample_buffer.selection_start = 1
+  sample.sample_buffer.selection_end = total_frames
+  
+  -- Use a timer to trigger playback after slice is created (2.5ms delay for maximum responsiveness)
+  realtime_slice_state.timer_func = function()
+    -- Remove this one-shot timer
+    if realtime_slice_state.timer_func and renoise.tool():has_timer(realtime_slice_state.timer_func) then
+      renoise.tool():remove_timer(realtime_slice_state.timer_func)
     end
-    renoise.tool():add_timer(realtime_slice_state.timer_func, 50)
-  else
-    -- Slices already exist - trigger the original sample
-    local note_values = {realtime_slice_state.base_note}
-    realtime_slice_state.triggered_notes = note_values
+    realtime_slice_state.timer_func = nil
     
-    song:trigger_instrument_note_on(
-      realtime_slice_state.instrument_index,
-      track_index,
-      note_values,
-      1.0
-    )
-    
-    -- Always view sample 1 (original)
-    song.selected_sample_index = 1
-    print("Slices exist - triggered original sample, viewing sample 1")
+    if realtime_slice_state.is_monitoring then
+      -- Start timing NOW (when playback actually starts)
+      realtime_slice_state.start_time = os.clock()
+      
+      -- Trigger the ORIGINAL sample (always sample index 1) from the beginning using selection
+      song:trigger_sample_note_on(
+        realtime_slice_state.instrument_index,
+        1,  -- Always play original sample (index 1)
+        track_index,
+        realtime_slice_state.base_note,
+        1.0,  -- velocity
+        true  -- use_selection = true (play from selection_start to selection_end)
+      )
+      
+      realtime_slice_state.triggered_notes = {realtime_slice_state.base_note}
+      print("Started original sample playback from frame 1 to " .. total_frames)
+    end
   end
+  renoise.tool():add_timer(realtime_slice_state.timer_func, 2.5)
+  
+  -- Start continuous timer to update selection to follow playhead (2.5ms = 400Hz update rate)
+  realtime_slice_state.selection_update_timer = function()
+    pakettiRealtimeSliceUpdateSelection()
+  end
+  renoise.tool():add_timer(realtime_slice_state.selection_update_timer, 2.5)
+  print("Started selection update timer (2.5ms / 400Hz)")
   
   local status_msg = string.format("Real-time slice monitoring STARTED - Press assigned key/MIDI to drop markers (Sample rate: %d Hz)", 
     realtime_slice_state.sample_rate)
@@ -2017,14 +2022,22 @@ function pakettiRealtimeSliceStop()
     print("Removed pending slice trigger timer")
   end
   
-  -- Stop any triggered notes cleanly
+  -- Stop the continuous selection update timer
+  if realtime_slice_state.selection_update_timer and renoise.tool():has_timer(realtime_slice_state.selection_update_timer) then
+    renoise.tool():remove_timer(realtime_slice_state.selection_update_timer)
+    realtime_slice_state.selection_update_timer = nil
+    print("Stopped selection update timer")
+  end
+  
+  -- Stop the playing sample cleanly
   if #realtime_slice_state.triggered_notes > 0 then
     local song = renoise.song()
     local track_index = song.selected_track_index
-    song:trigger_instrument_note_off(
+    song:trigger_sample_note_off(
       realtime_slice_state.instrument_index,
+      1,  -- Sample index 1 (original sample)
       track_index,
-      realtime_slice_state.triggered_notes
+      realtime_slice_state.base_note
     )
   end
   
@@ -2069,22 +2082,10 @@ function pakettiRealtimeSliceInsertMarker()
     return
   end
   
-  -- Get current estimated frame position (offset from where current slice started)
-  local frame_offset = pakettiRealtimeSliceGetCurrentFrame()
-  
-  -- Calculate absolute position in the original sample
-  -- If we have existing slice markers, we need to add the offset to the last slice marker position
-  local absolute_frame_position
-  if #sample.slice_markers > 0 then
-    -- Get the position of the most recent slice marker
-    local last_slice_marker_position = sample.slice_markers[#sample.slice_markers]
-    absolute_frame_position = last_slice_marker_position + frame_offset
-    print("Calculating absolute position: last slice at " .. last_slice_marker_position .. " + offset " .. frame_offset .. " = " .. absolute_frame_position)
-  else
-    -- No slices yet, so first slice should be at frame 0
-    absolute_frame_position = 0
-    print("No existing slices, starting first slice at frame 0")
-  end
+  -- Calculate current frame position from elapsed time
+  -- Since we're playing the original sample continuously, the position is simply elapsed_time * sample_rate
+  local absolute_frame_position = pakettiRealtimeSliceGetCurrentFrame()
+  print("Current playback position: frame " .. absolute_frame_position)
   
   local total_frames = sample.sample_buffer.number_of_frames
   
@@ -2132,7 +2133,41 @@ function pakettiRealtimeSliceInsertMarker()
     renoise.app():show_status(string.format("Slice marker #%d inserted at frame %d", 
       marker_count, frame_position))
     
-    -- Switch to newest slice sample if preference is enabled
+    -- Update the selection to start from the new slice position
+    sample.sample_buffer.selection_start = frame_position
+    sample.sample_buffer.selection_end = total_frames
+    print("Updated selection: start=" .. frame_position .. ", end=" .. total_frames)
+    
+    -- Stop current playback
+    local track_index = song.selected_track_index
+    if #realtime_slice_state.triggered_notes > 0 then
+      song:trigger_sample_note_off(
+        realtime_slice_state.instrument_index,
+        1,  -- Sample index 1 (original sample)
+        track_index,
+        realtime_slice_state.base_note
+      )
+    end
+    
+    -- Re-trigger playback from the new slice position using the updated selection
+    song:trigger_sample_note_on(
+      realtime_slice_state.instrument_index,
+      1,  -- Always play original sample (index 1)
+      track_index,
+      realtime_slice_state.base_note,
+      1.0,  -- velocity
+      true  -- use_selection = true (play from selection_start to selection_end)
+    )
+    realtime_slice_state.triggered_notes = {realtime_slice_state.base_note}
+    print("Re-triggered playback from frame " .. frame_position .. " to " .. total_frames)
+    
+    -- Adjust timer to account for the new starting position
+    -- Calculate what the start_time should be so that current elapsed time = frame_position
+    local seconds_elapsed = frame_position / realtime_slice_state.sample_rate
+    realtime_slice_state.start_time = os.clock() - seconds_elapsed
+    print("Adjusted timer: frame " .. frame_position .. " = " .. seconds_elapsed .. " seconds elapsed")
+    
+    -- Switch to newest slice sample if preference is enabled (otherwise stay on original)
     if preferences and preferences.pakettiLazySlicerShowNewestSlice and preferences.pakettiLazySlicerShowNewestSlice.value then
       -- The newest slice is at index marker_count + 1 (index 1 is original sample)
       local newest_slice_index = marker_count + 1
@@ -2140,112 +2175,11 @@ function pakettiRealtimeSliceInsertMarker()
         song.selected_sample_index = newest_slice_index
         print("Switched to newest slice sample #" .. newest_slice_index)
       end
+    else
+      -- Show Original mode - ensure we're viewing sample 1
+      song.selected_sample_index = 1
+      print("Show Original mode: viewing sample 1")
     end
-    
-    -- Reset timer to continue from this point
-    realtime_slice_state.start_time = os.clock()
-    
-    -- Find the actual note mapping for the newly created slice using proper detection
-    -- Check NOTE_ON layer mappings (layer 1 is NOTE_ON)
-    local note_to_trigger = nil
-    local note_on_mappings = instrument.sample_mappings[1]
-    
-    if note_on_mappings and #note_on_mappings > 0 then
-      -- Collect all mapped notes
-      local all_notes = {}
-      for i = 1, #note_on_mappings do
-        local mapping = note_on_mappings[i]
-        if mapping and mapping.note_range then
-          for note = mapping.note_range[1], mapping.note_range[2] do
-            table.insert(all_notes, note)
-          end
-        end
-      end
-      
-      -- Sort notes and find the slice note
-      -- all_notes[1] = full sample, all_notes[2] = first slice, etc.
-      if #all_notes > 0 then
-        table.sort(all_notes)
-        local slice_note_index = marker_count + 1  -- +1 because index 1 is full sample
-        if slice_note_index <= #all_notes then
-          note_to_trigger = all_notes[slice_note_index]
-          print("Found slice " .. marker_count .. " mapped to note " .. note_to_trigger .. " (detected from sample_mappings)")
-        end
-      end
-    end
-    
-    -- Fallback if detection failed
-    if not note_to_trigger then
-      note_to_trigger = realtime_slice_state.base_note + marker_count
-      print("WARNING: Could not detect slice mapping, using fallback note " .. note_to_trigger)
-    end
-    
-    -- Clamp to valid note range (0-119, B-9)
-    if note_to_trigger > 119 then
-      note_to_trigger = 119
-      print("Warning: Slice note " .. note_to_trigger .. " exceeds B-9 (119), clamping")
-    end
-    
-    -- Store trigger info
-    local track_index = song.selected_track_index
-    local note_values = {note_to_trigger}
-    local instrument_index = realtime_slice_state.instrument_index
-    realtime_slice_state.triggered_notes = note_values
-    
-    -- Remove existing timer if present
-    if realtime_slice_state.timer_func and renoise.tool():has_timer(realtime_slice_state.timer_func) then
-      renoise.tool():remove_timer(realtime_slice_state.timer_func)
-      print("Removed previous slice trigger timer")
-    end
-    
-    -- Create timer function to trigger note after Renoise creates the slice sample
-    realtime_slice_state.timer_func = function()
-      -- Remove this one-shot timer
-      if realtime_slice_state.timer_func and renoise.tool():has_timer(realtime_slice_state.timer_func) then
-        renoise.tool():remove_timer(realtime_slice_state.timer_func)
-      end
-      realtime_slice_state.timer_func = nil
-      
-      -- Verify we're still monitoring
-      if realtime_slice_state.is_monitoring then
-        -- Debug: Check if slice samples exist
-        local inst = song.selected_instrument
-        print("DEBUG: Instrument has " .. #inst.samples .. " samples total")
-        print("DEBUG: Attempting to trigger note " .. note_values[1] .. " on instrument " .. instrument_index .. ", track " .. track_index)
-        
-        -- Check if the note is mapped to a sample
-        local mapped_sample = nil
-        for i = 1, #inst.samples do
-          local s = inst.samples[i]
-          if s.sample_mapping.base_note == note_values[1] then
-            mapped_sample = i
-            print("DEBUG: Note " .. note_values[1] .. " is mapped to sample " .. i .. " (" .. s.name .. ")")
-            break
-          end
-        end
-        
-        if not mapped_sample then
-          print("ERROR: Note " .. note_values[1] .. " is NOT mapped to any sample!")
-        end
-        
-        song:trigger_instrument_note_on(
-          instrument_index,
-          track_index,
-          note_values,
-          1.0  -- velocity
-        )
-        print("Slice note " .. note_values[1] .. " triggered (or attempted)")
-        
-        -- If in "Show Original" mode, switch back to original sample (index 1)
-        if preferences and preferences.pakettiLazySlicerShowNewestSlice and not preferences.pakettiLazySlicerShowNewestSlice.value then
-          song.selected_sample_index = 1
-          print("Switched back to original sample (Show Original mode)")
-        end
-      end
-    end
-    
-    -- Add the timer
-    renoise.tool():add_timer(realtime_slice_state.timer_func, 50)
   else
     renoise.app():show_status("Marker already exists at this position")
   end
