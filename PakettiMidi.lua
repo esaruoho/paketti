@@ -1641,15 +1641,99 @@ local slice_knob_multipliers = {
 }
 
 for _, config in ipairs(slice_knob_multipliers) do
+  local mult = config.mult  -- Capture the multiplier value explicitly
+  local name = config.name
+  
   renoise.tool():add_midi_mapping{
-    name = "Sample Editor:Paketti:Move Slice Start x[Knob] " .. config.name,
-    invoke = function(message) PakettiMoveSliceStartKnob(message, config.mult) end
+    name = "Sample Editor:Paketti:Move Slice Start x[Knob] " .. name,
+    invoke = function(message) PakettiMoveSliceStartKnob(message, mult) end
   }
   renoise.tool():add_midi_mapping{
-    name = "Sample Editor:Paketti:Move Slice End x[Knob] " .. config.name,
-    invoke = function(message) PakettiMoveSliceEndKnob(message, config.mult) end
+    name = "Sample Editor:Paketti:Move Slice End x[Knob] " .. name,
+    invoke = function(message) PakettiMoveSliceEndKnob(message, mult) end
   }
 end
+
+--------
+-- Slice Move Resolution System
+-- Configurable resolution for slice movement
+
+-- Configuration: Set your desired resolution range here
+local SLICE_MOVE_RESOLUTION_MIN = 1
+local SLICE_MOVE_RESOLUTION_MAX = 1000
+local SLICE_MOVE_RESOLUTION_DEFAULT = 10
+
+-- Global variable to store current resolution
+PakettiSliceMoveResolution = SLICE_MOVE_RESOLUTION_DEFAULT
+
+-- Function to change slice move resolution
+function PakettiSliceMoveResolutionChange(message)
+  if message:is_abs_value() then
+    -- Absolute mode: map 0-127 to min-max range
+    local range = SLICE_MOVE_RESOLUTION_MAX - SLICE_MOVE_RESOLUTION_MIN
+    PakettiSliceMoveResolution = SLICE_MOVE_RESOLUTION_MIN + math.floor((range * message.int_value) / 127)
+  else
+    -- Relative mode: increment/decrement
+    local delta = message.int_value
+    if delta > 64 then
+      delta = delta - 128
+    end
+    PakettiSliceMoveResolution = PakettiSliceMoveResolution + delta
+    PakettiSliceMoveResolution = math.max(SLICE_MOVE_RESOLUTION_MIN, math.min(PakettiSliceMoveResolution, SLICE_MOVE_RESOLUTION_MAX))
+  end
+  
+  renoise.app():show_status(string.format("Slice Move Resolution: %d frames", PakettiSliceMoveResolution))
+end
+
+-- Function to move slice start with current resolution
+function PakettiSliceMoveStartWithResolution(message)
+  if not message:is_trigger() then return end
+  PakettiMoveSliceStart(PakettiSliceMoveResolution)
+end
+
+-- Function to move slice end with current resolution
+function PakettiSliceMoveEndWithResolution(message)
+  if not message:is_trigger() then return end
+  PakettiMoveSliceEnd(PakettiSliceMoveResolution)
+end
+
+-- Function to move slice start backwards with current resolution
+function PakettiSliceMoveStartBackwardWithResolution(message)
+  if not message:is_trigger() then return end
+  PakettiMoveSliceStart(-PakettiSliceMoveResolution)
+end
+
+-- Function to move slice end backwards with current resolution
+function PakettiSliceMoveEndBackwardWithResolution(message)
+  if not message:is_trigger() then return end
+  PakettiMoveSliceEnd(-PakettiSliceMoveResolution)
+end
+
+-- MIDI Mappings
+renoise.tool():add_midi_mapping{
+  name = "Sample Editor:Paketti:Slice Move Resolution x[Knob]",
+  invoke = function(message) PakettiSliceMoveResolutionChange(message) end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Sample Editor:Paketti:Move Slice Start Forward With Resolution x[Button]",
+  invoke = function(message) PakettiSliceMoveStartWithResolution(message) end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Sample Editor:Paketti:Move Slice Start Backward With Resolution x[Button]",
+  invoke = function(message) PakettiSliceMoveStartBackwardWithResolution(message) end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Sample Editor:Paketti:Move Slice End Forward With Resolution x[Button]",
+  invoke = function(message) PakettiSliceMoveEndWithResolution(message) end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Sample Editor:Paketti:Move Slice End Backward With Resolution x[Button]",
+  invoke = function(message) PakettiSliceMoveEndBackwardWithResolution(message) end
+}
 
 ----------------
 renoise.tool():add_midi_mapping{name="Paketti:Set Beatsync Value for Selected Sample x[Knob]",invoke=function(message) 
