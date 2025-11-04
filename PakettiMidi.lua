@@ -1654,6 +1654,34 @@ for _, config in ipairs(slice_knob_multipliers) do
   }
 end
 
+-- Fine resolution knob (3 frames for testing)
+renoise.tool():add_midi_mapping{
+  name = "Sample Editor:Paketti:Move Slice Start x[Knob] Fine",
+  invoke = function(message) PakettiMoveSliceStartKnob(message, 3) end
+}
+renoise.tool():add_midi_mapping{
+  name = "Sample Editor:Paketti:Move Slice End x[Knob] Fine",
+  invoke = function(message) PakettiMoveSliceEndKnob(message, 3) end
+}
+
+-- Current resolution knob (uses PakettiSliceMoveResolution global variable)
+function PakettiMoveSliceStartKnobCurrentResolution(message)
+  PakettiMoveSliceStartKnob(message, PakettiSliceMoveResolution)
+end
+
+function PakettiMoveSliceEndKnobCurrentResolution(message)
+  PakettiMoveSliceEndKnob(message, PakettiSliceMoveResolution)
+end
+
+renoise.tool():add_midi_mapping{
+  name = "Sample Editor:Paketti:Move Slice Start x[Knob] Current Resolution",
+  invoke = function(message) PakettiMoveSliceStartKnobCurrentResolution(message) end
+}
+renoise.tool():add_midi_mapping{
+  name = "Sample Editor:Paketti:Move Slice End x[Knob] Current Resolution",
+  invoke = function(message) PakettiMoveSliceEndKnobCurrentResolution(message) end
+}
+
 --------
 -- Slice Move Resolution System
 -- Configurable resolution for slice movement
