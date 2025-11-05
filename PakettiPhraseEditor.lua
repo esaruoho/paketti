@@ -836,3 +836,85 @@ end
 if renoise.API_VERSION >= 6.2 and phrase_follow_enabled then
   enable_phrase_follow()
 end
+
+---------------------------------------------------------------------------------------------------------
+-- Auto-fill pattern with phrases based on phrase length
+function PakettiFloodFillPatternWithPhrase()
+  local song = renoise.song()
+  
+  -- Get current pattern and its length
+  local pattern = song.selected_pattern
+  local pattern_length = pattern.number_of_lines
+  
+  -- Get current instrument index
+  local instrument_index = song.selected_instrument_index
+  local instrument = song.instruments[instrument_index]
+  
+  -- Check if instrument has phrases
+  if #instrument.phrases == 0 then
+    renoise.app():show_status("No phrases in selected instrument")
+    return
+  end
+  
+  -- Check if a phrase is selected
+  local phrase_index = song.selected_phrase_index
+  if phrase_index == 0 then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  -- Get the selected phrase and its length
+  local phrase = instrument.phrases[phrase_index]
+  local phrase_length = phrase.number_of_lines
+  
+  -- Get current track
+  local track_index = song.selected_track_index
+  local track = song.tracks[track_index]
+  
+  -- Check if track is a sequencer track (not master, send, or group)
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Current track is not a sequencer track")
+    return
+  end
+  
+  -- Get pattern track
+  local pattern_track = pattern:track(track_index)
+  
+  -- Calculate how many times to trigger the phrase
+  local trigger_count = math.floor(pattern_length / phrase_length)
+  
+  -- Clear the pattern track first (optional, but clean)
+  -- Commented out to preserve existing data if user wants to layer
+  -- for i = 1, pattern_length do
+  --   pattern_track:line(i):clear()
+  -- end
+  
+  -- Trigger phrase at intervals equal to phrase length
+  local note_column_index = song.selected_note_column_index
+  if note_column_index == 0 or note_column_index > track.visible_note_columns then
+    note_column_index = 1
+  end
+  
+  local triggers_added = 0
+  for i = 0, trigger_count - 1 do
+    local line_index = (i * phrase_length) + 1
+    
+    if line_index <= pattern_length then
+      local line = pattern_track:line(line_index)
+      local note_column = line:note_column(note_column_index)
+      
+      -- Trigger the phrase with a C-4 note (could be any note, depending on instrument mapping)
+      note_column.note_value = 48  -- C-4
+      note_column.instrument_value = instrument_index - 1
+      triggers_added = triggers_added + 1
+    end
+  end
+  
+  -- Show status message
+  renoise.app():show_status(string.format(
+    "Flood filled pattern with phrase %02d (%d rows), added %d triggers", 
+    phrase_index, phrase_length, triggers_added))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}

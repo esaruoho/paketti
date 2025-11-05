@@ -1581,7 +1581,7 @@ function PakettiHyperEditDeleteAutomation(row)
   local parameter = row_parameters[row].parameter
   
   -- Check if automation exists before trying to delete it
-  if not pattern_track:has_automation(parameter) then
+  if not pattern_track:find_automation(parameter) then
     local param_name = row_parameters[row].name or "Unknown"
     renoise.app():show_status("HyperEdit Row " .. row .. ": No automation to delete for " .. param_name)
     return

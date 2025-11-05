@@ -2135,6 +2135,117 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Flood Fill Automation Selection",invoke=PakettiAutomationSelectionFloodFill}
 renoise.tool():add_midi_mapping{name="Paketti:Flood Fill Automation Selection",invoke=function(message) if message:is_trigger() then PakettiAutomationSelectionFloodFill() end end}
 ------
+function PakettiAutomationReplicateAtCursor()
+  local song=renoise.song()
+  local automation_parameter = song.selected_automation_parameter
+
+  if not automation_parameter or not automation_parameter.is_automatable then
+    renoise.app():show_status("Please select an automatable parameter.")
+    print("No automatable parameter selected.")
+    return
+  end
+
+  local track_automation = song:pattern(song.selected_pattern_index):track(song.selected_track_index)
+  local envelope = track_automation:find_automation(automation_parameter)
+  local pattern_length = song:pattern(song.selected_pattern_index).number_of_lines
+
+  if not envelope then
+    renoise.app():show_status("No automation envelope found for the selected parameter.")
+    print("No automation envelope found.")
+    return
+  end
+
+  local cursor_line = song.transport.edit_pos.line
+  
+  if cursor_line < 1 then
+    renoise.app():show_status("Invalid cursor position.")
+    print("Invalid cursor position.")
+    return
+  end
+
+  -- Extract points from line 1 to cursor position
+  local selected_points = {}
+  for _, point in ipairs(envelope.points) do
+    if point.time >= 1 and point.time <= cursor_line then
+      table.insert(selected_points, {time = point.time - 1, value = point.value})
+    end
+  end
+
+  if #selected_points == 0 then
+    renoise.app():show_status("No automation points found from line 1 to cursor position.")
+    print("No points found from line 1 to cursor.")
+    return
+  end
+
+  -- Adjust the last point's timing once
+  local last_point = selected_points[#selected_points]
+  last_point.time = cursor_line - 1 - 0.01
+  selected_points[#selected_points] = last_point
+
+  -- Clear all automation after the cursor line
+  safe_clear_range_flood_fill(envelope, cursor_line + 1, pattern_length)
+  print("Cleared automation points after line " .. cursor_line .. ".")
+  print("------")
+
+  -- Debug: Print the adjusted selection points
+  print("Adjusted Selection Points (Ready for Repetition):")
+  for _, point in ipairs(selected_points) do
+    print(string.format("Relative Time: %.2f, Value: %.2f", point.time, point.value))
+  end
+  print("------")
+
+  -- Replicate the pattern from the beginning until the end of pattern
+  local pattern_size = cursor_line
+  local repeat_count = math.ceil(pattern_length / pattern_size)
+  local resultant_points = {}
+
+  for i = 0, repeat_count - 1 do
+    local offset = i * pattern_size
+    local segment_points = {}
+
+    for _, point in ipairs(selected_points) do
+      local target_time = 1 + offset + point.time
+      if target_time > pattern_length then
+        break
+      end
+      envelope:add_point_at(target_time, point.value)
+      table.insert(resultant_points, {time = target_time, value = point.value})
+      table.insert(segment_points, {time = target_time, value = point.value})
+    end
+
+    -- Debug: Print each segment
+    print("Applied Points (Segment):")
+    for _, point in ipairs(segment_points) do
+      print(string.format("Time: %.2f, Value: %.2f", point.time, point.value))
+    end
+    print("------")
+  end
+
+  -- Debug: Group resultant points by segments
+  print("Resultant Envelope Points (Grouped by Segments):")
+  local grouped_points = {}
+  for _, point in ipairs(resultant_points) do
+    local group_index = math.floor((point.time - 1) / pattern_size)
+    grouped_points[group_index] = grouped_points[group_index] or {}
+    table.insert(grouped_points[group_index], point)
+  end
+
+  for segment_index, segment in ipairs(grouped_points) do
+    print(string.format("Segment %d:", segment_index + 1))
+    for _, point in ipairs(segment) do
+      print(string.format("Time: %.2f, Value: %.2f", point.time, point.value))
+    end
+    print("------")
+  end
+
+  renoise.app():show_status("Automation replicated from cursor successfully.")
+  print("Replicated automation values from lines 1-" .. cursor_line .. " throughout pattern to line " .. pattern_length)
+end
+
+-- Keybinding and menu registration
+renoise.tool():add_keybinding{name="Global:Paketti:Replicate at Cursor for Automation",invoke=PakettiAutomationReplicateAtCursor}
+renoise.tool():add_midi_mapping{name="Paketti:Replicate at Cursor for Automation",invoke=function(message) if message:is_trigger() then PakettiAutomationReplicateAtCursor() end end}
+------
 function SetAutomationRangeValue(value)
   local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter

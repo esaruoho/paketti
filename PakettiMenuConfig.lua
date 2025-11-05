@@ -236,6 +236,7 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Slice to Patt
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Steppers:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Select Random Instrument (Sample,Plugin,MIDI)",invoke=function() pakettiSelectRandomInstrument() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Transpose Dialog...",invoke=function() PakettiInstrumentTransposeDialog() end}
@@ -1668,6 +1669,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Open Pa
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Double LPB",invoke=function() PakettiLPBDouble() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Halve LPB",invoke=function() PakettiLPBHalve() end}
@@ -1870,6 +1872,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Flood
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Randomize Automation Envelope",invoke=randomize_envelope}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Paketti Automation Value...",invoke=function() pakettiAutomationValue() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Flood Fill Automation Selection",invoke=PakettiAutomationSelectionFloodFill}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Replicate at Cursor for Automation",invoke=PakettiAutomationReplicateAtCursor}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Paketti Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Switch Plugin AutoSuspend Off",invoke=function() autosuspendOFF() end}
@@ -2192,6 +2195,7 @@ renoise.tool():add_menu_entry{name="DSP Device:Paketti:Show/Hide User Preference
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti Gadgets:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti Gadgets:Paketti Selected DeviceParameter Editor...", invoke=PakettiCanvasExperimentsInit}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Automation:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Device Chains:Open Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Clear/Wipe Selected Track TrackDSPs",invoke=function() wipeSelectedTrackTrackDSPs() end}
@@ -2283,6 +2287,7 @@ renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Flip Automation S
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Flip Automation Selection Vertically",invoke=FlipAutomationVertical}
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Randomize Automation Envelope",invoke=randomize_envelope}
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Flood Fill Automation Selection",invoke=PakettiAutomationSelectionFloodFill}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Replicate at Cursor for Automation",invoke=PakettiAutomationReplicateAtCursor}
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Generate Automation Points from Notes in Selected Track",invoke=function()
 add_automation_points_for_notes() end}
 renoise.tool():add_menu_entry{name="--Track Automation List:Paketti:Generate Automation Points from Notes in Selected Track",invoke=function()
