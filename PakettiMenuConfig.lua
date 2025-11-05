@@ -284,6 +284,7 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load .MOD as S
       pakettiLoadExeAsSample(file_path)
       paketti_toggle_signed_unsigned() end end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Load Plaid Zap .XRNI",invoke=function() PakettiLoadPlaidZapXRNI() end}
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Polyend:Export .PTI Instrument",invoke=pti_savesample}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Save:Save Unused Samples (.WAV&.XRNI)...",invoke=function() saveUnusedSamples() end}
@@ -1757,6 +1758,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Paketti Effect Col
 
 -------- Plugins/Devices
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!!About:About Paketti/Donations...",invoke=function() pakettiAboutDonations() end}
+
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Open Paketti Path",invoke=function() renoise.app():open_path(renoise.tool().bundle_path)end}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Load Plugins...",invoke=function() pakettiLoadPluginsDialog() end}renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}

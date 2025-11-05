@@ -729,4 +729,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Insert New Instrument (2nd)",
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Current Instrument", invoke=function() PakettiDeleteCurrentInstrument() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Current Instrument (2nd)", invoke=function() PakettiDeleteCurrentInstrument() end}
 
+function PakettiLoadPlaidZapXRNI()
+  renoise.app():load_instrument("Gifts/plaidzap.xrni")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Load Plaid Zap .XRNI", invoke=function() PakettiLoadPlaidZapXRNI() end}
 

@@ -883,13 +883,13 @@ function pakettiPreferences()
   local pakettiDeviceChainPathDisplayId = "pakettiDeviceChainPathDisplay_" .. tostring(math.random(2, 30000))
 local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2, 30000))
 
-   local coarse_value_label = vb:text{width=45,
+   local coarse_value_label = vb:text{width=60,
      text = string.format("%05d", preferences.pakettiRotateSampleBufferCoarse.value)
-  }
-  
-   local fine_value_label = vb:text{width=45,
+   }
+   
+   local fine_value_label = vb:text{width=60,
      text = string.format("%05d", preferences.pakettiRotateSampleBufferFine.value)
-  }
+   }
 
   local unison_detune_value_label = vb:text{
     width=50,
@@ -901,17 +901,16 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
     text = string.format("%.0f MB (%d frames)", preferences.pakettiMaxFrameSize.value / 1000000, preferences.pakettiMaxFrameSize.value)
   }
 
-  local threshold_label = vb:text{
-        text = string.format("%07.3f%%", preferences.PakettiStripSilenceThreshold.value * 100),width=45
-    }
 
     local blend_value_label = vb:text{width=30,
       text = tostring(math.floor(preferences.pakettiBlendValue.value))
     }
 
-    local begthreshold_label = vb:text{
-        text = string.format("%07.3f%%", preferences.PakettiMoveSilenceThreshold.value * 100),width=45
-    }
+    local threshold_label = vb:text{width=60,
+      text = string.format("%07.3f%%", preferences.PakettiStripSilenceThreshold.value * 100)}
+
+    local begthreshold_label = vb:text{width=60,
+        text = string.format("%07.3f%%", preferences.PakettiMoveSilenceThreshold.value * 100)}
 
     if dialog and dialog.visible then
         dialog_content=nil
@@ -964,7 +963,7 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 notifier=function(value) preferences.pakettiEnableGlobalGrooveOnStartup.value=value end
               },
               vb:space{width=checkbox_spacing},
-              vb:text{text="New Song BPM Randomizer",width=150,tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)"},
+              vb:text{text="New Song BPM Randomizer",width=200,tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)"},
               vb:checkbox{
                 value=preferences.pakettiRandomizeBPMOnNewSong.value,
                 tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)",
@@ -982,7 +981,7 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 end
               },
               vb:space{width=checkbox_spacing},
-              vb:text{text="Random BPM",width=150,tooltip="Write BPM to file when using random BPM functions (Random BPM from List: 80, 100, 115, 123, 128, 132, 135, 138, 160)"},
+              vb:text{text="Random BPM",width=200,tooltip="Write BPM to file when using random BPM functions (Random BPM from List: 80, 100, 115, 123, 128, 132, 135, 138, 160)"},
               vb:checkbox{
                 value=preferences.RandomBPM.value,
                 tooltip="Write BPM to file when using random BPM functions (Random BPM from List: 80, 100, 115, 123, 128, 132, 135, 138, 160)",
@@ -1027,7 +1026,7 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 },
                 vb:space{width=checkbox_spacing},  
 
-                vb:text{text="Replace Current Instrument",width=150,tooltip="Pakettification replaces current instrument instead of creating new one"},
+                vb:text{text="Replace Current Instrument",width=200,tooltip="Pakettification replaces current instrument instead of creating new one"},
                 vb:checkbox{
                   value=preferences.pakettifyReplaceInstrument.value,
                   tooltip="Pakettification replaces current instrument instead of creating new one",
