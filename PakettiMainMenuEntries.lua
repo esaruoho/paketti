@@ -1,6 +1,7 @@
 local vb = renoise.ViewBuilder()
 local dialog -- Declare the dialog variable outside the function
 local textfield_width="100%"
+local DonationButtonWidth=150
 
 local donations = {
   {"2012-02-06", "Nate Schmold", 76.51, {"3030.ca", "https://3030.ca"}, {"Ghost Cartridge", "https://ghostcartridge.com"}, {"YouTube", "https://YouTube.com/@3030-tv"}},
@@ -27,13 +28,32 @@ local donations = {
   {"2025-08-30", "Bloodclot", 7.22, {"Linktree", "https://linktr.ee/bclbclbcl"}},
   {"2025-09-18", "Untilde", 3.11},
   {"2025-10-06", "Brandon Hale", 7.37, {"bthale", "https://bthale.com"}, {"YouTube", "https://www.youtube.com/@brandonhale7574"}},
+  {"2025-11-03", "ted curran", 31.02},
 
 }
 
 local total_amount = 0
+local yearly_totals = {}
 for _, donation in ipairs(donations) do
   total_amount = total_amount + donation[3]
+  local year = string.sub(donation[1], 1, 4)
+  if not yearly_totals[year] then
+    yearly_totals[year] = 0
+  end
+  yearly_totals[year] = yearly_totals[year] + donation[3]
 end
+
+-- Build yearly breakdown string
+local years = {}
+for year, _ in pairs(yearly_totals) do
+  table.insert(years, year)
+end
+table.sort(years)
+local yearly_breakdown = {}
+for _, year in ipairs(years) do
+  table.insert(yearly_breakdown, year .. ": " .. string.format("%.2f", yearly_totals[year]) .. "€")
+end
+local yearly_text = table.concat(yearly_breakdown, ", ")
 
 -- Build donation rows dynamically
 local donation_rows = {}
@@ -83,13 +103,7 @@ local donation_section = {
   style = "group", 
   margin=5,
   vb:horizontal_aligner{mode="distribute",
-    vb:text{text="Donations:", style = "strong", font = "bold"}},
-  vb:row{
-    vb:text{text="Date",width=70}, 
-    vb:text{text="Person",width=150}, 
-    vb:text{text="Amount",width=50}, 
-    vb:text{text="Links",width=100}
-  }
+    vb:text{text="Donations:", style = "strong", font = "bold"}}
 }
 
 -- Insert donation rows one by one
@@ -100,55 +114,53 @@ end
 -- Add final elements
 table.insert(donation_section, vb:space{height = 5})
 table.insert(donation_section, vb:horizontal_aligner{mode="distribute",
-  vb:text{text="Total: " .. string.format("%.2f", total_amount) .. "€", font = "bold"}})
+  vb:text{text="Total: " .. string.format("%.2f", total_amount) .. "€ (" .. yearly_text .. ")", font = "bold",style="strong"}})
 
 -- Create dialog content
 local dialog_content = vb:column{
-  --margin=10,
+  width=1354,
   vb:text{text="Thanks for the support / assistance:", style = "strong", font = "bold"},
-  vb:multiline_textfield{width=textfield_width, height=40,text= 
+  vb:multiline_textfield{width=textfield_width, height=20,text= 
   -- THANKS
   "dBlue, danoise, cortex, pandabot, ffx, Joule, Avaruus, astu/flo, syflom, Protman, vV, Bantai, taktik, Snowrobot, MXB, Jenoki, Kmaki, aleksip, Unless, martblek, schmuzoo, Sandroid, ylmrx, onetwentyeight, Gabhonga (Tobias Felsner) and the whole Renoise community."},
 
   vb:text{text="Ideas provided by:", style = "strong", font = "bold"},
-  vb:multiline_textfield{width=textfield_width, height = 100, text = 
+  vb:multiline_textfield{width=textfield_width, height = 65, text = 
   -- IDEAS
   "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, super_lsd, sodiufas, amenburoda, davide, Hyena lord, zolipapa420, Amethyst, JTPE, Cosmic Ollie, Newtined, Kusoipilled, Spencer Williams (spnw), RENEGADE ANDROiD, Phill Tew, croay, ishineee, user22c, Helge H., ShasuraMk2, Mastrcode, Cthonic, Kavoli, polyplexmescalia" ..
   ", Josh Montgomery, Filthy Animal, AZ-Rotator" ..
   " and many others."},
 
   vb:text{text="Who made it possible:", style = "strong", font = "bold"},
-  vb:multiline_textfield{width=textfield_width, height = 35, text="Lassi Nikko aka Brothomstates told me, early on, that he thought I could learn LUA. So here we are. Thanks for everything, all the mentoring in trackers and musicmaking, and all the inspiration."},
+  vb:multiline_textfield{width=textfield_width, height = 20, text="Lassi Nikko aka Brothomstates told me, early on, that he thought I could learn LUA. So here we are. Thanks for everything, all the mentoring in trackers and musicmaking, and all the inspiration."},
 
   vb:text{text="Kudos:", style = "strong", font = "bold"},
-  vb:multiline_textfield{width=textfield_width, height = 45, text = 
+  vb:multiline_textfield{width=textfield_width, height = 40, text = 
   -- KUDOS
-  "Massive kudos to martblek for allowing me to take his abandoned ReSpeak tool and make it into Paketti eSpeak Text-to-Speech, Kaidiak for donating ClippyClip device, and also for smdkun for letting me tweak their KeyBind Visualizer code and incorporate it into Paketti further down the line. mxb for the original ReCycle import code which i heavily reworked. Jaap3 for the work reverse-engineering the PTI format. Also many thanks to Phill Tew for the idea for the Additive Record Follow Pattern!, ryrun for the SFZ2XRNI Gist on GitHub."},
+  "Martblek for allowing me to take his abandoned ReSpeak tool and make it into Paketti eSpeak Text-to-Speech, Kaidiak for donating ClippyClip device, and also for smdkun for letting me tweak their KeyBind Visualizer code and incorporate it into Paketti further down the line. mxb for the original ReCycle import code which i heavily reworked. Jaap3 for the work reverse-engineering the PTI format. Also many thanks to Phill Tew for the idea for the Additive Record Follow Pattern!, ryrun for the SFZ2XRNI Gist on GitHub."},
 
-  vb:horizontal_aligner{mode = "distribute", vb:text{text="Talk about Paketti", style = "strong", font = "bold"}},
-  vb:horizontal_aligner{
-    mode = "distribute",
-    vb:button{text="Paketti GitHub", width=200,notifier=function() renoise.app():open_url("https://github.com/esaruoho/org.lackluster.Paketti.xrnx") end},
-    vb:button{text="Paketti Discord", width=200,notifier=function() renoise.app():open_url("https://discord.gg/Qex7k5j4wG") end},
-    vb:button{text="Paketti Renoise Forum Thread", width=200,notifier=function() renoise.app():open_url("https://forum.renoise.com/t/new-tool-3-1-pakettir3/35848/88") end},
-    vb:button{text="Email", width=200,notifier=function() renoise.app():open_url("mailto:esaruoho@icloud.com") end}
+  vb:row{
+    vb:text{text="Support Paketti",style="strong",font="bold", width=110},
+    vb:button{text="Become a Patron at Patreon",width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://patreon.com/esaruoho") end},
+    vb:button{text="Send a donation via PayPal",width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://www.paypal.com/donate/?hosted_button_id=PHZ9XDQZ46UR8") end},
+    vb:button{text="Support via Ko-Fi",width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://ko-fi.com/esaruoho") end},
+    vb:button{text="Buy Me A Coffee",width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://buymeacoffee.com/esaruoho") end},
+    vb:button{text="Become a GitHub Sponsor",width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://github.com/sponsors/esaruoho") end},
+    vb:button{text="Buy on Gumroad",width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://lackluster.gumroad.com/l/paketti") end},
+    vb:button{text="Purchase Music via Bandcamp",width=DonationButtonWidth,notifier=function() renoise.app():open_url("http://lackluster.bandcamp.com/") end},
+    vb:button{text="Linktr.ee",width=DonationButtonWidth, notifier=function() renoise.app():open_url("https://linktr.ee/esaruoho") end}
   },
 
   -- Insert donation section
   vb:column(donation_section),
-  vb:horizontal_aligner{mode="distribute",vb:text{text="Support Paketti",style="strong",font="bold"}},
-  vb:horizontal_aligner{mode="distribute",
-    vb:button{text="Become a Patron at Patreon",notifier=function() renoise.app():open_url("https://patreon.com/esaruoho") end},
-    vb:button{text="Send a donation via PayPal",notifier=function() renoise.app():open_url("https://www.paypal.com/donate/?hosted_button_id=PHZ9XDQZ46UR8") end},
-    vb:button{text="Support via Ko-Fi",notifier=function() renoise.app():open_url("https://ko-fi.com/esaruoho") end},
-    vb:button{text="Become a GitHub Sponsor",notifier=function() renoise.app():open_url("https://github.com/sponsors/esaruoho") end},
-    vb:button{text="Onetime purchase from Gumroad",notifier=function() renoise.app():open_url("https://lackluster.gumroad.com/l/paketti") end},
-    vb:button{text="Purchase Music via Bandcamp",notifier=function() renoise.app():open_url("http://lackluster.bandcamp.com/") end},
-    vb:button{text="Linktr.ee", notifier=function() renoise.app():open_url("https://linktr.ee/esaruoho") end}},
-  vb:space{height = 5},
-  vb:horizontal_aligner{mode="distribute",
-    vb:button{text="OK",width=300,notifier=function() dialog:close() end},
-    vb:button{text="Cancel",width=300,notifier=function() dialog:close() end}}}
+
+  vb:row{
+    vb:text{text="Talk about Paketti", style = "strong", font = "bold", width=110},
+    vb:button{text="Paketti GitHub", width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://github.com/esaruoho/org.lackluster.Paketti.xrnx") end},
+    vb:button{text="Paketti Discord", width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://discord.gg/Qex7k5j4wG") end},
+    vb:button{text="Paketti Renoise Forum Thread", width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://forum.renoise.com/t/new-tool-3-1-pakettir3/35848/88") end},
+    vb:button{text="Email", width=DonationButtonWidth,notifier=function() renoise.app():open_url("mailto:esaruoho@icloud.com") end}
+  }}
 
 function pakettiAboutDonations()
   if dialog and dialog.visible then 
@@ -353,6 +365,48 @@ local function create_button_list()
   table.insert(buttons, {"Effect Details", "pakettiEffectDetailsDialog"})
   table.insert(buttons, {"Set Pattern/Phrase Length", "pakettiPatternPhraseLength"})
   table.insert(buttons, {"Instrument Transpose Dialog", "PakettiInstrumentTransposeDialog"})
+  
+  -- **ADDITIONAL MISSING DIALOGS (2025-11-05):**
+  table.insert(buttons, {"Paketti HyperEdit", "PakettiHyperEditInit"})
+  table.insert(buttons, {"Paketti Capture Last Take", "PakettiCaptureLastTakeDialog"})
+  table.insert(buttons, {"Paketti Fill Dialog", "PakettiFillShowDialog"})
+  table.insert(buttons, {"Metric Modulation", "show_metric_modulation_dialog"})
+  table.insert(buttons, {"Subdivision Calculator", "show_subdivision_calculator_dialog"})
+  table.insert(buttons, {"Instrument Info", "pakettiInstrumentInfoDialog"})
+  table.insert(buttons, {"Sample Visualizer", "pakettiSampleVisualizerDialog"})
+  table.insert(buttons, {"EQ Dialog", "create_eq_dialog"})
+  table.insert(buttons, {"Unused Note EQ", "create_unused_note_eq_dialog"})
+  table.insert(buttons, {"Unused Note EQ64", "create_unused_note_eq64_dialog"})
+  table.insert(buttons, {"Paketti Execute", "PakettiExecuteShowDialog"})
+  table.insert(buttons, {"Pattern Delay Viewer", "PakettiPatternDelayViewerShowDialog"})
+  table.insert(buttons, {"Automation Stack", "PakettiAutomationStackShowDialog"})
+  table.insert(buttons, {"Stem Slicer", "pakettiStemSlicerDialog"})
+  table.insert(buttons, {"Sample Effect Generator", "PakettiSampleEffectGeneratorCreateDialog"})
+  table.insert(buttons, {"Image to Sample", "PakettiImageToSampleShowDialog"})
+  table.insert(buttons, {"Frame Calculator", "PakettiFrameCalculatorDialog"})
+  table.insert(buttons, {"Frame Calculator Song Length", "PakettiFrameCalculatorShowSongLengthDialog"})
+  table.insert(buttons, {"Fuzzy Sample Search", "PakettiFuzzySampleSearchDialog"})
+  table.insert(buttons, {"Transpose Block", "show_transpose_block_dialog"})
+  --table.insert(buttons, {"PlayerPro Waveform Viewer", "PakettiPlayerProWaveformViewerShowDialog"})
+  table.insert(buttons, {"OpenMPT Linear Keyboard Layer", "PakettiOpenMPTLinearKeyboardLayerDialog"})
+  table.insert(buttons, {"Switcharoo", "PakettiSwitcharoo_CreateDialog"})
+  table.insert(buttons, {"Hold To Fill", "PakettiHoldToFillShowDialog"})
+  table.insert(buttons, {"Multitap", "PakettiMultitap_create_dialog"})
+  table.insert(buttons, {"Tuning Selection", "show_tuning_selection_dialog"})
+  table.insert(buttons, {"ITI Export", "pakettiITIExportDialog"})
+  table.insert(buttons, {"Zero Crossings Advanced", "PakettiZeroCrossingsAdvancedDialog"})
+  table.insert(buttons, {"BPM-Based Slice", "showBPMBasedSliceDialog"})
+  table.insert(buttons, {"MIDI Effect Writer", "PakettiMidiEffectWriterShowDialog"})
+  table.insert(buttons, {"Load Random Sample to Pattern", "loadRandomSampleToPatternDialog"})
+  table.insert(buttons, {"Humanize", "showHumanizeDialog"})
+  table.insert(buttons, {"Instrument Rename", "PakettiInstrumentRenameDialog"})
+  table.insert(buttons, {"PlayerPro Canvas Main", "pakettiPlayerProShowCanvasMainDialog"})
+  table.insert(buttons, {"PlayerPro Traditional Main", "pakettiPlayerProShowTraditionalMainDialog"})
+  table.insert(buttons, {"IFF Loader", "loadIFFSampleFromDialog"})
+  table.insert(buttons, {"Keyzone Distributor Filename", "pakettiKeyzoneDistributorFilenameDialog"})
+  table.insert(buttons, {"OT Debug", "PakettiOTDebugDialog"})
+  table.insert(buttons, {"Polyend Slice Switcher", "PakettiPolyendSliceSwitcherCreateDialog"})
+  
   return buttons
 end
 
@@ -632,19 +686,18 @@ function pakettiDialogOfDialogs(search_query, custom_keyhandler)
   
   -- Calculate dialog width and column widths based on current settings
   local buttons_per_row = dod_buttons_per_row  -- User-configurable buttons per row
-  local max_visible_rows = math.ceil(120 / buttons_per_row)  -- Maintain ~120 total visible slots
+  local max_visible_rows = math.ceil(#dod_filtered_buttons / buttons_per_row)  -- SHOW ALL DIALOGS
   local BUTTON_HEIGHT = 20  -- Normal button height like Renoise default
-  local max_buttons_to_show = buttons_per_row * max_visible_rows
+  local max_buttons_to_show = #dod_filtered_buttons  -- SHOW ALL DIALOGS, NO LIMIT
   
   -- Calculate optimal dialog width and column widths
   local dialog_width, column_widths = calculate_dod_dialog_width(buttons_per_row, button_list)
 
-  print("DOD: Using " .. buttons_per_row .. " buttons per row, max " .. max_visible_rows .. " rows")
+  print("DOD: Using " .. buttons_per_row .. " buttons per row, " .. max_visible_rows .. " rows, showing ALL " .. #dod_filtered_buttons .. " dialogs")
   
   dod_button_widgets = {}
   local rows = {}
   local button_index = 1
-  local max_buttons_to_show = buttons_per_row * max_visible_rows
   
   -- Create a FIXED-SIZE button grid that never changes dimensions
   for row = 1, max_visible_rows do
@@ -653,7 +706,7 @@ function pakettiDialogOfDialogs(search_query, custom_keyhandler)
     
     -- Always create ALL buttons for EVERY row to maintain fixed grid size
     for col = 1, buttons_per_row do
-      if button_index <= #dod_filtered_buttons and button_index <= max_buttons_to_show then
+      if button_index <= #dod_filtered_buttons then
         local button_text = dod_filtered_buttons[button_index][1]
         local current_index = button_index
         
@@ -893,3 +946,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
 
 
+
+
+
+renoise.tool():add_keybinding{name="Global:Paketti:About Paketti/Donations...",invoke=function() pakettiAboutDonations() end}
