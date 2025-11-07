@@ -732,7 +732,7 @@ local function resample_buffer(buffer_data, original_rate, target_rate)
   return resampled
 end
 
--- Function to convert WAV to IFF (always 22kHz 8-bit mono .iff)
+-- Function to convert WAV to IFF (always 28604 Hz 8-bit mono .iff)
 function convertWAVToIFF()
   local file_path = renoise.app():prompt_for_filename_to_read(
     {"*.wav"}, 
@@ -745,7 +745,7 @@ function convertWAVToIFF()
   end
 
   print("---------------------------------")
-  debug_print("Converting WAV to IFF (22kHz 8-bit mono):", file_path)
+  debug_print("Converting WAV to IFF (28604 Hz 8-bit mono):", file_path)
 
   local buffer_data, sample_rate, bits_per_sample
   local ok, err = pcall(function()
@@ -761,8 +761,8 @@ function convertWAVToIFF()
   -- Track what operations were performed
   local operations = {}
   
-  -- Always resample to 22050 Hz
-  local target_rate = 22050
+  -- Always resample to 28604 Hz (A-3 finetune +4)
+  local target_rate = 28604
   local resampled_data = resample_buffer(buffer_data, sample_rate, target_rate)
   if sample_rate ~= target_rate then
     table.insert(operations, string.format("resampled from %d Hz to %d Hz", sample_rate, target_rate))
@@ -810,7 +810,7 @@ end
 renoise.tool():add_keybinding{name = "Global:Paketti:Convert WAV to IFF...",invoke = convertWAVToIFF}
 
 
--- Function to save current selected sample as IFF (22kHz 8-bit mono .iff)
+-- Function to save current selected sample as IFF (28604 Hz 8-bit mono .iff)
 function saveCurrentSampleAsIFF()
   local song = renoise.song()
   
@@ -858,7 +858,7 @@ function saveCurrentSampleAsIFF()
   end
 
   print("---------------------------------")
-  debug_print("Saving current sample as IFF (22kHz 8-bit mono):", sample.name)
+  debug_print("Saving current sample as IFF (28604 Hz 8-bit mono):", sample.name)
 
   local buffer = sample.sample_buffer
   local original_rate = buffer.sample_rate
@@ -889,8 +889,8 @@ function saveCurrentSampleAsIFF()
   -- Track what operations were performed
   local operations = {}
   
-  -- Resample to 22050 Hz if needed
-  local target_rate = 22050
+  -- Resample to 28604 Hz (A-3 finetune +4) if needed
+  local target_rate = 28604
   if original_rate ~= target_rate then
     sample_data = resample_buffer(sample_data, original_rate, target_rate)
     table.insert(operations, string.format("resampled from %d Hz to %d Hz", original_rate, target_rate))
@@ -1057,7 +1057,7 @@ function convert_aiff_to_buffer(aiff_path)
   return buffer_data, sample_rate, bits_per_sample
 end
 
--- Function to save current selected sample as 8SVX (22kHz 8-bit mono .8svx)
+-- Function to save current selected sample as 8SVX (28604 Hz 8-bit mono .8svx)
 function saveCurrentSampleAs8SVX()
   local song = renoise.song()
   
@@ -1113,7 +1113,7 @@ function saveCurrentSampleAs8SVX()
   end
 
   print("---------------------------------")
-  debug_print("Saving current sample as 8SVX (22kHz 8-bit mono):", sample.name)
+  debug_print("Saving current sample as 8SVX (28604 Hz 8-bit mono):", sample.name)
   debug_print("Final output path:", output_path)
 
   local buffer = sample.sample_buffer
@@ -1140,7 +1140,7 @@ function saveCurrentSampleAs8SVX()
   end
 
   local operations = {}
-  local target_rate = 22050
+  local target_rate = 28604
   if original_rate ~= target_rate then
     sample_data = resample_buffer(sample_data, original_rate, target_rate)
     table.insert(operations, string.format("resampled from %d Hz to %d Hz", original_rate, target_rate))
@@ -1195,7 +1195,7 @@ function saveCurrentSampleAs8SVX()
   end
 end
 
--- Function to save current selected sample as 16SV (preserves sample rate, 16-bit mono .16sv)
+-- Function to save current selected sample as 16SV (28604 Hz 16-bit mono .16sv)
 function saveCurrentSampleAs16SV()
   local song = renoise.song()
   
@@ -1251,7 +1251,7 @@ function saveCurrentSampleAs16SV()
   end
 
   print("---------------------------------")
-  debug_print("Saving current sample as 16SV (16-bit mono, original rate):", sample.name)
+  debug_print("Saving current sample as 16SV (28604 Hz 16-bit mono):", sample.name)
   debug_print("Final output path:", output_path)
 
   local buffer = sample.sample_buffer
@@ -1279,6 +1279,13 @@ function saveCurrentSampleAs16SV()
 
   local operations = {}
   
+  -- Resample to 28604 Hz (A-3 finetune +4) if needed
+  local target_rate = 28604
+  if original_rate ~= target_rate then
+    sample_data = resample_buffer(sample_data, original_rate, target_rate)
+    table.insert(operations, string.format("resampled from %d Hz to %d Hz", original_rate, target_rate))
+  end
+  
   if #sample_data > 65535 then
     debug_print(string.format("Sample too long (%d frames), truncating to 65534 frames", #sample_data))
     local truncated_data = {}
@@ -1296,7 +1303,7 @@ function saveCurrentSampleAs16SV()
   table.insert(operations, "converted to 16-bit")
 
   local write_ok, write_err = pcall(function()
-    write_iff_file(output_path, sample_data, original_rate, 16)
+    write_iff_file(output_path, sample_data, target_rate, 16)
   end)
 
   if write_ok then
@@ -1337,7 +1344,7 @@ function batchConvertToIFF()
   end
 
   print("---------------------------------")
-  debug_print("Batch converting WAV/AIFF files to 8SVX from:", folder_path)
+  debug_print("Batch converting WAV/AIFF files to 8SVX (28604 Hz) from:", folder_path)
 
   local files = {}
   local command
@@ -1380,7 +1387,7 @@ function batchConvertToIFF()
     end)
 
     if ok then
-      local target_rate = 22050
+      local target_rate = 28604
       local resampled_data = resample_buffer(buffer_data, sample_rate, target_rate)
       
       if #resampled_data > 65535 then
@@ -1424,7 +1431,7 @@ function batchConvertTo16SV()
   end
 
   print("---------------------------------")
-  debug_print("Batch converting WAV/AIFF files to 16SV from:", folder_path)
+  debug_print("Batch converting WAV/AIFF files to 16SV (28604 Hz) from:", folder_path)
 
   local files = {}
   local command
@@ -1467,18 +1474,21 @@ function batchConvertTo16SV()
     end)
 
     if ok then
-      if #buffer_data > 65535 then
+      local target_rate = 28604
+      local resampled_data = resample_buffer(buffer_data, sample_rate, target_rate)
+      
+      if #resampled_data > 65535 then
         local truncated_data = {}
         for j = 1, 65534 do
-          truncated_data[j] = buffer_data[j]
+          truncated_data[j] = resampled_data[j]
         end
-        buffer_data = truncated_data
+        resampled_data = truncated_data
       end
       
       local output_path = change_extension(file_path, "16sv")
       
       local write_ok, write_err = pcall(function()
-        write_iff_file(output_path, buffer_data, sample_rate, 16)
+        write_iff_file(output_path, resampled_data, target_rate, 16)
       end)
 
       if write_ok then
@@ -1571,7 +1581,7 @@ function batchConvertIFFToWAV()
   print(status_msg)
 end
 
--- Batch conversion: folder of WAV files to IFF (22kHz 8-bit)
+-- Batch conversion: folder of WAV files to IFF (28604 Hz 8-bit)
 function batchConvertWAVToIFF()
   local folder_path = renoise.app():prompt_for_path("Select Folder Containing WAV Files to Convert to IFF")
   if not folder_path then
@@ -1580,7 +1590,7 @@ function batchConvertWAVToIFF()
   end
 
   print("---------------------------------")
-  debug_print("Batch converting WAV files to IFF (22kHz 8-bit) from:", folder_path)
+  debug_print("Batch converting WAV files to IFF (28604 Hz 8-bit) from:", folder_path)
 
   local files = {}
   local command
@@ -1619,7 +1629,7 @@ function batchConvertWAVToIFF()
     end)
 
     if ok then
-      local target_rate = 22050
+      local target_rate = 28604
       local resampled_data = resample_buffer(buffer_data, sample_rate, target_rate)
       
       if #resampled_data > 65535 then
