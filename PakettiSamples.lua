@@ -3319,8 +3319,11 @@ function PakettiInjectDefaultXRNI()
         to_sample.autoseek = from_sample.autoseek
         to_sample.autofade = from_sample.autofade
         to_sample.loop_mode = from_sample.loop_mode
-        to_sample.loop_start = from_sample.loop_start
-        to_sample.loop_end = from_sample.loop_end
+        -- Only copy loop indices if loop mode is not OFF and source has valid loop markers
+        if from_sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF and #from_sample.sample_buffer.loop_markers > 0 then
+          to_sample.loop_start = from_sample.loop_start
+          to_sample.loop_end = from_sample.loop_end
+        end
         to_sample.loop_release = from_sample.loop_release
         to_sample.new_note_action = from_sample.new_note_action
         to_sample.oneshot = from_sample.oneshot
@@ -3355,8 +3358,11 @@ function PakettiInjectDefaultXRNI()
             to_slice.autoseek = from_slice.autoseek
             to_slice.autofade = from_slice.autofade
             to_slice.loop_mode = from_slice.loop_mode
-            to_slice.loop_start = from_slice.loop_start
-            to_slice.loop_end = from_slice.loop_end
+            -- Only copy loop indices if loop mode is not OFF and source has valid loop markers
+            if from_slice.loop_mode ~= renoise.Sample.LOOP_MODE_OFF and from_slice.sample_buffer and #from_slice.sample_buffer.loop_markers > 0 then
+              to_slice.loop_start = from_slice.loop_start
+              to_slice.loop_end = from_slice.loop_end
+            end
             to_slice.loop_release = from_slice.loop_release
             to_slice.new_note_action = from_slice.new_note_action
             to_slice.oneshot = from_slice.oneshot
