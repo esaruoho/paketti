@@ -1394,8 +1394,6 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker SHIFT-ALT-L Mark Note Column/Mark Pattern",invoke=function() MarkNoteColumnMarkPattern() end}
 
 -- ALT-L for Phrase Editor: Mark Note Column/Mark Phrase
-if renoise.API_VERSION >= 6.2 then
-
 function PakettiPhraseEditorMarkNoteColumnMarkPhrase()
   local s = renoise.song()
   local phrase = s.selected_phrase
@@ -1453,9 +1451,9 @@ function PakettiPhraseEditorMarkNoteColumnMarkPhrase()
   renoise.app():show_status(string.format("Selected column %d for entire phrase", column_index))
 end
 
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-L Mark Note Column/Mark Phrase",invoke=function() PakettiPhraseEditorMarkNoteColumnMarkPhrase() end}
-
-end -- API_VERSION check
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-L Mark Note Column/Mark Phrase",invoke=function() PakettiPhraseEditorMarkNoteColumnMarkPhrase() end}
+end
 
 ------------------------------------------------------
 ----------Protman's Alt-D except patternwide

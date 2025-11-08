@@ -1205,3 +1205,53 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes Random",in
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes EditStep Ascending",invoke=function() PakettiPhraseEditorWriteNotesMethodEditStep("ascending") end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes EditStep Descending",invoke=function() PakettiPhraseEditorWriteNotesMethodEditStep("descending") end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes EditStep Random",invoke=function() PakettiPhraseEditorWriteNotesMethodEditStep("random") end}
+
+---------------------------------------------------------------------------------------------------------
+-- Transpose functions for Phrase Editor
+---------------------------------------------------------------------------------------------------------
+function PakettiPhraseEditorTranspose(steps)
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local selection = song.selection_in_phrase
+  local start_line, end_line, start_column, end_column
+  
+  if selection ~= nil then
+    start_line = selection.start_line
+    end_line = selection.end_line
+    start_column = selection.start_column
+    end_column = selection.end_column
+  else
+    start_line = 1
+    end_line = phrase.number_of_lines
+    start_column = 1
+    end_column = phrase.visible_note_columns
+  end
+  
+  for line_index = start_line, end_line do
+    local line = phrase:line(line_index)
+    
+    local columns_to_end = math.min(end_column, phrase.visible_note_columns)
+    
+    for column_index = start_column, columns_to_end do
+      local note_column = line:note_column(column_index)
+      if not note_column.is_empty then
+        if note_column.note_value < 120 then
+          note_column.note_value = (note_column.note_value + steps) % 120
+        end
+      end
+    end
+  end
+end
+
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Transpose Octave Up (Selection/Phrase)",invoke=function() PakettiPhraseEditorTranspose(12) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Transpose Octave Down (Selection/Phrase)",invoke=function() PakettiPhraseEditorTranspose(-12) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Transpose +1 (Selection/Phrase)",invoke=function() PakettiPhraseEditorTranspose(1) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Transpose -1 (Selection/Phrase)",invoke=function() PakettiPhraseEditorTranspose(-1) end}
+end
