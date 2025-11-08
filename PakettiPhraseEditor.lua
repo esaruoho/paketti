@@ -1255,3 +1255,230 @@ if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Transpose +1 (Selection/Phrase)",invoke=function() PakettiPhraseEditorTranspose(1) end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Transpose -1 (Selection/Phrase)",invoke=function() PakettiPhraseEditorTranspose(-1) end}
 end
+
+---------------------------------------------------------------------------------------------------------
+-- Shift Selection function for Phrase Editor (DRY approach)
+---------------------------------------------------------------------------------------------------------
+function PakettiPhraseEditorShiftInitializeSelection()
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    return
+  end
+  
+  local selected_line_index = song.selected_phrase_line_index
+  local selected_column_index = song.selected_phrase_note_column_index
+  
+  if selected_column_index == 0 then
+    selected_column_index = phrase.visible_note_columns + song.selected_phrase_effect_column_index
+  end
+  
+  song.selection_in_phrase = {
+    start_column = selected_column_index,
+    end_column = selected_column_index,
+    start_line = selected_line_index,
+    end_line = selected_line_index
+  }
+end
+
+function PakettiPhraseEditorShift(direction)
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local selection = song.selection_in_phrase
+  
+  if not selection then
+    PakettiPhraseEditorShiftInitializeSelection()
+    selection = song.selection_in_phrase
+  end
+  
+  if direction == "up" or direction == "down" then
+    local delta = (direction == "down") and 1 or -1
+    local limit = (direction == "down") and phrase.number_of_lines or 1
+    local at_limit_msg = (direction == "down") and "You are at the end of the phrase. No more can be selected." or "You are at the beginning of the phrase. No more can be selected."
+    
+    if song.selected_phrase_line_index == selection.end_line then
+      if (direction == "down" and selection.end_line < limit) or (direction == "up" and selection.end_line > limit) then
+        selection.end_line = selection.end_line + delta
+      else
+        renoise.app():show_status(at_limit_msg)
+        return
+      end
+    else
+      if (direction == "down" and song.selected_phrase_line_index < selection.start_line) or 
+         (direction == "up" and song.selected_phrase_line_index > selection.start_line) then
+        local temp_line = selection.start_line
+        selection.start_line = selection.end_line
+        selection.end_line = temp_line
+      end
+      selection.start_line = song.selected_phrase_line_index
+    end
+    
+    if selection.start_line > selection.end_line then
+      local temp = selection.start_line
+      selection.start_line = selection.end_line
+      selection.end_line = temp
+    end
+    
+    song.selection_in_phrase = selection
+    song.selected_phrase_line_index = selection.end_line
+    
+  elseif direction == "left" or direction == "right" then
+    local delta = (direction == "right") and 1 or -1
+    local current_column = song.selected_phrase_note_column_index
+    if current_column == 0 then
+      current_column = phrase.visible_note_columns + song.selected_phrase_effect_column_index
+    end
+    
+    local total_columns = phrase.visible_note_columns + phrase.visible_effect_columns
+    local limit = (direction == "right") and total_columns or 1
+    local at_limit_msg = (direction == "right") and "You are at the last column. No more can be selected." or "You are at the first column. No more can be selected."
+    
+    if current_column == selection.end_column then
+      if (direction == "right" and selection.end_column < limit) or (direction == "left" and selection.end_column > limit) then
+        selection.end_column = selection.end_column + delta
+      else
+        renoise.app():show_status(at_limit_msg)
+        return
+      end
+    else
+      if (direction == "right" and current_column < selection.start_column) or 
+         (direction == "left" and current_column > selection.start_column) then
+        local temp_column = selection.start_column
+        selection.start_column = selection.end_column
+        selection.end_column = temp_column
+      end
+      selection.start_column = current_column
+    end
+    
+    if selection.start_column > selection.end_column then
+      local temp = selection.start_column
+      selection.start_column = selection.end_column
+      selection.end_column = temp
+    end
+    
+    song.selection_in_phrase = selection
+    
+    if selection.end_column <= phrase.visible_note_columns then
+      song.selected_phrase_note_column_index = selection.end_column
+    else
+      song.selected_phrase_effect_column_index = selection.end_column - phrase.visible_note_columns
+    end
+  end
+end
+
+---------------------------------------------------------------------------------------------------------
+-- Shift Notes Left/Right for Phrase Editor
+---------------------------------------------------------------------------------------------------------
+function PakettiPhraseEditorShiftNotes(direction)
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local selection = song.selection_in_phrase
+  
+  local start_line, end_line
+  if selection then
+    start_line = selection.start_line
+    end_line = selection.end_line
+    
+    if direction < 0 then
+      for line_idx = start_line, end_line do
+        local line = phrase:line(line_idx)
+        if not line.note_columns[1].is_empty then
+          renoise.app():show_status("Cannot shift selection left: notes present in first column")
+          return
+        end
+      end
+    end
+  else
+    start_line = song.selected_phrase_line_index
+    end_line = song.selected_phrase_line_index
+  end
+  
+  for line_idx = start_line, end_line do
+    local line = phrase:line(line_idx)
+    
+    local leftmost_used = nil
+    local rightmost_used = 0
+    for col_idx = 1, phrase.visible_note_columns do
+      if not line.note_columns[col_idx].is_empty then
+        if not leftmost_used then leftmost_used = col_idx end
+        rightmost_used = col_idx
+      end
+    end
+    
+    if leftmost_used then
+      if direction < 0 then
+        if not selection and leftmost_used == 1 then
+          renoise.app():show_status("Cannot shift notes left: notes present in first column")
+          return
+        end
+      else
+        if rightmost_used == 12 then
+          renoise.app():show_status("Cannot shift notes right: all columns used")
+          return
+        end
+        if rightmost_used == phrase.visible_note_columns and phrase.visible_note_columns < 12 then
+          phrase.visible_note_columns = phrase.visible_note_columns + 1
+        end
+      end
+      
+      if direction < 0 then
+        for col_idx = leftmost_used, rightmost_used do
+          local source_col = line.note_columns[col_idx]
+          local target_col = line.note_columns[col_idx - 1]
+          
+          target_col.note_value = source_col.note_value
+          target_col.instrument_value = source_col.instrument_value
+          target_col.volume_value = source_col.volume_value
+          target_col.panning_value = source_col.panning_value
+          target_col.delay_value = source_col.delay_value
+          target_col.effect_number_value = source_col.effect_number_value
+          target_col.effect_amount_value = source_col.effect_amount_value
+        end
+        line.note_columns[rightmost_used]:clear()
+      else
+        for col_idx = rightmost_used, leftmost_used, -1 do
+          local source_col = line.note_columns[col_idx]
+          local target_col = line.note_columns[col_idx + 1]
+          
+          target_col.note_value = source_col.note_value
+          target_col.instrument_value = source_col.instrument_value
+          target_col.volume_value = source_col.volume_value
+          target_col.panning_value = source_col.panning_value
+          target_col.delay_value = source_col.delay_value
+          target_col.effect_number_value = source_col.effect_number_value
+          target_col.effect_amount_value = source_col.effect_amount_value
+        end
+        line.note_columns[leftmost_used]:clear()
+      end
+    end
+  end
+  
+  song.selected_phrase_note_column_index = 1
+  if direction < 0 then
+    renoise.app():show_status(selection and "Selection shifted left" or "Notes shifted left")
+  else
+    renoise.app():show_status(selection and "Selection shifted right" or "Notes shifted right")
+  end
+end
+
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker Shift-Right Selection In Phrase",invoke=function() PakettiPhraseEditorShift("right") end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker Shift-Left Selection In Phrase",invoke=function() PakettiPhraseEditorShift("left") end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker Shift-Down Selection In Phrase",invoke=function() PakettiPhraseEditorShift("down") end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker Shift-Up Selection In Phrase",invoke=function() PakettiPhraseEditorShift("up") end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Shift Notes Right",invoke=function() PakettiPhraseEditorShiftNotes(1) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Shift Notes Left",invoke=function() PakettiPhraseEditorShiftNotes(-1) end}
+end
