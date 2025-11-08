@@ -1392,6 +1392,71 @@ function MarkNoteColumnMarkPattern()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker SHIFT-ALT-L Mark Note Column/Mark Pattern",invoke=function() MarkNoteColumnMarkPattern() end}
+
+-- ALT-L for Phrase Editor: Mark Note Column/Mark Phrase
+if renoise.API_VERSION >= 6.2 then
+
+function PakettiPhraseEditorMarkNoteColumnMarkPhrase()
+  local s = renoise.song()
+  local phrase = s.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local current_note_column = s.selected_phrase_note_column_index
+  local current_effect_column = s.selected_phrase_effect_column_index
+  
+  -- Determine which column to select
+  local column_index = nil
+  
+  if current_note_column > 0 then
+    -- We're in a note column
+    column_index = current_note_column
+  elseif current_effect_column > 0 then
+    -- We're in an effect column - need to offset by number of note columns
+    column_index = phrase.visible_note_columns + current_effect_column
+  else
+    renoise.app():show_status("No column selected")
+    return
+  end
+  
+  local sip = s.selection_in_phrase
+  
+  if sip ~= nil then
+    -- If there's already a selection for the current column spanning the entire phrase,
+    -- then select all columns
+    if sip.start_column == column_index and sip.end_column == column_index and
+       sip.start_line == 1 and sip.end_line == phrase.number_of_lines then
+      -- Select all columns in the phrase
+      local total_columns = phrase.visible_note_columns + phrase.visible_effect_columns
+      s.selection_in_phrase = {
+        start_line = 1,
+        end_line = phrase.number_of_lines,
+        start_column = 1,
+        end_column = total_columns
+      }
+      renoise.app():show_status("Selected entire phrase")
+      return
+    end
+  end
+  
+  -- Otherwise, select just the current column for the entire phrase
+  s.selection_in_phrase = {
+    start_line = 1,
+    end_line = phrase.number_of_lines,
+    start_column = column_index,
+    end_column = column_index
+  }
+  
+  renoise.app():show_status(string.format("Selected column %d for entire phrase", column_index))
+end
+
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-L Mark Note Column/Mark Phrase",invoke=function() PakettiPhraseEditorMarkNoteColumnMarkPhrase() end}
+
+end -- API_VERSION check
+
 ------------------------------------------------------
 ----------Protman's Alt-D except patternwide
 function DoubleSelectPattern()

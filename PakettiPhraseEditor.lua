@@ -918,3 +918,290 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
+
+---------------------------------------------------------------------------------------------------------
+-- Write Notes Ascending/Descending/Random for Phrase Editor
+---------------------------------------------------------------------------------------------------------
+-- Helper function to convert note value to string
+function PakettiPhraseEditorNoteValueToString(value)
+  local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+  local octave = math.floor(value / 12)
+  local note = notes[(value % 12) + 1]
+  return note .. octave
+end
+
+-- Function to write notes in specified order (ascending, descending, or random) in phrase
+function PakettiPhraseEditorWriteNotesMethod(method)
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  local current_line = song.selected_phrase_line_index
+  local selected_note_column = song.selected_phrase_note_column_index
+  
+  if not instrument or not instrument.sample_mappings[1] then
+    renoise.app():show_status("No sample mappings found for this instrument")
+    return
+  end
+  
+  -- Check if first sample has slice markers
+  local first_sample_has_slices = false
+  local slice_start_note = nil
+  local slice_count = 0
+  
+  if #instrument.samples > 0 then
+    local first_sample = instrument:sample(1)
+    if first_sample and #first_sample.slice_markers > 0 then
+      first_sample_has_slices = true
+      slice_count = #first_sample.slice_markers
+      
+      -- Get the slice start note - slices are the SECOND mapping onwards
+      local sample_mappings = instrument.sample_mappings[1] -- Note layer
+      if sample_mappings and #sample_mappings >= 2 then
+        -- Get the first slice mapping (slices start at index 2)
+        local first_slice_mapping = sample_mappings[2]
+        if first_slice_mapping and first_slice_mapping.base_note then
+          slice_start_note = first_slice_mapping.base_note
+        end
+      end
+      
+      -- Fallback: slices typically start one note above the original sample's base note
+      if not slice_start_note and first_sample.sample_mapping and first_sample.sample_mapping.base_note then
+        slice_start_note = first_sample.sample_mapping.base_note + 1
+      end
+    end
+  end
+  
+  -- Create a table of all mapped notes
+  local notes = {}
+  
+  if first_sample_has_slices and slice_start_note then
+    -- If slice markers exist, only create notes for slices
+    for i = 0, slice_count - 1 do
+      local slice_note = slice_start_note + i
+      -- Ensure we don't exceed valid note range (0-119)
+      if slice_note <= 119 then
+        table.insert(notes, {
+          note = slice_note,
+          mapping = instrument.samples[1].sample_mapping
+        })
+      else
+        break -- Stop adding notes if we exceed the valid range
+      end
+    end
+  else
+    -- If no slice markers, process all sample mappings
+    for _, mapping in ipairs(instrument.sample_mappings[1]) do
+      if mapping.note_range then
+        for i = mapping.note_range[1], mapping.note_range[2] do
+          table.insert(notes, {
+            note = i,
+            mapping = mapping
+          })
+        end
+      end
+    end
+  end
+  
+  if #notes == 0 then
+    renoise.app():show_status("No valid sample mappings found for this instrument")
+    return
+  end
+  
+  -- Sort or shuffle based on method
+  if method == "ascending" then
+    table.sort(notes, function(a, b) return a.note < b.note end)
+  elseif method == "descending" then
+    table.sort(notes, function(a, b) return a.note > b.note end)
+  elseif method == "random" then
+    -- Fisher-Yates shuffle
+    for i = #notes, 2, -1 do
+      local j = math.random(i)
+      notes[i], notes[j] = notes[j], notes[i]
+    end
+  end
+  
+  local last_note = -1
+  local last_mapping = nil
+  
+  -- Write the notes
+  for i = 1, #notes do
+    if current_line <= phrase.number_of_lines then
+      local note_column = phrase:line(current_line):note_column(selected_note_column)
+      note_column.note_value = notes[i].note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      current_line = current_line + 1
+      last_note = notes[i].note
+      last_mapping = notes[i].mapping
+    else
+      break
+    end
+  end
+  
+  if last_note ~= -1 and last_mapping then
+    local note_name = PakettiPhraseEditorNoteValueToString(last_note)
+    renoise.app():show_status(string.format(
+      "Wrote notes until row %d at note %s (base note: %d)", 
+      current_line - 1, 
+      note_name,
+      last_mapping.base_note
+    ))
+  end
+end
+
+-- Function to write notes in specified order with EditStep (ascending, descending, or random) in phrase
+function PakettiPhraseEditorWriteNotesMethodEditStep(method)
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  local current_line = song.selected_phrase_line_index
+  local selected_note_column = song.selected_phrase_note_column_index
+  local edit_step = song.transport.edit_step
+  
+  -- If edit_step is 0, treat it as 1 (write to every row)
+  if edit_step == 0 then
+    edit_step = 1
+  end
+  
+  if not instrument or not instrument.sample_mappings[1] then
+    renoise.app():show_status("No sample mappings found for this instrument")
+    return
+  end
+  
+  -- Check if first sample has slice markers
+  local first_sample_has_slices = false
+  local slice_start_note = nil
+  local slice_count = 0
+  
+  if #instrument.samples > 0 then
+    local first_sample = instrument:sample(1)
+    if first_sample and #first_sample.slice_markers > 0 then
+      first_sample_has_slices = true
+      slice_count = #first_sample.slice_markers
+      
+      -- Get the slice start note - slices are the SECOND mapping onwards
+      local sample_mappings = instrument.sample_mappings[1] -- Note layer
+      if sample_mappings and #sample_mappings >= 2 then
+        -- Get the first slice mapping (slices start at index 2)
+        local first_slice_mapping = sample_mappings[2]
+        if first_slice_mapping and first_slice_mapping.base_note then
+          slice_start_note = first_slice_mapping.base_note
+        end
+      end
+      
+      -- Fallback: slices typically start one note above the original sample's base note
+      if not slice_start_note and first_sample.sample_mapping and first_sample.sample_mapping.base_note then
+        slice_start_note = first_sample.sample_mapping.base_note + 1
+      end
+    end
+  end
+  
+  -- Create a table of all mapped notes
+  local notes = {}
+  
+  if first_sample_has_slices and slice_start_note then
+    -- If slice markers exist, only create notes for slices
+    for i = 0, slice_count - 1 do
+      local slice_note = slice_start_note + i
+      -- Ensure we don't exceed valid note range (0-119)
+      if slice_note <= 119 then
+        table.insert(notes, {
+          note = slice_note,
+          mapping = instrument.samples[1].sample_mapping
+        })
+      else
+        break -- Stop adding notes if we exceed the valid range
+      end
+    end
+  else
+    -- If no slice markers, process all sample mappings
+    for _, mapping in ipairs(instrument.sample_mappings[1]) do
+      if mapping.note_range then
+        for i = mapping.note_range[1], mapping.note_range[2] do
+          table.insert(notes, {
+            note = i,
+            mapping = mapping
+          })
+        end
+      end
+    end
+  end
+  
+  if #notes == 0 then
+    renoise.app():show_status("No valid sample mappings found for this instrument")
+    return
+  end
+  
+  -- Sort or shuffle based on method
+  if method == "ascending" then
+    table.sort(notes, function(a, b) return a.note < b.note end)
+  elseif method == "descending" then
+    table.sort(notes, function(a, b) return a.note > b.note end)
+  elseif method == "random" then
+    -- Fisher-Yates shuffle
+    for i = #notes, 2, -1 do
+      local j = math.random(i)
+      notes[i], notes[j] = notes[j], notes[i]
+    end
+  end
+  
+  -- First, clear all existing notes in the selected note column from current line to end of phrase
+  for line_index = current_line, phrase.number_of_lines do
+    local note_column = phrase:line(line_index):note_column(selected_note_column)
+    note_column.note_value = renoise.PatternLine.EMPTY_NOTE
+    note_column.instrument_value = renoise.PatternLine.EMPTY_INSTRUMENT
+    note_column.volume_value = renoise.PatternLine.EMPTY_VOLUME
+    note_column.panning_value = renoise.PatternLine.EMPTY_PANNING
+    note_column.delay_value = renoise.PatternLine.EMPTY_DELAY
+    note_column.effect_number_value = renoise.PatternLine.EMPTY_EFFECT_NUMBER
+    note_column.effect_amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+  end
+  
+  local last_note = -1
+  local last_mapping = nil
+  local write_line = current_line
+  
+  -- Write the notes using EditStep
+  for i = 1, #notes do
+    if write_line <= phrase.number_of_lines then
+      local note_column = phrase:line(write_line):note_column(selected_note_column)
+      -- Write the new note
+      note_column.note_value = notes[i].note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      write_line = write_line + edit_step
+      last_note = notes[i].note
+      last_mapping = notes[i].mapping
+    else
+      break
+    end
+  end
+  
+  if last_note ~= -1 and last_mapping then
+    local note_name = PakettiPhraseEditorNoteValueToString(last_note)
+    renoise.app():show_status(string.format(
+      "Cleared and wrote notes with EditStep %d until row %d at note %s (base note: %d)", 
+      edit_step,
+      write_line - edit_step, 
+      note_name,
+      last_mapping.base_note
+    ))
+  end
+end
+
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes Ascending",invoke=function() PakettiPhraseEditorWriteNotesMethod("ascending") end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes Descending",invoke=function() PakettiPhraseEditorWriteNotesMethod("descending") end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes Random",invoke=function() PakettiPhraseEditorWriteNotesMethod("random") end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes EditStep Ascending",invoke=function() PakettiPhraseEditorWriteNotesMethodEditStep("ascending") end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes EditStep Descending",invoke=function() PakettiPhraseEditorWriteNotesMethodEditStep("descending") end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes EditStep Random",invoke=function() PakettiPhraseEditorWriteNotesMethodEditStep("random") end}
