@@ -399,7 +399,16 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Save:Save Current Samp
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Record:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}  
 
 -- Sample Editor Process
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Protracker MOD Modulation...",invoke = showProtrackerModDialog}
+
+
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Truncate Sample 2x", invoke=function() PakettiSampleTruncater(2) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Truncate Sample 4x", invoke=function() PakettiSampleTruncater(4) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Truncate Sample 8x", invoke=function() PakettiSampleTruncater(8) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Truncate Sample 16x", invoke=function() PakettiSampleTruncater(16) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Truncate Sample 32x", invoke=function() PakettiSampleTruncater(32) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Truncate Sample 64x", invoke=function() PakettiSampleTruncater(64) end}
+
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Process:Protracker MOD Modulation...",invoke = showProtrackerModDialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Process:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
@@ -471,7 +480,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Auto-Slice 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Whole Hog (Complete Workflow)",invoke=function() whole_hog_complete_workflow() end}
 
 -- Sample Editor Beatsync/Slices
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Beatsync/Slices:Double Beatsync Line",invoke=function() doubleBeatSyncLines() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Double Beatsync Line",invoke=function() doubleBeatSyncLines() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Halve Beatsync Line",invoke=function() halveBeatSyncLines() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}

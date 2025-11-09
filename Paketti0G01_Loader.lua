@@ -1357,14 +1357,17 @@ vb:row{
                 tooltip="Master switch: When Off, AutoSamplify is completely disabled. When On, AutoSamplify monitors for new samples.",
                 notifier=function(value) 
                   preferences.pakettiAutoSamplifyMonitoring.value=value
+                  preferences:save_as("preferences.xml")
                   if preferences.pakettiAutoSamplifyMonitoring.value then
                     if PakettiStartNewSampleMonitoring then
                       PakettiStartNewSampleMonitoring()
                     end
+                    renoise.app():show_status("AutoSamplify Monitoring: Enabled")
                   else
                     if PakettiStopNewSampleMonitoring then
                       PakettiStopNewSampleMonitoring()
                     end
+                    renoise.app():show_status("AutoSamplify Monitoring: Disabled")
                   end
                 end
             },
@@ -1373,7 +1376,15 @@ vb:row{
               vb:checkbox{
                 value=preferences.pakettiAutoSamplifyPakettify.value,
                 tooltip="When On: Creates new instrument with XRNI + loader settings. When Off: Only applies sample settings and normalizes in current instrument.",
-                notifier=function(value) preferences.pakettiAutoSamplifyPakettify.value=value end
+                notifier=function(value) 
+                  preferences.pakettiAutoSamplifyPakettify.value=value 
+                  preferences:save_as("preferences.xml")
+                  if value then
+                    renoise.app():show_status("AutoSamplify Pakettify: Enabled (creates new instrument with XRNI)")
+                  else
+                    renoise.app():show_status("AutoSamplify Pakettify: Disabled (applies settings in current instrument)")
+                  end
+                end
               }
             },
             vb:text{style="strong",font="bold",text="Paketti Loader Settings"},
@@ -1381,45 +1392,66 @@ vb:row{
               vb:text{text="Skip Automation Device",width=150},
               vb:checkbox{
                 value=preferences.pakettiLoaderDontCreateAutomationDevice.value,
-                notifier=function(value) preferences.pakettiLoaderDontCreateAutomationDevice.value=value end
+                notifier=function(value) 
+                  preferences.pakettiLoaderDontCreateAutomationDevice.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               },
               vb:space{width=checkbox_spacing},
               vb:text{text="Enable AHDSR Envelope",width=150},
               vb:checkbox{
                 value=preferences.pakettiPitchbendLoaderEnvelope.value,
-                notifier=function(value) preferences.pakettiPitchbendLoaderEnvelope.value=value end
+                notifier=function(value) 
+                  preferences.pakettiPitchbendLoaderEnvelope.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               }
             },
             vb:row{
               vb:text{text="One-Shot",width=150},
               vb:checkbox{
                 value=preferences.pakettiLoaderOneshot.value,
-                notifier=function(value) preferences.pakettiLoaderOneshot.value=value end
+                notifier=function(value) 
+                  preferences.pakettiLoaderOneshot.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               },
               vb:space{width=checkbox_spacing},
               vb:text{text="Autoseek",width=150},
               vb:checkbox{
                 value=preferences.pakettiLoaderAutoseek.value,
-                notifier=function(value) preferences.pakettiLoaderAutoseek.value=value end
+                notifier=function(value) 
+                  preferences.pakettiLoaderAutoseek.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               },
               vb:space{width=checkbox_spacing},
               vb:text{text="Autofade",width=100},
               vb:checkbox{
                 value=preferences.pakettiLoaderAutofade.value,
-                notifier=function(value) preferences.pakettiLoaderAutofade.value=value end
+                notifier=function(value) 
+                  preferences.pakettiLoaderAutofade.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               }
             },
             vb:row{
               vb:text{text="Loop Release/Exit Mode",width=150},
               vb:checkbox{
                 value=preferences.pakettiLoaderLoopExit.value,
-                notifier=function(value) preferences.pakettiLoaderLoopExit.value=value end
+                notifier=function(value) 
+                  preferences.pakettiLoaderLoopExit.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               },
               vb:space{width=checkbox_spacing},
               vb:text{text="Oversampling",width=150},
               vb:checkbox{
                 value=preferences.pakettiLoaderOverSampling.value,
-                notifier=function(value) preferences.pakettiLoaderOverSampling.value=value end
+                notifier=function(value) 
+                  preferences.pakettiLoaderOverSampling.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               }
             },
             vb:row{
@@ -1429,7 +1461,10 @@ vb:row{
               vb:space{width=checkbox_spacing},
               vb:text{text="New Note Action(NNA) Mode",width=150},
               vb:popup{items={"Cut","Note-Off","Continue"},value=preferences.pakettiLoaderNNA.value,width=100,
-                notifier=function(value) preferences.pakettiLoaderNNA.value=value end}
+                notifier=function(value) 
+                  preferences.pakettiLoaderNNA.value=value 
+                  preferences:save_as("preferences.xml")
+                end}
             },
             vb:row{
               vb:text{text="Loop Mode",width=150},
@@ -1453,28 +1488,40 @@ vb:row{
               vb:text{text="Sample View",width=150,tooltip="Show Original: keeps viewing the original sample while slicing. Show Newest Slice: automatically switches to newest created slice."},
               vb:popup{items={"Show Original","Show Newest Slice"},value=preferences.pakettiLazySlicerShowNewestSlice.value and 2 or 1,width=100,
                 tooltip="Show Original: keeps viewing the original sample while slicing. Show Newest Slice: automatically switches to newest created slice.",
-                notifier=function(value) preferences.pakettiLazySlicerShowNewestSlice.value=(value==2) end}
+                notifier=function(value) 
+                  preferences.pakettiLazySlicerShowNewestSlice.value=(value==2) 
+                  preferences:save_as("preferences.xml")
+                end}
             },
             vb:row{vb:text{text="Paketti Loader Settings (Drumkit Loader)", font="bold", style="strong"}},
             vb:row{
               vb:text{text="Move Beginning Silence",width=150},
               vb:checkbox{
                 value=preferences.pakettiLoaderMoveSilenceToEnd.value,
-                notifier=function(value) preferences.pakettiLoaderMoveSilenceToEnd.value=value end
+                notifier=function(value) 
+                  preferences.pakettiLoaderMoveSilenceToEnd.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               },
               vb:space{width=checkbox_spacing},
               vb:text{text="Normalize Samples",width=125,tooltip="Automatically normalize all samples after loading (works with drag & drop too)"},
               vb:checkbox{
                 value=preferences.pakettiLoaderNormalizeSamples.value,
                 tooltip="Automatically normalize all samples after loading (works with drag & drop too)",
-                notifier=function(value) preferences.pakettiLoaderNormalizeSamples.value=value end
+                notifier=function(value) 
+                  preferences.pakettiLoaderNormalizeSamples.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               },
               vb:space{width=checkbox_spacing},
               vb:text{text="Normalize Large Samples (>10MB)",width=175,tooltip="Automatically normalize samples larger than 10MB after loading"},
               vb:checkbox{
                 value=preferences.pakettiLoaderNormalizeLargeSamples.value,
                 tooltip="Automatically normalize samples larger than 10MB after loading",
-                notifier=function(value) preferences.pakettiLoaderNormalizeLargeSamples.value=value end
+                notifier=function(value) 
+                  preferences.pakettiLoaderNormalizeLargeSamples.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               }
             },
             vb:text{style="strong",font="bold",text="Maximum Sample Frame Size Settings (for Auto-normalization)"},
@@ -1560,47 +1607,71 @@ vb:row{
               vb:space{width=checkbox_spacing},
               vb:text{text="Slice Beatsync Mode",width=150},
               vb:popup{items={"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)","Off"},value=preferences.WipeSlices.WipeSlicesBeatSyncMode.value,width=100,
-                notifier=function(value) preferences.WipeSlices.WipeSlicesBeatSyncMode.value=value end}
+                notifier=function(value) 
+                  preferences.WipeSlices.WipeSlicesBeatSyncMode.value=value 
+                  preferences:save_as("preferences.xml")
+                end}
             },
             vb:row{
               vb:text{text="New Note Action(NNA) Mode",width=150},
               vb:popup{items={"Cut","Note-Off","Continue"},value=preferences.WipeSlices.WipeSlicesNNA.value,width=100,
-                notifier=function(value) preferences.WipeSlices.WipeSlicesNNA.value=value end},
+                notifier=function(value) 
+                  preferences.WipeSlices.WipeSlicesNNA.value=value 
+                  preferences:save_as("preferences.xml")
+                end},
               vb:space{width=checkbox_spacing},
               vb:text{text="Mute Group",width=150},
               vb:popup{items={"Off","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"},value=preferences.WipeSlices.WipeSlicesMuteGroup.value+1,width=100,
-                notifier=function(value) preferences.WipeSlices.WipeSlicesMuteGroup.value=value-1 end}
+                notifier=function(value) 
+                  preferences.WipeSlices.WipeSlicesMuteGroup.value=value-1 
+                  preferences:save_as("preferences.xml")
+                end}
             },
             vb:row{
               vb:text{text="Slice Loop Release/Exit Mode",width=150},
               vb:checkbox{
                 value=preferences.WipeSlices.WipeSlicesLoopRelease.value,
-                notifier=function(value) preferences.WipeSlices.WipeSlicesLoopRelease.value=value end
+                notifier=function(value) 
+                  preferences.WipeSlices.WipeSlicesLoopRelease.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               },
               vb:space{width=checkbox_spacing},
               vb:text{text="Slice Loop EndHalf",width=150},
               vb:checkbox{
                 value=preferences.WipeSlices.SliceLoopMode.value,
-                notifier=function(value) preferences.WipeSlices.SliceLoopMode.value=value end
+                notifier=function(value) 
+                  preferences.WipeSlices.SliceLoopMode.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               }
             },
             vb:row{
               vb:text{text="Slice One-Shot",width=150},
               vb:checkbox{
                 value=preferences.WipeSlices.WipeSlicesOneShot.value,
-                notifier=function(value) preferences.WipeSlices.WipeSlicesOneShot.value=value end
+                notifier=function(value) 
+                  preferences.WipeSlices.WipeSlicesOneShot.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               },
               vb:space{width=checkbox_spacing},
               vb:text{text="Slice Autoseek",width=150},
               vb:checkbox{
                 value=preferences.WipeSlices.WipeSlicesAutoseek.value,
-                notifier=function(value) preferences.WipeSlices.WipeSlicesAutoseek.value=value end
+                notifier=function(value) 
+                  preferences.WipeSlices.WipeSlicesAutoseek.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               },
               vb:space{width=checkbox_spacing},
               vb:text{text="Slice Autofade",width=100},
               vb:checkbox{
                 value=preferences.WipeSlices.WipeSlicesAutofade.value,
-                notifier=function(value) preferences.WipeSlices.WipeSlicesAutofade.value=value end
+                notifier=function(value) 
+                  preferences.WipeSlices.WipeSlicesAutofade.value=value 
+                  preferences:save_as("preferences.xml")
+                end
               }
             },
       vb:row{
@@ -1611,6 +1682,7 @@ vb:row{
           width=200,
           notifier=function(value)
             preferences.pakettiDialogClose.value = dialog_close_keys[value]
+            preferences:save_as("preferences.xml")
           end},},
     vb:text{style="strong", font="bold", text="Preset++"},
     vb:row{
