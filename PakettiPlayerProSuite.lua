@@ -5219,3 +5219,164 @@ function pakettiPlayerProToggleAlwaysOpen()
     pakettiPlayerProStopAlwaysOpen()
   end
 end
+
+---------------------------------------------------------------------------------------------------------
+-- Player Pro Phrase Editor Functions (API 6.2+ required for selection_in_phrase)
+---------------------------------------------------------------------------------------------------------
+
+-- Phrase Editor Transpose with Playback
+function pakettiPlayerProPhraseTranspose(steps, range, playback)
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local selection = song.selection_in_phrase
+  local start_line, end_line, start_column, end_column
+  
+  if selection ~= nil then
+    start_line = selection.start_line
+    end_line = selection.end_line
+    start_column = selection.start_column
+    end_column = selection.end_column
+  else
+    start_line = song.selected_phrase_line_index
+    end_line = song.selected_phrase_line_index
+    
+    if range == "notecolumn" then
+      start_column = song.selected_phrase_note_column_index
+      end_column = song.selected_phrase_note_column_index
+    else
+      start_column = 1
+      end_column = phrase.visible_note_columns
+    end
+  end
+  
+  local first_column = math.max(1, math.min(start_column, phrase.visible_note_columns))
+  local last_column = math.max(1, math.min(end_column, phrase.visible_note_columns))
+  
+  for line_index = start_line, end_line do
+    local line = phrase:line(line_index)
+    
+    for column_index = first_column, last_column do
+      local note_column = line:note_column(column_index)
+      if not note_column.is_empty then
+        if note_column.note_value < 120 then
+          local new_note_value = (note_column.note_value + steps) % 120
+          note_column.note_value = new_note_value
+        end
+      end
+    end
+  end
+  
+  if playback then
+    if song.transport.playing then
+      renoise.app():show_status("Transpose & Play will only work if Playback is stopped")
+    else
+      local selected_line_index = song.selected_phrase_line_index
+      local line = phrase:line(selected_line_index)
+      
+      local has_notes = false
+      for column_index = 1, phrase.visible_note_columns do
+        local note_column = line:note_column(column_index)
+        if not note_column.is_empty and note_column.note_value < 120 then
+          has_notes = true
+          break
+        end
+      end
+      
+      if has_notes then
+        local instrument = song.selected_instrument
+        local selected_track = song.selected_track
+        
+        for column_index = 1, phrase.visible_note_columns do
+          local note_column = line:note_column(column_index)
+          if not note_column.is_empty and note_column.note_value < 120 then
+            instrument:trigger_note(note_column.note_value)
+          end
+        end
+      end
+    end
+  end
+end
+
+-- Phrase Editor Note Grid Dialog (Smart wrapper)
+function pakettiPlayerProPhraseNoteGridDialog()
+  local song = renoise.song()
+  
+  if not song.selected_phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+  
+  if song.selection_in_phrase then
+    pakettiPlayerProNoteGridShowCanvasGrid()
+    return
+  end
+  
+  if song.selected_phrase_effect_column_index > 0 then
+    pakettiPlayerProPhraseEffectDialog()
+    return
+  end
+  
+  if preferences.pakettiPlayerProSmartSubColumn and preferences.pakettiPlayerProSmartSubColumn.value then
+    local sub_column_type = song.selected_sub_column_type
+    if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME or
+       sub_column_type == renoise.Song.SUB_COLUMN_PANNING or
+       sub_column_type == renoise.Song.SUB_COLUMN_DELAY or
+       sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER or
+       sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+      pakettiPlayerProPhraseEffectDialog()
+      return
+    end
+  end
+  
+  pakettiPlayerProNoteGridShowCanvasGrid()
+end
+
+-- Phrase Editor Effect Dialog
+function pakettiPlayerProPhraseEffectDialog()
+  local song = renoise.song()
+  
+  if not song.selected_phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+  
+  pakettiPlayerProEffectDialogCanvas()
+end
+
+-- Keybindings for Phrase Editor Player Pro features (API 6.2+ only)
+if renoise.API_VERSION >= 6.2 then
+  -- Transpose without playback
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Row +1",invoke=function() pakettiPlayerProPhraseTranspose(1, "row", false) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Row -1",invoke=function() pakettiPlayerProPhraseTranspose(-1, "row", false) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Row +12",invoke=function() pakettiPlayerProPhraseTranspose(12, "row", false) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Row -12",invoke=function() pakettiPlayerProPhraseTranspose(-12, "row", false) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Note Column +1",invoke=function() pakettiPlayerProPhraseTranspose(1, "notecolumn", false) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Note Column -1",invoke=function() pakettiPlayerProPhraseTranspose(-1, "notecolumn", false) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Note Column +12",invoke=function() pakettiPlayerProPhraseTranspose(12, "notecolumn", false) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Note Column -12",invoke=function() pakettiPlayerProPhraseTranspose(-12, "notecolumn", false) end}
+  
+  -- Transpose with playback
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Row +1 with Play",invoke=function() pakettiPlayerProPhraseTranspose(1, "row", true) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Row -1 with Play",invoke=function() pakettiPlayerProPhraseTranspose(-1, "row", true) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Row +12 with Play",invoke=function() pakettiPlayerProPhraseTranspose(12, "row", true) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Row -12 with Play",invoke=function() pakettiPlayerProPhraseTranspose(-12, "row", true) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Note Column +1 with Play",invoke=function() pakettiPlayerProPhraseTranspose(1, "notecolumn", true) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Note Column -1 with Play",invoke=function() pakettiPlayerProPhraseTranspose(-1, "notecolumn", true) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Note Column +12 with Play",invoke=function() pakettiPlayerProPhraseTranspose(12, "notecolumn", true) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Note Column -12 with Play",invoke=function() pakettiPlayerProPhraseTranspose(-12, "notecolumn", true) end}
+  
+  -- Note Grid and Effect Dialogs
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Note Grid Dialog",invoke=pakettiPlayerProPhraseNoteGridDialog}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Intelligent Dialog",invoke=pakettiPlayerProPhraseNoteGridDialog}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Effect Dialog",invoke=pakettiPlayerProPhraseEffectDialog}
+end

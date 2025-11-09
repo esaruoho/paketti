@@ -1482,3 +1482,368 @@ if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Shift Notes Right",invoke=function() PakettiPhraseEditorShiftNotes(1) end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Shift Notes Left",invoke=function() PakettiPhraseEditorShiftNotes(-1) end}
 end
+
+---------------------------------------------------------------------------------------------------------
+-- Nudge functions for Phrase Editor
+---------------------------------------------------------------------------------------------------------
+-- Helper function to get selection info for phrase
+function PakettiPhraseEditorSelectionInfo()
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    return nil
+  end
+  
+  local selection = song.selection_in_phrase
+  if not selection then
+    print("No selection in phrase!")
+    return nil
+  end
+  
+  print("Selection in Phrase:")
+  print("Start Column:", selection.start_column)
+  print("End Column:", selection.end_column)
+  print("Start Line:", selection.start_line)
+  print("End Line:", selection.end_line)
+  
+  local result = {
+    note_columns = {},
+    effect_columns = {}
+  }
+  
+  local visible_note_columns = phrase.visible_note_columns
+  local visible_effect_columns = phrase.visible_effect_columns
+  local total_columns = visible_note_columns + visible_effect_columns
+  
+  print("Visible Note Columns:", visible_note_columns)
+  print("Visible Effect Columns:", visible_effect_columns)
+  print("Total Columns:", total_columns)
+  
+  local start_column = selection.start_column
+  local end_column = selection.end_column
+  
+  start_column = math.max(start_column, 1)
+  end_column = math.min(end_column, total_columns)
+  
+  if visible_note_columns > 0 and start_column <= visible_note_columns then
+    for col = start_column, math.min(end_column, visible_note_columns) do
+      table.insert(result.note_columns, col)
+    end
+  end
+  
+  if visible_effect_columns > 0 and end_column > visible_note_columns then
+    local effect_start = math.max(start_column - visible_note_columns, 1)
+    local effect_end = end_column - visible_note_columns
+    for col = effect_start, math.min(effect_end, visible_effect_columns) do
+      table.insert(result.effect_columns, col)
+    end
+  end
+  
+  print("Selected Note Columns:", #result.note_columns > 0 and table.concat(result.note_columns, ", ") or "None")
+  print("Selected Effect Columns:", #result.effect_columns > 0 and table.concat(result.effect_columns, ", ") or "None")
+  
+  return result
+end
+
+function PakettiPhraseEditorNudge(direction)
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local selection_info = PakettiPhraseEditorSelectionInfo()
+  if not selection_info then 
+    renoise.app():show_status("No selection in phrase!")
+    return
+  end
+  
+  local phrase_selection = song.selection_in_phrase
+  if not phrase_selection then
+    renoise.app():show_status("No selection in phrase!")
+    return
+  end
+  
+  local start_line = phrase_selection.start_line
+  local end_line = phrase_selection.end_line
+  
+  print("Selection in Phrase:")
+  print(string.format("Start Line: %d, End Line: %d", start_line, end_line))
+  print(string.format("Start Column: %d, End Column: %d", phrase_selection.start_column, phrase_selection.end_column))
+  print(string.format("Selected Note Columns: %s", table.concat(selection_info.note_columns, ", ")))
+  
+  local function copy_note_column(note_column)
+    return {
+      note_value = note_column.note_value,
+      instrument_value = note_column.instrument_value,
+      volume_value = note_column.volume_value,
+      panning_value = note_column.panning_value,
+      delay_value = note_column.delay_value,
+      effect_number_value = note_column.effect_number_value,
+      effect_amount_value = note_column.effect_amount_value
+    }
+  end
+  
+  local function set_note_column(note_column, data)
+    note_column.note_value = data.note_value
+    note_column.instrument_value = data.instrument_value
+    note_column.volume_value = data.volume_value
+    note_column.panning_value = data.panning_value
+    note_column.delay_value = data.delay_value
+    note_column.effect_number_value = data.effect_number_value
+    note_column.effect_amount_value = data.effect_amount_value
+  end
+  
+  local function copy_effect_column(effect_column)
+    return {
+      number_value = effect_column.number_value,
+      amount_value = effect_column.amount_value
+    }
+  end
+  
+  local function set_effect_column(effect_column, data)
+    effect_column.number_value = data.number_value
+    effect_column.amount_value = data.amount_value
+  end
+  
+  local lines = phrase.lines
+  local adjusted_start_line = math.max(1, math.min(start_line, phrase.number_of_lines))
+  local adjusted_end_line = math.max(1, math.min(end_line, phrase.number_of_lines))
+  
+  for _, column_index in ipairs(selection_info.note_columns) do
+    if direction == "down" then
+      local bottom_line = lines[adjusted_end_line]
+      local stored_note_column = copy_note_column(bottom_line.note_columns[column_index])
+      local stored_effect_columns = {}
+      for ec_index, effect_column in ipairs(bottom_line.effect_columns) do
+        stored_effect_columns[ec_index] = copy_effect_column(effect_column)
+      end
+      
+      for line_index = adjusted_end_line, adjusted_start_line + 1, -1 do
+        local current_line = lines[line_index]
+        local previous_line = lines[line_index - 1]
+        
+        local current_note_column = current_line.note_columns[column_index]
+        local previous_note_column = previous_line.note_columns[column_index]
+        current_note_column:copy_from(previous_note_column)
+        
+        local current_effect_columns = current_line.effect_columns
+        local previous_effect_columns = previous_line.effect_columns
+        for ec_index = 1, #current_effect_columns do
+          current_effect_columns[ec_index]:copy_from(previous_effect_columns[ec_index])
+        end
+      end
+      
+      local top_line = lines[adjusted_start_line]
+      set_note_column(top_line.note_columns[column_index], stored_note_column)
+      local top_effect_columns = top_line.effect_columns
+      for ec_index = 1, #top_effect_columns do
+        set_effect_column(top_effect_columns[ec_index], stored_effect_columns[ec_index] or {})
+      end
+      
+    elseif direction == "up" then
+      local top_line = lines[adjusted_start_line]
+      local stored_note_column = copy_note_column(top_line.note_columns[column_index])
+      local stored_effect_columns = {}
+      for ec_index, effect_column in ipairs(top_line.effect_columns) do
+        stored_effect_columns[ec_index] = copy_effect_column(effect_column)
+      end
+      
+      for line_index = adjusted_start_line, adjusted_end_line - 1 do
+        local current_line = lines[line_index]
+        local next_line = lines[line_index + 1]
+        
+        local current_note_column = current_line.note_columns[column_index]
+        local next_note_column = next_line.note_columns[column_index]
+        current_note_column:copy_from(next_note_column)
+        
+        local current_effect_columns = current_line.effect_columns
+        local next_effect_columns = next_line.effect_columns
+        for ec_index = 1, #current_effect_columns do
+          current_effect_columns[ec_index]:copy_from(next_effect_columns[ec_index])
+        end
+      end
+      
+      local bottom_line = lines[adjusted_end_line]
+      set_note_column(bottom_line.note_columns[column_index], stored_note_column)
+      local bottom_effect_columns = bottom_line.effect_columns
+      for ec_index = 1, #bottom_effect_columns do
+        set_effect_column(bottom_effect_columns[ec_index], stored_effect_columns[ec_index] or {})
+      end
+      
+    else
+      renoise.app():show_status("Invalid nudge direction!")
+      return
+    end
+  end
+  
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+  renoise.app():show_status("Nudge " .. direction .. " applied in phrase.")
+end
+
+function PakettiPhraseEditorNudgeWithDelay(direction)
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local selection_info = PakettiPhraseEditorSelectionInfo()
+  if not selection_info then 
+    renoise.app():show_status("No selection in phrase!")
+    return
+  end
+  
+  local phrase_selection = song.selection_in_phrase
+  if not phrase_selection then
+    renoise.app():show_status("No selection in phrase!")
+    return
+  end
+  
+  local start_line = phrase_selection.start_line
+  local end_line = phrase_selection.end_line
+  
+  print("Selection in Phrase:")
+  print(string.format("Start Line: %d, End Line: %d", start_line, end_line))
+  print(string.format("Start Column: %d, End Column: %d", phrase_selection.start_column, phrase_selection.end_column))
+  print(string.format("Selected Note Columns: %s", table.concat(selection_info.note_columns, ", ")))
+  
+  local lines = phrase.lines
+  local adjusted_start_line = math.max(1, math.min(start_line, phrase.number_of_lines))
+  local adjusted_end_line = math.max(1, math.min(end_line, phrase.number_of_lines))
+  
+  for _, column_index in ipairs(selection_info.note_columns) do
+    if direction == "down" then
+      for line_index = adjusted_end_line, adjusted_start_line, -1 do
+        local note_column = lines[line_index].note_columns[column_index]
+        local effect_columns = lines[line_index].effect_columns
+        
+        if not note_column.is_empty or note_column.delay_value > 0 then
+          local delay = note_column.delay_value
+          local new_delay = delay + 1
+          
+          if new_delay > 0xFF then
+            new_delay = 0
+            
+            local next_line_index = line_index + 1
+            if next_line_index > adjusted_end_line then
+              next_line_index = adjusted_start_line
+            end
+            
+            local next_line = lines[next_line_index]
+            local next_note_column = next_line.note_columns[column_index]
+            local next_effect_columns = next_line.effect_columns
+            
+            local can_move = next_note_column.is_empty and next_note_column.delay_value == 0
+            for _, next_effect_column in ipairs(next_effect_columns) do
+              if not next_effect_column.is_empty then
+                can_move = false
+                break
+              end
+            end
+            
+            if can_move then
+              print(string.format(
+                "Moving note/delay down with wrap: Column %d, Row %d -> Row %d", 
+                column_index, line_index, next_line_index))
+              
+              next_note_column:copy_from(note_column)
+              next_note_column.delay_value = new_delay
+              note_column:clear()
+              
+              for ec_index, effect_column in ipairs(effect_columns) do
+                local next_effect_column = next_effect_columns[ec_index]
+                next_effect_column:copy_from(effect_column)
+                effect_column:clear()
+              end
+            else
+              print(string.format(
+                "Collision at Column %d, Row %d. Cannot nudge further.", 
+                column_index, next_line_index))
+            end
+          else
+            note_column.delay_value = new_delay
+            print(string.format(
+              "Row %d, Column %d: Note %s, Delay %02X -> %02X",
+              line_index, column_index, note_column.note_string, delay, new_delay))
+          end
+        end
+      end
+    elseif direction == "up" then
+      for line_index = adjusted_start_line, adjusted_end_line do
+        local note_column = lines[line_index].note_columns[column_index]
+        local effect_columns = lines[line_index].effect_columns
+        
+        if not note_column.is_empty or note_column.delay_value > 0 then
+          local delay = note_column.delay_value
+          local new_delay = delay - 1
+          
+          if new_delay < 0 then
+            new_delay = 0xFF
+            
+            local prev_line_index = line_index - 1
+            if prev_line_index < adjusted_start_line then
+              prev_line_index = adjusted_end_line
+            end
+            
+            local prev_line = lines[prev_line_index]
+            local prev_note_column = prev_line.note_columns[column_index]
+            local prev_effect_columns = prev_line.effect_columns
+            
+            local can_move = prev_note_column.is_empty and prev_note_column.delay_value == 0
+            for _, prev_effect_column in ipairs(prev_effect_columns) do
+              if not prev_effect_column.is_empty then
+                can_move = false
+                break
+              end
+            end
+            
+            if can_move then
+              print(string.format(
+                "Moving note/delay up with wrap: Column %d, Row %d -> Row %d", 
+                column_index, line_index, prev_line_index))
+              
+              prev_note_column:copy_from(note_column)
+              prev_note_column.delay_value = new_delay
+              note_column:clear()
+              
+              for ec_index, effect_column in ipairs(effect_columns) do
+                local prev_effect_column = prev_effect_columns[ec_index]
+                prev_effect_column:copy_from(effect_column)
+                effect_column:clear()
+              end
+            else
+              print(string.format(
+                "Collision at Column %d, Row %d. Cannot nudge further.", 
+                column_index, prev_line_index))
+            end
+          else
+            note_column.delay_value = new_delay
+            print(string.format(
+              "Row %d, Column %d: Note %s, Delay %02X -> %02X",
+              line_index, column_index, note_column.note_string, delay, new_delay))
+          end
+        end
+      end
+    else
+      renoise.app():show_status("Invalid nudge direction!")
+      return
+    end
+  end
+  
+  phrase.delay_column_visible = true
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+  renoise.app():show_status("Nudge " .. direction .. " with delay applied in phrase.")
+end
+
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Down",invoke=function() PakettiPhraseEditorNudge("down") end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Up",invoke=function() PakettiPhraseEditorNudge("up") end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge with Delay (Down)",invoke=function() PakettiPhraseEditorNudgeWithDelay("down") end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge with Delay (Up)",invoke=function() PakettiPhraseEditorNudgeWithDelay("up") end}
+end
