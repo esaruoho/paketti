@@ -333,6 +333,7 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   song.selected_sample_index = 1
   local new_sample = new_instrument.samples[1]
   
+  
   -- Copy sample data (use copy_from on the sample, not the buffer!)
   new_sample:copy_from(source_sample)
   new_sample.name = sample_name
