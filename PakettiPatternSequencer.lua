@@ -732,3 +732,25 @@ end
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern and Insert Next", invoke=PakettiDuplicatePatternAndInsertNext}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Pattern and Insert Next", invoke=PakettiDuplicatePatternAndInsertNext}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern and Insert Next", invoke=PakettiDuplicatePatternAndInsertNext}
+
+---------
+-- Function to play from the current pattern sequence
+function PakettiPlayCurrentPatternSequence()
+  local song = renoise.song()
+  local transport = song.transport
+  
+  -- Get current selected sequence index
+  local current_sequence = song.selected_sequence_index
+  
+  -- Set playback position to the first line of the selected sequence
+  transport.playback_pos = {sequence = current_sequence, line = 1}
+  
+  -- Start playback if not already playing
+  if not transport.playing then
+    transport:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN)
+  end
+  
+  renoise.app():show_status("Playing from sequence " .. current_sequence)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Play Current Pattern Sequence", invoke=PakettiPlayCurrentPatternSequence}
