@@ -311,8 +311,10 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Enable Al
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Instruments:Delete Unused Instruments...",invoke=function() deleteUnusedInstruments() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Delete Unused Samples...",invoke=function() deleteUnusedSamples() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Instruments:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Instruments:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
+  renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
+end
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Instruments:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Instruments:Duplicate Instrument and Select New Instrument",invoke=function() DuplicateInstrumentAndSelectNewInstrument() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Duplicate Instrument and Select Last Instrument",invoke=function() duplicateSelectInstrumentToLastInstrument() end}
@@ -1612,7 +1614,9 @@ end
 
 -- Main Menu Options
 renoise.tool():add_menu_entry{name="Main Menu:Options:Automatically Open Selected Track Device Editors Toggle",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,selected=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Open Parameter Editor On Device Selection Toggle",invoke=PakettiCanvasExperimentsToggleAutoOpen,selected=PakettiCanvasExperimentsAutoOpenEnabled}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="Main Menu:Options:Open Parameter Editor On Device Selection Toggle",invoke=PakettiCanvasExperimentsToggleAutoOpen,selected=PakettiCanvasExperimentsAutoOpenEnabled}
+end
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sample Selection Info Toggle",invoke=toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Pattern Status Monitor Toggle",invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
@@ -2206,7 +2210,9 @@ renoise.tool():add_menu_entry{name="DSP Device:Paketti:Show/Hide User Preference
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti Gadgets:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti Gadgets:Paketti Selected DeviceParameter Editor...", invoke=PakettiCanvasExperimentsInit}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="DSP Device:Paketti Gadgets:Paketti Selected Device Parameter Editor...", invoke=PakettiCanvasExperimentsInit}
+end
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Automation:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Device Chains:Open Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Clear/Wipe Selected Track TrackDSPs",invoke=function() wipeSelectedTrackTrackDSPs() end}
@@ -2283,9 +2289,11 @@ renoise.tool():add_menu_entry({name="--Track Automation:Paketti:Automation Curve
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Open External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack",invoke=function() PakettiAutomationStackShowDialog() end}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack - Single View",invoke=function() PakettiAutomationStackShowSingleView() end}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack - Select Arbitrary Parameters",invoke=function() PakettiAutomationStack_ShowParameterSelectionDialog() end}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack",invoke=function() PakettiAutomationStackShowDialog() end}
+  renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack - Single View",invoke=function() PakettiAutomationStackShowSingleView() end}
+  renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack - Select Arbitrary Parameters",invoke=function() PakettiAutomationStack_ShowParameterSelectionDialog() end}
+end
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Set Automation Range to Max (1.0)",invoke=function() SetAutomationRangeValue(1.0) end}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set Automation Range to Middle (0.5)",invoke=function() SetAutomationRangeValue(0.5) end}
@@ -2305,9 +2313,11 @@ renoise.tool():add_menu_entry{name="--Track Automation List:Paketti:Generate Aut
 add_automation_points_for_notes() end}
 renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
 renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
-renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack",invoke=function() PakettiAutomationStackShowDialog() end}
-renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack - Single View",invoke=function() PakettiAutomationStackShowSingleView() end}
-renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack - Select Arbitrary Parameters",invoke=function() PakettiAutomationStack_ShowParameterSelectionDialog() end}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack",invoke=function() PakettiAutomationStackShowDialog() end}
+  renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack - Single View",invoke=function() PakettiAutomationStackShowSingleView() end}
+  renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack - Select Arbitrary Parameters",invoke=function() PakettiAutomationStack_ShowParameterSelectionDialog() end}
+end
 end
 
 --- Disk Browser Files Config

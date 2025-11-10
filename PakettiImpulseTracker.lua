@@ -251,25 +251,29 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F5 Start Play
 -- F6, or Impulse Tracker Play Pattern.
 function playPattern()
 
+if preferences.PakettiSBxFollowEnabled.value then
   InitSBx()
+end
 
 local s = renoise.song()
 local t = s.transport
 local startpos = t.playback_pos
 
-if t.playing then t:panic() ResetAllSteppers() else end
-  t:panic()
-  ResetAllSteppers()
-  -- Use current position instead of resetting to sequence 1, line 1
-  startpos.sequence = s.selected_sequence_index
-  startpos.line = 1
-  t.playback_pos = startpos
+-- Panic and reset once
+t:panic()
+ResetAllSteppers()
+
+-- Use current position instead of resetting to sequence 1, line 1
+startpos.sequence = s.selected_sequence_index
+startpos.line = 1
+t.playback_pos = startpos
+
+-- Reduced delay from 225ms to 30ms for faster response
 local start_time = os.clock()
-  while (os.clock() - start_time < 0.225) do
-        -- Delay the start after panic. Don't go below 0.2 seconds 
-        -- or you might tempt some plugins to crash and take Renoise in the fall!!    
-        -- ^^^ I don't know or remember who wrote the above comments but it wasn't me -Esa  
-  end
+while (os.clock() - start_time < 0.03) do
+  -- Brief delay after panic for stability
+end
+
 -- Don't change follow_player, edit_mode, or metronome_enabled
 t.loop_block_enabled=false
 t.loop_pattern = true
@@ -277,21 +281,19 @@ t:start_at(startpos)
 
 -- Check for Paketti Automation devices and initialize monitoring if they exist
 if type(initialize_doofer_monitoring) == "function" then 
-  local master_track = renoise.song().tracks[renoise.song().sequencer_track_count + 1]
+  local master_track = s.tracks[s.sequencer_track_count + 1]
   local has_paketti_automation = false
-  local has_paketti_automation_2 = false
   
+  -- Optimized: early exit when both devices found
   for i = 1, #master_track.devices do
-    local device = master_track.devices[i]
-    if device.name == "Paketti Automation" then
+    local device_name = master_track.devices[i].name
+    if device_name == "Paketti Automation" or device_name == "Paketti Automation 2" then
       has_paketti_automation = true
-    elseif device.name == "Paketti Automation 2" then
-      has_paketti_automation_2 = true
+      break
     end
   end
   
-  -- Only initialize if at least one of the Paketti Automation devices exists
-  if has_paketti_automation or has_paketti_automation_2 then
+  if has_paketti_automation then
     initialize_doofer_monitoring() 
   end
 end
@@ -418,6 +420,27 @@ else
    t.edit_mode=false end
  if type(PakettiPatternEditorApplyF8FollowPreference) == "function" then PakettiPatternEditorApplyF8FollowPreference() end
 end}
+----------------------------------------------------------------------------------------------------------------
+-- Start/Stop Playback Toggle (DRY)
+function PakettiStartStopPlayback(playmode)
+local t = renoise.song().transport
+
+if t.playing then
+  -- Stop playback
+  t:stop()
+else
+  -- Start playback with specified playmode
+  t:start(playmode)
+end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Start/Stop Playback (Continue)",invoke=function() PakettiStartStopPlayback(renoise.Transport.PLAYMODE_CONTINUE_PATTERN) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Start/Stop Playback (Continue)",invoke=function() PakettiStartStopPlayback(renoise.Transport.PLAYMODE_CONTINUE_PATTERN) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Start/Stop Playback (Continue)",invoke=function() PakettiStartStopPlayback(renoise.Transport.PLAYMODE_CONTINUE_PATTERN) end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Start/Stop Playback (First Row)",invoke=function() PakettiStartStopPlayback(renoise.Transport.PLAYMODE_RESTART_PATTERN) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Start/Stop Playback (First Row)",invoke=function() PakettiStartStopPlayback(renoise.Transport.PLAYMODE_RESTART_PATTERN) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Start/Stop Playback (First Row)",invoke=function() PakettiStartStopPlayback(renoise.Transport.PLAYMODE_RESTART_PATTERN) end}
 ----------------------------------------------------------------------------------------------------------------
 -- F11, or "Impulse Tracker Shortcut F11 display-change", "Order List",
 -- Hides Pattern Matrix, Hides Advanced Edit.

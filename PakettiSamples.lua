@@ -7085,8 +7085,83 @@ function PakettiSamplesInsertSelectionAfterSelection()
     selection_length, new_frames))
 end
 
+-- Detect and correct pitch for single-cycle waveforms
+function PakettiSamplesDetectAndCorrectPitch()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  if not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no data")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  local wave_length_frames = buffer.number_of_frames
+  local sample_rate = buffer.sample_rate
+  
+  -- Check if this is a standard single-cycle length
+  local standard_cycle_lengths = {2, 4, 8, 16, 32, 64, 128, 256, 512, 1024}
+  local is_standard_length = false
+  for _, length in ipairs(standard_cycle_lengths) do
+    if wave_length_frames == length then
+      is_standard_length = true
+      break
+    end
+  end
+  
+  if not is_standard_length then
+    renoise.app():show_status(string.format("Sample length (%d frames) is not a standard single-cycle length (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024)", wave_length_frames))
+    return
+  end
+  
+  -- Calculate frequency from wave data (1 cycle)
+  local freq = sample_rate / wave_length_frames
+  local midi_note = freq2midi(freq)
+  local nearest_note = round(midi_note)
+  local cents = (nearest_note - midi_note) * 100
+  local note_letter = get_note_letter(midi_note)
+  
+  -- Calculate pitch correction values
+  local diff = round(midi_note) - 60  -- Difference from C4
+  local transpose_value = -diff
+  transpose_value = math.max(-120, math.min(120, transpose_value))
+  
+  -- Calculate fine tune correction (negate to correct the detected deviation)
+  local fine_tune_steps = round(cents * 1.275)  -- Scale: 255 steps / 200 cents = 1.275
+  fine_tune_steps = math.max(-128, math.min(127, fine_tune_steps))
+  
+  local cents_deviation = math.abs(cents)
+  
+  -- Display detection results
+  print("=== PITCH DETECTION ===")
+  print(string.format("Sample length: %d frames at %d Hz", wave_length_frames, sample_rate))
+  print(string.format("Detected frequency: %.2f Hz", freq))
+  print(string.format("Detected note: %s", note_letter))
+  print(string.format("Cents deviation: %.2f cents", cents))
+  print(string.format("Suggested correction: Transpose=%d, Fine Tune=%d", transpose_value, fine_tune_steps))
+  
+  -- Apply correction if deviation is significant (>2 cents)
+  if cents_deviation > 2 then
+    sample.transpose = transpose_value
+    sample.fine_tune = fine_tune_steps
+    renoise.app():show_status(string.format("Pitch corrected to %s (T:%d, F:%d, %.2f cents)", 
+      note_letter, transpose_value, fine_tune_steps, cents))
+  else
+    renoise.app():show_status(string.format("Sample already tuned to %s (deviation: %.2f cents, no correction needed)", 
+      note_letter, cents))
+  end
+end
+
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
 renoise.tool():add_midi_mapping{name="Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
+renoise.tool():add_keybinding{name="Global:Paketti:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
 

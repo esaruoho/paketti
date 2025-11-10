@@ -165,7 +165,7 @@ end
 -- Apply pitch correction to a specific sample for standard single-cycle lengths
 function PCMWriterApplyPitchCorrectionToSample(sample, wave_length_frames)
   if not sample then return end
-  local standard_cycle_lengths = {32, 64, 128, 256, 512, 1024}
+  local standard_cycle_lengths = {2, 4, 8, 16, 32, 64, 128, 256, 512, 1024}
   local is_standard_length = false
   for _, length in ipairs(standard_cycle_lengths) do
     if wave_length_frames == length then

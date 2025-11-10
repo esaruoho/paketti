@@ -188,8 +188,6 @@ function PakettiApplyGlobalStepCountToAllSteppers()
     -- Update the dialog displays
     PakettiUpdateStepSizeSwitch()
     PakettiUpdateStepCountText()
-  else
-    renoise.app():show_status("No stepper devices found in current instrument")
   end
 end
 
