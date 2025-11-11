@@ -686,6 +686,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample",invoke=function() normalize_selected_sample_ultra_fast() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
+renoise.tool():add_midi_mapping{name="Paketti:Normalize All Samples in Instrument",invoke=function(message) if message:is_trigger() then normalize_all_samples_in_instrument() end end}
 
 ------
 function normalize_and_reduce(scope, db_reduction)
@@ -1683,6 +1684,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Reverse Selected Sample or Slice",
 
 renoise.tool():add_keybinding{name="Global:Paketti:Reverse All Samples in Selected Instrument",invoke=ReverseAllSamplesInSelectedInstrument}
 renoise.tool():add_midi_mapping{name="Paketti:Reverse All Samples in Selected Instrument",invoke=function(message) if message:is_trigger() then ReverseAllSamplesInSelectedInstrument() end end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Reverse All Samples in Selected Instrument",invoke=ReverseAllSamplesInSelectedInstrument}
 --------
 -- Version with callback support for automated workflows
 function normalize_selected_sample_by_slices_with_callback(completion_callback)
@@ -3869,6 +3871,7 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
+renoise.tool():add_midi_mapping{name="Paketti:Build Sample Variants", invoke=function(message) if message:is_trigger() then paketti_build_sample_variants() end end}
 
 --------
 -- Sample Truncater: Duplicate each frame by multiplier (2x, 4x, 8x, 16x, 32x, 64x)

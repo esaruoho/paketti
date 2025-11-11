@@ -2202,8 +2202,7 @@ renoise.tool():add_menu_entry{name="DSP Device:Paketti:Open Visible Pages to Fit
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Inspect Selected Sample Device", invoke = inspectSampleDevice}
 
-
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}

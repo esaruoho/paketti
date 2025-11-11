@@ -742,8 +742,8 @@ function PakettiPlayCurrentPatternSequence()
   -- Get current selected sequence index
   local current_sequence = song.selected_sequence_index
   
-  -- Set playback position to the first line of the selected sequence
-  transport.playback_pos = {sequence = current_sequence, line = 1}
+  -- Set playback position to the first line of the selected sequence using SongPos
+  transport.playback_pos = renoise.SongPos(current_sequence, 1)
   
   -- Start playback if not already playing
   if not transport.playing then
