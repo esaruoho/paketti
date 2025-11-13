@@ -2617,53 +2617,17 @@ function manage_sample_count_observer(attach)
     end
 end
 
-function update_dynamic_menu_entries()
-    local enableMenuEntryName="--Main Menu:Tools:Paketti:!Preferences:0G01 Loader Enable"
-    local disableMenuEntryName="--Main Menu:Tools:Paketti:!Preferences:0G01 Loader Disable"
-
-    if preferences._0G01_Loader.value then
-        if renoise.tool():has_menu_entry(enableMenuEntryName) then
-            renoise.tool():remove_menu_entry(enableMenuEntryName)
-        end
-        if not renoise.tool():has_menu_entry(disableMenuEntryName) then
-            renoise.tool():add_menu_entry{name=disableMenuEntryName,
-                invoke=function()
-                    preferences._0G01_Loader.value = false
-                    update_dynamic_menu_entries()
-                    if dialog and dialog.visible then
-                        dialog:close()
-                        pakettiPreferences()
-                    end
-                end}
-        end
-    else
-        if renoise.tool():has_menu_entry(disableMenuEntryName) then
-            renoise.tool():remove_menu_entry(disableMenuEntryName)
-        end
-        if not renoise.tool():has_menu_entry(enableMenuEntryName) then
-            renoise.tool():add_menu_entry{name=enableMenuEntryName,
-                invoke=function()
-                    preferences._0G01_Loader.value = true
-                    update_dynamic_menu_entries()
-                    if dialog and dialog.visible then
-                        dialog:close()
-                        pakettiPreferences()
-                    end
-                end}
-        end
-    end
-end
-
-function update_0G01_loader_menu_entries()
+function Paketti0G01LoaderToggle()
+    preferences._0G01_Loader.value = not preferences._0G01_Loader.value
     manage_sample_count_observer(preferences._0G01_Loader.value)
-    update_dynamic_menu_entries()
+    renoise.app():show_status("0G01 Loader: " .. (preferences._0G01_Loader.value and "Enabled" or "Disabled"))
 end
 
 -- Update File vs File:Paketti menu entry visibility/location based on preference
 -- moved to PakettiMenuConfig.lua as a global
 
 function initialize_tool()
-    update_0G01_loader_menu_entries()
+    manage_sample_count_observer(preferences._0G01_Loader.value)
     pakettiFrameCalculatorInitializeLiveUpdate()
 end
 

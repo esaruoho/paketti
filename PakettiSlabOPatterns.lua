@@ -599,10 +599,6 @@ end
 
 -- Menu entries / keybindings -----------------------------------------------
 
-renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
-renoise.tool():add_menu_entry{ name = "Pattern Sequencer:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
-renoise.tool():add_menu_entry{ name = "Pattern Matrix:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
-renoise.tool():add_menu_entry{ name = "--Pattern Editor:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
 renoise.tool():add_keybinding{ name = "Global:Paketti:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
 

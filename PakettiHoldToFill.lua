@@ -888,9 +888,10 @@ function PakettiHoldToFillShowDialog()
   print("DEBUG: Dialog opened. Timer started.")
 end
 
-renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Paketti:Pattern Editor:Toggle OctaMED Hold-to-Fill Mode", invoke = function() PakettiHoldToFillShowDialog() end }
-renoise.tool():add_menu_entry{ name = "--Pattern Editor:Paketti:Other Trackers:Toggle OctaMED Hold-to-Fill Mode", invoke = function() PakettiHoldToFillShowDialog() end }
-renoise.tool():add_menu_entry{ name = "--Pattern Editor:Paketti Gadgets:OctaMED Hold-to-Fill...", invoke = function() PakettiHoldToFillShowDialog() end }
+function PakettiHoldToFillIsEnabled()
+  return PakettiHoldToFillModeDialog and PakettiHoldToFillModeDialog.visible or false
+end
+
 renoise.tool():add_keybinding{ name = "Global:Paketti:Toggle OctaMED Hold-to-Fill Mode", invoke = function() PakettiHoldToFillShowDialog() end }
 
 

@@ -102,12 +102,6 @@ function pakettiNotepadRun()
   print("PakettiNotepadRun: Complete!")
 end
 
--- Register keybinding and menu entries
 renoise.tool():add_keybinding{name = "Global:Paketti:Run Notepad Device Code", invoke = pakettiNotepadRun}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Device:Run Notepad Device Code", invoke = pakettiNotepadRun}
-renoise.tool():add_menu_entry{name = "--DSP Device:Paketti:Run Notepad Device Code", invoke = pakettiNotepadRun}
-renoise.tool():add_menu_entry{name = "--Mixer:Paketti:Run Notepad Device Code", invoke = pakettiNotepadRun}
-
--- MIDI mapping
 renoise.tool():add_midi_mapping{name = "Paketti:Run Notepad Device Code", invoke = function(message) if message:is_trigger() then pakettiNotepadRun() end  end}
 

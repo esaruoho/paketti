@@ -423,10 +423,6 @@ function show_transpose_block_dialog()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
-renoise.tool():add_menu_entry {name = "Mixer:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_keybinding {name = "Mixer:Paketti:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_keybinding {name = "Global:Paketti:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}

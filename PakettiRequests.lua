@@ -1078,74 +1078,28 @@ function selectedInstrumentDeleteAllSampleModulationSets()
   renoise.app():show_status("Deleted " .. deleted_count .. " modulation set(s), kept the first one")
 end
 
--- Menu entries and keybindings for distributing samples to separate FX chains
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 
 
--- Menu entries and keybindings for deleting all sample FX chains
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
-
--- Menu entries and keybindings for automatically opening sample FX chain device editors
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
-
--- Menu entries and keybindings for modulation set distribution/deletion
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
-renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
-renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 
 -- Menu entries and keybindings for injecting LFO->Gainer->Send chains
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 
--- Menu entries and keybindings for injecting Key Trackers and Hydras to last FX chain
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
 
--- Menu entries and keybindings for setting all Sends to Output track
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
@@ -1153,8 +1107,6 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set All Sends to Outpu
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Drumkit Loader MuteTrig (Randomize)",invoke=function() selectedInstrumentLoadMuteTrigDrumkit() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Paketti Drumkit Loader MuteTrig (Randomize)",invoke=function() selectedInstrumentLoadMuteTrigDrumkit() end}
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
-renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
@@ -10786,25 +10738,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Squeeze Note Columns (Pattern
 renoise.tool():add_midi_mapping{name="Paketti:Squeeze Note Columns (Whole Song)",invoke=function() squeeze_note_columns_whole_song() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Squeeze Note Columns (Whole Song)",invoke=function() squeeze_note_columns_whole_song() end}
 
--- Add menu entries for new functions
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Explode Notes to New Tracks (Whole Song)",invoke=function() explode_notes_to_tracks_whole_song() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Squeeze Note Columns (Pattern)",invoke=function() squeeze_note_columns_pattern() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Squeeze Note Columns (Whole Song)",invoke=function() squeeze_note_columns_whole_song() end}
-
--- Also add to Pattern Editor context menu
-
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Explode Notes to New Tracks (Whole Song)",invoke=function() explode_notes_to_tracks_whole_song() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Squeeze Note Columns (Pattern)",invoke=function() squeeze_note_columns_pattern() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Squeeze Note Columns (Whole Song)",invoke=function() squeeze_note_columns_whole_song() end}
 -------
 -- Direction and scope enums
 local DIRECTION = { PREVIOUS = 1, NEXT = 2 }
 local SCOPE = { TRACK = 1, PATTERN = 2 }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Pattern)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}

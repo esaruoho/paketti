@@ -6013,7 +6013,6 @@ function PakettiNNASetAllInstrumentsSamplesCut()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments Samples NNA to Cut",invoke=function() PakettiNNASetAllInstrumentsSamplesCut() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Set All Instruments Samples NNA to Cut",invoke=function() PakettiNNASetAllInstrumentsSamplesCut() end}
 
 -- Function to toggle frequency analysis
 function toggleFrequencyAnalysis()
@@ -6187,7 +6186,6 @@ function loadRandomSampleToPatternDialog()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random Sample to Pattern (from Dialog)", invoke=loadRandomSampleToPatternDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Load Random Sample to Pattern (from Dialog)", invoke=loadRandomSampleToPatternDialog}
 
 
 
@@ -6541,12 +6539,6 @@ function PakettiBatchWaveToXRNI(load_into_renoise)
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
-renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
-renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
 renoise.tool():add_midi_mapping{name="Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only) [Trigger]", invoke = function(message) if message:is_trigger() then PakettiBatchWaveToXRNI() end end}
@@ -6659,9 +6651,6 @@ function PakettiPlaceSampleToEndAtPatternEnd()
 end
 
 -- Add menu entries and keybindings
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
 renoise.tool():add_keybinding{name="Global:Paketti:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
 renoise.tool():add_midi_mapping{name="Paketti:Place Sample to End at Pattern End [Trigger]", invoke = function(message) if message:is_trigger() then PakettiPlaceSampleToEndAtPatternEnd() end end}
 
@@ -6755,9 +6744,7 @@ function PakettiBatchXRNILoader()
 end
 
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
-renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
-renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
+
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 
 -- Destructive Repeat Sample Range: Duplicates the selected sample range right after itself

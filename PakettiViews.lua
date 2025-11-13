@@ -440,7 +440,4 @@ function PakettiHideUnusedEffectColumns()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Hide Unused Effect Columns", invoke=function() PakettiHideUnusedEffectColumns() end}
-
--- Menu entries for Hide Unused Effect Columns
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti:Hide Unused Effect Columns", invoke=function() PakettiHideUnusedEffectColumns() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Hide Unused Effect Columns", invoke=function() PakettiHideUnusedEffectColumns() end}

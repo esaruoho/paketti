@@ -20,9 +20,6 @@ local COLOR_CENTER_LINE = {128, 128, 128, 255}
 
 -- Convert image brightness to waveform amplitude
 function PakettiImageToSampleConvertImageToWaveform(image_path)
-  -- Temporarily disable AutoSamplify monitoring to prevent interference
-  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
-  
   if not image_path then
     -- Create a default sine wave for demonstration
     local samples = 512  -- Short single-cycle waveform
@@ -288,6 +285,9 @@ function PakettiImageToSampleExportToSample()
     return
   end
   
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
   local song = renoise.song()
   local instrument = song.selected_instrument
   
@@ -321,12 +321,14 @@ function PakettiImageToSampleExportToSample()
     sample.name = "IMG_" .. basename
   end
   
-  -- Set loop to Forward and On for continuous playback
-  sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  -- Apply Paketti Loader settings (interpolation, oversampling, autofade, autoseek, oneshot, loop_mode, NNA, loop_exit)
+  PakettiInjectApplyLoaderSettings(sample)
+  
+  -- Set loop points specific to this waveform
   sample.loop_start = 1
   sample.loop_end = #current_sample_data
   
-  renoise.app():show_status("Waveform exported to sample: " .. (sample.name or "Sample 01") .. " (Loop: Forward)")
+  renoise.app():show_status("Waveform exported to sample: " .. (sample.name or "Sample 01"))
   
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
@@ -441,13 +443,6 @@ function PakettiImageToSampleStart()
   end
 end
 
--- Add menu entries
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti Image to Sample Converter",
-  invoke = function() 
-    PakettiImageToSampleStart()
-  end
-}
 
 renoise.tool():add_keybinding {
   name = "Global:Paketti:Paketti Image to Sample Converter",

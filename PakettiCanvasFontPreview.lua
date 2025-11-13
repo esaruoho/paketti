@@ -127,8 +127,4 @@ function PakettiCanvasFontPreviewInit()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
--- Menu and keybinding
-renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Paketti:V3.5:Canvas Font Preview", invoke = PakettiCanvasFontPreviewInit }
 renoise.tool():add_keybinding{ name = "Global:Paketti:Canvas Font Preview", invoke = PakettiCanvasFontPreviewInit }
-
-

@@ -2845,8 +2845,6 @@ local s=renoise.song()
   end
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
-renoise.tool():add_menu_entry{name="Main Menu:File:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
 ----
 
 function get_master_track_index()
@@ -3724,7 +3722,6 @@ function PakettiPlayCurrentLineInPhrase()
   renoise.app():show_status("Played phrase line " .. current_line)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 renoise.tool():add_keybinding{name="Global:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
@@ -3862,14 +3859,10 @@ function PakettiLoadRingModLegacyInstrument()
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
-
 renoise.tool():add_midi_mapping{name="Paketti:Load RingMod Instrument [Trigger]", invoke = function(message) if message:is_trigger() then PakettiLoadRingModInstrument() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Load RingMod Legacy Instrument [Trigger]", invoke = function(message) if message:is_trigger() then PakettiLoadRingModLegacyInstrument() end end}
 
@@ -4076,19 +4069,6 @@ function PakettiUnsoloAllTracks()
   renoise.app():show_status(string.format("Paketti: Unmuted all %d tracks", unmuted_count))
 end
 
--- Menu entries for multiple contexts
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
-
--- Keybindings and MIDI mappings
 renoise.tool():add_keybinding{name="Global:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
 renoise.tool():add_keybinding{name="Global:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}

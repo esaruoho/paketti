@@ -594,8 +594,6 @@ function pakettiITIExportDialog()
   end
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Impulse Tracker:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
-renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti Export:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}

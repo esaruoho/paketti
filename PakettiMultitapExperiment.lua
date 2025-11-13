@@ -1634,8 +1634,6 @@ function PakettiMultitapExperimentInit()
   PakettiMultitap_create_dialog()
 end
 
--- Menu and keybinding
-renoise.tool():add_menu_entry { name = "Main Menu:Tools:Paketti Multitap Experiment", invoke = PakettiMultitapExperimentInit }
 renoise.tool():add_keybinding { name = "Global:Paketti:Paketti Multitap Experiment", invoke = PakettiMultitapExperimentInit }
-
+renoise.tool():add_menu_entry { name = "Main Menu:Tools:Paketti Multitap Experiment", invoke = PakettiMultitapExperimentInit }
 

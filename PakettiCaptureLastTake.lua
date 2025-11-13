@@ -1208,9 +1208,6 @@ function PakettiCaptureLastTakeToggle()
   end
 end
 
--- Menu entries and keybinding
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Capture Last Take...", invoke = PakettiCaptureLastTakeToggle}
-renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti Capture Last Take...", invoke = PakettiCaptureLastTakeToggle}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Capture Last Take...", invoke = PakettiCaptureLastTakeToggle}
 renoise.tool():add_keybinding{name = "Global:Paketti:Put Audition Slot to Pattern", invoke = PakettiCapture_PutAuditionSlotToPattern}
 

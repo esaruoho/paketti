@@ -7887,8 +7887,6 @@ function PakettiMatchEffectColumnToCurrentRowAll()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
 renoise.tool():add_keybinding{name = "Global:Paketti:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
 renoise.tool():add_keybinding{name = "Global:Paketti:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
 renoise.tool():add_midi_mapping{name = "Paketti:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
@@ -8274,8 +8272,7 @@ function PakettiPatternEditorNoteCut()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Pattern Editor Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
+
 
 -- Note Cut All Tracks Toggle Function - toggles C00 on all sequencer tracks for current row
 function PakettiPatternEditorNoteCutAllTracks()
@@ -8350,13 +8347,10 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
+
 
 renoise.tool():add_keybinding{name="Global:Paketti:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
 
 -- Pick & Move Feature - Global state variables
 PakettiPickAndMoveActive = false
@@ -8621,9 +8615,6 @@ function PakettiPickAndMoveCursorDown()
   end
 end
 
--- Add menu entries and keybindings for Pick & Move
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}

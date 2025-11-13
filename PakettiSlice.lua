@@ -76,8 +76,6 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_midi_mapping{name="Paketti:Delete Slice Markers in Selection",invoke=function(message) if message:is_trigger() then pakettiDeleteSliceMarkersInSelection() end end}
 
 
@@ -947,8 +945,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
 renoise.tool():add_keybinding{name="Global:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 
 
 -- BPM-Based Slicing Functions
@@ -1803,9 +1799,6 @@ end
 
 -- Keybindings and Menu Entries for BPM-Based Slicing
 renoise.tool():add_keybinding{name="Global:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
-renoise.tool():add_menu_entry{name="--Sample Editor Ruler:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_midi_mapping{name="Paketti:BPM-Based Sample Slicer Dialog",invoke=function(message) if message:is_trigger() then showBPMBasedSliceDialog() end end}
 
 --------------------------------------------------------------------------------
@@ -2206,20 +2199,6 @@ renoise.tool():add_keybinding{
   invoke=function() pakettiRealtimeSliceInsertMarker() end
 }
 
-renoise.tool():add_menu_entry{
-  name="Main Menu:Tools:Paketti:Real-Time Slice Monitoring (Toggle)",
-  invoke=function() pakettiRealtimeSliceToggle() end
-}
-
-renoise.tool():add_menu_entry{
-  name="Sample Editor:Paketti:Real-Time Slice Monitoring (Toggle)",
-  invoke=function() pakettiRealtimeSliceToggle() end
-}
-
-renoise.tool():add_menu_entry{
-  name="Sample Editor Ruler:Real-Time Slice Monitoring (Toggle)",
-  invoke=function() pakettiRealtimeSliceToggle() end
-}
 
 -- MIDI Mappings
 renoise.tool():add_midi_mapping{

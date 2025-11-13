@@ -3974,7 +3974,6 @@ function PakettiHyperEditLoadAndShow()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 renoise.tool():add_menu_entry {name = "--Pattern Editor:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 renoise.tool():add_menu_entry {name = "--Mixer:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 renoise.tool():add_menu_entry {name = "--Pattern Matrix:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}

@@ -441,13 +441,6 @@ function PakettiCCizerLoader()
     dialog = renoise.app():show_custom_dialog("CCizer TXT->CC Loader", content, my_keyhandler_func)
 end
 
--- Menu entries
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
-renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
-renoise.tool():add_menu_entry{name = "--DSP Device:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
-renoise.tool():add_menu_entry{name = "--Sample FX Mixer:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
 renoise.tool():add_keybinding{name = "Global:Paketti:CCizer Loader...", invoke = PakettiCCizerLoader}
 
 

@@ -217,11 +217,6 @@ function PakettiExecuteShowDialog()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
--- Menu entries and keybindings
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:!Execute Applications...",
-  invoke = PakettiExecuteShowDialog
-}
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Show Execute Applications Dialog",

@@ -2391,8 +2391,5 @@ function pakettiStemSlicerDialogInternal()
     setupStemSlicerBpmObservable()
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Open Last StemSlicer Output...",invoke = openLastStemSlicerOutput}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti StemSlicer Dialog...",invoke = pakettiStemSlicerDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Open Last StemSlicer Output...",invoke = openLastStemSlicerOutput}

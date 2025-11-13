@@ -728,6 +728,11 @@ function pakettiStartAutomaticRenameTrack()
   -- Stop any existing timer first
   pakettiStopAutomaticRenameTrack()
   
+  -- Do initial scan of ALL tracks when first enabled
+  if type(rename_tracks_by_played_samples) == "function" then
+    rename_tracks_by_played_samples()
+  end
+  
   -- Start the automatic rename timer using app_idle_observable
   automatic_rename_timer = renoise.tool().app_idle_observable:add_notifier(function()
     local current_time = os.clock()
@@ -737,8 +742,9 @@ function pakettiStartAutomaticRenameTrack()
       last_rename_time = current_time
       
       -- Only run if the function exists (PakettiMidi.lua is loaded)
-      if type(rename_tracks_by_played_samples) == "function" then
-        rename_tracks_by_played_samples()
+      -- Use the selected track version for continuous monitoring
+      if type(rename_selected_track_by_played_samples) == "function" then
+        rename_selected_track_by_played_samples()
       end
     end
   end)
@@ -1031,9 +1037,8 @@ function pakettiRandomFeatureForDocumentation()
   renoise.app():show_status(string.format("Random: %s (%d registrations)", short_name, #related_features))
 end
 
--- Add menu entry and keybinding for the random feature picker
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Random Feature for Documentation", invoke=pakettiRandomFeatureForDocumentation}
 renoise.tool():add_keybinding{name="Global:Paketti:Random Feature for Documentation", invoke=pakettiRandomFeatureForDocumentation}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Random Feature for Documentation", invoke=pakettiRandomFeatureForDocumentation}
 
 -- Run the random feature picker automatically at startup
 pakettiRandomFeatureForDocumentation()

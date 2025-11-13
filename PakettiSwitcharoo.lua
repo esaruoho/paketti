@@ -1271,7 +1271,4 @@ for i = 1, PakettiSwitcharoo_MAX_ROWS do
   PakettiSwitcharoo_InitializeSlot(i)
 end
 
--- Menu entries and keybinding
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Switcharoo...", invoke = PakettiSwitcharoo_Toggle}
-renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti Switcharoo...", invoke = PakettiSwitcharoo_Toggle}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Switcharoo...", invoke = PakettiSwitcharoo_Toggle}

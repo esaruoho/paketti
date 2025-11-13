@@ -2985,8 +2985,5 @@ function show_chebyshev_waveshaper()
   update_canvas_displays()
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Chebyshev Polynomial Waveshaper...",invoke = show_chebyshev_waveshaper}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Chebyshev Polynomial Waveshaper...",invoke = show_chebyshev_waveshaper}
-
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Chebyshev Polynomial Waveshaper",invoke = show_chebyshev_waveshaper}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Show Chebyshev Polynomial Waveshaper",invoke = show_chebyshev_waveshaper} 

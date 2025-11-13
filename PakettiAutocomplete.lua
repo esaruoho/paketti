@@ -3950,22 +3950,6 @@ function debug_show_sample_categories()
   print("=== END SAMPLE CATEGORIES ===")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Add Autocomplete Abbreviation...", invoke=pakettiAutocompleteAddAbbreviation}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Reset Autocomplete Usage Statistics", invoke=pakettiAutocompleteResetUsage}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Nuke Autocomplete Cache", invoke=pakettiAutocompleteNukeCache}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Rebuild Autocomplete Cache", invoke=pakettiAutocompleteRebuildCache}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Autocomplete Search", invoke=function() 
-  local search_text = renoise.app():show_prompt("Debug Autocomplete", "Enter search text to debug:", "duplicate all")
-  if search_text and search_text ~= "" then 
-    debug_multi_word_search(search_text) 
-  end 
-end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="Mixer:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_keybinding{name="Global:Paketti:Add Autocomplete Abbreviation", invoke=pakettiAutocompleteAddAbbreviation}
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Autocomplete Usage Statistics", invoke=pakettiAutocompleteResetUsage}
@@ -4033,7 +4017,6 @@ function pakettiTestShortcutMappings()
   renoise.app():show_message(sample_text)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Test Shortcut Mappings...", invoke=pakettiTestShortcutMappings}
 
 -- Debug function to find what's causing the "Command + D" issue
 function pakettiDebugCommandDMappings()
@@ -4096,7 +4079,6 @@ function pakettiDebugCommandDMappings()
   print("=== END CMD+D DEBUG ===\n")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Command+D Mappings...", invoke=pakettiDebugCommandDMappings}
 
 -- Debug function to trace the exact matching logic issue
 function pakettiDebugMatchingLogic()
@@ -4164,7 +4146,6 @@ function pakettiDebugMatchingLogic()
   renoise.app():show_message(debug_text)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Matching Logic...", invoke=pakettiDebugMatchingLogic}
 
 -- Debug function to trace the ACTUAL autocomplete display issue
 function pakettiDebugAutocompleteShortcuts()
@@ -4227,7 +4208,6 @@ function pakettiDebugAutocompleteShortcuts()
   renoise.app():show_message(debug_text)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Autocomplete Shortcuts...", invoke=pakettiDebugAutocompleteShortcuts}
 
 -- Debug function to show actual mapping contents
 function pakettiShowMappingContents()
@@ -4264,7 +4244,6 @@ function pakettiShowMappingContents()
   print("=== END MAPPING CONTENTS ===\n")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Show Mapping Contents...", invoke=pakettiShowMappingContents}
 
 -- Debug function to analyze multi-word search issues
 function debug_multi_word_search(search_text)

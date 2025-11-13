@@ -2897,110 +2897,126 @@ end
 renoise.tool():add_midi_mapping{name="Paketti:Write 0Sxx Command Random Slice/Offset x[Toggle]",invoke=function(message) if message:is_trigger() then write_random_slice_command() end end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write 0Sxx Command Random Slice/Offset",invoke=function() write_random_slice_command() end}
 
--- Function to rename tracks based on actual samples being played
-function rename_tracks_by_played_samples()
-  local song=renoise.song()
-  local pattern = song:pattern(song.selected_pattern_index)
-  
-  -- Cache for instrument data to avoid repeated lookups
-  local instrument_cache = {}
-  local renamed_count = 0
-  
-  -- Store used samples for each track
+-- Helper function to analyze a single track and return sample names
+function analyze_track_samples(track_idx, pattern_track, instrument_cache)
+  local song = renoise.song()
+  local song_track = song.tracks[track_idx]
   local track_samples = {}
   
-  -- Scan pattern for used samples
-  for track_idx, track in ipairs(pattern.tracks) do
-    local song_track = song.tracks[track_idx]
-    track_samples[track_idx] = {}
-    
-    -- Skip master, send tracks, and group tracks
-    if song_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-      -- Early exit if track has no lines
-      if #track.lines > 0 then
-        for line_idx, line in ipairs(track.lines) do
-          -- Early exit if line has no note columns
-          if #line.note_columns > 0 then
-        
-            for _, note_col in ipairs(line.note_columns) do
-              if note_col.note_value >= 0 and note_col.instrument_value >= 0 then
-                local instr_idx = note_col.instrument_value + 1
-                
-                -- Use cached instrument data
-                local instr = instrument_cache[instr_idx]
-                if not instr then
-                  instr = song.instruments[instr_idx]
-                  if instr then
-                    instrument_cache[instr_idx] = instr
+  -- Skip master, send tracks, and group tracks
+  if song_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    return track_samples
+  end
+  
+  -- Early exit if track has no lines
+  if #pattern_track.lines == 0 then
+    return track_samples
+  end
+  
+  for line_idx, line in ipairs(pattern_track.lines) do
+    -- Early exit if line has no note columns
+    if #line.note_columns > 0 then
+      for _, note_col in ipairs(line.note_columns) do
+        if note_col.note_value >= 0 and note_col.instrument_value >= 0 then
+          local instr_idx = note_col.instrument_value + 1
+          
+          -- Use cached instrument data
+          local instr = instrument_cache[instr_idx]
+          if not instr then
+            instr = song.instruments[instr_idx]
+            if instr then
+              instrument_cache[instr_idx] = instr
+            end
+          end
+          
+          if instr then
+            local found_sample = false
+            
+            -- Check each mapping group
+            for map_group_idx, map_group in ipairs(instr.sample_mappings) do
+              -- Check each individual mapping in the group
+              for map_idx = 1, #map_group do
+                local mapping = map_group[map_idx]
+                if mapping and mapping.note_range then
+                  -- Check if note is in range
+                  if note_col.note_value >= mapping.note_range[1] and 
+                     note_col.note_value <= mapping.note_range[2] then
+                    -- Get the sample directly from the mapping
+                    if mapping.sample then
+                      local name = mapping.sample.name
+                      if name and name ~= "" then
+                        track_samples[name] = true
+                        found_sample = true
+                        break
+                      end
+                    end
                   end
                 end
-                
-                if instr then
-                  local found_sample = false
-                  
-                  -- Check each mapping group
-                  for map_group_idx, map_group in ipairs(instr.sample_mappings) do
-                    -- Check each individual mapping in the group
-                    for map_idx = 1, #map_group do
-                      local mapping = map_group[map_idx]
-                      if mapping and mapping.note_range then
-                        -- Check if note is in range
-                        if note_col.note_value >= mapping.note_range[1] and 
-                           note_col.note_value <= mapping.note_range[2] then
-                          -- Get the sample directly from the mapping
-                          if mapping.sample then
-                            local name = mapping.sample.name
-                            if name and name ~= "" then
-                              track_samples[track_idx][name] = true
-                              found_sample = true
-                              break
-                            end
-                          end
-                        end
-                      end
-                    end
-                    if found_sample then break end
-                  end
-                  
-                  -- Only use first sample as fallback if no mapping was found
-                  if not found_sample and #instr.samples > 0 then
-                    local sample = instr.samples[1]
-                    if sample and sample.sample_buffer.has_sample_data then
-                      local name = sample.name
-                      if name and name ~= "" then
-                        track_samples[track_idx][name] = true
-                      end
-                    end
-                  end
+              end
+              if found_sample then break end
+            end
+            
+            -- Only use first sample as fallback if no mapping was found
+            if not found_sample and #instr.samples > 0 then
+              local sample = instr.samples[1]
+              if sample and sample.sample_buffer.has_sample_data then
+                local name = sample.name
+                if name and name ~= "" then
+                  track_samples[name] = true
                 end
               end
             end
           end
         end
       end
-      
-      -- Rename track based on found samples
-      local samples_found = {}
-      for sample_name, _ in pairs(track_samples[track_idx]) do
-        table.insert(samples_found, sample_name)
+    end
+  end
+  
+  return track_samples
+end
+
+-- Helper function to rename a track based on sample names
+function rename_track_from_samples(song_track, track_samples)
+  local samples_found = {}
+  for sample_name, _ in pairs(track_samples) do
+    table.insert(samples_found, sample_name)
+  end
+  
+  if #samples_found > 0 then
+    if #samples_found == 1 then
+      song_track.name = samples_found[1]
+    else
+      local max_samples = math.min(3, #samples_found)
+      local new_name = samples_found[1]
+      for i = 2, max_samples do
+        new_name = new_name .. "+" .. samples_found[i]
       end
-      
-      if #samples_found > 0 then
-        if #samples_found == 1 then
-          song_track.name = samples_found[1]
-        else
-          local max_samples = math.min(3, #samples_found)
-          local new_name = samples_found[1]
-          for i = 2, max_samples do
-            new_name = new_name .. "+" .. samples_found[i]
-          end
-          if #samples_found > 3 then
-            new_name = new_name .. "+..."
-          end
-          song_track.name = new_name
-        end
-        renamed_count = renamed_count + 1
+      if #samples_found > 3 then
+        new_name = new_name .. "+..."
       end
+      song_track.name = new_name
+    end
+    return true
+  end
+  return false
+end
+
+-- Function to rename ALL tracks based on actual samples being played
+function rename_tracks_by_played_samples()
+  local song = renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  
+  -- Cache for instrument data to avoid repeated lookups
+  local instrument_cache = {}
+  local renamed_count = 0
+  
+  -- Scan pattern for used samples in ALL tracks
+  for track_idx, track in ipairs(pattern.tracks) do
+    local song_track = song.tracks[track_idx]
+    local track_samples = analyze_track_samples(track_idx, track, instrument_cache)
+    
+    if rename_track_from_samples(song_track, track_samples) then
+      renamed_count = renamed_count + 1
     end
   end
   
@@ -3009,6 +3025,25 @@ function rename_tracks_by_played_samples()
     renoise.app():show_status("Renamed " .. renamed_count .. " tracks based on played samples")
   else
     renoise.app():show_status("No tracks renamed - no samples found in pattern")
+  end
+end
+
+-- Function to rename ONLY the selected track (for automatic monitoring)
+function rename_selected_track_by_played_samples()
+  local song = renoise.song()
+  local selected_track_idx = song.selected_track_index
+  local pattern = song:pattern(song.selected_pattern_index)
+  
+  -- Get the pattern track for the selected track
+  if selected_track_idx <= #pattern.tracks then
+    local pattern_track = pattern.tracks[selected_track_idx]
+    local song_track = song.tracks[selected_track_idx]
+    
+    -- Cache for instrument data to avoid repeated lookups
+    local instrument_cache = {}
+    
+    local track_samples = analyze_track_samples(selected_track_idx, pattern_track, instrument_cache)
+    rename_track_from_samples(song_track, track_samples)
   end
 end
 
@@ -3780,7 +3815,6 @@ end
 renoise.tool():add_midi_mapping{name = "Paketti:Toggle Sampling & Write Trigger to Pattern x[Toggle]",invoke = function(message) if message:is_trigger() then paketti_toggle_sample_recording() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Sampling & Pattern Writing Control x[Knob]",invoke = function(message) paketti_handle_sample_recording_knob(message) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Recording:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
 
 -----------------------------------------------------------------------
 -- All Tracks Repeater Management Functions
@@ -3901,14 +3935,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Delete All Repeaters from All
   invoke=function() paketti_delete_all_repeaters() end
 }
 
--- Menu entries for Repeater management
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Deactivate All Repeaters on All Tracks",
-  invoke=function() paketti_deactivate_all_repeaters() end
-}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",
-  invoke=function() paketti_delete_all_repeaters() end
-}
 
 -----------------------------------------------------------------------
 -- Pattern Teleportation MIDI Mappings
@@ -4860,12 +4887,6 @@ renoise.tool().app_idle_observable:add_notifier(function()
   end
 end)
 
--- Menu entries and keybinding
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:MIDI Aftertouch / CC Effect Writer...",
-  invoke=function() PakettiMidiEffectWriterShowDialog() end}
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:MIDI Aftertouch / CC Effect Writer...",
-  invoke=function() PakettiMidiEffectWriterShowDialog() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:MIDI Aftertouch / CC Effect Writer...",
   invoke=function() PakettiMidiEffectWriterShowDialog() end}

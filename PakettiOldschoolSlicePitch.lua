@@ -1682,46 +1682,6 @@ function pakettiOldschoolSlicePitchWorkflow(use_reversed_audio, use_detected_bpm
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Gaps", invoke = pakettiOldschoolSlicePitchDetectGaps}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Xperimental/WIP:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (Reversed)", invoke = pakettiOldschoolSlicePitchFillSelectedGap}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (Copied)", invoke = pakettiOldschoolSlicePitchFillSelectedGapCopied}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (Reversed)", invoke = pakettiOldschoolSlicePitchFillAllGaps}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (Copied)", invoke = pakettiOldschoolSlicePitchFillAllGapsCopied}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (PingPong)", invoke = pakettiOldschoolSlicePitchFillSelectedGapPingPong}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (PingPong)", invoke = pakettiOldschoolSlicePitchFillAllGapsPingPong}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Reversed)", invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed") end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied)", invoke = function() pakettiOldschoolSlicePitchWorkflow("copied") end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (PingPong)", invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong") end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatSyncOnly}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatSyncOnly}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
-
--- Enhanced versions with BPM detection
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (detected BPM, from first row)", invoke = function() pakettiSlicesToPattern(true, true) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (detected BPM, from current row)", invoke = function() pakettiSlicesToPattern(false, true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (detected BPM, from first row)", invoke = function() pakettiSlicesToPattern(true, true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (detected BPM, from current row)", invoke = function() pakettiSlicesToPattern(false, true) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (detected BPM, with trigger)", invoke = function() pakettiSlicesToPhrase(true, true) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (detected BPM, phrase only)", invoke = function() pakettiSlicesToPhrase(false, true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (detected BPM, with trigger)", invoke = function() pakettiSlicesToPhrase(true, true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (detected BPM, phrase only)", invoke = function() pakettiSlicesToPhrase(false, true) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Reversed, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed", true) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("copied", true) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (PingPong, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong", true) end}
 
 -- Key bindings
 renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Detect Gaps in Sample", invoke = pakettiOldschoolSlicePitchDetectGaps}

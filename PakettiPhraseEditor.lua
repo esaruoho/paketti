@@ -593,8 +593,6 @@ function PakettiTogglePhraseFollowPatternPlayback()
   observe_phrase_playhead()
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
-renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 ---

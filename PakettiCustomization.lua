@@ -53,9 +53,9 @@ end
 
 
 
---renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Change Fonts (classic)",invoke=function() ChangeFonts1() end}
---renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Change Fonts (default)",invoke=function() ChangeFonts2() end}
---renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Change Fonts (Agave)",invoke=function() ChangeFonts3() end}
+--renoise.tool():add_menu_entry{name="--Main  Menu:Tools:Paketti:!Preferences:Change Fonts (classic)",invoke=function() ChangeFonts1() end}
+--renoise.tool():add_menu_entry{name="Main  Menu:Tools:Paketti:!Preferences:Change Fonts (default)",invoke=function() ChangeFonts2() end}
+--renoise.tool():add_menu_entry{name="Main  Menu:Tools:Paketti:!Preferences:Change Fonts (Agave)",invoke=function() ChangeFonts3() end}
 
 
 

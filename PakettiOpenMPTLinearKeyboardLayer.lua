@@ -1103,7 +1103,4 @@ function PakettiOpenMPTLinearKeyboardLayerToggle()
   end
 end
 
--- Menu entries and keybinding
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti PlayerPro OpenMPT Linear Keyboard Layer...", invoke = PakettiOpenMPTLinearKeyboardLayerToggle}
-renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti PlayerPro OpenMPT Linear Keyboard Layer...", invoke = PakettiOpenMPTLinearKeyboardLayerToggle}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti PlayerPro OpenMPT Linear Keyboard Layer...", invoke = PakettiOpenMPTLinearKeyboardLayerToggle}

@@ -1685,10 +1685,7 @@ function show_mini_cheatsheet_vertical()
   mini_dialog = renoise.app():show_custom_dialog("Vert", dialog_content, keyhandler)
 end
 
--- Add menu entry and keybinding for minimized cheatsheet
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Horizontal...", invoke = show_mini_cheatsheet}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Minimize Cheatsheet Horizontal", invoke = show_mini_cheatsheet}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Vertical...", invoke = show_mini_cheatsheet_vertical}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Minimize Cheatsheet Vertical", invoke = show_mini_cheatsheet_vertical}
 
 
@@ -1874,5 +1871,3 @@ end)
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}

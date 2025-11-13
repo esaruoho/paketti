@@ -500,7 +500,6 @@ vb:row{vb:button{text="Save as Textfile", notifier=function()
   pakettiKeyBindingsSaveDebugLog(pakettiKeybindings, false)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti KeyBindings...",invoke=function() pakettiKeyBindingsDialog() end}
 -- Single list of valid menu locations (using correct menu paths)
 local menu_entries = {
   "Track Automation",  -- This will map to "Automation"
@@ -906,36 +905,6 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
   renoise_debug_log = renoise_debug_log .. "Debug: Total Renoise keybindings found - " .. #renoiseKeybindings .. "\n"
   renoiseKeyBindingsSaveDebugLog(renoiseKeybindings, false)
 end
-
-
--- Add submenu entries under corresponding identifiers
-local renoise_identifiers = {
-  "Automation",
-  "Disk Browser",
-  "DSP Chain",
-  "Instrument Box",
-  "Mixer",
-  "Pattern Editor",
-  "Pattern Matrix",
-  "Pattern Sequencer",
-  "Phrase Editor",
-  "Phrase Map",
-  "Sample Editor",
-  "Sample FX Mixer",
-  "Sample Keyzones",
-  "Sample Modulation Matrix",
-}
-
-for _, identifier in ipairs(renoise_identifiers) do
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Renoise KeyBindings:" .. identifier,
-    invoke=function() pakettiRenoiseKeyBindingsDialog(identifier) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti KeyBindings:" .. identifier,
-    invoke=function() pakettiKeyBindingsDialog(identifier) end}  
-end
-
-
-
-
 
 ----------
 -- Define possible keys that can be used in shortcuts

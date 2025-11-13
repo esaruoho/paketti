@@ -1700,10 +1700,6 @@ function PakettiFillShowDialog()
       step_interval_value_text.text = tostring(step_interval)
     end
   end
-  
-
 end
 
--- Add menu entry and keybinding
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Fill Dialog...", invoke = PakettiFillShowDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Fill Dialog...", invoke = PakettiFillShowDialog}

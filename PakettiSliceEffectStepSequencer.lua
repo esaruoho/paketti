@@ -4755,12 +4755,6 @@ function PakettiSliceStepShowCurrentSampleOffset()
   renoise.app():show_status("Sample Offset Row " .. note_column .. ": 0S" .. string.format("%02X", offset_value) .. " position highlighted in sample editor")
 end
 
--- Menu entries and keybindings
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Paketti Sample Offset / Slice Step Sequencer...",

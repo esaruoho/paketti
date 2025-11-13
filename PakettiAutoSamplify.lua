@@ -829,7 +829,4 @@ if song_available and song then
   end
 end
 
--- Add keybindings and menu entries for manual control
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle New Sample Auto-Settings", invoke=PakettiToggleNewSampleMonitoring}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Toggle New Sample Auto-Settings", invoke=PakettiToggleNewSampleMonitoring}
-

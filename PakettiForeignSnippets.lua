@@ -61,19 +61,6 @@ end
 -- Add notification for new document/song loads
 renoise.tool().app_new_document_observable:add_notifier(pakettiAutoDiskBrowserNewDocumentHandler)
 
--- Menu entries
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Auto Control Disk Browser on Song Load",
-  invoke = pakettiAutoHideDiskBrowserToggle,
-  selected = pakettiAutoHideDiskBrowserIsEnabled
-}
-
-renoise.tool():add_menu_entry{
-  name = "Disk Browser:Paketti:Auto Control Disk Browser on Song Load",
-  invoke = pakettiAutoHideDiskBrowserToggle,
-  selected = pakettiAutoHideDiskBrowserIsEnabled
-}
-
 renoise.tool():add_keybinding{name = "Global:Paketti:Auto Control Disk Browser on Song Load",invoke = pakettiAutoHideDiskBrowserToggle}
 
 -- MIDI mapping
@@ -383,81 +370,6 @@ renoise.tool():add_keybinding{
   invoke = PakettiShowLoopBlockInfo
 }
 
--- Menu entries
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Transport:Toggle Loop Block and Play (2.x style)",
-  invoke = PakettiToggleLoopBlockAndPlay
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Transport:Select Next Loop Block (catch up)",
-  invoke = PakettiSelectNextLoopBlockAndCatchUp
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Transport:Select Previous Loop Block (catch up)",
-  invoke = PakettiSelectPreviousLoopBlockAndCatchUp
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Transport:Set Loop Block to Playback Position",
-  invoke = PakettiSetLoopBlockToPlaybackPosition
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Transport:Show Loop Block Info",
-  invoke = PakettiShowLoopBlockInfo
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Transport:Toggle Loop Block and Play (2.x style)",
-  invoke = PakettiToggleLoopBlockAndPlay
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Transport:Select Next Loop Block (catch up)",
-  invoke = PakettiSelectNextLoopBlockAndCatchUp
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Transport:Select Previous Loop Block (catch up)",
-  invoke = PakettiSelectPreviousLoopBlockAndCatchUp
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Transport:Set Loop Block to Playback Position",
-  invoke = PakettiSetLoopBlockToPlaybackPosition
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Transport:Show Loop Block Info",
-  invoke = PakettiShowLoopBlockInfo
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti:Transport:Toggle Loop Block and Play (2.x style)",
-  invoke = PakettiToggleLoopBlockAndPlay
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti:Transport:Select Next Loop Block (catch up)",
-  invoke = PakettiSelectNextLoopBlockAndCatchUp
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti:Transport:Select Previous Loop Block (catch up)",
-  invoke = PakettiSelectPreviousLoopBlockAndCatchUp
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti:Transport:Set Loop Block to Playback Position",
-  invoke = PakettiSetLoopBlockToPlaybackPosition
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti:Transport:Show Loop Block Info",
-  invoke = PakettiShowLoopBlockInfo
-}
 
 -- MIDI mappings
 renoise.tool():add_midi_mapping{
@@ -1142,7 +1054,7 @@ function pakettiSampleVisualizerDialog()
     sample_viz_waveform_cache and #sample_viz_waveform_cache or 0))
 end
 
---renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+--renoise.tool():add_menu_entry{name = "Main  Menu:Tools:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
 --renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
 --renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
 --renoise.tool():add_keybinding{name = "Global:Paketti:Sample Visualizer (Canvas)",invoke = pakettiSampleVisualizerDialog}
@@ -1589,26 +1501,9 @@ function pakettiSetInstrumentInfoDialogHeight()
   )
 end
 
--- Menu entries
-renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Instruments:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
-
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
-
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
-renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
-renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
-
--- Keybindings
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
-
--- MIDI mappings
 renoise.tool():add_midi_mapping{name = "Paketti:Show Instrument Info (Status)",invoke = function(message) if message:is_trigger() then pakettiInstrumentInfoStatus() end  end}
 renoise.tool():add_midi_mapping{name = "Paketti:Show Instrument Info (Dialog)",invoke = function(message) if message:is_trigger() then pakettiInstrumentInfoDialog() end  end}
 renoise.tool():add_midi_mapping{name = "Paketti:Set Instrument Info Dialog Height",invoke = function(message) if message:is_trigger() then pakettiSetInstrumentInfoDialogHeight() end  end}
@@ -1696,9 +1591,6 @@ function pakettiSetMidiOutputGlobally()
   )
 end
 
--- Add MIDI global function to appropriate menu sections
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
 renoise.tool():add_keybinding{name = "Global:Paketti:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
 renoise.tool():add_midi_mapping{name = "Paketti:Set MIDI Output for All Instruments",invoke = function(message) if message:is_trigger() then pakettiSetMidiOutputGlobally() end  end}
 
@@ -1870,81 +1762,6 @@ function pakettiDisableAllPhraseLoopingGlobally()
   end
 end
 
--- Menu entries
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Phrases:Toggle Selected Phrase Looping",
-  invoke = pakettiToggleSelectedPhraseLooping
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Phrases:Disable Looping in All Phrases",
-  invoke = pakettiDisableAllPhraseLooping
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Phrases:Enable Looping in All Phrases",
-  invoke = pakettiEnableAllPhraseLooping
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Main Menu:Tools:Paketti:Phrases:Enable Looping in All Phrases Globally",
-  invoke = pakettiEnableAllPhraseLoopingGlobally
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Phrases:Disable Looping in All Phrases Globally",
-  invoke = pakettiDisableAllPhraseLoopingGlobally
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Phrases:Toggle Selected Phrase Looping",
-  invoke = pakettiToggleSelectedPhraseLooping
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Phrases:Disable Looping in All Phrases",
-  invoke = pakettiDisableAllPhraseLooping
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Phrases:Enable Looping in All Phrases",
-  invoke = pakettiEnableAllPhraseLooping
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Instrument Box:Paketti:Phrases:Enable Looping in All Phrases Globally",
-  invoke = pakettiEnableAllPhraseLoopingGlobally
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Phrases:Disable Looping in All Phrases Globally",
-  invoke = pakettiDisableAllPhraseLoopingGlobally
-}
-
-renoise.tool():add_menu_entry{
-  name = "Phrase Editor:Paketti:Toggle Selected Phrase Looping",
-  invoke = pakettiToggleSelectedPhraseLooping
-}
-
-renoise.tool():add_menu_entry{
-  name = "Phrase Editor:Paketti:Disable Looping in All Phrases",
-  invoke = pakettiDisableAllPhraseLooping
-}
-
-renoise.tool():add_menu_entry{
-  name = "Phrase Editor:Paketti:Enable Looping in All Phrases",
-  invoke = pakettiEnableAllPhraseLooping
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Phrase Editor:Paketti:Enable Looping in All Phrases Globally",
-  invoke = pakettiEnableAllPhraseLoopingGlobally
-}
-
-renoise.tool():add_menu_entry{
-  name = "Phrase Editor:Paketti:Disable Looping in All Phrases Globally",
-  invoke = pakettiDisableAllPhraseLoopingGlobally
-}
 
 -- Keybindings
 renoise.tool():add_keybinding{
@@ -2246,57 +2063,21 @@ function pakettiCopyCurrentSampleLoopPointsToAllSamples()
 end
 
 
--- Menu entries
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Samples:Copy Current Loop Points to All Compatible Instruments",
-  invoke = pakettiCopyCurrentLoopPointsGlobally
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Samples:Copy Current Sample Loop Points to All Samples",
-  invoke = pakettiCopyCurrentSampleLoopPointsToAllSamples
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Copy Current Loop Points to All Compatible Instruments",
-  invoke = pakettiCopyCurrentLoopPointsGlobally
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Copy Current Sample Loop Points to All Samples",
-  invoke = pakettiCopyCurrentSampleLoopPointsToAllSamples
-}
-
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Copy Current Loop Points to All Compatible Instruments",
-  invoke = pakettiCopyCurrentLoopPointsGlobally
-}
-
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Copy Current Sample Loop Points to All Samples",
-  invoke = pakettiCopyCurrentSampleLoopPointsToAllSamples
-}
-
--- Keybindings
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Copy Current Loop Points to All Compatible Instruments",
-  invoke = pakettiCopyCurrentLoopPointsGlobally
-}
+  invoke = pakettiCopyCurrentLoopPointsGlobally}
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Copy Current Sample Loop Points to All Samples",
-  invoke = pakettiCopyCurrentSampleLoopPointsToAllSamples
-}
+  invoke = pakettiCopyCurrentSampleLoopPointsToAllSamples}
 
 renoise.tool():add_keybinding{
   name = "Sample Editor:Paketti:Copy Current Loop Points to All Compatible Instruments",
-  invoke = pakettiCopyCurrentLoopPointsGlobally
-}
+  invoke = pakettiCopyCurrentLoopPointsGlobally}
 
 renoise.tool():add_keybinding{
   name = "Sample Editor:Paketti:Copy Current Sample Loop Points to All Samples",
-  invoke = pakettiCopyCurrentSampleLoopPointsToAllSamples
-}
+  invoke = pakettiCopyCurrentSampleLoopPointsToAllSamples}
 
 
 -- MIDI mappings
@@ -2356,15 +2137,7 @@ function pakettiResetBasenotesToLowestNoteRange()
   end
 end
 
--- Menu entries for basenote reset
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
-
--- Keybinding
 renoise.tool():add_keybinding{name = "Global:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
-
--- MIDI mapping
 renoise.tool():add_midi_mapping{name = "Paketti:Reset Basenote to Lowest Note Range",invoke = function(message) if message:is_trigger() then pakettiResetBasenotesToLowestNoteRange() end end}
 
 -- ======================================
@@ -2586,12 +2359,6 @@ function pakettiUIowaImporter()
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:UIOWA Sample Importer",invoke = pakettiUIowaImporter}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:UIOWA Sample Processor",invoke = pakettiUIowaProcessor}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:UIOWA Sample Importer",invoke = pakettiUIowaImporter}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:UIOWA Sample Processor",invoke = pakettiUIowaProcessor}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Load:UIOWA Sample Importer",invoke = pakettiUIowaImporter}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load:UIOWA Sample Processor",invoke = pakettiUIowaProcessor}
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:UIOWA Sample Importer",
@@ -2656,26 +2423,6 @@ function PakettiSelectPreviousGlobalViewPreset()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Navigation:Cycle Forward through Global View Presets",
-  invoke = PakettiSelectNextGlobalViewPreset
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Navigation:Cycle Backwards through Global View Presets", 
-  invoke = PakettiSelectPreviousGlobalViewPreset
-}
-
--- Keybindings
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Cycle Forward through Global View Presets",
-  invoke = PakettiSelectNextGlobalViewPreset
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Cycle Backwards through Global View Presets",
-  invoke = PakettiSelectPreviousGlobalViewPreset
-}
 
 -- MIDI mappings
 renoise.tool():add_midi_mapping{
@@ -3090,52 +2837,8 @@ function pakettiKontaktExportSamples()
     exported_count, skipped_count))
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Loop Points",invoke = pakettiTrimSelectedSampleToLoop}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Selection",invoke = pakettiTrimSelectedSampleToSelection}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim All Samples to Loop Points",invoke = pakettiTrimAllSamplesToLoop}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim Selected Sample to Loop Points",invoke = pakettiTrimSelectedSampleToLoop}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim Selected Sample to Selection",invoke = pakettiTrimSelectedSampleToSelection}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim All Samples to Loop Points",invoke = pakettiTrimAllSamplesToLoop}
 
--- Sample Renamer
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Renamer:Rename with Note Names (Melodic)",
-  invoke = pakettiRenameSamplesWithNoteNames}
 
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Renamer:Rename with Drum Names (GM Kit)",
-  invoke = pakettiRenameSamplesWithDrumNames
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Renamer:Rename with Note Names (Melodic)",
-  invoke = pakettiRenameSamplesWithNoteNames
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Renamer:Rename with Drum Names (GM Kit)",
-  invoke = pakettiRenameSamplesWithDrumNames
-}
-
--- Kontakt Export
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt",
-  invoke = pakettiKontaktExportSamples
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt",
-  invoke = pakettiKontaktExportSamples
-}
-
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt",
-  invoke = pakettiKontaktExportSamples
-}
-
--- ======================================
--- Keybindings for Experimental Tools
--- ======================================
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Trim Selected Sample to Loop Points",
@@ -3425,45 +3128,6 @@ end
 -- ======================================
 
 -- Sample Sorter
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Sorter:Sort by Name",
-  invoke = pakettiSortSamplesByName
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Sorter:Sort by Base Note",
-  invoke = pakettiSortSamplesByBaseNote
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Sorter:Sort by Velocity",
-  invoke = pakettiSortSamplesByVelocity
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Sorter:Sort by Note->Velocity->Name",
-  invoke = pakettiSortSamplesByMultipleCriteria
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Sorter:Sort by Name",
-  invoke = pakettiSortSamplesByName
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Sorter:Sort by Base Note",
-  invoke = pakettiSortSamplesByBaseNote
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Sorter:Sort by Velocity",
-  invoke = pakettiSortSamplesByVelocity
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Sorter:Sort by Note->Velocity->Name",
-  invoke = pakettiSortSamplesByMultipleCriteria
-}
 
 -- ======================================
 -- Keybindings for Sample Sorter
@@ -3759,12 +3423,6 @@ function PakettiBatchSFZToXRNI(load_into_renoise)
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
-renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
-renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
 renoise.tool():add_midi_mapping{name="Paketti:Batch Convert SFZ to XRNI (Save Only) [Trigger]", invoke = function(message) if message:is_trigger() then PakettiBatchSFZToXRNI() end end}
@@ -4054,17 +3712,6 @@ function PakettiPatternAliasMatchAutomation()
   end
 end
 
-renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
-renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
-renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
-
-renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
-renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
-renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
-
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_keybinding{name = "Global:Paketti:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
@@ -4428,149 +4075,6 @@ end
 -- Set up notifiers
 PakettiCaptureTrackSetupNotifiers()
 
--- Menu entries - Main Menu:Tools:Paketti:Instruments
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Instruments:Capture Track from Instrument",
-  invoke = PakettiCaptureTrackManual
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Instruments:Enable/Disable Auto-Capture Track",
-  invoke = PakettiCaptureTrackToggleEnable,
-  selected = PakettiCaptureTrackIsEnabled
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Main Menu:Tools:Paketti:Instruments:Auto-Capture (Cycle All Modes)",
-  invoke = PakettiCaptureTrackToggleMode,
-  selected = PakettiCaptureTrackIsEnabled
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Instruments:Auto-Capture (Pattern Editor Only)",
-  invoke = PakettiCaptureTrackTogglePatternEditor,
-  selected = PakettiCaptureTrackIsPatternEditorMode
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Instruments:Auto-Capture (Not Pattern Editor)",
-  invoke = PakettiCaptureTrackToggleNotPatternEditor,
-  selected = PakettiCaptureTrackIsNotPatternEditorMode
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Instruments:Auto-Capture (All Frames)",
-  invoke = PakettiCaptureTrackToggleAllFrames,
-  selected = PakettiCaptureTrackIsAllFramesMode
-}
-
--- Menu entries - Instrument Box
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Capture Track from Instrument",
-  invoke = PakettiCaptureTrackManual
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Enable/Disable Auto-Capture Track",
-  invoke = PakettiCaptureTrackToggleEnable,
-  selected = PakettiCaptureTrackIsEnabled
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Instrument Box:Paketti:Auto-Capture (Cycle All Modes)",
-  invoke = PakettiCaptureTrackToggleMode,
-  selected = PakettiCaptureTrackIsEnabled
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Auto-Capture (Pattern Editor Only)",
-  invoke = PakettiCaptureTrackTogglePatternEditor,
-  selected = PakettiCaptureTrackIsPatternEditorMode
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Auto-Capture (Not Pattern Editor)",
-  invoke = PakettiCaptureTrackToggleNotPatternEditor,
-  selected = PakettiCaptureTrackIsNotPatternEditorMode
-}
-
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Auto-Capture (All Frames)",
-  invoke = PakettiCaptureTrackToggleAllFrames,
-  selected = PakettiCaptureTrackIsAllFramesMode
-}
-
--- Menu entries - Pattern Editor
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Navigation:Capture Track from Instrument",
-  invoke = PakettiCaptureTrackManual
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Navigation:Enable/Disable Auto-Capture Track",
-  invoke = PakettiCaptureTrackToggleEnable,
-  selected = PakettiCaptureTrackIsEnabled
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Pattern Editor:Paketti:Navigation:Auto-Capture (Cycle All Modes)",
-  invoke = PakettiCaptureTrackToggleMode,
-  selected = PakettiCaptureTrackIsEnabled
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Navigation:Auto-Capture (Pattern Editor Only)",
-  invoke = PakettiCaptureTrackTogglePatternEditor,
-  selected = PakettiCaptureTrackIsPatternEditorMode
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Navigation:Auto-Capture (Not Pattern Editor)",
-  invoke = PakettiCaptureTrackToggleNotPatternEditor,
-  selected = PakettiCaptureTrackIsNotPatternEditorMode
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Navigation:Auto-Capture (All Frames)",
-  invoke = PakettiCaptureTrackToggleAllFrames,
-  selected = PakettiCaptureTrackIsAllFramesMode
-}
-
--- Menu entries - Mixer
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti:Capture Track from Instrument",
-  invoke = PakettiCaptureTrackManual
-}
-
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti:Enable/Disable Auto-Capture Track",
-  invoke = PakettiCaptureTrackToggleEnable,
-  selected = PakettiCaptureTrackIsEnabled
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Mixer:Paketti:Auto-Capture (Cycle All Modes)",
-  invoke = PakettiCaptureTrackToggleMode,
-  selected = PakettiCaptureTrackIsEnabled
-}
-
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti:Auto-Capture (Pattern Editor Only)",
-  invoke = PakettiCaptureTrackTogglePatternEditor,
-  selected = PakettiCaptureTrackIsPatternEditorMode
-}
-
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti:Auto-Capture (Not Pattern Editor)",
-  invoke = PakettiCaptureTrackToggleNotPatternEditor,
-  selected = PakettiCaptureTrackIsNotPatternEditorMode
-}
-
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti:Auto-Capture (All Frames)",
-  invoke = PakettiCaptureTrackToggleAllFrames,
-  selected = PakettiCaptureTrackIsAllFramesMode
-}
 
 -- Keybindings
 renoise.tool():add_keybinding{

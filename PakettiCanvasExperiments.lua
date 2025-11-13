@@ -2655,10 +2655,7 @@ function PakettiCanvasExperimentsSnapshotToNextPattern()
   end
 end
 
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Selected Device Parameter Editor",invoke = PakettiCanvasExperimentsInit}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Selected Device Parameter Editor",invoke = PakettiCanvasExperimentsInit}
-
--- Parameter Editor Pattern Functions
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Duplicate to Next Pattern",invoke = PakettiCanvasExperimentsDuplicateToNextPattern}
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Snapshot to Next Pattern",invoke = PakettiCanvasExperimentsSnapshotToNextPattern}
 

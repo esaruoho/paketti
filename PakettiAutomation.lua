@@ -706,7 +706,6 @@ end
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Automation Hack",invoke=function() initialize_doofer_monitoring() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Paketti Automation Hack",invoke=function() initialize_doofer_monitoring() end}
 
 ---------
 -- Helper function to handle volume-specific scaling
@@ -2012,7 +2011,6 @@ for i = 0, 1, 0.1 do
   local formatted_value = string.format("%.1f", i)
 renoise.tool():add_keybinding{name="Global:Paketti:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 if i == 0 then
-
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 else
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
@@ -3888,27 +3886,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set All Automation Envelopes 
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Automation Envelopes to Lines",invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Automation Envelopes to Curves",invoke=PakettiAutomationGlobalSetToCurves}
 
-
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
-
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
-renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
-
-
-
-
-
-
-
 -- Global variable to track the loop end notifier
 paketti_loop_end_notifier = nil
 
@@ -3997,7 +3974,4 @@ function PakettiToggleLoopEndParameterMonitor()
 end
 
 
--- Loop End Parameter Monitor menu entries
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Toggle Loop End Parameter Monitor", invoke=PakettiToggleLoopEndParameterMonitor}
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Toggle Loop End Parameter Monitor", invoke=PakettiToggleLoopEndParameterMonitor}
 

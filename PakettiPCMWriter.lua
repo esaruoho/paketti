@@ -9715,9 +9715,5 @@ function PCMWriterUpdateHarmonicSlider(x, y, w, h, margin, slider_width)
   renoise.app():show_status(string.format("H%d: %.1f%%", slider_index, level * 100))
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
-renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/WIP:Load 2 Random AKWF as 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Load 2 Random AKWF as 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Write AKWF A&B to 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}

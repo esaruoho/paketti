@@ -2446,11 +2446,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 
 --------
 -- Pattern Matrix Selection Rendering
@@ -2762,9 +2759,6 @@ function monitor_matrix_rendering()
     end
 end
 
--- Key bindings and menu entries
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
 
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}

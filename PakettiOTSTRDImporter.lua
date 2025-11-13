@@ -676,17 +676,6 @@ if not renoise.tool():has_file_import_hook("song", { "strd", "work" }) then
   
 end
 
-----------------------------------------------------------------------
--- Menu Entries & Keybindings
-----------------------------------------------------------------------
-
--- Main menu entries
-renoise.tool():add_menu_entry{name="--File:Import:Octatrack Bank (.strd/.work)...",invoke=function() PakettiOTSTRDImporter() end}
-
--- Paketti submenu entries
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Octatrack:Import STRD Bank...",invoke=function() PakettiOTSTRDImporter() end}
-
--- Keybinding
 renoise.tool():add_keybinding{name="Global:Paketti:Octatrack Import STRD Bank",invoke=function() PakettiOTSTRDImporter() end}
 
  

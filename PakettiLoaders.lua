@@ -6,7 +6,6 @@ function pakettiListInstalledTools()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:List of Installed Tools", invoke=function() pakettiListInstalledTools() end }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Debug:List of Installed Tools", invoke=function() pakettiListInstalledTools() end }
 
 
 -------------------------------------------------------------------------------------------------

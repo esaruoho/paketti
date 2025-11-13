@@ -167,21 +167,4 @@ renoise.tool():add_midi_mapping{
   end
 }
 
--- Menu entries
-renoise.tool():add_menu_entry{
-  name="--Sample Editor:Paketti:Sample Range Device Loader Toggle",
-  invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,
-  selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end
-}
 
-renoise.tool():add_menu_entry{
-  name="--Sample Editor Ruler:Sample Range Device Loader Toggle",
-  invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,
-  selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end
-}
-
-renoise.tool():add_menu_entry{
-  name="--Main Menu:Tools:Paketti:Instruments:Sample Range Device Loader Toggle",
-  invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,
-  selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end
-}

@@ -1789,7 +1789,7 @@ function PakettiEQ10ExperimentInit()
 end
 
 -- Add menu entry and keybinding
---renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
+--renoise.tool():add_menu_entry {name = "Main  Menu:Tools:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
 --renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
 --renoise.tool():add_midi_mapping{name = "Paketti:Paketti EQ30", invoke = function(message) if message:is_trigger() then PakettiEQ10ExperimentInit() end end}
 
@@ -1876,7 +1876,6 @@ function PakettiEQ30ToggleShowFollow()
   renoise.app():show_status("EQ30: Show & Follow")
 end
 renoise.tool():add_keybinding {name = "Global:Paketti:Load & Show Paketti EQ30", invoke = PakettiEQ30ShowAndFollow}
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Load & Show Paketti EQ30", invoke = PakettiEQ30ShowAndFollow}
 renoise.tool():add_midi_mapping{name = "Paketti:Load & Show PakettiEQ30", invoke=function(message) if message:is_trigger() then PakettiEQ30ToggleShowFollow() end end}
 
 -- Paketti EQ30 Unused Note Frequency Reduction Flavor
@@ -2073,7 +2072,6 @@ function PakettiEQ30UnusedNoteFrequencyReductionFlavor()
 end
 
 -- Add menu entries and keybindings for the new feature
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Paketti EQ30 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ30UnusedNoteFrequencyReductionFlavor}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ30 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ30UnusedNoteFrequencyReductionFlavor}
 renoise.tool():add_midi_mapping{name = "Paketti:Paketti EQ30 Unused Note Frequency Reduction Flavor", invoke = function(message) if message:is_trigger() then PakettiEQ30UnusedNoteFrequencyReductionFlavor() end end}
 
@@ -2378,7 +2376,6 @@ function PakettiEQ64UnusedNoteFrequencyReductionFlavor()
 end
 
 -- Add menu entries and keybindings for the 64-band version
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Paketti EQ64 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ64UnusedNoteFrequencyReductionFlavor}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ64 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ64UnusedNoteFrequencyReductionFlavor}
 renoise.tool():add_midi_mapping{name = "Paketti:Paketti EQ64 Unused Note Frequency Reduction Flavor", invoke = function(message) if message:is_trigger() then PakettiEQ64UnusedNoteFrequencyReductionFlavor() end end}
 

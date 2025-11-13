@@ -563,16 +563,7 @@ function PakettiPatternNamesClearAll()
 end
 
 
--- Sectionizer menu entries and keybinding
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
-renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
 renoise.tool():add_keybinding{name = "Global:Paketti:Sectionizer...", invoke = PakettiSectionizer}
-
-
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
-renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
-renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
-renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti:Pattern:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 renoise.tool():add_keybinding{name = "Global:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 ---
 
@@ -638,5 +629,5 @@ local function show_dialog()
   }, keyhandler)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Wacky Filter",invoke=show_dialog}
+renoise.tool():add_menu_entry{name="Main  Menu:Tools:Paketti:Xperimental/WIP:Wacky Filter",invoke=show_dialog}
 ]]--

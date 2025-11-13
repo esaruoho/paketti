@@ -283,11 +283,4 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Melodic Slice Export (One-Shot)", invoke=PakettiMelodicSliceExport}
 renoise.tool():add_keybinding{name="Global:Paketti:Melodic Slice Create Chain", invoke=PakettiMelodicSliceCreateChain}
 renoise.tool():add_keybinding{name="Global:Paketti:Melodic Slice Export Current", invoke=PakettiMelodicSliceExportCurrent}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Melodic Slice Export (One-Shot)...", invoke=PakettiMelodicSliceExport}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Melodic Slice Create Chain", invoke=PakettiMelodicSliceCreateChain}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Melodic Slice Export Current...", invoke=PakettiMelodicSliceExportCurrent}
 
--- Main Menu File:Paketti Export entries for Polyend Melodic Slices
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Polyend Melodic Slice Export (One-Shot)...", invoke=PakettiMelodicSliceExport}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Polyend Melodic Slice Create Chain...", invoke=PakettiMelodicSliceCreateChain}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Polyend Melodic Slice Export Current...", invoke=PakettiMelodicSliceExportCurrent}

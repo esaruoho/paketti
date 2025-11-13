@@ -2678,7 +2678,6 @@ function PakettiSampleEffectGeneratorInit()
   PakettiSampleEffectGeneratorCreateDialog()
 end
 
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Sample Effect Generator",invoke = PakettiSampleEffectGeneratorInit}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Sample Effect Generator",invoke = PakettiSampleEffectGeneratorInit}
 
 

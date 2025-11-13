@@ -846,10 +846,6 @@ function PakettiDigitaktExportChain()
   export_digitakt_chain(params)
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Digitakt:Quick Export (Digitakt Mono)", invoke = PakettiDigitaktExportMono}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Digitakt:Quick Export (Digitakt 2 Stereo)", invoke = PakettiDigitaktExportStereo}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Digitakt:Quick Export (Chain Mode)", invoke = PakettiDigitaktExportChain}
 
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Digitakt Sample Chain...", invoke = PakettiDigitaktDialog}
@@ -858,11 +854,6 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Export Digitakt Quick Expor
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Digitakt Quick Export (Chain Mode)", invoke = PakettiDigitaktExportChain}
 
 
--- Main Menu File:Paketti Export entries for Digitakt
-renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti Export:Digitakt Export Sample Chain...", invoke = PakettiDigitaktDialog}
-renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Digitakt Quick Export (Mono)...", invoke = PakettiDigitaktExportMono}
-renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Digitakt Quick Export (Stereo)...", invoke = PakettiDigitaktExportStereo}
-renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Digitakt Quick Export (Chain Mode)...", invoke = PakettiDigitaktExportChain}
 --[[
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Digitakt:Quick Export (Digitakt Mono)", invoke = PakettiDigitaktExportMono}

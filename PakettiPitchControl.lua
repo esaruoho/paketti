@@ -1680,8 +1680,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Sample Pitch Modifier Dialog Size Toggle",invoke = toggle_sample_pitch_modifier_dialog_size}
 

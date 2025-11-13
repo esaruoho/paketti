@@ -1118,15 +1118,8 @@ function pakettiHalveLFOResolution()
   print(string.format("PakettiXMLizer: Successfully halved LFO resolution from %d to %d points", point_count, new_point_count))
 end
 
--- Register keybinding and menu entries for Double LFO Resolution
 renoise.tool():add_keybinding{name="Global:Paketti:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Custom LFO Envelopes:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
-
--- Register keybinding and menu entries for Halve LFO Resolution
 renoise.tool():add_keybinding{name="Global:Paketti:Halve LFO Envelope Resolution", invoke=pakettiHalveLFOResolution}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Halve LFO Envelope Resolution", invoke=pakettiHalveLFOResolution}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Halve LFO Envelope Resolution", invoke=pakettiHalveLFOResolution}
 
 -- Paketti LFO External Editor Toggle with Auto-Custom Mode
 -- Toggle external editor visibility for selected device and force LFO to Custom mode
@@ -1233,12 +1226,7 @@ function pakettiListDevicesWithExternalEditor()
   renoise.app():show_status(string.format("Found %d devices with external editor support (see console for details)", #devices_with_editor))
 end
 
--- Menu entries
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Plugins/Devices:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Plugins/Devices:List Devices with External Editor Support", invoke = pakettiListDevicesWithExternalEditor}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
 
--- Keybindings  
 renoise.tool():add_keybinding{name = "Global:Paketti:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
 renoise.tool():add_keybinding{name = "Global:Paketti:List Devices with External Editor Support", invoke = pakettiListDevicesWithExternalEditor}
 
@@ -1435,8 +1423,6 @@ end
 
 -- Register the unified function
 renoise.tool():add_keybinding{name = "Global:Paketti:Quick LFO Custom Editor", invoke = pakettiQuickLFOCustomEditor}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Device:Quick LFO Custom Editor", invoke = pakettiQuickLFOCustomEditor}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti:Quick LFO Custom Editor", invoke = pakettiQuickLFOCustomEditor}
 renoise.tool():add_midi_mapping{name = "Paketti:Quick LFO Custom Editor", invoke = function(message) 
   if message:is_trigger() then 
     pakettiQuickLFOCustomEditor() 
@@ -1929,48 +1915,18 @@ end
 
 -- Register keybindings and menu entries for all new LFO envelope functions
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale 50%", invoke=function() pakettiScaleLFOEnvelope(0.5) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Scale 50%", invoke=function() pakettiScaleLFOEnvelope(0.5) end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Scale 50%", invoke=function() pakettiScaleLFOEnvelope(0.5) end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale 150%", invoke=function() pakettiScaleLFOEnvelope(1.5) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Scale 150%", invoke=function() pakettiScaleLFOEnvelope(1.5) end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Scale 150%", invoke=function() pakettiScaleLFOEnvelope(1.5) end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale FLIP", invoke=pakettiFlipLFOEnvelope}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Flip", invoke=pakettiFlipLFOEnvelope}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Flip", invoke=pakettiFlipLFOEnvelope}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Invert", invoke=pakettiInvertLFOEnvelope}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Invert", invoke=pakettiInvertLFOEnvelope}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Invert", invoke=pakettiInvertLFOEnvelope}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Mirror", invoke=pakettiInvertLFOEnvelope}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Mirror", invoke=pakettiInvertLFOEnvelope}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Mirror", invoke=pakettiInvertLFOEnvelope}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Slapback", invoke=pakettiSlapbackLFOEnvelope}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Slapback", invoke=pakettiSlapbackLFOEnvelope}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Slapback", invoke=pakettiSlapbackLFOEnvelope}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Center", invoke=pakettiCenterLFOEnvelope}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Center", invoke=pakettiCenterLFOEnvelope}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Center", invoke=pakettiCenterLFOEnvelope}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Min", invoke=pakettiMinLFOEnvelope}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Min", invoke=pakettiMinLFOEnvelope}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Min", invoke=pakettiMinLFOEnvelope}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Max", invoke=pakettiMaxLFOEnvelope}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Max", invoke=pakettiMaxLFOEnvelope}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Max", invoke=pakettiMaxLFOEnvelope}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Randomize", invoke=pakettiRandomizeLFOEnvelope}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Randomize", invoke=pakettiRandomizeLFOEnvelope}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Randomize", invoke=pakettiRandomizeLFOEnvelope}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Humanize", invoke=pakettiHumanizeLFOEnvelope}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Humanize", invoke=pakettiHumanizeLFOEnvelope}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Humanize", invoke=pakettiHumanizeLFOEnvelope}
+
+
 
 -- LFO Envelope Editor Dialog
 local lfo_vb = renoise.ViewBuilder()
@@ -2110,10 +2066,7 @@ function pakettiLFOEnvelopeEditorDialog()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
--- Register the dialog
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Envelope Editor Dialog", invoke=pakettiLFOEnvelopeEditorDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:LFO Envelope Editor...", invoke=pakettiLFOEnvelopeEditorDialog}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Custom LFO Envelopes:LFO Envelope Editor...", invoke=pakettiLFOEnvelopeEditorDialog}
 renoise.tool():add_midi_mapping{name="Paketti:LFO Envelope Editor Dialog", invoke=function(message) 
   if message:is_trigger() then 
     pakettiLFOEnvelopeEditorDialog() 

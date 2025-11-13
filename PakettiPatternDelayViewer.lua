@@ -766,23 +766,6 @@ function PakettiPatternDelayViewerCopyDelayFromSelectedNote()
   end
 end
 
-------------------------------------------------------------------------------
--- Menu Entries
-------------------------------------------------------------------------------
-
--- Main Menu entries
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern:Copy Delay to All Same Notes in Track",invoke=function() PakettiPatternDelayViewerCopyDelayFromSelectedNote() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}
-
--- Pattern Editor context menu entries
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Copy Delay to All Same Notes in Track",invoke=function() PakettiPatternDelayViewerCopyDelayFromSelectedNote() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}
-
--- Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Show Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Copy Delay to All Same Notes in Track",invoke=function() PakettiPatternDelayViewerCopyDelayFromSelectedNote() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}

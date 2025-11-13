@@ -611,17 +611,6 @@
     end end)
 end
 
-if renoise.API_VERSION >= 6.2 then
--- Register the tool in Renoise
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:V3.5:Example Tool...",
-  invoke=function()
-    if renoise.API_VERSION >= 6.2 then show_gui_demo()
-    else print("soon you'll be in v3.5") end end}
-end
-
-
-
-
 if renoise.API_VERSION >= 6.2 then 
 --[[  renoise.app().window.instrument_box_is_visible=true
   -- Handle instrument properties visibility: 0=Do Nothing, 1=Hide, 2=Show
@@ -755,16 +744,7 @@ local function SetDiskBrowserCategory(category)
   else renoise.app():show_warning("Invalid category. Must be between 1 and 4.") end
 end
 
-renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
-renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Songs", invoke=function() SetDiskBrowserCategory(1) end}
-renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
-renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Samples", invoke=function() SetDiskBrowserCategory(3) end}
-renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Other", invoke=function() SetDiskBrowserCategory(4) end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Show/Hide Disk Browser",invoke=function() 
-if renoise.app().window.disk_browser_is_visible then renoise.app().window.disk_browser_is_visible=false else
-  renoise.app().window.disk_browser_is_visible=true
-end end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Disk Browser",invoke=function() 
   if renoise.app().window.disk_browser_is_visible then renoise.app().window.disk_browser_is_visible=false else
@@ -820,11 +800,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Decrease Instrument Box Slot 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 1 (Normal)", invoke=function() SetInstrumentBoxSlotSize(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 2 (Small)", invoke=function() SetInstrumentBoxSlotSize(2) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 3 (Large)", invoke=function() SetInstrumentBoxSlotSize(3) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Set to Songs", invoke=function() SetDiskBrowserCategory(1) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Set to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Set to Samples", invoke=function() SetDiskBrowserCategory(3) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Set to Other", invoke=function() SetDiskBrowserCategory(4) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Songs", invoke=function() SetDiskBrowserCategory(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
@@ -838,13 +813,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Right Frame",invoke
 if renoise.app().window.right_frame_is_visible then renoise.app().window.right_frame_is_visible=false else
   renoise.app().window.right_frame_is_visible=true
 end end}
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Show/Hide Right Frame",invoke=function() 
-  if renoise.app().window.right_frame_is_visible then renoise.app().window.right_frame_is_visible=false else
-    renoise.app().window.right_frame_is_visible=true
-  end end}
-  
-
 
 function PhraseExposeAndSelectColumn(number)
   local song=renoise.song()
@@ -906,9 +874,6 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Hide Current and Selec
 renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Internal)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_INTERNAL) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Midi Clock)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_MIDI_CLOCK) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Ableton Link)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_ABLETON_LINK) end}
-renoise.tool():add_menu_entry{name="Main Menu:Paketti:Set Sync Mode to (Internal)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_INTERNAL) end}
-renoise.tool():add_menu_entry{name="Main Menu:Paketti:Set Sync Mode to (Midi Clock)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_MIDI_CLOCK) end}
-renoise.tool():add_menu_entry{name="Main Menu:Paketti:Set Sync Mode to (Ableton Link)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_ABLETON_LINK) end}
 
 if os.platform() ~= "WINDOWS" and os.platform() ~= "MACINTOSH" then
   renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Jack)", invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_JACK) end}
@@ -962,10 +927,6 @@ function toggleMidiInputOctaveFollow()
 end
 
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:V3.5:Midi Input Octave Follow Enable", invoke=function() setMidiInputOctaveFollow(true) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Midi Input Octave Follow Disable", invoke=function() setMidiInputOctaveFollow(false) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Midi Input Octave Follow Toggle", invoke=function() toggleMidiInputOctaveFollow() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Midi Input Octave Follow Enable", invoke=function() setMidiInputOctaveFollow(true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Midi Input Octave Follow Disable", invoke=function() setMidiInputOctaveFollow(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Midi Input Octave Follow Toggle", invoke=function() toggleMidiInputOctaveFollow() end}
@@ -998,5 +959,4 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Input Octave Follow x[Button]
       setMidiInputOctaveFollow(message.int_value > 0) 
     end 
   end}
-
 end

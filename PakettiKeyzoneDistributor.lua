@@ -1315,7 +1315,6 @@ end
 -- Keybindings and MIDI mappings
 renoise.tool():add_keybinding{name="Global:Paketti:Show Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Keyzone Distributor Dialog...",invoke=function(message) if message:is_trigger() then pakettiKeyzoneDistributorDialog() end end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Keyzone Distributor",invoke=function() pakettiKeyzoneDistributorDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Filename-Based Keyzone Mapping...",invoke=function() pakettiKeyzoneDistributorFilenameDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Filename-Based Keyzone Mapping...",invoke=function(message) if message:is_trigger() then pakettiKeyzoneDistributorFilenameDialog() end end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Filename-Based Keyzone Mapping",invoke=function() pakettiKeyzoneDistributorFilenameDialog() end}
+

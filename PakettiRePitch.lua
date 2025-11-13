@@ -547,12 +547,6 @@ function pakettiQuickInstrumentTuning()
   --enoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
 renoise.tool():add_keybinding{name="Global:Paketti:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
 renoise.tool():add_keybinding{name="Global:Paketti:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}

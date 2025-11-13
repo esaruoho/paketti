@@ -1465,28 +1465,12 @@ end
 
 -- Wrapper function for keybinding
 function PakettiFuzzySampleSearchKeybindingWrapper()
-  -- If dialog is open, don't do anything (ESC will handle search clearing or browse)
   if dialog and dialog.visible then
     return
   end
   
-  -- Otherwise, open the dialog
   PakettiFuzzySampleSearchDialog()
 end
 
--- Add keybinding
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Fuzzy Sample Search Dialog...",
-  invoke = PakettiFuzzySampleSearchKeybindingWrapper
-}
 
--- Add menu entries
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti Gadgets:Fuzzy Sample Search Dialog...",
-  invoke = PakettiFuzzySampleSearchDialog
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti Fuzzy Sample Search...",
-  invoke = PakettiFuzzySampleSearchDialog
-}
+renoise.tool():add_keybinding{name = "Global:Paketti:Fuzzy Sample Search Dialog...",invoke = PakettiFuzzySampleSearchKeybindingWrapper}
