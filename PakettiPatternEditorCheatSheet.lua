@@ -546,9 +546,21 @@ function effect_write(effect, status, command, min_value, max_value)
   else
     -- Original logic without randomization
     if s.selection_in_pattern == nil then
-      local ec = s.selected_effect_column
-      if ec then
-        ec.number_string = effect
+      -- Determine which effect column to write to
+      local target_effect_column_index = 1  -- default to first
+      
+      if s.selected_note_column_index > 0 then
+        -- We're in a note column, write to first effect column
+        target_effect_column_index = 1
+      elseif s.selected_effect_column_index > 0 then
+        -- We're in an effect column, write to that specific column
+        target_effect_column_index = s.selected_effect_column_index
+      end
+      
+      -- Get the line and write to the target effect column
+      local line = s.selected_line
+      if line and target_effect_column_index <= s.selected_track.visible_effect_columns then
+        line.effect_columns[target_effect_column_index].number_string = effect
       else
         return false
       end
@@ -805,20 +817,25 @@ function pakettiPatternEditorCheatsheetDialog()
           end
         end
       else
-        if s.selected_effect_column then
+        -- Determine which effect column to write to
+        local target_effect_column_index = 1  -- default to first
+        
+        if s.selected_note_column_index > 0 then
+          -- We're in a note column, write to first effect column
+          target_effect_column_index = 1
+        elseif s.selected_effect_column_index > 0 then
+          -- We're in an effect column, write to that specific column
+          target_effect_column_index = s.selected_effect_column_index
+        end
+        
+        -- Get the line and write to the target effect column
+        local line = s.selected_line
+        if line and target_effect_column_index <= s.selected_track.visible_effect_columns then
           if should_apply() then
             if randomize_switch then
-              s.selected_effect_column.amount_value = math.random() < 0.5 and min_val or max_val
+              line.effect_columns[target_effect_column_index].amount_value = math.random() < 0.5 and min_val or max_val
             else
-              s.selected_effect_column.amount_value = math.random(min_val, max_val)
-            end
-          end
-        elseif s.selected_line then
-          if should_apply() then
-            if randomize_switch then
-              s.selected_line.effect_columns[1].amount_value = math.random() < 0.5 and min_val or max_val
-            else
-              s.selected_line.effect_columns[1].amount_value = math.random(min_val, max_val)
+              line.effect_columns[target_effect_column_index].amount_value = math.random(min_val, max_val)
             end
           end
         end
@@ -954,20 +971,25 @@ function pakettiPatternEditorCheatsheetDialog()
           end
         end
       else
-        if s.selected_effect_column then
+        -- Determine which effect column to write to
+        local target_effect_column_index = 1  -- default to first
+        
+        if s.selected_note_column_index > 0 then
+          -- We're in a note column, write to first effect column
+          target_effect_column_index = 1
+        elseif s.selected_effect_column_index > 0 then
+          -- We're in an effect column, write to that specific column
+          target_effect_column_index = s.selected_effect_column_index
+        end
+        
+        -- Get the line and write to the target effect column
+        local line = s.selected_line
+        if line and target_effect_column_index <= s.selected_track.visible_effect_columns then
           if should_apply() then
             if randomize_switch then
-              s.selected_effect_column.amount_value = math.random() < 0.5 and min_val or max_val
+              line.effect_columns[target_effect_column_index].amount_value = math.random() < 0.5 and min_val or max_val
             else
-              s.selected_effect_column.amount_value = math.random(min_val, max_val)
-            end
-          end
-        elseif s.selected_line then
-          if should_apply() then
-            if randomize_switch then
-              s.selected_line.effect_columns[1].amount_value = math.random() < 0.5 and min_val or max_val
-            else
-              s.selected_line.effect_columns[1].amount_value = math.random(min_val, max_val)
+              line.effect_columns[target_effect_column_index].amount_value = math.random(min_val, max_val)
             end
           end
         end
@@ -1305,10 +1327,21 @@ function pakettiPatternEditorCheatsheetDialog()
               end
             end
           else
-            if s.selected_effect_column then
-              s.selected_effect_column.amount_value = v
-            elseif s.selected_line then
-              s.selected_line.effect_columns[1].amount_value = v
+            -- Determine which effect column to write to
+            local target_effect_column_index = 1  -- default to first
+            
+            if s.selected_note_column_index > 0 then
+              -- We're in a note column, write to first effect column
+              target_effect_column_index = 1
+            elseif s.selected_effect_column_index > 0 then
+              -- We're in an effect column, write to that specific column
+              target_effect_column_index = s.selected_effect_column_index
+            end
+            
+            -- Get the line and write to the target effect column
+            local line = s.selected_line
+            if line and target_effect_column_index <= s.selected_track.visible_effect_columns then
+              line.effect_columns[target_effect_column_index].amount_value = v
             end
           end
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -1404,12 +1437,22 @@ local function apply_mini_effect_direct(effect_command, hex_value)
       end
     end
   else
-    if s.selected_effect_column then
-      s.selected_effect_column.number_string = effect_command
-      s.selected_effect_column.amount_value = hex_value
-    elseif s.selected_line then
-      s.selected_line.effect_columns[1].number_string = effect_command
-      s.selected_line.effect_columns[1].amount_value = hex_value
+    -- Determine which effect column to write to
+    local target_effect_column_index = 1  -- default to first
+    
+    if s.selected_note_column_index > 0 then
+      -- We're in a note column, write to first effect column
+      target_effect_column_index = 1
+    elseif s.selected_effect_column_index > 0 then
+      -- We're in an effect column, write to that specific column
+      target_effect_column_index = s.selected_effect_column_index
+    end
+    
+    -- Get the line and write to the target effect column
+    local line = s.selected_line
+    if line and target_effect_column_index <= s.selected_track.visible_effect_columns then
+      line.effect_columns[target_effect_column_index].number_string = effect_command
+      line.effect_columns[target_effect_column_index].amount_value = hex_value
     end
   end
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR

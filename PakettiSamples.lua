@@ -2572,6 +2572,275 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:FT2 Minimize Selected Sample",invoke=pakettiMinimizeToLoopEnd}
 --------
+-- Optimized coroutine function for trimming a single sample by half with ProcessSlicer
+function PakettiTrimByHalfSampleCoroutine(sample, sample_index, total_samples)
+  local CHUNK_SIZE = 50000  -- Process 50,000 frames at a time for optimal performance
+  
+  local sample_buffer = sample.sample_buffer
+  if not sample_buffer.has_sample_data then
+    return false, "No sample data"
+  end
+  
+  local original_frames = sample_buffer.number_of_frames
+  if original_frames <= 1 then
+    return false, "Sample too short"
+  end
+  
+  local half_frames = math.floor(original_frames / 2)
+  if half_frames < 1 then
+    return false, "Result would be too short"
+  end
+  
+  -- Show what will be removed by highlighting the second half
+  sample_buffer.selection_start = half_frames + 1
+  sample_buffer.selection_end = original_frames
+  
+  -- Store original sample settings
+  local original_settings = {
+    name = sample.name,
+    volume = sample.volume,
+    panning = sample.panning,
+    transpose = sample.transpose,
+    fine_tune = sample.fine_tune,
+    beat_sync_enabled = sample.beat_sync_enabled,
+    beat_sync_lines = sample.beat_sync_lines,
+    beat_sync_mode = sample.beat_sync_mode,
+    loop_mode = sample.loop_mode,
+    loop_release = sample.loop_release,
+    oneshot = sample.oneshot,
+    mute_group = sample.mute_group,
+    new_note_action = sample.new_note_action,
+    autoseek = sample.autoseek,
+    autofade = sample.autofade,
+    oversample_enabled = sample.oversample_enabled,
+    interpolation_mode = sample.interpolation_mode,
+    loop_start = sample.loop_start,
+    loop_end = sample.loop_end
+  }
+  
+  -- Create temporary instrument and sample
+  local song = renoise.song()
+  local temp_instrument = song:insert_instrument_at(song.selected_instrument_index + 1)
+  local temp_sample = temp_instrument:insert_sample_at(1)
+  
+  -- Create new sample data with half the frames
+  temp_sample.sample_buffer:create_sample_data(
+    sample_buffer.sample_rate,
+    sample_buffer.bit_depth,
+    sample_buffer.number_of_channels,
+    half_frames
+  )
+  temp_sample.sample_buffer:prepare_sample_data_changes()
+  
+  -- Copy data in optimized chunks
+  local channels = sample_buffer.number_of_channels
+  local total_operations = channels * half_frames
+  local processed = 0
+  
+  for c = 1, channels do
+    local f = 1
+    while f <= half_frames do
+      local chunk_end = math.min(f + CHUNK_SIZE - 1, half_frames)
+      
+      -- Copy chunk of frames
+      for frame = f, chunk_end do
+        temp_sample.sample_buffer:set_sample_data(c, frame, sample_buffer:sample_data(c, frame))
+        processed = processed + 1
+      end
+      
+      -- Yield every chunk for progress updates
+      if processed % CHUNK_SIZE == 0 then
+        local progress = (processed / total_operations) * 100
+        if total_samples > 1 then
+          renoise.app():show_status(string.format("Trimming sample %d/%d... %.0f%%", 
+            sample_index, total_samples, progress))
+        else
+          renoise.app():show_status(string.format("Trimming sample... %.0f%%", progress))
+        end
+        coroutine.yield()
+      end
+      
+      f = chunk_end + 1
+    end
+  end
+  
+  temp_sample.sample_buffer:finalize_sample_data_changes()
+  
+  -- Save to temporary file
+  local temp_file_path = pakettiGetTempFilePath(".wav")
+  temp_sample.sample_buffer:save_as(temp_file_path, "wav")
+  
+  -- Load trimmed sample back
+  sample.sample_buffer:load_from(temp_file_path)
+  
+  -- Restore all sample settings
+  sample.name = original_settings.name
+  sample.volume = original_settings.volume
+  sample.panning = original_settings.panning
+  sample.transpose = original_settings.transpose
+  sample.fine_tune = original_settings.fine_tune
+  sample.beat_sync_enabled = original_settings.beat_sync_enabled
+  sample.beat_sync_lines = original_settings.beat_sync_lines
+  sample.beat_sync_mode = original_settings.beat_sync_mode
+  sample.oneshot = original_settings.oneshot
+  sample.loop_release = original_settings.loop_release
+  sample.mute_group = original_settings.mute_group
+  sample.new_note_action = original_settings.new_note_action
+  sample.autoseek = original_settings.autoseek
+  sample.autofade = original_settings.autofade
+  sample.oversample_enabled = original_settings.oversample_enabled
+  sample.interpolation_mode = original_settings.interpolation_mode
+  
+  -- Restore and scale loop points
+  local has_loop = (original_settings.loop_mode ~= renoise.Sample.LOOP_MODE_OFF)
+  if has_loop then
+    sample.loop_mode = original_settings.loop_mode
+    local scale_factor = half_frames / original_frames
+    local new_loop_start = math.max(1, math.floor(original_settings.loop_start * scale_factor))
+    local new_loop_end = math.max(new_loop_start + 1, math.floor(original_settings.loop_end * scale_factor))
+    new_loop_end = math.min(new_loop_end, half_frames)
+    sample.loop_start = new_loop_start
+    sample.loop_end = new_loop_end
+  else
+    sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+    sample.loop_start = 1
+    sample.loop_end = half_frames
+  end
+  
+  -- Clean up
+  song:delete_instrument_at(song.selected_instrument_index + 1)
+  os.remove(temp_file_path)
+  
+  return true, original_frames, half_frames
+end
+
+function PakettiTrimByHalfSelectedSample()
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
+  local song = renoise.song()
+  local selected_sample = song.selected_sample
+  
+  if not selected_sample or not selected_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No valid sample selected")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+  
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+  
+  local function process_func()
+    local success, result1, result2 = PakettiTrimByHalfSampleCoroutine(selected_sample, 1, 1)
+    
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
+    if success then
+      renoise.app():show_status(string.format("Sample trimmed by half (%d -> %d frames)", result1, result2))
+    else
+      renoise.app():show_status("Could not trim sample: " .. result1)
+    end
+    
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  end
+  
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Trimming Sample by Half")
+  slicer:start()
+end
+
+function PakettiTrimByHalfAllSamples()
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
+  local song = renoise.song()
+  local selected_instrument = song.selected_instrument
+  
+  if not selected_instrument then
+    renoise.app():show_status("No instrument selected")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+  
+  local samples = selected_instrument.samples
+  local num_samples = #samples
+  
+  if num_samples < 1 then
+    renoise.app():show_status("No samples in the selected instrument")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+  
+  -- Check if the first sample has slice markers
+  if #samples[1].slice_markers > 0 then
+    renoise.app():show_status("Cannot trim sliced instrument - please unslice first")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+  
+  local original_instrument_index = song.selected_instrument_index
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+  
+  local function process_func()
+    local trimmed_count = 0
+    local skipped_count = 0
+    
+    for sample_index = 1, num_samples do
+      -- Check if cancelled
+      if slicer and slicer:was_cancelled() then
+        if dialog and dialog.visible then
+          dialog:close()
+        end
+        renoise.app():show_status("Trimming cancelled")
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+        return
+      end
+      
+      -- Select the sample so user can see what's being processed
+      song.selected_sample_index = sample_index
+      
+      local sample = samples[sample_index]
+      local success, result1, result2 = PakettiTrimByHalfSampleCoroutine(sample, sample_index, num_samples)
+      
+      if success then
+        trimmed_count = trimmed_count + 1
+      else
+        skipped_count = skipped_count + 1
+      end
+      
+      coroutine.yield()
+    end
+    
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
+    local status_msg = "Trimmed " .. trimmed_count .. " sample(s) by half"
+    if skipped_count > 0 then
+      status_msg = status_msg .. " (skipped " .. skipped_count .. " sample(s))"
+    end
+    renoise.app():show_status(status_msg)
+    
+    song.selected_instrument_index = original_instrument_index
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  end
+  
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Trimming All Samples by Half")
+  slicer:start()
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Trim by Half (Selected Sample)",invoke=function() PakettiTrimByHalfSelectedSample() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Trim by Half (All Samples in Instrument)",invoke=function() PakettiTrimByHalfAllSamples() end}
+
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Trim by Half (Selected Sample)",invoke=function() PakettiTrimByHalfSelectedSample() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Trim by Half (All Samples in Instrument)",invoke=function() PakettiTrimByHalfAllSamples() end}
+
+
+--------
 local previous_value = nil
 local rotation_amount = 5  -- You can set this to any desired default value
 

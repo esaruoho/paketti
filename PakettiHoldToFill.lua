@@ -893,5 +893,3 @@ function PakettiHoldToFillIsEnabled()
 end
 
 renoise.tool():add_keybinding{ name = "Global:Paketti:Toggle OctaMED Hold-to-Fill Mode", invoke = function() PakettiHoldToFillShowDialog() end }
-
-
