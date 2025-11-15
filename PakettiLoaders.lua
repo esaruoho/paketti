@@ -3760,9 +3760,10 @@ function loadNewWithCurrentSliceMarkersLengthMatching()
   renoise.tool():add_timer(timer_func, 100) -- 100ms delay to let Renoise create slice samples
 end
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
+
+
+
 
 ---------
 -- Globals for tracking mode and open editors
