@@ -94,6 +94,8 @@ renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:T
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Pick Up Slices",invoke=function() PakettiPickupSlices() end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Apply Slices with Same Relative Positioning",invoke=function() PakettiApplySlicesBasedOnSampleRate() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Add Autocomplete Abbreviation...", invoke=pakettiAutocompleteAddAbbreviation}
@@ -1193,6 +1195,7 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load .MOD as S
       pakettiLoadExeAsSample(file_path)
       paketti_toggle_signed_unsigned() end end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Load Plaid Zap .XRNI",invoke=function() PakettiLoadPlaidZapXRNI() end}
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Polyend:Export .PTI Instrument",invoke=pti_savesample}
@@ -1460,6 +1463,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Toggle Frequency Analy
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Cycle Frequency Analysis Cycles (1/2/4/8/16)",invoke = cycleThroughCycles}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Wipe Song Retain Sample",invoke=function() WipeRetain() end}

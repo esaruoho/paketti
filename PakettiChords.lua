@@ -1063,42 +1063,42 @@ function PakettiChords_BuildSlotSettings(slot)
       }
     },
     -- Extra Note 1: Index, Octave Offset, Duration
-    PakettiChords_vb:text{text = "EX1", width = PakettiChords_TOTAL_ROW_WIDTH, style = "strong"},
+    PakettiChords_vb:text{text = "EX1", width = PakettiChords_TOTAL_ROW_WIDTH, style = "strong", tooltip = "Extra Note 1: Additional note based on chord notes, triggers immediately (not affected by strum), has independent duration"},
     PakettiChords_vb:column{
       PakettiChords_vb:row{
-        PakettiChords_vb:text{text = "Index", width = 52, style = "strong", font = "bold"},
+        PakettiChords_vb:text{text = "Index", width = 52, style = "strong", font = "bold", tooltip = "Which chord note to use: 0=Off, 1=1st note (root), 2=2nd note, 3=3rd note, 4=4th note (if exists)"},
         PakettiChords_vb:valuebox{
           min = 0,
           max = 4,
           value = settings.extra1_index,
           width = 50,
-          tooltip = "Note Index: 0=Off, 1-4=Use chord note at this position",
+          tooltip = "Which chord note to base EX1 on: 0=Off, 1=Root, 2=2nd, 3=3rd, 4=4th. Plays immediately when chord starts, not affected by strum.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra1_index = value
           end
         }
       },
       PakettiChords_vb:row{
-        PakettiChords_vb:text{text = "Octave", width = 52, style = "strong", font = "bold"},
+        PakettiChords_vb:text{text = "Octave", width = 52, style = "strong", font = "bold", tooltip = "Transpose EX1 by octaves: -2 = two octaves down (bass), 0 = same octave, +1 = one octave up"},
         PakettiChords_vb:valuebox{
           min = -4,
           max = 4,
           value = settings.extra1_octave,
           width = 50,
-          tooltip = "Octave Offset: Shift the extra note up/down by octaves",
+          tooltip = "Octave offset for EX1: -2=bass note, -1=one octave down, 0=same octave, +1=one octave up, etc.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra1_octave = value
           end
         }
       },
       PakettiChords_vb:row{
-        PakettiChords_vb:text{text = "Length", width = 52, style = "strong", font = "bold"},
+        PakettiChords_vb:text{text = "Length", width = 52, style = "strong", font = "bold", tooltip = "Independent duration for EX1 in beats: Can be shorter or longer than main chord notes"},
         PakettiChords_vb:valuebox{
           min = 0.1,
           max = 64,
           value = settings.extra1_duration,
           width = 50,
-          tooltip = "Length in beats: How long the extra note plays",
+          tooltip = "EX1 duration in beats: Independent length, can overlap multiple chords. Example: 8 beats = sustained bass note.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra1_duration = value
           end
@@ -1106,42 +1106,42 @@ function PakettiChords_BuildSlotSettings(slot)
       }
     },
     -- Extra Note 2: Index, Octave Offset, Duration
-    PakettiChords_vb:text{text = "EX2", width = PakettiChords_TOTAL_ROW_WIDTH, style = "strong"},
+    PakettiChords_vb:text{text = "EX2", width = PakettiChords_TOTAL_ROW_WIDTH, style = "strong", tooltip = "Extra Note 2: Additional note based on chord notes, triggers immediately (not affected by strum), has independent duration"},
     PakettiChords_vb:column{
       PakettiChords_vb:row{
-        PakettiChords_vb:text{text = "Index", width = 52, style = "strong", font = "bold"},
+        PakettiChords_vb:text{text = "Index", width = 52, style = "strong", font = "bold", tooltip = "Which chord note to use: 0=Off, 1=1st note (root), 2=2nd note, 3=3rd note, 4=4th note (if exists)"},
         PakettiChords_vb:valuebox{
           min = 0,
           max = 4,
           value = settings.extra2_index,
           width = 50,
-          tooltip = "Note Index: 0=Off, 1-4=Use chord note at this position",
+          tooltip = "Which chord note to base EX2 on: 0=Off, 1=Root, 2=2nd, 3=3rd, 4=4th. Plays immediately when chord starts, not affected by strum.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra2_index = value
           end
         }
       },
       PakettiChords_vb:row{
-        PakettiChords_vb:text{text = "Octave", width = 52, style = "strong", font = "bold"},
+        PakettiChords_vb:text{text = "Octave", width = 52, style = "strong", font = "bold", tooltip = "Transpose EX2 by octaves: -2 = two octaves down (bass), 0 = same octave, +1 = one octave up (melody accent)"},
         PakettiChords_vb:valuebox{
           min = -4,
           max = 4,
           value = settings.extra2_octave,
           width = 50,
-          tooltip = "Octave Offset: Shift the extra note up/down by octaves",
+          tooltip = "Octave offset for EX2: -2=bass note, -1=one octave down, 0=same octave, +1=one octave up (melody), etc.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra2_octave = value
           end
         }
       },
       PakettiChords_vb:row{
-        PakettiChords_vb:text{text = "Length", width = 52, style = "strong", font = "bold"},
+        PakettiChords_vb:text{text = "Length", width = 52, style = "strong", font = "bold", tooltip = "Independent duration for EX2 in beats: Can be shorter (staccato) or longer than main chord notes"},
         PakettiChords_vb:valuebox{
           min = 0.1,
           max = 64,
           value = settings.extra2_duration,
           width = 50,
-          tooltip = "Length in beats: How long the extra note plays",
+          tooltip = "EX2 duration in beats: Independent length. Example: 0.1 = short accent, 2 = sustained melody note.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra2_duration = value
           end

@@ -3531,6 +3531,9 @@ function loadNewWithCurrentSliceMarkers()
     table.insert(saved_markers, marker)
   end
   
+  -- Save the original sample rate for scaling
+  local original_sample_rate = selected_sample.sample_buffer.sample_rate
+  
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
@@ -3581,17 +3584,29 @@ function loadNewWithCurrentSliceMarkers()
   -- Get the newly loaded sample
   local new_sample = new_instrument.samples[1]
   local new_sample_length = new_sample.sample_buffer.number_of_frames
+  local new_sample_rate = new_sample.sample_buffer.sample_rate
   
-  -- Filter markers to fit within the new sample length
+  -- Calculate the sample rate ratio for scaling markers
+  local rate_ratio = new_sample_rate / original_sample_rate
+  
+  -- Scale markers based on sample rate difference and filter to fit within the new sample length
   local valid_markers = {}
   for _, marker in ipairs(saved_markers) do
-    if marker <= new_sample_length then
-      table.insert(valid_markers, marker)
+    -- Scale the marker position based on sample rate ratio
+    local scaled_marker = math.floor(marker * rate_ratio + 0.5) -- Round to nearest frame
+    if scaled_marker <= new_sample_length then
+      table.insert(valid_markers, scaled_marker)
     end
   end
   
   -- Apply the valid slice markers first
   new_sample.slice_markers = valid_markers
+  
+  -- Show info about the scaling
+  if rate_ratio ~= 1.0 then
+    renoise.app():show_status(string.format("Scaled %d slice markers from %dHz to %dHz (ratio: %.4f)", 
+      #valid_markers, original_sample_rate, new_sample_rate, rate_ratio))
+  end
   
   -- Copy general sample settings to the main sample
   CopySampleSettings(original_instrument.samples[1], new_instrument.samples[1])
@@ -3615,6 +3630,140 @@ function loadNewWithCurrentSliceMarkers()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
+
+---------
+-- Load New Instrument with Current Slice Markers (Length Matching)
+function loadNewWithCurrentSliceMarkersLengthMatching()
+  local song = renoise.song()
+  
+  -- Check if there's a sample in the current instrument
+  if song.selected_sample == nil then
+    renoise.app():show_status("There is no sample in this instrument, doing nothing.")
+    return
+  end
+  
+  -- Check if the selected sample has slice markers
+  local selected_sample = song.selected_instrument.samples[1]
+  if #selected_sample.slice_markers == 0 then
+    renoise.app():show_status("Please select an instrument with slice markers, doing nothing for now.")
+    return
+  end
+  
+  -- Save the original instrument reference and slice data BEFORE showing the file dialog
+  local original_instrument_index = song.selected_instrument_index
+  local original_instrument = song.instruments[original_instrument_index]
+  local saved_markers = {}
+  for _, marker in ipairs(selected_sample.slice_markers) do
+    table.insert(saved_markers, marker)
+  end
+  
+  -- Save the original sample rate and length for scaling
+  local original_sample_rate = selected_sample.sample_buffer.sample_rate
+  local original_sample_length = selected_sample.sample_buffer.number_of_frames
+  
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
+  -- Prompt for a single sample file
+  local file_path = renoise.app():prompt_for_filename_to_read(
+    {"*.wav", "*.aif", "*.aiff", "*.flac", "*.mp3"}, 
+    "Load Sample with Slice Markers from Current Instrument (Length Matching)"
+  )
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  
+  if not file_path or file_path == "" then
+    renoise.app():show_status("No file selected, doing nothing.")
+    return
+  end
+  
+  -- Create a new instrument after the original one
+  local new_instrument_index = original_instrument_index + 1
+  song:insert_instrument_at(new_instrument_index)
+  song.selected_instrument_index = new_instrument_index
+  
+  -- Apply Paketti default instrument configuration
+  pakettiPreferencesDefaultInstrumentLoader()
+  
+  local new_instrument = song.selected_instrument
+  local filename_only = file_path:match("^.+[/\\](.+)$") or file_path
+  
+  -- Make sure there's a sample slot
+  if #new_instrument.samples == 0 then
+    new_instrument:insert_sample_at(1)
+  end
+  song.selected_sample_index = 1
+  
+  -- Load the sample
+  local success = new_instrument.samples[1].sample_buffer:load_from(file_path)
+  
+  if not success then
+    renoise.app():show_status("Failed to load sample: " .. filename_only)
+    return
+  end
+  
+  -- Set instrument and sample names
+  local name_without_ext = filename_only:match("(.+)%..+$") or filename_only
+  new_instrument.name = name_without_ext
+  new_instrument.samples[1].name = name_without_ext
+  
+  -- Get the newly loaded sample
+  local new_sample = new_instrument.samples[1]
+  local new_sample_length = new_sample.sample_buffer.number_of_frames
+  local new_sample_rate = new_sample.sample_buffer.sample_rate
+  
+  -- Calculate the actual length ratio (framecount matching)
+  local length_ratio = new_sample_length / original_sample_length
+  
+  print(string.format("=== Load New Instrument with Length Matching ==="))
+  print(string.format("Original: %d frames @ %dHz", original_sample_length, original_sample_rate))
+  print(string.format("New: %d frames @ %dHz", new_sample_length, new_sample_rate))
+  print(string.format("Length ratio: %.6f", length_ratio))
+  
+  -- Scale markers based on actual length ratio and filter to fit within the new sample length
+  local valid_markers = {}
+  for _, marker in ipairs(saved_markers) do
+    -- Scale the marker position based on length ratio
+    local scaled_marker = math.floor(marker * length_ratio + 0.5) -- Round to nearest frame
+    if scaled_marker <= new_sample_length then
+      table.insert(valid_markers, scaled_marker)
+      print(string.format("  Marker %d -> %d", marker, scaled_marker))
+    end
+  end
+  
+  -- Apply the valid slice markers first
+  new_sample.slice_markers = valid_markers
+  
+  -- Show info about the scaling
+  renoise.app():show_status(string.format("Applied %d slice markers using length ratio %.4f (%d->%d frames)", 
+    #valid_markers, length_ratio, original_sample_length, new_sample_length))
+  
+  -- Copy general sample settings to the main sample
+  CopySampleSettings(original_instrument.samples[1], new_instrument.samples[1])
+  
+  -- Wait for Renoise to create slice samples, then copy slice settings
+  local timer_func
+  timer_func = function()
+    -- Now copy slice settings for each individual slice sample (created by Renoise after applying slice markers)
+    for i = 2, #original_instrument.samples do  -- Slices start at index 2
+      if new_instrument.samples[i] then
+        CopySliceSettings(original_instrument.samples[i], new_instrument.samples[i])
+      end
+    end
+    
+    -- Remove this timer after execution
+    renoise.tool():remove_timer(timer_func)
+    
+    renoise.app():show_status("Slice markers and all sample & slice settings applied (length matching).")
+  end
+  renoise.tool():add_timer(timer_func, 100) -- 100ms delay to let Renoise create slice samples
+end
+
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
+
 ---------
 -- Globals for tracking mode and open editors
 PakettiAutomaticallyOpenTrackDeviceEditorsEnabled = false
