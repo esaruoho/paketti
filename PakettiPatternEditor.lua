@@ -5550,6 +5550,529 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Paste Selection",invoke=function() NudgeAndPasteSelection(true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Paste Selection + Deselect",invoke=function() NudgeAndPasteSelection(false) end}
 ------
+---------------------------------------------------------------------------------------------------------
+-- Nudge by Delay or Row (works on selection or current cell)
+---------------------------------------------------------------------------------------------------------
+function PakettiPatternEditorNudgeHelperSelectCurrentCell()
+  local song=renoise.song()
+  local selected_line = song.transport.edit_pos.line
+  local selected_track = song.selected_track_index
+  local selected_note_column = song.selected_note_column_index
+  local selected_effect_column = song.selected_effect_column_index
+  
+  local column_index
+  if selected_note_column > 0 then
+    column_index = selected_note_column
+  elseif selected_effect_column > 0 then
+    local track = song:track(selected_track)
+    column_index = track.visible_note_columns + selected_effect_column
+  else
+    column_index = 1
+  end
+  
+  song.selection_in_pattern = {
+    start_line = selected_line,
+    end_line = selected_line,
+    start_track = selected_track,
+    end_track = selected_track,
+    start_column = column_index,
+    end_column = column_index
+  }
+end
+
+function PakettiPatternEditorNudgeClearSelection()
+  renoise.song().selection_in_pattern = nil
+end
+
+function PakettiPatternEditorNudgeMoveEditCursorUp()
+  local song=renoise.song()
+  local edit_pos = song.transport.edit_pos
+  if edit_pos.line > 1 then
+    edit_pos.line = edit_pos.line - 1
+    song.transport.edit_pos = edit_pos
+  end
+end
+
+function PakettiPatternEditorNudgeMoveEditCursorDown()
+  local song=renoise.song()
+  local edit_pos = song.transport.edit_pos
+  local pattern_length = song.selected_pattern.number_of_lines
+  if edit_pos.line < pattern_length then
+    edit_pos.line = edit_pos.line + 1
+    song.transport.edit_pos = edit_pos
+  end
+end
+
+function PakettiPatternEditorNudgeGetSelectionInfo()
+  local song=renoise.song()
+  local selection = song.selection_in_pattern
+  
+  if not selection then
+    return nil
+  end
+  
+  local result = {
+    start_line = selection.start_line,
+    end_line = selection.end_line,
+    start_track = selection.start_track,
+    end_track = selection.end_track,
+    start_column = selection.start_column,
+    end_column = selection.end_column,
+    note_columns = {},
+    effect_columns = {}
+  }
+  
+  for track_idx = selection.start_track, selection.end_track do
+    local track = song:track(track_idx)
+    local visible_note_columns = track.visible_note_columns
+    local visible_effect_columns = track.visible_effect_columns
+    
+    local first_col = (track_idx == selection.start_track) and selection.start_column or 1
+    local last_col = (track_idx == selection.end_track) and selection.end_column or (visible_note_columns + visible_effect_columns)
+    
+    for col_idx = first_col, last_col do
+      if col_idx <= visible_note_columns then
+        table.insert(result.note_columns, {track = track_idx, column = col_idx})
+      else
+        local effect_col = col_idx - visible_note_columns
+        if effect_col <= visible_effect_columns then
+          table.insert(result.effect_columns, {track = track_idx, column = effect_col})
+        end
+      end
+    end
+  end
+  
+  return result
+end
+
+function PakettiPatternEditorNudgeByDelay(steps)
+  local song=renoise.song()
+  local pattern = song.selected_pattern
+  local using_edit_cursor = false
+  
+  if not song.selection_in_pattern then
+    if song.selected_effect_column_index ~= 0 then
+      renoise.app():show_status("Cannot nudge effect columns by delay")
+      return
+    elseif song.selected_note_column_index ~= 0 then
+      PakettiPatternEditorNudgeHelperSelectCurrentCell()
+      using_edit_cursor = true
+    else
+      return
+    end
+  end
+  
+  local selection_info = PakettiPatternEditorNudgeGetSelectionInfo()
+  if not selection_info then
+    return
+  end
+  
+  if #selection_info.effect_columns > 0 then
+    renoise.app():show_status("Cannot nudge effect columns by delay")
+    return
+  end
+  
+  local column_entry_moved_to_new_line = false
+  local something_was_nudged = false
+  local is_single_cell = (selection_info.start_line == selection_info.end_line)
+  
+  for track_idx = selection_info.start_track, selection_info.end_track do
+    local track = song:track(track_idx)
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      track.delay_column_visible = true
+    end
+  end
+  
+  for _, col_info in ipairs(selection_info.note_columns) do
+    local track = pattern:track(col_info.track)
+    
+    if steps > 0 then
+      for line_idx = selection_info.end_line, selection_info.start_line, -1 do
+        local line = track:line(line_idx)
+        local note_column = line:note_column(col_info.column)
+        
+        if not note_column.is_empty then
+          local current_delay = note_column.delay_value
+          local new_delay = current_delay + steps
+          
+          if new_delay > 255 then
+            local next_line_idx = line_idx + 1
+            if is_single_cell then
+              if next_line_idx > pattern.number_of_lines then
+                next_line_idx = 1
+              end
+            else
+              if next_line_idx > selection_info.end_line then
+                next_line_idx = selection_info.start_line
+              end
+            end
+            
+            local next_line = track:line(next_line_idx)
+            local next_note_column = next_line:note_column(col_info.column)
+            
+            if next_note_column.is_empty and next_note_column.delay_value == 0 then
+              next_note_column:copy_from(note_column)
+              next_note_column.delay_value = new_delay - 256
+              note_column:clear()
+              column_entry_moved_to_new_line = true
+              something_was_nudged = true
+            else
+              note_column.delay_value = 255
+              something_was_nudged = true
+            end
+          else
+            note_column.delay_value = new_delay
+            something_was_nudged = true
+          end
+        end
+      end
+    else
+      for line_idx = selection_info.start_line, selection_info.end_line do
+        local line = track:line(line_idx)
+        local note_column = line:note_column(col_info.column)
+        
+        if not note_column.is_empty then
+          local current_delay = note_column.delay_value
+          local new_delay = current_delay + steps
+          
+          if new_delay < 0 then
+            local prev_line_idx = line_idx - 1
+            if is_single_cell then
+              if prev_line_idx < 1 then
+                prev_line_idx = pattern.number_of_lines
+              end
+            else
+              if prev_line_idx < selection_info.start_line then
+                prev_line_idx = selection_info.end_line
+              end
+            end
+            
+            local prev_line = track:line(prev_line_idx)
+            local prev_note_column = prev_line:note_column(col_info.column)
+            
+            if prev_note_column.is_empty and prev_note_column.delay_value == 0 then
+              prev_note_column:copy_from(note_column)
+              prev_note_column.delay_value = new_delay + 256
+              note_column:clear()
+              column_entry_moved_to_new_line = true
+              something_was_nudged = true
+            else
+              note_column.delay_value = 0
+              something_was_nudged = true
+            end
+          else
+            note_column.delay_value = new_delay
+            something_was_nudged = true
+          end
+        end
+      end
+    end
+  end
+  
+  if using_edit_cursor then
+    PakettiPatternEditorNudgeClearSelection()
+    if column_entry_moved_to_new_line then
+      if is_single_cell then
+        if steps > 0 then
+          local target_line = selection_info.start_line + 1
+          if target_line > pattern.number_of_lines then
+            song.transport.edit_pos = {sequence = song.transport.edit_pos.sequence, line = 1}
+          else
+            song.transport.edit_pos = {sequence = song.transport.edit_pos.sequence, line = target_line}
+          end
+        else
+          local target_line = selection_info.start_line - 1
+          if target_line < 1 then
+            song.transport.edit_pos = {sequence = song.transport.edit_pos.sequence, line = pattern.number_of_lines}
+          else
+            song.transport.edit_pos = {sequence = song.transport.edit_pos.sequence, line = target_line}
+          end
+        end
+      else
+        if steps > 0 then
+          PakettiPatternEditorNudgeMoveEditCursorDown()
+        else
+          PakettiPatternEditorNudgeMoveEditCursorUp()
+        end
+      end
+    end
+  end
+  
+  if something_was_nudged then
+    local direction = (steps > 0) and "down" or "up"
+    renoise.app():show_status(string.format("Nudged %s by delay", direction))
+  end
+end
+
+function PakettiPatternEditorNudgeByRow(direction)
+  local song=renoise.song()
+  local pattern = song.selected_pattern
+  local using_edit_cursor = false
+  
+  if not song.selection_in_pattern then
+    if song.selected_effect_column_index ~= 0 then
+      PakettiPatternEditorNudgeHelperSelectCurrentCell()
+      using_edit_cursor = true
+    elseif song.selected_note_column_index ~= 0 then
+      PakettiPatternEditorNudgeHelperSelectCurrentCell()
+      using_edit_cursor = true
+    else
+      return
+    end
+  end
+  
+  local selection_info = PakettiPatternEditorNudgeGetSelectionInfo()
+  if not selection_info then
+    return
+  end
+  
+  local column_entry_moved = false
+  local is_single_cell = (selection_info.start_line == selection_info.end_line)
+  
+  for _, col_info in ipairs(selection_info.note_columns) do
+    local track = pattern:track(col_info.track)
+    
+    if is_single_cell then
+      -- Single cell: calculate target and handle wrapping
+      local source_idx = selection_info.start_line
+      local target_idx = source_idx + direction
+      local did_wrap = false
+      
+      if target_idx > pattern.number_of_lines then
+        target_idx = 1
+        did_wrap = true
+      elseif target_idx < 1 then
+        target_idx = pattern.number_of_lines
+        did_wrap = true
+      end
+      
+      local source_col = track:line(source_idx):note_column(col_info.column)
+      local target_col = track:line(target_idx):note_column(col_info.column)
+      
+      -- Only move if source has content AND target is empty
+      if not source_col.is_empty and target_col.is_empty then
+        target_col:copy_from(source_col)
+        source_col:clear()
+        column_entry_moved = true
+      end
+    else
+      -- Multi-row selection: use store-shift-place algorithm
+      if direction > 0 then
+        -- Nudge DOWN: Store last row, shift everything down, place stored at first row
+        local stored_line = track:line(selection_info.end_line):note_column(col_info.column)
+        local temp_note = {}
+        local has_stored_content = not stored_line.is_empty
+        
+        if has_stored_content then
+          temp_note.note_value = stored_line.note_value
+          temp_note.instrument_value = stored_line.instrument_value
+          temp_note.volume_value = stored_line.volume_value
+          temp_note.panning_value = stored_line.panning_value
+          temp_note.delay_value = stored_line.delay_value
+          temp_note.effect_number_value = stored_line.effect_number_value
+          temp_note.effect_amount_value = stored_line.effect_amount_value
+        end
+        
+        -- Shift all rows down (from end to start)
+        for line_idx = selection_info.end_line, selection_info.start_line + 1, -1 do
+          local curr_line = track:line(line_idx)
+          local prev_line = track:line(line_idx - 1)
+          curr_line:note_column(col_info.column):copy_from(prev_line:note_column(col_info.column))
+          if not prev_line:note_column(col_info.column).is_empty then
+            column_entry_moved = true
+          end
+        end
+        
+        -- Clear and place stored content at wrap destination
+        local target_line = track:line(selection_info.start_line)
+        local target_col = target_line:note_column(col_info.column)
+        target_col:clear()
+        if has_stored_content then
+          target_col.note_value = temp_note.note_value
+          target_col.instrument_value = temp_note.instrument_value
+          target_col.volume_value = temp_note.volume_value
+          target_col.panning_value = temp_note.panning_value
+          target_col.delay_value = temp_note.delay_value
+          target_col.effect_number_value = temp_note.effect_number_value
+          target_col.effect_amount_value = temp_note.effect_amount_value
+          column_entry_moved = true
+        end
+      else
+        -- Nudge UP: Store first row, shift everything up, place stored at last row
+        local stored_line = track:line(selection_info.start_line):note_column(col_info.column)
+        local temp_note = {}
+        local has_stored_content = not stored_line.is_empty
+        
+        if has_stored_content then
+          temp_note.note_value = stored_line.note_value
+          temp_note.instrument_value = stored_line.instrument_value
+          temp_note.volume_value = stored_line.volume_value
+          temp_note.panning_value = stored_line.panning_value
+          temp_note.delay_value = stored_line.delay_value
+          temp_note.effect_number_value = stored_line.effect_number_value
+          temp_note.effect_amount_value = stored_line.effect_amount_value
+        end
+        
+        -- Shift all rows up (from start to end)
+        for line_idx = selection_info.start_line, selection_info.end_line - 1 do
+          local curr_line = track:line(line_idx)
+          local next_line = track:line(line_idx + 1)
+          curr_line:note_column(col_info.column):copy_from(next_line:note_column(col_info.column))
+          if not next_line:note_column(col_info.column).is_empty then
+            column_entry_moved = true
+          end
+        end
+        
+        -- Clear and place stored content at wrap destination
+        local target_line = track:line(selection_info.end_line)
+        local target_col = target_line:note_column(col_info.column)
+        target_col:clear()
+        if has_stored_content then
+          target_col.note_value = temp_note.note_value
+          target_col.instrument_value = temp_note.instrument_value
+          target_col.volume_value = temp_note.volume_value
+          target_col.panning_value = temp_note.panning_value
+          target_col.delay_value = temp_note.delay_value
+          target_col.effect_number_value = temp_note.effect_number_value
+          target_col.effect_amount_value = temp_note.effect_amount_value
+          column_entry_moved = true
+        end
+      end
+    end
+  end
+  
+  for _, col_info in ipairs(selection_info.effect_columns) do
+    local track = pattern:track(col_info.track)
+    
+    if is_single_cell then
+      -- Single cell: calculate target and handle wrapping
+      local source_idx = selection_info.start_line
+      local target_idx = source_idx + direction
+      local did_wrap = false
+      
+      if target_idx > pattern.number_of_lines then
+        target_idx = 1
+        did_wrap = true
+      elseif target_idx < 1 then
+        target_idx = pattern.number_of_lines
+        did_wrap = true
+      end
+      
+      local source_col = track:line(source_idx):effect_column(col_info.column)
+      local target_col = track:line(target_idx):effect_column(col_info.column)
+      
+      -- Only move if source has content AND target is empty
+      if not source_col.is_empty and target_col.is_empty then
+        target_col:copy_from(source_col)
+        source_col:clear()
+        column_entry_moved = true
+      end
+    else
+      -- Multi-row selection: use store-shift-place algorithm
+      if direction > 0 then
+        -- Nudge DOWN: Store last row, shift everything down, place stored at first row
+        local stored_line = track:line(selection_info.end_line):effect_column(col_info.column)
+        local temp_effect = {}
+        local has_stored_content = not stored_line.is_empty
+        
+        if has_stored_content then
+          temp_effect.number_value = stored_line.number_value
+          temp_effect.amount_value = stored_line.amount_value
+        end
+        
+        -- Shift all rows down (from end to start)
+        for line_idx = selection_info.end_line, selection_info.start_line + 1, -1 do
+          local curr_line = track:line(line_idx)
+          local prev_line = track:line(line_idx - 1)
+          curr_line:effect_column(col_info.column):copy_from(prev_line:effect_column(col_info.column))
+          if not prev_line:effect_column(col_info.column).is_empty then
+            column_entry_moved = true
+          end
+        end
+        
+        -- Clear and place stored content at wrap destination
+        local target_line = track:line(selection_info.start_line)
+        local target_col = target_line:effect_column(col_info.column)
+        target_col:clear()
+        if has_stored_content then
+          target_col.number_value = temp_effect.number_value
+          target_col.amount_value = temp_effect.amount_value
+          column_entry_moved = true
+        end
+      else
+        -- Nudge UP: Store first row, shift everything up, place stored at last row
+        local stored_line = track:line(selection_info.start_line):effect_column(col_info.column)
+        local temp_effect = {}
+        local has_stored_content = not stored_line.is_empty
+        
+        if has_stored_content then
+          temp_effect.number_value = stored_line.number_value
+          temp_effect.amount_value = stored_line.amount_value
+        end
+        
+        -- Shift all rows up (from start to end)
+        for line_idx = selection_info.start_line, selection_info.end_line - 1 do
+          local curr_line = track:line(line_idx)
+          local next_line = track:line(line_idx + 1)
+          curr_line:effect_column(col_info.column):copy_from(next_line:effect_column(col_info.column))
+          if not next_line:effect_column(col_info.column).is_empty then
+            column_entry_moved = true
+          end
+        end
+        
+        -- Clear and place stored content at wrap destination
+        local target_line = track:line(selection_info.end_line)
+        local target_col = target_line:effect_column(col_info.column)
+        target_col:clear()
+        if has_stored_content then
+          target_col.number_value = temp_effect.number_value
+          target_col.amount_value = temp_effect.amount_value
+          column_entry_moved = true
+        end
+      end
+    end
+  end
+  
+  if using_edit_cursor then
+    PakettiPatternEditorNudgeClearSelection()
+    if column_entry_moved then
+      if is_single_cell then
+        if direction > 0 then
+          local target_line = selection_info.start_line + 1
+          if target_line > pattern.number_of_lines then
+            song.transport.edit_pos = {sequence = song.transport.edit_pos.sequence, line = 1}
+          else
+            song.transport.edit_pos = {sequence = song.transport.edit_pos.sequence, line = target_line}
+          end
+        else
+          local target_line = selection_info.start_line - 1
+          if target_line < 1 then
+            song.transport.edit_pos = {sequence = song.transport.edit_pos.sequence, line = pattern.number_of_lines}
+          else
+            song.transport.edit_pos = {sequence = song.transport.edit_pos.sequence, line = target_line}
+          end
+        end
+      else
+        if direction > 0 then
+          PakettiPatternEditorNudgeMoveEditCursorDown()
+        else
+          PakettiPatternEditorNudgeMoveEditCursorUp()
+        end
+      end
+    end
+  end
+  
+  if column_entry_moved then
+    local dir_text = (direction > 0) and "down" or "up"
+    renoise.app():show_status(string.format("Nudged %s by row", dir_text))
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge Up by Delay",invoke=function() PakettiPatternEditorNudgeByDelay(-1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge Down by Delay",invoke=function() PakettiPatternEditorNudgeByDelay(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge Up by Row",invoke=function() PakettiPatternEditorNudgeByRow(-1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge Down by Row",invoke=function() PakettiPatternEditorNudgeByRow(1) end}
+------
 function SelectionToNewPattern()
   local song=renoise.song()
   local selection = song.selection_in_pattern

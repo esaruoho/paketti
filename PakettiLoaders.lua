@@ -408,6 +408,7 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
           device.parameters[2].show_in_mixer = false
           device.active_preset_data = read_file("Presets/PakettiSend.xml")
         end
+        if device.name == "*Instr. Macros" then device.is_maximized = false end
         -- Add preset loading if path is provided
         if preset_path then
           local preset_data = read_file(preset_path)
@@ -557,6 +558,7 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
       if device.name == "#Send" then 
         device.parameters[2].show_in_mixer = false
       end
+      if device.name == "*Instr. Macros" then device.is_maximized = false end
       -- Add preset loading if path is provided
       if preset_path then
         local preset_data = read_file(preset_path)
@@ -762,7 +764,14 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Instr. Ma
 invoke=function()  if renoise.app().window.active_lower_frame == 2 then 
 loadnative("Audio/Effects/Native/*Instr. Macros") 
 renoise.app().window.active_lower_frame = 2
-else loadnative("Audio/Effects/Native/*Instr. Macros") end end}
+else loadnative("Audio/Effects/Native/*Instr. Macros") end 
+-- Ensure the device is minimized regardless of load order
+local device_index = renoise.song().selected_device_index
+if renoise.song().selected_track.devices[device_index] and 
+   renoise.song().selected_track.devices[device_index].name == "*Instr. Macros" then
+  renoise.song().selected_track.devices[device_index].is_maximized = false
+end
+end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Instr. MIDI Control",
 invoke=function() loadnative("Audio/Effects/Native/*Instr. MIDI Control") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Key Tracker",

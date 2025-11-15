@@ -1845,3 +1845,539 @@ if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge with Delay (Down)",invoke=function() PakettiPhraseEditorNudgeWithDelay("down") end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge with Delay (Up)",invoke=function() PakettiPhraseEditorNudgeWithDelay("up") end}
 end
+
+---------------------------------------------------------------------------------------------------------
+-- Nudge by Delay or Row for Phrase Editor (works on selection or current cell)
+---------------------------------------------------------------------------------------------------------
+function PakettiPhraseEditorNudgeHelperSelectCurrentCell()
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    return false
+  end
+  
+  local selected_line = song.selected_phrase_line_index
+  local selected_note_column = song.selected_phrase_note_column_index
+  local selected_effect_column = song.selected_phrase_effect_column_index
+  
+  local column_index
+  if selected_note_column > 0 then
+    column_index = selected_note_column
+  elseif selected_effect_column > 0 then
+    column_index = phrase.visible_note_columns + selected_effect_column
+  else
+    column_index = 1
+  end
+  
+  song.selection_in_phrase = {
+    start_line = selected_line,
+    end_line = selected_line,
+    start_column = column_index,
+    end_column = column_index
+  }
+  
+  return true
+end
+
+function PakettiPhraseEditorNudgeClearSelection()
+  renoise.song().selection_in_phrase = nil
+end
+
+function PakettiPhraseEditorNudgeMoveEditCursorUp()
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  if not phrase then
+    return
+  end
+  
+  local current_line = song.selected_phrase_line_index
+  if current_line > 1 then
+    song.selected_phrase_line_index = current_line - 1
+  end
+end
+
+function PakettiPhraseEditorNudgeMoveEditCursorDown()
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  if not phrase then
+    return
+  end
+  
+  local current_line = song.selected_phrase_line_index
+  if current_line < phrase.number_of_lines then
+    song.selected_phrase_line_index = current_line + 1
+  end
+end
+
+function PakettiPhraseEditorNudgeGetSelectionInfo()
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  local selection = song.selection_in_phrase
+  
+  if not phrase or not selection then
+    return nil
+  end
+  
+  local result = {
+    start_line = selection.start_line,
+    end_line = selection.end_line,
+    start_column = selection.start_column,
+    end_column = selection.end_column,
+    note_columns = {},
+    effect_columns = {}
+  }
+  
+  local visible_note_columns = phrase.visible_note_columns
+  local visible_effect_columns = phrase.visible_effect_columns
+  
+  for col_idx = selection.start_column, selection.end_column do
+    if col_idx <= visible_note_columns then
+      table.insert(result.note_columns, col_idx)
+    else
+      local effect_col = col_idx - visible_note_columns
+      if effect_col <= visible_effect_columns then
+        table.insert(result.effect_columns, effect_col)
+      end
+    end
+  end
+  
+  return result
+end
+
+function PakettiPhraseEditorNudgeByDelay(steps)
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local using_edit_cursor = false
+  
+  if not song.selection_in_phrase then
+    if song.selected_phrase_effect_column_index ~= 0 then
+      renoise.app():show_status("Cannot nudge effect columns by delay")
+      return
+    elseif song.selected_phrase_note_column_index ~= 0 then
+      if not PakettiPhraseEditorNudgeHelperSelectCurrentCell() then
+        return
+      end
+      using_edit_cursor = true
+    else
+      return
+    end
+  end
+  
+  local selection_info = PakettiPhraseEditorNudgeGetSelectionInfo()
+  if not selection_info then
+    return
+  end
+  
+  if #selection_info.effect_columns > 0 then
+    renoise.app():show_status("Cannot nudge effect columns by delay")
+    return
+  end
+  
+  local column_entry_moved_to_new_line = false
+  local something_was_nudged = false
+  local is_single_cell = (selection_info.start_line == selection_info.end_line)
+  
+  phrase.delay_column_visible = true
+  
+  for _, col_idx in ipairs(selection_info.note_columns) do
+    if steps > 0 then
+      for line_idx = selection_info.end_line, selection_info.start_line, -1 do
+        local line = phrase:line(line_idx)
+        local note_column = line:note_column(col_idx)
+        
+        if not note_column.is_empty then
+          local current_delay = note_column.delay_value
+          local new_delay = current_delay + steps
+          
+          if new_delay > 255 then
+            local next_line_idx = line_idx + 1
+            if is_single_cell then
+              if next_line_idx > phrase.number_of_lines then
+                next_line_idx = 1
+              end
+            else
+              if next_line_idx > selection_info.end_line then
+                next_line_idx = selection_info.start_line
+              end
+            end
+            
+            local next_line = phrase:line(next_line_idx)
+            local next_note_column = next_line:note_column(col_idx)
+            
+            if next_note_column.is_empty and next_note_column.delay_value == 0 then
+              next_note_column:copy_from(note_column)
+              next_note_column.delay_value = new_delay - 256
+              note_column:clear()
+              column_entry_moved_to_new_line = true
+              something_was_nudged = true
+            else
+              note_column.delay_value = 255
+              something_was_nudged = true
+            end
+          else
+            note_column.delay_value = new_delay
+            something_was_nudged = true
+          end
+        end
+      end
+    else
+      for line_idx = selection_info.start_line, selection_info.end_line do
+        local line = phrase:line(line_idx)
+        local note_column = line:note_column(col_idx)
+        
+        if not note_column.is_empty then
+          local current_delay = note_column.delay_value
+          local new_delay = current_delay + steps
+          
+          if new_delay < 0 then
+            local prev_line_idx = line_idx - 1
+            if is_single_cell then
+              if prev_line_idx < 1 then
+                prev_line_idx = phrase.number_of_lines
+              end
+            else
+              if prev_line_idx < selection_info.start_line then
+                prev_line_idx = selection_info.end_line
+              end
+            end
+            
+            local prev_line = phrase:line(prev_line_idx)
+            local prev_note_column = prev_line:note_column(col_idx)
+            
+            if prev_note_column.is_empty and prev_note_column.delay_value == 0 then
+              prev_note_column:copy_from(note_column)
+              prev_note_column.delay_value = new_delay + 256
+              note_column:clear()
+              column_entry_moved_to_new_line = true
+              something_was_nudged = true
+            else
+              note_column.delay_value = 0
+              something_was_nudged = true
+            end
+          else
+            note_column.delay_value = new_delay
+            something_was_nudged = true
+          end
+        end
+      end
+    end
+  end
+  
+  if using_edit_cursor then
+    PakettiPhraseEditorNudgeClearSelection()
+    if column_entry_moved_to_new_line then
+      if is_single_cell then
+        if steps > 0 then
+          local target_line = selection_info.start_line + 1
+          if target_line > phrase.number_of_lines then
+            song.selected_phrase_line_index = 1
+          else
+            song.selected_phrase_line_index = target_line
+          end
+        else
+          local target_line = selection_info.start_line - 1
+          if target_line < 1 then
+            song.selected_phrase_line_index = phrase.number_of_lines
+          else
+            song.selected_phrase_line_index = target_line
+          end
+        end
+      else
+        if steps > 0 then
+          PakettiPhraseEditorNudgeMoveEditCursorDown()
+        else
+          PakettiPhraseEditorNudgeMoveEditCursorUp()
+        end
+      end
+    end
+  end
+  
+  if something_was_nudged then
+    local direction = (steps > 0) and "down" or "up"
+    renoise.app():show_status(string.format("Nudged %s by delay", direction))
+  end
+end
+
+function PakettiPhraseEditorNudgeByRow(direction)
+  local song=renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local using_edit_cursor = false
+  
+  if not song.selection_in_phrase then
+    if song.selected_phrase_effect_column_index ~= 0 then
+      if not PakettiPhraseEditorNudgeHelperSelectCurrentCell() then
+        return
+      end
+      using_edit_cursor = true
+    elseif song.selected_phrase_note_column_index ~= 0 then
+      if not PakettiPhraseEditorNudgeHelperSelectCurrentCell() then
+        return
+      end
+      using_edit_cursor = true
+    else
+      return
+    end
+  end
+  
+  local selection_info = PakettiPhraseEditorNudgeGetSelectionInfo()
+  if not selection_info then
+    return
+  end
+  
+  local column_entry_moved = false
+  local is_single_cell = (selection_info.start_line == selection_info.end_line)
+  
+  for _, col_idx in ipairs(selection_info.note_columns) do
+    if is_single_cell then
+      -- Single cell: calculate target and handle wrapping
+      local source_idx = selection_info.start_line
+      local target_idx = source_idx + direction
+      local did_wrap = false
+      
+      if target_idx > phrase.number_of_lines then
+        target_idx = 1
+        did_wrap = true
+      elseif target_idx < 1 then
+        target_idx = phrase.number_of_lines
+        did_wrap = true
+      end
+      
+      local source_col = phrase:line(source_idx):note_column(col_idx)
+      local target_col = phrase:line(target_idx):note_column(col_idx)
+      
+      -- Only move if source has content AND target is empty
+      if not source_col.is_empty and target_col.is_empty then
+        target_col:copy_from(source_col)
+        source_col:clear()
+        column_entry_moved = true
+      end
+    else
+      -- Multi-row selection: use store-shift-place algorithm
+      if direction > 0 then
+        -- Nudge DOWN: Store last row, shift everything down, place stored at first row
+        local stored_line = phrase:line(selection_info.end_line):note_column(col_idx)
+        local temp_note = {}
+        local has_stored_content = not stored_line.is_empty
+        
+        if has_stored_content then
+          temp_note.note_value = stored_line.note_value
+          temp_note.instrument_value = stored_line.instrument_value
+          temp_note.volume_value = stored_line.volume_value
+          temp_note.panning_value = stored_line.panning_value
+          temp_note.delay_value = stored_line.delay_value
+          temp_note.effect_number_value = stored_line.effect_number_value
+          temp_note.effect_amount_value = stored_line.effect_amount_value
+        end
+        
+        -- Shift all rows down (from end to start)
+        for line_idx = selection_info.end_line, selection_info.start_line + 1, -1 do
+          local curr_line = phrase:line(line_idx)
+          local prev_line = phrase:line(line_idx - 1)
+          curr_line:note_column(col_idx):copy_from(prev_line:note_column(col_idx))
+          if not prev_line:note_column(col_idx).is_empty then
+            column_entry_moved = true
+          end
+        end
+        
+        -- Clear and place stored content at wrap destination
+        local target_line = phrase:line(selection_info.start_line)
+        local target_col = target_line:note_column(col_idx)
+        target_col:clear()
+        if has_stored_content then
+          target_col.note_value = temp_note.note_value
+          target_col.instrument_value = temp_note.instrument_value
+          target_col.volume_value = temp_note.volume_value
+          target_col.panning_value = temp_note.panning_value
+          target_col.delay_value = temp_note.delay_value
+          target_col.effect_number_value = temp_note.effect_number_value
+          target_col.effect_amount_value = temp_note.effect_amount_value
+          column_entry_moved = true
+        end
+      else
+        -- Nudge UP: Store first row, shift everything up, place stored at last row
+        local stored_line = phrase:line(selection_info.start_line):note_column(col_idx)
+        local temp_note = {}
+        local has_stored_content = not stored_line.is_empty
+        
+        if has_stored_content then
+          temp_note.note_value = stored_line.note_value
+          temp_note.instrument_value = stored_line.instrument_value
+          temp_note.volume_value = stored_line.volume_value
+          temp_note.panning_value = stored_line.panning_value
+          temp_note.delay_value = stored_line.delay_value
+          temp_note.effect_number_value = stored_line.effect_number_value
+          temp_note.effect_amount_value = stored_line.effect_amount_value
+        end
+        
+        -- Shift all rows up (from start to end)
+        for line_idx = selection_info.start_line, selection_info.end_line - 1 do
+          local curr_line = phrase:line(line_idx)
+          local next_line = phrase:line(line_idx + 1)
+          curr_line:note_column(col_idx):copy_from(next_line:note_column(col_idx))
+          if not next_line:note_column(col_idx).is_empty then
+            column_entry_moved = true
+          end
+        end
+        
+        -- Clear and place stored content at wrap destination
+        local target_line = phrase:line(selection_info.end_line)
+        local target_col = target_line:note_column(col_idx)
+        target_col:clear()
+        if has_stored_content then
+          target_col.note_value = temp_note.note_value
+          target_col.instrument_value = temp_note.instrument_value
+          target_col.volume_value = temp_note.volume_value
+          target_col.panning_value = temp_note.panning_value
+          target_col.delay_value = temp_note.delay_value
+          target_col.effect_number_value = temp_note.effect_number_value
+          target_col.effect_amount_value = temp_note.effect_amount_value
+          column_entry_moved = true
+        end
+      end
+    end
+  end
+  
+  for _, col_idx in ipairs(selection_info.effect_columns) do
+    if is_single_cell then
+      -- Single cell: calculate target and handle wrapping
+      local source_idx = selection_info.start_line
+      local target_idx = source_idx + direction
+      local did_wrap = false
+      
+      if target_idx > phrase.number_of_lines then
+        target_idx = 1
+        did_wrap = true
+      elseif target_idx < 1 then
+        target_idx = phrase.number_of_lines
+        did_wrap = true
+      end
+      
+      local source_col = phrase:line(source_idx):effect_column(col_idx)
+      local target_col = phrase:line(target_idx):effect_column(col_idx)
+      
+      -- Only move if source has content AND target is empty
+      if not source_col.is_empty and target_col.is_empty then
+        target_col:copy_from(source_col)
+        source_col:clear()
+        column_entry_moved = true
+      end
+    else
+      -- Multi-row selection: use store-shift-place algorithm
+      if direction > 0 then
+        -- Nudge DOWN: Store last row, shift everything down, place stored at first row
+        local stored_line = phrase:line(selection_info.end_line):effect_column(col_idx)
+        local temp_effect = {}
+        local has_stored_content = not stored_line.is_empty
+        
+        if has_stored_content then
+          temp_effect.number_value = stored_line.number_value
+          temp_effect.amount_value = stored_line.amount_value
+        end
+        
+        -- Shift all rows down (from end to start)
+        for line_idx = selection_info.end_line, selection_info.start_line + 1, -1 do
+          local curr_line = phrase:line(line_idx)
+          local prev_line = phrase:line(line_idx - 1)
+          curr_line:effect_column(col_idx):copy_from(prev_line:effect_column(col_idx))
+          if not prev_line:effect_column(col_idx).is_empty then
+            column_entry_moved = true
+          end
+        end
+        
+        -- Clear and place stored content at wrap destination
+        local target_line = phrase:line(selection_info.start_line)
+        local target_col = target_line:effect_column(col_idx)
+        target_col:clear()
+        if has_stored_content then
+          target_col.number_value = temp_effect.number_value
+          target_col.amount_value = temp_effect.amount_value
+          column_entry_moved = true
+        end
+      else
+        -- Nudge UP: Store first row, shift everything up, place stored at last row
+        local stored_line = phrase:line(selection_info.start_line):effect_column(col_idx)
+        local temp_effect = {}
+        local has_stored_content = not stored_line.is_empty
+        
+        if has_stored_content then
+          temp_effect.number_value = stored_line.number_value
+          temp_effect.amount_value = stored_line.amount_value
+        end
+        
+        -- Shift all rows up (from start to end)
+        for line_idx = selection_info.start_line, selection_info.end_line - 1 do
+          local curr_line = phrase:line(line_idx)
+          local next_line = phrase:line(line_idx + 1)
+          curr_line:effect_column(col_idx):copy_from(next_line:effect_column(col_idx))
+          if not next_line:effect_column(col_idx).is_empty then
+            column_entry_moved = true
+          end
+        end
+        
+        -- Clear and place stored content at wrap destination
+        local target_line = phrase:line(selection_info.end_line)
+        local target_col = target_line:effect_column(col_idx)
+        target_col:clear()
+        if has_stored_content then
+          target_col.number_value = temp_effect.number_value
+          target_col.amount_value = temp_effect.amount_value
+          column_entry_moved = true
+        end
+      end
+    end
+  end
+  
+  if using_edit_cursor then
+    PakettiPhraseEditorNudgeClearSelection()
+    if column_entry_moved then
+      if is_single_cell then
+        if direction > 0 then
+          local target_line = selection_info.start_line + 1
+          if target_line > phrase.number_of_lines then
+            song.selected_phrase_line_index = 1
+          else
+            song.selected_phrase_line_index = target_line
+          end
+        else
+          local target_line = selection_info.start_line - 1
+          if target_line < 1 then
+            song.selected_phrase_line_index = phrase.number_of_lines
+          else
+            song.selected_phrase_line_index = target_line
+          end
+        end
+      else
+        if direction > 0 then
+          PakettiPhraseEditorNudgeMoveEditCursorDown()
+        else
+          PakettiPhraseEditorNudgeMoveEditCursorUp()
+        end
+      end
+    end
+  end
+  
+  if column_entry_moved then
+    local dir_text = (direction > 0) and "down" or "up"
+    renoise.app():show_status(string.format("Nudged %s by row", dir_text))
+  end
+end
+
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Up by Delay",invoke=function() PakettiPhraseEditorNudgeByDelay(-1) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Down by Delay",invoke=function() PakettiPhraseEditorNudgeByDelay(1) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Up by Row",invoke=function() PakettiPhraseEditorNudgeByRow(-1) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Down by Row",invoke=function() PakettiPhraseEditorNudgeByRow(1) end}
+end

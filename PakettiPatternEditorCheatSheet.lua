@@ -89,7 +89,7 @@ local effects = {
 
 -- Randomization Functions for Effect Columns
 
-function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min_value, max_value)
+function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min_value, max_value, target_effect_column_index)
   trueRandomSeed()
 
   local song=renoise.song()
@@ -99,6 +99,17 @@ function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min
   local only_modify_effects = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value
   local only_modify_notes = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value
   local randomize_whole_track_cb = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeWholeTrack.value
+  
+  -- Determine target column if not specified
+  if not target_effect_column_index then
+    if song.selected_note_column_index > 0 then
+      target_effect_column_index = 1
+    elseif song.selected_effect_column_index > 0 then
+      target_effect_column_index = song.selected_effect_column_index
+    else
+      target_effect_column_index = 1
+    end
+  end
 
   if min_value > max_value then
     min_value, max_value = max_value, min_value
@@ -208,25 +219,25 @@ function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min
         end
       end
     else
-      -- Apply to current line
+      -- Apply to current line, target specific effect column
       local line = song.selected_line
       local track_index = song.selected_track_index
       local track = song:pattern(song.selected_pattern_index):track(track_index)
-      for column_index = 1, song.selected_track.visible_effect_columns do
-        apply_command(line, column_index, track, song.selected_line_index, track_index)
+      if target_effect_column_index <= song.selected_track.visible_effect_columns then
+        apply_command(line, target_effect_column_index, track, song.selected_line_index, track_index)
       end
     end
   end
 
-  renoise.app():show_status("Random " .. effect_command .. " commands applied to effect columns.")
+  renoise.app():show_status("Random " .. effect_command .. " commands applied to effect column " .. target_effect_column_index .. ".")
 end
 
-function randomizeSmatterEffectColumnC0(fill_percentage)
-  randomizeSmatterEffectColumnCustom("0C", fill_percentage, 0x00, 0x0F)
+function randomizeSmatterEffectColumnC0(fill_percentage, target_effect_column_index)
+  randomizeSmatterEffectColumnCustom("0C", fill_percentage, 0x00, 0x0F, target_effect_column_index)
 end
 
-function randomizeSmatterEffectColumnB0(fill_percentage)
-  randomizeSmatterEffectColumnCustom("0B", fill_percentage, 0x00, 0x01)
+function randomizeSmatterEffectColumnB0(fill_percentage, target_effect_column_index)
+  randomizeSmatterEffectColumnCustom("0B", fill_percentage, 0x00, 0x01, target_effect_column_index)
 end
 
 
@@ -533,15 +544,27 @@ function effect_write(effect, status, command, min_value, max_value)
   end
 
   if randomize_cb then
+    -- Determine which effect column to target
+    local target_effect_column_index = nil
+    if s.selection_in_pattern == nil then
+      if s.selected_note_column_index > 0 then
+        target_effect_column_index = 1
+      elseif s.selected_effect_column_index > 0 then
+        target_effect_column_index = s.selected_effect_column_index
+      else
+        target_effect_column_index = 1
+      end
+    end
+    
     if effect == "0C" then
-      status = "Random C00/C0F commands applied to the effect columns."
-      randomizeSmatterEffectColumnC0(fill_percentage)
+      status = "Random C00/C0F commands applied to effect column."
+      randomizeSmatterEffectColumnC0(fill_percentage, target_effect_column_index)
     elseif effect == "0B" then
-      status = "Random B00/B01 commands applied to the effect columns."
-      randomizeSmatterEffectColumnB0(fill_percentage)
+      status = "Random B00/B01 commands applied to effect column."
+      randomizeSmatterEffectColumnB0(fill_percentage, target_effect_column_index)
     else
-      status = "Random " .. effect .. " commands applied to the effect columns."
-      randomizeSmatterEffectColumnCustom(effect, fill_percentage, min_value, max_value)
+      status = "Random " .. effect .. " commands applied to effect column."
+      randomizeSmatterEffectColumnCustom(effect, fill_percentage, min_value, max_value, target_effect_column_index)
     end
   else
     -- Original logic without randomization

@@ -371,6 +371,36 @@ function ImpulseTrackerStop()
   local t = renoise.song().transport
   local s = renoise.song()
 
+  -- Stop real-time slice marker monitoring timers if active
+  local slice_state = rawget(_G, "realtime_slice_state")
+  
+  if slice_state then
+    print("DEBUG F8: slice_state found, is_monitoring:", slice_state.is_monitoring)
+    
+    -- Stop the timer_func if it exists
+    if slice_state.timer_func and renoise.tool():has_timer(slice_state.timer_func) then
+      print("DEBUG F8: Removing timer_func")
+      renoise.tool():remove_timer(slice_state.timer_func)
+      slice_state.timer_func = nil
+    end
+    
+    -- Stop the selection_update_timer if it exists
+    if slice_state.selection_update_timer and renoise.tool():has_timer(slice_state.selection_update_timer) then
+      print("DEBUG F8: Removing selection_update_timer")
+      renoise.tool():remove_timer(slice_state.selection_update_timer)
+      slice_state.selection_update_timer = nil
+    end
+    
+    -- Call the full stop function to clean up everything else
+    local slice_stop_func = rawget(_G, "pakettiRealtimeSliceStop")
+    if slice_state.is_monitoring and slice_stop_func then
+      print("DEBUG F8: Calling pakettiRealtimeSliceStop() for full cleanup")
+      slice_stop_func()
+    end
+  else
+    print("DEBUG F8: slice_state not found")
+  end
+
   -- If playing, stop playback
   if t.playing then
     t.follow_player = false

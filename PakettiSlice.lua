@@ -1805,8 +1805,8 @@ renoise.tool():add_midi_mapping{name="Paketti:BPM-Based Sample Slicer Dialog",in
 -- Real-Time Slice Marker Creation During Playback
 --------------------------------------------------------------------------------
 
--- Global state for playback monitoring
-local realtime_slice_state = {
+-- Global state for playback monitoring (MUST be global so F8 can stop it from PakettiImpulseTracker.lua)
+realtime_slice_state = {
   is_monitoring = false,
   start_time = 0,
   sample_rate = 44100,
@@ -2032,6 +2032,20 @@ function pakettiRealtimeSliceStop()
       track_index,
       realtime_slice_state.base_note
     )
+  end
+  
+  -- Clear sample buffer selection range
+  local song = renoise.song()
+  if realtime_slice_state.instrument_index > 0 and realtime_slice_state.sample_index > 0 then
+    local instrument = song.instruments[realtime_slice_state.instrument_index]
+    if instrument and instrument.samples[realtime_slice_state.sample_index] then
+      local sample = instrument.samples[realtime_slice_state.sample_index]
+      if sample.sample_buffer and sample.sample_buffer.has_sample_data then
+        sample.sample_buffer.selection_start = 1
+        sample.sample_buffer.selection_end = 1
+        print("Cleared sample buffer selection")
+      end
+    end
   end
   
   -- Restore AutoSamplify monitoring state
