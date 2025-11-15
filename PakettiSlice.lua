@@ -2232,3 +2232,828 @@ renoise.tool():add_midi_mapping{
     end 
   end
 }
+
+-- Create New Rhythmic Slice DrumChain with Current Slices
+-- Takes the slice timing from current instrument and applies it to user-loaded samples
+function PakettiSliceCreateRhythmicDrumChain(normalize_slices)
+  normalize_slices = normalize_slices or false
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  -- Check if we have a valid sliced instrument
+  if #instrument.samples == 0 then
+    renoise.app():show_status("No samples in current instrument")
+    return
+  end
+  
+  local first_sample = instrument.samples[1]
+  if not first_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("First sample has no data")
+    return
+  end
+  
+  if #first_sample.slice_markers == 0 then
+    renoise.app():show_status("First sample has no slice markers - not a sliced instrument")
+    return
+  end
+  
+  -- Get source sample properties
+  local source_buffer = first_sample.sample_buffer
+  local source_sample_rate = source_buffer.sample_rate
+  local source_bit_depth = source_buffer.bit_depth
+  local source_channels = source_buffer.number_of_channels
+  local total_frames = source_buffer.number_of_frames
+  
+  -- Calculate slice durations
+  local slice_markers = first_sample.slice_markers
+  local slice_count = #slice_markers -- Number of slices = number of markers
+  local slice_durations = {}
+  
+  print(string.format("PakettiSlice: Source instrument has %d slice markers (%d slices)", #slice_markers, slice_count))
+  print(string.format("PakettiSlice: Source format: %dHz, %d-bit, %d channels", 
+    source_sample_rate, source_bit_depth, source_channels))
+  
+  -- Calculate duration for each slice
+  -- Each marker marks the START of a slice
+  -- Slice i goes from marker[i] to marker[i+1] (or to end for last slice)
+  for i = 1, slice_count do
+    local slice_start = slice_markers[i]
+    local slice_end
+    
+    if i < slice_count then
+      -- Not the last slice: goes to next marker
+      slice_end = slice_markers[i + 1]
+    else
+      -- Last slice: goes to end of sample
+      slice_end = total_frames
+    end
+    
+    local duration = slice_end - slice_start
+    slice_durations[i] = duration
+    print(string.format("PakettiSlice: Slice %d: marker[%d]=%d to %s=%d, duration=%d frames (%.3fs)", 
+      i, i, slice_start, 
+      (i < slice_count) and string.format("marker[%d]", i+1) or "end",
+      slice_end, duration, duration / source_sample_rate))
+  end
+  
+  -- Prompt user to load samples
+  renoise.app():show_status(string.format("Please select %d or more samples to load...", slice_count))
+  
+  local filenames = renoise.app():prompt_for_multiple_filenames_to_read(
+    {"*.wav", "*.flac", "*.ogg", "*.mp3", "*.aiff", "*.aif"},
+    "Select " .. slice_count .. " or more samples for rhythmic chain")
+  
+  if not filenames or #filenames == 0 then
+    renoise.app():show_status("Operation cancelled - no files selected")
+    return
+  end
+  
+  if #filenames < slice_count then
+    renoise.app():show_status(string.format("Error: Expected at least %d samples, got only %d", slice_count, #filenames))
+    return
+  end
+  
+  -- Use only the first slice_count samples if more were provided
+  if #filenames > slice_count then
+    print(string.format("PakettiSlice: User selected %d samples, using first %d", #filenames, slice_count))
+    local trimmed_filenames = {}
+    for i = 1, slice_count do
+      trimmed_filenames[i] = filenames[i]
+    end
+    filenames = trimmed_filenames
+  else
+    print(string.format("PakettiSlice: User selected %d samples", #filenames))
+  end
+  
+  -- Store original selection
+  local original_instrument_index = song.selected_instrument_index
+  local original_sample_index = song.selected_sample_index
+  
+  print("========================================")
+  print(string.format("PakettiSlice: ORIGINAL instrument index: %d [%s]", 
+    original_instrument_index, instrument.name))
+  print(string.format("PakettiSlice: ORIGINAL has %d slices to replicate", slice_count))
+  print("========================================")
+  
+  -- Create TEMP instrument for loading samples at index+1
+  local temp_instrument_index = original_instrument_index + 1
+  song:insert_instrument_at(temp_instrument_index)
+  local temp_instrument = song.instruments[temp_instrument_index]
+  temp_instrument.name = "TEMP_PROCESSING"
+  
+  print(string.format("PakettiSlice: TEMP instrument created at index %d for loading samples", temp_instrument_index))
+  
+  -- Load and process each sample
+  local processed_samples = {}
+  local process_cancelled = false
+  
+  local function process_samples_coroutine()
+    for i, filename in ipairs(filenames) do
+      if process_cancelled then
+        print("PakettiSlice: Processing cancelled by user")
+        return
+      end
+      coroutine.yield()
+      print(string.format("PakettiSlice: Loading sample %d: %s", i, filename))
+    
+    -- Load sample into temp instrument
+    song.selected_instrument_index = temp_instrument_index
+    local sample_index = #temp_instrument.samples + 1
+    temp_instrument:insert_sample_at(sample_index)
+    local sample = temp_instrument.samples[sample_index]
+    
+    -- Load file
+    local load_success, load_error = pcall(function()
+      sample.sample_buffer:load_from(filename)
+    end)
+    
+    if not load_success then
+      print("PakettiSlice: Failed to load " .. filename .. ": " .. tostring(load_error))
+      renoise.app():show_status("Failed to load: " .. filename)
+      -- Clean up and abort
+      song:delete_instrument_at(temp_instrument_index)
+      song.selected_instrument_index = original_instrument_index
+      song.selected_sample_index = original_sample_index
+      return
+    end
+    
+    if not sample.sample_buffer.has_sample_data then
+      print("PakettiSlice: Sample has no data: " .. filename)
+      renoise.app():show_status("Sample has no data: " .. filename)
+      song:delete_instrument_at(temp_instrument_index)
+      song.selected_instrument_index = original_instrument_index
+      song.selected_sample_index = original_sample_index
+      return
+    end
+    
+    local buffer = sample.sample_buffer
+    print(string.format("PakettiSlice: Loaded sample %d: %d frames, %dHz, %d-bit, %d channels",
+      i, buffer.number_of_frames, buffer.sample_rate, buffer.bit_depth, buffer.number_of_channels))
+    
+    -- INTELLIGENT PRE-TRUNCATION: Don't process huge samples if we only need a small portion
+    local target_duration = slice_durations[i]
+    local needs_truncation = buffer.number_of_frames > (target_duration * 10)
+    
+    if needs_truncation then
+      -- Intelligently truncate to ~150% of what we need (leaves some headroom)
+      local truncate_to = math.floor(target_duration * 1.5)
+      print(string.format("PakettiSlice: Intelligent truncation: %d frames -> %d frames (need %d)",
+        buffer.number_of_frames, truncate_to, target_duration))
+      
+      -- Read only the portion we need
+      local truncated_data = {}
+      for ch = 1, buffer.number_of_channels do
+        truncated_data[ch] = {}
+        for frame = 1, truncate_to do
+          truncated_data[ch][frame] = buffer:sample_data(ch, frame)
+        end
+      end
+      
+      -- Create new truncated buffer
+      sample.sample_buffer:create_sample_data(
+        buffer.sample_rate,
+        buffer.bit_depth,
+        buffer.number_of_channels,
+        truncate_to
+      )
+      
+      -- Write truncated data
+      for ch = 1, buffer.number_of_channels do
+        for frame = 1, truncate_to do
+          sample.sample_buffer:set_sample_data(ch, frame, truncated_data[ch][frame])
+        end
+      end
+      
+      buffer = sample.sample_buffer
+      print(string.format("PakettiSlice: Truncated to %d frames", buffer.number_of_frames))
+      coroutine.yield()
+    end
+    
+    -- Check if any conversion is needed
+    local needs_conversion = (buffer.sample_rate ~= source_sample_rate) or 
+                           (buffer.bit_depth ~= source_bit_depth) or 
+                           (buffer.number_of_channels ~= source_channels)
+    
+    if needs_conversion then
+      local current_rate = buffer.sample_rate
+      local current_depth = buffer.bit_depth
+      local current_channels = buffer.number_of_channels
+      local current_frames = buffer.number_of_frames
+      
+      print(string.format("PakettiSlice: Converting sample format: %dHz/%dbit/%dch -> %dHz/%dbit/%dch",
+        current_rate, current_depth, current_channels,
+        source_sample_rate, source_bit_depth, source_channels))
+      
+      -- Calculate target frame count (if sample rate changes)
+      local target_frames = current_frames
+      if current_rate ~= source_sample_rate then
+        target_frames = math.floor(current_frames * source_sample_rate / current_rate)
+      end
+      
+      -- Read all data from current buffer
+      local original_data = {}
+      for ch = 1, current_channels do
+        original_data[ch] = {}
+        for frame = 1, current_frames do
+          original_data[ch][frame] = buffer:sample_data(ch, frame)
+        end
+      end
+      
+      -- Create new buffer with target format
+      sample.sample_buffer:create_sample_data(source_sample_rate, source_bit_depth, source_channels, target_frames)
+      
+      -- Write converted data
+      for target_frame = 1, target_frames do
+        -- Calculate source frame (with resampling if needed)
+        local source_frame = target_frame
+        if current_rate ~= source_sample_rate then
+          source_frame = math.floor((target_frame - 1) * current_frames / target_frames) + 1
+          source_frame = math.min(source_frame, current_frames)
+        end
+        
+        -- Handle channel conversion
+        if source_channels == 1 and current_channels == 2 then
+          -- Stereo to mono: average channels
+          local value = (original_data[1][source_frame] + original_data[2][source_frame]) * 0.5
+          sample.sample_buffer:set_sample_data(1, target_frame, value)
+        elseif source_channels == 2 and current_channels == 1 then
+          -- Mono to stereo: duplicate channel
+          local value = original_data[1][source_frame]
+          sample.sample_buffer:set_sample_data(1, target_frame, value)
+          sample.sample_buffer:set_sample_data(2, target_frame, value)
+        else
+          -- Same channel count: direct copy
+          for ch = 1, source_channels do
+            sample.sample_buffer:set_sample_data(ch, target_frame, original_data[ch][source_frame])
+          end
+        end
+      end
+      
+      -- Refresh buffer reference after conversion
+      buffer = sample.sample_buffer
+      coroutine.yield()
+    end
+    
+    -- Extract sample data for this slice (target_duration already declared above)
+    local sample_frames = math.min(buffer.number_of_frames, target_duration)
+    
+    -- Extract data with 10-frame fadeout
+    local channel_data = {}
+    for ch = 1, source_channels do
+      channel_data[ch] = {}
+      for frame = 1, sample_frames do
+        local value = buffer:sample_data(ch, frame)
+        
+        -- Apply 10-frame fadeout at the end
+        if frame > sample_frames - 10 then
+          local fade_position = frame - (sample_frames - 10)
+          local fade_factor = 1.0 - (fade_position / 10.0)
+          value = value * fade_factor
+        end
+        
+        channel_data[ch][frame] = value
+      end
+      
+      -- Pad with silence if sample is shorter than slice duration
+      for frame = sample_frames + 1, target_duration do
+        channel_data[ch][frame] = 0.0
+      end
+      coroutine.yield()
+    end
+    
+      processed_samples[i] = {
+        data = channel_data,
+        frames = target_duration
+      }
+      
+      print(string.format("PakettiSlice: Processed sample %d: %d frames (target duration)", 
+        i, target_duration))
+    end
+  end
+  
+  -- Create and run ProcessSlicer
+  local process_slicer = ProcessSlicer(process_samples_coroutine)
+  local process_dialog, process_vb = process_slicer:create_dialog("Processing Rhythmic Slice Chain Samples...")
+  process_slicer:start()
+  
+  -- Wait for processing to complete
+  while process_slicer:running() do
+    renoise.tool():add_timer(function() end, 100)
+  end
+  
+  if process_slicer:was_cancelled() then
+    print("PakettiSlice: Processing was cancelled")
+    song:delete_instrument_at(temp_instrument_index)
+    song.selected_instrument_index = original_instrument_index
+    song.selected_sample_index = original_sample_index
+    renoise.app():show_status("Rhythmic slice chain creation cancelled")
+    return
+  end
+  
+  print("========================================")
+  print(string.format("PakettiSlice: Finished processing - %d samples in processed_samples table", 
+    #processed_samples))
+  
+  -- Verify processed_samples data
+  local has_data_count = 0
+  for i, processed in ipairs(processed_samples) do
+    if processed and processed.data and processed.data[1] then
+      has_data_count = has_data_count + 1
+    end
+  end
+  print(string.format("PakettiSlice: Verified: %d/%d samples have audio data", 
+    has_data_count, #processed_samples))
+  print("========================================")
+  
+  -- Delete temp instrument (we've extracted all the data we need)
+  print(string.format("PakettiSlice: Deleting TEMP instrument at index %d", temp_instrument_index))
+  song:delete_instrument_at(temp_instrument_index)
+  print("PakettiSlice: TEMP instrument deleted")
+  
+  -- Calculate total chain length and slice marker positions
+  -- Each marker marks the START of a slice
+  -- First marker is at frame 1 (start of first slice)
+  local total_chain_frames = 0
+  local chain_slice_markers = {}
+  
+  -- First marker at position 1 (start of slice 1)
+  table.insert(chain_slice_markers, 1)
+  
+  for i, processed in ipairs(processed_samples) do
+    total_chain_frames = total_chain_frames + processed.frames
+    -- Add marker at end of each sample (except the last) to mark start of next slice
+    if i < #processed_samples then
+      table.insert(chain_slice_markers, total_chain_frames)
+    end
+  end
+  
+  print(string.format("PakettiSlice: Total chain: %d frames with %d slice markers",
+    total_chain_frames, #chain_slice_markers))
+  print(string.format("PakettiSlice: First marker at frame 1, last marker at frame %d", 
+    chain_slice_markers[#chain_slice_markers]))
+  
+  -- Create FINAL instrument at index+2 (temp was deleted, so now it's at index+1)
+  local new_instrument_index = original_instrument_index + 1
+  song:insert_instrument_at(new_instrument_index)
+  song.selected_instrument_index = new_instrument_index
+  
+  -- Apply Paketti default XRNI template (pakettification)
+  print("PakettiSlice: Applying Paketti default XRNI template...")
+  pakettiPreferencesDefaultInstrumentLoader()
+  
+  local new_instrument = song.instruments[new_instrument_index]
+  
+  -- Set instrument name AFTER pakettification (template may override it)
+  local original_name = instrument.name ~= "" and instrument.name or "Untitled"
+  new_instrument.name = original_name .. " (Rhythmic Slice Flow Truncate Kit)"
+  
+  print("========================================")
+  print(string.format("PakettiSlice: FINAL instrument created at index %d [%s] (Pakettified)", 
+    new_instrument_index, new_instrument.name))
+  print("========================================")
+  
+  -- Delete any default samples from the template
+  if #new_instrument.samples > 0 then
+    for i = #new_instrument.samples, 1, -1 do
+      new_instrument:delete_sample_at(i)
+    end
+    print("PakettiSlice: Cleared default template samples")
+  end
+  
+  -- Create the chained sample in new instrument
+  new_instrument:insert_sample_at(1)
+  local new_sample = new_instrument.samples[1]
+  new_sample.name = "Rhythmic Slice Chain"
+  
+  -- Create sample buffer with correct format
+  new_sample.sample_buffer:create_sample_data(
+    source_sample_rate,
+    source_bit_depth,
+    source_channels,
+    total_chain_frames
+  )
+  
+  -- Write chained data
+  print(string.format("PakettiSlice: Writing chained data - %d samples to process, %d channels, %d total frames", 
+    #processed_samples, source_channels, total_chain_frames))
+  local write_position = 1
+  for i, processed in ipairs(processed_samples) do
+    if processed and processed.data and processed.frames > 0 then
+      print(string.format("PakettiSlice: Writing sample %d: %d frames starting at position %d", 
+        i, processed.frames, write_position))
+      for frame = 1, processed.frames do
+        for ch = 1, source_channels do
+          local value = processed.data[ch][frame] or 0.0
+          new_sample.sample_buffer:set_sample_data(ch, write_position, value)
+        end
+        write_position = write_position + 1
+      end
+    else
+      print(string.format("PakettiSlice: Skipping sample %d (no data or 0 frames)", i))
+    end
+  end
+  print(string.format("PakettiSlice: Finished writing at position %d (expected %d)", 
+    write_position - 1, total_chain_frames))
+  
+  -- Apply slice markers
+  local markers_added = 0
+  for _, marker_position in ipairs(chain_slice_markers) do
+    if marker_position > 0 and marker_position < total_chain_frames then
+      new_sample:insert_slice_marker(marker_position)
+      markers_added = markers_added + 1
+      print(string.format("PakettiSlice: Added slice marker at position %d", marker_position))
+    else
+      print(string.format("PakettiSlice: Skipped invalid slice marker at position %d (total frames: %d)", 
+        marker_position, total_chain_frames))
+    end
+  end
+  
+  print(string.format("PakettiSlice: Created new instrument with %d slices (%d markers added)",
+    slice_count, markers_added))
+  
+  -- Select new instrument
+  song.selected_instrument_index = new_instrument_index
+  
+  -- Apply Paketti loader settings to the chained sample
+  print("PakettiSlice: Applying Paketti loader settings to chained sample...")
+  PakettiInjectApplyLoaderSettings(new_sample)
+  
+  -- Normalize slices if requested
+  if normalize_slices then
+    print("PakettiSlice: Normalizing slices independently...")
+    normalize_selected_sample_by_slices()
+  end
+  
+  renoise.app():show_status(string.format("Rhythmic slice chain created: %d samples loaded, %d slices, %.2fs total (Pakettified%s)",
+    slice_count, slice_count, total_chain_frames / source_sample_rate,
+    normalize_slices and ", normalized" or ""))
+end
+
+-- Create New Rhythmic Slice DrumChain from XRNI
+-- Takes slice timing from current instrument and applies it to slices from a loaded XRNI
+function PakettiSliceCreateRhythmicDrumChainFromXRNI(normalize_slices)
+  normalize_slices = normalize_slices or false
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  -- Check if we have a valid sliced instrument
+  if #instrument.samples == 0 then
+    renoise.app():show_status("No samples in current instrument")
+    return
+  end
+  
+  local first_sample = instrument.samples[1]
+  if not first_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("First sample has no data")
+    return
+  end
+  
+  if #first_sample.slice_markers == 0 then
+    renoise.app():show_status("First sample has no slice markers - not a sliced instrument")
+    return
+  end
+  
+  -- Get source sample properties
+  local source_buffer = first_sample.sample_buffer
+  local source_sample_rate = source_buffer.sample_rate
+  local source_bit_depth = source_buffer.bit_depth
+  local source_channels = source_buffer.number_of_channels
+  local total_frames = source_buffer.number_of_frames
+  
+  -- Calculate slice durations from source
+  local slice_markers = first_sample.slice_markers
+  local source_slice_count = #slice_markers
+  local slice_durations = {}
+  
+  print(string.format("PakettiSlice: Source instrument has %d slice markers (%d slices)", #slice_markers, source_slice_count))
+  print(string.format("PakettiSlice: Source format: %dHz, %d-bit, %d channels", 
+    source_sample_rate, source_bit_depth, source_channels))
+  
+  -- Calculate duration for each slice
+  -- Each marker marks the START of a slice
+  -- Slice i goes from marker[i] to marker[i+1] (or to end for last slice)
+  for i = 1, source_slice_count do
+    local slice_start = slice_markers[i]
+    local slice_end
+    
+    if i < source_slice_count then
+      -- Not the last slice: goes to next marker
+      slice_end = slice_markers[i + 1]
+    else
+      -- Last slice: goes to end of sample
+      slice_end = total_frames
+    end
+    
+    local duration = slice_end - slice_start
+    slice_durations[i] = duration
+    print(string.format("PakettiSlice: Source slice %d: marker[%d]=%d to %s=%d, duration=%d frames (%.3fs)", 
+      i, i, slice_start, 
+      (i < source_slice_count) and string.format("marker[%d]", i+1) or "end",
+      slice_end, duration, duration / source_sample_rate))
+  end
+  
+  -- Prompt user to load XRNI
+  renoise.app():show_status("Please select an XRNI file to load...")
+  
+  local xrni_filename = renoise.app():prompt_for_filename_to_read(
+    {"*.xrni"},
+    "Select XRNI with slices for rhythmic chain")
+  
+  if not xrni_filename or xrni_filename == "" then
+    renoise.app():show_status("Operation cancelled - no XRNI selected")
+    return
+  end
+  
+  print("PakettiSlice: Loading XRNI: " .. xrni_filename)
+  
+  -- Store original selection
+  local original_instrument_index = song.selected_instrument_index
+  
+  -- Load XRNI into temporary instrument
+  local temp_instrument_index = #song.instruments + 1
+  song:insert_instrument_at(temp_instrument_index)
+  song.selected_instrument_index = temp_instrument_index
+  
+  local load_success, load_error = pcall(function()
+    song.selected_instrument:load_from(xrni_filename)
+  end)
+  
+  if not load_success then
+    print("PakettiSlice: Failed to load XRNI: " .. tostring(load_error))
+    renoise.app():show_status("Failed to load XRNI: " .. tostring(load_error))
+    song:delete_instrument_at(temp_instrument_index)
+    song.selected_instrument_index = original_instrument_index
+    return
+  end
+  
+  local loaded_instrument = song.instruments[temp_instrument_index]
+  
+  -- Check if loaded instrument has slices
+  if #loaded_instrument.samples == 0 then
+    renoise.app():show_status("Loaded XRNI has no samples")
+    song:delete_instrument_at(temp_instrument_index)
+    song.selected_instrument_index = original_instrument_index
+    return
+  end
+  
+  local loaded_first_sample = loaded_instrument.samples[1]
+  if not loaded_first_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Loaded XRNI first sample has no data")
+    song:delete_instrument_at(temp_instrument_index)
+    song.selected_instrument_index = original_instrument_index
+    return
+  end
+  
+  if #loaded_first_sample.slice_markers == 0 then
+    renoise.app():show_status("Loaded XRNI has no slice markers")
+    song:delete_instrument_at(temp_instrument_index)
+    song.selected_instrument_index = original_instrument_index
+    return
+  end
+  
+  local loaded_slice_count = #loaded_first_sample.slice_markers
+  print(string.format("PakettiSlice: Loaded XRNI has %d slices", loaded_slice_count))
+  
+  -- Extract slices from loaded XRNI
+  local loaded_buffer = loaded_first_sample.sample_buffer
+  local loaded_slices = {}
+  
+  for i = 1, loaded_slice_count do
+    local slice_start = 1
+    local slice_end = loaded_buffer.number_of_frames
+    
+    if i == 1 then
+      slice_start = 1
+      slice_end = loaded_first_sample.slice_markers[1]
+    else
+      slice_start = loaded_first_sample.slice_markers[i - 1]
+      slice_end = loaded_first_sample.slice_markers[i]
+    end
+    
+    local slice_frames = slice_end - slice_start
+    local channel_data = {}
+    
+    for ch = 1, loaded_buffer.number_of_channels do
+      channel_data[ch] = {}
+      for frame = 1, slice_frames do
+        channel_data[ch][frame] = loaded_buffer:sample_data(ch, slice_start + frame - 1)
+      end
+    end
+    
+    loaded_slices[i] = {
+      data = channel_data,
+      frames = slice_frames,
+      channels = loaded_buffer.number_of_channels
+    }
+    
+    print(string.format("PakettiSlice: Extracted loaded slice %d: %d frames", i, slice_frames))
+  end
+  
+  -- Convert loaded slices to match source format if needed
+  print("PakettiSlice: Converting loaded slices to match source format...")
+  
+  for i, slice_data in ipairs(loaded_slices) do
+    -- Handle channel conversion
+    if slice_data.channels ~= source_channels then
+      print(string.format("PakettiSlice: Converting slice %d channels %d -> %d",
+        i, slice_data.channels, source_channels))
+      
+      local new_channel_data = {}
+      
+      if source_channels == 1 and slice_data.channels == 2 then
+        -- Stereo to mono
+        new_channel_data[1] = {}
+        for frame = 1, slice_data.frames do
+          local left = slice_data.data[1][frame]
+          local right = slice_data.data[2][frame]
+          new_channel_data[1][frame] = (left + right) * 0.5
+        end
+      elseif source_channels == 2 and slice_data.channels == 1 then
+        -- Mono to stereo
+        new_channel_data[1] = {}
+        new_channel_data[2] = {}
+        for frame = 1, slice_data.frames do
+          local mono_val = slice_data.data[1][frame]
+          new_channel_data[1][frame] = mono_val
+          new_channel_data[2][frame] = mono_val
+        end
+      end
+      
+      slice_data.data = new_channel_data
+      slice_data.channels = source_channels
+    end
+  end
+  
+  -- Clean up temp instrument
+  song:delete_instrument_at(temp_instrument_index)
+  song.selected_instrument_index = original_instrument_index
+  
+  -- Process slices: cycle through loaded slices to match source slice count
+  local processed_samples = {}
+  
+  for i = 1, source_slice_count do
+    -- Cycle through loaded slices
+    local loaded_slice_index = ((i - 1) % loaded_slice_count) + 1
+    local source_slice = loaded_slices[loaded_slice_index]
+    local target_duration = slice_durations[i]
+    
+    print(string.format("PakettiSlice: Processing source slice %d using loaded slice %d (target: %d frames)",
+      i, loaded_slice_index, target_duration))
+    
+    -- Extract and process slice data
+    local sample_frames = math.min(source_slice.frames, target_duration)
+    local channel_data = {}
+    
+    for ch = 1, source_channels do
+      channel_data[ch] = {}
+      for frame = 1, sample_frames do
+        local value = source_slice.data[ch][frame]
+        
+        -- Apply 10-frame fadeout at the end
+        if frame > sample_frames - 10 then
+          local fade_position = frame - (sample_frames - 10)
+          local fade_factor = 1.0 - (fade_position / 10.0)
+          value = value * fade_factor
+        end
+        
+        channel_data[ch][frame] = value
+      end
+      
+      -- Pad with silence if needed
+      for frame = sample_frames + 1, target_duration do
+        channel_data[ch][frame] = 0.0
+      end
+    end
+    
+    processed_samples[i] = {
+      data = channel_data,
+      frames = target_duration
+    }
+  end
+  
+  -- Calculate total chain length and slice marker positions
+  local total_chain_frames = 0
+  local chain_slice_markers = {}
+  
+  for i, processed in ipairs(processed_samples) do
+    total_chain_frames = total_chain_frames + processed.frames
+    if i < #processed_samples then
+      table.insert(chain_slice_markers, total_chain_frames)
+    end
+  end
+  
+  print(string.format("PakettiSlice: Total chain: %d frames with %d slice markers",
+    total_chain_frames, #chain_slice_markers))
+  
+  -- Create new instrument with chained sample
+  local new_instrument_index = original_instrument_index + 1
+  song:insert_instrument_at(new_instrument_index)
+  song.selected_instrument_index = new_instrument_index
+  
+  -- Apply Paketti default XRNI template (pakettification)
+  print("PakettiSlice: Applying Paketti default XRNI template...")
+  pakettiPreferencesDefaultInstrumentLoader()
+  
+  local new_instrument = song.instruments[new_instrument_index]
+  
+  -- Set instrument name AFTER pakettification (template may override it)
+  local original_name = instrument.name ~= "" and instrument.name or "Untitled"
+  new_instrument.name = original_name .. " (Rhythmic XRNI Flow Truncate Kit)"
+  
+  -- Delete any default samples from the template
+  if #new_instrument.samples > 0 then
+    for i = #new_instrument.samples, 1, -1 do
+      new_instrument:delete_sample_at(i)
+    end
+    print("PakettiSlice: Cleared default template samples")
+  end
+  
+  -- Create sample in new instrument
+  new_instrument:insert_sample_at(1)
+  local new_sample = new_instrument.samples[1]
+  new_sample.name = "XRNI Rhythmic Chain"
+  
+  -- Create sample buffer
+  new_sample.sample_buffer:create_sample_data(
+    source_sample_rate,
+    source_bit_depth,
+    source_channels,
+    total_chain_frames
+  )
+  
+  -- Write chained data
+  local write_position = 1
+  for i, processed in ipairs(processed_samples) do
+    for frame = 1, processed.frames do
+      for ch = 1, source_channels do
+        local value = processed.data[ch][frame] or 0.0
+        new_sample.sample_buffer:set_sample_data(ch, write_position, value)
+      end
+      write_position = write_position + 1
+    end
+  end
+  
+  -- Apply slice markers
+  local markers_added = 0
+  for _, marker_position in ipairs(chain_slice_markers) do
+    if marker_position > 0 and marker_position < total_chain_frames then
+      new_sample:insert_slice_marker(marker_position)
+      markers_added = markers_added + 1
+      print(string.format("PakettiSlice: Added slice marker at position %d", marker_position))
+    else
+      print(string.format("PakettiSlice: Skipped invalid slice marker at position %d (total frames: %d)", 
+        marker_position, total_chain_frames))
+    end
+  end
+  
+  print(string.format("PakettiSlice: Created new instrument with %d slices from XRNI (%d markers added)", 
+    source_slice_count, markers_added))
+  
+  -- Select new instrument
+  song.selected_instrument_index = new_instrument_index
+  
+  -- Apply Paketti loader settings to the chained sample
+  print("PakettiSlice: Applying Paketti loader settings to chained sample...")
+  PakettiInjectApplyLoaderSettings(new_sample)
+  
+  -- Normalize slices if requested
+  if normalize_slices then
+    print("PakettiSlice: Normalizing slices independently...")
+    normalize_selected_sample_by_slices()
+  end
+  
+  local status_msg = string.format("XRNI rhythmic chain created: %d slices from loaded XRNI (%d slices) (Pakettified", 
+    source_slice_count, loaded_slice_count)
+  if loaded_slice_count ~= source_slice_count then
+    status_msg = status_msg .. string.format(" - cycled %dx", math.ceil(source_slice_count / loaded_slice_count))
+  end
+  if normalize_slices then
+    status_msg = status_msg .. ", normalized"
+  end
+  status_msg = status_msg .. ")"
+  renoise.app():show_status(status_msg)
+end
+
+-- Menu entries and keybindings for Rhythmic Slice DrumChain (without normalize)
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
+renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
+
+-- Menu entries and keybindings for Rhythmic Slice DrumChain (with normalize)
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChain(true) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChain(true) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChain(true) end}
+renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChain(true) end}
+
+-- Menu entries and keybindings for Rhythmic Slice DrumChain from XRNI (without normalize)
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain from XRNI",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(false) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain from XRNI",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(false) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain from XRNI",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(false) end}
+renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain from XRNI",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(false) end}
+
+-- Menu entries and keybindings for Rhythmic Slice DrumChain from XRNI (with normalize)
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain from XRNI (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(true) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain from XRNI (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(true) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain from XRNI (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(true) end}
+renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain from XRNI (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(true) end}

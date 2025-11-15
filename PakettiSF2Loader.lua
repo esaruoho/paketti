@@ -468,7 +468,7 @@ local function is_instrument_empty(instrument)
   return true
 end
 
-local function import_sf2(file_path)
+function import_sf2(file_path)
   -- Create a ProcessSlicer to handle the import
   local slicer = nil
   
@@ -1154,7 +1154,7 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
 end
 
 
-local function import_sf2_multitimbral(filepath)
+function import_sf2_multitimbral(filepath)
   renoise.app():show_error("Multitimbral import not implemented.")
   return false
 end
