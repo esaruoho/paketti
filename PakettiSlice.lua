@@ -2718,6 +2718,10 @@ function PakettiSliceCreateRhythmicDrumChain(normalize_slices)
     -- Set instrument name AFTER pakettification (template may override it)
     local original_instrument = song.instruments[original_instrument_index]
     local original_name = original_instrument.name ~= "" and original_instrument.name or "Untitled"
+    
+    -- Strip any existing rhythmic suffix from original name to prevent flooding
+    original_name = original_name:gsub(" %(.+[Rr]hythmic.+%)$", "")
+    
     new_instrument.name = original_name .. " (Rhythmic Slice Flow Truncate Kit)"
     
     print("========================================")
@@ -3412,6 +3416,10 @@ function PakettiSliceCreateRhythmicDrumChainRandomize(normalize_slices)
     -- Set instrument name at the VERY END (after all processing)
     local original_instrument = song.instruments[original_instrument_index]
     local original_name = original_instrument.name ~= "" and original_instrument.name or "Untitled"
+    
+    -- Strip any existing rhythmic suffix from original name to prevent flooding
+    original_name = original_name:gsub(" %(.+[Rr]hythmic.+%)$", "")
+    
     new_instrument.name = original_name .. " (Rhythmic Slice Flow Truncate Kit) (Randomize)"
     
     print(string.format("PakettiSlice: Set instrument name to: %s", new_instrument.name))
@@ -3770,7 +3778,13 @@ function PakettiSliceCreateRhythmicDrumChainFromXRNI(normalize_slices)
   
   -- Set instrument name at the VERY END (after all processing)
   local original_name = instrument.name ~= "" and instrument.name or "Untitled"
-  new_instrument.name = original_name .. " (Rhythmic XRNI Flow Truncate Kit)"
+  local xrni_name = loaded_instrument.name ~= "" and loaded_instrument.name or "Unknown"
+  
+  -- Strip any existing rhythmic suffix from original name to prevent flooding
+  original_name = original_name:gsub(" %(.+rhythmic.+%)$", "")
+  original_name = original_name:gsub(" %(.+XRNI.+%)$", "")
+  
+  new_instrument.name = string.format("%s (%s rhythmic slice)", original_name, xrni_name)
   
   print(string.format("PakettiSlice: Set instrument name to: %s", new_instrument.name))
   

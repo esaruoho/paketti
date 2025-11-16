@@ -513,7 +513,7 @@ renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase 
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Reversed, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed", true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("copied", true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (PingPong, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong", true) end}
-renoise.tool():add_menu_entry{name="--File:Import:Octatrack Bank (.strd/.work)...",invoke=function() PakettiOTSTRDImporter() end}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Import:Octatrack Bank (.strd/.work)...",invoke=function() PakettiOTSTRDImporter() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Octatrack:Import STRD Bank...",invoke=function() PakettiOTSTRDImporter() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Horizontal...", invoke = show_mini_cheatsheet}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Vertical...", invoke = show_mini_cheatsheet_vertical}
@@ -791,8 +791,8 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
 renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
 renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Xperimental/WIP:Metric Modulation:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Paketti MIDI Mappings (Dynamic)...",invoke = function() pakettiMIDIMappingsDialog() end}
@@ -2541,15 +2541,14 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File For
     if f and f ~= "" then import_sf2(f) end
   end
 }
-
+--[[
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import .SF2 (Multitimbral)",
   invoke=function()
     local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import (multitimbral)")
     if f and f ~= "" then import_sf2_multitimbral(f) end
   end
 }
-
-
+]]--
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Reset All Steppers",invoke = ResetAllSteppers}

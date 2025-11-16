@@ -2,14 +2,14 @@
 -- SF2 Importer with Detailed Debugging of Panning, Transpose, Fine-Tune, and Key Ranges
 --------------------------------------------------------------------------------
 local _DEBUG = true
-local function dprint(...)
+function PakettiSF2Dprint(...)
   if _DEBUG then
     print("SF2 Tool:", ...)
   end
 end
 
 -- Convert a 16-bit unsigned generator value to a signed integer (-120..120)
-local function to_signed(val)
+function PakettiSF2ToSigned(val)
   val = val % 65536
   if val >= 32768 then
     local neg = val - 65536
@@ -76,7 +76,7 @@ local SF2_PARAM_NAMES = {
 }
 
 -- Format generator values for debug printing
-local function format_param_value(param_id, value)
+function PakettiSF2FormatParamValue(param_id, value)
     if param_id == 43 then -- KeyRange
         local low = value % 256
         local high = math.floor(value / 256) % 256
@@ -89,7 +89,7 @@ local function format_param_value(param_id, value)
         local modes = {"None", "Loop", "LoopBidi"}
         return modes[value+1] or "Unknown"
     elseif param_id == 17 then
-        return tostring(to_signed(value))
+        return tostring(PakettiSF2ToSigned(value))
     elseif param_id == 51 or param_id == 52 then
         return tostring((value>=32768) and (value-65536) or value)
     else
@@ -98,65 +98,65 @@ local function format_param_value(param_id, value)
 end
 
 -- Basic binary readers and utils
-local function trim_string(s) return s:gsub("\0","") end
+function PakettiSF2TrimString(s) return s:gsub("\0","") end
 
-local function read_u16_le(data,pos) 
+function PakettiSF2ReadU16LE(data,pos) 
   if not data or not pos or pos < 1 or pos + 1 > #data then return nil end
   return data:byte(pos) + data:byte(pos+1)*256 
 end
 
-local function read_u32_le(data,pos) 
+function PakettiSF2ReadU32LE(data,pos) 
   if not data or not pos or pos < 1 or pos + 3 > #data then return nil end
   return data:byte(pos) + data:byte(pos+1)*256 + data:byte(pos+2)*65536 + data:byte(pos+3)*16777216 
 end
 
-local function read_s16_le(data,pos) 
-  local v = read_u16_le(data,pos) 
+function PakettiSF2ReadS16LE(data,pos) 
+  local v = PakettiSF2ReadU16LE(data,pos) 
   if not v then return nil end
   return v>=32768 and v-65536 or v 
 end
 
-local function clamp(v,minv,maxv) if v<minv then return minv elseif v>maxv then return maxv else return v end end
+function PakettiSF2Clamp(v,minv,maxv) if v<minv then return minv elseif v>maxv then return maxv else return v end end
 
 -- Clamp note values to valid Renoise range (0-119)
-local function clamp_note(note)
+function PakettiSF2ClampNote(note)
   return math.min(119, math.max(0, note))
 end
 
 -- Read sample headers
-local function read_sample_headers(data)
+function PakettiSF2ReadSampleHeaders(data)
   local pos = data:find("shdr",1,true)
   if not pos then return renoise.app():show_error("Missing shdr chunk") end
-  local size = read_u32_le(data,pos+4)
+  local size = PakettiSF2ReadU32LE(data,pos+4)
   local p = pos+8
   local rec = 46
   local hdrs={}
   while p+rec-1 <= pos+7+size do
     local name=data:sub(p,p+19); p=p+20
-    local s_start=read_u32_le(data,p);p=p+4
-    local s_end=read_u32_le(data,p);p=p+4
-    local loop_start=read_u32_le(data,p);p=p+4
-    local loop_end=read_u32_le(data,p);p=p+4
-    local rate=read_u32_le(data,p);p=p+4
+    local s_start=PakettiSF2ReadU32LE(data,p);p=p+4
+    local s_end=PakettiSF2ReadU32LE(data,p);p=p+4
+    local loop_start=PakettiSF2ReadU32LE(data,p);p=p+4
+    local loop_end=PakettiSF2ReadU32LE(data,p);p=p+4
+    local rate=PakettiSF2ReadU32LE(data,p);p=p+4
     local pitch=data:byte(p);p=p+1
     local corr=data:byte(p);p=p+1;if corr>=128 then corr=corr-256 end
-    local link=read_u16_le(data,p);p=p+2
-    local stype=read_u16_le(data,p);p=p+2
-    local n=trim_string(name)
+    local link=PakettiSF2ReadU16LE(data,p);p=p+2
+    local stype=PakettiSF2ReadU16LE(data,p);p=p+2
+    local n=PakettiSF2TrimString(name)
     if n:find("EOS") then break end
     table.insert(hdrs,{name=n,s_start=s_start,s_end=s_end,loop_start=loop_start,loop_end=loop_end,sample_rate=rate,orig_pitch=pitch,pitch_corr=corr,sample_link=link,sample_type=stype})
   end
-  dprint("Sample headers:",#hdrs)
+  PakettiSF2Dprint("Sample headers:",#hdrs)
   return hdrs
 end
 
 -- Parse instruments and their zones
-local function read_instruments(data, slicer)
+function PakettiSF2ReadInstruments(data, slicer)
   local pdta=data:find("pdta",1,true)
   if not pdta then return {} end
   local inst=data:find("inst",pdta+8,true)
   if not inst then return {} end
-  local n=read_u32_le(data,inst+4)
+  local n=PakettiSF2ReadU32LE(data,inst+4)
   local p=inst+8
   local instruments={}
   local instrument_count = 0
@@ -167,8 +167,8 @@ local function read_instruments(data, slicer)
   while p+21 <= inst+7+n do
     if slicer and slicer:was_cancelled() then return {} end
     
-    local name=trim_string(data:sub(p,p+19))
-    local bag=read_u16_le(data,p+20)
+    local name=PakettiSF2TrimString(data:sub(p,p+19))
+    local bag=PakettiSF2ReadU16LE(data,p+20)
     table.insert(instruments,{name=name,bag_index=bag})
     p=p+22
     
@@ -182,13 +182,13 @@ local function read_instruments(data, slicer)
   end
   -- ibag
   local ibag=data:find("ibag",pdta+8,true)
-  local ibag_n=read_u32_le(data,ibag+4)
+  local ibag_n=PakettiSF2ReadU32LE(data,ibag+4)
   local bpos=ibag+8
   local ibags={}
   while bpos+3 <= ibag+7+ibag_n do
     if slicer and slicer:was_cancelled() then return {} end
     
-    table.insert(ibags,{gen_index=read_u16_le(data,bpos),mod_index=read_u16_le(data,bpos+2)})
+    table.insert(ibags,{gen_index=PakettiSF2ReadU16LE(data,bpos),mod_index=PakettiSF2ReadU16LE(data,bpos+2)})
     bpos=bpos+4
     
     -- Yield every 100 entries to keep UI responsive
@@ -196,13 +196,13 @@ local function read_instruments(data, slicer)
   end
   -- igen
   local igen=data:find("igen",pdta+8,true)
-  local igen_n=read_u32_le(data,igen+4)
+  local igen_n=PakettiSF2ReadU32LE(data,igen+4)
   local gpos=igen+8
   local gens={}
   while gpos+3 <= igen+7+igen_n do
     if slicer and slicer:was_cancelled() then return {} end
     
-    table.insert(gens,{op=read_u16_le(data,gpos),amount=read_u16_le(data,gpos+2)})
+    table.insert(gens,{op=PakettiSF2ReadU16LE(data,gpos),amount=PakettiSF2ReadU16LE(data,gpos+2)})
     gpos=gpos+4
     
     -- Yield every 100 entries to keep UI responsive
@@ -228,7 +228,7 @@ local function read_instruments(data, slicer)
         
         local g=gens[gi]
         params[g.op]=g.amount
-        dprint("Inst param",g.op,format_param_value(g.op,g.amount))
+        PakettiSF2Dprint("Inst param",g.op,PakettiSF2FormatParamValue(g.op,g.amount))
         
         -- Yield every 100 entries to keep UI responsive
         if slicer and (gi % 100 == 0) then coroutine.yield() end
@@ -237,13 +237,13 @@ local function read_instruments(data, slicer)
       -- key range
       if params[43] then
         local kr=params[43]
-        zone.key_range={low=clamp(kr%256,0,119),high=clamp(math.floor(kr/256)%256,0,119)}
+        zone.key_range={low=PakettiSF2Clamp(kr%256,0,119),high=PakettiSF2Clamp(math.floor(kr/256)%256,0,119)}
       end
       -- velocity range
       if params[44] then
         local vr=params[44]
-        zone.vel_range={low=clamp(vr%256,1,127),high=clamp(math.floor(vr/256)%256,1,127)}
-        dprint("VelRange for zone",zone.vel_range.low.."-"..zone.vel_range.high)
+        zone.vel_range={low=PakettiSF2Clamp(vr%256,1,127),high=PakettiSF2Clamp(math.floor(vr/256)%256,1,127)}
+        PakettiSF2Dprint("VelRange for zone",zone.vel_range.low.."-"..zone.vel_range.high)
       end
       -- sample ID
       if params[53] then zone.sample_id=params[53] end
@@ -255,18 +255,70 @@ local function read_instruments(data, slicer)
     
     if slicer then coroutine.yield() end
   end
-  dprint("Parsed instruments:",#result)
+  PakettiSF2Dprint("Parsed instruments:",#result)
   return result
 end
 
-local function read_presets(data, slicer)
+-- Helper function to read PBAG chunk
+function PakettiSF2ReadPbag(data, start_pos, slicer)
+  local pbag_pos = data:find("pbag", start_pos, true)
+  if not pbag_pos then
+    print("No pbag chunk found.")
+    return {}
+  end
+  local pbag_size = PakettiSF2ReadU32LE(data, pbag_pos + 4)
+  local pbag_data_start = pbag_pos + 8
+  local record_size = 4
+  local pbag_list = {}
+  local pos = pbag_data_start
+  while (pos + record_size -1) <= (pbag_data_start + pbag_size -1) do
+    if slicer and slicer:was_cancelled() then return {} end
+    
+    local pgen_idx = PakettiSF2ReadU16LE(data, pos)
+    local pmod_idx = PakettiSF2ReadU16LE(data, pos+2)
+    pbag_list[#pbag_list + 1] = { pgen_index = pgen_idx, pmod_index = pmod_idx }
+    pos = pos + record_size
+    
+    -- Yield every 100 entries to keep UI responsive
+    if slicer and (#pbag_list % 100 == 0) then coroutine.yield() end
+  end
+  return pbag_list
+end
+
+-- Helper function to read PGEN chunk
+function PakettiSF2ReadPgen(data, start_pos, slicer)
+  local pgen_pos = data:find("pgen", start_pos, true)
+  if not pgen_pos then
+    print("No pgen chunk found.")
+    return {}
+  end
+  local pgen_size = PakettiSF2ReadU32LE(data, pgen_pos + 4)
+  local pgen_data_start = pgen_pos + 8
+  local record_size = 4
+  local pgen_list = {}
+  local pos = pgen_data_start
+  while (pos + record_size -1) <= (pgen_data_start + pgen_size -1) do
+    if slicer and slicer:was_cancelled() then return {} end
+    
+    local op = PakettiSF2ReadU16LE(data, pos)
+    local amount = PakettiSF2ReadU16LE(data, pos+2)
+    pgen_list[#pgen_list + 1] = { op = op, amount = amount }
+    pos = pos + record_size
+    
+    -- Yield every 100 entries to keep UI responsive
+    if slicer and (#pgen_list % 100 == 0) then coroutine.yield() end
+  end
+  return pgen_list
+end
+
+function PakettiSF2ReadPresets(data, slicer)
   local phdr_pos = data:find("phdr", 1, true)
   if not phdr_pos then
     print("No phdr chunk found.")
     return {}
   end
 
-  local phdr_size = read_u32_le(data, phdr_pos + 4)
+  local phdr_size = PakettiSF2ReadU32LE(data, phdr_pos + 4)
   local phdr_data_start = phdr_pos + 8
   local phdr_record_size = 38
   local presets = {}
@@ -279,10 +331,10 @@ local function read_presets(data, slicer)
   while (pos + phdr_record_size -1) <= (phdr_data_start + phdr_size -1) do
     if slicer and slicer:was_cancelled() then return {} end
     
-    local preset_name = trim_string(data:sub(pos, pos+19))
-    local preset = read_u16_le(data, pos+20)
-    local bank = read_u16_le(data, pos+22)
-    local pbag_idx = read_u16_le(data, pos+24)
+    local preset_name = PakettiSF2TrimString(data:sub(pos, pos+19))
+    local preset = PakettiSF2ReadU16LE(data, pos+20)
+    local bank = PakettiSF2ReadU16LE(data, pos+22)
+    local pbag_idx = PakettiSF2ReadU16LE(data, pos+24)
     if preset_name:find("EOP") then break end
     presets[#presets + 1] = {
       name = preset_name,
@@ -309,58 +361,8 @@ local function read_presets(data, slicer)
     return presets
   end
 
-  local function read_pbag(data, start_pos)
-    local pbag_pos = data:find("pbag", start_pos, true)
-    if not pbag_pos then
-      print("No pbag chunk found.")
-      return {}
-    end
-    local pbag_size = read_u32_le(data, pbag_pos + 4)
-    local pbag_data_start = pbag_pos + 8
-    local record_size = 4
-    local pbag_list = {}
-    local pos = pbag_data_start
-    while (pos + record_size -1) <= (pbag_data_start + pbag_size -1) do
-      if slicer and slicer:was_cancelled() then return {} end
-      
-      local pgen_idx = read_u16_le(data, pos)
-      local pmod_idx = read_u16_le(data, pos+2)
-      pbag_list[#pbag_list + 1] = { pgen_index = pgen_idx, pmod_index = pmod_idx }
-      pos = pos + record_size
-      
-      -- Yield every 100 entries to keep UI responsive
-      if slicer and (#pbag_list % 100 == 0) then coroutine.yield() end
-    end
-    return pbag_list
-  end
-
-  local function read_pgen(data, start_pos)
-    local pgen_pos = data:find("pgen", start_pos, true)
-    if not pgen_pos then
-      print("No pgen chunk found.")
-      return {}
-    end
-    local pgen_size = read_u32_le(data, pgen_pos + 4)
-    local pgen_data_start = pgen_pos + 8
-    local record_size = 4
-    local pgen_list = {}
-    local pos = pgen_data_start
-    while (pos + record_size -1) <= (pgen_data_start + pgen_size -1) do
-      if slicer and slicer:was_cancelled() then return {} end
-      
-      local op = read_u16_le(data, pos)
-      local amount = read_u16_le(data, pos+2)
-      pgen_list[#pgen_list + 1] = { op = op, amount = amount }
-      pos = pos + record_size
-      
-      -- Yield every 100 entries to keep UI responsive
-      if slicer and (#pgen_list % 100 == 0) then coroutine.yield() end
-    end
-    return pgen_list
-  end
-
-  local pbag = read_pbag(data, pdta_pos + 8)
-  local pgen = read_pgen(data, pdta_pos + 8)
+  local pbag = PakettiSF2ReadPbag(data, pdta_pos + 8, slicer)
+  local pgen = PakettiSF2ReadPgen(data, pdta_pos + 8, slicer)
   if (#pbag == 0) or (#pgen == 0) then
     print("No PBAG/PGEN data; returning basic presets only.")
     return presets
@@ -454,7 +456,7 @@ local function read_presets(data, slicer)
 end
 
 -- Helper function to check if an instrument is truly empty
-local function is_instrument_empty(instrument)
+function PakettiSF2IsInstrumentEmpty(instrument)
   -- Check if it has any samples
   if #instrument.samples > 0 then return false end
   
@@ -466,6 +468,67 @@ local function is_instrument_empty(instrument)
   
   -- If we got here, the instrument is empty
   return true
+end
+
+-- Helper function to convert timecents to seconds
+function PakettiSF2TimecentToSeconds(timecents)
+    if timecents then
+        -- Convert unsigned to signed if needed
+        if timecents >= 32768 then 
+            timecents = timecents - 65536
+        end
+        -- Convert timecents to seconds: seconds = 2^(timecents/1200)
+        return 2^(timecents/1200)
+    end
+    return nil
+end
+
+-- Helper function to convert sustain centibels to 0-1 range
+function PakettiSF2SustainCbToLevel(centibels)
+    if centibels then
+        -- Convert centibels to decibels (divide by 10)
+        local db = centibels / 10
+        -- Convert dB to linear (0-1) scale
+        return math.min(1, math.max(0, math.db2lin(db)))
+    end
+    return nil
+end
+
+-- Helper function to map envelope time to Renoise parameter range (0-1)
+function PakettiSF2MapEnvelopeTime(seconds)
+    if not seconds then return nil end
+    -- Renoise's envelope time parameters are mapped 0-1 to 0-20 seconds
+    return math.min(1, math.max(0, seconds / 20))
+end
+
+-- Helper function to find or create Volume AHDSR device
+function PakettiSF2SetupVolumeAhdsrDevice(instrument, sample_index)
+    -- Ensure we have a modulation set
+    if #instrument.sample_modulation_sets == 0 then
+        instrument:insert_sample_modulation_set_at(1)
+    end
+    
+    -- Get the modulation set for this sample
+    local mod_set_index = instrument.samples[sample_index].modulation_set_index
+    local mod_set = instrument.sample_modulation_sets[mod_set_index]
+    
+    -- Find existing Volume AHDSR device or create new one
+    local ahdsr_device = nil
+    for _, device in ipairs(mod_set.devices) do
+        if device.name == "Volume AHDSR" then
+            ahdsr_device = device
+            break
+        end
+    end
+    
+    if not ahdsr_device then
+        -- Create new Volume AHDSR device
+        local device_index = #mod_set.devices + 1
+        mod_set:insert_device_at("Volume AHDSR", device_index)
+        ahdsr_device = mod_set.devices[device_index]
+    end
+    
+    return ahdsr_device
 end
 
 function import_sf2(file_path)
@@ -503,7 +566,7 @@ function import_sf2(file_path)
     if vb then vb.views.progress_text.text="Reading sample headers..." end
     coroutine.yield()
     
-    local headers = read_sample_headers(data)
+    local headers = PakettiSF2ReadSampleHeaders(data)
     if not headers or #headers == 0 then
       renoise.app():show_error("No sample headers found in SF2.")
       return false
@@ -512,12 +575,12 @@ function import_sf2(file_path)
     if vb then vb.views.progress_text.text="Reading instruments..." end
     coroutine.yield()
     
-    local instruments_zones = read_instruments(data, slicer)
+    local instruments_zones = PakettiSF2ReadInstruments(data, slicer)
     
     if vb then vb.views.progress_text.text="Reading presets..." end
     coroutine.yield()
     
-    local presets = read_presets(data, slicer)
+    local presets = PakettiSF2ReadPresets(data, slicer)
     if #presets == 0 then
       renoise.app():show_error("No presets found in SF2.")
       return false
@@ -630,7 +693,7 @@ function import_sf2(file_path)
     
     -- First count how many empty slots we have
     for i = 1, #song.instruments do
-      if is_instrument_empty(song.instruments[i]) then
+      if PakettiSF2IsInstrumentEmpty(song.instruments[i]) then
         empty_slots = empty_slots + 1
       end
     end
@@ -669,7 +732,7 @@ function import_sf2(file_path)
       local empty_slot_found = false
       if #song.instruments < max_instruments then
         for i = 1, #song.instruments do
-          if is_instrument_empty(song.instruments[i]) then
+          if PakettiSF2IsInstrumentEmpty(song.instruments[i]) then
             song.selected_instrument_index = i
             empty_slot_found = true
             break
@@ -741,8 +804,8 @@ function import_sf2(file_path)
             for f_i = hdr.s_start + 1, hdr.s_end do
               local offset = smpl_data_start + (f_i - 1) * 4
               if offset + 3 <= #data then
-                local left_val  = read_s16_le(data, offset)
-                local right_val = read_s16_le(data, offset + 2)
+                local left_val  = PakettiSF2ReadS16LE(data, offset)
+                local right_val = PakettiSF2ReadS16LE(data, offset + 2)
                 sample_data[#sample_data+1] = { left = left_val/32768.0, right = right_val/32768.0 }
               end
               -- Yield every 100,000 frames
@@ -752,7 +815,7 @@ function import_sf2(file_path)
             for f_i = hdr.s_start + 1, hdr.s_end do
               local offset = smpl_data_start + (f_i - 1) * 2
               if offset + 1 <= #data then
-                local raw_val = read_s16_le(data, offset)
+                local raw_val = PakettiSF2ReadS16LE(data, offset)
                 sample_data[#sample_data+1] = raw_val / 32768.0
               end
               -- Yield every 100,000 frames
@@ -819,13 +882,13 @@ function import_sf2(file_path)
             print("  Instrument zone params:")
             for k,v in pairs(inst_zone_params) do
                 local param_name = SF2_PARAM_NAMES[k] or "Unknown"
-                local formatted_value = format_param_value(k, v)
+                local formatted_value = PakettiSF2FormatParamValue(k, v)
                 print(string.format("    [%d:%s] = %s", k, param_name, formatted_value))
             end
             print("  Preset zone params:")
             for k,v in pairs(zone_params) do
                 local param_name = SF2_PARAM_NAMES[k] or "Unknown"
-                local formatted_value = format_param_value(k, v)
+                local formatted_value = PakettiSF2FormatParamValue(k, v)
                 print(string.format("    [%d:%s] = %s", k, param_name, formatted_value))
             end
 
@@ -868,14 +931,14 @@ function import_sf2(file_path)
             end
 
             -- Clamp tuning values to valid ranges
-            coarse_tune = clamp(coarse_tune, -120, 120)
-            fine_tune = clamp(fine_tune, -100, 100)
+            coarse_tune = PakettiSF2Clamp(coarse_tune, -120, 120)
+            fine_tune = PakettiSF2Clamp(fine_tune, -100, 100)
 
             -- Pan (SF2 range -120..120 maps proportionally to Renoise 0..1)
             local raw_pan = inst_zone_params[17] or zone_params[17] or map.fallback_params[17]
             if raw_pan ~= nil then
                 -- Get signed value already scaled to -120..120
-                local pan_val = to_signed(raw_pan)
+                local pan_val = PakettiSF2ToSigned(raw_pan)
                 -- Convert to 0..1 range proportionally
                 local pan_norm = 0.5 + (pan_val / 120) * 0.5
                 reno_smp.panning = pan_norm
@@ -963,7 +1026,7 @@ function import_sf2(file_path)
             local override_root_key = inst_zone_params[58] or zone_params[58]
             if override_root_key then
                 base_note = override_root_key
-                dprint("Using OverridingRootKey:", override_root_key, "instead of original pitch:", hdr.orig_pitch)
+                PakettiSF2Dprint("Using OverridingRootKey:", override_root_key, "instead of original pitch:", hdr.orig_pitch)
             end
             
             -- Clamp base_note to valid range (0-108, where 108 is C-9)
@@ -972,8 +1035,8 @@ function import_sf2(file_path)
 
             if zone_key_range then
                 -- Clamp key range to valid range (0-119)
-                local low = clamp_note(zone_key_range.low)
-                local high = clamp_note(zone_key_range.high)
+                local low = PakettiSF2ClampNote(zone_key_range.low)
+                local high = PakettiSF2ClampNote(zone_key_range.high)
                 reno_smp.sample_mapping.note_range = { low, high }
                 -- Apply velocity range: instrument zone overrides preset zone, defaults to full 1–127
 local vel_low, vel_high = 1, 127
@@ -989,8 +1052,8 @@ end
 
 if vr then
   -- low byte = low, high byte = high
-  vel_low  = clamp(vr % 256,  1, 127)
-  vel_high = clamp(math.floor(vr/256) % 256, 1, 127)
+  vel_low  = PakettiSF2Clamp(vr % 256,  1, 127)
+  vel_high = PakettiSF2Clamp(math.floor(vr/256) % 256, 1, 127)
 end
 
 reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
@@ -999,7 +1062,7 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
             else
                 if is_drumkit then
                     -- For drumkits, clamp the base note
-                    local clamped_base = clamp_note(base_note)
+                    local clamped_base = PakettiSF2ClampNote(base_note)
                     reno_smp.sample_mapping.note_range = { clamped_base, clamped_base }
                 else
                     reno_smp.sample_mapping.note_range = { 0, 119 }
@@ -1021,7 +1084,7 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
                   ", length=" .. loop_length)
 
             print("PANNING DEBUG for " .. hdr.name .. ": source=" .. (raw_pan and "instrument" or "preset") .. 
-                  ", value=" .. (raw_pan and to_signed(raw_pan) or 0))
+                  ", value=" .. (raw_pan and PakettiSF2ToSigned(raw_pan) or 0))
 
             -- Apply all values to the sample
             reno_smp.transpose = coarse_tune
@@ -1037,61 +1100,61 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
 
             if vol_attack or vol_hold or vol_decay or vol_sustain or vol_release then
                 has_envelope_params = true
-                dprint("Applying SF2 volume envelope to sample:", reno_smp.name)
+                PakettiSF2Dprint("Applying SF2 volume envelope to sample:", reno_smp.name)
                 
                 -- Get or create Volume AHDSR device for this sample
-                local ahdsr_device = setup_volume_ahdsr_device(r_inst, sample_slot)
+                local ahdsr_device = PakettiSF2SetupVolumeAhdsrDevice(r_inst, sample_slot)
                 
                 if ahdsr_device then
                     -- Convert and apply envelope parameters
                     if vol_attack then
-                        local attack_seconds = timecents_to_seconds(vol_attack)
+                        local attack_seconds = PakettiSF2TimecentToSeconds(vol_attack)
                         if attack_seconds then
-                            local attack_param = map_envelope_time(attack_seconds)
+                            local attack_param = PakettiSF2MapEnvelopeTime(attack_seconds)
                             if attack_param then
                                 ahdsr_device.parameters[2].value = attack_param -- Attack parameter
-                                dprint("  Attack:", vol_attack, "->", attack_seconds, "s ->", attack_param)
+                                PakettiSF2Dprint("  Attack:", vol_attack, "->", attack_seconds, "s ->", attack_param)
                             end
                         end
                     end
                     
                     if vol_hold then
-                        local hold_seconds = timecents_to_seconds(vol_hold)
+                        local hold_seconds = PakettiSF2TimecentToSeconds(vol_hold)
                         if hold_seconds then
-                            local hold_param = map_envelope_time(hold_seconds)
+                            local hold_param = PakettiSF2MapEnvelopeTime(hold_seconds)
                             if hold_param then
                                 ahdsr_device.parameters[3].value = hold_param -- Hold parameter
-                                dprint("  Hold:", vol_hold, "->", hold_seconds, "s ->", hold_param)
+                                PakettiSF2Dprint("  Hold:", vol_hold, "->", hold_seconds, "s ->", hold_param)
                             end
                         end
                     end
                     
                     if vol_decay then
-                        local decay_seconds = timecents_to_seconds(vol_decay)
+                        local decay_seconds = PakettiSF2TimecentToSeconds(vol_decay)
                         if decay_seconds then
-                            local decay_param = map_envelope_time(decay_seconds)
+                            local decay_param = PakettiSF2MapEnvelopeTime(decay_seconds)
                             if decay_param then
                                 ahdsr_device.parameters[4].value = decay_param -- Decay parameter
-                                dprint("  Decay:", vol_decay, "->", decay_seconds, "s ->", decay_param)
+                                PakettiSF2Dprint("  Decay:", vol_decay, "->", decay_seconds, "s ->", decay_param)
                             end
                         end
                     end
                     
                     if vol_sustain then
-                        local sustain_level = sustain_cb_to_level(vol_sustain)
+                        local sustain_level = PakettiSF2SustainCbToLevel(vol_sustain)
                         if sustain_level then
                             ahdsr_device.parameters[5].value = sustain_level -- Sustain parameter
-                            dprint("  Sustain:", vol_sustain, "cB ->", sustain_level)
+                            PakettiSF2Dprint("  Sustain:", vol_sustain, "cB ->", sustain_level)
                         end
                     end
                     
                     if vol_release then
-                        local release_seconds = timecents_to_seconds(vol_release)
+                        local release_seconds = PakettiSF2TimecentToSeconds(vol_release)
                         if release_seconds then
-                            local release_param = map_envelope_time(release_seconds)
+                            local release_param = PakettiSF2MapEnvelopeTime(release_seconds)
                             if release_param then
                                 ahdsr_device.parameters[6].value = release_param -- Release parameter
-                                dprint("  Release:", vol_release, "->", release_seconds, "s ->", release_param)
+                                PakettiSF2Dprint("  Release:", vol_release, "->", release_seconds, "s ->", release_param)
                             end
                         end
                     end
@@ -1123,7 +1186,7 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
         end
         for i_smp=1, #r_inst.samples do
           local s = r_inst.samples[i_smp]
-          local note = clamp_note(i_smp - 1)  -- Clamp the note value
+          local note = PakettiSF2ClampNote(i_smp - 1)  -- Clamp the note value
           s.sample_mapping.note_range = { note, note }
           s.sample_mapping.base_note  = note
         end
@@ -1172,71 +1235,6 @@ local hook = {
 
 if not renoise.tool():has_file_import_hook("sample", {"sf2"}) then
   renoise.tool():add_file_import_hook(hook)
-end
-
-
-
-
-
--- Helper function to find or create Volume AHDSR device
-local function setup_volume_ahdsr_device(instrument, sample_index)
-    -- Ensure we have a modulation set
-    if #instrument.sample_modulation_sets == 0 then
-        instrument:insert_sample_modulation_set_at(1)
-    end
-    
-    -- Get the modulation set for this sample
-    local mod_set_index = instrument.samples[sample_index].modulation_set_index
-    local mod_set = instrument.sample_modulation_sets[mod_set_index]
-    
-    -- Find existing Volume AHDSR device or create new one
-    local ahdsr_device = nil
-    for _, device in ipairs(mod_set.devices) do
-        if device.name == "Volume AHDSR" then
-            ahdsr_device = device
-            break
-        end
-    end
-    
-    if not ahdsr_device then
-        -- Create new Volume AHDSR device
-        local device_index = #mod_set.devices + 1
-        mod_set:insert_device_at("Volume AHDSR", device_index)
-        ahdsr_device = mod_set.devices[device_index]
-    end
-    
-    return ahdsr_device
-end
-
--- Helper function to convert timecents to seconds
-local function timecents_to_seconds(timecents)
-    if timecents then
-        -- Convert unsigned to signed if needed
-        if timecents >= 32768 then 
-            timecents = timecents - 65536
-        end
-        -- Convert timecents to seconds: seconds = 2^(timecents/1200)
-        return 2^(timecents/1200)
-    end
-    return nil
-end
-
--- Helper function to convert sustain centibels to 0-1 range
-local function sustain_cb_to_level(centibels)
-    if centibels then
-        -- Convert centibels to decibels (divide by 10)
-        local db = centibels / 10
-        -- Convert dB to linear (0-1) scale
-        return math.min(1, math.max(0, math.db2lin(db)))
-    end
-    return nil
-end
-
--- Helper function to map envelope time to Renoise parameter range (0-1)
-local function map_envelope_time(seconds)
-    if not seconds then return nil end
-    -- Renoise's envelope time parameters are mapped 0-1 to 0-20 seconds
-    return math.min(1, math.max(0, seconds / 20))
 end
 
 
