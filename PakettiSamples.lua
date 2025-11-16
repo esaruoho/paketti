@@ -7618,6 +7618,101 @@ function PakettiSamplesDetectAndCorrectPitch()
   end
 end
 
+-- ========================================
+-- FREQUENCY TO NOTE ANALYSIS (Mathematical/Logarithmic approach)
+-- ========================================
+-- This uses a cleaner mathematical formula instead of iterative loops
+-- Inspired by WaveformTuner with corrected fine-tune scaling
+
+function PakettiSamplesFrequencyToNoteAnalysis()
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_status("No song loaded")
+    return
+  end
+  
+  local sample = song.selected_sample
+  if not sample then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  if not buffer or not buffer.has_sample_data then
+    renoise.app():show_status("Sample has no data")
+    return
+  end
+  
+  -- Get sample properties
+  local buffer_length = buffer.number_of_frames
+  local sample_rate = buffer.sample_rate
+  
+  if buffer_length == 0 then
+    renoise.app():show_status("Sample buffer is empty")
+    return
+  end
+  
+  -- Calculate the waveform frequency
+  local freq = sample_rate / buffer_length
+  
+  -- Constants for pitch calculation
+  local target_note = 60  -- C4 in MIDI
+  local A4_midi = 69      -- A4 MIDI note number
+  local A4_freq = 440     -- A4 frequency in Hz
+  
+  -- Derive MIDI note from frequency using logarithmic formula
+  -- Formula: note = A4 + 12 * log2(freq / A4_freq)
+  local note = A4_midi + 12 * (math.log(freq / A4_freq) / math.log(2))
+  
+  -- How far off are we from the target note (C4), in semitones
+  local delta_semitones = target_note - note
+  
+  -- Split into coarse semitones and fractional cents
+  local semitones = math.floor(delta_semitones)
+  local cents = (delta_semitones - semitones) * 100
+  
+  -- Convert cents to Renoise fine_tune range (-128 to +127)
+  -- CORRECTED: Renoise has 255 steps (-128 to +127) covering 200 cents (±100)
+  -- Therefore: 255 steps / 200 cents = 1.275 steps per cent
+  local fine_tune = math.floor(cents * 1.275 + 0.5)
+  
+  -- Clamp to valid range
+  fine_tune = math.max(-128, math.min(127, fine_tune))
+  semitones = math.max(-120, math.min(120, semitones))
+  
+  -- Get note name for display
+  local note_names = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
+  local octave = math.floor(note / 12) - 1
+  local note_index = math.floor(note) % 12 + 1
+  local note_name = note_names[note_index] .. octave
+  
+  -- Display analysis results
+  print("=== FREQUENCY TO NOTE ANALYSIS (Mathematical) ===")
+  print(string.format("Sample length: %d frames at %d Hz", buffer_length, sample_rate))
+  print(string.format("Detected frequency: %.2f Hz", freq))
+  print(string.format("Calculated MIDI note: %.2f (%s)", note, note_name))
+  print(string.format("Delta from C4: %.2f semitones", delta_semitones))
+  print(string.format("Correction needed: %d semitones + %.2f cents", semitones, cents))
+  print(string.format("Renoise values: Transpose=%d, Fine Tune=%d", semitones, fine_tune))
+  
+  -- Apply tuning values to the sample
+  sample.transpose = semitones
+  sample.fine_tune = fine_tune
+  
+  -- Set forward loop (typical for single-cycle waveforms)
+  sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  if buffer_length <= 1024 then  -- Only set loop for short samples
+    sample.loop_start = 1
+    sample.loop_end = buffer_length
+  end
+  
+  -- Show status
+  local status = string.format("Tuned: %.2f Hz → %s (T:%d, F:%d, %.1f cents)", 
+    freq, note_name, semitones, fine_tune, cents)
+  renoise.app():show_status(status)
+  print(status)
+end
+
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
@@ -7625,4 +7720,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Insert Selection After Selection",
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
 renoise.tool():add_keybinding{name="Global:Paketti:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Frequency to Note Analysis",invoke = PakettiSamplesFrequencyToNoteAnalysis}
+renoise.tool():add_keybinding{name="Global:Paketti:Frequency to Note Analysis",invoke = PakettiSamplesFrequencyToNoteAnalysis}
 

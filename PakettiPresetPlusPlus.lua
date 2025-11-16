@@ -2002,7 +2002,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Create New Send Track (Preset
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Create New Send Track", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
 renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Create New Send Track", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Preset++:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Preset++:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Preset++:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
 
 -- DRY Create New Send function with mode parameter

@@ -507,7 +507,7 @@ local dialogMargin=175
   local bpm_valuebox = vb:valuebox{
     min = 20,
     max = 999,
-    width = 100,
+    width = 55,
     value = current_bpm,
 
     notifier = function(value)
@@ -520,7 +520,7 @@ local dialogMargin=175
     min = 1,
     max = 256,
     value = current_lpb,
-    width = 100,
+    width = 55,
     notifier = function(value)
       song.transport.lpb = value
       print("MODIFIED LPB to: " .. value)
@@ -618,7 +618,7 @@ local dialogMargin=175
   
   local create_patterns_button = vb:button{
     text = "Create Patterns",
-    width = dialogMargin,
+    width = dialogMargin*2,
     --height = 30,
     notifier = function()
       print("=== CREATE PATTERN SEQUENCER PATTERNS ===")
@@ -942,6 +942,9 @@ local dialogMargin=175
   )
   dialog = renoise.app():show_custom_dialog("Slice to Pattern Sequencer Dialog", dialog_content, keyhandler)
 end
+
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti Gadgets:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
 renoise.tool():add_keybinding{name="Global:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}

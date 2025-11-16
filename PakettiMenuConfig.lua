@@ -27,7 +27,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Set All A
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Automation:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
 renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
@@ -513,7 +513,7 @@ renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase 
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Reversed, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed", true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("copied", true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (PingPong, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong", true) end}
-renoise.tool():add_menu_entry{name="--Main Menu:File:Import:Octatrack Bank (.strd/.work)...",invoke=function() PakettiOTSTRDImporter() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Octatrack:Octatrack Bank (.strd/.work)...",invoke=function() PakettiOTSTRDImporter() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Octatrack:Import STRD Bank...",invoke=function() PakettiOTSTRDImporter() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Horizontal...", invoke = show_mini_cheatsheet}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Vertical...", invoke = show_mini_cheatsheet_vertical}
@@ -3020,7 +3020,7 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate Pattern Bel
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Duplicate Track and Instrument",invoke=function() duplicateTrackAndInstrument() end}
 
 -- Pattern Matrix Delay Output Delay
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Delay Output:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delay Output:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delay Output:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delay Output:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delay Output:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}
