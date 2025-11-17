@@ -834,7 +834,7 @@ timed_require("PakettiPatternDelayViewer")
 timed_require("PakettiREXLoader")
 timed_require("PakettiRX2Loader")
 timed_require("PakettiIFFLoader")
-
+timed_require("PakettiWavCueExtract")
 
 timed_require("PakettiSF2Loader")
 

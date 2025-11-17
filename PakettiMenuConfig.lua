@@ -1,5 +1,5 @@
 -- Organize these to the right places:
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Impulse Tracker:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus Matrix Overview",invoke = function() createMatrixOverview() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus Step Sequencer",invoke = function() createStepSequencerDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Filename-Based Keyzone Mapping",invoke=function() pakettiKeyzoneDistributorFilenameDialog() end}
@@ -157,11 +157,11 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:MIDI Afterto
 renoise.tool():add_menu_entry{name="Main Menu:Tools:MIDI Aftertouch / CC Effect Writer...",invoke=function() PakettiMidiEffectWriterShowDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti PlayerPro OpenMPT Linear Keyboard Layer...", invoke = PakettiOpenMPTLinearKeyboardLayerToggle}
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti PlayerPro OpenMPT Linear Keyboard Layer...", invoke = PakettiOpenMPTLinearKeyboardLayerToggle}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern:Copy Delay to All Same Notes in Track",invoke=function() PakettiPatternDelayViewerCopyDelayFromSelectedNote() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Copy Delay to All Same Notes in Track",invoke=function() PakettiPatternDelayViewerCopyDelayFromSelectedNote() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Copy Delay to All Same Notes in Track",invoke=function() PakettiPatternDelayViewerCopyDelayFromSelectedNote() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}

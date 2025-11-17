@@ -7717,7 +7717,7 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Insert Selection After
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
 renoise.tool():add_midi_mapping{name="Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
 renoise.tool():add_keybinding{name="Global:Paketti:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Frequency to Note Analysis",invoke = PakettiSamplesFrequencyToNoteAnalysis}

@@ -464,7 +464,7 @@ function showSliceToPatternSequencerInterface()
     return  -- Exit the function
   end
 
-local dialogMargin=175
+local dialogMargin=210
   local song = renoise.song()
   local vb = renoise.ViewBuilder()
   
@@ -569,7 +569,7 @@ local dialogMargin=175
   
   local prepare_button = vb:button{
     text = "Prepare Sample",
-    width = dialogMargin,
+    width = dialogMargin*2,
     --height = 30,
     notifier = function()
       print("=== PREPARE SAMPLE FOR SLICING ===")
@@ -662,7 +662,7 @@ local dialogMargin=175
   
   local refresh_button = vb:button{
     text = "Refresh All Values",
-    width = dialogMargin,
+    width = dialogMargin*2,
     notifier = function()
       -- Update instrument info
       local new_slot = song.selected_instrument_index or 0
