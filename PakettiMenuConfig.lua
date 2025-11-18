@@ -37,6 +37,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom L
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Custom LFO Envelopes:LFO Envelope Editor...", invoke=pakettiLFOEnvelopeEditorDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Open Paketti / Phrase Init Preferences...", invoke = function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
@@ -97,6 +98,7 @@ renoise.tool():add_menu_entry{name="Sample Editor Ruler:Delete Slice Markers in 
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Pick Up Slices",invoke=function() PakettiPickupSlices() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Apply Slices with Same Relative Positioning",invoke=function() PakettiApplySlicesBasedOnSampleRate() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti / Phrase Init Preferences...", invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Add Autocomplete Abbreviation...", invoke=pakettiAutocompleteAddAbbreviation}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Reset Autocomplete Usage Statistics", invoke=pakettiAutocompleteResetUsage}
@@ -1954,6 +1956,7 @@ if preferences.pakettiMenuConfig.PatternEditor then
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}  
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti Effect Column CheatSheet...",invoke=function() pakettiPatternEditorCheatsheetDialog() end}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti Gater...",invoke=function()
     local max_rows = renoise.song().selected_pattern.number_of_lines
@@ -2393,11 +2396,67 @@ end
 
 end
 
+-- Main Menu File:Paketti Import entries - organized to match Export menu structure
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Import .ITI (Impulse Tracker Instrument)...",invoke=function() 
+  local filename = renoise.app():prompt_for_filename_to_read({"*.iti","*.ITI"}, "Import Impulse Tracker Instrument")
+  if filename then iti_loadinstrument(filename) end end}
+
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Load IFF Sample File (8SVX/16SV)...",invoke = loadIFFSampleFromDialog}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Load WAV with CUE Markers...",invoke = PakettiWavCuePromptAndImportWithCues}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Load .MOD as Sample",
+  invoke=function() 
+    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
+    if file_path ~= "" then
+      pakettiLoadExeAsSample(file_path)
+      paketti_toggle_signed_unsigned() end end}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Import .REX",invoke=function() 
+  local filename = renoise.app():prompt_for_filename_to_read({"*.REX"}, "ReCycle .REX Import tool")
+  if filename then rex_loadsample(filename) end end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Import .RX2",invoke=function() 
+  local filename = renoise.app():prompt_for_filename_to_read({"*.RX2","*.rx2"}, "ReCycle .RX2 Import tool")
+  if filename then rx2_loadsample(filename) end end}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Import .SF2 (Single XRNI per Preset)",
+  invoke=function()
+    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
+    if f and f ~= "" then import_sf2(f) end end}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Convert IFF to WAV...",invoke = convertIFFToWAV}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Convert WAV to IFF...",invoke = convertWAVToIFF}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Batch Convert IFF/8SVX/16SV to WAV...",invoke = batchConvertIFFToWAV}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Batch Convert WAV to IFF...",invoke = batchConvertWAVToIFF}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
+
+-- Main Menu File:Paketti Import entries for WT
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Import Wavetable (.WT)...", invoke = paketti_import_wavetable}
+
+-- Main Menu File:Paketti Import entries for PTI
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Import .PTI (Polyend Tracker Instrument)...",
+  invoke=function()
+    local f = renoise.app():prompt_for_filename_to_read({"*.PTI"}, "Select PTI to import")
+    if f and f ~= "" then pti_loadsample(f) end
+  end}
+
+-- Main Menu File:Paketti Import entries for Octatrack
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Octatrack Import (.ot)",invoke=function() PakettiOTImport() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Octatrack Import STRD Bank...",invoke=function() PakettiOTSTRDImporter() end}
+
+-- Main Menu File:Paketti Import other conversions
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Convert REX/RX2/ITI to PTI",invoke=universal_to_pti_convert}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Image to Sample Converter...", invoke = function() PakettiImageToSampleStart() end}
+--[[renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Import .SF2 (Multitimbral)",
+  invoke=function()
+    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import (multitimbral)")
+    if f and f ~= "" then import_sf2_multitimbral(f) end
+  end
+}]]--
+
 --- Main Menu Export Config
 renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
 
 
-renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti Export:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Convert IFF to WAV...",invoke = convertIFFToWAV}
 renoise.tool():add_menu_entry{name = "Main Menu:File:Paketti Export:Convert WAV to IFF...",invoke = convertWAVToIFF}
 renoise.tool():add_menu_entry{name = "--Main Menu:File:Paketti Export:Save Selected Sample as 8SVX...",invoke = saveCurrentSampleAs8SVX}
@@ -2469,6 +2528,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Volu
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Sequencer Settings Dialog...",invoke = pakettiSequencerSettingsDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Track Dater & Titler...",invoke=function() pakettiTitlerDialog() end}
@@ -2644,6 +2704,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:BPM&L
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Open Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
@@ -3114,7 +3175,8 @@ end
 --- Phrase Editor Config
 if preferences.pakettiMenuConfig.PhraseEditor then
   debugPrint("Phrase Editor Menus Are Enabled")
-renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
+renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Open Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}

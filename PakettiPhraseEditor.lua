@@ -23,17 +23,22 @@ end
 
 -- Function to apply settings to the selected phrase or create a new one if none exists
 function pakettiPhraseSettingsApplyPhraseSettings()
-  local instrument = renoise.song().selected_instrument
+  local song = renoise.song()
+  if not song then
+    return
+  end
+  
+  local instrument = song.selected_instrument
 
   -- Check if there are no phrases in the selected instrument
   if #instrument.phrases == 0 then
     instrument:insert_phrase_at(1)
-    renoise.song().selected_phrase_index = 1
-  elseif renoise.song().selected_phrase_index == 0 then
-    renoise.song().selected_phrase_index = 1
+    song.selected_phrase_index = 1
+  elseif song.selected_phrase_index == 0 then
+    song.selected_phrase_index = 1
   end
 
-  local phrase = renoise.song().selected_phrase
+  local phrase = song.selected_phrase
 
   -- Apply the name to the phrase if "Set Name" is checked and the name text field has a value
   if preferences.pakettiPhraseInitDialog.SetName.value then
@@ -41,7 +46,7 @@ function pakettiPhraseSettingsApplyPhraseSettings()
     if custom_name ~= "" then
       phrase.name = custom_name
     else
-      phrase.name = string.format("Phrase %02d", renoise.song().selected_phrase_index)
+      phrase.name = string.format("Phrase %02d", song.selected_phrase_index)
     end
   end
 
@@ -62,14 +67,19 @@ end
 
 -- Function to create a new phrase and apply settings
 function pakettiInitPhraseSettingsCreateNewPhrase()
+  local song = renoise.song()
+  if not song then
+    return
+  end
+  
   renoise.app().window.active_middle_frame = 3
-  local instrument = renoise.song().selected_instrument
+  local instrument = song.selected_instrument
   local phrase_count = #instrument.phrases
   local new_phrase_index = phrase_count + 1
 
   -- Insert the new phrase at the end of the phrase list
   instrument:insert_phrase_at(new_phrase_index)
-  renoise.song().selected_phrase_index = new_phrase_index
+  song.selected_phrase_index = new_phrase_index
 
   -- If "Set Name" is checked, use the name from the text field, otherwise use the default
   if preferences.pakettiPhraseInitDialog.SetName.value then
@@ -86,7 +96,12 @@ end
 
 -- Function to modify the current phrase or create a new one if none exists
 function pakettiPhraseSettingsModifyCurrentPhrase()
-  local instrument = renoise.song().selected_instrument
+  local song = renoise.song()
+  if not song then
+    return
+  end
+  
+  local instrument = song.selected_instrument
   if #instrument.phrases == 0 then
     pakettiInitPhraseSettingsCreateNewPhrase()
   else
@@ -104,8 +119,13 @@ function pakettiPhraseSettings()
     return
   end
 
+  local song = renoise.song()
+  if not song then
+    return
+  end
+
   local vb = renoise.ViewBuilder()
-  local phrase = renoise.song().selected_phrase
+  local phrase = song.selected_phrase
   if phrase then
     preferences.pakettiPhraseInitDialog.Name.value = phrase.name
   end
@@ -317,7 +337,12 @@ renoise.tool():add_midi_mapping{name="Paketti:Create New Phrase Using Paketti Se
 renoise.tool():add_midi_mapping{name="Paketti:Modify Current Phrase Using Paketti Settings",invoke=function(message) if message:is_trigger() then pakettiPhraseSettingsModifyCurrentPhrase() end end}
 ------------------------------------------------
 function RecordFollowOffPhrase()
-local t=renoise.song().transport
+local s=renoise.song()
+if not s then
+  return
+end
+
+local t=s.transport
 t.follow_player=false
 if t.edit_mode == false then 
 t.edit_mode=true else
@@ -328,14 +353,16 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Record+Follow Off",inv
 
 function createPhrase()
 local s=renoise.song() 
-
+if not s then
+  return
+end
 
   renoise.app().window.active_middle_frame=3
   s.instruments[s.selected_instrument_index]:insert_phrase_at(1) 
   s.instruments[s.selected_instrument_index].phrase_editor_visible=true
   s.selected_phrase_index=1
 
-local selphra=renoise.song().instruments[renoise.song().selected_instrument_index].phrases[renoise.song().selected_phrase_index]
+local selphra=s.instruments[s.selected_instrument_index].phrases[s.selected_phrase_index]
   
 selphra.shuffle=preferences.pakettiPhraseInitDialog.Shuffle.value / 100
 selphra.visible_note_columns=preferences.pakettiPhraseInitDialog.NoteColumns.value
@@ -357,6 +384,10 @@ end
 --------
 function phraseEditorVisible()
   local s=renoise.song()
+  if not s then
+    return
+  end
+  
 --If no Phrase in instrument, create phrase, otherwise do nothing.
 if #s.instruments[s.selected_instrument_index].phrases == 0 then
 s.instruments[s.selected_instrument_index]:insert_phrase_at(1) end
@@ -379,19 +410,29 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Editor Visible"
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Phrase Editor Visible",invoke=function() phraseEditorVisible() end}
 
 function phraseadd()
-renoise.song().instruments[renoise.song().selected_instrument_index]:insert_phrase_at(1)
+local s=renoise.song()
+if not s then
+  return
+end
+
+s.instruments[s.selected_instrument_index]:insert_phrase_at(1)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Add New Phrase",invoke=function()  phraseadd() end}
 
 ----
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Init Phrase Settings",invoke=function()
-if renoise.song().selected_phrase == nil then
-renoise.song().instruments[renoise.song().selected_instrument_index]:insert_phrase_at(1)
-renoise.song().selected_phrase_index = 1
+local s=renoise.song()
+if not s then
+  return
 end
 
-local selphra=renoise.song().selected_phrase
+if s.selected_phrase == nil then
+s.instruments[s.selected_instrument_index]:insert_phrase_at(1)
+s.selected_phrase_index = 1
+end
+
+local selphra=s.selected_phrase
 selphra.shuffle=preferences.pakettiPhraseInitDialog.Shuffle.value / 100
 selphra.visible_note_columns=preferences.pakettiPhraseInitDialog.NoteColumns.value
 selphra.visible_effect_columns=preferences.pakettiPhraseInitDialog.EffectColumns.value
@@ -406,14 +447,18 @@ selphra.lpb=preferences.pakettiPhraseInitDialog.LPB.value
 selphra.number_of_lines=preferences.pakettiPhraseInitDialog.Length.value
 selphra.looping=preferences.pakettiPhraseInitDialog.PhraseLooping.value
 
-local renamephrase_to_index=tostring(renoise.song().selected_phrase_index)
+local renamephrase_to_index=tostring(s.selected_phrase_index)
 selphra.name=renamephrase_to_index
---selphra.name=renoise.song().selected_phrase_index
+--selphra.name=s.selected_phrase_index
 end}
 
 function joulephrasedoubler()
-  local old_phraselength = renoise.song().selected_phrase.number_of_lines
   local s=renoise.song()
+  if not s then
+    return
+  end
+  
+  local old_phraselength = s.selected_phrase.number_of_lines
   local resultlength = nil
 
   resultlength = old_phraselength*2
@@ -440,8 +485,12 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Paketti Phrase Doubler
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Paketti Phrase Doubler (2nd)",invoke=function() joulepatterndoubler() end}    
 -------
 function joulephrasehalver()
-  local old_phraselength = renoise.song().selected_phrase.number_of_lines
   local s=renoise.song()
+  if not s then
+    return
+  end
+  
+  local old_phraselength = s.selected_phrase.number_of_lines
   local resultlength = nil
 
   resultlength = old_phraselength/2
@@ -473,8 +522,12 @@ local last_pattern_pos = 1  -- Start at 1, not 0
 local current_section = 0
 
 local function phrase_follow_notifier()
-  if renoise.song().transport.playing then
-    local song=renoise.song()
+  local song=renoise.song()
+  if not song then
+    return
+  end
+  
+  if song.transport.playing then
     local pattern_pos = song.selected_line_index  -- This is already 1-based from Renoise
     local pattern_length = song.selected_pattern.number_of_lines
     local phrase_length = song.selected_phrase.number_of_lines
@@ -505,6 +558,10 @@ end
 -- Function to explicitly enable phrase follow
 function enable_phrase_follow()
   local s = renoise.song()
+  if not s then
+    return
+  end
+  
   local w = renoise.app().window
 
   -- Check API version first
@@ -546,6 +603,10 @@ end
 
 function observe_phrase_playhead()
   local s = renoise.song()
+  if not s then
+    return
+  end
+  
   local w = renoise.app().window
 
   -- Check API version first
@@ -658,6 +719,10 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Delay -10",in
 -- Helper function for phrase line operations (replicate version)
 function cpclex_phrase_line_replicate(from_line, to_line)
   local s = renoise.song()
+  if not s then
+    return
+  end
+  
   local phrase = s.selected_phrase
   if not phrase then
     renoise.app():show_status("No phrase selected.")
@@ -672,6 +737,10 @@ end
 
 function cpclsh_phrase_line_replicate(from_line, to_line)
   local s = renoise.song()
+  if not s then
+    return
+  end
+  
   local phrase = s.selected_phrase
   if not phrase then
     renoise.app():show_status("No phrase selected.")
@@ -687,6 +756,10 @@ end
 -- Phrase version of floodfill with selection
 function floodfill_phrase_with_selection()
   local s = renoise.song()
+  if not s then
+    return
+  end
+  
   local phrase = s.selected_phrase
   
   if not phrase then
@@ -728,6 +801,10 @@ end
 
 function ExpandSelectionReplicatePhrase()
   local s = renoise.song()
+  if not s then
+    return
+  end
+  
   local phrase = s.selected_phrase
   
   if not phrase then
@@ -779,6 +856,10 @@ end
 
 function ShrinkSelectionReplicatePhrase()
   local s = renoise.song()
+  if not s then
+    return
+  end
+  
   local phrase = s.selected_phrase
   
   if not phrase then
@@ -839,6 +920,9 @@ end
 -- Auto-fill pattern with phrases based on phrase length
 function PakettiFloodFillPatternWithPhrase()
   local song = renoise.song()
+  if not song then
+    return
+  end
   
   -- Get current pattern and its length
   local pattern = song.selected_pattern
@@ -1259,6 +1343,10 @@ end
 ---------------------------------------------------------------------------------------------------------
 function PakettiPhraseEditorShiftInitializeSelection()
   local song=renoise.song()
+  if not song then
+    return
+  end
+  
   local phrase = song.selected_phrase
   
   if not phrase then
@@ -1487,6 +1575,10 @@ end
 -- Helper function to get selection info for phrase
 function PakettiPhraseEditorSelectionInfo()
   local song=renoise.song()
+  if not song then
+    return nil
+  end
+  
   local phrase = song.selected_phrase
   
   if not phrase then
@@ -1851,6 +1943,10 @@ end
 ---------------------------------------------------------------------------------------------------------
 function PakettiPhraseEditorNudgeHelperSelectCurrentCell()
   local song=renoise.song()
+  if not song then
+    return false
+  end
+  
   local phrase = song.selected_phrase
   
   if not phrase then
@@ -1881,11 +1977,20 @@ function PakettiPhraseEditorNudgeHelperSelectCurrentCell()
 end
 
 function PakettiPhraseEditorNudgeClearSelection()
-  renoise.song().selection_in_phrase = nil
+  local s=renoise.song()
+  if not s then
+    return
+  end
+  
+  s.selection_in_phrase = nil
 end
 
 function PakettiPhraseEditorNudgeMoveEditCursorUp()
   local song=renoise.song()
+  if not song then
+    return
+  end
+  
   local phrase = song.selected_phrase
   if not phrase then
     return
@@ -1899,6 +2004,10 @@ end
 
 function PakettiPhraseEditorNudgeMoveEditCursorDown()
   local song=renoise.song()
+  if not song then
+    return
+  end
+  
   local phrase = song.selected_phrase
   if not phrase then
     return
@@ -1912,6 +2021,10 @@ end
 
 function PakettiPhraseEditorNudgeGetSelectionInfo()
   local song=renoise.song()
+  if not song then
+    return nil
+  end
+  
   local phrase = song.selected_phrase
   local selection = song.selection_in_phrase
   

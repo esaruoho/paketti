@@ -420,6 +420,16 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     SetName = false,
     Name=""
     },
+  pakettiTrackInitDialog = {
+    VolumeColumnVisible = false,
+    PanningColumnVisible = false,
+    DelayColumnVisible = false,
+    SampleFXColumnVisible = false,
+    NoteColumns = 1,
+    EffectColumns = 1,
+    SetName = false,
+    Name=""
+    },
     pakettiTitler = {
     textfile_path = "External/wordlist.txt",
     notes_file_path = "External/notes.txt",

@@ -1524,8 +1524,7 @@ function pakettiDebugPluginInfoDialog()
   local vb = renoise.ViewBuilder()
   local available_plugin_infos = get_sorted_and_grouped_plugin_infos()
 
-  local dialog_content = vb:column{
-    margin=10,
+  local dialog_content = vb:column{margin=10,
     spacing=5,
     vb:row{
       vb:column{
@@ -1679,8 +1678,7 @@ function pakettiDebugDeviceInfoDialog()
     table.insert(device_names, info.name)
   end
 
-  local dialog_content = vb:column{
-    margin=10,
+  local dialog_content = vb:column{margin=10,
     spacing=5,
     vb:row{
       vb:column{
@@ -2883,8 +2881,7 @@ local instrument_plugin_name = instrument.plugin_properties.plugin_device and in
 
   local dialog_content = vb:row{
     --margin=10,
-    vb:column{style="border",
-      margin=10,
+    vb:column{style="group",margin=10,
       
       vb:text{font="bold",style="strong",text="Selected Device"},
       vb:text{id = "device_short_name", font = "bold", text = device_short_name},
@@ -2936,8 +2933,7 @@ local instrument_plugin_name = instrument.plugin_properties.plugin_device and in
         toggleExternalEditor()
       end}}
     },
-    vb:column{style="border",
-      margin=10,
+    vb:column{style="group",margin=10,
       vb:text{font = "bold", text="Selected Track", style="strong"},
       vb:text{id = "track_name_text", font = "bold", text = track_name},
       vb:horizontal_aligner{mode = "center", vb:text{text="Randomization Intensity (%)"}},
@@ -2990,8 +2986,7 @@ vb:button{text="Run",width=50, notifier=function()
         toggleAllExternalEditorsOnTrack()
       end}}
     },
-    vb:column{style="border",
-      margin=10,
+    vb:column{style="group",margin=10,
       vb:text{font="bold",style="strong",text="Selected Instrument Plugin"},
       vb:text{id = "plugin_name_text", font = "bold", text = instrument_plugin_name},
       vb:horizontal_aligner{mode = "center", vb:text{text="Randomization Intensity (%)"}},
@@ -3035,8 +3030,7 @@ end}},
         toggleExternalPluginEditor()
       end}}
     },
-    vb:column{style="border",
-      margin=10,
+    vb:column{style="group",margin=10,
       vb:text{font="bold",style="strong",text="All Plugins in Song"},
       vb:space{height = 18},
       vb:horizontal_aligner{mode = "center", vb:text{text="Randomization Intensity (%)"}},

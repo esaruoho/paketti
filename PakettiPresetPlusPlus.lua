@@ -2239,6 +2239,25 @@ function PakettiCreateNewTrackWithChannelstrip()
   -- Select the newly created track
   song.selected_track_index = new_track_index
   
+  -- Apply Track Init settings to the newly created track
+  local track = song.selected_track
+  
+  -- Apply the name to the track if "Set Name" is checked and the name text field has a value
+  if preferences.pakettiTrackInitDialog.SetName.value then
+    local custom_name = preferences.pakettiTrackInitDialog.Name.value
+    if custom_name ~= "" then
+      track.name = custom_name
+    end
+  end
+
+  -- Apply column visibility settings to the track
+  track.volume_column_visible = preferences.pakettiTrackInitDialog.VolumeColumnVisible.value
+  track.panning_column_visible = preferences.pakettiTrackInitDialog.PanningColumnVisible.value
+  track.delay_column_visible = preferences.pakettiTrackInitDialog.DelayColumnVisible.value
+  track.sample_effects_column_visible = preferences.pakettiTrackInitDialog.SampleFXColumnVisible.value
+  track.visible_note_columns = preferences.pakettiTrackInitDialog.NoteColumns.value
+  track.visible_effect_columns = preferences.pakettiTrackInitDialog.EffectColumns.value
+  
   -- Get device chain path from preferences
   local device_chain_path = renoise.tool().preferences.pakettiPresetPlusPlusDeviceChain.value
   
@@ -2270,4 +2289,398 @@ renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Create New Track with Ch
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+
+---------------------------------------------------------------------------------------------------------
+-- Pattern / Phrase Init Dialog (Combined Two-Column Dialog)
+---------------------------------------------------------------------------------------------------------
+
+-- Dialog instance for combined Pattern/Phrase Init
+local paketti_init_dialog = nil
+
+-- Function to apply track init settings to the selected track
+function pakettiTrackSettingsApplyTrackSettings()
+  local song = renoise.song()
+  if not song then
+    return
+  end
+  
+  local track = song.selected_track
+  
+  -- Check if this is a sequencer track (not master, send, or group)
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Selected track is not a sequencer track")
+    return
+  end
+
+  -- Apply the name to the track if "Set Name" is checked and the name text field has a value
+  if preferences.pakettiTrackInitDialog.SetName.value then
+    local custom_name = preferences.pakettiTrackInitDialog.Name.value
+    if custom_name ~= "" then
+      track.name = custom_name
+    else
+      track.name = string.format("Track %02d", song.selected_track_index)
+    end
+  end
+
+  -- Apply column visibility settings to the track
+  track.volume_column_visible = preferences.pakettiTrackInitDialog.VolumeColumnVisible.value
+  track.panning_column_visible = preferences.pakettiTrackInitDialog.PanningColumnVisible.value
+  track.delay_column_visible = preferences.pakettiTrackInitDialog.DelayColumnVisible.value
+  track.sample_effects_column_visible = preferences.pakettiTrackInitDialog.SampleFXColumnVisible.value
+  track.visible_note_columns = preferences.pakettiTrackInitDialog.NoteColumns.value
+  track.visible_effect_columns = preferences.pakettiTrackInitDialog.EffectColumns.value
+  
+  renoise.app():show_status("Track settings applied")
+end
+
+-- Function to apply phrase init settings (from PakettiPhraseEditor.lua)
+function pakettiPhraseSettingsApplyPhraseSettings()
+  local song = renoise.song()
+  if not song then
+    return
+  end
+  
+  local instrument = song.selected_instrument
+
+  -- Check if there are no phrases in the selected instrument
+  if #instrument.phrases == 0 then
+    instrument:insert_phrase_at(1)
+    song.selected_phrase_index = 1
+  elseif song.selected_phrase_index == 0 then
+    song.selected_phrase_index = 1
+  end
+
+  local phrase = song.selected_phrase
+
+  -- Apply the name to the phrase if "Set Name" is checked and the name text field has a value
+  if preferences.pakettiPhraseInitDialog.SetName.value then
+    local custom_name = preferences.pakettiPhraseInitDialog.Name.value
+    if custom_name ~= "" then
+      phrase.name = custom_name
+    else
+      phrase.name = string.format("Phrase %02d", song.selected_phrase_index)
+    end
+  end
+
+  -- Apply other settings to the phrase
+  phrase.autoseek = preferences.pakettiPhraseInitDialog.Autoseek.value
+  phrase.volume_column_visible = preferences.pakettiPhraseInitDialog.VolumeColumnVisible.value
+  phrase.panning_column_visible = preferences.pakettiPhraseInitDialog.PanningColumnVisible.value
+  phrase.instrument_column_visible = preferences.pakettiPhraseInitDialog.InstrumentColumnVisible.value
+  phrase.delay_column_visible = preferences.pakettiPhraseInitDialog.DelayColumnVisible.value
+  phrase.sample_effects_column_visible = preferences.pakettiPhraseInitDialog.SampleFXColumnVisible.value
+  phrase.visible_note_columns = preferences.pakettiPhraseInitDialog.NoteColumns.value
+  phrase.visible_effect_columns = preferences.pakettiPhraseInitDialog.EffectColumns.value
+  phrase.shuffle = preferences.pakettiPhraseInitDialog.Shuffle.value / 100
+  phrase.lpb = preferences.pakettiPhraseInitDialog.LPB.value
+  phrase.number_of_lines = preferences.pakettiPhraseInitDialog.Length.value
+  phrase.looping = preferences.pakettiPhraseInitDialog.PhraseLooping.value
+  
+  renoise.app():show_status("Phrase settings applied")
+end
+
+-- Combined Pattern/Phrase Init Dialog
+function pakettiPatternPhraseInitDialog()
+  if paketti_init_dialog and paketti_init_dialog.visible then
+    paketti_init_dialog:close()
+    paketti_init_dialog = nil
+    return
+  end
+
+  local song = renoise.song()
+  if not song then
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  
+  -- Pre-populate with current track/phrase names if available
+  local track = song.selected_track
+  if track and track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    preferences.pakettiTrackInitDialog.Name.value = track.name
+  end
+  
+  local phrase = song.selected_phrase
+  if phrase then
+    preferences.pakettiPhraseInitDialog.Name.value = phrase.name
+  end
+
+  paketti_init_dialog = renoise.app():show_custom_dialog("Paketti / Phrase Init Preferences",
+    vb:column{
+      margin=10,
+      
+      vb:row{
+        spacing=20,
+        
+        -- LEFT COLUMN: Pattern Editor (Track) Settings
+        vb:column{
+          style="group",
+          margin=10,
+          
+          vb:text{text="Pattern Editor", style="strong"},
+          vb:space{height=5},
+        
+        vb:row{
+          vb:checkbox{
+            id = "track_set_name_checkbox",
+            value = preferences.pakettiTrackInitDialog.SetName.value,
+            notifier=function(value)
+              preferences.pakettiTrackInitDialog.SetName.value = value
+            end
+          },
+          vb:text{text="Set Name",width=120},
+        },
+        vb:row{
+          vb:text{text="Track Name",width=120},
+          vb:textfield {
+            id = "track_name_textfield",
+            width=200,
+            text = preferences.pakettiTrackInitDialog.Name.value,
+            notifier=function(value) 
+              preferences.pakettiTrackInitDialog.Name.value = value
+              if value ~= "" then
+                preferences.pakettiTrackInitDialog.SetName.value = true
+                vb.views.track_set_name_checkbox.value = true
+              end
+            end
+          }
+        },
+        vb:row{
+          vb:text{text="Volume Column",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiTrackInitDialog.VolumeColumnVisible.value and 2 or 1,
+            notifier=function(value) preferences.pakettiTrackInitDialog.VolumeColumnVisible.value = (value == 2) end
+          }
+        },
+        vb:row{
+          vb:text{text="Panning Column",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiTrackInitDialog.PanningColumnVisible.value and 2 or 1,
+            notifier=function(value) preferences.pakettiTrackInitDialog.PanningColumnVisible.value = (value == 2) end
+          }
+        },
+        vb:row{
+          vb:text{text="Delay Column",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiTrackInitDialog.DelayColumnVisible.value and 2 or 1,
+            notifier=function(value) preferences.pakettiTrackInitDialog.DelayColumnVisible.value = (value == 2) end
+          }
+        },
+        vb:row{
+          vb:text{text="Sample FX Column",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiTrackInitDialog.SampleFXColumnVisible.value and 2 or 1,
+            notifier=function(value) preferences.pakettiTrackInitDialog.SampleFXColumnVisible.value = (value == 2) end
+          }
+        },     
+        vb:row{
+          vb:text{text="Note Columns",width=120},
+          vb:switch {
+            width=200,
+            value = preferences.pakettiTrackInitDialog.NoteColumns.value,
+            items = {"1","2","3","4","5","6","7","8","9","10","11","12"},
+            notifier=function(value) preferences.pakettiTrackInitDialog.NoteColumns.value = value end
+          }
+        },
+        vb:row{
+          vb:text{text="Effect Columns",width=120},
+          vb:switch {
+            width=200,
+            value = preferences.pakettiTrackInitDialog.EffectColumns.value + 1,
+            items = {"0","1","2","3","4","5","6","7","8"},
+            notifier=function(value) preferences.pakettiTrackInitDialog.EffectColumns.value = value - 1 end
+          }
+        },
+        vb:space{height=10},
+        vb:button{text="Apply to Current Track",width=200, notifier=function()
+          pakettiTrackSettingsApplyTrackSettings()
+        end}
+      },
+      
+      -- RIGHT COLUMN: Phrase Editor Settings
+      vb:column{
+        style="group",
+        --margin=10,
+        
+        vb:text{text="Phrase Editor", style="strong"},
+        --vb:space{height=5},
+        
+        vb:row{
+          vb:checkbox{
+            id = "phrase_set_name_checkbox",
+            value = preferences.pakettiPhraseInitDialog.SetName.value,
+            notifier=function(value)
+              preferences.pakettiPhraseInitDialog.SetName.value = value
+            end
+          },
+          vb:text{text="Set Name",width=120},
+        },
+        vb:row{
+          vb:text{text="Phrase Name",width=120},
+          vb:textfield {
+            id = "phrase_name_textfield",
+            width=200,
+            text = preferences.pakettiPhraseInitDialog.Name.value,
+            notifier=function(value) 
+              preferences.pakettiPhraseInitDialog.Name.value = value
+              if value ~= "" then
+                preferences.pakettiPhraseInitDialog.SetName.value = true
+                vb.views.phrase_set_name_checkbox.value = true
+              end
+            end
+          }
+        },
+        vb:row{
+          vb:text{text="Autoseek",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiPhraseInitDialog.Autoseek.value and 2 or 1,
+            notifier=function(value) preferences.pakettiPhraseInitDialog.Autoseek.value = (value == 2) end
+          }
+        },
+        vb:row{
+          vb:text{text="Phrase Looping",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiPhraseInitDialog.PhraseLooping.value and 2 or 1,
+            notifier=function(value) preferences.pakettiPhraseInitDialog.PhraseLooping.value = (value == 2) end
+          }
+        },
+        vb:row{
+          vb:text{text="Volume Column",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiPhraseInitDialog.VolumeColumnVisible.value and 2 or 1,
+            notifier=function(value) preferences.pakettiPhraseInitDialog.VolumeColumnVisible.value = (value == 2) end
+          }
+        },
+        vb:row{
+          vb:text{text="Panning Column",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiPhraseInitDialog.PanningColumnVisible.value and 2 or 1,
+            notifier=function(value) preferences.pakettiPhraseInitDialog.PanningColumnVisible.value = (value == 2) end
+          }
+        },
+        vb:row{
+          vb:text{text="Instrument Column",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiPhraseInitDialog.InstrumentColumnVisible.value and 2 or 1,
+            notifier=function(value) preferences.pakettiPhraseInitDialog.InstrumentColumnVisible.value = (value == 2) end
+          }
+        },
+        vb:row{
+          vb:text{text="Delay Column",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiPhraseInitDialog.DelayColumnVisible.value and 2 or 1,
+            notifier=function(value) preferences.pakettiPhraseInitDialog.DelayColumnVisible.value = (value == 2) end
+          }
+        },
+        vb:row{
+          vb:text{text="Sample FX Column",width=120},
+          vb:switch {
+            width=200,
+            items = {"Off", "On"},
+            value = preferences.pakettiPhraseInitDialog.SampleFXColumnVisible.value and 2 or 1,
+            notifier=function(value) preferences.pakettiPhraseInitDialog.SampleFXColumnVisible.value = (value == 2) end
+          }
+        },
+        vb:row{
+          vb:text{text="Note Columns",width=120},
+          vb:switch {
+            width=200,
+            value = preferences.pakettiPhraseInitDialog.NoteColumns.value,
+            items = {"1","2","3","4","5","6","7","8","9","10","11","12"},
+            notifier=function(value) preferences.pakettiPhraseInitDialog.NoteColumns.value = value end
+          }
+        },
+        vb:row{
+          vb:text{text="Effect Columns",width=120},
+          vb:switch {
+            width=200,
+            value = preferences.pakettiPhraseInitDialog.EffectColumns.value + 1,
+            items = {"0","1","2","3","4","5","6","7","8"},
+            notifier=function(value) preferences.pakettiPhraseInitDialog.EffectColumns.value = value - 1 end
+          }
+        },
+        vb:row{
+          vb:text{text="Shuffle",width=120},
+          vb:valuebox{
+            width=60,
+            min = 0,
+            max = 50,
+            value = preferences.pakettiPhraseInitDialog.Shuffle.value,
+            notifier=function(value)
+              preferences.pakettiPhraseInitDialog.Shuffle.value = value
+            end
+          },
+          vb:text{text="%",width=20}
+        },
+        vb:row{
+          vb:text{text="LPB",width=120},
+          vb:valuebox{
+            width=60,
+            min = 1,
+            max = 256,
+            value = preferences.pakettiPhraseInitDialog.LPB.value,
+            notifier=function(value) preferences.pakettiPhraseInitDialog.LPB.value = value end
+          }
+        },
+        vb:row{
+          vb:text{text="Length",width=120},
+          vb:valuebox{
+            width=60,
+            min = 1,
+            max = 512,
+            value = preferences.pakettiPhraseInitDialog.Length.value,
+            notifier=function(value) preferences.pakettiPhraseInitDialog.Length.value = value end
+          }
+        },
+        vb:space{height=10},
+        vb:button{text="Apply to Current Phrase",width=200, notifier=function()
+          pakettiPhraseSettingsApplyPhraseSettings()
+        end}
+      }
+    },
+    
+    -- Bottom buttons row
+    vb:row{
+      vb:button{text="Save All",width=100, notifier=function()
+        preferences:save_as("preferences.xml")
+        renoise.app():show_status("Pattern/Phrase Init settings saved")
+      end},
+      vb:button{text="Cancel",width=100, notifier=function()
+        paketti_init_dialog:close()
+        paketti_init_dialog = nil
+      end}
+    }
+  },
+  create_keyhandler_for_dialog(
+    function() return paketti_init_dialog end,
+    function(value) paketti_init_dialog = value end
+  ))
+end
+
+-- Keybindings for combined dialog
+renoise.tool():add_keybinding{name="Global:Paketti:Open Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Open Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Open Paketti / Phrase Init Preferences...",invoke=function(message) if message:is_trigger() then pakettiPatternPhraseInitDialog() end end}
 
