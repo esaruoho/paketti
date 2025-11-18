@@ -247,7 +247,7 @@ local function create_button_list()
     {"About Paketti/Donations", "pakettiAboutDonations"},
     {"Paketti Preferences", "pakettiPreferences"},
     {"Paketti Menu Configuration", "pakettiMenuConfigDialog"},
-    {"Paketti / Phrase Init Preferences", "pakettiPatternPhraseInitDialog"},
+    {"Paketti Pattern / Phrase Init Preferences", "pakettiPatternPhraseInitDialog"},
     {"Theme Selector", "pakettiThemeSelectorDialogShow"},
     {"Gater", "pakettiGaterDialog"},
     {"Effect Column CheatSheet", "pakettiPatternEditorCheatsheetDialog"},

@@ -1451,7 +1451,7 @@ function PakettiChords_CreateDialog()
     }
   }
   
-  PakettiChords_dialog = renoise.app():show_custom_dialog("Paketti Chords - Progression Player (C) sEptIQ - quick HTML->LUA conversion by esaruoho", content, PakettiChords_KeyHandler)
+  PakettiChords_dialog = renoise.app():show_custom_dialog("Paketti Chords - Progression Player - Original idea from sEptIQ - quick HTML->LUA conversion by esaruoho", content, PakettiChords_KeyHandler)
   PakettiChords_UpdateUI()
   
   -- Ensure Renoise keeps focus for keyboard

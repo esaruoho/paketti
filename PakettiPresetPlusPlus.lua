@@ -2405,7 +2405,7 @@ function pakettiPatternPhraseInitDialog()
     preferences.pakettiPhraseInitDialog.Name.value = phrase.name
   end
 
-  paketti_init_dialog = renoise.app():show_custom_dialog("Paketti / Phrase Init Preferences",
+  paketti_init_dialog = renoise.app():show_custom_dialog("Paketti Pattern / Phrase Init Preferences",
     vb:column{
       margin=10,
       
@@ -2508,7 +2508,7 @@ function pakettiPatternPhraseInitDialog()
       -- RIGHT COLUMN: Phrase Editor Settings
       vb:column{
         style="group",
-        --margin=10,
+        margin=10,
         
         vb:text{text="Phrase Editor", style="strong"},
         --vb:space{height=5},
@@ -2678,9 +2678,20 @@ function pakettiPatternPhraseInitDialog()
 end
 
 -- Keybindings for combined dialog
-renoise.tool():add_keybinding{name="Global:Paketti:Open Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Open Paketti / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-renoise.tool():add_midi_mapping{name="Paketti:Open Paketti / Phrase Init Preferences...",invoke=function(message) if message:is_trigger() then pakettiPatternPhraseInitDialog() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function(message) if message:is_trigger() then pakettiPatternPhraseInitDialog() end end}
+
+-- Keybindings for applying Pattern Init settings to current track
+renoise.tool():add_keybinding{name="Global:Paketti:Apply Pattern Init Settings to Current Track",invoke=function() pakettiTrackSettingsApplyTrackSettings() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Apply Pattern Init Settings to Current Track",invoke=function() pakettiTrackSettingsApplyTrackSettings() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Apply Pattern Init Settings to Current Track",invoke=function() pakettiTrackSettingsApplyTrackSettings() end}
+renoise.tool():add_midi_mapping{name="Paketti:Apply Pattern Init Settings to Current Track",invoke=function(message) if message:is_trigger() then pakettiTrackSettingsApplyTrackSettings() end end}
+
+-- Keybindings for applying Phrase Init settings to current phrase
+renoise.tool():add_keybinding{name="Global:Paketti:Apply Phrase Init Settings to Current Phrase",invoke=function() pakettiPhraseSettingsApplyPhraseSettings() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Apply Phrase Init Settings to Current Phrase",invoke=function() pakettiPhraseSettingsApplyPhraseSettings() end}
+renoise.tool():add_midi_mapping{name="Paketti:Apply Phrase Init Settings to Current Phrase",invoke=function(message) if message:is_trigger() then pakettiPhraseSettingsApplyPhraseSettings() end end}
 
