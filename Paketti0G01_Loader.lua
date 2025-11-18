@@ -706,7 +706,7 @@ local function pakettiGetXRNIDefaultPresetFiles()
 end
 
 -- Function to get available .xrnt device chain files
-local function pakettiGetXRNTDeviceChainFiles()
+function pakettiGetXRNTDeviceChainFiles()
     local deviceChainsFolder = renoise.tool().bundle_path .. "DeviceChains" .. separator
     local files = {}
     

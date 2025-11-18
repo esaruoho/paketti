@@ -2231,6 +2231,23 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Create New Multiband 
 function PakettiCreateNewTrackWithChannelstrip()
   local song = renoise.song()
   local current_track_index = song.selected_track_index
+  
+  -- Get device chain path from preferences
+  local device_chain_path = renoise.tool().preferences.pakettiPresetPlusPlusDeviceChain.value
+  
+  -- If it's a relative path, make it absolute from tool bundle
+  if not device_chain_path:match("^[/\\]") and not device_chain_path:match("^%a:") then
+    device_chain_path = renoise.tool().bundle_path .. device_chain_path
+  end
+  
+  -- Check if the device chain file exists
+  if not io.exists(device_chain_path) then
+    local message = "Device chain file not found:\n" .. device_chain_path .. "\n\nPlease configure a valid device chain file in the Pattern/Phrase Init Preferences dialog."
+    renoise.app():show_message(message)
+    pakettiPatternPhraseInitDialog()
+    return
+  end
+  
   local new_track_index = current_track_index + 1
   
   -- Insert new track at the position after current track
@@ -2242,13 +2259,8 @@ function PakettiCreateNewTrackWithChannelstrip()
   -- Apply Track Init settings to the newly created track
   local track = song.selected_track
   
-  -- Apply the name to the track if "Set Name" is checked and the name text field has a value
-  if preferences.pakettiTrackInitDialog.SetName.value then
-    local custom_name = preferences.pakettiTrackInitDialog.Name.value
-    if custom_name ~= "" then
-      track.name = custom_name
-    end
-  end
+  -- Note: Track name is NOT applied here so each new track gets its own default name
+  -- (e.g., Track 01, Track 02, etc.) instead of all tracks having the same name
 
   -- Apply column visibility settings to the track
   track.volume_column_visible = preferences.pakettiTrackInitDialog.VolumeColumnVisible.value
@@ -2257,14 +2269,6 @@ function PakettiCreateNewTrackWithChannelstrip()
   track.sample_effects_column_visible = preferences.pakettiTrackInitDialog.SampleFXColumnVisible.value
   track.visible_note_columns = preferences.pakettiTrackInitDialog.NoteColumns.value
   track.visible_effect_columns = preferences.pakettiTrackInitDialog.EffectColumns.value
-  
-  -- Get device chain path from preferences
-  local device_chain_path = renoise.tool().preferences.pakettiPresetPlusPlusDeviceChain.value
-  
-  -- If it's a relative path, make it absolute from tool bundle
-  if not device_chain_path:match("^[/\\]") and not device_chain_path:match("^%a:") then
-    device_chain_path = renoise.tool().bundle_path .. device_chain_path
-  end
   
   -- Load the device chain to the selected track with error handling
   local success, error_message = pcall(function()
@@ -2404,6 +2408,19 @@ function pakettiPatternPhraseInitDialog()
   if phrase then
     preferences.pakettiPhraseInitDialog.Name.value = phrase.name
   end
+  
+  -- Get device chain files and find current selection index
+  local deviceChainFiles = pakettiGetXRNTDeviceChainFiles()
+  local currentDeviceChainIndex = 1
+  local currentFileName = preferences.pakettiPresetPlusPlusDeviceChain.value:match("[^/\\]+$")
+  if currentFileName then
+    for i, file in ipairs(deviceChainFiles) do
+      if file == currentFileName then
+        currentDeviceChainIndex = i
+        break
+      end
+    end
+  end
 
   paketti_init_dialog = renoise.app():show_custom_dialog("Paketti Pattern / Phrase Init Preferences",
     vb:column{
@@ -2502,7 +2519,72 @@ function pakettiPatternPhraseInitDialog()
         vb:space{height=10},
         vb:button{text="Apply to Current Track",width=200, notifier=function()
           pakettiTrackSettingsApplyTrackSettings()
-        end}
+        end},
+        
+        vb:space{height=20},
+        vb:text{text="Create Track w/ Channelstrip", style="strong"},
+        vb:space{height=5},
+        
+        vb:row{
+          vb:text{text="Device Chain",width=120},
+          vb:popup {
+            id = "pattern_init_device_chain_popup",
+            width=200,
+            items = deviceChainFiles,
+            value = currentDeviceChainIndex,
+            tooltip="Device chain file (.xrnt) to load when creating new track with channelstrip",
+            notifier=function(value)
+              local deviceChainFiles = pakettiGetXRNTDeviceChainFiles()
+              if value > 0 and value <= #deviceChainFiles then
+                local selected_file = deviceChainFiles[value]
+                if selected_file == "<No Device Chain Files Found>" then
+                  return
+                end
+                preferences.pakettiPresetPlusPlusDeviceChain.value = "DeviceChains" .. separator .. selected_file
+                preferences:save_as("preferences.xml")
+                renoise.app():show_status("Device chain updated: " .. selected_file)
+              end
+            end
+          }
+        },
+        vb:row{
+          vb:button{
+            text="Browse...",
+            width=200,
+            notifier=function()
+              local filePath = renoise.app():prompt_for_filename_to_read({"*.xrnt"}, "Select Device Chain File")
+              if filePath ~= "" then
+                -- Check if file is within the tool bundle
+                local bundle_path = renoise.tool().bundle_path
+                if filePath:sub(1, #bundle_path) == bundle_path then
+                  -- File is within bundle, use relative path
+                  local relative_path = filePath:sub(#bundle_path + 1)
+                  -- Remove leading separator if present
+                  if relative_path:sub(1, 1) == separator then
+                    relative_path = relative_path:sub(2)
+                  end
+                  preferences.pakettiPresetPlusPlusDeviceChain.value = relative_path
+                else
+                  -- File is outside tool bundle, use absolute path
+                  preferences.pakettiPresetPlusPlusDeviceChain.value = filePath
+                end
+                
+                -- Update the popup selection
+                local refreshedFiles = pakettiGetXRNTDeviceChainFiles()
+                vb.views["pattern_init_device_chain_popup"].items = refreshedFiles
+                local filename = filePath:match("[^/\\]+$")
+                for i, file in ipairs(refreshedFiles) do
+                  if file == filename then
+                    vb.views["pattern_init_device_chain_popup"].value = i
+                    break
+                  end
+                end
+                preferences:save_as("preferences.xml")
+                renoise.app():show_status("Device chain updated: " .. filename)
+              end
+            end
+          }
+        }
       },
       
       -- RIGHT COLUMN: Phrase Editor Settings

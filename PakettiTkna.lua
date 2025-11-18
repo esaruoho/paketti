@@ -213,6 +213,10 @@ renoise.tool():add_midi_mapping{name="Paketti:Master Track Output Routing -1 x[T
 
 -- All of these have been requested by tkna91 via GitHub or Discord
 function loopReleaseToggle()
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 if renoise.song().selected_sample.loop_release
 then renoise.song().selected_sample.loop_release=false 
 else renoise.song().selected_sample.loop_release=true end
@@ -221,6 +225,10 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Loop Release On/Off",invoke=function() loopReleaseToggle() end}
 
 function oneShotToggle()
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 if renoise.song().selected_sample.oneshot 
 then renoise.song().selected_sample.oneshot=false 
 else renoise.song().selected_sample.oneshot=true end
@@ -251,6 +259,10 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Selected Sample Lo
 
 
 function selectedSampleTranspose(amount)
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 local currentSampleTranspose = renoise.song().selected_sample.transpose
 local changedSampleTranspose = currentSampleTranspose + amount
 if changedSampleTranspose > 120 then changedSampleTranspose = 120
@@ -262,9 +274,19 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Transpose
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Transpose (+1)",invoke=function() selectedSampleTranspose(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Transpose (-12)",invoke=function() selectedSampleTranspose(-12) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Transpose (+12)",invoke=function() selectedSampleTranspose(12) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Selected Sample Transpose (0)",invoke=function() renoise.song().selected_sample.transpose=0 end}
+renoise.tool():add_keybinding{name="Global:Paketti:Selected Sample Transpose (0)",invoke=function() 
+  if not renoise.song().selected_sample then 
+    renoise.app():show_status("No sample selected, doing nothing.")
+    return 
+  end
+  renoise.song().selected_sample.transpose=0 
+end}
 
 function selectedSampleFinetune(amount)
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 local currentSampleFinetune = renoise.song().selected_sample.fine_tune
 local changedSampleFinetune = currentSampleFinetune + amount
 if changedSampleFinetune > 127 then changedSampleFinetune = 127
@@ -276,9 +298,19 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Finetune 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Finetune (+1)",invoke=function() selectedSampleFinetune(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Finetune (-10)",invoke=function() selectedSampleFinetune(-10) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Finetune (+10)",invoke=function() selectedSampleFinetune(10) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Finetune (0)",invoke=function() renoise.song().selected_sample.fine_tune=0 end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Finetune (0)",invoke=function() 
+  if not renoise.song().selected_sample then 
+    renoise.app():show_status("No sample selected, doing nothing.")
+    return 
+  end
+  renoise.song().selected_sample.fine_tune=0 
+end}
 
 function selectedSamplePanning(amount)
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 local currentSamplePanning = renoise.song().selected_sample.panning
 local changedSamplePanning = currentSamplePanning + amount
 if changedSamplePanning > 1.0 then changedSamplePanning = 1.0
@@ -286,14 +318,36 @@ else if changedSamplePanning < 0.0 then changedSamplePanning = 0.0 end end
 renoise.song().selected_sample.panning=changedSamplePanning
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Panning 0.5 (Center)",invoke=function() renoise.song().selected_sample.panning=0.5 end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Panning 0.0 (Left)",invoke=function() renoise.song().selected_sample.panning=0.0 end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Panning 1.0 (Right)",invoke=function() renoise.song().selected_sample.panning=1.0 end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Panning 0.5 (Center)",invoke=function() 
+  if not renoise.song().selected_sample then 
+    renoise.app():show_status("No sample selected, doing nothing.")
+    return 
+  end
+  renoise.song().selected_sample.panning=0.5 
+end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Panning 0.0 (Left)",invoke=function() 
+  if not renoise.song().selected_sample then 
+    renoise.app():show_status("No sample selected, doing nothing.")
+    return 
+  end
+  renoise.song().selected_sample.panning=0.0 
+end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Panning 1.0 (Right)",invoke=function() 
+  if not renoise.song().selected_sample then 
+    renoise.app():show_status("No sample selected, doing nothing.")
+    return 
+  end
+  renoise.song().selected_sample.panning=1.0 
+end}
  
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Panning (+0.01)",invoke=function() selectedSamplePanning(0.01) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Panning (-0.01)",invoke=function() selectedSamplePanning(-0.01) end}
 
 function selectedSampleVolume(amount)
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 local currentSampleVolume = renoise.song().selected_sample.volume
 local changedSampleVolume = currentSampleVolume + amount
 if changedSampleVolume > 4.0 then changedSampleVolume = 4.0
@@ -303,39 +357,73 @@ end
  
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume (+0.01)",invoke=function() selectedSampleVolume(0.01) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume (-0.01)",invoke=function() selectedSampleVolume(-0.01) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume Reset (0.0dB)",invoke=function() renoise.song().selected_sample.volume=1 end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume Reset (0.0dB)",invoke=function() 
+  if not renoise.song().selected_sample then 
+    renoise.app():show_status("No sample selected, doing nothing.")
+    return 
+  end
+  renoise.song().selected_sample.volume=1 
+end}
 
 function selectedSampleInterpolation(amount)
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 renoise.song().selected_sample.interpolation_mode=amount
 end
 
 function selectedSampleOversampleOn()
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 renoise.song().selected_sample.oversample_enabled=true
 end
 
 function selectedSampleOversampleOff()
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 renoise.song().selected_sample.oversample_enabled=false
 end
 
 function selectedSampleOversampleToggle()
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 if renoise.song().selected_sample.oversample_enabled then
  renoise.song().selected_sample.oversample_enabled = false else
  renoise.song().selected_sample.oversample_enabled = true
 end end
 
 function selectedSampleAutoseekToggle()
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 if renoise.song().selected_sample.autoseek then
  renoise.song().selected_sample.autoseek = false else
  renoise.song().selected_sample.autoseek = true
 end end
 
 function selectedSampleAutofadeToggle()
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 if renoise.song().selected_sample.autofade then
  renoise.song().selected_sample.autofade = false else
  renoise.song().selected_sample.autofade = true
 end end
 
 function selectedSampleNNA(number)
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 renoise.song().selected_sample.new_note_action = number
 end
 
@@ -349,6 +437,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Oversampl
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Oversample On/Off",invoke=function() selectedSampleOversampleToggle() end}
 
 function selectedSampleBeatSync(number)
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 renoise.song().selected_sample.beat_sync_mode = number
 end
 
@@ -357,7 +449,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 3 (Time-Stretch Texture)",invoke=function() selectedSampleBeatSync(3) end}
 
 function selectedSampleBeatSyncAndToggleOn(number)
-if renoise.song().selected_sample == nil then return else
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 
 if renoise.song().selected_sample.beat_sync_enabled and renoise.song().selected_sample.beat_sync_mode ~= number then
 renoise.song().selected_sample.beat_sync_mode = number
@@ -372,7 +467,6 @@ else
 renoise.song().selected_sample.beat_sync_enabled = false
 end
 end
-end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 1 (Repitch)",invoke=function() selectedSampleBeatSyncAndToggleOn(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 2 (Time-Stretch Percussion)",invoke=function() selectedSampleBeatSyncAndToggleOn(2) end}
@@ -380,14 +474,21 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off",invoke=function()
-if renoise.song().selected_sample == nil then return else
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 
 if renoise.song().selected_sample.beat_sync_enabled then
  renoise.song().selected_sample.beat_sync_enabled = false else
  renoise.song().selected_sample.beat_sync_enabled = true
-end end end}
+end end}
 
 function selectedSampleBeatSyncLine(number)
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
 local currentBeatSyncLine = renoise.song().selected_sample.beat_sync_lines
 local changedBeatSyncLine = currentBeatSyncLine + number
 if changedBeatSyncLine > 512 then changedBeatSyncLine = 512
@@ -408,8 +509,11 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample NNA to 2 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample NNA to 3 (Continue)",invoke=function() selectedSampleNNA(3) end}
 
 function selectedSampleMuteGroup(number)
-if renoise.song().selected_sample == nil then return else 
-renoise.song().selected_sample.mute_group = number end
+if not renoise.song().selected_sample then 
+  renoise.app():show_status("No sample selected, doing nothing.")
+  return 
+end
+renoise.song().selected_sample.mute_group = number
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Mute Group to 0 (Off)",invoke=function() selectedSampleMuteGroup(0) end}
