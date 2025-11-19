@@ -2273,20 +2273,60 @@ function PakettiCreateNewTrackWithChannelstrip()
   if track_name and track_name ~= "" then
     -- Replace # with zero-padded track number (e.g., "T#" becomes "T01")
     if track_name:find("#") then
-      local track_number = string.format("%02d", new_track_index)
-      track.name = track_name:gsub("#", track_number)
+      local track_number
+      -- For Send tracks, count Send tracks that come BEFORE this position
+      if track.type == renoise.Track.TRACK_TYPE_SEND then
+        local send_count = 0
+        for i = 1, new_track_index do
+          if song.tracks[i].type == renoise.Track.TRACK_TYPE_SEND then
+            send_count = send_count + 1
+          end
+        end
+        track_number = string.format("%02d", send_count)
+      else
+        -- For regular tracks, use the track index
+        track_number = string.format("%02d", new_track_index)
+      end
+      
+      -- Adjust prefix based on track type
+      local name_to_use = track_name
+      if track.type == renoise.Track.TRACK_TYPE_SEND then
+        -- Replace "Track" with "Send" (case-insensitive), then "T" with "S" if no "Track" found
+        if track_name:lower():find("^track") then
+          -- Handle "Track", "track", "TRACK" etc.
+          local prefix = track_name:sub(1, 5)  -- Get "Track" or "track" or "TRACK"
+          if prefix:sub(1,1):upper() == prefix:sub(1,1) then
+            -- First letter is uppercase
+            if prefix == prefix:upper() then
+              name_to_use = track_name:gsub("^TRACK", "SEND")
+            else
+              name_to_use = track_name:gsub("^[Tt]rack", "Send")
+            end
+          else
+            -- First letter is lowercase
+            name_to_use = track_name:gsub("^track", "send")
+          end
+        else
+          -- Just replace "T" with "S" (preserving case)
+          name_to_use = track_name:gsub("^T", "S"):gsub("^t", "s")
+        end
+      end
+      track.name = name_to_use:gsub("#", track_number)
     else
       track.name = track_name
     end
   end
 
-  -- Apply column visibility settings to the track
-  track.volume_column_visible = preferences.pakettiTrackInitDialog.VolumeColumnVisible.value
-  track.panning_column_visible = preferences.pakettiTrackInitDialog.PanningColumnVisible.value
-  track.delay_column_visible = preferences.pakettiTrackInitDialog.DelayColumnVisible.value
-  track.sample_effects_column_visible = preferences.pakettiTrackInitDialog.SampleFXColumnVisible.value
-  track.visible_note_columns = preferences.pakettiTrackInitDialog.NoteColumns.value
-  track.visible_effect_columns = preferences.pakettiTrackInitDialog.EffectColumns.value
+  -- Apply column visibility settings - ONLY for sequencer tracks
+  -- Master and Send tracks don't support note columns or note-column-specific settings
+  if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    track.volume_column_visible = preferences.pakettiTrackInitDialog.VolumeColumnVisible.value
+    track.panning_column_visible = preferences.pakettiTrackInitDialog.PanningColumnVisible.value
+    track.delay_column_visible = preferences.pakettiTrackInitDialog.DelayColumnVisible.value
+    track.sample_effects_column_visible = preferences.pakettiTrackInitDialog.SampleFXColumnVisible.value
+    track.visible_note_columns = preferences.pakettiTrackInitDialog.NoteColumns.value
+    track.visible_effect_columns = preferences.pakettiTrackInitDialog.EffectColumns.value
+  end
   
   -- Load the device chain if enabled
   if device_chain_enabled then
@@ -2349,13 +2389,16 @@ function pakettiTrackSettingsApplyTrackSettings()
     end
   end
 
-  -- Apply column visibility settings to the track
-  track.volume_column_visible = preferences.pakettiTrackInitDialog.VolumeColumnVisible.value
-  track.panning_column_visible = preferences.pakettiTrackInitDialog.PanningColumnVisible.value
-  track.delay_column_visible = preferences.pakettiTrackInitDialog.DelayColumnVisible.value
-  track.sample_effects_column_visible = preferences.pakettiTrackInitDialog.SampleFXColumnVisible.value
-  track.visible_note_columns = preferences.pakettiTrackInitDialog.NoteColumns.value
-  track.visible_effect_columns = preferences.pakettiTrackInitDialog.EffectColumns.value
+  -- Apply column visibility settings - ONLY for sequencer tracks
+  -- Master and Send tracks don't support note columns or note-column-specific settings
+  if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    track.volume_column_visible = preferences.pakettiTrackInitDialog.VolumeColumnVisible.value
+    track.panning_column_visible = preferences.pakettiTrackInitDialog.PanningColumnVisible.value
+    track.delay_column_visible = preferences.pakettiTrackInitDialog.DelayColumnVisible.value
+    track.sample_effects_column_visible = preferences.pakettiTrackInitDialog.SampleFXColumnVisible.value
+    track.visible_note_columns = preferences.pakettiTrackInitDialog.NoteColumns.value
+    track.visible_effect_columns = preferences.pakettiTrackInitDialog.EffectColumns.value
+  end
   
   renoise.app():show_status("Track settings applied")
 end
@@ -2533,6 +2576,16 @@ function pakettiPatternPhraseInitDialog()
             value = preferences.pakettiTrackInitDialog.EffectColumns.value + 1,
             items = {"0","1","2","3","4","5","6","7","8"},
             notifier=function(value) preferences.pakettiTrackInitDialog.EffectColumns.value = value - 1 end
+          }
+        },
+        vb:row{
+          vb:text{text="Send Effect Columns",width=120,tooltip="Effect column count for Send tracks"},
+          vb:switch {
+            width=200,
+            value = preferences.pakettiTrackInitDialog.SendEffectColumns.value + 1,
+            items = {"0","1","2","3","4","5","6","7","8"},
+            tooltip="Effect column count for Send tracks",
+            notifier=function(value) preferences.pakettiTrackInitDialog.SendEffectColumns.value = value - 1 end
           }
         },
         vb:space{height=10},

@@ -427,6 +427,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     SampleFXColumnVisible = false,
     NoteColumns = 1,
     EffectColumns = 1,
+    SendEffectColumns = 1,
     SetName = false,
     Name="Track #"
     },
