@@ -716,10 +716,6 @@ function pakettiGetXRNTDeviceChainFiles()
         files = result
     end
     
-    if #files == 0 then
-        return { "<No Device Chain Files Found>" }
-    end
-    
     -- Process filenames to remove path and use correct separator
     for i, file in ipairs(files) do
         -- Extract just the filename from the full path
@@ -728,6 +724,9 @@ function pakettiGetXRNTDeviceChainFiles()
     
     -- Sort the files alphabetically for better user experience
     table.sort(files, function(a, b) return a:lower() < b:lower() end)
+    
+    -- Always add <None> as the first option
+    table.insert(files, 1, "<None>")
     
     return files
 end
@@ -939,12 +938,17 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
   local currentDeviceChainIndex = 1
   
   -- Find the index of currently selected device chain
-  local currentFileName = preferences.pakettiPresetPlusPlusDeviceChain.value:match("[^/\\]+$")
-  if currentFileName then
-    for i, file in ipairs(deviceChainFiles) do
-      if file == currentFileName then
-        currentDeviceChainIndex = i
-        break
+  if preferences.pakettiPresetPlusPlusDeviceChain.value == "" then
+    -- Empty preference means <None> was selected, which is always index 1
+    currentDeviceChainIndex = 1
+  else
+    local currentFileName = preferences.pakettiPresetPlusPlusDeviceChain.value:match("[^/\\]+$")
+    if currentFileName then
+      for i, file in ipairs(deviceChainFiles) do
+        if file == currentFileName then
+          currentDeviceChainIndex = i
+          break
+        end
       end
     end
   end
@@ -1706,6 +1710,12 @@ vb:row{
             notifier=function(value)
                 if value > 0 and value <= #deviceChainFiles then
                     local selected_file = deviceChainFiles[value]
+                    if selected_file == "<None>" then
+                        preferences.pakettiPresetPlusPlusDeviceChain.value = ""
+                        preferences:save_as("preferences.xml")
+                        renoise.app():show_status("Device chain disabled (none will be loaded)")
+                        return
+                    end
                     if selected_file == "<No Device Chain Files Found>" then
                         return
                     end

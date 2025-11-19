@@ -1,3 +1,6 @@
+-- Define separator for cross-platform path handling
+local separator = renoise.os_platform() == "WINDOWS" and "\\" or "/"
+
 function inspectEffect()
   local devices = renoise.song().selected_track.devices
   local selected_device = renoise.song().selected_device
@@ -2235,17 +2238,23 @@ function PakettiCreateNewTrackWithChannelstrip()
   -- Get device chain path from preferences
   local device_chain_path = renoise.tool().preferences.pakettiPresetPlusPlusDeviceChain.value
   
-  -- If it's a relative path, make it absolute from tool bundle
-  if not device_chain_path:match("^[/\\]") and not device_chain_path:match("^%a:") then
-    device_chain_path = renoise.tool().bundle_path .. device_chain_path
-  end
+  -- Check if device chain is disabled (<None> was selected)
+  local device_chain_enabled = device_chain_path ~= ""
   
-  -- Check if the device chain file exists
-  if not io.exists(device_chain_path) then
-    local message = "Device chain file not found:\n" .. device_chain_path .. "\n\nPlease configure a valid device chain file in the Pattern/Phrase Init Preferences dialog."
-    renoise.app():show_message(message)
-    pakettiPatternPhraseInitDialog()
-    return
+  -- If device chain is enabled, validate the file
+  if device_chain_enabled then
+    -- If it's a relative path, make it absolute from tool bundle
+    if not device_chain_path:match("^[/\\]") and not device_chain_path:match("^%a:") then
+      device_chain_path = renoise.tool().bundle_path .. device_chain_path
+    end
+    
+    -- Check if the device chain file exists
+    if not io.exists(device_chain_path) then
+      local message = "Device chain file not found:\n" .. device_chain_path .. "\n\nPlease configure a valid device chain file in the Pattern/Phrase Init Preferences dialog."
+      renoise.app():show_message(message)
+      pakettiPatternPhraseInitDialog()
+      return
+    end
   end
   
   local new_track_index = current_track_index + 1
@@ -2270,16 +2279,21 @@ function PakettiCreateNewTrackWithChannelstrip()
   track.visible_note_columns = preferences.pakettiTrackInitDialog.NoteColumns.value
   track.visible_effect_columns = preferences.pakettiTrackInitDialog.EffectColumns.value
   
-  -- Load the device chain to the selected track with error handling
-  local success, error_message = pcall(function()
-    renoise.app():load_track_device_chain(device_chain_path)
-  end)
-  
-  if success then
-    local chain_name = device_chain_path:match("[^/\\]+$") or device_chain_path
-    renoise.app():show_status("Created new track with device chain: " .. chain_name)
+  -- Load the device chain if enabled
+  if device_chain_enabled then
+    -- Load the device chain to the selected track with error handling
+    local success, error_message = pcall(function()
+      renoise.app():load_track_device_chain(device_chain_path)
+    end)
+    
+    if success then
+      local chain_name = device_chain_path:match("[^/\\]+$") or device_chain_path
+      renoise.app():show_status("Created new track with device chain: " .. chain_name)
+    else
+      renoise.app():show_status("ERROR: Could not load device chain - " .. (error_message or "file not found"))
+    end
   else
-    renoise.app():show_status("ERROR: Could not load device chain - " .. (error_message or "file not found"))
+    renoise.app():show_status("Created new track with Track Init settings (no device chain)")
   end
 end
 
@@ -2412,12 +2426,18 @@ function pakettiPatternPhraseInitDialog()
   -- Get device chain files and find current selection index
   local deviceChainFiles = pakettiGetXRNTDeviceChainFiles()
   local currentDeviceChainIndex = 1
-  local currentFileName = preferences.pakettiPresetPlusPlusDeviceChain.value:match("[^/\\]+$")
-  if currentFileName then
-    for i, file in ipairs(deviceChainFiles) do
-      if file == currentFileName then
-        currentDeviceChainIndex = i
-        break
+  
+  if preferences.pakettiPresetPlusPlusDeviceChain.value == "" then
+    -- Empty preference means <None> was selected, which is always index 1
+    currentDeviceChainIndex = 1
+  else
+    local currentFileName = preferences.pakettiPresetPlusPlusDeviceChain.value:match("[^/\\]+$")
+    if currentFileName then
+      for i, file in ipairs(deviceChainFiles) do
+        if file == currentFileName then
+          currentDeviceChainIndex = i
+          break
+        end
       end
     end
   end
@@ -2537,6 +2557,12 @@ function pakettiPatternPhraseInitDialog()
               local deviceChainFiles = pakettiGetXRNTDeviceChainFiles()
               if value > 0 and value <= #deviceChainFiles then
                 local selected_file = deviceChainFiles[value]
+                if selected_file == "<None>" then
+                  preferences.pakettiPresetPlusPlusDeviceChain.value = ""
+                  preferences:save_as("preferences.xml")
+                  renoise.app():show_status("Device chain disabled (none will be loaded)")
+                  return
+                end
                 if selected_file == "<No Device Chain Files Found>" then
                   return
                 end
