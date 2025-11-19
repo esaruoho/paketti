@@ -1498,7 +1498,7 @@ function select_specific_track(number)
   end
 end
 
-for st=1,16 do
+for st=1,32 do
   renoise.tool():add_keybinding{name="Global:Paketti:Select Specific Track " .. formatDigits(2,st), 
     invoke=function() select_specific_track(st) end}
 end

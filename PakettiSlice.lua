@@ -135,7 +135,12 @@ function WipeSliceAndWrite()
   local tw = s.selected_sample.sample_buffer.number_of_frames / slice_count
   s.instruments[currInst].samples[currSamp]:insert_slice_marker(1)
   for i = 1, slice_count - 1 do
-      s.instruments[currInst].samples[currSamp]:insert_slice_marker(tw * i)
+      local slice_position = tw * i
+      -- Ensure slice_position is never 0
+      if slice_position < 1 then
+          slice_position = 1
+      end
+      s.instruments[currInst].samples[currSamp]:insert_slice_marker(slice_position)
   end
 
   -- Apply settings to all samples created by the slicing
@@ -1033,6 +1038,10 @@ function pakettiBPMBasedSlice(sample_bpm, beats_per_slice)
     -- Create remaining slice markers
     for i = 1, num_slices - 1 do
         local slice_position = i * frames_per_slice
+        -- Ensure slice_position is never 0
+        if slice_position < 1 then
+            slice_position = 1
+        end
         if slice_position < total_frames then
             sample:insert_slice_marker(slice_position)
             print("Created slice marker " .. (i + 1) .. " at frame " .. slice_position)
@@ -1864,7 +1873,7 @@ end
 -- Calculate current estimated playback frame position
 function pakettiRealtimeSliceGetCurrentFrame()
   if not realtime_slice_state.is_monitoring then
-    return 0
+    return 1  -- Never return 0, always return at least frame 1
   end
   
   local elapsed_time = os.clock() - realtime_slice_state.start_time
@@ -1886,7 +1895,7 @@ function pakettiRealtimeSliceGetCurrentFrame()
     local instrument = song.instruments[realtime_slice_state.instrument_index]
     local sample = instrument.samples[realtime_slice_state.sample_index]
     if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
-      return 0
+      return 1  -- Never return 0, always return at least frame 1
     end
     
     local total_frames = sample.sample_buffer.number_of_frames
@@ -1894,10 +1903,18 @@ function pakettiRealtimeSliceGetCurrentFrame()
     
     -- Calculate frame position with beat sync compensation
     local frame_position = math.floor(elapsed_time * realtime_slice_state.sample_rate * playback_rate_multiplier)
+    -- Ensure frame_position is never 0
+    if frame_position < 1 then
+      frame_position = 1
+    end
     return frame_position
   else
     -- Normal playback without beat sync
     local frame_position = math.floor(elapsed_time * realtime_slice_state.sample_rate)
+    -- Ensure frame_position is never 0
+    if frame_position < 1 then
+      frame_position = 1
+    end
     return frame_position
   end
 end
@@ -2703,7 +2720,12 @@ function PakettiSliceCreateRhythmicDrumChain(normalize_slices)
       total_chain_frames = total_chain_frames + processed.frames
       -- Add marker at end of each sample (except the last) to mark start of next slice
       if i < #processed_samples then
-        table.insert(chain_slice_markers, total_chain_frames)
+        -- Ensure marker position is never 0
+        local marker_pos = total_chain_frames
+        if marker_pos < 1 then
+          marker_pos = 1
+        end
+        table.insert(chain_slice_markers, marker_pos)
       end
     end
     
@@ -3334,6 +3356,10 @@ function PakettiSliceCreateRhythmicDrumChainRandomize(normalize_slices)
     
     for i = 1, slice_count - 1 do
       current_position = current_position + processed_samples[i].frames
+      -- Ensure marker position is never 0
+      if current_position < 1 then
+        current_position = 1
+      end
       marker_positions[i + 1] = current_position
     end
     
@@ -3731,7 +3757,12 @@ function PakettiSliceCreateRhythmicDrumChainFromXRNI(normalize_slices)
   for i, processed in ipairs(processed_samples) do
     total_chain_frames = total_chain_frames + processed.frames
     if i < #processed_samples then
-      table.insert(chain_slice_markers, total_chain_frames)
+      -- Ensure marker position is never 0
+      local marker_pos = total_chain_frames
+      if marker_pos < 1 then
+        marker_pos = 1
+      end
+      table.insert(chain_slice_markers, marker_pos)
     end
   end
   
@@ -3982,7 +4013,13 @@ function PakettiApplySlicesBasedOnSampleRate()
   for i, marker in ipairs(PakettiPickedUpSliceMarkers) do
     -- Scale the marker position based on actual length ratio
     local scaled_marker = math.floor(marker * length_ratio + 0.5) -- Round to nearest frame
-    print(string.format("  Marker %d: %d -> %d (using length ratio: %.6f)", i, marker, scaled_marker, length_ratio))
+    -- Ensure scaled_marker is never 0
+    if scaled_marker < 1 then
+      scaled_marker = 1
+      print(string.format("  Marker %d: %d -> %d (forced to 1, was 0)", i, marker, scaled_marker))
+    else
+      print(string.format("  Marker %d: %d -> %d (using length ratio: %.6f)", i, marker, scaled_marker, length_ratio))
+    end
     if scaled_marker <= new_sample_length then
       table.insert(valid_markers, scaled_marker)
       print(string.format("    -> VALID (within %d frames)", new_sample_length))
