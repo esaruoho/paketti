@@ -1,5 +1,5 @@
 -- Define separator for cross-platform path handling
-local separator = renoise.os_platform() == "WINDOWS" and "\\" or "/"
+local separator = package.config:sub(1,1)
 
 function inspectEffect()
   local devices = renoise.song().selected_track.devices

@@ -2292,6 +2292,11 @@ function PakettiSliceCreateRhythmicDrumChain(normalize_slices)
     end
     
     local duration = slice_end - slice_start
+    -- Ensure duration is at least 1 frame (never 0)
+    if duration < 1 then
+      duration = 1
+      print(string.format("PakettiSlice: WARNING - Slice %d had 0 or negative duration, forcing to 1 frame", i))
+    end
     slice_durations[i] = duration
     print(string.format("PakettiSlice: Slice %d: marker[%d]=%d to %s=%d, duration=%d frames (%.3fs)", 
       i, i, slice_start, 
@@ -2707,6 +2712,12 @@ function PakettiSliceCreateRhythmicDrumChain(normalize_slices)
     print(string.format("PakettiSlice: First marker at frame 1, last marker at frame %d", 
       chain_slice_markers[#chain_slice_markers]))
     
+    -- Ensure total_chain_frames is at least 1 (never 0)
+    if total_chain_frames < 1 then
+      total_chain_frames = 1
+      print("PakettiSlice: WARNING - Total chain frames was 0, forcing to 1 frame")
+    end
+    
     -- Create FINAL instrument at index+2 (temp was deleted, so now it's at index+1)
     local new_instrument_index = original_instrument_index + 1
     song:insert_instrument_at(new_instrument_index)
@@ -2880,6 +2891,11 @@ function PakettiSliceCreateRhythmicDrumChainRandomize(normalize_slices)
     end
     
     local duration = slice_end - slice_start
+    -- Ensure duration is at least 1 frame (never 0)
+    if duration < 1 then
+      duration = 1
+      print(string.format("PakettiSlice: WARNING - Slice %d had 0 or negative duration, forcing to 1 frame", i))
+    end
     slice_durations[i] = duration
     
     print(string.format("PakettiSlice: Slice %d: marker[%d]=%d to %s=%d, duration=%d frames (%.3fs)",
@@ -3305,6 +3321,12 @@ function PakettiSliceCreateRhythmicDrumChainRandomize(normalize_slices)
     
     print(string.format("PakettiSlice: Total chain: %d frames with %d slice markers", total_chain_frames, slice_count))
     
+    -- Ensure total_chain_frames is at least 1 (never 0)
+    if total_chain_frames < 1 then
+      total_chain_frames = 1
+      print("PakettiSlice: WARNING - Total chain frames was 0, forcing to 1 frame")
+    end
+    
     -- Calculate slice marker positions
     local marker_positions = {}
     local current_position = 1
@@ -3496,6 +3518,11 @@ function PakettiSliceCreateRhythmicDrumChainFromXRNI(normalize_slices)
     end
     
     local duration = slice_end - slice_start
+    -- Ensure duration is at least 1 frame (never 0)
+    if duration < 1 then
+      duration = 1
+      print(string.format("PakettiSlice: WARNING - Slice %d had 0 or negative duration, forcing to 1 frame", i))
+    end
     slice_durations[i] = duration
     print(string.format("PakettiSlice: Source slice %d: marker[%d]=%d to %s=%d, duration=%d frames (%.3fs)", 
       i, i, slice_start, 
@@ -3592,6 +3619,11 @@ function PakettiSliceCreateRhythmicDrumChainFromXRNI(normalize_slices)
     end
     
     local slice_frames = slice_end - slice_start
+    -- Ensure slice_frames is at least 1 frame (never 0)
+    if slice_frames < 1 then
+      slice_frames = 1
+      print(string.format("PakettiSlice: WARNING - Loaded slice %d had 0 or negative duration, forcing to 1 frame", i))
+    end
     local channel_data = {}
     
     for ch = 1, loaded_buffer.number_of_channels do
@@ -3705,6 +3737,12 @@ function PakettiSliceCreateRhythmicDrumChainFromXRNI(normalize_slices)
   
   print(string.format("PakettiSlice: Total chain: %d frames with %d slice markers",
     total_chain_frames, #chain_slice_markers))
+  
+  -- Ensure total_chain_frames is at least 1 (never 0)
+  if total_chain_frames < 1 then
+    total_chain_frames = 1
+    print("PakettiSlice: WARNING - Total chain frames was 0, forcing to 1 frame")
+  end
   
   -- Create new instrument with chained sample
   local new_instrument_index = original_instrument_index + 1
