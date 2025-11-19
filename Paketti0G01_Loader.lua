@@ -428,7 +428,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     NoteColumns = 1,
     EffectColumns = 1,
     SetName = false,
-    Name=""
+    Name="Track #"
     },
     pakettiTitler = {
     textfile_path = "External/wordlist.txt",

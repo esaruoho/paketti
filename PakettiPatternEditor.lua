@@ -1493,9 +1493,9 @@ function select_specific_track(number)
      renoise.song().selected_track_index=number
   else renoise.song().selected_track_index=number  end
 
-  if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
-    capture_ins_oct("no")
-  end
+--  if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+--    capture_ins_oct("no")
+--  end
 end
 
 for st=1,32 do

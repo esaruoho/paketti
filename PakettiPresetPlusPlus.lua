@@ -2268,8 +2268,17 @@ function PakettiCreateNewTrackWithChannelstrip()
   -- Apply Track Init settings to the newly created track
   local track = song.selected_track
   
-  -- Note: Track name is NOT applied here so each new track gets its own default name
-  -- (e.g., Track 01, Track 02, etc.) instead of all tracks having the same name
+  -- Apply track name with # placeholder replacement for track number
+  local track_name = preferences.pakettiTrackInitDialog.Name.value
+  if track_name and track_name ~= "" then
+    -- Replace # with zero-padded track number (e.g., "T#" becomes "T01")
+    if track_name:find("#") then
+      local track_number = string.format("%02d", new_track_index)
+      track.name = track_name:gsub("#", track_number)
+    else
+      track.name = track_name
+    end
+  end
 
   -- Apply column visibility settings to the track
   track.volume_column_visible = preferences.pakettiTrackInitDialog.VolumeColumnVisible.value
@@ -2412,17 +2421,6 @@ function pakettiPatternPhraseInitDialog()
 
   local vb = renoise.ViewBuilder()
   
-  -- Pre-populate with current track/phrase names if available
-  local track = song.selected_track
-  if track and track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-    preferences.pakettiTrackInitDialog.Name.value = track.name
-  end
-  
-  local phrase = song.selected_phrase
-  if phrase then
-    preferences.pakettiPhraseInitDialog.Name.value = phrase.name
-  end
-  
   -- Get device chain files and find current selection index
   local deviceChainFiles = pakettiGetXRNTDeviceChainFiles()
   local currentDeviceChainIndex = 1
@@ -2468,11 +2466,12 @@ function pakettiPatternPhraseInitDialog()
           vb:text{text="Set Name",width=120},
         },
         vb:row{
-          vb:text{text="Track Name",width=120},
+          vb:text{text="Track naming, use #",width=120,tooltip = "Use # as placeholder for track number (e.g., 'T#' becomes 'T01', 'T02', etc.)"},
           vb:textfield {
             id = "track_name_textfield",
             width=200,
             text = preferences.pakettiTrackInitDialog.Name.value,
+            tooltip = "Use # as placeholder for track number (e.g., 'T#' becomes 'T01', 'T02', etc.)",
             notifier=function(value) 
               preferences.pakettiTrackInitDialog.Name.value = value
               if value ~= "" then
