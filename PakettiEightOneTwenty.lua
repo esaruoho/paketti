@@ -4665,7 +4665,9 @@ function loadSequentialSamplesWithFolderPrompts()
   
   -- Helper function to get just filename from path
   local function getFilename(filepath)
-    return filepath:match("([^/\\]+)%.%w+$") or filepath:match("([^/\\]+)$") or filepath
+    -- Strip trailing slash if present
+    local clean_path = filepath:gsub("[/\\]+$", "")
+    return clean_path:match("([^/\\]+)%.%w+$") or clean_path:match("([^/\\]+)$") or clean_path
   end
   
   -- Function to process a single instrument (regular sample loading)
@@ -4743,8 +4745,7 @@ function loadSequentialSamplesWithFolderPrompts()
     end
     
     -- Set instrument name
-    local folder_name = getFilename(folder_path)
-    instrument.name = string.format("8120_%02d %s", instrument_index, folder_name)
+    instrument.name = string.format("8120_%02d Kit", instrument_index)
     
     return true
   end
@@ -4802,7 +4803,7 @@ function loadSequentialSamplesWithFolderPrompts()
   -- Function to start the processing
   local function startProcessing()
     -- Create ProcessSlicer
-    local slicer = ProcessSlicer(process)
+    slicer = ProcessSlicer(process)
     
     -- Create progress dialog with status for all 8 parts
     local vb = renoise.ViewBuilder()
@@ -4902,7 +4903,9 @@ function loadSequentialDrumkitSamples()
   
   -- Helper function to get just filename from path
   local function getFilename(filepath)
-    return filepath:match("([^/\\]+)%.%w+$") or filepath
+    -- Strip trailing slash if present
+    local clean_path = filepath:gsub("[/\\]+$", "")
+    return clean_path:match("([^/\\]+)%.%w+$") or clean_path:match("([^/\\]+)$") or clean_path
   end
   
   -- Helper function to get file size
@@ -5245,7 +5248,9 @@ function loadSequentialRandomLoadAll()
   local status_labels = {}
 
   local function getFilename(filepath)
-    return filepath:match("([^/\\]+)%.%w+$") or filepath
+    -- Strip trailing slash if present
+    local clean_path = filepath:gsub("[/\\]+$", "")
+    return clean_path:match("([^/\\]+)%.%w+$") or clean_path:match("([^/\\]+)$") or clean_path
   end
 
   local function getFileSize(filepath)
