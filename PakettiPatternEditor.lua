@@ -4792,7 +4792,7 @@ function nudge(direction)
   local song=renoise.song()
   local selection = selection_in_pattern_pro()
   if not selection then 
-    renoise.app():show_status("No selection in pattern!")
+    renoise.app():show_status("No selection in pattern, doing nothing.")
     return
   end
 
@@ -4802,7 +4802,7 @@ function nudge(direction)
   -- Get selection boundaries from song.selection_in_pattern
   local pattern_selection = song.selection_in_pattern
   if not pattern_selection then
-    renoise.app():show_status("No selection in pattern!")
+    renoise.app():show_status("No selection in pattern, doing nothing.")
     return
   end
   local start_line = pattern_selection.start_line
@@ -4952,7 +4952,7 @@ function nudge_with_delay(direction)
   local song=renoise.song()
   local selection = selection_in_pattern_pro()
   if not selection then 
-    renoise.app():show_status("No selection in pattern!")
+    renoise.app():show_status("No selection in pattern, doing nothing.")
     return
   end
 
@@ -4962,7 +4962,7 @@ function nudge_with_delay(direction)
   -- Get selection boundaries from song.selection_in_pattern
   local pattern_selection = song.selection_in_pattern
   if not pattern_selection then
-    renoise.app():show_status("No selection in pattern!")
+    renoise.app():show_status("No selection in pattern, doing nothing.")
     return
   end
   local start_line = pattern_selection.start_line
@@ -6729,7 +6729,7 @@ function toggle_template_mode()
   local selection = song.selection_in_pattern
   
   if not selection then
-    renoise.app():show_status("No selection in pattern! Select something first.")
+    renoise.app():show_status("No selection in pattern, please select something first.")
     return
   end
   
@@ -9145,3 +9145,201 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Pick & Move Toggle", 
 -- Override cursor keys for Pick & Move functionality
 renoise.tool():add_keybinding{name="Pattern Editor:Navigation:Move Cursor Up [Override]", invoke=PakettiPickAndMoveCursorUp}
 renoise.tool():add_keybinding{name="Pattern Editor:Navigation:Move Cursor Down [Override]", invoke=PakettiPickAndMoveCursorDown}
+
+--------------------------------------------------------------------------------
+-- Nudge and Move Selection
+--------------------------------------------------------------------------------
+
+-- Helper function to check if a line has any data in the specified columns
+function PakettiNudgeAndMoveCheckLineForData(pattern, track_index, line_index, note_columns, effect_columns)
+  local track = pattern:track(track_index)
+  local line = track:line(line_index)
+  
+  -- Check selected note columns
+  for _, col_idx in ipairs(note_columns) do
+    local note_col = line:note_column(col_idx)
+    if not note_col.is_empty then
+      return true
+    end
+  end
+  
+  -- Check selected effect columns
+  for _, col_idx in ipairs(effect_columns) do
+    local effect_col = line:effect_column(col_idx)
+    if not effect_col.is_empty then
+      return true
+    end
+  end
+  
+  return false
+end
+
+-- Main function to perform nudge and move selection
+function PakettiNudgeAndMoveSelection(direction)
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  
+  if not selection then
+    renoise.app():show_status("No selection in pattern, doing nothing.")
+    return
+  end
+  
+  -- Get selection details using selection_in_pattern_pro
+  local selection_info = selection_in_pattern_pro()
+  if not selection_info then
+    renoise.app():show_status("Please select a range before running this function.")
+    return
+  end
+  
+  local pattern = song.selected_pattern
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  local num_lines = end_line - start_line + 1
+  
+  -- Calculate new selection range
+  local new_start_line = start_line + direction
+  local new_end_line = end_line + direction
+  
+  -- Check bounds
+  if new_start_line < 1 then
+    renoise.app():show_status("Cannot move beyond beginning of pattern, doing nothing.")
+    return
+  end
+  
+  if new_end_line > pattern.number_of_lines then
+    renoise.app():show_status("Cannot move beyond end of pattern, doing nothing.")
+    return
+  end
+  
+  -- Check for data collision in the destination area
+  -- We only need to check the NEW line that wasn't part of the selection before
+  local check_line = nil
+  if direction < 0 then
+    -- Moving up: check line above current selection
+    check_line = new_start_line
+  else
+    -- Moving down: check line below current selection
+    check_line = new_end_line
+  end
+  
+  -- Check for collisions in the destination line
+  for _, track_info in ipairs(selection_info) do
+    if PakettiNudgeAndMoveCheckLineForData(
+      pattern, 
+      track_info.track_index, 
+      check_line,
+      track_info.note_columns,
+      track_info.effect_columns
+    ) then
+      renoise.app():show_status("This nudge and move would result in a data collision, doing nothing.")
+      return
+    end
+  end
+  
+  -- All checks passed, perform the move
+  -- We need to copy in the right order to avoid overwriting data
+  if direction < 0 then
+    -- Moving up: copy from top to bottom
+    for line_offset = 0, num_lines - 1 do
+      local src_line = start_line + line_offset
+      local dst_line = new_start_line + line_offset
+      
+      for _, track_info in ipairs(selection_info) do
+        local track = pattern:track(track_info.track_index)
+        local src = track:line(src_line)
+        local dst = track:line(dst_line)
+        
+        -- Copy selected note columns
+        for _, col_idx in ipairs(track_info.note_columns) do
+          dst:note_column(col_idx):copy_from(src:note_column(col_idx))
+        end
+        
+        -- Copy selected effect columns
+        for _, col_idx in ipairs(track_info.effect_columns) do
+          dst:effect_column(col_idx):copy_from(src:effect_column(col_idx))
+        end
+      end
+    end
+    
+    -- Clear the old line at the bottom that's no longer part of selection
+    for _, track_info in ipairs(selection_info) do
+      local track = pattern:track(track_info.track_index)
+      local clear_line = track:line(end_line)
+      
+      for _, col_idx in ipairs(track_info.note_columns) do
+        clear_line:note_column(col_idx):clear()
+      end
+      
+      for _, col_idx in ipairs(track_info.effect_columns) do
+        clear_line:effect_column(col_idx):clear()
+      end
+    end
+  else
+    -- Moving down: copy from bottom to top
+    for line_offset = num_lines - 1, 0, -1 do
+      local src_line = start_line + line_offset
+      local dst_line = new_start_line + line_offset
+      
+      for _, track_info in ipairs(selection_info) do
+        local track = pattern:track(track_info.track_index)
+        local src = track:line(src_line)
+        local dst = track:line(dst_line)
+        
+        -- Copy selected note columns
+        for _, col_idx in ipairs(track_info.note_columns) do
+          dst:note_column(col_idx):copy_from(src:note_column(col_idx))
+        end
+        
+        -- Copy selected effect columns
+        for _, col_idx in ipairs(track_info.effect_columns) do
+          dst:effect_column(col_idx):copy_from(src:effect_column(col_idx))
+        end
+      end
+    end
+    
+    -- Clear the old line at the top that's no longer part of selection
+    for _, track_info in ipairs(selection_info) do
+      local track = pattern:track(track_info.track_index)
+      local clear_line = track:line(start_line)
+      
+      for _, col_idx in ipairs(track_info.note_columns) do
+        clear_line:note_column(col_idx):clear()
+      end
+      
+      for _, col_idx in ipairs(track_info.effect_columns) do
+        clear_line:effect_column(col_idx):clear()
+      end
+    end
+  end
+  
+  -- Update the selection to the new range
+  song.selection_in_pattern = {
+    start_track = selection.start_track,
+    start_line = new_start_line,
+    start_column = selection.start_column,
+    end_track = selection.end_track,
+    end_line = new_end_line,
+    end_column = selection.end_column
+  }
+  
+  -- Move cursor to maintain relative position within selection
+  local cursor_line = song.selected_line_index
+  if cursor_line >= start_line and cursor_line <= end_line then
+    song.selected_line_index = cursor_line + direction
+  end
+  
+  renoise.app():show_status(string.format("Nudged and moved selection %s", direction < 0 and "up" or "down"))
+end
+
+-- Wrapper functions for up/down
+function PakettiNudgeAndMoveSelectionUp()
+  PakettiNudgeAndMoveSelection(-1)
+end
+
+function PakettiNudgeAndMoveSelectionDown()
+  PakettiNudgeAndMoveSelection(1)
+end
+
+-- Add keybindings
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Move Selection Up", invoke=PakettiNudgeAndMoveSelectionUp}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Move Selection Down", invoke=PakettiNudgeAndMoveSelectionDown}
