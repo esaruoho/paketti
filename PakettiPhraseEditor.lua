@@ -2494,3 +2494,191 @@ if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Up by Row",invoke=function() PakettiPhraseEditorNudgeByRow(-1) end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Down by Row",invoke=function() PakettiPhraseEditorNudgeByRow(1) end}
 end
+
+--------------------------------------------------------------------------------
+-- Nudge and Move Selection for Phrase Editor
+--------------------------------------------------------------------------------
+
+-- Helper function to check if a line has any data in the specified columns
+function PakettiPhraseEditorNudgeAndMoveCheckLineForData(phrase, line_index, note_columns, effect_columns)
+  local line = phrase:line(line_index)
+  
+  -- Check selected note columns
+  for _, col_idx in ipairs(note_columns) do
+    local note_col = line:note_column(col_idx)
+    if not note_col.is_empty then
+      return true
+    end
+  end
+  
+  -- Check selected effect columns
+  for _, col_idx in ipairs(effect_columns) do
+    local effect_col = line:effect_column(col_idx)
+    if not effect_col.is_empty then
+      return true
+    end
+  end
+  
+  return false
+end
+
+-- Main function to perform nudge and move selection in phrase editor
+function PakettiPhraseEditorNudgeAndMoveSelection(direction)
+  local song = renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected, doing nothing.")
+    return
+  end
+  
+  local selection = song.selection_in_phrase
+  
+  if not selection then
+    renoise.app():show_status("No selection in phrase, doing nothing.")
+    return
+  end
+  
+  -- Get selection details using PakettiPhraseEditorSelectionInfo
+  local selection_info = PakettiPhraseEditorSelectionInfo()
+  if not selection_info then
+    renoise.app():show_status("Please select a range before running this function.")
+    return
+  end
+  
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  local num_lines = end_line - start_line + 1
+  
+  -- Calculate new selection range
+  local new_start_line = start_line + direction
+  local new_end_line = end_line + direction
+  
+  -- Check bounds
+  if new_start_line < 1 then
+    renoise.app():show_status("Cannot move beyond beginning of phrase, doing nothing.")
+    return
+  end
+  
+  if new_end_line > phrase.number_of_lines then
+    renoise.app():show_status("Cannot move beyond end of phrase, doing nothing.")
+    return
+  end
+  
+  -- Check for data collision in the destination area
+  -- We only need to check the NEW line that wasn't part of the selection before
+  local check_line = nil
+  if direction < 0 then
+    -- Moving up: check line above current selection
+    check_line = new_start_line
+  else
+    -- Moving down: check line below current selection
+    check_line = new_end_line
+  end
+  
+  -- Check for collisions in the destination line
+  if PakettiPhraseEditorNudgeAndMoveCheckLineForData(
+    phrase, 
+    check_line,
+    selection_info.note_columns,
+    selection_info.effect_columns
+  ) then
+    renoise.app():show_status("This nudge and move would result in a data collision, doing nothing.")
+    return
+  end
+  
+  -- All checks passed, perform the move
+  -- We need to copy in the right order to avoid overwriting data
+  if direction < 0 then
+    -- Moving up: copy from top to bottom
+    for line_offset = 0, num_lines - 1 do
+      local src_line = start_line + line_offset
+      local dst_line = new_start_line + line_offset
+      
+      local src = phrase:line(src_line)
+      local dst = phrase:line(dst_line)
+      
+      -- Copy selected note columns
+      for _, col_idx in ipairs(selection_info.note_columns) do
+        dst:note_column(col_idx):copy_from(src:note_column(col_idx))
+      end
+      
+      -- Copy selected effect columns
+      for _, col_idx in ipairs(selection_info.effect_columns) do
+        dst:effect_column(col_idx):copy_from(src:effect_column(col_idx))
+      end
+    end
+    
+    -- Clear the old line at the bottom that's no longer part of selection
+    local clear_line = phrase:line(end_line)
+    
+    for _, col_idx in ipairs(selection_info.note_columns) do
+      clear_line:note_column(col_idx):clear()
+    end
+    
+    for _, col_idx in ipairs(selection_info.effect_columns) do
+      clear_line:effect_column(col_idx):clear()
+    end
+  else
+    -- Moving down: copy from bottom to top
+    for line_offset = num_lines - 1, 0, -1 do
+      local src_line = start_line + line_offset
+      local dst_line = new_start_line + line_offset
+      
+      local src = phrase:line(src_line)
+      local dst = phrase:line(dst_line)
+      
+      -- Copy selected note columns
+      for _, col_idx in ipairs(selection_info.note_columns) do
+        dst:note_column(col_idx):copy_from(src:note_column(col_idx))
+      end
+      
+      -- Copy selected effect columns
+      for _, col_idx in ipairs(selection_info.effect_columns) do
+        dst:effect_column(col_idx):copy_from(src:effect_column(col_idx))
+      end
+    end
+    
+    -- Clear the old line at the top that's no longer part of selection
+    local clear_line = phrase:line(start_line)
+    
+    for _, col_idx in ipairs(selection_info.note_columns) do
+      clear_line:note_column(col_idx):clear()
+    end
+    
+    for _, col_idx in ipairs(selection_info.effect_columns) do
+      clear_line:effect_column(col_idx):clear()
+    end
+  end
+  
+  -- Update the selection to the new range
+  song.selection_in_phrase = {
+    start_line = new_start_line,
+    start_column = selection.start_column,
+    end_line = new_end_line,
+    end_column = selection.end_column
+  }
+  
+  -- Move cursor to maintain relative position within selection
+  local cursor_line = song.selected_phrase_line_index
+  if cursor_line >= start_line and cursor_line <= end_line then
+    song.selected_phrase_line_index = cursor_line + direction
+  end
+  
+  renoise.app():show_status(string.format("Nudged and moved selection %s", direction < 0 and "up" or "down"))
+end
+
+-- Wrapper functions for up/down
+function PakettiPhraseEditorNudgeAndMoveSelectionUp()
+  PakettiPhraseEditorNudgeAndMoveSelection(-1)
+end
+
+function PakettiPhraseEditorNudgeAndMoveSelectionDown()
+  PakettiPhraseEditorNudgeAndMoveSelection(1)
+end
+
+-- Add keybindings
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge and Move Selection Up", invoke=PakettiPhraseEditorNudgeAndMoveSelectionUp}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge and Move Selection Down", invoke=PakettiPhraseEditorNudgeAndMoveSelectionDown}
+end
