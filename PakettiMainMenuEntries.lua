@@ -112,6 +112,7 @@ for i, row in ipairs(donation_rows) do
 end
 
 
+
 -- Add final elements
 table.insert(donation_section, vb:space{height = 5})
 table.insert(donation_section, vb:horizontal_aligner{mode="distribute",
