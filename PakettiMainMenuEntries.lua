@@ -111,7 +111,7 @@ for i, row in ipairs(donation_rows) do
   table.insert(donation_section, row)
 end
 
--- Add final elements
+-- Add final elements - 
 table.insert(donation_section, vb:space{height = 5})
 table.insert(donation_section, vb:horizontal_aligner{mode="distribute",
   vb:text{text="Total: " .. string.format("%.2f", total_amount) .. "€ (" .. yearly_text .. ")", font = "bold",style="strong"}})
