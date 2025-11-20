@@ -1207,8 +1207,15 @@ function applyPakettiLoaderSettings(instrument)
   if preferences and preferences.pakettiPitchbendLoaderEnvelope and preferences.pakettiPitchbendLoaderEnvelope.value then
     if instrument.sample_modulation_sets and #instrument.sample_modulation_sets > 0 then
       local set1 = instrument.sample_modulation_sets[1]
-      if set1 and set1.devices and #set1.devices >= 2 and set1.devices[2] then
-        set1.devices[2].is_active = true
+      if set1 and set1.devices then
+        -- Search for Volume AHDSR device by name
+        for i, device in ipairs(set1.devices) do
+          if device.name == "Volume AHDSR" then
+            device.is_active = true
+            print("PakettiStemSlicer: Activated Volume AHDSR at position " .. i)
+            break
+          end
+        end
       end
     end
   end

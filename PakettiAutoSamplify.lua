@@ -229,9 +229,14 @@ function PakettiIsInstrumentPakettified(instrument)
     return true
   end
   
-  -- Check for active AHDSR envelope
-  if instrument.sample_modulation_sets[1] and instrument.sample_modulation_sets[1].devices[2] and instrument.sample_modulation_sets[1].devices[2].is_active then
-    return true
+  -- Check for active AHDSR envelope by searching for "Volume AHDSR" by name
+  if instrument.sample_modulation_sets[1] and instrument.sample_modulation_sets[1].devices then
+    local modset = instrument.sample_modulation_sets[1]
+    for i, device in ipairs(modset.devices) do
+      if device.name == "Volume AHDSR" and device.is_active then
+        return true
+      end
+    end
   end
   
   -- Check for macro assignments (if any macros are assigned to parameters)

@@ -714,7 +714,19 @@ renoise.song().selected_instrument_index=renoise.song().selected_instrument_inde
     sample.beat_sync_enabled = false
     sample.beat_sync_mode = 2
     renoise.song().selected_instrument.sample_modulation_sets[1].filter_type=preferences.pakettiLoaderFilterType.value
-      if preferences.pakettiPitchbendLoaderEnvelope.value then renoise.song().selected_instrument.sample_modulation_sets[1].devices[2].is_active = true else end
+      if preferences.pakettiPitchbendLoaderEnvelope.value then 
+        -- Search for Volume AHDSR device by name
+        local modset = renoise.song().selected_instrument.sample_modulation_sets[1]
+        if modset and modset.devices then
+          for i, device in ipairs(modset.devices) do
+            if device.name == "Volume AHDSR" then
+              device.is_active = true
+              print("PakettiRecorder: Activated Volume AHDSR at position " .. i)
+              break
+            end
+          end
+        end
+      end
   sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
   sample.autofade = preferences.pakettiLoaderAutofade.value
   sample.autoseek = preferences.pakettiLoaderAutoseek.value
