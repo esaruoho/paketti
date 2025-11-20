@@ -9343,3 +9343,7 @@ end
 -- Add keybindings
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Move Selection Up", invoke=PakettiNudgeAndMoveSelectionUp}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Move Selection Down", invoke=PakettiNudgeAndMoveSelectionDown}
+
+-- Add MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:Nudge and Move Selection Up", invoke=function(message) if message:is_trigger() then PakettiNudgeAndMoveSelectionUp() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge and Move Selection Down", invoke=function(message) if message:is_trigger() then PakettiNudgeAndMoveSelectionDown() end end}

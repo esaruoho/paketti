@@ -2681,4 +2681,6 @@ end
 if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge and Move Selection Up", invoke=PakettiPhraseEditorNudgeAndMoveSelectionUp}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge and Move Selection Down", invoke=PakettiPhraseEditorNudgeAndMoveSelectionDown}
+  renoise.tool():add_midi_mapping{name="Paketti:Phrase Editor Nudge and Move Selection Up", invoke=function(message) if message:is_trigger() then PakettiPhraseEditorNudgeAndMoveSelectionUp() end end}
+  renoise.tool():add_midi_mapping{name="Paketti:Phrase Editor Nudge and Move Selection Down", invoke=function(message) if message:is_trigger() then PakettiPhraseEditorNudgeAndMoveSelectionDown() end end}
 end
