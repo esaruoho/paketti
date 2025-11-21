@@ -330,26 +330,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Sample Zoom (1x-11x) [Knob]",
   end
 }
 
--- Helper function to find Volume AHDSR device in an instrument
--- Returns the device object if found, nil otherwise
-function find_volume_ahdsr_device(instrument)
-  if not instrument or not instrument.sample_modulation_sets or #instrument.sample_modulation_sets == 0 then
-    return nil
-  end
-  
-  -- Search through all modulation sets and their devices
-  for _, mod_set in ipairs(instrument.sample_modulation_sets) do
-    if mod_set.devices then
-      for _, device in ipairs(mod_set.devices) do
-        if device.name == "Volume AHDSR" then
-          return device
-        end
-      end
-    end
-  end
-  
-  return nil
-end
+-- Note: find_volume_ahdsr_device() is defined globally in main.lua
 
 -- Helper function to apply AHDSR envelope and filter settings after loading an XRNI
 function PakettiApplyLoaderModulationSettings(instrument, debug_context)

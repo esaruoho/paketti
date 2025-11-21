@@ -768,6 +768,29 @@ function pakettiToggleAutomaticRenameTrack()
     renoise.app():show_status("Automatic Rename Track disabled")
   end
 end
+
+--------
+-- Global helper function to find Volume AHDSR device in an instrument
+-- Returns the device object if found, nil otherwise
+-- This is defined globally in main.lua so ALL modules can use it regardless of load order
+function find_volume_ahdsr_device(instrument)
+  if not instrument or not instrument.sample_modulation_sets or #instrument.sample_modulation_sets == 0 then
+    return nil
+  end
+  
+  -- Search through all modulation sets and their devices
+  for _, mod_set in ipairs(instrument.sample_modulation_sets) do
+    if mod_set.devices then
+      for _, device in ipairs(mod_set.devices) do
+        if device.name == "Volume AHDSR" then
+          return device
+        end
+      end
+    end
+  end
+  
+  return nil
+end
 --------
 timed_require("rx")
 timed_require("base64float")

@@ -13,7 +13,7 @@ local step_slider
 local step_stepper
 
 -- Helper Functions (all defined before usage)
--- Note: find_volume_ahdsr_device is now a global function defined in PakettiSamples.lua
+-- Note: find_volume_ahdsr_device() is defined globally in main.lua
 
 -- Add this helper function to check if all notes in pattern are the same
 function get_uniform_note_value(pattern_index)
