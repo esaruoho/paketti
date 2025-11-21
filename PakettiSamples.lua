@@ -330,6 +330,64 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Sample Zoom (1x-11x) [Knob]",
   end
 }
 
+-- Helper function to find Volume AHDSR device in an instrument
+-- Returns the device object if found, nil otherwise
+function find_volume_ahdsr_device(instrument)
+  if not instrument or not instrument.sample_modulation_sets or #instrument.sample_modulation_sets == 0 then
+    return nil
+  end
+  
+  -- Search through all modulation sets and their devices
+  for _, mod_set in ipairs(instrument.sample_modulation_sets) do
+    if mod_set.devices then
+      for _, device in ipairs(mod_set.devices) do
+        if device.name == "Volume AHDSR" then
+          return device
+        end
+      end
+    end
+  end
+  
+  return nil
+end
+
+-- Helper function to apply AHDSR envelope and filter settings after loading an XRNI
+function PakettiApplyLoaderModulationSettings(instrument, debug_context)
+  if not instrument then return false, "No instrument provided" end
+  
+  if instrument.sample_modulation_sets and #instrument.sample_modulation_sets > 0 then
+    local modset = instrument.sample_modulation_sets[1]
+    
+    -- Search for Volume AHDSR device by name and activate if preference is enabled
+    if preferences.pakettiPitchbendLoaderEnvelope.value and modset.devices then
+      for i, device in ipairs(modset.devices) do
+        if device.name == "Volume AHDSR" then
+          device.is_active = true
+          if debug_context then
+            print(string.format("%s: Activated Volume AHDSR at position %d", debug_context, i))
+          end
+          -- Apply filter type if preference is set
+          if preferences.pakettiLoaderFilterType.value and modset.filter_type then
+            modset.filter_type = preferences.pakettiLoaderFilterType.value
+          end
+          return true, i
+        end
+      end
+      if debug_context then
+        print(string.format("%s: WARNING - Volume AHDSR device not found in modulation set!", debug_context))
+      end
+      return false, "Volume AHDSR not found"
+    end
+    
+    -- Still apply filter type even if AHDSR preference is disabled
+    if preferences.pakettiLoaderFilterType.value and modset.filter_type then
+      modset.filter_type = preferences.pakettiLoaderFilterType.value
+    end
+  end
+  
+  return false, "No modulation sets"
+end
+
 function pakettiPreferencesDefaultInstrumentLoader()
   local defaultInstrument = preferences.pakettiDefaultXRNI.value
   local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend.xrni"
@@ -350,53 +408,9 @@ function pakettiPreferencesDefaultInstrumentLoader()
   print("Loading instrument from path: " .. defaultInstrument)
   renoise.app():load_instrument(defaultInstrument)
 
-  -- Check if sample modulation sets exist before accessing them
+  -- Apply modulation settings using helper function
   local instrument = renoise.song().selected_instrument
-  if instrument.sample_modulation_sets and #instrument.sample_modulation_sets > 0 then
-    local modset = instrument.sample_modulation_sets[1]
-    
-    print("=== pakettiPreferencesDefaultInstrumentLoader AHDSR Debug ===")
-    print("Envelope preference enabled:", preferences.pakettiPitchbendLoaderEnvelope.value)
-    print("Number of devices in modulation set:", modset.devices and #modset.devices or "no devices")
-    
-    if modset.devices then
-      for i, device in ipairs(modset.devices) do
-        print(string.format("  Device %d: %s (is_active: %s)", i, device.name, tostring(device.is_active)))
-      end
-    end
-    
-    -- Search for Volume AHDSR device by name
-    if preferences.pakettiPitchbendLoaderEnvelope.value and modset.devices then
-      local ahdsr_device = nil
-      local ahdsr_index = nil
-      for i, device in ipairs(modset.devices) do
-        if device.name == "Volume AHDSR" then
-          ahdsr_device = device
-          ahdsr_index = i
-          break
-        end
-      end
-      
-      if ahdsr_device then
-        print("Found Volume AHDSR at position:", ahdsr_index)
-        print("Attempting to activate Volume AHDSR")
-        ahdsr_device.is_active = true 
-        print("Volume AHDSR is_active after setting:", tostring(ahdsr_device.is_active))
-      else
-        print("WARNING: Volume AHDSR device not found in modulation set!")
-      end
-    else
-      print("AHDSR activation skipped (preference disabled or no devices)")
-    end
-
-    if preferences.pakettiLoaderFilterType.value and modset.filter_type then
-      print("Setting filter type to:", preferences.pakettiLoaderFilterType.value)
-      modset.filter_type = preferences.pakettiLoaderFilterType.value 
-    end
-    print("============================================================")
-  else
-    print("=== pakettiPreferencesDefaultInstrumentLoader: NO MODULATION SETS FOUND ===")
-  end
+  PakettiApplyLoaderModulationSettings(instrument, "pakettiPreferencesDefaultInstrumentLoader")
 end
 
 
@@ -437,52 +451,8 @@ renoise.app():load_instrument(defaultInstrument)
   current_instrument_index = song.selected_instrument_index
   current_instrument = song:instrument(current_instrument_index)
 
-  -- Check if sample modulation sets exist and apply AHDSR envelope preference
-  if current_instrument.sample_modulation_sets and #current_instrument.sample_modulation_sets > 0 then
-    local modset = current_instrument.sample_modulation_sets[1]
-    
-    print("=== Drumkit Loader AHDSR Debug ===")
-    print("Envelope preference enabled:", preferences.pakettiPitchbendLoaderEnvelope.value)
-    print("Number of devices in modulation set:", modset.devices and #modset.devices or "no devices")
-    
-    if modset.devices then
-      for i, device in ipairs(modset.devices) do
-        print(string.format("  Device %d: %s (is_active: %s)", i, device.name, tostring(device.is_active)))
-      end
-    end
-    
-    -- Search for Volume AHDSR device by name
-    if preferences.pakettiPitchbendLoaderEnvelope.value and modset.devices then
-      local ahdsr_device = nil
-      local ahdsr_index = nil
-      for i, device in ipairs(modset.devices) do
-        if device.name == "Volume AHDSR" then
-          ahdsr_device = device
-          ahdsr_index = i
-          break
-        end
-      end
-      
-      if ahdsr_device then
-        print("Found Volume AHDSR at position:", ahdsr_index)
-        print("Attempting to activate Volume AHDSR")
-        ahdsr_device.is_active = true 
-        print("Volume AHDSR is_active after setting:", tostring(ahdsr_device.is_active))
-      else
-        print("WARNING: Volume AHDSR device not found in modulation set!")
-      end
-    else
-      print("AHDSR activation skipped (preference disabled or no devices)")
-    end
-
-    if preferences.pakettiLoaderFilterType.value and modset.filter_type then
-      print("Setting filter type to:", preferences.pakettiLoaderFilterType.value)
-      modset.filter_type = preferences.pakettiLoaderFilterType.value 
-    end
-    print("=================================")
-  else
-    print("=== Drumkit Loader: NO MODULATION SETS FOUND ===")
-  end
+  -- Apply modulation settings using helper function
+  PakettiApplyLoaderModulationSettings(current_instrument, "pitchBendDrumkitLoader")
 
   -- Generate the instrument name based on the instrument slot using hexadecimal format, adjusting by -1
   local instrument_slot_hex = string.format("%02X", current_instrument_index - 1)
@@ -622,52 +592,8 @@ function loadRandomDrumkitSamples(num_samples, folder_path, create_automation_de
     -- Update the instrument reference after loading the instrument
     instrument = song.selected_instrument
 
-    -- Check if sample modulation sets exist and apply AHDSR envelope preference
-    if instrument.sample_modulation_sets and #instrument.sample_modulation_sets > 0 then
-        local modset = instrument.sample_modulation_sets[1]
-        
-        print("=== Random Drumkit Loader AHDSR Debug ===")
-        print("Envelope preference enabled:", preferences.pakettiPitchbendLoaderEnvelope.value)
-        print("Number of devices in modulation set:", modset.devices and #modset.devices or "no devices")
-        
-        if modset.devices then
-            for i, device in ipairs(modset.devices) do
-                print(string.format("  Device %d: %s (is_active: %s)", i, device.name, tostring(device.is_active)))
-            end
-        end
-        
-        -- Search for Volume AHDSR device by name
-        if preferences.pakettiPitchbendLoaderEnvelope.value and modset.devices then
-            local ahdsr_device = nil
-            local ahdsr_index = nil
-            for i, device in ipairs(modset.devices) do
-                if device.name == "Volume AHDSR" then
-                    ahdsr_device = device
-                    ahdsr_index = i
-                    break
-                end
-            end
-            
-            if ahdsr_device then
-                print("Found Volume AHDSR at position:", ahdsr_index)
-                print("Attempting to activate Volume AHDSR")
-                ahdsr_device.is_active = true 
-                print("Volume AHDSR is_active after setting:", tostring(ahdsr_device.is_active))
-            else
-                print("WARNING: Volume AHDSR device not found in modulation set!")
-            end
-        else
-            print("AHDSR activation skipped (preference disabled or no devices)")
-        end
-
-        if preferences.pakettiLoaderFilterType.value and modset.filter_type then
-            print("Setting filter type to:", preferences.pakettiLoaderFilterType.value)
-            modset.filter_type = preferences.pakettiLoaderFilterType.value 
-        end
-        print("=========================================")
-    else
-        print("=== Random Drumkit Loader: NO MODULATION SETS FOUND ===")
-    end
+    -- Apply modulation settings using helper function
+    PakettiApplyLoaderModulationSettings(instrument, "loadRandomDrumkitSamples")
 
     -- Set the instrument name based on slot
     local instrument_slot_hex = string.format("%02X", song.selected_instrument_index - 1)
@@ -3746,40 +3672,8 @@ function PakettiInjectDefaultXRNI()
     print("Debug: original_name was: " .. original_name)
     print("Debug: Restored instrument transpose: " .. original_data.transpose)
 
-    -- Apply modulation and filter settings if needed
-    if current_instrument.sample_modulation_sets and #current_instrument.sample_modulation_sets > 0 then
-      local modset = current_instrument.sample_modulation_sets[1]
-      
-      print("=== PakettiInjectDefaultXRNI (Replace Mode) AHDSR Debug ===")
-      print("Envelope preference enabled:", preferences.pakettiPitchbendLoaderEnvelope.value)
-      
-      -- Search for Volume AHDSR device by name
-      if preferences.pakettiPitchbendLoaderEnvelope.value and modset.devices then
-        local ahdsr_device = nil
-        local ahdsr_index = nil
-        for i, device in ipairs(modset.devices) do
-          if device.name == "Volume AHDSR" then
-            ahdsr_device = device
-            ahdsr_index = i
-            break
-          end
-        end
-        
-        if ahdsr_device then
-          print("Found Volume AHDSR at position:", ahdsr_index)
-          ahdsr_device.is_active = true 
-          print("Volume AHDSR activated")
-        else
-          print("WARNING: Volume AHDSR device not found in modulation set!")
-        end
-      end
-
-      if preferences.pakettiLoaderFilterType.value and modset.filter_type then
-        print("Setting filter type to:", preferences.pakettiLoaderFilterType.value)
-        modset.filter_type = preferences.pakettiLoaderFilterType.value
-      end
-      print("===========================================================")
-    end
+    -- Apply modulation settings using helper function
+    PakettiApplyLoaderModulationSettings(current_instrument, "PakettiInjectDefaultXRNI (Replace Mode)")
 
     -- Remove the placeholder sample from the last slot if it exists
     local num_samples = #current_instrument.samples
@@ -3948,40 +3842,8 @@ function PakettiInjectDefaultXRNI()
       end
     end
 
-    -- Apply modulation and filter settings if needed
-    if new_instrument.sample_modulation_sets and #new_instrument.sample_modulation_sets > 0 then
-      local modset = new_instrument.sample_modulation_sets[1]
-      
-      print("=== PakettiInjectDefaultXRNI (Create New Mode) AHDSR Debug ===")
-      print("Envelope preference enabled:", preferences.pakettiPitchbendLoaderEnvelope.value)
-      
-      -- Search for Volume AHDSR device by name
-      if preferences.pakettiPitchbendLoaderEnvelope.value and modset.devices then
-        local ahdsr_device = nil
-        local ahdsr_index = nil
-        for i, device in ipairs(modset.devices) do
-          if device.name == "Volume AHDSR" then
-            ahdsr_device = device
-            ahdsr_index = i
-            break
-          end
-        end
-        
-        if ahdsr_device then
-          print("Found Volume AHDSR at position:", ahdsr_index)
-          ahdsr_device.is_active = true 
-          print("Volume AHDSR activated")
-        else
-          print("WARNING: Volume AHDSR device not found in modulation set!")
-        end
-      end
-
-      if preferences.pakettiLoaderFilterType.value and modset.filter_type then
-        print("Setting filter type to:", preferences.pakettiLoaderFilterType.value)
-        modset.filter_type = preferences.pakettiLoaderFilterType.value
-      end
-      print("===============================================================")
-    end
+    -- Apply modulation settings using helper function
+    PakettiApplyLoaderModulationSettings(new_instrument, "PakettiInjectDefaultXRNI (Create New Mode)")
 
     new_instrument.sample_modulation_sets[1].name = "Pitchbend"
     new_instrument.volume = instVol

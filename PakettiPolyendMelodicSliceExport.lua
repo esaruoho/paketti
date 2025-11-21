@@ -61,6 +61,9 @@ function PakettiMelodicSliceLoadSamples_Worker(files_to_load, dialog, vb)
   -- Set the instrument name
   local instrument_slot_hex = string.format("%02X", song.selected_instrument_index - 1)
   current_instrument.name = instrument_slot_hex .. "_Melodic"
+  
+  -- Apply modulation settings using helper function
+  PakettiApplyLoaderModulationSettings(current_instrument, "PakettiPolyendMelodicSliceExport")
 
   -- Load samples with ProcessSlicer yielding
   for i, filename in ipairs(files_to_load) do

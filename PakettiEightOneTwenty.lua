@@ -4962,6 +4962,9 @@ function loadSequentialDrumkitSamples()
     instrument = song.selected_instrument
     instrument.name = string.format("8120_%02d Kit", instrument_index)
     instrument.macros_visible = true
+    
+    -- Apply modulation settings using helper function
+    PakettiApplyLoaderModulationSettings(instrument, "loadSequentialDrumkitSamples Part " .. instrument_index)
 
     -- Load samples
     local max_samples = 120
@@ -5297,6 +5300,9 @@ function loadSequentialRandomLoadAll()
     instrument = song.selected_instrument
     instrument.name = string.format("8120_%02d Kit", instrument_index)
     instrument.macros_visible = true
+    
+    -- Apply modulation settings using helper function
+    PakettiApplyLoaderModulationSettings(instrument, "loadSequentialRandomLoadAll Part " .. instrument_index)
 
     local max_samples = 120
     local num_samples_to_load = math.min(#sample_files, max_samples)

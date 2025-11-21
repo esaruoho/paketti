@@ -980,6 +980,9 @@ function makeDrumkitInstrument(file_list, title, reverse_threshold)
   end)
   local inst = song:instrument(idx)
   inst.name = title
+  
+  -- Apply modulation settings using helper function
+  PakettiApplyLoaderModulationSettings(inst, "PakettiStemSlicer loadAsDrumkitsFromFolder")
 
   -- Ensure at least one sample
   if #inst.samples == 0 then inst:insert_sample_at(1) end
@@ -1206,17 +1209,7 @@ function applyPakettiLoaderSettings(instrument)
   instrument.macros_visible = true
   if preferences and preferences.pakettiPitchbendLoaderEnvelope and preferences.pakettiPitchbendLoaderEnvelope.value then
     if instrument.sample_modulation_sets and #instrument.sample_modulation_sets > 0 then
-      local set1 = instrument.sample_modulation_sets[1]
-      if set1 and set1.devices then
-        -- Search for Volume AHDSR device by name
-        for i, device in ipairs(set1.devices) do
-          if device.name == "Volume AHDSR" then
-            device.is_active = true
-            print("PakettiStemSlicer: Activated Volume AHDSR at position " .. i)
-            break
-          end
-        end
-      end
+      PakettiApplyLoaderModulationSettings(instrument, "PakettiStemSlicer")
     end
   end
   -- Apply per-sample loader settings

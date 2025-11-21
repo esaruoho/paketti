@@ -3154,6 +3154,10 @@ function PakettiGroupSamplesByName()
     end
     
     local new_instrument = song.instruments[index]
+    
+    -- Apply modulation settings using helper function
+    PakettiApplyLoaderModulationSettings(new_instrument, "PakettiExperimental_Verify create_new_instrument")
+    
     return new_instrument
   end
 

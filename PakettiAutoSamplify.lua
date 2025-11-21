@@ -223,20 +223,16 @@ function PakettiFindNewlyLoadedSamples(current_states, previous_states)
 end
 
 -- Function to check if instrument is already Pakettified
+-- A "pakettified" instrument has the Volume AHDSR device present, regardless of whether it's active
 function PakettiIsInstrumentPakettified(instrument)
   -- Check for plugins
   if instrument.plugin_properties and instrument.plugin_properties.plugin_device then
     return true
   end
   
-  -- Check for active AHDSR envelope by searching for "Volume AHDSR" by name
-  if instrument.sample_modulation_sets[1] and instrument.sample_modulation_sets[1].devices then
-    local modset = instrument.sample_modulation_sets[1]
-    for i, device in ipairs(modset.devices) do
-      if device.name == "Volume AHDSR" and device.is_active then
-        return true
-      end
-    end
+  -- Check for Volume AHDSR device using helper function
+  if find_volume_ahdsr_device(instrument) then
+    return true
   end
   
   -- Check for macro assignments (if any macros are assigned to parameters)

@@ -197,16 +197,10 @@ function PakettiCreateUnisonSamples()
     print("DEBUG: Instrument has plugin - considered pakettified")
   end
   
-  -- Check for active AHDSR envelope by searching for "Volume AHDSR" by name
-  if instrument.sample_modulation_sets[1] and instrument.sample_modulation_sets[1].devices then
-    local modset = instrument.sample_modulation_sets[1]
-    for i, device in ipairs(modset.devices) do
-      if device.name == "Volume AHDSR" and device.is_active then
-        is_pakettified = true
-        print("DEBUG: Instrument has active Volume AHDSR at position " .. i .. " - considered pakettified")
-        break
-      end
-    end
+  -- Check for Volume AHDSR device using helper function
+  if find_volume_ahdsr_device(instrument) then
+    is_pakettified = true
+    print("DEBUG: Instrument has Volume AHDSR - considered pakettified")
   end
   
   -- Check for macro assignments (if any macros are assigned to parameters)
@@ -311,17 +305,7 @@ function PakettiCreateUnisonSamples()
 
   if preferences.pakettiPitchbendLoaderEnvelope.value then
     if new_instrument.sample_modulation_sets[1] and new_instrument.sample_modulation_sets[1].devices then
-      -- Search for Volume AHDSR device by name
-      local modset = new_instrument.sample_modulation_sets[1]
-      local found = false
-      for i, device in ipairs(modset.devices) do
-        if device.name == "Volume AHDSR" then
-          device.is_active = true
-          print("DEBUG: Activated Volume AHDSR at position " .. i)
-          found = true
-          break
-        end
-      end
+      local found = PakettiApplyLoaderModulationSettings(new_instrument, "PakettiUnisonGenerator")
       if not found then
         print("DEBUG: Volume AHDSR device not found in modulation set")
       end

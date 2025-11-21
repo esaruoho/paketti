@@ -847,6 +847,9 @@ function selectedInstrumentLoadMuteTrigDrumkit()
   -- Set the instrument name based on slot
   local instrument_slot_hex = string.format("%02X", song.selected_instrument_index - 1)
   instrument.name = instrument_slot_hex .. "_MuteTrigDrumkit"
+  
+  -- Apply modulation settings using helper function
+  PakettiApplyLoaderModulationSettings(instrument, "loadRandomMuteTrigSamples")
 
   -- Limit the number of samples to load to the requested amount
   local num_samples_to_load = math.min(#sample_files, 120)
@@ -1395,6 +1398,9 @@ function pitchedInstrument(st)
   selected_instrument.name = st .. "st_Pitchbend Instrument"
   selected_instrument.macros_visible = true
   selected_instrument.sample_modulation_sets[1].name = st .. "st_Pitchbend"
+  
+  -- Apply modulation settings using helper function
+  PakettiApplyLoaderModulationSettings(selected_instrument, "pitchedInstrument(" .. st .. "st)")
 end
 
 function pitchedDrumkit()
@@ -1404,10 +1410,13 @@ function pitchedDrumkit()
 --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
 renoise.app():load_instrument(defaultInstrument)
 
+local selected_instrument = renoise.song().selected_instrument
+selected_instrument.name="Pitchbend Drumkit"
+selected_instrument.macros_visible = true
+selected_instrument.sample_modulation_sets[1].name=("Pitchbend Drumkit")
 
-renoise.song().selected_instrument.name="Pitchbend Drumkit"
-renoise.song().instruments[renoise.song().selected_instrument_index].macros_visible = true
-renoise.song().instruments[renoise.song().selected_instrument_index].sample_modulation_sets[1].name=("Pitchbend Drumkit")
+  -- Apply modulation settings using helper function
+  PakettiApplyLoaderModulationSettings(selected_instrument, "pitchedDrumkit")
 end
 
 
@@ -3240,6 +3249,10 @@ function PakettiIsolateSlicesToInstrumentDirect()
     renoise.app():load_instrument(defaultInstrument)
     local new_instrument = song.instruments[index]
     new_instrument.name = instrument.name .. name_suffix
+    
+    -- Apply modulation settings using helper function
+    PakettiApplyLoaderModulationSettings(new_instrument, "PakettiIsolateSlicesToInstrumentDirect")
+    
     return new_instrument
   end
 
@@ -3401,6 +3414,10 @@ function PakettiIsolateSlicesToInstrumentNoProcess()
       end
     end
     new_instrument.name = instrument.name .. name_suffix
+    
+    -- Apply modulation settings using helper function
+    PakettiApplyLoaderModulationSettings(new_instrument, "create_new_instrumentWithSlices #2")
+    
     return new_instrument
   end
 
@@ -3526,6 +3543,10 @@ function PakettiIsolateSlicesToInstrumentProcessed(selected_instrument_index, in
     renoise.app():load_instrument(defaultInstrument)
     local new_instrument = song.instruments[index]
     new_instrument.name = instrument.name .. name_suffix
+    
+    -- Apply modulation settings using helper function
+    PakettiApplyLoaderModulationSettings(new_instrument, "PakettiIsolateSlicesToInstrumentProcessed")
+    
     return new_instrument
   end
 
@@ -3707,6 +3728,9 @@ function PakettiIsolateSelectedSampleToInstrument()
 renoise.app():load_instrument(defaultInstrument)
   local new_instrument = song.instruments[insert_index]
   new_instrument.name = sample.name .. " (Isolated)"
+  
+  -- Apply modulation settings using helper function
+  PakettiApplyLoaderModulationSettings(new_instrument, "isolate_sample_to_new_instrument")
 
   -- Create new sample in the new instrument
   local new_sample = new_instrument:insert_sample_at(1)

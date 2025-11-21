@@ -13,23 +13,7 @@ local step_slider
 local step_stepper
 
 -- Helper Functions (all defined before usage)
-local function find_volume_ahdsr_device(instrument)
-    if not instrument or not instrument.sample_modulation_sets or #instrument.sample_modulation_sets == 0 then
-        return nil
-    end
-    
-    -- Search through all modulation sets and their devices
-    for _, mod_set in ipairs(instrument.sample_modulation_sets) do
-        if mod_set.devices then
-            for _, device in ipairs(mod_set.devices) do
-                if device.name == "Volume AHDSR" then
-                    return device
-                end
-            end
-        end
-    end
-    return nil
-end
+-- Note: find_volume_ahdsr_device is now a global function defined in PakettiSamples.lua
 
 -- Add this helper function to check if all notes in pattern are the same
 function get_uniform_note_value(pattern_index)
@@ -243,16 +227,10 @@ local function check_and_set_envelope_status(vb)
     end
 
     local instrument = song.selected_instrument
-    if not instrument.sample_modulation_sets or 
-       #instrument.sample_modulation_sets == 0 or 
-       not instrument.sample_modulation_sets[1] or 
-       not instrument.sample_modulation_sets[1].devices or 
-       not instrument.sample_modulation_sets[1].devices[3] then
-        return false
-    end
-
-    local device = instrument.sample_modulation_sets[1].devices[3]
-    if not device or device.name ~= "Volume AHDSR" then
+    
+    -- Use helper function to find Volume AHDSR device
+    local device = find_volume_ahdsr_device(instrument)
+    if not device then
         return false
     end
 
@@ -1663,24 +1641,6 @@ local function write_tempo_commands(bpm, lpb, from_line)
     end
 end
 
--- Add this helper function at the top of the file with other helper functions
-local function find_volume_ahdsr_device(instrument)
-    if not instrument or not instrument.sample_modulation_sets or #instrument.sample_modulation_sets == 0 then
-        return nil
-    end
-    
-    -- Search through all modulation sets and their devices
-    for _, mod_set in ipairs(instrument.sample_modulation_sets) do
-        if mod_set.devices then
-            for _, device in ipairs(mod_set.devices) do
-                if device.name == "Volume AHDSR" then
-                    return device
-                end
-            end
-        end
-    end
-    return nil
-end
 
 -- Add checkbox for master track writing
 local master_write_checkbox = vb:checkbox{
@@ -1717,16 +1677,10 @@ local function check_and_set_envelope_status(vb)
     end
 
     local instrument = song.selected_instrument
-    if not instrument.sample_modulation_sets or 
-       #instrument.sample_modulation_sets == 0 or 
-       not instrument.sample_modulation_sets[1] or 
-       not instrument.sample_modulation_sets[1].devices or 
-       not instrument.sample_modulation_sets[1].devices[3] then
-        return false
-    end
-
-    local device = instrument.sample_modulation_sets[1].devices[3]
-    if not device or device.name ~= "Volume AHDSR" then
+    
+    -- Use helper function to find Volume AHDSR device
+    local device = find_volume_ahdsr_device(instrument)
+    if not device then
         return false
     end
 
