@@ -4081,10 +4081,29 @@ function pakettiEightSlotsByOneTwentyDialog()
     row_elements.update_sample_name_label()
   end
   -- Debug output removed
-    local keyhandler = create_keyhandler_for_dialog(
-    function() return dialog end,
-    function(value) dialog = value end
-  )
+  local keyhandler = function(dialog_obj, key)
+    -- Handle Space key to toggle playback
+    if key.modifiers == "" and key.name == "space" then
+      if play_checkbox then
+        play_checkbox.value = not play_checkbox.value
+      end
+      return nil
+    end
+    
+    -- Handle dialog close key
+    local closer = preferences.pakettiDialogClose.value
+    if key.modifiers == "" and key.name == closer then
+      -- Clean up any observers that might exist
+      if cleanup_observers then
+        cleanup_observers()
+      end
+      dialog_obj:close()
+      dialog = nil
+      return nil
+    else
+      return key
+    end
+  end
   dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8120", dc, keyhandler)
   
   -- Setup BPM observable after dialog is created

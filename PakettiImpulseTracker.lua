@@ -308,7 +308,50 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker F6 St
 renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker F6 Start Playback Pattern",invoke=function() playPattern() end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker F6 Start Playback Pattern (2nd)",invoke=function() playPattern() end}
 ----------------------------------------------------------------------------------------------------------------
+-- Position Marker (for CTRL-F7)
+-- Global variables to store the marker position (loaded from preferences)
+PakettiMarkerLine = 1
+PakettiMarkerSequence = 1
+PakettiMarkerExists = false
+
+-- Function to load marker from preferences
+function PakettiLoadMarkerFromPreferences()
+  PakettiMarkerLine = preferences.pakettiMarkerLine.value
+  PakettiMarkerSequence = preferences.pakettiMarkerSequence.value
+  PakettiMarkerExists = preferences.pakettiMarkerExists.value
+end
+
+-- CTRL-F7: Toggle marker on/off (capture at cursor position or turn off)
+function PakettiCaptureMarkerPosition()
+  local song = renoise.song()
+  
+  if PakettiMarkerExists then
+    -- Marker exists, turn it off
+    PakettiMarkerExists = false
+    preferences.pakettiMarkerExists.value = false
+    renoise.app():show_status("Marker Disabled")
+  else
+    -- No marker, capture current position
+    PakettiMarkerLine = song.selected_line_index
+    PakettiMarkerSequence = song.selected_sequence_index
+    PakettiMarkerExists = true
+    
+    -- Save to preferences
+    preferences.pakettiMarkerLine.value = PakettiMarkerLine
+    preferences.pakettiMarkerSequence.value = PakettiMarkerSequence
+    preferences.pakettiMarkerExists.value = PakettiMarkerExists
+    
+    renoise.app():show_status(
+      string.format("Marker Captured: Sequence %d, Line %d", PakettiMarkerSequence, PakettiMarkerLine)
+    )
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Capture Marker Position (CTRL-F7)",invoke=function() PakettiCaptureMarkerPosition() end}
+
+----------------------------------------------------------------------------------------------------------------
 -- F7, or Impulse Tracker Play from line.
+-- If marker exists (CTRL-F7), play from marker. Otherwise play from cursor.
 function ImpulseTrackerPlayFromLine()
 local monitoring_enabled = true
   --InitSBx()
@@ -317,28 +360,56 @@ local monitoring_enabled = true
 
  local s = renoise.song()
  local t = s.transport
- local startpos = t.playback_pos  
- if t.playing == true  then 
- t.loop_pattern=false
-   t:panic()
-  t.loop_pattern=false
-  t.loop_block_enabled=false
-  t.edit_mode=true
- startpos.line = s.selected_line_index
- startpos.sequence = s.selected_sequence_index
- t.playback_pos = startpos
-  t:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN)
- return
+ 
+ -- Check if we should use the marker position
+ local use_line = s.selected_line_index
+ local use_sequence = s.selected_sequence_index
+ 
+ if PakettiMarkerExists then
+   -- Validate marker is still valid
+   local seq_count = #s.sequencer.pattern_sequence
+   if PakettiMarkerSequence >= 1 and PakettiMarkerSequence <= seq_count then
+     local pattern_index = s.sequencer.pattern_sequence[PakettiMarkerSequence]
+     local pattern = s.patterns[pattern_index]
+     local max_lines = (pattern and pattern.number_of_lines) or 1
+     -- Clamp line to pattern length
+     local clamped_line = math.max(1, math.min(PakettiMarkerLine, max_lines))
+     if PakettiMarkerLine >= 1 and PakettiMarkerLine <= max_lines then
+       use_line = clamped_line
+       use_sequence = PakettiMarkerSequence
+       renoise.app():show_status(
+         string.format("Playing from Marker: Sequence %d, Line %d", use_sequence, use_line)
+       )
+     else
+       PakettiMarkerExists = false
+       preferences.pakettiMarkerExists.value = false
+     end
+   else
+     PakettiMarkerExists = false
+     preferences.pakettiMarkerExists.value = false
+   end
+ end
+ 
+ -- Stop and reset transport settings
+ t:panic()
+ t.loop_pattern = false
+ t.loop_block_enabled = false
+ t.edit_mode = true
+ 
+ -- Create SongPos and use start_at for precise positioning
+ local pos = renoise.SongPos(use_sequence, use_line)
+ 
+ if t.start_at then
+   t:start_at(pos)
  else
-  t:panic()
-  t.loop_pattern=false
-  t.loop_block_enabled=false
-  t.edit_mode=true
- startpos.line = s.selected_line_index
- startpos.sequence = s.selected_sequence_index
- t.playback_pos = startpos
-  t:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN)
-end
+   -- Fallback for older Renoise versions
+   t.playback_pos = pos
+   if renoise.Transport and renoise.Transport.PLAYMODE_CONTINUE_PATTERN then
+     t:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN)
+   else
+     t:start()
+   end
+ end
 
 
 

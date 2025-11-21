@@ -82,6 +82,7 @@ local PakettiMidiMappings = {
   "Paketti:Impulse Tracker F5 Start Playback x[Toggle]",
   "Paketti:Impulse Tracker F8 Stop Playback (Panic) x[Toggle]",
   "Paketti:Impulse Tracker F7 Start Playback from Cursor Row x[Toggle]",
+  "Paketti:Impulse Tracker Toggle Marker Position (CTRL-F7) x[Toggle]",
   "Paketti:Stop Playback (Panic) x[Toggle]",
   "Paketti:Play Current Line & Advance by EditStep x[Toggle]",
   "Paketti:Impulse Tracker Pattern (Next) x[Toggle]",

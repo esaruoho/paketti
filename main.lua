@@ -602,6 +602,11 @@ function startup()
         t.groove_enabled=true
       end
       
+      -- Load marker position from preferences
+      if type(PakettiLoadMarkerFromPreferences) == "function" then
+        PakettiLoadMarkerFromPreferences()
+      end
+      
       -- Initialize Pattern Status Monitor from preference
       PakettiPatternStatusMonitorEnabled = preferences.pakettiPatternStatusMonitor.value
       if PakettiPatternStatusMonitorEnabled then
@@ -1049,7 +1054,7 @@ function pakettiRandomFeatureForDocumentation()
   
   print("----------------------------------------")
   print("RANDOM PAKETTI FEATURE FOR DOCUMENTATION")
-  print("----------------------------------------")
+  --print("----------------------------------------")
   print("Feature: " .. short_name)
   print("")
   print("All Registrations (" .. #related_features .. "):")

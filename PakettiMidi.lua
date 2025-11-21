@@ -182,6 +182,7 @@ invoke=function(message) if message:is_trigger() then
 end}
 -----------------------------------------------------------------------------------------------------------------------------------------
 renoise.tool():add_midi_mapping{name="Paketti:Impulse Tracker F7 Start Playback from Cursor Row x[Toggle]",  invoke=function(message) if message:is_trigger() then ImpulseTrackerPlayFromLine() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Impulse Tracker Toggle Marker Position (CTRL-F7) x[Toggle]",  invoke=function(message) if message:is_trigger() then PakettiCaptureMarkerPosition() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Stop Playback (Panic) x[Toggle]",  invoke=function(message) if message:is_trigger() then  ImpulseTrackerStop() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Play Current Line & Advance by EditStep x[Toggle]",invoke=function(message) if message:is_trigger() then  PlayCurrentLine() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Impulse Tracker Pattern (Next) x[Toggle]",invoke=function(message) if message:is_trigger() then ImpulseTrackerNextPattern() end end}

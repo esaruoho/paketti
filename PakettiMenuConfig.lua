@@ -1,5 +1,6 @@
 -- Organize these to the right places:
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Toggle Marker Position (CTRL-F7)",invoke = function() PakettiCaptureMarkerPosition() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus Matrix Overview",invoke = function() createMatrixOverview() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus Step Sequencer",invoke = function() createStepSequencerDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Filename-Based Keyzone Mapping",invoke=function() pakettiKeyzoneDistributorFilenameDialog() end}
