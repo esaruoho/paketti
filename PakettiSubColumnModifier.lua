@@ -376,6 +376,22 @@ function PakettiSubColumnWriteValues(method, use_editstep)
     edit_step = 1
   end
   
+  -- Check for selection
+  local start_line = current_line
+  local end_line = pattern.number_of_lines
+  local has_selection = false
+  
+  if song.selection_in_pattern then
+    local selection = song.selection_in_pattern
+    -- Only use selection if it's in the current track
+    if selection.start_track == song.selected_track_index and 
+       selection.end_track == song.selected_track_index then
+      start_line = selection.start_line
+      end_line = selection.end_line
+      has_selection = true
+    end
+  end
+  
   -- Determine value range based on subcolumn type
   local min_value = 0
   local max_value = 255
@@ -418,18 +434,23 @@ function PakettiSubColumnWriteValues(method, use_editstep)
     end
     values = reversed
   elseif method == "random" then
-    -- Fisher-Yates shuffle
-    trueRandomSeed()
+    -- Fisher-Yates shuffle with extra-random seeding
+    -- Combine os.time() and os.clock() for better randomness
+    local seed = os.time() + math.floor(os.clock() * 1000000)
+    math.randomseed(seed)
+    -- Prime the random generator multiple times
+    math.random(); math.random(); math.random(); math.random(); math.random()
     for i = #values, 2, -1 do
       local j = math.random(i)
       values[i], values[j] = values[j], values[i]
     end
   end
   
-  -- Clear existing values if using editstep
+  -- Clear existing values in the selection/range if using editstep
   if use_editstep then
-    for line_index = current_line, pattern.number_of_lines do
-      local note_column = track:line(line_index):note_column(selected_note_column or 1)
+    local clear_line = start_line
+    while clear_line <= end_line do
+      local note_column = track:line(clear_line):note_column(selected_note_column or 1)
       if sub_column_type == 3 then
         note_column.volume_value = renoise.PatternLine.EMPTY_VOLUME
       elseif sub_column_type == 4 then
@@ -439,44 +460,50 @@ function PakettiSubColumnWriteValues(method, use_editstep)
       elseif sub_column_type == 7 then
         note_column.effect_amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
       elseif sub_column_type == 9 then
-        local effect_column = song.selected_effect_column
-        if effect_column then
+        local effect_column_index = song.selected_effect_column_index
+        if effect_column_index and song.selected_track.visible_effect_columns >= effect_column_index then
+          local effect_column = track:line(clear_line):effect_column(effect_column_index)
           effect_column.amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
         end
       end
+      clear_line = clear_line + edit_step
     end
   end
   
-  -- Write the values
-  local write_line = current_line
+  -- Write the values within the selection
+  local write_line = start_line
   local last_value = -1
+  local values_written = 0
   
   for i = 1, #values do
-    if write_line <= pattern.number_of_lines then
+    if write_line <= end_line then
       if sub_column_type == 3 then -- Volume
         local note_column = track:line(write_line):note_column(selected_note_column or 1)
         note_column.volume_value = values[i]
         last_value = values[i]
+        values_written = values_written + 1
       elseif sub_column_type == 4 then -- Panning
         local note_column = track:line(write_line):note_column(selected_note_column or 1)
         note_column.panning_value = values[i]
         last_value = values[i]
+        values_written = values_written + 1
       elseif sub_column_type == 5 then -- Delay
         local note_column = track:line(write_line):note_column(selected_note_column or 1)
         note_column.delay_value = values[i]
         last_value = values[i]
+        values_written = values_written + 1
       elseif sub_column_type == 7 then -- Sample Effect Amount
         local note_column = track:line(write_line):note_column(selected_note_column or 1)
         note_column.effect_amount_value = values[i]
         last_value = values[i]
+        values_written = values_written + 1
       elseif sub_column_type == 9 then -- Effect Amount
-        local effect_column = song.selected_effect_column
-        if not effect_column and song.selected_track.visible_effect_columns > 0 then
-          effect_column = track:line(write_line):effect_column(1)
-        end
-        if effect_column then
+        local effect_column_index = song.selected_effect_column_index
+        if effect_column_index and song.selected_track.visible_effect_columns >= effect_column_index then
+          local effect_column = track:line(write_line):effect_column(effect_column_index)
           effect_column.amount_value = values[i]
           last_value = values[i]
+          values_written = values_written + 1
         end
       end
       
@@ -492,11 +519,15 @@ function PakettiSubColumnWriteValues(method, use_editstep)
   
   if last_value ~= -1 then
     local hex_value = string.format("%02X", last_value)
+    local selection_text = has_selection and " (in selection)" or ""
     renoise.app():show_status(string.format(
-      "Wrote %s %s values until row %d (last: %s/%d)", 
+      "Wrote %d %s %s values from row %d to %d%s (last: %s/%d)", 
+      values_written,
       method,
       column_name,
+      start_line,
       write_line - (use_editstep and edit_step or 1),
+      selection_text,
       hex_value,
       last_value
     ))
