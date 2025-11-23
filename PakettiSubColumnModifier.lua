@@ -564,9 +564,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Sub Column Command Relative Contro
 renoise.tool():add_midi_mapping{name="Paketti:Sub Column Value Absolute Control",invoke = handle_absolute_value}
 renoise.tool():add_midi_mapping{name="Paketti:Sub Column Value Relative Control",invoke = handle_relative_value}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Paketti Sub Column Status",invoke = show_sub_column_status}
-
--- Add keybindings for intelligent write system
--- These adapt to whatever subcolumn you're in
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Values/Notes Random (SubColumn Aware)", invoke=PakettiSubColumnWriteRandom}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Values/Notes Random EditStep (SubColumn Aware)", invoke=PakettiSubColumnWriteRandomEditStep}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Values/Notes Ascending (SubColumn Aware)", invoke=PakettiSubColumnWriteAscending}
