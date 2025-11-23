@@ -1,6 +1,3 @@
--- Ensure the dialog is initialized
-local dialog = nil
-
 -- Phrase follow variables
 -- Initialize from preferences, defaulting to false if not set
 local phrase_follow_enabled = false
@@ -8,18 +5,6 @@ if preferences and preferences.PakettiPhraseFollowPatternPlayback then
   phrase_follow_enabled = preferences.PakettiPhraseFollowPatternPlayback.value
 end
 local current_cycle = 0  -- Track current cycle for phrase follow
-
--- Function to load preferences
-local function loadPreferences()
-  if io.exists("preferences.xml") then
-    preferences:load_from("preferences.xml")
-  end
-end
-
--- Function to save preferences
-local function savePreferences()
-  preferences:save_as("preferences.xml")
-end
 
 -- Function to apply settings to the selected phrase or create a new one if none exists
 function pakettiPhraseSettingsApplyPhraseSettings()
@@ -109,230 +94,11 @@ function pakettiPhraseSettingsModifyCurrentPhrase()
   end
 end
 
-
-
--- Function to show the PakettiInitPhraseSettingsDialog
-function pakettiPhraseSettings()
-  if dialog and dialog.visible then
-    dialog:close()
-    dialog = nil
-    return
-  end
-
-  local song = renoise.song()
-  if not song then
-    return
-  end
-
-  local vb = renoise.ViewBuilder()
-  local phrase = song.selected_phrase
-  if phrase then
-    preferences.pakettiPhraseInitDialog.Name.value = phrase.name
-  end
-
-  dialog = renoise.app():show_custom_dialog("Paketti Phrase Default Settings Dialog",
-    vb:column{
-      margin=10,
-      
-      vb:row{
-        vb:checkbox{
-          id = "set_name_checkbox",
-          value = preferences.pakettiPhraseInitDialog.SetName.value,
-          notifier=function(value)
-            preferences.pakettiPhraseInitDialog.SetName.value = value
-          end
-        },
-        vb:text{text="Set Name",width=150},
-      },
-      vb:row{
-        vb:text{text="Phrase Name",width=150},
-        vb:textfield {
-          id = "phrase_name_textfield",
-          width=300,
-          text = preferences.pakettiPhraseInitDialog.Name.value,
-          notifier=function(value) 
-            preferences.pakettiPhraseInitDialog.Name.value = value
-            -- Auto-check the Set Name checkbox when text is entered
-            if value ~= "" then
-              preferences.pakettiPhraseInitDialog.SetName.value = true
-              vb.views.set_name_checkbox.value = true
-            end
-          end
-        }
-      },
-      vb:row{
-        vb:text{text="Autoseek",width=150},
-        vb:switch {
-          id = "autoseek_switch",
-          width=300,
-          items = {"Off", "On"},
-          value = preferences.pakettiPhraseInitDialog.Autoseek.value and 2 or 1,
-          notifier=function(value) preferences.pakettiPhraseInitDialog.Autoseek.value = (value == 2) end
-        }
-      },
-      vb:row{
-        vb:text{text="Volume Column Visible",width=150},
-        vb:switch {
-          id = "volume_column_visible_switch",
-          width=300,
-          items = {"Off", "On"},
-          value = preferences.pakettiPhraseInitDialog.VolumeColumnVisible.value and 2 or 1,
-          notifier=function(value) preferences.pakettiPhraseInitDialog.VolumeColumnVisible.value = (value == 2) end
-        }
-      },
-      vb:row{
-        vb:text{text="Panning Column Visible",width=150},
-        vb:switch {
-          id = "panning_column_visible_switch",
-          width=300,
-          items = {"Off", "On"},
-          value = preferences.pakettiPhraseInitDialog.PanningColumnVisible.value and 2 or 1,
-          notifier=function(value) preferences.pakettiPhraseInitDialog.PanningColumnVisible.value = (value == 2) end
-        }
-      },
-      vb:row{
-        vb:text{text="Instrument Column Visible",width=150},
-        vb:switch {
-          id = "instrument_column_visible_switch",
-          width=300,
-          items = {"Off", "On"},
-          value = preferences.pakettiPhraseInitDialog.InstrumentColumnVisible.value and 2 or 1,
-          notifier=function(value) preferences.pakettiPhraseInitDialog.InstrumentColumnVisible.value = (value == 2) end
-        }
-      },
-      vb:row{
-        vb:text{text="Delay Column Visible",width=150},
-        vb:switch {
-          id = "delay_column_visible_switch",
-          width=300,
-          items = {"Off", "On"},
-          value = preferences.pakettiPhraseInitDialog.DelayColumnVisible.value and 2 or 1,
-          notifier=function(value) preferences.pakettiPhraseInitDialog.DelayColumnVisible.value = (value == 2) end
-        }
-      },
-      vb:row{
-        vb:text{text="Sample FX Column Visible",width=150},
-        vb:switch {
-          id = "samplefx_column_visible_switch",
-          width=300,
-          items = {"Off", "On"},
-          value = preferences.pakettiPhraseInitDialog.SampleFXColumnVisible.value and 2 or 1,
-          notifier=function(value) preferences.pakettiPhraseInitDialog.SampleFXColumnVisible.value = (value == 2) end
-        }
-      },     
-      vb:row{
-        vb:text{text="Phrase Looping",width=150},
-        vb:switch {
-          id = "phrase_looping_switch",
-          width=300,
-          items = {"Off", "On"},
-          value = preferences.pakettiPhraseInitDialog.PhraseLooping.value and 2 or 1,
-          notifier=function(value) preferences.pakettiPhraseInitDialog.PhraseLooping.value = (value == 2) end
-        }
-      },     
-
-      
-
-      vb:row{
-        vb:text{text="Visible Note Columns",width=150},
-        vb:switch {
-          id = "note_columns_switch",
-          width=300,
-          value = preferences.pakettiPhraseInitDialog.NoteColumns.value,
-          items = {"1","2","3","4","5","6","7","8","9","10","11","12"},
-          notifier=function(value) preferences.pakettiPhraseInitDialog.NoteColumns.value = value end
-        }
-      },
-      vb:row{
-        vb:text{text="Visible Effect Columns",width=150},
-        vb:switch {
-          id = "effect_columns_switch",
-          width=300,
-          value = preferences.pakettiPhraseInitDialog.EffectColumns.value + 1,
-          items = {"0","1","2","3","4","5","6","7","8"},
-          notifier=function(value) preferences.pakettiPhraseInitDialog.EffectColumns.value = value - 1 end
-        }
-      },
-      vb:row{
-        vb:text{text="Shuffle",width=150},
-        vb:slider{
-          id = "shuffle_slider",
-          width=100,
-          min = 0,
-          max = 50,
-          value = preferences.pakettiPhraseInitDialog.Shuffle.value,
-          notifier=function(value)
-            preferences.pakettiPhraseInitDialog.Shuffle.value = math.floor(value)
-            vb.views["shuffle_value"].text = tostring(preferences.pakettiPhraseInitDialog.Shuffle.value) .. "%"
-          end
-        },
-        vb:text{id = "shuffle_value", text = tostring(preferences.pakettiPhraseInitDialog.Shuffle.value) .. "%",width=50}
-      },
-      vb:row{
-        vb:text{text="LPB",width=150},
-        vb:valuebox{
-          id = "lpb_valuebox",
-          min = 1,
-          max = 256,
-          value = preferences.pakettiPhraseInitDialog.LPB.value,
-          width=60,
-          notifier=function(value) preferences.pakettiPhraseInitDialog.LPB.value = value end
-        }
-      },
-      vb:row{
-        vb:text{text="Length",width=150},
-        vb:valuebox{
-          id = "length_valuebox",
-          min = 1,
-          max = 512,
-          value = preferences.pakettiPhraseInitDialog.Length.value,
-          width=60,
-          notifier=function(value) preferences.pakettiPhraseInitDialog.Length.value = value end
-        },
-        vb:button{text="2", notifier=function() vb.views.length_valuebox.value = 2 preferences.pakettiPhraseInitDialog.Length.value = 2 end},
-        vb:button{text="4", notifier=function() vb.views.length_valuebox.value = 4 preferences.pakettiPhraseInitDialog.Length.value = 4 end},
-        vb:button{text="6", notifier=function() vb.views.length_valuebox.value = 6 preferences.pakettiPhraseInitDialog.Length.value = 6 end},
-        vb:button{text="8", notifier=function() vb.views.length_valuebox.value = 8 preferences.pakettiPhraseInitDialog.Length.value = 8 end},
-        vb:button{text="12", notifier=function() vb.views.length_valuebox.value = 12 preferences.pakettiPhraseInitDialog.Length.value = 12 end},
-        vb:button{text="16", notifier=function() vb.views.length_valuebox.value = 16 preferences.pakettiPhraseInitDialog.Length.value = 16 end},
-        vb:button{text="24", notifier=function() vb.views.length_valuebox.value = 24 preferences.pakettiPhraseInitDialog.Length.value = 24 end},
-        vb:button{text="32", notifier=function() vb.views.length_valuebox.value = 32 preferences.pakettiPhraseInitDialog.Length.value = 32 end},
-        vb:button{text="48", notifier=function() vb.views.length_valuebox.value = 48 preferences.pakettiPhraseInitDialog.Length.value = 48 end},
-        vb:button{text="64", notifier=function() vb.views.length_valuebox.value = 64 preferences.pakettiPhraseInitDialog.Length.value = 64 end},
-        vb:button{text="96", notifier=function() vb.views.length_valuebox.value = 96 preferences.pakettiPhraseInitDialog.Length.value = 96 end},
-        vb:button{text="128", notifier=function() vb.views.length_valuebox.value = 128 preferences.pakettiPhraseInitDialog.Length.value = 128 end},
-        vb:button{text="192", notifier=function() vb.views.length_valuebox.value = 192 preferences.pakettiPhraseInitDialog.Length.value = 192 end},
-        vb:button{text="256", notifier=function() vb.views.length_valuebox.value = 256 preferences.pakettiPhraseInitDialog.Length.value = 256 end},
-        vb:button{text="384", notifier=function() vb.views.length_valuebox.value = 384 preferences.pakettiPhraseInitDialog.Length.value = 384 end},
-        vb:button{text="512", notifier=function() vb.views.length_valuebox.value = 512 preferences.pakettiPhraseInitDialog.Length.value = 512 end}
-      },
-      vb:row{
-        vb:button{text="Create New Phrase",width=100, notifier=function()
-          pakettiInitPhraseSettingsCreateNewPhrase()
-        end},
-        vb:button{text="Modify Phrase",width=100, notifier=function()
-          pakettiPhraseSettingsModifyCurrentPhrase()
-        end},
-        vb:button{text="Save",width=100, notifier=function()
-          savePreferences()
-        end},
-        vb:button{text="Cancel",width=100, notifier=function()
-          dialog:close()
-          dialog = nil
-        end}}},
-    create_keyhandler_for_dialog(
-      function() return dialog end,
-      function(value) dialog = value end
-    ))
-end
-
-renoise.tool():add_keybinding{name="Global:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
+------------------------------------------------
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
-renoise.tool():add_midi_mapping{name="Paketti:Open Paketti Init Phrase Dialog...",invoke=function(message) if message:is_trigger() then pakettiPhraseSettings() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Create New Phrase Using Paketti Settings",invoke=function(message) if message:is_trigger() then pakettiInitPhraseSettingsCreateNewPhrase() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Modify Current Phrase Using Paketti Settings",invoke=function(message) if message:is_trigger() then pakettiPhraseSettingsModifyCurrentPhrase() end end}
 ------------------------------------------------
@@ -1287,6 +1053,216 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes Random",in
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes EditStep Ascending",invoke=function() PakettiPhraseEditorWriteNotesMethodEditStep("ascending") end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes EditStep Descending",invoke=function() PakettiPhraseEditorWriteNotesMethodEditStep("descending") end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Notes EditStep Random",invoke=function() PakettiPhraseEditorWriteNotesMethodEditStep("random") end}
+
+---------------------------------------------------------------------------------------------------------
+-- SubColumn-Aware Write Values/Notes for Phrase Editor
+---------------------------------------------------------------------------------------------------------
+-- WAITING FOR API UPDATE: Phrase Editor does not yet have selected_phrase_sub_column_type API
+-- When Renoise API adds phrase sub-column detection, change this variable to point to the correct property:
+-- local phrase_subcolumn_selection = song.selected_phrase_sub_column_type (or similar)
+-- Then uncomment the keybindings at the bottom of this section
+---------------------------------------------------------------------------------------------------------
+-- These functions adapt to whichever subcolumn you're in:
+-- - Note subcolumn -> writes notes (delegates to existing note writing functions)
+-- - Volume subcolumn -> writes 00-80 (0-128)
+-- - Panning subcolumn -> writes 00-80 (0-128)
+-- - Delay subcolumn -> writes 00-FF (0-255)
+-- - Sample Effect Amount -> writes 00-FF (0-255)
+-- - Effect Amount -> writes 00-FF (0-255)
+
+function PakettiPhraseEditorSubColumnWriteValues(method, use_editstep)
+  local song = renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  -- WAITING FOR API UPDATE: This property doesn't exist yet for Phrase Editor
+  -- When API is updated, change this to: song.selected_phrase_sub_column_type (or whatever it's called)
+  local phrase_subcolumn_selection = song.selected_sub_column_type -- This only works in Pattern Editor!
+  local sub_column_type = phrase_subcolumn_selection
+  
+  -- If in Note subcolumn, delegate to existing note writing functions
+  if sub_column_type == 1 then -- SUB_COLUMN_NOTE
+    if use_editstep then
+      PakettiPhraseEditorWriteNotesMethodEditStep(method)
+    else
+      PakettiPhraseEditorWriteNotesMethod(method)
+    end
+    return
+  end
+  
+  -- For other subcolumns, write values
+  local current_line = song.selected_phrase_line_index
+  local selected_note_column = song.selected_phrase_note_column_index
+  local edit_step = use_editstep and song.transport.edit_step or 1
+  
+  -- If edit_step is 0, treat it as 1
+  if edit_step == 0 then
+    edit_step = 1
+  end
+  
+  -- Determine value range based on subcolumn type
+  local min_value = 0
+  local max_value = 255
+  local hex_format = "%02X"
+  local column_name = "value"
+  
+  if sub_column_type == 3 then -- Volume
+    max_value = 128
+    column_name = "volume"
+  elseif sub_column_type == 4 then -- Panning
+    max_value = 128
+    column_name = "panning"
+  elseif sub_column_type == 5 then -- Delay
+    max_value = 255
+    column_name = "delay"
+  elseif sub_column_type == 7 then -- Sample Effect Amount
+    max_value = 255
+    column_name = "sample effect amount"
+  elseif sub_column_type == 9 then -- Effect Amount
+    max_value = 255
+    column_name = "effect amount"
+  else
+    renoise.app():show_status("Write Values only works in Volume, Panning, Delay, or Effect Amount columns")
+    return
+  end
+  
+  -- Create value table
+  local values = {}
+  for i = min_value, max_value do
+    table.insert(values, i)
+  end
+  
+  -- Sort or shuffle based on method
+  if method == "ascending" then
+    -- Already in ascending order
+  elseif method == "descending" then
+    local reversed = {}
+    for i = #values, 1, -1 do
+      table.insert(reversed, values[i])
+    end
+    values = reversed
+  elseif method == "random" then
+    -- Fisher-Yates shuffle
+    trueRandomSeed()
+    for i = #values, 2, -1 do
+      local j = math.random(i)
+      values[i], values[j] = values[j], values[i]
+    end
+  end
+  
+  -- Clear existing values if using editstep
+  if use_editstep then
+    for line_index = current_line, phrase.number_of_lines do
+      local note_column = phrase:line(line_index):note_column(selected_note_column or 1)
+      if sub_column_type == 3 then
+        note_column.volume_value = renoise.PatternLine.EMPTY_VOLUME
+      elseif sub_column_type == 4 then
+        note_column.panning_value = renoise.PatternLine.EMPTY_PANNING
+      elseif sub_column_type == 5 then
+        note_column.delay_value = renoise.PatternLine.EMPTY_DELAY
+      elseif sub_column_type == 7 then
+        note_column.effect_amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+      elseif sub_column_type == 9 then
+        local effect_column = song.selected_phrase_effect_column_index
+        if effect_column > 0 then
+          phrase:line(line_index):effect_column(effect_column).amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+        end
+      end
+    end
+  end
+  
+  -- Write the values
+  local write_line = current_line
+  local last_value = -1
+  
+  for i = 1, #values do
+    if write_line <= phrase.number_of_lines then
+      if sub_column_type == 3 then -- Volume
+        local note_column = phrase:line(write_line):note_column(selected_note_column or 1)
+        note_column.volume_value = values[i]
+        last_value = values[i]
+      elseif sub_column_type == 4 then -- Panning
+        local note_column = phrase:line(write_line):note_column(selected_note_column or 1)
+        note_column.panning_value = values[i]
+        last_value = values[i]
+      elseif sub_column_type == 5 then -- Delay
+        local note_column = phrase:line(write_line):note_column(selected_note_column or 1)
+        note_column.delay_value = values[i]
+        last_value = values[i]
+      elseif sub_column_type == 7 then -- Sample Effect Amount
+        local note_column = phrase:line(write_line):note_column(selected_note_column or 1)
+        note_column.effect_amount_value = values[i]
+        last_value = values[i]
+      elseif sub_column_type == 9 then -- Effect Amount
+        local effect_column_index = song.selected_phrase_effect_column_index
+        if effect_column_index > 0 then
+          local effect_column = phrase:line(write_line):effect_column(effect_column_index)
+          effect_column.amount_value = values[i]
+          last_value = values[i]
+        end
+      end
+      
+      if use_editstep then
+        write_line = write_line + edit_step
+      else
+        write_line = write_line + 1
+      end
+    else
+      break
+    end
+  end
+  
+  if last_value ~= -1 then
+    local hex_value = string.format("%02X", last_value)
+    renoise.app():show_status(string.format(
+      "Wrote %s %s values until row %d (last: %s/%d)", 
+      method,
+      column_name,
+      write_line - (use_editstep and edit_step or 1),
+      hex_value,
+      last_value
+    ))
+  end
+end
+
+-- Wrapper functions for different modes
+function PakettiPhraseEditorSubColumnWriteRandom()
+  PakettiPhraseEditorSubColumnWriteValues("random", false)
+end
+
+function PakettiPhraseEditorSubColumnWriteRandomEditStep()
+  PakettiPhraseEditorSubColumnWriteValues("random", true)
+end
+
+function PakettiPhraseEditorSubColumnWriteAscending()
+  PakettiPhraseEditorSubColumnWriteValues("ascending", false)
+end
+
+function PakettiPhraseEditorSubColumnWriteAscendingEditStep()
+  PakettiPhraseEditorSubColumnWriteValues("ascending", true)
+end
+
+function PakettiPhraseEditorSubColumnWriteDescending()
+  PakettiPhraseEditorSubColumnWriteValues("descending", false)
+end
+
+function PakettiPhraseEditorSubColumnWriteDescendingEditStep()
+  PakettiPhraseEditorSubColumnWriteValues("descending", true)
+end
+
+-- WAITING FOR API UPDATE: Uncomment these keybindings when Phrase Editor gets sub-column detection API
+-- Add keybindings for intelligent write system in Phrase Editor
+-- These adapt to whatever subcolumn you're in
+--renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Values/Notes Random (SubColumn Aware)", invoke=PakettiPhraseEditorSubColumnWriteRandom}
+--renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Values/Notes Random EditStep (SubColumn Aware)", invoke=PakettiPhraseEditorSubColumnWriteRandomEditStep}
+--renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Values/Notes Ascending (SubColumn Aware)", invoke=PakettiPhraseEditorSubColumnWriteAscending}
+--renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Values/Notes Ascending EditStep (SubColumn Aware)", invoke=PakettiPhraseEditorSubColumnWriteAscendingEditStep}
+--renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Values/Notes Descending (SubColumn Aware)", invoke=PakettiPhraseEditorSubColumnWriteDescending}
+--renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Write Values/Notes Descending EditStep (SubColumn Aware)", invoke=PakettiPhraseEditorSubColumnWriteDescendingEditStep}
 
 ---------------------------------------------------------------------------------------------------------
 -- Transpose functions for Phrase Editor

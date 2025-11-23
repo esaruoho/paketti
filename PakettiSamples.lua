@@ -4264,6 +4264,55 @@ local function loadRandomSample(num_samples, folder_path)
   end
 end
 
+-- Append random samples to currently selected instrument (doesn't create new instruments)
+function PakettiAppendRandomSamplesToInstrument(folder_path, num_samples)
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  if not folder_path or folder_path == "" then
+    renoise.app():show_status("No folder path specified")
+    return
+  end
+  
+  local wav_files = PakettiGetFilesInDirectory(folder_path)
+  
+  if #wav_files == 0 then
+    renoise.app():show_status("No audio files found in the selected folder")
+    return
+  end
+  
+  math.randomseed(os.time())
+  math.random(); math.random(); math.random()
+  
+  local starting_sample_count = #instrument.samples
+  local loaded_count = 0
+  
+  for i = 1, num_samples do
+    local random_index = math.random(1, #wav_files)
+    local selected_file = wav_files[random_index]
+    local file_name = selected_file:match("([^/\\]+)%.%w+$")
+    
+    local success = pcall(function()
+      local sample = instrument:insert_sample_at(#instrument.samples + 1)
+      sample.sample_buffer:load_from(selected_file)
+      sample.name = file_name
+      loaded_count = loaded_count + 1
+    end)
+    
+    if not success then
+      print("Failed to load file: " .. selected_file)
+    end
+  end
+  
+  renoise.app():show_status(string.format("Appended %d random samples to instrument (total: %d → %d)", 
+    loaded_count, starting_sample_count, #instrument.samples))
+end
+
 -- Main dialog function
 local dialog = nil  -- Add proper dialog variable declaration for User-Defined Samples Dialog
 
@@ -4311,7 +4360,7 @@ function pakettiUserDefinedSamplesDialog()
     }
 
     local button_row = vb:row{
-      vb:text{ text="Folder " .. formatDigits(2,i) .. ":" },
+      vb:text{ text="Folder " .. formatDigits(2,i),style="strong",font="bold"},
       browse_button,
       textfield,
       vb:button{text="Open Path",notifier=function()
@@ -4321,53 +4370,84 @@ function pakettiUserDefinedSamplesDialog()
         else
           renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
         end
-      end}
+      end},
+      vb:text{ text="Random", style="strong", font="bold" },
+      vb:button{text="Drumkit", notifier=function() 
+        local sanitized_path = sanitizeFolderPath(textfield.text)
+        if sanitized_path then
+          loadRandomDrumkitSamples(120, sanitized_path) 
+        else
+          renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+        end
+      end},
+      vb:button{
+        text="01",
+        notifier=function()
+          local sanitized_path = sanitizeFolderPath(textfield.text)
+          if sanitized_path then
+            loadRandomSamplesIntoSingleInstrument(1, sanitized_path)
+          else
+            renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+          end
+        end
+      },
+      vb:button{
+        text="12",
+        notifier=function()
+          local sanitized_path = sanitizeFolderPath(textfield.text)
+          if sanitized_path then
+            loadRandomSamplesIntoSingleInstrument(12, sanitized_path)
+          else
+            renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+          end
+        end
+      },
+      vb:button{
+        text="32",
+        notifier=function()
+          local sanitized_path = sanitizeFolderPath(textfield.text)
+          if sanitized_path then
+            loadRandomSample(32, sanitized_path)
+          else
+            renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+          end
+        end
+      },
+      vb:text{ text="Append", style="strong", font="bold" },
+      vb:button{
+        text="01",
+        notifier=function()
+          local sanitized_path = sanitizeFolderPath(textfield.text)
+          if sanitized_path then
+            PakettiAppendRandomSamplesToInstrument(sanitized_path, 1)
+          else
+            renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+          end
+        end
+      },
+      vb:button{
+        text="04",
+        notifier=function()
+          local sanitized_path = sanitizeFolderPath(textfield.text)
+          if sanitized_path then
+            PakettiAppendRandomSamplesToInstrument(sanitized_path, 4)
+          else
+            renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+          end
+        end
+      },
+      vb:button{
+        text="12",
+        notifier=function()
+          local sanitized_path = sanitizeFolderPath(textfield.text)
+          if sanitized_path then
+            PakettiAppendRandomSamplesToInstrument(sanitized_path, 12)
+          else
+            renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+          end
+        end
+      }
     }
-
-    button_row:add_child(vb:button{text="Random Drumkit", notifier=function() 
-      local sanitized_path = sanitizeFolderPath(textfield.text)
-      if sanitized_path then
-        loadRandomDrumkitSamples(120, sanitized_path) 
-      else
-        renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
-      end
-    end})
-
-    button_row:add_child(vb:button{
-      text="Random 01",
-      notifier=function()
-        local sanitized_path = sanitizeFolderPath(textfield.text)
-        if sanitized_path then
-          loadRandomSamplesIntoSingleInstrument(1, sanitized_path)
-        else
-          renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
-        end
-      end
-    })
-
-    button_row:add_child(vb:button{
-      text="Random 12",
-      notifier=function()
-        local sanitized_path = sanitizeFolderPath(textfield.text)
-        if sanitized_path then
-          loadRandomSamplesIntoSingleInstrument(12, sanitized_path)
-        else
-          renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
-        end
-      end
-    })
-
-    button_row:add_child(vb:button{
-      text="Random 32",
-      notifier=function()
-        local sanitized_path = sanitizeFolderPath(textfield.text)
-        if sanitized_path then
-          loadRandomSample(32, sanitized_path)
-        else
-          renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
-        end
-      end
-    })
 
     rows:add_child(button_row)
   end
@@ -7746,3 +7826,16 @@ renoise.tool():add_keybinding{name="Global:Paketti:Detect and Correct Single-Cyc
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Frequency to Note Analysis",invoke = PakettiSamplesFrequencyToNoteAnalysis}
 renoise.tool():add_keybinding{name="Global:Paketti:Frequency to Note Analysis",invoke = PakettiSamplesFrequencyToNoteAnalysis}
 
+-- Quick keybindings for append operations
+function PakettiAppendRandomSamplesQuick(num_samples)
+  local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
+  if not folder_path then
+    renoise.app():show_status("No folder selected")
+    return
+  end
+  PakettiAppendRandomSamplesToInstrument(folder_path, num_samples)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Append Random Samples (01) to Instrument", invoke = function() PakettiAppendRandomSamplesQuick(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Append Random Samples (04) to Instrument", invoke = function() PakettiAppendRandomSamplesQuick(4) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Append Random Samples (12) to Instrument", invoke = function() PakettiAppendRandomSamplesQuick(12) end}

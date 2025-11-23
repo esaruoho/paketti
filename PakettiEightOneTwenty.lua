@@ -2003,8 +2003,12 @@ end
       -- Get step count from track name when initializing row
       local step_count = getStepsFromTrackName(track.name)
       valuebox.value = step_count
-      -- Do not set selected_step during initialization. Start with no highlight.
-      row_elements.selected_step = nil
+      -- Set selected_step to highlight the step count button
+      if step_count == MAX_STEPS then
+        row_elements.selected_step = nil
+      else
+        row_elements.selected_step = step_count
+      end
       update_row_button_colors(row_elements)  -- Update button colors
 
       local current_delay = renoise.song().tracks[track_index].output_delay

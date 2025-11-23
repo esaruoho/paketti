@@ -182,12 +182,11 @@ end
 local function apply_length_value(value)
   local song=renoise.song()
   local is_pattern_editor = is_in_pattern_editor()
+  local is_phrase = is_in_phrase_editor()
   
-  -- If not in pattern editor, check if we're in phrase editor with valid phrase
-  if not is_pattern_editor and not is_in_phrase_editor() then
-    -- Not in either editor or no valid phrase, do nothing
-    renoise.app():show_status("Please switch to Pattern Editor or Phrase Editor")
-    return
+  -- If not in either editor, default to pattern editor mode
+  if not is_pattern_editor and not is_phrase then
+    is_pattern_editor = true
   end
 
   -- Convert to number
@@ -285,16 +284,16 @@ function pakettiLengthDialog()
     return
   end
 
+  debug_print("Show dialog: Creating new dialog")
+
   -- Check which editor we're in
   local is_pattern_editor = is_in_pattern_editor()
+  local is_phrase = is_in_phrase_editor()
   
-  -- If not in pattern editor, check if we're in phrase editor with valid phrase
-  if not is_pattern_editor and not is_in_phrase_editor() then
-    renoise.app():show_status("Please switch to Pattern Editor or Phrase Editor")
-    return
+  -- If not in either editor, default to pattern editor mode
+  if not is_pattern_editor and not is_phrase then
+    is_pattern_editor = true
   end
-
-  debug_print("Show dialog: Creating new dialog")
 
   -- Build the UI
   view_builder = renoise.ViewBuilder()

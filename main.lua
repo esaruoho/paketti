@@ -914,6 +914,7 @@ timed_require("PakettiTransposeBlock")
 timed_require("PakettiBeatstructureEditor")
 timed_require("PakettiSlice")
 timed_require("PakettiCaptureLastTake")
+
 timed_require("PakettiOpenMPTLinearKeyboardLayer")
 timed_require("PakettiSlabOPatterns")
 timed_require("PakettiSwitcharoo")
@@ -930,6 +931,7 @@ end
 
 if renoise.API_VERSION >= 6.2 then
   timed_require("Paketti35")
+  timed_require("PakettiArpeggiator")
   timed_require("PakettiPCMWriter")
   timed_require("PakettiImageToSample")
   --timed_require("PakettiZyklusMPS1")

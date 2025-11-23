@@ -128,7 +128,7 @@ local dialog_content = vb:column{
   vb:multiline_textfield{width=textfield_width, height = 65, text = 
   -- IDEAS
   "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, super_lsd, sodiufas, amenburoda, davide, Hyena lord, zolipapa420, Amethyst, JTPE, Cosmic Ollie, Newtined, Kusoipilled, Spencer Williams (spnw), RENEGADE ANDROiD, Phill Tew, croay, ishineee, user22c, Helge H., ShasuraMk2, Mastrcode, Cthonic, Kavoli, polyplexmescalia" ..
-  ", Josh Montgomery, Filthy Animal, AZ-Rotator, Roby" ..
+  ", Josh Montgomery, Filthy Animal, AZ-Rotator, Roby, Onix4MAN AKA PinkCell" ..
   " and many others."},
 
   vb:text{text="Who made it possible:", style = "strong", font = "bold"},
@@ -137,7 +137,7 @@ local dialog_content = vb:column{
   vb:text{text="Kudos:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height = 40, text = 
   -- KUDOS
-  "Martblek for allowing me to take his abandoned ReSpeak tool and make it into Paketti eSpeak Text-to-Speech, Kaidiak for donating ClippyClip device, and also for smdkun for letting me tweak their KeyBind Visualizer code and incorporate it into Paketti further down the line. mxb for the original ReCycle import code which i heavily reworked. Jaap3 for the work reverse-engineering the PTI format. Also many thanks to Phill Tew for the idea for the Additive Record Follow Pattern!, ryrun for the SFZ2XRNI Gist on GitHub."},
+  "Martblek for allowing me to take his abandoned ReSpeak tool and make it into Paketti eSpeak Text-to-Speech, Kaidiak for donating ClippyClip device, Charlie Abbott for the idea of the Random Sample Append, and also for smdkun for letting me tweak their KeyBind Visualizer code and incorporate it into Paketti further down the line. mxb for the original ReCycle import code which i heavily reworked. Jaap3 for the work reverse-engineering the PTI format. Also many thanks to Phill Tew for the idea for the Additive Record Follow Pattern!, ryrun for the SFZ2XRNI Gist on GitHub."},
 
   vb:row{
     vb:text{text="Support Paketti",style="strong",font="bold", width=110},
