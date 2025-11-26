@@ -839,9 +839,6 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Show Song to Line Frame Inf
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Song Length", invoke = PakettiFrameCalculatorShowSongLength}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Song Length Dialog", invoke = PakettiFrameCalculatorShowSongLengthDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
-renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Frame Calculator Live Update (Song to Line)", invoke = PakettiFrameCalculatorToggleSongToLine}
-renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Frame Calculator Live Update (Pattern to Line)", invoke = PakettiFrameCalculatorTogglePatternToLine}
-renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Frame Calculator Live Update (Both)", invoke = PakettiFrameCalculatorToggleBoth}
 
 renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
@@ -1027,6 +1024,11 @@ end
 function PakettiFrameCalculatorToggle()
   PakettiFrameCalculatorToggleBoth()
 end
+
+-- Add keybindings for toggle functions (must be after function definitions)
+renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Frame Calculator Live Update (Song to Line)", invoke = PakettiFrameCalculatorToggleSongToLine}
+renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Frame Calculator Live Update (Pattern to Line)", invoke = PakettiFrameCalculatorTogglePatternToLine}
+renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Frame Calculator Live Update (Both)", invoke = PakettiFrameCalculatorToggleBoth}
 
 -- Selected functions for checkboxes
 function PakettiFrameCalculatorIsSongToLine()

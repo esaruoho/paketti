@@ -156,6 +156,12 @@ renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Me
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 3:4 (3/4→4/4 feel)",invoke = function() convert_3_to_4_feel() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Deactivate All Repeaters on All Tracks",invoke=function() paketti_deactivate_all_repeaters() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",invoke=function() paketti_delete_all_repeaters() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Plugins/Devices:Deactivate All Repeaters on All Tracks",invoke=function() paketti_deactivate_all_repeaters() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",invoke=function() paketti_delete_all_repeaters() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Plugins/Devices:Deactivate All Repeaters on All Tracks",invoke=function() paketti_deactivate_all_repeaters() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",invoke=function() paketti_delete_all_repeaters() end}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Deactivate All Repeaters on All Tracks",invoke=function() paketti_deactivate_all_repeaters() end}
+renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Delete All Repeaters from All Tracks",invoke=function() paketti_delete_all_repeaters() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Recording:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:MIDI Aftertouch / CC Effect Writer...",invoke=function() PakettiMidiEffectWriterShowDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:MIDI Aftertouch / CC Effect Writer...",invoke=function() PakettiMidiEffectWriterShowDialog() end}

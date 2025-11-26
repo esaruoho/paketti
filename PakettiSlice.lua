@@ -4048,3 +4048,121 @@ function PakettiApplySlicesBasedOnSampleRate()
   print(status_msg)
   print("=== Done ===")
 end
+
+-- Random Slice Distribution
+-- Distributes slices randomly across the selected track in the pattern
+function PakettiRandomSliceDistribution()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local track = song.selected_pattern_track
+  local num_rows = pattern.number_of_lines
+  
+  -- Check if instrument has samples
+  if #instrument.samples == 0 then
+    renoise.app():show_status("No samples in selected instrument")
+    return
+  end
+  
+  -- Check if first sample has slices
+  local first_sample = instrument.samples[1]
+  if #first_sample.slice_markers == 0 then
+    renoise.app():show_status("Selected instrument has no slices")
+    return
+  end
+  
+  -- Get number of slices
+  local slice_count = #first_sample.slice_markers + 1
+  
+  -- Get the slice start note from sample mappings
+  local slice_start_note = nil
+  if instrument.sample_mappings[1] then
+    local sample_mappings = instrument.sample_mappings[1]
+    if #sample_mappings >= 2 then
+      local first_slice_mapping = sample_mappings[2]
+      if first_slice_mapping and first_slice_mapping.base_note then
+        slice_start_note = first_slice_mapping.base_note
+      end
+    end
+  end
+  
+  -- Fallback: slices typically start one note above the original sample's base note
+  if not slice_start_note and first_sample.sample_mapping and first_sample.sample_mapping.base_note then
+    slice_start_note = first_sample.sample_mapping.base_note + 1
+  end
+  
+  if not slice_start_note then
+    renoise.app():show_status("Could not determine slice note mappings")
+    return
+  end
+  
+  print("Number of slices: " .. slice_count)
+  print("Number of rows: " .. num_rows)
+  print("Selected track: " .. track_index)
+  print("Slice start note: " .. slice_start_note)
+  
+  -- Create a list of slice note values
+  local slice_notes = {}
+  for i = 0, slice_count - 1 do
+    local slice_note = slice_start_note + i
+    if slice_note <= 119 then
+      table.insert(slice_notes, slice_note)
+    else
+      break
+    end
+  end
+  
+  local num_slices = #slice_notes
+  
+  -- Shuffle the slice list using Fisher-Yates algorithm
+  for i = #slice_notes, 2, -1 do
+    local j = math.random(1, i)
+    slice_notes[i], slice_notes[j] = slice_notes[j], slice_notes[i]
+  end
+  
+  -- Calculate row positions with even spacing
+  local row_positions = {}
+  if num_slices <= num_rows then
+    -- Distribute slices evenly across the pattern
+    local spacing = num_rows / num_slices
+    for i = 1, num_slices do
+      local row = math.floor((i - 1) * spacing) + 1
+      table.insert(row_positions, row)
+    end
+  else
+    -- More slices than rows, just fill sequentially
+    for i = 1, num_rows do
+      table.insert(row_positions, i)
+    end
+  end
+  
+  -- Clear the track first
+  for i = 1, num_rows do
+    local line = track:line(i)
+    line:clear()
+  end
+  
+  -- Write the slices to the pattern
+  local slices_to_write = math.min(num_slices, num_rows)
+  for i = 1, slices_to_write do
+    local row = row_positions[i]
+    local slice_note = slice_notes[i]
+    local line = track:line(row)
+    local note_column = line.note_columns[1]
+    
+    -- Write the slice note and instrument
+    note_column.note_value = slice_note
+    note_column.instrument_value = song.selected_instrument_index - 1
+    
+    local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+    local octave = math.floor(slice_note / 12)
+    local note_name = notes[(slice_note % 12) + 1]
+    print(string.format("Row %d: Note %s%d (value %d)", row, note_name, octave, slice_note))
+  end
+  
+  renoise.app():show_status(string.format("Randomly distributed %d slices across %d rows", slices_to_write, num_rows))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Slice Distribution",invoke=function() PakettiRandomSliceDistribution() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Wipe&Slice:Random Slice Distribution",invoke=function() PakettiRandomSliceDistribution() end}
