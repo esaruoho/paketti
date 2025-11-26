@@ -126,7 +126,7 @@ function start_rendering(render_context)
     local render_options = {
         sample_rate = preferences.renderSampleRate.value,
         bit_depth = preferences.renderBitDepth.value,
-        interpolation = "precise",
+        interpolation = preferences.renderInterpolation.value,
         priority = render_priority,
         start_pos = renoise.SongPos(song.selected_sequence_index, 1),
         end_pos = renoise.SongPos(song.selected_sequence_index, song.patterns[song.selected_pattern_index].number_of_lines),
@@ -492,7 +492,7 @@ end
   local render_options = {
       sample_rate = preferences.renderSampleRate.value,
       bit_depth = preferences.renderBitDepth.value,
-      interpolation = "precise",
+      interpolation = preferences.renderInterpolation.value,
       priority = render_priority,
       start_pos = renoise.SongPos(renoise.song().selected_sequence_index, 1),
       end_pos = renoise.SongPos(renoise.song().selected_sequence_index, renoise.song().patterns[renoise.song().selected_pattern_index].number_of_lines),
@@ -726,7 +726,7 @@ function CleanRenderAndSaveStart(format)
   local render_options = {
       sample_rate = preferences.renderSampleRate.value,
       bit_depth = preferences.renderBitDepth.value,
-      interpolation = "precise",
+      interpolation = preferences.renderInterpolation.value,
       priority = render_priority,
       start_pos = renoise.SongPos(renoise.song().selected_sequence_index, 1),
       end_pos = renoise.SongPos(renoise.song().selected_sequence_index, renoise.song().patterns[renoise.song().selected_pattern_index].number_of_lines),
@@ -895,7 +895,7 @@ function CleanRenderAndSaveMP3Start(render_type)
   local render_options = {
       sample_rate = preferences.renderSampleRate.value,
       bit_depth = preferences.renderBitDepth.value,
-      interpolation = "precise",
+      interpolation = preferences.renderInterpolation.value,
       priority = render_priority,
       start_pos = renoise.SongPos(renoise.song().selected_sequence_index, 1),
       end_pos = renoise.SongPos(renoise.song().selected_sequence_index, renoise.song().patterns[renoise.song().selected_pattern_index].number_of_lines),
@@ -1199,7 +1199,7 @@ end
   local render_options = {
       sample_rate = preferences.renderSampleRate.value,
       bit_depth = preferences.renderBitDepth.value,
-      interpolation = "precise",
+      interpolation = preferences.renderInterpolation.value,
       priority = render_priority,
       start_pos = renoise.SongPos(renoise.song().selected_sequence_index, 1),
       end_pos = renoise.SongPos(renoise.song().selected_sequence_index, renoise.song().patterns[renoise.song().selected_pattern_index].number_of_lines),
@@ -1471,7 +1471,7 @@ function start_selection_rendering(render_context, track_index)
     local render_options = {
         sample_rate = preferences.renderSampleRate.value,
         bit_depth = preferences.renderBitDepth.value,
-        interpolation = "precise",
+        interpolation = preferences.renderInterpolation.value,
         priority = render_priority,
         start_pos = renoise.SongPos(song.selected_sequence_index, render_context.selection_start_line),
         end_pos = renoise.SongPos(song.selected_sequence_index, render_context.selection_end_line),
@@ -2220,7 +2220,7 @@ function start_experimental_rendering()
     local render_options = {
         sample_rate = preferences.renderSampleRate.value,
         bit_depth = preferences.renderBitDepth.value,
-        interpolation = "precise",
+        interpolation = preferences.renderInterpolation.value,
         priority = render_priority,
         start_pos = renoise.SongPos(song.selected_sequence_index, 1),
         end_pos = renoise.SongPos(song.selected_sequence_index, experimental_render_context.calculated_pattern_length),
@@ -2609,7 +2609,7 @@ function start_matrix_rendering(render_context)
     local render_options = {
         sample_rate = preferences.renderSampleRate.value,
         bit_depth = preferences.renderBitDepth.value,
-        interpolation = "precise",
+        interpolation = preferences.renderInterpolation.value,
         priority = render_priority,
         start_pos = renoise.SongPos(start_sequence, 1),
         end_pos = renoise.SongPos(end_sequence, end_pattern_lines),

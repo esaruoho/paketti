@@ -774,6 +774,20 @@ function pakettiToggleAutomaticRenameTrack()
   end
 end
 
+
+function pakettiToggleSelectTrackSelectInstrument()
+  preferences.PakettiSelectTrackSelectInstrument.value = not preferences.PakettiSelectTrackSelectInstrument.value
+  
+  if preferences.PakettiSelectTrackSelectInstrument.value then
+    renoise.app():show_status("Select Track Selects Instrument enabled")
+  else
+    renoise.app():show_status("Select Track Selects Instrument disabled")
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Select Track Selects Instrument",invoke=function() pakettiToggleSelectTrackSelectInstrument() end}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Select Track Selects Instrument",invoke=function(message) if message:is_trigger() then pakettiToggleSelectTrackSelectInstrument() end end}
+
 --------
 -- Global helper function to find Volume AHDSR device in an instrument
 -- Returns the device object if found, nil otherwise
@@ -945,7 +959,7 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiHyperEdit")
   timed_require("PakettiEquationCalculator")
   --timed_require("PakettiMultitapExperiment")
-  --timed_require("PakettiPlayerProWaveformViewer")
+  timed_require("PakettiPlayerProWaveformViewer")
   timed_require("PakettiAutomationStack")
 else
   -- Fallback stub for PCMWriter functions on older API versions

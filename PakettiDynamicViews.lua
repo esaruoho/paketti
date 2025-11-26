@@ -4,7 +4,7 @@
 local DynamicViewPrefs
 
 -- Set the number of dynamic views
-local dynamic_views_count = 8
+local dynamic_views_count = 9
 local steps_per_view = 8
 
 local views_upper = {
@@ -91,6 +91,12 @@ if not DynamicViewPrefs then
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_pattern_advanced_edit_visible_step" .. step, renoise.Document.ObservableNumber(1))
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_instrument_editor_detached_step" .. step, renoise.Document.ObservableNumber(1))
       DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_mixer_view_detached_step" .. step, renoise.Document.ObservableNumber(1))
+      
+      -- New transport/edit controls
+      DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_metronome_step" .. step, renoise.Document.ObservableNumber(1))
+      DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_edit_mode_step" .. step, renoise.Document.ObservableNumber(1))
+      DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_follow_pattern_step" .. step, renoise.Document.ObservableNumber(1))
+      DynamicViewPrefs:add_property("dynamic_view" .. dv_id .. "_play_step" .. step, renoise.Document.ObservableNumber(1))
     end
   end
 end
@@ -110,7 +116,8 @@ function loadDynamicViewPreferences()
         "sample_record_visible_step", "disk_browser_visible_step",
         "instrument_box_visible_step", "instrument_box_slot_size_step", "pattern_matrix_visible_step",
         "pattern_advanced_edit_visible_step", "instrument_editor_detached_step",
-        "mixer_view_detached_step"
+        "mixer_view_detached_step",
+        "metronome_step", "edit_mode_step", "follow_pattern_step", "play_step"
       }
       for _, prop_suffix in ipairs(prop_names) do
         local prop_name = "dynamic_view" .. dv_id .. "_" .. prop_suffix .. step
@@ -176,6 +183,11 @@ end
 -- Function to build options for instrument box size
 local function build_instrument_box_size_options()
   return { "<Change Nothing>", "Small", "Medium", "Large" }
+end
+
+-- Function to build options for transport/edit controls
+local function build_on_off_options()
+  return { "<Change Nothing>", "On", "Off" }
 end
 
 function apply_dynamic_view_step(dv, step)
@@ -304,6 +316,42 @@ function apply_dynamic_view_step(dv, step)
           end
         end)
       end
+    },
+    { property = "metronome_step", apply = function(value)
+        if value == 2 then
+          renoise.song().transport.metronome_enabled = true  -- On
+        elseif value == 3 then
+          renoise.song().transport.metronome_enabled = false  -- Off
+        end
+      end
+    },
+    { property = "edit_mode_step", apply = function(value)
+        if value == 2 then
+          renoise.song().transport.edit_mode = true  -- On
+        elseif value == 3 then
+          renoise.song().transport.edit_mode = false  -- Off
+        end
+      end
+    },
+    { property = "follow_pattern_step", apply = function(value)
+        if value == 2 then
+          renoise.song().transport.follow_player = true  -- On
+        elseif value == 3 then
+          renoise.song().transport.follow_player = false  -- Off
+        end
+      end
+    },
+    { property = "play_step", apply = function(value)
+        if value == 2 then
+          if not renoise.song().transport.playing then
+            renoise.song().transport:start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
+          end
+        elseif value == 3 then
+          if renoise.song().transport.playing then
+            renoise.song().transport:stop()
+          end
+        end
+      end
     }
   }
 
@@ -344,7 +392,11 @@ function cycle_dynamic_view(dv)
       "pattern_matrix_visible_step",
       "pattern_advanced_edit_visible_step",
       "instrument_editor_detached_step",
-      "mixer_view_detached_step"
+      "mixer_view_detached_step",
+      "metronome_step",
+      "edit_mode_step",
+      "follow_pattern_step",
+      "play_step"
     }
     for _, ctrl in ipairs(visibility_controls) do
       local value = DynamicViewPrefs["dynamic_view" .. dv_id .. "_" .. ctrl .. step].value
@@ -444,7 +496,11 @@ local function build_dynamic_view_ui(vb, dv)
         "pattern_matrix_visible_step",
         "pattern_advanced_edit_visible_step",
         "instrument_editor_detached_step",
-        "mixer_view_detached_step"
+        "mixer_view_detached_step",
+        "metronome_step",
+        "edit_mode_step",
+        "follow_pattern_step",
+        "play_step"
       }
       for _, ctrl in ipairs(visibility_controls) do
         local value = DynamicViewPrefs["dynamic_view" .. dv_id .. "_" .. ctrl .. step].value
@@ -470,7 +526,11 @@ local function build_dynamic_view_ui(vb, dv)
       "pattern_matrix_visible_step",
       "pattern_advanced_edit_visible_step",
       "instrument_editor_detached_step",
-      "mixer_view_detached_step"
+      "mixer_view_detached_step",
+      "metronome_step",
+      "edit_mode_step",
+      "follow_pattern_step",
+      "play_step"
     }
     for step = 1, steps_per_view do
       for _, ctrl in ipairs(visibility_controls) do
@@ -501,7 +561,11 @@ local function build_dynamic_view_ui(vb, dv)
     build_property_row(vb, dv_id, "pattern_matrix_visible_step", "Pattern Matrix", build_visibility_options, update_steps_label),
     build_property_row(vb, dv_id, "pattern_advanced_edit_visible_step", "Advanced Edit", build_visibility_options, update_steps_label),
     build_property_row(vb, dv_id, "instrument_editor_detached_step", "Instrument Editor", build_detach_options, update_steps_label),
-    build_property_row(vb, dv_id, "mixer_view_detached_step", "Mixer View", build_detach_options, update_steps_label)
+    build_property_row(vb, dv_id, "mixer_view_detached_step", "Mixer View", build_detach_options, update_steps_label),
+    build_property_row(vb, dv_id, "metronome_step", "Metronome", build_on_off_options, update_steps_label),
+    build_property_row(vb, dv_id, "edit_mode_step", "Edit Mode", build_on_off_options, update_steps_label),
+    build_property_row(vb, dv_id, "follow_pattern_step", "Follow Pattern", build_on_off_options, update_steps_label),
+    build_property_row(vb, dv_id, "play_step", "Play", build_on_off_options, update_steps_label)
   }
 
   return dv_column
@@ -606,6 +670,15 @@ function save_dynamic_views_to_txt()
         end
       end
 
+      -- Map on/off control values to text
+      local function on_off_value_to_text(value)
+        if value == 1 then return "<Change Nothing>"
+        elseif value == 2 then return "On"
+        elseif value == 3 then return "Off"
+        else return "<Unknown>"
+        end
+      end
+
       local disk_browser = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_disk_browser_visible_step" .. step].value)
       local instrument_box = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_box_visible_step" .. step].value)
       local instrument_box_size = instrument_box_size_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_box_slot_size_step" .. step].value)
@@ -614,9 +687,13 @@ function save_dynamic_views_to_txt()
       local advanced_edit = visibility_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_pattern_advanced_edit_visible_step" .. step].value)
       local instrument_editor = detach_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_editor_detached_step" .. step].value)
       local mixer_view = detach_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_mixer_view_detached_step" .. step].value)
+      local metronome = on_off_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_metronome_step" .. step].value)
+      local edit_mode = on_off_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_edit_mode_step" .. step].value)
+      local follow_pattern = on_off_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_follow_pattern_step" .. step].value)
+      local play = on_off_value_to_text(DynamicViewPrefs["dynamic_view" .. dv_id .. "_play_step" .. step].value)
 
-      file:write(string.format("  Step %d - Upper: %d, Middle: %d, Lower: %d, Disk Browser: %s, Instrument Box: %s, Instrument Box Size: %s, Sample Recorder: %s, Pattern Matrix: %s, Advanced Edit: %s, Instrument Editor: %s, Mixer View: %s\n",
-        step, upper, middle, lower, disk_browser, instrument_box, instrument_box_size, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view))
+      file:write(string.format("  Step %d - Upper: %d, Middle: %d, Lower: %d, Disk Browser: %s, Instrument Box: %s, Instrument Box Size: %s, Sample Recorder: %s, Pattern Matrix: %s, Advanced Edit: %s, Instrument Editor: %s, Mixer View: %s, Metronome: %s, Edit Mode: %s, Follow Pattern: %s, Play: %s\n",
+        step, upper, middle, lower, disk_browser, instrument_box, instrument_box_size, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view, metronome, edit_mode, follow_pattern, play))
     end
   end
 
@@ -643,10 +720,18 @@ function load_dynamic_views_from_txt()
     else
       if dv then
         local dv_id = string.format("%02d", dv)
-        local step, upper, middle, lower, disk_browser, instrument_box, instrument_box_size, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view = string.match(
+        -- Try to match the new format with all properties first
+        local step, upper, middle, lower, disk_browser, instrument_box, instrument_box_size, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view, metronome, edit_mode, follow_pattern, play = string.match(
           line,
-          "Step (%d+) %- Upper: (%d+), Middle: (%d+), Lower: (%d+), Disk Browser: (%b<>), Instrument Box: (%b<>), Instrument Box Size: (%b<>), Sample Recorder: (%b<>), Pattern Matrix: (%b<>), Advanced Edit: (%b<>), Instrument Editor: (%b<>), Mixer View: (%b<>)"
+          "Step (%d+) %- Upper: (%d+), Middle: (%d+), Lower: (%d+), Disk Browser: ([^,]+), Instrument Box: ([^,]+), Instrument Box Size: ([^,]+), Sample Recorder: ([^,]+), Pattern Matrix: ([^,]+), Advanced Edit: ([^,]+), Instrument Editor: ([^,]+), Mixer View: ([^,]+), Metronome: ([^,]+), Edit Mode: ([^,]+), Follow Pattern: ([^,]+), Play: ([^\n]+)"
         )
+        -- If that fails, try the old format for backward compatibility
+        if not step then
+          step, upper, middle, lower, disk_browser, instrument_box, instrument_box_size, sample_recorder, pattern_matrix, advanced_edit, instrument_editor, mixer_view = string.match(
+            line,
+            "Step (%d+) %- Upper: (%d+), Middle: (%d+), Lower: (%d+), Disk Browser: ([^,]+), Instrument Box: ([^,]+), Instrument Box Size: ([^,]+), Sample Recorder: ([^,]+), Pattern Matrix: ([^,]+), Advanced Edit: ([^,]+), Instrument Editor: ([^,]+), Mixer View: ([^\n]+)"
+          )
+        end
         if step then
           step = tonumber(step)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_upper_step" .. step].value = tonumber(upper)
@@ -681,6 +766,15 @@ function load_dynamic_views_from_txt()
             end
           end
 
+          -- Map text to on/off control values
+          local function text_to_on_off_value(text)
+            if text == "<Change Nothing>" then return 1
+            elseif text == "On" then return 2
+            elseif text == "Off" then return 3
+            else return 1  -- Default to "<Change Nothing>" if unknown
+            end
+          end
+
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_disk_browser_visible_step" .. step].value = text_to_visibility_value(disk_browser)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_box_visible_step" .. step].value = text_to_visibility_value(instrument_box)
           DynamicViewPrefs["dynamic_view" .. dv_id .. "_instrument_box_slot_size_step" .. step].value = text_to_instrument_box_size_value(instrument_box_size)
@@ -694,6 +788,19 @@ function load_dynamic_views_from_txt()
           end
           if mixer_view then
             DynamicViewPrefs["dynamic_view" .. dv_id .. "_mixer_view_detached_step" .. step].value = text_to_detach_value(mixer_view)
+          end
+          -- Handle new on/off properties if they exist in the loaded data
+          if metronome then
+            DynamicViewPrefs["dynamic_view" .. dv_id .. "_metronome_step" .. step].value = text_to_on_off_value(metronome)
+          end
+          if edit_mode then
+            DynamicViewPrefs["dynamic_view" .. dv_id .. "_edit_mode_step" .. step].value = text_to_on_off_value(edit_mode)
+          end
+          if follow_pattern then
+            DynamicViewPrefs["dynamic_view" .. dv_id .. "_follow_pattern_step" .. step].value = text_to_on_off_value(follow_pattern)
+          end
+          if play then
+            DynamicViewPrefs["dynamic_view" .. dv_id .. "_play_step" .. step].value = text_to_on_off_value(play)
           end
         end
       end
@@ -728,7 +835,11 @@ function set_dynamic_view_step_from_knob(dv, knob_value)
       "pattern_matrix_visible_step",
       "pattern_advanced_edit_visible_step",
       "instrument_editor_detached_step",
-      "mixer_view_detached_step"
+      "mixer_view_detached_step",
+      "metronome_step",
+      "edit_mode_step",
+      "follow_pattern_step",
+      "play_step"
     }
     for _, ctrl in ipairs(visibility_controls) do
       local value = DynamicViewPrefs["dynamic_view" .. dv_id .. "_" .. ctrl .. step].value
@@ -785,7 +896,9 @@ for dv = 1, dynamic_views_count do
   
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Dynamic View Preferences Dialog 1-4...", invoke=function() pakettiDynamicViewDialog(1, 4) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Dynamic View Preferences Dialog 5-8...", invoke=function() pakettiDynamicViewDialog(5, 8) end}
-renoise.tool():add_midi_mapping{name="Paketti:Paketti Dynamic View Preferences Dialog 1-4...", invoke=function() pakettiDynamicViewDialog(1, 4) end}
-renoise.tool():add_midi_mapping{name="Paketti:Paketti Dynamic View Preferences Dialog 5-8...", invoke=function() pakettiDynamicViewDialog(5, 8) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Dynamic View Preferences Dialog 1-3...", invoke=function() pakettiDynamicViewDialog(1, 3) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Dynamic View Preferences Dialog 4-6...", invoke=function() pakettiDynamicViewDialog(4, 6) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Dynamic View Preferences Dialog 7-9...", invoke=function() pakettiDynamicViewDialog(7, 9) end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Dynamic View Preferences Dialog 1-3...", invoke=function() pakettiDynamicViewDialog(1, 3) end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Dynamic View Preferences Dialog 4-6...", invoke=function() pakettiDynamicViewDialog(4, 6) end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Dynamic View Preferences Dialog 7-9...", invoke=function() pakettiDynamicViewDialog(7, 9) end}

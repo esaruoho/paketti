@@ -3420,9 +3420,9 @@ function PakettiImpulseTrackerPatternToSample()
   
   -- Setup render options for current pattern
   local render_options = {
-    sample_rate = 44100,
-    bit_depth = 16,
-    interpolation = "precise",
+    sample_rate = preferences.renderSampleRate.value,
+    bit_depth = preferences.renderBitDepth.value,
+    interpolation = preferences.renderInterpolation.value,
     priority = "high",
     start_pos = renoise.SongPos(song.selected_sequence_index, 1),
     end_pos = renoise.SongPos(song.selected_sequence_index, pattern.number_of_lines)

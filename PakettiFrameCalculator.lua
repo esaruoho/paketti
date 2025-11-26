@@ -839,6 +839,9 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Show Song to Line Frame Inf
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Song Length", invoke = PakettiFrameCalculatorShowSongLength}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Song Length Dialog", invoke = PakettiFrameCalculatorShowSongLengthDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Frame Calculator Dialog", invoke = PakettiFrameCalculatorDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Frame Calculator Live Update (Song to Line)", invoke = PakettiFrameCalculatorToggleSongToLine}
+renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Frame Calculator Live Update (Pattern to Line)", invoke = PakettiFrameCalculatorTogglePatternToLine}
+renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Frame Calculator Live Update (Both)", invoke = PakettiFrameCalculatorToggleBoth}
 
 renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Show Sequence Frame Info", invoke = PakettiFrameCalculatorShowSequenceInfo}
@@ -981,4 +984,64 @@ function pakettiFrameCalculatorInitializeLiveUpdate()
   if preferences.pakettiFrameCalculatorLiveUpdate.value > 1 then
     pakettiFrameCalculatorStartLiveUpdate()
   end
+end
+
+-- Toggle functions for menu entries and keybindings
+function PakettiFrameCalculatorToggleSongToLine()
+  if preferences.pakettiFrameCalculatorLiveUpdate.value == 2 then
+    preferences.pakettiFrameCalculatorLiveUpdate.value = 1
+    pakettiFrameCalculatorStopLiveUpdate()
+    renoise.app():show_status("Frame Calculator Live Update: Off")
+  else
+    preferences.pakettiFrameCalculatorLiveUpdate.value = 2
+    pakettiFrameCalculatorStartLiveUpdate()
+    renoise.app():show_status("Frame Calculator Live Update: Song to Line")
+  end
+end
+
+function PakettiFrameCalculatorTogglePatternToLine()
+  if preferences.pakettiFrameCalculatorLiveUpdate.value == 3 then
+    preferences.pakettiFrameCalculatorLiveUpdate.value = 1
+    pakettiFrameCalculatorStopLiveUpdate()
+    renoise.app():show_status("Frame Calculator Live Update: Off")
+  else
+    preferences.pakettiFrameCalculatorLiveUpdate.value = 3
+    pakettiFrameCalculatorStartLiveUpdate()
+    renoise.app():show_status("Frame Calculator Live Update: Pattern to Line")
+  end
+end
+
+function PakettiFrameCalculatorToggleBoth()
+  if preferences.pakettiFrameCalculatorLiveUpdate.value == 4 then
+    preferences.pakettiFrameCalculatorLiveUpdate.value = 1
+    pakettiFrameCalculatorStopLiveUpdate()
+    renoise.app():show_status("Frame Calculator Live Update: Off")
+  else
+    preferences.pakettiFrameCalculatorLiveUpdate.value = 4
+    pakettiFrameCalculatorStartLiveUpdate()
+    renoise.app():show_status("Frame Calculator Live Update: Both")
+  end
+end
+
+-- Alias for menu compatibility
+function PakettiFrameCalculatorToggle()
+  PakettiFrameCalculatorToggleBoth()
+end
+
+-- Selected functions for checkboxes
+function PakettiFrameCalculatorIsSongToLine()
+  return preferences.pakettiFrameCalculatorLiveUpdate.value == 2
+end
+
+function PakettiFrameCalculatorIsPatternToLine()
+  return preferences.pakettiFrameCalculatorLiveUpdate.value == 3
+end
+
+function PakettiFrameCalculatorIsBoth()
+  return preferences.pakettiFrameCalculatorLiveUpdate.value == 4
+end
+
+-- Alias for menu compatibility
+function PakettiFrameCalculatorIsEnabled()
+  return PakettiFrameCalculatorIsBoth()
 end

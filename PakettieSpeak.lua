@@ -52,6 +52,8 @@ function PakettieSpeakRevertPath(path)
 end
 
 local selected_textfile = ""
+local original_text = ""
+local is_temp_text = false
 
 function PakettieSpeakLoadTextfile(refresh)
   if not refresh then
@@ -783,6 +785,12 @@ end
 local closer = preferences.pakettiDialogClose.value
 print (closer)
   if key.modifiers == "" and key.name == closer then
+    -- Restore original text if we loaded a temporary text file
+    if is_temp_text then
+      eSpeak.text.value = original_text
+      is_temp_text = false
+      print("Restored original text")
+    end
     dialog:close()
     dialog = nil
     --vb = nil
@@ -1124,6 +1132,12 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Refresh",invok
     else PakettieSpeakPrepare() end end}
 
 local function txt_loadfile(filename)
+  -- Store the original text before loading the file
+  if not is_temp_text then
+    original_text = eSpeak.text.value
+  end
+  is_temp_text = true
+  
   if dialog and dialog.visible then
     dialog:close()
   end
@@ -1135,6 +1149,11 @@ local function txt_loadfile(filename)
       file:close()
       eSpeak.text.value = content
       PakettieSpeakPrepare()
+      -- Update the text field with the loaded content
+      if vb.views.PakettieSpeak_text_field then
+        vb.views.PakettieSpeak_text_field.text = content
+        PakettieSpeakUpdateLineCount()
+      end
       PakettieSpeakCreateSample()
       return true
     else

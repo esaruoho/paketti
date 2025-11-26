@@ -37,12 +37,8 @@ function JalexAdd(number)
     end
     
     for i=1,12 do
-      renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:Chordsplus (Add %02d)", i),
-        invoke=function() JalexAdd(i) end
-      }
-      renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:ChordsPlus (Sub %02d)", i),
-        invoke=function() JalexAdd(-i) end
-      }
+      renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:Chordsplus (Add %02d)", i),invoke=function() JalexAdd(i) end}
+      renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:ChordsPlus (Sub %02d)", i),invoke=function() JalexAdd(-i) end}
     end
     
 
@@ -230,9 +226,7 @@ function JalexAdd(number)
     
   
     for i, chord in ipairs(chord_list) do
-        renoise.tool():add_keybinding{name="Pattern Editor:Paketti:" .. chord.name,
-            invoke=chord.fn
-        }
+        renoise.tool():add_keybinding{name="Pattern Editor:Paketti:" .. chord.name,invoke=chord.fn}
     end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Next Chord in List",invoke=next_chord}
@@ -705,10 +699,8 @@ function process_row_inversion(pattern, track_index, line_index, start_col, end_
   end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Cycle Chord Inversion Up",invoke=function() cycle_inversion("up")
-NoteSorterAscending() end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Cycle Chord Inversion Down",invoke=function() cycle_inversion("down")
-NoteSorterAscending() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Cycle Chord Inversion Up",invoke=function() cycle_inversion("up") NoteSorterAscending() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Cycle Chord Inversion Down",invoke=function() cycle_inversion("down") NoteSorterAscending() end}
   -- Function to apply a random chord from the chord_list
 function RandomChord()
   local song=renoise.song()
@@ -877,10 +869,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Extract Ba
     renoise.song().selected_track_index = dest_track_index
   end
   
-  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Extract Highest Note to New Track",
-    invoke=function() ExtractHighestNote() end}
-
-    
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Extract Highest Note to New Track",invoke=function() ExtractHighestNote() end}
 --------------------------------------------------------------------------------
 -- DuplicateSpecificNotesToNewTrack(note_type, instrument_mode)
 --
@@ -2143,3 +2132,213 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio D
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Up-Down (All Chords)",invoke=function() CreateArpeggioAllChords("updown") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Down-Up (All Chords)",invoke=function() CreateArpeggioAllChords("downup") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Arpeggio Random (All Chords)",invoke=function() CreateArpeggioAllChords("random") end}
+
+--------------------------------------------------------------------------------
+-- Order Notes - Voice Separation and Polyphonic Organization
+--------------------------------------------------------------------------------
+
+-- Helper function to copy note data
+function PakettiCopyNoteData(note_column)
+  return {
+    note_value = note_column.note_value,
+    instrument_value = note_column.instrument_value,
+    volume_value = note_column.volume_value,
+    panning_value = note_column.panning_value,
+    delay_value = note_column.delay_value
+  }
+end
+
+-- Helper function to write note data
+function PakettiWriteNoteData(note_column, note_data)
+  note_column.note_value = note_data.note_value
+  note_column.instrument_value = note_data.instrument_value
+  note_column.volume_value = note_data.volume_value
+  note_column.panning_value = note_data.panning_value
+  note_column.delay_value = note_data.delay_value
+end
+
+-- Helper function to compare note blocks for sorting
+function PakettiCompareNoteBlocks(a, b)
+  -- First compare by line number
+  if a[1][1] ~= b[1][1] then
+    return a[1][1] < b[1][1]
+  end
+  -- Then by pitch (note value)
+  return a[1][2][1] < b[1][2][1]
+end
+
+-- Main function to order notes across a track in patterns
+function PakettiOrderNotesInTrack(track_index, pattern_indices)
+  local song = renoise.song()
+  local start_time = os.clock()
+  
+  -- Track note blocks across all columns
+  local columns = {}
+  local blocks = {}
+  local max_columns = 1
+  
+  -- Process each pattern
+  for _, pattern_index in ipairs(pattern_indices) do
+    local pattern = song.patterns[pattern_index]
+    local pattern_track = pattern.tracks[track_index]
+    local lines = pattern_track.lines
+    local num_lines = #lines
+    
+    -- Process each line in the pattern
+    for line_index = 1, num_lines do
+      local line = lines[line_index]
+      
+      if not line.is_empty then
+        local note_columns = line.note_columns
+        
+        -- Process each note column
+        for col, note_column in ipairs(note_columns) do
+          if not note_column.is_empty then
+            -- Initialize column array if needed
+            if not columns[col] then
+              columns[col] = {}
+            end
+            
+            local note_value = note_column.note_value
+            local column_notes = columns[col]
+            local num_notes = #column_notes
+            
+            -- Process notes and note-offs (value < 121)
+            if note_value < 121 then
+              -- Start a new note block
+              if num_notes == 0 and note_value < 120 then
+                table.insert(column_notes, {line_index, PakettiCopyNoteData(note_column)})
+              
+              -- Handle existing note blocks
+              elseif num_notes > 0 then
+                -- End current block with note-off
+                if note_value == 120 then
+                  table.insert(column_notes, {line_index, PakettiCopyNoteData(note_column)})
+                  table.insert(blocks, column_notes)
+                  columns[col] = {}
+                
+                -- End current block and start new one
+                else
+                  table.insert(column_notes, {line_index - 1})
+                  table.insert(blocks, column_notes)
+                  columns[col] = {{line_index, PakettiCopyNoteData(note_column)}}
+                end
+              end
+            
+            -- Collect note data for ongoing blocks
+            elseif num_notes > 0 then
+              table.insert(column_notes, {line_index, PakettiCopyNoteData(note_column)})
+            end
+            
+            -- Clear the note (we'll rewrite it later)
+            note_column:clear()
+          end
+        end
+      end
+    end
+    
+    -- Finalize any open blocks at end of pattern
+    for col, block in pairs(columns) do
+      if block[1] then
+        table.insert(block, {num_lines})
+        table.insert(blocks, block)
+      end
+    end
+    columns = {}
+    
+    -- Sort all blocks by starting line and pitch
+    table.sort(blocks, PakettiCompareNoteBlocks)
+    
+    -- Write sorted blocks back to pattern
+    local last_line = -1
+    local column_index = 1
+    
+    for _, block in ipairs(blocks) do
+      -- Check if we're on the same line as previous block
+      if last_line == block[1][1] then
+        column_index = column_index + 1
+        if column_index > max_columns then
+          max_columns = column_index
+        end
+      else
+        column_index = 1
+        last_line = block[1][1]
+      end
+      
+      -- Clear the column range for this block
+      local block_start = block[1][1]
+      local block_end = block[#block][1]
+      for line_index = block_start, block_end do
+        lines[line_index].note_columns[column_index]:clear()
+      end
+      
+      -- Write all notes in the block
+      for i, note_entry in ipairs(block) do
+        if note_entry[2] then
+          local line_index = note_entry[1]
+          local note_data = note_entry[2]
+          local note_column = lines[line_index].note_columns[column_index]
+          PakettiWriteNoteData(note_column, note_data)
+        end
+      end
+    end
+    
+    blocks = {}
+  end
+  
+  -- Set visible columns to accommodate all voices
+  song.tracks[track_index].visible_note_columns = max_columns
+  
+  local elapsed = os.clock() - start_time
+  return max_columns, elapsed
+end
+
+-- Order notes in current pattern only
+function PakettiOrderNotesAcrossTrack()
+  local song = renoise.song()
+  local track_index = song.selected_track_index
+  local pattern_index = song.selected_pattern_index
+  
+  local max_columns, elapsed = PakettiOrderNotesInTrack(track_index, {pattern_index})
+  
+  renoise.app():show_status(string.format(
+    "Ordered notes in pattern %d (track %d) → %d voice%s (%.2fs)",
+    pattern_index,
+    track_index,
+    max_columns,
+    max_columns == 1 and "" or "s",
+    elapsed
+  ))
+end
+
+-- Order notes across all patterns in track
+function PakettiOrderNotesCurrentTrackAllPatterns()
+  local song = renoise.song()
+  local track_index = song.selected_track_index
+  
+  -- Build list of all pattern indices
+  local pattern_indices = {}
+  for i = 1, #song.patterns do
+    table.insert(pattern_indices, i)
+  end
+  
+  local max_columns, elapsed = PakettiOrderNotesInTrack(track_index, pattern_indices)
+  
+  renoise.app():show_status(string.format(
+    "Ordered notes across %d patterns (track %d) → %d voice%s (%.2fs)",
+    #pattern_indices,
+    track_index,
+    max_columns,
+    max_columns == 1 and "" or "s",
+    elapsed
+  ))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Order Notes Across Track",invoke=function() PakettiOrderNotesAcrossTrack() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Order Notes Current Track All Patterns",invoke=function() PakettiOrderNotesCurrentTrackAllPatterns() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Order Notes Across Track",invoke=function() PakettiOrderNotesAcrossTrack() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Order Notes Current Track All Patterns",invoke=function() PakettiOrderNotesCurrentTrackAllPatterns() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Order Notes:Order Notes Across Track",invoke=function() PakettiOrderNotesAcrossTrack() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Order Notes:Order Notes Current Track All Patterns",invoke=function() PakettiOrderNotesCurrentTrackAllPatterns() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Order Notes:Order Notes Across Track",invoke=function() PakettiOrderNotesAcrossTrack() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Order Notes:Order Notes Current Track All Patterns",invoke=function() PakettiOrderNotesCurrentTrackAllPatterns() end}

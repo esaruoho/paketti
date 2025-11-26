@@ -2660,3 +2660,234 @@ if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_midi_mapping{name="Paketti:Phrase Editor Nudge and Move Selection Up", invoke=function(message) if message:is_trigger() then PakettiPhraseEditorNudgeAndMoveSelectionUp() end end}
   renoise.tool():add_midi_mapping{name="Paketti:Phrase Editor Nudge and Move Selection Down", invoke=function(message) if message:is_trigger() then PakettiPhraseEditorNudgeAndMoveSelectionDown() end end}
 end
+
+--------------------------------------------------------------------------------
+-- Order Notes - Voice Separation and Polyphonic Organization for Phrase Editor
+--------------------------------------------------------------------------------
+
+-- Helper function to copy note data from phrase line note column
+function PakettiPhraseEditorCopyNoteData(note_column)
+  return {
+    note_value = note_column.note_value,
+    instrument_value = note_column.instrument_value,
+    volume_value = note_column.volume_value,
+    panning_value = note_column.panning_value,
+    delay_value = note_column.delay_value,
+    effect_number_value = note_column.effect_number_value,
+    effect_amount_value = note_column.effect_amount_value
+  }
+end
+
+-- Helper function to write note data to phrase line note column
+function PakettiPhraseEditorWriteNoteData(note_column, note_data)
+  note_column.note_value = note_data.note_value
+  note_column.instrument_value = note_data.instrument_value
+  note_column.volume_value = note_data.volume_value
+  note_column.panning_value = note_data.panning_value
+  note_column.delay_value = note_data.delay_value
+  note_column.effect_number_value = note_data.effect_number_value
+  note_column.effect_amount_value = note_data.effect_amount_value
+end
+
+-- Helper function to compare note blocks for sorting
+function PakettiPhraseEditorCompareNoteBlocks(a, b)
+  -- First compare by line number
+  if a[1][1] ~= b[1][1] then
+    return a[1][1] < b[1][1]
+  end
+  -- Then by pitch (note value)
+  return a[1][2][1] < b[1][2][1]
+end
+
+-- Main function to order notes in a phrase
+function PakettiPhraseEditorOrderNotesInPhrase(phrase_index)
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local start_time = os.clock()
+  
+  if not instrument or not instrument.phrases[phrase_index] then
+    return 0, 0
+  end
+  
+  local phrase = instrument.phrases[phrase_index]
+  
+  -- Track note blocks across all columns
+  local columns = {}
+  local blocks = {}
+  local max_columns = 1
+  
+  local lines = phrase.lines
+  local num_lines = phrase.number_of_lines
+  
+  -- Process each line in the phrase
+  for line_index = 1, num_lines do
+    local line = lines[line_index]
+    
+    if not line.is_empty then
+      local note_columns = line.note_columns
+      
+      -- Process each note column
+      for col = 1, phrase.visible_note_columns do
+        local note_column = note_columns[col]
+        if not note_column.is_empty then
+          -- Initialize column array if needed
+          if not columns[col] then
+            columns[col] = {}
+          end
+          
+          local note_value = note_column.note_value
+          local column_notes = columns[col]
+          local num_notes = #column_notes
+          
+          -- Process notes and note-offs (value < 121)
+          if note_value < 121 then
+            -- Start a new note block
+            if num_notes == 0 and note_value < 120 then
+              table.insert(column_notes, {line_index, PakettiPhraseEditorCopyNoteData(note_column)})
+            
+            -- Handle existing note blocks
+            elseif num_notes > 0 then
+              -- End current block with note-off
+              if note_value == 120 then
+                table.insert(column_notes, {line_index, PakettiPhraseEditorCopyNoteData(note_column)})
+                table.insert(blocks, column_notes)
+                columns[col] = {}
+              
+              -- End current block and start new one
+              else
+                table.insert(column_notes, {line_index - 1})
+                table.insert(blocks, column_notes)
+                columns[col] = {{line_index, PakettiPhraseEditorCopyNoteData(note_column)}}
+              end
+            end
+          
+          -- Collect note data for ongoing blocks
+          elseif num_notes > 0 then
+            table.insert(column_notes, {line_index, PakettiPhraseEditorCopyNoteData(note_column)})
+          end
+          
+          -- Clear the note (we'll rewrite it later)
+          note_column:clear()
+        end
+      end
+    end
+  end
+  
+  -- Finalize any open blocks at end of phrase
+  for col, block in pairs(columns) do
+    if block[1] then
+      table.insert(block, {num_lines})
+      table.insert(blocks, block)
+    end
+  end
+  columns = {}
+  
+  -- Sort all blocks by starting line and pitch
+  table.sort(blocks, PakettiPhraseEditorCompareNoteBlocks)
+  
+  -- Write sorted blocks back to phrase
+  local last_line = -1
+  local column_index = 1
+  
+  for _, block in ipairs(blocks) do
+    -- Check if we're on the same line as previous block
+    if last_line == block[1][1] then
+      column_index = column_index + 1
+      if column_index > max_columns then
+        max_columns = column_index
+      end
+    else
+      column_index = 1
+      last_line = block[1][1]
+    end
+    
+    -- Clear the column range for this block
+    local block_start = block[1][1]
+    local block_end = block[#block][1]
+    for line_index = block_start, block_end do
+      lines[line_index].note_columns[column_index]:clear()
+    end
+    
+    -- Write all notes in the block
+    for i, note_entry in ipairs(block) do
+      if note_entry[2] then
+        local line_index = note_entry[1]
+        local note_data = note_entry[2]
+        local note_column = lines[line_index].note_columns[column_index]
+        PakettiPhraseEditorWriteNoteData(note_column, note_data)
+      end
+    end
+  end
+  
+  -- Set visible columns to accommodate all voices
+  phrase.visible_note_columns = max_columns
+  
+  local elapsed = os.clock() - start_time
+  return max_columns, elapsed
+end
+
+-- Order notes in current phrase only
+function PakettiPhraseEditorOrderNotesCurrentPhrase()
+  local song = renoise.song()
+  local phrase_index = song.selected_phrase_index
+  
+  if phrase_index == 0 then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  
+  local max_columns, elapsed = PakettiPhraseEditorOrderNotesInPhrase(phrase_index)
+  
+  renoise.app():show_status(string.format(
+    "Ordered notes in phrase %02d → %d voice%s (%.2fs)",
+    phrase_index,
+    max_columns,
+    max_columns == 1 and "" or "s",
+    elapsed
+  ))
+end
+
+-- Order notes across all phrases in current instrument
+function PakettiPhraseEditorOrderNotesAllPhrases()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local num_phrases = #instrument.phrases
+  
+  if num_phrases == 0 then
+    renoise.app():show_status("No phrases in selected instrument")
+    return
+  end
+  
+  local start_time = os.clock()
+  local total_voices = 0
+  
+  for phrase_index = 1, num_phrases do
+    local max_columns, _ = PakettiPhraseEditorOrderNotesInPhrase(phrase_index)
+    total_voices = math.max(total_voices, max_columns)
+  end
+  
+  local elapsed = os.clock() - start_time
+  
+  renoise.app():show_status(string.format(
+    "Ordered notes across %d phrase%s → max %d voice%s (%.2fs)",
+    num_phrases,
+    num_phrases == 1 and "" or "s",
+    total_voices,
+    total_voices == 1 and "" or "s",
+    elapsed
+  ))
+end
+
+-- Add keybindings and menu entries
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Order Notes Current Phrase",invoke=function() PakettiPhraseEditorOrderNotesCurrentPhrase() end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Order Notes All Phrases",invoke=function() PakettiPhraseEditorOrderNotesAllPhrases() end}
+  renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Order Notes:Order Notes Current Phrase",invoke=function() PakettiPhraseEditorOrderNotesCurrentPhrase() end}
+  renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Order Notes:Order Notes All Phrases",invoke=function() PakettiPhraseEditorOrderNotesAllPhrases() end}
+end

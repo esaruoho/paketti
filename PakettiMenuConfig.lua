@@ -2668,18 +2668,21 @@ renoise.tool():add_menu_entry{name="Main Menu:Options:Sononym Auto-Transfer Togg
 renoise.tool():add_menu_entry{name="Main Menu:Options:SBx Pattern Loop Follow Toggle",invoke=function() PakettiToggleSBxFollow() end,selected=function() return preferences.PakettiSBxFollowEnabled.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Phrase Follow Pattern Playback Hack Toggle",invoke=function() PakettiTogglePhraseFollowPatternPlayback() end,selected=function() return preferences.PakettiPhraseFollowPatternPlayback.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Automatic Rename Track Toggle",invoke=function() pakettiToggleAutomaticRenameTrack() end,selected=function() return preferences.pakettiAutomaticRenameTrack.value end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Select Track Selects Instrument Toggle",invoke=function() pakettiToggleSelectTrackSelectInstrument() end,selected=function() return preferences.PakettiSelectTrackSelectInstrument.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-Zero-Crossing Selection Range in Sample Editor",invoke=function() preferences.ZeroCrossings.AutoSnapSelection.value = not preferences.ZeroCrossings.AutoSnapSelection.value renoise.app():show_status("Auto-Zero-Crossing Selection Range: " .. (preferences.ZeroCrossings.AutoSnapSelection.value and "ON" or "OFF")) end,selected=function() return preferences.ZeroCrossings.AutoSnapSelection.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-samplify Enable Monitoring Toggle",invoke=function() PakettiToggleNewSampleMonitoring() end,selected=function() return preferences.pakettiAutoSamplifyMonitoring.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-samplify Pakettify Toggle",invoke=function() PakettiToggleAutoSamplifyPakettify() end,selected=function() return preferences.pakettiAutoSamplifyPakettify.value end}
 renoise.tool():add_menu_entry{name="--Main Menu:Options:0G01 Loader Toggle",invoke=function() Paketti0G01LoaderToggle() end,selected=function() return preferences._0G01_Loader.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:OctaMED Hold-to-Fill Mode Toggle",invoke=function() PakettiHoldToFillShowDialog() end,selected=PakettiHoldToFillIsEnabled}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Song Frame Calculator Toggle",invoke=PakettiFrameCalculatorToggle,selected=PakettiFrameCalculatorIsEnabled}
 renoise.tool():add_menu_entry{name="--Main Menu:Options:Paketti Preferences...",invoke=pakettiPreferences}
 
 -- Tools Preferences
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Preferences...",invoke=pakettiPreferences}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Menu Configuration...",invoke=pakettiMenuConfigDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Paketti Dynamic View Preferences Dialog 1-4...", invoke=function() pakettiDynamicViewDialog(1, 4) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Dynamic View Preferences Dialog 5-8...", invoke=function() pakettiDynamicViewDialog(5, 8) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Paketti Dynamic View Preferences Dialog 1-3...", invoke=function() pakettiDynamicViewDialog(1, 3) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Dynamic View Preferences Dialog 4-6...", invoke=function() pakettiDynamicViewDialog(4, 6) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Dynamic View Preferences Dialog 7-9...", invoke=function() pakettiDynamicViewDialog(7, 9) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Save Dynamic Views as a Textfile", invoke=function() save_dynamic_views_to_txt() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Load Dynamic Views from a Textfile", invoke=function() load_dynamic_views_from_txt() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Paketti MIDI Mappings...",invoke=function() pakettiMIDIMappingsDialog() end}
@@ -2917,7 +2920,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Patte
 
 
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Paketti Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Switch Plugin AutoSuspend Off",invoke=function() autosuspendOFF() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Debug:Show Plugin Details Dialog...",invoke=function() pakettiDebugPluginInfoDialog() end}

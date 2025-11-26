@@ -151,6 +151,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiSwitcharooAutoGrab=true,
   PakettiImpulseTrackerF8=1,
   PakettiCaptureTrackFromInstrumentMode=0, -- 0=Disabled, 1=Pattern Editor, 2=Not Pattern Editor, 3=All Frames
+  PakettiSelectTrackSelectInstrument=false,  -- When switching tracks, automatically select the instrument used in that track
   PakettiDeviceChainPath = "." .. separator .. "DeviceChains" .. separator,
   PakettiIRPath = "." .. separator .. "IR" .. separator,
   PakettiLFOWriteDelete=true,
@@ -173,6 +174,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   renderBitDepth=32,
   renderBypass=false,
   RenderDCOffset=false,
+  renderInterpolation="precise",  -- "default" or "precise"
   experimentalRenderPriority="high",  -- "high" or "realtime"
   experimentalRenderSilenceMultiplier=1,  -- 0, 1, 3, or 7 silences
   experimentalRenderRemoveSilence=false,  -- Remove silence from end after rendering
@@ -1138,6 +1140,9 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
               vb:row{vb:text{text="Bit Depth",width=150},vb:popup{items={"16","24","32"},value=preferences.renderBitDepth.value==16 and 1 or preferences.renderBitDepth.value==24 and 2 or 3,width=100,
                 notifier=function(value) preferences.renderBitDepth.value=(value==1 and 16 or value==2 and 24 or 32) end}},
             
+              vb:row{vb:text{text="Interpolation",width=150},vb:popup{items={"Default","Precise"},value=preferences.renderInterpolation.value=="default" and 1 or 2,width=100,
+                notifier=function(value) preferences.renderInterpolation.value=(value==1 and "default" or "precise") end}},
+            
               vb:row{
                 vb:text{text="Bypass Devices",width=150},
                 vb:checkbox{
@@ -1270,6 +1275,15 @@ vb:row{
                   else
                     pakettiStopAutomaticRenameTrack()
                   end
+                end
+              },
+              vb:space{width=checkbox_spacing},
+              vb:text{text="Select Used Instrument",width=150,tooltip="When switching tracks, automatically select the instrument used in that track (like 'Capture Nearest Instrument')"},
+              vb:checkbox{
+                value=preferences.PakettiSelectTrackSelectInstrument.value,
+                tooltip="When switching tracks, automatically select the instrument used in that track (like 'Capture Nearest Instrument')",
+                notifier=function(value) 
+                  preferences.PakettiSelectTrackSelectInstrument.value=value
                 end
               }
             },

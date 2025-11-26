@@ -1493,14 +1493,27 @@ function select_specific_track(number)
      renoise.song().selected_track_index=number
   else renoise.song().selected_track_index=number  end
 
---  if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
---    capture_ins_oct("no")
---  end
+  --if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+    --    capture_ins_oct("no")
+    --  end
+
+  -- Auto-select instrument used in the track if preference is enabled
+  if preferences.PakettiSelectTrackSelectInstrument.value then
+    if type(capture_ins_oct) == "function" then
+      capture_ins_oct("no")
+    end
+  end
 end
 
 for st=1,32 do
   renoise.tool():add_keybinding{name="Global:Paketti:Select Specific Track " .. formatDigits(2,st), 
     invoke=function() select_specific_track(st) end}
+end
+
+-- Add MIDI mappings for selecting specific tracks
+for st=1,16 do
+  renoise.tool():add_midi_mapping{name="Paketti:Select Specific Track " .. formatDigits(2,st),
+    invoke=function(message) if message:is_trigger() then select_specific_track(st) end end}
 end
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------
