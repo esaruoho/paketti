@@ -4072,17 +4072,26 @@ function PakettiRandomSliceDistribution()
     return
   end
   
-  -- Get number of slices
-  local slice_count = #first_sample.slice_markers + 1
-  
-  -- Get the slice start note from sample mappings
+  -- Get the slice start note and count from sample mappings
   local slice_start_note = nil
+  local slice_end_note = nil
+  local slice_count = 0
+  
   if instrument.sample_mappings[1] then
     local sample_mappings = instrument.sample_mappings[1]
     if #sample_mappings >= 2 then
+      -- First slice mapping (index 2, since index 1 is the original sample)
       local first_slice_mapping = sample_mappings[2]
       if first_slice_mapping and first_slice_mapping.base_note then
         slice_start_note = first_slice_mapping.base_note
+      end
+      
+      -- Count actual slice mappings (skip the first mapping which is the original sample)
+      for i = 2, #sample_mappings do
+        slice_count = slice_count + 1
+        if sample_mappings[i] and sample_mappings[i].base_note then
+          slice_end_note = sample_mappings[i].base_note
+        end
       end
     end
   end
@@ -4090,9 +4099,10 @@ function PakettiRandomSliceDistribution()
   -- Fallback: slices typically start one note above the original sample's base note
   if not slice_start_note and first_sample.sample_mapping and first_sample.sample_mapping.base_note then
     slice_start_note = first_sample.sample_mapping.base_note + 1
+    slice_count = #first_sample.slice_markers + 1
   end
   
-  if not slice_start_note then
+  if not slice_start_note or slice_count == 0 then
     renoise.app():show_status("Could not determine slice note mappings")
     return
   end
@@ -4102,39 +4112,30 @@ function PakettiRandomSliceDistribution()
   print("Selected track: " .. track_index)
   print("Slice start note: " .. slice_start_note)
   
-  -- Create a list of slice note values
+  -- Create a list of ALL slice note values (but only valid ones 0-119)
   local slice_notes = {}
   for i = 0, slice_count - 1 do
     local slice_note = slice_start_note + i
-    if slice_note <= 119 then
+    if slice_note >= 0 and slice_note <= 119 then
       table.insert(slice_notes, slice_note)
-    else
-      break
     end
   end
   
-  local num_slices = #slice_notes
+  local valid_slice_count = #slice_notes
+  
+  if valid_slice_count == 0 then
+    renoise.app():show_status("No valid slices within note range (0-119)")
+    return
+  end
+  
+  if valid_slice_count < slice_count then
+    print(string.format("Warning: Only %d of %d slices fit in valid note range (0-119)", valid_slice_count, slice_count))
+  end
   
   -- Shuffle the slice list using Fisher-Yates algorithm
   for i = #slice_notes, 2, -1 do
     local j = math.random(1, i)
     slice_notes[i], slice_notes[j] = slice_notes[j], slice_notes[i]
-  end
-  
-  -- Calculate row positions with even spacing
-  local row_positions = {}
-  if num_slices <= num_rows then
-    -- Distribute slices evenly across the pattern
-    local spacing = num_rows / num_slices
-    for i = 1, num_slices do
-      local row = math.floor((i - 1) * spacing) + 1
-      table.insert(row_positions, row)
-    end
-  else
-    -- More slices than rows, just fill sequentially
-    for i = 1, num_rows do
-      table.insert(row_positions, i)
-    end
   end
   
   -- Clear the track first
@@ -4143,26 +4144,188 @@ function PakettiRandomSliceDistribution()
     line:clear()
   end
   
-  -- Write the slices to the pattern
-  local slices_to_write = math.min(num_slices, num_rows)
-  for i = 1, slices_to_write do
-    local row = row_positions[i]
-    local slice_note = slice_notes[i]
-    local line = track:line(row)
-    local note_column = line.note_columns[1]
-    
-    -- Write the slice note and instrument
-    note_column.note_value = slice_note
-    note_column.instrument_value = song.selected_instrument_index - 1
-    
-    local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
-    local octave = math.floor(slice_note / 12)
-    local note_name = notes[(slice_note % 12) + 1]
-    print(string.format("Row %d: Note %s%d (value %d)", row, note_name, octave, slice_note))
+  -- Calculate how many slices to write
+  local slices_to_write = math.min(valid_slice_count, num_rows)
+  
+  -- Calculate equal spacing between slices
+  local spacing = num_rows / slices_to_write
+  
+  -- If spacing is less than 2, just fill sequentially (too close together to spread)
+  if spacing < 2 then
+    for i = 1, slices_to_write do
+      local row = i
+      local slice_note = slice_notes[i]
+      local line = track:line(row)
+      local note_column = line.note_columns[1]
+      
+      -- Write the slice note and instrument
+      note_column.note_value = slice_note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      
+      local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+      local octave = math.floor(slice_note / 12)
+      local note_name = notes[(slice_note % 12) + 1]
+      print(string.format("Row %d: Note %s%d (value %d)", row, note_name, octave, slice_note))
+    end
+    renoise.app():show_status(string.format("Randomly distributed %d slices sequentially", slices_to_write))
+  else
+    -- Write the slices to the pattern at equal intervals
+    for i = 1, slices_to_write do
+      local row = math.floor((i - 1) * spacing) + 1
+      local slice_note = slice_notes[i]
+      local line = track:line(row)
+      local note_column = line.note_columns[1]
+      
+      -- Write the slice note and instrument
+      note_column.note_value = slice_note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      
+      local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+      local octave = math.floor(slice_note / 12)
+      local note_name = notes[(slice_note % 12) + 1]
+      print(string.format("Row %d: Note %s%d (value %d)", row, note_name, octave, slice_note))
+    end
+    renoise.app():show_status(string.format("Randomly distributed %d slices across %d rows (spacing: %.2f)", slices_to_write, num_rows, spacing))
+  end
+end
+
+-- Equal Slice Distribution
+-- Distributes slices in order across the selected track in the pattern with equal spacing
+function PakettiEqualSliceDistribution()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local track = song.selected_pattern_track
+  local num_rows = pattern.number_of_lines
+  
+  -- Check if instrument has samples
+  if #instrument.samples == 0 then
+    renoise.app():show_status("No samples in selected instrument")
+    return
   end
   
-  renoise.app():show_status(string.format("Randomly distributed %d slices across %d rows", slices_to_write, num_rows))
+  -- Check if first sample has slices
+  local first_sample = instrument.samples[1]
+  if #first_sample.slice_markers == 0 then
+    renoise.app():show_status("Selected instrument has no slices")
+    return
+  end
+  
+  -- Get the slice start note and count from sample mappings
+  local slice_start_note = nil
+  local slice_end_note = nil
+  local slice_count = 0
+  
+  if instrument.sample_mappings[1] then
+    local sample_mappings = instrument.sample_mappings[1]
+    if #sample_mappings >= 2 then
+      -- First slice mapping (index 2, since index 1 is the original sample)
+      local first_slice_mapping = sample_mappings[2]
+      if first_slice_mapping and first_slice_mapping.base_note then
+        slice_start_note = first_slice_mapping.base_note
+      end
+      
+      -- Count actual slice mappings (skip the first mapping which is the original sample)
+      for i = 2, #sample_mappings do
+        slice_count = slice_count + 1
+        if sample_mappings[i] and sample_mappings[i].base_note then
+          slice_end_note = sample_mappings[i].base_note
+        end
+      end
+    end
+  end
+  
+  -- Fallback: slices typically start one note above the original sample's base note
+  if not slice_start_note and first_sample.sample_mapping and first_sample.sample_mapping.base_note then
+    slice_start_note = first_sample.sample_mapping.base_note + 1
+    slice_count = #first_sample.slice_markers + 1
+  end
+  
+  if not slice_start_note or slice_count == 0 then
+    renoise.app():show_status("Could not determine slice note mappings")
+    return
+  end
+  
+  print("Number of slices: " .. slice_count)
+  print("Number of rows: " .. num_rows)
+  print("Selected track: " .. track_index)
+  print("Slice start note: " .. slice_start_note)
+  
+  -- Create a list of ALL slice note values in order (but only valid ones 0-121)
+  local slice_notes = {}
+  for i = 0, slice_count - 1 do
+    local slice_note = slice_start_note + i
+    if slice_note >= 0 and slice_note <= 121 then
+      table.insert(slice_notes, slice_note)
+    end
+  end
+  
+  local valid_slice_count = #slice_notes
+  
+  if valid_slice_count == 0 then
+    renoise.app():show_status("No valid slices within note range (0-121)")
+    return
+  end
+  
+  if valid_slice_count < slice_count then
+    print(string.format("Warning: Only %d of %d slices fit in valid note range (0-121)", valid_slice_count, slice_count))
+  end
+  
+  -- Clear the track first
+  for i = 1, num_rows do
+    local line = track:line(i)
+    line:clear()
+  end
+  
+  -- Calculate how many slices to write
+  local slices_to_write = math.min(valid_slice_count, num_rows)
+  
+  -- Calculate equal spacing between slices
+  local spacing = num_rows / slices_to_write
+  
+  -- If spacing is less than 2, just fill sequentially (too close together to spread)
+  if spacing < 2 then
+    for i = 1, slices_to_write do
+      local row = i
+      local slice_note = slice_notes[i]
+      local line = track:line(row)
+      local note_column = line.note_columns[1]
+      
+      -- Write the slice note and instrument
+      note_column.note_value = slice_note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      
+      local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+      local octave = math.floor(slice_note / 12)
+      local note_name = notes[(slice_note % 12) + 1]
+      print(string.format("Row %d: Note %s%d (value %d)", row, note_name, octave, slice_note))
+    end
+    renoise.app():show_status(string.format("Distributed %d slices in order sequentially", slices_to_write))
+  else
+    -- Write the slices to the pattern at equal intervals
+    for i = 1, slices_to_write do
+      local row = math.floor((i - 1) * spacing) + 1
+      local slice_note = slice_notes[i]
+      local line = track:line(row)
+      local note_column = line.note_columns[1]
+      
+      -- Write the slice note and instrument
+      note_column.note_value = slice_note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      
+      local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+      local octave = math.floor(slice_note / 12)
+      local note_name = notes[(slice_note % 12) + 1]
+      print(string.format("Row %d: Note %s%d (value %d)", row, note_name, octave, slice_note))
+    end
+    renoise.app():show_status(string.format("Distributed %d slices in order across %d rows (spacing: %.2f)", slices_to_write, num_rows, spacing))
+  end
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Slice Distribution",invoke=function() PakettiRandomSliceDistribution() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Wipe&Slice:Random Slice Distribution",invoke=function() PakettiRandomSliceDistribution() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Slices..:Random Slice Distribution",invoke=function() PakettiRandomSliceDistribution() end}
+renoise.tool():add_midi_mapping{name="Paketti:Random Slice Distribution",invoke=function(message) if message:is_trigger() then PakettiRandomSliceDistribution() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Equal Slice Distribution",invoke=function() PakettiEqualSliceDistribution() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Slices..:Equal Slice Distribution",invoke=function() PakettiEqualSliceDistribution() end}
+renoise.tool():add_midi_mapping{name="Paketti:Equal Slice Distribution",invoke=function(message) if message:is_trigger() then PakettiEqualSliceDistribution() end end}

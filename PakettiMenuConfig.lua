@@ -2143,7 +2143,6 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Not
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes EditStep Ascending",invoke=function() writeNotesMethodEditStep("ascending") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes EditStep Descending",invoke=function() writeNotesMethodEditStep("descending") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:---",invoke=function() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Values/Notes Ascending (SubColumn Aware)",invoke=PakettiSubColumnWriteAscending}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Values/Notes Descending (SubColumn Aware)",invoke=PakettiSubColumnWriteDescending}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Values/Notes Random (SubColumn Aware)",invoke=PakettiSubColumnWriteRandom}
