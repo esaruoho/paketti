@@ -2917,8 +2917,8 @@ local function has_phrases()
   return true
 end
 
--- Select a specific phrase by number (1-based index)
-function PakettiSelectPhrase(phrase_number)
+-- Core function to select a phrase by number with optional view switching
+local function select_phrase_internal(phrase_number, switch_to_editor)
   if not has_phrases() then
     return
   end
@@ -2937,8 +2937,10 @@ function PakettiSelectPhrase(phrase_number)
     return
   end
   
-  -- Switch to phrase editor view
-  renoise.app().window.active_middle_frame = 3
+  -- Switch to phrase editor view if requested
+  if switch_to_editor then
+    renoise.app().window.active_middle_frame = 3
+  end
   
   -- Select the phrase
   song.selected_phrase_index = phrase_number
@@ -2950,8 +2952,8 @@ function PakettiSelectPhrase(phrase_number)
   ))
 end
 
--- Select next phrase with wrapping
-function PakettiSelectNextPhrase()
+-- Core function to navigate phrases (next/previous) with optional view switching
+local function navigate_phrase_internal(direction, switch_to_editor)
   if not has_phrases() then
     return
   end
@@ -2961,60 +2963,60 @@ function PakettiSelectNextPhrase()
   local num_phrases = #instrument.phrases
   local current_index = song.selected_phrase_index
   
-  -- Calculate next index with wrapping
-  local next_index = current_index + 1
-  if next_index > num_phrases then
-    next_index = 1
+  -- Calculate new index with wrapping
+  local new_index = current_index + direction
+  if new_index > num_phrases then
+    new_index = 1
+  elseif new_index < 1 then
+    new_index = num_phrases
   end
   
-  -- Switch to phrase editor view
-  renoise.app().window.active_middle_frame = 3
+  -- Switch to phrase editor view if requested
+  if switch_to_editor then
+    renoise.app().window.active_middle_frame = 3
+  end
   
   -- Select the phrase
-  song.selected_phrase_index = next_index
+  song.selected_phrase_index = new_index
   
   renoise.app():show_status(string.format(
     "Selected Phrase %02d: %s",
-    next_index,
-    instrument.phrases[next_index].name
+    new_index,
+    instrument.phrases[new_index].name
   ))
 end
 
--- Select previous phrase with wrapping
+-- Public wrapper functions WITHOUT switching to phrase editor
+function PakettiSelectPhrase(phrase_number)
+  select_phrase_internal(phrase_number, false)
+end
+
+function PakettiSelectNextPhrase()
+  navigate_phrase_internal(1, false)
+end
+
 function PakettiSelectPreviousPhrase()
-  if not has_phrases() then
-    return
-  end
-  
-  local song = renoise.song()
-  local instrument = song.selected_instrument
-  local num_phrases = #instrument.phrases
-  local current_index = song.selected_phrase_index
-  
-  -- Calculate previous index with wrapping
-  local prev_index = current_index - 1
-  if prev_index < 1 then
-    prev_index = num_phrases
-  end
-  
-  -- Switch to phrase editor view
-  renoise.app().window.active_middle_frame = 3
-  
-  -- Select the phrase
-  song.selected_phrase_index = prev_index
-  
-  renoise.app():show_status(string.format(
-    "Selected Phrase %02d: %s",
-    prev_index,
-    instrument.phrases[prev_index].name
-  ))
+  navigate_phrase_internal(-1, false)
+end
+
+-- Public wrapper functions WITH switching to phrase editor
+function PakettiSelectPhraseEditor(phrase_number)
+  select_phrase_internal(phrase_number, true)
+end
+
+function PakettiSelectNextPhraseEditor()
+  navigate_phrase_internal(1, true)
+end
+
+function PakettiSelectPreviousPhraseEditor()
+  navigate_phrase_internal(-1, true)
 end
 
 --------------------------------------------------------------------------
 -- Phrase Selection Keybindings and Menu Entries
 --------------------------------------------------------------------------
 
--- Next and Previous phrase navigation (available globally)
+-- Next and Previous phrase navigation WITHOUT switching views
 renoise.tool():add_keybinding{
   name="Global:Paketti:Select Next Phrase",
   invoke=function() PakettiSelectNextPhrase() end
@@ -3035,7 +3037,28 @@ renoise.tool():add_menu_entry{
   invoke=function() PakettiSelectPreviousPhrase() end
 }
 
--- Direct phrase selection (01-16)
+-- Next and Previous phrase navigation WITH switching to phrase editor
+renoise.tool():add_keybinding{
+  name="Global:Paketti:Select Next Phrase (Phrase Editor)",
+  invoke=function() PakettiSelectNextPhraseEditor() end
+}
+
+renoise.tool():add_keybinding{
+  name="Global:Paketti:Select Previous Phrase (Phrase Editor)",
+  invoke=function() PakettiSelectPreviousPhraseEditor() end
+}
+
+renoise.tool():add_menu_entry{
+  name="Main Menu:Tools:Paketti..:Phrases:Select Next Phrase (Phrase Editor)",
+  invoke=function() PakettiSelectNextPhraseEditor() end
+}
+
+renoise.tool():add_menu_entry{
+  name="Main Menu:Tools:Paketti..:Phrases:Select Previous Phrase (Phrase Editor)",
+  invoke=function() PakettiSelectPreviousPhraseEditor() end
+}
+
+-- Direct phrase selection (01-16) WITHOUT switching views
 for i = 1, 16 do
   renoise.tool():add_keybinding{
     name=string.format("Global:Paketti:Select Phrase %02d", i),
@@ -3045,5 +3068,18 @@ for i = 1, 16 do
   renoise.tool():add_menu_entry{
     name=string.format("Main Menu:Tools:Paketti..:Phrases:Select Phrase:Select Phrase %02d", i),
     invoke=function() PakettiSelectPhrase(i) end
+  }
+end
+
+-- Direct phrase selection (01-16) WITH switching to phrase editor
+for i = 1, 16 do
+  renoise.tool():add_keybinding{
+    name=string.format("Global:Paketti:Select Phrase %02d (Phrase Editor)", i),
+    invoke=function() PakettiSelectPhraseEditor(i) end
+  }
+  
+  renoise.tool():add_menu_entry{
+    name=string.format("Main Menu:Tools:Paketti..:Phrases:Select Phrase (Phrase Editor):Select Phrase %02d (Phrase Editor)", i),
+    invoke=function() PakettiSelectPhraseEditor(i) end
   }
 end
