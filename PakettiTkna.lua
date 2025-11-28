@@ -1962,6 +1962,155 @@ renoise.tool():add_midi_mapping{name="Paketti:Selected Track to Mono and Hard Ri
 renoise.tool():add_midi_mapping{name="Paketti:Master Track to Mono and Hard Left",invoke=function(message) if message:is_trigger() then masterTrackToMonoAndHardLeft() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Master Track to Mono and Hard Right",invoke=function(message) if message:is_trigger() then masterTrackToMonoAndHardRight() end end}
 
+--------
+-- Mono Cycler: Cycles through mono device modes and panning
+-- Cycle order: 
+-- 1. Mono L only 
+-- 2. Mono R only
+-- 3. Mono L+R
+-- 4. No mono, Hard Left pan
+-- 5. No mono, Hard Right pan
+-- 6. No mono, Center pan
+
+function PakettiSelectedTrackMonoCycle()
+  local track = renoise.song().selected_track
+  local mono_device_index = nil
+  local mono_device = nil
+  
+  -- Check for existing "Mono" device in the track
+  for i = 2, #track.devices do
+    if track.devices[i].display_name == "Mono" then
+      mono_device_index = i
+      mono_device = track.devices[i]
+      break
+    end
+  end
+  
+  if mono_device then
+    -- Mono device exists, check its state via parameter 3 (Mono Mix)
+    -- Parameter 3: -1.0 = L only, 0.0 = L+R, 1.0 = R only
+    local mono_mix = mono_device.parameters[3].value
+    
+    if mono_mix < -0.3 then
+      -- Currently L only, cycle to R only
+      mono_device.parameters[3].value = 1.0
+      track.prefx_panning.value = 0.5
+      track.postfx_panning.value = 0.5
+      renoise.app():show_status("Selected Track: Mono R only")
+    elseif mono_mix > 0.3 then
+      -- Currently R only, cycle to L+R
+      mono_device.parameters[3].value = 0.0
+      track.prefx_panning.value = 0.5
+      track.postfx_panning.value = 0.5
+      renoise.app():show_status("Selected Track: Mono L+R")
+    else
+      -- Currently L+R, cycle to remove mono and set Hard Left pan
+      track:delete_device_at(mono_device_index)
+      track.prefx_panning.value = 0.5
+      track.postfx_panning.value = 0.0
+      renoise.app():show_status("Selected Track: Hard Left Pan")
+    end
+  else
+    -- No mono device exists, check panning state
+    local postfx_pan = track.postfx_panning.value
+    
+    if postfx_pan < 0.2 then
+      -- Currently Hard Left, cycle to Hard Right
+      track.postfx_panning.value = 1.0
+      renoise.app():show_status("Selected Track: Hard Right Pan")
+    elseif postfx_pan > 0.8 then
+      -- Currently Hard Right, cycle to Center
+      track.postfx_panning.value = 0.5
+      renoise.app():show_status("Selected Track: Center Pan")
+    else
+      -- Currently Center (or other), cycle to Mono L only
+      local new_mono = track:insert_device_at("Audio/Effects/Native/Stereo Expander", #track.devices + 1)
+      new_mono.display_name = "Mono"
+      new_mono.parameters[1].value = 0     -- Width to 0 (mono)
+      new_mono.parameters[3].value = -1.0  -- Mono Mix to L only
+      new_mono.is_maximized = false
+      track.prefx_panning.value = 0.5
+      track.postfx_panning.value = 0.5
+      renoise.app():show_status("Selected Track: Mono L only")
+    end
+  end
+end
+
+function PakettiMasterTrackMonoCycle()
+  local song = renoise.song()
+  local track = song:track(song.sequencer_track_count + 1)
+  local mono_device_index = nil
+  local mono_device = nil
+  
+  -- Check for existing "Mono" device in the track
+  for i = 2, #track.devices do
+    if track.devices[i].display_name == "Mono" then
+      mono_device_index = i
+      mono_device = track.devices[i]
+      break
+    end
+  end
+  
+  if mono_device then
+    -- Mono device exists, check its state via parameter 3 (Mono Mix)
+    -- Parameter 3: -1.0 = L only, 0.0 = L+R, 1.0 = R only
+    local mono_mix = mono_device.parameters[3].value
+    
+    if mono_mix < -0.3 then
+      -- Currently L only, cycle to R only
+      mono_device.parameters[3].value = 1.0
+      track.prefx_panning.value = 0.5
+      track.postfx_panning.value = 0.5
+      renoise.app():show_status("Master Track: Mono R only")
+    elseif mono_mix > 0.3 then
+      -- Currently R only, cycle to L+R
+      mono_device.parameters[3].value = 0.0
+      track.prefx_panning.value = 0.5
+      track.postfx_panning.value = 0.5
+      renoise.app():show_status("Master Track: Mono L+R")
+    else
+      -- Currently L+R, cycle to remove mono and set Hard Left pan
+      track:delete_device_at(mono_device_index)
+      track.prefx_panning.value = 0.5
+      track.postfx_panning.value = 0.0
+      renoise.app():show_status("Master Track: Hard Left Pan")
+    end
+  else
+    -- No mono device exists, check panning state
+    local postfx_pan = track.postfx_panning.value
+    
+    if postfx_pan < 0.2 then
+      -- Currently Hard Left, cycle to Hard Right
+      track.postfx_panning.value = 1.0
+      renoise.app():show_status("Master Track: Hard Right Pan")
+    elseif postfx_pan > 0.8 then
+      -- Currently Hard Right, cycle to Center
+      track.postfx_panning.value = 0.5
+      renoise.app():show_status("Master Track: Center Pan")
+    else
+      -- Currently Center (or other), cycle to Mono L only
+      local new_mono = track:insert_device_at("Audio/Effects/Native/Stereo Expander", #track.devices + 1)
+      new_mono.display_name = "Mono"
+      new_mono.parameters[1].value = 0     -- Width to 0 (mono)
+      new_mono.parameters[3].value = -1.0  -- Mono Mix to L only
+      new_mono.is_maximized = false
+      track.prefx_panning.value = 0.5
+      track.postfx_panning.value = 0.5
+      renoise.app():show_status("Master Track: Mono L only")
+    end
+  end
+end
+
+-- Add keybindings for mono cycler functions
+renoise.tool():add_keybinding{name="Global:Paketti:Selected Track Mono/Pan Cycle",invoke=function() PakettiSelectedTrackMonoCycle() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Master Track Mono/Pan Cycle",invoke=function() PakettiMasterTrackMonoCycle() end}
+
+renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Selected Track Mono/Pan Cycle",invoke=function() PakettiSelectedTrackMonoCycle() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Master Track Mono/Pan Cycle",invoke=function() PakettiMasterTrackMonoCycle() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Selected Track Mono/Pan Cycle",invoke=function(message) if message:is_trigger() then PakettiSelectedTrackMonoCycle() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Master Track Mono/Pan Cycle",invoke=function(message) if message:is_trigger() then PakettiMasterTrackMonoCycle() end end}
+
 -- Helper function to find current section boundaries
 function findCurrentSectionBounds()
   local song = renoise.song()

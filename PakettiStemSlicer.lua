@@ -30,6 +30,7 @@ local SUPPORTED_FORMATS = {"*.wav", "*.aif", "*.aiff", "*.flac"}
 -- User-configurable options
 local master_beat_length = 64  -- The base slice size to create first
 local extract_beat_lengths = {32, 16, 8, 4, 2, 1}  -- Which subdivisions to extract
+local skip_writing_silence = false  -- When true, don't write silence files at all
 
 -- State variables
 local selected_folder = ""
@@ -1735,14 +1736,20 @@ local function processSingleFile(file_path, output_folder)
                 file_name, slice_idx, tostring(is_silent), output_filename))
             
             if is_silent then
-                -- OPTIMIZATION: Copy pre-generated silence file instead of exporting
-                local silence_source = generateSilenceFile(master_beat_length, sample_rate, output_folder)
-                export_success = copySilenceFile(silence_source, output_path)
-                if export_success then
-                    print(string.format("EXPORT SUCCESS [%s]: Copied silence: %s", file_name, output_filename))
+                if skip_writing_silence then
+                    -- Skip writing silence files entirely
+                    print(string.format("SKIPPED SILENCE [%s]: %s", file_name, output_filename))
+                    export_success = true  -- Mark as success since we intentionally skipped it
                 else
-                    export_error_msg = string.format("Failed to copy silence: %s", output_filename)
-                    print(string.format("EXPORT FAILED [%s]: %s", file_name, export_error_msg))
+                    -- OPTIMIZATION: Copy pre-generated silence file instead of exporting
+                    local silence_source = generateSilenceFile(master_beat_length, sample_rate, output_folder)
+                    export_success = copySilenceFile(silence_source, output_path)
+                    if export_success then
+                        print(string.format("EXPORT SUCCESS [%s]: Copied silence: %s", file_name, output_filename))
+                    else
+                        export_error_msg = string.format("Failed to copy silence: %s", output_filename)
+                        print(string.format("EXPORT FAILED [%s]: %s", file_name, export_error_msg))
+                    end
                 end
             else
                 -- Export actual audio slice
@@ -1815,13 +1822,19 @@ local function processSingleFile(file_path, output_folder)
                         
                         local export_success = false
                         if is_silent then
-                            -- OPTIMIZATION: Copy pre-generated silence file instead of exporting
-                            local silence_source = generateSilenceFile(beat_length, sample_rate, output_folder)
-                            export_success = copySilenceFile(silence_source, output_path)
-                            if export_success then
-                                print(string.format("    Copied silence: %s", output_filename))
+                            if skip_writing_silence then
+                                -- Skip writing silence files entirely
+                                print(string.format("    SKIPPED SILENCE: %s", output_filename))
+                                export_success = true  -- Mark as success since we intentionally skipped it
                             else
-                                print(string.format("    Failed to copy silence: %s", output_filename))
+                                -- OPTIMIZATION: Copy pre-generated silence file instead of exporting
+                                local silence_source = generateSilenceFile(beat_length, sample_rate, output_folder)
+                                export_success = copySilenceFile(silence_source, output_path)
+                                if export_success then
+                                    print(string.format("    Copied silence: %s", output_filename))
+                                else
+                                    print(string.format("    Failed to copy silence: %s", output_filename))
+                                end
                             end
                         else
                             -- Export actual audio subdivision
@@ -2333,7 +2346,22 @@ function pakettiStemSlicerDialogInternal()
                 },
                 vb:text{text = "01 beats"}
             }
-        },  
+        },
+        
+        vb:space{height=5},
+        
+        -- Skip silence checkbox
+        vb:row{
+            vb:checkbox{
+                id = "skip_silence_checkbox",
+                value = skip_writing_silence,
+                notifier = function(value)
+                    skip_writing_silence = value
+                end
+            },
+            vb:text{text = "Do not write silence", style = "strong", font="bold"}
+        },
+        
         -- Control buttons
         vb:row{
             vb:button{
