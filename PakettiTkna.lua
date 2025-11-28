@@ -1987,24 +1987,58 @@ function PakettiSelectedTrackMonoCycle()
   end
   
   if mono_device then
-    -- Mono device exists, check its state via parameter 3 (Mono Mix)
-    -- Parameter 3: -1.0 = L only, 0.0 = L+R, 1.0 = R only
-    local mono_mix = mono_device.parameters[3].value
+    -- Mono device exists, check its MonoMixMode via XML
+    local current_xml = mono_device.active_preset_data
+    local mono_mix_mode = "L+R"
     
-    if mono_mix < -0.3 then
-      -- Currently L only, cycle to R only
-      mono_device.parameters[3].value = 1.0
+    -- Try to extract MonoMixMode value from XML
+    if current_xml and current_xml:find("<MonoMixMode>") then
+      local mode_match = current_xml:match("<MonoMixMode>([^<]+)</MonoMixMode>")
+      if mode_match then
+        mono_mix_mode = mode_match
+      end
+    end
+    
+    if mono_mix_mode == "L" then
+      -- Currently Mono L only, cycle to Mono R only
+      local xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="StereoExpanderDevice">
+    <IsMaximized>false</IsMaximized>
+    <MonoMixMode>R</MonoMixMode>
+    <StereoWidth>
+      <Value>0.0</Value>
+    </StereoWidth>
+    <SurroundWidth>
+      <Value>0.0</Value>
+    </SurroundWidth>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
+      mono_device.active_preset_data = xml
       track.prefx_panning.value = 0.5
       track.postfx_panning.value = 0.5
       renoise.app():show_status("Selected Track: Mono R only")
-    elseif mono_mix > 0.3 then
-      -- Currently R only, cycle to L+R
-      mono_device.parameters[3].value = 0.0
+    elseif mono_mix_mode == "R" then
+      -- Currently Mono R only, cycle to Mono L+R
+      local xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="StereoExpanderDevice">
+    <IsMaximized>false</IsMaximized>
+    <MonoMixMode>L+R</MonoMixMode>
+    <StereoWidth>
+      <Value>0.0</Value>
+    </StereoWidth>
+    <SurroundWidth>
+      <Value>0.0</Value>
+    </SurroundWidth>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
+      mono_device.active_preset_data = xml
       track.prefx_panning.value = 0.5
       track.postfx_panning.value = 0.5
       renoise.app():show_status("Selected Track: Mono L+R")
     else
-      -- Currently L+R, cycle to remove mono and set Hard Left pan
+      -- Currently Mono L+R, cycle to remove mono and set Hard Left pan
       track:delete_device_at(mono_device_index)
       track.prefx_panning.value = 0.5
       track.postfx_panning.value = 0.0
@@ -2026,9 +2060,20 @@ function PakettiSelectedTrackMonoCycle()
       -- Currently Center (or other), cycle to Mono L only
       local new_mono = track:insert_device_at("Audio/Effects/Native/Stereo Expander", #track.devices + 1)
       new_mono.display_name = "Mono"
-      new_mono.parameters[1].value = 0     -- Width to 0 (mono)
-      new_mono.parameters[3].value = -1.0  -- Mono Mix to L only
-      new_mono.is_maximized = false
+      local xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="StereoExpanderDevice">
+    <IsMaximized>false</IsMaximized>
+    <MonoMixMode>L</MonoMixMode>
+    <StereoWidth>
+      <Value>0.0</Value>
+    </StereoWidth>
+    <SurroundWidth>
+      <Value>0.0</Value>
+    </SurroundWidth>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
+      new_mono.active_preset_data = xml
       track.prefx_panning.value = 0.5
       track.postfx_panning.value = 0.5
       renoise.app():show_status("Selected Track: Mono L only")
@@ -2052,24 +2097,58 @@ function PakettiMasterTrackMonoCycle()
   end
   
   if mono_device then
-    -- Mono device exists, check its state via parameter 3 (Mono Mix)
-    -- Parameter 3: -1.0 = L only, 0.0 = L+R, 1.0 = R only
-    local mono_mix = mono_device.parameters[3].value
+    -- Mono device exists, check its MonoMixMode via XML
+    local current_xml = mono_device.active_preset_data
+    local mono_mix_mode = "L+R"
     
-    if mono_mix < -0.3 then
-      -- Currently L only, cycle to R only
-      mono_device.parameters[3].value = 1.0
+    -- Try to extract MonoMixMode value from XML
+    if current_xml and current_xml:find("<MonoMixMode>") then
+      local mode_match = current_xml:match("<MonoMixMode>([^<]+)</MonoMixMode>")
+      if mode_match then
+        mono_mix_mode = mode_match
+      end
+    end
+    
+    if mono_mix_mode == "L" then
+      -- Currently Mono L only, cycle to Mono R only
+      local xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="StereoExpanderDevice">
+    <IsMaximized>false</IsMaximized>
+    <MonoMixMode>R</MonoMixMode>
+    <StereoWidth>
+      <Value>0.0</Value>
+    </StereoWidth>
+    <SurroundWidth>
+      <Value>0.0</Value>
+    </SurroundWidth>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
+      mono_device.active_preset_data = xml
       track.prefx_panning.value = 0.5
       track.postfx_panning.value = 0.5
       renoise.app():show_status("Master Track: Mono R only")
-    elseif mono_mix > 0.3 then
-      -- Currently R only, cycle to L+R
-      mono_device.parameters[3].value = 0.0
+    elseif mono_mix_mode == "R" then
+      -- Currently Mono R only, cycle to Mono L+R
+      local xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="StereoExpanderDevice">
+    <IsMaximized>false</IsMaximized>
+    <MonoMixMode>L+R</MonoMixMode>
+    <StereoWidth>
+      <Value>0.0</Value>
+    </StereoWidth>
+    <SurroundWidth>
+      <Value>0.0</Value>
+    </SurroundWidth>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
+      mono_device.active_preset_data = xml
       track.prefx_panning.value = 0.5
       track.postfx_panning.value = 0.5
       renoise.app():show_status("Master Track: Mono L+R")
     else
-      -- Currently L+R, cycle to remove mono and set Hard Left pan
+      -- Currently Mono L+R, cycle to remove mono and set Hard Left pan
       track:delete_device_at(mono_device_index)
       track.prefx_panning.value = 0.5
       track.postfx_panning.value = 0.0
@@ -2091,9 +2170,20 @@ function PakettiMasterTrackMonoCycle()
       -- Currently Center (or other), cycle to Mono L only
       local new_mono = track:insert_device_at("Audio/Effects/Native/Stereo Expander", #track.devices + 1)
       new_mono.display_name = "Mono"
-      new_mono.parameters[1].value = 0     -- Width to 0 (mono)
-      new_mono.parameters[3].value = -1.0  -- Mono Mix to L only
-      new_mono.is_maximized = false
+      local xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="StereoExpanderDevice">
+    <IsMaximized>false</IsMaximized>
+    <MonoMixMode>L</MonoMixMode>
+    <StereoWidth>
+      <Value>0.0</Value>
+    </StereoWidth>
+    <SurroundWidth>
+      <Value>0.0</Value>
+    </SurroundWidth>
+  </DeviceSlot>
+</FilterDevicePreset>]=]
+      new_mono.active_preset_data = xml
       track.prefx_panning.value = 0.5
       track.postfx_panning.value = 0.5
       renoise.app():show_status("Master Track: Mono L only")
