@@ -2024,7 +2024,7 @@ function PakettiSelectedTrackMonoCycle()
       local xml = [=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="StereoExpanderDevice">
-    <IsMaximized>true</IsMaximized>
+    <IsMaximized>false</IsMaximized>
     <MonoMixMode>L+R</MonoMixMode>
     <StereoWidth>
       <Value>0.0</Value>
@@ -2094,7 +2094,7 @@ function PakettiMasterTrackMonoCycle()
       local xml = [=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="StereoExpanderDevice">
-    <IsMaximized>true</IsMaximized>
+    <IsMaximized>false</IsMaximized>
     <MonoMixMode>L+R</MonoMixMode>
     <StereoWidth>
       <Value>0.0</Value>
