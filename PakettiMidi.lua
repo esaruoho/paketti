@@ -5159,3 +5159,47 @@ renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Volume x[Kn
       renoise.app():show_status(string.format("Sample Volume: %+d dB", db_display))
     end
   end}
+
+-- Track Selection MIDI Mappings (Triggers)
+-- Helper function to safely select a track by index
+function pakettiMidiSelectTrack(track_index)
+  local song = renoise.song()
+  if track_index > #song.tracks then
+    renoise.app():show_status("Track " .. string.format("%02d", track_index) .. " does not exist")
+    return
+  end
+  song.selected_track_index = track_index
+end
+
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 01",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 02",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(2) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 03",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(3) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 04",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(4) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 05",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(5) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 06",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(6) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 07",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(7) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 08",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(8) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 09",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(9) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 10",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(10) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 11",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(11) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 12",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(12) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 13",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(13) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 14",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(14) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 15",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(15) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 16",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(16) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 17",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(17) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 18",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(18) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 19",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(19) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 20",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(20) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 21",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(21) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 22",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(22) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 23",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(23) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 24",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(24) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 25",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(25) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 26",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(26) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 27",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(27) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 28",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(28) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 29",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(29) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 30",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(30) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 31",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(31) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 32",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(32) end end}

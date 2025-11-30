@@ -646,18 +646,7 @@ function PakettiXIExport()
 end
 
 -- Add menu entries
-renoise.tool():add_menu_entry{
-  name="Instrument Box:Paketti:Export XI (FastTracker II Extended Instrument)",
-  invoke=function() PakettiXIExport() end
-}
-
-renoise.tool():add_menu_entry{
-  name="Main Menu:Tools:Paketti:Export XI (FastTracker II Extended Instrument)", 
-  invoke=function() PakettiXIExport() end
-}
-
--- Add keybinding
-renoise.tool():add_keybinding{
-  name="Global:Paketti:Export XI (FastTracker II Extended Instrument)",
-  invoke=function() PakettiXIExport() end
-}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Export XI (FastTracker II Extended Instrument)",invoke=function() PakettiXIExport() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Export XI (FastTracker II Extended Instrument)", invoke=function() PakettiXIExport() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Export XI (FastTracker II Extended Instrument)", invoke=function() PakettiXIExport() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Export XI (FastTracker II Extended Instrument)",invoke=function() PakettiXIExport() end}
