@@ -56,8 +56,6 @@ function pakettiPitchStepperDemo()
     },keyhandler)
 end
 
-
-
 renoise.tool():add_keybinding{name="Global:Paketti:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 ---
 function ResetAllSteppers(clear)
@@ -67,48 +65,54 @@ function ResetAllSteppers(clear)
                          "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
     
     for inst_idx, instrument in ipairs(song.instruments) do
-        if instrument.samples[1] and instrument.sample_modulation_sets[1] then
-            local devices = instrument.sample_modulation_sets[1].devices
-            for dev_idx, device in ipairs(devices) do
-                for _, stepperType in ipairs(stepperTypes) do
-                    if device.name == stepperType then
-                        -- Reset the device parameter
-                        device.parameters[1].value = 1
-                        
-                        -- Only clear data if clear parameter is true
-                        if clear then
-                            -- Clear existing points first
-                            device:clear_points()
-                            
-                            -- Get the total number of steps from device length
-                            local total_steps = device.length
-                            local default_value = 0.5  -- Default for most steppers
-                            
-                            -- Set specific default values based on stepper type
-                            if device.name == "Volume Stepper" then
-                                default_value = 1
-                            elseif device.name == "Cutoff Stepper" then
-                                default_value = 1
-                            elseif device.name == "Resonance Stepper" then
-                                default_value = 0
-                            elseif device.name == "Drive Stepper" then
-                                default_value = 0
+        if instrument.samples[1] then
+            -- Search through all modulation sets
+            for mod_set_idx = 1, #instrument.sample_modulation_sets do
+                local mod_set = instrument.sample_modulation_sets[mod_set_idx]
+                if mod_set then
+                    local devices = mod_set.devices
+                    for dev_idx, device in ipairs(devices) do
+                        for _, stepperType in ipairs(stepperTypes) do
+                            if device.name == stepperType then
+                                -- Reset the device parameter
+                                device.parameters[1].value = 1
+                                
+                                -- Only clear data if clear parameter is true
+                                if clear then
+                                    -- Clear existing points first
+                                    device:clear_points()
+                                    
+                                    -- Get the total number of steps from device length
+                                    local total_steps = device.length
+                                    local default_value = 0.5  -- Default for most steppers
+                                    
+                                    -- Set specific default values based on stepper type
+                                    if device.name == "Volume Stepper" then
+                                        default_value = 1
+                                    elseif device.name == "Cutoff Stepper" then
+                                        default_value = 1
+                                    elseif device.name == "Resonance Stepper" then
+                                        default_value = 0
+                                    elseif device.name == "Drive Stepper" then
+                                        default_value = 0
+                                    end
+                                    
+                                    local points_data = {}
+                                    -- Reset ALL steps from 1 to device.length
+                                    for step = 1, total_steps do
+                                        table.insert(points_data, {
+                                            scaling = 0,
+                                            time = step,
+                                            value = default_value
+                                        })
+                                    end
+                                    
+                                    device.points = points_data
+                                end
+                                
+                                count = count + 1
                             end
-                            
-                            local points_data = {}
-                            -- Reset ALL steps from 1 to device.length
-                            for step = 1, total_steps do
-                                table.insert(points_data, {
-                                    scaling = 0,
-                                    time = step,
-                                    value = default_value
-                                })
-                            end
-                            
-                            device.points = points_data
                         end
-                        
-                        count = count + 1
                     end
                 end
             end
@@ -130,15 +134,47 @@ renoise.tool():add_keybinding{name="Global:Paketti:Reset All Steppers",invoke = 
 
 
 ----
-local function findStepperDeviceIndex(deviceName)
+-- Smart stepper device finder that searches through all modulation sets
+-- Returns: modulation_set_index, device_index, or nil, nil if not found
+function PakettiFindStepperDevice(deviceName)
     local instrument = renoise.song().selected_instrument
-    if not instrument or not instrument.sample_modulation_sets[1] then return nil end
+    if not instrument then return nil, nil end
     
-    local devices = instrument.sample_modulation_sets[1].devices
-    for i = 1, #devices do
-        if devices[i].name == deviceName then
-            return i
+    -- First, try the selected sample's modulation set
+    local selected_sample_index = renoise.song().selected_sample_index
+    if selected_sample_index > 0 and selected_sample_index <= #instrument.sample_modulation_sets then
+        local mod_set = instrument.sample_modulation_sets[selected_sample_index]
+        if mod_set then
+            local devices = mod_set.devices
+            for i = 1, #devices do
+                if devices[i].name == deviceName then
+                    return selected_sample_index, i
+                end
+            end
         end
+    end
+    
+    -- If not found in selected sample, search through all modulation sets
+    for mod_set_idx = 1, #instrument.sample_modulation_sets do
+        local mod_set = instrument.sample_modulation_sets[mod_set_idx]
+        if mod_set then
+            local devices = mod_set.devices
+            for dev_idx = 1, #devices do
+                if devices[dev_idx].name == deviceName then
+                    return mod_set_idx, dev_idx
+                end
+            end
+        end
+    end
+    
+    return nil, nil
+end
+
+-- Legacy function for backward compatibility - returns device_index in first modulation set only
+local function findStepperDeviceIndex(deviceName)
+    local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+    if mod_set_idx == 1 then
+        return dev_idx
     end
     return nil
 end
@@ -163,22 +199,28 @@ function PakettiApplyGlobalStepCountToAllSteppers()
   local global_step_count = PakettiGetGlobalStepCount()
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local devices = instrument.sample_modulation_sets[1].devices
   local changed_count = 0
   local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Panning Stepper", 
                        "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
   
-  for _, device in ipairs(devices) do
-    for _, stepperType in ipairs(stepperTypes) do
-      if device.name == stepperType then
-        -- Change the length to global step count
-        device.length = global_step_count
-        changed_count = changed_count + 1
+  -- Search through all modulation sets
+  for mod_set_idx = 1, #instrument.sample_modulation_sets do
+    local mod_set = instrument.sample_modulation_sets[mod_set_idx]
+    if mod_set then
+      local devices = mod_set.devices
+      for _, device in ipairs(devices) do
+        for _, stepperType in ipairs(stepperTypes) do
+          if device.name == stepperType then
+            -- Change the length to global step count
+            device.length = global_step_count
+            changed_count = changed_count + 1
+          end
+        end
       end
     end
   end
@@ -204,17 +246,19 @@ function PakettiHandleInstrumentChange()
     
     -- Hide stepper on old instrument
     local old_instrument = renoise.song().instruments[current_stepper_instrument]
-    if old_instrument and old_instrument.sample_modulation_sets[1] then
-      local old_deviceIndex = nil
-      local old_devices = old_instrument.sample_modulation_sets[1].devices
-      for i = 1, #old_devices do
-        if old_devices[i].name == current_visible_stepper then
-          old_deviceIndex = i
-          break
+    if old_instrument then
+      -- Search through all modulation sets for the stepper
+      for mod_set_idx = 1, #old_instrument.sample_modulation_sets do
+        local mod_set = old_instrument.sample_modulation_sets[mod_set_idx]
+        if mod_set then
+          local old_devices = mod_set.devices
+          for i = 1, #old_devices do
+            if old_devices[i].name == current_visible_stepper then
+              old_devices[i].external_editor_visible = false
+              break
+            end
+          end
         end
-      end
-      if old_deviceIndex then
-        old_devices[old_deviceIndex].external_editor_visible = false
       end
     end
     
@@ -262,23 +306,23 @@ end
 function PakettiFillStepperRandom(deviceName)
     local instrument = renoise.song().selected_instrument
     
-    -- Check if there's a valid instrument with modulation devices
-    if not instrument or not instrument.sample_modulation_sets[1] then
-        renoise.app():show_status("No valid instrument or modulation devices found.")
+    -- Check if there's a valid instrument
+    if not instrument then
+        renoise.app():show_status("No valid instrument found.")
         return
     end
     
-    local deviceIndex = findStepperDeviceIndex(deviceName)
-    if not deviceIndex then
+    local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+    if not mod_set_idx or not dev_idx then
         renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
         return
     end
     
-    local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+    local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
     
     -- Set range (this might need to be configurable per device type)
     if deviceName == "Pitch Stepper" then
-        instrument.sample_modulation_sets[1].pitch_range = 12
+        instrument.sample_modulation_sets[mod_set_idx].pitch_range = 12
     end
     
     -- Clear existing points and fill with random values
@@ -300,32 +344,26 @@ end
 function PakettiFillPitchStepperTwoOctaves()
 local instrument = renoise.song().selected_instrument
 
--- Check if there's a valid instrument with modulation devices
-if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+-- Check if there's a valid instrument
+if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
 end
 
--- Search through all devices for Pitch Stepper
-local devices = instrument.sample_modulation_sets[1].devices
-local device = nil
+-- Find the Pitch Stepper device in any modulation set
+local mod_set_idx, dev_idx = PakettiFindStepperDevice("Pitch Stepper")
 
-for i = 1, #devices do
-    if devices[i].name == "Pitch Stepper" then
-        device = devices[i]
-        break
-    end
-end
-
-if not device then
+if not mod_set_idx or not dev_idx then
     renoise.app():show_status("There is no Pitch Stepper modulation device in this instrument, doing nothing.")
     return
 end
 
+local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
+
 if device.name == "Pitch Stepper" then
     device.length = 17
     device:clear_points()  
-    instrument.sample_modulation_sets[1].pitch_range = 24  
+    instrument.sample_modulation_sets[mod_set_idx].pitch_range = 24  
     local points_data = {
         {scaling=0, time=1, value=0.5},
         {scaling=0, time=2, value=0.25},
@@ -356,27 +394,21 @@ end
 function PakettiFillPitchStepper()
 local instrument = renoise.song().selected_instrument
   
--- Check if there's a valid instrument with modulation devices
-if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+-- Check if there's a valid instrument
+if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
 end
 
--- Search through all devices for Pitch Stepper
-local devices = instrument.sample_modulation_sets[1].devices
-local device = nil
+-- Find the Pitch Stepper device in any modulation set
+local mod_set_idx, dev_idx = PakettiFindStepperDevice("Pitch Stepper")
 
-for i = 1, #devices do
-    if devices[i].name == "Pitch Stepper" then
-        device = devices[i]
-        break
-    end
-end
-
-if not device then
+if not mod_set_idx or not dev_idx then
     renoise.app():show_status("There is no Pitch Stepper modulation device in this instrument, doing nothing.")
     return
 end
+
+local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
 
   if device.name == "Pitch Stepper" then
       device.length=17
@@ -401,7 +433,7 @@ end
       }
 
           device.points=points_data
-       renoise.song().selected_instrument.sample_modulation_sets[1].pitch_range=12
+       instrument.sample_modulation_sets[mod_set_idx].pitch_range=12
 
       renoise.app():show_status("Pitch Stepper points filled successfully.")
   else renoise.app():show_status("Selected device is not a Pitch Stepper.") end
@@ -410,19 +442,19 @@ end
 function PakettiClearStepper(deviceName)
     local instrument = renoise.song().selected_instrument
     
-    -- Check if there's a valid instrument with modulation devices
-    if not instrument or not instrument.sample_modulation_sets[1] then
-        renoise.app():show_status("No valid instrument or modulation devices found.")
+    -- Check if there's a valid instrument
+    if not instrument then
+        renoise.app():show_status("No valid instrument found.")
         return
     end
     
-    local deviceIndex = findStepperDeviceIndex(deviceName)
-    if not deviceIndex then
+    local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+    if not mod_set_idx or not dev_idx then
         renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
         return
     end
     
-    local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+    local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
     device:clear_points()
     renoise.app():show_status(string.format("%s points cleared successfully.", deviceName))
 end
@@ -452,27 +484,21 @@ renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Minor
 function PakettiFillPitchStepperDigits(detune_amount, step_count)
   local instrument = renoise.song().selected_instrument
   
-  -- Check if there's a valid instrument with modulation devices
-  if not instrument or not instrument.sample_modulation_sets[1] then
-      renoise.app():show_status("No valid instrument or modulation devices found.")
+  -- Check if there's a valid instrument
+  if not instrument then
+      renoise.app():show_status("No valid instrument found.")
       return
   end
   
-  -- Search through all devices for Pitch Stepper
-  local devices = instrument.sample_modulation_sets[1].devices
-  local device = nil
+  -- Find the Pitch Stepper device in any modulation set
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice("Pitch Stepper")
   
-  for i = 1, #devices do
-      if devices[i].name == "Pitch Stepper" then
-          device = devices[i]
-          break
-      end
-  end
-  
-  if not device then
+  if not mod_set_idx or not dev_idx then
       renoise.app():show_status("There is no Pitch Stepper modulation device in this instrument, doing nothing.")
       return
   end
+
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
 
 if device.name == "Pitch Stepper" then
   device.length = step_count
@@ -494,7 +520,7 @@ if device.name == "Pitch Stepper" then
   end
 
   device.points = points_data
-  renoise.song().selected_instrument.sample_modulation_sets[1].pitch_range = 2
+  instrument.sample_modulation_sets[mod_set_idx].pitch_range = 2
 
   renoise.app():show_status("Pitch Stepper random detune points filled successfully.")
 else 
@@ -508,18 +534,24 @@ local isPitchStepSomewhere
 function PakettiGetVisibleStepperStepSize()
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
+  if not instrument then
     return 64 -- default
   end
   
-  local devices = instrument.sample_modulation_sets[1].devices
   local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Panning Stepper", 
                        "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
   
-  for _, device in ipairs(devices) do
-    for _, stepperType in ipairs(stepperTypes) do
-      if device.name == stepperType and device.external_editor_visible then
-        return device.length
+  -- Search through all modulation sets
+  for mod_set_idx = 1, #instrument.sample_modulation_sets do
+    local mod_set = instrument.sample_modulation_sets[mod_set_idx]
+    if mod_set then
+      local devices = mod_set.devices
+      for _, device in ipairs(devices) do
+        for _, stepperType in ipairs(stepperTypes) do
+          if device.name == stepperType and device.external_editor_visible then
+            return device.length
+          end
+        end
       end
     end
   end
@@ -530,18 +562,24 @@ end
 function PakettiGetVisibleStepperType()
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
+  if not instrument then
     return 0 -- no selection
   end
   
-  local devices = instrument.sample_modulation_sets[1].devices
   local stepperTypes = {"Volume Stepper", "Panning Stepper", "Pitch Stepper", 
                        "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
   
-  for _, device in ipairs(devices) do
-    for i, stepperType in ipairs(stepperTypes) do
-      if device.name == stepperType and device.external_editor_visible then
-        return i
+  -- Search through all modulation sets
+  for mod_set_idx = 1, #instrument.sample_modulation_sets do
+    local mod_set = instrument.sample_modulation_sets[mod_set_idx]
+    if mod_set then
+      local devices = mod_set.devices
+      for _, device in ipairs(devices) do
+        for i, stepperType in ipairs(stepperTypes) do
+          if device.name == stepperType and device.external_editor_visible then
+            return i
+          end
+        end
       end
     end
   end
@@ -588,22 +626,28 @@ end
 function PakettiChangeVisibleStepperStepSize(step_size)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local devices = instrument.sample_modulation_sets[1].devices
   local changed_count = 0
   local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Panning Stepper", 
                        "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
   
-  for _, device in ipairs(devices) do
-    for _, stepperType in ipairs(stepperTypes) do
-      if device.name == stepperType and device.external_editor_visible then
-        -- Only change the length, preserve existing data!
-        device.length = step_size
-        changed_count = changed_count + 1
+  -- Search through all modulation sets
+  for mod_set_idx = 1, #instrument.sample_modulation_sets do
+    local mod_set = instrument.sample_modulation_sets[mod_set_idx]
+    if mod_set then
+      local devices = mod_set.devices
+      for _, device in ipairs(devices) do
+        for _, stepperType in ipairs(stepperTypes) do
+          if device.name == stepperType and device.external_editor_visible then
+            -- Only change the length, preserve existing data!
+            device.length = step_size
+            changed_count = changed_count + 1
+          end
+        end
       end
     end
   end
@@ -623,18 +667,13 @@ function PakettiShowStepper(deviceName)
         return
     end
     
-    if not instrument.sample_modulation_sets[1] then
-        renoise.app():show_status("This Instrument has no modulation devices, doing nothing.")
-        return
-    end
-    
-    local deviceIndex = findStepperDeviceIndex(deviceName)
-    if not deviceIndex then
+    local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+    if not mod_set_idx or not dev_idx then
         renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
         return
     end
     
-    local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+    local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
     local was_visible = device.external_editor_visible
     device.external_editor_visible = not was_visible
     
@@ -681,22 +720,15 @@ function PakettiSetStepperVisible(deviceName, visible, skip_switch_update)
         return
     end
     
-    if not instrument.sample_modulation_sets[1] then
-        if visible then
-            renoise.app():show_status("This Instrument has no modulation devices, doing nothing.")
-        end
-        return
-    end
-    
-    local deviceIndex = findStepperDeviceIndex(deviceName)
-    if not deviceIndex then
+    local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+    if not mod_set_idx or not dev_idx then
         if visible then
             renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
         end
         return
     end
     
-    local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+    local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
     device.external_editor_visible = visible
     
     -- Setup instrument awareness if not already done
@@ -743,12 +775,18 @@ function PakettiCreateStepperDialogContent(vb_instance)
         
         -- First hide all visible steppers
         local instrument = renoise.song().selected_instrument
-        if instrument and instrument.sample_modulation_sets[1] then
-          local devices = instrument.sample_modulation_sets[1].devices
-          for _, device in ipairs(devices) do
-            for _, stepperType in ipairs(stepperTypes) do
-              if device.name == stepperType then
-                device.external_editor_visible = false
+        if instrument then
+          -- Search through all modulation sets
+          for mod_set_idx = 1, #instrument.sample_modulation_sets do
+            local mod_set = instrument.sample_modulation_sets[mod_set_idx]
+            if mod_set then
+              local devices = mod_set.devices
+              for _, device in ipairs(devices) do
+                for _, stepperType in ipairs(stepperTypes) do
+                  if device.name == stepperType then
+                    device.external_editor_visible = false
+                  end
+                end
               end
             end
           end
@@ -945,18 +983,24 @@ end
 function PakettiGetVisibleStepperName()
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
+  if not instrument then
     return nil
   end
   
-  local devices = instrument.sample_modulation_sets[1].devices
   local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Panning Stepper", 
                        "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
   
-  for _, device in ipairs(devices) do
-    for _, stepperType in ipairs(stepperTypes) do
-      if device.name == stepperType and device.external_editor_visible then
-        return stepperType
+  -- Search through all modulation sets
+  for mod_set_idx = 1, #instrument.sample_modulation_sets do
+    local mod_set = instrument.sample_modulation_sets[mod_set_idx]
+    if mod_set then
+      local devices = mod_set.devices
+      for _, device in ipairs(devices) do
+        for _, stepperType in ipairs(stepperTypes) do
+          if device.name == stepperType and device.external_editor_visible then
+            return stepperType
+          end
+        end
       end
     end
   end
@@ -992,10 +1036,10 @@ function PakettiFillVisibleStepperFluctuate()
   -- For other steppers, use gentle random variation
   if visible_stepper == "Pitch Stepper" then
     local instrument = renoise.song().selected_instrument
-    if instrument and instrument.sample_modulation_sets[1] then
-      local deviceIndex = findStepperDeviceIndex(visible_stepper)
-      if deviceIndex then
-        local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+    if instrument then
+      local mod_set_idx, dev_idx = PakettiFindStepperDevice(visible_stepper)
+      if mod_set_idx and dev_idx then
+        local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
         local current_step_count = device.length
         PakettiFillPitchStepperDigits(0.015, current_step_count)
       end
@@ -1009,18 +1053,18 @@ end
 function PakettiFillStepperGentleFluctuation(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with gentle fluctuation around center values
   device:clear_points()
@@ -1063,18 +1107,18 @@ end
 function PakettiFillStepperFull(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with 1.0 for all steps
   device:clear_points()
@@ -1099,18 +1143,18 @@ end
 function PakettiFillStepperRampUp(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with ramp from 0 to 1
   device:clear_points()
@@ -1136,18 +1180,18 @@ end
 function PakettiFillStepperRampDown(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with ramp from 1 to 0
   device:clear_points()
@@ -1173,18 +1217,18 @@ end
 function PakettiFillStepperMiddle(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with 0.5 for all steps
   device:clear_points()
@@ -1209,18 +1253,18 @@ end
 function PakettiFillStepperSinewave(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with sine wave
   device:clear_points()
@@ -1248,18 +1292,18 @@ end
 function PakettiFillStepperSquarewave(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with square wave (0→1 switching at midpoint)
   device:clear_points()
@@ -1286,18 +1330,18 @@ end
 function PakettiFillStepperOff(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with 0.0 for all steps
   device:clear_points()
@@ -1318,18 +1362,18 @@ end
 function PakettiFillStepperMirror(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   print("=== MIRROR DEBUG START ===")
   print("Device name:", deviceName)
@@ -1383,18 +1427,18 @@ end
 function PakettiFillStepperFlip(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   print("=== FLIP DEBUG START ===")
   print("Device name:", deviceName)
@@ -1450,18 +1494,18 @@ end
 function PakettiFillStepperHumanize(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Check if there are points to humanize
   if #device.points == 0 then
@@ -1523,18 +1567,18 @@ end
 function PakettiFillStepperTriangle(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with triangle wave (0.5 → 1.0 → 0.0 → 0.5)
   device:clear_points()
@@ -1569,18 +1613,18 @@ end
 function PakettiFillStepperSawtooth(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with sawtooth wave (0.5 → 1.0 → 0.0 → 0.5)
   device:clear_points()
@@ -1612,18 +1656,18 @@ end
 function PakettiFillStepperSteps(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Clear existing points and fill with discrete steps
   device:clear_points()
@@ -1647,18 +1691,18 @@ end
 function PakettiSmoothStepperValues(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Check if there are points to smooth
   if #device.points == 0 then
@@ -1714,18 +1758,18 @@ end
 function PakettiScaleStepperValues(deviceName, scale_factor)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Check if there are points to scale
   if #device.points == 0 then
@@ -1775,18 +1819,18 @@ end
 function PakettiQuantizeStepperValues(deviceName)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Get existing points
   local existing_points = {}
@@ -1834,18 +1878,18 @@ end
 function PakettiOffsetStepperValues(deviceName, offset_amount)
   local instrument = renoise.song().selected_instrument
   
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(deviceName)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(deviceName)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Check if there are points to offset
   if #device.points == 0 then
@@ -1937,18 +1981,18 @@ function PakettiCopyStepperData()
   end
   
   local instrument = renoise.song().selected_instrument
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(visible_stepper)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(visible_stepper)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", visible_stepper))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   
   -- Copy exactly what exists - no filling in missing steps
   copied_stepper_data = {}
@@ -1976,18 +2020,18 @@ function PakettiPasteStepperData()
   end
   
   local instrument = renoise.song().selected_instrument
-  if not instrument or not instrument.sample_modulation_sets[1] then
-    renoise.app():show_status("No valid instrument or modulation devices found.")
+  if not instrument then
+    renoise.app():show_status("No valid instrument found.")
     return
   end
   
-  local deviceIndex = findStepperDeviceIndex(visible_stepper)
-  if not deviceIndex then
+  local mod_set_idx, dev_idx = PakettiFindStepperDevice(visible_stepper)
+  if not mod_set_idx or not dev_idx then
     renoise.app():show_status(string.format("There is no %s device in this instrument.", visible_stepper))
     return
   end
   
-  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
   local copied_length = #copied_stepper_data
   
   -- FIRST: Clear the visible stepper completely
@@ -2067,10 +2111,10 @@ function PakettiFillVisibleStepperMinorDetune()
   
   if visible_stepper == "Pitch Stepper" then
     local instrument = renoise.song().selected_instrument
-    if instrument and instrument.sample_modulation_sets[1] then
-      local deviceIndex = findStepperDeviceIndex(visible_stepper)
-      if deviceIndex then
-        local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+    if instrument then
+      local mod_set_idx, dev_idx = PakettiFindStepperDevice(visible_stepper)
+      if mod_set_idx and dev_idx then
+        local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
         local current_step_count = device.length
         PakettiFillPitchStepperDigits(0.015, current_step_count)
       end
@@ -2089,10 +2133,10 @@ function PakettiFillVisibleStepperHardDetune()
   
   if visible_stepper == "Pitch Stepper" then
     local instrument = renoise.song().selected_instrument
-    if instrument and instrument.sample_modulation_sets[1] then
-      local deviceIndex = findStepperDeviceIndex(visible_stepper)
-      if deviceIndex then
-        local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+    if instrument then
+      local mod_set_idx, dev_idx = PakettiFindStepperDevice(visible_stepper)
+      if mod_set_idx and dev_idx then
+        local device = instrument.sample_modulation_sets[mod_set_idx].devices[dev_idx]
         local current_step_count = device.length
         PakettiFillPitchStepperDigits(0.05, current_step_count)
       end

@@ -38,7 +38,7 @@
   <dynamic_view01_instrument_box_visible_step3>1.0</dynamic_view01_instrument_box_visible_step3>
   <dynamic_view01_instrument_box_slot_size_step3>4</dynamic_view01_instrument_box_slot_size_step3>
   <dynamic_view01_pattern_matrix_visible_step3>1.0</dynamic_view01_pattern_matrix_visible_step3>
-  <dynamic_view01_pattern_advanced_edit_visible_step3>2</dynamic_view01_pattern_advanced_edit_visible_step3>
+  <dynamic_view01_pattern_advanced_edit_visible_step3>3</dynamic_view01_pattern_advanced_edit_visible_step3>
   <dynamic_view01_instrument_editor_detached_step3>1.0</dynamic_view01_instrument_editor_detached_step3>
   <dynamic_view01_mixer_view_detached_step3>1.0</dynamic_view01_mixer_view_detached_step3>
   <dynamic_view01_metronome_step3>1.0</dynamic_view01_metronome_step3>
@@ -720,7 +720,7 @@
   <dynamic_view06_edit_mode_step8>1.0</dynamic_view06_edit_mode_step8>
   <dynamic_view06_follow_pattern_step8>1.0</dynamic_view06_follow_pattern_step8>
   <dynamic_view06_play_step8>1.0</dynamic_view06_play_step8>
-  <dynamic_view07_upper_step1>1.0</dynamic_view07_upper_step1>
+  <dynamic_view07_upper_step1>3</dynamic_view07_upper_step1>
   <dynamic_view07_middle_step1>1.0</dynamic_view07_middle_step1>
   <dynamic_view07_lower_step1>1.0</dynamic_view07_lower_step1>
   <dynamic_view07_sample_record_visible_step1>1.0</dynamic_view07_sample_record_visible_step1>
@@ -735,7 +735,7 @@
   <dynamic_view07_edit_mode_step1>1.0</dynamic_view07_edit_mode_step1>
   <dynamic_view07_follow_pattern_step1>1.0</dynamic_view07_follow_pattern_step1>
   <dynamic_view07_play_step1>1.0</dynamic_view07_play_step1>
-  <dynamic_view07_upper_step2>1.0</dynamic_view07_upper_step2>
+  <dynamic_view07_upper_step2>4</dynamic_view07_upper_step2>
   <dynamic_view07_middle_step2>1.0</dynamic_view07_middle_step2>
   <dynamic_view07_lower_step2>1.0</dynamic_view07_lower_step2>
   <dynamic_view07_sample_record_visible_step2>1.0</dynamic_view07_sample_record_visible_step2>
@@ -750,7 +750,7 @@
   <dynamic_view07_edit_mode_step2>1.0</dynamic_view07_edit_mode_step2>
   <dynamic_view07_follow_pattern_step2>1.0</dynamic_view07_follow_pattern_step2>
   <dynamic_view07_play_step2>1.0</dynamic_view07_play_step2>
-  <dynamic_view07_upper_step3>1.0</dynamic_view07_upper_step3>
+  <dynamic_view07_upper_step3>2</dynamic_view07_upper_step3>
   <dynamic_view07_middle_step3>1.0</dynamic_view07_middle_step3>
   <dynamic_view07_lower_step3>1.0</dynamic_view07_lower_step3>
   <dynamic_view07_sample_record_visible_step3>1.0</dynamic_view07_sample_record_visible_step3>

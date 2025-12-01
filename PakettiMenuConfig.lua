@@ -1399,6 +1399,8 @@ renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Wipe&Slice:Wipe Slic
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Double Slices",invoke=function() doubleslices() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Halve Slices",invoke=function() halveslices() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Slice Count From Selection",invoke=function() pakettiSlicesFromSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Slice Count From Selection",invoke=function() pakettiSlicesFromSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Flood Fill Slices with Current Selection",invoke=function() pakettiSlicesFromSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Prepare Sample for Slicing (Setup + First Slice + Write Note)",invoke=function() prepare_sample_for_slicing() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Auto-Slice Using First Slice Length",invoke=function() detect_first_slice_and_auto_slice() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Select Beat Range 1.0.0 to 9.0.0 (Verification)",invoke=function() select_beat_range_for_verification() end}

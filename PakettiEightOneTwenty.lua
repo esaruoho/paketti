@@ -3890,7 +3890,8 @@ function pakettiEightSlotsByOneTwentyDialog()
   end
 
   -- Global BeatSync Mode (auto-applies on change to all)
-  local global_mode_popup = vb:popup{
+  local global_mode_popup
+  global_mode_popup = vb:popup{
     items = mode_items,
     width = 110,
     value = 1,
@@ -3979,6 +3980,59 @@ function pakettiEightSlotsByOneTwentyDialog()
     end
   }
 
+  -- Global Beatsync Lines (auto-applies on change to all)
+  local global_beatsync_lines_items = {"<None>","16","32","64","128","192","256","512"}
+  local global_beatsync_lines_popup
+  global_beatsync_lines_popup = vb:popup{
+    items = global_beatsync_lines_items,
+    width = 80,
+    value = 1,  -- Start at "<None>"
+    notifier=function()
+      local val = global_beatsync_lines_popup.value
+      
+      -- If "<None>" is selected, don't apply anything
+      if val == 1 then
+        renoise.app():show_status("Global Beatsync Lines: <None> selected - no changes applied")
+        return
+      end
+      
+      -- Convert popup value to actual beatsync lines value
+      local beatsync_values = {16, 32, 64, 128, 192, 256, 512}
+      local lines_val = beatsync_values[val - 1]
+      local total_samples_affected = 0
+      
+      for i=1,8 do
+        local re = rows[i]
+        if re then
+          local inst_idx = re.instrument_popup and re.instrument_popup.value
+          local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+          if inst and inst.samples then
+            -- Check if it's a sliced instrument (first sample has slice markers)
+            local first_sample = inst.samples[1]
+            if first_sample and #first_sample.slice_markers > 0 then
+              -- Apply to first sample only for sliced instruments
+              first_sample.beat_sync_enabled = true
+              first_sample.beat_sync_lines = lines_val
+              total_samples_affected = total_samples_affected + 1
+            else
+              -- Apply to ALL samples in this instrument
+              for sample_idx, sample in ipairs(inst.samples) do
+                sample.beat_sync_enabled = true
+                sample.beat_sync_lines = lines_val
+                total_samples_affected = total_samples_affected + 1
+              end
+            end
+          end
+        end
+      end
+      
+      renoise.app():show_status(string.format("Global Beatsync Lines: Set %d lines on %d samples across all 8 instruments", lines_val, total_samples_affected))
+      
+      -- Reset dropdown back to <None> after applying
+      global_beatsync_lines_popup.value = 1
+    end
+  }
+
   -- NNA per-instrument row
   local nna_row = vb:row{}
   local nna_popups = {}
@@ -4062,7 +4116,8 @@ function pakettiEightSlotsByOneTwentyDialog()
       beatsync_modes_row,
       
       vb:row{nna_row},
-      vb:row{vb:text{text="Global Beatsync", font="bold", style="strong", width=60}, global_mode_popup, vb:space{width=8}, vb:text{text="Global NNA", font="bold", style="strong", width=40}, global_nna_popup}
+      vb:row{vb:text{text="Global Beatsync", font="bold", style="strong", width=60}, global_mode_popup,       vb:text{text="Global Beatsync Lines", font="bold", style="strong", width=90}, global_beatsync_lines_popup,vb:space{width=8}, vb:text{text="Global NNA", font="bold", style="strong", width=40}, global_nna_popup}
+
     }
   }
   --dc:add_child(vb:space{height=6})

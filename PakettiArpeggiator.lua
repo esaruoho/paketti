@@ -1078,7 +1078,7 @@ function PakettiArp_UpdateChordButtonColors()
           elseif is_selected then
             btn.color = {255, 187, 0} -- Orange for selected
           else
-            btn.color = nil -- Default
+            btn.color = {64, 64, 64} -- Default grey
           end
         end
       end
@@ -1368,7 +1368,7 @@ function PakettiArp_ShowDialog()
         text = tostring(c) .. ":",
         width = 70,
         height = 20,
-        color = is_current_chord and PakettiArp_highlight_color or nil,
+        color = is_current_chord and PakettiArp_highlight_color or {64, 64, 64},
         notifier = function()
           -- Jump to this chord position during playback
           if PakettiArp_continuous_playing then
@@ -1390,7 +1390,7 @@ function PakettiArp_ShowDialog()
         text = PakettiArp_roman_numerals[degree],
         width = 70,
         height = 25,
-        color = is_auditioning and PakettiArp_highlight_color or (is_selected and {255, 187, 0} or nil),
+        color = is_auditioning and PakettiArp_highlight_color or (is_selected and {255, 187, 0} or {64, 64, 64}),
         notifier = function()
           -- Update progression silently
           PakettiArp_chord_progression[chord_index] = degree_val

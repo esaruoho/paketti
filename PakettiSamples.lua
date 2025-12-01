@@ -3746,8 +3746,8 @@ function PakettiInjectDefaultXRNI()
         to_sample.autoseek = from_sample.autoseek
         to_sample.autofade = from_sample.autofade
         to_sample.loop_mode = from_sample.loop_mode
-        -- Only copy loop indices if loop mode is not OFF and source has valid loop markers
-        if from_sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF and #from_sample.sample_buffer.loop_markers > 0 then
+        -- Only copy loop indices if loop mode is not OFF and source has valid sample data
+        if from_sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF and from_sample.sample_buffer.has_sample_data then
           to_sample.loop_start = from_sample.loop_start
           to_sample.loop_end = from_sample.loop_end
         end

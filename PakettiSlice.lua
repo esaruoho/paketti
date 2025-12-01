@@ -2245,7 +2245,7 @@ renoise.tool():add_midi_mapping{
 }
 
 renoise.tool():add_midi_mapping{
-  name="Paketti:Real-Time Slice Insert Marker",
+  name="Paketti:Real-Time Slice Insert Marker at Current Position",
   invoke=function(message) 
     if message:is_trigger() then 
       pakettiRealtimeSliceInsertMarker() 

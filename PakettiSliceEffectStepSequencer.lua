@@ -584,7 +584,7 @@ function PakettiSliceStepSmartTranspose(transpose_value)
       local track_in_pattern = pattern.tracks[current_track_index]
       
       -- Check all lines in this track
-      for line_index = 1, track_in_pattern.number_of_lines do
+      for line_index = 1, pattern.number_of_lines do
         local line = track_in_pattern:line(line_index)
         
         -- Check all note columns for instruments
