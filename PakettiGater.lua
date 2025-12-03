@@ -2183,7 +2183,7 @@ function insert_commands()
     local track = pattern:track(track_index)
     local visible_note_columns = renoise.song().tracks[track_index].visible_note_columns
 
-    -- IMPORTANT: Only clear retrig columns if we're actually writing to them
+    -- Check if any retrig checkboxes are enabled
     local retrig_is_empty = true
     for i = 1, num_checkboxes do
       if retrig_checkboxes[i].value then
@@ -2192,30 +2192,39 @@ function insert_commands()
       end
     end
     
-    -- Only clear retrig columns if we're actually writing retrig values
-    if not retrig_is_empty then
-      if retrig_column_choice == "FX Column" then
-        for i = 1, max_rows do
-          local line = pattern:track(track_index):line(i)
+    -- Always clear retrig columns first (whether we're writing new values or removing all)
+    if retrig_column_choice == "FX Column" then
+      for i = 1, max_rows do
+        local line = pattern:track(track_index):line(i)
+        -- Only clear if it's actually a retrig effect (0R)
+        if line.effect_columns[2].number_string == "0R" then
           line.effect_columns[2].number_string = ""
           line.effect_columns[2].amount_string = ""
         end
-      elseif retrig_column_choice == "Volume Column" then
-        -- Only clear if not used by volume gater
-        if column_choice ~= "Volume Column" then
-          for i = 1, max_rows do
-            local line = pattern:track(track_index):line(i)
-            for j = 1, visible_note_columns do
+      end
+    elseif retrig_column_choice == "Volume Column" then
+      -- Only clear if not used by volume gater
+      if column_choice ~= "Volume Column" then
+        for i = 1, max_rows do
+          local line = pattern:track(track_index):line(i)
+          for j = 1, visible_note_columns do
+            local vol_string = line:note_column(j).volume_string
+            -- Only clear retrig values (R0-RF), not volume values
+            if string.sub(vol_string, 1, 1) == "R" then
               line:note_column(j).volume_string = ""
             end
           end
         end
-      elseif retrig_column_choice == "Panning Column" then
-        -- Only clear if not used by panning gater
-        if panning_column_choice ~= "Panning Column" then
-          for i = 1, max_rows do
-            local line = pattern:track(track_index):line(i)
-            for j = 1, visible_note_columns do
+      end
+    elseif retrig_column_choice == "Panning Column" then
+      -- Only clear if not used by panning gater
+      if panning_column_choice ~= "Panning Column" then
+        for i = 1, max_rows do
+          local line = pattern:track(track_index):line(i)
+          for j = 1, visible_note_columns do
+            local pan_string = line:note_column(j).panning_string
+            -- Only clear retrig values (R0-RF), not panning values
+            if string.sub(pan_string, 1, 1) == "R" then
               line:note_column(j).panning_string = ""
             end
           end
@@ -2399,6 +2408,15 @@ function insert_commands()
       if playback_checkboxes[i].value then
         any_playback_checked = true
         break
+      end
+    end
+
+    -- Always clear playback effects first (whether we're writing new values or removing all)
+    for i = 1, max_rows do
+      local line = pattern:track(track_index):line(i)
+      if line.effect_columns[3].number_string == "0B" then
+        line.effect_columns[3].number_string = ""
+        line.effect_columns[3].amount_string = ""
       end
     end
 

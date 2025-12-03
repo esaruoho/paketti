@@ -4869,6 +4869,11 @@ function loadSequentialSamplesWithFolderPrompts()
           sample.sample_mapping.velocity_range = {0, 0}
         end
         instrument.samples[1].sample_mapping.velocity_range = {0, 127}
+        -- Add *Instr. Macros device to each track if enabled in preferences
+        if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
+          renoise.song().selected_track_index = i
+          PakettiEightOneTwentyAddInstrMacrosToTrack(i)
+        end
       end
     end
     

@@ -255,21 +255,44 @@ function App:autoconfigure()
     return false,err 
   end 
   
-  local config_path = App.guess_path_to_config()
+  -- Pass the exe_path to guess_path_to_config for appPath-based detection
+  local config_path = App.guess_path_to_config(exe_path)
   LOG("*** autoconfigure: detected config path:", config_path or "nil")
-  if not config_path then
-    LOG("*** autoconfigure: config path is nil - detection failed")
+  
+  -- Check if config_path is nil OR if it doesn't actually exist
+  local config_valid = config_path and io.exists(config_path)
+  
+  if not config_valid then
+    LOG("*** autoconfigure: config path is nil or invalid - detection failed")
     
-    -- Provide helpful error message for Linux
+    -- Provide helpful error message for Linux and open browse dialog
     local platform = os.platform()
     if (platform == "LINUX") then
-      local helpful_err = "Sononym configuration directory not found. Please:\n" ..
-        "1. Run Sononym at least once to create the configuration\n" ..
-        "2. The config should be created at: ~/.config/Sononym/[version]/query.json\n" ..
-        "3. Or manually set the ConfigPath to your query.json file location"
-      return false, helpful_err
+      renoise.app():show_message(
+        "Sononym configuration (query.json) could not be detected automatically.\n\n" ..
+        "To find the correct path:\n" ..
+        "1. Open Sononym\n" ..
+        "2. Click 'Help -> Show Log File...'\n" ..
+        "3. Note the directory path where the log file is located\n" ..
+        "4. The query.json file should be in that same directory\n\n" ..
+        "A file browser will now open so you can select the query.json file."
+      )
+      -- Open the browse dialog
+      self:pick_path_to_config()
+      -- Check if user selected a valid path
+      local selected_path = self.preferences.SononymphPathToConfig.value
+      if selected_path and selected_path ~= "" and io.exists(selected_path) then
+        LOG("*** autoconfigure: user selected valid config path:", selected_path)
+        return true
+      else
+        return false, "No valid configuration path selected"
+      end
     else
-      return false, "No Sononym configuration found - please run Sononym first"
+      if not config_path then
+        return false, "No Sononym configuration found - please run Sononym first"
+      else
+        return false, "Detected configuration path does not exist: " .. config_path
+      end
     end
   end
   
@@ -1482,7 +1505,8 @@ end
 
 ---------------------------------------------------------------------------------------------------
 -- attempt to resolve the location of 'query.json' with version detection
-function App.guess_path_to_config()
+-- @param exe_path (optional) path to Sononym executable, used for appPath-based detection on Linux
+function App.guess_path_to_config(exe_path)
   TRACE("App.guess_path_to_config()")
   
   local versions = App.find_sononym_versions()
@@ -1517,6 +1541,70 @@ function App.guess_path_to_config()
           end
         end
       end
+      
+      -- AppPath-based detection: if exe_path is provided, check relative to it
+      if exe_path and exe_path ~= "" then
+        LOG("Linux - Trying appPath-based detection from exe_path:", exe_path)
+        -- Get the directory containing the executable
+        local exe_dir = exe_path:match("(.*[/\\])")
+        if exe_dir then
+          LOG("Linux - Exe directory:", exe_dir)
+          
+          -- Check for .config subdirectory relative to exe
+          local app_config_path = exe_dir .. ".config/"
+          LOG("Linux - Checking for .config at:", app_config_path)
+          if io.exists(app_config_path) then
+            local dirs = os.dirnames(app_config_path)
+            if dirs then
+              for _, dir in ipairs(dirs) do
+                -- Check for version directories or direct query.json
+                if string.match(dir, "^%d+%.%d+") then
+                  local query_path = app_config_path .. dir .. "/query.json"
+                  LOG("Linux appPath - checking version dir:", query_path)
+                  if io.exists(query_path) then
+                    LOG("Linux appPath - Found query.json at:", query_path)
+                    return query_path
+                  end
+                end
+              end
+            end
+          end
+          
+          -- Check for version directories directly in exe_dir (e.g., /path/to/Sononym/1.6.1/query.json)
+          local dirs = os.dirnames(exe_dir)
+          if dirs then
+            for _, dir in ipairs(dirs) do
+              if string.match(dir, "^%d+%.%d+") then
+                local query_path = exe_dir .. dir .. "/query.json"
+                LOG("Linux appPath - checking version subdir:", query_path)
+                if io.exists(query_path) then
+                  LOG("Linux appPath - Found query.json in version subdir:", query_path)
+                  return query_path
+                end
+              end
+            end
+          end
+          
+          -- Check for Sononym subdirectory with .config (e.g., /path/to/Sononym/.config/Sononym/1.6.1/)
+          local sononym_config = exe_dir .. ".config/Sononym/"
+          LOG("Linux appPath - checking Sononym config dir:", sononym_config)
+          if io.exists(sononym_config) then
+            local version_dirs = os.dirnames(sononym_config)
+            if version_dirs then
+              for _, dir in ipairs(version_dirs) do
+                if string.match(dir, "^%d+%.%d+") then
+                  local query_path = sononym_config .. dir .. "/query.json"
+                  LOG("Linux appPath - checking Sononym version:", query_path)
+                  if io.exists(query_path) then
+                    LOG("Linux appPath - Found query.json in Sononym config:", query_path)
+                    return query_path
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
     end
     
     LOG("*** guess_path_to_config: returning nil (no versions found)")
@@ -1538,16 +1626,29 @@ end
 
 function OpenConfigPath()
   local config_path = renoise.tool().preferences.SononymphPathToConfig.value
-  local directory_path = config_path:match("(.*/)")
+  if not config_path or config_path == "" then
+    renoise.app():show_status("Sononym config path is not set.")
+    return
+  end
+  -- Handle both Unix (/) and Windows (\) path separators
+  local directory_path = config_path:match("(.*[/\\])")
+  if not directory_path then
+    renoise.app():show_status("Could not determine directory from config path: " .. config_path)
+    return
+  end
   oprint(os.platform())
   oprint(directory_path)
   oprint(config_path)
   local command
   local os_name = os.platform()
 
-  if os_name == "WINDOWS" then command = 'start "" "' .. directory_path .. '"'
-  elseif os_name == "MACINTOSH" then command = 'open "' .. directory_path .. '"'
-  else os_name = 'xdg-open "' .. directory_path .. '"' end
+  if os_name == "WINDOWS" then 
+    command = 'start "" "' .. directory_path .. '"'
+  elseif os_name == "MACINTOSH" then 
+    command = 'open "' .. directory_path .. '"'
+  else 
+    command = 'xdg-open "' .. directory_path .. '"'
+  end
   os.execute(command .. " &")
 end
 

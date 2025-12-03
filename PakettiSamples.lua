@@ -7826,6 +7826,67 @@ renoise.tool():add_keybinding{name="Global:Paketti:Detect and Correct Single-Cyc
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Frequency to Note Analysis",invoke = PakettiSamplesFrequencyToNoteAnalysis}
 renoise.tool():add_keybinding{name="Global:Paketti:Frequency to Note Analysis",invoke = PakettiSamplesFrequencyToNoteAnalysis}
 
+-- Select N bars based on current BPM (DRY principle)
+function PakettiSamplesSelectBars(num_bars)
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_status("No song loaded")
+    return
+  end
+  
+  local selected_sample = song.selected_sample
+  if not selected_sample then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local sample_buffer = selected_sample.sample_buffer
+  if not sample_buffer or not sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample data available")
+    return
+  end
+  
+  local bpm = song.transport.bpm
+  local sample_rate = sample_buffer.sample_rate
+  local total_frames = sample_buffer.number_of_frames
+  
+  -- Calculate frames per beat: (60 seconds / bpm) * sample_rate
+  local frames_per_beat = (60 / bpm) * sample_rate
+  
+  -- Calculate frames for N bars (4 beats per bar)
+  local beats_total = num_bars * 4
+  local frames_for_bars = math.floor(frames_per_beat * beats_total)
+  
+  -- Ensure we don't exceed sample bounds
+  local end_frame = math.min(frames_for_bars, total_frames)
+  
+  -- Set the selection range from frame 1 to calculated end
+  sample_buffer.selection_range = {1, end_frame}
+  
+  -- Show status with useful information
+  local bars_actual = end_frame / frames_per_beat / 4
+  renoise.app():show_status(string.format(
+    "Selected %d bar%s at %d BPM: frames 1-%d (%.2f bars of sample)",
+    num_bars, num_bars == 1 and "" or "s", bpm, end_frame, bars_actual
+  ))
+end
+
+-- Menu entries and keybindings
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Select Bars (BPM):Select 1 Bar", invoke = function() PakettiSamplesSelectBars(1) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Select Bars (BPM):Select 2 Bars", invoke = function() PakettiSamplesSelectBars(2) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Select Bars (BPM):Select 4 Bars", invoke = function() PakettiSamplesSelectBars(4) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Select Bars (BPM):Select 8 Bars", invoke = function() PakettiSamplesSelectBars(8) end}
+
+renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Select 1 Bar (Based on BPM)", invoke = function() PakettiSamplesSelectBars(1) end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Select 2 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(2) end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Select 4 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(4) end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Select 8 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(8) end}
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select 1 Bar (Based on BPM)", invoke = function() PakettiSamplesSelectBars(1) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select 2 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(2) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select 4 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(4) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select 8 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(8) end}
+
 -- Quick keybindings for append operations
 function PakettiAppendRandomSamplesQuick(num_samples)
   local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")

@@ -726,7 +726,7 @@ function pakettiRandomizeBPMNow()
 end
 
 -- Automatic Rename Track system
-local automatic_rename_timer = nil
+local automatic_rename_timer_func = nil
 local last_rename_time = 0
 
 function pakettiStartAutomaticRenameTrack()
@@ -738,8 +738,8 @@ function pakettiStartAutomaticRenameTrack()
     rename_tracks_by_played_samples()
   end
   
-  -- Start the automatic rename timer using app_idle_observable
-  automatic_rename_timer = renoise.tool().app_idle_observable:add_notifier(function()
+  -- Create the timer function and store the reference BEFORE adding as notifier
+  automatic_rename_timer_func = function()
     local current_time = os.clock()
     
     -- Only run every 200ms (0.2 seconds)
@@ -752,13 +752,18 @@ function pakettiStartAutomaticRenameTrack()
         rename_selected_track_by_played_samples()
       end
     end
-  end)
+  end
+  
+  -- Add the stored function reference as notifier
+  renoise.tool().app_idle_observable:add_notifier(automatic_rename_timer_func)
 end
 
 function pakettiStopAutomaticRenameTrack()
-  if automatic_rename_timer then
-    renoise.tool().app_idle_observable:remove_notifier(automatic_rename_timer)
-    automatic_rename_timer = nil
+  if automatic_rename_timer_func then
+    if renoise.tool().app_idle_observable:has_notifier(automatic_rename_timer_func) then
+      renoise.tool().app_idle_observable:remove_notifier(automatic_rename_timer_func)
+    end
+    automatic_rename_timer_func = nil
   end
 end
 
@@ -848,6 +853,7 @@ timed_require("PakettiBeatDetect")
 
 timed_require("PakettiAudioProcessing")
 timed_require("PakettiPatternEditorCheatSheet")
+timed_require("PakettiZDxx")
 timed_require("PakettiThemeSelector")
 timed_require("PakettiMidiPopulator")
 timed_require("PakettiGater")
