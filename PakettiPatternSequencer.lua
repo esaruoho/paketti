@@ -754,3 +754,123 @@ function PakettiPlayCurrentPatternSequence()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Play Current Pattern Sequence", invoke=PakettiPlayCurrentPatternSequence}
+
+---------
+-- Function to delete all sequences above the selected sequence
+function PakettiDeleteAllSequencesAbove()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local current_sequence = song.selected_sequence_index
+  
+  -- Check if we're already at the first sequence
+  if current_sequence <= 1 then
+    renoise.app():show_status("No sequences above to delete")
+    return
+  end
+  
+  -- Count how many we're deleting
+  local delete_count = current_sequence - 1
+  
+  -- Delete sequences from (current_sequence - 1) down to 1
+  -- We delete backwards to avoid index shifting issues
+  for i = current_sequence - 1, 1, -1 do
+    sequencer:delete_sequence_at(i)
+  end
+  
+  -- After deletion, the selected sequence is now at index 1
+  song.selected_sequence_index = 1
+  
+  renoise.app():show_status(string.format("Deleted %d sequences above", delete_count))
+end
+
+-- Function to delete all sequences below the selected sequence
+function PakettiDeleteAllSequencesBelow()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local current_sequence = song.selected_sequence_index
+  local total_sequences = #sequencer.pattern_sequence
+  
+  -- Check if we're already at the last sequence
+  if current_sequence >= total_sequences then
+    renoise.app():show_status("No sequences below to delete")
+    return
+  end
+  
+  -- Count how many we're deleting
+  local delete_count = total_sequences - current_sequence
+  
+  -- Delete sequences from end down to (current_sequence + 1)
+  for i = total_sequences, current_sequence + 1, -1 do
+    sequencer:delete_sequence_at(i)
+  end
+  
+  renoise.app():show_status(string.format("Deleted %d sequences below", delete_count))
+end
+
+-- Function to delete all sequences above and below the selected sequence (keep only selected)
+function PakettiDeleteAllSequencesAboveAndBelow()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local current_sequence = song.selected_sequence_index
+  local total_sequences = #sequencer.pattern_sequence
+  
+  -- Check if there's only one sequence
+  if total_sequences <= 1 then
+    renoise.app():show_status("Only one sequence exists, nothing to delete")
+    return
+  end
+  
+  -- Count how many we're deleting
+  local delete_above = current_sequence - 1
+  local delete_below = total_sequences - current_sequence
+  local total_delete = delete_above + delete_below
+  
+  -- First delete all sequences below (from end down to current + 1)
+  for i = total_sequences, current_sequence + 1, -1 do
+    sequencer:delete_sequence_at(i)
+  end
+  
+  -- Then delete all sequences above (from current - 1 down to 1)
+  -- Note: after deleting below, current_sequence index is still valid
+  for i = current_sequence - 1, 1, -1 do
+    sequencer:delete_sequence_at(i)
+  end
+  
+  -- After deletion, the selected sequence is now at index 1
+  song.selected_sequence_index = 1
+  
+  renoise.app():show_status(string.format("Deleted %d sequences (%d above, %d below)", total_delete, delete_above, delete_below))
+end
+
+-- Keybindings for Delete All Sequences Above
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
+renoise.tool():add_keybinding{name="Global:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
+
+-- Keybindings for Delete All Sequences Below
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
+renoise.tool():add_keybinding{name="Global:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
+
+-- Keybindings for Delete All Sequences Above and Below
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
+renoise.tool():add_keybinding{name="Global:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
+
+-- Menu entries for Delete All Sequences Above
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
+
+-- Menu entries for Delete All Sequences Below
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
+
+-- Menu entries for Delete All Sequences Above and Below
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
