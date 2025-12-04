@@ -4433,3 +4433,261 @@ renoise.tool():add_midi_mapping{name="Paketti:Random Slice Distribution",invoke=
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Equal Slice Distribution",invoke=function() PakettiEqualSliceDistribution() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Slices..:Equal Slice Distribution",invoke=function() PakettiEqualSliceDistribution() end}
 renoise.tool():add_midi_mapping{name="Paketti:Equal Slice Distribution",invoke=function(message) if message:is_trigger() then PakettiEqualSliceDistribution() end end}
+
+------------------------------------------------------------------------
+-- Curved Slice Creator
+-- Creates slice markers using different curve distributions
+------------------------------------------------------------------------
+
+PakettiCurvedSliceDialog = nil
+PakettiCurvedSliceVb = nil
+
+function PakettiCurvedSliceCreator()
+    local song = renoise.song()
+    local instrument = song.selected_instrument
+    
+    -- Check if instrument has samples
+    if #instrument.samples == 0 then
+        renoise.app():show_status("No samples in selected instrument")
+        return
+    end
+    
+    local sample = instrument.samples[1]
+    
+    -- Check if sample has data
+    if not sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("Selected sample has no audio data")
+        return
+    end
+    
+    local total_frames = sample.sample_buffer.number_of_frames
+    local sample_rate = sample.sample_buffer.sample_rate
+    local duration_seconds = total_frames / sample_rate
+    
+    -- Close existing dialog if open
+    if PakettiCurvedSliceDialog and PakettiCurvedSliceDialog.visible then
+        PakettiCurvedSliceDialog:close()
+    end
+    
+    local vb = renoise.ViewBuilder()
+    PakettiCurvedSliceVb = vb
+    
+    local default_slices = 16
+    local default_curve = 1
+    
+    local content = vb:column{
+        margin = 10,
+        spacing = 6,
+        
+        vb:row{
+            vb:text{text = "Sample:", width = 80},
+            vb:text{text = sample.name ~= "" and sample.name or "(unnamed)", font = "bold"}
+        },
+        
+        vb:row{
+            vb:text{text = "Duration:", width = 80},
+            vb:text{text = string.format("%.2f sec (%d frames)", duration_seconds, total_frames)}
+        },
+        
+        vb:row{
+            vb:text{text = "Slices:", width = 80},
+            vb:valuebox{
+                id = "slice_count",
+                min = 2,
+                max = 255,
+                value = default_slices,
+                width = 60,
+                tostring = function(value) return string.format("%d", value) end,
+                tonumber = function(str) return tonumber(str) or default_slices end
+            }
+        },
+        
+        vb:row{
+            vb:text{text = "Curve Type:", width = 80},
+            vb:popup{
+                id = "curve_type",
+                items = {
+                    "Linear (even spacing)",
+                    "Logarithmic (front-loaded)",
+                    "Exponential (back-loaded)",
+                    "Down Parabola (U-shape)",
+                    "Up Parabola (inverted U)",
+                    "Double Peak",
+                    "Double Valley"
+                },
+                value = default_curve,
+                width = 180
+            }
+        },
+        
+        vb:row{
+            vb:checkbox{
+                id = "clear_existing",
+                value = true
+            },
+            vb:text{text = "Clear existing slices first"}
+        },
+        
+        vb:row{
+            spacing = 10,
+            vb:button{
+                text = "Create Slices",
+                width = 100,
+                notifier = function()
+                    PakettiCurvedSliceApply()
+                end
+            },
+            vb:button{
+                text = "Preview",
+                width = 80,
+                notifier = function()
+                    PakettiCurvedSlicePreview()
+                end
+            },
+            vb:button{
+                text = "Close",
+                width = 80,
+                notifier = function()
+                    if PakettiCurvedSliceDialog and PakettiCurvedSliceDialog.visible then
+                        PakettiCurvedSliceDialog:close()
+                    end
+                end
+            }
+        },
+        
+        vb:text{
+            id = "preview_text",
+            text = "",
+            font = "mono"
+        }
+    }
+    
+    PakettiCurvedSliceDialog = renoise.app():show_custom_dialog(
+        "Curved Slice Creator",
+        content,
+        my_keyhandler_func
+    )
+    
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+function PakettiCurvedSliceGetCurveType(popup_index)
+    local curve_map = {
+        [1] = "linear",
+        [2] = "logarithmic",
+        [3] = "exponential",
+        [4] = "downParabola",
+        [5] = "upParabola",
+        [6] = "doublePeak",
+        [7] = "doubleValley"
+    }
+    return curve_map[popup_index] or "linear"
+end
+
+function PakettiCurvedSlicePreview()
+    local vb = PakettiCurvedSliceVb
+    if not vb then return end
+    
+    local song = renoise.song()
+    local sample = song.selected_instrument.samples[1]
+    if not sample or not sample.sample_buffer.has_sample_data then return end
+    
+    local total_frames = sample.sample_buffer.number_of_frames
+    local slice_count = vb.views.slice_count.value
+    local curve_type = PakettiCurvedSliceGetCurveType(vb.views.curve_type.value)
+    
+    -- Generate positions
+    local positions = PakettiGenerateCurve(1, total_frames, slice_count, curve_type, false)
+    
+    -- Build preview text showing first and last few positions
+    local preview_lines = {}
+    table.insert(preview_lines, "Slice positions:")
+    
+    local show_count = math.min(6, slice_count)
+    for i = 1, show_count do
+        local percent = (positions[i] / total_frames) * 100
+        table.insert(preview_lines, string.format("  %02d: frame %d (%.1f%%)", i, positions[i], percent))
+    end
+    
+    if slice_count > 6 then
+        table.insert(preview_lines, "  ...")
+        for i = slice_count - 2, slice_count do
+            if i > show_count then
+                local percent = (positions[i] / total_frames) * 100
+                table.insert(preview_lines, string.format("  %02d: frame %d (%.1f%%)", i, positions[i], percent))
+            end
+        end
+    end
+    
+    vb.views.preview_text.text = table.concat(preview_lines, "\n")
+end
+
+function PakettiCurvedSliceApply()
+    local vb = PakettiCurvedSliceVb
+    if not vb then return end
+    
+    local song = renoise.song()
+    local sample = song.selected_instrument.samples[1]
+    if not sample or not sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample data available")
+        return
+    end
+    
+    local total_frames = sample.sample_buffer.number_of_frames
+    local slice_count = vb.views.slice_count.value
+    local curve_type = PakettiCurvedSliceGetCurveType(vb.views.curve_type.value)
+    local clear_existing = vb.views.clear_existing.value
+    
+    print("PakettiCurvedSliceApply: Creating " .. slice_count .. " slices with " .. curve_type .. " curve")
+    
+    -- Clear existing slices if requested
+    if clear_existing then
+        while #sample.slice_markers > 0 do
+            sample:delete_slice_marker(sample.slice_markers[1])
+        end
+        print("PakettiCurvedSliceApply: Cleared existing slice markers")
+    end
+    
+    -- Generate positions using the curve
+    local positions = PakettiGenerateCurve(1, total_frames, slice_count, curve_type, true)
+    
+    -- Insert slice markers
+    local markers_added = 0
+    for i, frame_pos in ipairs(positions) do
+        -- Ensure position is valid (>= 1 and < total_frames)
+        if frame_pos >= 1 and frame_pos < total_frames then
+            -- Check if marker already exists at this position (within a small tolerance)
+            local marker_exists = false
+            for _, existing_marker in ipairs(sample.slice_markers) do
+                if math.abs(existing_marker - frame_pos) < 10 then
+                    marker_exists = true
+                    break
+                end
+            end
+            
+            if not marker_exists then
+                local success, err = pcall(function()
+                    sample:insert_slice_marker(frame_pos)
+                end)
+                
+                if success then
+                    markers_added = markers_added + 1
+                    print(string.format("PakettiCurvedSliceApply: Added marker %d at frame %d", markers_added, frame_pos))
+                else
+                    print(string.format("PakettiCurvedSliceApply: Failed to add marker at frame %d: %s", frame_pos, tostring(err)))
+                end
+            end
+        end
+    end
+    
+    renoise.app():show_status(string.format("Created %d slice markers with %s curve", markers_added, curve_type))
+    
+    -- Close dialog
+    if PakettiCurvedSliceDialog and PakettiCurvedSliceDialog.visible then
+        PakettiCurvedSliceDialog:close()
+    end
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Curved Slice Creator", invoke = PakettiCurvedSliceCreator}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Slices..:Curved Slice Creator", invoke = PakettiCurvedSliceCreator}
+renoise.tool():add_midi_mapping{name="Paketti:Curved Slice Creator", invoke = function(message) if message:is_trigger() then PakettiCurvedSliceCreator() end end}

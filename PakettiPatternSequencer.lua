@@ -756,90 +756,131 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Play Current Pattern Sequence", invoke=PakettiPlayCurrentPatternSequence}
 
 ---------
--- Function to delete all sequences above the selected sequence
+-- Helper function to check if there's a valid selection range in the sequencer
+function PakettiHasValidSequencerSelection()
+  local selection = renoise.song().sequencer.selection_range
+  if selection and #selection == 2 and selection[1] > 0 and selection[2] > 0 then
+    return true, selection[1], selection[2]
+  end
+  return false, nil, nil
+end
+
+-- Function to delete all sequences above the selected sequence or selection
 function PakettiDeleteAllSequencesAbove()
   local song = renoise.song()
   local sequencer = song.sequencer
-  local current_sequence = song.selected_sequence_index
+  
+  -- Check if there's a valid selection range
+  local has_selection, sel_start, sel_end = PakettiHasValidSequencerSelection()
+  local reference_point = has_selection and sel_start or song.selected_sequence_index
   
   -- Check if we're already at the first sequence
-  if current_sequence <= 1 then
+  if reference_point <= 1 then
     renoise.app():show_status("No sequences above to delete")
     return
   end
   
   -- Count how many we're deleting
-  local delete_count = current_sequence - 1
+  local delete_count = reference_point - 1
   
-  -- Delete sequences from (current_sequence - 1) down to 1
+  -- Delete sequences from (reference_point - 1) down to 1
   -- We delete backwards to avoid index shifting issues
-  for i = current_sequence - 1, 1, -1 do
+  for i = reference_point - 1, 1, -1 do
     sequencer:delete_sequence_at(i)
   end
   
-  -- After deletion, the selected sequence is now at index 1
+  -- After deletion, clear selection and move to first sequence
+  sequencer.selection_range = {}
   song.selected_sequence_index = 1
   
-  renoise.app():show_status(string.format("Deleted %d sequences above", delete_count))
+  if has_selection then
+    renoise.app():show_status(string.format("Deleted %d sequences above selection", delete_count))
+  else
+    renoise.app():show_status(string.format("Deleted %d sequences above", delete_count))
+  end
 end
 
--- Function to delete all sequences below the selected sequence
+-- Function to delete all sequences below the selected sequence or selection
 function PakettiDeleteAllSequencesBelow()
   local song = renoise.song()
   local sequencer = song.sequencer
-  local current_sequence = song.selected_sequence_index
   local total_sequences = #sequencer.pattern_sequence
   
+  -- Check if there's a valid selection range
+  local has_selection, sel_start, sel_end = PakettiHasValidSequencerSelection()
+  local reference_point = has_selection and sel_end or song.selected_sequence_index
+  
   -- Check if we're already at the last sequence
-  if current_sequence >= total_sequences then
+  if reference_point >= total_sequences then
     renoise.app():show_status("No sequences below to delete")
     return
   end
   
   -- Count how many we're deleting
-  local delete_count = total_sequences - current_sequence
+  local delete_count = total_sequences - reference_point
   
-  -- Delete sequences from end down to (current_sequence + 1)
-  for i = total_sequences, current_sequence + 1, -1 do
+  -- Delete sequences from end down to (reference_point + 1)
+  for i = total_sequences, reference_point + 1, -1 do
     sequencer:delete_sequence_at(i)
   end
   
-  renoise.app():show_status(string.format("Deleted %d sequences below", delete_count))
+  -- Clear selection after deletion
+  sequencer.selection_range = {}
+  
+  if has_selection then
+    renoise.app():show_status(string.format("Deleted %d sequences below selection", delete_count))
+  else
+    renoise.app():show_status(string.format("Deleted %d sequences below", delete_count))
+  end
 end
 
--- Function to delete all sequences above and below the selected sequence (keep only selected)
+-- Function to delete all sequences above and below the selected sequence or selection (keep only selected/selection)
 function PakettiDeleteAllSequencesAboveAndBelow()
   local song = renoise.song()
   local sequencer = song.sequencer
-  local current_sequence = song.selected_sequence_index
   local total_sequences = #sequencer.pattern_sequence
   
-  -- Check if there's only one sequence
+  -- Check if there's a valid selection range
+  local has_selection, sel_start, sel_end = PakettiHasValidSequencerSelection()
+  local keep_start = has_selection and sel_start or song.selected_sequence_index
+  local keep_end = has_selection and sel_end or song.selected_sequence_index
+  
+  -- Check if there's only one sequence (or selection covers everything)
+  if keep_start == 1 and keep_end == total_sequences then
+    renoise.app():show_status("Nothing to delete - selection covers entire sequence")
+    return
+  end
+  
   if total_sequences <= 1 then
     renoise.app():show_status("Only one sequence exists, nothing to delete")
     return
   end
   
   -- Count how many we're deleting
-  local delete_above = current_sequence - 1
-  local delete_below = total_sequences - current_sequence
+  local delete_above = keep_start - 1
+  local delete_below = total_sequences - keep_end
   local total_delete = delete_above + delete_below
   
-  -- First delete all sequences below (from end down to current + 1)
-  for i = total_sequences, current_sequence + 1, -1 do
+  -- First delete all sequences below (from end down to keep_end + 1)
+  for i = total_sequences, keep_end + 1, -1 do
     sequencer:delete_sequence_at(i)
   end
   
-  -- Then delete all sequences above (from current - 1 down to 1)
-  -- Note: after deleting below, current_sequence index is still valid
-  for i = current_sequence - 1, 1, -1 do
+  -- Then delete all sequences above (from keep_start - 1 down to 1)
+  -- Note: after deleting below, keep_start index is still valid
+  for i = keep_start - 1, 1, -1 do
     sequencer:delete_sequence_at(i)
   end
   
-  -- After deletion, the selected sequence is now at index 1
+  -- After deletion, clear selection and move to first sequence
+  sequencer.selection_range = {}
   song.selected_sequence_index = 1
   
-  renoise.app():show_status(string.format("Deleted %d sequences (%d above, %d below)", total_delete, delete_above, delete_below))
+  if has_selection then
+    renoise.app():show_status(string.format("Deleted %d sequences (%d above, %d below selection)", total_delete, delete_above, delete_below))
+  else
+    renoise.app():show_status(string.format("Deleted %d sequences (%d above, %d below)", total_delete, delete_above, delete_below))
+  end
 end
 
 -- Keybindings for Delete All Sequences Above

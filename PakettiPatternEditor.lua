@@ -9360,3 +9360,338 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Move Select
 -- Add MIDI mappings
 renoise.tool():add_midi_mapping{name="Paketti:Nudge and Move Selection Up", invoke=function(message) if message:is_trigger() then PakettiNudgeAndMoveSelectionUp() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Nudge and Move Selection Down", invoke=function(message) if message:is_trigger() then PakettiNudgeAndMoveSelectionDown() end end}
+
+------------------------------------------------------------------------
+-- Pattern Effect Column Curve Fill
+-- Fill effect column values (Volume, Panning, Delay) using curve shapes
+------------------------------------------------------------------------
+
+PakettiEffectColumnCurveFillDialog = nil
+PakettiEffectColumnCurveFillVb = nil
+
+function PakettiEffectColumnCurveFill()
+    local song = renoise.song()
+    local pattern = song.selected_pattern
+    local track_index = song.selected_track_index
+    local track = song.selected_track
+    
+    -- Check track type
+    if track.type == renoise.Track.TRACK_TYPE_MASTER or 
+       track.type == renoise.Track.TRACK_TYPE_SEND then
+        renoise.app():show_status("Cannot fill effect columns on Master or Send tracks")
+        return
+    end
+    
+    -- Close existing dialog if open
+    if PakettiEffectColumnCurveFillDialog and PakettiEffectColumnCurveFillDialog.visible then
+        PakettiEffectColumnCurveFillDialog:close()
+    end
+    
+    local vb = renoise.ViewBuilder()
+    PakettiEffectColumnCurveFillVb = vb
+    
+    local num_lines = pattern.number_of_lines
+    local current_line = song.selected_line_index
+    
+    local content = vb:column{
+        margin = 10,
+        spacing = 6,
+        
+        vb:row{
+            vb:text{text = "Pattern Lines:", width = 80},
+            vb:text{text = tostring(num_lines)}
+        },
+        
+        vb:row{
+            vb:text{text = "Column:", width = 80},
+            vb:popup{
+                id = "column_type",
+                items = {
+                    "Volume (00-80)",
+                    "Panning (00-80)",
+                    "Delay (00-FF)"
+                },
+                value = 1,
+                width = 150
+            }
+        },
+        
+        vb:row{
+            vb:text{text = "From Line:", width = 80},
+            vb:valuebox{
+                id = "from_line",
+                min = 1,
+                max = num_lines,
+                value = 1,
+                width = 60
+            },
+            vb:text{text = "Value:", width = 50},
+            vb:valuebox{
+                id = "from_value",
+                min = 0,
+                max = 255,
+                value = 0,
+                width = 60,
+                tostring = function(v) return string.format("%02X", v) end,
+                tonumber = function(s) return tonumber(s, 16) or 0 end
+            }
+        },
+        
+        vb:row{
+            vb:text{text = "To Line:", width = 80},
+            vb:valuebox{
+                id = "to_line",
+                min = 1,
+                max = num_lines,
+                value = num_lines,
+                width = 60
+            },
+            vb:text{text = "Value:", width = 50},
+            vb:valuebox{
+                id = "to_value",
+                min = 0,
+                max = 255,
+                value = 128,
+                width = 60,
+                tostring = function(v) return string.format("%02X", v) end,
+                tonumber = function(s) return tonumber(s, 16) or 0 end
+            }
+        },
+        
+        vb:row{
+            vb:text{text = "Curve Type:", width = 80},
+            vb:popup{
+                id = "curve_type",
+                items = {
+                    "Linear (even)",
+                    "Logarithmic (fast start)",
+                    "Exponential (slow start)",
+                    "Down Parabola (U-shape)",
+                    "Up Parabola (inverted U)",
+                    "Double Peak",
+                    "Double Valley"
+                },
+                value = 1,
+                width = 180
+            }
+        },
+        
+        vb:row{
+            vb:text{text = "Step:", width = 80},
+            vb:valuebox{
+                id = "step_size",
+                min = 1,
+                max = 64,
+                value = 1,
+                width = 60
+            },
+            vb:text{text = "(write every N lines)"}
+        },
+        
+        vb:row{
+            vb:checkbox{
+                id = "all_note_columns",
+                value = false
+            },
+            vb:text{text = "Apply to all visible note columns"}
+        },
+        
+        vb:row{
+            spacing = 10,
+            vb:button{
+                text = "Apply",
+                width = 80,
+                notifier = function()
+                    PakettiEffectColumnCurveFillApply()
+                end
+            },
+            vb:button{
+                text = "Preview",
+                width = 80,
+                notifier = function()
+                    PakettiEffectColumnCurveFillPreview()
+                end
+            },
+            vb:button{
+                text = "Close",
+                width = 80,
+                notifier = function()
+                    if PakettiEffectColumnCurveFillDialog and PakettiEffectColumnCurveFillDialog.visible then
+                        PakettiEffectColumnCurveFillDialog:close()
+                    end
+                end
+            }
+        },
+        
+        vb:text{
+            id = "preview_text",
+            text = "",
+            font = "mono"
+        }
+    }
+    
+    -- Update max values based on column type
+    vb.views.column_type:add_notifier(function()
+        local col_type = vb.views.column_type.value
+        if col_type == 1 or col_type == 2 then
+            -- Volume or Panning: max 0x80 (128)
+            vb.views.from_value.max = 128
+            vb.views.to_value.max = 128
+            if vb.views.from_value.value > 128 then vb.views.from_value.value = 128 end
+            if vb.views.to_value.value > 128 then vb.views.to_value.value = 128 end
+        else
+            -- Delay: max 0xFF (255)
+            vb.views.from_value.max = 255
+            vb.views.to_value.max = 255
+        end
+    end)
+    
+    PakettiEffectColumnCurveFillDialog = renoise.app():show_custom_dialog(
+        "Effect Column Curve Fill",
+        content,
+        my_keyhandler_func
+    )
+    
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+function PakettiEffectColumnCurveFillGetCurveType(popup_index)
+    local curve_map = {
+        [1] = "linear",
+        [2] = "logarithmic",
+        [3] = "exponential",
+        [4] = "downParabola",
+        [5] = "upParabola",
+        [6] = "doublePeak",
+        [7] = "doubleValley"
+    }
+    return curve_map[popup_index] or "linear"
+end
+
+function PakettiEffectColumnCurveFillPreview()
+    local vb = PakettiEffectColumnCurveFillVb
+    if not vb then return end
+    
+    local from_line = vb.views.from_line.value
+    local to_line = vb.views.to_line.value
+    local from_value = vb.views.from_value.value
+    local to_value = vb.views.to_value.value
+    local curve_type = PakettiEffectColumnCurveFillGetCurveType(vb.views.curve_type.value)
+    local step_size = vb.views.step_size.value
+    
+    -- Ensure from_line <= to_line
+    if from_line > to_line then
+        from_line, to_line = to_line, from_line
+        from_value, to_value = to_value, from_value
+    end
+    
+    -- Calculate number of values needed
+    local line_count = math.floor((to_line - from_line) / step_size) + 1
+    
+    -- Generate values using the curve
+    local values = PakettiGenerateCurve(from_value, to_value, line_count, curve_type, false)
+    
+    -- Build preview text
+    local preview_lines = {}
+    table.insert(preview_lines, string.format("Preview (%s, step %d):", curve_type, step_size))
+    
+    local show_count = math.min(8, line_count)
+    for i = 1, show_count do
+        local line_num = from_line + (i - 1) * step_size
+        table.insert(preview_lines, string.format("  Line %03d: %02X", line_num, values[i]))
+    end
+    
+    if line_count > 8 then
+        table.insert(preview_lines, "  ...")
+        local last_line = from_line + (line_count - 1) * step_size
+        table.insert(preview_lines, string.format("  Line %03d: %02X", last_line, values[line_count]))
+    end
+    
+    vb.views.preview_text.text = table.concat(preview_lines, "\n")
+end
+
+function PakettiEffectColumnCurveFillApply()
+    local vb = PakettiEffectColumnCurveFillVb
+    if not vb then return end
+    
+    local song = renoise.song()
+    local pattern = song.selected_pattern
+    local track_index = song.selected_track_index
+    local pattern_track = pattern:track(track_index)
+    local track = song.selected_track
+    
+    local from_line = vb.views.from_line.value
+    local to_line = vb.views.to_line.value
+    local from_value = vb.views.from_value.value
+    local to_value = vb.views.to_value.value
+    local column_type = vb.views.column_type.value
+    local curve_type = PakettiEffectColumnCurveFillGetCurveType(vb.views.curve_type.value)
+    local step_size = vb.views.step_size.value
+    local all_columns = vb.views.all_note_columns.value
+    
+    -- Ensure from_line <= to_line
+    if from_line > to_line then
+        from_line, to_line = to_line, from_line
+        from_value, to_value = to_value, from_value
+    end
+    
+    -- Calculate number of values needed
+    local line_count = math.floor((to_line - from_line) / step_size) + 1
+    
+    -- Generate values using the curve
+    local values = PakettiGenerateCurve(from_value, to_value, line_count, curve_type, true)
+    
+    print("PakettiEffectColumnCurveFill: Applying " .. curve_type .. " curve")
+    print("  Column type: " .. column_type .. " (" .. (column_type == 1 and "Volume" or column_type == 2 and "Panning" or "Delay") .. ")")
+    print("  Lines " .. from_line .. " to " .. to_line .. ", step " .. step_size)
+    print("  Values " .. string.format("%02X", from_value) .. " to " .. string.format("%02X", to_value))
+    
+    -- Determine which columns to apply to
+    local columns_to_fill = {}
+    if all_columns then
+        for col = 1, track.visible_note_columns do
+            table.insert(columns_to_fill, col)
+        end
+    else
+        table.insert(columns_to_fill, song.selected_note_column_index)
+    end
+    
+    -- Apply values
+    local values_written = 0
+    for i, value in ipairs(values) do
+        local line_num = from_line + (i - 1) * step_size
+        if line_num <= to_line and line_num <= pattern.number_of_lines then
+            local line = pattern_track:line(line_num)
+            
+            for _, col_idx in ipairs(columns_to_fill) do
+                local note_column = line:note_column(col_idx)
+                
+                if column_type == 1 then
+                    -- Volume (clamp to 0x80)
+                    note_column.volume_value = math.min(128, value)
+                elseif column_type == 2 then
+                    -- Panning (clamp to 0x80)
+                    note_column.panning_value = math.min(128, value)
+                else
+                    -- Delay (0x00-0xFF)
+                    note_column.delay_value = math.min(255, value)
+                end
+                
+                values_written = values_written + 1
+            end
+        end
+    end
+    
+    local column_name = column_type == 1 and "Volume" or column_type == 2 and "Panning" or "Delay"
+    renoise.app():show_status(string.format("Applied %s curve to %s column (%d values written)", 
+        curve_type, column_name, values_written))
+    
+    -- Close dialog
+    if PakettiEffectColumnCurveFillDialog and PakettiEffectColumnCurveFillDialog.visible then
+        PakettiEffectColumnCurveFillDialog:close()
+    end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column Curve Fill", invoke = PakettiEffectColumnCurveFill}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Column Curve Fill", invoke = PakettiEffectColumnCurveFill}
+renoise.tool():add_midi_mapping{name="Paketti:Effect Column Curve Fill", invoke = function(message) if message:is_trigger() then PakettiEffectColumnCurveFill() end end}

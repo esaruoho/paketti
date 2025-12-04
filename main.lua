@@ -69,6 +69,122 @@ function pakettiGetTempFilePath(extension)
     
     return temp_dir .. separator .. filename
 end
+
+-- Global helper function to generate values following different curve types
+-- Used for slice marker placement, volume curves, pitch curves, etc.
+-- Parameters:
+--   startValue: Starting value (e.g., frame 1)
+--   endValue: Ending value (e.g., total frames)
+--   intervals: Number of values to generate
+--   curveType: Type of curve (see below)
+--   debug: Optional boolean to enable debug printing (default: false)
+-- Curve types:
+--   "linear"       - Even spacing from start to end
+--   "logarithmic"  - Front-loaded (fast start, slow end)
+--   "exponential"  - Back-loaded (slow start, fast end)
+--   "downParabola" - U-shape (valley in middle)
+--   "upParabola"   - Inverted U (peak in middle)
+--   "doublePeak"   - Two peaks at 25% and 75%
+--   "doubleValley" - Two valleys at 25% and 75%
+-- Returns: Table of rounded integer values
+function PakettiGenerateCurve(startValue, endValue, intervals, curveType, debug)
+    debug = debug or false
+    local result = {}
+    local range = endValue - startValue
+    
+    if debug then
+        print("PakettiGenerateCurve: Start=" .. tostring(startValue) .. 
+              " End=" .. tostring(endValue) .. 
+              " Intervals=" .. tostring(intervals) .. 
+              " CurveType=" .. tostring(curveType))
+    end
+    
+    -- Handle edge cases
+    if intervals < 1 then
+        if debug then print("PakettiGenerateCurve: No intervals requested") end
+        return result
+    end
+    
+    if intervals == 1 then
+        table.insert(result, math.floor(startValue + 0.5))
+        return result
+    end
+    
+    for i = 0, intervals - 1 do
+        local t = i / (intervals - 1)
+        local value
+        
+        if curveType == "linear" then
+            -- Even spacing
+            value = startValue + t * range
+            
+        elseif curveType == "logarithmic" then
+            -- Front-loaded: more values clustered near start
+            value = startValue + math.log(1 + t) / math.log(2) * range
+            
+        elseif curveType == "exponential" then
+            -- Back-loaded: more values clustered near end
+            value = startValue + (math.exp(t) - 1) / (math.exp(1) - 1) * range
+            
+        elseif curveType == "downParabola" then
+            -- U-shape: valley in middle
+            value = startValue + 4 * range * (t - 0.5)^2
+            
+        elseif curveType == "upParabola" then
+            -- Inverted U: peak in middle
+            value = endValue - 4 * range * (t - 0.5)^2
+            
+        elseif curveType == "doublePeak" then
+            -- Two peaks at t=0.25 and t=0.75, valleys at t=0, t=0.5, t=1
+            value = startValue + range * math.abs(math.sin(t * 2 * math.pi))
+            
+        elseif curveType == "doubleValley" then
+            -- Two valleys at t=0.25 and t=0.75, peaks at t=0, t=0.5, t=1
+            value = startValue + range * (1 - math.abs(math.sin(t * 2 * math.pi)))
+            
+        else
+            -- Default to linear if unknown curve type
+            if debug then print("PakettiGenerateCurve: Unknown curve type '" .. tostring(curveType) .. "', using linear") end
+            value = startValue + t * range
+        end
+        
+        local rounded = math.floor(value + 0.5)
+        table.insert(result, rounded)
+        
+        if debug then
+            print(string.format("  [%d] t=%.3f value=%.2f rounded=%d", i + 1, t, value, rounded))
+        end
+    end
+    
+    if debug then
+        print("PakettiGenerateCurve: Generated " .. #result .. " values")
+    end
+    
+    return result
+end
+
+-- List of available curve types for UI selectors
+PakettiCurveTypes = {
+    "linear",
+    "logarithmic", 
+    "exponential",
+    "downParabola",
+    "upParabola",
+    "doublePeak",
+    "doubleValley"
+}
+
+-- Human-readable curve type descriptions for UI
+PakettiCurveDescriptions = {
+    linear = "Linear (even spacing)",
+    logarithmic = "Logarithmic (front-loaded)",
+    exponential = "Exponential (back-loaded)",
+    downParabola = "Down Parabola (U-shape)",
+    upParabola = "Up Parabola (inverted U)",
+    doublePeak = "Double Peak (two peaks)",
+    doubleValley = "Double Valley (two valleys)"
+}
+
 --
 local init_time = os.clock()
 -- Function to check if an instrument uses effects or has an empty FX chain and adjust name accordingly

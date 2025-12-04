@@ -3973,5 +3973,313 @@ function PakettiToggleLoopEndParameterMonitor()
   renoise.app():show_status("Loop End Parameter Monitor started on Device 2, Parameter 4")
 end
 
+------------------------------------------------------------------------
+-- Automation Curve Fill
+-- Fill automation envelope between two points using different curve shapes
+------------------------------------------------------------------------
 
+PakettiAutomationCurveFillDialog = nil
+PakettiAutomationCurveFillVb = nil
+
+function PakettiAutomationCurveFill()
+    local song = renoise.song()
+    local track_index = song.selected_track_index
+    local track = song.selected_track
+    local pattern_index = song.selected_pattern_index
+    local pattern = song.selected_pattern
+    local pattern_track = pattern:track(track_index)
+    
+    -- Check if we're in automation view
+    if renoise.app().window.active_lower_frame ~= renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+        renoise.app():show_status("Please open the Automation view first (Lower Frame)")
+        return
+    end
+    
+    -- Get selected automation parameter
+    local selected_parameter = song.selected_automation_parameter
+    if not selected_parameter then
+        renoise.app():show_status("No automation parameter selected")
+        return
+    end
+    
+    -- Get or create automation envelope
+    local automation = pattern_track:find_automation(selected_parameter)
+    
+    -- Close existing dialog if open
+    if PakettiAutomationCurveFillDialog and PakettiAutomationCurveFillDialog.visible then
+        PakettiAutomationCurveFillDialog:close()
+    end
+    
+    local vb = renoise.ViewBuilder()
+    PakettiAutomationCurveFillVb = vb
+    
+    local num_lines = pattern.number_of_lines
+    local param_name = selected_parameter.name or "Parameter"
+    
+    local content = vb:column{
+        margin = 10,
+        spacing = 6,
+        
+        vb:row{
+            vb:text{text = "Parameter:", width = 80},
+            vb:text{text = param_name, font = "bold"}
+        },
+        
+        vb:row{
+            vb:text{text = "Pattern Lines:", width = 80},
+            vb:text{text = tostring(num_lines)}
+        },
+        
+        vb:row{
+            vb:text{text = "From Line:", width = 80},
+            vb:valuebox{
+                id = "from_line",
+                min = 1,
+                max = num_lines,
+                value = 1,
+                width = 60
+            },
+            vb:text{text = "Value:", width = 50},
+            vb:slider{
+                id = "from_value",
+                min = 0,
+                max = 1,
+                value = 0,
+                width = 100
+            },
+            vb:valuefield{
+                id = "from_value_display",
+                min = 0,
+                max = 1,
+                value = 0,
+                width = 50,
+                notifier = function(value)
+                    vb.views.from_value.value = value
+                end
+            }
+        },
+        
+        vb:row{
+            vb:text{text = "To Line:", width = 80},
+            vb:valuebox{
+                id = "to_line",
+                min = 1,
+                max = num_lines,
+                value = num_lines,
+                width = 60
+            },
+            vb:text{text = "Value:", width = 50},
+            vb:slider{
+                id = "to_value",
+                min = 0,
+                max = 1,
+                value = 1,
+                width = 100
+            },
+            vb:valuefield{
+                id = "to_value_display",
+                min = 0,
+                max = 1,
+                value = 1,
+                width = 50,
+                notifier = function(value)
+                    vb.views.to_value.value = value
+                end
+            }
+        },
+        
+        vb:row{
+            vb:text{text = "Curve Type:", width = 80},
+            vb:popup{
+                id = "curve_type",
+                items = {
+                    "Linear (even)",
+                    "Logarithmic (fast start)",
+                    "Exponential (slow start)",
+                    "Down Parabola (U-shape)",
+                    "Up Parabola (inverted U)",
+                    "Double Peak",
+                    "Double Valley"
+                },
+                value = 1,
+                width = 180
+            }
+        },
+        
+        vb:row{
+            vb:text{text = "Points:", width = 80},
+            vb:valuebox{
+                id = "point_count",
+                min = 2,
+                max = 256,
+                value = 32,
+                width = 60
+            },
+            vb:text{text = "(automation density)"}
+        },
+        
+        vb:row{
+            vb:checkbox{
+                id = "clear_range",
+                value = true
+            },
+            vb:text{text = "Clear existing points in range first"}
+        },
+        
+        vb:row{
+            spacing = 10,
+            vb:button{
+                text = "Apply Curve",
+                width = 100,
+                notifier = function()
+                    PakettiAutomationCurveFillApply()
+                end
+            },
+            vb:button{
+                text = "Close",
+                width = 80,
+                notifier = function()
+                    if PakettiAutomationCurveFillDialog and PakettiAutomationCurveFillDialog.visible then
+                        PakettiAutomationCurveFillDialog:close()
+                    end
+                end
+            }
+        }
+    }
+    
+    -- Sync slider and display
+    vb.views.from_value:add_notifier(function()
+        vb.views.from_value_display.value = vb.views.from_value.value
+    end)
+    vb.views.to_value:add_notifier(function()
+        vb.views.to_value_display.value = vb.views.to_value.value
+    end)
+    
+    PakettiAutomationCurveFillDialog = renoise.app():show_custom_dialog(
+        "Automation Curve Fill",
+        content,
+        my_keyhandler_func
+    )
+    
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+function PakettiAutomationCurveFillGetCurveType(popup_index)
+    local curve_map = {
+        [1] = "linear",
+        [2] = "logarithmic",
+        [3] = "exponential",
+        [4] = "downParabola",
+        [5] = "upParabola",
+        [6] = "doublePeak",
+        [7] = "doubleValley"
+    }
+    return curve_map[popup_index] or "linear"
+end
+
+function PakettiAutomationCurveFillApply()
+    local vb = PakettiAutomationCurveFillVb
+    if not vb then return end
+    
+    local song = renoise.song()
+    local track_index = song.selected_track_index
+    local pattern_index = song.selected_pattern_index
+    local pattern = song.selected_pattern
+    local pattern_track = pattern:track(track_index)
+    
+    local selected_parameter = song.selected_automation_parameter
+    if not selected_parameter then
+        renoise.app():show_status("No automation parameter selected")
+        return
+    end
+    
+    -- Get values from dialog
+    local from_line = vb.views.from_line.value
+    local to_line = vb.views.to_line.value
+    local from_value = vb.views.from_value.value
+    local to_value = vb.views.to_value.value
+    local curve_type = PakettiAutomationCurveFillGetCurveType(vb.views.curve_type.value)
+    local point_count = vb.views.point_count.value
+    local clear_range = vb.views.clear_range.value
+    
+    -- Ensure from_line <= to_line
+    if from_line > to_line then
+        from_line, to_line = to_line, from_line
+        from_value, to_value = to_value, from_value
+    end
+    
+    print("PakettiAutomationCurveFill: Applying " .. curve_type .. " curve")
+    print("  From line " .. from_line .. " (value " .. from_value .. ") to line " .. to_line .. " (value " .. to_value .. ")")
+    print("  Points: " .. point_count)
+    
+    -- Get or create automation envelope
+    local automation = pattern_track:find_automation(selected_parameter)
+    if not automation then
+        automation = pattern_track:create_automation(selected_parameter)
+        print("PakettiAutomationCurveFill: Created new automation envelope")
+    end
+    
+    -- Clear existing points in range if requested
+    if clear_range then
+        local clear_from = from_line
+        local clear_to = to_line + 0.99
+        if clear_from < clear_to then
+            automation:clear_range(clear_from, clear_to)
+            print("PakettiAutomationCurveFill: Cleared range " .. clear_from .. " to " .. clear_to)
+        end
+    end
+    
+    -- Generate curve values
+    -- PakettiGenerateCurve generates integer values, but we need floats for automation
+    -- So we'll generate our own curve values directly
+    local line_span = to_line - from_line
+    
+    for i = 0, point_count - 1 do
+        local t = i / (point_count - 1)
+        local line_position = from_line + (t * line_span)
+        local value
+        
+        if curve_type == "linear" then
+            value = from_value + t * (to_value - from_value)
+        elseif curve_type == "logarithmic" then
+            value = from_value + math.log(1 + t) / math.log(2) * (to_value - from_value)
+        elseif curve_type == "exponential" then
+            value = from_value + (math.exp(t) - 1) / (math.exp(1) - 1) * (to_value - from_value)
+        elseif curve_type == "downParabola" then
+            value = from_value + 4 * (to_value - from_value) * (t - 0.5)^2
+        elseif curve_type == "upParabola" then
+            value = to_value - 4 * (to_value - from_value) * (t - 0.5)^2
+        elseif curve_type == "doublePeak" then
+            value = from_value + (to_value - from_value) * math.abs(math.sin(t * 2 * math.pi))
+        elseif curve_type == "doubleValley" then
+            value = from_value + (to_value - from_value) * (1 - math.abs(math.sin(t * 2 * math.pi)))
+        else
+            value = from_value + t * (to_value - from_value)
+        end
+        
+        -- Clamp value to 0-1 range
+        value = math.max(0, math.min(1, value))
+        
+        -- Add point to automation
+        automation:add_point_at(line_position, value)
+        
+        if i < 5 or i >= point_count - 3 then
+            print(string.format("  Point %d: line %.2f, value %.4f", i + 1, line_position, value))
+        elseif i == 5 then
+            print("  ...")
+        end
+    end
+    
+    renoise.app():show_status(string.format("Applied %s curve with %d points (lines %d-%d)", 
+        curve_type, point_count, from_line, to_line))
+    
+    -- Close dialog
+    if PakettiAutomationCurveFillDialog and PakettiAutomationCurveFillDialog.visible then
+        PakettiAutomationCurveFillDialog:close()
+    end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Curve Fill", invoke = PakettiAutomationCurveFill}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Automation Curve Fill", invoke = PakettiAutomationCurveFill}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Fill", invoke = function(message) if message:is_trigger() then PakettiAutomationCurveFill() end end}
 
