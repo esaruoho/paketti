@@ -1857,6 +1857,100 @@ renoise.tool():add_keybinding{name="Global:Paketti:Double LPB",invoke=function()
 renoise.tool():add_keybinding{name="Global:Paketti:Halve LPB",invoke=function() PakettiLPBHalve() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Double Double LPB",invoke=function() PakettiLPBDouble() PakettiLPBDouble() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve LPB",invoke=function() PakettiLPBHalve() PakettiLPBHalve() end}
+
+-------
+-- Function to double the selected Phrase LPB value
+function PakettiPhraseLPBDouble()
+  local song = renoise.song()
+  local phrase = song.selected_phrase
+  
+  if phrase == nil then
+    renoise.app():show_status("No phrase selected, cannot double Phrase LPB.")
+    return
+  end
+  
+  local current_lpb = phrase.lpb
+  
+  if current_lpb >= 128 then
+    if current_lpb * 2 > 256 then
+      renoise.app():show_status("Phrase LPB cannot be doubled to over 256")
+      return
+    end
+  end
+  
+  local new_lpb = current_lpb * 2
+  phrase.lpb = new_lpb
+  renoise.app():show_status("Doubled Phrase LPB from " .. current_lpb .. " to " .. new_lpb)
+end
+
+-- Function to halve the selected Phrase LPB value
+function PakettiPhraseLPBHalve()
+  local song = renoise.song()
+  local phrase = song.selected_phrase
+  
+  if phrase == nil then
+    renoise.app():show_status("No phrase selected, cannot halve Phrase LPB.")
+    return
+  end
+  
+  local current_lpb = phrase.lpb
+  
+  if current_lpb == 1 then
+    renoise.app():show_status("Phrase LPB cannot be smaller than 1")
+    return
+  end
+  
+  if current_lpb % 2 ~= 0 then
+    renoise.app():show_status("Phrase LPB is odd number, cannot halve Phrase LPB.")
+    return
+  end
+  
+  local new_lpb = math.floor(current_lpb / 2)
+  phrase.lpb = new_lpb
+  renoise.app():show_status("Halved Phrase LPB from " .. current_lpb .. " to " .. new_lpb)
+end
+
+-- Keybindings for Phrase LPB Double/Halve (Global)
+renoise.tool():add_keybinding{name="Global:Paketti:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
+
+-- Keybindings for Phrase LPB Double/Halve (Phrase Editor)
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
+
+-- Keybindings for Phrase LPB Double/Halve (Pattern Editor)
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
+
+-- Keybindings for Phrase LPB Double/Halve (Mixer)
+renoise.tool():add_keybinding{name="Mixer:Paketti:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
+
+-- Menu entries for Phrase LPB Double/Halve (Phrase Editor)
+renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Phrases:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
+renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Phrases:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
+renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Phrases:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
+renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Phrases:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
+
+-- Menu entries for Phrase LPB Double/Halve (Instrument Box)
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
+
+-- Menu entries for Phrase LPB Double/Halve (Pattern Editor)
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Phrases:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Phrases:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Phrases:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Phrases:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
 --------
 -- Studio Session Workflow: Make track mono and set hard left/right panning
 -- For treating stereo output as two mono channels to output to two amplifiers
