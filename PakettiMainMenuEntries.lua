@@ -29,6 +29,7 @@ local donations = {
   {"2025-09-18", "Untilde", 3.11},
   {"2025-10-06", "Brandon Hale", 7.37, {"bthale", "https://bthale.com"}, {"YouTube", "https://www.youtube.com/@brandonhale7574"}},
   {"2025-11-03", "ted curran", 31.02},
+  {"2025-12-05", "LotuaStation", 8.81, {"Web","https://lotuastation.neocities.org/"},{"YouTube", "https://www.youtube.com/@LotuaStation"}, {"SoundCloud","https://soundcloud.com/lotuastation"}}
 
 }
 

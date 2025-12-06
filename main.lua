@@ -713,7 +713,7 @@ function startup()
   end
    local s=renoise.song()
    local t=s.transport
-      s.sequencer.keep_sequence_sorted=false
+      --s.sequencer.keep_sequence_sorted=false
       if preferences.pakettiEnableGlobalGrooveOnStartup.value then
         t.groove_enabled=true
       end
