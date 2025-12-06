@@ -140,6 +140,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiPlayerProAutoHideOnFrameSwitch = true,
   pakettiInstrumentInfoDialogHeight=750,
   pakettiEnableGlobalGrooveOnStartup=false,
+  pakettiKeepSequenceSorted=0,  -- 0=Do Nothing, 1=False, 2=True
   pakettiRandomizeBPMOnNewSong=false,
   pakettiPatternStatusMonitor=false,
   pakettiAuditionOnLineChangeEnabled=false,
@@ -989,6 +990,24 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)",
                 notifier=function(value) preferences.pakettiRandomizeBPMOnNewSong.value=value end
               }
+            },
+            vb:row{
+              vb:text{text="Keep Sequence Sorted",width=150,tooltip="Control sequencer.keep_sequence_sorted on startup. True = patterns stay sorted, False = patterns can be reordered freely"},
+              vb:popup{items={"Do Nothing","False","True"},tooltip="Control sequencer.keep_sequence_sorted on startup. True = patterns stay sorted, False = patterns can be reordered freely",value=preferences.pakettiKeepSequenceSorted.value+1,width=100,
+                notifier=function(value)
+                  preferences.pakettiKeepSequenceSorted.value=(value-1)
+                  -- Apply the setting immediately
+                  if renoise.song() then
+                    if preferences.pakettiKeepSequenceSorted.value == 1 then
+                      renoise.song().sequencer.keep_sequence_sorted = false
+                    elseif preferences.pakettiKeepSequenceSorted.value == 2 then
+                      renoise.song().sequencer.keep_sequence_sorted = true
+                    end
+                    -- Mode 0 (Do Nothing) - no immediate action taken
+                  end
+                  local mode_names = {"Do Nothing", "False", "True"}
+                  renoise.app():show_status("Keep Sequence Sorted: " .. mode_names[value])
+                end}
             },
             vb:row{
               vb:text{text="0G01 Loader",width=150,tooltip="Upon loading a Sample, inserts a C-4 and -G01 to New Track, Sample plays until end of length and triggers again."},

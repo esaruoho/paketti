@@ -713,7 +713,16 @@ function startup()
   end
    local s=renoise.song()
    local t=s.transport
-      --s.sequencer.keep_sequence_sorted=false
+      -- Apply Keep Sequence Sorted preference
+      if preferences.pakettiKeepSequenceSorted.value == 1 then
+        s.sequencer.keep_sequence_sorted = false
+        print("Paketti: Keep Sequence Sorted set to false on startup")
+      elseif preferences.pakettiKeepSequenceSorted.value == 2 then
+        s.sequencer.keep_sequence_sorted = true
+        print("Paketti: Keep Sequence Sorted set to true on startup")
+      end
+      -- Mode 0 (Do Nothing) - don't modify the setting
+      
       if preferences.pakettiEnableGlobalGrooveOnStartup.value then
         t.groove_enabled=true
       end
