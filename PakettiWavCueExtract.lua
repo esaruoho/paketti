@@ -893,3 +893,396 @@ renoise.tool():add_keybinding{
   invoke = PakettiWavCueExportSampleWithCueHeader
 }
 
+--------------------------------------------------------------------------------
+-- BATCH OT TO WAV+CUE EXPORT
+-- Converts a folder of .ot files to WAV files with CUE files
+--------------------------------------------------------------------------------
+
+local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
+
+-- Helper function to get OT files from a directory
+local function getOTFiles(dir)
+  local files = {}
+  local command
+  
+  -- Use OS-specific commands to list files
+  if separator == "\\" then  -- Windows
+    command = string.format('dir "%s" /b /s', dir:gsub('"', '\\"'))
+  else  -- macOS and Linux
+    command = string.format("find '%s' -type f \\( -name '*.ot' -o -name '*.OT' \\)", dir:gsub("'", "'\\''"))
+  end
+  
+  local handle = io.popen(command)
+  if handle then
+    for line in handle:lines() do
+      local lower_path = line:lower()
+      if lower_path:match("%.ot$") then
+        table.insert(files, line)
+      end
+    end
+    handle:close()
+  end
+  
+  -- Sort files alphabetically for consistent processing order
+  table.sort(files)
+  
+  return files
+end
+
+-- Helper function to read WAV file header information (sample rate needed for CUE timing)
+local function readWavHeaderForCue(wav_path)
+  local file = io.open(wav_path, "rb")
+  if not file then
+    return nil, "Could not open WAV file"
+  end
+  
+  -- Read RIFF header
+  local riff = file:read(4)
+  if riff ~= "RIFF" then
+    file:close()
+    return nil, "Not a valid RIFF file"
+  end
+  
+  -- Skip file size
+  file:read(4)
+  
+  -- Read WAVE marker
+  local wave = file:read(4)
+  if wave ~= "WAVE" then
+    file:close()
+    return nil, "Not a valid WAVE file"
+  end
+  
+  local sample_rate = 44100
+  local num_channels = 1
+  local bits_per_sample = 16
+  local num_frames = 0
+  
+  -- Read chunks until we find fmt and data
+  while true do
+    local chunk_id = file:read(4)
+    if not chunk_id then break end
+    
+    -- Read chunk size (little-endian 32-bit)
+    local chunk_bytes = file:read(4)
+    if not chunk_bytes or #chunk_bytes < 4 then break end
+    local b1, b2, b3, b4 = string.byte(chunk_bytes, 1, 4)
+    local chunk_size = b1 + b2 * 256 + b3 * 65536 + b4 * 16777216
+    
+    if chunk_id == "fmt " then
+      -- Read format chunk
+      local fmt_data = file:read(chunk_size)
+      if fmt_data and #fmt_data >= 16 then
+        local c1, c2 = string.byte(fmt_data, 3, 4)
+        num_channels = c1 + c2 * 256
+        
+        local s1, s2, s3, s4 = string.byte(fmt_data, 5, 8)
+        sample_rate = s1 + s2 * 256 + s3 * 65536 + s4 * 16777216
+        
+        local bp1, bp2 = string.byte(fmt_data, 15, 16)
+        bits_per_sample = bp1 + bp2 * 256
+      end
+    elseif chunk_id == "data" then
+      -- Calculate number of frames from data chunk size
+      local bytes_per_sample = bits_per_sample / 8
+      num_frames = math.floor(chunk_size / (num_channels * bytes_per_sample))
+      break
+    else
+      -- Skip unknown chunk
+      file:seek("cur", chunk_size)
+    end
+    
+    -- Padding to even byte boundary
+    if (chunk_size % 2) == 1 then
+      file:seek("cur", 1)
+    end
+  end
+  
+  file:close()
+  
+  return {
+    sample_rate = sample_rate,
+    num_channels = num_channels,
+    bits_per_sample = bits_per_sample,
+    num_frames = num_frames
+  }
+end
+
+-- Read OT file and extract slice data (standalone version for batch processing)
+local function readOTFileForBatch(filename)
+  local f = io.open(filename, "rb")
+  if not f then
+    return nil, "Could not open .ot file"
+  end
+  
+  -- Helper: read 32-bit big-endian
+  local function rb32_local(file)
+    local b1 = string.byte(file:read(1) or "\0")
+    local b2 = string.byte(file:read(1) or "\0")
+    local b3 = string.byte(file:read(1) or "\0")
+    local b4 = string.byte(file:read(1) or "\0")
+    return b1 * 256^3 + b2 * 256^2 + b3 * 256 + b4
+  end
+  
+  -- Helper: read 16-bit big-endian
+  local function rb16_local(file)
+    local b1 = string.byte(file:read(1) or "\0")
+    local b2 = string.byte(file:read(1) or "\0")
+    return b1 * 256 + b2
+  end
+  
+  -- Helper: read single byte
+  local function rb_local(file)
+    return string.byte(file:read(1) or "\0")
+  end
+  
+  -- Skip header (16 bytes) and unknown section (7 bytes)
+  f:read(23)
+  
+  -- Read main parameters
+  local tempo = rb32_local(f)
+  local trim_len = rb32_local(f)
+  local loop_len = rb32_local(f)
+  local stretch = rb32_local(f)
+  local loop = rb32_local(f)
+  local gain = rb16_local(f)
+  local quantize = rb_local(f)
+  local trim_start = rb32_local(f)
+  local trim_end = rb32_local(f)
+  local loop_point = rb32_local(f)
+  
+  -- Read slice data (64 slices max, 3 x 32-bit values each)
+  local slices = {}
+  for i = 1, 64 do
+    local start_point = rb32_local(f)
+    local end_point = rb32_local(f)
+    local slice_loop_point = rb32_local(f)
+    
+    -- Only add slices that have actual data (not all zeros, or first slice at 0)
+    if start_point > 0 or end_point > 0 or i == 1 then
+      -- For first slice, always include if end_point > 0
+      if i == 1 and end_point > 0 then
+        table.insert(slices, {
+          start_point = start_point,
+          end_point = end_point,
+          loop_point = slice_loop_point
+        })
+      elseif start_point > 0 or end_point > 0 then
+        table.insert(slices, {
+          start_point = start_point,
+          end_point = end_point,
+          loop_point = slice_loop_point
+        })
+      end
+    end
+  end
+  
+  -- Read slice count
+  local slice_count = rb32_local(f)
+  
+  f:close()
+  
+  return {
+    tempo = tempo,
+    trim_len = trim_len,
+    loop_len = loop_len,
+    stretch = stretch,
+    loop = loop,
+    gain = gain,
+    quantize = quantize,
+    trim_start = trim_start,
+    trim_end = trim_end,
+    loop_point = loop_point,
+    slices = slices,
+    slice_count = slice_count
+  }
+end
+
+-- Write CUE file from OT slice data
+local function writeCueFileFromOT(wav_path, cue_path, ot_data, wav_info)
+  local sample_rate = wav_info.sample_rate
+  
+  -- Check if .cue file already exists - don't overwrite
+  local existing_file = io.open(cue_path, "r")
+  if existing_file then
+    existing_file:close()
+    print("BatchOT->CUE: .cue file already exists, skipping: " .. cue_path)
+    return cue_path, "already exists"
+  end
+  
+  local f, err = io.open(cue_path, "w")
+  if not f then
+    return nil, "cannot create cue file: " .. (err or "")
+  end
+  
+  -- Just the base file name in FILE line
+  local fname = wav_path:match("([^/\\]+)$") or wav_path
+  
+  f:write(string.format('FILE "%s" WAVE\n', fname))
+  
+  -- Write track for each slice
+  for i, slice in ipairs(ot_data.slices) do
+    -- Convert sample offset to mm:ss:ff (75 frames per second for CD)
+    local samples = slice.start_point
+    local total_seconds = samples / sample_rate
+    local minutes = math.floor(total_seconds / 60)
+    local seconds = math.floor(total_seconds - minutes * 60)
+    local frac = total_seconds - (minutes * 60 + seconds)
+    local frames = math.floor(frac * 75 + 0.5)
+    
+    -- Normalize in case we rounded up to 75
+    if frames >= 75 then
+      frames = frames - 75
+      seconds = seconds + 1
+      if seconds >= 60 then
+        seconds = 0
+        minutes = minutes + 1
+      end
+    end
+    
+    local title = string.format("Slice %02d", i)
+    
+    f:write(string.format("\n  TRACK %02d AUDIO\n", i))
+    f:write(string.format('    TITLE "%s"\n', title))
+    f:write(string.format("    INDEX 01 %02d:%02d:%02d\n", minutes, seconds, frames))
+  end
+  
+  f:close()
+  return cue_path
+end
+
+--------------------------------------------------------------------------------
+-- Main Batch OT to WAV+CUE Conversion Function
+--------------------------------------------------------------------------------
+function PakettiBatchOTToWavCue()
+  print("=== Batch OT to WAV+CUE Converter ===")
+  
+  -- Prompt for input folder containing OT files
+  local input_folder = renoise.app():prompt_for_path("Select Folder Containing .ot Files (with matching WAV files)")
+  if not input_folder or input_folder == "" then
+    renoise.app():show_status("Batch OT->CUE: Cancelled - no folder selected")
+    return
+  end
+  
+  print("Input folder: " .. input_folder)
+  
+  -- Get list of OT files
+  local ot_files = getOTFiles(input_folder)
+  
+  if #ot_files == 0 then
+    renoise.app():show_error("No .ot files found in the selected folder.")
+    return
+  end
+  
+  print("Found " .. #ot_files .. " .ot files")
+  
+  -- Process each OT file
+  local success_count = 0
+  local fail_count = 0
+  local no_wav_count = 0
+  local already_exists_count = 0
+  
+  for i, ot_path in ipairs(ot_files) do
+    -- Extract filename without path and extension
+    local ot_filename = ot_path:match("[^/\\]+$") or "unknown"
+    local base_name = ot_filename:gsub("%.ot$", ""):gsub("%.OT$", "")
+    
+    print(string.format("\n--- Processing %d/%d: %s ---", i, #ot_files, ot_filename))
+    renoise.app():show_status(string.format("Batch OT->CUE: Processing %d/%d: %s", i, #ot_files, ot_filename))
+    
+    -- Find the matching WAV file (same directory, same base name)
+    local ot_dir = ot_path:match("(.+)[/\\][^/\\]+$") or input_folder
+    local wav_path = ot_dir .. separator .. base_name .. ".wav"
+    
+    -- Try lowercase extension if uppercase doesn't exist
+    local wav_file = io.open(wav_path, "rb")
+    if not wav_file then
+      wav_path = ot_dir .. separator .. base_name .. ".WAV"
+      wav_file = io.open(wav_path, "rb")
+    end
+    
+    if not wav_file then
+      print("WARNING: No matching WAV file found for: " .. ot_filename)
+      print("  Looked for: " .. ot_dir .. separator .. base_name .. ".wav")
+      no_wav_count = no_wav_count + 1
+    else
+      wav_file:close()
+      
+      -- Read the OT file
+      local ot_data, ot_err = readOTFileForBatch(ot_path)
+      if not ot_data then
+        print("ERROR: Could not read OT file: " .. (ot_err or "unknown error"))
+        fail_count = fail_count + 1
+      else
+        print(string.format("OT file: %d slices found", #ot_data.slices))
+        
+        if #ot_data.slices == 0 then
+          print("WARNING: No slices in OT file, skipping CUE generation")
+          fail_count = fail_count + 1
+        else
+          -- Read WAV header for sample rate
+          local wav_info, wav_err = readWavHeaderForCue(wav_path)
+          if not wav_info then
+            print("ERROR: Could not read WAV header: " .. (wav_err or "unknown error"))
+            fail_count = fail_count + 1
+          else
+            print(string.format("WAV file: %d frames, %dHz", wav_info.num_frames, wav_info.sample_rate))
+            
+            -- Generate CUE file path
+            local cue_path = ot_dir .. separator .. base_name .. ".cue"
+            
+            -- Write CUE file
+            local cue_result, cue_status = writeCueFileFromOT(wav_path, cue_path, ot_data, wav_info)
+            if cue_result then
+              if cue_status == "already exists" then
+                print("SKIPPED: CUE file already exists")
+                already_exists_count = already_exists_count + 1
+              else
+                print("SUCCESS: Created " .. base_name .. ".cue with " .. #ot_data.slices .. " tracks")
+                success_count = success_count + 1
+              end
+            else
+              print("ERROR: Could not write CUE file: " .. (cue_status or "unknown error"))
+              fail_count = fail_count + 1
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  -- Show final status
+  local status_msg = string.format("Batch OT->CUE Complete: %d created, %d skipped (exist), %d no WAV, %d failed", 
+    success_count, already_exists_count, no_wav_count, fail_count)
+  print("\n=== " .. status_msg .. " ===")
+  renoise.app():show_status(status_msg)
+  
+  -- Show summary dialog
+  local total_processed = success_count + already_exists_count + no_wav_count + fail_count
+  if fail_count > 0 or no_wav_count > 0 then
+    renoise.app():show_warning(string.format(
+      "Batch OT to CUE conversion completed.\n\n" ..
+      "CUE files created: %d\n" ..
+      "Already existed (skipped): %d\n" ..
+      "No matching WAV file: %d\n" ..
+      "Failed: %d\n\n" ..
+      "Total .ot files processed: %d\n\n" ..
+      "Check the scripting console for details.",
+      success_count, already_exists_count, no_wav_count, fail_count, total_processed))
+  else
+    renoise.app():show_message(string.format(
+      "Batch OT to CUE conversion completed successfully!\n\n" ..
+      "CUE files created: %d\n" ..
+      "Already existed (skipped): %d\n\n" ..
+      "Total .ot files processed: %d",
+      success_count, already_exists_count, total_processed))
+  end
+end
+
+--------------------------------------------------------------------------------
+-- Menu Entries and Keybindings for Batch OT to WAV+CUE
+--------------------------------------------------------------------------------
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Octatrack:Batch Convert .ot to CUE Files",invoke=PakettiBatchOTToWavCue}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Batch Convert .ot to CUE Files",invoke=PakettiBatchOTToWavCue}
+renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert .ot to CUE Files",invoke=PakettiBatchOTToWavCue}
+
