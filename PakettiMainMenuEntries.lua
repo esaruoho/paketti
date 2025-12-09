@@ -21,7 +21,7 @@ local donations = {
   {"2025-07-05", "Antti Hyypiö", 4.48},
   {"2025-07-17", "Helge H.", 47.95, {"YouTube","https://www.youtube.com/@HeiniGurke"}, {"Weizenkeim","https://planet.weizenkeim.org/"}},
   {"2025-07-21", "Jussi R.", 60.00},
-  {"2025-07-28", "Leann Lai Syn Yuan", 4.38},
+  {"2025-07-28", "ShasuraMk2", 4.38},
   {"2025-07-29", "Cosmic Ollie", 96.25},
   {"2025-08-17", "Cubeinthebox", 16.39, {"Soundcloud", "https://soundcloud.com/thecubeinthebox"}},
   {"2025-08-31", "grymmjack", 9.11, {"YouTube", "https://youtube.com/grymmjack"}, {"Soundcloud","https://soundcloud.com/grymmjack"},{"GitHub","https://github.com/grymmjack"}},
