@@ -112,6 +112,32 @@ local function is_effect_valid_for_phrase(effect_code)
   return phrase_valid_effects[effect_code] == true
 end
 
+-- Effects that are valid in Sample FX columns (per-note-column sample effects)
+-- These are the commands that work in the sample effects sub-column of note columns
+local sample_fx_valid_effects = {
+  ["0A"] = true,  -- Arpeggio
+  ["0U"] = true,  -- Slide Pitch up
+  ["0D"] = true,  -- Slide Pitch down
+  ["0G"] = true,  -- Glide towards note
+  ["0V"] = true,  -- Vibrato
+  ["0I"] = true,  -- Fade Volume in
+  ["0O"] = true,  -- Fade Volume out
+  ["0T"] = true,  -- Tremolo
+  ["0C"] = true,  -- Cut volume
+  ["0S"] = true,  -- Trigger sample slice/offset
+  ["0B"] = true,  -- Play Sample Backwards/forwards
+  ["0E"] = true,  -- Set envelope position
+  ["0N"] = true,  -- Auto Pan
+}
+
+-- Helper function to check if an effect is valid for Sample FX columns
+local function is_effect_valid_for_sample_fx(effect_code)
+  return sample_fx_valid_effects[effect_code] == true
+end
+
+-- Current write mode: 1 = Effect Columns, 2 = Sample FX
+local cheatsheet_write_mode = 1
+
 function Cheatsheetclear_effect_columns()
   local s = renoise.song()
   local is_phrase_mode, selection, target_data = get_editor_context()
@@ -808,6 +834,328 @@ function randomizeEffectAmount()
   restore_middle_frame(is_phrase_mode)
 end
 
+-- Sample FX write function - writes to sample effects sub-column of note columns
+function sample_fx_write(effect, status, command, min_value, max_value)
+  local s = renoise.song()
+  local a = renoise.app()
+  local is_phrase_mode, selection, target_data = get_editor_context()
+
+  -- Retrieve randomization preferences
+  local randomize_cb = preferences.pakettiCheatSheet.pakettiCheatSheetRandomize.value
+  local fill_percentage = preferences.pakettiCheatSheet.pakettiCheatSheetFillAll.value
+  local randomize_whole_track_cb = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeWholeTrack.value
+  local randomize_switch = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value
+  local dont_overwrite = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value
+  local only_modify_notes = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value
+
+  min_value = min_value or preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value
+  max_value = max_value or preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value
+
+  if min_value > max_value then
+    min_value, max_value = max_value, min_value
+  end
+
+  -- Check for slice markers if this is a 0S command
+  if effect == "0S" then
+    local instrument = s.selected_instrument
+    if instrument and instrument.samples[1] and #instrument.samples[1].slice_markers > 0 then
+      min_value = 1
+      max_value = #instrument.samples[1].slice_markers
+    end
+  end
+
+  -- Use the full two-character effect code (e.g., "0A", "0S") for sample FX column
+  local effect_code_string = effect
+
+  local should_apply = function()
+    return math.random(100) <= fill_percentage
+  end
+
+  local randomize = function()
+    if randomize_switch then
+      return string.format("%02X", math.random() < 0.5 and min_value or max_value)
+    else
+      return string.format("%02X", math.random(min_value, max_value))
+    end
+  end
+
+  local has_note = function(note_column)
+    return note_column.note_value ~= renoise.PatternLine.EMPTY_NOTE and 
+           note_column.note_string ~= "OFF"
+  end
+
+  if is_phrase_mode then
+    -- Phrase Editor mode
+    local phrase = target_data.phrase
+    local note_columns_visible = phrase.visible_note_columns
+    
+    -- Make sample effects column visible
+    phrase.sample_effects_column_visible = true
+
+    if selection then
+      -- Apply to selection in phrase
+      local start_column = selection.start_column or 1
+      local end_column = math.min(selection.end_column or note_columns_visible, note_columns_visible)
+      
+      for i = selection.start_line, selection.end_line do
+        local line = phrase:line(i)
+        for col = start_column, end_column do
+          if col <= note_columns_visible then
+            local note_column = line.note_columns[col]
+            if note_column then
+              local should_modify = true
+              if only_modify_notes and not has_note(note_column) then
+                should_modify = false
+              end
+              if dont_overwrite and note_column.effect_number_string ~= ".." then
+                should_modify = false
+              end
+              if should_modify then
+                if randomize_cb then
+                  if should_apply() then
+                    note_column.effect_number_string = effect_code_string
+                    note_column.effect_amount_string = randomize()
+                  end
+                else
+                  note_column.effect_number_string = effect_code_string
+                end
+              end
+            end
+          end
+        end
+      end
+    else
+      -- No selection - write to current note column or all note columns if randomize whole track
+      local note_col_idx = target_data.note_column_index
+      if note_col_idx > 0 and note_col_idx <= note_columns_visible then
+        if randomize_cb and randomize_whole_track_cb then
+          -- Randomize whole phrase
+          for i = 1, phrase.number_of_lines do
+            local line = phrase:line(i)
+            for col = 1, note_columns_visible do
+              local note_column = line.note_columns[col]
+              if note_column then
+                local should_modify = true
+                if only_modify_notes and not has_note(note_column) then
+                  should_modify = false
+                end
+                if dont_overwrite and note_column.effect_number_string ~= ".." then
+                  should_modify = false
+                end
+                if should_modify and should_apply() then
+                  note_column.effect_number_string = effect_code_string
+                  note_column.effect_amount_string = randomize()
+                end
+              end
+            end
+          end
+        else
+          -- Write to current note column only
+          local line = phrase:line(target_data.line_index)
+          local note_column = line.note_columns[note_col_idx]
+          if note_column then
+            if randomize_cb then
+              note_column.effect_number_string = effect_code_string
+              note_column.effect_amount_string = randomize()
+            else
+              note_column.effect_number_string = effect_code_string
+            end
+          end
+        end
+      else
+        a:show_status("Please select a note column to write Sample FX")
+        restore_middle_frame(is_phrase_mode)
+        return
+      end
+    end
+  else
+    -- Pattern Editor mode
+    local track = s.selected_track
+    if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+      a:show_status("Sample FX can only be written to sequencer tracks")
+      restore_middle_frame(is_phrase_mode)
+      return
+    end
+
+    -- Make sample effects column visible
+    track.sample_effects_column_visible = true
+
+    if s.selection_in_pattern then
+      -- Apply to selection
+      local pattern = s:pattern(s.selected_pattern_index)
+      for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
+        local sel_track = s:track(t)
+        if sel_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          sel_track.sample_effects_column_visible = true
+          local pattern_track = pattern:track(t)
+          local note_columns_visible = sel_track.visible_note_columns
+          local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or 1
+          local end_column = (t == s.selection_in_pattern.end_track) and math.min(s.selection_in_pattern.end_column, note_columns_visible) or note_columns_visible
+          
+          for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+            local line = pattern_track:line(i)
+            for col = start_column, end_column do
+              if col <= note_columns_visible then
+                local note_column = line.note_columns[col]
+                if note_column then
+                  local should_modify = true
+                  if only_modify_notes and not has_note(note_column) then
+                    should_modify = false
+                  end
+                  if dont_overwrite and note_column.effect_number_string ~= ".." then
+                    should_modify = false
+                  end
+                  if should_modify then
+                    if randomize_cb then
+                      if should_apply() then
+                        note_column.effect_number_string = effect_code_string
+                        note_column.effect_amount_string = randomize()
+                      end
+                    else
+                      note_column.effect_number_string = effect_code_string
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    else
+      -- No selection
+      local note_col_idx = s.selected_note_column_index
+      if note_col_idx > 0 and note_col_idx <= track.visible_note_columns then
+        if randomize_cb and randomize_whole_track_cb then
+          -- Randomize whole track
+          local track_index = s.selected_track_index
+          for pattern_index = 1, #s.patterns do
+            local pattern = s:pattern(pattern_index)
+            local pattern_track = pattern:track(track_index)
+            local lines = pattern.number_of_lines
+            for i = 1, lines do
+              local line = pattern_track:line(i)
+              for col = 1, track.visible_note_columns do
+                local note_column = line.note_columns[col]
+                if note_column then
+                  local should_modify = true
+                  if only_modify_notes and not has_note(note_column) then
+                    should_modify = false
+                  end
+                  if dont_overwrite and note_column.effect_number_string ~= ".." then
+                    should_modify = false
+                  end
+                  if should_modify and should_apply() then
+                    note_column.effect_number_string = effect_code_string
+                    note_column.effect_amount_string = randomize()
+                  end
+                end
+              end
+            end
+          end
+        else
+          -- Write to current note column only
+          local line = s.selected_line
+          local note_column = line.note_columns[note_col_idx]
+          if note_column then
+            if randomize_cb then
+              note_column.effect_number_string = effect_code_string
+              note_column.effect_amount_string = randomize()
+            else
+              note_column.effect_number_string = effect_code_string
+            end
+          end
+        end
+      else
+        a:show_status("Please select a note column to write Sample FX")
+        restore_middle_frame(is_phrase_mode)
+        return
+      end
+    end
+  end
+
+  a:show_status("Sample FX: " .. status)
+  restore_middle_frame(is_phrase_mode)
+end
+
+-- Clear sample FX columns function
+function Cheatsheetclear_sample_fx_columns()
+  local s = renoise.song()
+  local is_phrase_mode, selection, target_data = get_editor_context()
+  
+  if is_phrase_mode then
+    -- Phrase Editor mode
+    local phrase = target_data.phrase
+    local note_columns_visible = phrase.visible_note_columns
+    
+    if selection then
+      -- Clear selection in phrase
+      local start_column = selection.start_column or 1
+      local end_column = math.min(selection.end_column or note_columns_visible, note_columns_visible)
+      
+      for i = selection.start_line, selection.end_line do
+        local line = phrase:line(i)
+        for col = start_column, end_column do
+          if col <= note_columns_visible then
+            local note_column = line.note_columns[col]
+            if note_column then
+              note_column.effect_number_string = ".."
+              note_column.effect_amount_string = ".."
+            end
+          end
+        end
+      end
+    else
+      -- Clear current note column
+      local note_col_idx = target_data.note_column_index
+      if note_col_idx > 0 then
+        local line = phrase:line(target_data.line_index)
+        local note_column = line.note_columns[note_col_idx]
+        if note_column then
+          note_column.effect_number_string = "."
+          note_column.effect_amount_string = ".."
+        end
+      end
+    end
+  else
+    -- Pattern Editor mode
+    if s.selection_in_pattern then
+      -- Clear selection
+      local pattern = s:pattern(s.selected_pattern_index)
+      for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
+        local track = s:track(t)
+        if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          local pattern_track = pattern:track(t)
+          local note_columns_visible = track.visible_note_columns
+          local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or 1
+          local end_column = (t == s.selection_in_pattern.end_track) and math.min(s.selection_in_pattern.end_column, note_columns_visible) or note_columns_visible
+          
+          for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+            local line = pattern_track:line(i)
+            for col = start_column, end_column do
+              if col <= note_columns_visible then
+                local note_column = line.note_columns[col]
+                if note_column then
+                  note_column.effect_number_string = "."
+                  note_column.effect_amount_string = ".."
+                end
+              end
+            end
+          end
+        end
+      end
+    else
+      -- Clear current note column
+      if s.selected_note_column then
+        s.selected_note_column.effect_number_string = "."
+        s.selected_note_column.effect_amount_string = ".."
+      end
+    end
+  end
+  
+  renoise.app():show_status("Sample FX columns cleared")
+  restore_middle_frame(is_phrase_mode)
+end
+
 -- Modified effect_write function with randomization logic
 
 function effect_write(effect, status, command, min_value, max_value)
@@ -1038,27 +1386,102 @@ function pakettiPatternEditorCheatsheetDialog()
   -- Store button view IDs for dynamic updates
   local effect_button_ids = {}
   
-  local effect_buttons = vb:column{}
+  -- Write mode switch: 1 = Effect Columns, 2 = Sample FX
+  local write_mode_switch = vb:switch{
+    id = "cheatsheet_write_mode_switch",
+    width = 200,
+    items = {"Effect Columns", "Sample FX"},
+    value = cheatsheet_write_mode,
+    notifier = function(index)
+      cheatsheet_write_mode = index
+      -- Update button states based on new mode
+      local is_phrase_now = is_phrase_editor_active() and has_valid_phrase()
+      for _, btn_info in ipairs(effect_button_ids) do
+        local view = vb.views[btn_info.id]
+        if view then
+          local is_active = true
+          if cheatsheet_write_mode == 2 then
+            -- Sample FX mode - only allow sample FX valid effects
+            is_active = is_effect_valid_for_sample_fx(btn_info.code)
+          else
+            -- Effect Columns mode - check phrase mode
+            if is_phrase_now then
+              is_active = btn_info.valid_for_phrase
+            end
+          end
+          view.active = is_active
+        end
+      end
+      -- Update clear button text
+      local clear_btn = vb.views["cheatsheet_clear_button"]
+      if clear_btn then
+        if cheatsheet_write_mode == 2 then
+          clear_btn.text = "Clear Sample FX"
+          clear_btn.tooltip = "Clear all sample FX in selection"
+        else
+          clear_btn.text = "Clear Effects"
+          clear_btn.tooltip = "Clear all effect columns in selection"
+        end
+      end
+    end
+  }
+  
+  -- Function to determine if button should be active based on current modes
+  local function is_button_active(effect_code, is_phrase_now)
+    if cheatsheet_write_mode == 2 then
+      -- Sample FX mode - only allow sample FX valid effects
+      return is_effect_valid_for_sample_fx(effect_code)
+    else
+      -- Effect Columns mode - check phrase mode
+      if is_phrase_now then
+        return is_effect_valid_for_phrase(effect_code)
+      end
+      return true
+    end
+  end
+  
+  local effect_buttons = vb:column{
+    vb:row{
+      vb:text{text = "Write to:", style = "strong"},
+      write_mode_switch
+    }
+  }
   for i, effect in ipairs(effects) do
     local effect_code = effect[1]
     local is_valid_for_phrase = is_effect_valid_for_phrase(effect_code)
+    local is_valid_for_sample_fx = is_effect_valid_for_sample_fx(effect_code)
     local button_id = "effect_btn_" .. effect_code
-    effect_button_ids[i] = {id = button_id, code = effect_code, valid_for_phrase = is_valid_for_phrase}
+    effect_button_ids[i] = {
+      id = button_id, 
+      code = effect_code, 
+      valid_for_phrase = is_valid_for_phrase,
+      valid_for_sample_fx = is_valid_for_sample_fx
+    }
     
     local button = vb:button{
       id = button_id,
       width=globalwidth,
       text = effect[2],
       tooltip = effect[3],
-      active = not current_is_phrase_mode or is_valid_for_phrase,
+      active = is_button_active(effect_code, current_is_phrase_mode),
       pressed = function()
-        -- Check if effect is valid for current mode
         local is_phrase_now = is_phrase_editor_active() and has_valid_phrase()
-        if is_phrase_now and not is_effect_valid_for_phrase(effect_code) then
-          renoise.app():show_status("Effect " .. effect[2] .. " is not available in Phrase Editor")
-          return
+        
+        if cheatsheet_write_mode == 2 then
+          -- Sample FX mode
+          if not is_effect_valid_for_sample_fx(effect_code) then
+            renoise.app():show_status("Effect " .. effect[2] .. " is not available for Sample FX columns")
+            return
+          end
+          sample_fx_write(effect[1], effect[2] .. " - " .. effect[3], effect[2], effect[4], effect[5])
+        else
+          -- Effect Columns mode
+          if is_phrase_now and not is_effect_valid_for_phrase(effect_code) then
+            renoise.app():show_status("Effect " .. effect[2] .. " is not available in Phrase Editor")
+            return
+          end
+          effect_write(effect[1], effect[2] .. " - " .. effect[3], effect[2], effect[4], effect[5])
         end
-        effect_write(effect[1], effect[2] .. " - " .. effect[3], effect[2], effect[4], effect[5])
         restore_middle_frame(is_phrase_now)
       end
     }
@@ -1066,7 +1489,7 @@ function pakettiPatternEditorCheatsheetDialog()
     effect_buttons:add_child(vb:row{button, desc})
   end
   
-  -- Function to update button states based on phrase mode
+  -- Function to update button states based on phrase mode and write mode
   local function update_button_states()
     local is_phrase_now = is_phrase_editor_active() and has_valid_phrase()
     if is_phrase_now ~= current_is_phrase_mode then
@@ -1074,7 +1497,17 @@ function pakettiPatternEditorCheatsheetDialog()
       for _, btn_info in ipairs(effect_button_ids) do
         local view = vb.views[btn_info.id]
         if view then
-          view.active = not is_phrase_now or btn_info.valid_for_phrase
+          local is_active = true
+          if cheatsheet_write_mode == 2 then
+            -- Sample FX mode - only allow sample FX valid effects
+            is_active = is_effect_valid_for_sample_fx(btn_info.code)
+          else
+            -- Effect Columns mode - check phrase mode
+            if is_phrase_now then
+              is_active = btn_info.valid_for_phrase
+            end
+          end
+          view.active = is_active
         end
       end
     end
@@ -1587,11 +2020,16 @@ function pakettiPatternEditorCheatsheetDialog()
     vb:horizontal_aligner{mode = "left", vb:text{text="Min", font = "mono"}, min_decrement_button, min_increment_button, min_slider, min_text},
     vb:horizontal_aligner{mode = "left", vb:text{text="Max", font = "mono"}, max_decrement_button, max_increment_button, max_slider, max_text},
     vb:button{
-      text="Clear Effects",
-      tooltip = "Clear all effect columns in selection",
+      id = "cheatsheet_clear_button",
+      text = cheatsheet_write_mode == 2 and "Clear Sample FX" or "Clear Effects",
+      tooltip = cheatsheet_write_mode == 2 and "Clear all sample FX in selection" or "Clear all effect columns in selection",
       width=globalwidth,
       pressed = function()
-        Cheatsheetclear_effect_columns()
+        if cheatsheet_write_mode == 2 then
+          Cheatsheetclear_sample_fx_columns()
+        else
+          Cheatsheetclear_effect_columns()
+        end
       end
     },
     vb:button{

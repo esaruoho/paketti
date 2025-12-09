@@ -512,6 +512,45 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     select_after_clone = renoise.Document.ObservableBoolean(true),
     naming_behavior = renoise.Document.ObservableNumber(1)  -- 1=Use Settings, 2=Clear Name, 3=Keep Original
   },
+  -- Wonkify preferences section
+  pakettiWonkify = {
+    -- Random Seed settings
+    RandomSeedEnabled = true,
+    RandomSeed = 12345,
+    -- Delay settings
+    DelayEnabled = true,
+    DelayPercentage = 50,
+    DelayMin = 0,
+    DelayMax = 32,
+    -- Volume settings
+    VolumeEnabled = false,
+    VolumePercentage = 30,
+    VolumeMin = 64,
+    VolumeMax = 128,
+    -- Panning settings
+    PanEnabled = false,
+    PanPercentage = 20,
+    PanMin = 32,
+    PanMax = 96,
+    -- Retrig settings
+    RetrigEnabled = false,
+    RetrigPercentage = 10,
+    RetrigMin = 1,
+    RetrigMax = 8,
+    RetrigColumn = 1,
+    -- Rhythm Drift settings
+    DriftEnabled = false,
+    DriftPercentage = 20,
+    DriftMin = 1,
+    DriftMax = 2,
+    -- Ghost notes (Rolls) settings
+    GhostEnabled = false,
+    GhostPercentage = 15,
+    GhostCount = 2,
+    GhostDirection = 1,
+    GhostVolumeStart = 20,
+    GhostVolumeEnd = 60
+  },
   -- Menu Configuration Settings
   pakettiMenuConfig = {
     InstrumentBox = true,

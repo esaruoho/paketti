@@ -715,6 +715,9 @@ renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Clear Pattern Alias
 renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
+renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Wonkify Current Pattern", invoke = PakettiWonkifyCurrentPattern}
+renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Duplicate & Wonkify Pattern", invoke = PakettiWonkifyDuplicatePattern}
+renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Wonkify Settings...", invoke = PakettiWonkifyDialog}
 
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
@@ -2283,6 +2286,9 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:CapsLockChassis:Custo
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Note-Off Paste (from Selection)", invoke=function() noteOffPaste() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Wonkify Current Pattern",invoke=PakettiWonkifyCurrentPattern}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Duplicate & Wonkify Pattern",invoke=PakettiWonkifyDuplicatePattern}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Wonkify Settings...",invoke=PakettiWonkifyDialog}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Convert 3 Note Chord to Arpeggio", invoke=function() ConvertChordsToArpeggio() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Effect Columns:B01 Reverse Sample Effect On/Off",invoke=function()
   local s=renoise.song()
@@ -2920,6 +2926,9 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Flood
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Flood Fill Note and Instrument with EditStep",invoke=pakettiFloodFillWithEditStep}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Wonkify Current Pattern",invoke=PakettiWonkifyCurrentPattern}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate & Wonkify Pattern",invoke=PakettiWonkifyDuplicatePattern}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Wonkify Settings...",invoke=PakettiWonkifyDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Pattern Length Increase by 8",invoke=function() adjust_length_by(8) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pattern Length Decrease by 8",invoke=function() adjust_length_by(-8) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pattern Length Increase by LPB",invoke=function() adjust_length_by("lpb") end}
@@ -3098,6 +3107,9 @@ renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Clone and Expand Pa
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Duplicate Pattern Above & Clear Muted",invoke=function() duplicate_pattern_and_clear_muted_above() end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate Pattern Below & Clear Muted",invoke=function() duplicate_pattern_and_clear_muted() end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wonkify Current Pattern",invoke=PakettiWonkifyCurrentPattern}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate & Wonkify Pattern",invoke=PakettiWonkifyDuplicatePattern}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wonkify Settings...",invoke=PakettiWonkifyDialog}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Duplicate Track and Instrument",invoke=function() duplicateTrackAndInstrument() end}
 
 -- Pattern Matrix Delay Output Delay
