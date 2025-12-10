@@ -1,6 +1,7 @@
 -- PakettiWonkify.lua
--- Wonkify patterns by randomly modifying note properties (delay, volume, panning)
--- and adding effects (retrigs, ghost notes/rolls, rhythm drift)
+-- Wonkify patterns by randomly modifying note properties
+-- Features: Pitch drift, Velocity variation, Delay drift, Row drift, 
+-- Note density, Ghost notes (rolls), Retrigs, Multi-pattern chain generation
 
 local preferences = renoise.tool().preferences
 local wonkify_dialog = nil
@@ -47,6 +48,23 @@ local function clear_note_column(column)
   column.effect_amount_value = 0
 end
 
+-- Helper function to check if pitch drift should apply to a track
+local function should_apply_pitch_drift(track_index, track_list_string)
+  if track_list_string == nil or track_list_string == "" then
+    return true  -- Apply to all tracks if no specific tracks specified
+  end
+  
+  -- Parse comma-separated list of track indices
+  for track_str in string.gmatch(track_list_string, "[^,]+") do
+    local track_num = tonumber(track_str:match("^%s*(.-)%s*$"))  -- Trim whitespace
+    if track_num and track_num == track_index then
+      return true
+    end
+  end
+  
+  return false
+end
+
 -- Apply wonkify effects to a specific pattern
 function PakettiWonkifyPattern(pattern_index)
   local song = renoise.song()
@@ -58,27 +76,67 @@ function PakettiWonkifyPattern(pattern_index)
     return
   end
   
-  -- Apply random seed if enabled
+  -- Count notes in pattern for diagnostic purposes (helps verify same starting state)
+  local note_count = 0
+  for track_index = 1, #song.tracks do
+    local track = song.tracks[track_index]
+    if track.type ~= renoise.Track.TRACK_TYPE_MASTER and track.type ~= renoise.Track.TRACK_TYPE_SEND then
+      local pattern_track = pattern:track(track_index)
+      for line_index = 1, pattern.number_of_lines do
+        local line = pattern_track:line(line_index)
+        for column_index = 1, track.visible_note_columns do
+          local note_column = line:note_column(column_index)
+          if note_column.note_value ~= renoise.PatternLine.EMPTY_NOTE then
+            note_count = note_count + 1
+          end
+        end
+      end
+    end
+  end
+  
+  -- Apply random seed if enabled - ALWAYS set it fresh to ensure reproducibility
   if prefs.RandomSeedEnabled.value then
-    math.randomseed(prefs.RandomSeed.value)
-    print("Wonkify: Using random seed " .. prefs.RandomSeed.value)
+    local seed = prefs.RandomSeed.value
+    math.randomseed(seed)
+    -- Call random() a few times to "warm up" the generator (Lua quirk)
+    math.random()
+    math.random()
+    math.random()
+    -- Reset seed again after warmup for actual use
+    math.randomseed(seed)
+    print(string.format("Wonkify: Seed=%d, Pattern has %d notes, %d lines", seed, note_count, pattern.number_of_lines))
+  else
+    -- If seed not enabled, use time-based seed for variety
+    math.randomseed(os.time() + os.clock() * 1000)
+    print(string.format("Wonkify: Time-based seed, Pattern has %d notes, %d lines", note_count, pattern.number_of_lines))
   end
   
   local notes_affected = 0
-  local delays_modified = 0
-  local volumes_modified = 0
-  local pans_modified = 0
-  local retrigs_added = 0
+  local delay_drifts = 0
+  local row_drifts = 0
+  local pitch_drifts = 0
+  local velocity_changes = 0
+  local notes_added = 0
+  local notes_removed = 0
   local ghosts_added = 0
-  local drifts_applied = 0
+  local retrigs_added = 0
   
-  -- Collect ghost notes to add later (to avoid modifying while iterating)
+  -- Collect existing notes for density variation (adding)
+  local existing_notes = {}
+  
+  -- Collect ghost notes to add later
   local ghost_notes_to_add = {}
   
-  -- Collect drift swaps to apply later
-  local drift_swaps = {}
+  -- Collect row drift swaps to apply later
+  local row_drift_swaps = {}
   
-  -- First pass: collect notes and determine modifications
+  -- Collect notes to remove (for density variation)
+  local notes_to_remove = {}
+  
+  -- Collect empty positions for adding notes
+  local empty_positions = {}
+  
+  -- First pass: collect notes, apply modifications, collect data for later operations
   for track_index = 1, #song.tracks do
     local track = song.tracks[track_index]
     
@@ -103,26 +161,24 @@ function PakettiWonkifyPattern(pattern_index)
             
             notes_affected = notes_affected + 1
             
-            -- Apply delay modification
-            if prefs.DelayEnabled.value then
+            -- Collect existing note for density variation
+            table.insert(existing_notes, {
+              note_value = note_column.note_value,
+              instrument_value = note_column.instrument_value
+            })
+            
+            -- Apply Delay Drift (micro-timing within row)
+            if prefs.DelayDriftEnabled.value then
               local dice = math.random(1, 100)
-              if dice <= prefs.DelayPercentage.value then
-                local delay_range = prefs.DelayMax.value - prefs.DelayMin.value
-                local delay_offset = math.random(0, math.max(0, delay_range))
-                local new_delay = prefs.DelayMin.value + delay_offset
-                
-                -- Randomly add or subtract from existing delay
+              if dice <= prefs.DelayDriftPercentage.value then
                 local current_delay = note_column.delay_value
                 if current_delay == renoise.PatternLine.EMPTY_DELAY then
                   current_delay = 0
                 end
                 
-                -- Randomly decide to add or subtract
-                if math.random(1, 2) == 1 then
-                  new_delay = current_delay + new_delay
-                else
-                  new_delay = current_delay - new_delay
-                end
+                local max_drift = prefs.DelayDriftMax.value
+                local drift = math.random(-max_drift, max_drift)
+                local new_delay = current_delay + drift
                 
                 -- Clamp to valid range
                 new_delay = math.max(0, math.min(255, new_delay))
@@ -130,45 +186,81 @@ function PakettiWonkifyPattern(pattern_index)
                 
                 -- Make delay column visible
                 track.delay_column_visible = true
-                delays_modified = delays_modified + 1
+                delay_drifts = delay_drifts + 1
               end
             end
             
-            -- Apply volume modification
-            if prefs.VolumeEnabled.value then
+            -- Collect Row Drift info (apply later to avoid iteration issues)
+            if prefs.RowDriftEnabled.value then
               local dice = math.random(1, 100)
-              if dice <= prefs.VolumePercentage.value then
-                local vol_range = prefs.VolumeMax.value - prefs.VolumeMin.value
-                local new_vol = prefs.VolumeMin.value + math.random(0, math.max(0, vol_range))
+              if dice <= prefs.RowDriftPercentage.value then
+                local max_drift = prefs.RowDriftMax.value
+                local drift = math.random(-max_drift, max_drift)
+                local target_line = line_index + drift
                 
-                -- Clamp to valid range (00-80 hex = 0-128 dec)
-                new_vol = math.max(0, math.min(128, new_vol))
+                -- Ensure target is within pattern bounds
+                if target_line >= 1 and target_line <= pattern.number_of_lines then
+                  table.insert(row_drift_swaps, {
+                    track_index = track_index,
+                    src_line = line_index,
+                    dst_line = target_line,
+                    column_index = column_index
+                  })
+                end
+              end
+            end
+            
+            -- Apply Pitch Drift
+            if prefs.PitchDriftEnabled.value then
+              if should_apply_pitch_drift(track_index, prefs.PitchDriftTracks.value) then
+                local dice = math.random(1, 100)
+                if dice <= prefs.PitchDriftPercentage.value then
+                  local max_drift = prefs.PitchDriftMax.value
+                  local drift = math.random(-max_drift, max_drift)
+                  local new_note = note_column.note_value + drift
+                  
+                  -- Clamp to valid note range (0-119, exclude OFF at 120)
+                  new_note = math.max(0, math.min(119, new_note))
+                  note_column.note_value = new_note
+                  pitch_drifts = pitch_drifts + 1
+                end
+              end
+            end
+            
+            -- Apply Velocity Variation (percentage-based)
+            if prefs.VelocityEnabled.value then
+              local dice = math.random(1, 100)
+              if dice <= prefs.VelocityPercentage.value then
+                local current_vol = note_column.volume_value
+                if current_vol == renoise.PatternLine.EMPTY_VOLUME then
+                  current_vol = 128  -- Default full volume
+                end
+                
+                local variation = prefs.VelocityVariation.value / 100
+                local change = current_vol * variation * (math.random() * 2 - 1)  -- +/- percentage
+                local new_vol = math.floor(current_vol + change)
+                new_vol = math.max(1, math.min(128, new_vol))
                 note_column.volume_value = new_vol
                 
                 -- Make volume column visible
                 track.volume_column_visible = true
-                volumes_modified = volumes_modified + 1
+                velocity_changes = velocity_changes + 1
               end
             end
             
-            -- Apply panning modification
-            if prefs.PanEnabled.value then
+            -- Note Density - Remove
+            if prefs.DensityEnabled.value then
               local dice = math.random(1, 100)
-              if dice <= prefs.PanPercentage.value then
-                local pan_range = prefs.PanMax.value - prefs.PanMin.value
-                local new_pan = prefs.PanMin.value + math.random(0, math.max(0, pan_range))
-                
-                -- Clamp to valid range (00-80 hex = 0-128 dec)
-                new_pan = math.max(0, math.min(128, new_pan))
-                note_column.panning_value = new_pan
-                
-                -- Make panning column visible
-                track.panning_column_visible = true
-                pans_modified = pans_modified + 1
+              if dice <= prefs.DensityRemovePercentage.value then
+                table.insert(notes_to_remove, {
+                  track_index = track_index,
+                  line_index = line_index,
+                  column_index = column_index
+                })
               end
             end
             
-            -- Apply retrig
+            -- Apply Retrig
             if prefs.RetrigEnabled.value then
               local dice = math.random(1, 100)
               if dice <= prefs.RetrigPercentage.value then
@@ -194,38 +286,12 @@ function PakettiWonkifyPattern(pattern_index)
               end
             end
             
-            -- Collect rhythm drift info
-            if prefs.DriftEnabled.value then
-              local dice = math.random(1, 100)
-              if dice <= prefs.DriftPercentage.value then
-                local drift_range = prefs.DriftMax.value - prefs.DriftMin.value
-                local drift_amount = prefs.DriftMin.value + math.random(0, math.max(0, drift_range))
-                
-                -- Randomly drift forward or backward
-                if math.random(1, 2) == 1 then
-                  drift_amount = -drift_amount
-                end
-                
-                local target_line = line_index + drift_amount
-                
-                -- Ensure target is within pattern bounds
-                if target_line >= 1 and target_line <= pattern.number_of_lines then
-                  table.insert(drift_swaps, {
-                    track_index = track_index,
-                    src_line = line_index,
-                    dst_line = target_line,
-                    column_index = column_index
-                  })
-                end
-              end
-            end
-            
-            -- Collect ghost note (roll) info
+            -- Collect Ghost Note (Roll) info
             if prefs.GhostEnabled.value then
               local dice = math.random(1, 100)
               if dice <= prefs.GhostPercentage.value then
                 local ghost_count = prefs.GhostCount.value
-                local direction = prefs.GhostDirection.value  -- 1=Before (build-up), 2=After (trail-off)
+                local direction = prefs.GhostDirection.value
                 local vol_start = prefs.GhostVolumeStart.value
                 local vol_end = prefs.GhostVolumeEnd.value
                 
@@ -236,18 +302,15 @@ function PakettiWonkifyPattern(pattern_index)
                   if direction == 1 then
                     -- Before (build-up): place ghosts before the note, volume increasing
                     ghost_line = line_index - (ghost_count - ghost_i + 1)
-                    -- Interpolate volume: first ghost gets vol_start, last ghost gets vol_end
                     ghost_vol = vol_start + (vol_end - vol_start) * ((ghost_i - 1) / math.max(1, ghost_count - 1))
                   else
                     -- After (trail-off): place ghosts after the note, volume decreasing
                     ghost_line = line_index + ghost_i
-                    -- Interpolate volume: first ghost gets vol_end, last ghost gets vol_start
                     ghost_vol = vol_end - (vol_end - vol_start) * ((ghost_i - 1) / math.max(1, ghost_count - 1))
                   end
                   
                   -- Ensure ghost line is within pattern bounds
                   if ghost_line >= 1 and ghost_line <= pattern.number_of_lines then
-                    -- Convert percentage to actual volume value (0-128)
                     local actual_vol = math.floor(128 * ghost_vol / 100)
                     actual_vol = math.max(1, math.min(128, actual_vol))
                     
@@ -263,15 +326,23 @@ function PakettiWonkifyPattern(pattern_index)
                 end
               end
             end
+          else
+            -- Empty position - collect for density add
+            if prefs.DensityEnabled.value and note_column.note_value == renoise.PatternLine.EMPTY_NOTE then
+              table.insert(empty_positions, {
+                track_index = track_index,
+                line_index = line_index,
+                column_index = column_index
+              })
+            end
           end
         end
       end
     end
   end
   
-  -- Apply rhythm drift swaps
-  for _, swap in ipairs(drift_swaps) do
-    local track = song.tracks[swap.track_index]
+  -- Apply Row Drift swaps
+  for _, swap in ipairs(row_drift_swaps) do
     local pattern_track = pattern:track(swap.track_index)
     local src_line = pattern_track:line(swap.src_line)
     local dst_line = pattern_track:line(swap.dst_line)
@@ -299,7 +370,34 @@ function PakettiWonkifyPattern(pattern_index)
     dst_column.effect_number_value = temp_effect_num
     dst_column.effect_amount_value = temp_effect_amt
     
-    drifts_applied = drifts_applied + 1
+    row_drifts = row_drifts + 1
+  end
+  
+  -- Remove notes for density variation
+  for _, pos in ipairs(notes_to_remove) do
+    local pattern_track = pattern:track(pos.track_index)
+    local line = pattern_track:line(pos.line_index)
+    local note_column = line:note_column(pos.column_index)
+    clear_note_column(note_column)
+    notes_removed = notes_removed + 1
+  end
+  
+  -- Add notes for density variation (to random empty positions)
+  if prefs.DensityEnabled.value and #existing_notes > 0 and #empty_positions > 0 then
+    for _, pos in ipairs(empty_positions) do
+      local dice = math.random(1, 100)
+      if dice <= prefs.DensityAddPercentage.value then
+        local pattern_track = pattern:track(pos.track_index)
+        local line = pattern_track:line(pos.line_index)
+        local note_column = line:note_column(pos.column_index)
+        
+        -- Pick a random existing note
+        local source = existing_notes[math.random(1, #existing_notes)]
+        note_column.note_value = source.note_value
+        note_column.instrument_value = source.instrument_value
+        notes_added = notes_added + 1
+      end
+    end
   end
   
   -- Add ghost notes (rolls)
@@ -321,8 +419,10 @@ function PakettiWonkifyPattern(pattern_index)
     end
   end
   
-  local status_msg = string.format("Wonkified: %d notes, Delay:%d, Vol:%d, Pan:%d, Retrig:%d, Drift:%d, Ghost:%d",
-    notes_affected, delays_modified, volumes_modified, pans_modified, retrigs_added, drifts_applied, ghosts_added)
+  local status_msg = string.format(
+    "Wonkified: %d notes | DelayDrift:%d RowDrift:%d Pitch:%d Vel:%d +Notes:%d -Notes:%d Ghost:%d Retrig:%d",
+    notes_affected, delay_drifts, row_drifts, pitch_drifts, velocity_changes, 
+    notes_added, notes_removed, ghosts_added, retrigs_added)
   renoise.app():show_status(status_msg)
   print(status_msg)
 end
@@ -397,6 +497,28 @@ function PakettiWonkifyDuplicatePattern()
   renoise.app():show_status("Duplicated and wonkified pattern to sequence " .. new_sequence_index)
 end
 
+-- Generate a chain of wonkified patterns (each is a variation of the previous)
+function PakettiWonkifyGenerateChain()
+  local prefs = preferences.pakettiWonkify
+  local count = prefs.PatternCount.value
+  local original_seed = prefs.RandomSeed.value
+  
+  for i = 1, count do
+    -- Duplicate and wonkify the current pattern
+    PakettiWonkifyDuplicatePattern()
+    
+    -- Increment seed for next variation (if seed enabled)
+    if prefs.RandomSeedEnabled.value then
+      prefs.RandomSeed.value = prefs.RandomSeed.value + 1
+    end
+  end
+  
+  -- Restore original seed
+  prefs.RandomSeed.value = original_seed
+  
+  renoise.app():show_status("Generated " .. count .. " wonkified patterns in chain")
+end
+
 -- Dialog for Wonkify settings
 function PakettiWonkifyDialog()
   -- Toggle behavior - close if already open
@@ -412,6 +534,7 @@ function PakettiWonkifyDialog()
   local slider_width = 150
   local label_width = 120
   local value_width = 40
+  local group_width = 360
   
   -- Helper function to create a labeled slider row
   local function create_slider_row(label, min_val, max_val, pref, suffix)
@@ -440,18 +563,19 @@ function PakettiWonkifyDialog()
     margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
     spacing = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING,
     
-    -- Random Seed Section
+    -- Generation Settings Section
     vb:column{
       style = "group",
       margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-      width = 350,
+      width = group_width,
       
+      vb:text{text = "Generation Settings", font = "bold", style = "strong"},
       vb:row{
         vb:checkbox{
           value = prefs.RandomSeedEnabled.value,
           notifier = function(value) prefs.RandomSeedEnabled.value = value end
         },
-        vb:text{text = "Random Seed", font = "bold", style = "strong"},
+        vb:text{text = "Random Seed"},
         vb:valuebox{
           min = 1,
           max = 999999,
@@ -463,116 +587,123 @@ function PakettiWonkifyDialog()
           text = "New",
           width = 40,
           notifier = function()
-            prefs.RandomSeed.value = math.random(1, 999999)
+            -- Use time-based seed generation to avoid interfering with main random state
+            local new_seed = (os.time() % 900000) + math.floor(os.clock() * 1000) % 99999
+            prefs.RandomSeed.value = math.max(1, math.min(999999, new_seed))
           end
         }
+      },
+      vb:row{
+        vb:text{text = "Pattern Count", width = label_width},
+        vb:valuebox{
+          min = 1,
+          max = 16,
+          value = prefs.PatternCount.value,
+          width = 60,
+          notifier = function(value) prefs.PatternCount.value = value end
+        },
+        vb:text{text = "(for chain generation)"}
       }
     },
     
-    -- Delay Section
+    -- Rhythm Section
     vb:column{
       style = "group",
       margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-      width = 350,
+      width = group_width,
       
+      vb:text{text = "Rhythm", font = "bold", style = "strong"},
+      
+      -- Delay Drift
       vb:row{
         vb:checkbox{
-          value = prefs.DelayEnabled.value,
-          notifier = function(value) prefs.DelayEnabled.value = value end
+          value = prefs.DelayDriftEnabled.value,
+          notifier = function(value) prefs.DelayDriftEnabled.value = value end
         },
-        vb:text{text = "Delay Modification", font = "bold", style = "strong"}
+        vb:text{text = "Delay Drift (ticks within row)"}
       },
-      create_slider_row("Percentage", 0, 100, prefs.DelayPercentage, "%"),
-      create_slider_row("Min Offset", 0, 255, prefs.DelayMin),
-      create_slider_row("Max Offset", 0, 255, prefs.DelayMax)
+      create_slider_row("Percentage", 0, 100, prefs.DelayDriftPercentage, "%"),
+      create_slider_row("Max Ticks (+/-)", 0, 255, prefs.DelayDriftMax),
+      
+      vb:space{height = 5},
+      
+      -- Row Drift
+      vb:row{
+        vb:checkbox{
+          value = prefs.RowDriftEnabled.value,
+          notifier = function(value) prefs.RowDriftEnabled.value = value end
+        },
+        vb:text{text = "Row Drift (swap positions)"}
+      },
+      create_slider_row("Percentage", 0, 100, prefs.RowDriftPercentage, "%"),
+      create_slider_row("Max Rows (+/-)", 1, 16, prefs.RowDriftMax)
     },
     
-    -- Volume Section
+    -- Pitch Section
     vb:column{
       style = "group",
       margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-      width = 350,
+      width = group_width,
       
       vb:row{
         vb:checkbox{
-          value = prefs.VolumeEnabled.value,
-          notifier = function(value) prefs.VolumeEnabled.value = value end
+          value = prefs.PitchDriftEnabled.value,
+          notifier = function(value) prefs.PitchDriftEnabled.value = value end
         },
-        vb:text{text = "Volume Modification", font = "bold", style = "strong"}
+        vb:text{text = "Pitch Drift (semitones)", font = "bold", style = "strong"}
       },
-      create_slider_row("Percentage", 0, 100, prefs.VolumePercentage, "%"),
-      create_slider_row("Min Volume", 0, 128, prefs.VolumeMin),
-      create_slider_row("Max Volume", 0, 128, prefs.VolumeMax)
-    },
-    
-    -- Panning Section
-    vb:column{
-      style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-      width = 350,
-      
+      create_slider_row("Percentage", 0, 100, prefs.PitchDriftPercentage, "%"),
+      create_slider_row("Max Semitones (+/-)", 1, 12, prefs.PitchDriftMax),
       vb:row{
-        vb:checkbox{
-          value = prefs.PanEnabled.value,
-          notifier = function(value) prefs.PanEnabled.value = value end
-        },
-        vb:text{text = "Panning Modification", font = "bold", style = "strong"}
-      },
-      create_slider_row("Percentage", 0, 100, prefs.PanPercentage, "%"),
-      create_slider_row("Min Pan", 0, 128, prefs.PanMin),
-      create_slider_row("Max Pan", 0, 128, prefs.PanMax)
-    },
-    
-    -- Retrig Section
-    vb:column{
-      style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-      width = 350,
-      
-      vb:row{
-        vb:checkbox{
-          value = prefs.RetrigEnabled.value,
-          notifier = function(value) prefs.RetrigEnabled.value = value end
-        },
-        vb:text{text = "Retrig (0Rxx)", font = "bold", style = "strong"}
-      },
-      create_slider_row("Percentage", 0, 100, prefs.RetrigPercentage, "%"),
-      create_slider_row("Min Retrig", 1, 255, prefs.RetrigMin),
-      create_slider_row("Max Retrig", 1, 255, prefs.RetrigMax),
-      vb:row{
-        vb:text{text = "Column", width = label_width},
-        vb:popup{
-          items = {"Effect Column", "Sample FX Column"},
-          value = prefs.RetrigColumn.value,
+        vb:text{text = "Apply to Tracks", width = label_width},
+        vb:textfield{
+          value = prefs.PitchDriftTracks.value,
           width = slider_width,
-          notifier = function(value) prefs.RetrigColumn.value = value end
+          tooltip = "Comma-separated track numbers (e.g. '1,2,3') or empty for all",
+          notifier = function(value) prefs.PitchDriftTracks.value = value end
         }
       }
     },
     
-    -- Rhythm Drift Section
+    -- Velocity Section
     vb:column{
       style = "group",
       margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-      width = 350,
+      width = group_width,
       
       vb:row{
         vb:checkbox{
-          value = prefs.DriftEnabled.value,
-          notifier = function(value) prefs.DriftEnabled.value = value end
+          value = prefs.VelocityEnabled.value,
+          notifier = function(value) prefs.VelocityEnabled.value = value end
         },
-        vb:text{text = "Rhythm Drift (Swap)", font = "bold", style = "strong"}
+        vb:text{text = "Velocity Variation", font = "bold", style = "strong"}
       },
-      create_slider_row("Percentage", 0, 100, prefs.DriftPercentage, "%"),
-      create_slider_row("Min Rows", 1, 16, prefs.DriftMin),
-      create_slider_row("Max Rows", 1, 32, prefs.DriftMax)
+      create_slider_row("Percentage", 0, 100, prefs.VelocityPercentage, "%"),
+      create_slider_row("Max Change (+/-)", 1, 100, prefs.VelocityVariation, "%")
     },
     
-    -- Ghost Notes (Rolls) Section
+    -- Density Section
     vb:column{
       style = "group",
       margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-      width = 350,
+      width = group_width,
+      
+      vb:row{
+        vb:checkbox{
+          value = prefs.DensityEnabled.value,
+          notifier = function(value) prefs.DensityEnabled.value = value end
+        },
+        vb:text{text = "Note Density Variation", font = "bold", style = "strong"}
+      },
+      create_slider_row("Add Notes %", 0, 50, prefs.DensityAddPercentage, "%"),
+      create_slider_row("Remove Notes %", 0, 50, prefs.DensityRemovePercentage, "%")
+    },
+    
+    -- Ghost Notes Section
+    vb:column{
+      style = "group",
+      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
+      width = group_width,
       
       vb:row{
         vb:checkbox{
@@ -596,23 +727,57 @@ function PakettiWonkifyDialog()
       create_slider_row("Volume End", 1, 100, prefs.GhostVolumeEnd, "%")
     },
     
+    -- Retrig Section
+    vb:column{
+      style = "group",
+      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
+      width = group_width,
+      
+      vb:row{
+        vb:checkbox{
+          value = prefs.RetrigEnabled.value,
+          notifier = function(value) prefs.RetrigEnabled.value = value end
+        },
+        vb:text{text = "Retrig (0Rxx)", font = "bold", style = "strong"}
+      },
+      create_slider_row("Percentage", 0, 100, prefs.RetrigPercentage, "%"),
+      create_slider_row("Min Retrig", 1, 255, prefs.RetrigMin),
+      create_slider_row("Max Retrig", 1, 255, prefs.RetrigMax),
+      vb:row{
+        vb:text{text = "Column", width = label_width},
+        vb:popup{
+          items = {"Effect Column", "Sample FX Column"},
+          value = prefs.RetrigColumn.value,
+          width = slider_width,
+          notifier = function(value) prefs.RetrigColumn.value = value end
+        }
+      }
+    },
+    
     -- Action Buttons
     vb:horizontal_aligner{
       mode = "center",
       margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       
       vb:button{
-        text = "Wonkify Current Pattern",
-        width = 160,
+        text = "Wonkify Current",
+        width = 110,
         notifier = function()
           PakettiWonkifyCurrentPattern()
         end
       },
       vb:button{
         text = "Duplicate & Wonkify",
-        width = 160,
+        width = 120,
         notifier = function()
           PakettiWonkifyDuplicatePattern()
+        end
+      },
+      vb:button{
+        text = "Generate Chain",
+        width = 110,
+        notifier = function()
+          PakettiWonkifyGenerateChain()
         end
       }
     }
@@ -632,18 +797,22 @@ end
 -- Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Wonkify Current Pattern", invoke=PakettiWonkifyCurrentPattern}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate & Wonkify Pattern", invoke=PakettiWonkifyDuplicatePattern}
+renoise.tool():add_keybinding{name="Global:Paketti:Wonkify Generate Chain", invoke=PakettiWonkifyGenerateChain}
 renoise.tool():add_keybinding{name="Global:Paketti:Wonkify Dialog", invoke=PakettiWonkifyDialog}
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wonkify Current Pattern", invoke=PakettiWonkifyCurrentPattern}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate & Wonkify Pattern", invoke=PakettiWonkifyDuplicatePattern}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wonkify Generate Chain", invoke=PakettiWonkifyGenerateChain}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wonkify Dialog", invoke=PakettiWonkifyDialog}
 
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Wonkify Current Pattern", invoke=PakettiWonkifyCurrentPattern}
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate & Wonkify Pattern", invoke=PakettiWonkifyDuplicatePattern}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Wonkify Generate Chain", invoke=PakettiWonkifyGenerateChain}
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Wonkify Dialog", invoke=PakettiWonkifyDialog}
 
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Wonkify Current Pattern", invoke=PakettiWonkifyCurrentPattern}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate & Wonkify Pattern", invoke=PakettiWonkifyDuplicatePattern}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Wonkify Generate Chain", invoke=PakettiWonkifyGenerateChain}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Wonkify Dialog", invoke=PakettiWonkifyDialog}
 
 -- MIDI Mappings
@@ -659,6 +828,14 @@ renoise.tool():add_midi_mapping{name="Paketti:Duplicate & Wonkify Pattern",
   invoke=function(message) 
     if message:is_trigger() then 
       PakettiWonkifyDuplicatePattern() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Wonkify Generate Chain",
+  invoke=function(message) 
+    if message:is_trigger() then 
+      PakettiWonkifyGenerateChain() 
     end 
   end
 }

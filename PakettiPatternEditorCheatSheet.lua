@@ -2506,17 +2506,129 @@ end
 local mini_selected_effect_index = 1
 local mini_hex_value = 128  -- Start at 0x80 (50%)
 
--- Helper to build filtered effects list based on phrase mode
+-- Helper to build filtered effects list based on phrase mode AND write mode
 local function get_filtered_effects_for_mode(is_phrase_mode)
   local filtered = {}
   local index_map = {}  -- Maps filtered index to original index
   for i, effect in ipairs(mini_effects) do
-    if not is_phrase_mode or is_effect_valid_for_phrase(effect[1]) then
+    local is_valid = true
+    -- Filter by phrase mode
+    if is_phrase_mode and not is_effect_valid_for_phrase(effect[1]) then
+      is_valid = false
+    end
+    -- Filter by write mode (Sample FX mode)
+    if cheatsheet_write_mode == 2 and not is_effect_valid_for_sample_fx(effect[1]) then
+      is_valid = false
+    end
+    if is_valid then
       table.insert(filtered, effect)
       index_map[#filtered] = i
     end
   end
   return filtered, index_map
+end
+
+-- Apply effect to Sample FX columns (mini version)
+local function apply_mini_sample_fx_direct(effect_command, hex_value)
+  local s = renoise.song()
+  local is_phrase_mode, selection, target_data = get_editor_context()
+  
+  -- Format hex value as string
+  local hex_string = string.format("%02X", hex_value)
+  
+  if is_phrase_mode then
+    -- Phrase Editor mode
+    local phrase = target_data.phrase
+    local note_columns_visible = phrase.visible_note_columns
+    
+    -- Make sample effects column visible
+    phrase.sample_effects_column_visible = true
+    
+    if selection then
+      -- Apply to selection in phrase
+      local start_column = selection.start_column or 1
+      local end_column = math.min(selection.end_column or note_columns_visible, note_columns_visible)
+      
+      for i = selection.start_line, selection.end_line do
+        local line = phrase:line(i)
+        for col = start_column, end_column do
+          if col <= note_columns_visible then
+            local note_column = line.note_columns[col]
+            if note_column then
+              note_column.effect_number_string = effect_command
+              note_column.effect_amount_string = hex_string
+            end
+          end
+        end
+      end
+    else
+      -- Write to current note column
+      local note_col_idx = target_data.note_column_index
+      if note_col_idx > 0 and note_col_idx <= note_columns_visible then
+        local line = phrase:line(target_data.line_index)
+        local note_column = line.note_columns[note_col_idx]
+        if note_column then
+          note_column.effect_number_string = effect_command
+          note_column.effect_amount_string = hex_string
+        end
+      else
+        renoise.app():show_status("Please select a note column to write Sample FX")
+      end
+    end
+  else
+    -- Pattern Editor mode
+    local track = s.selected_track
+    if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+      renoise.app():show_status("Sample FX can only be written to sequencer tracks")
+      restore_middle_frame(is_phrase_mode)
+      return
+    end
+    
+    -- Make sample effects column visible
+    track.sample_effects_column_visible = true
+    
+    if s.selection_in_pattern then
+      -- Apply to selection
+      local pattern = s:pattern(s.selected_pattern_index)
+      for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
+        local sel_track = s:track(t)
+        if sel_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          sel_track.sample_effects_column_visible = true
+          local pattern_track = pattern:track(t)
+          local note_columns_visible = sel_track.visible_note_columns
+          local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or 1
+          local end_column = (t == s.selection_in_pattern.end_track) and math.min(s.selection_in_pattern.end_column, note_columns_visible) or note_columns_visible
+          
+          for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+            local line = pattern_track:line(i)
+            for col = start_column, end_column do
+              if col <= note_columns_visible then
+                local note_column = line.note_columns[col]
+                if note_column then
+                  note_column.effect_number_string = effect_command
+                  note_column.effect_amount_string = hex_string
+                end
+              end
+            end
+          end
+        end
+      end
+    else
+      -- Write to current note column
+      local note_col_idx = s.selected_note_column_index
+      if note_col_idx > 0 and note_col_idx <= track.visible_note_columns then
+        local line = s.selected_line
+        local note_column = line.note_columns[note_col_idx]
+        if note_column then
+          note_column.effect_number_string = effect_command
+          note_column.effect_amount_string = hex_string
+        end
+      else
+        renoise.app():show_status("Please select a note column to write Sample FX")
+      end
+    end
+  end
+  restore_middle_frame(is_phrase_mode)
 end
 
 function pakettiMiniCheatsheetHorizontal()
@@ -2559,9 +2671,19 @@ function pakettiMiniCheatsheetHorizontal()
   
   -- Mode indicator text
   local mode_text = vb:text{
+    id = "mini_h_mode_text",
     text = is_phrase_mode and "[Phrase Mode]" or "[Pattern Mode]",
     font = "italic"
   }
+
+  -- Helper function to apply effect based on write mode
+  local function apply_effect_for_mode(effect_command, value)
+    if cheatsheet_write_mode == 2 then
+      apply_mini_sample_fx_direct(effect_command, value)
+    else
+      apply_mini_effect_direct(effect_command, value)
+    end
+  end
 
   -- Apply random effect
   local function apply_random_effect()
@@ -2569,7 +2691,7 @@ function pakettiMiniCheatsheetHorizontal()
     selected_effect_index = random_index
     mini_selected_effect_index = index_map[random_index]  -- Update persistent state with original index
     local selected_effect = filtered_effects[selected_effect_index]
-    apply_mini_effect_direct(selected_effect[1], hex_value)
+    apply_effect_for_mode(selected_effect[1], hex_value)
     renoise.app():show_status(string.format("Random effect: %s", selected_effect[2]))
     -- Update the dropdown to show the randomly selected effect
     if mini_dialog and mini_dialog.visible then
@@ -2578,20 +2700,38 @@ function pakettiMiniCheatsheetHorizontal()
     end
   end
 
+  -- Write mode switch
+  local write_mode_switch = vb:switch{
+    id = "mini_h_write_mode_switch",
+    width = 150,
+    items = {"Effect Columns", "Sample FX"},
+    value = cheatsheet_write_mode,
+    notifier = function(index)
+      cheatsheet_write_mode = index
+      -- Rebuild the dialog to update the filtered effects list
+      if mini_dialog and mini_dialog.visible then
+        mini_dialog:close()
+        pakettiMiniCheatsheetHorizontal()
+      end
+    end
+  }
+
   local dialog_content = vb:column{
     vb:row{
       spacing = 10,
       mode_text,
+      write_mode_switch,
       vb:popup{
+        id = "mini_h_effect_popup",
         items = dropdown_items,
         value = selected_effect_index,
-        width = 420,
+        width = 350,
         notifier = function(index)
           selected_effect_index = index
           mini_selected_effect_index = index_map[index]  -- Update persistent state with original index
           -- Apply effect when dropdown changes
           local selected_effect = filtered_effects[selected_effect_index]
-          apply_mini_effect_direct(selected_effect[1], hex_value)
+          apply_effect_for_mode(selected_effect[1], hex_value)
         end
       },
       vb:button{
@@ -2627,7 +2767,7 @@ function pakettiMiniCheatsheetHorizontal()
           percentage_text.text = string.format("%d%% Fill (0x%02X)", percentage, hex_value)
           -- Apply effect in real-time
           local selected_effect = filtered_effects[selected_effect_index]
-          apply_mini_effect_direct(selected_effect[1], hex_value)
+          apply_effect_for_mode(selected_effect[1], hex_value)
         end
       },
       percentage_text
@@ -2694,9 +2834,19 @@ function pakettiMiniCheatsheetVertical()
   
   -- Mode indicator text
   local mode_text = vb:text{
+    id = "mini_v_mode_text",
     text = is_phrase_mode and "[Phrase]" or "[Pattern]",
     font = "italic"
   }
+
+  -- Helper function to apply effect based on write mode
+  local function apply_effect_for_mode(effect_command, value)
+    if cheatsheet_write_mode == 2 then
+      apply_mini_sample_fx_direct(effect_command, value)
+    else
+      apply_mini_effect_direct(effect_command, value)
+    end
+  end
 
   -- Apply random effect
   local function apply_random_effect()
@@ -2704,7 +2854,7 @@ function pakettiMiniCheatsheetVertical()
     selected_effect_index = random_index
     mini_selected_effect_index = index_map[random_index]  -- Update persistent state with original index
     local selected_effect = filtered_effects[selected_effect_index]
-    apply_mini_effect_direct(selected_effect[1], hex_value)
+    apply_effect_for_mode(selected_effect[1], hex_value)
     renoise.app():show_status(string.format("Random effect: %s", selected_effect[2]))
     -- Update the dropdown to show the randomly selected effect
     if mini_dialog and mini_dialog.visible then
@@ -2721,9 +2871,25 @@ function pakettiMiniCheatsheetVertical()
     percentage_text.text = string.format("%03d%% Fill (0x%02X)", percentage, hex_value)
     -- Apply effect with new random value
     local selected_effect = filtered_effects[selected_effect_index]
-    apply_mini_effect_direct(selected_effect[1], hex_value)
+    apply_effect_for_mode(selected_effect[1], hex_value)
     renoise.app():show_status(string.format("Random value: 0x%02X (%03d%%)", hex_value, percentage))
   end
+
+  -- Write mode switch
+  local write_mode_switch = vb:switch{
+    id = "mini_v_write_mode_switch",
+    width = 100,
+    items = {"FX Col", "SmpFX"},
+    value = cheatsheet_write_mode,
+    notifier = function(index)
+      cheatsheet_write_mode = index
+      -- Rebuild the dialog to update the filtered effects list
+      if mini_dialog and mini_dialog.visible then
+        mini_dialog:close()
+        pakettiMiniCheatsheetVertical()
+      end
+    end
+  }
 
   local dialog_content = vb:column{
     -- Mode indicator at top
@@ -2732,8 +2898,15 @@ function pakettiMiniCheatsheetVertical()
       mode_text
     },
     
-    -- Dropdown at top
+    -- Write mode switch
+    vb:horizontal_aligner{
+      mode = "center",
+      write_mode_switch
+    },
+    
+    -- Dropdown
     vb:popup{
+      id = "mini_v_effect_popup",
       items = dropdown_items,
       value = selected_effect_index,
       width = 100,
@@ -2742,7 +2915,7 @@ function pakettiMiniCheatsheetVertical()
         mini_selected_effect_index = index_map[index]  -- Update persistent state with original index
         -- Apply effect when dropdown changes
         local selected_effect = filtered_effects[selected_effect_index]
-        apply_mini_effect_direct(selected_effect[1], hex_value)
+        apply_effect_for_mode(selected_effect[1], hex_value)
       end
     },
     
@@ -2762,7 +2935,7 @@ function pakettiMiniCheatsheetVertical()
           percentage_text.text = string.format("%03d%% Fill (0x%02X)", percentage, hex_value)
           -- Apply effect in real-time
           local selected_effect = filtered_effects[selected_effect_index]
-          apply_mini_effect_direct(selected_effect[1], hex_value)
+          apply_effect_for_mode(selected_effect[1], hex_value)
         end
       }
     },

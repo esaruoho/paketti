@@ -514,42 +514,45 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   },
   -- Wonkify preferences section
   pakettiWonkify = {
-    -- Random Seed settings
+    -- Random Seed
     RandomSeedEnabled = true,
     RandomSeed = 12345,
-    -- Delay settings
-    DelayEnabled = true,
-    DelayPercentage = 50,
-    DelayMin = 0,
-    DelayMax = 32,
-    -- Volume settings
-    VolumeEnabled = false,
-    VolumePercentage = 30,
-    VolumeMin = 64,
-    VolumeMax = 128,
-    -- Panning settings
-    PanEnabled = false,
-    PanPercentage = 20,
-    PanMin = 32,
-    PanMax = 96,
-    -- Retrig settings
-    RetrigEnabled = false,
-    RetrigPercentage = 10,
-    RetrigMin = 1,
-    RetrigMax = 8,
-    RetrigColumn = 1,
-    -- Rhythm Drift settings
-    DriftEnabled = false,
-    DriftPercentage = 20,
-    DriftMin = 1,
-    DriftMax = 2,
-    -- Ghost notes (Rolls) settings
+    -- Multi-pattern generation
+    PatternCount = 1,
+    -- Rhythm Drift - Delay Ticks (micro-timing within row)
+    DelayDriftEnabled = false,
+    DelayDriftPercentage = 30,
+    DelayDriftMax = 32,
+    -- Rhythm Drift - Row Position (move to different lines)
+    RowDriftEnabled = false,
+    RowDriftPercentage = 20,
+    RowDriftMax = 2,
+    -- Pitch Drift (semitone shift)
+    PitchDriftEnabled = false,
+    PitchDriftPercentage = 15,
+    PitchDriftMax = 2,
+    PitchDriftTracks = "",
+    -- Velocity Variation (percentage change from original)
+    VelocityEnabled = false,
+    VelocityPercentage = 40,
+    VelocityVariation = 20,
+    -- Note Density Variation
+    DensityEnabled = false,
+    DensityAddPercentage = 10,
+    DensityRemovePercentage = 10,
+    -- Ghost Notes (Rolls)
     GhostEnabled = false,
     GhostPercentage = 15,
     GhostCount = 2,
     GhostDirection = 1,
     GhostVolumeStart = 20,
-    GhostVolumeEnd = 60
+    GhostVolumeEnd = 60,
+    -- Retrig
+    RetrigEnabled = false,
+    RetrigPercentage = 10,
+    RetrigMin = 1,
+    RetrigMax = 8,
+    RetrigColumn = 1
   },
   -- Menu Configuration Settings
   pakettiMenuConfig = {
