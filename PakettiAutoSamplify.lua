@@ -334,9 +334,62 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   song.selected_sample_index = 1
   local new_sample = new_instrument.samples[1]
   
-  
-  -- Copy sample data (use copy_from on the sample, not the buffer!)
-  new_sample:copy_from(source_sample)
+  -- Check if source sample is an alias - cannot use copy_from on alias samples
+  if source_sample.is_alias then
+    print(string.format("DEBUG: Source sample '%s' is an alias, copying properties and buffer manually", sample_name))
+    -- Copy sample properties manually
+    new_sample.panning = source_sample.panning
+    new_sample.volume = source_sample.volume
+    new_sample.transpose = source_sample.transpose
+    new_sample.fine_tune = source_sample.fine_tune
+    new_sample.beat_sync_enabled = source_sample.beat_sync_enabled
+    new_sample.beat_sync_lines = source_sample.beat_sync_lines
+    new_sample.beat_sync_mode = source_sample.beat_sync_mode
+    new_sample.interpolation_mode = source_sample.interpolation_mode
+    new_sample.oversample_enabled = source_sample.oversample_enabled
+    new_sample.new_note_action = source_sample.new_note_action
+    new_sample.oneshot = source_sample.oneshot
+    new_sample.mute_group = source_sample.mute_group
+    new_sample.autoseek = source_sample.autoseek
+    new_sample.autofade = source_sample.autofade
+    new_sample.loop_mode = source_sample.loop_mode
+    new_sample.loop_release = source_sample.loop_release
+    
+    -- Copy buffer data manually from alias sample
+    local source_buffer = source_sample.sample_buffer
+    local dest_buffer = new_sample.sample_buffer
+    if source_buffer.has_sample_data then
+      local success = dest_buffer:create_sample_data(
+        source_buffer.sample_rate,
+        source_buffer.bit_depth,
+        source_buffer.number_of_channels,
+        source_buffer.number_of_frames
+      )
+      if success then
+        dest_buffer:prepare_sample_data_changes()
+        for ch = 1, source_buffer.number_of_channels do
+          for fr = 1, source_buffer.number_of_frames do
+            dest_buffer:set_sample_data(ch, fr, source_buffer:sample_data(ch, fr))
+          end
+        end
+        dest_buffer:finalize_sample_data_changes()
+        -- Copy loop points after buffer is created
+        if source_sample.loop_start <= source_buffer.number_of_frames then
+          new_sample.loop_start = source_sample.loop_start
+        end
+        if source_sample.loop_end <= source_buffer.number_of_frames then
+          new_sample.loop_end = source_sample.loop_end
+        end
+        print(string.format("DEBUG: Successfully copied alias sample buffer (%d frames, %d channels)", 
+                           source_buffer.number_of_frames, source_buffer.number_of_channels))
+      else
+        print(string.format("ERROR: Failed to create sample buffer for alias sample '%s'", sample_name))
+      end
+    end
+  else
+    -- Normal copy for non-alias samples
+    new_sample:copy_from(source_sample)
+  end
   new_sample.name = sample_name
   new_instrument.name = sample_name
   
@@ -486,9 +539,64 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
             new_instrument:insert_sample_at(sample_idx)
             local new_sample = new_instrument.samples[sample_idx]
             
-            -- Copy sample data
-            new_sample:copy_from(source_sample)
-            new_sample.name = source_sample.name
+            -- Check if source sample is an alias - cannot use copy_from on alias samples
+            if source_sample.is_alias then
+              print(string.format("DEBUG: Source sample '%s' is an alias, copying properties and buffer manually", source_sample.name))
+              -- Copy sample properties manually
+              new_sample.panning = source_sample.panning
+              new_sample.volume = source_sample.volume
+              new_sample.transpose = source_sample.transpose
+              new_sample.fine_tune = source_sample.fine_tune
+              new_sample.beat_sync_enabled = source_sample.beat_sync_enabled
+              new_sample.beat_sync_lines = source_sample.beat_sync_lines
+              new_sample.beat_sync_mode = source_sample.beat_sync_mode
+              new_sample.interpolation_mode = source_sample.interpolation_mode
+              new_sample.oversample_enabled = source_sample.oversample_enabled
+              new_sample.new_note_action = source_sample.new_note_action
+              new_sample.oneshot = source_sample.oneshot
+              new_sample.mute_group = source_sample.mute_group
+              new_sample.autoseek = source_sample.autoseek
+              new_sample.autofade = source_sample.autofade
+              new_sample.loop_mode = source_sample.loop_mode
+              new_sample.loop_release = source_sample.loop_release
+              
+              -- Copy buffer data manually from alias sample
+              local source_buffer = source_sample.sample_buffer
+              local dest_buffer = new_sample.sample_buffer
+              if source_buffer.has_sample_data then
+                local success = dest_buffer:create_sample_data(
+                  source_buffer.sample_rate,
+                  source_buffer.bit_depth,
+                  source_buffer.number_of_channels,
+                  source_buffer.number_of_frames
+                )
+                if success then
+                  dest_buffer:prepare_sample_data_changes()
+                  for ch = 1, source_buffer.number_of_channels do
+                    for fr = 1, source_buffer.number_of_frames do
+                      dest_buffer:set_sample_data(ch, fr, source_buffer:sample_data(ch, fr))
+                    end
+                  end
+                  dest_buffer:finalize_sample_data_changes()
+                  -- Copy loop points after buffer is created
+                  if source_sample.loop_start <= source_buffer.number_of_frames then
+                    new_sample.loop_start = source_sample.loop_start
+                  end
+                  if source_sample.loop_end <= source_buffer.number_of_frames then
+                    new_sample.loop_end = source_sample.loop_end
+                  end
+                  print(string.format("DEBUG: Successfully copied alias sample buffer (%d frames, %d channels)", 
+                                     source_buffer.number_of_frames, source_buffer.number_of_channels))
+                else
+                  print(string.format("ERROR: Failed to create sample buffer for alias sample '%s'", source_sample.name))
+                end
+              end
+              new_sample.name = source_sample.name
+            else
+              -- Normal copy for non-alias samples
+              new_sample:copy_from(source_sample)
+              new_sample.name = source_sample.name
+            end
             
             -- Apply sample-specific loader settings
             PakettiAutoSamplifyApplyLoaderSettings(new_sample)

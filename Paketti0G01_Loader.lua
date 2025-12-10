@@ -216,7 +216,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
   pakettiPresetPlusPlusDeviceChain = "DeviceChains" .. separator .. "hipass_lopass_dcoffset.xrnt",
   -- AutoSamplify Settings
-  pakettiAutoSamplifyMonitoring = true,
+  pakettiAutoSamplifyMonitoring = false,
   pakettiAutoSamplifyPakettify = false,
   ActionSelector = {
  Index01="",
