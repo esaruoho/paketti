@@ -3873,7 +3873,7 @@ function PakettiSliceCreateRhythmicDrumChainFromXRNI(normalize_slices)
 end
 
 -- Menu entries and keybindings for Rhythmic Slice DrumChain (without normalize)
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
+renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}

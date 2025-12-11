@@ -54,7 +54,7 @@ renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti Gadgets:Sample Offs
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_menu_entry{name="--Sample Editor Ruler:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
@@ -553,11 +553,11 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Melodic Slic
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
@@ -666,7 +666,7 @@ renoise.tool():add_menu_entry{
 }
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Instruments:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
 
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Loop Points",invoke = pakettiTrimSelectedSampleToLoop}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Selection",invoke = pakettiTrimSelectedSampleToSelection}
@@ -1479,8 +1479,8 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Unmark / Clear Selecti
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Toggle Frequency Analysis",invoke = toggleFrequencyAnalysis}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Cycle Frequency Analysis Cycles (1/2/4/8/16)",invoke = cycleThroughCycles}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Wipe Song Retain Sample",invoke=function() WipeRetain() end}
