@@ -57,7 +57,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Slice to Pattern S
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_menu_entry{name="--Sample Editor Ruler:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
@@ -67,7 +67,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice:Real-Time Slice 
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Switcharoo...", invoke = PakettiSwitcharoo_Toggle}
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti Switcharoo...", invoke = PakettiSwitcharoo_Toggle}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
+--renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
 renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Scale 50%", invoke=function() pakettiScaleLFOEnvelope(0.5) end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Scale 50%", invoke=function() pakettiScaleLFOEnvelope(0.5) end}
@@ -563,35 +563,35 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Selected Sam
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
@@ -599,7 +599,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Set All Sends to Outpu
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Polyend Slice Switcher...",
   invoke=function()
@@ -1427,7 +1427,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Duplicate 
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Instruments:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Set Selected Instrument Velocity Tracking On",invoke=function()  selectedInstrumentVelocityTracking(1) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Set Selected Instrument Velocity Tracking Off",invoke=function() selectedInstrumentVelocityTracking(0) end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Convert Beatsync to Sample Pitch",invoke=convert_beatsync_to_pitch}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Beatsync/Slices:Convert Beatsync to Sample Pitch",invoke=convert_beatsync_to_pitch}
 
 -- Sample Editor Experimental/WIP
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Detect Zero Crossings",invoke=detect_zero_crossings}
@@ -1466,42 +1466,42 @@ renoise.tool():add_menu_entry{name="Sample Editor Ruler:Select Center of Sample 
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Set Selection by Hex Offset...", invoke = pakettiHexOffsetDialog}
 
 -- Sample Editor Root
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Toggle Sample Selection Info",invoke = toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Toggles:Toggle Sample Selection Info",invoke = toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Create New Instrument from Selection with Slices",invoke=create_new_instrument_from_selection_with_slices}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Copy Sample in Note-On to Note-Off Layer +24",invoke=function() noteOnToNoteOff(24) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Copy Sample in Note-On to Note-Off Layer +12",invoke=function() noteOnToNoteOff(12) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Copy Sample in Note-On to Note-Off Layer",invoke=function() noteOnToNoteOff(0) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Copy Sample in Note-On to Note-Off Layer -12",invoke=function() noteOnToNoteOff(-12) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Copy Sample in Note-On to Note-Off Layer -24",invoke=function() noteOnToNoteOff(-24) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Toggle Loop Range (Selection)",invoke=pakettiToggleLoopRangeSelection}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Unmark / Clear Selection",invoke=pakettiSampleEditorSelectionClear}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Toggle Frequency Analysis",invoke = toggleFrequencyAnalysis}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Cycle Frequency Analysis Cycles (1/2/4/8/16)",invoke = cycleThroughCycles}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Samples:Copy Sample in Note-On to Note-Off Layer +24",invoke=function() noteOnToNoteOff(24) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Copy Sample in Note-On to Note-Off Layer +12",invoke=function() noteOnToNoteOff(12) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Copy Sample in Note-On to Note-Off Layer",invoke=function() noteOnToNoteOff(0) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Copy Sample in Note-On to Note-Off Layer -12",invoke=function() noteOnToNoteOff(-12) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Copy Sample in Note-On to Note-Off Layer -24",invoke=function() noteOnToNoteOff(-24) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Selection:Toggle Loop Range (Selection)",invoke=pakettiToggleLoopRangeSelection}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Selection:Unmark / Clear Selection",invoke=pakettiSampleEditorSelectionClear}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Toggle Frequency Analysis",invoke = toggleFrequencyAnalysis}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Cycle Frequency Analysis Cycles (1/2/4/8/16)",invoke = cycleThroughCycles}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Steppers:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load:Load New Instrument with Current Slice Markers (Length Matching)",invoke=function() loadNewWithCurrentSliceMarkersLengthMatching() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Wipe Song Retain Sample",invoke=function() WipeRetain() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Map Sample to All Keyzones", invoke=function() mapsample() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Instruments:Wipe Song Retain Sample",invoke=function() WipeRetain() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Smart Beatsync from Selection",invoke=function() BeatSyncFromSelection() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Paketti Groovebox 8120 Eight 120-fy Instrument",invoke=function() PakettiEight120fy() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Octave Slammer (-3 +3 octaves)",invoke=PakettiOctaveSlammer3}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octave Slammer (-2 +2 octaves)",invoke=PakettiOctaveSlammer2}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octave Slammer (-1 +1 octaves)",invoke=PakettiOctaveSlammer1}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Paketti Groovebox 8120 Eight 120-fy Instrument",invoke=function() PakettiEight120fy() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Samples:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Samples:Octave Slammer (-3 +3 octaves)",invoke=PakettiOctaveSlammer3}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Octave Slammer (-2 +2 octaves)",invoke=PakettiOctaveSlammer2}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Octave Slammer (-1 +1 octaves)",invoke=PakettiOctaveSlammer1}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Sample Loop Halve",invoke=function() adjust_loop_range(0.5) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample Loop Double",invoke=function() adjust_loop_range(2) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample Loop Length Next Division",invoke=function() cycle_loop_division(true) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample Loop Length Previous Division",invoke=function() cycle_loop_division(false) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Snap Loop To Nearest Row",invoke=snap_loop_to_rows}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Duplicate Sample Range, Mute Original",invoke = duplicate_sample_range_and_mute_original}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Randomize Selected Sample Finetune/Transpose +6/-6",invoke=function() randomize_sample_pitch_and_finetune(6,6) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Randomize Selected Sample Transpose +6/-6 Finetune +127/-127",invoke=function() randomize_sample_pitch_and_finetune(6,127) end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Transpose:Randomize Selected Sample Finetune/Transpose +6/-6",invoke=function() randomize_sample_pitch_and_finetune(6,6) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Transpose:Randomize Selected Sample Transpose +6/-6 Finetune +127/-127",invoke=function() randomize_sample_pitch_and_finetune(6,127) end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
