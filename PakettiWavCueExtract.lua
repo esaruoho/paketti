@@ -1280,9 +1280,8 @@ function PakettiBatchOTToWavCue()
 end
 
 --------------------------------------------------------------------------------
--- Menu Entries and Keybindings for Batch OT to WAV+CUE
+-- Keybindings for Batch OT to WAV+CUE (Menu entries in PakettiMenuConfig.lua)
 --------------------------------------------------------------------------------
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Octatrack:Batch Convert .ot to CUE Files",invoke=PakettiBatchOTToWavCue}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Batch Convert .ot to CUE Files",invoke=PakettiBatchOTToWavCue}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Batch Convert .ot to CUE Files...",invoke=PakettiBatchOTToWavCue}
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert .ot to CUE Files",invoke=PakettiBatchOTToWavCue}
 

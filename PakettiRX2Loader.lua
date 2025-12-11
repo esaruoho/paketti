@@ -963,8 +963,7 @@ function PakettiBatchRX2ToOT()
 end
 
 --------------------------------------------------------------------------------
--- Menu Entries and Keybindings for Batch RX2 to OT
+-- Keybindings for Batch RX2 to OT (Menu entries in PakettiMenuConfig.lua)
 --------------------------------------------------------------------------------
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:RX2 Loader:Batch Convert RX2 to Octatrack (WAV+.ot)",invoke=PakettiBatchRX2ToOT}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Batch Convert RX2 to Octatrack (WAV+.ot)",invoke=PakettiBatchRX2ToOT}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Batch Convert RX2 to OT (WAV+.ot)...",invoke=PakettiBatchRX2ToOT}
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert RX2 to Octatrack (WAV+.ot)",invoke=PakettiBatchRX2ToOT}

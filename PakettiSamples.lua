@@ -855,6 +855,255 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
 
+-- Function to create a new instrument from selection while preserving slice markers and their properties
+function create_new_instrument_from_selection_with_slices()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  
+  local song = renoise.song()
+  local selected_sample = song.selected_sample
+  local selected_instrument_index = song.selected_instrument_index
+  local selected_instrument = song.selected_instrument
+  
+  if selected_sample == nil then
+    renoise.app():show_status("There is no sample in the sample slot, doing nothing.")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+  
+  if not selected_sample.sample_buffer.has_sample_data then
+    renoise.app():show_error("No sample buffer data found in the selected sample.")
+    print("Error: No sample buffer data found in the selected sample.")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+  print("Sample buffer data is valid.")
+  
+  local sample_buffer = selected_sample.sample_buffer
+  
+  if sample_buffer.selection_range == nil or #sample_buffer.selection_range < 2 then
+    renoise.app():show_error("No valid selection range found.")
+    print("Error: No valid selection range found.")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+  print("Selection range is valid.")
+  
+  local selection_start = sample_buffer.selection_range[1]
+  local selection_end = sample_buffer.selection_range[2]
+  local selection_length = selection_end - selection_start + 1
+  
+  if selection_start == selection_end then
+    renoise.app():show_error("Selection range is too small (start equals end).")
+    print("Error: Selection range is too small.")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+  
+  print(string.format("Selection range: %d to %d (length: %d frames)", selection_start, selection_end, selection_length))
+  
+  local bit_depth = sample_buffer.bit_depth
+  local sample_rate = sample_buffer.sample_rate
+  local num_channels = sample_buffer.number_of_channels
+  
+  print(string.format("Sample properties - Bit depth: %d, Sample rate: %d, Number of channels: %d", bit_depth, sample_rate, num_channels))
+  
+  -- Get slice markers from the first sample (master sample)
+  local first_sample = selected_instrument.samples[1]
+  local original_slice_markers = first_sample.slice_markers
+  local has_slices = original_slice_markers and #original_slice_markers > 0
+  
+  -- Find slice markers within the selection and store their original indices
+  local slices_in_selection = {}
+  if has_slices then
+    print(string.format("Original instrument has %d slice markers", #original_slice_markers))
+    for i = 1, #original_slice_markers do
+      local marker_pos = original_slice_markers[i]
+      if marker_pos >= selection_start and marker_pos <= selection_end then
+        -- Store: original marker position, original slice index (1-based), new marker position
+        local new_marker_pos = marker_pos - selection_start + 1
+        table.insert(slices_in_selection, {
+          original_pos = marker_pos,
+          original_index = i,
+          new_pos = new_marker_pos
+        })
+        print(string.format("  Slice %d at position %d is within selection -> new position: %d", i, marker_pos, new_marker_pos))
+      end
+    end
+    print(string.format("Found %d slice markers within selection", #slices_in_selection))
+  else
+    print("No slice markers in original instrument")
+  end
+  
+  -- Insert a new instrument right below the current instrument
+  local new_instrument_index = selected_instrument_index + 1
+  song:insert_instrument_at(new_instrument_index)
+  song.selected_instrument_index = new_instrument_index
+  print("Inserted new instrument at index " .. new_instrument_index)
+  
+  -- Load the default instrument template
+  pakettiPreferencesDefaultInstrumentLoader()
+  print("Loaded Default XRNI instrument into the new instrument slot.")
+  
+  local new_instrument = song:instrument(new_instrument_index)
+  new_instrument.name = "Pitchbend Instrument"
+  new_instrument.macros_visible = true
+  if new_instrument.sample_modulation_sets[1] then
+    new_instrument.sample_modulation_sets[1].name = "Pitchbend"
+  end
+  print("Configured new instrument properties.")
+  
+  -- Overwrite the "Placeholder sample" with the selected sample
+  local new_sample = new_instrument.samples[1]
+  
+  -- Create sample data and prepare to make changes
+  new_sample.sample_buffer:create_sample_data(sample_rate, bit_depth, num_channels, selection_length)
+  local new_sample_buffer = new_sample.sample_buffer
+  new_sample_buffer:prepare_sample_data_changes()
+  print("Created and prepared new sample data.")
+  
+  -- Copy the selection range to the new sample buffer
+  for channel = 1, num_channels do
+    for i = 1, selection_length do
+      new_sample_buffer:set_sample_data(channel, i, sample_buffer:sample_data(channel, selection_start + i - 1))
+    end
+  end
+  print("Copied selection range to the new sample buffer.")
+  
+  -- Finalize sample data changes
+  new_sample_buffer:finalize_sample_data_changes()
+  print("Finalized sample data changes.")
+  
+  -- Insert slice markers at their new positions
+  if #slices_in_selection > 0 then
+    print("Inserting slice markers into new sample...")
+    for j = 1, #slices_in_selection do
+      local slice_info = slices_in_selection[j]
+      new_sample:insert_slice_marker(slice_info.new_pos)
+      print(string.format("  Inserted slice marker at position %d", slice_info.new_pos))
+    end
+    print(string.format("Inserted %d slice markers", #slices_in_selection))
+    
+    -- Copy per-slice sample properties
+    -- Original slice i has properties in selected_instrument.samples[i + 1]
+    -- New slice j has properties in new_instrument.samples[j + 1]
+    print("Copying per-slice sample properties...")
+    for j = 1, #slices_in_selection do
+      local slice_info = slices_in_selection[j]
+      local original_slice_sample_index = slice_info.original_index + 1
+      local new_slice_sample_index = j + 1
+      
+      -- Ensure the original slice sample exists
+      if original_slice_sample_index <= #selected_instrument.samples then
+        local src_slice_sample = selected_instrument.samples[original_slice_sample_index]
+        local dst_slice_sample = new_instrument.samples[new_slice_sample_index]
+        
+        if dst_slice_sample then
+          -- Copy all sample properties
+          dst_slice_sample.name = src_slice_sample.name
+          dst_slice_sample.transpose = src_slice_sample.transpose
+          dst_slice_sample.fine_tune = src_slice_sample.fine_tune
+          dst_slice_sample.volume = src_slice_sample.volume
+          dst_slice_sample.panning = src_slice_sample.panning
+          dst_slice_sample.beat_sync_enabled = src_slice_sample.beat_sync_enabled
+          dst_slice_sample.beat_sync_lines = src_slice_sample.beat_sync_lines
+          dst_slice_sample.beat_sync_mode = src_slice_sample.beat_sync_mode
+          dst_slice_sample.autoseek = src_slice_sample.autoseek
+          dst_slice_sample.autofade = src_slice_sample.autofade
+          dst_slice_sample.loop_mode = src_slice_sample.loop_mode
+          dst_slice_sample.loop_start = src_slice_sample.loop_start
+          dst_slice_sample.loop_end = src_slice_sample.loop_end
+          dst_slice_sample.loop_release = src_slice_sample.loop_release
+          dst_slice_sample.new_note_action = src_slice_sample.new_note_action
+          dst_slice_sample.oneshot = src_slice_sample.oneshot
+          dst_slice_sample.mute_group = src_slice_sample.mute_group
+          dst_slice_sample.interpolation_mode = src_slice_sample.interpolation_mode
+          dst_slice_sample.oversample_enabled = src_slice_sample.oversample_enabled
+          
+          print(string.format("  Copied properties from original slice %d (samples[%d]) to new slice %d (samples[%d])",
+            slice_info.original_index, original_slice_sample_index, j, new_slice_sample_index))
+        else
+          print(string.format("  Warning: New slice sample at index %d does not exist", new_slice_sample_index))
+        end
+      else
+        print(string.format("  Warning: Original slice sample at index %d does not exist", original_slice_sample_index))
+      end
+    end
+  end
+  
+  -- Set the loop mode based on preferences.selectionNewInstrumentLoop
+  local loop_mode_message = ""
+  if preferences.selectionNewInstrumentLoop.value == 1 then
+    new_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+    loop_mode_message = "No Loop"
+    print("Set loop mode to 'Off'.")
+  elseif preferences.selectionNewInstrumentLoop.value == 2 then
+    new_sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    loop_mode_message = "Forward Loop"
+    print("Set loop mode to 'Forward'.")
+  elseif preferences.selectionNewInstrumentLoop.value == 3 then
+    new_sample.loop_mode = renoise.Sample.LOOP_MODE_REVERSE
+    loop_mode_message = "Backward Loop"
+    print("Set loop mode to 'Reverse'.")
+  elseif preferences.selectionNewInstrumentLoop.value == 4 then
+    new_sample.loop_mode = renoise.Sample.LOOP_MODE_PING_PONG
+    loop_mode_message = "PingPong Loop"
+    print("Set loop mode to 'Ping-Pong'.")
+  end
+  
+  -- Set the names for the new instrument and sample
+  local instrument_slot_hex = string.format("%02X", new_instrument_index - 1)
+  local original_sample_name = selected_sample.name
+  new_instrument.name = string.format("%s_%s", instrument_slot_hex, original_sample_name)
+  new_sample.name = string.format("%s_%s", instrument_slot_hex, original_sample_name)
+  print(string.format("Set names for the new instrument and sample: %s_%s", instrument_slot_hex, original_sample_name))
+  
+  -- Load the *Instr. Macros device and rename it
+  if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
+    if renoise.song().selected_track.type == 2 then
+      renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.")
+    else
+      loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
+      local macro_device = song.selected_track:device(2)
+      if macro_device then
+        macro_device.display_name = string.format("%s_%s", instrument_slot_hex, original_sample_name)
+        song.selected_track.devices[2].is_maximized = false
+        print("Loaded and configured *Instr. Macros device.")
+      end
+    end
+  end
+  
+  new_sample.new_note_action = 1
+  
+  -- Apply preferences to the new sample
+  new_sample.interpolation_mode = preferences.selectionNewInstrumentInterpolation.value
+  new_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+  new_sample.autofade = preferences.selectionNewInstrumentAutofade.value
+  new_sample.autoseek = preferences.selectionNewInstrumentAutoseek.value
+  new_sample.oneshot = preferences.pakettiLoaderOneshot.value
+  
+  -- Select the new instrument and sample if preferences.selectionNewInstrumentSelect is true
+  if preferences.selectionNewInstrumentSelect.value == true then
+    song.selected_instrument_index = new_instrument_index
+    song.selected_sample_index = 1
+    print("Selected the new instrument and sample.")
+  else
+    song.selected_instrument_index = selected_instrument_index
+    print("Stayed in the current sample editor view of the instrument you chopped out of.")
+  end
+  
+  local slice_message = ""
+  if #slices_in_selection > 0 then
+    slice_message = string.format(" with %d slices", #slices_in_selection)
+  end
+  renoise.app():show_status("New instrument created from selection" .. slice_message .. " with " .. loop_mode_message .. ".")
+  
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Create New Instrument from Selection with Slices",invoke=create_new_instrument_from_selection_with_slices}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Create New Instrument from Selection with Slices",invoke=create_new_instrument_from_selection_with_slices}
 
 ------
 function G01()

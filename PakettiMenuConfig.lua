@@ -1468,6 +1468,7 @@ renoise.tool():add_menu_entry{name="Sample Editor Ruler:Set Selection by Hex Off
 -- Sample Editor Root
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Toggle Sample Selection Info",invoke = toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Create New Instrument from Selection with Slices",invoke=create_new_instrument_from_selection_with_slices}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Copy Sample in Note-On to Note-Off Layer +24",invoke=function() noteOnToNoteOff(24) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Copy Sample in Note-On to Note-Off Layer +12",invoke=function() noteOnToNoteOff(12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Copy Sample in Note-On to Note-Off Layer",invoke=function() noteOnToNoteOff(0) end}
@@ -2521,6 +2522,8 @@ renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Octatrack Gene
 renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Export:Octatrack Generate OctaCycle...", invoke=function() PakettiOctaCycle() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Octatrack Quick OctaCycle (C, Oct 1-7)...", invoke=function() PakettiOctaCycleQuick() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Octatrack Export OctaCycle...", invoke=function() PakettiOctaCycleExport() end}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Export:Octatrack Batch Convert RX2 to OT (WAV+.ot)...", invoke=function() PakettiBatchRX2ToOT() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Octatrack Batch Convert .ot to CUE Files...", invoke=function() PakettiBatchOTToWavCue() end}
 
 
 
