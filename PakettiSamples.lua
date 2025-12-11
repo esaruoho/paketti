@@ -993,13 +993,23 @@ function create_new_instrument_from_selection_with_slices()
       local original_slice_sample_index = slice_info.original_index + 1
       local new_slice_sample_index = j + 1
       
+      -- Calculate the new slice length (from this marker to next marker or end of sample)
+      local new_slice_start = slice_info.new_pos
+      local new_slice_end
+      if j < #slices_in_selection then
+        new_slice_end = slices_in_selection[j + 1].new_pos - 1
+      else
+        new_slice_end = selection_length
+      end
+      local new_slice_length = new_slice_end - new_slice_start + 1
+      
       -- Ensure the original slice sample exists
       if original_slice_sample_index <= #selected_instrument.samples then
         local src_slice_sample = selected_instrument.samples[original_slice_sample_index]
         local dst_slice_sample = new_instrument.samples[new_slice_sample_index]
         
         if dst_slice_sample then
-          -- Copy all sample properties
+          -- Copy sample properties
           dst_slice_sample.name = src_slice_sample.name
           dst_slice_sample.transpose = src_slice_sample.transpose
           dst_slice_sample.fine_tune = src_slice_sample.fine_tune
@@ -1011,8 +1021,22 @@ function create_new_instrument_from_selection_with_slices()
           dst_slice_sample.autoseek = src_slice_sample.autoseek
           dst_slice_sample.autofade = src_slice_sample.autofade
           dst_slice_sample.loop_mode = src_slice_sample.loop_mode
-          dst_slice_sample.loop_start = src_slice_sample.loop_start
-          dst_slice_sample.loop_end = src_slice_sample.loop_end
+          
+          -- Copy loop_start and loop_end, clamped to the new slice's valid range
+          local src_loop_start = src_slice_sample.loop_start
+          local src_loop_end = src_slice_sample.loop_end
+          -- Clamp loop_start: must be >= 1 and <= new_slice_length
+          local new_loop_start = math.max(1, math.min(src_loop_start, new_slice_length))
+          -- Clamp loop_end: must be >= loop_start and <= new_slice_length
+          local new_loop_end = math.max(new_loop_start, math.min(src_loop_end, new_slice_length))
+          dst_slice_sample.loop_start = new_loop_start
+          dst_slice_sample.loop_end = new_loop_end
+          
+          if src_loop_start ~= new_loop_start or src_loop_end ~= new_loop_end then
+            print(string.format("    Loop values clamped: start %d->%d, end %d->%d (slice length: %d)",
+              src_loop_start, new_loop_start, src_loop_end, new_loop_end, new_slice_length))
+          end
+          
           dst_slice_sample.loop_release = src_slice_sample.loop_release
           dst_slice_sample.new_note_action = src_slice_sample.new_note_action
           dst_slice_sample.oneshot = src_slice_sample.oneshot
