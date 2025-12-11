@@ -63,7 +63,7 @@ renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti St
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Open Last StemSlicer Output...",invoke = openLastStemSlicerOutput}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Switcharoo...", invoke = PakettiSwitcharoo_Toggle}
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti Switcharoo...", invoke = PakettiSwitcharoo_Toggle}
@@ -95,7 +95,7 @@ renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti Gadgets:Transpose 
 renoise.tool():add_menu_entry {name = "Mixer:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Pick Up Slices",invoke=function() PakettiPickupSlices() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Apply Slices with Same Relative Positioning",invoke=function() PakettiApplySlicesBasedOnSampleRate() end}
@@ -551,7 +551,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Melodic Slic
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Melodic Slice Create Chain", invoke=PakettiMelodicSliceCreateChain}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Melodic Slice Export Current...", invoke=PakettiMelodicSliceExportCurrent}
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 
@@ -1485,7 +1485,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Group Samples by Name 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Wipe Song Retain Sample",invoke=function() WipeRetain() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Smart Beatsync from Selection",invoke=function() BeatSyncFromSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Smart Beatsync from Selection",invoke=function() BeatSyncFromSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Paketti Groovebox 8120 Eight 120-fy Instrument",invoke=function() PakettiEight120fy() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}

@@ -7084,7 +7084,7 @@ function isolate_slices_play_all_together()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
 
 

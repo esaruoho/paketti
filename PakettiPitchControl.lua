@@ -1254,11 +1254,11 @@ end
 -- TODO: figure out which ones still need to exist
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:BPM:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Global:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}

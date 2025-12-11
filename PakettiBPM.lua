@@ -196,16 +196,16 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Intelligent BPM Detect
 end}
 
 -- Sample Editor menu entries
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Analyze Sample BPM (4 beats)", invoke = pakettiBPMTestCalculation}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Analyze Sample BPM (1 beat)", invoke = function() 
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:BPM:Analyze Sample BPM (4 beats)", invoke = pakettiBPMTestCalculation}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:BPM:Analyze Sample BPM (1 beat)", invoke = function() 
     local bpm = pakettiBPMAnalyzeSample(1)
     if bpm then renoise.app():show_status("Sample BPM (1 beat): " .. string.format("%.1f", bpm)) end
 end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Analyze Sample BPM (8 beats)", invoke = function() 
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:BPM:Analyze Sample BPM (8 beats)", invoke = function() 
     local bpm = pakettiBPMAnalyzeSample(8)
     if bpm then renoise.app():show_status("Sample BPM (8 beats): " .. string.format("%.1f", bpm)) end
 end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Intelligent BPM Detection", invoke = function() 
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:BPM:Intelligent BPM Detection", invoke = function() 
     local song = renoise.song()
     if not song.selected_sample or not song.selected_sample.sample_buffer or not song.selected_sample.sample_buffer.has_sample_data then
         renoise.app():show_status("No sample selected or sample has no data")

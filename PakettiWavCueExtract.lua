@@ -803,7 +803,7 @@ end
 
 -- Add menu entries and keybindings
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Load WAV with CUE Markers...",
+  name = "Sample Editor:Paketti:Load:Load WAV with CUE Markers...",
   invoke = PakettiWavCuePromptAndImportWithCues
 }
 
@@ -844,12 +844,12 @@ renoise.tool():add_menu_entry{
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Export WAV with CUE File...",
+  name = "Sample Editor:Paketti:Export:Export WAV with CUE File...",
   invoke = PakettiWavCueExportSampleWithCueFile
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Export WAV with Embedded CUE Headers...",
+  name = "Sample Editor:Paketti:Export:Export WAV with Embedded CUE Headers...",
   invoke = PakettiWavCueExportSampleWithCueHeader
 }
 
