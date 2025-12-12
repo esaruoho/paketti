@@ -218,6 +218,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   -- AutoSamplify Settings
   pakettiAutoSamplifyMonitoring = false,
   pakettiAutoSamplifyPakettify = false,
+  -- Quick Sample to New Track Settings
+  pakettiQuickSampleTrackVolume = true,  -- Set new track volume to -30dB for safe recording levels
   ActionSelector = {
  Index01="",
  Index02="",

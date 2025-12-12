@@ -2828,6 +2828,578 @@ function parse_effect_column(data)
   }
 end
 
+--------------------------------------------------------------------------------
+-- Paketti Clipboard System (File-based Cut/Copy/Paste)
+-- Uses selection_in_pattern_pro() for proper column-level selection handling
+-- Supports multi-track selection, all note column sub-columns, and effect columns
+--------------------------------------------------------------------------------
+
+local PAKETTI_CLIPBOARD_PATH = renoise.tool().bundle_path .. "paketti_clipboard.txt"
+
+-- Format a note value to string (C-4, ---, OFF)
+local function paketti_format_note(note_value)
+  if note_value == 121 then
+    return "OFF"
+  elseif note_value == 120 then
+    return "---"
+  elseif note_value >= 0 and note_value <= 119 then
+    local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+    local octave = math.floor(note_value / 12)
+    local note = (note_value % 12) + 1
+    return note_names[note] .. octave
+  else
+    return "---"
+  end
+end
+
+-- Format a hex value, or ".." if empty
+local function paketti_format_hex(value, empty_value)
+  if value == empty_value then
+    return ".."
+  else
+    return string.format("%02X", value)
+  end
+end
+
+-- Format effect (4 chars: XXYY or ....)
+local function paketti_format_effect(effect_number, effect_amount)
+  if effect_number == renoise.PatternLine.EMPTY_EFFECT_NUMBER then
+    return "...."
+  else
+    local amount = effect_amount == renoise.PatternLine.EMPTY_EFFECT_AMOUNT and 0 or effect_amount
+    return string.format("%02X%02X", effect_number, amount)
+  end
+end
+
+-- Parse a note string to value
+local function paketti_parse_note(note_str)
+  if note_str == "---" then
+    return 120
+  elseif note_str == "OFF" then
+    return 121
+  else
+    local note_names = {
+      ["C-"] = 0, ["C#"] = 1, ["D-"] = 2, ["D#"] = 3,
+      ["E-"] = 4, ["F-"] = 5, ["F#"] = 6, ["G-"] = 7,
+      ["G#"] = 8, ["A-"] = 9, ["A#"] = 10, ["B-"] = 11
+    }
+    local note_name = note_str:sub(1, 2)
+    local octave = tonumber(note_str:sub(3, 3))
+    if note_names[note_name] and octave then
+      return note_names[note_name] + (octave * 12)
+    end
+  end
+  return 120
+end
+
+-- Parse a hex string to value, or return empty_value if ".."
+local function paketti_parse_hex(hex_str, empty_value)
+  if hex_str == ".." then
+    return empty_value
+  else
+    local value = tonumber(hex_str, 16)
+    if value then
+      return value
+    else
+      return empty_value
+    end
+  end
+end
+
+-- Parse effect string (XXYY) to number and amount
+local function paketti_parse_effect(effect_str)
+  if effect_str == "...." or #effect_str < 4 then
+    return renoise.PatternLine.EMPTY_EFFECT_NUMBER, renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+  else
+    local num = tonumber(effect_str:sub(1, 2), 16)
+    local amt = tonumber(effect_str:sub(3, 4), 16)
+    if num then
+      return num, amt or 0
+    else
+      return renoise.PatternLine.EMPTY_EFFECT_NUMBER, renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+    end
+  end
+end
+
+-- Copy current selection to clipboard file using selection_in_pattern_pro()
+function PakettiClipboardCopy()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  
+  if not selection then
+    renoise.app():show_status("Paketti Copy: No selection to copy")
+    print("[Paketti Clipboard] No selection to copy")
+    return false
+  end
+  
+  -- Use selection_in_pattern_pro() for proper column handling
+  local selection_pro = selection_in_pattern_pro()
+  if not selection_pro then
+    renoise.app():show_status("Paketti Copy: No selection to copy")
+    print("[Paketti Clipboard] selection_in_pattern_pro returned nil")
+    return false
+  end
+  
+  local pattern = song.selected_pattern
+  local output = {}
+  
+  -- Header with column info
+  table.insert(output, "=== PAKETTI CLIPBOARD ===")
+  table.insert(output, string.format("Selection: L%03d-%03d T%03d-%03d C%03d-%03d",
+    selection.start_line, selection.end_line,
+    selection.start_track, selection.end_track,
+    selection.start_column, selection.end_column))
+  
+  -- Store track column info from selection_in_pattern_pro
+  local track_info_strs = {}
+  for _, track_info in ipairs(selection_pro) do
+    local note_cols_str = #track_info.note_columns > 0 and table.concat(track_info.note_columns, ",") or ""
+    local fx_cols_str = #track_info.effect_columns > 0 and table.concat(track_info.effect_columns, ",") or ""
+    table.insert(track_info_strs, string.format("T%d:N[%s]:F[%s]", 
+      track_info.track_index, note_cols_str, fx_cols_str))
+  end
+  table.insert(output, "TracksPro: " .. table.concat(track_info_strs, " "))
+  table.insert(output, "")
+  
+  -- Pattern data using selection_in_pattern_pro for proper column selection
+  for line_idx = selection.start_line, selection.end_line do
+    local line_str = string.format("%03d", line_idx)
+    
+    for _, track_info in ipairs(selection_pro) do
+      local track_idx = track_info.track_index
+      local track = pattern:track(track_idx)
+      local line = track:line(line_idx)
+      
+      line_str = line_str .. " |"
+      
+      -- Note columns (only those in selection, as determined by selection_in_pattern_pro)
+      for _, col_idx in ipairs(track_info.note_columns) do
+        if col_idx <= #line.note_columns then
+          local note_col = line.note_columns[col_idx]
+          local note = paketti_format_note(note_col.note_value)
+          local instr = paketti_format_hex(note_col.instrument_value, renoise.PatternLine.EMPTY_INSTRUMENT)
+          local vol = paketti_format_hex(note_col.volume_value, renoise.PatternLine.EMPTY_VOLUME)
+          local pan = paketti_format_hex(note_col.panning_value, renoise.PatternLine.EMPTY_PANNING)
+          local dly = paketti_format_hex(note_col.delay_value, renoise.PatternLine.EMPTY_DELAY)
+          local sfx = paketti_format_effect(note_col.effect_number_value, note_col.effect_amount_value)
+          line_str = line_str .. string.format(" %s %s %s %s %s %s", note, instr, vol, pan, dly, sfx)
+        end
+      end
+      
+      -- Effect columns (only those in selection, as determined by selection_in_pattern_pro)
+      for _, col_idx in ipairs(track_info.effect_columns) do
+        if col_idx <= #line.effect_columns then
+          local fx_col = line.effect_columns[col_idx]
+          local effect = paketti_format_effect(fx_col.number_value, fx_col.amount_value)
+          line_str = line_str .. " " .. effect
+        end
+      end
+    end
+    
+    table.insert(output, line_str)
+  end
+  
+  table.insert(output, "")
+  table.insert(output, "=== END PAKETTI CLIPBOARD ===")
+  
+  local clipboard_data = table.concat(output, "\n")
+  
+  -- Write to file
+  local file, err = io.open(PAKETTI_CLIPBOARD_PATH, "w")
+  if not file then
+    renoise.app():show_status("Paketti Copy: Failed to write clipboard file")
+    print("[Paketti Clipboard] Failed to write file: " .. tostring(err))
+    return false
+  end
+  file:write(clipboard_data)
+  file:close()
+  
+  local lines_count = selection.end_line - selection.start_line + 1
+  local tracks_count = selection.end_track - selection.start_track + 1
+  renoise.app():show_status(string.format("Paketti Copy: %d lines, %d tracks copied", lines_count, tracks_count))
+  print(string.format("[Paketti Clipboard] Copied %d lines, %d tracks, columns %d-%d to clipboard", 
+    lines_count, tracks_count, selection.start_column, selection.end_column))
+  return true
+end
+
+-- Clear the current selection using selection_in_pattern_pro()
+local function paketti_clear_selection()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  
+  if not selection then
+    print("[Paketti Clipboard] No selection to clear")
+    return false
+  end
+  
+  -- Use selection_in_pattern_pro() for proper column handling
+  local selection_pro = selection_in_pattern_pro()
+  if not selection_pro then
+    print("[Paketti Clipboard] selection_in_pattern_pro returned nil")
+    return false
+  end
+  
+  local pattern = song.selected_pattern
+  
+  for line_idx = selection.start_line, selection.end_line do
+    for _, track_info in ipairs(selection_pro) do
+      local track_idx = track_info.track_index
+      if track_idx <= #song.tracks then
+        local track = pattern:track(track_idx)
+        local line = track:line(line_idx)
+        
+        -- Clear note columns (only those in selection)
+        for _, col_idx in ipairs(track_info.note_columns) do
+          if col_idx <= #line.note_columns then
+            local note_col = line.note_columns[col_idx]
+            note_col.note_value = 120
+            note_col.instrument_value = renoise.PatternLine.EMPTY_INSTRUMENT
+            note_col.volume_value = renoise.PatternLine.EMPTY_VOLUME
+            note_col.panning_value = renoise.PatternLine.EMPTY_PANNING
+            note_col.delay_value = renoise.PatternLine.EMPTY_DELAY
+            note_col.effect_number_value = renoise.PatternLine.EMPTY_EFFECT_NUMBER
+            note_col.effect_amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+          end
+        end
+        
+        -- Clear effect columns (only those in selection)
+        for _, col_idx in ipairs(track_info.effect_columns) do
+          if col_idx <= #line.effect_columns then
+            local fx_col = line.effect_columns[col_idx]
+            fx_col.number_value = renoise.PatternLine.EMPTY_EFFECT_NUMBER
+            fx_col.amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+          end
+        end
+      end
+    end
+  end
+  
+  print("[Paketti Clipboard] Selection cleared using selection_in_pattern_pro")
+  return true
+end
+
+-- Cut current selection to clipboard (copy then clear)
+function PakettiClipboardCut()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  
+  if not selection then
+    renoise.app():show_status("Paketti Cut: No selection to cut")
+    return
+  end
+  
+  local lines_count = selection.end_line - selection.start_line + 1
+  local tracks_count = selection.end_track - selection.start_track + 1
+  
+  -- Copy first
+  if not PakettiClipboardCopy() then
+    return
+  end
+  
+  -- Create undo point and clear
+  song:describe_undo("Paketti Cut")
+  paketti_clear_selection()
+  
+  renoise.app():show_status(string.format("Paketti Cut: %d lines, %d tracks cut", lines_count, tracks_count))
+  print(string.format("[Paketti Clipboard] Cut %d lines, %d tracks", lines_count, tracks_count))
+end
+
+-- Read clipboard file
+local function paketti_read_clipboard()
+  local file, err = io.open(PAKETTI_CLIPBOARD_PATH, "r")
+  if not file then
+    print("[Paketti Clipboard] Failed to read clipboard file: " .. tostring(err))
+    return nil
+  end
+  local content = file:read("*all")
+  file:close()
+  if content and content ~= "" then
+    return content
+  end
+  return nil
+end
+
+-- Parse selection info from clipboard header
+local function paketti_parse_selection_info(text_data)
+  for line in text_data:gmatch("[^\n]+") do
+    -- Try format with columns
+    local start_line, end_line, start_track, end_track, start_col, end_col = 
+      line:match("Selection: L(%d+)%-(%d+) T(%d+)%-(%d+) C(%d+)%-(%d+)")
+    if start_line then
+      return {
+        start_line = tonumber(start_line),
+        end_line = tonumber(end_line),
+        start_track = tonumber(start_track),
+        end_track = tonumber(end_track),
+        start_column = tonumber(start_col),
+        end_column = tonumber(end_col)
+      }
+    end
+    -- Fallback to old format without columns
+    start_line, end_line, start_track, end_track = line:match("Selection: L(%d+)%-(%d+) T(%d+)%-(%d+)")
+    if start_line then
+      return {
+        start_line = tonumber(start_line),
+        end_line = tonumber(end_line),
+        start_track = tonumber(start_track),
+        end_track = tonumber(end_track),
+        start_column = 1,
+        end_column = 99
+      }
+    end
+  end
+  return nil
+end
+
+-- Parse track info from clipboard header (selection_in_pattern_pro format)
+local function paketti_parse_track_info_pro(text_data)
+  local tracks = {}
+  for line in text_data:gmatch("[^\n]+") do
+    if line:match("^TracksPro:") then
+      for track_str in line:gmatch("T(%d+):N%[([^%]]*)%]:F%[([^%]]*)%]") do
+        -- This captures each group
+      end
+      -- Better parsing
+      for t, n, f in line:gmatch("T(%d+):N%[([^%]]*)%]:F%[([^%]]*)%]") do
+        local note_cols = {}
+        local fx_cols = {}
+        if n ~= "" then
+          for col in n:gmatch("(%d+)") do
+            table.insert(note_cols, tonumber(col))
+          end
+        end
+        if f ~= "" then
+          for col in f:gmatch("(%d+)") do
+            table.insert(fx_cols, tonumber(col))
+          end
+        end
+        table.insert(tracks, {
+          track_index = tonumber(t),
+          note_columns = note_cols,
+          effect_columns = fx_cols
+        })
+      end
+      return tracks
+    end
+  end
+  return nil
+end
+
+-- Apply clipboard data to current selection using selection_in_pattern_pro()
+-- mix_mode: if true, only paste into empty cells
+local function paketti_apply_clipboard(text_data, mix_mode)
+  if not text_data or text_data == "" then
+    renoise.app():show_status("Paketti Paste: Clipboard is empty")
+    return false
+  end
+  
+  mix_mode = mix_mode or false
+  
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  
+  if not selection then
+    renoise.app():show_status("Paketti Paste: No selection for pasting")
+    return false
+  end
+  
+  -- Use selection_in_pattern_pro() for proper column handling
+  local selection_pro = selection_in_pattern_pro()
+  if not selection_pro then
+    renoise.app():show_status("Paketti Paste: No valid selection")
+    return false
+  end
+  
+  -- Parse clipboard track info
+  local clipboard_tracks = paketti_parse_track_info_pro(text_data)
+  
+  -- Parse lines from clipboard
+  local lines = {}
+  for line in text_data:gmatch("[^\n]+") do
+    table.insert(lines, line)
+  end
+  
+  -- Find data section (lines starting with 3 digits)
+  local data_start = nil
+  local data_end = nil
+  for i, line in ipairs(lines) do
+    if line:match("^%d%d%d") then
+      if not data_start then data_start = i end
+      data_end = i
+    end
+  end
+  
+  if not data_start then
+    renoise.app():show_status("Paketti Paste: No valid pattern data found")
+    return false
+  end
+  
+  local pattern = song.selected_pattern
+  local paste_line = selection.start_line
+  local lines_processed = 0
+  
+  -- Paste data
+  for i = data_start, data_end do
+    if paste_line > selection.end_line then break end
+    if paste_line > pattern.number_of_lines then break end
+    
+    local line_data = lines[i]
+    local line_num = tonumber(line_data:sub(1, 3))
+    
+    if line_num then
+      local dest_track_offset = 1
+      
+      -- Parse track data (separated by |)
+      for track_data in line_data:gmatch("|([^|]*)") do
+        if dest_track_offset > #selection_pro then break end
+        
+        local dest_track_info = selection_pro[dest_track_offset]
+        local track_idx = dest_track_info.track_index
+        
+        if track_idx > #song.tracks then break end
+        
+        local track = pattern:track(track_idx)
+        local line = track:line(paste_line)
+        
+        -- Parse parts (space-separated tokens)
+        local parts = {}
+        for part in track_data:gmatch("%S+") do
+          table.insert(parts, part)
+        end
+        
+        -- Count clipboard columns
+        local clipboard_note_cols = 0
+        local temp_idx = 1
+        while temp_idx + 5 <= #parts do
+          clipboard_note_cols = clipboard_note_cols + 1
+          temp_idx = temp_idx + 6
+        end
+        local clipboard_fx_cols = #parts - (clipboard_note_cols * 6)
+        
+        -- Process note columns: paste clipboard columns into destination selection columns
+        local part_idx = 1
+        for col_offset, dest_col_idx in ipairs(dest_track_info.note_columns) do
+          if part_idx + 5 > #parts then break end
+          if dest_col_idx <= #line.note_columns then
+            local note_col = line.note_columns[dest_col_idx]
+            
+            -- In mix mode, only paste into empty cells
+            local should_paste = true
+            if mix_mode and not note_col.is_empty then
+              should_paste = false
+            end
+            
+            if should_paste then
+              note_col.note_value = paketti_parse_note(parts[part_idx])
+              note_col.instrument_value = paketti_parse_hex(parts[part_idx + 1], renoise.PatternLine.EMPTY_INSTRUMENT)
+              note_col.volume_value = paketti_parse_hex(parts[part_idx + 2], renoise.PatternLine.EMPTY_VOLUME)
+              note_col.panning_value = paketti_parse_hex(parts[part_idx + 3], renoise.PatternLine.EMPTY_PANNING)
+              note_col.delay_value = paketti_parse_hex(parts[part_idx + 4], renoise.PatternLine.EMPTY_DELAY)
+              local sfx_num, sfx_amt = paketti_parse_effect(parts[part_idx + 5])
+              note_col.effect_number_value = sfx_num
+              note_col.effect_amount_value = sfx_amt
+            end
+          end
+          part_idx = part_idx + 6
+        end
+        
+        -- Skip remaining note column parts if destination has fewer columns
+        while part_idx + 5 <= #parts and (part_idx - 1) / 6 < clipboard_note_cols do
+          part_idx = part_idx + 6
+        end
+        
+        -- Process effect columns
+        for col_offset, dest_col_idx in ipairs(dest_track_info.effect_columns) do
+          if part_idx > #parts then break end
+          if dest_col_idx <= #line.effect_columns then
+            local fx_col = line.effect_columns[dest_col_idx]
+            
+            -- In mix mode, only paste into empty cells
+            local should_paste_fx = true
+            if mix_mode and not fx_col.is_empty then
+              should_paste_fx = false
+            end
+            
+            if should_paste_fx then
+              local fx_num, fx_amt = paketti_parse_effect(parts[part_idx])
+              fx_col.number_value = fx_num
+              fx_col.amount_value = fx_amt
+            end
+          end
+          part_idx = part_idx + 1
+        end
+        
+        dest_track_offset = dest_track_offset + 1
+      end
+      lines_processed = lines_processed + 1
+    end
+    
+    paste_line = paste_line + 1
+  end
+  
+  return true, lines_processed
+end
+
+-- Paste from clipboard (overwrite mode)
+function PakettiClipboardPaste()
+  local clipboard_data = paketti_read_clipboard()
+  if not clipboard_data then
+    renoise.app():show_status("Paketti Paste: Clipboard is empty. Use Paketti Copy first.")
+    return
+  end
+  
+  renoise.song():describe_undo("Paketti Paste")
+  
+  local success, lines_processed = paketti_apply_clipboard(clipboard_data, false)
+  if success then
+    renoise.app():show_status(string.format("Paketti Paste: %d lines pasted", lines_processed or 0))
+    print(string.format("[Paketti Clipboard] Pasted %d lines", lines_processed or 0))
+  else
+    renoise.app():show_status("Paketti Paste: Failed to paste")
+  end
+end
+
+-- Mix-Paste from clipboard (only paste into empty cells)
+function PakettiClipboardMixPaste()
+  local clipboard_data = paketti_read_clipboard()
+  if not clipboard_data then
+    renoise.app():show_status("Paketti Mix-Paste: Clipboard is empty. Use Paketti Copy first.")
+    return
+  end
+  
+  renoise.song():describe_undo("Paketti Mix-Paste")
+  
+  local success, lines_processed = paketti_apply_clipboard(clipboard_data, true)
+  if success then
+    renoise.app():show_status(string.format("Paketti Mix-Paste: %d lines pasted into empty cells", lines_processed or 0))
+    print(string.format("[Paketti Clipboard] Mix-pasted %d lines (empty cells only)", lines_processed or 0))
+  else
+    renoise.app():show_status("Paketti Mix-Paste: Failed to paste")
+  end
+end
+
+-- Keybindings
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Clipboard Copy",invoke=function() PakettiClipboardCopy() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Clipboard Cut",invoke=function() PakettiClipboardCut() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Clipboard Paste",invoke=function() PakettiClipboardPaste() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Clipboard Mix-Paste",invoke=function() PakettiClipboardMixPaste() end}
+
+-- Menu entries
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Clipboard Copy",invoke=function() PakettiClipboardCopy() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Clipboard Cut",invoke=function() PakettiClipboardCut() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Clipboard Paste",invoke=function() PakettiClipboardPaste() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Clipboard Mix-Paste",invoke=function() PakettiClipboardMixPaste() end}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Clipboard Copy",invoke=function(message) if message:is_trigger() then PakettiClipboardCopy() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Clipboard Cut",invoke=function(message) if message:is_trigger() then PakettiClipboardCut() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Clipboard Paste",invoke=function(message) if message:is_trigger() then PakettiClipboardPaste() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Clipboard Mix-Paste",invoke=function(message) if message:is_trigger() then PakettiClipboardMixPaste() end end}
+
+print("[Paketti Clipboard] Loaded. Clipboard file: " .. PAKETTI_CLIPBOARD_PATH)
+
+--------------------------------------------------------------------------------
+
 --Wipes the pattern data, but not the samples or instruments.
 --WARNING: Does not reset current filename.
 -- TODO

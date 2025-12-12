@@ -796,6 +796,61 @@ function pakettiPlayerProPlayTransposedNotes(transposed_notes)
 end
 
 --------------
+-- Helper function to get the keyzone bounds (min/max note) for an instrument
+-- Returns min_note, max_note (0-119) based on all sample mappings
+-- If no samples or no mappings, returns 0, 119 (full range)
+local function pakettiPlayerProGetInstrumentKeyzoneRange(instrument_index)
+  local song = renoise.song()
+  
+  -- Validate instrument index
+  if instrument_index == nil or instrument_index < 0 or instrument_index >= #song.instruments then
+    print("pakettiPlayerProGetInstrumentKeyzoneRange: Invalid instrument index " .. tostring(instrument_index) .. ", using full range")
+    return 0, 119
+  end
+  
+  local instrument = song.instruments[instrument_index + 1]
+  if not instrument then
+    print("pakettiPlayerProGetInstrumentKeyzoneRange: Instrument not found at index " .. tostring(instrument_index) .. ", using full range")
+    return 0, 119
+  end
+  
+  -- Check if instrument has samples
+  if #instrument.samples == 0 then
+    print("pakettiPlayerProGetInstrumentKeyzoneRange: Instrument " .. tostring(instrument_index) .. " has no samples, using full range")
+    return 0, 119
+  end
+  
+  local min_note = 119
+  local max_note = 0
+  local found_mapping = false
+  
+  -- Iterate through all samples to find the overall keyzone range
+  for i = 1, #instrument.samples do
+    local sample = instrument.samples[i]
+    if sample and sample.sample_mapping then
+      local mapping = sample.sample_mapping
+      local note_range = mapping.note_range
+      if note_range and #note_range >= 2 then
+        found_mapping = true
+        if note_range[1] < min_note then
+          min_note = note_range[1]
+        end
+        if note_range[2] > max_note then
+          max_note = note_range[2]
+        end
+      end
+    end
+  end
+  
+  if not found_mapping then
+    print("pakettiPlayerProGetInstrumentKeyzoneRange: No valid mappings found for instrument " .. tostring(instrument_index) .. ", using full range")
+    return 0, 119
+  end
+  
+  print("pakettiPlayerProGetInstrumentKeyzoneRange: Instrument " .. tostring(instrument_index) .. " keyzone range: " .. tostring(min_note) .. " - " .. tostring(max_note))
+  return min_note, max_note
+end
+
 function pakettiPlayerProTranspose(steps, range, playback)
   local song=renoise.song()
   local selection = song.selection_in_pattern
@@ -806,6 +861,10 @@ function pakettiPlayerProTranspose(steps, range, playback)
   
   -- For experimental playback, collect transposed notes with timing info
   local transposed_notes = {}
+  
+  -- Track how many notes were clamped for status message
+  local clamped_count = 0
+  local transposed_count = 0
 
   if selection ~= nil then
     start_track = selection.start_track
@@ -869,7 +928,36 @@ function pakettiPlayerProTranspose(steps, range, playback)
         if not note_column.is_empty then
           -- Skip transposing if note_value is 120 or 121
           if note_column.note_value < 120 then
-            local new_note_value = (note_column.note_value + steps) % 120
+            transposed_count = transposed_count + 1
+            
+            -- Get the instrument for this note to determine keyzone bounds
+            local instr_value = note_column.instrument_value
+            local min_note, max_note
+            
+            if instr_value ~= renoise.PatternLine.EMPTY_INSTRUMENT then
+              min_note, max_note = pakettiPlayerProGetInstrumentKeyzoneRange(instr_value)
+            else
+              -- No instrument specified, use full range
+              min_note, max_note = 0, 119
+            end
+            
+            -- Calculate raw transposed value (no wrapping)
+            local raw_new_value = note_column.note_value + steps
+            local new_note_value
+            
+            -- Clamp to keyzone bounds instead of wrapping
+            if raw_new_value < min_note then
+              new_note_value = min_note
+              clamped_count = clamped_count + 1
+              print("Transpose clamped: " .. tostring(note_column.note_value) .. " + " .. tostring(steps) .. " = " .. tostring(raw_new_value) .. " -> clamped to min " .. tostring(min_note))
+            elseif raw_new_value > max_note then
+              new_note_value = max_note
+              clamped_count = clamped_count + 1
+              print("Transpose clamped: " .. tostring(note_column.note_value) .. " + " .. tostring(steps) .. " = " .. tostring(raw_new_value) .. " -> clamped to max " .. tostring(max_note))
+            else
+              new_note_value = raw_new_value
+            end
+            
             note_column.note_value = new_note_value
             
             -- Collect transposed note for experimental playback with timing info
@@ -885,6 +973,11 @@ function pakettiPlayerProTranspose(steps, range, playback)
         end
       end
     end
+  end
+  
+  -- Show status message if any notes were clamped
+  if clamped_count > 0 then
+    renoise.app():show_status("Transposed " .. tostring(transposed_count) .. " notes, " .. tostring(clamped_count) .. " clamped to keyzone bounds")
   end
   
   -- If playback is enabled, trigger only notes with the selected instrument
@@ -942,6 +1035,10 @@ function pakettiPlayerProTransposeAllInstruments(steps, range, playback)
   
   -- For experimental playback, collect transposed notes with timing info
   local transposed_notes = {}
+  
+  -- Track how many notes were clamped for status message
+  local clamped_count = 0
+  local transposed_count = 0
 
   if selection ~= nil then
     start_track = selection.start_track
@@ -1005,7 +1102,36 @@ function pakettiPlayerProTransposeAllInstruments(steps, range, playback)
         if not note_column.is_empty then
           -- Skip transposing if note_value is 120 or 121
           if note_column.note_value < 120 then
-            local new_note_value = (note_column.note_value + steps) % 120
+            transposed_count = transposed_count + 1
+            
+            -- Get the instrument for this note to determine keyzone bounds
+            local instr_value = note_column.instrument_value
+            local min_note, max_note
+            
+            if instr_value ~= renoise.PatternLine.EMPTY_INSTRUMENT then
+              min_note, max_note = pakettiPlayerProGetInstrumentKeyzoneRange(instr_value)
+            else
+              -- No instrument specified, use full range
+              min_note, max_note = 0, 119
+            end
+            
+            -- Calculate raw transposed value (no wrapping)
+            local raw_new_value = note_column.note_value + steps
+            local new_note_value
+            
+            -- Clamp to keyzone bounds instead of wrapping
+            if raw_new_value < min_note then
+              new_note_value = min_note
+              clamped_count = clamped_count + 1
+              print("Transpose clamped: " .. tostring(note_column.note_value) .. " + " .. tostring(steps) .. " = " .. tostring(raw_new_value) .. " -> clamped to min " .. tostring(min_note))
+            elseif raw_new_value > max_note then
+              new_note_value = max_note
+              clamped_count = clamped_count + 1
+              print("Transpose clamped: " .. tostring(note_column.note_value) .. " + " .. tostring(steps) .. " = " .. tostring(raw_new_value) .. " -> clamped to max " .. tostring(max_note))
+            else
+              new_note_value = raw_new_value
+            end
+            
             note_column.note_value = new_note_value
             
             -- Collect transposed note for experimental playback with timing info
@@ -1021,6 +1147,11 @@ function pakettiPlayerProTransposeAllInstruments(steps, range, playback)
         end
       end
     end
+  end
+  
+  -- Show status message if any notes were clamped
+  if clamped_count > 0 then
+    renoise.app():show_status("Transposed " .. tostring(transposed_count) .. " notes, " .. tostring(clamped_count) .. " clamped to keyzone bounds")
   end
   
   -- If playback is enabled, trigger ALL instruments on the current line

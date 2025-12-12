@@ -251,6 +251,7 @@ function CapsLok(use_editstep)
         noteColumn.note_string = ""
       else
         noteColumn.note_string = "OFF"
+        noteColumn.instrument_value = 255  -- Clear instrument column
       end
 
       -- Handle edit step movement in pattern
@@ -285,6 +286,7 @@ function CapsLok(use_editstep)
         noteColumn.note_string = ""
       else
         noteColumn.note_string = "OFF"
+        noteColumn.instrument_value = 255  -- Clear instrument column
       end
 
       -- Handle edit step movement in phrase
@@ -410,6 +412,7 @@ function CleverNoteOff(mode)
       if note_off_line then
         local note_column = track:line(note_off_line):note_column(col)
         note_column.note_string = "OFF"
+        note_column.instrument_value = 255  -- Clear instrument column
       end
     end
   end
@@ -2994,6 +2997,9 @@ function PakettiToggleNoteOffAllColumns()
           if line.note_columns[i].note_string == "OFF" or
              line.note_columns[i].note_value == 121 then
               line.note_columns[i].note_string = should_clear and "" or "OFF"
+              if not should_clear then
+                  line.note_columns[i].instrument_value = 255  -- Clear instrument column
+              end
           end
       end
       renoise.app():show_status("Toggled Note Off in empty columns")
@@ -3034,6 +3040,9 @@ function PakettiToggleNoteOffAllColumns()
           if line.note_columns[i].note_string == "OFF" or
              line.note_columns[i].note_value == 121 then
               line.note_columns[i].note_string = should_clear and "" or "OFF"
+              if not should_clear then
+                  line.note_columns[i].instrument_value = 255  -- Clear instrument column
+              end
           end
       end
       renoise.app():show_status("Toggled Note Off in empty phrase columns")
@@ -3113,6 +3122,9 @@ function PakettiToggleNoteOffAllTracks(target_line_index, target_pattern_index)
         if line.note_columns[i].note_string == "OFF" or
            line.note_columns[i].note_value == 121 then
           line.note_columns[i].note_string = should_clear and "" or "OFF"
+          if not should_clear then
+            line.note_columns[i].instrument_value = 255  -- Clear instrument column
+          end
         end
       end
     end
@@ -5254,6 +5266,7 @@ function PakettiNoteOffToSelection()
                               note_col.note_string = ""
                           else
                               note_col.note_string = "OFF"
+                              note_col.instrument_value = 255  -- Clear instrument column
                           end
                       end
                   end
@@ -5274,6 +5287,7 @@ function PakettiNoteOffToSelection()
                   note_col.note_string = ""
               else
                   note_col.note_string = "OFF"
+                  note_col.instrument_value = 255  -- Clear instrument column
               end
           end
           renoise.app():show_status("Toggled note Off in pattern current note")
@@ -5302,6 +5316,7 @@ function PakettiNoteOffToSelection()
                           note_col.note_string = ""
                       else
                           note_col.note_string = "OFF"
+                          note_col.instrument_value = 255  -- Clear instrument column
                       end
                   end
               end
@@ -5321,6 +5336,7 @@ function PakettiNoteOffToSelection()
                   note_col.note_string = ""
               else
                   note_col.note_string = "OFF"
+                  note_col.instrument_value = 255  -- Clear instrument column
               end
           end
           renoise.app():show_status("Toggled note Off in phrase current note")
@@ -7426,6 +7442,7 @@ function PakettiCapsLockPattern(intervals, block_size, start_offset, edit_step)
       -- Check bounds
       if target_line > 0 and target_line <= pattern_lines then
         s.patterns[currPatt].tracks[currTrak].lines[target_line].note_columns[s.selected_note_column_index].note_string = "OFF"
+        s.patterns[currPatt].tracks[currTrak].lines[target_line].note_columns[s.selected_note_column_index].instrument_value = 255  -- Clear instrument column
       end
     end
     
@@ -7524,6 +7541,7 @@ function noteOffPaste()
         -- Copy NOTE OFF
         if source_note_col.note_string == "OFF" then
           target_note_col.note_string = "OFF"
+          target_note_col.instrument_value = 255  -- Clear instrument column
           notes_copied = notes_copied + 1
         end
         

@@ -843,4 +843,106 @@ function start_stop_sample_and_loop_oh_my()
   end
   
   renoise.tool():add_keybinding{name="Global:Paketti:Display Sample Recorder with #Line Input",invoke=function() SampleRecorderOn() end}
+
+--------------------------------------------------------------------------------------------------------------------
+-- Quick Sample to New Track & Instrument Toggle
+-- First press: Create new track (with -30dB volume if preference enabled), new instrument, 
+--              open sample recorder, start recording
+-- Second press: Stop recording, apply autoseek/autofade
+-- Preference: pakettiQuickSampleTrackVolume (boolean) - Set new track volume to -30dB
+--------------------------------------------------------------------------------------------------------------------
+local paketti_quick_sample_recording_active = false
+
+function PakettiQuickSampleMonitor()
+  local song = renoise.song()
   
+  if song.selected_sample and song.selected_sample.sample_buffer.has_sample_data then
+    -- Sample data has arrived, apply settings
+    song.selected_sample.autoseek = true
+    song.selected_sample.autofade = true
+    print("=== Paketti Quick Sample: Sample received ===")
+    print("  Applied autoseek=true, autofade=true")
+    
+    -- Stop monitoring
+    if renoise.tool():has_timer(PakettiQuickSampleMonitor) then
+      renoise.tool():remove_timer(PakettiQuickSampleMonitor)
+    end
+    return false
+  end
+  
+  -- Continue monitoring
+  return true
+end
+
+function PakettiQuickSampleToNewTrackToggle()
+  local song = renoise.song()
+  local transport = song.transport
+  local window = renoise.app().window
+  
+  if not paketti_quick_sample_recording_active then
+    -- FIRST PRESS: Setup and start recording
+    print("=== Paketti Quick Sample: Starting ===")
+    
+    -- 1) Create a new track after the current track (but before send/master tracks)
+    local current_track_index = song.selected_track_index
+    local new_track_index = current_track_index + 1
+    
+    -- Make sure we don't insert after send/master tracks
+    if new_track_index > song.sequencer_track_count then
+      new_track_index = song.sequencer_track_count + 1
+    end
+    
+    song:insert_track_at(new_track_index)
+    song.selected_track_index = new_track_index
+    print(string.format("  Created and selected new track at index %d", new_track_index))
+    
+    -- 2) Set track volume to -30dB if preference is enabled
+    if preferences.pakettiQuickSampleTrackVolume.value then
+      -- -30dB = 10^(-30/20) = 10^(-1.5) ≈ 0.0316
+      local minus_30db_linear = math.pow(10, -30 / 20)
+      song.tracks[new_track_index].prefx_volume.value = minus_30db_linear
+      print(string.format("  Set track volume to -30dB (linear: %.4f)", minus_30db_linear))
+    end
+    
+    -- 3) Create a new instrument after the current instrument
+    local current_instrument_index = song.selected_instrument_index
+    local new_instrument_index = current_instrument_index + 1
+    
+    if new_instrument_index > #song.instruments + 1 then
+      new_instrument_index = #song.instruments + 1
+    end
+    
+    song:insert_instrument_at(new_instrument_index)
+    song.selected_instrument_index = new_instrument_index
+    print(string.format("  Created and selected new instrument at index %d", new_instrument_index))
+    
+    -- 4) Show the sample recorder dialog
+    window.sample_record_dialog_is_visible = true
+    print("  Opened Sample Recorder dialog")
+    
+    -- 5) Start sample recording
+    transport:start_stop_sample_recording()
+    paketti_quick_sample_recording_active = true
+    print("  Started sample recording")
+    print("=== Paketti Quick Sample: Recording... Press again to stop ===")
+    
+  else
+    -- SECOND PRESS: Stop recording
+    print("=== Paketti Quick Sample: Stopping ===")
+    
+    transport:start_stop_sample_recording()
+    paketti_quick_sample_recording_active = false
+    
+    -- Clean up existing timer if any, then start fresh
+    if renoise.tool():has_timer(PakettiQuickSampleMonitor) then
+      renoise.tool():remove_timer(PakettiQuickSampleMonitor)
+    end
+    
+    -- Start timer to monitor when sample data arrives
+    renoise.tool():add_timer(PakettiQuickSampleMonitor, 100)
+    print("  Stopped sample recording, waiting for sample data...")
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Sample to New Track & Instrument (Toggle)",invoke=function() PakettiQuickSampleToNewTrackToggle() end}
+renoise.tool():add_midi_mapping{name="Paketti:Quick Sample to New Track & Instrument (Toggle) x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiQuickSampleToNewTrackToggle() end end}
