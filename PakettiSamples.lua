@@ -4261,9 +4261,24 @@ function PakettiFlipSample(fraction)
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
-  local song=renoise.song()
+  local song = renoise.song()
   local sample = song.selected_sample
+  
+  -- Check if sample exists before accessing buffer
+  if not sample then
+    renoise.app():show_status("No sample selected, doing nothing.")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+  
   local buffer = sample.sample_buffer
+  
+  -- Check if buffer exists
+  if not buffer then
+    renoise.app():show_status("No sample buffer available, doing nothing.")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
 
   if buffer.has_sample_data then
     buffer:prepare_sample_data_changes()
