@@ -164,6 +164,8 @@ renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Deactivate All Repeaters
 renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Delete All Repeaters from All Tracks",invoke=function() paketti_delete_all_repeaters() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Recording:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Recording:Quick Sample to New Track & Instrument (Toggle)",invoke = function() PakettiQuickSampleToNewTrackToggle() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Recording:Quick Sample to New Track & Instrument (Sync Off)",invoke = function() PakettiQuickSampleToNewTrackToggleSyncOff() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Recording:Quick Sample to New Track & Instrument (Sync On + 0G01)",invoke = function() PakettiQuickSampleToNewTrackToggleSyncOn0G01() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:MIDI Aftertouch / CC Effect Writer...",invoke=function() PakettiMidiEffectWriterShowDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:MIDI Aftertouch / CC Effect Writer...",invoke=function() PakettiMidiEffectWriterShowDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti PlayerPro OpenMPT Linear Keyboard Layer...", invoke = PakettiOpenMPTLinearKeyboardLayerToggle}

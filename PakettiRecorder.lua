@@ -846,13 +846,27 @@ function start_stop_sample_and_loop_oh_my()
 
 --------------------------------------------------------------------------------------------------------------------
 -- Quick Sample to New Track & Instrument Toggle
+-- Three modalities:
+--   1. Default: Doesn't touch pattern sync setting
+--   2. Sync Off: Always sets sample_recording_sync_enabled = false
+--   3. Sync On + 0G01: Sets sample_recording_sync_enabled = true, writes C-4 + 0G01 on stop
+--
 -- First press: Create new track (with -30dB volume if preference enabled), new instrument, 
 --              open sample recorder, start recording
--- Second press: Stop recording, apply autoseek/autofade
+-- Second press: Stop recording, apply autoseek/autofade (and write 0G01 for mode 3)
 -- Preference: pakettiQuickSampleTrackVolume (boolean) - Set new track volume to -30dB
 --------------------------------------------------------------------------------------------------------------------
-local paketti_quick_sample_recording_active = false
 
+-- State tracking for all three modalities
+local paketti_quick_sample_state = {
+  recording_active = false,
+  mode = nil,  -- nil=default, "sync_off", "sync_on_0g01"
+  track_index = nil,
+  pattern_index = nil,
+  instrument_index = nil
+}
+
+-- Monitor function for modes without 0G01
 function PakettiQuickSampleMonitor()
   local song = renoise.song()
   
@@ -874,14 +888,67 @@ function PakettiQuickSampleMonitor()
   return true
 end
 
-function PakettiQuickSampleToNewTrackToggle()
+-- Monitor function for Sync On + 0G01 mode
+function PakettiQuickSampleMonitor0G01()
+  local song = renoise.song()
+  local state = paketti_quick_sample_state
+  
+  if song.selected_sample and song.selected_sample.sample_buffer.has_sample_data then
+    -- Sample data has arrived, apply settings
+    song.selected_sample.autoseek = true
+    song.selected_sample.autofade = true
+    print("=== Paketti Quick Sample (Sync On + 0G01): Sample received ===")
+    print("  Applied autoseek=true, autofade=true")
+    
+    -- Write C-4 + 0G01 to line 1 of the recorded track
+    if state.track_index and state.pattern_index and state.instrument_index then
+      local pattern = song.patterns[state.pattern_index]
+      if pattern and pattern.tracks[state.track_index] then
+        local line = pattern.tracks[state.track_index].lines[1]
+        local instrument_value = state.instrument_index - 1  -- 0-based for display
+        
+        line.note_columns[1].note_string = "C-4"
+        line.note_columns[1].instrument_value = instrument_value
+        line.effect_columns[1].number_string = "0G"
+        line.effect_columns[1].amount_string = "01"
+        
+        -- Make sure effect column is visible
+        if song.tracks[state.track_index].visible_effect_columns < 1 then
+          song.tracks[state.track_index].visible_effect_columns = 1
+        end
+        
+        print(string.format("  Wrote C-4 (instrument %02X) + 0G01 to Track %d, Pattern %d, Line 1", 
+          instrument_value, state.track_index, state.pattern_index))
+      end
+    end
+    
+    -- Stop monitoring
+    if renoise.tool():has_timer(PakettiQuickSampleMonitor0G01) then
+      renoise.tool():remove_timer(PakettiQuickSampleMonitor0G01)
+    end
+    return false
+  end
+  
+  -- Continue monitoring
+  return true
+end
+
+-- Core function for all three modalities
+-- mode: nil=default (don't touch sync), "sync_off", "sync_on_0g01"
+function PakettiQuickSampleToNewTrackCore(mode)
   local song = renoise.song()
   local transport = song.transport
   local window = renoise.app().window
+  local state = paketti_quick_sample_state
   
-  if not paketti_quick_sample_recording_active then
+  local mode_name = mode or "Default"
+  if mode == "sync_off" then mode_name = "Sync Off"
+  elseif mode == "sync_on_0g01" then mode_name = "Sync On + 0G01"
+  end
+  
+  if not state.recording_active then
     -- FIRST PRESS: Setup and start recording
-    print("=== Paketti Quick Sample: Starting ===")
+    print(string.format("=== Paketti Quick Sample (%s): Starting ===", mode_name))
     
     -- 1) Create a new track after the current track (but before send/master tracks)
     local current_track_index = song.selected_track_index
@@ -916,33 +983,104 @@ function PakettiQuickSampleToNewTrackToggle()
     song.selected_instrument_index = new_instrument_index
     print(string.format("  Created and selected new instrument at index %d", new_instrument_index))
     
-    -- 4) Show the sample recorder dialog
+    -- 4) Set pattern sync mode based on modality
+    if mode == "sync_off" then
+      transport.sample_recording_sync_enabled = false
+      print("  Pattern Sync: OFF")
+    elseif mode == "sync_on_0g01" then
+      transport.sample_recording_sync_enabled = true
+      print("  Pattern Sync: ON (will write 0G01 on stop)")
+    else
+      print(string.format("  Pattern Sync: %s (unchanged)", transport.sample_recording_sync_enabled and "ON" or "OFF"))
+    end
+    
+    -- 5) Show the sample recorder dialog
     window.sample_record_dialog_is_visible = true
     print("  Opened Sample Recorder dialog")
     
-    -- 5) Start sample recording
+    -- 6) Store state for later use
+    state.recording_active = true
+    state.mode = mode
+    state.track_index = new_track_index
+    state.pattern_index = song.selected_pattern_index
+    state.instrument_index = new_instrument_index
+    
+    -- 7) Start sample recording
     transport:start_stop_sample_recording()
-    paketti_quick_sample_recording_active = true
     print("  Started sample recording")
-    print("=== Paketti Quick Sample: Recording... Press again to stop ===")
+    
+    -- 8) For Sync On + 0G01 mode: ensure playback is running (Pattern sync requires it)
+    if mode == "sync_on_0g01" then
+      if not transport.playing then
+        transport:start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
+        print("  Started playback (Pattern sync requires playback)")
+      else
+        print("  Playback already running, continuing...")
+      end
+    end
+    
+    print(string.format("=== Paketti Quick Sample (%s): Recording... Press again to stop ===", mode_name))
     
   else
     -- SECOND PRESS: Stop recording
-    print("=== Paketti Quick Sample: Stopping ===")
+    print(string.format("=== Paketti Quick Sample (%s): Stopping ===", mode_name))
     
     transport:start_stop_sample_recording()
-    paketti_quick_sample_recording_active = false
+    state.recording_active = false
     
-    -- Clean up existing timer if any, then start fresh
-    if renoise.tool():has_timer(PakettiQuickSampleMonitor) then
-      renoise.tool():remove_timer(PakettiQuickSampleMonitor)
+    -- Choose appropriate monitor based on mode
+    if state.mode == "sync_on_0g01" then
+      -- Clean up existing timer if any, then start fresh
+      if renoise.tool():has_timer(PakettiQuickSampleMonitor0G01) then
+        renoise.tool():remove_timer(PakettiQuickSampleMonitor0G01)
+      end
+      if renoise.tool():has_timer(PakettiQuickSampleMonitor) then
+        renoise.tool():remove_timer(PakettiQuickSampleMonitor)
+      end
+      
+      -- Start timer to monitor when sample data arrives (0G01 version)
+      renoise.tool():add_timer(PakettiQuickSampleMonitor0G01, 100)
+      print("  Stopped sample recording, waiting for sample data (will write 0G01)...")
+    else
+      -- Clean up existing timer if any, then start fresh
+      if renoise.tool():has_timer(PakettiQuickSampleMonitor) then
+        renoise.tool():remove_timer(PakettiQuickSampleMonitor)
+      end
+      if renoise.tool():has_timer(PakettiQuickSampleMonitor0G01) then
+        renoise.tool():remove_timer(PakettiQuickSampleMonitor0G01)
+      end
+      
+      -- Start timer to monitor when sample data arrives
+      renoise.tool():add_timer(PakettiQuickSampleMonitor, 100)
+      print("  Stopped sample recording, waiting for sample data...")
     end
     
-    -- Start timer to monitor when sample data arrives
-    renoise.tool():add_timer(PakettiQuickSampleMonitor, 100)
-    print("  Stopped sample recording, waiting for sample data...")
+    -- Clear mode for next use
+    state.mode = nil
   end
 end
 
+-- Modality 1: Default (doesn't touch pattern sync)
+function PakettiQuickSampleToNewTrackToggle()
+  PakettiQuickSampleToNewTrackCore(nil)
+end
+
+-- Modality 2: Sync Off
+function PakettiQuickSampleToNewTrackToggleSyncOff()
+  PakettiQuickSampleToNewTrackCore("sync_off")
+end
+
+-- Modality 3: Sync On + 0G01
+function PakettiQuickSampleToNewTrackToggleSyncOn0G01()
+  PakettiQuickSampleToNewTrackCore("sync_on_0g01")
+end
+
+-- Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Quick Sample to New Track & Instrument (Toggle)",invoke=function() PakettiQuickSampleToNewTrackToggle() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Sample to New Track & Instrument (Sync Off)",invoke=function() PakettiQuickSampleToNewTrackToggleSyncOff() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Sample to New Track & Instrument (Sync On + 0G01)",invoke=function() PakettiQuickSampleToNewTrackToggleSyncOn0G01() end}
+
+-- MIDI Mappings
 renoise.tool():add_midi_mapping{name="Paketti:Quick Sample to New Track & Instrument (Toggle) x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiQuickSampleToNewTrackToggle() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Quick Sample to New Track & Instrument (Sync Off) x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiQuickSampleToNewTrackToggleSyncOff() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Quick Sample to New Track & Instrument (Sync On + 0G01) x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiQuickSampleToNewTrackToggleSyncOn0G01() end end}
