@@ -509,71 +509,28 @@ renoise.tool():add_keybinding{
   invoke = PakettiPatternNameLoopList
 }
 
--- Pattern Sequencer context keybindings
-renoise.tool():add_keybinding{
-  name = "Pattern Sequencer:Paketti:Pattern Name Loop - Set at Current",
-  invoke = PakettiPatternNameLoopSetAtCurrent
-}
+-- Context-specific keybindings for Pattern Sequencer, Pattern Editor, Mixer, Pattern Matrix, Phrase Editor
+local contexts = {"Pattern Sequencer", "Pattern Editor", "Mixer", "Pattern Matrix", "Phrase Editor"}
 
-renoise.tool():add_keybinding{
-  name = "Pattern Sequencer:Paketti:Pattern Name Loop - Next",
-  invoke = PakettiPatternNameLoopNext
-}
-
-renoise.tool():add_keybinding{
-  name = "Pattern Sequencer:Paketti:Pattern Name Loop - Previous",
-  invoke = PakettiPatternNameLoopPrevious
-}
-
-renoise.tool():add_keybinding{
-  name = "Pattern Sequencer:Paketti:Pattern Name Loop - Clear",
-  invoke = PakettiPatternNameLoopClear
-}
-
-renoise.tool():add_keybinding{
-  name = "Pattern Sequencer:Paketti:Pattern Name Loop - Toggle",
-  invoke = PakettiPatternNameLoopToggle
-}
+for _, context in ipairs(contexts) do
+  renoise.tool():add_keybinding{name=context..":Paketti:Pattern Name Loop - Set at Current",invoke=PakettiPatternNameLoopSetAtCurrent}
+  renoise.tool():add_keybinding{name=context..":Paketti:Pattern Name Loop - Next",invoke=PakettiPatternNameLoopNext}
+  renoise.tool():add_keybinding{name=context..":Paketti:Pattern Name Loop - Previous",invoke=PakettiPatternNameLoopPrevious}
+  renoise.tool():add_keybinding{name=context..":Paketti:Pattern Name Loop - Clear",invoke=PakettiPatternNameLoopClear}
+  renoise.tool():add_keybinding{name=context..":Paketti:Pattern Name Loop - Toggle",invoke=PakettiPatternNameLoopToggle}
+  renoise.tool():add_keybinding{name=context..":Paketti:Pattern Name Loop - List Regions",invoke=PakettiPatternNameLoopList}
+end
 
 ---------------------------------------------------------------------------
 -- MIDI MAPPINGS
 ---------------------------------------------------------------------------
 
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Pattern Name Loop - Next",
-  invoke = function(message)
-    if message:is_trigger() then
-      PakettiPatternNameLoopNext()
-    end
-  end
-}
-
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Pattern Name Loop - Previous",
-  invoke = function(message)
-    if message:is_trigger() then
-      PakettiPatternNameLoopPrevious()
-    end
-  end
-}
-
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Pattern Name Loop - Toggle",
-  invoke = function(message)
-    if message:is_trigger() then
-      PakettiPatternNameLoopToggle()
-    end
-  end
-}
-
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Pattern Name Loop - Clear",
-  invoke = function(message)
-    if message:is_trigger() then
-      PakettiPatternNameLoopClear()
-    end
-  end
-}
+renoise.tool():add_midi_mapping{name="Paketti:Pattern Name Loop - Set at Current x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiPatternNameLoopSetAtCurrent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Pattern Name Loop - Next x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiPatternNameLoopNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Pattern Name Loop - Previous x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiPatternNameLoopPrevious() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Pattern Name Loop - Toggle x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiPatternNameLoopToggle() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Pattern Name Loop - Clear x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiPatternNameLoopClear() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Pattern Name Loop - List Regions x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiPatternNameLoopList() end end}
 
 ---------------------------------------------------------------------------
 -- MENU ENTRIES
