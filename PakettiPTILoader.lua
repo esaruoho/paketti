@@ -635,15 +635,7 @@ function pti_loadsample_Worker(filepath, dialog, vb)
 end
 
 -- Separate the hooks - PTI only now
-local pti_integration = {
-  category = "sample",
-  extensions = { "pti" },
-  invoke = pti_loadsample
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "pti" }) then
-  renoise.tool():add_file_import_hook(pti_integration)
-end
+-- NOTE: PTI file import hook registration moved to PakettiImport.lua for centralized management
 
 -- New MTI loader function
 function find_corresponding_wav(mti_filepath)
@@ -935,16 +927,7 @@ function mti_loadsample(filepath)
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
--- New MTI integration hook
-local mti_integration = {
-  category = "sample",
-  extensions = { "mti" },
-  invoke = mti_loadsample
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "mti" }) then
-  renoise.tool():add_file_import_hook(mti_integration)
-end
+-- NOTE: MTI file import hook registration moved to PakettiImport.lua for centralized management
 
 ---------
 local bit = require("bit")

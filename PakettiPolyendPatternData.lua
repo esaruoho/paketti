@@ -1786,7 +1786,8 @@ function PakettiImportPolyendMTProject(filepath)
 end
 
 -- Direct MT project file import function for drag-and-drop
-local function mt_import_hook(filename)
+-- Global function for use by PakettiImport.lua file import hook
+function mt_import_hook(filename)
     if not filename then
         renoise.app():show_error("MT Import Error: No filename provided!")
         return false
@@ -1806,7 +1807,8 @@ local function mt_import_hook(filename)
 end
 
 -- Direct MTP file import function for drag-and-drop
-local function mtp_import_hook(filename)
+-- Global function for use by PakettiImport.lua file import hook
+function mtp_import_hook(filename)
     if not filename then
         renoise.app():show_error("MTP Import Error: No filename provided!")
         return false
@@ -1868,42 +1870,6 @@ local function mtp_import_hook(filename)
     end
 end
 
--- Register the file import hook for MTP files
-local mtp_integration = {
-    category = "sample",  -- Changed from "other" to "sample" like RX2
-    extensions = { "mtp" },
-    invoke = mtp_import_hook
-}
-
--- Check if hook already exists
-local has_mtp_hook = renoise.tool():has_file_import_hook("sample", { "mtp" })
-
-if not has_mtp_hook then
-    local success, error_msg = pcall(function()
-        renoise.tool():add_file_import_hook(mtp_integration)
-    end)
-    if not success then
-        renoise.app():show_error("ERROR registering MTP hook: " .. tostring(error_msg))
-    end
-end
-
--- Register the file import hook for MT project files
-local mt_integration = {
-    category = "song",  -- Project files are song-level
-    extensions = { "mt" },
-    invoke = mt_import_hook
-}
-
--- Check if hook already exists
-local has_mt_hook = renoise.tool():has_file_import_hook("song", { "mt" })
-
-if not has_mt_hook then
-    local success, error_msg = pcall(function()
-        renoise.tool():add_file_import_hook(mt_integration)
-    end)
-    if not success then
-        renoise.app():show_error("ERROR registering MT hook: " .. tostring(error_msg))
-    end
-end 
+-- NOTE: MTP and MT file import hook registrations moved to PakettiImport.lua for centralized management
 
 

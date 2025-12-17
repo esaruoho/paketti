@@ -148,8 +148,8 @@ end
 -- Track failed imports
 local failed_imports = {}
 
--- File-import hook
-local function loadIFFSample(file_path)
+-- File-import hook (global function for use by PakettiImport.lua)
+function loadIFFSample(file_path)
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
@@ -250,12 +250,7 @@ function loadIFFSampleFromDialog()
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
-renoise.tool():add_file_import_hook{
-  name       = "IFF (8SVX+16SV) → WAV converter",
-  category   = "sample",
-  extensions = {"iff","8svx","16sv"},
-  invoke     = loadIFFSample
-}
+-- NOTE: File import hook registration moved to PakettiImport.lua for centralized management
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
 

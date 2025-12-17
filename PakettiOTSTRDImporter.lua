@@ -665,16 +665,7 @@ function strd_import_filehook(filename)
 end
 
 -- Register the file import hook for .strd and .work files
-local strd_integration = {
-  category = "song",
-  extensions = { "strd", "work" },
-  invoke = strd_import_filehook
-}
-
-if not renoise.tool():has_file_import_hook("song", { "strd", "work" }) then
-  renoise.tool():add_file_import_hook(strd_integration)
-  
-end
+-- NOTE: File import hook registration moved to PakettiImport.lua for centralized management
 
 renoise.tool():add_keybinding{name="Global:Paketti:Octatrack Import STRD Bank",invoke=function() PakettiOTSTRDImporter() end}
 

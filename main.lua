@@ -944,6 +944,61 @@ end
 timed_require("rx")
 timed_require("base64float")
 timed_require("Paketti0G01_Loader")
+
+-- ============================================================================
+-- CONDITIONAL REGISTRATION WRAPPERS
+-- These wrap the original registration functions to check master toggles
+-- Must be set up AFTER Paketti0G01_Loader (preferences) but BEFORE other modules
+-- ============================================================================
+
+-- Store original functions
+local original_add_keybinding = renoise.tool().add_keybinding
+local original_add_midi_mapping = renoise.tool().add_midi_mapping
+
+-- Global counters for what actually gets registered
+PakettiActualRegistrations = {
+  keybindings = 0,
+  keybindings_skipped = 0,
+  midi_mappings = 0,
+  midi_mappings_skipped = 0
+}
+
+-- Wrapped add_keybinding that checks master toggle
+function PakettiWrappedAddKeybinding(tool, args)
+  if PakettiShouldRegisterKeybindings and PakettiShouldRegisterKeybindings() then
+    original_add_keybinding(tool, args)
+    PakettiActualRegistrations.keybindings = PakettiActualRegistrations.keybindings + 1
+    return true
+  else
+    PakettiActualRegistrations.keybindings_skipped = PakettiActualRegistrations.keybindings_skipped + 1
+    return false
+  end
+end
+
+-- Wrapped add_midi_mapping that checks master toggle  
+function PakettiWrappedAddMidiMapping(tool, args)
+  if PakettiShouldRegisterMidiMappings and PakettiShouldRegisterMidiMappings() then
+    original_add_midi_mapping(tool, args)
+    PakettiActualRegistrations.midi_mappings = PakettiActualRegistrations.midi_mappings + 1
+    return true
+  else
+    PakettiActualRegistrations.midi_mappings_skipped = PakettiActualRegistrations.midi_mappings_skipped + 1
+    return false
+  end
+end
+
+-- Replace the methods on the tool object
+-- Note: This only affects calls made AFTER this point
+renoise.tool().add_keybinding = function(self, args)
+  return PakettiWrappedAddKeybinding(self, args)
+end
+
+renoise.tool().add_midi_mapping = function(self, args)
+  return PakettiWrappedAddMidiMapping(self, args)
+end
+
+-- ============================================================================
+
 timed_require("PakettieSpeak")
 timed_require("PakettiChordsPlus")
 timed_require("PakettiLaunchApp")
@@ -1054,7 +1109,7 @@ timed_require("PakettiChebyshevWaveshaper")
 timed_require("PakettiMetricModulation")
 timed_require("PakettiPresetPlusPlus")
 timed_require("PakettiXRNIT")
-timed_require("PakettiImport")
+-- PakettiImport moved to load last (before PakettiMenuConfig) for centralized import hook registration
 timed_require("PakettiClearance")
 timed_require("PakettiRoutings")
 timed_require("PakettiViews")
@@ -1124,6 +1179,9 @@ timed_require("PakettiAutocomplete")
 
 timed_require("PakettiEightOneTwenty")
 
+-- PakettiImport MUST be loaded after all other modules so their loader functions are available
+-- This centralizes all file import hook registrations with preference checks
+timed_require("PakettiImport")
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")
@@ -1137,6 +1195,59 @@ local total_time = os.clock() - init_time
 if PakettiTimedRequireDebug then
     print(string.format("Total load time: %.2f ms (%.3f seconds)", total_time * 1000, total_time))
 end
+
+-- Log registration counts on startup
+local function PakettiLogStartupCounts()
+  -- Use the counting function from Paketti0G01_Loader
+  if PakettiCountRegistrations then
+    local counts = PakettiCountRegistrations()
+    print("-------------------------------------------")
+    print("PAKETTI LOADED SUCCESSFULLY")
+    print("-------------------------------------------")
+    print("Source File Counts:")
+    print(string.format("  Menu Entries:   %d in code (%d commented)", counts.menus, counts.menus_commented))
+    print(string.format("  Keybindings:    %d in code (%d commented)", counts.keybindings, counts.keybindings_commented))
+    print(string.format("  MIDI Mappings:  %d in code (%d commented)", counts.midi_mappings, counts.midi_mappings_commented))
+    print("-------------------------------------------")
+    
+    -- Show actual registrations (what was actually registered based on toggles)
+    if PakettiActualRegistrations then
+      print("Actual Registrations (based on master toggles):")
+      print(string.format("  Keybindings:    %d registered, %d skipped", 
+        PakettiActualRegistrations.keybindings, 
+        PakettiActualRegistrations.keybindings_skipped))
+      print(string.format("  MIDI Mappings:  %d registered, %d skipped", 
+        PakettiActualRegistrations.midi_mappings, 
+        PakettiActualRegistrations.midi_mappings_skipped))
+      print("-------------------------------------------")
+    end
+    
+    -- Also show master toggle status
+    if preferences and preferences.pakettiMenuConfig then
+      local menus_status = "ON"
+      local keys_status = "ON"
+      local midi_status = "ON"
+      
+      if preferences.pakettiMenuConfig.MasterMenusEnabled and not preferences.pakettiMenuConfig.MasterMenusEnabled.value then
+        menus_status = "OFF"
+      end
+      if preferences.pakettiMenuConfig.MasterKeybindingsEnabled and not preferences.pakettiMenuConfig.MasterKeybindingsEnabled.value then
+        keys_status = "OFF"
+      end
+      if preferences.pakettiMenuConfig.MasterMidiMappingsEnabled and not preferences.pakettiMenuConfig.MasterMidiMappingsEnabled.value then
+        midi_status = "OFF"
+      end
+      
+      print(string.format("Master Toggles: Menus=%s, Keys=%s, MIDI=%s", menus_status, keys_status, midi_status))
+      print("-------------------------------------------")
+    end
+  else
+    print("Paketti: PakettiCountRegistrations function not available")
+  end
+end
+
+-- Run startup logging
+PakettiLogStartupCounts()
 
 -- Function to randomly pick a Paketti feature for documentation
 function pakettiRandomFeatureForDocumentation()

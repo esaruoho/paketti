@@ -1928,6 +1928,124 @@ renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Hum
 
 
 
+-- Function to write a curve shape to the LFO custom envelope
+-- Uses the global PakettiGenerateCurve function from main.lua
+-- Parameters:
+--   curveType: "linear", "logarithmic", "exponential", "downParabola", "upParabola", "doublePeak", "doubleValley"
+--   numPoints: Number of envelope points (default 64, max 1024)
+--   startValue: Starting value 0.0-1.0 (default 0.0)
+--   endValue: Ending value 0.0-1.0 (default 1.0)
+function pakettiWriteCurveToLFOEnvelope(curveType, numPoints, startValue, endValue)
+  local device = renoise.song().selected_device
+  
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    return
+  end
+  
+  -- Default values
+  numPoints = numPoints or 64
+  startValue = startValue or 0.0
+  endValue = endValue or 1.0
+  curveType = curveType or "linear"
+  
+  -- Clamp values
+  numPoints = math.max(2, math.min(1024, numPoints))
+  startValue = math.max(0.0, math.min(1.0, startValue))
+  endValue = math.max(0.0, math.min(1.0, endValue))
+  
+  print(string.format("PakettiXMLizer: Writing %s curve with %d points, from %.2f to %.2f", 
+    curveType, numPoints, startValue, endValue))
+  
+  -- Use PakettiGenerateCurve to generate normalized values (0-1000) then scale to 0.0-1.0
+  local curveValues = PakettiGenerateCurve(0, 1000, numPoints, curveType, false)
+  
+  if not curveValues or #curveValues == 0 then
+    renoise.app():show_status("PakettiXMLizer: Failed to generate curve values")
+    return
+  end
+  
+  -- Build the envelope points
+  -- Envelope length will match the number of points
+  local envelopeLength = numPoints
+  local stepInterval = envelopeLength / (numPoints - 1)
+  
+  local points = {}
+  for i = 1, #curveValues do
+    local step = math.floor((i - 1) * stepInterval + 0.5)
+    if i == #curveValues then
+      step = envelopeLength - 1  -- Ensure last point is at the end
+    end
+    
+    -- Normalize the curve value from 0-1000 to 0.0-1.0, then map to startValue-endValue range
+    local normalizedValue = curveValues[i] / 1000.0
+    local mappedValue = startValue + (normalizedValue * (endValue - startValue))
+    mappedValue = math.max(0.0, math.min(1.0, mappedValue))
+    
+    table.insert(points, {
+      step = step,
+      value = mappedValue,
+      scaling = 0.0
+    })
+  end
+  
+  -- Build points XML
+  local new_points_xml = ""
+  for _, point in ipairs(points) do
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+  end
+  
+  -- Get existing XML or create new one
+  local xml_data = device.active_preset_data
+  local new_xml
+  
+  if xml_data and xml_data ~= "" and xml_data:find("<CustomEnvelope>") then
+    -- Replace existing custom envelope points and length
+    new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+    new_xml = new_xml:gsub("<Length>.-</Length>", "<Length>" .. envelopeLength .. "</Length>", 1)
+    -- Make sure we're using custom envelope type (Type value 4)
+    new_xml = new_xml:gsub("<Type>%s*<Value>.-</Value>%s*</Type>", "<Type>\n      <Value>4</Value>\n    </Type>", 1)
+  else
+    -- Create new custom envelope XML
+    new_xml = generate_lfo_xml(1.0, 0.0, 0.25, 4, {})
+    new_xml = new_xml:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+    new_xml = new_xml:gsub("<Length>.-</Length>", "<Length>" .. envelopeLength .. "</Length>", 1)
+  end
+  
+  device.active_preset_data = new_xml
+  
+  local description = PakettiCurveDescriptions[curveType] or curveType
+  renoise.app():show_status(string.format("PakettiXMLizer: Wrote %s to LFO envelope (%d points)", description, numPoints))
+end
+
+-- Convenience functions for each curve type with default 64 points
+function pakettiLFOCurveLinear() pakettiWriteCurveToLFOEnvelope("linear", 64, 0.0, 1.0) end
+function pakettiLFOCurveLinearDown() pakettiWriteCurveToLFOEnvelope("linear", 64, 1.0, 0.0) end
+function pakettiLFOCurveLogarithmic() pakettiWriteCurveToLFOEnvelope("logarithmic", 64, 0.0, 1.0) end
+function pakettiLFOCurveLogarithmicDown() pakettiWriteCurveToLFOEnvelope("logarithmic", 64, 1.0, 0.0) end
+function pakettiLFOCurveExponential() pakettiWriteCurveToLFOEnvelope("exponential", 64, 0.0, 1.0) end
+function pakettiLFOCurveExponentialDown() pakettiWriteCurveToLFOEnvelope("exponential", 64, 1.0, 0.0) end
+function pakettiLFOCurveDownParabola() pakettiWriteCurveToLFOEnvelope("downParabola", 64, 0.0, 1.0) end
+function pakettiLFOCurveUpParabola() pakettiWriteCurveToLFOEnvelope("upParabola", 64, 0.0, 1.0) end
+function pakettiLFOCurveDoublePeak() pakettiWriteCurveToLFOEnvelope("doublePeak", 64, 0.0, 1.0) end
+function pakettiLFOCurveDoubleValley() pakettiWriteCurveToLFOEnvelope("doubleValley", 64, 0.0, 1.0) end
+
+-- Bell curve (upParabola is actually the bell/hump shape)
+function pakettiLFOCurveBellUp() pakettiWriteCurveToLFOEnvelope("upParabola", 64, 0.0, 1.0) end
+function pakettiLFOCurveBellDown() pakettiWriteCurveToLFOEnvelope("downParabola", 64, 0.0, 1.0) end
+
+-- Register keybindings for curve functions
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Curve Write Linear Up", invoke=pakettiLFOCurveLinear}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Curve Write Linear Down", invoke=pakettiLFOCurveLinearDown}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Curve Write Logarithmic Up", invoke=pakettiLFOCurveLogarithmic}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Curve Write Logarithmic Down", invoke=pakettiLFOCurveLogarithmicDown}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Curve Write Exponential Up", invoke=pakettiLFOCurveExponential}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Curve Write Exponential Down", invoke=pakettiLFOCurveExponentialDown}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Curve Write U-Shape (Down Parabola)", invoke=pakettiLFOCurveDownParabola}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Curve Write Bell (Up Parabola)", invoke=pakettiLFOCurveUpParabola}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Curve Write Double Peak", invoke=pakettiLFOCurveDoublePeak}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Curve Write Double Valley", invoke=pakettiLFOCurveDoubleValley}
+
 -- LFO Envelope Editor Dialog
 local lfo_vb = renoise.ViewBuilder()
 local lfo_dialog = nil
@@ -2034,6 +2152,84 @@ function pakettiLFOEnvelopeEditorDialog()
         text = "Humanize",
         width = 120,
         pressed = function() pakettiHumanizeLFOEnvelope() end
+      }
+    },
+    
+    lfo_vb:horizontal_aligner{
+      mode = "center",
+      lfo_vb:text{
+        text = "--- Curve Shapes ---",
+        style = "strong"
+      }
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Linear:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Linear Up",
+        width = 120,
+        pressed = function() pakettiLFOCurveLinear() end
+      },
+      lfo_vb:button{
+        text = "Linear Down",
+        width = 120,
+        pressed = function() pakettiLFOCurveLinearDown() end
+      }
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Log:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Logarithmic Up",
+        width = 120,
+        pressed = function() pakettiLFOCurveLogarithmic() end
+      },
+      lfo_vb:button{
+        text = "Logarithmic Down",
+        width = 120,
+        pressed = function() pakettiLFOCurveLogarithmicDown() end
+      }
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Exp:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Exponential Up",
+        width = 120,
+        pressed = function() pakettiLFOCurveExponential() end
+      },
+      lfo_vb:button{
+        text = "Exponential Down",
+        width = 120,
+        pressed = function() pakettiLFOCurveExponentialDown() end
+      }
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Parabola:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Bell (Peak)",
+        width = 120,
+        pressed = function() pakettiLFOCurveUpParabola() end
+      },
+      lfo_vb:button{
+        text = "U-Shape (Valley)",
+        width = 120,
+        pressed = function() pakettiLFOCurveDownParabola() end
+      }
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Double:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Double Peak",
+        width = 120,
+        pressed = function() pakettiLFOCurveDoublePeak() end
+      },
+      lfo_vb:button{
+        text = "Double Valley",
+        width = 120,
+        pressed = function() pakettiLFOCurveDoubleValley() end
       }
     },
     

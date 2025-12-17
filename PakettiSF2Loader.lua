@@ -1222,20 +1222,7 @@ function import_sf2_multitimbral(filepath)
   return false
 end
 
-if renoise.tool():has_file_import_hook("sample", {"sf2"}) then
-  renoise.tool():remove_file_import_hook("sample", {"sf2"})
-  print("Removed old SF2 Import Hook")
-end
-
-local hook = {
-  category = "sample",
-  extensions = {"sf2"},
-  invoke = import_sf2
-}
-
-if not renoise.tool():has_file_import_hook("sample", {"sf2"}) then
-  renoise.tool():add_file_import_hook(hook)
-end
+-- NOTE: File import hook registration moved to PakettiImport.lua for centralized management
 
 
 

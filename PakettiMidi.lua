@@ -3477,12 +3477,7 @@ function dudeMidi(file_path)
   print("YOO")
 end
 
-renoise.tool():add_file_import_hook{
-  name       = "MIDI IMPORT",
-  category   = "instrument",
-  extensions = {"mid"},
-  invoke     = dudeMidi
-}
+-- NOTE: MIDI file import hook registration moved to PakettiImport.lua for centralized management
 
 -----------------------------------------------------------------------
 -- MIDI Automation Envelope Cycling
@@ -4878,15 +4873,32 @@ function PakettiMidiEffectWriterShowDialog()
   -- Open MIDI device when dialog opens (if not in slider mode)
   PakettiMidiEffectWriterUpdateDevice()
   
+  -- Start the dialog close watcher
+  PakettiMidiEffectWriterStartCloseWatcher()
+  
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
--- Clean up when dialog closes
-renoise.tool().app_idle_observable:add_notifier(function()
+-- Named function for dialog close watcher (so we can check has_notifier and remove it)
+local function PakettiMidiEffectWriterCloseWatcher()
   if PakettiMidiEffectWriterDialog and not PakettiMidiEffectWriterDialog.visible then
+    -- Clean up the device
     PakettiMidiEffectWriterCloseDevice()
+    -- Remove this notifier since dialog is now closed
+    if renoise.tool().app_idle_observable:has_notifier(PakettiMidiEffectWriterCloseWatcher) then
+      renoise.tool().app_idle_observable:remove_notifier(PakettiMidiEffectWriterCloseWatcher)
+    end
+    -- Clear the dialog reference
+    PakettiMidiEffectWriterDialog = nil
   end
-end)
+end
+
+-- Start watching for dialog close (only adds if not already watching)
+function PakettiMidiEffectWriterStartCloseWatcher()
+  if not renoise.tool().app_idle_observable:has_notifier(PakettiMidiEffectWriterCloseWatcher) then
+    renoise.tool().app_idle_observable:add_notifier(PakettiMidiEffectWriterCloseWatcher)
+  end
+end
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:MIDI Aftertouch / CC Effect Writer...",

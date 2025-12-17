@@ -5808,9 +5808,11 @@ function initializeSampleDetails()
   end
 end
 
--- Add the initialization call
+-- Add the initialization call - ONLY on new document, NOT on idle tick
+-- The active_middle_frame_observable already handles view changes
 renoise.tool().app_new_document_observable:add_notifier(initializeSampleDetails)
-renoise.tool().app_idle_observable:add_notifier(initializeSampleDetails)
+-- REMOVED: app_idle_observable notifier was redundant and caused unnecessary polling
+-- The active_middle_frame_observable (line 5784) already handles sample editor visibility changes
 
 ----------
 renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (1-127) x[Knob]",

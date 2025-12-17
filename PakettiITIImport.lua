@@ -1275,12 +1275,4 @@ function setup_envelopes(instrument, envelopes)
 end
 
 -- Register file import hook
-local iti_integration = {
-  category = "instrument",
-  extensions = { "iti" },
-  invoke = iti_loadinstrument
-}
-
-if not renoise.tool():has_file_import_hook("instrument", { "iti" }) then
-  renoise.tool():add_file_import_hook(iti_integration)
-end
+-- NOTE: File import hook registration moved to PakettiImport.lua for centralized management

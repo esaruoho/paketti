@@ -664,7 +664,7 @@ local aif_integration = {
 }
 
 if not renoise.tool():has_file_import_hook("sample", { "aif", "aiff" }) then
-  renoise.tool():add_file_import_hook(aif_integration)
+  --renoise.tool():add_file_import_hook(aif_integration)
 end
 ]]--
  

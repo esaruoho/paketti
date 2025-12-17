@@ -1131,7 +1131,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Refresh",invok
       PakettieSpeakUpdateLineCount()
     else PakettieSpeakPrepare() end end}
 
-local function txt_loadfile(filename)
+-- Global function for use by PakettiImport.lua file import hook
+function txt_loadfile(filename)
   -- Store the original text before loading the file
   if not is_temp_text then
     original_text = eSpeak.text.value
@@ -1164,13 +1165,5 @@ local function txt_loadfile(filename)
   return false
 end
 
-local txt_integration = {
-  category = "sample",
-  extensions = { "txt" },
-  invoke = txt_loadfile
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "txt" }) then
-  renoise.tool():add_file_import_hook(txt_integration)
-end
+-- NOTE: TXT file import hook registration moved to PakettiImport.lua for centralized management
 

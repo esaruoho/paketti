@@ -981,8 +981,37 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete/Wipe/Clear Eff
 -- ripped into Paketti without their permission. tough cheese.
 local cached_note_column_index = nil
 local cached_effect_column_index = nil
- 
+local column_cache_notifier_active = false
+
+-- Function to cache columns - called on-demand when using column navigation
+function cache_columns()
+  -- access song only once renoise is ready
+  if not pcall(renoise.song) then return end
+  local s = renoise.song()
+  if (s.selected_note_column_index > 0) then
+    cached_note_column_index = s.selected_note_column_index
+  end
+  if (s.selected_effect_column_index > 0) then
+    cached_effect_column_index = s.selected_effect_column_index
+  end
+end
+
+-- Start column caching (adds idle notifier if not already active)
+local function start_column_cache_notifier()
+  if not column_cache_notifier_active then
+    if not renoise.tool().app_idle_observable:has_notifier(cache_columns) then
+      renoise.tool().app_idle_observable:add_notifier(cache_columns)
+    end
+    column_cache_notifier_active = true
+  end
+end
+
+-- Ensure column cache notifier is started when tool loads (with has_notifier check)
+start_column_cache_notifier()
+
 function toggle_column_type()
+  -- Ensure cache is active
+  start_column_cache_notifier()
   local s = renoise.song()
   if s.selected_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
     if s.selected_note_column_index ~= 0 then
@@ -1002,61 +1031,61 @@ function toggle_column_type()
         s.selected_note_column_index = col_idx
       else -- always one note column
         s.selected_note_column_index = s.selected_track.visible_note_columns
-      end end end end
- 
-function cache_columns()
-  -- access song only once renoise is ready
-  if not pcall(renoise.song) then return end
-  local s = renoise.song()
-  if (s.selected_note_column_index > 0) then
-    cached_note_column_index = s.selected_note_column_index
+      end
+    end
   end
-  if (s.selected_effect_column_index > 0) then
-    cached_effect_column_index = s.selected_effect_column_index end end
+end
 
 function cycle_column(direction)
-local s = renoise.song()
- if direction == "next" then
+  -- Ensure cache is active
+  start_column_cache_notifier()
+  local s = renoise.song()
+  if direction == "next" then
+    if (s.selected_note_column_index > 0) and (s.selected_note_column_index < s.selected_track.visible_note_columns) then -- any note column but not the last
+      s.selected_note_column_index = s.selected_note_column_index + 1
+    elseif (s.selected_track.visible_note_columns > 0) and (s.selected_note_column_index == s.selected_track.visible_note_columns) and (s.selected_track.visible_effect_columns > 0) then -- last note column when effect columns are available
+      s.selected_effect_column_index = 1
+    elseif (s.selected_effect_column_index < s.selected_track.visible_effect_columns) then -- any effect column but not the last
+      s.selected_effect_column_index = s.selected_effect_column_index + 1
+    elseif (s.selected_effect_column_index == s.selected_track.visible_effect_columns) and (s.selected_track_index < #s.tracks) then -- last effect column but not the last track
+      s.selected_track_index = s.selected_track_index + 1
+    else -- last column in last track
+      s.selected_track_index = 1
+    end
+  elseif direction == "prev" then
+    if (s.selected_note_column_index > 0) and (s.selected_sub_column_type > 2 and s.selected_sub_column_type < 8) then -- any sample effects column
+      s.selected_note_column_index = s.selected_note_column_index
+    elseif (s.selected_note_column_index > 1) then -- any note column but not the first
+      s.selected_note_column_index = s.selected_note_column_index - 1
+    elseif (s.selected_effect_column_index > 1) then -- any effect column but not the first
+      s.selected_effect_column_index = s.selected_effect_column_index - 1
+    elseif (s.selected_effect_column_index == 1) and (s.selected_track.visible_note_columns > 0) then -- first effect column and note columns exist
+      s.selected_note_column_index = s.selected_track.visible_note_columns
+    elseif (s.selected_effect_column_index == 1) and (s.selected_track.visible_note_columns == 0) then -- first effect column and note columns do not exist (group/send/master)
+      s.selected_track_index = s.selected_track_index - 1
+      if s.selected_track.visible_effect_columns > 0 then 
+        s.selected_effect_column_index = s.selected_track.visible_effect_columns
+      else 
+        s.selected_note_column_index = s.selected_track.visible_note_columns
+      end
+    elseif (s.selected_note_column_index == 1) and (s.selected_track_index == 1) then -- first note column in first track
+      local rns = renoise.song()
+      s.selected_track_index = #rns.tracks
+      s.selected_effect_column_index = s.selected_track.visible_effect_columns
+    elseif (s.selected_note_column_index == 1) then -- first note column
+      s.selected_track_index = s.selected_track_index - 1
+      if s.selected_track.visible_effect_columns > 0 then 
+        s.selected_effect_column_index = s.selected_track.visible_effect_columns
+      else 
+        s.selected_note_column_index = s.selected_track.visible_note_columns
+      end
+    end
+  end
+end
 
-  if (s.selected_note_column_index > 0) and (s.selected_note_column_index < s.selected_track.visible_note_columns) then -- any note column but not the last
-   s.selected_note_column_index = s.selected_note_column_index + 1
-  elseif (s.selected_track.visible_note_columns > 0) and (s.selected_note_column_index == s.selected_track.visible_note_columns) and (s.selected_track.visible_effect_columns > 0) then -- last note column when effect columns are available
-   s.selected_effect_column_index = 1
-  elseif (s.selected_effect_column_index < s.selected_track.visible_effect_columns) then -- any effect column but not the last
-   s.selected_effect_column_index = s.selected_effect_column_index + 1
-  elseif (s.selected_effect_column_index == s.selected_track.visible_effect_columns) and (s.selected_track_index < #s.tracks) then -- last effect column but not the last track
-   s.selected_track_index = s.selected_track_index + 1
-  else -- last column in last track
-   s.selected_track_index = 1 end
-
- elseif direction == "prev" then
-  if (s.selected_note_column_index > 0) and (s.selected_sub_column_type > 2 and s.selected_sub_column_type < 8) then -- any sample effects column
-   s.selected_note_column_index = s.selected_note_column_index
-  elseif (s.selected_note_column_index > 1) then -- any note column but not the first
-   s.selected_note_column_index = s.selected_note_column_index - 1
-  elseif (s.selected_effect_column_index > 1) then -- any effect column but not the first
-   s.selected_effect_column_index = s.selected_effect_column_index - 1
-  elseif (s.selected_effect_column_index == 1) and (s.selected_track.visible_note_columns > 0) then -- first effect column and note columns exist
-   s.selected_note_column_index = s.selected_track.visible_note_columns
-  elseif (s.selected_effect_column_index == 1) and (s.selected_track.visible_note_columns == 0) then -- first effect column and note columns do not exist (group/send/master)
-   s.selected_track_index = s.selected_track_index - 1
-   if s.selected_track.visible_effect_columns > 0 then s.selected_effect_column_index = s.selected_track.visible_effect_columns
-   else s.selected_note_column_index = s.selected_track.visible_note_columns
-   end
-  elseif (s.selected_note_column_index == 1) and (s.selected_track_index == 1) then -- first note column in first track
-  local rns=renoise.song()
-   s.selected_track_index = #rns.tracks
-   s.selected_effect_column_index = s.selected_track.visible_effect_columns
-  elseif (s.selected_note_column_index == 1) then -- first note column
-   s.selected_track_index = s.selected_track_index - 1
-   if s.selected_track.visible_effect_columns > 0 then s.selected_effect_column_index = s.selected_track.visible_effect_columns
-   else s.selected_note_column_index = s.selected_track.visible_note_columns
-   end end end end
- 
 renoise.tool():add_keybinding{name="Pattern Editor:Navigation:Paketti Switch between Note/FX columns",invoke=toggle_column_type}
 renoise.tool():add_keybinding{name="Pattern Editor:Navigation:Paketti Jump to Column (Next) (Note/FX)",invoke=function() cycle_column("next") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Navigation:Paketti Jump to Column (Previous) (Note/FX)",invoke=function() cycle_column("prev") end}
-renoise.tool().app_idle_observable:add_notifier(cache_columns)
 
 -- Pattern Resizer by dblue. some minor modifications.
 function resize_pattern(pattern, new_length, patternresize)
@@ -6724,11 +6753,9 @@ local template_data = nil
 local last_processed_time = 0
 local REUSE_DELAY = 0.1 -- seconds
 
--- Function to check for note input
+-- Function to check for note input (only runs when template_mode is enabled)
 local function check_for_note_input()
-  if not template_mode then return end
-  
-  local song=renoise.song()
+  local song = renoise.song()
   local pattern = song:pattern(song.selected_pattern_index)
   local track = pattern:track(song.selected_track_index)
   local line = track:line(song.selected_line_index)
@@ -6750,6 +6777,20 @@ local function check_for_note_input()
       -- Apply the template with the captured note
       apply_template(current_note)
     end
+  end
+end
+
+-- Start template mode notifier (only adds if not already active)
+local function start_template_mode_notifier()
+  if not renoise.tool().app_idle_observable:has_notifier(check_for_note_input) then
+    renoise.tool().app_idle_observable:add_notifier(check_for_note_input)
+  end
+end
+
+-- Stop template mode notifier
+local function stop_template_mode_notifier()
+  if renoise.tool().app_idle_observable:has_notifier(check_for_note_input) then
+    renoise.tool().app_idle_observable:remove_notifier(check_for_note_input)
   end
 end
 
@@ -6838,12 +6879,16 @@ function toggle_template_mode()
     end
     
     template_mode = true
+    -- Start the idle notifier to watch for note input
+    start_template_mode_notifier()
     renoise.app():show_status("Template Mode ON - Input a note to transpose the template")
   else
     -- Disable template mode
     template_mode = false
     template_data = nil
     last_processed_time = 0
+    -- Stop the idle notifier
+    stop_template_mode_notifier()
     renoise.app():show_status("Template Mode OFF")
   end
 end
@@ -6931,9 +6976,8 @@ renoise.tool():add_midi_mapping{name="Paketti:Template Mode Note Input",
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Template Mode",invoke = toggle_template_mode}
 
-
--- Set up the idle observer
-renoise.tool().app_idle_observable:add_notifier(check_for_note_input)
+-- NOTE: check_for_note_input notifier is now ONLY added when template_mode is enabled
+-- via toggle_template_mode() and removed when disabled, to avoid constant idle polling
 
 
 

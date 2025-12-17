@@ -427,17 +427,7 @@ function paketti_import_wavetable()
 end
 
 -- Register file import hook for automatic .wt file handling
-local wt_integration = {
-  category = "sample",
-  extensions = { "wt" },
-  invoke = wt_loadsample
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "wt" }) then
-  renoise.tool():add_file_import_hook(wt_integration)
-else
-end
-
+-- NOTE: File import hook registration moved to PakettiImport.lua for centralized management
 
 -- PakettiWTExport.lua
 -- Wavetable Export for Paketti

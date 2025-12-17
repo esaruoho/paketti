@@ -9155,19 +9155,7 @@ function csv_load_to_pcm_writer(filename)
   return true
 end
 
--- CSV file hook integration
-local csv_integration = {
-  category = "sample",
-  extensions = { "csv" },
-  invoke = csv_load_to_pcm_writer
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "csv" }) then
-  renoise.tool():add_file_import_hook(csv_integration)
-end
-
-
-
+-- NOTE: CSV file import hook registration moved to PakettiImport.lua for centralized management
 
 
 -- Harmonic Drawbar System Variables (Global scope for UI access)

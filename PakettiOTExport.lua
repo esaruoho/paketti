@@ -1145,18 +1145,7 @@ function ot_import_filehook(filename)
   return true
 end
 
--- Register the file import hook for .ot files
-local ot_integration = {
-  category = "sample",
-  extensions = { "ot" },
-  invoke = ot_import_filehook
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "ot" }) then
-  renoise.tool():add_file_import_hook(ot_integration)
-end
-
-
+-- NOTE: File import hook registration moved to PakettiImport.lua for centralized management
 
 -- Add consolidated Octatrack menu entries
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Export (.WAV+.ot)",invoke=function() PakettiOTExport() end}

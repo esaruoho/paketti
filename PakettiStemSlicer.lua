@@ -310,8 +310,8 @@ end
 function logProcessingError(error_type, file_path, details)
     consecutive_errors = consecutive_errors + 1
     
-    -- CIRCUIT BREAKER: Stop infinite error flooding
-    if consecutive_errors > 5 then
+    -- CIRCUIT BREAKER: Stop infinite error flooding (threshold increased from 5 to 20 for batch processing)
+    if consecutive_errors > 20 then
         print("CIRCUIT BREAKER: Too many consecutive errors (" .. consecutive_errors .. "), stopping to prevent dialog flooding")
         error("CIRCUIT_BREAKER_TRIGGERED: Stopping processing to prevent infinite error dialogs")
     end
@@ -1746,6 +1746,7 @@ local function processSingleFile(file_path, output_folder)
                     export_success = copySilenceFile(silence_source, output_path)
                     if export_success then
                         print(string.format("EXPORT SUCCESS [%s]: Copied silence: %s", file_name, output_filename))
+                        resetConsecutiveErrors() -- Reset circuit breaker on successful silence copy
                     else
                         export_error_msg = string.format("Failed to copy silence: %s", output_filename)
                         print(string.format("EXPORT FAILED [%s]: %s", file_name, export_error_msg))
@@ -1832,6 +1833,7 @@ local function processSingleFile(file_path, output_folder)
                                 export_success = copySilenceFile(silence_source, output_path)
                                 if export_success then
                                     print(string.format("    Copied silence: %s", output_filename))
+                                    resetConsecutiveErrors() -- Reset circuit breaker on successful silence copy
                                 else
                                     print(string.format("    Failed to copy silence: %s", output_filename))
                                 end
@@ -1960,7 +1962,9 @@ local function processAllFiles()
         
         -- Check for critical error threshold
         if critical_errors >= 5 then
-            logProcessingError("CRITICAL", "", "Too many critical errors, stopping processing")
+            -- NOTE: Don't call logProcessingError here to avoid triggering circuit breaker
+            -- when we're already stopping due to too many critical errors
+            print("CRITICAL ERROR THRESHOLD: Too many critical errors (" .. critical_errors .. "), stopping processing")
             
             -- CRITICAL: Clean up temp export instrument on error exit
             if export_instrument_idx then

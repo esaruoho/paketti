@@ -437,15 +437,7 @@ end
 --------------------------------------------------------------------------------
 -- Register the file import hook for RX2 files
 --------------------------------------------------------------------------------
-local rx2_integration = {
-  category = "sample",
-  extensions = { "rx2" },
-  invoke = rx2_loadsample
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "rx2" }) then
-  renoise.tool():add_file_import_hook(rx2_integration)
-end
+-- NOTE: File import hook registration moved to PakettiImport.lua for centralized management
 
 --------------------------------------------------------------------------------
 -- Batch RX2 to OT Converter

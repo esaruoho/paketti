@@ -218,6 +218,23 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   -- AutoSamplify Settings
   pakettiAutoSamplifyMonitoring = false,
   pakettiAutoSamplifyPakettify = false,
+  -- Import Hooks Settings (Master toggle + individual format toggles)
+  pakettiImportHooksEnabled = true,  -- Master toggle for all import hooks
+  pakettiImportREX = true,           -- REX (.rex) import
+  pakettiImportRX2 = true,           -- RX2 (.rx2) import
+  pakettiImportIFF = true,           -- IFF (.iff, .8svx, .16sv) import
+  pakettiImportSF2 = true,           -- SF2 (.sf2) import
+  pakettiImportITI = true,           -- ITI (.iti) import
+  pakettiImportOT = true,            -- OT (.ot) import
+  pakettiImportWT = true,            -- WT (.wt) import
+  pakettiImportSTRD = true,          -- STRD (.strd, .work) import
+  pakettiImportPTI = true,           -- PTI/MTI (.pti, .mti) import
+  pakettiImportMTP = true,           -- MTP/MT (.mtp, .mt) import
+  pakettiImportMID = true,           -- MIDI (.mid) import
+  pakettiImportTXT = true,           -- TXT (.txt) import - eSpeak
+  pakettiImportImage = true,         -- Image (.png, .bmp, .jpg, .jpeg, .gif) import
+  pakettiImportCSV = true,           -- CSV (.csv) import - PCMWriter
+  pakettiImportEXE = true,           -- Raw binary (.exe, .dll, .bin, .sys, .dylib) import
   -- Quick Sample to New Track Settings
   pakettiQuickSampleTrackVolume = true,  -- Set new track volume to -30dB for safe recording levels
   ActionSelector = {
@@ -571,9 +588,14 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     PatternSequencer = true,
     PhraseEditor = true,
     PakettiGadgets = true,
+    TrackDSPChain = true,
     TrackDSPDevice = true,
     Automation = true,
-    DiskBrowserFiles = true
+    DiskBrowserFiles = true,
+    -- Master toggles (require Renoise restart to take effect)
+    MasterMenusEnabled = true,
+    MasterKeybindingsEnabled = true,
+    MasterMidiMappingsEnabled = true
   },
   -- Groovebox 8120: show/hide additional options foldout by default
   PakettiGroovebox8120AdditionalOptions = false,
@@ -2636,6 +2658,132 @@ vb:row{
     renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
+-- Global counters for registrations (populated during startup)
+PakettiRegistrationCounts = {
+  menus = 0,
+  menus_enabled = 0,
+  menus_disabled = 0,
+  keybindings = 0,
+  keybindings_enabled = 0,
+  keybindings_disabled = 0,
+  midi_mappings = 0,
+  midi_mappings_enabled = 0,
+  midi_mappings_disabled = 0
+}
+
+-- Function to count registrations by scanning source files
+function PakettiCountRegistrations()
+  local bundle_path = renoise.tool().bundle_path
+  local counts = {
+    menus = 0,
+    menus_commented = 0,
+    keybindings = 0,
+    keybindings_commented = 0,
+    midi_mappings = 0,
+    midi_mappings_commented = 0
+  }
+  
+  -- Get all .lua files using the global helper function
+  local lua_files = PakettiGetAllLuaFiles()
+  
+  for _, lua_file in ipairs(lua_files) do
+    local file_path = bundle_path .. lua_file .. ".lua"
+    local file = io.open(file_path, "r")
+    
+    if file then
+      for line in file:lines() do
+        -- Trim leading whitespace for checking
+        local trimmed = line:match("^%s*(.-)%s*$")
+        local is_commented = trimmed:match("^%-%-") ~= nil
+        
+        -- Count add_menu_entry
+        if line:match("add_menu_entry") then
+          if is_commented then
+            counts.menus_commented = counts.menus_commented + 1
+          else
+            counts.menus = counts.menus + 1
+          end
+        end
+        
+        -- Count add_keybinding
+        if line:match("add_keybinding") then
+          if is_commented then
+            counts.keybindings_commented = counts.keybindings_commented + 1
+          else
+            counts.keybindings = counts.keybindings + 1
+          end
+        end
+        
+        -- Count add_midi_mapping
+        if line:match("add_midi_mapping") then
+          if is_commented then
+            counts.midi_mappings_commented = counts.midi_mappings_commented + 1
+          else
+            counts.midi_mappings = counts.midi_mappings + 1
+          end
+        end
+      end
+      file:close()
+    end
+  end
+  
+  return counts
+end
+
+-- Function to calculate enabled/disabled counts based on preferences
+function PakettiCalculateEnabledCounts()
+  local counts = PakettiCountRegistrations()
+  
+  -- Calculate enabled menus based on category preferences
+  local menu_categories_enabled = 0
+  local menu_categories_total = 17 -- Total number of menu categories
+  
+  local category_keys = {
+    "InstrumentBox", "SampleEditor", "SampleNavigator", "SampleKeyzone",
+    "Mixer", "PatternEditor", "MainMenuTools", "MainMenuView", "MainMenuFile",
+    "PatternMatrix", "PatternSequencer", "PhraseEditor", "PakettiGadgets",
+    "TrackDSPChain", "TrackDSPDevice", "Automation", "DiskBrowserFiles"
+  }
+  
+  for _, key in ipairs(category_keys) do
+    if preferences.pakettiMenuConfig[key] and preferences.pakettiMenuConfig[key].value then
+      menu_categories_enabled = menu_categories_enabled + 1
+    end
+  end
+  
+  -- Store counts
+  PakettiRegistrationCounts.menus = counts.menus
+  PakettiRegistrationCounts.keybindings = counts.keybindings
+  PakettiRegistrationCounts.midi_mappings = counts.midi_mappings
+  
+  -- For master toggles
+  if preferences.pakettiMenuConfig.MasterMenusEnabled and preferences.pakettiMenuConfig.MasterMenusEnabled.value then
+    PakettiRegistrationCounts.menus_enabled = counts.menus
+    PakettiRegistrationCounts.menus_disabled = 0
+  else
+    PakettiRegistrationCounts.menus_enabled = 0
+    PakettiRegistrationCounts.menus_disabled = counts.menus
+  end
+  
+  if preferences.pakettiMenuConfig.MasterKeybindingsEnabled and preferences.pakettiMenuConfig.MasterKeybindingsEnabled.value then
+    PakettiRegistrationCounts.keybindings_enabled = counts.keybindings
+    PakettiRegistrationCounts.keybindings_disabled = 0
+  else
+    PakettiRegistrationCounts.keybindings_enabled = 0
+    PakettiRegistrationCounts.keybindings_disabled = counts.keybindings
+  end
+  
+  if preferences.pakettiMenuConfig.MasterMidiMappingsEnabled and preferences.pakettiMenuConfig.MasterMidiMappingsEnabled.value then
+    PakettiRegistrationCounts.midi_mappings_enabled = counts.midi_mappings
+    PakettiRegistrationCounts.midi_mappings_disabled = 0
+  else
+    PakettiRegistrationCounts.midi_mappings_enabled = 0
+    PakettiRegistrationCounts.midi_mappings_disabled = counts.midi_mappings
+  end
+  
+  return PakettiRegistrationCounts
+end
+
 local menu_config_dialog = nil
 local menu_config_dialog_content = nil
 
@@ -2686,6 +2834,428 @@ function pakettiMenuConfigDialog()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
+-- Paketti Toggler Dialog - comprehensive registration management
+local paketti_toggler_dialog = nil
+local paketti_toggler_dialog_content = nil
+
+function PakettiTogglerDialog()
+  if paketti_toggler_dialog and paketti_toggler_dialog.visible then
+    paketti_toggler_dialog_content = nil
+    paketti_toggler_dialog:close()
+    paketti_toggler_dialog = nil
+    return
+  end
+
+  -- Calculate current counts
+  local counts = PakettiCalculateEnabledCounts()
+  local raw_counts = PakettiCountRegistrations()
+  
+  local function create_master_checkbox(label, preference_key, width)
+    return vb:row{
+      vb:checkbox{
+        value = preferences.pakettiMenuConfig[preference_key].value,
+        notifier = function(value)
+          preferences.pakettiMenuConfig[preference_key].value = value
+          preferences:save_as("preferences.xml")
+        end
+      },
+      vb:text{text = label, width = width or 250, font = "bold"}
+    }
+  end
+
+  local function create_category_checkbox(label, preference_key, update_function, width)
+    return vb:row{
+      vb:checkbox{
+        value = preferences.pakettiMenuConfig[preference_key].value,
+        notifier = function(value)
+          preferences.pakettiMenuConfig[preference_key].value = value
+          preferences:save_as("preferences.xml")
+          if update_function and type(update_function) == "function" then
+            update_function(value)
+          end
+        end
+      },
+      vb:text{text = label, width = width or 200}
+    }
+  end
+
+  local function enable_all_menus()
+    local category_keys = {
+      "InstrumentBox", "SampleEditor", "SampleNavigator", "SampleKeyzone",
+      "Mixer", "PatternEditor", "MainMenuTools", "MainMenuView", "MainMenuFile",
+      "PatternMatrix", "PatternSequencer", "PhraseEditor", "PakettiGadgets",
+      "TrackDSPChain", "TrackDSPDevice", "Automation", "DiskBrowserFiles"
+    }
+    for _, key in ipairs(category_keys) do
+      if preferences.pakettiMenuConfig[key] then
+        preferences.pakettiMenuConfig[key].value = true
+      end
+    end
+    preferences.pakettiMenuConfig.MasterMenusEnabled.value = true
+    preferences:save_as("preferences.xml")
+    renoise.app():show_status("All menus enabled. Restart Renoise for changes to take effect.")
+  end
+
+  local function disable_all_menus()
+    local category_keys = {
+      "InstrumentBox", "SampleEditor", "SampleNavigator", "SampleKeyzone",
+      "Mixer", "PatternEditor", "MainMenuTools", "MainMenuView", "MainMenuFile",
+      "PatternMatrix", "PatternSequencer", "PhraseEditor", "PakettiGadgets",
+      "TrackDSPChain", "TrackDSPDevice", "Automation", "DiskBrowserFiles"
+    }
+    for _, key in ipairs(category_keys) do
+      if preferences.pakettiMenuConfig[key] then
+        preferences.pakettiMenuConfig[key].value = false
+      end
+    end
+    preferences.pakettiMenuConfig.MasterMenusEnabled.value = false
+    preferences:save_as("preferences.xml")
+    renoise.app():show_status("All menus disabled. Restart Renoise for changes to take effect.")
+  end
+
+  local function enable_all_registrations()
+    preferences.pakettiMenuConfig.MasterMenusEnabled.value = true
+    preferences.pakettiMenuConfig.MasterKeybindingsEnabled.value = true
+    preferences.pakettiMenuConfig.MasterMidiMappingsEnabled.value = true
+    local category_keys = {
+      "InstrumentBox", "SampleEditor", "SampleNavigator", "SampleKeyzone",
+      "Mixer", "PatternEditor", "MainMenuTools", "MainMenuView", "MainMenuFile",
+      "PatternMatrix", "PatternSequencer", "PhraseEditor", "PakettiGadgets",
+      "TrackDSPChain", "TrackDSPDevice", "Automation", "DiskBrowserFiles"
+    }
+    for _, key in ipairs(category_keys) do
+      if preferences.pakettiMenuConfig[key] then
+        preferences.pakettiMenuConfig[key].value = true
+      end
+    end
+    preferences:save_as("preferences.xml")
+    renoise.app():show_status("All registrations enabled. Restart Renoise for changes to take effect.")
+  end
+
+  local function disable_all_registrations()
+    preferences.pakettiMenuConfig.MasterMenusEnabled.value = false
+    preferences.pakettiMenuConfig.MasterKeybindingsEnabled.value = false
+    preferences.pakettiMenuConfig.MasterMidiMappingsEnabled.value = false
+    local category_keys = {
+      "InstrumentBox", "SampleEditor", "SampleNavigator", "SampleKeyzone",
+      "Mixer", "PatternEditor", "MainMenuTools", "MainMenuView", "MainMenuFile",
+      "PatternMatrix", "PatternSequencer", "PhraseEditor", "PakettiGadgets",
+      "TrackDSPChain", "TrackDSPDevice", "Automation", "DiskBrowserFiles"
+    }
+    for _, key in ipairs(category_keys) do
+      if preferences.pakettiMenuConfig[key] then
+        preferences.pakettiMenuConfig[key].value = false
+      end
+    end
+    preferences:save_as("preferences.xml")
+    renoise.app():show_status("All registrations disabled. Restart Renoise for changes to take effect.")
+  end
+
+  paketti_toggler_dialog_content = vb:column{
+    margin = 10,
+    spacing = 5,
+    
+    -- Header
+    vb:text{
+      text = "Paketti Registration Manager",
+      font = "big",
+      style = "strong"
+    },
+    
+    vb:space{height = 5},
+    
+    -- Counts summary
+    vb:column{
+      style = "group",
+      margin = 5,
+      
+      vb:text{text = "Registration Counts (from source files):", font = "bold"},
+      vb:space{height = 3},
+      vb:text{text = string.format("Menu Entries: %d total", raw_counts.menus)},
+      vb:text{text = string.format("Keybindings: %d total", raw_counts.keybindings)},
+      vb:text{text = string.format("MIDI Mappings: %d total", raw_counts.midi_mappings)},
+      vb:space{height = 3},
+      vb:text{text = string.format("(Commented out: Menus=%d, Keys=%d, MIDI=%d)", 
+        raw_counts.menus_commented, raw_counts.keybindings_commented, raw_counts.midi_mappings_commented),
+        font = "italic"
+      }
+    },
+    
+    vb:space{height = 10},
+    
+    -- Master toggles section
+    vb:column{
+      style = "group",
+      margin = 5,
+      
+      vb:text{text = "Master Toggles (require Renoise restart):", font = "bold"},
+      vb:space{height = 5},
+      create_master_checkbox("Enable ALL Menu Entries", "MasterMenusEnabled", 250),
+      create_master_checkbox("Enable ALL Keybindings", "MasterKeybindingsEnabled", 250),
+      create_master_checkbox("Enable ALL MIDI Mappings", "MasterMidiMappingsEnabled", 250),
+      
+      vb:space{height = 5},
+      
+      vb:horizontal_aligner{
+        mode = "justify",
+        vb:button{
+          text = "Enable All",
+          width = 100,
+          notifier = enable_all_registrations
+        },
+        vb:button{
+          text = "Disable All",
+          width = 100,
+          notifier = disable_all_registrations
+        }
+      }
+    },
+    
+    vb:space{height = 10},
+    
+    -- Menu categories section
+    vb:column{
+      style = "group",
+      margin = 5,
+      
+      vb:text{text = "Menu Categories (require Renoise restart):", font = "bold"},
+      vb:space{height = 5},
+      
+      vb:row{
+        spacing = 20,
+        
+        -- Column 1
+        vb:column{
+          create_category_checkbox("Instrument Box", "InstrumentBox", PakettiMenuApplyInstrumentBoxMenus, 150),
+          create_category_checkbox("Sample Editor", "SampleEditor", PakettiMenuApplySampleEditorMenus, 150),
+          create_category_checkbox("Sample Navigator", "SampleNavigator", PakettiMenuApplySampleNavigatorMenus, 150),
+          create_category_checkbox("Sample Keyzone", "SampleKeyzone", PakettiMenuApplySampleKeyzoneMenus, 150),
+          create_category_checkbox("Mixer", "Mixer", PakettiMenuApplyMixerMenus, 150),
+          create_category_checkbox("Pattern Editor", "PatternEditor", PakettiMenuApplyPatternEditorMenus, 150)
+        },
+        
+        -- Column 2
+        vb:column{
+          create_category_checkbox("Main Menu: Tools", "MainMenuTools", nil, 150),
+          create_category_checkbox("Main Menu: View", "MainMenuView", nil, 150),
+          create_category_checkbox("Main Menu: File", "MainMenuFile", nil, 150),
+          create_category_checkbox("Pattern Matrix", "PatternMatrix", PakettiMenuApplyPatternMatrixMenus, 150),
+          create_category_checkbox("Pattern Sequencer", "PatternSequencer", PakettiMenuApplyPatternSequencerMenus, 150),
+          create_category_checkbox("Phrase Editor", "PhraseEditor", PakettiMenuApplyPhraseEditorMenus, 150)
+        },
+        
+        -- Column 3
+        vb:column{
+          create_category_checkbox("Paketti Gadgets", "PakettiGadgets", nil, 150),
+          create_category_checkbox("Track DSP Device", "TrackDSPDevice", PakettiMenuApplyTrackDSPDeviceMenus, 150),
+          create_category_checkbox("Track DSP Chain", "TrackDSPChain", nil, 150),
+          create_category_checkbox("Automation", "Automation", PakettiMenuApplyAutomationMenus, 150),
+          create_category_checkbox("Disk Browser Files", "DiskBrowserFiles", PakettiMenuApplyDiskBrowserFilesMenus, 150)
+        }
+      },
+      
+      vb:space{height = 5},
+      
+      vb:horizontal_aligner{
+        mode = "justify",
+        vb:button{
+          text = "Enable All Menus",
+          width = 120,
+          notifier = enable_all_menus
+        },
+        vb:button{
+          text = "Disable All Menus",
+          width = 120,
+          notifier = disable_all_menus
+        }
+      }
+    },
+    
+    vb:space{height = 10},
+    
+    -- Import Hooks section
+    vb:column{
+      style = "group",
+      margin = 5,
+      
+      vb:text{text = "Import Hooks (require Renoise restart):", font = "bold"},
+      vb:space{height = 5},
+      
+      -- Master toggle
+      vb:row{
+        vb:checkbox{
+          value = preferences.pakettiImportHooksEnabled.value,
+          notifier = function(value)
+            preferences.pakettiImportHooksEnabled.value = value
+            preferences:save_as("preferences.xml")
+          end
+        },
+        vb:text{text = "Enable ALL Import Hooks (Master)", width = 250, font = "bold"}
+      },
+      
+      vb:space{height = 5},
+      
+      vb:row{
+        spacing = 20,
+        -- Column 1
+        vb:column{
+          vb:row{vb:checkbox{value = preferences.pakettiImportREX.value, notifier = function(v) preferences.pakettiImportREX.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "REX (.rex)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportRX2.value, notifier = function(v) preferences.pakettiImportRX2.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "RX2 (.rx2)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportIFF.value, notifier = function(v) preferences.pakettiImportIFF.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "IFF (.iff, .8svx)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportSF2.value, notifier = function(v) preferences.pakettiImportSF2.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "SF2 (.sf2)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportITI.value, notifier = function(v) preferences.pakettiImportITI.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "ITI (.iti)", width = 140}}
+        },
+        -- Column 2
+        vb:column{
+          vb:row{vb:checkbox{value = preferences.pakettiImportOT.value, notifier = function(v) preferences.pakettiImportOT.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "OT (.ot)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportWT.value, notifier = function(v) preferences.pakettiImportWT.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "WT (.wt)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportSTRD.value, notifier = function(v) preferences.pakettiImportSTRD.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "STRD (.strd, .work)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportPTI.value, notifier = function(v) preferences.pakettiImportPTI.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "PTI/MTI (.pti, .mti)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportMTP.value, notifier = function(v) preferences.pakettiImportMTP.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "MTP/MT (.mtp, .mt)", width = 140}}
+        },
+        -- Column 3
+        vb:column{
+          vb:row{vb:checkbox{value = preferences.pakettiImportMID.value, notifier = function(v) preferences.pakettiImportMID.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "MIDI (.mid)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportTXT.value, notifier = function(v) preferences.pakettiImportTXT.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "TXT (.txt)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportImage.value, notifier = function(v) preferences.pakettiImportImage.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Image (.png, .jpg...)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportCSV.value, notifier = function(v) preferences.pakettiImportCSV.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "CSV (.csv)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportEXE.value, notifier = function(v) preferences.pakettiImportEXE.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Raw (.exe, .dll...)", width = 140}}
+        }
+      },
+      
+      vb:space{height = 5},
+      
+      vb:horizontal_aligner{
+        mode = "justify",
+        vb:button{
+          text = "Enable All Hooks",
+          width = 120,
+          notifier = function()
+            preferences.pakettiImportHooksEnabled.value = true
+            preferences.pakettiImportREX.value = true
+            preferences.pakettiImportRX2.value = true
+            preferences.pakettiImportIFF.value = true
+            preferences.pakettiImportSF2.value = true
+            preferences.pakettiImportITI.value = true
+            preferences.pakettiImportOT.value = true
+            preferences.pakettiImportWT.value = true
+            preferences.pakettiImportSTRD.value = true
+            preferences.pakettiImportPTI.value = true
+            preferences.pakettiImportMTP.value = true
+            preferences.pakettiImportMID.value = true
+            preferences.pakettiImportTXT.value = true
+            preferences.pakettiImportImage.value = true
+            preferences.pakettiImportCSV.value = true
+            preferences.pakettiImportEXE.value = true
+            preferences:save_as("preferences.xml")
+            renoise.app():show_status("All import hooks enabled. Restart Renoise for changes to take effect.")
+            -- Refresh dialog
+            if paketti_toggler_dialog then
+              paketti_toggler_dialog:close()
+              paketti_toggler_dialog = nil
+              paketti_toggler_dialog_content = nil
+            end
+            PakettiTogglerDialog()
+          end
+        },
+        vb:button{
+          text = "Disable All Hooks",
+          width = 120,
+          notifier = function()
+            preferences.pakettiImportHooksEnabled.value = false
+            preferences.pakettiImportREX.value = false
+            preferences.pakettiImportRX2.value = false
+            preferences.pakettiImportIFF.value = false
+            preferences.pakettiImportSF2.value = false
+            preferences.pakettiImportITI.value = false
+            preferences.pakettiImportOT.value = false
+            preferences.pakettiImportWT.value = false
+            preferences.pakettiImportSTRD.value = false
+            preferences.pakettiImportPTI.value = false
+            preferences.pakettiImportMTP.value = false
+            preferences.pakettiImportMID.value = false
+            preferences.pakettiImportTXT.value = false
+            preferences.pakettiImportImage.value = false
+            preferences.pakettiImportCSV.value = false
+            preferences.pakettiImportEXE.value = false
+            preferences:save_as("preferences.xml")
+            renoise.app():show_status("All import hooks disabled. Restart Renoise for changes to take effect.")
+            -- Refresh dialog
+            if paketti_toggler_dialog then
+              paketti_toggler_dialog:close()
+              paketti_toggler_dialog = nil
+              paketti_toggler_dialog_content = nil
+            end
+            PakettiTogglerDialog()
+          end
+        }
+      }
+    },
+    
+    vb:space{height = 10},
+    
+    -- Warning text
+    vb:text{
+      text = "Note: Changes to registration toggles require Renoise restart to take effect.",
+      font = "italic",
+      style = "disabled"
+    },
+    
+    vb:space{height = 10},
+    
+    -- Buttons
+    vb:horizontal_aligner{
+      mode = "center",
+      spacing = 10,
+      
+      vb:button{
+        text = "Refresh Counts",
+        width = 100,
+        notifier = function()
+          -- Close and reopen dialog to refresh
+          if paketti_toggler_dialog then
+            paketti_toggler_dialog:close()
+            paketti_toggler_dialog = nil
+            paketti_toggler_dialog_content = nil
+          end
+          PakettiTogglerDialog()
+        end
+      },
+      
+      vb:button{
+        text = "Close",
+        width = 100,
+        notifier = function()
+          if paketti_toggler_dialog then
+            paketti_toggler_dialog:close()
+            paketti_toggler_dialog = nil
+            paketti_toggler_dialog_content = nil
+          end
+        end
+      }
+    }
+  }
+
+  -- Create keyhandler
+  local keyhandler = function(dialog, key)
+    local closer = preferences.pakettiDialogClose.value
+    if key.modifiers == "" and key.name == closer then
+      dialog:close()
+      paketti_toggler_dialog = nil
+      paketti_toggler_dialog_content = nil
+      return nil
+    end
+    return key
+  end
+
+  paketti_toggler_dialog = renoise.app():show_custom_dialog("Paketti Toggler", paketti_toggler_dialog_content, keyhandler)
+  
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- Add menu entries and keybindings for Paketti Toggler
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Paketti Toggler...", invoke = PakettiTogglerDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Toggler...", invoke = PakettiTogglerDialog}
 
 function on_sample_count_change()
     if not preferences._0G01_Loader.value then return end
@@ -2727,9 +3297,33 @@ end
 -- Update File vs File:Paketti menu entry visibility/location based on preference
 -- moved to PakettiMenuConfig.lua as a global
 
+-- Track if initialization has run
+local initialize_tool_has_run = false
+
 function initialize_tool()
+    -- Only run once, then remove self from idle observable
+    if initialize_tool_has_run then
+        -- Remove self from idle observable if still attached
+        if renoise.tool().app_idle_observable:has_notifier(initialize_tool) then
+            renoise.tool().app_idle_observable:remove_notifier(initialize_tool)
+        end
+        return
+    end
+    
+    -- Check if song is available yet
+    if not pcall(renoise.song) then
+        return  -- Song not ready yet, wait for next idle tick
+    end
+    
+    -- Run initialization
     manage_sample_count_observer(preferences._0G01_Loader.value)
     pakettiFrameCalculatorInitializeLiveUpdate()
+    
+    -- Mark as done and remove self from idle observable
+    initialize_tool_has_run = true
+    if renoise.tool().app_idle_observable:has_notifier(initialize_tool) then
+        renoise.tool().app_idle_observable:remove_notifier(initialize_tool)
+    end
 end
 
 function safe_initialize()
@@ -2769,6 +3363,67 @@ function update_loadPaleGreenTheme_preferences() renoise.app():load_theme("Theme
 function isSampleEditorVisible()
   return renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 end
+
+-- ============================================================================
+-- HELPER FUNCTIONS FOR CONDITIONAL REGISTRATION
+-- These allow modules to check master toggles before registering
+-- ============================================================================
+
+-- Check if keybindings should be registered
+function PakettiShouldRegisterKeybindings()
+  if preferences and preferences.pakettiMenuConfig and preferences.pakettiMenuConfig.MasterKeybindingsEnabled then
+    return preferences.pakettiMenuConfig.MasterKeybindingsEnabled.value
+  end
+  return true -- Default to enabled if preferences not loaded yet
+end
+
+-- Check if MIDI mappings should be registered
+function PakettiShouldRegisterMidiMappings()
+  if preferences and preferences.pakettiMenuConfig and preferences.pakettiMenuConfig.MasterMidiMappingsEnabled then
+    return preferences.pakettiMenuConfig.MasterMidiMappingsEnabled.value
+  end
+  return true -- Default to enabled if preferences not loaded yet
+end
+
+-- Check if menu entries should be registered
+function PakettiShouldRegisterMenus()
+  if preferences and preferences.pakettiMenuConfig and preferences.pakettiMenuConfig.MasterMenusEnabled then
+    return preferences.pakettiMenuConfig.MasterMenusEnabled.value
+  end
+  return true -- Default to enabled if preferences not loaded yet
+end
+
+-- Helper function to conditionally add keybinding
+-- Usage: PakettiAddKeybinding{name="...", invoke=function() end}
+function PakettiAddKeybinding(args)
+  if PakettiShouldRegisterKeybindings() then
+    renoise.tool():add_keybinding(args)
+    return true
+  end
+  return false
+end
+
+-- Helper function to conditionally add MIDI mapping  
+-- Usage: PakettiAddMidiMapping{name="...", invoke=function(message) end}
+function PakettiAddMidiMapping(args)
+  if PakettiShouldRegisterMidiMappings() then
+    renoise.tool():add_midi_mapping(args)
+    return true
+  end
+  return false
+end
+
+-- Helper function to conditionally add menu entry
+-- Usage: PakettiAddMenuEntry{name="...", invoke=function() end}
+function PakettiAddMenuEntry(args)
+  if PakettiShouldRegisterMenus() then
+    renoise.tool():add_menu_entry(args)
+    return true
+  end
+  return false
+end
+
+-- ============================================================================
 
 -- Initialize the tool
 safe_initialize()

@@ -452,7 +452,8 @@ renoise.tool():add_keybinding {
 }
 
 -- File import hooks for drag & drop and file loading
-local function PakettiImageToSampleImportHook(file_path)
+-- Global function for use by PakettiImport.lua file import hook
+function PakettiImageToSampleImportHook(file_path)
   -- Load the image and show dialog directly
   if PakettiImageToSampleLoadImage(file_path) then
     PakettiImageToSampleShowDialog()
@@ -462,13 +463,4 @@ local function PakettiImageToSampleImportHook(file_path)
 end
 
 -- Create integration for image formats
-local image_integration = {
-  category = "sample",
-  extensions = { "png", "bmp", "jpg", "jpeg", "gif" },
-  invoke = PakettiImageToSampleImportHook
-}
-
--- Add file import hook if not already present
-if not renoise.tool():has_file_import_hook("sample", { "png", "bmp", "jpg", "jpeg", "gif" }) then
-  renoise.tool():add_file_import_hook(image_integration)
-end
+-- NOTE: Image file import hook registration moved to PakettiImport.lua for centralized management

@@ -105,8 +105,7 @@ function pakettiLoadExeAsSample(file_path)
 end
 
 
-renoise.tool():add_file_import_hook{category="sample",extensions={"exe","dll","bin","sys","dylib"},invoke=pakettiLoadExeAsSample}
-
+-- NOTE: EXE/DLL/BIN hook registration moved to end of file for centralized management
 
 -------
 -- ======================================
@@ -236,3 +235,226 @@ renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Load:Multi-File Raw
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Load:Multi-File Raw Loader (8-bit)", invoke = pakettiMultiFileRawLoader}
 renoise.tool():add_keybinding{name = "Global:Paketti:Multi-File Raw Loader (8-bit)", invoke = pakettiMultiFileRawLoader}
 renoise.tool():add_midi_mapping{name = "Paketti:Multi-File Raw Loader (8-bit)", invoke = function(message) if message:is_trigger() then pakettiMultiFileRawLoader() end end}
+
+-- ============================================================================
+-- CENTRALIZED FILE IMPORT HOOK REGISTRATION
+-- ============================================================================
+-- All file import hooks are registered here with preference checks.
+-- This allows users to enable/disable individual format imports via Paketti Toggler.
+-- The master toggle (pakettiImportHooksEnabled) must be true AND the individual
+-- format toggle must be true for the hook to be registered.
+-- ============================================================================
+
+local function should_register_hook(format_preference_key)
+  -- Check master toggle first
+  if not preferences.pakettiImportHooksEnabled.value then
+    return false
+  end
+  -- Check individual format toggle
+  if preferences[format_preference_key] and not preferences[format_preference_key].value then
+    return false
+  end
+  return true
+end
+
+-- REX Import Hook (.rex)
+if should_register_hook("pakettiImportREX") then
+  if not renoise.tool():has_file_import_hook("sample", {"rex"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"rex"},
+      invoke = rex_loadsample
+    })
+  end
+end
+
+-- RX2 Import Hook (.rx2)
+if should_register_hook("pakettiImportRX2") then
+  if not renoise.tool():has_file_import_hook("sample", {"rx2"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"rx2"},
+      invoke = rx2_loadsample
+    })
+  end
+end
+
+-- IFF Import Hook (.iff, .8svx, .16sv)
+if should_register_hook("pakettiImportIFF") then
+  if not renoise.tool():has_file_import_hook("sample", {"iff", "8svx", "16sv"}) then
+    renoise.tool():add_file_import_hook({
+      name = "IFF (8SVX+16SV) -> WAV converter",
+      category = "sample",
+      extensions = {"iff", "8svx", "16sv"},
+      invoke = loadIFFSample
+    })
+  end
+end
+
+-- SF2 Import Hook (.sf2)
+if should_register_hook("pakettiImportSF2") then
+  -- Remove any existing SF2 hook first (to avoid conflicts)
+  if renoise.tool():has_file_import_hook("sample", {"sf2"}) then
+    renoise.tool():remove_file_import_hook("sample", {"sf2"})
+  end
+  renoise.tool():add_file_import_hook({
+    category = "sample",
+    extensions = {"sf2"},
+    invoke = import_sf2
+  })
+end
+
+-- ITI Import Hook (.iti) - Impulse Tracker Instrument
+if should_register_hook("pakettiImportITI") then
+  if not renoise.tool():has_file_import_hook("instrument", {"iti"}) then
+    renoise.tool():add_file_import_hook({
+      category = "instrument",
+      extensions = {"iti"},
+      invoke = iti_loadinstrument
+    })
+  end
+end
+
+-- OT Import Hook (.ot) - Octatrack
+if should_register_hook("pakettiImportOT") then
+  if not renoise.tool():has_file_import_hook("sample", {"ot"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"ot"},
+      invoke = ot_import_filehook
+    })
+  end
+end
+
+-- WT Import Hook (.wt) - Wavetable
+if should_register_hook("pakettiImportWT") then
+  if not renoise.tool():has_file_import_hook("sample", {"wt"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"wt"},
+      invoke = wt_loadsample
+    })
+  end
+end
+
+-- STRD Import Hook (.strd, .work) - Octatrack STRD Bank
+if should_register_hook("pakettiImportSTRD") then
+  if not renoise.tool():has_file_import_hook("song", {"strd", "work"}) then
+    renoise.tool():add_file_import_hook({
+      category = "song",
+      extensions = {"strd", "work"},
+      invoke = strd_import_filehook
+    })
+  end
+end
+
+-- PTI Import Hook (.pti) - Polyend Tracker Instrument
+if should_register_hook("pakettiImportPTI") then
+  if not renoise.tool():has_file_import_hook("sample", {"pti"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"pti"},
+      invoke = pti_loadsample
+    })
+  end
+  -- MTI Import Hook (.mti) - Polyend Tracker Mini Instrument
+  if not renoise.tool():has_file_import_hook("sample", {"mti"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"mti"},
+      invoke = mti_loadsample
+    })
+  end
+end
+
+-- MTP/MT Import Hook (.mtp, .mt) - Polyend Tracker Pattern/Project
+if should_register_hook("pakettiImportMTP") then
+  -- MTP Pattern Import
+  if not renoise.tool():has_file_import_hook("sample", {"mtp"}) then
+    local success, error_msg = pcall(function()
+      renoise.tool():add_file_import_hook({
+        category = "sample",
+        extensions = {"mtp"},
+        invoke = mtp_import_hook
+      })
+    end)
+    if not success then
+      print("Warning: Could not register MTP hook: " .. tostring(error_msg))
+    end
+  end
+  -- MT Project Import
+  if not renoise.tool():has_file_import_hook("song", {"mt"}) then
+    local success, error_msg = pcall(function()
+      renoise.tool():add_file_import_hook({
+        category = "song",
+        extensions = {"mt"},
+        invoke = mt_import_hook
+      })
+    end)
+    if not success then
+      print("Warning: Could not register MT hook: " .. tostring(error_msg))
+    end
+  end
+end
+
+-- MIDI Import Hook (.mid)
+if should_register_hook("pakettiImportMID") then
+  if not renoise.tool():has_file_import_hook("instrument", {"mid"}) then
+    renoise.tool():add_file_import_hook({
+      name = "MIDI IMPORT",
+      category = "instrument",
+      extensions = {"mid"},
+      invoke = dudeMidi
+    })
+  end
+end
+
+-- TXT Import Hook (.txt) - eSpeak text-to-speech
+if should_register_hook("pakettiImportTXT") then
+  if not renoise.tool():has_file_import_hook("sample", {"txt"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"txt"},
+      invoke = txt_loadfile
+    })
+  end
+end
+
+-- Image Import Hook (.png, .bmp, .jpg, .jpeg, .gif) - API 6.2+ only
+if renoise.API_VERSION >= 6.2 then
+  if should_register_hook("pakettiImportImage") then
+    if not renoise.tool():has_file_import_hook("sample", {"png", "bmp", "jpg", "jpeg", "gif"}) then
+      renoise.tool():add_file_import_hook({
+        category = "sample",
+        extensions = {"png", "bmp", "jpg", "jpeg", "gif"},
+        invoke = PakettiImageToSampleImportHook
+      })
+    end
+  end
+end
+
+-- CSV Import Hook (.csv) - PCMWriter - API 6.2+ only
+if renoise.API_VERSION >= 6.2 then
+  if should_register_hook("pakettiImportCSV") then
+    if not renoise.tool():has_file_import_hook("sample", {"csv"}) then
+      renoise.tool():add_file_import_hook({
+        category = "sample",
+        extensions = {"csv"},
+        invoke = csv_load_to_pcm_writer
+      })
+    end
+  end
+end
+
+-- Raw Binary Import Hook (.exe, .dll, .bin, .sys, .dylib)
+if should_register_hook("pakettiImportEXE") then
+  if not renoise.tool():has_file_import_hook("sample", {"exe", "dll", "bin", "sys", "dylib"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"exe", "dll", "bin", "sys", "dylib"},
+      invoke = pakettiLoadExeAsSample
+    })
+  end
+end
+
+print("Paketti: Import hooks registered (Master=" .. tostring(preferences.pakettiImportHooksEnabled.value) .. ")")

@@ -91,6 +91,27 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom L
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Randomize", invoke=pakettiRandomizeLFOEnvelope}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Humanize", invoke=pakettiHumanizeLFOEnvelope}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Humanize", invoke=pakettiHumanizeLFOEnvelope}
+-- LFO Curve Shape menu entries
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Linear Up", invoke=pakettiLFOCurveLinear}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Custom LFO Envelopes:Curve - Linear Up", invoke=pakettiLFOCurveLinear}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Linear Down", invoke=pakettiLFOCurveLinearDown}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Linear Down", invoke=pakettiLFOCurveLinearDown}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Logarithmic Up", invoke=pakettiLFOCurveLogarithmic}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Logarithmic Up", invoke=pakettiLFOCurveLogarithmic}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Logarithmic Down", invoke=pakettiLFOCurveLogarithmicDown}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Logarithmic Down", invoke=pakettiLFOCurveLogarithmicDown}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Exponential Up", invoke=pakettiLFOCurveExponential}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Exponential Up", invoke=pakettiLFOCurveExponential}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Exponential Down", invoke=pakettiLFOCurveExponentialDown}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Exponential Down", invoke=pakettiLFOCurveExponentialDown}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Bell (Peak)", invoke=pakettiLFOCurveUpParabola}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Bell (Peak)", invoke=pakettiLFOCurveUpParabola}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - U-Shape (Valley)", invoke=pakettiLFOCurveDownParabola}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - U-Shape (Valley)", invoke=pakettiLFOCurveDownParabola}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Double Peak", invoke=pakettiLFOCurveDoublePeak}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Double Peak", invoke=pakettiLFOCurveDoublePeak}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Double Valley", invoke=pakettiLFOCurveDoubleValley}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Double Valley", invoke=pakettiLFOCurveDoubleValley}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_menu_entry {name = "Mixer:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
