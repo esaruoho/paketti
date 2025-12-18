@@ -43,6 +43,12 @@ local last_bpm_used = 0
 local last_master_beat = 64
 local last_subdivisions = {}
 
+-- Direct to Instruments mode (skip WAV export)
+local direct_to_instruments = false
+local direct_grouping_mode = 1  -- 1=Per-sample, 2=Per-stem, 3=Per-beat, 4=All combined
+local direct_mode_instruments = {}  -- Track instruments created in direct mode
+local direct_mode_used = false  -- Track if direct mode was used in last processing
+
 -- Silence file optimization
 local silence_files_cache = {} -- Cache for generated silence files per beat length
 
@@ -231,13 +237,22 @@ function returnToOriginalDialogWithCompletion()
             if files_skipped > 0 then
                 completion_text = completion_text .. string.format(" (%d skipped)", files_skipped)
             end
-            completion_text = completion_text .. string.format("\nOUTPUT: %s", last_output_folder or "Unknown")
+            
+            if direct_mode_used then
+                -- Direct mode completion message
+                completion_text = completion_text .. string.format("\nDIRECT MODE: %d instruments created", #direct_mode_instruments)
+            else
+                -- Normal mode completion message
+                completion_text = completion_text .. string.format("\nOUTPUT: %s", last_output_folder or "Unknown")
+            end
             vb.views.folder_display.text = completion_text
             vb.views.folder_display.style = "strong" -- Make it prominent
         end
         
-        -- Repurpose the "Browse Folder" button to "Open Output Folder" 
-        if last_output_folder then
+        -- Update status message based on mode
+        if direct_mode_used then
+            renoise.app():show_status(string.format("PakettiStemSlicer COMPLETE! Direct mode created %d instruments", #direct_mode_instruments))
+        elseif last_output_folder then
             print("REPURPOSING: Browse button to Open Output")
             -- We can't change button text in ViewBuilder, but we can update the status
             renoise.app():show_status("PakettiStemSlicer COMPLETE! Check the folder display above for results location")
@@ -667,20 +682,30 @@ end
 
 -- Summary dialog after processing (WITH EMERGENCY FLOOD PREVENTION)
 function showStemSlicerSummary()
-  if last_output_folder == "" then return end
-  
   -- EMERGENCY: Prevent dialog flooding
   if not preventDialogFlooding("completion") then
     print("EMERGENCY: Blocked completion dialog due to flooding")
     return -- Don't show dialog
   end
   local vb_local = renoise.ViewBuilder()
+  
+  -- Build summary lines based on whether direct mode was used
   local summary_lines = {
-    string.format("Exported folder: %s", last_selected_folder),
-    string.format("Output folder: %s", last_output_folder),
+    string.format("Source folder: %s", last_selected_folder),
     string.format("BPM: %.2f", last_bpm_used),
     string.format("Master: %d beats", last_master_beat)
   }
+  
+  if direct_mode_used then
+    -- Direct mode summary
+    local grouping_names = {"Per-sample", "Per-stem", "Per-beat", "All combined"}
+    table.insert(summary_lines, string.format("Mode: Direct to Instruments (%s)", grouping_names[direct_grouping_mode] or "Unknown"))
+    table.insert(summary_lines, string.format("Instruments created: %d", #direct_mode_instruments))
+  else
+    -- Normal mode summary
+    table.insert(summary_lines, string.format("Output folder: %s", last_output_folder))
+  end
+  
   if #last_subdivisions > 0 then
     table.insert(summary_lines, string.format("Subdivisions: %s", table.concat(last_subdivisions, ", ")))
   end
@@ -695,40 +720,57 @@ function showStemSlicerSummary()
     table.insert(error_display, vb_local:space{height=4})
   end
 
-  local content = vb_local:column{
-    vb_local:text{text = "Processing complete!", style = "strong"},
-    vb_local:text{text = table.concat(summary_lines, "\n"), style = "normal"},
-    unpack(error_display),
-    vb_local:space{height=1},
-    vb_local:row{
-      vb_local:text{text = "Grouping:", style = "normal", width = 80},
-      vb_local:popup{ id = "grouping_popup", items = grouping_items, value = grouping_mode_index, width = 240 }
-    },
-    vb_local:space{height=1},
-    vb_local:text{text = "Quick Load (per instrument):", style = "strong"},
-    vb_local:row{
-      vb_local:button{ text = "Load 64", notifier = function() onQuickLoadSlices(last_output_folder, {64}, vb_local.views.grouping_popup.value) end},
-      vb_local:button{ text = "Load 32", notifier = function() onQuickLoadSlices(last_output_folder, {32}, vb_local.views.grouping_popup.value) end},
-      vb_local:button{ text = "Load 16", notifier = function() onQuickLoadSlices(last_output_folder, {16}, vb_local.views.grouping_popup.value) end},
-      vb_local:button{ text = "Load 8",  notifier = function() onQuickLoadSlices(last_output_folder, {8 }, vb_local.views.grouping_popup.value) end},
-      vb_local:button{ text = "Load 4",  notifier = function() onQuickLoadSlices(last_output_folder, {4 }, vb_local.views.grouping_popup.value) end}
-    },
-    vb_local:row{
-      vb_local:button{ text = "Load 2",  notifier = function() onQuickLoadSlices(last_output_folder, {2 }, vb_local.views.grouping_popup.value) end},
-      vb_local:button{ text = "Load 1",  notifier = function() onQuickLoadSlices(last_output_folder, {1 }, vb_local.views.grouping_popup.value) end},
-      vb_local:button{ text = "Load All", notifier = function() onQuickLoadSlices(last_output_folder, {64,32,16,8,4,2,1}, vb_local.views.grouping_popup.value) end}
-    },
-    vb_local:space{height=6},
-    vb_local:row{
-      vb_local:button{ text = "Open Output Folder", notifier = function()
-        openFolderInFinder(last_output_folder)
-      end},
-      vb_local:button{ text = "Load All Non-Silent Slices", notifier = function()
-        onQuickLoadSlices(last_output_folder, {64,32,16,8,4,2,1}, vb_local.views.grouping_popup.value)
-      end}
+  local content
+  if direct_mode_used then
+    -- Direct mode: No Quick Load buttons needed (instruments already created)
+    content = vb_local:column{
+      vb_local:text{text = "Processing complete! (Direct Mode)", style = "strong"},
+      vb_local:text{text = table.concat(summary_lines, "\n"), style = "normal"},
+      unpack(error_display),
+      vb_local:space{height=4},
+      vb_local:text{text = "Instruments were created directly - no files written to disk.", style = "disabled"},
+      vb_local:text{text = string.format("Check your instrument list for %d new instruments.", #direct_mode_instruments), style = "normal"}
     }
-  }
-  renoise.app():show_custom_dialog("PakettiStemSlicer - Finished", content)
+  else
+    -- Normal mode: Show Quick Load buttons
+    if last_output_folder == "" then return end
+    content = vb_local:column{
+      vb_local:text{text = "Processing complete!", style = "strong"},
+      vb_local:text{text = table.concat(summary_lines, "\n"), style = "normal"},
+      unpack(error_display),
+      vb_local:space{height=1},
+      vb_local:row{
+        vb_local:text{text = "Grouping:", style = "normal", width = 80},
+        vb_local:popup{ id = "grouping_popup", items = grouping_items, value = grouping_mode_index, width = 240 }
+      },
+      vb_local:space{height=1},
+      vb_local:text{text = "Quick Load (per instrument):", style = "strong"},
+      vb_local:row{
+        vb_local:button{ text = "Load 64", notifier = function() onQuickLoadSlices(last_output_folder, {64}, vb_local.views.grouping_popup.value) end},
+        vb_local:button{ text = "Load 32", notifier = function() onQuickLoadSlices(last_output_folder, {32}, vb_local.views.grouping_popup.value) end},
+        vb_local:button{ text = "Load 16", notifier = function() onQuickLoadSlices(last_output_folder, {16}, vb_local.views.grouping_popup.value) end},
+        vb_local:button{ text = "Load 8",  notifier = function() onQuickLoadSlices(last_output_folder, {8 }, vb_local.views.grouping_popup.value) end},
+        vb_local:button{ text = "Load 4",  notifier = function() onQuickLoadSlices(last_output_folder, {4 }, vb_local.views.grouping_popup.value) end}
+      },
+      vb_local:row{
+        vb_local:button{ text = "Load 2",  notifier = function() onQuickLoadSlices(last_output_folder, {2 }, vb_local.views.grouping_popup.value) end},
+        vb_local:button{ text = "Load 1",  notifier = function() onQuickLoadSlices(last_output_folder, {1 }, vb_local.views.grouping_popup.value) end},
+        vb_local:button{ text = "Load All", notifier = function() onQuickLoadSlices(last_output_folder, {64,32,16,8,4,2,1}, vb_local.views.grouping_popup.value) end}
+      },
+      vb_local:space{height=6},
+      vb_local:row{
+        vb_local:button{ text = "Open Output Folder", notifier = function()
+          openFolderInFinder(last_output_folder)
+        end},
+        vb_local:button{ text = "Load All Non-Silent Slices", notifier = function()
+          onQuickLoadSlices(last_output_folder, {64,32,16,8,4,2,1}, vb_local.views.grouping_popup.value)
+        end}
+      }
+    }
+  end
+  
+  local dialog_title = direct_mode_used and "PakettiStemSlicer - Direct Mode Complete" or "PakettiStemSlicer - Finished"
+  renoise.app():show_custom_dialog(dialog_title, content)
 end
 
 -- Open folder via OS
@@ -1550,6 +1592,522 @@ local function exportSlice(slice_sample, output_path)
     return success, error_msg or ""
 end
 
+-- Direct mode instrument tracking (reset at start of each processing session)
+local direct_mode_stem_instruments = {}  -- stem_name -> instrument_index
+local direct_mode_beat_instruments = {}  -- beat_length -> instrument_index
+local direct_mode_combined_instrument = nil  -- Single instrument index for "All combined" mode
+local direct_mode_combined_sample_count = 0  -- Track samples in combined mode (max 120)
+
+-- Reset direct mode tracking (call at start of processing)
+local function resetDirectModeTracking()
+    direct_mode_stem_instruments = {}
+    direct_mode_beat_instruments = {}
+    direct_mode_combined_instrument = nil
+    direct_mode_combined_sample_count = 0
+    direct_mode_instruments = {}
+    print("DIRECT MODE: Reset tracking variables")
+end
+
+-- Helper function to check if a slice region is silent (RMS-based)
+local function isSliceRegionSilent(buffer, start_frame, end_frame)
+    local channels = buffer.number_of_channels
+    local total_frames = buffer.number_of_frames
+    
+    -- Clamp to valid range
+    start_frame = math.max(1, start_frame)
+    end_frame = math.min(end_frame, total_frames)
+    
+    local slice_length = end_frame - start_frame + 1
+    if slice_length <= 0 then return true end
+    
+    -- Sample every Nth frame to speed up detection
+    local max_samples = 1000
+    local step = math.max(1, math.floor(slice_length / max_samples))
+    local total_rms = 0
+    local max_abs = 0
+    local sample_count = 0
+    
+    for ch = 1, channels do
+        local f = start_frame
+        while f <= end_frame do
+            local v = buffer:sample_data(ch, f)
+            local av = math.abs(v)
+            if av > max_abs then max_abs = av end
+            total_rms = total_rms + (v * v)
+            sample_count = sample_count + 1
+            
+            -- Early exit if we find significant audio
+            if av > (SILENCE_THRESHOLD * 4) then
+                return false  -- Not silent
+            end
+            
+            f = f + step
+        end
+    end
+    
+    -- Final RMS check
+    if sample_count > 0 then
+        local rms = math.sqrt(total_rms / sample_count)
+        return (rms < SILENCE_THRESHOLD and max_abs < (SILENCE_THRESHOLD * 4))
+    end
+    
+    return true  -- Empty or invalid = silent
+end
+
+-- OPTIMIZED DIRECT MODE: Create DRUMKIT instruments with slices mapped to separate keys
+-- Each beat length creates one drumkit instrument where slices are mapped to different notes
+-- SKIPS SILENT SLICES - only non-silent audio becomes samples
+local function processFileWithNativeSlicing(file_path, beat_lengths_to_process, bpm)
+    local song = renoise.song()
+    local stem_name = file_path:match("[^/\\]+$"):gsub("%.%w+$", "")
+    
+    print(string.format("DRUMKIT SLICING: Processing %s at %d BPM", stem_name, bpm))
+    
+    -- Temporarily disable AutoSamplify monitoring to prevent interference
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    
+    -- 1. Create temporary instrument and load audio
+    local source_inst_idx = #song.instruments + 1
+    song:insert_instrument_at(source_inst_idx)
+    song.selected_instrument_index = source_inst_idx
+    local source_inst = song.instruments[source_inst_idx]
+    source_inst.name = stem_name .. " (Source - will be deleted)"
+    source_inst:insert_sample_at(1)
+    song.selected_sample_index = 1
+    
+    -- Load the audio file
+    local load_success = pcall(function()
+        source_inst.samples[1].sample_buffer:load_from(file_path)
+    end)
+    
+    -- Yield after loading to prevent timeout on large files
+    coroutine.yield()
+    
+    if not load_success or not source_inst.samples[1].sample_buffer.has_sample_data then
+        print("DRUMKIT SLICING ERROR: Failed to load " .. file_path)
+        song:delete_instrument_at(source_inst_idx)
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+        return false
+    end
+    
+    local source_sample = source_inst.samples[1]
+    local source_buffer = source_sample.sample_buffer
+    local sample_rate = source_buffer.sample_rate
+    local total_frames = source_buffer.number_of_frames
+    local num_channels = source_buffer.number_of_channels
+    local bit_depth = source_buffer.bit_depth
+    
+    source_sample.name = stem_name
+    print(string.format("DRUMKIT SLICING: Loaded %s - %d frames at %d Hz, %d ch", stem_name, total_frames, sample_rate, num_channels))
+    
+    -- Calculate beat duration in frames
+    local beat_duration_frames = (60 / bpm) * sample_rate
+    
+    -- 2. Process each beat length - create ONE drumkit instrument per beat length
+    for _, beat_length in ipairs(beat_lengths_to_process) do
+        print(string.format("DRUMKIT SLICING: Creating %d-beat drumkit for %s", beat_length, stem_name))
+        
+        -- Calculate slice frame size
+        local slice_frames = math.floor(beat_duration_frames * beat_length)
+        local num_slices = math.floor(total_frames / slice_frames)
+        
+        if num_slices < 1 then
+            print(string.format("DRUMKIT SLICING: Skipping %d-beat - sample too short", beat_length))
+        else
+            -- Limit to 120 slices (Renoise max zones)
+            num_slices = math.min(num_slices, 120)
+            
+            -- First pass: count non-silent slices
+            local non_silent_slices = {}
+            for slice_idx = 1, num_slices do
+                local slice_start = math.floor((slice_idx - 1) * slice_frames) + 1
+                local slice_end = math.min(math.floor(slice_idx * slice_frames), total_frames)
+                
+                if not isSliceRegionSilent(source_buffer, slice_start, slice_end) then
+                    table.insert(non_silent_slices, {
+                        start_frame = slice_start,
+                        end_frame = slice_end,
+                        original_idx = slice_idx
+                    })
+                end
+            end
+            
+            local actual_sample_count = #non_silent_slices
+            print(string.format("DRUMKIT SLICING: %d/%d slices are non-silent for %d-beat", 
+                actual_sample_count, num_slices, beat_length))
+            
+            -- Skip creating instrument if ALL slices are silent
+            if actual_sample_count == 0 then
+                print(string.format("DRUMKIT SLICING: Skipping %d-beat drumkit - all slices are silent", beat_length))
+            else
+                -- Create new drumkit instrument at selected position + 1
+                local drumkit_idx = song.selected_instrument_index + 1
+                song:insert_instrument_at(drumkit_idx)
+                song.selected_instrument_index = drumkit_idx
+                
+                -- Load the drumkit template for proper key mappings
+                pcall(function()
+                    local defaultInstrument = preferences and preferences.pakettiDefaultDrumkitXRNI and preferences.pakettiDefaultDrumkitXRNI.value
+                    if defaultInstrument and defaultInstrument ~= "" then
+                        renoise.app():load_instrument(defaultInstrument)
+                    else
+                        renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+                    end
+                end)
+                
+                local drumkit_inst = song.instruments[drumkit_idx]
+                drumkit_inst.name = string.format("%s (%02d-beat) drumkit", stem_name, beat_length)
+                
+                -- Apply modulation settings
+                PakettiApplyLoaderModulationSettings(drumkit_inst, "PakettiStemSlicer Direct Mode")
+                
+                -- Ensure at least one sample exists
+                if #drumkit_inst.samples == 0 then drumkit_inst:insert_sample_at(1) end
+                
+                -- Create samples only for NON-SILENT slices
+                for sample_idx, slice_info in ipairs(non_silent_slices) do
+                    local slice_start = slice_info.start_frame
+                    local slice_end = slice_info.end_frame
+                    local slice_length = slice_end - slice_start + 1
+                    
+                    if slice_length > 0 then
+                        -- Create sample slot if needed
+                        if sample_idx == 1 then
+                            -- Use existing first sample
+                        else
+                            drumkit_inst:insert_sample_at(sample_idx)
+                        end
+                        
+                        local new_sample = drumkit_inst.samples[sample_idx]
+                        new_sample.name = string.format("%s_%02dbeat_slice%02d", stem_name, beat_length, slice_info.original_idx)
+                        
+                        -- Create sample buffer and copy slice data
+                        new_sample.sample_buffer:create_sample_data(sample_rate, bit_depth, num_channels, slice_length)
+                        new_sample.sample_buffer:prepare_sample_data_changes()
+                        
+                        -- Copy audio data frame by frame
+                        local frames_per_yield = 44100  -- Yield every second of audio
+                        for frame = 1, slice_length do
+                            local source_frame = slice_start + frame - 1
+                            if source_frame <= total_frames then
+                                for ch = 1, num_channels do
+                                    local value = source_buffer:sample_data(ch, source_frame)
+                                    new_sample.sample_buffer:set_sample_data(ch, frame, value)
+                                end
+                            end
+                            -- Yield periodically for ProcessSlicer to prevent "terminate script?" dialogs
+                            if frame % frames_per_yield == 0 then
+                                coroutine.yield()
+                            end
+                        end
+                        
+                        new_sample.sample_buffer:finalize_sample_data_changes()
+                        
+                        -- Apply drumkit-specific settings
+                        applyStemSlicerDrumkitSettings(new_sample)
+                        
+                        -- Set up drumkit mapping (each sample on a different key, all at C-4 pitch)
+                        local key = sample_idx - 1  -- 0-based key (C-0, C#0, D-0, etc.)
+                        new_sample.sample_mapping.base_note = 48  -- C-4: all samples play at same pitch
+                        new_sample.sample_mapping.note_range = {key, key}  -- Each sample on unique key
+                        new_sample.sample_mapping.map_key_to_pitch = false  -- Don't transpose based on key
+                    end
+                end
+                
+                -- Remove any leftover samples from the template
+                while #drumkit_inst.samples > actual_sample_count do
+                    drumkit_inst:delete_sample_at(#drumkit_inst.samples)
+                end
+                
+                -- Finalize instrument
+                finalizeInstrumentPaketti(drumkit_inst)
+                
+                -- Track the created instrument
+                table.insert(direct_mode_instruments, drumkit_idx)
+                
+                print(string.format("DRUMKIT SLICING: Created drumkit '%s' with %d samples (skipped %d silent)", 
+                    drumkit_inst.name, #drumkit_inst.samples, num_slices - actual_sample_count))
+            end
+        end
+        
+        -- Yield to keep UI responsive
+        coroutine.yield()
+    end
+    
+    -- 3. Cleanup - delete the source instrument
+    -- Source instrument index may have shifted due to new instruments being added
+    -- Find it by name
+    local source_to_delete = nil
+    for i = 1, #song.instruments do
+        if song.instruments[i].name == stem_name .. " (Source - will be deleted)" then
+            source_to_delete = i
+            break
+        end
+    end
+    
+    if source_to_delete then
+        -- Make sure we're not selecting it
+        if song.selected_instrument_index == source_to_delete then
+            song.selected_instrument_index = math.max(1, source_to_delete - 1)
+        end
+        
+        -- Adjust tracked instrument indices (they shift down after deletion)
+        local adjusted_instruments = {}
+        for _, idx in ipairs(direct_mode_instruments) do
+            if idx > source_to_delete then
+                table.insert(adjusted_instruments, idx - 1)
+            elseif idx < source_to_delete then
+                table.insert(adjusted_instruments, idx)
+            end
+        end
+        direct_mode_instruments = adjusted_instruments
+        
+        song:delete_instrument_at(source_to_delete)
+        print(string.format("DRUMKIT SLICING: Deleted source instrument"))
+    end
+    
+    -- Restore AutoSamplify monitoring
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    
+    print(string.format("DRUMKIT SLICING: Completed %s, created %d drumkit instruments", stem_name, #direct_mode_instruments))
+    
+    return true
+end
+
+-- Process all files using native slicing (optimized direct mode)
+local function processAllFilesNativeSlicing()
+    if #audio_files == 0 then
+        print("NATIVE SLICING: No audio files to process")
+        return
+    end
+    
+    -- Build list of beat lengths to process
+    local beat_lengths_to_process = {master_beat_length}
+    for _, bl in ipairs(extract_beat_lengths) do
+        if bl < master_beat_length then
+            table.insert(beat_lengths_to_process, bl)
+        end
+    end
+    
+    -- Sort from largest to smallest
+    table.sort(beat_lengths_to_process, function(a, b) return a > b end)
+    
+    print(string.format("NATIVE SLICING: Processing %d files with beat lengths: %s", 
+        #audio_files, table.concat(beat_lengths_to_process, ", ")))
+    
+    -- Reset tracking
+    resetDirectModeTracking()
+    direct_mode_used = true
+    
+    -- Process each file
+    for file_idx, file_path in ipairs(audio_files) do
+        current_progress = string.format("Native slicing file %d/%d", file_idx, #audio_files)
+        renoise.app():show_status(current_progress)
+        
+        local success = processFileWithNativeSlicing(file_path, beat_lengths_to_process, target_bpm)
+        
+        if success then
+            files_completed = files_completed + 1
+        else
+            files_skipped = files_skipped + 1
+        end
+        
+        coroutine.yield()
+    end
+    
+    -- Save session info for summary
+    last_selected_folder = selected_folder
+    last_bpm_used = target_bpm
+    last_master_beat = master_beat_length
+    last_subdivisions = {}
+    for _, b in ipairs(extract_beat_lengths) do 
+        table.insert(last_subdivisions, b) 
+    end
+    
+    print(string.format("NATIVE SLICING COMPLETE: %d files processed, %d skipped, %d instruments created", 
+        files_completed, files_skipped, #direct_mode_instruments))
+end
+
+-- Export slice directly to instrument (skip disk I/O) with grouping support
+local function exportSliceDirectToInstrument(buffer, start_frame, end_frame, stem_name, beat_length, slice_index)
+    local success, error_msg = pcall(function()
+        -- CRITICAL OFF-BY-ONE PREVENTION: Clamp end_frame to buffer bounds
+        end_frame = math.min(end_frame, buffer.number_of_frames)
+        start_frame = math.max(start_frame, 1)
+        
+        local slice_length = end_frame - start_frame + 1
+        
+        -- CRITICAL SAFETY CHECK: Prevent massive buffer allocations
+        if slice_length > 50000000 then
+            error(string.format("Slice too large: %d frames (%.1f minutes) - possible calculation error", 
+                slice_length, slice_length / 48000 / 60))
+        end
+        
+        if slice_length <= 0 then
+            error("Invalid slice length: " .. slice_length)
+        end
+        
+        local song = renoise.song()
+        local target_inst = nil
+        local sample_idx = 1
+        local slice_name = string.format("%s_%02dbeat_%03d", stem_name, beat_length, slice_index)
+        
+        -- Determine target instrument based on grouping mode
+        if direct_grouping_mode == 1 then
+            -- Per-sample: One instrument per slice
+            local inst_idx = #song.instruments + 1
+            song:insert_instrument_at(inst_idx)
+            song.selected_instrument_index = inst_idx
+            target_inst = song.instruments[inst_idx]
+            target_inst.name = slice_name
+            target_inst:insert_sample_at(1)
+            sample_idx = 1
+            table.insert(direct_mode_instruments, inst_idx)
+            print(string.format("DIRECT MODE (Per-sample): Created instrument %d: %s", inst_idx, slice_name))
+            
+        elseif direct_grouping_mode == 2 then
+            -- Per-stem: One instrument per source stem file
+            if direct_mode_stem_instruments[stem_name] then
+                local inst_idx = direct_mode_stem_instruments[stem_name]
+                target_inst = song.instruments[inst_idx]
+                sample_idx = #target_inst.samples + 1
+                target_inst:insert_sample_at(sample_idx)
+                print(string.format("DIRECT MODE (Per-stem): Adding sample %d to %s", sample_idx, stem_name))
+            else
+                local inst_idx = #song.instruments + 1
+                song:insert_instrument_at(inst_idx)
+                song.selected_instrument_index = inst_idx
+                target_inst = song.instruments[inst_idx]
+                target_inst.name = stem_name .. " (Slices)"
+                target_inst:insert_sample_at(1)
+                sample_idx = 1
+                direct_mode_stem_instruments[stem_name] = inst_idx
+                table.insert(direct_mode_instruments, inst_idx)
+                print(string.format("DIRECT MODE (Per-stem): Created instrument %d for %s", inst_idx, stem_name))
+            end
+            
+        elseif direct_grouping_mode == 3 then
+            -- Per-beat: One instrument per beat length
+            local beat_key = tostring(beat_length)
+            if direct_mode_beat_instruments[beat_key] then
+                local inst_idx = direct_mode_beat_instruments[beat_key]
+                target_inst = song.instruments[inst_idx]
+                sample_idx = #target_inst.samples + 1
+                target_inst:insert_sample_at(sample_idx)
+                print(string.format("DIRECT MODE (Per-beat): Adding sample %d to %d-beat instrument", sample_idx, beat_length))
+            else
+                local inst_idx = #song.instruments + 1
+                song:insert_instrument_at(inst_idx)
+                song.selected_instrument_index = inst_idx
+                target_inst = song.instruments[inst_idx]
+                target_inst.name = string.format("StemSlicer %d-beat", beat_length)
+                target_inst:insert_sample_at(1)
+                sample_idx = 1
+                direct_mode_beat_instruments[beat_key] = inst_idx
+                table.insert(direct_mode_instruments, inst_idx)
+                print(string.format("DIRECT MODE (Per-beat): Created instrument %d for %d-beat", inst_idx, beat_length))
+            end
+            
+        elseif direct_grouping_mode == 4 then
+            -- All combined: All slices into one mega-drumkit (max 120 samples)
+            if direct_mode_combined_instrument and direct_mode_combined_sample_count < 120 then
+                target_inst = song.instruments[direct_mode_combined_instrument]
+                sample_idx = #target_inst.samples + 1
+                target_inst:insert_sample_at(sample_idx)
+                direct_mode_combined_sample_count = direct_mode_combined_sample_count + 1
+                print(string.format("DIRECT MODE (Combined): Adding sample %d/%d", direct_mode_combined_sample_count, 120))
+            elseif direct_mode_combined_sample_count >= 120 then
+                -- Create new instrument when limit reached
+                local inst_idx = #song.instruments + 1
+                song:insert_instrument_at(inst_idx)
+                song.selected_instrument_index = inst_idx
+                target_inst = song.instruments[inst_idx]
+                target_inst.name = "StemSlicer Combined (overflow)"
+                target_inst:insert_sample_at(1)
+                sample_idx = 1
+                direct_mode_combined_instrument = inst_idx
+                direct_mode_combined_sample_count = 1
+                table.insert(direct_mode_instruments, inst_idx)
+                print(string.format("DIRECT MODE (Combined): Created overflow instrument %d", inst_idx))
+            else
+                local inst_idx = #song.instruments + 1
+                song:insert_instrument_at(inst_idx)
+                song.selected_instrument_index = inst_idx
+                target_inst = song.instruments[inst_idx]
+                target_inst.name = "StemSlicer Combined"
+                target_inst:insert_sample_at(1)
+                sample_idx = 1
+                direct_mode_combined_instrument = inst_idx
+                direct_mode_combined_sample_count = 1
+                table.insert(direct_mode_instruments, inst_idx)
+                print(string.format("DIRECT MODE (Combined): Created combined instrument %d", inst_idx))
+            end
+        end
+        
+        -- Get target sample
+        local target_sample = target_inst.samples[sample_idx]
+        target_sample.name = slice_name
+        
+        -- Create buffer for the slice
+        target_sample.sample_buffer:create_sample_data(
+            buffer.sample_rate, 
+            buffer.bit_depth, 
+            buffer.number_of_channels, 
+            slice_length
+        )
+        
+        target_sample.sample_buffer:prepare_sample_data_changes()
+        
+        -- Copy the region data with SAFE bounds checking
+        local frames_per_yield = 44100  -- Yield every second of audio
+        local max_frame = math.min(slice_length, 10000000)  -- SAFETY: Never more than 10M frames
+        
+        for ch = 1, math.min(buffer.number_of_channels, 8) do  -- SAFETY: Max 8 channels
+            for frame = 1, max_frame do
+                local source_frame = start_frame + frame - 1
+                
+                -- CRITICAL OFF-BY-ONE FIX: Ensure we never exceed buffer bounds
+                if source_frame >= 1 and source_frame <= math.min(buffer.number_of_frames, end_frame) then
+                    target_sample.sample_buffer:set_sample_data(ch, frame, buffer:sample_data(ch, source_frame))
+                else
+                    -- Fill with silence if out of bounds
+                    target_sample.sample_buffer:set_sample_data(ch, frame, 0.0)
+                end
+                
+                -- Yield periodically to keep UI responsive
+                if frame % frames_per_yield == 0 then
+                    coroutine.yield()
+                end
+                
+                -- SAFETY BREAK
+                if frame > slice_length then
+                    print("WARNING: Frame loop safety break triggered")
+                    break
+                end
+            end
+        end
+        
+        target_sample.sample_buffer:finalize_sample_data_changes()
+        
+        -- Apply Paketti loader settings to the sample
+        if PakettiInjectApplyLoaderSettings then
+            PakettiInjectApplyLoaderSettings(target_sample)
+        end
+        
+        -- Reset consecutive error counter on successful export
+        resetConsecutiveErrors()
+        
+        -- Memory leak prevention
+        if not checkMemoryUsage() then
+            error("Processing timeout detected - stopping to prevent system freeze")
+        end
+        
+        print(string.format("DIRECT MODE: Created slice %s in instrument", slice_name))
+    end)
+    
+    return success, error_msg or ""
+end
+
 -- Process a single audio file using direct visual approach (SEQUENTIAL PROCESSING)
 local function processSingleFile(file_path, output_folder)
     local file_name = file_path:match("[^/\\]+$") or file_path
@@ -1625,17 +2183,22 @@ local function processSingleFile(file_path, output_folder)
     local silence_map = createSilenceMapForFile(buffer, file_path)
     
     -- Pre-generate silence files for all beat lengths we'll need (OPTIMIZATION)
-    current_sample_name = string.format("%s - Preparing silence files", clean_name)
-    current_progress = string.format("Pre-generating silence files for %s...", clean_name)
-    coroutine.yield()
-    
-    local needed_beat_lengths = {master_beat_length}
-    for _, beat_length in ipairs(extract_beat_lengths) do
-        table.insert(needed_beat_lengths, beat_length)
-    end
-    
-    for _, beat_length in ipairs(needed_beat_lengths) do
-        generateSilenceFile(beat_length, sample_rate, output_folder)
+    -- Skip this entirely in direct mode - no files are written to disk
+    if not direct_to_instruments then
+        current_sample_name = string.format("%s - Preparing silence files", clean_name)
+        current_progress = string.format("Pre-generating silence files for %s...", clean_name)
+        coroutine.yield()
+        
+        local needed_beat_lengths = {master_beat_length}
+        for _, beat_length in ipairs(extract_beat_lengths) do
+            table.insert(needed_beat_lengths, beat_length)
+        end
+        
+        for _, beat_length in ipairs(needed_beat_lengths) do
+            generateSilenceFile(beat_length, sample_rate, output_folder)
+        end
+    else
+        print("DIRECT MODE: Skipping silence file pre-generation (no disk I/O)")
     end
     
     -- Step 2: Add slice markers for master beat length
@@ -1736,9 +2299,13 @@ local function processSingleFile(file_path, output_folder)
                 file_name, slice_idx, tostring(is_silent), output_filename))
             
             if is_silent then
-                if skip_writing_silence then
-                    -- Skip writing silence files entirely
-                    print(string.format("SKIPPED SILENCE [%s]: %s", file_name, output_filename))
+                if skip_writing_silence or direct_to_instruments then
+                    -- Skip writing silence files entirely (always skip in direct mode - no disk I/O)
+                    if direct_to_instruments then
+                        print(string.format("DIRECT MODE SKIPPED SILENCE [%s]: %s", file_name, output_filename))
+                    else
+                        print(string.format("SKIPPED SILENCE [%s]: %s", file_name, output_filename))
+                    end
                     export_success = true  -- Mark as success since we intentionally skipped it
                 else
                     -- OPTIMIZATION: Copy pre-generated silence file instead of exporting
@@ -1754,16 +2321,30 @@ local function processSingleFile(file_path, output_folder)
                 end
             else
                 -- Export actual audio slice
-                export_success, export_error_msg = exportSliceRegion(buffer, slice_start, slice_end, output_path)
-                if export_success then
-                    print(string.format("EXPORT SUCCESS [%s]: Exported audio: %s", file_name, output_filename))
+                if direct_to_instruments then
+                    -- Direct mode: Create instrument directly (skip disk I/O)
+                    export_success, export_error_msg = exportSliceDirectToInstrument(buffer, slice_start, slice_end, clean_name, master_beat_length, slice_idx)
+                    if export_success then
+                        print(string.format("DIRECT EXPORT SUCCESS [%s]: Created instrument: %s", file_name, output_filename))
+                    else
+                        local full_error = string.format("Failed to create direct instrument for slice %d: %s", slice_idx, export_error_msg)
+                        print(string.format("DIRECT EXPORT FAILED [%s]: %s", file_name, full_error))
+                        renoise.app():show_status(full_error)
+                        logProcessingError("DIRECT_EXPORT_FAILED", file_path, full_error)
+                    end
                 else
-                    local full_error = string.format("Failed to export audio slice %d: %s", slice_idx, export_error_msg)
-                    print(string.format("EXPORT FAILED [%s]: %s", file_name, full_error))
-                    renoise.app():show_status(full_error)
-                    
-                    -- CRITICAL: If export fails, log it but don't stop processing other slices
-                    logProcessingError("EXPORT_FAILED", file_path, full_error)
+                    -- Normal mode: Export to WAV file
+                    export_success, export_error_msg = exportSliceRegion(buffer, slice_start, slice_end, output_path)
+                    if export_success then
+                        print(string.format("EXPORT SUCCESS [%s]: Exported audio: %s", file_name, output_filename))
+                    else
+                        local full_error = string.format("Failed to export audio slice %d: %s", slice_idx, export_error_msg)
+                        print(string.format("EXPORT FAILED [%s]: %s", file_name, full_error))
+                        renoise.app():show_status(full_error)
+                        
+                        -- CRITICAL: If export fails, log it but don't stop processing other slices
+                        logProcessingError("EXPORT_FAILED", file_path, full_error)
+                    end
                 end
             end
             
@@ -1823,9 +2404,13 @@ local function processSingleFile(file_path, output_folder)
                         
                         local export_success = false
                         if is_silent then
-                            if skip_writing_silence then
-                                -- Skip writing silence files entirely
-                                print(string.format("    SKIPPED SILENCE: %s", output_filename))
+                            if skip_writing_silence or direct_to_instruments then
+                                -- Skip writing silence files entirely (always skip in direct mode - no disk I/O)
+                                if direct_to_instruments then
+                                    print(string.format("    DIRECT MODE SKIPPED SILENCE: %s", output_filename))
+                                else
+                                    print(string.format("    SKIPPED SILENCE: %s", output_filename))
+                                end
                                 export_success = true  -- Mark as success since we intentionally skipped it
                             else
                                 -- OPTIMIZATION: Copy pre-generated silence file instead of exporting
@@ -1840,13 +2425,26 @@ local function processSingleFile(file_path, output_folder)
                             end
                         else
                             -- Export actual audio subdivision
-                            export_success = exportSliceRegion(buffer, sub_start, sub_end, output_path)
-                            if export_success then
-                                print(string.format("    Exported: %s", output_filename))
+                            if direct_to_instruments then
+                                -- Direct mode: Create instrument directly (skip disk I/O)
+                                export_success = exportSliceDirectToInstrument(buffer, sub_start, sub_end, clean_name, beat_length, overall_slice_num)
+                                if export_success then
+                                    print(string.format("    Direct created: %s", output_filename))
+                                else
+                                    local export_error = string.format("    Failed to create direct: %s", output_filename)
+                                    print(export_error)
+                                    renoise.app():show_status(export_error)
+                                end
                             else
-                                local export_error = string.format("    Failed to export: %s", output_filename)
-                                print(export_error)
-                                renoise.app():show_status(export_error)
+                                -- Normal mode: Export to WAV file
+                                export_success = exportSliceRegion(buffer, sub_start, sub_end, output_path)
+                                if export_success then
+                                    print(string.format("    Exported: %s", output_filename))
+                                else
+                                    local export_error = string.format("    Failed to export: %s", output_filename)
+                                    print(export_error)
+                                    renoise.app():show_status(export_error)
+                                end
                             end
                         end
                         
@@ -1915,6 +2513,13 @@ local function processAllFiles()
         cleanupExportInstrument()
     end
     
+    -- Reset and track direct mode state for this session
+    resetDirectModeTracking()
+    direct_mode_used = direct_to_instruments  -- Track if direct mode was used
+    if direct_to_instruments then
+        print("DIRECT MODE: Enabled - slices will be created directly as instruments")
+    end
+    
     -- Initialize progress and error tracking (OPTIMIZATION)
     files_completed = 0
     total_files_to_process = #audio_files
@@ -1926,21 +2531,29 @@ local function processAllFiles()
     resetMemoryTracking()
     print("MEMORY: Started with garbage collection and memory tracking")
     
-    -- Create output folder
+    -- Create output folder (skip in direct mode - no disk I/O)
     local output_folder = selected_folder .. "/PakettiStemSlicer_Output"
     
-    -- Create output directory using OS-specific command
-    local mkdir_cmd
-    if package.config:sub(1,1) == "\\" then  -- Windows
-        mkdir_cmd = string.format('mkdir "%s" 2>nul', output_folder:gsub("/", "\\"))
-    else  -- macOS and Linux
-        mkdir_cmd = string.format("mkdir -p '%s'", output_folder:gsub("'", "'\\''"))
+    if not direct_to_instruments then
+        -- Create output directory using OS-specific command
+        local mkdir_cmd
+        if package.config:sub(1,1) == "\\" then  -- Windows
+            mkdir_cmd = string.format('mkdir "%s" 2>nul', output_folder:gsub("/", "\\"))
+        else  -- macOS and Linux
+            mkdir_cmd = string.format("mkdir -p '%s'", output_folder:gsub("'", "'\\''"))
+        end
+        os.execute(mkdir_cmd)
+    else
+        print("DIRECT MODE: Skipping output folder creation (no disk I/O)")
     end
-    os.execute(mkdir_cmd)
     
     print(string.format("=== PakettiStemSlicer Processing ==="))
     print(string.format("Input folder: %s", selected_folder))
-    print(string.format("Output folder: %s", output_folder))
+    if direct_to_instruments then
+        print("Output: DIRECT TO INSTRUMENTS (no disk I/O)")
+    else
+        print(string.format("Output folder: %s", output_folder))
+    end
     print(string.format("Target BPM: %.1f", target_bpm))
     print(string.format("Files to process: %d", #audio_files))
     print(string.format("Beat lengths: %s", table.concat(ALL_BEAT_LENGTHS, ", ")))
@@ -2035,6 +2648,63 @@ local function processAllFiles()
     for _, b in ipairs(extract_beat_lengths) do table.insert(last_subdivisions, b) end
 end
 
+-- Helper function to extract BPM from folder name
+-- Looks for patterns like: 146BPM, _146bpm, BPM146, 146-bpm, 146_BPM, etc.
+local function extractBpmFromFolderName(folder_path)
+    if not folder_path or folder_path == "" then
+        return nil
+    end
+    
+    -- Extract just the folder name from the full path
+    -- Remove trailing slash if present
+    local clean_path = folder_path:gsub("[/\\]+$", "")
+    -- Get the last component of the path
+    local folder_name = clean_path:match("([^/\\]+)$")
+    
+    if not folder_name then
+        print("BPM EXTRACT: Could not extract folder name from path: " .. folder_path)
+        return nil
+    end
+    
+    print("BPM EXTRACT: Checking folder name: " .. folder_name)
+    
+    -- Convert to lowercase for case-insensitive matching
+    local lower_name = folder_name:lower()
+    
+    local detected_bpm = nil
+    
+    -- Pattern 1: Number followed by "bpm" (e.g., "146BPM", "146bpm", "146_bpm", "146-bpm", "146 bpm")
+    -- This handles: 146BPM, 146bpm, 146_BPM, 146-bpm, 146 bpm
+    local bpm_after = lower_name:match("(%d+)[%s_%-]*bpm")
+    if bpm_after then
+        detected_bpm = tonumber(bpm_after)
+        print("BPM EXTRACT: Found pattern 'NUMbpm': " .. tostring(detected_bpm))
+    end
+    
+    -- Pattern 2: "bpm" followed by number (e.g., "BPM146", "bpm_146", "bpm-146", "bpm 146")
+    if not detected_bpm then
+        local bpm_before = lower_name:match("bpm[%s_%-]*(%d+)")
+        if bpm_before then
+            detected_bpm = tonumber(bpm_before)
+            print("BPM EXTRACT: Found pattern 'bpmNUM': " .. tostring(detected_bpm))
+        end
+    end
+    
+    -- Validate BPM is in reasonable range (1-999)
+    if detected_bpm then
+        if detected_bpm >= 1 and detected_bpm <= 999 then
+            print("BPM EXTRACT: Valid BPM detected: " .. tostring(detected_bpm))
+            return detected_bpm
+        else
+            print("BPM EXTRACT: BPM out of range (1-999): " .. tostring(detected_bpm))
+            return nil
+        end
+    end
+    
+    print("BPM EXTRACT: No BPM pattern found in folder name")
+    return nil
+end
+
 -- Browse for folder containing audio files
 local function browseForFolder()
     local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
@@ -2042,12 +2712,25 @@ local function browseForFolder()
         selected_folder = folder_path
         audio_files = getSupportedAudioFiles(folder_path)
         
+        -- Try to extract BPM from folder name to help the user
+        local detected_bpm = extractBpmFromFolderName(folder_path)
+        local bpm_status_suffix = ""
+        
+        if detected_bpm then
+            target_bpm = detected_bpm
+            if dialog and dialog.visible and vb.views.bpm_input then
+                vb.views.bpm_input.value = detected_bpm
+            end
+            bpm_status_suffix = string.format(", BPM auto-detected: %d", detected_bpm)
+            print("BPM AUTO-SET: Set target BPM to " .. tostring(detected_bpm) .. " from folder name")
+        end
+        
         if dialog and dialog.visible then
             vb.views.folder_display.text = string.format("%s (%d files)", folder_path, #audio_files)
             vb.views.process_button.active = #audio_files > 0
         end
         
-        renoise.app():show_status(string.format("Selected folder with %d audio files", #audio_files))
+        renoise.app():show_status(string.format("Selected folder with %d audio files%s", #audio_files, bpm_status_suffix))
     else
         renoise.app():show_status("No folder selected")
     end
@@ -2067,13 +2750,21 @@ local function startProcessing()
     
     -- Create and start ProcessSlicer with cleanup wrapper
     process_slicer = ProcessSlicer(function()
-        -- Run the main processing function
-        processAllFiles()
-        
-        -- Ensure cleanup happens after processing completes normally
-        if export_instrument_idx then
-            print("NORMAL COMPLETION: Final cleanup of temp export instrument")
-            cleanupExportInstrument()
+        if direct_to_instruments then
+            -- OPTIMIZED: Use native slicing + PakettiIsolateSlicesToInstrument
+            -- This is MUCH faster than frame-by-frame copying
+            print("STARTING: Optimized native slicing mode")
+            processAllFilesNativeSlicing()
+        else
+            -- Normal mode: Export to WAV files
+            print("STARTING: Normal WAV export mode")
+            processAllFiles()
+            
+            -- Ensure cleanup happens after processing completes normally
+            if export_instrument_idx then
+                print("NORMAL COMPLETION: Final cleanup of temp export instrument")
+                cleanupExportInstrument()
+            end
         end
     end)
     
@@ -2364,6 +3055,36 @@ function pakettiStemSlicerDialogInternal()
                 end
             },
             vb:text{text = "Do not write silence", style = "strong", font="bold"}
+        },
+        
+        vb:space{height=5},
+        
+        -- Direct to Instruments mode
+        vb:row{
+            vb:checkbox{
+                id = "direct_mode_checkbox",
+                value = direct_to_instruments,
+                notifier = function(value)
+                    direct_to_instruments = value
+                    -- Enable/disable grouping popup based on direct mode
+                    if vb.views.direct_grouping_popup then
+                        vb.views.direct_grouping_popup.active = value
+                    end
+                end
+            },
+            vb:text{text = "Direct to Instruments (skip WAV export)", style = "strong", font="bold"},
+            vb:space{width=10},
+            vb:text{text = "Grouping:"},
+            vb:popup{
+                id = "direct_grouping_popup",
+                items = {"Per-sample", "Per-stem", "Per-beat", "All combined"},
+                value = direct_grouping_mode,
+                width = 100,
+                active = direct_to_instruments,
+                notifier = function(value)
+                    direct_grouping_mode = value
+                end
+            }
         },
         
         -- Control buttons

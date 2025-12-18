@@ -1219,6 +1219,8 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Load XRNI & K
 --renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Create Paketti Phrase",invoke=function() createPhrase() end}
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader",invoke=function() pakettiStemLoader() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (Normalize)",invoke=function() pakettiStemLoader(true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load Drumkit with Overlap Random",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(2) end}
@@ -2816,6 +2818,8 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Cycle 
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120)  end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Stem Loader",invoke=function() pakettiStemLoader() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Stem Loader (Normalize)",invoke=function() pakettiStemLoader(true) end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Clean Render:Clean Render Selected Track/Group LPB*2",invoke=function() pakettiCleanRenderSelectionLPB() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Clean Render:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Clean Render:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
@@ -3433,6 +3437,8 @@ renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti Pitc
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Load:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti Stem Loader",invoke=function() pakettiStemLoader() end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti Stem Loader (Normalize)",invoke=function() pakettiStemLoader(true) end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Load:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Load:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 
