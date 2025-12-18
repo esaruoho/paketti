@@ -60,6 +60,8 @@ renoise.tool():add_menu_entry{name="--Sample Editor Ruler:BPM-Based Sample Slice
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader...",invoke = function() pakettiStemLoader() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (Normalize)...",invoke = function() pakettiStemLoader(true) end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Open Last StemSlicer Output...",invoke = openLastStemSlicerOutput}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
@@ -1056,6 +1058,12 @@ function PakettiMenuApplyFileMenuLocation(mode)
     end
     if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti New Song Dialog...") then
       renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti StemLoader...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti StemLoader...",invoke=function() pakettiStemLoader() end}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti StemLoader (Normalize)...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti StemLoader (Normalize)...",invoke=function() pakettiStemLoader(true) end}
     end
     if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti Track Dater & Titler...") then
       renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti Track Dater & Titler...",invoke=pakettiTitlerDialog}

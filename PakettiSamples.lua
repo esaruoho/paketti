@@ -1413,55 +1413,81 @@ local function pakettiStemLoaderFindMajorityBPM(bpm_list)
   return majority_bpm, max_count
 end
 
--- Extract BPM from folder name (e.g., "My Song 120BPM", "stems_146bpm", "BPM90_tracks")
+-- Extract BPM from a single folder name string
 -- Looks for patterns like: 146BPM, _146bpm, BPM146, 146-bpm, 146_BPM, etc.
-local function pakettiStemLoaderExtractBpmFromFolderName(folder_path)
-  if not folder_path or folder_path == "" then
+local function pakettiStemLoaderExtractBpmFromString(folder_name)
+  if not folder_name or folder_name == "" then
     return nil
   end
-  
-  -- Remove trailing slashes and extract folder name
-  local clean_path = folder_path:gsub("[/\\]+$", "")
-  local folder_name = clean_path:match("([^/\\]+)$")
-  
-  if not folder_name then
-    print("Stem Loader BPM: Could not extract folder name from path: " .. folder_path)
-    return nil
-  end
-  
-  print("Stem Loader BPM: Checking folder name for BPM: " .. folder_name)
   
   local lower_name = folder_name:lower()
   local detected_bpm = nil
   
-  -- Pattern 1: Number followed by "bpm" (e.g., "146BPM", "146bpm", "146_bpm", "146-bpm")
-  local bpm_after = lower_name:match("(%d+)[%s_%-]*bpm")
+  -- Pattern 1: Number followed by "bpm" (e.g., "146BPM", "146bpm", "146_bpm", "146-bpm", "146 bpm")
+  local bpm_after = lower_name:match("(%d+)%s*bpm")
   if bpm_after then
     detected_bpm = tonumber(bpm_after)
-    print("Stem Loader BPM: Found pattern 'NUMbpm': " .. tostring(detected_bpm))
   end
   
-  -- Pattern 2: "bpm" followed by number (e.g., "BPM146", "bpm_146", "bpm-146")
+  -- Pattern 2: "bpm" followed by number (e.g., "BPM146", "bpm_146", "bpm-146", "bpm 146")
   if not detected_bpm then
-    local bpm_before = lower_name:match("bpm[%s_%-]*(%d+)")
+    local bpm_before = lower_name:match("bpm%s*(%d+)")
     if bpm_before then
       detected_bpm = tonumber(bpm_before)
-      print("Stem Loader BPM: Found pattern 'bpmNUM': " .. tostring(detected_bpm))
+    end
+  end
+  
+  -- Pattern 3: Number with underscore/hyphen before "bpm" (e.g., "song_116_bpm", "track-90-bpm")
+  if not detected_bpm then
+    local bpm_with_sep = lower_name:match("(%d+)[_%-]bpm")
+    if bpm_with_sep then
+      detected_bpm = tonumber(bpm_with_sep)
     end
   end
   
   -- Validate BPM is in reasonable range (20-999)
-  if detected_bpm then
-    if detected_bpm >= 20 and detected_bpm <= 999 then
-      print("Stem Loader BPM: Valid BPM detected from folder name: " .. tostring(detected_bpm))
-      return detected_bpm
-    else
-      print("Stem Loader BPM: BPM out of range (20-999): " .. tostring(detected_bpm))
-      return nil
+  if detected_bpm and detected_bpm >= 20 and detected_bpm <= 999 then
+    return detected_bpm
+  end
+  
+  return nil
+end
+
+-- Extract BPM from folder path by checking ALL folders in the path (not just immediate parent)
+-- Searches from deepest to shallowest, returns first BPM found
+local function pakettiStemLoaderExtractBpmFromFolderName(folder_path)
+  print("Stem Loader BPM: === Starting folder path BPM detection ===")
+  print("Stem Loader BPM: Full path: '" .. tostring(folder_path) .. "'")
+  
+  if not folder_path or folder_path == "" then
+    print("Stem Loader BPM: folder_path is nil or empty, returning nil")
+    return nil
+  end
+  
+  -- Remove trailing slashes
+  local clean_path = folder_path:gsub("/+$", "")
+  
+  -- Split path into folder components and check each one
+  local folders = {}
+  for folder in clean_path:gmatch("([^/]+)") do
+    table.insert(folders, folder)
+  end
+  
+  print("Stem Loader BPM: Checking " .. #folders .. " folders in path...")
+  
+  -- Check from deepest folder up to root (reverse order)
+  for i = #folders, 1, -1 do
+    local folder_name = folders[i]
+    print("Stem Loader BPM: Checking folder: '" .. folder_name .. "'")
+    
+    local bpm = pakettiStemLoaderExtractBpmFromString(folder_name)
+    if bpm then
+      print("Stem Loader BPM: === SUCCESS: Found BPM " .. bpm .. " in folder '" .. folder_name .. "' ===")
+      return bpm
     end
   end
   
-  print("Stem Loader BPM: No BPM pattern found in folder name")
+  print("Stem Loader BPM: === No BPM pattern found in any folder ===")
   return nil
 end
 
@@ -1580,28 +1606,42 @@ function pakettiStemLoader(normalize)
   print("Paketti Stem Loader: " .. #selected_sample_filenames .. " files selected")
   rprint(selected_sample_filenames)
   
-  -- First pass: Detect BPM from all files (ACID chunks)
-  local detected_bpms = {}
-  for _, filename in ipairs(selected_sample_filenames) do
-    local bpm = pakettiStemLoaderDetectBPM(filename)
-    if bpm then
-      table.insert(detected_bpms, bpm)
+  -- First: Try folder name BPM detection (prioritized because user intentionally named folder)
+  local folder_bpm = nil
+  local first_file = selected_sample_filenames[1]
+  local folder_path = first_file:match("^(.+)/")
+  print("Paketti Stem Loader: First file: " .. first_file)
+  print("Paketti Stem Loader: Extracted folder path: " .. tostring(folder_path))
+  
+  if folder_path then
+    folder_bpm = pakettiStemLoaderExtractBpmFromFolderName(folder_path)
+    if folder_bpm then
+      print("Paketti Stem Loader: Found BPM " .. folder_bpm .. " in folder name")
+    else
+      print("Paketti Stem Loader: No BPM found in folder name")
     end
+  else
+    print("Paketti Stem Loader: Could not extract folder path from file")
   end
   
-  -- Try folder name BPM detection as fallback if no ACID chunk BPM found
-  local folder_bpm = nil
-  if #detected_bpms == 0 and #selected_sample_filenames > 0 then
-    -- Extract folder path from first file
-    local first_file = selected_sample_filenames[1]
-    local folder_path = first_file:match("^(.+)[/\\]")
-    if folder_path then
-      folder_bpm = pakettiStemLoaderExtractBpmFromFolderName(folder_path)
-      if folder_bpm then
-        table.insert(detected_bpms, folder_bpm)
-        print("Paketti Stem Loader: Using BPM from folder name: " .. folder_bpm)
+  -- Second: Detect BPM from all files (ACID chunks) - only if no folder BPM found
+  local detected_bpms = {}
+  local acid_bpms_found = 0
+  if not folder_bpm then
+    print("Paketti Stem Loader: Checking files for ACID chunk BPM data...")
+    for _, filename in ipairs(selected_sample_filenames) do
+      local bpm = pakettiStemLoaderDetectBPM(filename)
+      if bpm then
+        table.insert(detected_bpms, bpm)
+        acid_bpms_found = acid_bpms_found + 1
+        print("Paketti Stem Loader: ACID BPM " .. bpm .. " found in: " .. filename:match("([^/]+)$"))
       end
     end
+    print("Paketti Stem Loader: Found ACID BPM data in " .. acid_bpms_found .. " of " .. #selected_sample_filenames .. " files")
+  else
+    -- Folder BPM takes priority - add it to the list
+    table.insert(detected_bpms, folder_bpm)
+    print("Paketti Stem Loader: Using folder name BPM (" .. folder_bpm .. "), skipping ACID chunk detection")
   end
   
   -- Set BPM if we found any
@@ -1609,8 +1649,9 @@ function pakettiStemLoader(normalize)
   if #detected_bpms > 0 then
     local majority_bpm, count = pakettiStemLoaderFindMajorityBPM(detected_bpms)
     if majority_bpm then
+      print("Paketti Stem Loader: Setting transport.bpm to " .. majority_bpm)
       renoise.song().transport.bpm = majority_bpm
-      if folder_bpm and majority_bpm == folder_bpm then
+      if folder_bpm then
         bpm_source = "folder name"
         print("Paketti Stem Loader: Set BPM to " .. majority_bpm .. " (from folder name)")
         renoise.app():show_status("Stem Loader: Set BPM to " .. majority_bpm .. " (from folder name)")
@@ -1621,7 +1662,8 @@ function pakettiStemLoader(normalize)
       end
     end
   else
-    print("Paketti Stem Loader: No BPM found in files or folder name, keeping current BPM")
+    print("Paketti Stem Loader: No BPM found in folder name or files, keeping current BPM: " .. renoise.song().transport.bpm)
+    renoise.app():show_status("Stem Loader: No BPM detected, keeping current BPM")
   end
   
   -- Initialize progress tracking
