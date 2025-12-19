@@ -486,28 +486,28 @@ function PakettiOutputsCalculateAskSet(includeMasterInCount)
       dialog_vb:text{text = master_text, font = "bold"}
     },
     
-    dialog_vb:space{height = 5},
+    dialog_vb:space{height = 15},
     
-    dialog_vb:row{
-      style = "panel",
-      margin = 5,
-      dialog_vb:column{
-        dialog_vb:row{
-          dialog_vb:text{text = "Total Tracks to Route:", width = 150},
-          dialog_vb:text{text = tostring(calc.track_count), font = "bold", style = "strong"}
-        },
-        dialog_vb:row{
-          dialog_vb:text{text = "Recommended Stereo Pairs:", width = 150},
-          dialog_vb:text{text = tostring(calc.stereo_pairs), font = "bold", style = "strong"}
-        },
-        dialog_vb:row{
-          dialog_vb:text{text = "Recommended Total Outputs:", width = 150},
-          dialog_vb:text{text = tostring(calc.total_outputs), font = "bold", style = "strong"}
-        }
+    dialog_vb:column{
+      background = "panel",
+      margin = 10,
+      spacing = 8,
+      dialog_vb:row{
+        dialog_vb:text{text = "Total Tracks to Route:", width = 180},
+        dialog_vb:text{text = tostring(calc.track_count), font = "big", style = "strong"}
+      },
+      dialog_vb:row{
+        dialog_vb:text{text = "Recommended Stereo Pairs:", width = 180},
+        dialog_vb:text{text = tostring(calc.stereo_pairs), font = "big", style = "strong"}
+      },
+      dialog_vb:space{height = 5},
+      dialog_vb:row{
+        dialog_vb:text{text = "Recommended Total Outputs:", width = 180, font = "bold", style = "strong"},
+        dialog_vb:text{text = tostring(calc.total_outputs), font = "big", style = "strong"}
       }
     },
     
-    dialog_vb:space{height = 5},
+    dialog_vb:space{height = 15},
     
     dialog_vb:row{
       dialog_vb:text{text = "Available Output Buses:", width = 150},
@@ -578,8 +578,8 @@ function PakettiOutputsCalculateSet(includeMasterInCount)
   if success then
     local master_text = includeMasterInCount and "incl. Master" or "excl. Master"
     renoise.app():show_status(string.format(
-      "Output routing applied (%s): %d tracks -> %d stereo pairs (%d outputs)",
-      master_text, calc.track_count, calc.stereo_pairs, calc.total_outputs
+      "Routed %d tracks (%d seq + %d sends, %s) to %d stereo pairs (%d outputs)",
+      calc.track_count, calc.seq_count, calc.send_count, master_text, calc.stereo_pairs, calc.total_outputs
     ))
   end
 end
