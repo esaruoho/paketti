@@ -252,12 +252,16 @@ local function pakettiStemLoaderCreateSlicesAndPatterns(loaded_instruments_info)
         sample:delete_slice_marker(sample.slice_markers[1])
       end
       
-      -- Calculate frames per slice for this sample (based on its own frame count)
-      local frames_per_slice = info.frames / slice_count
+      -- Calculate exact frames per pattern based on musical timing
+      -- frames_per_pattern = (seconds_per_pattern) * sample_rate
+      -- seconds_per_pattern = (pattern_length / lpb) * (60 / bpm)
+      local seconds_per_pattern = (pattern_length / lpb) * (60 / bpm)
+      local frames_per_pattern = seconds_per_pattern * info.sample_rate
       
-      -- Create equal-length slices
+      -- Create slices at exact musical boundaries
+      -- Last slice will be shorter if sample doesn't fill complete pattern
       for s = 0, slice_count - 1 do
-        local slice_pos = math.floor(s * frames_per_slice) + 1
+        local slice_pos = math.floor(s * frames_per_pattern) + 1
         if slice_pos < 1 then slice_pos = 1 end
         if slice_pos > info.frames then slice_pos = info.frames end
         sample:insert_slice_marker(slice_pos)
@@ -266,7 +270,16 @@ local function pakettiStemLoaderCreateSlicesAndPatterns(loaded_instruments_info)
       -- Set autoseek OFF for slice mode
       sample.autoseek = false
       
-      print(string.format("Stem Loader Slices: Created %d slices in '%s'", slice_count, info.name))
+      -- Debug: report if last slice is shorter
+      local last_slice_start = math.floor((slice_count - 1) * frames_per_pattern) + 1
+      local last_slice_length = info.frames - last_slice_start + 1
+      local expected_length = math.floor(frames_per_pattern)
+      if last_slice_length < expected_length then
+        print(string.format("Stem Loader Slices: Created %d slices in '%s' (last slice is %d frames, %.1f%% of full pattern)",
+          slice_count, info.name, last_slice_length, (last_slice_length / expected_length) * 100))
+      else
+        print(string.format("Stem Loader Slices: Created %d slices in '%s'", slice_count, info.name))
+      end
     end
   end
   
@@ -853,3 +866,4 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Paketti Stem Loader (S
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti Stem Loader",invoke=function(message) if message:is_trigger() then pakettiStemLoader() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti Stem Loader (No Preset)",invoke=function(message) if message:is_trigger() then pakettiStemLoader(false, true) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti Stem Loader (Slice to Patterns)",invoke=function(message) if message:is_trigger() then pakettiStemLoader(false, false, true) end end}
+

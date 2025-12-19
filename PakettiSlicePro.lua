@@ -1282,3 +1282,4 @@ renoise.tool():add_menu_entry{
 }
 
 print("PakettiSlicePro.lua loaded (v3 - with overrides, fallback, progress)")
+
