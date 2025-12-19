@@ -321,3 +321,286 @@ function AutoAssignOutputs()
 
   renoise.app():show_status("FX chains assigned and outputs routed successfully.")
 end
+
+--------
+-- Track-Based Output Calculator Functions
+--------
+
+-- Helper function to calculate next power of 2 >= n
+local function nextPowerOf2(n)
+  if n <= 0 then
+    return 1
+  end
+  local power = 1
+  while power < n do
+    power = power * 2
+  end
+  return power
+end
+
+-- Calculate optimal number of outputs based on track count
+-- includeMasterInCount: if true, count Master track; if false, exclude Master from count
+-- Returns a table with calculation details
+function PakettiCalculateOptimalOutputs(includeMasterInCount)
+  local song = renoise.song()
+  local seq_count = song.sequencer_track_count
+  local send_count = song.send_track_count
+  
+  local track_count
+  if includeMasterInCount then
+    track_count = seq_count + 1 + send_count  -- +1 for Master
+  else
+    track_count = seq_count + send_count      -- exclude Master from count
+  end
+  
+  local stereo_pairs = nextPowerOf2(track_count)
+  local total_outputs = stereo_pairs * 2
+  
+  return {
+    track_count = track_count,
+    stereo_pairs = stereo_pairs,
+    total_outputs = total_outputs,
+    seq_count = seq_count,
+    send_count = send_count,
+    include_master = includeMasterInCount
+  }
+end
+
+-- Apply sequential output routing to all tracks
+-- includeMasterInRouting: if true, include Master in the sequential routing
+-- Returns true on success, false if not enough outputs available
+function PakettiApplySequentialOutputRouting(includeMasterInRouting)
+  local song = renoise.song()
+  local seq_count = song.sequencer_track_count
+  local send_count = song.send_track_count
+  local master_index = seq_count + 1
+  
+  -- Get available output routings from first track
+  local available_outputs = song.tracks[1].available_output_routings
+  
+  -- Count how many tracks we need to route
+  local total_tracks_to_route
+  if includeMasterInRouting then
+    total_tracks_to_route = seq_count + 1 + send_count  -- sequencer + master + sends
+  else
+    total_tracks_to_route = seq_count + send_count  -- sequencer + sends (master excluded)
+  end
+  
+  -- Check if we have enough output buses (skip "Master" which is usually index 1)
+  -- Available routings typically: "Master", "Bus 01", "Bus 02", etc.
+  local available_buses = #available_outputs - 1  -- subtract 1 for "Master" routing
+  
+  if available_buses < total_tracks_to_route then
+    local message = string.format(
+      "Not enough output buses! Need %d buses, but only %d available. " ..
+      "Please configure more outputs in Renoise plugin preferences.",
+      total_tracks_to_route, available_buses
+    )
+    renoise.app():show_warning(message)
+    return false
+  end
+  
+  local bus_index = 2  -- Start at index 2 (first bus after "Master")
+  
+  -- Route sequencer tracks
+  for i = 1, seq_count do
+    if bus_index <= #available_outputs then
+      song.tracks[i].output_routing = available_outputs[bus_index]
+      print(string.format("Track %d (%s) -> %s", i, song.tracks[i].name, available_outputs[bus_index]))
+      bus_index = bus_index + 1
+    end
+  end
+  
+  -- Route Master track (if included)
+  if includeMasterInRouting then
+    if bus_index <= #available_outputs then
+      song.tracks[master_index].output_routing = available_outputs[bus_index]
+      print(string.format("Master Track -> %s", available_outputs[bus_index]))
+      bus_index = bus_index + 1
+    end
+  else
+    -- If Master not in routing, set it to the last available output
+    song.tracks[master_index].output_routing = available_outputs[#available_outputs]
+    print(string.format("Master Track -> %s (last output)", available_outputs[#available_outputs]))
+  end
+  
+  -- Route send tracks
+  for i = 1, send_count do
+    local send_track_index = master_index + i
+    if bus_index <= #available_outputs then
+      song.tracks[send_track_index].output_routing = available_outputs[bus_index]
+      print(string.format("Send %d (%s) -> %s", i, song.tracks[send_track_index].name, available_outputs[bus_index]))
+      bus_index = bus_index + 1
+    end
+  end
+  
+  return true
+end
+
+-- Dialog variable for output calculator
+local output_calc_dialog = nil
+
+-- Calculate, Ask (show dialog), then Set if user confirms
+function PakettiOutputsCalculateAskSet(includeMasterInCount)
+  -- Close existing dialog if open
+  if output_calc_dialog and output_calc_dialog.visible then
+    output_calc_dialog:close()
+    output_calc_dialog = nil
+    return
+  end
+  
+  local calc = PakettiCalculateOptimalOutputs(includeMasterInCount)
+  local song = renoise.song()
+  local available_outputs = song.tracks[1].available_output_routings
+  local available_buses = #available_outputs - 1
+  
+  local master_text = includeMasterInCount and "Yes" or "No"
+  local has_enough_buses = available_buses >= calc.track_count
+  
+  local dialog_vb = renoise.ViewBuilder()
+  
+  local content = dialog_vb:column{
+    margin = 10,
+    spacing = 5,
+    
+    dialog_vb:text{
+      text = "Track-Based Output Calculator",
+      font = "bold",
+      style = "strong"
+    },
+    
+    dialog_vb:space{height = 5},
+    
+    dialog_vb:row{
+      dialog_vb:text{text = "Sequencer Tracks:", width = 150},
+      dialog_vb:text{text = tostring(calc.seq_count), font = "bold"}
+    },
+    
+    dialog_vb:row{
+      dialog_vb:text{text = "Send Tracks:", width = 150},
+      dialog_vb:text{text = tostring(calc.send_count), font = "bold"}
+    },
+    
+    dialog_vb:row{
+      dialog_vb:text{text = "Include Master in Count:", width = 150},
+      dialog_vb:text{text = master_text, font = "bold"}
+    },
+    
+    dialog_vb:space{height = 5},
+    
+    dialog_vb:row{
+      style = "panel",
+      margin = 5,
+      dialog_vb:column{
+        dialog_vb:row{
+          dialog_vb:text{text = "Total Tracks to Route:", width = 150},
+          dialog_vb:text{text = tostring(calc.track_count), font = "bold", style = "strong"}
+        },
+        dialog_vb:row{
+          dialog_vb:text{text = "Recommended Stereo Pairs:", width = 150},
+          dialog_vb:text{text = tostring(calc.stereo_pairs), font = "bold", style = "strong"}
+        },
+        dialog_vb:row{
+          dialog_vb:text{text = "Recommended Total Outputs:", width = 150},
+          dialog_vb:text{text = tostring(calc.total_outputs), font = "bold", style = "strong"}
+        }
+      }
+    },
+    
+    dialog_vb:space{height = 5},
+    
+    dialog_vb:row{
+      dialog_vb:text{text = "Available Output Buses:", width = 150},
+      dialog_vb:text{
+        text = tostring(available_buses),
+        font = "bold",
+        style = has_enough_buses and "normal" or "strong"
+      }
+    },
+    
+    dialog_vb:text{
+      text = has_enough_buses 
+        and "Status: Sufficient buses available" 
+        or "Warning: Not enough buses! Configure more outputs in Renoise plugin preferences.",
+      style = has_enough_buses and "normal" or "strong"
+    },
+    
+    dialog_vb:space{height = 10},
+    
+    dialog_vb:row{
+      spacing = 5,
+      dialog_vb:button{
+        text = "Apply Routing",
+        width = 120,
+        active = has_enough_buses,
+        notifier = function()
+          local success = PakettiApplySequentialOutputRouting(includeMasterInCount)
+          if success then
+            renoise.app():show_status(string.format(
+              "Output routing applied: %d tracks -> %d stereo pairs (%d outputs)",
+              calc.track_count, calc.stereo_pairs, calc.total_outputs
+            ))
+          end
+          output_calc_dialog:close()
+          output_calc_dialog = nil
+        end
+      },
+      dialog_vb:button{
+        text = "Cancel",
+        width = 80,
+        notifier = function()
+          output_calc_dialog:close()
+          output_calc_dialog = nil
+        end
+      }
+    }
+  }
+  
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return output_calc_dialog end,
+    function(value) output_calc_dialog = value end
+  )
+  
+  local title = includeMasterInCount 
+    and "Calculate Outputs (Include Master)" 
+    or "Calculate Outputs (Exclude Master)"
+  
+  output_calc_dialog = renoise.app():show_custom_dialog(title, content, keyhandler)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- Calculate and Set directly (no dialog)
+function PakettiOutputsCalculateSet(includeMasterInCount)
+  local calc = PakettiCalculateOptimalOutputs(includeMasterInCount)
+  
+  local success = PakettiApplySequentialOutputRouting(includeMasterInCount)
+  
+  if success then
+    local master_text = includeMasterInCount and "incl. Master" or "excl. Master"
+    renoise.app():show_status(string.format(
+      "Output routing applied (%s): %d tracks -> %d stereo pairs (%d outputs)",
+      master_text, calc.track_count, calc.stereo_pairs, calc.total_outputs
+    ))
+  end
+end
+
+-- Keybindings for the new functions
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Calculate Outputs (Ask, Exclude Master)",
+  invoke = function() PakettiOutputsCalculateAskSet(false) end
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Calculate Outputs (Ask, Include Master)",
+  invoke = function() PakettiOutputsCalculateAskSet(true) end
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Calculate Outputs (Direct, Exclude Master)",
+  invoke = function() PakettiOutputsCalculateSet(false) end
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Calculate Outputs (Direct, Include Master)",
+  invoke = function() PakettiOutputsCalculateSet(true) end
+}
