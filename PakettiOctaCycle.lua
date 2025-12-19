@@ -622,6 +622,22 @@ function export_octacycle_to_octatrack(sample, segments)
   
   sample.sample_buffer:save_as(wav_filename, "wav")
   
+  -- Inject CUE markers into WAV file for broader compatibility
+  if PakettiWavCueWriteCueChunksToWav then
+    local slice_markers = {}
+    local current_pos = 1
+    for _, segment in ipairs(segments) do
+      table.insert(slice_markers, current_pos)
+      current_pos = current_pos + segment.segment_length
+    end
+    local cue_success, cue_error = PakettiWavCueWriteCueChunksToWav(wav_filename, slice_markers, ot_sample_rate, sample.name)
+    if cue_success then
+      print("OctaCycle: Injected " .. #slice_markers .. " CUE markers into WAV file")
+    else
+      print("OctaCycle: Warning - Failed to inject CUE markers: " .. tostring(cue_error))
+    end
+  end
+  
   -- Create and export .ot file using OctaCycle method
   local ot_data = create_octacycle_ot_data(segments)
   local ot_filename = base_name .. ".ot"
@@ -633,8 +649,9 @@ function export_octacycle_to_octatrack(sample, segments)
     end
     f:close()
     
-    print("OctaCycle: Exported " .. wav_filename .. " + " .. ot_filename)
-    renoise.app():show_status("OctaCycle exported: " .. ot_filename:match("([^/\\]+)$"))
+    local cue_info = (#segments > 0) and string.format(" (%d CUE markers)", #segments) or ""
+    print("OctaCycle: Exported " .. wav_filename .. " + " .. ot_filename .. cue_info)
+    renoise.app():show_status("OctaCycle exported: " .. ot_filename:match("([^/\\]+)$") .. cue_info)
   else
     renoise.app():show_error("Could not create .ot file: " .. ot_filename)
   end

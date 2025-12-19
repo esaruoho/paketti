@@ -1,4 +1,9 @@
 -- Organize these to the right places:
+
+-- StemLoader direct File menu entries (unconditional)
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti StemLoader...",invoke=function() pakettiStemLoader() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti StemLoader (Slice to Patterns)...",invoke=function() pakettiStemLoader(false, false, true) end}
+
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Toggle Marker Position (CTRL-F7)",invoke = function() PakettiCaptureMarkerPosition() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus Matrix Overview",invoke = function() createMatrixOverview() end}
@@ -62,8 +67,15 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Sample
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader...",invoke = function() pakettiStemLoader() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (Normalize)...",invoke = function() pakettiStemLoader(true) end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (No Preset)...",invoke = function() pakettiStemLoader(false, true) end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (No Preset + Normalize)...",invoke = function() pakettiStemLoader(true, true) end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (Slice to Patterns)...",invoke = function() pakettiStemLoader(false, false, true) end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (Slice to Patterns + Normalize)...",invoke = function() pakettiStemLoader(true, false, true) end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Open Last StemSlicer Output...",invoke = openLastStemSlicerOutput}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:SlicePro:SlicePro Apply",invoke = function() SliceProApplyOrConfig() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:SlicePro:SlicePro Config...",invoke = function() SliceProConfigDialog() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:SlicePro:SlicePro Silent Apply",invoke = function() SliceProSilentApply() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
@@ -1065,6 +1077,18 @@ function PakettiMenuApplyFileMenuLocation(mode)
     if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti StemLoader (Normalize)...") then
       renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti StemLoader (Normalize)...",invoke=function() pakettiStemLoader(true) end}
     end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti StemLoader (No Preset)...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti StemLoader (No Preset)...",invoke=function() pakettiStemLoader(false, true) end}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti StemLoader (No Preset + Normalize)...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti StemLoader (No Preset + Normalize)...",invoke=function() pakettiStemLoader(true, true) end}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti StemLoader (Slice to Patterns)...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti StemLoader (Slice to Patterns)...",invoke=function() pakettiStemLoader(false, false, true) end}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti StemLoader (Slice to Patterns + Normalize)...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti StemLoader (Slice to Patterns + Normalize)...",invoke=function() pakettiStemLoader(true, false, true) end}
+    end
     if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti Track Dater & Titler...") then
       renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti Track Dater & Titler...",invoke=pakettiTitlerDialog}
     end
@@ -1229,6 +1253,10 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Load XRNI & K
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader",invoke=function() pakettiStemLoader() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (Normalize)",invoke=function() pakettiStemLoader(true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (No Preset)",invoke=function() pakettiStemLoader(false, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (No Preset + Normalize)",invoke=function() pakettiStemLoader(true, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (Slice to Patterns)",invoke=function() pakettiStemLoader(false, false, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (Slice to Patterns + Normalize)",invoke=function() pakettiStemLoader(true, false, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load Drumkit with Overlap Random",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(2) end}
@@ -2828,6 +2856,10 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Stem Loader",invoke=function() pakettiStemLoader() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Stem Loader (Normalize)",invoke=function() pakettiStemLoader(true) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Stem Loader (No Preset)",invoke=function() pakettiStemLoader(false, true) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Stem Loader (No Preset + Normalize)",invoke=function() pakettiStemLoader(true, true) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Stem Loader (Slice to Patterns)",invoke=function() pakettiStemLoader(false, false, true) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Stem Loader (Slice to Patterns + Normalize)",invoke=function() pakettiStemLoader(true, false, true) end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Clean Render:Clean Render Selected Track/Group LPB*2",invoke=function() pakettiCleanRenderSelectionLPB() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Clean Render:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Clean Render:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
@@ -3447,6 +3479,10 @@ renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Load:Paketti Pi
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti Stem Loader",invoke=function() pakettiStemLoader() end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti Stem Loader (Normalize)",invoke=function() pakettiStemLoader(true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti Stem Loader (No Preset)",invoke=function() pakettiStemLoader(false, true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti Stem Loader (No Preset + Normalize)",invoke=function() pakettiStemLoader(true, true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti Stem Loader (Slice to Patterns)",invoke=function() pakettiStemLoader(false, false, true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Load:Paketti Stem Loader (Slice to Patterns + Normalize)",invoke=function() pakettiStemLoader(true, false, true) end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Load:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Load:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 

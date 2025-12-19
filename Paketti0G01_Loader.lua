@@ -192,6 +192,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiLoaderMoveSilenceToEnd=false,
   pakettiLoaderNormalizeSamples=false,
   pakettiLoaderNormalizeLargeSamples=false,
+  pakettiStemLoaderDestructive=false,  -- When enabled, clears all tracks and patterns before loading stems
+  pakettiStemLoaderAutoSliceOnMixedRates=true,  -- Auto-switch to slice mode when mixed sample rates detected
   pakettiLoadToAllTracksPosition=true,  -- false = First (position 2), true = Last (end of chain)
   pakettiLazySlicerShowNewestSlice=false,  -- false = Show Original Sample, true = Show Newest Slice
   pakettiPolyendOpenDialog=true,
@@ -315,6 +317,19 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     sliceCounter=1,
     SliceLoopMode=true, 
     slicePreviousDirection=1
+  },
+  SlicePro = {
+    SliceProBeatSyncMode=1,     -- 1=Repitch, 2=Percussion, 3=Texture
+    SliceProMuteGroup=0,        -- 0-15 (0 = none)
+    SliceProNNA=1,              -- 1=Cut, 2=Note Off, 3=Sustain
+    SliceProLoopMode=1,         -- 1=Off, 2=Forward, 3=Reverse, 4=PingPong
+    SliceProAutofade=true,
+    SliceProLoopRelease=false,
+    SliceProOneShot=true,       -- Set one-shot mode on slices
+    SliceProRequireSampleEditor=false,  -- When true, only works in Sample Editor
+    SliceProOverrides="",       -- Persistent overrides storage (serialized string)
+    SliceProFallbackOnLowConfidence=true,  -- Use intelligent detection as fallback
+    SliceProConfidenceThreshold=0.3  -- Below this confidence, use fallback
   },
   AppSelection = {
     AppSelection1="",
@@ -1637,6 +1652,28 @@ vb:row{
                 tooltip="Automatically normalize samples larger than 10MB after loading",
                 notifier=function(value) 
                   preferences.pakettiLoaderNormalizeLargeSamples.value=value 
+                  preferences:save_as("preferences.xml")
+                end
+              }
+            },
+            vb:row{vb:text{text="Paketti Stem Loader Settings", font="bold", style="strong"}},
+            vb:row{
+              vb:text{text="Destructive Mode",width=150,tooltip="When enabled, clears all tracks and patterns before loading stems (clean slate)"},
+              vb:checkbox{
+                value=preferences.pakettiStemLoaderDestructive.value,
+                tooltip="When enabled, clears all tracks and patterns before loading stems (clean slate)",
+                notifier=function(value) 
+                  preferences.pakettiStemLoaderDestructive.value=value 
+                  preferences:save_as("preferences.xml")
+                end
+              },
+              vb:space{width=checkbox_spacing},
+              vb:text{text="Auto-Slice on Mixed Rates",width=150,tooltip="Automatically use slice-to-patterns mode when mixed sample rates are detected"},
+              vb:checkbox{
+                value=preferences.pakettiStemLoaderAutoSliceOnMixedRates.value,
+                tooltip="Automatically use slice-to-patterns mode when mixed sample rates are detected",
+                notifier=function(value) 
+                  preferences.pakettiStemLoaderAutoSliceOnMixedRates.value=value 
                   preferences:save_as("preferences.xml")
                 end
               }

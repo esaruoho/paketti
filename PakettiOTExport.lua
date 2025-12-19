@@ -1307,9 +1307,24 @@ function PakettiOTExport()
     
     sample.sample_buffer:save_as(wav_filename, "wav")
     
+    -- Inject CUE markers into WAV file for broader compatibility
+    if sample.slice_markers and #sample.slice_markers > 0 and PakettiWavCueWriteCueChunksToWav then
+        local slice_markers = {}
+        for _, marker in ipairs(sample.slice_markers) do
+            table.insert(slice_markers, marker)
+        end
+        local cue_success, cue_error = PakettiWavCueWriteCueChunksToWav(wav_filename, slice_markers, sample.sample_buffer.sample_rate, sample.name)
+        if cue_success then
+            print("PakettiOTExport: Injected " .. #slice_markers .. " CUE markers into WAV file")
+        else
+            print("PakettiOTExport: Warning - Failed to inject CUE markers: " .. tostring(cue_error))
+        end
+    end
+    
     -- Show full paths in status message
     local ot_path = base_name .. ".ot"
-    renoise.app():show_status("Exported to: " .. ot_path .. " + " .. wav_filename)
+    local cue_info = (sample.slice_markers and #sample.slice_markers > 0) and string.format(" (%d CUE markers)", #sample.slice_markers) or ""
+    renoise.app():show_status("Exported to: " .. ot_path .. " + " .. wav_filename .. cue_info)
     print("PakettiOTExport: Created .ot file: " .. ot_path)
     print("PakettiOTExport: Created .wav file: " .. wav_filename)
 end
@@ -3722,11 +3737,26 @@ function PakettiOTExportPlayToEnd()
   
   sample.sample_buffer:save_as(wav_filename, "wav")
   
+  -- Inject CUE markers into WAV file for broader compatibility
+  if sample.slice_markers and #sample.slice_markers > 0 and PakettiWavCueWriteCueChunksToWav then
+    local slice_markers = {}
+    for _, marker in ipairs(sample.slice_markers) do
+      table.insert(slice_markers, marker)
+    end
+    local cue_success, cue_error = PakettiWavCueWriteCueChunksToWav(wav_filename, slice_markers, sample.sample_buffer.sample_rate, sample.name)
+    if cue_success then
+      print("-- OT Export PlayToEnd: Injected " .. #slice_markers .. " CUE markers into WAV file")
+    else
+      print("-- OT Export PlayToEnd: Warning - Failed to inject CUE markers: " .. tostring(cue_error))
+    end
+  end
+  
   -- Restore original name
   sample.name = temp_name
   
   local ot_path = base_name .. ".ot"
-  renoise.app():show_status("Exported play-to-end drumkit: " .. ot_path .. " + " .. wav_filename)
+  local cue_info = (sample.slice_markers and #sample.slice_markers > 0) and string.format(" (%d CUE markers)", #sample.slice_markers) or ""
+  renoise.app():show_status("Exported play-to-end drumkit: " .. ot_path .. " + " .. wav_filename .. cue_info)
   print("-- OT Export PlayToEnd: Export completed successfully")
 end
 

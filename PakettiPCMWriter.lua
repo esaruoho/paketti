@@ -249,6 +249,13 @@ local shape_segments = 6     -- Number of segments for polygon shapes
 local shape_curve = 1.0      -- Curve amount for exponential/logarithmic shapes
 local shape_recursion = 3    -- Recursion depth for fractal shapes
 
+-- Waveform generation parameters (from CustomWave integration)
+local variator_state = 0       -- Persistent state for variator waveform (random walk)
+local generation_cycles = 1    -- Number of waveform cycles to generate (1-8)
+local generation_freq_mult = 1 -- Frequency multiplier for generation (1-8x)
+local generation_amplitude = 1.0  -- Amplitude for waveform generation (0.0-1.0)
+local generation_invert = false   -- Invert waveform during generation
+
 local selected_sample_index = -1
 local is_drawing = false
 local hex_buttons = {}
@@ -521,7 +528,9 @@ function PCMWriterGenerateWaveformMorph(wave_type, shape_param, target_data, siz
   
   -- Generate waveform using MorphSynth wave functions
   for i = 1, size do
-    local phase = (i - 1) / size
+    -- Apply cycles and frequency multiplier to phase calculation
+    local base_phase = (i - 1) / size
+    local phase = (base_phase * generation_freq_mult * generation_cycles) % 1
     local value = 0
     
     if WaveFunctions[wave_type] then
@@ -530,6 +539,14 @@ function PCMWriterGenerateWaveformMorph(wave_type, shape_param, target_data, siz
       -- Fallback to sine if wave type not found
       value = WaveFunctions["Sine"](phase, shape_param)
     end
+    
+    -- Apply invert if enabled
+    if generation_invert then
+      value = -value
+    end
+    
+    -- Apply amplitude
+    value = value * generation_amplitude
     
     -- Convert from -1..1 to 0..65535
     target_data[i] = math.floor((value * 32767) + 32768)
@@ -1097,6 +1114,182 @@ function PCMWriterSwapWaves()
   renoise.app():show_status("Swapped Wave A and Wave B")
 end
 
+-- Time-based morphing: Wave A morphs to Wave B across the waveform length (from CustomWave)
+function PCMWriterGenerateTimeMorph()
+  -- Reset variator state for consistent results
+  variator_state = 0
+  
+  for i = 1, wave_size do
+    local morph_progress = (i - 1) / (wave_size - 1)  -- 0 at start, 1 at end
+    local value_a = wave_data_a[i]
+    local value_b = wave_data_b[i]
+    local blended = math.floor(value_a * (1 - morph_progress) + value_b * morph_progress)
+    wave_data[i] = math.max(0, math.min(65535, blended))
+  end
+  
+  if waveform_canvas then
+    waveform_canvas:update()
+  end
+  PCMWriterUpdateHexDisplay()
+  PCMWriterUpdateLiveSample()
+  renoise.app():show_status("Generated time-morphing waveform (A→B across waveform)")
+end
+
+-- Load existing sample as source into current Wave (A or B) - from CustomWave
+function PCMWriterLoadSampleAsSource()
+  local song = renoise.song()
+  local dialog_vb = renoise.ViewBuilder()
+  local selected_inst_idx = 1
+  local selected_sample_idx = 1
+  local load_sample_dialog = nil
+  
+  -- Build instrument list
+  local function build_inst_items()
+    local items = {}
+    for i, inst in ipairs(song.instruments) do
+      local name = inst.name ~= "" and inst.name or ("Instrument " .. string.format("%02X", i-1))
+      local sample_count = #inst.samples
+      table.insert(items, string.format("%02X: %s (%d samples)", i-1, name, sample_count))
+    end
+    return items
+  end
+  
+  -- Build sample list for selected instrument
+  local function build_sample_items(inst_idx)
+    local items = {}
+    local inst = song.instruments[inst_idx]
+    if inst and #inst.samples > 0 then
+      for i, sample in ipairs(inst.samples) do
+        local name = sample.name ~= "" and sample.name or ("Sample " .. string.format("%02X", i-1))
+        local has_data = sample.sample_buffer.has_sample_data
+        local frames = has_data and sample.sample_buffer.number_of_frames or 0
+        table.insert(items, string.format("%02X: %s (%d frames)", i-1, name, frames))
+      end
+    else
+      table.insert(items, "-- No samples --")
+    end
+    return items
+  end
+  
+  -- Load the selected sample into current wave buffer
+  local function do_load_sample()
+    local inst = song.instruments[selected_inst_idx]
+    if not inst or #inst.samples == 0 then
+      renoise.app():show_status("No samples in selected instrument")
+      return false
+    end
+    
+    local sample = inst.samples[selected_sample_idx]
+    if not sample or not sample.sample_buffer.has_sample_data then
+      renoise.app():show_status("Selected sample has no data")
+      return false
+    end
+    
+    local source_buffer = sample.sample_buffer
+    local source_frames = source_buffer.number_of_frames
+    local target_data = PCMWriterGetCurrentWaveData()
+    
+    -- Resample to wave_size using linear interpolation
+    for i = 1, wave_size do
+      local source_pos = (i - 1) / (wave_size - 1) * (source_frames - 1) + 1
+      local idx = math.floor(source_pos)
+      local frac = source_pos - idx
+      
+      -- Get sample values (handle mono/stereo by averaging channels)
+      local val1 = 0
+      local val2 = 0
+      local num_channels = source_buffer.number_of_channels
+      
+      for ch = 1, num_channels do
+        val1 = val1 + source_buffer:sample_data(ch, math.min(idx, source_frames))
+        val2 = val2 + source_buffer:sample_data(ch, math.min(idx + 1, source_frames))
+      end
+      val1 = val1 / num_channels
+      val2 = val2 / num_channels
+      
+      -- Linear interpolation
+      local value = val1 + frac * (val2 - val1)
+      
+      -- Convert from -1..1 to 0..65535
+      target_data[i] = math.floor((value * 32767) + 32768)
+      target_data[i] = math.max(0, math.min(65535, target_data[i]))
+    end
+    
+    -- Update displays
+    PCMWriterUpdateCrossfadedWave()
+    if waveform_canvas then
+      waveform_canvas:update()
+    end
+    PCMWriterUpdateHexDisplay()
+    PCMWriterUpdateLiveSample()
+    
+    local sample_name = sample.name ~= "" and sample.name or "Sample"
+    renoise.app():show_status(string.format("Loaded '%s' (%d frames) into Wave %s", 
+      sample_name, source_frames, current_wave_edit))
+    return true
+  end
+  
+  -- Create dialog content
+  local dialog_content = dialog_vb:column{
+    margin = 10,
+    spacing = 5,
+    dialog_vb:text{ text = "Load Sample as Waveform Source", font = "bold" },
+    dialog_vb:text{ text = string.format("Target: Wave %s (%d samples)", current_wave_edit, wave_size) },
+    dialog_vb:space{ height = 5 },
+    dialog_vb:row{
+      dialog_vb:text{ text = "Instrument:", width = 80 },
+      dialog_vb:popup{
+        id = "inst_popup",
+        items = build_inst_items(),
+        value = selected_inst_idx,
+        width = 250,
+        notifier = function(idx)
+          selected_inst_idx = idx
+          selected_sample_idx = 1
+          dialog_vb.views.sample_popup.items = build_sample_items(idx)
+          dialog_vb.views.sample_popup.value = 1
+        end
+      }
+    },
+    dialog_vb:row{
+      dialog_vb:text{ text = "Sample:", width = 80 },
+      dialog_vb:popup{
+        id = "sample_popup",
+        items = build_sample_items(selected_inst_idx),
+        value = selected_sample_idx,
+        width = 250,
+        notifier = function(idx)
+          selected_sample_idx = idx
+        end
+      }
+    },
+    dialog_vb:space{ height = 10 },
+    dialog_vb:row{
+      dialog_vb:button{
+        text = "Load into Wave " .. current_wave_edit,
+        width = 150,
+        notifier = function()
+          if do_load_sample() then
+            load_sample_dialog:close()
+          end
+        end
+      },
+      dialog_vb:button{
+        text = "Cancel",
+        width = 80,
+        notifier = function()
+          load_sample_dialog:close()
+        end
+      }
+    }
+  }
+  
+  load_sample_dialog = renoise.app():show_custom_dialog(
+    "PCM Writer - Load Sample as Source",
+    dialog_content
+  )
+end
+
 -- Generate basic waveforms
 function PCMWriterGenerateWaveform(type, target_data, size)
   target_data = target_data or PCMWriterGetCurrentWaveData()
@@ -1138,13 +1331,25 @@ function PCMWriterGenerateWaveform(type, target_data, size)
     return
   end
   
+  -- Reset variator state for consistent results
+  variator_state = 0
+  
   -- Original wave generation for backward compatibility
   for i = 1, size do
-    local phase = (i - 1) / size
+    -- Apply cycles and frequency multiplier to phase calculation
+    local base_phase = (i - 1) / size
+    local phase = (base_phase * generation_freq_mult * generation_cycles) % 1
     local value = 0
     
     if type == "sine" then
       value = math.sin(phase * math.pi * 2)
+    elseif type == "cosine" then
+      -- Pure cosine wave (like sine but starts at peak)
+      value = math.cos(phase * math.pi * 2)
+    elseif type == "pulse_var" then
+      -- Variable-width pulse using shape_asymmetry for duty cycle (0.1 to 0.9)
+      local width = shape_asymmetry
+      value = phase < width and 1 or -1
     elseif type == "square" then
       value = phase < 0.5 and 1 or -1
     elseif type == "square_rounded" then
@@ -1524,10 +1729,40 @@ function PCMWriterGenerateWaveform(type, target_data, size)
               (math.random() * 2 - 1) * 0.125
       value = value / 1.875  -- Normalize
     
+    -- NEW WAVEFORMS FROM CUSTOMWAVE
+    elseif type == "arccosine" then
+      -- Arc cosine: unique curved waveform (from CustomWave)
+      value = (-1 + 2 * math.acos(-1 + 2 * phase) / math.pi)
+    
+    elseif type == "arcsine" then
+      -- Arc sine: S-curve waveform (from CustomWave)
+      value = math.asin(-1 + 2 * phase) / (math.pi * 0.5)
+    
+    elseif type == "tangent" then
+      -- Tangent wave with width control via shape_asymmetry (from CustomWave)
+      local width = shape_asymmetry * 0.4 + 0.1  -- 0.1 to 0.5 range
+      value = math.tan(math.pi * (phase - 0.5)) * width
+      value = math.max(-1, math.min(1, value))  -- Clamp to prevent infinity
+    
+    elseif type == "variator" then
+      -- Random walk generator - value changes randomly but smoothly (from CustomWave)
+      local variation = (math.random() - 0.5) * shape_asymmetry
+      variator_state = variator_state + variation
+      variator_state = math.max(-1, math.min(1, variator_state))
+      value = variator_state
+    
     else
       -- Default to sine
       value = math.sin(phase * math.pi * 2)
     end
+    
+    -- Apply invert if enabled
+    if generation_invert then
+      value = -value
+    end
+    
+    -- Apply amplitude
+    value = value * generation_amplitude
     
     -- Convert from -1..1 to 0..65535
     target_data[i] = math.floor((value * 32767) + 32768)
@@ -7818,7 +8053,7 @@ function PCMWriterShowPcmDialog()
           end
           popup.value = new_value
           -- Manually trigger waveform generation
-          local types = {"sine", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
+          local types = {"sine", "cosine", "pulse_var", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
                          "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
                          "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
                          "organ", "metallic", "vocal", "digital", "wobble",
@@ -7826,7 +8061,8 @@ function PCMWriterShowPcmDialog()
                          "bezier_diamond", "harmonic_diamond", "pentagon", "hexagon", "crystal", "zigzag", "staircase", 
                          "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
                          "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
-                         "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise"}
+                         "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
+                         "arccosine", "arcsine", "tangent", "variator"}
           current_waveform_type = types[new_value]
           PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
           selected_sample_index = -1
@@ -7842,7 +8078,7 @@ function PCMWriterShowPcmDialog()
     },
 
     vb:popup{
-      items = {"sine", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
+      items = {"sine", "cosine", "pulse_var", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
                "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
                "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
                "organ", "metallic", "vocal", "digital", "wobble",
@@ -7850,7 +8086,8 @@ function PCMWriterShowPcmDialog()
                "bezier_diamond", "harmonic_diamond", "pentagon", "hexagon", "crystal", "zigzag", "staircase", 
                "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
                "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
-               "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise"},
+               "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
+               "arccosine", "arcsine", "tangent", "variator"},
       value = 1,
       width=150,
       id = "waveform_popup",
@@ -7859,7 +8096,7 @@ function PCMWriterShowPcmDialog()
         if dialog_rebuilding then
           return
         end
-        local types = {"sine", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
+        local types = {"sine", "cosine", "pulse_var", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
                        "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
                        "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
                        "organ", "metallic", "vocal", "digital", "wobble",
@@ -7867,7 +8104,8 @@ function PCMWriterShowPcmDialog()
                        "bezier_diamond", "harmonic_diamond", "pentagon", "hexagon", "crystal", "zigzag", "staircase", 
                        "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
                        "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
-                       "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise"}
+                       "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
+                       "arccosine", "arcsine", "tangent", "variator"}
         current_waveform_type = types[idx]  -- Track current waveform type
         PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
         selected_sample_index = -1
@@ -7893,7 +8131,7 @@ function PCMWriterShowPcmDialog()
           end
           popup.value = new_value
           -- Manually trigger waveform generation
-          local types = {"sine", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
+          local types = {"sine", "cosine", "pulse_var", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
                          "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
                          "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
                          "organ", "metallic", "vocal", "digital", "wobble",
@@ -7901,7 +8139,8 @@ function PCMWriterShowPcmDialog()
                          "bezier_diamond", "harmonic_diamond", "pentagon", "hexagon", "crystal", "zigzag", "staircase", 
                          "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
                          "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
-                         "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise"}
+                         "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
+                         "arccosine", "arcsine", "tangent", "variator"}
           current_waveform_type = types[new_value]
           PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
           selected_sample_index = -1
@@ -8123,7 +8362,77 @@ function PCMWriterShowPcmDialog()
         width = 150,
         font = "mono",
         tooltip = "Current shape with parameters"
-      }
+      },
+      vb:text{ text = "Cycles", style = "normal" },
+      vb:slider{
+        id = "cycles_slider",
+        min = 1,
+        max = 8,
+        value = generation_cycles,
+        width = 60,
+        notifier = function(value)
+          generation_cycles = math.floor(value)
+          hex_field_has_focus = false
+          if pcm_dialog and pcm_dialog.visible then
+            local cycles_display = vb.views.cycles_value
+            if cycles_display then
+              cycles_display.text = string.format("%d", generation_cycles)
+            end
+          end
+          renoise.app():show_status(string.format("Cycles: %d (affects next waveform generation)", generation_cycles))
+        end
+      },
+      vb:text{ text = string.format("%d", generation_cycles), id = "cycles_value", width = 20 },
+      vb:text{ text = "FreqMult", style = "normal" },
+      vb:slider{
+        id = "freq_mult_slider",
+        min = 1,
+        max = 8,
+        value = generation_freq_mult,
+        width = 60,
+        notifier = function(value)
+          generation_freq_mult = math.floor(value)
+          hex_field_has_focus = false
+          if pcm_dialog and pcm_dialog.visible then
+            local freq_mult_display = vb.views.freq_mult_value
+            if freq_mult_display then
+              freq_mult_display.text = string.format("%dx", generation_freq_mult)
+            end
+          end
+          renoise.app():show_status(string.format("Frequency Multiplier: %dx (affects next waveform generation)", generation_freq_mult))
+        end
+      },
+      vb:text{ text = string.format("%dx", generation_freq_mult), id = "freq_mult_value", width = 25 },
+      vb:text{ text = "Amplitude", style = "normal" },
+      vb:slider{
+        id = "gen_amplitude_slider",
+        min = 0.0,
+        max = 1.0,
+        value = generation_amplitude,
+        width = 60,
+        notifier = function(value)
+          generation_amplitude = value
+          hex_field_has_focus = false
+          if pcm_dialog and pcm_dialog.visible then
+            local amp_display = vb.views.gen_amplitude_value
+            if amp_display then
+              amp_display.text = string.format("%.2f", generation_amplitude)
+            end
+          end
+          renoise.app():show_status(string.format("Amplitude: %.2f (affects next waveform generation)", generation_amplitude))
+        end
+      },
+      vb:text{ text = string.format("%.2f", generation_amplitude), id = "gen_amplitude_value", width = 30 },
+      vb:checkbox{
+        id = "gen_invert_checkbox",
+        value = generation_invert,
+        notifier = function(value)
+          generation_invert = value
+          hex_field_has_focus = false
+          renoise.app():show_status(string.format("Invert: %s (affects next waveform generation)", generation_invert and "ON" or "OFF"))
+        end
+      },
+      vb:text{ text = "Invert", style = "normal" }
     }, -- SHAPE_PARAMS_ROW ENDS
     
     -- Wave A/B crossfade row
@@ -8256,6 +8565,18 @@ function PCMWriterShowPcmDialog()
         width = 60,
         tooltip = "Swap Wave A and Wave B",
         notifier = PCMWriterSwapWaves
+      },
+      vb:button{
+        text = "A→B Morph",
+        width = 65,
+        tooltip = "Generate time-morphing waveform (starts as Wave A, ends as Wave B)",
+        notifier = PCMWriterGenerateTimeMorph
+      },
+      vb:button{
+        text = "Load Sample",
+        width = 75,
+        tooltip = "Load an existing sample into current Wave (A or B)",
+        notifier = PCMWriterLoadSampleAsSource
       },
       vb:button{
         text = "Random AKWF",

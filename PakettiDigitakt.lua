@@ -541,6 +541,57 @@ local function export_digitakt_chain(params)
                                    config.bit_depth, params.apply_dither)
   
   if success then
+    -- Calculate slice marker positions for CUE header injection
+    local slice_markers = {}
+    local slot_length_frames = math.floor(last_export_info.slot_duration * config.sample_rate)
+    
+    if params.export_mode == "spaced" then
+      -- Spaced mode: uniform slots
+      local slot_count = last_export_info.sample_count
+      -- Round up to valid slot count if auto mode
+      if not params.slot_count then
+        local valid_slot_counts = {4, 8, 16, 32, 64, 128}
+        for _, count in ipairs(valid_slot_counts) do
+          if count >= slot_count then
+            slot_count = count
+            break
+          end
+        end
+      else
+        slot_count = params.slot_count
+      end
+      
+      for i = 1, slot_count do
+        local marker_pos = (i - 1) * slot_length_frames + 1
+        table.insert(slice_markers, marker_pos)
+      end
+      print(string.format("PakettiDigitakt: Calculated %d slice markers for spaced mode (slot length: %d frames)", 
+        #slice_markers, slot_length_frames))
+    else
+      -- Chain mode: use actual sample boundaries
+      local current_pos = 1
+      for i, sample_data in ipairs(processed_samples) do
+        table.insert(slice_markers, current_pos)
+        current_pos = current_pos + #sample_data[1]
+      end
+      print(string.format("PakettiDigitakt: Calculated %d slice markers for chain mode", #slice_markers))
+    end
+    
+    -- Inject CUE markers into the WAV file
+    if #slice_markers > 0 and PakettiWavCueWriteCueChunksToWav then
+      local instrument_name = song.selected_instrument.name or "Digitakt Chain"
+      local cue_success, cue_error = PakettiWavCueWriteCueChunksToWav(filename, slice_markers, config.sample_rate, instrument_name)
+      if cue_success then
+        print("PakettiDigitakt: Successfully injected CUE markers into WAV file")
+      else
+        print("PakettiDigitakt: Warning - Failed to inject CUE markers: " .. tostring(cue_error))
+      end
+    else
+      if not PakettiWavCueWriteCueChunksToWav then
+        print("PakettiDigitakt: CUE marker injection not available (PakettiWavCueWriteCueChunksToWav not found)")
+      end
+    end
+    
     -- Create metadata string for sample naming
     local metadata = string.format("DT[V%s:S%d:C%d:M=%s:SC=%s:F=%d:D=%d:P=%d]",
       params.digitakt_version == "digitakt2" and "2" or "1",
@@ -552,8 +603,8 @@ local function export_digitakt_chain(params)
       params.apply_dither and 1 or 0,
       params.pad_with_zero and 1 or 0)
     
-    local status_msg = string.format("Digitakt chain exported: %d samples, %.2fs total %s", 
-      last_export_info.sample_count, last_export_info.total_duration, metadata)
+    local status_msg = string.format("Digitakt chain exported: %d samples, %.2fs total, %d CUE markers %s", 
+      last_export_info.sample_count, last_export_info.total_duration, #slice_markers, metadata)
     renoise.app():show_status(status_msg)
     print("PakettiDigitakt: Export completed successfully")
     return true
