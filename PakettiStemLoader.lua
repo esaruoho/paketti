@@ -172,6 +172,40 @@ local function pakettiStemLoaderExtractBpmFromFolderName(folder_path)
   return nil
 end
 
+-- Reverse a sample buffer in-place
+-- This swaps audio frames from start to end, creating a backwards version
+local function pakettiStemLoaderReverseSampleBuffer(sample)
+  local buffer = sample.sample_buffer
+  if not buffer or not buffer.has_sample_data then 
+    print("Stem Loader Reverse: No sample data to reverse")
+    return false
+  end
+  
+  buffer:prepare_sample_data_changes()
+  local frames = buffer.number_of_frames
+  local channels = buffer.number_of_channels
+  
+  print(string.format("Stem Loader Reverse: Reversing %d frames, %d channels", frames, channels))
+  
+  -- Swap frames from start to end for each channel
+  for ch = 1, channels do
+    for f = 1, math.floor(frames / 2) do
+      local front_val = buffer:sample_data(ch, f)
+      local back_val = buffer:sample_data(ch, frames - f + 1)
+      buffer:set_sample_data(ch, f, back_val)
+      buffer:set_sample_data(ch, frames - f + 1, front_val)
+    end
+  end
+  
+  buffer:finalize_sample_data_changes()
+  print("Stem Loader Reverse: Completed")
+  return true
+end
+
+-- Global registry of forwards/reverse track pairs for Stem Loader
+-- Format: { {fwd_track=1, rev_track=2, fwd_instrument=1, rev_instrument=2, name="stem"}, ... }
+stem_forwards_reverse_pairs = {}
+
 -- Calculate the number of patterns needed based on sample length, BPM, and LPB
 local function pakettiStemLoaderCalculatePatternsNeeded(frames, sample_rate, bpm, lpb, pattern_length)
   if frames <= 0 or sample_rate <= 0 or bpm <= 0 or lpb <= 0 or pattern_length <= 0 then
@@ -849,6 +883,479 @@ function pakettiStemLoader_process(options)
   print("Paketti Stem Loader: Completed loading " .. #selected_sample_filenames .. " stems")
 end
 
+-----------
+-- Forwards+Reverse Stem Loader
+-- Loads each stem twice: original (forwards) and reversed copy on paired tracks
+-- Enables randomization between forwards/reverse versions during playback
+-----------
+
+-- Progress tracking for Forwards+Reverse loader
+local stem_fwdrev_loader_progress = {
+  current_file_index = 0,
+  current_filename = "",
+  total_files = 0,
+  slicer = nil,
+  vb = nil,
+  dialog = nil
+}
+
+-- Main Forwards+Reverse Stem Loader function
+-- normalize: boolean - whether to normalize samples after loading
+function pakettiStemLoaderForwardsReverse(normalize)
+  local selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read(
+    {"*.wav", "*.aif", "*.flac", "*.mp3", "*.aiff"}, 
+    "Paketti Stem Loader (Forwards+Reverse)"
+  )
+
+  if #selected_sample_filenames == 0 then
+    renoise.app():show_status("No files selected.")
+    return
+  end
+
+  print("Paketti Stem Loader (Forwards+Reverse): " .. #selected_sample_filenames .. " files selected")
+  rprint(selected_sample_filenames)
+  
+  -- Clear previous pairing registry
+  stem_forwards_reverse_pairs = {}
+  
+  -- BPM detection (same as regular stem loader)
+  local folder_bpm = nil
+  local first_file = selected_sample_filenames[1]
+  local folder_path = first_file:match("^(.+)/")
+  
+  if folder_path then
+    folder_bpm = pakettiStemLoaderExtractBpmFromFolderName(folder_path)
+    if folder_bpm then
+      print("Paketti Stem Loader FwdRev: Found BPM " .. folder_bpm .. " in folder name")
+    end
+  end
+  
+  -- Detect BPM from files if no folder BPM
+  local detected_bpms = {}
+  if not folder_bpm then
+    for _, filename in ipairs(selected_sample_filenames) do
+      local bpm = pakettiStemLoaderDetectBPM(filename)
+      if bpm then
+        table.insert(detected_bpms, bpm)
+      end
+    end
+  else
+    table.insert(detected_bpms, folder_bpm)
+  end
+  
+  -- Set BPM if found
+  if #detected_bpms > 0 then
+    local majority_bpm, count = pakettiStemLoaderFindMajorityBPM(detected_bpms)
+    if majority_bpm then
+      renoise.song().transport.bpm = majority_bpm
+      local source = folder_bpm and "folder name" or "file metadata"
+      print("Paketti Stem Loader FwdRev: Set BPM to " .. majority_bpm .. " (from " .. source .. ")")
+      renoise.app():show_status("Stem Loader FwdRev: Set BPM to " .. majority_bpm)
+    end
+  end
+  
+  -- Destructive mode: clear song before loading
+  if preferences.pakettiStemLoaderDestructive.value then
+    local song = renoise.song()
+    print("Paketti Stem Loader FwdRev: Destructive mode enabled - clearing song...")
+    
+    while #song.sequencer.pattern_sequence > 1 do
+      song.sequencer:delete_sequence_at(2)
+    end
+    
+    local first_pattern_index = song.sequencer.pattern_sequence[1]
+    song.patterns[first_pattern_index]:clear()
+    
+    while song.sequencer_track_count > 1 do
+      song:delete_track_at(1)
+    end
+    
+    if song.tracks[1] then
+      song.tracks[1].name = "Track 01"
+    end
+    
+    if song.instruments[1] then
+      song.instruments[1]:clear()
+      song.instruments[1].name = ""
+    end
+    song.selected_instrument_index = 1
+    song.selected_track_index = 1
+  end
+  
+  -- Initialize progress tracking
+  stem_fwdrev_loader_progress.current_file_index = 0
+  stem_fwdrev_loader_progress.current_filename = ""
+  stem_fwdrev_loader_progress.total_files = #selected_sample_filenames
+  
+  local options = {
+    filenames = selected_sample_filenames,
+    normalize = normalize or false,
+    destructive_mode = preferences.pakettiStemLoaderDestructive.value or false
+  }
+  
+  -- Create ProcessSlicer for the loading operation
+  stem_fwdrev_loader_progress.slicer = ProcessSlicer(pakettiStemLoaderForwardsReverse_process, options)
+  stem_fwdrev_loader_progress.dialog, stem_fwdrev_loader_progress.vb = stem_fwdrev_loader_progress.slicer:create_dialog("Loading Stems (Forwards+Reverse)...")
+  
+  -- Start the process
+  stem_fwdrev_loader_progress.slicer:start()
+  
+  -- Update progress text periodically
+  renoise.tool():add_timer(pakettiStemLoaderForwardsReverse_update_progress, 100)
+end
+
+function pakettiStemLoaderForwardsReverse_update_progress()
+  local progress = stem_fwdrev_loader_progress
+  
+  if progress.slicer and progress.vb then
+    if progress.slicer:running() and not progress.slicer:was_cancelled() then
+      local progress_text = string.format("Processing stem %d of %d (fwd+rev)...", progress.current_file_index, progress.total_files)
+      if progress.current_filename ~= "" then
+        progress_text = progress_text .. "\n" .. progress.current_filename
+      end
+      progress.vb.views.progress_text.text = progress_text
+    elseif not progress.slicer:running() then
+      renoise.tool():remove_timer(pakettiStemLoaderForwardsReverse_update_progress)
+      if progress.dialog and progress.dialog.visible then
+        progress.dialog:close()
+      end
+      if not progress.slicer:was_cancelled() then
+        renoise.app():show_status("All stems loaded with forwards+reverse pairs.")
+      else
+        renoise.app():show_status("Stem loading cancelled.")
+      end
+      
+      stem_fwdrev_loader_progress = {
+        current_file_index = 0,
+        current_filename = "",
+        total_files = 0,
+        slicer = nil,
+        vb = nil,
+        dialog = nil
+      }
+    end
+  end
+end
+
+function pakettiStemLoaderForwardsReverse_process(options)
+  local selected_sample_filenames = options.filenames
+  local normalize = options.normalize
+  local destructive_mode = options.destructive_mode
+  
+  print("Stem Loader FwdRev Process: STARTING (ONE track, TWO instruments per stem)")
+  print("  file count = " .. #selected_sample_filenames)
+  
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+  local SampleRangeLoaderState = preferences.pakettiSampleRangeDeviceLoaderEnabled.value
+  preferences.pakettiSampleRangeDeviceLoaderEnabled.value = false
+  local G01LoaderState = preferences._0G01_Loader.value
+  preferences._0G01_Loader.value = false
+  
+  local song = renoise.song()
+  local loaded_instruments_info = {}
+  
+  for index, filename in ipairs(selected_sample_filenames) do
+    stem_fwdrev_loader_progress.current_file_index = index
+    stem_fwdrev_loader_progress.current_filename = filename:match("^.+[/\\](.+)$") or filename
+    
+    if stem_fwdrev_loader_progress.slicer and stem_fwdrev_loader_progress.slicer:was_cancelled() then
+      PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+      preferences.pakettiSampleRangeDeviceLoaderEnabled.value = SampleRangeLoaderState
+      preferences._0G01_Loader.value = G01LoaderState
+      break
+    end
+    
+    coroutine.yield()
+    
+    local filename_only = filename:match("^.+[/\\](.+)$") or filename
+    local track_index, fwd_instrument_index, rev_instrument_index
+    
+    -- === CREATE ONE TRACK for this stem ===
+    if destructive_mode and index == 1 then
+      track_index = 1
+      fwd_instrument_index = 1
+      song.selected_track_index = 1
+      song.selected_instrument_index = 1
+      if #song.instruments[1].samples == 0 then
+        song.instruments[1]:insert_sample_at(1)
+      end
+    else
+      track_index = song.sequencer_track_count + 1
+      song:insert_track_at(track_index)
+      song.selected_track_index = track_index
+      
+      fwd_instrument_index = song.selected_instrument_index + 1
+      song:insert_instrument_at(fwd_instrument_index)
+      song.selected_instrument_index = fwd_instrument_index
+    end
+    
+    -- === FORWARDS INSTRUMENT ===
+    local fwd_instrument = song.instruments[fwd_instrument_index]
+    if #fwd_instrument.samples == 0 then
+      fwd_instrument:insert_sample_at(1)
+    end
+    song.selected_sample_index = 1
+    
+    local fwd_display_name = string.format("%02X_%s", fwd_instrument_index - 1, filename_only)
+    
+    local sample_info = nil
+    if fwd_instrument.samples[1].sample_buffer:load_from(filename) then
+      print("Stem Loader FwdRev: Loaded FORWARDS: " .. filename_only)
+      local fwd_sample = fwd_instrument.samples[1]
+      
+      fwd_sample.name = fwd_display_name
+      fwd_instrument.name = fwd_display_name
+      fwd_instrument.macros_visible = true
+      
+      fwd_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+      fwd_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+      fwd_sample.autofade = false
+      fwd_sample.autoseek = false
+      fwd_sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+      fwd_sample.oneshot = preferences.pakettiLoaderOneshot.value
+      fwd_sample.new_note_action = preferences.pakettiLoaderNNA.value
+      fwd_sample.loop_release = preferences.pakettiLoaderLoopExit.value
+      
+      -- Track is named after the stem (not [Rev])
+      song.tracks[track_index].name = filename_only
+      
+      if normalize then 
+        normalize_selected_sample() 
+      end
+      
+      local sample_buffer = fwd_sample.sample_buffer
+      if sample_buffer and sample_buffer.has_sample_data then
+        sample_info = {
+          frames = sample_buffer.number_of_frames,
+          sample_rate = sample_buffer.sample_rate,
+          bit_depth = sample_buffer.bit_depth,
+          channels = sample_buffer.number_of_channels
+        }
+        table.insert(loaded_instruments_info, {
+          name = fwd_display_name,
+          frames = sample_buffer.number_of_frames,
+          sample_rate = sample_buffer.sample_rate,
+          bit_depth = sample_buffer.bit_depth,
+          channels = sample_buffer.number_of_channels,
+          instrument_index = fwd_instrument_index,
+          track_index = track_index,
+          is_reversed = false
+        })
+      end
+    else
+      print("Stem Loader FwdRev: FAILED to load: " .. filename_only)
+      goto continue_next_file
+    end
+    
+    coroutine.yield()
+    
+    -- === REVERSED INSTRUMENT (same track, new instrument) ===
+    rev_instrument_index = song.selected_instrument_index + 1
+    song:insert_instrument_at(rev_instrument_index)
+    song.selected_instrument_index = rev_instrument_index
+    
+    local rev_instrument = song.instruments[rev_instrument_index]
+    if #rev_instrument.samples == 0 then
+      rev_instrument:insert_sample_at(1)
+    end
+    song.selected_sample_index = 1
+    
+    local rev_display_name = string.format("%02X_%s [Rev]", rev_instrument_index - 1, filename_only)
+    
+    -- Load the same file again for reverse
+    if rev_instrument.samples[1].sample_buffer:load_from(filename) then
+      print("Stem Loader FwdRev: Loaded for REVERSE: " .. filename_only)
+      local rev_sample = rev_instrument.samples[1]
+      
+      -- Reverse the sample buffer
+      if pakettiStemLoaderReverseSampleBuffer(rev_sample) then
+        print("Stem Loader FwdRev: Reversed sample: " .. filename_only)
+      end
+      
+      rev_sample.name = rev_display_name
+      rev_instrument.name = rev_display_name
+      rev_instrument.macros_visible = true
+      
+      rev_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+      rev_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+      rev_sample.autofade = false
+      rev_sample.autoseek = false
+      rev_sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+      rev_sample.oneshot = preferences.pakettiLoaderOneshot.value
+      rev_sample.new_note_action = preferences.pakettiLoaderNNA.value
+      rev_sample.loop_release = preferences.pakettiLoaderLoopExit.value
+      
+      if normalize then 
+        normalize_selected_sample() 
+      end
+      
+      if sample_info then
+        table.insert(loaded_instruments_info, {
+          name = rev_display_name,
+          frames = sample_info.frames,
+          sample_rate = sample_info.sample_rate,
+          bit_depth = sample_info.bit_depth,
+          channels = sample_info.channels,
+          instrument_index = rev_instrument_index,
+          track_index = track_index,  -- SAME track!
+          is_reversed = true
+        })
+      end
+    end
+    
+    -- Register the forwards/reverse pair (ONE track, TWO instruments)
+    table.insert(stem_forwards_reverse_pairs, {
+      track = track_index,  -- Single track for both
+      fwd_instrument = fwd_instrument_index,
+      rev_instrument = rev_instrument_index,
+      name = filename_only
+    })
+    
+    print(string.format("Stem Loader FwdRev: Track %d - Fwd Instr %d, Rev Instr %d, Name: %s",
+      track_index, fwd_instrument_index, rev_instrument_index, filename_only))
+    
+    ::continue_next_file::
+    coroutine.yield()
+  end
+  
+  -- Restore states
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  preferences.pakettiSampleRangeDeviceLoaderEnabled.value = SampleRangeLoaderState
+  preferences._0G01_Loader.value = G01LoaderState
+  
+  -- Create slices and patterns (using only forwards instruments for calculation)
+  local fwd_instruments_info = {}
+  for _, info in ipairs(loaded_instruments_info) do
+    if not info.is_reversed then
+      table.insert(fwd_instruments_info, info)
+    end
+  end
+  
+  if #fwd_instruments_info > 0 then
+    -- Create slices in ALL loaded instruments (both fwd and rev)
+    pakettiStemLoaderCreateSlicesAndPatternsForFwdRev(loaded_instruments_info, fwd_instruments_info)
+  end
+  
+  print(string.format("Paketti Stem Loader FwdRev: Completed - %d stems on %d tracks, %d instrument pairs",
+    #selected_sample_filenames, #stem_forwards_reverse_pairs, #stem_forwards_reverse_pairs * 2))
+end
+
+-- Create slices and patterns specifically for forwards+reverse mode
+-- This ensures both fwd and rev samples get identical slices
+local function pakettiStemLoaderCreateSlicesAndPatternsForFwdRev(all_instruments_info, fwd_instruments_info)
+  local song = renoise.song()
+  
+  -- Find the longest sample (from forwards tracks only)
+  local longest_frames = 0
+  local longest_sample_rate = 44100
+  local longest_name = ""
+  
+  for _, info in ipairs(fwd_instruments_info) do
+    if info.frames > longest_frames then
+      longest_frames = info.frames
+      longest_sample_rate = info.sample_rate
+      longest_name = info.name
+    end
+  end
+  
+  if longest_frames <= 0 then
+    print("Stem Loader FwdRev Slices: No valid samples found")
+    return
+  end
+  
+  local bpm = song.transport.bpm
+  local lpb = song.transport.lpb
+  local pattern_length = song.patterns[1].number_of_lines
+  
+  print(string.format("Stem Loader FwdRev Slices: Longest sample '%s': %d frames @ %d Hz", 
+    longest_name, longest_frames, longest_sample_rate))
+  
+  local sample_length_seconds = longest_frames / longest_sample_rate
+  local lines_per_second = (bpm / 60) * lpb
+  local total_lines = sample_length_seconds * lines_per_second
+  local slice_count = math.ceil(total_lines / pattern_length)
+  
+  if slice_count < 1 then slice_count = 1 end
+  
+  print(string.format("Stem Loader FwdRev Slices: %.2f seconds @ %d BPM = %d slices needed",
+    sample_length_seconds, bpm, slice_count))
+  
+  -- Create slices in ALL loaded instruments (both forwards and reversed)
+  for _, info in ipairs(all_instruments_info) do
+    local instrument = song.instruments[info.instrument_index]
+    if instrument and instrument.samples[1] then
+      local sample = instrument.samples[1]
+      
+      -- Clear existing slices
+      while #sample.slice_markers > 0 do
+        sample:delete_slice_marker(sample.slice_markers[1])
+      end
+      
+      local seconds_per_pattern = (pattern_length / lpb) * (60 / bpm)
+      local frames_per_pattern = seconds_per_pattern * info.sample_rate
+      
+      for s = 0, slice_count - 1 do
+        local slice_pos = math.floor(s * frames_per_pattern) + 1
+        if slice_pos < 1 then slice_pos = 1 end
+        if slice_pos > info.frames then slice_pos = info.frames end
+        sample:insert_slice_marker(slice_pos)
+      end
+      
+      sample.autoseek = false
+      
+      print(string.format("Stem Loader FwdRev: Created %d slices in '%s'", slice_count, info.name))
+    end
+  end
+  
+  -- Create additional patterns if needed
+  local current_sequence_length = #song.sequencer.pattern_sequence
+  if slice_count > current_sequence_length then
+    local patterns_to_create = slice_count - current_sequence_length
+    for i = 1, patterns_to_create do
+      local new_pattern_index = song.sequencer:insert_new_pattern_at(#song.sequencer.pattern_sequence + 1)
+      song.patterns[new_pattern_index].number_of_lines = pattern_length
+    end
+  end
+  
+  -- Write slice notes to patterns (only for FORWARDS tracks initially)
+  for slice_index = 1, slice_count do
+    local seq_pos = slice_index
+    if seq_pos > #song.sequencer.pattern_sequence then break end
+    
+    local pattern_index = song.sequencer.pattern_sequence[seq_pos]
+    local pattern = song.patterns[pattern_index]
+    
+    for _, info in ipairs(fwd_instruments_info) do
+      local track_index = info.track_index
+      local instrument_index = info.instrument_index - 1
+      
+      local instrument = song.instruments[info.instrument_index]
+      local base_note = 48
+      if instrument and instrument.samples[1] and instrument.samples[1].sample_mapping then
+        base_note = instrument.samples[1].sample_mapping.base_note
+      end
+      
+      local slice_note = base_note + slice_index
+      if slice_note > 119 then slice_note = 119 end
+      
+      if pattern.tracks[track_index] then
+        local line = pattern.tracks[track_index].lines[1]
+        line.note_columns[1].note_value = slice_note
+        line.note_columns[1].instrument_value = instrument_index
+        
+        if song.tracks[track_index].visible_note_columns < 1 then
+          song.tracks[track_index].visible_note_columns = 1
+        end
+      end
+    end
+    
+    pattern.name = string.format("Slice %02d", slice_index)
+  end
+  
+  renoise.app():show_status(string.format("Stem Loader FwdRev: Created %d slices, %d patterns, %d track pairs", 
+    slice_count, slice_count, #stem_forwards_reverse_pairs))
+end
+
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stem Loader",invoke=function() pakettiStemLoader() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stem Loader (Normalize)",invoke=function() pakettiStemLoader(true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stem Loader (No Preset)",invoke=function() pakettiStemLoader(false, true) end}
@@ -866,4 +1373,877 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Paketti Stem Loader (S
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti Stem Loader",invoke=function(message) if message:is_trigger() then pakettiStemLoader() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti Stem Loader (No Preset)",invoke=function(message) if message:is_trigger() then pakettiStemLoader(false, true) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti Stem Loader (Slice to Patterns)",invoke=function(message) if message:is_trigger() then pakettiStemLoader(false, false, true) end end}
+
+-- Forwards+Reverse Stem Loader keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stem Loader (Forwards+Reverse)",invoke=function() pakettiStemLoaderForwardsReverse() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stem Loader (Forwards+Reverse + Normalize)",invoke=function() pakettiStemLoaderForwardsReverse(true) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Paketti Stem Loader (Forwards+Reverse)",invoke=function() pakettiStemLoaderForwardsReverse() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Paketti Stem Loader (Forwards+Reverse + Normalize)",invoke=function() pakettiStemLoaderForwardsReverse(true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti Stem Loader (Forwards+Reverse)",invoke=function(message) if message:is_trigger() then pakettiStemLoaderForwardsReverse() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti Stem Loader (Forwards+Reverse + Normalize)",invoke=function(message) if message:is_trigger() then pakettiStemLoaderForwardsReverse(true) end end}
+
+-----------
+-- Stem Slice Randomization Functions
+-- Randomize which slices play in which patterns after stems are loaded
+-----------
+
+-- Helper function to find all tracks with sliced instruments
+local function pakettiStemFindSlicedTracks()
+  local song = renoise.song()
+  local sliced_tracks = {}
+  
+  for track_index = 1, song.sequencer_track_count do
+    local track = song.tracks[track_index]
+    -- Check if this track has a note on line 1 of pattern 1
+    local first_pattern_index = song.sequencer.pattern_sequence[1]
+    local pattern = song.patterns[first_pattern_index]
+    if pattern and pattern.tracks[track_index] then
+      local line = pattern.tracks[track_index].lines[1]
+      local note_col = line.note_columns[1]
+      if note_col.instrument_value < 255 then
+        local instrument_index = note_col.instrument_value + 1  -- Convert to 1-based
+        local instrument = song.instruments[instrument_index]
+        if instrument and instrument.samples[1] then
+          local slice_count = #instrument.samples[1].slice_markers
+          if slice_count > 0 then
+            table.insert(sliced_tracks, {
+              track_index = track_index,
+              instrument_index = instrument_index,
+              slice_count = slice_count,
+              track_name = track.name
+            })
+          end
+        end
+      end
+    end
+  end
+  
+  return sliced_tracks
+end
+
+-- Randomize stem slices independently (each track gets its own random order)
+function pakettiStemRandomizeSlicesIndependent()
+  local song = renoise.song()
+  local sliced_tracks = pakettiStemFindSlicedTracks()
+  
+  if #sliced_tracks == 0 then
+    renoise.app():show_status("No sliced stem tracks found. Load stems with 'Slice to Patterns' first.")
+    return
+  end
+  
+  local pattern_count = #song.sequencer.pattern_sequence
+  print(string.format("Stem Randomize Independent: Found %d sliced tracks, %d patterns", #sliced_tracks, pattern_count))
+  
+  -- Randomize each track independently
+  for _, track_info in ipairs(sliced_tracks) do
+    local instrument = song.instruments[track_info.instrument_index]
+    local base_note = 48  -- Default to C-4
+    if instrument and instrument.samples[1] and instrument.samples[1].sample_mapping then
+      base_note = instrument.samples[1].sample_mapping.base_note
+    end
+    
+    -- Write random slice to each pattern
+    for seq_pos = 1, pattern_count do
+      local pattern_index = song.sequencer.pattern_sequence[seq_pos]
+      local pattern = song.patterns[pattern_index]
+      
+      if pattern and pattern.tracks[track_info.track_index] then
+        -- Pick a random slice (1 to slice_count)
+        local random_slice = math.random(1, track_info.slice_count)
+        local slice_note = base_note + random_slice
+        if slice_note > 119 then slice_note = 119 end
+        
+        local line = pattern.tracks[track_info.track_index].lines[1]
+        line.note_columns[1].note_value = slice_note
+        line.note_columns[1].instrument_value = track_info.instrument_index - 1
+      end
+    end
+    
+    print(string.format("Stem Randomize: Randomized '%s' with %d slices across %d patterns", 
+      track_info.track_name, track_info.slice_count, pattern_count))
+  end
+  
+  renoise.app():show_status(string.format("Randomized %d stem tracks independently across %d patterns", #sliced_tracks, pattern_count))
+end
+
+-- Randomize stem slices synchronized (all tracks play the same slice number per pattern)
+function pakettiStemRandomizeSlicesSynchronized()
+  local song = renoise.song()
+  local sliced_tracks = pakettiStemFindSlicedTracks()
+  
+  if #sliced_tracks == 0 then
+    renoise.app():show_status("No sliced stem tracks found. Load stems with 'Slice to Patterns' first.")
+    return
+  end
+  
+  local pattern_count = #song.sequencer.pattern_sequence
+  
+  -- Find the minimum slice count across all tracks (to avoid out-of-range slices)
+  local min_slice_count = sliced_tracks[1].slice_count
+  for _, track_info in ipairs(sliced_tracks) do
+    if track_info.slice_count < min_slice_count then
+      min_slice_count = track_info.slice_count
+    end
+  end
+  
+  print(string.format("Stem Randomize Synchronized: Found %d sliced tracks, %d patterns, using %d slices", 
+    #sliced_tracks, pattern_count, min_slice_count))
+  
+  -- Generate one random slice order for all tracks
+  local random_slices = {}
+  for seq_pos = 1, pattern_count do
+    random_slices[seq_pos] = math.random(1, min_slice_count)
+  end
+  
+  -- Apply the same random order to all tracks
+  for _, track_info in ipairs(sliced_tracks) do
+    local instrument = song.instruments[track_info.instrument_index]
+    local base_note = 48  -- Default to C-4
+    if instrument and instrument.samples[1] and instrument.samples[1].sample_mapping then
+      base_note = instrument.samples[1].sample_mapping.base_note
+    end
+    
+    -- Write the synchronized random slice to each pattern
+    for seq_pos = 1, pattern_count do
+      local pattern_index = song.sequencer.pattern_sequence[seq_pos]
+      local pattern = song.patterns[pattern_index]
+      
+      if pattern and pattern.tracks[track_info.track_index] then
+        local slice_note = base_note + random_slices[seq_pos]
+        if slice_note > 119 then slice_note = 119 end
+        
+        local line = pattern.tracks[track_info.track_index].lines[1]
+        line.note_columns[1].note_value = slice_note
+        line.note_columns[1].instrument_value = track_info.instrument_index - 1
+      end
+    end
+  end
+  
+  print(string.format("Stem Randomize Synchronized: Applied same random order to %d tracks", #sliced_tracks))
+  renoise.app():show_status(string.format("Randomized %d stem tracks synchronized across %d patterns", #sliced_tracks, pattern_count))
+end
+
+-- Reset stem slices to sequential order (undo randomization)
+function pakettiStemResetSlicesToSequential()
+  local song = renoise.song()
+  local sliced_tracks = pakettiStemFindSlicedTracks()
+  
+  if #sliced_tracks == 0 then
+    renoise.app():show_status("No sliced stem tracks found.")
+    return
+  end
+  
+  local pattern_count = #song.sequencer.pattern_sequence
+  
+  -- Reset each track to sequential slices
+  for _, track_info in ipairs(sliced_tracks) do
+    local instrument = song.instruments[track_info.instrument_index]
+    local base_note = 48  -- Default to C-4
+    if instrument and instrument.samples[1] and instrument.samples[1].sample_mapping then
+      base_note = instrument.samples[1].sample_mapping.base_note
+    end
+    
+    -- Write sequential slice to each pattern
+    for seq_pos = 1, pattern_count do
+      local pattern_index = song.sequencer.pattern_sequence[seq_pos]
+      local pattern = song.patterns[pattern_index]
+      
+      if pattern and pattern.tracks[track_info.track_index] then
+        -- Sequential: pattern 1 = slice 1, pattern 2 = slice 2, etc.
+        -- Wrap around if more patterns than slices
+        local slice_index = ((seq_pos - 1) % track_info.slice_count) + 1
+        local slice_note = base_note + slice_index
+        if slice_note > 119 then slice_note = 119 end
+        
+        local line = pattern.tracks[track_info.track_index].lines[1]
+        line.note_columns[1].note_value = slice_note
+        line.note_columns[1].instrument_value = track_info.instrument_index - 1
+      end
+    end
+  end
+  
+  renoise.app():show_status(string.format("Reset %d stem tracks to sequential slice order", #sliced_tracks))
+end
+
+-- Randomize stem slices at specified step interval (independent - each track gets its own random slices)
+-- step_size: 1, 2, 4, 8, 16, or 32 (number of rows between triggers)
+function pakettiStemRandomizeSlicesStepIndependent(step_size)
+  local song = renoise.song()
+  local sliced_tracks = pakettiStemFindSlicedTracks()
+  
+  if #sliced_tracks == 0 then
+    renoise.app():show_status("No sliced stem tracks found. Load stems with 'Slice to Patterns' first.")
+    return
+  end
+  
+  local pattern_count = #song.sequencer.pattern_sequence
+  
+  -- Calculate number of triggers per 64-row pattern and generate offset values
+  local triggers_per_64 = math.floor(64 / step_size)
+  local offset_values = {}
+  for i = 0, triggers_per_64 - 1 do
+    offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
+  end
+  
+  print(string.format("Stem Randomize %d-Step Independent: Found %d sliced tracks, %d patterns, %d offsets", 
+    step_size, #sliced_tracks, pattern_count, #offset_values))
+  
+  local total_chunks = 0
+  
+  for seq_pos = 1, pattern_count do
+    local pattern_index = song.sequencer.pattern_sequence[seq_pos]
+    local pattern = song.patterns[pattern_index]
+    local pattern_length = pattern.number_of_lines
+    local chunks_per_pattern = math.floor(pattern_length / step_size)
+    
+    if chunks_per_pattern < 1 then chunks_per_pattern = 1 end
+    
+    for _, track_info in ipairs(sliced_tracks) do
+      local instrument = song.instruments[track_info.instrument_index]
+      local base_note = 48
+      if instrument and instrument.samples[1] and instrument.samples[1].sample_mapping then
+        base_note = instrument.samples[1].sample_mapping.base_note
+      end
+      
+      -- Clear all lines on this track in this pattern first
+      for row = 1, pattern_length do
+        local line = pattern.tracks[track_info.track_index].lines[row]
+        if line then
+          line.note_columns[1]:clear()
+          line.effect_columns[1]:clear()
+        end
+      end
+      
+      -- Write new triggers at the specified step interval
+      for chunk = 0, chunks_per_pattern - 1 do
+        local row = (chunk * step_size) + 1
+        if row <= pattern_length then
+          local random_slice = math.random(1, track_info.slice_count)
+          local slice_note = base_note + random_slice
+          if slice_note > 119 then slice_note = 119 end
+          
+          local offset = offset_values[(chunk % #offset_values) + 1]
+          
+          local line = pattern.tracks[track_info.track_index].lines[row]
+          if line then
+            line.note_columns[1].note_value = slice_note
+            line.note_columns[1].instrument_value = track_info.instrument_index - 1
+            line.effect_columns[1].number_string = "0S"
+            line.effect_columns[1].amount_value = offset
+            
+            if song.tracks[track_info.track_index].visible_effect_columns < 1 then
+              song.tracks[track_info.track_index].visible_effect_columns = 1
+            end
+          end
+          
+          total_chunks = total_chunks + 1
+        end
+      end
+    end
+  end
+  
+  print(string.format("Stem Randomize %d-Step Independent: Wrote %d slice triggers", step_size, total_chunks))
+  renoise.app():show_status(string.format("Randomized %d tracks every %d steps (independent) across %d patterns", #sliced_tracks, step_size, pattern_count))
+end
+
+-- Randomize stem slices at specified step interval (synchronized - all tracks play same slice per chunk)
+-- step_size: 1, 2, 4, 8, 16, or 32 (number of rows between triggers)
+function pakettiStemRandomizeSlicesStepSynchronized(step_size)
+  local song = renoise.song()
+  local sliced_tracks = pakettiStemFindSlicedTracks()
+  
+  if #sliced_tracks == 0 then
+    renoise.app():show_status("No sliced stem tracks found. Load stems with 'Slice to Patterns' first.")
+    return
+  end
+  
+  local pattern_count = #song.sequencer.pattern_sequence
+  
+  local min_slice_count = sliced_tracks[1].slice_count
+  for _, track_info in ipairs(sliced_tracks) do
+    if track_info.slice_count < min_slice_count then
+      min_slice_count = track_info.slice_count
+    end
+  end
+  
+  -- Calculate number of triggers per 64-row pattern and generate offset values
+  local triggers_per_64 = math.floor(64 / step_size)
+  local offset_values = {}
+  for i = 0, triggers_per_64 - 1 do
+    offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
+  end
+  
+  print(string.format("Stem Randomize %d-Step Synchronized: Found %d sliced tracks, %d patterns, using %d slices, %d offsets", 
+    step_size, #sliced_tracks, pattern_count, min_slice_count, #offset_values))
+  
+  local total_chunks = 0
+  
+  for seq_pos = 1, pattern_count do
+    local pattern_index = song.sequencer.pattern_sequence[seq_pos]
+    local pattern = song.patterns[pattern_index]
+    local pattern_length = pattern.number_of_lines
+    local chunks_per_pattern = math.floor(pattern_length / step_size)
+    
+    if chunks_per_pattern < 1 then chunks_per_pattern = 1 end
+    
+    local chunk_slices = {}
+    for chunk = 0, chunks_per_pattern - 1 do
+      chunk_slices[chunk] = math.random(1, min_slice_count)
+    end
+    
+    for _, track_info in ipairs(sliced_tracks) do
+      local instrument = song.instruments[track_info.instrument_index]
+      local base_note = 48
+      if instrument and instrument.samples[1] and instrument.samples[1].sample_mapping then
+        base_note = instrument.samples[1].sample_mapping.base_note
+      end
+      
+      -- Clear all lines on this track in this pattern first
+      for row = 1, pattern_length do
+        local line = pattern.tracks[track_info.track_index].lines[row]
+        if line then
+          line.note_columns[1]:clear()
+          line.effect_columns[1]:clear()
+        end
+      end
+      
+      -- Write new triggers at the specified step interval
+      for chunk = 0, chunks_per_pattern - 1 do
+        local row = (chunk * step_size) + 1
+        if row <= pattern_length then
+          local slice_note = base_note + chunk_slices[chunk]
+          if slice_note > 119 then slice_note = 119 end
+          
+          local offset = offset_values[(chunk % #offset_values) + 1]
+          
+          local line = pattern.tracks[track_info.track_index].lines[row]
+          if line then
+            line.note_columns[1].note_value = slice_note
+            line.note_columns[1].instrument_value = track_info.instrument_index - 1
+            line.effect_columns[1].number_string = "0S"
+            line.effect_columns[1].amount_value = offset
+            
+            if song.tracks[track_info.track_index].visible_effect_columns < 1 then
+              song.tracks[track_info.track_index].visible_effect_columns = 1
+            end
+          end
+          
+          total_chunks = total_chunks + 1
+        end
+      end
+    end
+  end
+  
+  print(string.format("Stem Randomize %d-Step Synchronized: Wrote %d slice triggers", step_size, total_chunks))
+  renoise.app():show_status(string.format("Randomized %d tracks every %d steps (synchronized) across %d patterns", #sliced_tracks, step_size, pattern_count))
+end
+
+-- Wrapper functions for backwards compatibility and menu/keybinding convenience
+function pakettiStemRandomizeSlices16Independent() pakettiStemRandomizeSlicesStepIndependent(16) end
+function pakettiStemRandomizeSlices16Synchronized() pakettiStemRandomizeSlicesStepSynchronized(16) end
+function pakettiStemRandomizeSlices8Independent() pakettiStemRandomizeSlicesStepIndependent(8) end
+function pakettiStemRandomizeSlices8Synchronized() pakettiStemRandomizeSlicesStepSynchronized(8) end
+function pakettiStemRandomizeSlices4Independent() pakettiStemRandomizeSlicesStepIndependent(4) end
+function pakettiStemRandomizeSlices4Synchronized() pakettiStemRandomizeSlicesStepSynchronized(4) end
+function pakettiStemRandomizeSlices2Independent() pakettiStemRandomizeSlicesStepIndependent(2) end
+function pakettiStemRandomizeSlices2Synchronized() pakettiStemRandomizeSlicesStepSynchronized(2) end
+function pakettiStemRandomizeSlices1Independent() pakettiStemRandomizeSlicesStepIndependent(1) end
+function pakettiStemRandomizeSlices1Synchronized() pakettiStemRandomizeSlicesStepSynchronized(1) end
+function pakettiStemRandomizeSlices32Independent() pakettiStemRandomizeSlicesStepIndependent(32) end
+function pakettiStemRandomizeSlices32Synchronized() pakettiStemRandomizeSlicesStepSynchronized(32) end
+
+-- Sequential slices at specified step interval (NOT randomized - "Go Forwards" mode)
+-- This writes slices in order: slice 1, slice 2, slice 3... progressing through the song
+function pakettiStemSequentialSlicesAtStep(step_size)
+  local song = renoise.song()
+  local sliced_tracks = pakettiStemFindSlicedTracks()
+  
+  if #sliced_tracks == 0 then
+    renoise.app():show_status("No sliced stem tracks found. Load stems with 'Slice to Patterns' first.")
+    return
+  end
+  
+  local pattern_count = #song.sequencer.pattern_sequence
+  
+  -- Calculate offsets for step size
+  local triggers_per_64 = math.floor(64 / step_size)
+  local offset_values = {}
+  for i = 0, triggers_per_64 - 1 do
+    offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
+  end
+  
+  print(string.format("Stem Sequential %d-Step: Found %d sliced tracks, %d patterns", 
+    step_size, #sliced_tracks, pattern_count))
+  
+  local total_triggers = 0
+  local global_slice_counter = 0  -- Counts across all patterns for synchronized progression
+  
+  for seq_pos = 1, pattern_count do
+    local pattern_index = song.sequencer.pattern_sequence[seq_pos]
+    local pattern = song.patterns[pattern_index]
+    local pattern_length = pattern.number_of_lines
+    local chunks_per_pattern = math.floor(pattern_length / step_size)
+    
+    if chunks_per_pattern < 1 then chunks_per_pattern = 1 end
+    
+    for _, track_info in ipairs(sliced_tracks) do
+      local instrument = song.instruments[track_info.instrument_index]
+      local base_note = 48
+      if instrument and instrument.samples[1] and instrument.samples[1].sample_mapping then
+        base_note = instrument.samples[1].sample_mapping.base_note
+      end
+      
+      -- Clear all lines on this track in this pattern first
+      for row = 1, pattern_length do
+        local line = pattern.tracks[track_info.track_index].lines[row]
+        if line then
+          line.note_columns[1]:clear()
+          line.effect_columns[1]:clear()
+        end
+      end
+      
+      -- Write sequential triggers at the specified step interval
+      for chunk = 0, chunks_per_pattern - 1 do
+        local row = (chunk * step_size) + 1
+        if row <= pattern_length then
+          -- Sequential slice: progress through slices in order, wrapping if needed
+          local slice_index = ((global_slice_counter + chunk) % track_info.slice_count) + 1
+          local slice_note = base_note + slice_index
+          if slice_note > 119 then slice_note = 119 end
+          
+          local offset = offset_values[(chunk % #offset_values) + 1]
+          
+          local line = pattern.tracks[track_info.track_index].lines[row]
+          if line then
+            line.note_columns[1].note_value = slice_note
+            line.note_columns[1].instrument_value = track_info.instrument_index - 1
+            line.effect_columns[1].number_string = "0S"
+            line.effect_columns[1].amount_value = offset
+            
+            if song.tracks[track_info.track_index].visible_effect_columns < 1 then
+              song.tracks[track_info.track_index].visible_effect_columns = 1
+            end
+          end
+          
+          total_triggers = total_triggers + 1
+        end
+      end
+    end
+    
+    -- Advance the global slice counter by the number of chunks in this pattern
+    global_slice_counter = global_slice_counter + chunks_per_pattern
+  end
+  
+  print(string.format("Stem Sequential %d-Step: Wrote %d sequential triggers", step_size, total_triggers))
+  renoise.app():show_status(string.format("Sequential slices every %d steps across %d patterns", step_size, pattern_count))
+end
+
+-----------
+-- Forwards+Reverse Slice Randomization
+-- Randomly chooses between forwards and reversed versions based on probability
+-----------
+
+-- Current reverse probability (0-100, where 50 = random, 0 = all forwards, 100 = all reverse)
+local current_reverse_probability = 50
+
+-- Find forwards/reverse pairs that have slices (ONE track, TWO instruments)
+local function pakettiStemFindFwdRevSlicedPairs()
+  local song = renoise.song()
+  local valid_pairs = {}
+  
+  for _, pair in ipairs(stem_forwards_reverse_pairs) do
+    local fwd_instrument = song.instruments[pair.fwd_instrument]
+    local rev_instrument = song.instruments[pair.rev_instrument]
+    
+    if fwd_instrument and fwd_instrument.samples[1] and
+       rev_instrument and rev_instrument.samples[1] then
+      local fwd_slice_count = #fwd_instrument.samples[1].slice_markers
+      local rev_slice_count = #rev_instrument.samples[1].slice_markers
+      
+      if fwd_slice_count > 0 and rev_slice_count > 0 then
+        table.insert(valid_pairs, {
+          track = pair.track,  -- Single track for both fwd and rev
+          fwd_instrument = pair.fwd_instrument,
+          rev_instrument = pair.rev_instrument,
+          slice_count = math.min(fwd_slice_count, rev_slice_count),
+          name = pair.name
+        })
+      end
+    end
+  end
+  
+  return valid_pairs
+end
+
+-- Randomize forwards/reverse with probability control at specified step interval
+-- Uses ONE track per stem, alternates between fwd/rev INSTRUMENT numbers
+-- step_size: 1, 2, 4, 8, 16, or 32
+-- reverse_probability: 0-100 (0 = all forwards, 50 = random, 100 = all reverse)
+function pakettiStemRandomizeSlicesForwardsReverse(step_size, reverse_probability)
+  local song = renoise.song()
+  local fwdrev_pairs = pakettiStemFindFwdRevSlicedPairs()
+  
+  if #fwdrev_pairs == 0 then
+    renoise.app():show_status("No forwards/reverse pairs found. Use 'Stem Loader (Forwards+Reverse)' first.")
+    return
+  end
+  
+  local pattern_count = #song.sequencer.pattern_sequence
+  local prob = reverse_probability or current_reverse_probability
+  
+  -- Calculate offsets for step size
+  local triggers_per_64 = math.floor(64 / step_size)
+  local offset_values = {}
+  for i = 0, triggers_per_64 - 1 do
+    offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
+  end
+  
+  print(string.format("Stem Randomize FwdRev: %d pairs, %d patterns, step=%d, reverse_prob=%d%%",
+    #fwdrev_pairs, pattern_count, step_size, prob))
+  
+  local total_fwd = 0
+  local total_rev = 0
+  
+  for seq_pos = 1, pattern_count do
+    local pattern_index = song.sequencer.pattern_sequence[seq_pos]
+    local pattern = song.patterns[pattern_index]
+    local pattern_length = pattern.number_of_lines
+    local chunks_per_pattern = math.floor(pattern_length / step_size)
+    
+    if chunks_per_pattern < 1 then chunks_per_pattern = 1 end
+    
+    for _, pair in ipairs(fwdrev_pairs) do
+      local track_index = pair.track  -- ONE track for both fwd and rev
+      
+      -- Get base notes for both instruments
+      local fwd_instrument = song.instruments[pair.fwd_instrument]
+      local rev_instrument = song.instruments[pair.rev_instrument]
+      
+      local fwd_base_note = 48
+      local rev_base_note = 48
+      if fwd_instrument and fwd_instrument.samples[1] and fwd_instrument.samples[1].sample_mapping then
+        fwd_base_note = fwd_instrument.samples[1].sample_mapping.base_note
+      end
+      if rev_instrument and rev_instrument.samples[1] and rev_instrument.samples[1].sample_mapping then
+        rev_base_note = rev_instrument.samples[1].sample_mapping.base_note
+      end
+      
+      -- Clear the track in this pattern
+      for row = 1, pattern_length do
+        if pattern.tracks[track_index] then
+          local line = pattern.tracks[track_index].lines[row]
+          if line then
+            line.note_columns[1]:clear()
+            line.effect_columns[1]:clear()
+          end
+        end
+      end
+      
+      -- Write triggers at step intervals, alternating between fwd/rev instruments
+      for chunk = 0, chunks_per_pattern - 1 do
+        local row = (chunk * step_size) + 1
+        if row <= pattern_length then
+          -- Decide forwards or reverse based on probability
+          local use_reverse = (math.random(100) <= prob)
+          
+          local instrument_index, base_note
+          if use_reverse then
+            instrument_index = pair.rev_instrument - 1  -- 0-based
+            base_note = rev_base_note
+            total_rev = total_rev + 1
+          else
+            instrument_index = pair.fwd_instrument - 1  -- 0-based
+            base_note = fwd_base_note
+            total_fwd = total_fwd + 1
+          end
+          
+          -- Random slice
+          local random_slice = math.random(1, pair.slice_count)
+          local slice_note = base_note + random_slice
+          if slice_note > 119 then slice_note = 119 end
+          
+          local offset = offset_values[(chunk % #offset_values) + 1]
+          
+          if pattern.tracks[track_index] then
+            local line = pattern.tracks[track_index].lines[row]
+            if line then
+              line.note_columns[1].note_value = slice_note
+              line.note_columns[1].instrument_value = instrument_index
+              line.effect_columns[1].number_string = "0S"
+              line.effect_columns[1].amount_value = offset
+              
+              if song.tracks[track_index].visible_effect_columns < 1 then
+                song.tracks[track_index].visible_effect_columns = 1
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  print(string.format("Stem Randomize FwdRev: %d forwards, %d reversed triggers on same tracks",
+    total_fwd, total_rev))
+  renoise.app():show_status(string.format("FwdRev: %d%% reverse - %d fwd, %d rev (same track)",
+    prob, total_fwd, total_rev))
+end
+
+-- Wrapper with current probability
+function pakettiStemRandomizeSlicesForwardsReverseWithCurrentProb(step_size)
+  pakettiStemRandomizeSlicesForwardsReverse(step_size, current_reverse_probability)
+end
+
+-- Set the reverse probability
+function pakettiStemSetReverseProbability(prob)
+  if prob < 0 then prob = 0 end
+  if prob > 100 then prob = 100 end
+  current_reverse_probability = prob
+end
+
+-- Get the current reverse probability
+function pakettiStemGetReverseProbability()
+  return current_reverse_probability
+end
+
+-----------
+-- Stem Slice Randomizer Dialog
+-----------
+
+local stem_slice_randomizer_dialog = nil
+local stem_slice_randomizer_vb = nil
+
+-- Valid step sizes for the sliders
+local stem_slice_step_sizes = {1, 2, 4, 8, 16, 32}
+
+-- Convert slider value (1-6) to step size
+local function sliderToStepSize(slider_value)
+  return stem_slice_step_sizes[slider_value] or 1
+end
+
+-- Convert step size to slider value (1-6)
+local function stepSizeToSlider(step_size)
+  for i, size in ipairs(stem_slice_step_sizes) do
+    if size == step_size then return i end
+  end
+  return 1
+end
+
+-- Current step sizes for display
+local current_independent_step = 16
+local current_synchronized_step = 16
+
+function pakettiStemSliceRandomizerDialog()
+  if stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
+    stem_slice_randomizer_dialog:close()
+    stem_slice_randomizer_dialog = nil
+    return
+  end
+  
+  stem_slice_randomizer_vb = renoise.ViewBuilder()
+  local vb = stem_slice_randomizer_vb
+  
+  -- Track last triggered step to avoid duplicate triggers
+  local last_independent_step = current_independent_step
+  local last_synchronized_step = current_synchronized_step
+  local last_reverse_prob = current_reverse_probability
+  local last_fwdrev_step = current_independent_step  -- Use independent step for fwd/rev
+  
+  local dialog_content = vb:column{
+    vb:row{
+      vb:text{text = "Independent", font="bold", style="strong", width=80},
+      vb:slider{
+        id = "independent_slider",
+        min = 1,
+        max = 6,
+        steps = {1, 1},
+        default = stepSizeToSlider(current_independent_step),
+        value = stepSizeToSlider(current_independent_step),
+        width = 120,
+        notifier = function(value)
+          local snapped = math.floor(value + 0.5)
+          if snapped < 1 then snapped = 1 end
+          if snapped > 6 then snapped = 6 end
+          local new_step = stem_slice_step_sizes[snapped]
+          vb.views.independent_label.text = tostring(new_step)
+          if new_step ~= last_independent_step then
+            last_independent_step = new_step
+            current_independent_step = new_step
+            pakettiStemRandomizeSlicesStepIndependent(new_step)
+          end
+        end
+      },
+      vb:text{id = "independent_label", text = tostring(current_independent_step), width=30}
+    },
+    vb:row{
+      vb:text{text = "Synchronized", font="bold", style="strong", width=80},
+      vb:slider{
+        id = "synchronized_slider",
+        min = 1,
+        max = 6,
+        steps = {1, 1},
+        default = stepSizeToSlider(current_synchronized_step),
+        value = stepSizeToSlider(current_synchronized_step),
+        width = 120,
+        notifier = function(value)
+          local snapped = math.floor(value + 0.5)
+          if snapped < 1 then snapped = 1 end
+          if snapped > 6 then snapped = 6 end
+          local new_step = stem_slice_step_sizes[snapped]
+          vb.views.synchronized_label.text = tostring(new_step)
+          if new_step ~= last_synchronized_step then
+            last_synchronized_step = new_step
+            current_synchronized_step = new_step
+            pakettiStemRandomizeSlicesStepSynchronized(new_step)
+          end
+        end
+      },
+      vb:text{id = "synchronized_label", text = tostring(current_synchronized_step), width=30}
+    },
+    vb:row{
+      vb:text{text = "Reverse %", font="bold", style="strong", width=80},
+      vb:slider{
+        id = "reverse_slider",
+        min = 0,
+        max = 100,
+        steps = {1, 10},
+        default = current_reverse_probability,
+        value = current_reverse_probability,
+        width = 120,
+        notifier = function(value)
+          local new_prob = math.floor(value + 0.5)
+          if new_prob < 0 then new_prob = 0 end
+          if new_prob > 100 then new_prob = 100 end
+          vb.views.reverse_label.text = tostring(new_prob) .. "%"
+          if new_prob ~= last_reverse_prob then
+            last_reverse_prob = new_prob
+            current_reverse_probability = new_prob
+            -- Use current independent step for fwd/rev randomization
+            pakettiStemRandomizeSlicesForwardsReverse(current_independent_step, new_prob)
+          end
+        end
+      },
+      vb:text{id = "reverse_label", text = tostring(current_reverse_probability) .. "%", width=40}
+    },
+    vb:row{
+      vb:button{
+        text = "Go Forwards",
+        width = 80,
+        notifier = function()
+          -- Sequential progression at current step size (not randomized)
+          pakettiStemSequentialSlicesAtStep(current_independent_step)
+        end
+      },
+      vb:button{
+        text = "Reset",
+        width = 80,
+        notifier = function()
+          pakettiStemResetSlicesToSequential()
+        end
+      },
+      vb:button{
+        text = "Close",
+        width = 80,
+        notifier = function()
+          if stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
+            stem_slice_randomizer_dialog:close()
+          end
+        end
+      }
+    }
+  }
+  
+  stem_slice_randomizer_dialog = renoise.app():show_custom_dialog(
+    "Paketti Stem Slice Randomizer",
+    dialog_content,
+    my_keyhandler_func
+  )
+  
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- MIDI knob handlers for continuous control
+-- Maps MIDI CC value (0-127) to step sizes (1, 2, 4, 8, 16, 32)
+local function midiValueToStepSize(midi_value)
+  -- Divide 0-127 into 6 zones for the 6 step sizes
+  local zone = math.floor(midi_value / 21.33)  -- 127 / 6 ≈ 21.33
+  if zone < 0 then zone = 0 end
+  if zone > 5 then zone = 5 end
+  return stem_slice_step_sizes[zone + 1]
+end
+
+local last_independent_midi_step = nil
+local last_synchronized_midi_step = nil
+
+local function pakettiStemSliceRandomizerMidiIndependent(message)
+  if message:is_abs_value() then
+    local step_size = midiValueToStepSize(message.int_value)
+    -- Only trigger if step size changed (prevents repeated triggers)
+    if step_size ~= last_independent_midi_step then
+      last_independent_midi_step = step_size
+      current_independent_step = step_size
+      pakettiStemRandomizeSlicesStepIndependent(step_size)
+      -- Update dialog slider if open
+      if stem_slice_randomizer_vb and stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
+        stem_slice_randomizer_vb.views.independent_slider.value = stepSizeToSlider(step_size)
+        stem_slice_randomizer_vb.views.independent_label.text = tostring(step_size)
+      end
+    end
+  end
+end
+
+local function pakettiStemSliceRandomizerMidiSynchronized(message)
+  if message:is_abs_value() then
+    local step_size = midiValueToStepSize(message.int_value)
+    -- Only trigger if step size changed (prevents repeated triggers)
+    if step_size ~= last_synchronized_midi_step then
+      last_synchronized_midi_step = step_size
+      current_synchronized_step = step_size
+      pakettiStemRandomizeSlicesStepSynchronized(step_size)
+      -- Update dialog slider if open
+      if stem_slice_randomizer_vb and stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
+        stem_slice_randomizer_vb.views.synchronized_slider.value = stepSizeToSlider(step_size)
+        stem_slice_randomizer_vb.views.synchronized_label.text = tostring(step_size)
+      end
+    end
+  end
+end
+
+-- Keybindings for slice randomization
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices (Independent)",invoke=function() pakettiStemRandomizeSlicesIndependent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices (Synchronized)",invoke=function() pakettiStemRandomizeSlicesSynchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Reset Stem Slices to Sequential",invoke=function() pakettiStemResetSlicesToSequential() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 16 (Independent)",invoke=function() pakettiStemRandomizeSlices16Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 16 (Synchronized)",invoke=function() pakettiStemRandomizeSlices16Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 8 (Independent)",invoke=function() pakettiStemRandomizeSlices8Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 8 (Synchronized)",invoke=function() pakettiStemRandomizeSlices8Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 4 (Independent)",invoke=function() pakettiStemRandomizeSlices4Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 4 (Synchronized)",invoke=function() pakettiStemRandomizeSlices4Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 2 (Independent)",invoke=function() pakettiStemRandomizeSlices2Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 2 (Synchronized)",invoke=function() pakettiStemRandomizeSlices2Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 1 (Independent)",invoke=function() pakettiStemRandomizeSlices1Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 1 (Synchronized)",invoke=function() pakettiStemRandomizeSlices1Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 32 (Independent)",invoke=function() pakettiStemRandomizeSlices32Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 32 (Synchronized)",invoke=function() pakettiStemRandomizeSlices32Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Stem Slice Randomizer Dialog...",invoke=function() pakettiStemSliceRandomizerDialog() end}
+
+-- MIDI mappings for slice randomization
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlicesIndependent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlicesSynchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Reset Stem Slices to Sequential",invoke=function(message) if message:is_trigger() then pakettiStemResetSlicesToSequential() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 16 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices16Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 16 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices16Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 8 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices8Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 8 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices8Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 4 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices4Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 4 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices4Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 2 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices2Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 2 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices2Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 1 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices1Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 1 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices1Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 32 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices32Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 32 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices32Synchronized() end end}
+
+-- MIDI knob mappings for continuous control (use with MIDI knobs/encoders)
+renoise.tool():add_midi_mapping{name="Paketti:Midi Knob Stem Slice Randomizer (Independent)",invoke=pakettiStemSliceRandomizerMidiIndependent}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Knob Stem Slice Randomizer (Synchronized)",invoke=pakettiStemSliceRandomizerMidiSynchronized}
 

@@ -3,6 +3,24 @@
 -- StemLoader direct File menu entries (unconditional)
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti StemLoader...",invoke=function() pakettiStemLoader() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti StemLoader (Slice to Patterns)...",invoke=function() pakettiStemLoader(false, false, true) end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti StemLoader (Forwards+Reverse)...",invoke=function() pakettiStemLoaderForwardsReverse() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer Dialog...",invoke=function() pakettiStemSliceRandomizerDialog() end}
+-- Stem Slice Randomizer submenu (not polluting File menu directly)
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Randomize Slices (Independent)",invoke=function() pakettiStemRandomizeSlicesIndependent() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Randomize Slices (Synchronized)",invoke=function() pakettiStemRandomizeSlicesSynchronized() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Reset to Sequential",invoke=function() pakettiStemResetSlicesToSequential() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 1 Step (Independent)",invoke=function() pakettiStemRandomizeSlices1Independent() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 1 Step (Synchronized)",invoke=function() pakettiStemRandomizeSlices1Synchronized() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 2 Steps (Independent)",invoke=function() pakettiStemRandomizeSlices2Independent() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 2 Steps (Synchronized)",invoke=function() pakettiStemRandomizeSlices2Synchronized() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 4 Steps (Independent)",invoke=function() pakettiStemRandomizeSlices4Independent() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 4 Steps (Synchronized)",invoke=function() pakettiStemRandomizeSlices4Synchronized() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 8 Steps (Independent)",invoke=function() pakettiStemRandomizeSlices8Independent() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 8 Steps (Synchronized)",invoke=function() pakettiStemRandomizeSlices8Synchronized() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 16 Steps (Independent)",invoke=function() pakettiStemRandomizeSlices16Independent() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 16 Steps (Synchronized)",invoke=function() pakettiStemRandomizeSlices16Synchronized() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 32 Steps (Independent)",invoke=function() pakettiStemRandomizeSlices32Independent() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Stem Slice Randomizer:Every 32 Steps (Synchronized)",invoke=function() pakettiStemRandomizeSlices32Synchronized() end}
 
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Toggle Marker Position (CTRL-F7)",invoke = function() PakettiCaptureMarkerPosition() end}
@@ -71,6 +89,27 @@ renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti St
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (No Preset + Normalize)...",invoke = function() pakettiStemLoader(true, true) end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (Slice to Patterns)...",invoke = function() pakettiStemLoader(false, false, true) end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (Slice to Patterns + Normalize)...",invoke = function() pakettiStemLoader(true, false, true) end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (Forwards+Reverse)...",invoke = function() pakettiStemLoaderForwardsReverse() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemLoader (Forwards+Reverse + Normalize)...",invoke = function() pakettiStemLoaderForwardsReverse(true) end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices (Independent)",invoke = function() pakettiStemRandomizeSlicesIndependent() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices (Synchronized)",invoke = function() pakettiStemRandomizeSlicesSynchronized() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Reset Stem Slices to Sequential",invoke = function() pakettiStemResetSlicesToSequential() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 16 (Independent)",invoke = function() pakettiStemRandomizeSlices16Independent() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 16 (Synchronized)",invoke = function() pakettiStemRandomizeSlices16Synchronized() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 8 (Independent)",invoke = function() pakettiStemRandomizeSlices8Independent() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 8 (Synchronized)",invoke = function() pakettiStemRandomizeSlices8Synchronized() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 4 (Independent)",invoke = function() pakettiStemRandomizeSlices4Independent() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 4 (Synchronized)",invoke = function() pakettiStemRandomizeSlices4Synchronized() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 2 (Independent)",invoke = function() pakettiStemRandomizeSlices2Independent() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 2 (Synchronized)",invoke = function() pakettiStemRandomizeSlices2Synchronized() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 1 (Independent)",invoke = function() pakettiStemRandomizeSlices1Independent() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 1 (Synchronized)",invoke = function() pakettiStemRandomizeSlices1Synchronized() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 32 (Independent)",invoke = function() pakettiStemRandomizeSlices32Independent() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Stem Slices Every 32 (Synchronized)",invoke = function() pakettiStemRandomizeSlices32Synchronized() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Stem Slice Randomizer Dialog...",invoke = function() pakettiStemSliceRandomizerDialog() end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Stem Slice Randomizer Dialog...",invoke = function() pakettiStemSliceRandomizerDialog() end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Stem Slice Randomizer Dialog...",invoke = function() pakettiStemSliceRandomizerDialog() end}
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Stem Slice Randomizer Dialog...",invoke = function() pakettiStemSliceRandomizerDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Open Last StemSlicer Output...",invoke = openLastStemSlicerOutput}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:SlicePro:SlicePro Apply",invoke = function() SliceProApplyOrConfig() end}
@@ -1257,6 +1296,8 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loa
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (No Preset + Normalize)",invoke=function() pakettiStemLoader(true, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (Slice to Patterns)",invoke=function() pakettiStemLoader(false, false, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (Slice to Patterns + Normalize)",invoke=function() pakettiStemLoader(true, false, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (Forwards+Reverse)",invoke=function() pakettiStemLoaderForwardsReverse() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti Stem Loader (Forwards+Reverse + Normalize)",invoke=function() pakettiStemLoaderForwardsReverse(true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Load:Load Drumkit with Overlap Random",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(2) end}
