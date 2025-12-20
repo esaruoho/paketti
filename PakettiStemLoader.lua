@@ -1099,7 +1099,9 @@ function pakettiStemLoaderForwardsReverse_process(options)
     local fwd_display_name = string.format("%02X_%s", fwd_instrument_index - 1, filename_only)
     
     local sample_info = nil
-    if fwd_instrument.samples[1].sample_buffer:load_from(filename) then
+    local fwd_load_success = fwd_instrument.samples[1].sample_buffer:load_from(filename)
+    
+    if fwd_load_success then
       print("Stem Loader FwdRev: Loaded FORWARDS: " .. filename_only)
       local fwd_sample = fwd_instrument.samples[1]
       
@@ -1116,7 +1118,6 @@ function pakettiStemLoaderForwardsReverse_process(options)
       fwd_sample.new_note_action = preferences.pakettiLoaderNNA.value
       fwd_sample.loop_release = preferences.pakettiLoaderLoopExit.value
       
-      -- Track is named after the stem (not [Rev])
       song.tracks[track_index].name = filename_only
       
       if normalize then 
@@ -1142,79 +1143,75 @@ function pakettiStemLoaderForwardsReverse_process(options)
           is_reversed = false
         })
       end
+      
+      coroutine.yield()
+      
+      -- === REVERSED INSTRUMENT (same track, new instrument) ===
+      local rev_instrument_index = song.selected_instrument_index + 1
+      song:insert_instrument_at(rev_instrument_index)
+      song.selected_instrument_index = rev_instrument_index
+      
+      local rev_instrument = song.instruments[rev_instrument_index]
+      if #rev_instrument.samples == 0 then
+        rev_instrument:insert_sample_at(1)
+      end
+      song.selected_sample_index = 1
+      
+      local rev_display_name = string.format("%02X_%s [Rev]", rev_instrument_index - 1, filename_only)
+      
+      if rev_instrument.samples[1].sample_buffer:load_from(filename) then
+        print("Stem Loader FwdRev: Loaded for REVERSE: " .. filename_only)
+        local rev_sample = rev_instrument.samples[1]
+        
+        if pakettiStemLoaderReverseSampleBuffer(rev_sample) then
+          print("Stem Loader FwdRev: Reversed sample: " .. filename_only)
+        end
+        
+        rev_sample.name = rev_display_name
+        rev_instrument.name = rev_display_name
+        rev_instrument.macros_visible = true
+        
+        rev_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+        rev_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+        rev_sample.autofade = false
+        rev_sample.autoseek = false
+        rev_sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+        rev_sample.oneshot = preferences.pakettiLoaderOneshot.value
+        rev_sample.new_note_action = preferences.pakettiLoaderNNA.value
+        rev_sample.loop_release = preferences.pakettiLoaderLoopExit.value
+        
+        if normalize then 
+          normalize_selected_sample() 
+        end
+        
+        if sample_info then
+          table.insert(loaded_instruments_info, {
+            name = rev_display_name,
+            frames = sample_info.frames,
+            sample_rate = sample_info.sample_rate,
+            bit_depth = sample_info.bit_depth,
+            channels = sample_info.channels,
+            instrument_index = rev_instrument_index,
+            track_index = track_index,
+            is_reversed = true
+          })
+        end
+      end
+      
+      -- Register the forwards/reverse pair (ONE track, TWO instruments)
+      table.insert(stem_forwards_reverse_pairs, {
+        track = track_index,
+        fwd_instrument = fwd_instrument_index,
+        rev_instrument = rev_instrument_index,
+        name = filename_only
+      })
+      
+      print(string.format("Stem Loader FwdRev: Track %d - Fwd Instr %d, Rev Instr %d, Name: %s",
+        track_index, fwd_instrument_index, rev_instrument_index, filename_only))
     else
       print("Stem Loader FwdRev: FAILED to load: " .. filename_only)
-      goto continue_next_file
     end
     
-    coroutine.yield()
-    
-    -- === REVERSED INSTRUMENT (same track, new instrument) ===
-    rev_instrument_index = song.selected_instrument_index + 1
-    song:insert_instrument_at(rev_instrument_index)
-    song.selected_instrument_index = rev_instrument_index
-    
-    local rev_instrument = song.instruments[rev_instrument_index]
-    if #rev_instrument.samples == 0 then
-      rev_instrument:insert_sample_at(1)
-    end
-    song.selected_sample_index = 1
-    
-    local rev_display_name = string.format("%02X_%s [Rev]", rev_instrument_index - 1, filename_only)
-    
-    -- Load the same file again for reverse
-    if rev_instrument.samples[1].sample_buffer:load_from(filename) then
-      print("Stem Loader FwdRev: Loaded for REVERSE: " .. filename_only)
-      local rev_sample = rev_instrument.samples[1]
-      
-      -- Reverse the sample buffer
-      if pakettiStemLoaderReverseSampleBuffer(rev_sample) then
-        print("Stem Loader FwdRev: Reversed sample: " .. filename_only)
-      end
-      
-      rev_sample.name = rev_display_name
-      rev_instrument.name = rev_display_name
-      rev_instrument.macros_visible = true
-      
-      rev_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
-      rev_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-      rev_sample.autofade = false
-      rev_sample.autoseek = false
-      rev_sample.loop_mode = preferences.pakettiLoaderLoopMode.value
-      rev_sample.oneshot = preferences.pakettiLoaderOneshot.value
-      rev_sample.new_note_action = preferences.pakettiLoaderNNA.value
-      rev_sample.loop_release = preferences.pakettiLoaderLoopExit.value
-      
-      if normalize then 
-        normalize_selected_sample() 
-      end
-      
-      if sample_info then
-        table.insert(loaded_instruments_info, {
-          name = rev_display_name,
-          frames = sample_info.frames,
-          sample_rate = sample_info.sample_rate,
-          bit_depth = sample_info.bit_depth,
-          channels = sample_info.channels,
-          instrument_index = rev_instrument_index,
-          track_index = track_index,  -- SAME track!
-          is_reversed = true
-        })
-      end
-    end
-    
-    -- Register the forwards/reverse pair (ONE track, TWO instruments)
-    table.insert(stem_forwards_reverse_pairs, {
-      track = track_index,  -- Single track for both
-      fwd_instrument = fwd_instrument_index,
-      rev_instrument = rev_instrument_index,
-      name = filename_only
-    })
-    
-    print(string.format("Stem Loader FwdRev: Track %d - Fwd Instr %d, Rev Instr %d, Name: %s",
-      track_index, fwd_instrument_index, rev_instrument_index, filename_only))
-    
-    ::continue_next_file::
     coroutine.yield()
   end
   
