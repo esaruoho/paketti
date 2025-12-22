@@ -6,6 +6,9 @@
 -- Slice mode: creates slices and patterns with XRNI preset + Instr. Macros
 -----------
 
+-- Pattern mode: "current" (default, safer) or "all" (modify all patterns)
+local stem_randomizer_pattern_mode = "current"
+
 -- Lua 5.1 compatible IEEE 754 float reader (little-endian)
 local function pakettiStemLoaderReadFloatLE(str, pos)
   local b1, b2, b3, b4 = str:byte(pos, pos+3)
@@ -1520,6 +1523,43 @@ function pakettiStemRandomizeSlicesSynchronized()
   renoise.app():show_status(string.format("Randomized %d stem tracks synchronized across %d patterns", #sliced_tracks, pattern_count))
 end
 
+-- Duplicate current pattern and jump to it (for building variations)
+function pakettiStemDuplicatePatternAndJump()
+  local song = renoise.song()
+  local current_seq_pos = song.selected_sequence_index
+  local current_pattern_index = song.sequencer.pattern_sequence[current_seq_pos]
+  local current_pattern = song.patterns[current_pattern_index]
+  
+  -- Create a new pattern (copy of current)
+  local new_pattern_index = song.sequencer:insert_new_pattern_at(current_seq_pos + 1)
+  local new_pattern = song.patterns[new_pattern_index]
+  
+  -- Copy pattern properties
+  new_pattern.number_of_lines = current_pattern.number_of_lines
+  new_pattern.name = current_pattern.name .. " (var)"
+  
+  -- Copy all track data from current pattern to new pattern
+  for track_idx = 1, #song.tracks do
+    if current_pattern.tracks[track_idx] and new_pattern.tracks[track_idx] then
+      for line_idx = 1, current_pattern.number_of_lines do
+        local src_line = current_pattern.tracks[track_idx].lines[line_idx]
+        local dst_line = new_pattern.tracks[track_idx].lines[line_idx]
+        dst_line:copy_from(src_line)
+      end
+    end
+  end
+  
+  -- Jump to the new sequence position
+  song.selected_sequence_index = current_seq_pos + 1
+  
+  print(string.format("Stem Duplicate: Copied pattern %d to new pattern %d at seq pos %d",
+    current_pattern_index, new_pattern_index, current_seq_pos + 1))
+  renoise.app():show_status(string.format("Duplicated to pattern %02X at sequence %d", 
+    new_pattern_index, current_seq_pos + 1))
+  
+  return new_pattern_index
+end
+
 -- Reset stem slices to sequential order (undo randomization)
 function pakettiStemResetSlicesToSequential()
   local song = renoise.song()
@@ -1530,7 +1570,15 @@ function pakettiStemResetSlicesToSequential()
     return
   end
   
-  local pattern_count = #song.sequencer.pattern_sequence
+  -- Determine which patterns to process based on mode
+  local seq_positions = {}
+  if stem_randomizer_pattern_mode == "current" then
+    seq_positions = {song.selected_sequence_index}
+  else
+    for i = 1, #song.sequencer.pattern_sequence do
+      seq_positions[i] = i
+    end
+  end
   
   -- Reset each track to sequential slices
   for _, track_info in ipairs(sliced_tracks) do
@@ -1541,7 +1589,7 @@ function pakettiStemResetSlicesToSequential()
     end
     
     -- Write sequential slice to each pattern
-    for seq_pos = 1, pattern_count do
+    for _, seq_pos in ipairs(seq_positions) do
       local pattern_index = song.sequencer.pattern_sequence[seq_pos]
       local pattern = song.patterns[pattern_index]
       
@@ -1559,7 +1607,8 @@ function pakettiStemResetSlicesToSequential()
     end
   end
   
-  renoise.app():show_status(string.format("Reset %d stem tracks to sequential slice order", #sliced_tracks))
+  local mode_text = stem_randomizer_pattern_mode == "current" and "current pattern" or string.format("%d patterns", #seq_positions)
+  renoise.app():show_status(string.format("Reset %d stem tracks to sequential - %s", #sliced_tracks, mode_text))
 end
 
 -- Randomize stem slices at specified step interval (independent - each track gets its own random slices)
@@ -1573,7 +1622,15 @@ function pakettiStemRandomizeSlicesStepIndependent(step_size)
     return
   end
   
-  local pattern_count = #song.sequencer.pattern_sequence
+  -- Determine which patterns to process based on mode
+  local seq_positions = {}
+  if stem_randomizer_pattern_mode == "current" then
+    seq_positions = {song.selected_sequence_index}
+  else
+    for i = 1, #song.sequencer.pattern_sequence do
+      seq_positions[i] = i
+    end
+  end
   
   -- Calculate number of triggers per 64-row pattern and generate offset values
   local triggers_per_64 = math.floor(64 / step_size)
@@ -1582,12 +1639,12 @@ function pakettiStemRandomizeSlicesStepIndependent(step_size)
     offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
   end
   
-  print(string.format("Stem Randomize %d-Step Independent: Found %d sliced tracks, %d patterns, %d offsets", 
-    step_size, #sliced_tracks, pattern_count, #offset_values))
+  print(string.format("Stem Randomize %d-Step Independent: Found %d sliced tracks, %d patterns (%s mode), %d offsets", 
+    step_size, #sliced_tracks, #seq_positions, stem_randomizer_pattern_mode, #offset_values))
   
   local total_chunks = 0
   
-  for seq_pos = 1, pattern_count do
+  for _, seq_pos in ipairs(seq_positions) do
     local pattern_index = song.sequencer.pattern_sequence[seq_pos]
     local pattern = song.patterns[pattern_index]
     local pattern_length = pattern.number_of_lines
@@ -1639,8 +1696,9 @@ function pakettiStemRandomizeSlicesStepIndependent(step_size)
     end
   end
   
+  local mode_text = stem_randomizer_pattern_mode == "current" and "current pattern" or string.format("%d patterns", #seq_positions)
   print(string.format("Stem Randomize %d-Step Independent: Wrote %d slice triggers", step_size, total_chunks))
-  renoise.app():show_status(string.format("Randomized %d tracks every %d steps (independent) across %d patterns", #sliced_tracks, step_size, pattern_count))
+  renoise.app():show_status(string.format("Randomized %d tracks every %d steps (independent) - %s", #sliced_tracks, step_size, mode_text))
 end
 
 -- Randomize stem slices at specified step interval (synchronized - all tracks play same slice per chunk)
@@ -1654,7 +1712,15 @@ function pakettiStemRandomizeSlicesStepSynchronized(step_size)
     return
   end
   
-  local pattern_count = #song.sequencer.pattern_sequence
+  -- Determine which patterns to process based on mode
+  local seq_positions = {}
+  if stem_randomizer_pattern_mode == "current" then
+    seq_positions = {song.selected_sequence_index}
+  else
+    for i = 1, #song.sequencer.pattern_sequence do
+      seq_positions[i] = i
+    end
+  end
   
   local min_slice_count = sliced_tracks[1].slice_count
   for _, track_info in ipairs(sliced_tracks) do
@@ -1670,12 +1736,12 @@ function pakettiStemRandomizeSlicesStepSynchronized(step_size)
     offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
   end
   
-  print(string.format("Stem Randomize %d-Step Synchronized: Found %d sliced tracks, %d patterns, using %d slices, %d offsets", 
-    step_size, #sliced_tracks, pattern_count, min_slice_count, #offset_values))
+  print(string.format("Stem Randomize %d-Step Synchronized: Found %d sliced tracks, %d patterns (%s mode), using %d slices, %d offsets", 
+    step_size, #sliced_tracks, #seq_positions, stem_randomizer_pattern_mode, min_slice_count, #offset_values))
   
   local total_chunks = 0
   
-  for seq_pos = 1, pattern_count do
+  for _, seq_pos in ipairs(seq_positions) do
     local pattern_index = song.sequencer.pattern_sequence[seq_pos]
     local pattern = song.patterns[pattern_index]
     local pattern_length = pattern.number_of_lines
@@ -1731,8 +1797,9 @@ function pakettiStemRandomizeSlicesStepSynchronized(step_size)
     end
   end
   
+  local mode_text = stem_randomizer_pattern_mode == "current" and "current pattern" or string.format("%d patterns", #seq_positions)
   print(string.format("Stem Randomize %d-Step Synchronized: Wrote %d slice triggers", step_size, total_chunks))
-  renoise.app():show_status(string.format("Randomized %d tracks every %d steps (synchronized) across %d patterns", #sliced_tracks, step_size, pattern_count))
+  renoise.app():show_status(string.format("Randomized %d tracks every %d steps (synchronized) - %s", #sliced_tracks, step_size, mode_text))
 end
 
 -- Wrapper functions for backwards compatibility and menu/keybinding convenience
@@ -1760,7 +1827,15 @@ function pakettiStemSequentialSlicesAtStep(step_size)
     return
   end
   
-  local pattern_count = #song.sequencer.pattern_sequence
+  -- Determine which patterns to process based on mode
+  local seq_positions = {}
+  if stem_randomizer_pattern_mode == "current" then
+    seq_positions = {song.selected_sequence_index}
+  else
+    for i = 1, #song.sequencer.pattern_sequence do
+      seq_positions[i] = i
+    end
+  end
   
   -- Calculate offsets for step size
   local triggers_per_64 = math.floor(64 / step_size)
@@ -1769,19 +1844,21 @@ function pakettiStemSequentialSlicesAtStep(step_size)
     offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
   end
   
-  print(string.format("Stem Sequential %d-Step: Found %d sliced tracks, %d patterns", 
-    step_size, #sliced_tracks, pattern_count))
+  print(string.format("Stem Sequential %d-Step: Found %d sliced tracks, %d patterns (%s mode)", 
+    step_size, #sliced_tracks, #seq_positions, stem_randomizer_pattern_mode))
   
   local total_triggers = 0
-  local global_slice_counter = 0  -- Counts across all patterns for synchronized progression
   
-  for seq_pos = 1, pattern_count do
+  for pos_idx, seq_pos in ipairs(seq_positions) do
     local pattern_index = song.sequencer.pattern_sequence[seq_pos]
     local pattern = song.patterns[pattern_index]
     local pattern_length = pattern.number_of_lines
     local chunks_per_pattern = math.floor(pattern_length / step_size)
     
     if chunks_per_pattern < 1 then chunks_per_pattern = 1 end
+    
+    -- For sequential mode, use sequence position to determine starting slice
+    local base_slice_offset = (seq_pos - 1) * chunks_per_pattern
     
     for _, track_info in ipairs(sliced_tracks) do
       local instrument = song.instruments[track_info.instrument_index]
@@ -1804,7 +1881,7 @@ function pakettiStemSequentialSlicesAtStep(step_size)
         local row = (chunk * step_size) + 1
         if row <= pattern_length then
           -- Sequential slice: progress through slices in order, wrapping if needed
-          local slice_index = ((global_slice_counter + chunk) % track_info.slice_count) + 1
+          local slice_index = ((base_slice_offset + chunk) % track_info.slice_count) + 1
           local slice_note = base_note + slice_index
           if slice_note > 119 then slice_note = 119 end
           
@@ -1826,13 +1903,11 @@ function pakettiStemSequentialSlicesAtStep(step_size)
         end
       end
     end
-    
-    -- Advance the global slice counter by the number of chunks in this pattern
-    global_slice_counter = global_slice_counter + chunks_per_pattern
   end
   
+  local mode_text = stem_randomizer_pattern_mode == "current" and "current pattern" or string.format("%d patterns", #seq_positions)
   print(string.format("Stem Sequential %d-Step: Wrote %d sequential triggers", step_size, total_triggers))
-  renoise.app():show_status(string.format("Sequential slices every %d steps across %d patterns", step_size, pattern_count))
+  renoise.app():show_status(string.format("Sequential slices every %d steps - %s", step_size, mode_text))
 end
 
 -----------
@@ -1885,7 +1960,16 @@ function pakettiStemRandomizeSlicesForwardsReverse(step_size, reverse_probabilit
     return
   end
   
-  local pattern_count = #song.sequencer.pattern_sequence
+  -- Determine which patterns to process based on mode
+  local seq_positions = {}
+  if stem_randomizer_pattern_mode == "current" then
+    seq_positions = {song.selected_sequence_index}
+  else
+    for i = 1, #song.sequencer.pattern_sequence do
+      seq_positions[i] = i
+    end
+  end
+  
   local prob = reverse_probability or current_reverse_probability
   
   -- Calculate offsets for step size
@@ -1895,13 +1979,13 @@ function pakettiStemRandomizeSlicesForwardsReverse(step_size, reverse_probabilit
     offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
   end
   
-  print(string.format("Stem Randomize FwdRev: %d pairs, %d patterns, step=%d, reverse_prob=%d%%",
-    #fwdrev_pairs, pattern_count, step_size, prob))
+  print(string.format("Stem Randomize FwdRev: %d pairs, %d patterns (%s mode), step=%d, reverse_prob=%d%%",
+    #fwdrev_pairs, #seq_positions, stem_randomizer_pattern_mode, step_size, prob))
   
   local total_fwd = 0
   local total_rev = 0
   
-  for seq_pos = 1, pattern_count do
+  for _, seq_pos in ipairs(seq_positions) do
     local pattern_index = song.sequencer.pattern_sequence[seq_pos]
     local pattern = song.patterns[pattern_index]
     local pattern_length = pattern.number_of_lines
@@ -1979,10 +2063,11 @@ function pakettiStemRandomizeSlicesForwardsReverse(step_size, reverse_probabilit
     end
   end
   
-  print(string.format("Stem Randomize FwdRev: %d forwards, %d reversed triggers on same tracks",
+  local mode_text = stem_randomizer_pattern_mode == "current" and "current pattern" or string.format("%d patterns", #seq_positions)
+  print(string.format("Stem Randomize FwdRev: %d forwards, %d reversed triggers",
     total_fwd, total_rev))
-  renoise.app():show_status(string.format("FwdRev: %d%% reverse - %d fwd, %d rev (same track)",
-    prob, total_fwd, total_rev))
+  renoise.app():show_status(string.format("FwdRev: %d%% reverse - %d fwd, %d rev - %s",
+    prob, total_fwd, total_rev, mode_text))
 end
 
 -- Wrapper with current probability
@@ -2114,7 +2199,6 @@ function pakettiStemSliceRandomizerDialog()
           if new_prob ~= last_reverse_prob then
             last_reverse_prob = new_prob
             current_reverse_probability = new_prob
-            -- Use current independent step for fwd/rev randomization
             pakettiStemRandomizeSlicesForwardsReverse(current_independent_step, new_prob)
           end
         end
@@ -2122,24 +2206,55 @@ function pakettiStemSliceRandomizerDialog()
       vb:text{id = "reverse_label", text = tostring(current_reverse_probability) .. "%", width=40}
     },
     vb:row{
+      vb:text{text = "Mode:", font="bold", style="strong", width=80},
+      vb:switch{
+        id = "mode_switch",
+        items = {"Current", "All"},
+        value = stem_randomizer_pattern_mode == "current" and 1 or 2,
+        width = 150,
+        notifier = function(index)
+          if index == 1 then
+            stem_randomizer_pattern_mode = "current"
+          else
+            stem_randomizer_pattern_mode = "all"
+          end
+          print("Stem Randomizer: Mode set to " .. stem_randomizer_pattern_mode)
+        end
+      }
+    },
+    vb:row{
       vb:button{
-        text = "Go Forwards",
-        width = 80,
+        text = "Dupe",
+        width = 48,
         notifier = function()
-          -- Sequential progression at current step size (not randomized)
+          pakettiStemDuplicatePatternAndJump()
+        end
+      },
+      vb:button{
+        text = "Re-roll",
+        width = 48,
+        notifier = function()
+          -- Re-roll using the last used step size (synchronized)
+          pakettiStemRandomizeSlicesStepSynchronized(current_synchronized_step)
+        end
+      },
+      vb:button{
+        text = "Fwd",
+        width = 48,
+        notifier = function()
           pakettiStemSequentialSlicesAtStep(current_independent_step)
         end
       },
       vb:button{
         text = "Reset",
-        width = 80,
+        width = 48,
         notifier = function()
           pakettiStemResetSlicesToSequential()
         end
       },
       vb:button{
         text = "Close",
-        width = 80,
+        width = 48,
         notifier = function()
           if stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
             stem_slice_randomizer_dialog:close()

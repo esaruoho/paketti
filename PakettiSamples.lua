@@ -6440,6 +6440,120 @@ end
 renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 
+---------
+-- Function to duplicate track and instrument without DSP devices and automation (clean version)
+function duplicateTrackAndInstrumentClean()
+  -- Get the current song and important indices
+  local song = renoise.song()
+  local track_index = song.selected_track_index
+  local selected_track = song:track(track_index)
+  
+  -- Protection: Check if current track is a send track (or master/group track)
+  if selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    local track_type_name = ""
+    if selected_track.type == renoise.Track.TRACK_TYPE_SEND then
+      track_type_name = "send"
+    elseif selected_track.type == renoise.Track.TRACK_TYPE_MASTER then
+      track_type_name = "master"
+    elseif selected_track.type == renoise.Track.TRACK_TYPE_GROUP then
+      track_type_name = "group"
+    else
+      track_type_name = "non-sequencer"
+    end
+    
+    renoise.app():show_status("Cannot duplicate " .. track_type_name .. " tracks. Please select a sequencer track.")
+    return
+  end
+  
+  -- First, duplicate the instrument
+  local instrument_index = song.selected_instrument_index
+  local original_instrument = song.instruments[instrument_index]
+  
+  -- Store external editor state and close it temporarily if needed
+  local external_editor_open = false
+  if original_instrument.plugin_properties and original_instrument.plugin_properties.plugin_device then
+    external_editor_open = original_instrument.plugin_properties.plugin_device.external_editor_visible
+    if external_editor_open then
+      original_instrument.plugin_properties.plugin_device.external_editor_visible = false
+    end
+  end
+  
+  -- Insert and copy the instrument
+  song:insert_instrument_at(instrument_index + 1)
+  local new_instrument = song.instruments[instrument_index + 1]
+  new_instrument:copy_from(original_instrument)
+  
+  -- Copy phrases if they exist
+  if #original_instrument.phrases > 0 then
+    -- Check if copying phrases would exceed the 126 phrase limit
+    local existing_phrases = #new_instrument.phrases
+    local phrases_to_copy = #original_instrument.phrases
+    
+    if existing_phrases + phrases_to_copy > 126 then
+      error("Cannot copy phrases: Would exceed maximum of 126 phrases per instrument (currently has " .. existing_phrases .. ", trying to add " .. phrases_to_copy .. ")")
+    end
+    
+    for phrase_index = 1, #original_instrument.phrases do
+      new_instrument:insert_phrase_at(phrase_index)
+      new_instrument.phrases[phrase_index]:copy_from(original_instrument.phrases[phrase_index])
+    end
+  end
+  
+  -- Create new track
+  song:insert_track_at(track_index + 1)
+  local new_track = song:track(track_index + 1)
+  
+  -- Copy track settings
+  new_track.visible_note_columns = selected_track.visible_note_columns
+  new_track.visible_effect_columns = selected_track.visible_effect_columns
+  new_track.volume_column_visible = selected_track.volume_column_visible
+  new_track.panning_column_visible = selected_track.panning_column_visible
+  new_track.delay_column_visible = selected_track.delay_column_visible
+  new_track.sample_effects_column_visible = selected_track.sample_effects_column_visible
+  new_track.collapsed = selected_track.collapsed
+  
+  -- Copy mixer volume settings
+  new_track.prefx_volume.value = selected_track.prefx_volume.value
+  new_track.postfx_volume.value = selected_track.postfx_volume.value
+  
+  -- NOTE: DSP devices are intentionally NOT copied in this clean version
+  
+  -- Copy pattern data and update instrument references (but skip automation)
+  for pattern_index = 1, #song.patterns do
+    local pattern = song:pattern(pattern_index)
+    local source_track = pattern:track(track_index)
+    local dest_track = pattern:track(track_index + 1)
+    
+    -- Copy all lines
+    for line_index = 1, pattern.number_of_lines do
+      dest_track:line(line_index):copy_from(source_track:line(line_index))
+      
+      -- Update instrument references in note columns
+      for _, note_column in ipairs(dest_track:line(line_index).note_columns) do
+        if note_column.instrument_value ~= 255 then  -- Skip empty instrument values
+          note_column.instrument_value = instrument_index
+        end
+      end
+    end
+    
+    -- NOTE: Automation is intentionally NOT copied in this clean version
+  end
+  
+  -- Select the new track and instrument
+  song.selected_track_index = track_index + 1
+  song.selected_instrument_index = instrument_index + 1
+  
+  -- Restore external editor state if needed
+  if external_editor_open and new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_device then
+    new_instrument.plugin_properties.plugin_device.external_editor_visible = true
+  end
+  
+  -- Show status message
+  renoise.app():show_status("Track and instrument duplicated (clean - no DSP/automation)")
+end
+
+renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Track and Instrument (Clean)",invoke=duplicateTrackAndInstrumentClean}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track and Instrument (Clean)",invoke=duplicateTrackAndInstrumentClean}
 
 -------
 function fillEmptySampleSlots()

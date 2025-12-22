@@ -239,6 +239,13 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportEXE = true,           -- Raw binary (.exe, .dll, .bin, .sys, .dylib) import
   -- Quick Sample to New Track Settings
   pakettiQuickSampleTrackVolume = true,  -- Set new track volume to -30dB for safe recording levels
+  -- MPC Cycler Settings
+  pakettiMPCCyclerLastSampleFolder = "",
+  pakettiMPCCyclerLastInstrumentFolder = "",
+  pakettiMPCCyclerSampleIndex = 1,
+  pakettiMPCCyclerInstrumentIndex = 1,
+  pakettiMPCCyclerGlobalLock = false,
+  pakettiMPCCyclerPreviewEnabled = false,
   ActionSelector = {
  Index01="",
  Index02="",

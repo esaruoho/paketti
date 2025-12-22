@@ -2022,6 +2022,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti:Clean Render:Clean Render Seam
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Clean Render:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Clean Render:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Duplicate Track and Instrument (Clean)",invoke=duplicateTrackAndInstrumentClean}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Show Paketti Formula Device Manual Dialog...",invoke = pakettiFormulaDeviceDialog}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Add Input Inertia Formula Device",invoke = add_input_inertia}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Record:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
@@ -2224,6 +2225,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Play Samples Backwa
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Clean Render Selected Track/Group LPB*2",invoke=function() pakettiCleanRenderSelectionLPB() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Clean Render Seamless Selected Track/Group",invoke=function() PakettiSeamlessCleanRenderSelection() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Duplicate Track and Instrument (Clean)",invoke=duplicateTrackAndInstrumentClean}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Open Player Pro Note Column Dialog...",invoke=pakettiPlayerProNoteGridShowDropdownGrid}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Open Player Pro Tools Effect Dialog",invoke=function() pakettiPlayerProEffectDialog() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
@@ -3227,6 +3229,7 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate & Wonkify P
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wonkify Generate Chain",invoke=PakettiWonkifyGenerateChain}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wonkify Settings...",invoke=PakettiWonkifyDialog}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Duplicate Track and Instrument",invoke=function() duplicateTrackAndInstrument() end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate Track and Instrument (Clean)",invoke=function() duplicateTrackAndInstrumentClean() end}
 
 -- Pattern Matrix Delay Output Delay
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delay Output:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
