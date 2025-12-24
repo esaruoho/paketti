@@ -5181,6 +5181,13 @@ function pakettiMidiSelectTrack(track_index)
     return
   end
   song.selected_track_index = track_index
+  
+  -- Auto-select instrument used in the track if preference is enabled
+  if preferences.PakettiSelectTrackSelectInstrument.value then
+    if type(capture_ins_oct) == "function" then
+      capture_ins_oct("no")
+    end
+  end
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 01",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(1) end end}
