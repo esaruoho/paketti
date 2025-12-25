@@ -5222,3 +5222,63 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 29",invoke=funct
 renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 30",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(30) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 31",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(31) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track 32",invoke=function(message) if message:is_trigger() then pakettiMidiSelectTrack(32) end end}
+
+---------------------------------------------------------------------------
+-- Mixer Shown Parameter MIDI Control
+-- Controls parameters that have show_in_mixer=true on the selected track
+---------------------------------------------------------------------------
+
+-- Get all parameters with show_in_mixer=true from selected track
+function PakettiGetMixerShownParameters()
+  local params = {}
+  local track = renoise.song().selected_track
+  for _, device in ipairs(track.devices) do
+    for _, param in ipairs(device.parameters) do
+      if param.show_in_mixer then
+        table.insert(params, {param = param, device_name = device.name})
+      end
+    end
+  end
+  return params
+end
+
+-- Control the Nth mixer-shown parameter
+function PakettiControlMixerShownParameter(param_index, midi_message)
+  local params = PakettiGetMixerShownParameters()
+  if not params[param_index] then
+    renoise.app():show_status("No exposed parameter " .. string.format("%02d", param_index) .. " available")
+    return
+  end
+  local param = params[param_index].param
+  local device_name = params[param_index].device_name
+  
+  if midi_message:is_abs_value() then
+    param.value = param.value_min + ((param.value_max - param.value_min) * (midi_message.int_value / 127))
+  elseif midi_message:is_rel_value() then
+    local value_range = param.value_max - param.value_min
+    local relative_change = (midi_message.int_value / 127) * value_range
+    local new_value = math.max(param.value_min, math.min(param.value_max, param.value + relative_change))
+    param.value = new_value
+  end
+  renoise.app():show_status(param.name .. " (" .. device_name .. "): " .. string.format("%.2f", param.value))
+end
+
+-- Create 16 MIDI mappings for controlling mixer-shown parameters (absolute)
+for i = 1, 16 do
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Control Mixer Shown Parameter %02d x[Knob]", i),
+    invoke = function(midi_message)
+      PakettiControlMixerShownParameter(i, midi_message)
+    end
+  }
+end
+
+-- Create 16 MIDI mappings for controlling mixer-shown parameters (relative/encoder)
+for i = 1, 16 do
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Control Mixer Shown Parameter %02d (Relative) x[Knob]", i),
+    invoke = function(midi_message)
+      PakettiControlMixerShownParameter(i, midi_message)
+    end
+  }
+end
