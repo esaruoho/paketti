@@ -965,3 +965,72 @@ end
 -- Initialize preferences file and load keybindings and MIDI mappings
 loadFromPreferences()
 
+------------------------------------------------------------------------------------------------------------
+-- Favorite Plugin Instruments (Paketti) - Dynamic Menu Entries
+------------------------------------------------------------------------------------------------------------
+local favorite_plugin_menu_entries_added = {}
+
+-- Function to create menu entries for favorite plugins
+function createFavoritePluginMenuEntries()
+  -- Need a song to access plugin_properties
+  if not renoise.song() then return end
+  
+  local song = renoise.song()
+  -- Use the first instrument to get available_plugin_infos (they're the same for all instruments)
+  local instrument = song.selected_instrument
+  if not instrument or not instrument.plugin_properties then return end
+  
+  local available_plugin_infos = instrument.plugin_properties.available_plugin_infos
+  if not available_plugin_infos or #available_plugin_infos == 0 then return end
+  
+  -- Collect favorite plugins
+  local favorites = {}
+  for _, plugin_info in ipairs(available_plugin_infos) do
+    if plugin_info.is_favorite then
+      table.insert(favorites, plugin_info)
+    end
+  end
+  
+  -- Sort favorites by favorite_name or name
+  table.sort(favorites, function(a, b)
+    local name_a = a.favorite_name or a.name or ""
+    local name_b = b.favorite_name or b.name or ""
+    return name_a:lower() < name_b:lower()
+  end)
+  
+  -- Create menu entries for each favorite
+  for _, plugin_info in ipairs(favorites) do
+    local display_name = plugin_info.favorite_name or plugin_info.short_name or plugin_info.name
+    local menu_entry_name = "Instrument Box:Favorite Plugin Instruments (Paketti):" .. display_name
+    
+    -- Only add if not already added
+    if not favorite_plugin_menu_entries_added[menu_entry_name] then
+      local plugin_path = plugin_info.path
+      
+      local success, err = pcall(function()
+        renoise.tool():add_menu_entry{
+          name = menu_entry_name,
+          invoke = function()
+            loadPlugin(plugin_path, nil, display_name)
+          end
+        }
+      end)
+      
+      if success then
+        favorite_plugin_menu_entries_added[menu_entry_name] = true
+        print("-- Paketti: Added favorite plugin menu entry: " .. display_name)
+      else
+        print("-- Paketti: Failed to add favorite plugin menu entry: " .. display_name .. " - " .. tostring(err))
+      end
+    end
+  end
+end
+
+-- Register to create menu entries when a new document is loaded
+if not renoise.tool().app_new_document_observable:has_notifier(createFavoritePluginMenuEntries) then
+  renoise.tool().app_new_document_observable:add_notifier(createFavoritePluginMenuEntries)
+end
+
+-- Also try to create entries now if a song is already loaded
+pcall(createFavoritePluginMenuEntries)
+
