@@ -112,44 +112,74 @@ function search_empty_instrument()
   return #proc.instruments
 end
 ------------------------------------------------------------------------------------------------------------
+-- Helper function to add Instr. Automation device after loading a plugin
+-- Optional device_name parameter to rename the device (defaults to instrument name)
+function addInstrAutomationForPlugin(device_name)
+  local song = renoise.song()
+  local current_track = song.selected_track
+  if current_track and current_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    local instr_auto_device = current_track:insert_device_at("Audio/Effects/Native/*Instr. Automation", #current_track.devices + 1)
+    if instr_auto_device then
+      -- Configure the device to point to the current instrument (0-based index in XML)
+      local instrument_index = song.selected_instrument_index - 1
+      local xml = instr_auto_device.active_preset_data
+      local new_xml = xml:gsub("<instrument>(%d+)</instrument>", 
+        function(old_instr_index)
+          return string.format("<instrument>%d</instrument>", instrument_index)
+        end)
+      instr_auto_device.active_preset_data = new_xml
+      -- Rename the device to the plugin/instrument name
+      local name = device_name or song.selected_instrument.name
+      if name and name ~= "" then
+        instr_auto_device.display_name = name
+      end
+    end
+  end
+end
+------------------------------------------------------------------------------------------------------------
 function LoadRhino()
-local s=renoise.song()
-s.selected_instrument_index = search_empty_instrument()
-s.selected_instrument.plugin_properties:load_plugin("Audio/Generators/AU/aumu:RNB4:VSTA")
-if s.selected_instrument.plugin_properties.plugin_loaded
- then
- local pd=s.selected_instrument.plugin_properties.plugin_device
- if pd.external_editor_visible==false then pd.external_editor_visible=true else pd.external_editor_visible=false end
- end
-renoise.app().window.active_lower_frame=3
-s.selected_instrument.active_tab=2 
+  local s=renoise.song()
+  s.selected_instrument_index = search_empty_instrument()
+  s.selected_instrument.plugin_properties:load_plugin("Audio/Generators/AU/aumu:RNB4:VSTA")
+  if s.selected_instrument.plugin_properties.plugin_loaded then
+    local pd=s.selected_instrument.plugin_properties.plugin_device
+    if pd.external_editor_visible==false then pd.external_editor_visible=true else pd.external_editor_visible=false end
+  end
+  addInstrAutomationForPlugin()
+  renoise.app().window.active_lower_frame=3
+  s.selected_instrument.active_tab=2 
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Rhino 2.1 AU",invoke=function() LoadRhino() end}
 ------------------------------------------------------------------------------------------------------------
-renoise.tool():add_keybinding{name="Global:Paketti:Load FabFilter One",invoke=function() renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties:load_plugin("Audio/Generators/AU/aumu:FOne:FabF")
-local pd=renoise.song().selected_instrument.plugin_properties.plugin_device
- if pd.external_editor_visible==false then pd.external_editor_visible=true end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load FabFilter One",invoke=function()
+  renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties:load_plugin("Audio/Generators/AU/aumu:FOne:FabF")
+  local pd=renoise.song().selected_instrument.plugin_properties.plugin_device
+  if pd.external_editor_visible==false then pd.external_editor_visible=true end
+  addInstrAutomationForPlugin()
+end}
 ------------------------------------------------------------------------------------------------------------
-renoise.tool():add_keybinding{name="Global:Paketti:Load Surge (VST)",invoke=function() renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties:load_plugin("Audio/Generators/VST/Surge")
-local pd=renoise.song().selected_instrument.plugin_properties.plugin_device
- if pd.external_editor_visible==false then pd.external_editor_visible=true end 
- 
-renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-renoise.app().window.lock_keyboard_focus=true
+renoise.tool():add_keybinding{name="Global:Paketti:Load Surge (VST)",invoke=function()
+  renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties:load_plugin("Audio/Generators/VST/Surge")
+  local pd=renoise.song().selected_instrument.plugin_properties.plugin_device
+  if pd.external_editor_visible==false then pd.external_editor_visible=true end
+  -- NOTE: Surge uses CCizer which adds its own Instr. Automation, so we skip addInstrAutomationForPlugin() here
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.lock_keyboard_focus=true
 end}
 ------------------------------------------------------------------------------------------------------------
 function LoadZebra()
-local s=renoise.song()
-s.selected_instrument_index = search_empty_instrument()
-s.selected_instrument.plugin_properties:load_plugin("Audio/Generators/VST/Zebra2")
-if s.selected_instrument.plugin_properties.plugin_loaded then
- local pd=s.selected_instrument.plugin_properties.plugin_device
- if pd.external_editor_visible==false then pd.external_editor_visible=true else pd.external_editor_visible=false end
+  local s=renoise.song()
+  s.selected_instrument_index = search_empty_instrument()
+  s.selected_instrument.plugin_properties:load_plugin("Audio/Generators/VST/Zebra2")
+  if s.selected_instrument.plugin_properties.plugin_loaded then
+    local pd=s.selected_instrument.plugin_properties.plugin_device
+    if pd.external_editor_visible==false then pd.external_editor_visible=true else pd.external_editor_visible=false end
+  end
+  addInstrAutomationForPlugin()
+  renoise.app().window.active_middle_frame=3
+  s.selected_instrument.active_tab=2
 end
---renoise.app().window.active_lower_frame=3
-renoise.app().window.active_middle_frame=3
-s.selected_instrument.active_tab=2 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load U-He Zebra (VST)",invoke=function() LoadZebra() end}
 
@@ -181,9 +211,7 @@ end
 -- Example usage
 function LoadPPG()
   local s = renoise.song()
-
-local currentView = renoise.app().window.active_middle_frame
-
+  local currentView = renoise.app().window.active_middle_frame
   
   -- Ensure an empty instrument slot is selected
   s.selected_instrument_index = search_empty_instrument()
@@ -211,35 +239,24 @@ local currentView = renoise.app().window.active_middle_frame
     return
   end
   
-  -- Set the active frame and tab for the UI
-  -- renoise.app().window.active_lower_frame = 3
---  renoise.app().window.active_middle_frame = 3
-renoise.app().window.active_middle_frame = currentView
-
---  s.selected_instrument.active_tab = storedTab
-  
-  -- Example commented code
-  -- renoise.song().selected_track.devices[checkline].parameters[1].value = 0.474 -- Mix 
-
-  -- Example commented code
-  -- loadnative("Audio/Effects/Native/*Instr. Automation")
-  -- s.selected_track.devices[2].parameters[2].value = 0.0 -- delay
+  addInstrAutomationForPlugin()
+  renoise.app().window.active_middle_frame = currentView
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Load Waldorf PPG v2 (VST)",invoke=function() LoadPPG() end}
 
 
 -----------------------------------------------------------------------------------------------------
 function LoadAttack()
-local s=renoise.song()
-s.selected_instrument_index = search_empty_instrument()
-s.selected_instrument.plugin_properties:load_plugin("Audio/Generators/VST/Attack")
-if s.selected_instrument.plugin_properties.plugin_loaded
- then
- local pd=s.selected_instrument.plugin_properties.plugin_device
- if pd.external_editor_visible==false then pd.external_editor_visible=true else pd.external_editor_visible=false end
- end
-renoise.app().window.active_middle_frame=3
-s.selected_instrument.active_tab=2 
+  local s=renoise.song()
+  s.selected_instrument_index = search_empty_instrument()
+  s.selected_instrument.plugin_properties:load_plugin("Audio/Generators/VST/Attack")
+  if s.selected_instrument.plugin_properties.plugin_loaded then
+    local pd=s.selected_instrument.plugin_properties.plugin_device
+    if pd.external_editor_visible==false then pd.external_editor_visible=true else pd.external_editor_visible=false end
+  end
+  addInstrAutomationForPlugin()
+  renoise.app().window.active_middle_frame=3
+  s.selected_instrument.active_tab=2 
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Load Waldorf Attack (VST)",invoke=function() LoadAttack() end}
 -----------------------------------------------------------------------------------------------------
@@ -4253,6 +4270,7 @@ function insertRandomPlugin(au_only)
       s.selected_instrument.plugin_properties.plugin_device.external_editor_visible = true
     end
     
+    addInstrAutomationForPlugin()
     renoise.app():show_status("Inserted plugin: " .. random_plugin)
   else
     if au_only then

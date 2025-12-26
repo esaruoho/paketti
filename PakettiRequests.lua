@@ -2388,6 +2388,7 @@ function setToSelectedInstrument_DuplicateTrack()
       local new_device = new_track:insert_device_at(old_device.device_path, dsp_index)
       for parameter_index = 1, #old_device.parameters do
         new_device.parameters[parameter_index].value = old_device.parameters[parameter_index].value
+        new_device.parameters[parameter_index].show_in_mixer = old_device.parameters[parameter_index].show_in_mixer
       end
       new_device.is_maximized = old_device.is_maximized
     end
@@ -2525,6 +2526,7 @@ function duplicateTrackDuplicateInstrument()
       local new_device = new_track:insert_device_at(old_device.device_path, dsp_index)
       for parameter_index = 1, #old_device.parameters do
         new_device.parameters[parameter_index].value = old_device.parameters[parameter_index].value
+        new_device.parameters[parameter_index].show_in_mixer = old_device.parameters[parameter_index].show_in_mixer
       end
       new_device.is_maximized = old_device.is_maximized
     end

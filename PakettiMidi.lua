@@ -2269,6 +2269,239 @@ renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value (Name Tracks) (
     end
   end}
 
+------------------------------------------------------------------------
+-- Repeater Automation Envelope MIDI Mappings
+------------------------------------------------------------------------
+
+-- Helper function to find or insert a Repeater device on a track
+-- Returns the device if found/inserted, nil if track doesn't support devices
+function PakettiFindOrInsertRepeater(track)
+  if not track then
+    track = renoise.song().selected_track
+  end
+  
+  -- Check if track can have devices (not master, send, or group tracks without devices)
+  if track.type == renoise.Track.TRACK_TYPE_MASTER or 
+     track.type == renoise.Track.TRACK_TYPE_SEND then
+    renoise.app():show_status("Cannot add Repeater to this track type")
+    return nil
+  end
+  
+  -- Check if the Repeater device already exists on the track
+  for i, device in ipairs(track.devices) do
+    if device.display_name == "Repeater" then
+      return device
+    end
+  end
+  
+  -- If no device is found, insert a new Repeater
+  track:insert_device_at("Audio/Effects/Native/Repeater", #track.devices + 1)
+  local device = track.devices[#track.devices]
+  device.parameters[2].show_in_mixer = true
+  print("Repeater device added for automation")
+  return device
+end
+
+-- Core function to write MIDI value to Repeater parameter automation envelope
+-- param_index: 1 = Mode, 2 = Rate (Time Division), or "active" for device bypass
+-- normalized_value: 0.0 to 1.0 range
+-- track: optional, defaults to selected track
+function PakettiWriteRepeaterAutomation(param_index, normalized_value, track)
+  local song = renoise.song()
+  
+  if not track then
+    track = song.selected_track
+  end
+  
+  -- Find or insert Repeater device
+  local device = PakettiFindOrInsertRepeater(track)
+  if not device then return end
+  
+  -- Get the target parameter
+  local param
+  if param_index == "active" then
+    -- The "Active" parameter is typically the first parameter on native devices
+    -- We need to find it by name
+    for _, p in ipairs(device.parameters) do
+      if p.name == "Active" then
+        param = p
+        break
+      end
+    end
+    if not param then
+      renoise.app():show_status("Active parameter not found on Repeater")
+      return
+    end
+  else
+    param = device.parameters[param_index]
+  end
+  
+  if not param then
+    renoise.app():show_status("Parameter " .. tostring(param_index) .. " not found on Repeater")
+    return
+  end
+  
+  if not param.is_automatable then
+    renoise.app():show_status("Parameter '" .. param.name .. "' is not automatable")
+    return
+  end
+  
+  -- Get the track index for automation
+  local track_index = nil
+  for i, t in ipairs(song.tracks) do
+    if t == track then
+      track_index = i
+      break
+    end
+  end
+  if not track_index then
+    renoise.app():show_status("Could not find track index")
+    return
+  end
+  
+  -- Get/create automation envelope
+  local track_auto = song:pattern(song.selected_pattern_index):track(track_index)
+  local envelope = track_auto:find_automation(param)
+  if not envelope then
+    envelope = track_auto:create_automation(param)
+    print("Created automation envelope for Repeater parameter: " .. param.name)
+  end
+  
+  -- Clamp value between 0.0 and 1.0
+  local clamped_value = math.max(0.0, math.min(1.0, normalized_value))
+  
+  -- Check for a valid selection range
+  local selection = envelope.selection_range
+  
+  -- Case 1: If not playing and a selection exists, clear the selection range and write new points
+  if not song.transport.playing and selection then
+    local start_line = selection[1]
+    local end_line = selection[2]
+    envelope:clear_range(start_line, end_line)
+    for line = start_line, end_line do
+      envelope:add_point_at(line, clamped_value)
+    end
+    renoise.app():show_status("Repeater " .. param.name .. " automation written to selection")
+    return
+  end
+  
+  -- Case 2: If playing, Follow Pattern is off, and a selection exists
+  if song.transport.playing and not song.transport.follow_player and selection then
+    local start_line = selection[1]
+    local end_line = selection[2]
+    envelope:clear_range(start_line, end_line)
+    for line = start_line, end_line do
+      envelope:add_point_at(line, clamped_value)
+    end
+    renoise.app():show_status("Repeater " .. param.name .. " automation written to selection")
+    return
+  end
+  
+  -- Default: Write to playhead position
+  local playhead_line = song.transport.playback_pos.line
+  envelope:add_point_at(playhead_line, clamped_value)
+end
+
+-- MIDI Mappings for Repeater Automation (Mode)
+renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Mode (Automation) x[Knob]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      local normalized_value = message.int_value / 127
+      PakettiWriteRepeaterAutomation(1, normalized_value)
+    end
+  end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Mode (Automation) x[Knob] (2nd)",
+  invoke=function(message)
+    if message:is_abs_value() then
+      local normalized_value = message.int_value / 127
+      PakettiWriteRepeaterAutomation(1, normalized_value)
+    end
+  end}
+
+-- MIDI Mappings for Repeater Automation (Rate/Time Division)
+renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Rate (Automation) x[Knob]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      local normalized_value = message.int_value / 127
+      PakettiWriteRepeaterAutomation(2, normalized_value)
+    end
+  end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Rate (Automation) x[Knob] (2nd)",
+  invoke=function(message)
+    if message:is_abs_value() then
+      local normalized_value = message.int_value / 127
+      PakettiWriteRepeaterAutomation(2, normalized_value)
+    end
+  end}
+
+-- MIDI Mappings for Repeater Automation (Active/Bypass)
+renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Active (Automation) x[Knob]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      local normalized_value = message.int_value / 127
+      PakettiWriteRepeaterAutomation("active", normalized_value)
+    end
+  end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Active (Automation) x[Knob] (2nd)",
+  invoke=function(message)
+    if message:is_abs_value() then
+      local normalized_value = message.int_value / 127
+      PakettiWriteRepeaterAutomation("active", normalized_value)
+    end
+  end}
+
+-- Helper function for track-specific Repeater automation MIDI handling
+function PakettiHandleTrackRepeaterAutomation(message, track_number, param_index)
+  if message:is_abs_value() then
+    local song = renoise.song()
+    if track_number > #song.tracks then
+      renoise.app():show_status("Track " .. track_number .. " does not exist")
+      return
+    end
+    local track = song.tracks[track_number]
+    local normalized_value = message.int_value / 127
+    PakettiWriteRepeaterAutomation(param_index, normalized_value, track)
+  end
+end
+
+-- Track-specific Repeater Mode Automation MIDI mappings (1-8)
+for track = 1, 8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Mode (Automation) Track " .. track .. " x[Knob]",
+    invoke=function(message) PakettiHandleTrackRepeaterAutomation(message, track, 1) end}
+end
+
+-- Track-specific Repeater Mode Automation MIDI mappings (1-8) (2nd)
+for track = 1, 8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Mode (Automation) Track " .. track .. " x[Knob] (2nd)",
+    invoke=function(message) PakettiHandleTrackRepeaterAutomation(message, track, 1) end}
+end
+
+-- Track-specific Repeater Rate Automation MIDI mappings (1-8)
+for track = 1, 8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Rate (Automation) Track " .. track .. " x[Knob]",
+    invoke=function(message) PakettiHandleTrackRepeaterAutomation(message, track, 2) end}
+end
+
+-- Track-specific Repeater Rate Automation MIDI mappings (1-8) (2nd)
+for track = 1, 8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Rate (Automation) Track " .. track .. " x[Knob] (2nd)",
+    invoke=function(message) PakettiHandleTrackRepeaterAutomation(message, track, 2) end}
+end
+
+-- Track-specific Repeater Active Automation MIDI mappings (1-8)
+for track = 1, 8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Active (Automation) Track " .. track .. " x[Knob]",
+    invoke=function(message) PakettiHandleTrackRepeaterAutomation(message, track, "active") end}
+end
+
+-- Track-specific Repeater Active Automation MIDI mappings (1-8) (2nd)
+for track = 1, 8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Active (Automation) Track " .. track .. " x[Knob] (2nd)",
+    invoke=function(message) PakettiHandleTrackRepeaterAutomation(message, track, "active") end}
+end
 
 -- Function to deactivate the Repeater without making any other parameter changes
 -- track_name_change: if true, changes the track name

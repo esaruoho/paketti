@@ -6370,6 +6370,9 @@ function duplicateTrackAndInstrumentCore(copy_dsp, copy_automation, jump_to_edit
   new_track.prefx_volume.value = selected_track.prefx_volume.value
   new_track.postfx_volume.value = selected_track.postfx_volume.value
   
+  -- Check if this is a plugin instrument (needed for DSP logic below)
+  local is_plugin_instrument = new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_device
+  
   -- Copy DSP devices and their settings (if enabled)
   if copy_dsp then
     for device_index = 2, #selected_track.devices do  -- Start from 2 to skip Track Volume device
@@ -6426,9 +6429,27 @@ function duplicateTrackAndInstrumentCore(copy_dsp, copy_automation, jump_to_edit
   song.selected_track_index = track_index + 1
   song.selected_instrument_index = instrument_index + 1
   
-  -- Check if instrument has samples and plugin (for jump and status)
+  -- Clean mode: If this is a plugin instrument, load an Instr. Automation device
+  if not copy_dsp and is_plugin_instrument then
+    local instr_auto_device = new_track:insert_device_at("Audio/Effects/Native/*Instr. Automation", 2)
+    if instr_auto_device then
+      -- Configure the device to point to the new instrument (0-based index in XML)
+      local xml = instr_auto_device.active_preset_data
+      local new_xml = xml:gsub("<instrument>(%d+)</instrument>", 
+        function(old_instr_index)
+          return string.format("<instrument>%d</instrument>", instrument_index)
+        end)
+      instr_auto_device.active_preset_data = new_xml
+      -- Rename the device to the instrument/plugin name
+      local device_name = new_instrument.name
+      if device_name and device_name ~= "" then
+        instr_auto_device.display_name = device_name
+      end
+    end
+  end
+  
+  -- Check if instrument has samples (for jump and status)
   local has_samples = #new_instrument.samples > 0 and new_instrument.samples[1].sample_buffer.has_sample_data
-  local has_plugin = new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_device
   
   -- Handle editor visibility based on jump_to_editor parameter
   if jump_to_editor then
@@ -6437,12 +6458,12 @@ function duplicateTrackAndInstrumentCore(copy_dsp, copy_automation, jump_to_edit
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
     end
     -- Open External Editor if there's a plugin
-    if has_plugin then
+    if is_plugin_instrument then
       new_instrument.plugin_properties.plugin_device.external_editor_visible = true
     end
   else
     -- Restore external editor state if needed (original behavior)
-    if external_editor_open and has_plugin then
+    if external_editor_open and is_plugin_instrument then
       new_instrument.plugin_properties.plugin_device.external_editor_visible = true
     end
   end
@@ -6451,12 +6472,15 @@ function duplicateTrackAndInstrumentCore(copy_dsp, copy_automation, jump_to_edit
   local status_parts = {"Track and instrument duplicated"}
   if not copy_dsp and not copy_automation then
     status_parts[1] = "Track and instrument duplicated (clean)"
+    if is_plugin_instrument then
+      table.insert(status_parts, "Instr. Automation added")
+    end
   end
   if jump_to_editor then
     if has_samples then
       table.insert(status_parts, "Sample Editor opened")
     end
-    if has_plugin then
+    if is_plugin_instrument then
       table.insert(status_parts, "External Editor opened")
     end
   end
