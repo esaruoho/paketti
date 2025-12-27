@@ -747,3 +747,67 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Resize All Patterns t
 -- MIDI mapping for Resize All Patterns function
 renoise.tool():add_midi_mapping{name="Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
 
+-- Toggle Track Sequence Slot Mute for a specific track at current sequence position
+function PakettiToggleTrackSlotMute(track_index)
+  local song = renoise.song()
+  local sequence_index = song.selected_sequence_index
+  local track_num_str = string.format("%02d", track_index)
+  
+  -- Validate track exists
+  if track_index > #song.tracks then
+    renoise.app():show_status("Track " .. track_num_str .. " does not exist")
+    return
+  end
+  
+  local sequencer = song.sequencer
+  local is_muted = sequencer:track_sequence_slot_is_muted(track_index, sequence_index)
+  
+  -- Toggle the mute state
+  sequencer:set_track_sequence_slot_is_muted(track_index, sequence_index, not is_muted)
+  
+  if is_muted then
+    renoise.app():show_status("Track " .. track_num_str .. " Slot Unmuted")
+  else
+    renoise.app():show_status("Track " .. track_num_str .. " Slot Muted")
+  end
+end
+
+-- Toggle Track Sequence Slot Mute for all tracks (01-32) at current sequence position
+function PakettiToggleAllTrackSlotMute()
+  local song = renoise.song()
+  local sequence_index = song.selected_sequence_index
+  local sequencer = song.sequencer
+  local max_tracks = math.min(32, #song.tracks)
+  
+  if max_tracks == 0 then
+    renoise.app():show_status("No tracks to toggle")
+    return
+  end
+  
+  for track_index = 1, max_tracks do
+    local is_muted = sequencer:track_sequence_slot_is_muted(track_index, sequence_index)
+    sequencer:set_track_sequence_slot_is_muted(track_index, sequence_index, not is_muted)
+  end
+  
+  renoise.app():show_status("Toggled Slot Mute for " .. max_tracks .. " tracks")
+end
+
+-- Keybindings and MIDI mappings for Toggle Track Slot Mute (01-32)
+for i = 1, 32 do
+  local track_num_str = string.format("%02d", i)
+  
+  -- Keybindings
+  renoise.tool():add_keybinding{name="Global:Paketti:Toggle Track Slot Mute " .. track_num_str, invoke=function() PakettiToggleTrackSlotMute(i) end}
+  renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Toggle Track Slot Mute " .. track_num_str, invoke=function() PakettiToggleTrackSlotMute(i) end}
+  
+  -- MIDI mappings
+  renoise.tool():add_midi_mapping{name="Paketti:Toggle Track Slot Mute " .. track_num_str, invoke=function(message) if message:is_trigger() then PakettiToggleTrackSlotMute(i) end end}
+end
+
+-- Keybindings for Toggle All Track Slot Mutes
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Track Slot Mutes", invoke=PakettiToggleAllTrackSlotMute}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Toggle All Track Slot Mutes", invoke=PakettiToggleAllTrackSlotMute}
+
+-- MIDI mapping for Toggle All Track Slot Mutes
+renoise.tool():add_midi_mapping{name="Paketti:Toggle All Track Slot Mutes", invoke=function(message) if message:is_trigger() then PakettiToggleAllTrackSlotMute() end end}
+
