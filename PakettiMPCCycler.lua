@@ -1262,3 +1262,4 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Toggl
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Commit Preview", invoke=mpc_commit_preview}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Toggle Global Lock", invoke=mpc_toggle_global_lock}
 
+

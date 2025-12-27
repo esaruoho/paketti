@@ -272,11 +272,10 @@ end
 
 -- Enhanced Load Plugin Function with optional CCizer integration
 function loadPlugin(pluginPath, apply_ccizer_file, plugin_display_name)
-  local song = renoise.song()
-  local selected_index = song.selected_instrument_index
+  local selected_index = renoise.song().selected_instrument_index
   local currentView = renoise.app().window.active_middle_frame
-  song:insert_instrument_at(song.selected_instrument_index + 1)
-  song.selected_instrument_index = selected_index + 1
+  renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+  renoise.song().selected_instrument_index = selected_index + 1
 
   if currentView == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then 
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PLUGIN_EDITOR
@@ -285,52 +284,15 @@ function loadPlugin(pluginPath, apply_ccizer_file, plugin_display_name)
     renoise.app().window.active_middle_frame = currentView
   end
 
-  local new_instrument = song.selected_instrument
+  local new_instrument = renoise.song().selected_instrument
   new_instrument.plugin_properties:load_plugin(pluginPath)
   if new_instrument.plugin_properties.plugin_device and new_instrument.plugin_properties.plugin_device.external_editor_available then
     new_instrument.plugin_properties.plugin_device.external_editor_visible = true
   end
   
-  -- Apply CCizer mappings if requested, OR add Instr. Automation device
-  -- (CCizer already adds its own Instr. Automation, so we skip it when CCizer is applied)
+  -- Apply CCizer mappings if requested
   if apply_ccizer_file then
-    print("-- loadPlugin: CCizer file provided, applying CCizer")
     apply_ccizer_after_plugin_load(apply_ccizer_file, plugin_display_name or "Unknown Plugin")
-  else
-    -- No CCizer - add Instr. Automation device to current track for the new plugin instrument
-    print("-- loadPlugin: No CCizer file, adding Instr. Automation device")
-    local current_track = song.selected_track
-    if current_track then
-      print("-- loadPlugin: Current track type: " .. tostring(current_track.type) .. " (SEQUENCER=" .. tostring(renoise.Track.TRACK_TYPE_SEQUENCER) .. ")")
-      if current_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-        local device_count = #current_track.devices
-        print("-- loadPlugin: Inserting Instr. Automation at position " .. tostring(device_count + 1))
-        local instr_auto_device = current_track:insert_device_at("Audio/Effects/Native/*Instr. Automation", device_count + 1)
-        if instr_auto_device then
-          print("-- loadPlugin: Instr. Automation device inserted successfully")
-          -- Configure the device to point to the new instrument (0-based index in XML)
-          local instrument_index = song.selected_instrument_index - 1  -- 0-based for XML
-          local xml = instr_auto_device.active_preset_data
-          local new_xml = xml:gsub("<instrument>(%d+)</instrument>", 
-            function(old_instr_index)
-              return string.format("<instrument>%d</instrument>", instrument_index)
-            end)
-          instr_auto_device.active_preset_data = new_xml
-          -- Rename the device to the instrument/plugin name
-          local device_name = song.selected_instrument.name
-          if device_name and device_name ~= "" then
-            instr_auto_device.display_name = device_name
-          end
-          print("-- loadPlugin: Instr. Automation configured for instrument index " .. tostring(instrument_index))
-        else
-          print("-- loadPlugin: ERROR - Failed to insert Instr. Automation device")
-        end
-      else
-        print("-- loadPlugin: Skipping Instr. Automation - not a sequencer track")
-      end
-    else
-      print("-- loadPlugin: ERROR - No current track selected")
-    end
   end
   
   -- openVisiblePagesToFitParameters()  -- Uncomment if you have this function defined elsewhere
@@ -964,73 +926,4 @@ end
 
 -- Initialize preferences file and load keybindings and MIDI mappings
 loadFromPreferences()
-
-------------------------------------------------------------------------------------------------------------
--- Favorite Plugin Instruments (Paketti) - Dynamic Menu Entries
-------------------------------------------------------------------------------------------------------------
-local favorite_plugin_menu_entries_added = {}
-
--- Function to create menu entries for favorite plugins
-function createFavoritePluginMenuEntries()
-  -- Need a song to access plugin_properties
-  if not renoise.song() then return end
-  
-  local song = renoise.song()
-  -- Use the first instrument to get available_plugin_infos (they're the same for all instruments)
-  local instrument = song.selected_instrument
-  if not instrument or not instrument.plugin_properties then return end
-  
-  local available_plugin_infos = instrument.plugin_properties.available_plugin_infos
-  if not available_plugin_infos or #available_plugin_infos == 0 then return end
-  
-  -- Collect favorite plugins
-  local favorites = {}
-  for _, plugin_info in ipairs(available_plugin_infos) do
-    if plugin_info.is_favorite then
-      table.insert(favorites, plugin_info)
-    end
-  end
-  
-  -- Sort favorites by favorite_name or name
-  table.sort(favorites, function(a, b)
-    local name_a = a.favorite_name or a.name or ""
-    local name_b = b.favorite_name or b.name or ""
-    return name_a:lower() < name_b:lower()
-  end)
-  
-  -- Create menu entries for each favorite
-  for _, plugin_info in ipairs(favorites) do
-    local display_name = plugin_info.favorite_name or plugin_info.short_name or plugin_info.name
-    local menu_entry_name = "Instrument Box:Favorite Plugin Instruments (Paketti):" .. display_name
-    
-    -- Only add if not already added
-    if not favorite_plugin_menu_entries_added[menu_entry_name] then
-      local plugin_path = plugin_info.path
-      
-      local success, err = pcall(function()
-        renoise.tool():add_menu_entry{
-          name = menu_entry_name,
-          invoke = function()
-            loadPlugin(plugin_path, nil, display_name)
-          end
-        }
-      end)
-      
-      if success then
-        favorite_plugin_menu_entries_added[menu_entry_name] = true
-        print("-- Paketti: Added favorite plugin menu entry: " .. display_name)
-      else
-        print("-- Paketti: Failed to add favorite plugin menu entry: " .. display_name .. " - " .. tostring(err))
-      end
-    end
-  end
-end
-
--- Register to create menu entries when a new document is loaded
-if not renoise.tool().app_new_document_observable:has_notifier(createFavoritePluginMenuEntries) then
-  renoise.tool().app_new_document_observable:add_notifier(createFavoritePluginMenuEntries)
-end
-
--- Also try to create entries now if a song is already loaded
-pcall(createFavoritePluginMenuEntries)
 
