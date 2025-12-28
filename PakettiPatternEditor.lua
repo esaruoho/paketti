@@ -4346,7 +4346,7 @@ function find_next_note_line(start_line)
     local track_line = current_track:line(line_index)
     for note_col_index = 1, max_note_columns do
       local note_column = track_line:note_column(note_col_index)
-      if not note_column.is_empty then
+      if not note_column.is_empty and note_column.note_value <= 120 then
         notes_exist = true
         break
       end
@@ -4364,7 +4364,7 @@ function find_next_note_line(start_line)
     local track_line = current_track:line(line_index)
     for note_col_index = 1, max_note_columns do
       local note_column = track_line:note_column(note_col_index)
-      if not note_column.is_empty then
+      if not note_column.is_empty and note_column.note_value <= 120 then
         return line_index
       end
     end
@@ -4375,7 +4375,7 @@ function find_next_note_line(start_line)
     local track_line = current_track:line(line_index)
     for note_col_index = 1, max_note_columns do
       local note_column = track_line:note_column(note_col_index)
-      if not note_column.is_empty then
+      if not note_column.is_empty and note_column.note_value <= 120 then
         return line_index
       end
     end
