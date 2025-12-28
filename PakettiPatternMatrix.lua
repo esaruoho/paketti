@@ -799,6 +799,8 @@ for i = 1, 32 do
   -- Keybindings
   renoise.tool():add_keybinding{name="Global:Paketti:Toggle Track Slot Mute " .. track_num_str, invoke=function() PakettiToggleTrackSlotMute(i) end}
   renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Toggle Track Slot Mute " .. track_num_str, invoke=function() PakettiToggleTrackSlotMute(i) end}
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Track Slot Mute " .. track_num_str, invoke=function() PakettiToggleTrackSlotMute(i) end}
+  renoise.tool():add_keybinding{name="Mixer:Paketti:Toggle Track Slot Mute " .. track_num_str, invoke=function() PakettiToggleTrackSlotMute(i) end}
   
   -- MIDI mappings
   renoise.tool():add_midi_mapping{name="Paketti:Toggle Track Slot Mute " .. track_num_str, invoke=function(message) if message:is_trigger() then PakettiToggleTrackSlotMute(i) end end}
@@ -807,7 +809,84 @@ end
 -- Keybindings for Toggle All Track Slot Mutes
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Track Slot Mutes", invoke=PakettiToggleAllTrackSlotMute}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Toggle All Track Slot Mutes", invoke=PakettiToggleAllTrackSlotMute}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Track Slot Mutes", invoke=PakettiToggleAllTrackSlotMute}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Toggle All Track Slot Mutes", invoke=PakettiToggleAllTrackSlotMute}
 
 -- MIDI mapping for Toggle All Track Slot Mutes
 renoise.tool():add_midi_mapping{name="Paketti:Toggle All Track Slot Mutes", invoke=function(message) if message:is_trigger() then PakettiToggleAllTrackSlotMute() end end}
+
+-- Toggle Track Sequence Slot Mute for a specific track across ALL sequence positions
+-- Checks first sequence's state, then applies the opposite to ALL sequences
+function PakettiPatternSequenceAllPatternsMuteSlotTrack(track_index)
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local track_num_str = string.format("%02d", track_index)
+  
+  -- Validate track exists
+  if track_index > #song.tracks then
+    renoise.app():show_status("Track " .. track_num_str .. " does not exist")
+    return
+  end
+  
+  local total_sequences = #sequencer.pattern_sequence
+  
+  -- Check the first sequence's mute state to determine action
+  local first_is_muted = sequencer:track_sequence_slot_is_muted(track_index, 1)
+  local new_state = not first_is_muted
+  
+  -- Apply the new state to ALL sequences
+  for sequence_index = 1, total_sequences do
+    sequencer:set_track_sequence_slot_is_muted(track_index, sequence_index, new_state)
+  end
+  
+  if new_state then
+    renoise.app():show_status("Muted Track " .. track_num_str .. " Slot across " .. total_sequences .. " sequences")
+  else
+    renoise.app():show_status("Unmuted Track " .. track_num_str .. " Slot across " .. total_sequences .. " sequences")
+  end
+end
+
+-- Keybindings and MIDI mappings for Pattern Sequence All Patterns Mute Slot Track (01-32)
+for i = 1, 32 do
+  local track_num_str = string.format("%02d", i)
+  
+  -- Keybindings
+  renoise.tool():add_keybinding{name="Global:Paketti:Pattern Sequence All Patterns Mute Slot Track " .. track_num_str, invoke=function() PakettiPatternSequenceAllPatternsMuteSlotTrack(i) end}
+  renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Pattern Sequence All Patterns Mute Slot Track " .. track_num_str, invoke=function() PakettiPatternSequenceAllPatternsMuteSlotTrack(i) end}
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Pattern Sequence All Patterns Mute Slot Track " .. track_num_str, invoke=function() PakettiPatternSequenceAllPatternsMuteSlotTrack(i) end}
+  renoise.tool():add_keybinding{name="Mixer:Paketti:Pattern Sequence All Patterns Mute Slot Track " .. track_num_str, invoke=function() PakettiPatternSequenceAllPatternsMuteSlotTrack(i) end}
+  
+  -- MIDI mappings
+  renoise.tool():add_midi_mapping{name="Paketti:Pattern Sequence All Patterns Mute Slot Track " .. track_num_str, invoke=function(message) if message:is_trigger() then PakettiPatternSequenceAllPatternsMuteSlotTrack(i) end end}
+end
+
+-- Unmute ALL slots across ALL pattern sequences (all tracks 01-32)
+function PakettiUnmuteAllSlotsAcrossAllPatternSequences()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local total_sequences = #sequencer.pattern_sequence
+  local max_tracks = math.min(32, #song.tracks)
+  
+  if max_tracks == 0 then
+    renoise.app():show_status("No tracks to unmute")
+    return
+  end
+  
+  for track_index = 1, max_tracks do
+    for sequence_index = 1, total_sequences do
+      sequencer:set_track_sequence_slot_is_muted(track_index, sequence_index, false)
+    end
+  end
+  
+  renoise.app():show_status("Unmuted all slots across " .. total_sequences .. " sequences for " .. max_tracks .. " tracks")
+end
+
+-- Keybindings for Unmute All Slots Across All Pattern Sequences
+renoise.tool():add_keybinding{name="Global:Paketti:Unmute All Slots Across All Pattern Sequences", invoke=PakettiUnmuteAllSlotsAcrossAllPatternSequences}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Unmute All Slots Across All Pattern Sequences", invoke=PakettiUnmuteAllSlotsAcrossAllPatternSequences}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Unmute All Slots Across All Pattern Sequences", invoke=PakettiUnmuteAllSlotsAcrossAllPatternSequences}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Unmute All Slots Across All Pattern Sequences", invoke=PakettiUnmuteAllSlotsAcrossAllPatternSequences}
+
+-- MIDI mapping for Unmute All Slots Across All Pattern Sequences
+renoise.tool():add_midi_mapping{name="Paketti:Unmute All Slots Across All Pattern Sequences", invoke=function(message) if message:is_trigger() then PakettiUnmuteAllSlotsAcrossAllPatternSequences() end end}
 
