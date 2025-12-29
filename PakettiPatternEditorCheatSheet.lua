@@ -2343,7 +2343,84 @@ function pakettiPatternEditorCheatsheetDialog()
     }
   }
 
-  local left_column=vb:column{effect_buttons,randomize_section}
+  -- Quick Flicks Section (calls PakettiPhraseWorkflow functions if available)
+  local quick_flicks_section = vb:column{
+    style = "group",
+    margin = 5,
+    vb:text{text = "Quick Flicks", font = "bold"},
+    vb:row{
+      spacing = 2,
+      vb:text{text = "Volume:"},
+      vb:button{text = "Ramp Up", width = 55, notifier = function()
+        if PakettiQuickFlickVolumeRampUp then PakettiQuickFlickVolumeRampUp() end
+      end},
+      vb:button{text = "Ramp Down", width = 65, notifier = function()
+        if PakettiQuickFlickVolumeRampDown then PakettiQuickFlickVolumeRampDown() end
+      end},
+    },
+    vb:row{
+      spacing = 2,
+      vb:text{text = "Gates:"},
+      vb:button{text = "1010", width = 40, notifier = function()
+        if PakettiQuickFlickVolumeGate then PakettiQuickFlickVolumeGate(nil, nil, "1010") end
+      end},
+      vb:button{text = "1100", width = 40, notifier = function()
+        if PakettiQuickFlickVolumeGate then PakettiQuickFlickVolumeGate(nil, nil, "1100") end
+      end},
+      vb:button{text = "1000", width = 40, notifier = function()
+        if PakettiQuickFlickVolumeGate then PakettiQuickFlickVolumeGate(nil, nil, "1000") end
+      end},
+    },
+    vb:row{
+      spacing = 2,
+      vb:text{text = "Cuts:"},
+      vb:button{text = "0C00", width = 35, notifier = function()
+        if PakettiQuickFlickCutPattern then PakettiQuickFlickCutPattern(nil, nil, 0x00) end
+      end},
+      vb:button{text = "0C80", width = 35, notifier = function()
+        if PakettiQuickFlickCutPattern then PakettiQuickFlickCutPattern(nil, nil, 0x80) end
+      end},
+      vb:button{text = "0CF0", width = 35, notifier = function()
+        if PakettiQuickFlickCutPattern then PakettiQuickFlickCutPattern(nil, nil, 0xF0) end
+      end},
+    },
+    vb:row{
+      spacing = 2,
+      vb:text{text = "Retrig:"},
+      vb:button{text = "R02", width = 30, notifier = function()
+        if PakettiQuickFlickRetrig then PakettiQuickFlickRetrig(nil, nil, 2, "flat") end
+      end},
+      vb:button{text = "R04", width = 30, notifier = function()
+        if PakettiQuickFlickRetrig then PakettiQuickFlickRetrig(nil, nil, 4, "flat") end
+      end},
+      vb:button{text = "Vol Up", width = 45, notifier = function()
+        if PakettiQuickFlickRetrig then PakettiQuickFlickRetrig(nil, nil, 4, "up") end
+      end},
+      vb:button{text = "Vol Dn", width = 45, notifier = function()
+        if PakettiQuickFlickRetrig then PakettiQuickFlickRetrig(nil, nil, 4, "down") end
+      end},
+    },
+    vb:row{
+      spacing = 2,
+      vb:text{text = "Slices:"},
+      vb:button{text = "Seq", width = 30, notifier = function()
+        if PakettiQuickFlickSliceSequential then PakettiQuickFlickSliceSequential() end
+      end},
+      vb:button{text = "Rev", width = 30, notifier = function()
+        if PakettiQuickFlickSliceReverse then PakettiQuickFlickSliceReverse() end
+      end},
+      vb:button{text = "Rnd", width = 30, notifier = function()
+        if PakettiQuickFlickSliceRandom then PakettiQuickFlickSliceRandom() end
+      end},
+    },
+    vb:row{
+      vb:button{text = "Quick Flicks Dialog", width = 120, notifier = function()
+        if PakettiQuickFlicksShowDialog then PakettiQuickFlicksShowDialog() end
+      end},
+    },
+  }
+
+  local left_column=vb:column{effect_buttons,randomize_section,quick_flicks_section}
   local dialog_content=vb:row{left_column,sliders}
 
   local keyhandler = create_keyhandler_for_dialog(

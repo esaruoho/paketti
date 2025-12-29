@@ -4765,3 +4765,194 @@ function shift_phrase_octaves(octave_shift)
     render_to_pattern(phrase.script, current_settings, false)
   end
 end
+
+--------------------------------------------------------------------------------
+-- PHRASEGRID INTEGRATION: Bank Generation
+--------------------------------------------------------------------------------
+
+-- Variation types for phrase generation
+PakettiPhraseGeneratorVariations = {
+  "ascending",    -- Notes go up
+  "descending",   -- Notes go down
+  "random",       -- Random order
+  "shuffled",     -- Shuffle existing
+  "sparse",       -- Fewer notes
+  "dense",        -- More notes
+  "low",          -- Lower octave
+  "high"          -- Higher octave
+}
+
+-- Create a single phrase with a specific variation
+function PakettiPhraseGeneratorCreateVariation(base_settings, variation_type)
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return nil
+  end
+  
+  -- Clone base settings
+  local settings = {}
+  for k, v in pairs(base_settings or current_settings) do
+    settings[k] = v
+  end
+  
+  -- Apply variation
+  if variation_type == "ascending" then
+    settings.sort_mode = "ascending"
+  elseif variation_type == "descending" then
+    settings.sort_mode = "descending"
+  elseif variation_type == "random" then
+    settings.random_mode = true
+  elseif variation_type == "sparse" then
+    settings.note_count = math.max(2, math.floor(settings.note_count * 0.5))
+    settings.pattern_length = math.max(4, math.floor(settings.pattern_length * 0.75))
+  elseif variation_type == "dense" then
+    settings.note_count = math.min(16, settings.note_count * 2)
+    settings.pattern_length = math.min(32, settings.pattern_length * 1.5)
+  elseif variation_type == "low" then
+    settings.min_octave = math.max(0, settings.min_octave - 1)
+    settings.max_octave = settings.min_octave + 2
+  elseif variation_type == "high" then
+    settings.min_octave = math.min(7, settings.max_octave)
+    settings.max_octave = math.min(9, settings.max_octave + 2)
+  end
+  
+  -- Create a new phrase
+  local phrase_index = #instrument.phrases + 1
+  instrument:insert_phrase_at(phrase_index)
+  local phrase = instrument.phrases[phrase_index]
+  
+  if not phrase then
+    return nil
+  end
+  
+  -- Configure phrase basics
+  phrase.name = "Gen " .. (variation_type or "default")
+  phrase.number_of_lines = math.floor(settings.pattern_length or 16)
+  phrase.lpb = song.transport.lpb
+  phrase.looping = true
+  phrase.shuffle = settings.shuffle or 0
+  
+  print("PhraseGenerator Bank: Created phrase " .. phrase_index .. " with variation: " .. (variation_type or "default"))
+  return phrase_index
+end
+
+-- Create a full bank of 8 phrase variations
+function PakettiPhraseGeneratorCreateBank(base_settings)
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return nil
+  end
+  
+  -- Use current settings if none provided
+  base_settings = base_settings or current_settings
+  
+  local phrases_created = {}
+  
+  -- Create 8 variations
+  for slot = 1, 8 do
+    local variation = PakettiPhraseGeneratorVariations[slot] or "random"
+    local phrase_index = PakettiPhraseGeneratorCreateVariation(base_settings, variation)
+    
+    if phrase_index then
+      phrases_created[slot] = phrase_index
+    end
+  end
+  
+  -- Create a PhraseGrid bank if available
+  if PakettiPhraseBankCreate then
+    local inst_index = song.selected_instrument_index
+    local bank_index = PakettiPhraseBankCreate(inst_index, "Generated Bank")
+    
+    if bank_index and PakettiPhraseBanks and PakettiPhraseBanks[bank_index] then
+      for slot = 1, 8 do
+        if phrases_created[slot] then
+          PakettiPhraseBankSetSlot(bank_index, slot, phrases_created[slot])
+        end
+      end
+      print("PhraseGenerator: Created PhraseGrid bank " .. bank_index .. " with 8 phrases")
+    end
+  end
+  
+  -- Store generator settings in PhraseGrid state if available
+  if PakettiPhraseGridStates and PakettiPhraseGridCurrentState then
+    local state_index = PakettiPhraseGridCurrentState > 0 and PakettiPhraseGridCurrentState or 1
+    if not PakettiPhraseGridStates[state_index] then
+      if PakettiPhraseGridCreateEmptyState then
+        PakettiPhraseGridStates[state_index] = PakettiPhraseGridCreateEmptyState()
+      else
+        PakettiPhraseGridStates[state_index] = {}
+      end
+    end
+    
+    PakettiPhraseGridStates[state_index].generator = {
+      scale = base_settings.scale,
+      min_octave = base_settings.min_octave,
+      max_octave = base_settings.max_octave,
+      note_count = base_settings.note_count,
+      pattern_length = base_settings.pattern_length,
+      unit = base_settings.unit,
+      shuffle = base_settings.shuffle
+    }
+    print("PhraseGenerator: Stored settings in PhraseGrid state " .. state_index)
+  end
+  
+  renoise.app():show_status("Created 8 phrase variations in bank")
+  return phrases_created
+end
+
+-- Get current generator settings for external access
+function PakettiPhraseGeneratorGetSettings()
+  if not current_settings then return nil end
+  
+  return {
+    scale = current_settings.scale,
+    min_octave = current_settings.min_octave,
+    max_octave = current_settings.max_octave,
+    note_count = current_settings.note_count,
+    pattern_length = current_settings.pattern_length,
+    unit = current_settings.unit,
+    shuffle = current_settings.shuffle,
+    min_volume = current_settings.min_volume,
+    max_volume = current_settings.max_volume
+  }
+end
+
+-- Restore generator settings from a snapshot
+function PakettiPhraseGeneratorRestoreSettings(settings)
+  if not settings or not current_settings then return false end
+  
+  for k, v in pairs(settings) do
+    if current_settings[k] ~= nil then
+      current_settings[k] = v
+    end
+  end
+  
+  -- Update dialog if open
+  if vb then
+    if vb.views.note_count_slider and settings.note_count then
+      vb.views.note_count_slider.value = settings.note_count
+    end
+    if vb.views.pattern_length_slider and settings.pattern_length then
+      vb.views.pattern_length_slider.value = settings.pattern_length
+    end
+    if vb.views.shuffle_slider and settings.shuffle then
+      vb.views.shuffle_slider.value = settings.shuffle
+    end
+  end
+  
+  return true
+end
+
+-- Keybindings for bank generation (API 6.2+ only)
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_keybinding{name="Global:Paketti:Phrase Generator Create Bank (8 Variations)",invoke=function() PakettiPhraseGeneratorCreateBank() end}
+  renoise.tool():add_midi_mapping{name="Paketti:Phrase Generator Create Bank [Trigger]",invoke=function(message) if message:is_trigger() then PakettiPhraseGeneratorCreateBank() end end}
+end

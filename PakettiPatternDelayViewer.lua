@@ -770,3 +770,227 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show Pattern Delay Viewer..."
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Copy Delay to All Same Notes in Track",invoke=function() PakettiPatternDelayViewerCopyDelayFromSelectedNote() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}
 
+--------------------------------------------------------------------------------
+-- PHRASEGRID INTEGRATION: Phrase Delay Application
+--------------------------------------------------------------------------------
+
+-- Apply a delay template to a phrase
+-- delay_template is a table of {line_index = delay_value}
+function PakettiPatternDelayViewerApplyToPhrase(phrase_index, delay_template)
+  local song = renoise.song()
+  if not song then return false end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return false
+  end
+  
+  local phrase = instrument.phrases[phrase_index]
+  if not phrase then
+    renoise.app():show_status("Invalid phrase index: " .. tostring(phrase_index))
+    return false
+  end
+  
+  local applied_count = 0
+  for line_index, delay_value in pairs(delay_template) do
+    if line_index >= 1 and line_index <= phrase.number_of_lines then
+      local line = phrase:line(line_index)
+      if line.note_columns[1] then
+        line.note_columns[1].delay_value = delay_value
+        applied_count = applied_count + 1
+      end
+    end
+  end
+  
+  print("Delay Viewer: Applied " .. applied_count .. " delays to phrase " .. phrase_index)
+  renoise.app():show_status("Applied " .. applied_count .. " delays to phrase")
+  return true
+end
+
+-- Create a swing delay template
+-- swing_amount: 0.0 to 1.0 (0 = no swing, 1 = max swing at 0xFF)
+function PakettiPatternDelayViewerCreateSwingTemplate(phrase_length, swing_amount)
+  swing_amount = swing_amount or 0.5
+  local delay_hex = math.floor(swing_amount * 255)
+  if delay_hex < 0 then delay_hex = 0 end
+  if delay_hex > 255 then delay_hex = 255 end
+  
+  local template = {}
+  for line = 1, phrase_length do
+    -- Apply swing to even lines (off-beats)
+    if line % 2 == 0 then
+      template[line] = delay_hex
+    else
+      template[line] = 0
+    end
+  end
+  
+  return template
+end
+
+-- Create a humanization (random) delay template
+function PakettiPatternDelayViewerCreateHumanizeTemplate(phrase_length, max_delay)
+  max_delay = max_delay or 32  -- Subtle humanization by default
+  
+  math.randomseed(os.time())
+  local template = {}
+  for line = 1, phrase_length do
+    template[line] = math.random(0, max_delay)
+  end
+  
+  return template
+end
+
+-- Create a gradual ramp delay template
+-- direction: "up" (0 to max) or "down" (max to 0)
+function PakettiPatternDelayViewerCreateRampTemplate(phrase_length, direction, max_delay)
+  direction = direction or "up"
+  max_delay = max_delay or 255
+  
+  local template = {}
+  for line = 1, phrase_length do
+    local progress = (line - 1) / (phrase_length - 1)
+    if direction == "down" then
+      progress = 1 - progress
+    end
+    template[line] = math.floor(progress * max_delay)
+  end
+  
+  return template
+end
+
+-- Apply swing to current or specified phrase
+function PakettiPatternDelayViewerApplySwingToPhrase(swing_amount)
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.phrases == 0 then
+    renoise.app():show_status("No phrases in instrument")
+    return
+  end
+  
+  local phrase_index = song.selected_phrase_index
+  if phrase_index < 1 then phrase_index = 1 end
+  
+  local phrase = instrument.phrases[phrase_index]
+  if not phrase then return end
+  
+  local template = PakettiPatternDelayViewerCreateSwingTemplate(phrase.number_of_lines, swing_amount or 0.5)
+  PakettiPatternDelayViewerApplyToPhrase(phrase_index, template)
+end
+
+-- Apply humanization to current phrase
+function PakettiPatternDelayViewerApplyHumanizeToPhrase(max_delay)
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.phrases == 0 then
+    renoise.app():show_status("No phrases in instrument")
+    return
+  end
+  
+  local phrase_index = song.selected_phrase_index
+  if phrase_index < 1 then phrase_index = 1 end
+  
+  local phrase = instrument.phrases[phrase_index]
+  if not phrase then return end
+  
+  local template = PakettiPatternDelayViewerCreateHumanizeTemplate(phrase.number_of_lines, max_delay or 32)
+  PakettiPatternDelayViewerApplyToPhrase(phrase_index, template)
+end
+
+-- Copy delay pattern from one phrase to another
+function PakettiPatternDelayViewerCopyDelayBetweenPhrases(source_phrase_index, target_phrase_index)
+  local song = renoise.song()
+  if not song then return false end
+  
+  local instrument = song.selected_instrument
+  if not instrument then return false end
+  
+  local source_phrase = instrument.phrases[source_phrase_index]
+  local target_phrase = instrument.phrases[target_phrase_index]
+  
+  if not source_phrase or not target_phrase then
+    renoise.app():show_status("Invalid phrase indices")
+    return false
+  end
+  
+  -- Extract delay template from source
+  local template = {}
+  for line = 1, source_phrase.number_of_lines do
+    local note_col = source_phrase:line(line).note_columns[1]
+    if note_col then
+      template[line] = note_col.delay_value
+    end
+  end
+  
+  -- Apply to target (will only affect lines that exist in target)
+  return PakettiPatternDelayViewerApplyToPhrase(target_phrase_index, template)
+end
+
+-- Store delay profile to PhraseGrid state
+function PakettiPatternDelayViewerSnapshotToPhraseGrid(state_index)
+  local song = renoise.song()
+  if not song then return false end
+  
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.phrases == 0 then
+    renoise.app():show_status("No phrases in instrument")
+    return false
+  end
+  
+  local phrase_index = song.selected_phrase_index
+  if phrase_index < 1 then phrase_index = 1 end
+  
+  local phrase = instrument.phrases[phrase_index]
+  if not phrase then return false end
+  
+  -- Extract delay values from phrase
+  local delay_profile = {}
+  for line = 1, phrase.number_of_lines do
+    local note_col = phrase:line(line).note_columns[1]
+    if note_col then
+      delay_profile[line] = note_col.delay_value
+    end
+  end
+  
+  if not state_index then
+    state_index = (PakettiPhraseGridCurrentState and PakettiPhraseGridCurrentState > 0) and PakettiPhraseGridCurrentState or 1
+  end
+  
+  if PakettiPhraseGridStates then
+    if not PakettiPhraseGridStates[state_index] then
+      if PakettiPhraseGridCreateEmptyState then
+        PakettiPhraseGridStates[state_index] = PakettiPhraseGridCreateEmptyState()
+      else
+        PakettiPhraseGridStates[state_index] = {}
+      end
+    end
+    
+    PakettiPhraseGridStates[state_index].delay_profile = {
+      phrase_index = phrase_index,
+      phrase_name = phrase.name,
+      delays = delay_profile
+    }
+    
+    renoise.app():show_status(string.format("Delay profile stored to PhraseGrid State %02d", state_index))
+    return true
+  else
+    renoise.app():show_status("PhraseGrid not available")
+    return false
+  end
+end
+
+-- Keybindings for phrase delay operations
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Apply Swing (50%) to Phrase",invoke=function() PakettiPatternDelayViewerApplySwingToPhrase(0.5) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Apply Light Swing (25%) to Phrase",invoke=function() PakettiPatternDelayViewerApplySwingToPhrase(0.25) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Apply Heavy Swing (75%) to Phrase",invoke=function() PakettiPatternDelayViewerApplySwingToPhrase(0.75) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Apply Humanize to Phrase",invoke=function() PakettiPatternDelayViewerApplyHumanizeToPhrase(32) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Snapshot Delay Profile to PhraseGrid",invoke=function() PakettiPatternDelayViewerSnapshotToPhraseGrid() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Phrase Apply Swing 50% [Trigger]",invoke=function(message) if message:is_trigger() then PakettiPatternDelayViewerApplySwingToPhrase(0.5) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Phrase Apply Humanize [Trigger]",invoke=function(message) if message:is_trigger() then PakettiPatternDelayViewerApplyHumanizeToPhrase(32) end end}
+

@@ -2147,11 +2147,118 @@ function apply_gating_print_once()
   renoise.app():show_status("Applied gating pattern once from line " .. start_line)
 end
 
+-- Real-time phrase write function for Gater
+function PakettiGaterWriteToPhrase()
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then return end
+  
+  -- Create/update 4 phrases (one for each gater type)
+  local phrase_names = {"Gater Volume", "Gater Retrig", "Gater Playback", "Gater Panning"}
+  local active_steps_list = {active_steps_volume, active_steps_retrig, active_steps_playback, active_steps_panning}
+  local checkbox_lists = {checkboxes, retrig_checkboxes, playback_checkboxes, nil}  -- panning is special
+  
+  for phrase_idx = 1, 4 do
+    -- Create phrase if it doesn't exist
+    while #instrument.phrases < phrase_idx do
+      instrument:insert_phrase_at(#instrument.phrases + 1)
+    end
+    
+    local phrase = instrument.phrases[phrase_idx]
+    local steps = active_steps_list[phrase_idx]
+    
+    phrase.number_of_lines = steps
+    phrase.lpb = song.transport.lpb
+    phrase.name = phrase_names[phrase_idx]
+    
+    -- Clear existing content
+    for line = 1, phrase.number_of_lines do
+      phrase:line(line):note_column(1):clear()
+    end
+    
+    -- Write based on gater type
+    if phrase_idx == 1 then
+      -- Volume gater
+      phrase.volume_column_visible = true
+      for line = 1, steps do
+        local phrase_line = phrase:line(line)
+        local note_col = phrase_line:note_column(1)
+        note_col.note_value = 48  -- C-4
+        if checkboxes[line] and checkboxes[line].value then
+          note_col.volume_value = 0x80  -- Full volume
+        else
+          note_col.volume_value = 0x00  -- Silent
+        end
+      end
+    elseif phrase_idx == 2 then
+      -- Retrig gater
+      phrase.sample_effects_column_visible = true
+      for line = 1, steps do
+        local phrase_line = phrase:line(line)
+        local note_col = phrase_line:note_column(1)
+        note_col.note_value = 48  -- C-4
+        if retrig_checkboxes[line] and retrig_checkboxes[line].value then
+          note_col.effect_number_value = 0x0E  -- 0R
+          note_col.effect_amount_value = retrig_value or 4
+        end
+      end
+    elseif phrase_idx == 3 then
+      -- Playback gater
+      phrase.sample_effects_column_visible = true
+      for line = 1, steps do
+        local phrase_line = phrase:line(line)
+        local note_col = phrase_line:note_column(1)
+        note_col.note_value = 48  -- C-4
+        if playback_checkboxes[line] and playback_checkboxes[line].value then
+          note_col.effect_number_value = 0x0B
+          note_col.effect_amount_value = 0x01  -- Reverse
+        else
+          note_col.effect_number_value = 0x0B
+          note_col.effect_amount_value = 0x00  -- Forward
+        end
+      end
+    elseif phrase_idx == 4 then
+      -- Panning gater
+      phrase.panning_column_visible = true
+      local intensity = PakettiGaterGetPanningIntensity()
+      local pan_left = 64 - math.floor(64 * intensity / 100)
+      local pan_center = 64
+      local pan_right = 64 + math.floor(64 * intensity / 100)
+      
+      for line = 1, steps do
+        local phrase_line = phrase:line(line)
+        local note_col = phrase_line:note_column(1)
+        note_col.note_value = 48  -- C-4
+        
+        local left_checked = panning_left_checkboxes[line] and panning_left_checkboxes[line].value
+        local center_checked = panning_center_checkboxes[line] and panning_center_checkboxes[line].value
+        local right_checked = panning_right_checkboxes[line] and panning_right_checkboxes[line].value
+        
+        if left_checked then
+          note_col.panning_value = pan_left
+        elseif right_checked then
+          note_col.panning_value = pan_right
+        else
+          note_col.panning_value = pan_center
+        end
+      end
+    end
+  end
+end
+
 -- Now modify the insert_commands function to be more efficient
 function insert_commands()
   max_rows = renoise.song().selected_pattern.number_of_lines
 
   if not renoise.song() then return end
+  
+  -- Check output mode and route to phrase writing if needed
+  if PakettiGaterOutputMode == "phrase" then
+    PakettiGaterWriteToPhrase()
+    return
+  end
 
   -- Check if we're in selection_only mode
   if selection_only then
@@ -3555,3 +3662,384 @@ function auto_grab_handler()
     insert_commands()
   end
 end
+
+--------------------------------------------------------------------------------
+-- PHRASE OUTPUT MODE FUNCTIONS (PhraseGrid Integration)
+--------------------------------------------------------------------------------
+
+-- Output Mode: "pattern", "phrase"
+-- pattern = write to pattern (original behavior)
+-- phrase = write to phrase (creates phrases for gater effects)
+PakettiGaterOutputMode = "pattern"
+
+-- Set the output mode for Gater
+function PakettiGaterSetOutputMode(mode)
+  local valid_modes = {pattern=true, phrase=true}
+  if valid_modes[mode] then
+    PakettiGaterOutputMode = mode
+    renoise.app():show_status("Gater Output Mode: " .. mode)
+  else
+    renoise.app():show_status("Invalid Gater output mode: " .. tostring(mode))
+  end
+end
+
+-- Cycle through output modes
+function PakettiGaterCycleOutputMode()
+  if PakettiGaterOutputMode == "pattern" then
+    PakettiGaterSetOutputMode("phrase")
+  else
+    PakettiGaterSetOutputMode("pattern")
+  end
+end
+
+-- Create a phrase from the volume gater checkboxes
+function PakettiGaterVolumeToPhrase()
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  -- Create new phrase
+  local phrase_count = #instrument.phrases
+  local new_phrase_index = phrase_count + 1
+  instrument:insert_phrase_at(new_phrase_index)
+  
+  local phrase = instrument.phrases[new_phrase_index]
+  phrase.number_of_lines = active_steps_volume
+  phrase.lpb = song.transport.lpb
+  phrase.name = "Gater Volume"
+  phrase.volume_column_visible = true
+  
+  -- Write volume effects based on checkboxes
+  for line = 1, active_steps_volume do
+    local phrase_line = phrase:line(line)
+    local note_col = phrase_line:note_column(1)
+    
+    if checkboxes[line] and checkboxes[line].value then
+      -- Checked = full volume (note plays)
+      note_col.note_value = 48  -- C-4
+      note_col.volume_value = 0x80  -- Full volume
+    else
+      -- Unchecked = silence (note with 0C00)
+      note_col.note_value = 48  -- C-4
+      note_col.volume_value = 0x00  -- Silent
+    end
+  end
+  
+  song.selected_phrase_index = new_phrase_index
+  renoise.app():show_status(string.format("Created volume phrase %02d (%d steps)", new_phrase_index, active_steps_volume))
+  return new_phrase_index
+end
+
+-- Create a phrase from the retrig gater checkboxes
+function PakettiGaterRetrigToPhrase()
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  -- Create new phrase
+  local phrase_count = #instrument.phrases
+  local new_phrase_index = phrase_count + 1
+  instrument:insert_phrase_at(new_phrase_index)
+  
+  local phrase = instrument.phrases[new_phrase_index]
+  phrase.number_of_lines = active_steps_retrig
+  phrase.lpb = song.transport.lpb
+  phrase.name = "Gater Retrig"
+  phrase.sample_effects_column_visible = true
+  
+  -- Write retrig effects based on checkboxes
+  for line = 1, active_steps_retrig do
+    local phrase_line = phrase:line(line)
+    local note_col = phrase_line:note_column(1)
+    
+    note_col.note_value = 48  -- C-4 (always play note)
+    
+    if retrig_checkboxes[line] and retrig_checkboxes[line].value then
+      -- Checked = apply retrig
+      note_col.effect_number_value = 0x0E  -- Retrig (0R)
+      note_col.effect_amount_value = retrig_value or 4
+    end
+  end
+  
+  song.selected_phrase_index = new_phrase_index
+  renoise.app():show_status(string.format("Created retrig phrase %02d (%d steps)", new_phrase_index, active_steps_retrig))
+  return new_phrase_index
+end
+
+-- Create a phrase from the playback gater checkboxes
+function PakettiGaterPlaybackToPhrase()
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  -- Create new phrase
+  local phrase_count = #instrument.phrases
+  local new_phrase_index = phrase_count + 1
+  instrument:insert_phrase_at(new_phrase_index)
+  
+  local phrase = instrument.phrases[new_phrase_index]
+  phrase.number_of_lines = active_steps_playback
+  phrase.lpb = song.transport.lpb
+  phrase.name = "Gater Playback"
+  phrase.sample_effects_column_visible = true
+  
+  -- Write playback (reverse) effects based on checkboxes
+  for line = 1, active_steps_playback do
+    local phrase_line = phrase:line(line)
+    local note_col = phrase_line:note_column(1)
+    
+    note_col.note_value = 48  -- C-4 (always play note)
+    
+    if playback_checkboxes[line] and playback_checkboxes[line].value then
+      -- Checked = reverse playback (0B01)
+      note_col.effect_number_value = 0x0B
+      note_col.effect_amount_value = 0x01
+    else
+      -- Unchecked = forward playback (0B00)
+      note_col.effect_number_value = 0x0B
+      note_col.effect_amount_value = 0x00
+    end
+  end
+  
+  song.selected_phrase_index = new_phrase_index
+  renoise.app():show_status(string.format("Created playback phrase %02d (%d steps)", new_phrase_index, active_steps_playback))
+  return new_phrase_index
+end
+
+-- Create a phrase from the panning gater checkboxes
+function PakettiGaterPanningToPhrase()
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  -- Create new phrase
+  local phrase_count = #instrument.phrases
+  local new_phrase_index = phrase_count + 1
+  instrument:insert_phrase_at(new_phrase_index)
+  
+  local phrase = instrument.phrases[new_phrase_index]
+  phrase.number_of_lines = active_steps_panning
+  phrase.lpb = song.transport.lpb
+  phrase.name = "Gater Panning"
+  phrase.panning_column_visible = true
+  
+  -- Get panning intensity
+  local intensity = PakettiGaterGetPanningIntensity()
+  local pan_left = 64 - math.floor(64 * intensity / 100)
+  local pan_center = 64
+  local pan_right = 64 + math.floor(64 * intensity / 100)
+  
+  -- Write panning values based on checkboxes
+  for line = 1, active_steps_panning do
+    local phrase_line = phrase:line(line)
+    local note_col = phrase_line:note_column(1)
+    
+    note_col.note_value = 48  -- C-4 (always play note)
+    
+    local left_checked = panning_left_checkboxes[line] and panning_left_checkboxes[line].value
+    local center_checked = panning_center_checkboxes[line] and panning_center_checkboxes[line].value
+    local right_checked = panning_right_checkboxes[line] and panning_right_checkboxes[line].value
+    
+    if left_checked then
+      note_col.panning_value = pan_left
+    elseif right_checked then
+      note_col.panning_value = pan_right
+    elseif center_checked then
+      note_col.panning_value = pan_center
+    else
+      note_col.panning_value = pan_center  -- Default to center
+    end
+  end
+  
+  song.selected_phrase_index = new_phrase_index
+  renoise.app():show_status(string.format("Created panning phrase %02d (%d steps)", new_phrase_index, active_steps_panning))
+  return new_phrase_index
+end
+
+-- Create phrases from all 4 gater rows and store as a PhraseGrid state
+function PakettiGaterAllToPhrasesState()
+  local song = renoise.song()
+  if not song then return end
+  
+  local phrases_created = {}
+  
+  phrases_created.volume = PakettiGaterVolumeToPhrase()
+  phrases_created.retrig = PakettiGaterRetrigToPhrase()
+  phrases_created.playback = PakettiGaterPlaybackToPhrase()
+  phrases_created.panning = PakettiGaterPanningToPhrase()
+  
+  -- Create a PhraseGrid state if PhraseWorkflow is available
+  if PakettiPhraseGridStore then
+    -- Find next available state slot
+    local state_index = 1
+    while PakettiPhraseGridStates[state_index] do
+      state_index = state_index + 1
+      if state_index > PakettiPhraseGridMaxStates then
+        renoise.app():show_status("No empty PhraseGrid state slots")
+        return phrases_created
+      end
+    end
+    
+    PakettiPhraseGridStore(state_index, "Gater State")
+    renoise.app():show_status(string.format("Created 4 Gater phrases and stored as state %d", state_index))
+  else
+    renoise.app():show_status("Created 4 Gater phrases (volume, retrig, playback, panning)")
+  end
+  
+  return phrases_created
+end
+
+-- Get snapshot of current Gater checkbox states
+function PakettiGaterGetSnapshot()
+  local snapshot = {
+    volume = {
+      checkboxes = {},
+      active_steps = active_steps_volume
+    },
+    retrig = {
+      checkboxes = {},
+      active_steps = active_steps_retrig,
+      value = retrig_value
+    },
+    playback = {
+      checkboxes = {},
+      active_steps = active_steps_playback
+    },
+    panning_left = {
+      checkboxes = {},
+      active_steps = active_steps_panning
+    },
+    panning_center = {
+      checkboxes = {}
+    },
+    panning_right = {
+      checkboxes = {}
+    }
+  }
+  
+  for i = 1, MAX_STEPS do
+    snapshot.volume.checkboxes[i] = checkboxes[i] and checkboxes[i].value or false
+    snapshot.retrig.checkboxes[i] = retrig_checkboxes[i] and retrig_checkboxes[i].value or false
+    snapshot.playback.checkboxes[i] = playback_checkboxes[i] and playback_checkboxes[i].value or false
+    snapshot.panning_left.checkboxes[i] = panning_left_checkboxes[i] and panning_left_checkboxes[i].value or false
+    snapshot.panning_center.checkboxes[i] = panning_center_checkboxes[i] and panning_center_checkboxes[i].value or false
+    snapshot.panning_right.checkboxes[i] = panning_right_checkboxes[i] and panning_right_checkboxes[i].value or false
+  end
+  
+  return snapshot
+end
+
+-- Restore Gater checkbox states from snapshot
+function PakettiGaterRestoreFromSnapshot(snapshot)
+  if not snapshot then
+    return false
+  end
+  
+  initializing = true
+  
+  -- Restore volume checkboxes
+  if snapshot.volume then
+    for i = 1, MAX_STEPS do
+      if checkboxes[i] then
+        checkboxes[i].value = snapshot.volume.checkboxes[i] or false
+      end
+    end
+    if snapshot.volume.active_steps and volume_valuebox then
+      active_steps_volume = snapshot.volume.active_steps
+      volume_valuebox.value = active_steps_volume
+    end
+  end
+  
+  -- Restore retrig checkboxes
+  if snapshot.retrig then
+    for i = 1, MAX_STEPS do
+      if retrig_checkboxes[i] then
+        retrig_checkboxes[i].value = snapshot.retrig.checkboxes[i] or false
+      end
+    end
+    if snapshot.retrig.active_steps and retrig_valuebox then
+      active_steps_retrig = snapshot.retrig.active_steps
+      retrig_valuebox.value = active_steps_retrig
+    end
+    if snapshot.retrig.value and retrig_speed_valuebox then
+      retrig_value = snapshot.retrig.value
+      retrig_speed_valuebox.value = retrig_value
+    end
+  end
+  
+  -- Restore playback checkboxes
+  if snapshot.playback then
+    for i = 1, MAX_STEPS do
+      if playback_checkboxes[i] then
+        playback_checkboxes[i].value = snapshot.playback.checkboxes[i] or false
+      end
+    end
+    if snapshot.playback.active_steps and playback_valuebox then
+      active_steps_playback = snapshot.playback.active_steps
+      playback_valuebox.value = active_steps_playback
+    end
+  end
+  
+  -- Restore panning checkboxes
+  if snapshot.panning_left then
+    for i = 1, MAX_STEPS do
+      if panning_left_checkboxes[i] then
+        panning_left_checkboxes[i].value = snapshot.panning_left.checkboxes[i] or false
+      end
+      if panning_center_checkboxes[i] then
+        panning_center_checkboxes[i].value = (snapshot.panning_center and snapshot.panning_center.checkboxes[i]) or false
+      end
+      if panning_right_checkboxes[i] then
+        panning_right_checkboxes[i].value = (snapshot.panning_right and snapshot.panning_right.checkboxes[i]) or false
+      end
+    end
+    if snapshot.panning_left.active_steps and panning_valuebox then
+      active_steps_panning = snapshot.panning_left.active_steps
+      panning_valuebox.value = active_steps_panning
+    end
+  end
+  
+  initializing = false
+  
+  -- Apply to pattern
+  insert_commands()
+  
+  renoise.app():show_status("Restored Gater state from snapshot")
+  return true
+end
+
+-- Keybindings for phrase output mode
+renoise.tool():add_keybinding{name="Global:Paketti:Gater Cycle Output Mode", invoke=PakettiGaterCycleOutputMode}
+renoise.tool():add_keybinding{name="Global:Paketti:Gater Volume to Phrase", invoke=PakettiGaterVolumeToPhrase}
+renoise.tool():add_keybinding{name="Global:Paketti:Gater Retrig to Phrase", invoke=PakettiGaterRetrigToPhrase}
+renoise.tool():add_keybinding{name="Global:Paketti:Gater Playback to Phrase", invoke=PakettiGaterPlaybackToPhrase}
+renoise.tool():add_keybinding{name="Global:Paketti:Gater Panning to Phrase", invoke=PakettiGaterPanningToPhrase}
+renoise.tool():add_keybinding{name="Global:Paketti:Gater All to Phrases State", invoke=PakettiGaterAllToPhrasesState}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:Gater Cycle Output Mode [Trigger]", invoke=function(message) if message:is_trigger() then PakettiGaterCycleOutputMode() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Gater Volume to Phrase [Trigger]", invoke=function(message) if message:is_trigger() then PakettiGaterVolumeToPhrase() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Gater Retrig to Phrase [Trigger]", invoke=function(message) if message:is_trigger() then PakettiGaterRetrigToPhrase() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Gater Playback to Phrase [Trigger]", invoke=function(message) if message:is_trigger() then PakettiGaterPlaybackToPhrase() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Gater Panning to Phrase [Trigger]", invoke=function(message) if message:is_trigger() then PakettiGaterPanningToPhrase() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Gater All to Phrases State [Trigger]", invoke=function(message) if message:is_trigger() then PakettiGaterAllToPhrasesState() end end}

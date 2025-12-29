@@ -1635,5 +1635,362 @@ function PakettiMultitapExperimentInit()
 end
 
 renoise.tool():add_keybinding { name = "Global:Paketti:Paketti Multitap Experiment", invoke = PakettiMultitapExperimentInit }
-renoise.tool():add_menu_entry { name = "Main Menu:Tools:Paketti Multitap Experiment", invoke = PakettiMultitapExperimentInit }
+renoise.tool():add_menu_entry { name = "Main Menu:Tools:Paketti..:Experimental/WIP:Multitap Experiment", invoke = PakettiMultitapExperimentInit }
+
+--------------------------------------------------------------------------------
+-- PHRASEGRID INTEGRATION: Multitap Scene Snapshots & Delay Phrase Creation
+--------------------------------------------------------------------------------
+
+-- Get current Multitap state for PhraseGrid storage
+function PakettiMultitapGetSnapshot()
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local track = song.selected_track
+  if not track then return nil end
+  
+  -- Find the Multitap Delay device
+  local device = nil
+  for i, d in ipairs(track.devices) do
+    if d.display_name == "Multitap Delay" then
+      device = d
+      break
+    end
+  end
+  
+  if not device then
+    return nil
+  end
+  
+  -- Capture all tap parameters
+  local snapshot = {
+    track_index = song.selected_track_index,
+    tap_delays = {},
+    tap_feedbacks = {},
+    tap_pans = {},
+    prop_ratios = {},
+    prop_base_div_index = PakettiMultitap_prop_base_div_index or 1,
+    prop_pattern_index = PakettiMultitap_prop_pattern_index or 1,
+    mode = PakettiMultitap_current_mode or "proportional"
+  }
+  
+  -- Store ratio values
+  for t = 1, 4 do
+    snapshot.prop_ratios[t] = PakettiMultitap_prop_ratios[t] or 1.0
+  end
+  
+  -- Capture device parameters for each tap
+  for tap = 1, 4 do
+    local delay_l_idx = PakettiMultitap_param_index(tap, PakettiMultitap_SLOT.DLY_L)
+    local fb_idx = PakettiMultitap_param_index(tap, PakettiMultitap_SLOT.FB)
+    local pan_idx = PakettiMultitap_param_index(tap, PakettiMultitap_SLOT.PAN)
+    
+    if delay_l_idx and device.parameters[delay_l_idx] then
+      snapshot.tap_delays[tap] = device.parameters[delay_l_idx].value
+    end
+    if fb_idx and device.parameters[fb_idx] then
+      snapshot.tap_feedbacks[tap] = device.parameters[fb_idx].value
+    end
+    if pan_idx and device.parameters[pan_idx] then
+      snapshot.tap_pans[tap] = device.parameters[pan_idx].value
+    end
+  end
+  
+  print("Multitap Snapshot: Captured 4 tap settings")
+  return snapshot
+end
+
+-- Restore Multitap state from PhraseGrid snapshot
+function PakettiMultitapRestoreFromSnapshot(snapshot)
+  if not snapshot then return false end
+  
+  local song = renoise.song()
+  if not song then return false end
+  
+  -- Find device on the snapshot's track or current track
+  local track_index = snapshot.track_index or song.selected_track_index
+  local track = song.tracks[track_index]
+  if not track then return false end
+  
+  local device = nil
+  for i, d in ipairs(track.devices) do
+    if d.display_name == "Multitap Delay" then
+      device = d
+      song.selected_track_index = track_index
+      break
+    end
+  end
+  
+  if not device then
+    print("Multitap Restore: Device not found")
+    return false
+  end
+  
+  -- Restore ratio state
+  if snapshot.prop_ratios then
+    for t = 1, 4 do
+      PakettiMultitap_prop_ratios[t] = snapshot.prop_ratios[t] or 1.0
+    end
+  end
+  
+  if snapshot.prop_base_div_index then
+    PakettiMultitap_prop_base_div_index = snapshot.prop_base_div_index
+  end
+  
+  if snapshot.prop_pattern_index then
+    PakettiMultitap_prop_pattern_index = snapshot.prop_pattern_index
+  end
+  
+  -- Restore device parameters
+  for tap = 1, 4 do
+    if snapshot.tap_delays[tap] then
+      local delay_l_idx = PakettiMultitap_param_index(tap, PakettiMultitap_SLOT.DLY_L)
+      local delay_r_idx = PakettiMultitap_param_index(tap, PakettiMultitap_SLOT.DLY_R)
+      if delay_l_idx and device.parameters[delay_l_idx] then
+        device.parameters[delay_l_idx].value = snapshot.tap_delays[tap]
+      end
+      if delay_r_idx and device.parameters[delay_r_idx] then
+        device.parameters[delay_r_idx].value = snapshot.tap_delays[tap]
+      end
+    end
+    if snapshot.tap_feedbacks[tap] then
+      local fb_idx = PakettiMultitap_param_index(tap, PakettiMultitap_SLOT.FB)
+      if fb_idx and device.parameters[fb_idx] then
+        device.parameters[fb_idx].value = snapshot.tap_feedbacks[tap]
+      end
+    end
+    if snapshot.tap_pans[tap] then
+      local pan_idx = PakettiMultitap_param_index(tap, PakettiMultitap_SLOT.PAN)
+      if pan_idx and device.parameters[pan_idx] then
+        device.parameters[pan_idx].value = snapshot.tap_pans[tap]
+      end
+    end
+  end
+  
+  -- Update canvas if open
+  if PakettiMultitap_canvas then PakettiMultitap_canvas:update() end
+  
+  print("Multitap Restore: Restored 4 tap settings")
+  renoise.app():show_status("Restored Multitap scene")
+  return true
+end
+
+-- Create a phrase with delay commands from Multitap timings
+function PakettiMultitapCreateDelayPhrase(phrase_length)
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local snapshot = PakettiMultitapGetSnapshot()
+  if not snapshot then
+    renoise.app():show_status("Multitap: No device found")
+    return nil
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return nil
+  end
+  
+  phrase_length = phrase_length or 16
+  
+  -- Create a new phrase
+  local phrase_index = #instrument.phrases + 1
+  instrument:insert_phrase_at(phrase_index)
+  local phrase = instrument.phrases[phrase_index]
+  
+  if not phrase then
+    renoise.app():show_status("Failed to create phrase")
+    return nil
+  end
+  
+  -- Configure phrase
+  phrase.name = "Multitap Delays"
+  phrase.number_of_lines = phrase_length
+  phrase.lpb = song.transport.lpb
+  phrase.is_empty = false
+  phrase.looping = true
+  phrase.loop_start = 1
+  phrase.loop_end = phrase_length
+  
+  -- Ensure effect column is visible
+  if phrase.visible_effect_columns < 1 then
+    phrase.visible_effect_columns = 1
+  end
+  
+  -- Calculate line positions for each tap based on delay times
+  local bpm = song.transport.bpm
+  local beat_ms = 60000 / bpm
+  local lpb = phrase.lpb
+  local ms_per_line = beat_ms / lpb
+  
+  -- Write delay commands at appropriate positions
+  -- Use 0Dxx (note delay) to shift timing
+  for tap = 1, 4 do
+    local delay_ms = snapshot.tap_delays[tap] or 0
+    local line_position = math.floor(delay_ms / ms_per_line) + 1
+    
+    if line_position >= 1 and line_position <= phrase_length then
+      local line = phrase:line(line_position)
+      
+      -- Calculate sub-line delay (0-FF)
+      local remainder_ms = delay_ms - ((line_position - 1) * ms_per_line)
+      local delay_value = math.floor((remainder_ms / ms_per_line) * 255)
+      if delay_value < 0 then delay_value = 0 end
+      if delay_value > 255 then delay_value = 255 end
+      
+      -- Write note delay command
+      line.effect_columns[1].number_value = 0x0D  -- Note delay
+      line.effect_columns[1].amount_value = delay_value
+      
+      print(string.format("Multitap Phrase: Tap %d at line %d with delay 0D%02X", tap, line_position, delay_value))
+    end
+  end
+  
+  renoise.app():show_status("Created Multitap delay phrase with " .. phrase_length .. " lines")
+  return phrase_index
+end
+
+-- Create phrase with echo notes based on Multitap timing
+function PakettiMultitapCreateEchoPhrase(base_note, phrase_length)
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local snapshot = PakettiMultitapGetSnapshot()
+  if not snapshot then
+    renoise.app():show_status("Multitap: No device found")
+    return nil
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return nil
+  end
+  
+  base_note = base_note or 48  -- C-4
+  phrase_length = phrase_length or 32
+  
+  -- Create a new phrase
+  local phrase_index = #instrument.phrases + 1
+  instrument:insert_phrase_at(phrase_index)
+  local phrase = instrument.phrases[phrase_index]
+  
+  if not phrase then
+    renoise.app():show_status("Failed to create phrase")
+    return nil
+  end
+  
+  -- Configure phrase
+  phrase.name = "Multitap Echo"
+  phrase.number_of_lines = phrase_length
+  phrase.lpb = song.transport.lpb
+  phrase.is_empty = false
+  phrase.looping = true
+  phrase.loop_start = 1
+  phrase.loop_end = phrase_length
+  
+  if phrase.visible_note_columns < 1 then
+    phrase.visible_note_columns = 1
+  end
+  
+  -- Calculate ms per line
+  local bpm = song.transport.bpm
+  local beat_ms = 60000 / bpm
+  local lpb = phrase.lpb
+  local ms_per_line = beat_ms / lpb
+  
+  -- Write first note at line 1
+  local line1 = phrase:line(1)
+  line1.note_columns[1].note_value = base_note
+  line1.note_columns[1].instrument_value = 0
+  line1.note_columns[1].volume_value = 128
+  
+  -- Write echo notes based on tap delays with decreasing velocity
+  for tap = 1, 4 do
+    local delay_ms = snapshot.tap_delays[tap] or 0
+    local line_position = math.floor(delay_ms / ms_per_line) + 1
+    
+    if line_position >= 1 and line_position <= phrase_length and line_position > 1 then
+      local line = phrase:line(line_position)
+      
+      -- Velocity based on feedback (lower feedback = quieter echo)
+      local feedback = snapshot.tap_feedbacks[tap] or 0.5
+      local velocity = math.floor(128 * feedback * (1 - (tap - 1) * 0.15))
+      if velocity < 1 then velocity = 1 end
+      if velocity > 128 then velocity = 128 end
+      
+      line.note_columns[1].note_value = base_note
+      line.note_columns[1].instrument_value = 0
+      line.note_columns[1].volume_value = velocity
+      
+      print(string.format("Multitap Echo: Tap %d at line %d with velocity %d", tap, line_position, velocity))
+    end
+  end
+  
+  renoise.app():show_status("Created Multitap echo phrase")
+  return phrase_index
+end
+
+-- Snapshot Multitap to PhraseGrid state
+function PakettiMultitapSnapshotToPhraseGrid(state_index)
+  if not state_index then
+    state_index = (PakettiPhraseGridCurrentState and PakettiPhraseGridCurrentState > 0) and PakettiPhraseGridCurrentState or 1
+  end
+  
+  local snapshot = PakettiMultitapGetSnapshot()
+  if not snapshot then
+    renoise.app():show_status("No Multitap device to snapshot")
+    return false
+  end
+  
+  if PakettiPhraseGridStates then
+    if not PakettiPhraseGridStates[state_index] then
+      if PakettiPhraseGridCreateEmptyState then
+        PakettiPhraseGridStates[state_index] = PakettiPhraseGridCreateEmptyState()
+      else
+        PakettiPhraseGridStates[state_index] = {}
+      end
+    end
+    
+    PakettiPhraseGridStates[state_index].multitap = snapshot
+    renoise.app():show_status(string.format("Multitap snapshot stored to PhraseGrid State %02d", state_index))
+    return true
+  else
+    renoise.app():show_status("PhraseGrid not available")
+    return false
+  end
+end
+
+-- Restore Multitap from PhraseGrid state
+function PakettiMultitapRestoreFromPhraseGrid(state_index)
+  if not state_index then
+    state_index = (PakettiPhraseGridCurrentState and PakettiPhraseGridCurrentState > 0) and PakettiPhraseGridCurrentState or 1
+  end
+  
+  if not PakettiPhraseGridStates or not PakettiPhraseGridStates[state_index] then
+    renoise.app():show_status("No PhraseGrid state at index " .. state_index)
+    return false
+  end
+  
+  local snapshot = PakettiPhraseGridStates[state_index].multitap
+  if not snapshot then
+    renoise.app():show_status("No Multitap snapshot in state " .. state_index)
+    return false
+  end
+  
+  return PakettiMultitapRestoreFromSnapshot(snapshot)
+end
+
+-- Keybindings
+renoise.tool():add_keybinding{name = "Global:Paketti:Multitap Snapshot to PhraseGrid State", invoke = function() PakettiMultitapSnapshotToPhraseGrid() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Multitap Restore from PhraseGrid State", invoke = function() PakettiMultitapRestoreFromPhraseGrid() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Multitap Create Delay Phrase", invoke = function() PakettiMultitapCreateDelayPhrase(16) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Multitap Create Echo Phrase", invoke = function() PakettiMultitapCreateEchoPhrase(nil, 32) end}
+
+-- MIDI Mappings
+renoise.tool():add_midi_mapping{name = "Paketti:Multitap Snapshot to PhraseGrid [Trigger]", invoke = function(message) if message:is_trigger() then PakettiMultitapSnapshotToPhraseGrid() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Multitap Restore from PhraseGrid [Trigger]", invoke = function(message) if message:is_trigger() then PakettiMultitapRestoreFromPhraseGrid() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Multitap Create Delay Phrase [Trigger]", invoke = function(message) if message:is_trigger() then PakettiMultitapCreateDelayPhrase(16) end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Multitap Create Echo Phrase [Trigger]", invoke = function(message) if message:is_trigger() then PakettiMultitapCreateEchoPhrase(nil, 32) end end}
 

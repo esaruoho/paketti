@@ -326,6 +326,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     slicePreviousDirection=1
   },
   SlicePro = {
+    SliceProBeatSyncEnabled=false,  -- Enable/disable beat sync on slices (default off)
     SliceProBeatSyncMode=1,     -- 1=Repitch, 2=Percussion, 3=Texture
     SliceProMuteGroup=0,        -- 0-15 (0 = none)
     SliceProNNA=1,              -- 1=Cut, 2=Note Off, 3=Sustain

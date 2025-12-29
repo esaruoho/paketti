@@ -2659,6 +2659,181 @@ renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Selected Device Pa
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Duplicate to Next Pattern",invoke = PakettiCanvasExperimentsDuplicateToNextPattern}
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Snapshot to Next Pattern",invoke = PakettiCanvasExperimentsSnapshotToNextPattern}
 
+--------------------------------------------------------------------------------
+-- PHRASEGRID INTEGRATION: Device Parameter Snapshots
+--------------------------------------------------------------------------------
+
+-- Get a snapshot of current device parameters for PhraseGrid storage
+function PakettiCanvasExperimentsGetSnapshot()
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local device = song.selected_device
+  if not device then return nil end
+  
+  local snapshot = {
+    device_path = device.device_path,
+    device_name = device.display_name,
+    track_index = song.selected_track_index,
+    device_index = song.selected_device_index,
+    parameter_values_A = {},
+    parameter_values_B = {},
+    crossfade_amount = crossfade_amount or 0.0,
+    edit_mode = current_edit_mode or "A"
+  }
+  
+  -- Capture current device parameters
+  for i = 1, #device.parameters do
+    local param = device.parameters[i]
+    if param.is_automatable then
+      snapshot.parameter_values_A[i] = param.value
+    end
+  end
+  
+  -- Also capture stored Edit A/B values if available
+  if parameter_values_A then
+    for i, v in pairs(parameter_values_A) do
+      snapshot.parameter_values_A[i] = v
+    end
+  end
+  
+  if parameter_values_B then
+    for i, v in pairs(parameter_values_B) do
+      snapshot.parameter_values_B[i] = v
+    end
+  end
+  
+  print("Canvas Snapshot: Captured " .. #device.parameters .. " parameters from " .. device.display_name)
+  return snapshot
+end
+
+-- Restore device parameters from a PhraseGrid snapshot
+function PakettiCanvasExperimentsRestoreFromSnapshot(snapshot)
+  if not snapshot then return false end
+  
+  local song = renoise.song()
+  if not song then return false end
+  
+  -- Find the device by path or name
+  local device = nil
+  local track_index = snapshot.track_index
+  local device_index = snapshot.device_index
+  
+  -- Try exact position first
+  if track_index and device_index then
+    local track = song.tracks[track_index]
+    if track and track.devices[device_index] then
+      local d = track.devices[device_index]
+      if d.device_path == snapshot.device_path or d.display_name == snapshot.device_name then
+        device = d
+        song.selected_track_index = track_index
+        song.selected_device_index = device_index
+      end
+    end
+  end
+  
+  -- If not found at exact position, search current track
+  if not device then
+    local track = song.selected_track
+    if track then
+      for i, d in ipairs(track.devices) do
+        if d.device_path == snapshot.device_path or d.display_name == snapshot.device_name then
+          device = d
+          song.selected_device_index = i
+          break
+        end
+      end
+    end
+  end
+  
+  if not device then
+    print("Canvas Restore: Device not found: " .. (snapshot.device_name or "unknown"))
+    return false
+  end
+  
+  -- Restore parameter values (use Edit A values as the primary set)
+  local restored_count = 0
+  for i, value in pairs(snapshot.parameter_values_A) do
+    if device.parameters[i] and device.parameters[i].is_automatable then
+      device.parameters[i].value = value
+      restored_count = restored_count + 1
+    end
+  end
+  
+  -- Restore internal state
+  parameter_values_A = snapshot.parameter_values_A or {}
+  parameter_values_B = snapshot.parameter_values_B or {}
+  crossfade_amount = snapshot.crossfade_amount or 0.0
+  current_edit_mode = snapshot.edit_mode or "A"
+  
+  -- Update canvas if open
+  if canvas_experiments_canvas then
+    canvas_experiments_canvas:update()
+  end
+  
+  print("Canvas Restore: Restored " .. restored_count .. " parameters to " .. device.display_name)
+  renoise.app():show_status("Restored " .. restored_count .. " device parameters")
+  return true
+end
+
+-- Snapshot to PhraseGrid state
+function PakettiCanvasExperimentsSnapshotToPhraseGrid(state_index)
+  if not state_index then
+    state_index = (PakettiPhraseGridCurrentState and PakettiPhraseGridCurrentState > 0) and PakettiPhraseGridCurrentState or 1
+  end
+  
+  local snapshot = PakettiCanvasExperimentsGetSnapshot()
+  if not snapshot then
+    renoise.app():show_status("No device selected for snapshot")
+    return false
+  end
+  
+  -- Store in PhraseGrid state
+  if PakettiPhraseGridStates then
+    if not PakettiPhraseGridStates[state_index] then
+      if PakettiPhraseGridCreateEmptyState then
+        PakettiPhraseGridStates[state_index] = PakettiPhraseGridCreateEmptyState()
+      else
+        PakettiPhraseGridStates[state_index] = {}
+      end
+    end
+    
+    PakettiPhraseGridStates[state_index].device_params = snapshot
+    renoise.app():show_status(string.format("Device snapshot stored to PhraseGrid State %02d", state_index))
+    return true
+  else
+    renoise.app():show_status("PhraseGrid not available")
+    return false
+  end
+end
+
+-- Restore from PhraseGrid state
+function PakettiCanvasExperimentsRestoreFromPhraseGrid(state_index)
+  if not state_index then
+    state_index = (PakettiPhraseGridCurrentState and PakettiPhraseGridCurrentState > 0) and PakettiPhraseGridCurrentState or 1
+  end
+  
+  if not PakettiPhraseGridStates or not PakettiPhraseGridStates[state_index] then
+    renoise.app():show_status("No PhraseGrid state at index " .. state_index)
+    return false
+  end
+  
+  local snapshot = PakettiPhraseGridStates[state_index].device_params
+  if not snapshot then
+    renoise.app():show_status("No device snapshot in state " .. state_index)
+    return false
+  end
+  
+  return PakettiCanvasExperimentsRestoreFromSnapshot(snapshot)
+end
+
+-- Keybindings for PhraseGrid integration
+renoise.tool():add_keybinding{name = "Global:Paketti:Parameter Editor Snapshot to PhraseGrid State", invoke = function() PakettiCanvasExperimentsSnapshotToPhraseGrid() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Parameter Editor Restore from PhraseGrid State", invoke = function() PakettiCanvasExperimentsRestoreFromPhraseGrid() end}
+
+renoise.tool():add_midi_mapping{name = "Paketti:Parameter Editor Snapshot to PhraseGrid [Trigger]", invoke = function(message) if message:is_trigger() then PakettiCanvasExperimentsSnapshotToPhraseGrid() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Parameter Editor Restore from PhraseGrid [Trigger]", invoke = function(message) if message:is_trigger() then PakettiCanvasExperimentsRestoreFromPhraseGrid() end end}
+
 -- Initialize global device observer on tool load if auto-open preference is enabled
 pcall(function()
   if preferences and preferences.pakettiParameterEditor and preferences.pakettiParameterEditor.AutoOpen then

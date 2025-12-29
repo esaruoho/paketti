@@ -590,15 +590,20 @@ function SliceProApply(silent)
   -- Use root override if set, otherwise use analyzed total_beats
   local effective_total_beats = SliceProState.root_override or SliceProState.total_beats
   
+  -- Check if beat sync should be enabled for slices (default is OFF)
+  local beatsync_enabled = preferences.SlicePro.SliceProBeatSyncEnabled and preferences.SlicePro.SliceProBeatSyncEnabled.value or false
+  
   if #markers == 0 then
     -- No slices, just apply to root sample
     local sync_lines = math.max(1, math.min(512, math.floor(effective_total_beats * lpb + 0.5)))
-    root_sample.beat_sync_enabled = true
-    root_sample.beat_sync_lines = sync_lines
-    root_sample.beat_sync_mode = preferences.SlicePro.SliceProBeatSyncMode.value
+    root_sample.beat_sync_enabled = beatsync_enabled
+    if beatsync_enabled then
+      root_sample.beat_sync_lines = sync_lines
+      root_sample.beat_sync_mode = preferences.SlicePro.SliceProBeatSyncMode.value
+    end
     
     if not silent then
-      renoise.app():show_status(string.format("SlicePro: Applied %d lines to root sample", sync_lines))
+      renoise.app():show_status(string.format("SlicePro: Applied %d lines to root sample%s", sync_lines, beatsync_enabled and "" or " (BeatSync off)"))
     end
     return true
   end
@@ -625,9 +630,11 @@ function SliceProApply(silent)
           table.insert(warnings, string.format("Slice %d: %.1f beats clamped to 512 lines", slice_index, beats))
         end
         
-        sample.beat_sync_enabled = true
-        sample.beat_sync_lines = sync_lines
-        sample.beat_sync_mode = preferences.SlicePro.SliceProBeatSyncMode.value
+        sample.beat_sync_enabled = beatsync_enabled
+        if beatsync_enabled then
+          sample.beat_sync_lines = sync_lines
+          sample.beat_sync_mode = preferences.SlicePro.SliceProBeatSyncMode.value
+        end
         
         -- Apply other preferences
         sample.mute_group = preferences.SlicePro.SliceProMuteGroup.value
@@ -647,11 +654,9 @@ function SliceProApply(silent)
     end
   end
   
-  -- Also enable beatsync on root sample
-  local root_sync_lines = math.max(1, math.min(512, math.floor(effective_total_beats * lpb + 0.5)))
-  root_sample.beat_sync_enabled = true
-  root_sample.beat_sync_lines = root_sync_lines
-  root_sample.beat_sync_mode = preferences.SlicePro.SliceProBeatSyncMode.value
+  -- NOTE: Root sample beat sync is NOT modified when slices exist
+  -- Only slices get beat sync applied (if enabled)
+  -- The root sample's beat sync state is left as-is
   
   -- Show warnings if any
   if #warnings > 0 then
@@ -661,7 +666,7 @@ function SliceProApply(silent)
   end
   
   if not silent then
-    renoise.app():show_status(string.format("SlicePro: Applied beat sync to %d slices (LPB=%d)", applied_count, lpb))
+    renoise.app():show_status(string.format("SlicePro: Applied to %d slices (LPB=%d%s)", applied_count, lpb, beatsync_enabled and "" or ", BeatSync off"))
   end
   return true
 end
@@ -783,278 +788,300 @@ function SliceProConfigDialog()
   local effective_total_beats = SliceProState.root_override or SliceProState.total_beats or 4
   
   local dialog_content = vb:column{
-    margin = 10,
-    spacing = 8,
+    --margin = 6,
+    --spacing = 4,
     
-    -- Header
-    vb:row{
-      vb:text{text = "SlicePro Config", font = "bold", style = "strong"}
-    },
-    
+    -- Instrument name row
     vb:row{
       vb:text{text = "Instrument: " .. instrument.name, font = "mono"}
     },
     
-    vb:horizontal_aligner{mode = "center", vb:space{height = 4}},
-    
-    -- Analysis Info Section
+    -- Two-column layout: Analysis Info (left) | Global Slice Settings (right)
     vb:row{
-      vb:text{text = "Total Beats:", width = 100},
-      vb:valuebox{
-        id = "slicepro_total_beats",
-        min = 1,
-        max = 128,
-        value = effective_total_beats,
-        width = 60,
-        tostring = function(val) return string.format("%.1f", val) end,
-        tonumber = function(str) return tonumber(str) end,
-        notifier = function(val)
-          -- If override is checked, this becomes an override
-          local override_checkbox = vb.views["slicepro_root_override"]
-          if override_checkbox and override_checkbox.value then
-            SliceProRecalculateFromTotal(val, true)
-          else
-            SliceProRecalculateFromTotal(val, false)
-          end
-        end
-      },
-      vb:checkbox{
-        id = "slicepro_root_override",
-        value = has_root_override,
-        notifier = function(val)
-          if val then
-            -- Set override to current value
-            local beats_view = vb.views["slicepro_total_beats"]
-            if beats_view then
-              SliceProState.root_override = beats_view.value
+      --spacing = 16,
+      
+      -- LEFT COLUMN: Analysis Info
+      vb:column{
+        --spacing = 2,
+        
+        -- Total Beats row
+        vb:row{
+          vb:text{text = "Total Beats:", width = 80},
+          vb:valuebox{
+            id = "slicepro_total_beats",
+            min = 1,
+            max = 128,
+            value = effective_total_beats,
+            width = 55,
+            tostring = function(val) return string.format("%.1f", val) end,
+            tonumber = function(str) return tonumber(str) end,
+            notifier = function(val)
+              local override_checkbox = vb.views["slicepro_root_override"]
+              if override_checkbox and override_checkbox.value then
+                SliceProRecalculateFromTotal(val, true)
+              else
+                SliceProRecalculateFromTotal(val, false)
+              end
             end
-            -- Update label
-            local override_label = vb.views["slicepro_override_label"]
-            if override_label then
-              override_label.text = "(Override)"
+          },
+          vb:checkbox{
+            id = "slicepro_root_override",
+            value = has_root_override,
+            notifier = function(val)
+              if val then
+                local beats_view = vb.views["slicepro_total_beats"]
+                if beats_view then
+                  SliceProState.root_override = beats_view.value
+                end
+              else
+                SliceProState.root_override = nil
+              end
             end
-          else
-            -- Clear override
-            SliceProState.root_override = nil
-            local override_label = vb.views["slicepro_override_label"]
-            if override_label then
-              override_label.text = ""
+          },
+          vb:text{text = "Override"}
+        },
+        
+        -- LPB info row
+        vb:row{
+          vb:text{text = string.format("(LPB: %d, Max per slice: %.1f beats)", lpb, 512 / lpb), style = "disabled"}
+        },
+        
+        -- Confidence row
+        vb:row{
+          vb:text{text = "Confidence:", width = 80},
+          vb:text{
+            id = "slicepro_confidence",
+            text = string.format("%.0f%%", (SliceProState.confidence or 0) * 100),
+            font = "mono",
+            width = 40
+          },
+          vb:text{text = string.format("(Method: %s)", SliceProState.method or "none")}
+        },
+        
+        -- Sample info row
+        vb:row{
+          vb:text{
+            text = string.format("Sample: %d frames @ %d Hz = %.2f sec", 
+              SliceProState.total_frames or 0,
+              SliceProState.sample_rate or 44100,
+              (SliceProState.total_frames or 0) / (SliceProState.sample_rate or 44100)),
+            font = "mono"
+          }
+        }
+      },
+      
+      -- RIGHT COLUMN: Global Slice Settings
+      vb:column{
+        --spacing = 2,
+        
+        -- BeatSync Enable/Mode
+        vb:row{
+          vb:checkbox{
+            id = "slicepro_beatsync_enabled",
+            value = preferences.SlicePro.SliceProBeatSyncEnabled and preferences.SlicePro.SliceProBeatSyncEnabled.value or false,
+            notifier = function(val)
+              if preferences.SlicePro.SliceProBeatSyncEnabled then
+                preferences.SlicePro.SliceProBeatSyncEnabled.value = val
+              end
             end
-          end
-        end
-      },
-      vb:text{text = "Override"},
-      vb:text{
-        id = "slicepro_override_label",
-        text = has_root_override and "(Override)" or "",
-        font = "italic"
+          },
+          vb:text{text = "BeatSync:", width = 70},
+          vb:popup{
+            id = "slicepro_beatsync_mode",
+            items = {"Repitch", "Percussion", "Texture"},
+            value = preferences.SlicePro.SliceProBeatSyncMode.value,
+            width = 100,
+            notifier = function(val)
+              preferences.SlicePro.SliceProBeatSyncMode.value = val
+            end
+          }
+        },
+        
+        -- Mute Group
+        vb:row{
+          vb:text{text = "Mute Group:", width = 90},
+          vb:valuebox{
+            id = "slicepro_mute_group",
+            min = 0,
+            max = 15,
+            value = preferences.SlicePro.SliceProMuteGroup.value,
+            width = 50,
+            notifier = function(val)
+              preferences.SlicePro.SliceProMuteGroup.value = val
+            end
+          },
+          vb:text{text = "(0 = None)"}
+        },
+        
+        -- NNA
+        vb:row{
+          vb:text{text = "NNA:", width = 90},
+          vb:popup{
+            id = "slicepro_nna",
+            items = {"Cut", "Note Off", "Sustain"},
+            value = preferences.SlicePro.SliceProNNA.value,
+            width = 100,
+            notifier = function(val)
+              preferences.SlicePro.SliceProNNA.value = val
+            end
+          }
+        },
+        
+        -- Loop Mode
+        vb:row{
+          vb:text{text = "Loop Mode:", width = 90},
+          vb:popup{
+            id = "slicepro_loop_mode",
+            items = {"Off", "Forward", "Reverse", "Ping-Pong"},
+            value = preferences.SlicePro.SliceProLoopMode.value,
+            width = 100,
+            notifier = function(val)
+              preferences.SlicePro.SliceProLoopMode.value = val
+            end
+          }
+        },
+        
+        -- Checkboxes row
+        vb:row{
+          vb:checkbox{
+            id = "slicepro_oneshot",
+            value = preferences.SlicePro.SliceProOneShot and preferences.SlicePro.SliceProOneShot.value or true,
+            notifier = function(val)
+              if preferences.SlicePro.SliceProOneShot then
+                preferences.SlicePro.SliceProOneShot.value = val
+              end
+            end
+          },
+          vb:text{text = "One-Shot"},
+          --vb:space{width = 6},
+          vb:checkbox{
+            id = "slicepro_autofade",
+            value = preferences.SlicePro.SliceProAutofade.value,
+            notifier = function(val)
+              preferences.SlicePro.SliceProAutofade.value = val
+            end
+          },
+          vb:text{text = "Autofade"},
+          --vb:space{width = 6},
+          vb:checkbox{
+            id = "slicepro_loop_release",
+            value = preferences.SlicePro.SliceProLoopRelease.value,
+            notifier = function(val)
+              preferences.SlicePro.SliceProLoopRelease.value = val
+            end
+          },
+          vb:text{text = "Loop Release"}
+        }
       }
     },
     
-    vb:row{
-      vb:text{text = string.format("(LPB: %d, Max per slice: %.1f beats)", lpb, 512 / lpb), style = "disabled"}
-    },
-    
-    -- Confidence display
-    vb:row{
-      vb:text{text = "Confidence:", width = 100},
-      vb:text{
-        id = "slicepro_confidence",
-        text = string.format("%.0f%%", (SliceProState.confidence or 0) * 100),
-        font = "mono",
-        width = 50
-      },
-      vb:text{text = string.format("(Method: %s)", SliceProState.method or "none")}
-    },
-    
-    vb:row{
-      vb:text{
-        text = string.format("Sample: %d frames @ %d Hz = %.2f sec", 
-          SliceProState.total_frames or 0,
-          SliceProState.sample_rate or 44100,
-          (SliceProState.total_frames or 0) / (SliceProState.sample_rate or 44100)),
-        font = "mono"
-      }
-    },
-    
-    vb:horizontal_aligner{mode = "center", vb:space{height = 8}},
-    
-    -- Global Settings Section
-    vb:row{
-      vb:text{text = "Global Slice Settings", font = "bold", style = "strong"}
-    },
-    
-    vb:row{
-      vb:text{text = "BeatSync Mode:", width = 100},
-      vb:popup{
-        id = "slicepro_beatsync_mode",
-        items = {"Repitch", "Percussion", "Texture"},
-        value = preferences.SlicePro.SliceProBeatSyncMode.value,
-        width = 120,
-        notifier = function(val)
-          preferences.SlicePro.SliceProBeatSyncMode.value = val
-        end
-      }
-    },
-    
-    vb:row{
-      vb:text{text = "Mute Group:", width = 100},
-      vb:valuebox{
-        id = "slicepro_mute_group",
-        min = 0,
-        max = 15,
-        value = preferences.SlicePro.SliceProMuteGroup.value,
-        width = 60,
-        notifier = function(val)
-          preferences.SlicePro.SliceProMuteGroup.value = val
-        end
-      },
-      vb:text{text = "(0 = None)"}
-    },
-    
-    vb:row{
-      vb:text{text = "NNA:", width = 100},
-      vb:popup{
-        id = "slicepro_nna",
-        items = {"Cut", "Note Off", "Sustain"},
-        value = preferences.SlicePro.SliceProNNA.value,
-        width = 120,
-        notifier = function(val)
-          preferences.SlicePro.SliceProNNA.value = val
-        end
-      }
-    },
-    
-    vb:row{
-      vb:text{text = "Loop Mode:", width = 100},
-      vb:popup{
-        id = "slicepro_loop_mode",
-        items = {"Off", "Forward", "Reverse", "Ping-Pong"},
-        value = preferences.SlicePro.SliceProLoopMode.value,
-        width = 120,
-        notifier = function(val)
-          preferences.SlicePro.SliceProLoopMode.value = val
-        end
-      }
-    },
-    
-    vb:row{
-      vb:checkbox{
-        id = "slicepro_oneshot",
-        value = preferences.SlicePro.SliceProOneShot and preferences.SlicePro.SliceProOneShot.value or true,
-        notifier = function(val)
-          if preferences.SlicePro.SliceProOneShot then
-            preferences.SlicePro.SliceProOneShot.value = val
-          end
-        end
-      },
-      vb:text{text = "One-Shot"},
-      vb:space{width = 10},
-      vb:checkbox{
-        id = "slicepro_autofade",
-        value = preferences.SlicePro.SliceProAutofade.value,
-        notifier = function(val)
-          preferences.SlicePro.SliceProAutofade.value = val
-        end
-      },
-      vb:text{text = "Autofade"},
-      vb:space{width = 10},
-      vb:checkbox{
-        id = "slicepro_loop_release",
-        value = preferences.SlicePro.SliceProLoopRelease.value,
-        notifier = function(val)
-          preferences.SlicePro.SliceProLoopRelease.value = val
-        end
-      },
-      vb:text{text = "Loop Release"}
-    },
-    
-    vb:horizontal_aligner{mode = "center", vb:space{height = 8}},
+    --vb:space{height = 4}
   }
   
   -- Slice List Section (only if there are slices)
   if #markers > 0 then
-    local slice_section = vb:column{
-      spacing = 4,
-      vb:row{
-        vb:text{text = "Per-Slice Beats", font = "bold", style = "strong"},
-        vb:space{width = 20},
-        vb:text{text = string.format("(%d slices)", #markers)}
-      },
-      
-      -- Header row
-      vb:row{
-        vb:text{text = "Slice", width = 50, font = "mono"},
-        vb:text{text = "Frames", width = 80, font = "mono"},
-        vb:text{text = "Beats", width = 60, font = "mono"},
-        vb:text{text = "Lines", width = 50, font = "mono"},
-        vb:text{text = "Override", width = 70, font = "mono"}
-      }
-    }
+    -- Multi-column slice display
+    local rows_per_column = 8
+    local max_columns = 8
+    local display_limit = rows_per_column * max_columns
+    local slices_to_display = math.min(#markers, display_limit)
+    local column_count = math.ceil(slices_to_display / rows_per_column)
     
-    -- Build slice rows (limit to 32 for display, but process all)
-    local display_limit = math.min(#markers, 32)
     local ranges = SliceProGetSliceRanges()
     
-    for i = 1, display_limit do
-      local beats = SliceProState.user_overrides[i] or SliceProState.slice_beats[i] or 1
-      local sync_lines = math.max(1, math.min(512, math.floor(beats * lpb + 0.5)))
-      local frames = ranges[i] and ranges[i].length_frames or 0
+    -- Section header
+    local slice_header = vb:row{
+      vb:text{text = "Per-Slice Beats", font = "bold", style = "strong"},
+      --vb:space{width = 10},
+      vb:text{text = string.format("(%d slices)", #markers)}
+    }
+    dialog_content:add_child(slice_header)
+    
+    -- Create multi-column container
+    local columns_container = vb:row{}
+    
+    for col = 1, column_count do
+      local column = vb:column{}
       
-      local has_override = SliceProState.user_overrides[i] ~= nil
+      -- Compact column header
+      column:add_child(vb:row{
+        vb:text{text = "Slice", width = 35, font = "mono"},
+        vb:text{text = "Frames", width = 55, font = "mono"},
+        --vb:space{width = 4},
+        vb:text{text = "Beats", width = 55},
+        vb:text{text = "Lines", width = 35},
+        vb:text{text = "Override", width = 50}
+      })
       
-      local slice_row = vb:row{
-        vb:text{text = string.format("%02d", i), width = 50, font = "mono"},
-        vb:text{text = string.format("%d", frames), width = 80, font = "mono"},
-        vb:valuebox{
-          id = "slicepro_slice_beats_" .. i,
-          min = 0.1,
-          max = 64,
-          value = beats,
-          width = 60,
-          tostring = function(val) return string.format("%.2f", val) end,
-          tonumber = function(str) return tonumber(str) end,
-          notifier = function(val)
-            SliceProState.user_overrides[i] = val
-          end
-        },
-        vb:text{
-          id = "slicepro_slice_lines_" .. i,
-          text = string.format("%d", sync_lines), 
-          width = 50, 
-          font = "mono"
-        },
-        vb:button{
-          text = has_override and "Clear" or "-",
-          width = 50,
-          active = has_override,
-          notifier = function()
-            SliceProState.user_overrides[i] = nil
-          end
+      -- Calculate slice range for this column
+      local start_idx = (col - 1) * rows_per_column + 1
+      local end_idx = math.min(col * rows_per_column, slices_to_display)
+      
+      -- Build slice rows for this column
+      for i = start_idx, end_idx do
+        local beats = SliceProState.user_overrides[i] or SliceProState.slice_beats[i] or 1
+        local sync_lines = math.max(1, math.min(512, math.floor(beats * lpb + 0.5)))
+        local frames = ranges[i] and ranges[i].length_frames or 0
+        local has_override = SliceProState.user_overrides[i] ~= nil
+        
+        local slice_row = vb:row{
+          vb:text{text = string.format("%02d", i), width = 35, font = "mono"},
+          vb:text{text = string.format("%d", frames), width = 55, font = "mono"},
+          --vb:space{width = 4},
+          vb:valuebox{
+            id = "slicepro_slice_beats_" .. i,
+            min = 0.1,
+            max = 64,
+            value = beats,
+            width = 55,
+            tostring = function(val) return string.format("%.2f", val) end,
+            tonumber = function(str) return tonumber(str) end,
+            notifier = function(val)
+              SliceProState.user_overrides[i] = val
+            end
+          },
+          vb:text{
+            id = "slicepro_slice_lines_" .. i,
+            text = string.format("%d", sync_lines), 
+            width = 35, 
+            font = "mono"
+          },
+          vb:button{
+            text = has_override and "Clear" or "-",
+            width = 50,
+            active = has_override,
+            notifier = function()
+              SliceProState.user_overrides[i] = nil
+            end
+          }
         }
-      }
+        
+        column:add_child(slice_row)
+      end
       
-      slice_section:add_child(slice_row)
+      columns_container:add_child(column)
     end
     
+    dialog_content:add_child(columns_container)
+    
+    -- Show message if more slices exist beyond display limit
     if #markers > display_limit then
-      slice_section:add_child(vb:row{
+      dialog_content:add_child(vb:row{
         vb:text{text = string.format("... and %d more slices (all will be processed)", #markers - display_limit)}
       })
     end
     
-    dialog_content:add_child(slice_section)
-    dialog_content:add_child(vb:horizontal_aligner{mode = "center", vb:space{height = 8}})
+    dialog_content:add_child(vb:space{height = 2})
   else
     dialog_content:add_child(vb:row{
       vb:text{text = "No slices in sample. Total beats will be applied to root sample only.", style = "disabled"}
     })
-    dialog_content:add_child(vb:horizontal_aligner{mode = "center", vb:space{height = 8}})
+    dialog_content:add_child(vb:space{height = 2})
   end
   
   -- Buttons Row 1
   local button_row1 = vb:row{
-    spacing = 8,
+    --spacing = 8,
     vb:button{
       text = "Analyze",
       width = 80,
@@ -1113,7 +1140,7 @@ function SliceProConfigDialog()
   
   -- Buttons Row 2 (Clear overrides)
   local button_row2 = vb:row{
-    spacing = 8,
+    --spacing = 8,
     vb:button{
       text = "Clear All Overrides",
       width = 120,
@@ -1126,6 +1153,13 @@ function SliceProConfigDialog()
           SliceProAnalyze()  -- Re-analyze without overrides
           SliceProConfigDialog()
         end
+      end
+    },
+    vb:button{
+      text = "Real-Time Slice",
+      width = 100,
+      notifier = function()
+        pakettiRealtimeSliceInsertMarker()
       end
     }
   }
@@ -1281,7 +1315,297 @@ renoise.tool():add_menu_entry{
   invoke = SliceProSilentApply
 }
 
-print("PakettiSlicePro.lua loaded (v3 - with overrides, fallback, progress)")
+--------------------------------------------------------------------------------
+-- PHRASE CREATION FROM SLICEPRO BEAT ANALYSIS
+--------------------------------------------------------------------------------
+
+-- Get the current SlicePro state for external access
+function PakettiSliceProGetState()
+  return {
+    instrument_index = SliceProState.instrument_index,
+    total_beats = SliceProState.total_beats,
+    slice_beats = SliceProState.slice_beats,
+    confidence = SliceProState.confidence,
+    method = SliceProState.method,
+    sample_rate = SliceProState.sample_rate,
+    total_frames = SliceProState.total_frames,
+    dirty = SliceProState.dirty
+  }
+end
+
+-- Calculate optimal LPB for a beat count
+function PakettiSliceProCalculateLPBForBeats(beats)
+  if not beats or beats <= 0 then return 4 end
+  
+  -- Common beat values and their ideal LPB
+  -- Goal: minimize lines while keeping integer counts
+  local beat_value = beats
+  
+  -- For fractional beats, we want higher LPB
+  if beat_value < 1 then
+    if beat_value >= 0.5 then
+      return 8  -- Half beat = 4 lines at LPB 8
+    elseif beat_value >= 0.25 then
+      return 16  -- Quarter beat = 4 lines at LPB 16
+    else
+      return 4  -- Very short, default
+    end
+  elseif beat_value == math.floor(beat_value) then
+    -- Whole beats - use song LPB
+    return renoise.song().transport.lpb
+  else
+    -- Fractional beats - use higher LPB for accuracy
+    return 8
+  end
+end
+
+-- Create beat-synced phrases from SlicePro analysis
+function PakettiSliceProCreateBeatSyncedPhrases()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Check if we have valid analysis
+  if not SliceProState.total_beats or not SliceProState.slice_beats or #SliceProState.slice_beats == 0 then
+    renoise.app():show_status("SlicePro: No beat analysis available. Run SlicePro Apply first.")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("SlicePro: No instrument selected")
+    return
+  end
+  
+  local sample = instrument.samples[1]
+  if not sample then
+    renoise.app():show_status("SlicePro: No sample in instrument")
+    return
+  end
+  
+  -- Get base note for slice triggering
+  local base_note = 48  -- C-4
+  if sample.sample_mapping then
+    base_note = sample.sample_mapping.base_note
+  end
+  
+  local slice_count = #sample.slice_markers
+  if slice_count == 0 then
+    renoise.app():show_status("SlicePro: No slices in sample")
+    return
+  end
+  
+  local phrases_created = {}
+  print("SlicePro Phrases: Creating " .. slice_count .. " beat-synced phrases")
+  
+  for slice_index = 1, slice_count do
+    local beats = SliceProState.slice_beats[slice_index] or 1
+    
+    -- Calculate optimal LPB and line count for this slice's beat duration
+    local phrase_lpb = PakettiSliceProCalculateLPBForBeats(beats)
+    local phrase_lines = math.max(1, math.floor(beats * phrase_lpb + 0.5))
+    
+    -- Create a new phrase
+    local phrase_index = #instrument.phrases + 1
+    instrument:insert_phrase_at(phrase_index)
+    local phrase = instrument.phrases[phrase_index]
+    
+    if phrase then
+      -- Configure phrase with beat-accurate timing
+      phrase.name = string.format("Slice %02d (%.2f beats)", slice_index, beats)
+      phrase.number_of_lines = phrase_lines
+      phrase.lpb = phrase_lpb
+      phrase.is_empty = false
+      phrase.autoseek = false
+      phrase.loop_start = 1
+      phrase.loop_end = phrase_lines
+      phrase.looping = true
+      
+      -- Ensure at least 1 note column
+      if phrase.visible_note_columns < 1 then
+        phrase.visible_note_columns = 1
+      end
+      
+      -- Write the slice trigger note on line 1
+      local slice_note = base_note + slice_index
+      if slice_note > 119 then slice_note = 119 end
+      
+      local line = phrase:line(1)
+      line.note_columns[1].note_value = slice_note
+      line.note_columns[1].instrument_value = 0  -- Self-reference
+      line.note_columns[1].volume_value = 128  -- Full volume
+      
+      phrases_created[slice_index] = phrase_index
+      print(string.format("SlicePro Phrases: Slice %d = %.2f beats, %d lines @ LPB %d", 
+        slice_index, beats, phrase_lines, phrase_lpb))
+    end
+  end
+  
+  -- Create a PhraseGrid bank if available
+  if PakettiPhraseBankCreate then
+    local stem_name = instrument.name or "SlicePro"
+    local bank_index = PakettiPhraseBankCreate(song.selected_instrument_index, "SlicePro: " .. stem_name)
+    
+    if bank_index and PakettiPhraseBanks and PakettiPhraseBanks[bank_index] then
+      local max_slots = math.min(slice_count, 8)
+      for slot = 1, max_slots do
+        if phrases_created[slot] then
+          PakettiPhraseBankSetSlot(bank_index, slot, phrases_created[slot])
+        end
+      end
+      print("SlicePro Phrases: Created PhraseGrid bank " .. bank_index)
+    end
+  end
+  
+  -- Store analysis in PhraseGrid state if available
+  if PakettiPhraseGridStates and PakettiPhraseGridCurrentState then
+    local state_index = PakettiPhraseGridCurrentState > 0 and PakettiPhraseGridCurrentState or 1
+    if not PakettiPhraseGridStates[state_index] then
+      if PakettiPhraseGridCreateEmptyState then
+        PakettiPhraseGridStates[state_index] = PakettiPhraseGridCreateEmptyState()
+      end
+    end
+    if PakettiPhraseGridStates[state_index] then
+      PakettiPhraseGridStates[state_index].slicepro = {
+        total_beats = SliceProState.total_beats,
+        slice_beats = SliceProState.slice_beats,
+        confidence = SliceProState.confidence,
+        method = SliceProState.method
+      }
+      print("SlicePro Phrases: Stored analysis in PhraseGrid state " .. state_index)
+    end
+  end
+  
+  renoise.app():show_status(string.format("Created %d beat-synced phrases (%.1f total beats, %s confidence)", 
+    slice_count, SliceProState.total_beats or 0, 
+    SliceProState.confidence and string.format("%.0f%%", SliceProState.confidence * 100) or "N/A"))
+  
+  return phrases_created
+end
+
+-- Create phrases with uniform length based on total beats
+function PakettiSliceProCreateUniformPhrases()
+  local song = renoise.song()
+  if not song then return end
+  
+  if not SliceProState.total_beats then
+    renoise.app():show_status("SlicePro: No beat analysis available. Run SlicePro Apply first.")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument or not instrument.samples[1] then
+    renoise.app():show_status("SlicePro: No sample in instrument")
+    return
+  end
+  
+  local sample = instrument.samples[1]
+  local slice_count = #sample.slice_markers
+  if slice_count == 0 then
+    renoise.app():show_status("SlicePro: No slices in sample")
+    return
+  end
+  
+  -- Calculate uniform beat length per slice
+  local beats_per_slice = SliceProState.total_beats / slice_count
+  local phrase_lpb = song.transport.lpb
+  local phrase_lines = math.max(1, math.floor(beats_per_slice * phrase_lpb + 0.5))
+  
+  local base_note = 48
+  if sample.sample_mapping then
+    base_note = sample.sample_mapping.base_note
+  end
+  
+  local phrases_created = {}
+  
+  for slice_index = 1, slice_count do
+    local phrase_index = #instrument.phrases + 1
+    instrument:insert_phrase_at(phrase_index)
+    local phrase = instrument.phrases[phrase_index]
+    
+    if phrase then
+      phrase.name = string.format("Slice %02d (uniform)", slice_index)
+      phrase.number_of_lines = phrase_lines
+      phrase.lpb = phrase_lpb
+      phrase.is_empty = false
+      phrase.autoseek = false
+      phrase.loop_start = 1
+      phrase.loop_end = phrase_lines
+      phrase.looping = true
+      
+      if phrase.visible_note_columns < 1 then
+        phrase.visible_note_columns = 1
+      end
+      
+      local slice_note = base_note + slice_index
+      if slice_note > 119 then slice_note = 119 end
+      
+      local line = phrase:line(1)
+      line.note_columns[1].note_value = slice_note
+      line.note_columns[1].instrument_value = 0
+      line.note_columns[1].volume_value = 128
+      
+      phrases_created[slice_index] = phrase_index
+    end
+  end
+  
+  renoise.app():show_status(string.format("Created %d uniform phrases (%.2f beats each, %d lines @ LPB %d)", 
+    slice_count, beats_per_slice, phrase_lines, phrase_lpb))
+  
+  return phrases_created
+end
+
+-- Keybindings for phrase creation
+renoise.tool():add_keybinding{
+  name = "Sample Editor:Paketti:SlicePro Create Beat-Synced Phrases",
+  invoke = PakettiSliceProCreateBeatSyncedPhrases
+}
+
+renoise.tool():add_keybinding{
+  name = "Sample Editor:Paketti:SlicePro Create Uniform Phrases",
+  invoke = PakettiSliceProCreateUniformPhrases
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:SlicePro Create Beat-Synced Phrases",
+  invoke = PakettiSliceProCreateBeatSyncedPhrases
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:SlicePro Create Uniform Phrases",
+  invoke = PakettiSliceProCreateUniformPhrases
+}
+
+-- MIDI Mappings
+renoise.tool():add_midi_mapping{
+  name = "Paketti:SlicePro Create Beat-Synced Phrases",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiSliceProCreateBeatSyncedPhrases()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:SlicePro Create Uniform Phrases",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiSliceProCreateUniformPhrases()
+    end
+  end
+}
+
+-- Menu entries
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:SlicePro:Create Beat-Synced Phrases",
+  invoke = PakettiSliceProCreateBeatSyncedPhrases
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:SlicePro:Create Uniform Phrases",
+  invoke = PakettiSliceProCreateUniformPhrases
+}
+
+print("PakettiSlicePro.lua loaded (v3 - with overrides, fallback, progress, phrase integration)")
 
 
 

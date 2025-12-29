@@ -49,6 +49,140 @@ local pattern_buttons = {}
 -- User preference for volume controls (for v6.2+ users)
 local prefer_sliders_over_canvas = false
 
+--------------------------------------------------------------------------------
+-- VELOCITY STACKER DETECTION FUNCTIONS
+--------------------------------------------------------------------------------
+
+-- Check if an instrument is velocity-stacked
+-- Returns true if multiple samples have non-overlapping single-velocity or narrow velocity ranges
+function PakettiStackerIsVelocityStacked(instrument)
+  if not instrument then
+    instrument = renoise.song().selected_instrument
+  end
+  if not instrument then return false end
+  
+  local samples = instrument.samples
+  if #samples < 2 then return false end
+  
+  -- Count samples with narrow velocity ranges (width <= 16)
+  local narrow_range_count = 0
+  local velocity_coverage = {}
+  
+  for i = 1, #samples do
+    local sample = samples[i]
+    local mapping = sample.sample_mapping
+    if mapping then
+      local vel_range = mapping.velocity_range
+      if vel_range then
+        local vel_min = vel_range[1]
+        local vel_max = vel_range[2]
+        local range_width = vel_max - vel_min
+        
+        -- Consider it stacked if velocity range is narrow (16 or less)
+        if range_width <= 16 then
+          narrow_range_count = narrow_range_count + 1
+          -- Track velocity coverage
+          for v = vel_min, vel_max do
+            velocity_coverage[v] = true
+          end
+        end
+      end
+    end
+  end
+  
+  -- Consider it velocity-stacked if:
+  -- 1. At least 2 samples have narrow velocity ranges
+  -- 2. They cover a reasonable portion of the velocity spectrum
+  local coverage_count = 0
+  for _ in pairs(velocity_coverage) do
+    coverage_count = coverage_count + 1
+  end
+  
+  return narrow_range_count >= 2 and coverage_count >= 16
+end
+
+-- Get velocity layers info from a stacked instrument
+-- Returns table of {sample_index, sample_name, velocity_min, velocity_max}
+function PakettiStackerGetVelocityLayers(instrument)
+  if not instrument then
+    instrument = renoise.song().selected_instrument
+  end
+  if not instrument then return {} end
+  
+  local layers = {}
+  local samples = instrument.samples
+  
+  for i = 1, #samples do
+    local sample = samples[i]
+    local mapping = sample.sample_mapping
+    if mapping then
+      local vel_range = mapping.velocity_range
+      if vel_range then
+        table.insert(layers, {
+          sample_index = i,
+          sample_name = sample.name,
+          velocity_min = vel_range[1],
+          velocity_max = vel_range[2]
+        })
+      end
+    end
+  end
+  
+  -- Sort by velocity_min
+  table.sort(layers, function(a, b) return a.velocity_min < b.velocity_min end)
+  
+  return layers
+end
+
+-- Get a formatted string describing velocity stack status
+function PakettiStackerGetStatusString(instrument)
+  if not instrument then
+    instrument = renoise.song().selected_instrument
+  end
+  if not instrument then return "No instrument" end
+  
+  if PakettiStackerIsVelocityStacked(instrument) then
+    local layers = PakettiStackerGetVelocityLayers(instrument)
+    return string.format("VELOCITY STACKED (%d layers)", #layers)
+  else
+    return "Not velocity-stacked"
+  end
+end
+
+-- Check which phrases in an instrument use velocity data (for stacked instruments)
+function PakettiStackerGetPhraseVelocityInfo(instrument, phrase_index)
+  if not instrument then
+    instrument = renoise.song().selected_instrument
+  end
+  if not instrument then return nil end
+  
+  if phrase_index < 1 or phrase_index > #instrument.phrases then
+    return nil
+  end
+  
+  local phrase = instrument.phrases[phrase_index]
+  local velocities_used = {}
+  
+  for line_idx = 1, phrase.number_of_lines do
+    local line = phrase:line(line_idx)
+    for col_idx = 1, phrase.visible_note_columns do
+      local note_col = line:note_column(col_idx)
+      if note_col.note_value < 120 and note_col.volume_value < 128 then
+        velocities_used[note_col.volume_value] = true
+      end
+    end
+  end
+  
+  -- Convert to sorted list
+  local vel_list = {}
+  for vel, _ in pairs(velocities_used) do
+    table.insert(vel_list, vel)
+  end
+  table.sort(vel_list)
+  
+  return vel_list
+end
+
 -- Check which transpose levels have samples
 local function update_transpose_availability()
   local song = renoise.song()
@@ -1135,6 +1269,18 @@ vb:switch {
         width=100,
         notifier=function() write_random_velocity_notes() 
         returnpe() end}},
+
+-- Phrase Creation Section
+vb:row{vb:text{text="Phrases",width=100,font="bold",style="strong"},
+  vb:button{text="Layer",width=50,notifier=function() PakettiStackerCreateVelocityPhrases() end},
+  vb:button{text="Cycle",width=50,notifier=function() PakettiStackerCreateVelocityCyclePhrase() end},
+  vb:button{text="From Pat",width=60,notifier=function() PakettiStackerCreatePhraseFromPattern() end},
+  vb:button{text="Rnd8",width=35,notifier=function() PakettiStackerCreateRandomPhrase8() end},
+  vb:button{text="Rnd16",width=40,notifier=function() PakettiStackerCreateRandomPhrase16() end},
+  vb:button{text="Rnd32",width=40,notifier=function() PakettiStackerCreateRandomPhrase32() end},
+  vb:button{text="Sparse",width=45,notifier=function() PakettiStackerCreateSparseRandomPhrase(16) end}
+},
+
 -- Loop Length Controls  
 vb:row{vb:text{text="Loop Length",width=100, style="strong",font="bold"},
 vb:button{text="Full",width=150,notifier=function() set_loop_length_for_selected_instrument("full") end},
@@ -1470,3 +1616,929 @@ pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSli
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load&Slice&Isolate&Stack Sample",invoke=function() LoadSliceIsolateStack() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+
+--------------------------------------------------------------------------------
+-- PHRASE INTEGRATION (PhraseGrid Integration)
+--------------------------------------------------------------------------------
+
+-- Create one phrase per velocity layer (each phrase plays one slice via velocity)
+function PakettiStackerCreateVelocityPhrases()
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local num_samples = #instrument.samples
+  if num_samples == 0 then
+    renoise.app():show_status("Instrument has no samples")
+    return
+  end
+  
+  local phrases_created = 0
+  
+  for i = 1, num_samples do
+    local sample = instrument.samples[i]
+    
+    -- Get velocity range from sample mapping
+    local vel_range = sample.sample_mapping and sample.sample_mapping.velocity_range
+    local velocity = vel_range and vel_range[1] or (i - 1)
+    
+    -- Create new phrase
+    local phrase_count = #instrument.phrases
+    local new_phrase_index = phrase_count + 1
+    instrument:insert_phrase_at(new_phrase_index)
+    
+    local phrase = instrument.phrases[new_phrase_index]
+    phrase.number_of_lines = 4
+    phrase.lpb = song.transport.lpb
+    phrase.name = string.format("Vel %02d (%s)", velocity, sample.name:sub(1, 20))
+    phrase.volume_column_visible = true
+    
+    -- Write single note with specific velocity
+    local phrase_line = phrase:line(1)
+    local note_col = phrase_line:note_column(1)
+    note_col.note_value = 48  -- C-4
+    note_col.instrument_value = song.selected_instrument_index - 1
+    note_col.volume_value = velocity
+    
+    phrases_created = phrases_created + 1
+  end
+  
+  renoise.app():show_status(string.format("Created %d velocity phrases from stacked samples", phrases_created))
+  return phrases_created
+end
+
+-- Create a phrase that cycles through all velocity values
+function PakettiStackerCreateVelocityCyclePhrase()
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local num_samples = #instrument.samples
+  if num_samples == 0 then
+    renoise.app():show_status("Instrument has no samples")
+    return
+  end
+  
+  -- Create new phrase
+  local phrase_count = #instrument.phrases
+  local new_phrase_index = phrase_count + 1
+  instrument:insert_phrase_at(new_phrase_index)
+  
+  local phrase = instrument.phrases[new_phrase_index]
+  phrase.number_of_lines = math.min(num_samples, 256)  -- Limit to max phrase length
+  phrase.lpb = song.transport.lpb
+  phrase.name = "Velocity Cycle"
+  phrase.volume_column_visible = true
+  
+  -- Write one note per line, cycling through velocities
+  for i = 1, math.min(num_samples, 256) do
+    local sample = instrument.samples[i]
+    local vel_range = sample.sample_mapping and sample.sample_mapping.velocity_range
+    local velocity = vel_range and vel_range[1] or (i - 1)
+    
+    local phrase_line = phrase:line(i)
+    local note_col = phrase_line:note_column(1)
+    note_col.note_value = 48  -- C-4
+    note_col.instrument_value = song.selected_instrument_index - 1
+    note_col.volume_value = velocity
+  end
+  
+  song.selected_phrase_index = new_phrase_index
+  renoise.app():show_status(string.format("Created velocity cycle phrase with %d steps", math.min(num_samples, 256)))
+  return new_phrase_index
+end
+
+-- Create a phrase with random velocity values per line
+-- length: number of lines (default 16)
+-- density: probability of note on each line, 0.0-1.0 (default 1.0 = every line)
+-- allow_rests: if true, includes empty lines based on density (default false for compatibility)
+function PakettiStackerCreateRandomVelocityPhrase(length, density, allow_rests)
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local num_samples = #instrument.samples
+  if num_samples == 0 then
+    renoise.app():show_status("Instrument has no samples")
+    return
+  end
+  
+  -- Initialize random seed
+  if trueRandomSeed then
+    trueRandomSeed()
+  else
+    math.randomseed(os.time())
+  end
+  
+  length = length or 16  -- Default to 16 lines
+  density = density or 1.0  -- Default to 100% density (note on every line)
+  if allow_rests == nil then allow_rests = false end
+  
+  -- Get valid velocity values from sample mappings
+  local valid_velocities = {}
+  for i = 1, num_samples do
+    local sample = instrument.samples[i]
+    local vel_range = sample.sample_mapping and sample.sample_mapping.velocity_range
+    local velocity = vel_range and vel_range[1] or (i - 1)
+    table.insert(valid_velocities, velocity)
+  end
+  
+  -- Create new phrase
+  local phrase_count = #instrument.phrases
+  local new_phrase_index = phrase_count + 1
+  instrument:insert_phrase_at(new_phrase_index)
+  
+  local phrase = instrument.phrases[new_phrase_index]
+  phrase.number_of_lines = length
+  phrase.lpb = song.transport.lpb
+  local density_pct = math.floor(density * 100)
+  phrase.name = string.format("Random %d%%", density_pct)
+  phrase.volume_column_visible = true
+  
+  -- Write random velocity notes
+  local notes_written = 0
+  for i = 1, length do
+    -- Check density - should we write a note on this line?
+    local should_write = true
+    if allow_rests then
+      should_write = (math.random() <= density)
+    end
+    
+    if should_write then
+      local random_index = math.random(1, #valid_velocities)
+      local velocity = valid_velocities[random_index]
+      
+      local phrase_line = phrase:line(i)
+      local note_col = phrase_line:note_column(1)
+      note_col.note_value = 48  -- C-4
+      note_col.instrument_value = song.selected_instrument_index - 1
+      note_col.volume_value = velocity
+      notes_written = notes_written + 1
+    end
+  end
+  
+  song.selected_phrase_index = new_phrase_index
+  renoise.app():show_status(string.format("Created random phrase: %d lines, %d notes", length, notes_written))
+  return new_phrase_index
+end
+
+-- Create random phrase with specific length (shortcut functions)
+function PakettiStackerCreateRandomPhrase8()
+  return PakettiStackerCreateRandomVelocityPhrase(8, 1.0, false)
+end
+
+function PakettiStackerCreateRandomPhrase16()
+  return PakettiStackerCreateRandomVelocityPhrase(16, 1.0, false)
+end
+
+function PakettiStackerCreateRandomPhrase32()
+  return PakettiStackerCreateRandomVelocityPhrase(32, 1.0, false)
+end
+
+function PakettiStackerCreateRandomPhrase64()
+  return PakettiStackerCreateRandomVelocityPhrase(64, 1.0, false)
+end
+
+-- Create sparse random phrase (50% density with rests)
+function PakettiStackerCreateSparseRandomPhrase(length)
+  return PakettiStackerCreateRandomVelocityPhrase(length or 16, 0.5, true)
+end
+
+-- Create a PhraseGrid bank from stacked velocity layers
+function PakettiStackerCreatePhraseBankFromStacked()
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local num_samples = #instrument.samples
+  if num_samples == 0 then
+    renoise.app():show_status("Instrument has no samples")
+    return
+  end
+  
+  -- First create velocity phrases
+  local phrases_created = PakettiStackerCreateVelocityPhrases()
+  
+  -- Then create a PhraseGrid bank if PhraseWorkflow is available
+  if PakettiPhraseBankCreate and phrases_created and phrases_created > 0 then
+    local bank_index = PakettiPhraseBankCreate(song.selected_instrument_index, "Stacker Bank")
+    if bank_index and PakettiPhraseBanks[bank_index] then
+      -- Assign phrases to bank slots (up to 8)
+      local num_phrases = #instrument.phrases
+      local start_phrase = num_phrases - phrases_created + 1
+      for i = 1, math.min(8, phrases_created) do
+        PakettiPhraseBankSetSlot(bank_index, i, start_phrase + i - 1)
+      end
+      renoise.app():show_status(string.format("Created Stacker Bank with %d phrases", math.min(8, phrases_created)))
+    end
+  else
+    renoise.app():show_status(string.format("Created %d velocity phrases (PhraseGrid bank not available)", phrases_created or 0))
+  end
+end
+
+-- Create a phrase from the current pattern track (preserving velocities)
+function PakettiStackerCreatePhraseFromPattern()
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local track = song.tracks[track_index]
+  
+  -- Check if it's a note track
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Select a note track first")
+    return
+  end
+  
+  local pattern_track = pattern:track(track_index)
+  local pattern_length = pattern.number_of_lines
+  local instrument_index = song.selected_instrument_index - 1
+  
+  -- Collect all notes from the pattern track for this instrument
+  local notes_found = {}
+  local visible_columns = track.visible_note_columns
+  
+  for line_idx = 1, pattern_length do
+    local line = pattern_track:line(line_idx)
+    for col_idx = 1, visible_columns do
+      local note_col = line:note_column(col_idx)
+      if not note_col.is_empty and note_col.instrument_value == instrument_index then
+        table.insert(notes_found, {
+          line = line_idx,
+          column = col_idx,
+          note_value = note_col.note_value,
+          instrument_value = note_col.instrument_value,
+          volume_value = note_col.volume_value,
+          panning_value = note_col.panning_value,
+          delay_value = note_col.delay_value,
+          effect_number_value = note_col.effect_number_value,
+          effect_amount_value = note_col.effect_amount_value
+        })
+      end
+    end
+  end
+  
+  if #notes_found == 0 then
+    renoise.app():show_status("No notes for current instrument found in pattern")
+    return
+  end
+  
+  -- Create new phrase
+  local phrase_count = #instrument.phrases
+  local new_phrase_index = phrase_count + 1
+  instrument:insert_phrase_at(new_phrase_index)
+  
+  local phrase = instrument.phrases[new_phrase_index]
+  phrase.number_of_lines = pattern_length
+  phrase.lpb = song.transport.lpb
+  phrase.name = string.format("From Pattern %02d", song.selected_pattern_index)
+  phrase.volume_column_visible = true
+  phrase.delay_column_visible = true
+  phrase.sample_effects_column_visible = true
+  
+  -- Find max column used
+  local max_column = 1
+  for _, note_data in ipairs(notes_found) do
+    if note_data.column > max_column then
+      max_column = note_data.column
+    end
+  end
+  phrase.visible_note_columns = max_column
+  
+  -- Write notes to phrase
+  for _, note_data in ipairs(notes_found) do
+    local phrase_line = phrase:line(note_data.line)
+    local note_col = phrase_line:note_column(note_data.column)
+    
+    note_col.note_value = note_data.note_value
+    note_col.instrument_value = note_data.instrument_value
+    note_col.volume_value = note_data.volume_value
+    note_col.panning_value = note_data.panning_value
+    note_col.delay_value = note_data.delay_value
+    note_col.effect_number_value = note_data.effect_number_value
+    note_col.effect_amount_value = note_data.effect_amount_value
+  end
+  
+  song.selected_phrase_index = new_phrase_index
+  renoise.app():show_status(string.format("Created phrase from pattern with %d notes", #notes_found))
+  return new_phrase_index
+end
+
+--------------------------------------------------------------------------------
+-- STACKER PHRASE STUDIO DIALOG
+--------------------------------------------------------------------------------
+
+-- Dialog state
+local stacker_studio_dialog = nil
+local stacker_studio_vb = nil
+
+-- UI element references for updates
+local studio_instrument_text = nil
+local studio_status_text = nil
+local studio_layers_column = nil
+local studio_phrases_popup = nil
+local studio_current_phrase_text = nil
+
+-- Refresh the studio dialog content
+function PakettiStackerStudioRefresh()
+  if not stacker_studio_dialog or not stacker_studio_dialog.visible then return end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then return end
+  
+  -- Update instrument name
+  if studio_instrument_text then
+    studio_instrument_text.text = instrument.name ~= "" and instrument.name or "(unnamed)"
+  end
+  
+  -- Update status
+  if studio_status_text then
+    studio_status_text.text = PakettiStackerGetStatusString(instrument)
+  end
+  
+  -- Update phrase popup
+  if studio_phrases_popup then
+    local phrase_items = {}
+    for i = 1, #instrument.phrases do
+      local phrase = instrument.phrases[i]
+      local vel_info = PakettiStackerGetPhraseVelocityInfo(instrument, i)
+      local vel_str = ""
+      if vel_info and #vel_info > 0 then
+        if #vel_info == 1 then
+          vel_str = string.format(" [Vel %02X]", vel_info[1])
+        else
+          vel_str = string.format(" [Vel %02X-%02X]", vel_info[1], vel_info[#vel_info])
+        end
+      end
+      table.insert(phrase_items, string.format("%02d: %s%s", i, phrase.name:sub(1, 20), vel_str))
+    end
+    if #phrase_items == 0 then
+      phrase_items = {"(no phrases)"}
+    end
+    studio_phrases_popup.items = phrase_items
+    if song.selected_phrase_index > 0 and song.selected_phrase_index <= #phrase_items then
+      studio_phrases_popup.value = song.selected_phrase_index
+    end
+  end
+  
+  -- Update current phrase indicator
+  if studio_current_phrase_text then
+    if song.selected_phrase_index > 0 and song.selected_phrase_index <= #instrument.phrases then
+      studio_current_phrase_text.text = string.format("Phrase %02d", song.selected_phrase_index)
+    else
+      studio_current_phrase_text.text = "No phrase"
+    end
+  end
+end
+
+-- Create velocity layers view
+function PakettiStackerStudioCreateLayersView(vb)
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local layers = PakettiStackerGetVelocityLayers(instrument)
+  
+  local rows = {}
+  
+  if #layers == 0 then
+    table.insert(rows, vb:text{text = "(No velocity layers detected)", style = "disabled"})
+  else
+    -- Limit to first 16 layers to avoid huge dialogs
+    local max_display = math.min(#layers, 16)
+    for i = 1, max_display do
+      local layer = layers[i]
+      local vel_range_str = string.format("[%02X-%02X]", layer.velocity_min, layer.velocity_max)
+      local sample_name = layer.sample_name:sub(1, 25)
+      if #layer.sample_name > 25 then
+        sample_name = sample_name .. "..."
+      end
+      
+      table.insert(rows, vb:row{
+        spacing = 5,
+        vb:text{text = vel_range_str, font = "mono", width = 60},
+        vb:text{text = sample_name, width = 180}
+      })
+    end
+    
+    if #layers > max_display then
+      table.insert(rows, vb:text{
+        text = string.format("... and %d more layers", #layers - max_display),
+        style = "disabled"
+      })
+    end
+  end
+  
+  return vb:column{
+    style = "group",
+    margin = 5,
+    vb:text{text = "VELOCITY LAYERS", font = "bold"},
+    unpack(rows)
+  }
+end
+
+-- Show the Stacker Phrase Studio dialog
+function PakettiStackerPhraseStudioShow()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Close existing dialog
+  if stacker_studio_dialog and stacker_studio_dialog.visible then
+    stacker_studio_dialog:close()
+    stacker_studio_dialog = nil
+    return
+  end
+  
+  stacker_studio_vb = renoise.ViewBuilder()
+  local vb = stacker_studio_vb
+  
+  local instrument = song.selected_instrument
+  local is_stacked = PakettiStackerIsVelocityStacked(instrument)
+  
+  -- Build phrase items
+  local phrase_items = {}
+  if instrument then
+    for i = 1, #instrument.phrases do
+      local phrase = instrument.phrases[i]
+      table.insert(phrase_items, string.format("%02d: %s", i, phrase.name:sub(1, 25)))
+    end
+  end
+  if #phrase_items == 0 then
+    phrase_items = {"(no phrases)"}
+  end
+  
+  -- Create UI elements with references
+  studio_instrument_text = vb:text{
+    text = instrument and (instrument.name ~= "" and instrument.name or "(unnamed)") or "No instrument",
+    font = "bold",
+    width = 250
+  }
+  
+  studio_status_text = vb:text{
+    text = PakettiStackerGetStatusString(instrument),
+    style = is_stacked and "strong" or "normal",
+    width = 250
+  }
+  
+  studio_phrases_popup = vb:popup{
+    items = phrase_items,
+    value = song.selected_phrase_index > 0 and song.selected_phrase_index or 1,
+    width = 250,
+    notifier = function(value)
+      if value > 0 and instrument and value <= #instrument.phrases then
+        song.selected_phrase_index = value
+      end
+    end
+  }
+  
+  studio_current_phrase_text = vb:text{
+    text = song.selected_phrase_index > 0 and string.format("Phrase %02d", song.selected_phrase_index) or "No phrase",
+    font = "bold",
+    width = 80
+  }
+  
+  -- Build content
+  local content = vb:column{
+    margin = 10,
+    spacing = 5,
+    
+    -- Instrument Info Section
+    vb:column{
+      style = "group",
+      margin = 5,
+      vb:text{text = "INSTRUMENT", font = "bold"},
+      vb:row{
+        vb:text{text = "Name:", width = 50},
+        studio_instrument_text
+      },
+      vb:row{
+        vb:text{text = "Status:", width = 50},
+        studio_status_text
+      }
+    },
+    
+    -- Velocity Layers Section
+    PakettiStackerStudioCreateLayersView(vb),
+    
+    -- Phrase Creation Section
+    vb:column{
+      style = "group",
+      margin = 5,
+      vb:text{text = "CREATE PHRASES", font = "bold"},
+      vb:row{
+        spacing = 5,
+        vb:button{text = "Layer", width = 50, tooltip = "One phrase per velocity layer", notifier = function()
+          PakettiStackerCreateVelocityPhrases()
+          PakettiStackerStudioRefresh()
+        end},
+        vb:button{text = "Cycle", width = 50, tooltip = "Cycle through all layers", notifier = function()
+          PakettiStackerCreateVelocityCyclePhrase()
+          PakettiStackerStudioRefresh()
+        end},
+        vb:button{text = "Random", width = 55, tooltip = "Random velocity pattern", notifier = function()
+          PakettiStackerCreateRandomPhrase16()
+          PakettiStackerStudioRefresh()
+        end},
+        vb:button{text = "Sparse", width = 50, tooltip = "Random with 50% density", notifier = function()
+          PakettiStackerCreateSparseRandomPhrase(16)
+          PakettiStackerStudioRefresh()
+        end},
+        vb:button{text = "From Pat", width = 60, tooltip = "From current pattern", notifier = function()
+          PakettiStackerCreatePhraseFromPattern()
+          PakettiStackerStudioRefresh()
+        end}
+      }
+    },
+    
+    -- Phrases Section
+    vb:column{
+      style = "group",
+      margin = 5,
+      vb:text{text = "PHRASES", font = "bold"},
+      vb:row{
+        vb:text{text = "Select:", width = 50},
+        studio_phrases_popup
+      },
+      vb:row{
+        spacing = 5,
+        vb:button{text = "< Prev", width = 60, notifier = function()
+          if instrument and #instrument.phrases > 0 then
+            local new_idx = song.selected_phrase_index - 1
+            if new_idx < 1 then new_idx = #instrument.phrases end
+            song.selected_phrase_index = new_idx
+            PakettiStackerStudioRefresh()
+          end
+        end},
+        vb:button{text = "Next >", width = 60, notifier = function()
+          if instrument and #instrument.phrases > 0 then
+            local new_idx = song.selected_phrase_index + 1
+            if new_idx > #instrument.phrases then new_idx = 1 end
+            song.selected_phrase_index = new_idx
+            PakettiStackerStudioRefresh()
+          end
+        end},
+        vb:button{text = "Delete", width = 55, notifier = function()
+          if instrument and song.selected_phrase_index > 0 and song.selected_phrase_index <= #instrument.phrases then
+            instrument:delete_phrase_at(song.selected_phrase_index)
+            PakettiStackerStudioRefresh()
+          end
+        end}
+      }
+    },
+    
+    -- Pattern Integration Section
+    vb:column{
+      style = "group",
+      margin = 5,
+      vb:text{text = "PATTERN INTEGRATION", font = "bold"},
+      vb:row{
+        spacing = 5,
+        vb:button{text = "Auto-Fill Pattern", width = 120, tooltip = "Fill pattern with Zxx phrase triggers", notifier = function()
+          if PakettiPhraseAutoFillPattern then
+            PakettiPhraseAutoFillPattern()
+          else
+            renoise.app():show_status("Auto-fill function not available")
+          end
+        end},
+        vb:button{text = "Clear Pattern", width = 100, tooltip = "Clear current track in pattern", notifier = function()
+          local pattern = song.selected_pattern
+          local track_index = song.selected_track_index
+          local pattern_track = pattern:track(track_index)
+          pattern_track:clear()
+          renoise.app():show_status("Pattern track cleared")
+        end}
+      },
+      vb:row{
+        vb:text{text = string.format("Pattern: %02d (%d lines)", song.selected_pattern_index, song.selected_pattern.number_of_lines)}
+      }
+    },
+    
+    -- Live Switching Section
+    vb:column{
+      style = "group",
+      margin = 5,
+      vb:text{text = "LIVE SWITCHING", font = "bold"},
+      vb:row{
+        spacing = 5,
+        vb:button{text = "<", width = 30, notifier = function()
+          if instrument and #instrument.phrases > 0 then
+            local new_idx = song.selected_phrase_index - 1
+            if new_idx < 1 then new_idx = #instrument.phrases end
+            song.selected_phrase_index = new_idx
+            PakettiStackerStudioRefresh()
+            -- Inject phrase trigger if switcher is available
+            if PakettiPhraseSwitcherInject then
+              PakettiPhraseSwitcherInject(new_idx)
+            end
+          end
+        end},
+        studio_current_phrase_text,
+        vb:button{text = ">", width = 30, notifier = function()
+          if instrument and #instrument.phrases > 0 then
+            local new_idx = song.selected_phrase_index + 1
+            if new_idx > #instrument.phrases then new_idx = 1 end
+            song.selected_phrase_index = new_idx
+            PakettiStackerStudioRefresh()
+            -- Inject phrase trigger if switcher is available
+            if PakettiPhraseSwitcherInject then
+              PakettiPhraseSwitcherInject(new_idx)
+            end
+          end
+        end},
+        vb:button{text = "Trigger Now", width = 80, tooltip = "Write Zxx trigger at current position", notifier = function()
+          if PakettiPhraseSwitcherInject then
+            PakettiPhraseSwitcherInject(song.selected_phrase_index, "trigger", "line")
+          else
+            -- Fallback: write directly
+            local pattern = song.selected_pattern
+            local track_index = song.selected_track_index
+            local line_index = song.selected_line_index
+            local pattern_track = pattern:track(track_index)
+            local line = pattern_track:line(line_index)
+            local note_col = line:note_column(1)
+            note_col.note_value = 48
+            note_col.instrument_value = song.selected_instrument_index - 1
+            note_col.effect_number_value = 0x23
+            note_col.effect_amount_value = song.selected_phrase_index
+            song.tracks[track_index].sample_effects_column_visible = true
+            renoise.app():show_status(string.format("Wrote Z%02X trigger", song.selected_phrase_index))
+          end
+        end}
+      }
+    },
+    
+    -- Refresh and Close buttons
+    vb:row{
+      spacing = 10,
+      vb:button{text = "Refresh", width = 80, notifier = function()
+        stacker_studio_dialog:close()
+        PakettiStackerPhraseStudioShow()
+      end},
+      vb:button{text = "Close", width = 80, notifier = function()
+        stacker_studio_dialog:close()
+      end}
+    }
+  }
+  
+  stacker_studio_dialog = renoise.app():show_custom_dialog(
+    "Stacker Phrase Studio",
+    content,
+    my_keyhandler_func
+  )
+  
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- Keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Phrase Studio Dialog...", invoke=PakettiStackerPhraseStudioShow}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Create Velocity Phrases", invoke=PakettiStackerCreateVelocityPhrases}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Create Velocity Cycle Phrase", invoke=PakettiStackerCreateVelocityCyclePhrase}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Create Random Velocity Phrase", invoke=function() PakettiStackerCreateRandomVelocityPhrase(16) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Create Random Phrase (8 lines)", invoke=PakettiStackerCreateRandomPhrase8}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Create Random Phrase (16 lines)", invoke=PakettiStackerCreateRandomPhrase16}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Create Random Phrase (32 lines)", invoke=PakettiStackerCreateRandomPhrase32}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Create Random Phrase (64 lines)", invoke=PakettiStackerCreateRandomPhrase64}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Create Sparse Random Phrase", invoke=function() PakettiStackerCreateSparseRandomPhrase(16) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Create Phrase Bank from Stacked", invoke=PakettiStackerCreatePhraseBankFromStacked}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Create Phrase from Pattern", invoke=PakettiStackerCreatePhraseFromPattern}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Phrase Studio [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerPhraseStudioShow() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Create Velocity Phrases [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerCreateVelocityPhrases() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Create Velocity Cycle Phrase [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerCreateVelocityCyclePhrase() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Create Random Velocity Phrase [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerCreateRandomVelocityPhrase(16) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Create Random Phrase 8 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerCreateRandomPhrase8() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Create Random Phrase 16 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerCreateRandomPhrase16() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Create Random Phrase 32 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerCreateRandomPhrase32() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Create Random Phrase 64 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerCreateRandomPhrase64() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Create Sparse Random Phrase [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerCreateSparseRandomPhrase(16) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Create Phrase Bank [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerCreatePhraseBankFromStacked() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Create Phrase from Pattern [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerCreatePhraseFromPattern() end end}
+
+--------------------------------------------------------------------------------
+-- RENDER + PHRASEGRID INTEGRATION
+--------------------------------------------------------------------------------
+
+-- Render current pattern and stack the result with velocity mapping
+function PakettiStackerRenderPatternAndStack(options)
+  options = options or {}
+  local song = renoise.song()
+  if not song then return end
+  
+  local slice_count = options.slice_count or 8
+  
+  -- Use PhraseGrid render function if available
+  if PakettiRenderPatternToPhrase then
+    -- Set up for stacking workflow
+    PakettiRenderPhraseContext.post_process = "stack"
+    
+    PakettiRenderPatternToPhrase({
+      slice_count = slice_count,
+      normalize = options.normalize ~= false,
+      create_phrases = false,  -- We'll create velocity phrases instead
+      add_to_bank = false
+    })
+    
+    -- After render completes, we need to stack
+    -- This is handled by the callback chain
+    renoise.app():show_status("Rendering pattern for stacking...")
+  else
+    renoise.app():show_status("Render function not available")
+  end
+end
+
+-- Create stacked instrument from rendered audio with automatic phrase creation
+function PakettiStackerFromRenderedAudio()
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  if #instrument.samples == 0 then
+    renoise.app():show_status("Instrument has no samples")
+    return
+  end
+  
+  local sample = instrument.samples[1]
+  if not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Sample has no data")
+    return
+  end
+  
+  -- Check if already sliced
+  local slice_count = #sample.slice_markers
+  if slice_count == 0 then
+    -- Slice first
+    if slicerough then
+      slicerough(8)
+      slice_count = 8
+    else
+      renoise.app():show_status("No slices and slice function not available")
+      return
+    end
+  end
+  
+  -- Now isolate slices and stack
+  if PakettiIsolateSlicesToInstrumentNoProcess then
+    PakettiIsolateSlicesToInstrumentNoProcess()
+  elseif PakettiIsolateSlicesToInstrument then
+    PakettiIsolateSlicesToInstrument()
+  else
+    renoise.app():show_status("Slice isolation function not available")
+    return
+  end
+  
+  -- Get the updated instrument after isolation
+  instrument = song.selected_instrument
+  local num_samples = #instrument.samples
+  
+  -- Set up velocity mapping
+  local base_note = 48  -- C-4
+  local note_range = {0, 119}
+  
+  for i = 1, num_samples do
+    local s = instrument.samples[i]
+    local velocity = (i == 1) and 0 or (i - 1)
+    
+    s.sample_mapping.map_velocity_to_volume = false
+    s.sample_mapping.base_note = base_note
+    s.sample_mapping.note_range = note_range
+    s.sample_mapping.velocity_range = {velocity, velocity}
+  end
+  
+  -- Create velocity phrases
+  local phrases_created = PakettiStackerCreateVelocityPhrases()
+  
+  -- Create PhraseGrid bank
+  if phrases_created and phrases_created > 0 then
+    PakettiStackerCreatePhraseBankFromStacked()
+  end
+  
+  renoise.app():show_status(string.format("Stacked %d samples with velocity phrases", num_samples))
+end
+
+-- Full workflow: Render -> Slice -> Stack -> Velocity Phrases -> PhraseGrid Bank
+function PakettiStackerFullWorkflow(options)
+  options = options or {}
+  local song = renoise.song()
+  if not song then return end
+  
+  -- If PhraseGrid is available, use its full workflow
+  if PakettiFullRenderStackWorkflow then
+    PakettiFullRenderStackWorkflow(options)
+  else
+    -- Fallback to local implementation
+    PakettiStackerRenderPatternAndStack(options)
+  end
+end
+
+-- Rearrange stacked instrument velocity patterns on new track
+function PakettiStackerRearrangeVelocityToTrack(options)
+  options = options or {}
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local num_samples = #instrument.samples
+  if num_samples == 0 then
+    renoise.app():show_status("Instrument has no samples")
+    return
+  end
+  
+  local pattern_length = song.selected_pattern.number_of_lines
+  local randomize = options.randomize or false
+  local step = options.step or math.floor(pattern_length / num_samples)
+  
+  -- Create new track
+  local source_track = song.selected_track_index
+  song:insert_track_at(source_track + 1)
+  song.selected_track_index = source_track + 1
+  
+  local track_data = song.selected_pattern:track(song.selected_track_index)
+  
+  -- Build list of velocities from sample mappings
+  local velocity_list = {}
+  for i = 1, num_samples do
+    local sample = instrument.samples[i]
+    local vel_range = sample.sample_mapping and sample.sample_mapping.velocity_range
+    local velocity = vel_range and vel_range[1] or (i - 1)
+    table.insert(velocity_list, velocity)
+  end
+  
+  -- Optionally randomize order
+  if randomize then
+    math.randomseed(os.time())
+    for i = #velocity_list, 2, -1 do
+      local j = math.random(1, i)
+      velocity_list[i], velocity_list[j] = velocity_list[j], velocity_list[i]
+    end
+  end
+  
+  -- Write notes with velocities
+  local current_line = 1
+  for _, velocity in ipairs(velocity_list) do
+    if current_line > pattern_length then break end
+    
+    local line = track_data:line(current_line)
+    local note_col = line:note_column(1)
+    
+    note_col.note_value = 48  -- C-4 (base note for stacked instrument)
+    note_col.instrument_value = song.selected_instrument_index - 1
+    note_col.volume_value = velocity
+    
+    current_line = current_line + step
+  end
+  
+  song.tracks[song.selected_track_index].name = instrument.name .. " (Rearranged)"
+  renoise.app():show_status(string.format("Rearranged %d velocity steps on new track", #velocity_list))
+end
+
+-- Keybindings for render integration
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Render and Stack", invoke=function() PakettiStackerRenderPatternAndStack() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker From Rendered Audio", invoke=PakettiStackerFromRenderedAudio}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Full Workflow", invoke=function() PakettiStackerFullWorkflow() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Rearrange Velocity to Track", invoke=function() PakettiStackerRearrangeVelocityToTrack() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Stacker Rearrange Velocity (Random)", invoke=function() PakettiStackerRearrangeVelocityToTrack({randomize = true}) end}
+
+-- MIDI mappings for render integration
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Render and Stack [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerRenderPatternAndStack() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker From Rendered Audio [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerFromRenderedAudio() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Full Workflow [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerFullWorkflow() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Stacker Rearrange Velocity [Trigger]", invoke=function(message) if message:is_trigger() then PakettiStackerRearrangeVelocityToTrack() end end}

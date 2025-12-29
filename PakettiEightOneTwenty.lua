@@ -7,6 +7,12 @@ local MAX_STEPS = 16  -- Can be changed dynamically via UI switch
 gbx_transpose_baseline = {nil,nil,nil,nil,nil,nil,nil,nil}
 gbx_global_pitch_ui_prev_value = 0
 gbx_global_pitch_midi_prev_abs = nil
+
+-- Output Mode: "pattern", "phrase", "phrase_trigger"
+-- pattern = write to pattern (original behavior)
+-- phrase = write to phrase (creates phrases per row)
+-- phrase_trigger = write phrase triggers (Zxx commands per row)
+PakettiEightOneTwentyOutputMode = "pattern"
 --
 -- NOTE: Step mode can be changed dynamically:
 -- 1. Use the "16 Steps / 32 Steps" switch in the groovebox interface
@@ -1903,9 +1909,86 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
 
   -- instrument_popup already created earlier and stored into row_elements
 
--- Function to Print to Pattern
+-- Function to write row to phrase in real-time (for phrase output mode)
+function row_elements.write_to_phrase()
+  if initializing then return end
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument_index = instrument_popup.value
+  local instrument = song.instruments[instrument_index]
+  if not instrument then return end
+  
+  -- Get or create phrase for this row
+  local phrase_index = row_index  -- Use row index as phrase index
+  
+  -- Create phrase if it doesn't exist
+  while #instrument.phrases < phrase_index do
+    instrument:insert_phrase_at(#instrument.phrases + 1)
+  end
+  
+  local phrase = instrument.phrases[phrase_index]
+  if not phrase then return end
+  
+  local steps = valuebox.value
+  
+  -- Update phrase properties
+  phrase.number_of_lines = steps
+  phrase.lpb = song.transport.lpb
+  phrase.name = string.format("8120 Row %d", row_index)
+  
+  -- Check if we need effect column
+  local has_yxx = false
+  for line = 1, math.min(MAX_STEPS, steps) do
+    if row_elements.yxx_checkboxes[line] and row_elements.yxx_checkboxes[line].value then
+      has_yxx = true
+      break
+    end
+  end
+  if has_yxx then
+    phrase.sample_effects_column_visible = true
+  end
+  
+  -- Clear existing phrase content
+  for line = 1, phrase.number_of_lines do
+    local phrase_line = phrase:line(line)
+    phrase_line:note_column(1):clear()
+  end
+  
+  -- Write notes and effects to phrase
+  for line = 1, math.min(MAX_STEPS, steps) do
+    local note_checkbox_value = row_elements.checkboxes[line] and row_elements.checkboxes[line].value
+    local yxx_checkbox_value = row_elements.yxx_checkboxes[line] and row_elements.yxx_checkboxes[line].value
+    
+    local phrase_line = phrase:line(line)
+    local note_col = phrase_line:note_column(1)
+    
+    if note_checkbox_value then
+      note_col.note_value = 48  -- C-4
+      note_col.instrument_value = instrument_index - 1
+      
+      if yxx_checkbox_value and row_elements.yxx_valuebox then
+        note_col.effect_number_value = 0x19  -- Y command (sample offset fine)
+        note_col.effect_amount_value = row_elements.yxx_valuebox.value
+      end
+    end
+  end
+end
+
+-- Function to Print to Pattern (with phrase mode routing)
 function row_elements.print_to_pattern()
   if initializing then return end
+  
+  -- Check output mode and route accordingly
+  if PakettiEightOneTwentyOutputMode == "phrase" then
+    row_elements.write_to_phrase()
+    return
+  elseif PakettiEightOneTwentyOutputMode == "phrase_trigger" then
+    PakettiEightOneTwentyRowToPhraseTriggersInPattern(row_index, row_index)
+    return
+  end
+  
+  -- Original pattern write behavior
   local song=renoise.song()
   local pattern = song.selected_pattern
   local pattern_length = pattern.number_of_lines
@@ -5770,4 +5853,371 @@ for i=0,7 do
     invoke=function(message) 
       set_groovebox_instrument_transpose(i, message)
     end}
+end
+
+--------------------------------------------------------------------------------
+-- PHRASE OUTPUT MODE FUNCTIONS (PhraseGrid Integration)
+--------------------------------------------------------------------------------
+
+-- Set the output mode for 8120
+function PakettiEightOneTwentySetOutputMode(mode)
+  local valid_modes = {pattern=true, phrase=true, phrase_trigger=true}
+  if valid_modes[mode] then
+    PakettiEightOneTwentyOutputMode = mode
+    renoise.app():show_status("8120 Output Mode: " .. mode)
+  else
+    renoise.app():show_status("Invalid 8120 output mode: " .. tostring(mode))
+  end
+end
+
+-- Cycle through output modes
+function PakettiEightOneTwentyCycleOutputMode()
+  local modes = {"pattern", "phrase", "phrase_trigger"}
+  local current_index = 1
+  for i, mode in ipairs(modes) do
+    if mode == PakettiEightOneTwentyOutputMode then
+      current_index = i
+      break
+    end
+  end
+  local next_index = (current_index % #modes) + 1
+  PakettiEightOneTwentySetOutputMode(modes[next_index])
+end
+
+-- Write a single row's checkbox state to a phrase
+function PakettiEightOneTwentyRowToPhrase(row_index)
+  local song = renoise.song()
+  if not song then return end
+  
+  if not rows or not rows[row_index] then
+    renoise.app():show_status("8120 row " .. row_index .. " not available")
+    return
+  end
+  
+  local row_elements = rows[row_index]
+  local instrument_index = row_elements.instrument_popup.value
+  local instrument = song.instruments[instrument_index]
+  
+  if not instrument then
+    renoise.app():show_status("Invalid instrument for row " .. row_index)
+    return
+  end
+  
+  local steps = row_elements.valuebox.value
+  
+  -- Create new phrase at end of phrase list
+  local phrase_count = #instrument.phrases
+  local new_phrase_index = phrase_count + 1
+  instrument:insert_phrase_at(new_phrase_index)
+  
+  local phrase = instrument.phrases[new_phrase_index]
+  phrase.number_of_lines = steps
+  phrase.lpb = song.transport.lpb
+  phrase.name = string.format("8120 Row %d", row_index)
+  
+  -- Ensure effect column is visible if needed
+  local has_yxx = false
+  for line = 1, math.min(MAX_STEPS, steps) do
+    if row_elements.yxx_checkboxes[line] and row_elements.yxx_checkboxes[line].value then
+      has_yxx = true
+      break
+    end
+  end
+  if has_yxx then
+    phrase.sample_effects_column_visible = true
+  end
+  
+  -- Write notes and effects to phrase
+  for line = 1, math.min(MAX_STEPS, steps) do
+    local note_checkbox_value = row_elements.checkboxes[line] and row_elements.checkboxes[line].value
+    local yxx_checkbox_value = row_elements.yxx_checkboxes[line] and row_elements.yxx_checkboxes[line].value
+    
+    local phrase_line = phrase:line(line)
+    local note_col = phrase_line:note_column(1)
+    
+    if note_checkbox_value then
+      note_col.note_value = 48  -- C-4
+      note_col.instrument_value = instrument_index - 1
+      
+      if yxx_checkbox_value and row_elements.yxx_valuebox then
+        note_col.effect_number_value = 0x19  -- Y command (sample offset fine)
+        note_col.effect_amount_value = row_elements.yxx_valuebox.value
+      end
+    end
+  end
+  
+  -- Set phrase as selected
+  song.selected_instrument_index = instrument_index
+  song.selected_phrase_index = new_phrase_index
+  
+  renoise.app():show_status(string.format("Created phrase %02d from 8120 row %d (%d steps)", new_phrase_index, row_index, steps))
+  return new_phrase_index
+end
+
+-- Write all 8 rows to phrases (one phrase per row) and create a PhraseGrid bank
+function PakettiEightOneTwentyAllRowsToPhrasesBank()
+  local song = renoise.song()
+  if not song then return end
+  
+  if not rows or #rows == 0 then
+    renoise.app():show_status("8120 not initialized - open the dialog first")
+    return
+  end
+  
+  local phrases_created = {}
+  
+  for row_index = 1, 8 do
+    if rows[row_index] then
+      local phrase_index = PakettiEightOneTwentyRowToPhrase(row_index)
+      if phrase_index then
+        phrases_created[row_index] = phrase_index
+      end
+    end
+  end
+  
+  -- Create a PhraseGrid bank if PhraseWorkflow is available
+  if PakettiPhraseBankCreate then
+    local bank_index = PakettiPhraseBankCreate(song.selected_instrument_index, "8120 Bank")
+    if bank_index and PakettiPhraseBanks[bank_index] then
+      -- Assign the created phrases to bank slots
+      for row_index, phrase_index in pairs(phrases_created) do
+        PakettiPhraseBankSetSlot(bank_index, row_index, phrase_index)
+      end
+      renoise.app():show_status(string.format("Created 8120 Bank with %d phrases", #phrases_created))
+    end
+  else
+    renoise.app():show_status(string.format("Created %d phrases from 8120 rows", #phrases_created))
+  end
+  
+  return phrases_created
+end
+
+-- Write row to pattern with phrase trigger mode (Zxx commands)
+function PakettiEightOneTwentyRowToPhraseTriggersInPattern(row_index, phrase_index)
+  local song = renoise.song()
+  if not song then return end
+  
+  if not rows or not rows[row_index] then
+    renoise.app():show_status("8120 row " .. row_index .. " not available")
+    return
+  end
+  
+  local row_elements = rows[row_index]
+  local instrument_index = row_elements.instrument_popup.value
+  local track_index = track_indices[row_elements.track_popup.value]
+  
+  if not track_index then
+    renoise.app():show_status("Invalid track for row " .. row_index)
+    return
+  end
+  
+  phrase_index = phrase_index or row_index  -- Default: phrase index = row index
+  
+  local pattern = song.selected_pattern
+  local pattern_length = pattern.number_of_lines
+  local steps = row_elements.valuebox.value
+  local track_in_pattern = pattern.tracks[track_index]
+  local track = song.tracks[track_index]
+  
+  -- Ensure sample effects column is visible for Zxx
+  track.sample_effects_column_visible = true
+  
+  -- Clear track first
+  for line = 1, pattern_length do
+    local note_col = track_in_pattern:line(line).note_columns[1]
+    note_col:clear()
+  end
+  
+  -- Write phrase triggers where checkboxes are checked
+  for line = 1, math.min(MAX_STEPS, steps) do
+    local note_checkbox_value = row_elements.checkboxes[line] and row_elements.checkboxes[line].value
+    
+    if note_checkbox_value then
+      local note_col = track_in_pattern:line(line).note_columns[1]
+      note_col.note_value = 48  -- C-4
+      note_col.instrument_value = instrument_index - 1
+      -- Add Zxx phrase program command
+      note_col.effect_number_value = 0x23  -- Z command (phrase trigger)
+      note_col.effect_amount_value = phrase_index
+    end
+  end
+  
+  -- Repeat the pattern if needed
+  if pattern_length > steps then
+    local full_repeats = math.floor(pattern_length / steps)
+    for repeat_num = 1, full_repeats - 1 do
+      local start_line = repeat_num * steps + 1
+      for line = 1, math.min(MAX_STEPS, steps) do
+        local source_line = track_in_pattern:line(line)
+        local dest_line = track_in_pattern:line(start_line + line - 1)
+        dest_line.note_columns[1]:copy_from(source_line.note_columns[1])
+      end
+    end
+  end
+  
+  renoise.app():show_status(string.format("8120 row %d: phrase trigger Z%02X written to pattern", row_index, phrase_index))
+end
+
+-- Get snapshot of current 8120 checkbox states for a row
+function PakettiEightOneTwentyGetRowSnapshot(row_index)
+  if not rows or not rows[row_index] then
+    return nil
+  end
+  
+  local row_elements = rows[row_index]
+  local snapshot = {
+    checkboxes = {},
+    yxx_checkboxes = {},
+    steps = row_elements.valuebox and row_elements.valuebox.value or MAX_STEPS,
+    instrument = row_elements.instrument_popup and row_elements.instrument_popup.value or row_index,
+    track = row_elements.track_popup and row_elements.track_popup.value or row_index,
+    yxx_value = row_elements.yxx_valuebox and row_elements.yxx_valuebox.value or 0
+  }
+  
+  for i = 1, MAX_STEPS do
+    snapshot.checkboxes[i] = row_elements.checkboxes[i] and row_elements.checkboxes[i].value or false
+    snapshot.yxx_checkboxes[i] = row_elements.yxx_checkboxes[i] and row_elements.yxx_checkboxes[i].value or false
+  end
+  
+  return snapshot
+end
+
+-- Get snapshot of all 8120 rows
+function PakettiEightOneTwentyGetFullSnapshot()
+  local snapshot = {
+    rows = {}
+  }
+  
+  for row_index = 1, 8 do
+    snapshot.rows[row_index] = PakettiEightOneTwentyGetRowSnapshot(row_index)
+  end
+  
+  return snapshot
+end
+
+-- Restore 8120 row from snapshot
+function PakettiEightOneTwentyRestoreRowFromSnapshot(row_index, snapshot)
+  if not rows or not rows[row_index] then
+    return false
+  end
+  
+  if not snapshot then
+    return false
+  end
+  
+  local row_elements = rows[row_index]
+  
+  -- Restore checkboxes
+  row_elements.updating_checkboxes = true
+  row_elements.updating_yxx_checkboxes = true
+  
+  for i = 1, MAX_STEPS do
+    if row_elements.checkboxes[i] then
+      row_elements.checkboxes[i].value = snapshot.checkboxes[i] or false
+    end
+    if row_elements.yxx_checkboxes[i] then
+      row_elements.yxx_checkboxes[i].value = snapshot.yxx_checkboxes[i] or false
+    end
+  end
+  
+  -- Restore other values
+  if row_elements.valuebox and snapshot.steps then
+    row_elements.valuebox.value = snapshot.steps
+    row_elements.selected_step = (snapshot.steps == MAX_STEPS) and nil or snapshot.steps
+    update_row_button_colors(row_elements)
+  end
+  
+  if row_elements.instrument_popup and snapshot.instrument then
+    row_elements.instrument_popup.value = snapshot.instrument
+  end
+  
+  if row_elements.yxx_valuebox and snapshot.yxx_value then
+    row_elements.yxx_valuebox.value = snapshot.yxx_value
+    if row_elements.yxx_slider then
+      row_elements.yxx_slider.value = snapshot.yxx_value
+    end
+  end
+  
+  row_elements.updating_checkboxes = false
+  row_elements.updating_yxx_checkboxes = false
+  
+  -- Update pattern
+  row_elements.print_to_pattern()
+  
+  return true
+end
+
+-- Restore all 8120 rows from full snapshot
+function PakettiEightOneTwentyRestoreFromFullSnapshot(snapshot)
+  if not snapshot or not snapshot.rows then
+    return false
+  end
+  
+  for row_index = 1, 8 do
+    if snapshot.rows[row_index] then
+      PakettiEightOneTwentyRestoreRowFromSnapshot(row_index, snapshot.rows[row_index])
+    end
+  end
+  
+  renoise.app():show_status("Restored 8120 state from snapshot")
+  return true
+end
+
+-- Keybindings for phrase output mode
+renoise.tool():add_keybinding{name="Global:Paketti:8120 Cycle Output Mode", invoke=PakettiEightOneTwentyCycleOutputMode}
+renoise.tool():add_keybinding{name="Global:Paketti:8120 All Rows to Phrases Bank", invoke=PakettiEightOneTwentyAllRowsToPhrasesBank}
+
+-- Individual row to phrase keybindings
+for i = 1, 8 do
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:8120 Row " .. i .. " to Phrase",
+    invoke=function() PakettiEightOneTwentyRowToPhrase(i) end
+  }
+end
+
+-- Phrase Trigger Mode keybindings (write Zxx commands to pattern for each row)
+for i = 1, 8 do
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:8120 Row " .. i .. " as Phrase Trigger (Z" .. string.format("%02X", i) .. ")",
+    invoke=function() PakettiEightOneTwentyRowToPhraseTriggersInPattern(i, i) end
+  }
+end
+
+-- Write all rows with phrase triggers
+function PakettiEightOneTwentyAllRowsAsPhraseTriggersToPattern()
+  local song = renoise.song()
+  if not song then return end
+  
+  if not rows or #rows == 0 then
+    renoise.app():show_status("8120 not initialized - open the dialog first")
+    return
+  end
+  
+  local triggers_written = 0
+  for row_index = 1, 8 do
+    if rows[row_index] then
+      PakettiEightOneTwentyRowToPhraseTriggersInPattern(row_index, row_index)
+      triggers_written = triggers_written + 1
+    end
+  end
+  
+  renoise.app():show_status(string.format("Wrote phrase triggers for %d rows (Z01-Z08)", triggers_written))
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:8120 All Rows as Phrase Triggers", invoke=PakettiEightOneTwentyAllRowsAsPhraseTriggersToPattern}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:8120 Cycle Output Mode [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyCycleOutputMode() end end}
+renoise.tool():add_midi_mapping{name="Paketti:8120 All Rows to Phrases Bank [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyAllRowsToPhrasesBank() end end}
+renoise.tool():add_midi_mapping{name="Paketti:8120 All Rows as Phrase Triggers [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyAllRowsAsPhraseTriggersToPattern() end end}
+
+for i = 1, 8 do
+  renoise.tool():add_midi_mapping{
+    name="Paketti:8120 Row " .. i .. " to Phrase [Trigger]",
+    invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyRowToPhrase(i) end end
+  }
+  renoise.tool():add_midi_mapping{
+    name="Paketti:8120 Row " .. i .. " as Phrase Trigger [Trigger]",
+    invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyRowToPhraseTriggersInPattern(i, i) end end
+  }
 end

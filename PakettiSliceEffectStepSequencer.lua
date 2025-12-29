@@ -1329,12 +1329,82 @@ function PakettiSliceStepSelectSliceForRow(row)
   end
 end
 
+-- Real-time phrase write function for a single row
+function PakettiSliceStepWriteRowToPhrase(target_row)
+  if initializing_dialog then return end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument = song.selected_instrument
+  if not instrument then return end
+  
+  local row_data = rows[target_row]
+  if not row_data then return end
+  
+  local row_steps = row_data.active_steps or current_steps
+  
+  -- Create phrase if it doesn't exist
+  while #instrument.phrases < target_row do
+    instrument:insert_phrase_at(#instrument.phrases + 1)
+  end
+  
+  local phrase = instrument.phrases[target_row]
+  if not phrase then return end
+  
+  -- Update phrase properties
+  phrase.number_of_lines = row_steps
+  phrase.lpb = song.transport.lpb
+  
+  if row_data.mode == ROW_MODES.SAMPLE_OFFSET then
+    phrase.name = string.format("SliceStep Row %d (0Sxx)", target_row)
+    phrase.sample_effects_column_visible = true
+  else
+    phrase.name = string.format("SliceStep Row %d (Slice)", target_row)
+  end
+  
+  -- Clear existing content
+  for line = 1, phrase.number_of_lines do
+    phrase:line(line):note_column(1):clear()
+  end
+  
+  -- Write content based on checkboxes
+  for step = 1, math.min(MAX_STEPS, row_steps) do
+    if row_checkboxes[target_row] and row_checkboxes[target_row][step] and row_checkboxes[target_row][step].value then
+      local phrase_line = phrase:line(step)
+      local note_col = phrase_line:note_column(1)
+      
+      if row_data.mode == ROW_MODES.SAMPLE_OFFSET then
+        note_col.note_value = row_data.note_value or 48
+        note_col.instrument_value = song.selected_instrument_index - 1
+        note_col.effect_number_value = 0x09  -- 0S command
+        note_col.effect_amount_value = row_data.sample_offset_value or 0
+      else
+        -- Slice mode
+        note_col.note_value = row_data.slice_note or 48
+        note_col.instrument_value = song.selected_instrument_index - 1
+      end
+      
+      -- Apply velocity if available
+      if row_velocities[target_row] and row_velocities[target_row][step] then
+        note_col.volume_value = row_velocities[target_row][step]
+      end
+    end
+  end
+end
+
 -- PakettiEightOneTwenty-inspired optimization: Clear once, write active steps only, use copy_from for repetition
 function PakettiSliceStepWriteRowToPattern(target_row)
   if initializing_dialog then return end
   
   local song = renoise.song()
   if not song then return end
+  
+  -- Check output mode and route to phrase writing if needed
+  if PakettiSliceStepOutputMode == "phrase" then
+    PakettiSliceStepWriteRowToPhrase(target_row)
+    return
+  end
   
   local pattern = song.selected_pattern
   local track_index = song.selected_track_index
@@ -5167,4 +5237,509 @@ renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate Pattern (Sl
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Pattern (Slice Step Sequencer)",invoke=PakettiSliceStepDuplicatePattern}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern (Slice Step Sequencer)",invoke=PakettiSliceStepDuplicatePattern}
 
+--------------------------------------------------------------------------------
+-- PHRASE OUTPUT MODE FUNCTIONS (PhraseGrid Integration)
+--------------------------------------------------------------------------------
 
+-- Output Mode: "pattern", "phrase"
+-- pattern = write to pattern (original behavior)
+-- phrase = write to phrase (creates phrases for slice sequences)
+PakettiSliceStepOutputMode = "pattern"
+
+-- Set the output mode for SliceStepSequencer
+function PakettiSliceStepSetOutputMode(mode)
+  local valid_modes = {pattern=true, phrase=true}
+  if valid_modes[mode] then
+    PakettiSliceStepOutputMode = mode
+    renoise.app():show_status("Slice Step Sequencer Output Mode: " .. mode)
+  else
+    renoise.app():show_status("Invalid Slice Step output mode: " .. tostring(mode))
+  end
+end
+
+-- Cycle through output modes
+function PakettiSliceStepCycleOutputMode()
+  if PakettiSliceStepOutputMode == "pattern" then
+    PakettiSliceStepSetOutputMode("phrase")
+  else
+    PakettiSliceStepSetOutputMode("pattern")
+  end
+end
+
+-- Create a phrase from a single row's checkbox state
+function PakettiSliceStepRowToPhrase(row_index)
+  local song = renoise.song()
+  if not song then return end
+  
+  if not rows or not rows[row_index] then
+    renoise.app():show_status("Slice Step row " .. row_index .. " not available")
+    return
+  end
+  
+  local row_data = rows[row_index]
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local row_steps = row_data.active_steps or current_steps
+  
+  -- Create new phrase
+  local phrase_count = #instrument.phrases
+  local new_phrase_index = phrase_count + 1
+  instrument:insert_phrase_at(new_phrase_index)
+  
+  local phrase = instrument.phrases[new_phrase_index]
+  phrase.number_of_lines = row_steps
+  phrase.lpb = song.transport.lpb
+  
+  if row_data.mode == ROW_MODES.SAMPLE_OFFSET then
+    phrase.name = string.format("SliceStep Row %d (0Sxx)", row_index)
+    phrase.sample_effects_column_visible = true
+    
+    -- Write sample offset notes where checkboxes are checked
+    for step = 1, row_steps do
+      if row_checkboxes[row_index] and row_checkboxes[row_index][step] and row_checkboxes[row_index][step].value then
+        local phrase_line = phrase:line(step)
+        local note_col = phrase_line:note_column(1)
+        
+        note_col.note_value = row_data.note_value or 48  -- C-4 or row's note value
+        note_col.instrument_value = song.selected_instrument_index - 1
+        note_col.effect_number_value = 0x09  -- 0S command
+        note_col.effect_amount_value = row_data.sample_offset_value or 0
+        
+        -- Apply velocity if available
+        if row_velocities[row_index] and row_velocities[row_index][step] then
+          note_col.volume_value = row_velocities[row_index][step]
+        end
+      end
+    end
+  elseif row_data.mode == ROW_MODES.SLICE then
+    phrase.name = string.format("SliceStep Row %d (Slice)", row_index)
+    
+    -- Write slice notes where checkboxes are checked
+    for step = 1, row_steps do
+      if row_checkboxes[row_index] and row_checkboxes[row_index][step] and row_checkboxes[row_index][step].value then
+        local phrase_line = phrase:line(step)
+        local note_col = phrase_line:note_column(1)
+        
+        note_col.note_value = row_data.slice_note or 48  -- Slice note
+        note_col.instrument_value = song.selected_instrument_index - 1
+        
+        -- Apply velocity if available
+        if row_velocities[row_index] and row_velocities[row_index][step] then
+          note_col.volume_value = row_velocities[row_index][step]
+        end
+      end
+    end
+  end
+  
+  song.selected_phrase_index = new_phrase_index
+  renoise.app():show_status(string.format("Created phrase %02d from Slice Step row %d (%d steps)", new_phrase_index, row_index, row_steps))
+  return new_phrase_index
+end
+
+-- Create phrases from all 8 rows and create a PhraseGrid bank
+function PakettiSliceStepAllRowsToPhrasesBank()
+  local song = renoise.song()
+  if not song then return end
+  
+  if not rows or #rows == 0 then
+    renoise.app():show_status("Slice Step Sequencer not initialized - open the dialog first")
+    return
+  end
+  
+  local phrases_created = {}
+  
+  for row_index = 1, NUM_ROWS do
+    if rows[row_index] then
+      local phrase_index = PakettiSliceStepRowToPhrase(row_index)
+      if phrase_index then
+        phrases_created[row_index] = phrase_index
+      end
+    end
+  end
+  
+  -- Create a PhraseGrid bank if PhraseWorkflow is available
+  if PakettiPhraseBankCreate then
+    local bank_index = PakettiPhraseBankCreate(song.selected_instrument_index, "SliceStep Bank")
+    if bank_index and PakettiPhraseBanks[bank_index] then
+      -- Assign the created phrases to bank slots
+      for row_index, phrase_index in pairs(phrases_created) do
+        PakettiPhraseBankSetSlot(bank_index, row_index, phrase_index)
+      end
+      renoise.app():show_status(string.format("Created SliceStep Bank with %d phrases", #phrases_created))
+    end
+  else
+    renoise.app():show_status(string.format("Created %d phrases from Slice Step rows", #phrases_created))
+  end
+  
+  return phrases_created
+end
+
+-- Get snapshot of current Slice Step Sequencer checkbox states
+function PakettiSliceStepGetSnapshot()
+  local snapshot = {
+    rows = {}
+  }
+  
+  for row_index = 1, NUM_ROWS do
+    if rows[row_index] then
+      local row_data = rows[row_index]
+      snapshot.rows[row_index] = {
+        checkboxes = {},
+        mode = row_data.mode,
+        note = row_data.note_value,
+        slice_note = row_data.slice_note,
+        sample_offset_value = row_data.sample_offset_value,
+        active_steps = row_data.active_steps,
+        velocities = {}
+      }
+      
+      for step = 1, MAX_STEPS do
+        snapshot.rows[row_index].checkboxes[step] = row_checkboxes[row_index] and row_checkboxes[row_index][step] and row_checkboxes[row_index][step].value or false
+        snapshot.rows[row_index].velocities[step] = row_velocities[row_index] and row_velocities[row_index][step] or 80
+      end
+    end
+  end
+  
+  return snapshot
+end
+
+-- Restore Slice Step Sequencer from snapshot
+function PakettiSliceStepRestoreFromSnapshot(snapshot)
+  if not snapshot or not snapshot.rows then
+    return false
+  end
+  
+  -- Set flag to prevent pattern writing during restore
+  local was_initializing = initializing_dialog
+  initializing_dialog = true
+  
+  for row_index = 1, NUM_ROWS do
+    if snapshot.rows[row_index] and rows[row_index] then
+      local snap_row = snapshot.rows[row_index]
+      local row_data = rows[row_index]
+      
+      -- Restore mode
+      if snap_row.mode then
+        row_data.mode = snap_row.mode
+        if row_mode_switches[row_index] then
+          row_mode_switches[row_index].value = snap_row.mode
+        end
+      end
+      
+      -- Restore note values
+      if snap_row.note then
+        row_data.note_value = snap_row.note
+        if note_valueboxes[row_index] then
+          note_valueboxes[row_index].value = snap_row.note
+        end
+        if note_text_labels[row_index] then
+          note_text_labels[row_index].text = PakettiSliceStepNoteValueToString(snap_row.note)
+        end
+      end
+      
+      if snap_row.slice_note then
+        row_data.slice_note = snap_row.slice_note
+        if slice_note_valueboxes[row_index] then
+          slice_note_valueboxes[row_index].value = snap_row.slice_note
+        end
+        if slice_note_labels[row_index] then
+          slice_note_labels[row_index].text = PakettiSliceStepNoteValueToString(snap_row.slice_note)
+        end
+      end
+      
+      if snap_row.sample_offset_value then
+        row_data.sample_offset_value = snap_row.sample_offset_value
+        if sample_offset_valueboxes[row_index] then
+          sample_offset_valueboxes[row_index].value = snap_row.sample_offset_value
+        end
+      end
+      
+      -- Restore active steps
+      if snap_row.active_steps then
+        row_data.active_steps = snap_row.active_steps
+        if step_valueboxes[row_index] then
+          step_valueboxes[row_index].value = snap_row.active_steps
+        end
+      end
+      
+      -- Restore checkboxes
+      for step = 1, MAX_STEPS do
+        if row_checkboxes[row_index] and row_checkboxes[row_index][step] then
+          row_checkboxes[row_index][step].value = snap_row.checkboxes[step] or false
+        end
+      end
+      
+      -- Restore velocities
+      if snap_row.velocities then
+        for step = 1, MAX_STEPS do
+          if row_velocities[row_index] then
+            row_velocities[row_index][step] = snap_row.velocities[step] or 80
+          end
+        end
+      end
+    end
+  end
+  
+  -- Restore pattern writing state
+  initializing_dialog = was_initializing
+  
+  -- Write to pattern if not initializing
+  if not initializing_dialog then
+    PakettiSliceStepWriteToPattern()
+  end
+  
+  renoise.app():show_status("Restored Slice Step Sequencer state from snapshot")
+  return true
+end
+
+-- Keybindings for phrase output mode
+renoise.tool():add_keybinding{name="Global:Paketti:Slice Step Cycle Output Mode", invoke=PakettiSliceStepCycleOutputMode}
+renoise.tool():add_keybinding{name="Global:Paketti:Slice Step All Rows to Phrases Bank", invoke=PakettiSliceStepAllRowsToPhrasesBank}
+
+-- Individual row to phrase keybindings
+for i = 1, 8 do
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:Slice Step Row " .. i .. " to Phrase",
+    invoke=function() PakettiSliceStepRowToPhrase(i) end
+  }
+end
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:Slice Step Cycle Output Mode [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSliceStepCycleOutputMode() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Slice Step All Rows to Phrases Bank [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSliceStepAllRowsToPhrasesBank() end end}
+
+for i = 1, 8 do
+  renoise.tool():add_midi_mapping{
+    name="Paketti:Slice Step Row " .. i .. " to Phrase [Trigger]",
+    invoke=function(message) if message:is_trigger() then PakettiSliceStepRowToPhrase(i) end end
+  }
+end
+
+--------------------------------------------------------------------------------
+-- RENDER + PHRASEGRID INTEGRATION
+--------------------------------------------------------------------------------
+
+-- Render current row pattern to sample, then create phrase from it
+function PakettiSliceStepRenderRowToPhrase(row_index)
+  local song = renoise.song()
+  if not song then return end
+  
+  row_index = row_index or 1
+  if not rows[row_index] then
+    renoise.app():show_status("Row " .. row_index .. " not found")
+    return
+  end
+  
+  -- First write the row to pattern
+  PakettiSliceStepWriteRowToPattern(row_index)
+  
+  -- Then render using PhraseGrid render function if available
+  if PakettiRenderPatternToPhrase then
+    PakettiRenderPatternToPhrase({
+      slice_count = 0,
+      normalize = true,
+      create_phrases = true,
+      add_to_bank = true
+    })
+    renoise.app():show_status("Rendering row " .. row_index .. " to phrase...")
+  else
+    renoise.app():show_status("Render function not available - write completed")
+  end
+end
+
+-- Render all rows sequentially and create phrase bank
+function PakettiSliceStepRenderAllRowsToBank()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Count active rows
+  local active_count = 0
+  for i = 1, NUM_ROWS do
+    if rows[i] then
+      local has_active = false
+      for step = 1, rows[i].active_steps do
+        if row_checkboxes[i] and row_checkboxes[i][step] and row_checkboxes[i][step].value then
+          has_active = true
+          break
+        end
+      end
+      if has_active then
+        active_count = active_count + 1
+      end
+    end
+  end
+  
+  if active_count == 0 then
+    renoise.app():show_status("No active rows to render")
+    return
+  end
+  
+  -- Create phrases from all rows (without rendering)
+  -- This is faster and more practical
+  PakettiSliceStepAllRowsToPhrasesBank()
+  
+  renoise.app():show_status("Created phrase bank from " .. active_count .. " rows")
+end
+
+-- Create rearranged track from current sequencer state
+function PakettiSliceStepRearrangeToNewTrack()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Get current pattern length
+  local pattern_length = song.selected_pattern.number_of_lines
+  
+  -- Create new track
+  local source_track = song.selected_track_index
+  song:insert_track_at(source_track + 1)
+  song.selected_track_index = source_track + 1
+  
+  local track_data = song.selected_pattern:track(song.selected_track_index)
+  
+  -- Collect all active steps from all rows with their slice notes
+  local events = {}
+  for row_index = 1, NUM_ROWS do
+    if rows[row_index] then
+      for step = 1, rows[row_index].active_steps do
+        if row_checkboxes[row_index] and row_checkboxes[row_index][step] and row_checkboxes[row_index][step].value then
+          -- Calculate line position
+          local step_size = math.floor(pattern_length / rows[row_index].active_steps)
+          local line = (step - 1) * step_size + 1
+          
+          table.insert(events, {
+            line = line,
+            row = row_index,
+            mode = rows[row_index].mode,
+            note = rows[row_index].note_value,
+            slice_note = rows[row_index].slice_note,
+            sample_offset = rows[row_index].sample_offset_value,
+            velocity = row_velocities[row_index] and row_velocities[row_index][step] or 80
+          })
+        end
+      end
+    end
+  end
+  
+  -- Sort events by line
+  table.sort(events, function(a, b) return a.line < b.line end)
+  
+  -- Write events to new track
+  for _, event in ipairs(events) do
+    if event.line >= 1 and event.line <= pattern_length then
+      local line = track_data:line(event.line)
+      local note_col = line:note_column(1)
+      
+      -- Determine note based on mode
+      local note_value
+      if event.mode == 1 then  -- Note mode
+        note_value = event.note
+      elseif event.mode == 2 then  -- Slice mode
+        note_value = event.slice_note
+      else  -- Sample offset mode
+        note_value = event.note
+      end
+      
+      note_col.note_value = note_value
+      note_col.instrument_value = song.selected_instrument_index - 1
+      note_col.volume_value = event.velocity
+      
+      -- Add sample offset if in that mode
+      if event.mode == 3 and event.sample_offset and event.sample_offset > 0 then
+        if #line.effect_columns > 0 then
+          line:effect_column(1).number_value = 0x09  -- 9xx sample offset
+          line:effect_column(1).amount_value = event.sample_offset
+        end
+      end
+    end
+  end
+  
+  song.tracks[song.selected_track_index].name = "Slice Seq Rearranged"
+  renoise.app():show_status("Created rearranged track with " .. #events .. " events")
+end
+
+-- Randomize slice order and write to new track
+function PakettiSliceStepRandomizeToNewTrack()
+  local song = renoise.song()
+  if not song then return end
+  
+  local pattern_length = song.selected_pattern.number_of_lines
+  
+  -- Create new track
+  local source_track = song.selected_track_index
+  song:insert_track_at(source_track + 1)
+  song.selected_track_index = source_track + 1
+  
+  local track_data = song.selected_pattern:track(song.selected_track_index)
+  
+  -- Collect active slice notes
+  local slices = {}
+  for row_index = 1, NUM_ROWS do
+    if rows[row_index] then
+      for step = 1, rows[row_index].active_steps do
+        if row_checkboxes[row_index] and row_checkboxes[row_index][step] and row_checkboxes[row_index][step].value then
+          table.insert(slices, {
+            mode = rows[row_index].mode,
+            note = rows[row_index].note_value,
+            slice_note = rows[row_index].slice_note,
+            sample_offset = rows[row_index].sample_offset_value,
+            velocity = row_velocities[row_index] and row_velocities[row_index][step] or 80
+          })
+        end
+      end
+    end
+  end
+  
+  if #slices == 0 then
+    song:delete_track_at(song.selected_track_index)
+    song.selected_track_index = source_track
+    renoise.app():show_status("No active steps to randomize")
+    return
+  end
+  
+  -- Seed random
+  math.randomseed(os.time())
+  
+  -- Shuffle slices
+  for i = #slices, 2, -1 do
+    local j = math.random(1, i)
+    slices[i], slices[j] = slices[j], slices[i]
+  end
+  
+  -- Calculate step size and write
+  local step_size = math.floor(pattern_length / #slices)
+  for i, slice in ipairs(slices) do
+    local line_idx = (i - 1) * step_size + 1
+    if line_idx <= pattern_length then
+      local line = track_data:line(line_idx)
+      local note_col = line:note_column(1)
+      
+      local note_value = slice.mode == 2 and slice.slice_note or slice.note
+      note_col.note_value = note_value
+      note_col.instrument_value = song.selected_instrument_index - 1
+      note_col.volume_value = slice.velocity
+      
+      if slice.mode == 3 and slice.sample_offset and slice.sample_offset > 0 then
+        if #line.effect_columns > 0 then
+          line:effect_column(1).number_value = 0x09
+          line:effect_column(1).amount_value = slice.sample_offset
+        end
+      end
+    end
+  end
+  
+  song.tracks[song.selected_track_index].name = "Slice Seq Random"
+  renoise.app():show_status("Created randomized track with " .. #slices .. " slices")
+end
+
+-- Keybindings for render integration
+renoise.tool():add_keybinding{name="Global:Paketti:Slice Step Rearrange to New Track", invoke=PakettiSliceStepRearrangeToNewTrack}
+renoise.tool():add_keybinding{name="Global:Paketti:Slice Step Randomize to New Track", invoke=PakettiSliceStepRandomizeToNewTrack}
+
+-- MIDI mappings for render integration
+renoise.tool():add_midi_mapping{name="Paketti:Slice Step Rearrange to New Track [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSliceStepRearrangeToNewTrack() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Slice Step Randomize to New Track [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSliceStepRandomizeToNewTrack() end end}

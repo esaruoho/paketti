@@ -1356,6 +1356,169 @@ local function pakettiStemLoaderCreateSlicesAndPatternsForFwdRev(all_instruments
     slice_count, slice_count, #stem_forwards_reverse_pairs))
 end
 
+--------------------------------------------------------------------------------
+-- PHRASE AUTO-CREATION FROM LOADED STEMS
+--------------------------------------------------------------------------------
+
+-- Create phrases for each slice in a loaded stem instrument
+-- This creates one phrase per slice, playing that slice's note
+function PakettiStemLoaderCreatePhrasesFromSlices(instrument_index, slice_count)
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local instrument = song.instruments[instrument_index]
+  if not instrument then
+    print("StemLoader Phrases: Invalid instrument index " .. instrument_index)
+    return nil
+  end
+  
+  local sample = instrument.samples[1]
+  if not sample then
+    print("StemLoader Phrases: No sample in instrument " .. instrument_index)
+    return nil
+  end
+  
+  -- Get base note for slice triggering
+  local base_note = 48  -- C-4
+  if sample.sample_mapping then
+    base_note = sample.sample_mapping.base_note
+  end
+  
+  local lpb = song.transport.lpb
+  local phrases_created = {}
+  
+  print("StemLoader Phrases: Creating " .. slice_count .. " phrases for instrument " .. instrument_index)
+  
+  for slice_index = 1, slice_count do
+    -- Create a new phrase
+    local phrase_index = #instrument.phrases + 1
+    instrument:insert_phrase_at(phrase_index)
+    local phrase = instrument.phrases[phrase_index]
+    
+    if phrase then
+      -- Configure phrase
+      phrase.name = "Slice " .. string.format("%02d", slice_index)
+      phrase.number_of_lines = lpb  -- One beat per slice phrase
+      phrase.lpb = lpb
+      phrase.is_empty = false
+      phrase.autoseek = false
+      phrase.loop_start = 1
+      phrase.loop_end = lpb
+      phrase.looping = true
+      
+      -- Ensure at least 1 note column
+      if phrase.visible_note_columns < 1 then
+        phrase.visible_note_columns = 1
+      end
+      
+      -- Write the slice trigger note on line 1
+      local slice_note = base_note + slice_index
+      if slice_note > 119 then slice_note = 119 end  -- Clamp to B-9
+      
+      local line = phrase:line(1)
+      line.note_columns[1].note_value = slice_note
+      line.note_columns[1].instrument_value = 0  -- Self-reference
+      line.note_columns[1].volume_value = 128  -- 0x80 = full volume
+      
+      phrases_created[slice_index] = phrase_index
+      print("StemLoader Phrases: Created phrase " .. phrase_index .. " for slice " .. slice_index)
+    end
+  end
+  
+  -- Create a PhraseGrid bank if the function is available
+  if PakettiPhraseBankCreate then
+    local stem_name = instrument.name or "Stem"
+    local bank_index = PakettiPhraseBankCreate(instrument_index, "Stem: " .. stem_name)
+    
+    if bank_index and PakettiPhraseBanks and PakettiPhraseBanks[bank_index] then
+      -- Assign created phrases to bank slots (up to 8)
+      local max_slots = math.min(slice_count, 8)
+      for slot = 1, max_slots do
+        if phrases_created[slot] then
+          PakettiPhraseBankSetSlot(bank_index, slot, phrases_created[slot])
+        end
+      end
+      print("StemLoader Phrases: Created PhraseGrid bank " .. bank_index .. " with " .. max_slots .. " slots")
+    end
+  end
+  
+  renoise.app():show_status("Created " .. slice_count .. " phrases for stem: " .. (instrument.name or "Instrument"))
+  return phrases_created
+end
+
+-- Create phrases for all loaded stem instruments
+function PakettiStemLoaderCreatePhrasesFromLoadedStems(loaded_instruments_info)
+  local song = renoise.song()
+  if not song then return end
+  
+  if not loaded_instruments_info or #loaded_instruments_info == 0 then
+    print("StemLoader Phrases: No loaded instruments info")
+    return
+  end
+  
+  local total_phrases = 0
+  
+  for _, info in ipairs(loaded_instruments_info) do
+    local instrument = song.instruments[info.instrument_index]
+    if instrument and instrument.samples[1] then
+      local sample = instrument.samples[1]
+      local slice_count = #sample.slice_markers
+      
+      if slice_count > 0 then
+        local phrases = PakettiStemLoaderCreatePhrasesFromSlices(info.instrument_index, slice_count)
+        if phrases then
+          total_phrases = total_phrases + slice_count
+        end
+      end
+    end
+  end
+  
+  if total_phrases > 0 then
+    renoise.app():show_status("Created " .. total_phrases .. " phrases across " .. #loaded_instruments_info .. " stems")
+  end
+end
+
+-- Manually trigger phrase creation for all loaded stem tracks
+function PakettiStemLoaderCreatePhrasesNow()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Look for instruments that have slice markers (likely stems)
+  local stem_instruments = {}
+  
+  for i, instrument in ipairs(song.instruments) do
+    if instrument.samples[1] then
+      local sample = instrument.samples[1]
+      if #sample.slice_markers > 0 then
+        table.insert(stem_instruments, {
+          instrument_index = i,
+          name = instrument.name,
+          slice_count = #sample.slice_markers
+        })
+      end
+    end
+  end
+  
+  if #stem_instruments == 0 then
+    renoise.app():show_status("No sliced instruments found")
+    return
+  end
+  
+  local total_phrases = 0
+  for _, info in ipairs(stem_instruments) do
+    local phrases = PakettiStemLoaderCreatePhrasesFromSlices(info.instrument_index, info.slice_count)
+    if phrases then
+      total_phrases = total_phrases + info.slice_count
+    end
+  end
+  
+  renoise.app():show_status("Created " .. total_phrases .. " phrases from " .. #stem_instruments .. " sliced instruments")
+end
+
+-- Keybindings for phrase creation
+renoise.tool():add_keybinding{name="Global:Paketti:Stem Loader Create Phrases from Slices",invoke=PakettiStemLoaderCreatePhrasesNow}
+renoise.tool():add_midi_mapping{name="Paketti:Stem Loader Create Phrases from Slices [Trigger]",invoke=function(message) if message:is_trigger() then PakettiStemLoaderCreatePhrasesNow() end end}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stem Loader",invoke=function() pakettiStemLoader() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stem Loader (Normalize)",invoke=function() pakettiStemLoader(true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stem Loader (No Preset)",invoke=function() pakettiStemLoader(false, true) end}

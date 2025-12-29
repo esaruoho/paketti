@@ -1247,18 +1247,15 @@ renoise.tool():add_midi_mapping{
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Show Dialog", invoke=show_mpc_cycler_dialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Set Sample Folder", invoke=mpc_set_sample_folder}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Set Instrument Folder", invoke=mpc_set_instrument_folder}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:---Sample Navigation---", invoke=function() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Previous Sample", invoke=mpc_previous_sample}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:MPC Cycler..:Previous Sample", invoke=mpc_previous_sample}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Next Sample", invoke=mpc_next_sample}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Previous Sample Folder", invoke=mpc_previous_sample_folder}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Next Sample Folder", invoke=mpc_next_sample_folder}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:---Instrument Navigation---", invoke=function() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Previous Instrument", invoke=mpc_previous_instrument}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:MPC Cycler..:Previous Instrument", invoke=mpc_previous_instrument}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Next Instrument", invoke=mpc_next_instrument}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Previous Instrument Folder", invoke=mpc_previous_instrument_folder}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Next Instrument Folder", invoke=mpc_next_instrument_folder}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:---Mode Toggles---", invoke=function() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Toggle Preview Mode", invoke=mpc_toggle_preview}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:MPC Cycler..:Toggle Preview Mode", invoke=mpc_toggle_preview}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Commit Preview", invoke=mpc_commit_preview}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:MPC Cycler..:Toggle Global Lock", invoke=mpc_toggle_global_lock}
 
