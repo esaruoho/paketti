@@ -6,6 +6,7 @@ function saveSong()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Save Song (2nd)",invoke=function() saveSong() end}
+renoise.tool():add_midi_mapping{name="Paketti:Save Song x[Trigger]",invoke=function(message) if message:is_trigger() then saveSong() end end}
 
 function RecordFollowToggle()
   local s = renoise.song()
