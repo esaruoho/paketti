@@ -9765,3 +9765,101 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column Curve Fill", invoke = PakettiEffectColumnCurveFill}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Column Curve Fill", invoke = PakettiEffectColumnCurveFill}
 renoise.tool():add_midi_mapping{name="Paketti:Effect Column Curve Fill", invoke = function(message) if message:is_trigger() then PakettiEffectColumnCurveFill() end end}
+
+---------------------------------------------------------------------------
+-- Cursor Advance Forward/Backward by Steps
+-- These allow jumping forward or backward by a specific number of steps
+-- in a looping pattern situation, without changing EditStep.
+---------------------------------------------------------------------------
+
+function PakettiAdvanceCursorForward(steps)
+  local song = renoise.song()
+  local pattern_lines = song.selected_pattern.number_of_lines
+  local current_line = song.selected_line_index
+  local new_line = current_line + steps
+  -- Wrap around if exceeds pattern length
+  if new_line > pattern_lines then
+    new_line = ((new_line - 1) % pattern_lines) + 1
+  end
+  song.selected_line_index = new_line
+  renoise.app():show_status("Cursor advanced " .. steps .. " step(s) forward")
+end
+
+function PakettiAdvanceCursorBackward(steps)
+  local song = renoise.song()
+  local pattern_lines = song.selected_pattern.number_of_lines
+  local current_line = song.selected_line_index
+  local new_line = current_line - steps
+  -- Wrap around if goes below 1
+  while new_line < 1 do
+    new_line = new_line + pattern_lines
+  end
+  song.selected_line_index = new_line
+  renoise.app():show_status("Cursor advanced " .. steps .. " step(s) backward")
+end
+
+-- Generate keybindings and MIDI mappings for 1-32 steps forward and backward
+for i = 1, 32 do
+  local step_label = formatDigits(2, i)
+  
+  -- Forward keybindings and MIDI mappings
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Advance Cursor Forward by " .. step_label .. " Steps", invoke=function() PakettiAdvanceCursorForward(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Advance Cursor Forward by " .. step_label .. " Steps", invoke=function(message) if message:is_trigger() then PakettiAdvanceCursorForward(i) end end}
+  
+  -- Backward keybindings and MIDI mappings
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Advance Cursor Backward by " .. step_label .. " Steps", invoke=function() PakettiAdvanceCursorBackward(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Advance Cursor Backward by " .. step_label .. " Steps", invoke=function(message) if message:is_trigger() then PakettiAdvanceCursorBackward(i) end end}
+end
+
+---------------------------------------------------------------------------
+-- Phrase Editor: Cursor Advance Forward/Backward by Steps
+---------------------------------------------------------------------------
+
+function PakettiAdvanceCursorForwardPhrase(steps)
+  local song = renoise.song()
+  local phrase = song.selected_phrase
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  local phrase_lines = phrase.number_of_lines
+  local current_line = song.selected_phrase_line_index
+  local new_line = current_line + steps
+  -- Wrap around if exceeds phrase length
+  if new_line > phrase_lines then
+    new_line = ((new_line - 1) % phrase_lines) + 1
+  end
+  song.selected_phrase_line_index = new_line
+  renoise.app():show_status("Phrase cursor advanced " .. steps .. " step(s) forward")
+end
+
+function PakettiAdvanceCursorBackwardPhrase(steps)
+  local song = renoise.song()
+  local phrase = song.selected_phrase
+  if not phrase then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+  local phrase_lines = phrase.number_of_lines
+  local current_line = song.selected_phrase_line_index
+  local new_line = current_line - steps
+  -- Wrap around if goes below 1
+  while new_line < 1 do
+    new_line = new_line + phrase_lines
+  end
+  song.selected_phrase_line_index = new_line
+  renoise.app():show_status("Phrase cursor advanced " .. steps .. " step(s) backward")
+end
+
+-- Generate keybindings and MIDI mappings for 1-32 steps forward and backward in Phrase Editor
+for i = 1, 32 do
+  local step_label = formatDigits(2, i)
+  
+  -- Forward keybindings and MIDI mappings
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Advance Cursor Forward by " .. step_label .. " Steps", invoke=function() PakettiAdvanceCursorForwardPhrase(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Phrase Advance Cursor Forward by " .. step_label .. " Steps", invoke=function(message) if message:is_trigger() then PakettiAdvanceCursorForwardPhrase(i) end end}
+  
+  -- Backward keybindings and MIDI mappings
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Advance Cursor Backward by " .. step_label .. " Steps", invoke=function() PakettiAdvanceCursorBackwardPhrase(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Phrase Advance Cursor Backward by " .. step_label .. " Steps", invoke=function(message) if message:is_trigger() then PakettiAdvanceCursorBackwardPhrase(i) end end}
+end

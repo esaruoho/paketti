@@ -938,7 +938,7 @@ function SliceProConfigDialog()
           vb:valuebox{
             id = "slicepro_total_beats",
             min = 1,
-            max = 512,
+            max = 9999,
             value = effective_total_beats,
             width = 55,
             tostring = function(val) return string.format("%.1f", val) end,
@@ -1186,6 +1186,31 @@ function SliceProConfigDialog()
   }
   
   dialog_content:add_child(button_row)
+  
+  -- Wipe&Slice buttons row
+  local wipe_slice_row = vb:row{
+    vb:text{text = "Wipe&Slice:"},
+    vb:button{text = "2", width = 25, notifier = function() slicerough(2) end},
+    vb:button{text = "4", width = 25, notifier = function() slicerough(4) end},
+    vb:button{text = "8", width = 25, notifier = function() slicerough(8) end},
+    vb:button{text = "16", width = 30, notifier = function() slicerough(16) end},
+    vb:button{text = "32", width = 30, notifier = function() slicerough(32) end},
+    vb:button{text = "64", width = 30, notifier = function() slicerough(64) end},
+    vb:button{text = "128", width = 35, notifier = function() slicerough(128) end},
+    vb:button{text = "256", width = 35, notifier = function() slicerough(256) end},
+    vb:button{text = "Wipe Slices", width = 70, notifier = function() wipeslices() end}
+  }
+  dialog_content:add_child(wipe_slice_row)
+  
+  -- Additional tools row
+  local tools_row = vb:row{
+    vb:button{text = "Curve Slicer", width = 80, notifier = function() PakettiCurvedSliceCreator() end},
+    vb:button{text = "Slices→Pattern", width = 90, notifier = function() pakettiSlicesToPattern(true) end},
+    vb:button{text = "Slices→Pattern (cur)", width = 110, notifier = function() pakettiSlicesToPattern(false) end},
+    vb:button{text = "Slices→Pattern Evenly", width = 120, notifier = function() pakettiSlicesToPatternEvenly(true) end},
+    vb:button{text = "Oldschool Workflow", width = 110, notifier = function() pakettiOldschoolSlicePitchWorkflow(false, false) end}
+  }
+  dialog_content:add_child(tools_row)
   
   -- Slice List Section (only if there are slices)
   if #markers > 0 then

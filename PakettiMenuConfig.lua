@@ -640,6 +640,8 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Polyend Slic
   end
 }
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
+
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Load Random Sample to Pattern (from Dialog)", invoke=loadRandomSampleToPatternDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}

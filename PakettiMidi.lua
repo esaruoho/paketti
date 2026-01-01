@@ -1004,18 +1004,18 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Sample Modulation Set 
   change_sample_modulation_set_filter(message.int_value) end}
 
 ---------
-function midiprogram(change)  
-local midi=renoise.song().selected_instrument.midi_output_properties  
-local currentprg=midi.program  
- currentprg = math.max(0, math.min(128, currentprg + change))  
- rprint (currentprg)  
-renoise.song().selected_instrument.midi_output_properties.program = currentprg  
-renoise.song().transport:panic()  
-end  
-  
-renoise.tool():add_keybinding{name="Global:Paketti:Selected Instrument Midi Program +1 (Next)",invoke=function() midiprogram(1) end}  
-renoise.tool():add_keybinding{name="Global:Paketti:Selected Instrument Midi Program -1 (Previous)",invoke=function() midiprogram(-1) end}  
-renoise.tool():add_midi_mapping{name="Paketti:Selected Instrument Midi Program +1 (Next)",invoke=function(message) if message:is_trigger() then midiprogram(1) end end}  
+function midiprogram(change)
+  local midi = renoise.song().selected_instrument.midi_output_properties
+  local currentprg = midi.program
+  currentprg = math.max(0, math.min(128, currentprg + change))
+  renoise.song().selected_instrument.midi_output_properties.program = currentprg
+  local status_text = (currentprg == 0) and "MIDI Program: OFF" or ("MIDI Program: " .. currentprg)
+  renoise.app():show_status(status_text)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Selected Instrument Midi Program +1 (Next)",invoke=function() midiprogram(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Selected Instrument Midi Program -1 (Previous)",invoke=function() midiprogram(-1) end}
+renoise.tool():add_midi_mapping{name="Paketti:Selected Instrument Midi Program +1 (Next)",invoke=function(message) if message:is_trigger() then midiprogram(1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Selected Instrument Midi Program -1 (Previous)",invoke=function(message) if message:is_trigger() then midiprogram(-1) end end}  
 -----------
 function pakettiMidiValuesColumn(minValue, maxValue, note_column_index, propertyName, midiInput)

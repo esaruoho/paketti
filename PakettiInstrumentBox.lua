@@ -363,6 +363,7 @@ function capture_ins_oct(state)
    local current_track = renoise.song().selected_track_index
    local current_pattern = renoise.song().selected_pattern_index
    local found_note = false
+   local found_in_current_pattern = false  -- Track if we found notes in the current pattern
    
    -- Check if we're in an effect column
    local in_effect_column = (renoise.song().selected_effect_column_index > 0)
@@ -468,6 +469,11 @@ function capture_ins_oct(state)
    -- Search current pattern first
    search_pattern_for_notes(current_pattern, false)
    
+   -- Track if we found notes in the current pattern
+   if closest_note.ins then
+      found_in_current_pattern = true
+   end
+   
    -- If no notes found in current pattern, expand search to nearby patterns in sequence
    if not closest_note.ins then
       local max_search_distance = 10 -- Maximum patterns to search in each direction
@@ -507,7 +513,11 @@ function capture_ins_oct(state)
    -- Step 1: If the nearest instrument is not selected, select it
    if renoise.song().selected_instrument_index ~= closest_note.ins then
       renoise.song().selected_instrument_index = closest_note.ins
-      renoise.song().transport.octave = closest_note.oct
+      -- Only change octave if notes were found in the current pattern
+      -- If notes were only found in nearby patterns, keep the original octave
+      if found_in_current_pattern then
+         renoise.song().transport.octave = closest_note.oct
+      end
       
       -- If in effect column and using "jump", start stepper cycle immediately
       if in_effect_column and state == "yes" then
