@@ -153,7 +153,7 @@ function WipeSliceAndWrite()
       if dontsync then 
           sample.beat_sync_enabled = false
       else
-          local beat_sync_mode = preferences.WipeSlices.WipeSlicesBeatSyncMode.value
+          local beat_sync_mode = preferences.WipeSlices.WipeSlicesBeatsyncMode.value
 
           -- Validate the beat_sync_mode value
           if beat_sync_mode < 1 or beat_sync_mode > 3 then
@@ -1077,7 +1077,7 @@ function pakettiBPMBasedSlice(sample_bpm, beats_per_slice)
         if dontsync then 
             sample_obj.beat_sync_enabled = false
         else
-            local beat_sync_mode = preferences.WipeSlices.WipeSlicesBeatSyncMode.value
+            local beat_sync_mode = preferences.WipeSlices.WipeSlicesBeatsyncMode.value
             
             -- Validate the beat_sync_mode value
             if beat_sync_mode < 1 or beat_sync_mode > 3 then

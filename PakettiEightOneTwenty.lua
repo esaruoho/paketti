@@ -28,7 +28,7 @@ local bpm_observer = nil
 local instruments_list_observer = nil
 local beatsync_visible = false
 
--- BeatSync UI/observer state
+-- Beatsync UI/observer state
 local beatsync_checkboxes = {}
 local beatsync_valueboxes = {}
 local beatsync_updating = {}
@@ -38,7 +38,7 @@ local beatsync_attached_inst_index = {}
 local beatsync_attached_sample_index = {}
 local beatsync_mode_observers = {}
 local beatsync_mode_popups = {}
--- Advanced (BeatSync + NNA) columns for per-row highlighting
+-- Advanced (Beatsync + NNA) columns for per-row highlighting
 beatsync_adv_columns = {}
 -- Baseline for absolute global pitch control (already initialized above)
 
@@ -890,7 +890,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       if row_elements.attach_volume_observer then
         row_elements.attach_volume_observer()
       end
-      -- Keep BeatSync UI in sync for this row
+      -- Keep Beatsync UI in sync for this row
       if beatsync_visible then
         PakettiEightOneTwentyUpdateBeatsyncUiFor(row_index)
       end
@@ -3840,7 +3840,7 @@ function pakettiEightSlotsByOneTwentyDialog()
     beatsync_updating[idx] = false
     local cb = vb:checkbox{
       value=false,
-      tooltip = string.format("Instrument %02d BeatSync On/Off (set to Off when value is 0)", idx),
+      tooltip = string.format("Instrument %02d Beatsync On/Off (set to Off when value is 0)", idx),
       notifier=function(value)
         if beatsync_updating[idx] then return end
         local re = rows[idx]
@@ -3872,7 +3872,7 @@ function pakettiEightSlotsByOneTwentyDialog()
       max = 512,
       value = 0,
       width = 72,
-      tooltip = string.format("Instrument %02d BeatSync Lines (0 = Off)", idx),
+      tooltip = string.format("Instrument %02d Beatsync Lines (0 = Off)", idx),
       notifier=function(val)
         if beatsync_updating[idx] then return end
         local re = rows[idx]
@@ -3906,7 +3906,7 @@ function pakettiEightSlotsByOneTwentyDialog()
     beatsync_row:add_child(col)
   end
 
-  -- BeatSync Mode row (per instrument)
+  -- Beatsync Mode row (per instrument)
   local beatsync_modes_row = vb:row{}
   local mode_items = {"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)"}
   for i=1,8 do
@@ -3972,7 +3972,7 @@ function pakettiEightSlotsByOneTwentyDialog()
     end
   end
 
-  -- Global BeatSync Mode (auto-applies on change to all)
+  -- Global Beatsync Mode (auto-applies on change to all)
   local global_mode_popup
   global_mode_popup = vb:popup{
     items = mode_items,
@@ -4191,7 +4191,7 @@ function pakettiEightSlotsByOneTwentyDialog()
   end
 
   local beatsync_container = vb:column{
-    vb:row{arrow_button, vb:text{text="BeatSync per Instrument (00-7F sample)", font="bold", style="strong"}},
+    vb:row{arrow_button, vb:text{text="Beatsync per Instrument (00-7F sample)", font="bold", style="strong"}},
     vb:column{
       id = beatsync_content_id,
       visible = beatsync_visible,
@@ -4205,7 +4205,7 @@ function pakettiEightSlotsByOneTwentyDialog()
   }
   --dc:add_child(vb:space{height=6})
   dc:add_child(beatsync_container)
-  -- Prime BeatSync UI from live song state when foldout starts visible
+  -- Prime Beatsync UI from live song state when foldout starts visible
   if beatsync_visible then
     for i=1,8 do PakettiEightOneTwentyUpdateBeatsyncUiFor(i) end
   end
@@ -4310,7 +4310,7 @@ function pakettiEightSlotsByOneTwentyDialog()
       if preferences and preferences.save_as then
         preferences:save_as("preferences.xml")
       end
-      -- Clear local BeatSync state tables; do not touch vb.views (read-only)
+      -- Clear local Beatsync state tables; do not touch vb.views (read-only)
       beatsync_checkboxes = {}
       beatsync_valueboxes = {}
       beatsync_updating = {}

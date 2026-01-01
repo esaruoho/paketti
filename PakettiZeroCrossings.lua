@@ -132,9 +132,9 @@ function PakettiZeroCrossingsWipeSlice(slice_count, use_zero_crossing, zero_cros
     sample.mute_group = preferences.WipeSlices.WipeSlicesMuteGroup.value
     sample.transpose = currentTranspose
     
-    if preferences.WipeSlices.WipeSlicesBeatSyncGlobal.value == true then
+    if preferences.WipeSlices.WipeSlicesBeatsyncGlobal.value == true then
       sample.beat_sync_enabled = true
-      sample.beat_sync_lines = preferences.WipeSlices.WipeSlicesBeatSyncMode.value
+      sample.beat_sync_lines = preferences.WipeSlices.WipeSlicesBeatsyncMode.value
     else
       if dontsync == nil then
         sample.beat_sync_enabled = true

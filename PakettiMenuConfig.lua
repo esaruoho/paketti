@@ -529,8 +529,8 @@ renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Patter
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatSyncOnly}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatSyncOnly}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatsyncOnly}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatsyncOnly}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
@@ -1441,14 +1441,14 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Auto-Slice 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Whole Hog (Complete Workflow)",invoke=function() whole_hog_complete_workflow() end}
 
 -- Sample Editor Beatsync/Slices
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Double Beatsync Line",invoke=function() doubleBeatSyncLines() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Halve Beatsync Line",invoke=function() halveBeatSyncLines() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Double Beatsync Line",invoke=function() doubleBeatsyncLines() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Halve Beatsync Line",invoke=function() halveBeatsyncLines() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Double (All)",invoke=function() doubleBeatsyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Beatsync/Slices:Analyze Slice Markers",invoke=function() analyze_slice_markers() end}
 
 -- Sample Editor Instruments
@@ -1514,7 +1514,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Group Samp
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Map Sample to All Keyzones", invoke=function() mapsample() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Instruments:Wipe Song Retain Sample",invoke=function() WipeRetain() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Smart Beatsync from Selection",invoke=function() BeatSyncFromSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Smart Beatsync from Selection",invoke=function() BeatsyncFromSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Paketti Groovebox 8120 Eight 120-fy Instrument",invoke=function() PakettiEight120fy() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Samples:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
@@ -1603,10 +1603,10 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Autofade/Autoseek:S
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Autofade/Autoseek:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Autofade/Autoseek:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
 
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Double (All)",invoke=function() doubleBeatsyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
 
@@ -2881,10 +2881,10 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Set Al
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Set All Instruments All Samples Autoseek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Beatsync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Beatsync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Beatsync Lines Double (All)",invoke=function() doubleBeatsyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Initialize:12st PitchBend Instrument Init",invoke=function() pitchedInstrument(12) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Initialize:PitchBend Drumkit Instrument Init",invoke=function() pitchedDrumkit() end}
 

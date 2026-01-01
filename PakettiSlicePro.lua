@@ -29,6 +29,10 @@ local state_flags = {
   user_touched_config = false  -- Prevents auto-re-analysis after user opens Config
 }
 
+-- UI state
+local slicepro_rows_per_column = 30  -- Default rows per column in slice list
+local slicepro_rows_options = {5, 10, 15, 30, 35, 40, 45, 50, 55, 60, 80, 128}
+
 -- Observer tracking for cache invalidation
 local attached_observers = {
   sample = nil,
@@ -259,6 +263,41 @@ local function SliceProGetRootSample()
 end
 
 --------------------------------------------------------------------------------
+-- Duration-Based Beat Calculation (Fallback)
+--------------------------------------------------------------------------------
+
+local function SliceProCalculateDurationBeats(frames, sr)
+  -- Calculate beat count from sample duration and song BPM
+  local duration_sec = frames / sr
+  local song_bpm = renoise.song().transport.bpm
+  local duration_beats = math.floor((duration_sec * song_bpm / 60) + 0.5)
+  
+  -- Snap to nearest musical value
+  local musical_values = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}
+  local snapped_beats = duration_beats  -- default to calculated value
+  
+  for _, m in ipairs(musical_values) do
+    -- If within 15% of a musical value, snap to it
+    if math.abs(m - duration_beats) < duration_beats * 0.15 then
+      snapped_beats = m
+      break
+    elseif m > duration_beats then
+      -- Use the next higher musical value if we haven't found a close match
+      snapped_beats = m
+      break
+    end
+  end
+  
+  -- Clamp to valid range
+  snapped_beats = math.max(1, math.min(512, snapped_beats))
+  
+  print(string.format("SlicePro: Duration-based fallback: %.2f sec @ %d BPM = %d beats (snapped to %d)", 
+    duration_sec, song_bpm, duration_beats, snapped_beats))
+  
+  return snapped_beats
+end
+
+--------------------------------------------------------------------------------
 -- RMS + Autocorrelation Analysis (Hybrid Beat Detection)
 --------------------------------------------------------------------------------
 
@@ -267,6 +306,21 @@ local function SliceProAnalyzeRMS(buffer, silent)
   local sr = buffer.sample_rate
   local channel = 1
   local duration_sec = frames / sr
+  
+  -- OPTIMIZATION: Skip slow DSP analysis for large files (>30 seconds)
+  -- Use fast duration-based calculation instead to prevent timeouts
+  if duration_sec > 30 then
+    print(string.format("SlicePro: Large file detected (%.1f sec), using fast duration-based analysis", duration_sec))
+    if not silent then
+      renoise.app():show_status("SlicePro: Large file - using fast analysis")
+    end
+    local duration_beats = SliceProCalculateDurationBeats(frames, sr)
+    return { 
+      total_beats = duration_beats, 
+      confidence = 0.5, 
+      method = "duration-fast" 
+    }
+  end
   
   print(string.format("SlicePro: RMS analysis starting - %d frames @ %d Hz (%.2f sec)", frames, sr, duration_sec))
   
@@ -310,7 +364,9 @@ local function SliceProAnalyzeRMS(buffer, silent)
       print(string.format("SlicePro: Fallback detected %.1f BPM, %d beats", detected_bpm, beat_count))
       return { total_beats = beat_count, confidence = 0.4, method = "fallback-intelligent" }
     end
-    return { total_beats = 4, confidence = 0.2, method = "fallback" }
+    -- Use duration-based calculation instead of hardcoded 4
+    local duration_beats = SliceProCalculateDurationBeats(frames, sr)
+    return { total_beats = duration_beats, confidence = 0.3, method = "duration-fallback" }
   end
   
   if show_progress then
@@ -354,7 +410,9 @@ local function SliceProAnalyzeRMS(buffer, silent)
       print(string.format("SlicePro: Fallback detected %.1f BPM, %d beats", detected_bpm, beat_count))
       return { total_beats = beat_count, confidence = 0.4, method = "fallback-intelligent" }
     end
-    return { total_beats = 4, confidence = 0.2, method = "fallback" }
+    -- Use duration-based calculation instead of hardcoded 4
+    local duration_beats = SliceProCalculateDurationBeats(frames, sr)
+    return { total_beats = duration_beats, confidence = 0.3, method = "duration-fallback" }
   end
   
   local seconds_per_beat = (best_lag * hop) / sr
@@ -365,7 +423,7 @@ local function SliceProAnalyzeRMS(buffer, silent)
     best_lag, seconds_per_beat, raw_beats))
   
   -- Snap to musical counts if close (within 0.5 beats)
-  local musical = {1, 2, 4, 8, 16, 32, 64}
+  local musical = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}
   local beats = raw_beats
   local snapped = false
   
@@ -399,8 +457,46 @@ local function SliceProAnalyzeRMS(buffer, silent)
     return { total_beats = beat_count, confidence = 0.5, method = "fallback-intelligent" }
   end
   
-  print(string.format("SlicePro: Analysis complete - %s beats, confidence=%.2f", 
-    tostring(beats), confidence))
+  -- Store RMS result
+  local rms_beats = beats
+  local rms_confidence = confidence
+  local method = "hybrid"
+  
+  -- Run transient detection for comparison (hybrid approach)
+  local transient_bpm, transient_beats, transients = pakettiBPMDetectFromTransients(buffer, rms_beats)
+  
+  if transient_beats and transient_beats > 0 then
+    local transient_confidence = 0
+    if transients and #transients > 0 then
+      -- Calculate confidence based on transient count vs expected
+      -- More transients relative to beat count = higher confidence
+      local expected_transients = transient_beats * 2  -- Assume ~2 transients per beat minimum
+      transient_confidence = math.min(1.0, #transients / expected_transients)
+      
+      -- Boost confidence if transient count aligns well with detected beats
+      local transients_per_beat = #transients / transient_beats
+      if transients_per_beat >= 1 and transients_per_beat <= 4 then
+        transient_confidence = transient_confidence * 1.2  -- Boost for reasonable alignment
+        transient_confidence = math.min(1.0, transient_confidence)
+      end
+    end
+    
+    print(string.format("SlicePro: Transient detection found %d transients, estimated %d beats (confidence: %.2f)", 
+      transients and #transients or 0, transient_beats, transient_confidence))
+    
+    -- Use transient result if more confident than RMS
+    if transient_confidence > rms_confidence then
+      beats = transient_beats
+      confidence = transient_confidence
+      method = "transient"
+      print(string.format("SlicePro: Using transient method (%.2f > %.2f)", transient_confidence, rms_confidence))
+    else
+      print(string.format("SlicePro: Keeping RMS method (%.2f >= %.2f)", rms_confidence, transient_confidence))
+    end
+  end
+  
+  print(string.format("SlicePro: Analysis complete - %s beats, confidence=%.2f, method=%s", 
+    tostring(beats), confidence, method))
   
   if show_progress then
     renoise.app():show_status("SlicePro: Analysis complete")
@@ -409,7 +505,7 @@ local function SliceProAnalyzeRMS(buffer, silent)
   return {
     total_beats = beats,
     confidence = confidence,
-    method = "hybrid"
+    method = method
   }
 end
 
@@ -591,7 +687,7 @@ function SliceProApply(silent)
   local effective_total_beats = SliceProState.root_override or SliceProState.total_beats
   
   -- Check if beat sync should be enabled for slices (default is OFF)
-  local beatsync_enabled = preferences.SlicePro.SliceProBeatSyncEnabled and preferences.SlicePro.SliceProBeatSyncEnabled.value or false
+  local beatsync_enabled = preferences.SlicePro.SliceProBeatsyncEnabled and preferences.SlicePro.SliceProBeatsyncEnabled.value or false
   
   if #markers == 0 then
     -- No slices, just apply to root sample
@@ -599,11 +695,11 @@ function SliceProApply(silent)
     root_sample.beat_sync_enabled = beatsync_enabled
     if beatsync_enabled then
       root_sample.beat_sync_lines = sync_lines
-      root_sample.beat_sync_mode = preferences.SlicePro.SliceProBeatSyncMode.value
+      root_sample.beat_sync_mode = preferences.SlicePro.SliceProBeatsyncMode.value
     end
     
     if not silent then
-      renoise.app():show_status(string.format("SlicePro: Applied %d lines to root sample%s", sync_lines, beatsync_enabled and "" or " (BeatSync off)"))
+      renoise.app():show_status(string.format("SlicePro: Applied %d lines to root sample%s", sync_lines, beatsync_enabled and "" or " (Beatsync off)"))
     end
     return true
   end
@@ -633,7 +729,7 @@ function SliceProApply(silent)
         sample.beat_sync_enabled = beatsync_enabled
         if beatsync_enabled then
           sample.beat_sync_lines = sync_lines
-          sample.beat_sync_mode = preferences.SlicePro.SliceProBeatSyncMode.value
+          sample.beat_sync_mode = preferences.SlicePro.SliceProBeatsyncMode.value
         end
         
         -- Apply other preferences
@@ -666,7 +762,7 @@ function SliceProApply(silent)
   end
   
   if not silent then
-    renoise.app():show_status(string.format("SlicePro: Applied to %d slices (LPB=%d%s)", applied_count, lpb, beatsync_enabled and "" or ", BeatSync off"))
+    renoise.app():show_status(string.format("SlicePro: Applied to %d slices (LPB=%d%s)", applied_count, lpb, beatsync_enabled and "" or ", Beatsync off"))
   end
   return true
 end
@@ -787,13 +883,45 @@ function SliceProConfigDialog()
   local has_root_override = SliceProState.root_override ~= nil
   local effective_total_beats = SliceProState.root_override or SliceProState.total_beats or 4
   
+  -- Get sample buffer info
+  local buffer = root_sample.sample_buffer
+  local sample_rate = buffer and buffer.sample_rate or 44100
+  local bit_depth = buffer and buffer.bit_depth or 16
+  local channels = buffer and buffer.number_of_channels or 1
+  local channel_str = channels == 1 and "mono" or "stereo"
+  
   local dialog_content = vb:column{
     --margin = 6,
     --spacing = 4,
     
-    -- Instrument name row
+    -- Header row: sample info + slice count + rows/col dropdown
     vb:row{
-      vb:text{text = "Instrument: " .. instrument.name, font = "mono"}
+      vb:text{
+        text = string.format("%s | %dHz %dbit %s | %d slices", 
+          root_sample.name ~= "" and root_sample.name or instrument.name,
+          sample_rate, bit_depth, channel_str, #markers),
+        font = "mono"
+      },
+      vb:text{text = "  Rows/Col:"},
+      vb:popup{
+        items = {"5", "10", "15", "30", "35", "40", "45", "50", "55", "60", "80", "128"},
+        value = (function()
+          for i, v in ipairs(slicepro_rows_options) do
+            if v == slicepro_rows_per_column then return i end
+          end
+          return 4  -- Default to 30
+        end)(),
+        width = 50,
+        notifier = function(idx)
+          slicepro_rows_per_column = slicepro_rows_options[idx]
+          -- Refresh dialog
+          if slicepro_dialog and slicepro_dialog.visible then
+            slicepro_dialog:close()
+            slicepro_dialog = nil
+            SliceProConfigDialog()
+          end
+        end
+      }
     },
     
     -- Two-column layout: Analysis Info (left) | Global Slice Settings (right)
@@ -810,7 +938,7 @@ function SliceProConfigDialog()
           vb:valuebox{
             id = "slicepro_total_beats",
             min = 1,
-            max = 128,
+            max = 512,
             value = effective_total_beats,
             width = 55,
             tostring = function(val) return string.format("%.1f", val) end,
@@ -874,25 +1002,25 @@ function SliceProConfigDialog()
       vb:column{
         --spacing = 2,
         
-        -- BeatSync Enable/Mode
+        -- Beatsync Enable/Mode
         vb:row{
           vb:checkbox{
             id = "slicepro_beatsync_enabled",
-            value = preferences.SlicePro.SliceProBeatSyncEnabled and preferences.SlicePro.SliceProBeatSyncEnabled.value or false,
+            value = preferences.SlicePro.SliceProBeatsyncEnabled and preferences.SlicePro.SliceProBeatsyncEnabled.value or false,
             notifier = function(val)
-              if preferences.SlicePro.SliceProBeatSyncEnabled then
-                preferences.SlicePro.SliceProBeatSyncEnabled.value = val
+              if preferences.SlicePro.SliceProBeatsyncEnabled then
+                preferences.SlicePro.SliceProBeatsyncEnabled.value = val
               end
             end
           },
-          vb:text{text = "BeatSync:", width = 70},
+          vb:text{text = "Beatsync:", width = 70},
           vb:popup{
             id = "slicepro_beatsync_mode",
             items = {"Repitch", "Percussion", "Texture"},
-            value = preferences.SlicePro.SliceProBeatSyncMode.value,
+            value = preferences.SlicePro.SliceProBeatsyncMode.value,
             width = 100,
             notifier = function(val)
-              preferences.SlicePro.SliceProBeatSyncMode.value = val
+              preferences.SlicePro.SliceProBeatsyncMode.value = val
             end
           }
         },
@@ -978,24 +1106,97 @@ function SliceProConfigDialog()
     --vb:space{height = 4}
   }
   
+  -- Buttons Row (all buttons in single row)
+  local button_row = vb:row{
+    vb:button{
+      text = "Analyze",
+      width = 60,
+      notifier = function()
+        -- Clear root override if user wants fresh analysis
+        SliceProState.root_override = nil
+        SliceProAnalyze()
+        -- Close and reopen to refresh
+        if slicepro_dialog and slicepro_dialog.visible then
+          slicepro_dialog:close()
+          slicepro_dialog = nil
+          SliceProConfigDialog()
+        end
+      end
+    },
+    vb:button{
+      text = "Apply",
+      width = 50,
+      notifier = function()
+        -- Update total beats from GUI
+        local total_beats_view = vb.views["slicepro_total_beats"]
+        local override_checkbox = vb.views["slicepro_root_override"]
+        if total_beats_view then
+          local is_override = override_checkbox and override_checkbox.value
+          SliceProRecalculateFromTotal(total_beats_view.value, is_override)
+        end
+        SliceProApply()
+      end
+    },
+    vb:button{
+      text = "Silent Apply",
+      width = 70,
+      notifier = function()
+        -- Update total beats from GUI first
+        local total_beats_view = vb.views["slicepro_total_beats"]
+        local override_checkbox = vb.views["slicepro_root_override"]
+        if total_beats_view then
+          local is_override = override_checkbox and override_checkbox.value
+          SliceProRecalculateFromTotal(total_beats_view.value, is_override)
+        end
+        SliceProApply(true)
+        renoise.app():show_status("SlicePro: Applied silently")
+      end
+    },
+    vb:button{
+      text = "Clear Overrides",
+      width = 90,
+      notifier = function()
+        SliceProClearAllOverrides()
+        -- Refresh dialog
+        if slicepro_dialog and slicepro_dialog.visible then
+          slicepro_dialog:close()
+          slicepro_dialog = nil
+          SliceProAnalyze()  -- Re-analyze without overrides
+          SliceProConfigDialog()
+        end
+      end
+    },
+    vb:button{
+      text = "Real-Time Slice",
+      width = 90,
+      notifier = function()
+        pakettiRealtimeSliceInsertMarker()
+      end
+    },
+    vb:button{
+      text = "Close",
+      width = 50,
+      notifier = function()
+        if slicepro_dialog and slicepro_dialog.visible then
+          slicepro_dialog:close()
+          slicepro_dialog = nil
+        end
+      end
+    }
+  }
+  
+  dialog_content:add_child(button_row)
+  
   -- Slice List Section (only if there are slices)
   if #markers > 0 then
     -- Multi-column slice display
-    local rows_per_column = 8
+    local rows_per_column = slicepro_rows_per_column
     local max_columns = 8
     local display_limit = rows_per_column * max_columns
     local slices_to_display = math.min(#markers, display_limit)
     local column_count = math.ceil(slices_to_display / rows_per_column)
     
     local ranges = SliceProGetSliceRanges()
-    
-    -- Section header
-    local slice_header = vb:row{
-      vb:text{text = "Per-Slice Beats", font = "bold", style = "strong"},
-      --vb:space{width = 10},
-      vb:text{text = string.format("(%d slices)", #markers)}
-    }
-    dialog_content:add_child(slice_header)
     
     -- Create multi-column container
     local columns_container = vb:row{}
@@ -1078,94 +1279,6 @@ function SliceProConfigDialog()
     })
     dialog_content:add_child(vb:space{height = 2})
   end
-  
-  -- Buttons Row 1
-  local button_row1 = vb:row{
-    --spacing = 8,
-    vb:button{
-      text = "Analyze",
-      width = 80,
-      notifier = function()
-        -- Clear root override if user wants fresh analysis
-        SliceProState.root_override = nil
-        SliceProAnalyze()
-        -- Close and reopen to refresh
-        if slicepro_dialog and slicepro_dialog.visible then
-          slicepro_dialog:close()
-          slicepro_dialog = nil
-          SliceProConfigDialog()
-        end
-      end
-    },
-    vb:button{
-      text = "Apply",
-      width = 80,
-      notifier = function()
-        -- Update total beats from GUI
-        local total_beats_view = vb.views["slicepro_total_beats"]
-        local override_checkbox = vb.views["slicepro_root_override"]
-        if total_beats_view then
-          local is_override = override_checkbox and override_checkbox.value
-          SliceProRecalculateFromTotal(total_beats_view.value, is_override)
-        end
-        SliceProApply()
-      end
-    },
-    vb:button{
-      text = "Silent Apply",
-      width = 80,
-      notifier = function()
-        -- Update total beats from GUI first
-        local total_beats_view = vb.views["slicepro_total_beats"]
-        local override_checkbox = vb.views["slicepro_root_override"]
-        if total_beats_view then
-          local is_override = override_checkbox and override_checkbox.value
-          SliceProRecalculateFromTotal(total_beats_view.value, is_override)
-        end
-        SliceProApply(true)
-        renoise.app():show_status("SlicePro: Applied silently")
-      end
-    },
-    vb:button{
-      text = "Close",
-      width = 80,
-      notifier = function()
-        if slicepro_dialog and slicepro_dialog.visible then
-          slicepro_dialog:close()
-          slicepro_dialog = nil
-        end
-      end
-    }
-  }
-  
-  -- Buttons Row 2 (Clear overrides)
-  local button_row2 = vb:row{
-    --spacing = 8,
-    vb:button{
-      text = "Clear All Overrides",
-      width = 120,
-      notifier = function()
-        SliceProClearAllOverrides()
-        -- Refresh dialog
-        if slicepro_dialog and slicepro_dialog.visible then
-          slicepro_dialog:close()
-          slicepro_dialog = nil
-          SliceProAnalyze()  -- Re-analyze without overrides
-          SliceProConfigDialog()
-        end
-      end
-    },
-    vb:button{
-      text = "Real-Time Slice",
-      width = 100,
-      notifier = function()
-        pakettiRealtimeSliceInsertMarker()
-      end
-    }
-  }
-  
-  dialog_content:add_child(button_row1)
-  dialog_content:add_child(button_row2)
   
   -- Create keyhandler
   local keyhandler = create_keyhandler_for_dialog(
@@ -1286,32 +1399,32 @@ renoise.tool():add_midi_mapping{
 --------------------------------------------------------------------------------
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:SlicePro:SlicePro Apply",
+  name = "Sample Editor:Paketti..:SlicePro:SlicePro Apply",
   invoke = SliceProApplyOrConfig
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:SlicePro:SlicePro Config...",
+  name = "Sample Editor:Paketti..:SlicePro:SlicePro Config...",
   invoke = SliceProConfigDialog
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:SlicePro:SlicePro Silent Apply",
+  name = "Sample Editor:Paketti..:SlicePro:SlicePro Silent Apply",
   invoke = SliceProSilentApply
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:SlicePro:SlicePro Apply",
+  name = "Instrument Box:Paketti..:SlicePro:SlicePro Apply",
   invoke = SliceProApplyOrConfig
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:SlicePro:SlicePro Config...",
+  name = "Instrument Box:Paketti..:SlicePro:SlicePro Config...",
   invoke = SliceProConfigDialog
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:SlicePro:SlicePro Silent Apply",
+  name = "Instrument Box:Paketti..:SlicePro:SlicePro Silent Apply",
   invoke = SliceProSilentApply
 }
 
@@ -1360,7 +1473,7 @@ function PakettiSliceProCalculateLPBForBeats(beats)
 end
 
 -- Create beat-synced phrases from SlicePro analysis
-function PakettiSliceProCreateBeatSyncedPhrases()
+function PakettiSliceProCreateBeatsyncedPhrases()
   local song = renoise.song()
   if not song then return end
   
@@ -1557,7 +1670,7 @@ end
 -- Keybindings for phrase creation
 renoise.tool():add_keybinding{
   name = "Sample Editor:Paketti:SlicePro Create Beat-Synced Phrases",
-  invoke = PakettiSliceProCreateBeatSyncedPhrases
+  invoke = PakettiSliceProCreateBeatsyncedPhrases
 }
 
 renoise.tool():add_keybinding{
@@ -1567,7 +1680,7 @@ renoise.tool():add_keybinding{
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:SlicePro Create Beat-Synced Phrases",
-  invoke = PakettiSliceProCreateBeatSyncedPhrases
+  invoke = PakettiSliceProCreateBeatsyncedPhrases
 }
 
 renoise.tool():add_keybinding{
@@ -1580,7 +1693,7 @@ renoise.tool():add_midi_mapping{
   name = "Paketti:SlicePro Create Beat-Synced Phrases",
   invoke = function(message)
     if message:is_trigger() then
-      PakettiSliceProCreateBeatSyncedPhrases()
+      PakettiSliceProCreateBeatsyncedPhrases()
     end
   end
 }
@@ -1596,12 +1709,12 @@ renoise.tool():add_midi_mapping{
 
 -- Menu entries
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:SlicePro:Create Beat-Synced Phrases",
-  invoke = PakettiSliceProCreateBeatSyncedPhrases
+  name = "Sample Editor:Paketti..:SlicePro:Create Beat-Synced Phrases",
+  invoke = PakettiSliceProCreateBeatsyncedPhrases
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:SlicePro:Create Uniform Phrases",
+  name = "Sample Editor:Paketti..:SlicePro:Create Uniform Phrases",
   invoke = PakettiSliceProCreateUniformPhrases
 }
 

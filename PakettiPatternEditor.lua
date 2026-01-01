@@ -4058,6 +4058,13 @@ for _, tracks_opt in ipairs(tracks_options) do
         
         local phrase_keybinding_name = "Phrase Editor:Paketti:Replicate " .. row_opt.name .. " " .. transpose_opt.name
         renoise.tool():add_keybinding{name=phrase_keybinding_name,invoke=replicate_function}
+        
+        local phrase_midi_mapping_name = "Paketti:Phrase Replicate " .. row_opt.name .. " " .. transpose_opt.name
+        renoise.tool():add_midi_mapping{name=phrase_midi_mapping_name,invoke=function(message)
+          if message:is_trigger() then
+            replicate_function()
+          end
+        end}
   end
 end
 end
@@ -7675,6 +7682,7 @@ function duplicate_selection_pro()
 end
 
 renoise.tool():add_keybinding {name="Global:Paketti:Duplicate Selection in Pattern",invoke=function()duplicate_selection_pro()end}
+renoise.tool():add_midi_mapping{name="Paketti:Duplicate Selection in Pattern x[Trigger]",invoke=function(message) if message:is_trigger() then duplicate_selection_pro() end end}
 
 
 

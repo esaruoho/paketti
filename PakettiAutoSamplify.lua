@@ -334,9 +334,9 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   song.selected_sample_index = 1
   local new_sample = new_instrument.samples[1]
   
-  -- Check if source sample is an alias - cannot use copy_from on alias samples
-  if source_sample.is_alias then
-    print(string.format("DEBUG: Source sample '%s' is an alias, copying properties and buffer manually", sample_name))
+  -- Check if source sample is a slice alias - cannot use copy_from on slice alias samples
+  if source_sample.is_slice_alias then
+    print(string.format("DEBUG: Source sample '%s' is a slice alias, copying properties and buffer manually", sample_name))
     -- Copy sample properties manually
     new_sample.panning = source_sample.panning
     new_sample.volume = source_sample.volume
@@ -539,9 +539,9 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
             new_instrument:insert_sample_at(sample_idx)
             local new_sample = new_instrument.samples[sample_idx]
             
-            -- Check if source sample is an alias - cannot use copy_from on alias samples
-            if source_sample.is_alias then
-              print(string.format("DEBUG: Source sample '%s' is an alias, copying properties and buffer manually", source_sample.name))
+            -- Check if source sample is a slice alias - cannot use copy_from on slice alias samples
+            if source_sample.is_slice_alias then
+              print(string.format("DEBUG: Source sample '%s' is a slice alias, copying properties and buffer manually", source_sample.name))
               -- Copy sample properties manually
               new_sample.panning = source_sample.panning
               new_sample.volume = source_sample.volume

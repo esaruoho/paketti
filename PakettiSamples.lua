@@ -1701,7 +1701,7 @@ for i, sample in ipairs(s.instruments[currInst].samples) do
     if dontsync then 
         sample.beat_sync_enabled = false
     else
-        local beat_sync_mode = preferences.WipeSlices.WipeSlicesBeatSyncMode.value
+        local beat_sync_mode = preferences.WipeSlices.WipeSlicesBeatsyncMode.value
 
         -- Validate the beat_sync_mode value
         if beat_sync_mode < 1 or beat_sync_mode > 3 then
@@ -4235,7 +4235,7 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Toggle Mono Device",in
 
 
 -------------------
-function BeatSyncFromSelection()
+function BeatsyncFromSelection()
   local song=renoise.song()
 
   if song.selection_in_pattern then
@@ -4257,7 +4257,7 @@ function BeatSyncFromSelection()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Smart Beatsync from Selection",invoke=function()
-BeatSyncFromSelection() end}
+BeatsyncFromSelection() end}
 --
 --
 function PakettiFlipSample(fraction)

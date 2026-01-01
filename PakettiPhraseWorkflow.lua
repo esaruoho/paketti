@@ -4076,8 +4076,8 @@ function PakettiPhraseGridCreateFromContext()
       if rawget(_G, "PakettiSliceProGetState") then
         local state = PakettiSliceProGetState()
         if state and state.total_beats then
-          if rawget(_G, "PakettiSliceProCreateBeatSyncedPhrases") then
-            result = PakettiSliceProCreateBeatSyncedPhrases()
+          if rawget(_G, "PakettiSliceProCreateBeatsyncedPhrases") then
+            result = PakettiSliceProCreateBeatsyncedPhrases()
             if result then
               renoise.app():show_status("Created beat-synced phrases from SlicePro analysis")
               return result
@@ -4245,7 +4245,7 @@ function PakettiPhraseGridCheckSliceProReady()
     return false, "No sample selected"
   end
   -- Check if SlicePro functions exist
-  if not rawget(_G, "PakettiSliceProCreateBeatSyncedPhrases") then
+  if not rawget(_G, "PakettiSliceProCreateBeatsyncedPhrases") then
     return false, "SlicePro not loaded"
   end
   -- Check for beat analysis data (stored in global state)
@@ -4338,7 +4338,7 @@ end
 function PakettiPhraseGridSliceProSyncSmart()
   local ready, reason = PakettiPhraseGridCheckSliceProReady()
   if ready then
-    PakettiSliceProCreateBeatSyncedPhrases()
+    PakettiSliceProCreateBeatsyncedPhrases()
     renoise.app():show_status("Beat-synced phrases created from SlicePro analysis")
   else
     if reason == "SlicePro not loaded" then

@@ -198,7 +198,7 @@ function PakettiSampleEffectGeneratorDebugPitchCanvas()
 end
 
 -- Turn off beatsync for the currently selected sample
-function PakettiSampleEffectGeneratorTurnOffBeatSync()
+function PakettiSampleEffectGeneratorTurnOffBeatsync()
   local song = renoise.song()
   local inst = song.selected_instrument
   

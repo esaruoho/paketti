@@ -1238,7 +1238,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
 -----------
-function halveBeatSyncLinesAll()
+function halveBeatsyncLinesAll()
     local s = renoise.song()
     local currInst = s.selected_instrument_index
     if currInst == nil or not s.instruments[currInst] then
@@ -1280,7 +1280,7 @@ function halveBeatSyncLinesAll()
     renoise.app():show_status("Beatsync lines halved for all applicable samples from " .. reference_sync_lines .. " to " .. new_sync_lines)
 end
 
-function halveBeatSyncLinesSelected()
+function halveBeatsyncLinesSelected()
     local s = renoise.song()
     local currInst = s.selected_instrument_index
     if currInst == nil or not s.instruments[currInst] then
@@ -1306,7 +1306,7 @@ function halveBeatSyncLinesSelected()
     renoise.app():show_status("Beatsync lines halved for the selected sample from " .. reference_sync_lines .. " to " .. new_sync_lines)
 end
 
-function doubleBeatSyncLinesAll()
+function doubleBeatsyncLinesAll()
     local s = renoise.song()
     local currInst = s.selected_instrument_index
     if currInst == nil or not s.instruments[currInst] then
@@ -1352,7 +1352,7 @@ function doubleBeatSyncLinesAll()
     renoise.app():show_status("Beatsync lines doubled for all applicable samples from " .. reference_sync_lines .. " to " .. new_sync_lines)
 end
 
-function doubleBeatSyncLinesSelected()
+function doubleBeatsyncLinesSelected()
     local s = renoise.song()
     local currInst = s.selected_instrument_index
     if currInst == nil or not s.instruments[currInst] then
@@ -1383,14 +1383,14 @@ function doubleBeatSyncLinesSelected()
     renoise.app():show_status("Beatsync lines doubled for the selected sample from " .. reference_sync_lines .. " to " .. new_sync_lines)
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Halve Beatsync Lines (All)",invoke=function() halveBeatSyncLinesAll() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Halve Beatsync Lines (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Double Beatsync Lines (All)",invoke=function() doubleBeatSyncLinesAll() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Double Beatsync Lines (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve Beatsync Lines (All)",invoke=function() halveBeatSyncLinesAll() halveBeatSyncLinesAll()end}
-renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve Beatsync Lines (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() halveBeatSyncLinesSelected() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Double Double Beatsync Lines (All)",invoke=function() doubleBeatSyncLinesAll() doubleBeatSyncLinesAll() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Double Double Beatsync Lines (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() doubleBeatSyncLinesSelected()  end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Beatsync Lines (All)",invoke=function() halveBeatsyncLinesAll() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Beatsync Lines (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double Beatsync Lines (All)",invoke=function() doubleBeatsyncLinesAll() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double Beatsync Lines (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve Beatsync Lines (All)",invoke=function() halveBeatsyncLinesAll() halveBeatsyncLinesAll()end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve Beatsync Lines (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() halveBeatsyncLinesSelected() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double Double Beatsync Lines (All)",invoke=function() doubleBeatsyncLinesAll() doubleBeatsyncLinesAll() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double Double Beatsync Lines (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() doubleBeatsyncLinesSelected()  end}
 -- Function to load a pitchbend instrument
 function pitchedInstrument(st)
   renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets" .. separator .. st .. "st_Pitchbend.xrni")
@@ -9166,6 +9166,16 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Step by EditStep (For
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Step by EditStep (Backwards)", invoke=function() PakettiStepByEditStep(-1) end}
 renoise.tool():add_midi_mapping{name="Paketti:Step by EditStep Forward x[Trigger]", invoke=function(message) if message:is_trigger() then PakettiStepByEditStep(1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Step by EditStep Backward x[Trigger]", invoke=function(message) if message:is_trigger() then PakettiStepByEditStep(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Step by EditStep (Wheel) x[Knob]", 
+  invoke=function(message) 
+    if message:is_abs_value() then 
+      if message.int_value <= 64 then 
+        PakettiStepByEditStep(-1) 
+      else 
+        PakettiStepByEditStep(1) 
+      end 
+    end 
+  end}
 -------
 function PakettiFixC0Panning()
   local song=renoise.song()

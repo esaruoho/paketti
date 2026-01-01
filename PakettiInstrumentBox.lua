@@ -386,7 +386,8 @@ function capture_ins_oct(state)
          if (not line.is_empty) then
             for i = 1, renoise.song().tracks[current_track].visible_note_columns do
                local notecol = line.note_columns[i]
-               if (not notecol.is_empty and notecol.note_string ~= "OFF") then
+               -- Skip notes without valid instrument values (255 means empty/no instrument)
+               if (not notecol.is_empty and notecol.note_string ~= "OFF" and notecol.instrument_value ~= 255) then
                   found_any_note = true
                   
                   -- Check if this is the current instrument
@@ -430,7 +431,9 @@ function capture_ins_oct(state)
       if (not line.is_empty) then
          for i = 1, renoise.song().tracks[current_track].visible_note_columns do
             local notecol = line.note_columns[i]
+            -- Skip notes without valid instrument values (255 means empty/no instrument)
             if (not notecol.is_empty and notecol.note_string ~= "OFF" and 
+                notecol.instrument_value ~= 255 and
                 notecol.instrument_value + 1 == renoise.song().selected_instrument_index) then
                found_current_instrument_note = true
                break

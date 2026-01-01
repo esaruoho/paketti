@@ -299,9 +299,9 @@ end
 
 -- Intelligent BPM detection - finds the beat count that gives reasonable BPM (from PakettiRender.lua)
 function pakettiBPMDetectFromSample(sample_length_frames, sample_rate)
-    local beat_counts = {1, 2, 3, 4, 6, 8, 16, 32}
-    local reasonable_bpm_min = 80
-    local reasonable_bpm_max = 180
+    local beat_counts = {1, 2, 3, 4, 6, 8, 16, 32, 64, 128, 256, 512}
+    local reasonable_bpm_min = 60
+    local reasonable_bpm_max = 200
     
     print("=== INTELLIGENT BPM DETECTION ===")
     print("Sample:", sample_length_frames, "frames @", sample_rate, "Hz")
@@ -316,10 +316,27 @@ function pakettiBPMDetectFromSample(sample_length_frames, sample_rate)
         end
     end
     
-    -- If no reasonable BPM found, use 4 beats as fallback
-    local fallback_bpm = pakettiBPMCountFromSample(sample_length_frames, sample_rate, 4)
-    print("No reasonable BPM found, using 4-beat fallback:", string.format("%.1f", fallback_bpm), "BPM")
-    return fallback_bpm, 4
+    -- If no reasonable BPM found, calculate from song BPM
+    local song_bpm = renoise.song().transport.bpm
+    local duration_sec = sample_length_frames / sample_rate
+    local calculated_beats = math.floor((duration_sec * song_bpm / 60) + 0.5)
+    
+    -- Find closest power of 2 (or musical value)
+    local musical_values = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}
+    local closest_beats = calculated_beats
+    for _, p in ipairs(musical_values) do
+        if p >= calculated_beats then
+            closest_beats = p
+            break
+        end
+    end
+    -- Clamp to valid range
+    closest_beats = math.max(1, math.min(512, closest_beats))
+    
+    local fallback_bpm = pakettiBPMCountFromSample(sample_length_frames, sample_rate, closest_beats)
+    print(string.format("No reasonable BPM found, using duration-based fallback: %.2f sec @ %d BPM = %d beats", 
+        duration_sec, song_bpm, closest_beats))
+    return fallback_bpm, closest_beats
 end
 
 -- Advanced transient-based BPM detection (from PakettiOldschoolSlicePitch.lua)

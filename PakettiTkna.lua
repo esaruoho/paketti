@@ -436,7 +436,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Oversampl
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Oversample Off",invoke=function() selectedSampleOversampleOff() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Oversample On/Off",invoke=function() selectedSampleOversampleToggle() end}
 
-function selectedSampleBeatSync(number)
+function selectedSampleBeatsync(number)
 if not renoise.song().selected_sample then 
   renoise.app():show_status("No sample selected, doing nothing.")
   return 
@@ -444,11 +444,11 @@ end
 renoise.song().selected_sample.beat_sync_mode = number
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 1 (Repitch)",invoke=function() selectedSampleBeatSync(1) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 2 (Time-Stretch Percussion)",invoke=function() selectedSampleBeatSync(2) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 3 (Time-Stretch Texture)",invoke=function() selectedSampleBeatSync(3) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 1 (Repitch)",invoke=function() selectedSampleBeatsync(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 2 (Time-Stretch Percussion)",invoke=function() selectedSampleBeatsync(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 3 (Time-Stretch Texture)",invoke=function() selectedSampleBeatsync(3) end}
 
-function selectedSampleBeatSyncAndToggleOn(number)
+function selectedSampleBeatsyncAndToggleOn(number)
 if not renoise.song().selected_sample then 
   renoise.app():show_status("No sample selected, doing nothing.")
   return 
@@ -468,9 +468,9 @@ renoise.song().selected_sample.beat_sync_enabled = false
 end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 1 (Repitch)",invoke=function() selectedSampleBeatSyncAndToggleOn(1) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 2 (Time-Stretch Percussion)",invoke=function() selectedSampleBeatSyncAndToggleOn(2) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 3 (Time-Stretch Texture)",invoke=function() selectedSampleBeatSyncAndToggleOn(3) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 1 (Repitch)",invoke=function() selectedSampleBeatsyncAndToggleOn(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 2 (Time-Stretch Percussion)",invoke=function() selectedSampleBeatsyncAndToggleOn(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 3 (Time-Stretch Texture)",invoke=function() selectedSampleBeatsyncAndToggleOn(3) end}
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off",invoke=function()
@@ -484,22 +484,22 @@ if renoise.song().selected_sample.beat_sync_enabled then
  renoise.song().selected_sample.beat_sync_enabled = true
 end end}
 
-function selectedSampleBeatSyncLine(number)
+function selectedSampleBeatsyncLine(number)
 if not renoise.song().selected_sample then 
   renoise.app():show_status("No sample selected, doing nothing.")
   return 
 end
-local currentBeatSyncLine = renoise.song().selected_sample.beat_sync_lines
-local changedBeatSyncLine = currentBeatSyncLine + number
-if changedBeatSyncLine > 512 then changedBeatSyncLine = 512
-else if changedBeatSyncLine < 1 then -- renoise.song().selected_sample.beat_sync_enabled = false 
+local currentBeatsyncLine = renoise.song().selected_sample.beat_sync_lines
+local changedBeatsyncLine = currentBeatsyncLine + number
+if changedBeatsyncLine > 512 then changedBeatsyncLine = 512
+else if changedBeatsyncLine < 1 then -- renoise.song().selected_sample.beat_sync_enabled = false 
 return end end
-renoise.song().selected_sample.beat_sync_lines=changedBeatSyncLine
+renoise.song().selected_sample.beat_sync_lines=changedBeatsyncLine
 renoise.song().selected_sample.beat_sync_enabled = true
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Line (+1)",invoke=function() selectedSampleBeatSyncLine(1) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Line (-1)",invoke=function() selectedSampleBeatSyncLine(-1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Line (+1)",invoke=function() selectedSampleBeatsyncLine(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Line (-1)",invoke=function() selectedSampleBeatsyncLine(-1) end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Autofade On/Off",invoke=function() selectedSampleAutofadeToggle() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Autoseek On/Off",invoke=function() selectedSampleAutoseekToggle() end}
@@ -658,12 +658,12 @@ end
 
 
 -----
-function setBeatSyncLineAbove()
-    local currentBeatSyncLine = renoise.song().selected_sample.beat_sync_lines
+function setBeatsyncLineAbove()
+    local currentBeatsyncLine = renoise.song().selected_sample.beat_sync_lines
     -- Calculate the next higher power of 2
-    local power = math.ceil(math.log(currentBeatSyncLine) / math.log(2))
+    local power = math.ceil(math.log(currentBeatsyncLine) / math.log(2))
     local nextPowerOfTwo = 2 ^ power
-    if nextPowerOfTwo <= currentBeatSyncLine then -- Ensure we actually move up
+    if nextPowerOfTwo <= currentBeatsyncLine then -- Ensure we actually move up
         nextPowerOfTwo = nextPowerOfTwo * 2
     end
     -- Clamp to maximum allowed value
@@ -672,14 +672,14 @@ function setBeatSyncLineAbove()
     renoise.song().selected_sample.beat_sync_enabled = true
 end
 
-function setBeatSyncLineBelow()
-    local currentBeatSyncLine = renoise.song().selected_sample.beat_sync_lines
-    if currentBeatSyncLine <= 1 then -- Prevent going below 1
+function setBeatsyncLineBelow()
+    local currentBeatsyncLine = renoise.song().selected_sample.beat_sync_lines
+    if currentBeatsyncLine <= 1 then -- Prevent going below 1
         return
     end
-    local power = math.floor(math.log(currentBeatSyncLine) / math.log(2))
+    local power = math.floor(math.log(currentBeatsyncLine) / math.log(2))
     local prevPowerOfTwo = 2 ^ power
-    if prevPowerOfTwo >= currentBeatSyncLine then -- Ensure we actually move down
+    if prevPowerOfTwo >= currentBeatsyncLine then -- Ensure we actually move down
         prevPowerOfTwo = prevPowerOfTwo / 2
     end
     renoise.song().selected_sample.beat_sync_lines = prevPowerOfTwo
@@ -687,8 +687,8 @@ function setBeatSyncLineBelow()
 end
 
 
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Line (Power of Two Above)",invoke=function() setBeatSyncLineAbove() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Line (Power of Two Below)",invoke=function() setBeatSyncLineBelow() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Line (Power of Two Above)",invoke=function() setBeatsyncLineAbove() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Line (Power of Two Below)",invoke=function() setBeatsyncLineBelow() end}
 
 
 -- Function to toggle the sequence selection based on the provided sequence number

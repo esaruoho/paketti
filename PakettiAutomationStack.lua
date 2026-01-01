@@ -82,6 +82,13 @@ PakettiAutomationStack_show_same_popup_view = nil
 -- Preferences key for persistent storage
 PakettiAutomationStack_prefs_key = "AutomationStack_SelectedParams"
 
+-- Stacker Mode: Multi-pattern automation editing
+PakettiAutomationStack_stacker_mode = false -- false=single pattern, true=multi-pattern
+PakettiAutomationStack_stacker_seq_start = nil -- Start sequence index
+PakettiAutomationStack_stacker_seq_end = nil -- End sequence index
+PakettiAutomationStack_stacker_patterns = {} -- Array of {seq_index, pattern_index, pattern, num_lines, start_offset}
+PakettiAutomationStack_stacker_total_lines = 0 -- Sum of all pattern lines
+
 -- Utility draw text helper
 function PakettiAutomationStack_DrawText(ctx, text, x, y, size)
   if type(PakettiCanvasFontDrawText) == "function" then
@@ -244,6 +251,120 @@ function PakettiAutomationStack_GetSongPatternTrack()
   return song, patt, ptrack
 end
 
+-- Build stacker patterns array from sequencer selection
+function PakettiAutomationStack_BuildStackerPatterns()
+  PakettiAutomationStack_stacker_patterns = {}
+  PakettiAutomationStack_stacker_total_lines = 0
+  PakettiAutomationStack_stacker_seq_start = nil
+  PakettiAutomationStack_stacker_seq_end = nil
+  
+  local song = renoise.song()
+  if not song then return false end
+  
+  local selection_range = song.sequencer.selection_range
+  -- selection_range returns {0, 0} if no selection, else {start, end}
+  if not selection_range or selection_range[1] == 0 or selection_range[2] == 0 then
+    -- No selection - disable stacker mode
+    return false
+  end
+  
+  local seq_start = selection_range[1]
+  local seq_end = selection_range[2]
+  
+  -- Ensure valid range
+  if seq_start > seq_end then
+    local tmp = seq_start
+    seq_start = seq_end
+    seq_end = tmp
+  end
+  
+  -- Clamp to valid sequence range
+  local seq_count = #song.sequencer.pattern_sequence
+  if seq_start < 1 then seq_start = 1 end
+  if seq_end > seq_count then seq_end = seq_count end
+  
+  PakettiAutomationStack_stacker_seq_start = seq_start
+  PakettiAutomationStack_stacker_seq_end = seq_end
+  
+  local cumulative_offset = 0
+  for seq_idx = seq_start, seq_end do
+    local pattern_index = song.sequencer.pattern_sequence[seq_idx]
+    local pattern = song:pattern(pattern_index)
+    local num_lines = pattern.number_of_lines
+    
+    local entry = {
+      seq_index = seq_idx,
+      pattern_index = pattern_index,
+      pattern = pattern,
+      num_lines = num_lines,
+      start_offset = cumulative_offset -- 0-based offset for this pattern's first line
+    }
+    PakettiAutomationStack_stacker_patterns[#PakettiAutomationStack_stacker_patterns + 1] = entry
+    cumulative_offset = cumulative_offset + num_lines
+  end
+  
+  PakettiAutomationStack_stacker_total_lines = cumulative_offset
+  
+  print("Stacker: Built " .. #PakettiAutomationStack_stacker_patterns .. " patterns, total " .. PakettiAutomationStack_stacker_total_lines .. " lines")
+  return true
+end
+
+-- Convert global line (1-based across all patterns) to pattern-local coordinates
+-- Returns: seq_index, pattern_index, local_line, pattern_entry_index
+function PakettiAutomationStack_GlobalLineToPatternLine(global_line)
+  if not PakettiAutomationStack_stacker_mode or #PakettiAutomationStack_stacker_patterns == 0 then
+    -- Not in stacker mode, return current pattern info
+    local song = renoise.song()
+    if not song then return nil, nil, global_line, nil end
+    local seq_idx = song.selected_sequence_index
+    local patt_idx = song.selected_pattern_index
+    return seq_idx, patt_idx, global_line, nil
+  end
+  
+  -- Find which pattern this global line falls into
+  local global_0based = global_line - 1
+  for i, entry in ipairs(PakettiAutomationStack_stacker_patterns) do
+    local pattern_end_offset = entry.start_offset + entry.num_lines
+    if global_0based < pattern_end_offset then
+      local local_line = global_0based - entry.start_offset + 1
+      return entry.seq_index, entry.pattern_index, local_line, i
+    end
+  end
+  
+  -- Past the end - return last pattern's last line
+  local last = PakettiAutomationStack_stacker_patterns[#PakettiAutomationStack_stacker_patterns]
+  if last then
+    return last.seq_index, last.pattern_index, last.num_lines, #PakettiAutomationStack_stacker_patterns
+  end
+  
+  return nil, nil, global_line, nil
+end
+
+-- Convert pattern-local line to global line (1-based)
+function PakettiAutomationStack_PatternLineToGlobalLine(pattern_entry_index, local_line)
+  if not PakettiAutomationStack_stacker_mode or #PakettiAutomationStack_stacker_patterns == 0 then
+    return local_line
+  end
+  
+  local entry = PakettiAutomationStack_stacker_patterns[pattern_entry_index]
+  if not entry then return local_line end
+  
+  return entry.start_offset + local_line
+end
+
+-- Get total lines for current view (stacker or single pattern)
+function PakettiAutomationStack_GetTotalLines()
+  if PakettiAutomationStack_stacker_mode and PakettiAutomationStack_stacker_total_lines > 0 then
+    return PakettiAutomationStack_stacker_total_lines
+  end
+  
+  local song, patt, _ = PakettiAutomationStack_GetSongPatternTrack()
+  if patt then
+    return patt.number_of_lines
+  end
+  return 64 -- Default fallback
+end
+
 -- Zoom and mapping
 function PakettiAutomationStack_GetWindowLines(total_lines)
   local z = PakettiAutomationStack_zoom_levels[PakettiAutomationStack_zoom_index] or 1.0
@@ -303,7 +424,8 @@ end
 function PakettiAutomationStack_UpdateScrollbars()
   local song, patt, _ptrack = PakettiAutomationStack_GetSongPatternTrack()
   if not song or not patt then return end
-  local num_lines = patt.number_of_lines
+  -- Use stacker total lines if in stacker mode
+  local num_lines = PakettiAutomationStack_GetTotalLines()
   PakettiAutomationStack_ClampView(num_lines)
   if PakettiAutomationStack_scrollbar_view then
     local win = PakettiAutomationStack_GetWindowLines(num_lines)
@@ -794,6 +916,29 @@ function PakettiAutomationStack_DrawGrid(ctx, W, H, num_lines, lpb)
       end
     end
   end
+  
+  -- Draw pattern boundaries in stacker mode
+  if PakettiAutomationStack_stacker_mode and #PakettiAutomationStack_stacker_patterns > 1 then
+    ctx.line_width = 2
+    for i = 2, #PakettiAutomationStack_stacker_patterns do
+      local entry = PakettiAutomationStack_stacker_patterns[i]
+      -- Pattern boundary is at start_offset + 1 (first line of this pattern in global coords)
+      local boundary_line = entry.start_offset + 1
+      local x = PakettiAutomationStack_LineToX(boundary_line, num_lines)
+      -- Draw dashed orange line for pattern boundary
+      ctx.stroke_color = {255, 140, 0, 255}
+      local dash_len = 6
+      local gap_len = 4
+      local y = 0
+      while y < H do
+        ctx:begin_path()
+        ctx:move_to(x, y)
+        ctx:line_to(x, math.min(y + dash_len, H))
+        ctx:stroke()
+        y = y + dash_len + gap_len
+      end
+    end
+  end
 end
 
 -- Draw a single automation into an existing canvas with track-based colors or custom colors
@@ -899,6 +1044,46 @@ function PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, colo
       ctx:stroke()
     end
   end
+end
+
+-- Collect all automation points across stacker patterns for a given parameter
+-- Returns array of {time, value} with time as global line offset
+function PakettiAutomationStack_CollectStackerPoints(entry)
+  if not entry or not entry.parameter then return {} end
+  
+  local song = renoise.song()
+  if not song then return {} end
+  
+  local param = entry.parameter
+  local track_idx = entry.track_index or song.selected_track_index
+  local all_points = {}
+  
+  for patt_entry_idx, patt_entry in ipairs(PakettiAutomationStack_stacker_patterns) do
+    local pattern = patt_entry.pattern
+    if pattern then
+      local pattern_track = pattern:track(track_idx)
+      if pattern_track then
+        local automation = pattern_track:find_automation(param)
+        if automation and automation.points then
+          local mode = automation.playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES
+          for _, p in ipairs(automation.points) do
+            local global_time = patt_entry.start_offset + (p.time or 1)
+            all_points[#all_points + 1] = {
+              time = global_time,
+              value = p.value,
+              playmode = mode,
+              pattern_entry_idx = patt_entry_idx
+            }
+          end
+        end
+      end
+    end
+  end
+  
+  -- Sort by global time
+  table.sort(all_points, function(a, b) return a.time < b.time end)
+  
+  return all_points
 end
 
 -- Invalidate the background cache for Single view
@@ -1468,46 +1653,70 @@ function PakettiAutomationStack_WritePoint(automation_index, line, value, remove
   local song, patt, ptrack = PakettiAutomationStack_GetSongPatternTrack(); if not song or not patt or not ptrack then return end
   local entry = PakettiAutomationStack_automations[automation_index]; if not entry then return end
   
-  -- Clamp line to valid pattern range for automation writing
+  local target_ptrack = ptrack
   local num_lines = patt.number_of_lines
   local original_line = line
-  -- Allow writing to the precise end of the pattern (64.99609375 for 64-line pattern)
-  if line > num_lines then
-    line = num_lines + (num_lines - 1) / num_lines  -- This gives 64.99609375 for 64-line pattern
+  local local_line = line
+  
+  -- In stacker mode, convert global line to pattern-local coordinates
+  if PakettiAutomationStack_stacker_mode and #PakettiAutomationStack_stacker_patterns > 0 then
+    local seq_idx, pattern_idx, loc_line, patt_entry_idx = PakettiAutomationStack_GlobalLineToPatternLine(line)
+    if seq_idx and pattern_idx and patt_entry_idx then
+      local stacker_entry = PakettiAutomationStack_stacker_patterns[patt_entry_idx]
+      if stacker_entry then
+        num_lines = stacker_entry.num_lines
+        local_line = loc_line
+        -- Get the pattern track for this specific pattern
+        local target_pattern = song:pattern(pattern_idx)
+        if target_pattern then
+          target_ptrack = target_pattern:track(entry.track_index or song.selected_track_index)
+        end
+        print("STACKER WRITE: global_line=" .. line .. " -> pattern " .. pattern_idx .. " local_line=" .. local_line)
+      end
+    end
   end
-  line = math.max(1, line)
+  
+  -- Clamp line to valid pattern range for automation writing
+  -- Allow writing to the precise end of the pattern (64.99609375 for 64-line pattern)
+  if local_line > num_lines then
+    local_line = num_lines + (num_lines - 1) / num_lines  -- This gives 64.99609375 for 64-line pattern
+  end
+  local_line = math.max(1, local_line)
   
   -- DEBUG: Show what we're trying to write
-  print("WRITE DEBUG: original_line=" .. original_line .. ", clamped_line=" .. line .. ", num_lines=" .. num_lines .. ", value=" .. value .. ", remove=" .. tostring(remove))
+  print("WRITE DEBUG: original_line=" .. original_line .. ", local_line=" .. local_line .. ", num_lines=" .. num_lines .. ", value=" .. value .. ", remove=" .. tostring(remove))
   
+  -- In stacker mode, we need to find automation on the target pattern, not the entry's cached automation
+  local a = nil
+  local param = entry.parameter
   
-  local a = entry.automation
+  if PakettiAutomationStack_stacker_mode and target_ptrack then
+    -- Find or create automation on the target pattern track
+    a = target_ptrack:find_automation(param)
+  else
+    a = entry.automation
+  end
   
   -- If no automation exists yet, create it by adding the first point
   if not a and not remove then
     print("DEBUG: No automation exists, creating new one...")
-    -- Use the stored pattern_track if available, otherwise use current ptrack
-    local target_ptrack = entry.pattern_track or ptrack
-    -- Adding a point automatically creates the automation envelope in Renoise
-    -- We need to get the automation after creating the first point
-    local param = entry.parameter
+    -- Use the target pattern track
+    local ptrack_to_use = target_ptrack or entry.pattern_track or ptrack
     print("DEBUG: param=" .. (param and param.name or "nil") .. ", is_automatable=" .. (param and tostring(param.is_automatable) or "nil"))
     if param and param.is_automatable then
       -- Create automation by adding first point - this automatically creates the envelope
       local desired = PakettiAutomationStack_PlaymodeForIndex(PakettiAutomationStack_draw_playmode_index)
       
-      -- The tricky part: we need to create automation first
-      -- In Renoise, automation is created when you add the first point
-      -- But we need the automation object to set playmode
-      
       -- Create automation envelope if it doesn't exist
-      if not target_ptrack:find_automation(param) then
+      if not ptrack_to_use:find_automation(param) then
         print("DEBUG: Creating new automation envelope...")
         -- Create the automation envelope for this parameter
-        a = target_ptrack:create_automation(param)
+        a = ptrack_to_use:create_automation(param)
         if a then
           print("DEBUG: Automation envelope created successfully")
-          entry.automation = a -- Store it back in the entry for next time
+          if not PakettiAutomationStack_stacker_mode then
+            entry.automation = a -- Store it back in the entry for next time (only in single pattern mode)
+          end
           a.playmode = desired -- Only set playmode for newly created automation
         else
           print("DEBUG: Failed to create automation envelope")
@@ -1515,8 +1724,8 @@ function PakettiAutomationStack_WritePoint(automation_index, line, value, remove
       else
         print("DEBUG: Found existing automation envelope")
         -- Get existing automation - DON'T change its playmode
-        a = target_ptrack:find_automation(param)
-        if a then
+        a = ptrack_to_use:find_automation(param)
+        if a and not PakettiAutomationStack_stacker_mode then
           entry.automation = a -- Store it back in the entry for next time
           -- Keep existing playmode - don't modify it
         end
@@ -1532,12 +1741,12 @@ function PakettiAutomationStack_WritePoint(automation_index, line, value, remove
   -- Only new automation envelopes get the playmode set during creation above
   
   if remove then
-    if a:has_point_at(line) then a:remove_point_at(line) end
+    if a:has_point_at(local_line) then a:remove_point_at(local_line) end
   else
     -- Normalize already 0..1
-    if a:has_point_at(line) then a:remove_point_at(line) end
-    a:add_point_at(line, value)
-    print("ADDED point at line " .. line .. " with value " .. value)
+    if a:has_point_at(local_line) then a:remove_point_at(local_line) end
+    a:add_point_at(local_line, value)
+    print("ADDED point at local_line " .. local_line .. " with value " .. value)
   end
   
   -- Invalidate background cache since automation was modified
@@ -1547,7 +1756,8 @@ end
 -- Mouse handler per lane
 function PakettiAutomationStack_LaneMouse(automation_index, ev, lane_h)
   local song, patt, _ptrack = PakettiAutomationStack_GetSongPatternTrack(); if not song or not patt then return end
-  local num_lines = patt.number_of_lines
+  -- Use stacker total lines if in stacker mode
+  local num_lines = PakettiAutomationStack_GetTotalLines()
   local x = ev.position.x
   local y = ev.position.y
   local line = PakettiAutomationStack_XToLine(x, num_lines)
@@ -1654,7 +1864,8 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
     local H = canvas_h or PakettiAutomationStack_lane_height
     ctx:clear_rect(0, 0, W, H)
     if not song or not patt then return end
-    local num_lines = patt.number_of_lines
+    -- Use stacker total lines if in stacker mode
+    local num_lines = PakettiAutomationStack_GetTotalLines()
     local lpb = song.transport.lpb
 
     PakettiAutomationStack_DrawGrid(ctx, W, H, num_lines, lpb)
@@ -1669,6 +1880,13 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
     if PakettiAutomationStack_arbitrary_mode and entry.track_index then
       label = string.format("Track%02d: %s: %s", 
         entry.track_index, (entry.device_name or "DEVICE"), (entry.name or "PARAM"))
+    elseif PakettiAutomationStack_stacker_mode then
+      -- Show stacker info in label
+      local stacker_info = ""
+      if PakettiAutomationStack_stacker_seq_start and PakettiAutomationStack_stacker_seq_end then
+        stacker_info = string.format(" [Seq %d-%d]", PakettiAutomationStack_stacker_seq_start, PakettiAutomationStack_stacker_seq_end)
+      end
+      label = string.format("%s: %s%s", (entry.device_name or "DEVICE"), (entry.name or "PARAM"), stacker_info)
     else
       label = string.format("%s: %s", (entry.device_name or "DEVICE"), (entry.name or "PARAM"))
     end
@@ -1699,9 +1917,6 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
     end
     PakettiAutomationStack_DrawText(ctx, string.upper(label .. mute_suffix), 6, 4, 8)
 
-    local a = entry.automation
-    local points = (a and a.points) or {}
-    local mode = (a and a.playmode) or renoise.PatternTrackAutomation.PLAYMODE_LINES
     local gutter = PakettiAutomationStack_gutter_width
 
     -- Draw zero-line reference
@@ -1711,16 +1926,35 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
     local end_x = (gutter > 0) and (W - gutter) or W
     ctx:begin_path(); ctx:move_to(start_x, PakettiAutomationStack_ValueToY(0.5, H)); ctx:line_to(end_x, PakettiAutomationStack_ValueToY(0.5, H)); ctx:stroke()
 
+    -- Collect points - in stacker mode, collect from all patterns
+    local points = {}
+    local mode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+    
+    if PakettiAutomationStack_stacker_mode and #PakettiAutomationStack_stacker_patterns > 0 then
+      -- Collect points from all stacker patterns
+      points = PakettiAutomationStack_CollectStackerPoints(entry)
+      -- Use the playmode from the first pattern that has automation
+      if #points > 0 then
+        mode = points[1].playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES
+      end
+    else
+      -- Single pattern mode - use existing automation
+      local a = entry.automation
+      if a and a.points then
+        for _, p in ipairs(a.points) do
+          points[#points + 1] = {time = p.time, value = p.value}
+        end
+        mode = a.playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES
+      end
+    end
+
     if #points == 0 then
       -- Empty lane - show as ready for drawing with a subtle indicator
-      local track_idx = entry.track_index or song.selected_track_index
       local dim_color = PakettiAutomationStack_TrackColorToCanvas(track_idx, 60, 0.5)
       ctx.stroke_color = dim_color
       ctx.line_width = 1
       -- Draw dotted line to indicate this is a drawable empty lane
       local step = 20
-      local start_x = (gutter > 0) and gutter or 0
-      local end_x = (gutter > 0) and (W - gutter) or W
       for x = start_x, end_x, step do
         ctx:begin_path()
         ctx:move_to(x, PakettiAutomationStack_ValueToY(0.5, H))
@@ -1731,7 +1965,6 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
     end
 
     -- Get track-based colors
-    local track_idx = entry.track_index or song.selected_track_index
     local base_color, bright_color, dim_color = PakettiAutomationStack_GetTrackAutomationColors(track_idx)
 
     if mode == renoise.PatternTrackAutomation.PLAYMODE_POINTS then
@@ -1774,8 +2007,8 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
         local last_point = points[#points]
         local last_y = PakettiAutomationStack_ValueToY(last_point.value, H)
         -- Extend to the actual end of the canvas (right edge) - no gutter constraints
-        local end_x = W
-        ctx:line_to(end_x, last_y)
+        local end_x_line = W
+        ctx:line_to(end_x_line, last_y)
       end
       ctx:stroke()
       -- square point markers to properly cover grid lines
@@ -1833,12 +2066,23 @@ function PakettiAutomationStack_RenderHeaderCanvas(canvas_w, canvas_h)
     if not ev or ev.type ~= "down" then return end
     local song, patt, _ptrack = PakettiAutomationStack_GetSongPatternTrack(); if not song or not patt then return end
     local x = ev.position.x
-    local num_lines = patt.number_of_lines
+    local num_lines = PakettiAutomationStack_GetTotalLines()
     local target_line = PakettiAutomationStack_XToLine(x, num_lines)
     if target_line < 1 then target_line = 1 end
     if target_line > num_lines then target_line = num_lines end
-    song.selected_line_index = target_line
-    song.transport:start_at(renoise.SongPos(renoise.song().selected_sequence_index, target_line))
+    
+    -- In stacker mode, need to jump to correct pattern and local line
+    if PakettiAutomationStack_stacker_mode and #PakettiAutomationStack_stacker_patterns > 0 then
+      local seq_idx, patt_idx, local_line, _ = PakettiAutomationStack_GlobalLineToPatternLine(target_line)
+      if seq_idx and local_line then
+        song.selected_sequence_index = seq_idx
+        song.selected_line_index = local_line
+        song.transport:start_at(renoise.SongPos(seq_idx, local_line))
+      end
+    else
+      song.selected_line_index = target_line
+      song.transport:start_at(renoise.SongPos(renoise.song().selected_sequence_index, target_line))
+    end
   end
   return function(ctx)
     local song, patt, _ptrack = PakettiAutomationStack_GetSongPatternTrack()
@@ -1846,7 +2090,7 @@ function PakettiAutomationStack_RenderHeaderCanvas(canvas_w, canvas_h)
     local H = canvas_h or (PakettiAutomationStack_gutter_height + 4)
     ctx:clear_rect(0, 0, W, H)
     if not song or not patt then return end
-    local num_lines = patt.number_of_lines
+    local num_lines = PakettiAutomationStack_GetTotalLines()
     local win = PakettiAutomationStack_GetWindowLines(num_lines)
     local view_start = PakettiAutomationStack_view_start_line
     local view_end = math.min(num_lines, view_start + win - 1)
@@ -1892,16 +2136,61 @@ function PakettiAutomationStack_RenderHeaderCanvas(canvas_w, canvas_h)
         ctx.stroke_color = {90,90,120,255}
       end
     end
+    -- Draw pattern boundaries and labels in stacker mode
+    if PakettiAutomationStack_stacker_mode and #PakettiAutomationStack_stacker_patterns > 1 then
+      ctx.stroke_color = {255, 140, 0, 255}
+      ctx.line_width = 2
+      for i, entry in ipairs(PakettiAutomationStack_stacker_patterns) do
+        -- Draw boundary line at start of each pattern (except first)
+        if i > 1 then
+          local boundary_line = entry.start_offset + 1
+          local x = PakettiAutomationStack_LineToX(boundary_line, num_lines)
+          ctx:begin_path()
+          ctx:move_to(x, 0)
+          ctx:line_to(x, H)
+          ctx:stroke()
+        end
+        -- Draw pattern sequence number label
+        local label_line = entry.start_offset + 1
+        local label_x = PakettiAutomationStack_LineToX(label_line, num_lines)
+        ctx.stroke_color = {255, 180, 80, 255}
+        local seq_label = string.format("S%02d", entry.seq_index)
+        PakettiAutomationStack_DrawText(ctx, seq_label, label_x + 4, H - 10, 7)
+        ctx.stroke_color = {255, 140, 0, 255}
+      end
+    end
+    
     -- playhead
     local x_play = nil
     local play_line = nil
     if song.transport.playing then
       local pos = song.transport.playback_pos
-      if pos and pos.sequence and pos.line and pos.sequence == renoise.song().selected_sequence_index then
+      -- In stacker mode, convert playhead to global line
+      if PakettiAutomationStack_stacker_mode and #PakettiAutomationStack_stacker_patterns > 0 then
+        -- Check if playback is in one of our stacker patterns
+        for i, entry in ipairs(PakettiAutomationStack_stacker_patterns) do
+          if pos and pos.sequence and pos.line and pos.sequence == entry.seq_index then
+            play_line = entry.start_offset + pos.line
+            break
+          end
+        end
+      elseif pos and pos.sequence and pos.line and pos.sequence == renoise.song().selected_sequence_index then
         play_line = pos.line
       end
     else
-      play_line = song.selected_line_index
+      -- Not playing - show selected line position
+      if PakettiAutomationStack_stacker_mode and #PakettiAutomationStack_stacker_patterns > 0 then
+        -- Find current sequence in stacker and convert to global line
+        local current_seq = song.selected_sequence_index
+        for i, entry in ipairs(PakettiAutomationStack_stacker_patterns) do
+          if entry.seq_index == current_seq then
+            play_line = entry.start_offset + song.selected_line_index
+            break
+          end
+        end
+      else
+        play_line = song.selected_line_index
+      end
     end
     if play_line then x_play = PakettiAutomationStack_LineToX(play_line, num_lines) end
     if x_play then
@@ -2450,6 +2739,92 @@ function PakettiAutomationStack_BuildContent()
     }
   }
 
+  -- Stacker mode row: multi-pattern automation editing
+  local stacker_info_text = "(No selection)"
+  if PakettiAutomationStack_stacker_mode and PakettiAutomationStack_stacker_seq_start and PakettiAutomationStack_stacker_seq_end then
+    stacker_info_text = string.format("Seq %d-%d (%d lines)", 
+      PakettiAutomationStack_stacker_seq_start, 
+      PakettiAutomationStack_stacker_seq_end,
+      PakettiAutomationStack_stacker_total_lines)
+  end
+  
+  local stacker_row = PakettiAutomationStack_vb:row{
+    PakettiAutomationStack_vb:checkbox{
+      id = "pas_stacker_checkbox",
+      value = PakettiAutomationStack_stacker_mode,
+      notifier = function(val)
+        if val then
+          -- Try to enable stacker mode by reading sequencer selection
+          local success = PakettiAutomationStack_BuildStackerPatterns()
+          if success then
+            PakettiAutomationStack_stacker_mode = true
+            -- Update info text
+            local info_view = PakettiAutomationStack_vb.views["pas_stacker_info"]
+            if info_view then
+              info_view.text = string.format("Seq %d-%d (%d lines)", 
+                PakettiAutomationStack_stacker_seq_start, 
+                PakettiAutomationStack_stacker_seq_end,
+                PakettiAutomationStack_stacker_total_lines)
+            end
+            PakettiAutomationStack_RebuildAutomations()
+            PakettiAutomationStack_RebuildCanvases()
+            PakettiAutomationStack_RequestUpdate()
+            renoise.app():show_status("Automation Stacker: Multi-pattern mode enabled - Seq " .. 
+              PakettiAutomationStack_stacker_seq_start .. "-" .. PakettiAutomationStack_stacker_seq_end)
+          else
+            -- No selection - revert checkbox
+            PakettiAutomationStack_stacker_mode = false
+            local checkbox_view = PakettiAutomationStack_vb.views["pas_stacker_checkbox"]
+            if checkbox_view then checkbox_view.value = false end
+            renoise.app():show_status("Automation Stacker: Select patterns in Pattern Matrix first (Shift+Click)")
+          end
+        else
+          PakettiAutomationStack_stacker_mode = false
+          PakettiAutomationStack_stacker_patterns = {}
+          PakettiAutomationStack_stacker_total_lines = 0
+          local info_view = PakettiAutomationStack_vb.views["pas_stacker_info"]
+          if info_view then
+            info_view.text = "(Single pattern mode)"
+          end
+          PakettiAutomationStack_RebuildAutomations()
+          PakettiAutomationStack_RebuildCanvases()
+          PakettiAutomationStack_RequestUpdate()
+          renoise.app():show_status("Automation Stack: Single pattern mode")
+        end
+      end
+    },
+    PakettiAutomationStack_vb:text{ text = "Stacker Mode (Multi-Pattern)" },
+    PakettiAutomationStack_vb:text{ id = "pas_stacker_info", text = stacker_info_text, width = 150 },
+    PakettiAutomationStack_vb:button{
+      text = "Read Selection",
+      width = 100,
+      notifier = function()
+        local success = PakettiAutomationStack_BuildStackerPatterns()
+        if success then
+          PakettiAutomationStack_stacker_mode = true
+          -- Update checkbox and info
+          local checkbox_view = PakettiAutomationStack_vb.views["pas_stacker_checkbox"]
+          if checkbox_view then checkbox_view.value = true end
+          local info_view = PakettiAutomationStack_vb.views["pas_stacker_info"]
+          if info_view then
+            info_view.text = string.format("Seq %d-%d (%d lines)", 
+              PakettiAutomationStack_stacker_seq_start, 
+              PakettiAutomationStack_stacker_seq_end,
+              PakettiAutomationStack_stacker_total_lines)
+          end
+          PakettiAutomationStack_RebuildAutomations()
+          PakettiAutomationStack_RebuildCanvases()
+          PakettiAutomationStack_RequestUpdate()
+          renoise.app():show_status("Automation Stacker: Selection updated - Seq " .. 
+            PakettiAutomationStack_stacker_seq_start .. "-" .. PakettiAutomationStack_stacker_seq_end .. 
+            " (" .. PakettiAutomationStack_stacker_total_lines .. " lines)")
+        else
+          renoise.app():show_status("Automation Stacker: No pattern matrix selection found")
+        end
+      end
+    }
+  }
+
   local header_row = PakettiAutomationStack_vb:row{ spacing = 0, PakettiAutomationStack_vb:canvas{ id = "pas_header_canvas", width = PakettiAutomationStack_canvas_width, height = PakettiAutomationStack_gutter_height + 6, mode = "plain", mouse_events = {"down"}, mouse_handler = function(ev)
       local _render, on_mouse = PakettiAutomationStack_RenderHeaderCanvas(PakettiAutomationStack_canvas_width, PakettiAutomationStack_gutter_height + 6)
       if on_mouse then on_mouse(ev) end
@@ -2468,7 +2843,7 @@ function PakettiAutomationStack_BuildContent()
     end }
   }
 
-  local main_content = PakettiAutomationStack_vb:column{ controls_row, show_same_row, header_row, tracks_col, bottom_row }
+  local main_content = PakettiAutomationStack_vb:column{ controls_row, show_same_row, stacker_row, header_row, tracks_col, bottom_row }
   
   -- Wrap in a container with exact canvas width to match dialog to canvas
   return PakettiAutomationStack_vb:column{
@@ -2674,11 +3049,33 @@ function PakettiAutomationStack_Cleanup()
   PakettiAutomationStack_parameter_checkboxes = {}
   -- Reset Show Same state
   PakettiAutomationStack_show_same_popup_view = nil
+  -- Reset Stacker state
+  PakettiAutomationStack_stacker_mode = false
+  PakettiAutomationStack_stacker_patterns = {}
+  PakettiAutomationStack_stacker_total_lines = 0
+  PakettiAutomationStack_stacker_seq_start = nil
+  PakettiAutomationStack_stacker_seq_end = nil
 end
 
 -- Show Automation Stack in single view mode
 function PakettiAutomationStackShowSingleView()
   PakettiAutomationStack_view_mode = 2 -- Set to single view mode
+  PakettiAutomationStackShowDialog()
+end
+
+-- Show Automation Stack in stacker (multi-pattern) mode
+function PakettiAutomationStackShowStackerView()
+  -- Try to build stacker patterns from selection first
+  local success = PakettiAutomationStack_BuildStackerPatterns()
+  if success then
+    PakettiAutomationStack_stacker_mode = true
+    renoise.app():show_status("Automation Stacker: Multi-pattern mode - Seq " .. 
+      PakettiAutomationStack_stacker_seq_start .. "-" .. PakettiAutomationStack_stacker_seq_end .. 
+      " (" .. PakettiAutomationStack_stacker_total_lines .. " lines)")
+  else
+    PakettiAutomationStack_stacker_mode = false
+    renoise.app():show_status("Automation Stacker: No pattern matrix selection - select patterns first (Shift+Click in Pattern Matrix)")
+  end
   PakettiAutomationStackShowDialog()
 end
 
@@ -2751,14 +3148,17 @@ end
 
 renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack", invoke = function() PakettiAutomationStackShowDialog() end }
 renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Single View", invoke = function() PakettiAutomationStackShowSingleView() end }
+renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Stacker (Multi-Pattern)", invoke = function() PakettiAutomationStackShowStackerView() end }
 renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Select Arbitrary Parameters", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
 renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Debug Print Points", invoke = function() PakettiAutomationStackDebugPrintAutomationPoints() end }
 
 renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack", invoke = function() PakettiAutomationStackShowDialog() end }
 renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Single View", invoke = function() PakettiAutomationStackShowSingleView() end }
+renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Stacker (Multi-Pattern)", invoke = function() PakettiAutomationStackShowStackerView() end }
 renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Select Arbitrary Parameters", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack...", invoke = function() PakettiAutomationStackShowDialog() end }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack - Single View...", invoke = function() PakettiAutomationStackShowSingleView() end }
+renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack - Stacker (Multi-Pattern)...", invoke = function() PakettiAutomationStackShowStackerView() end }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack - Select Arbitrary Parameters...", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
 renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Debug Print Points", invoke = function() PakettiAutomationStackDebugPrintAutomationPoints() end }
 

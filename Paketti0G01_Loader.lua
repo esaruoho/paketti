@@ -118,7 +118,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiWipeExplodedTrack=false,
   pakettiAutomationFormat=2,
   pakettiAutomationWipeAfterSwitch=true,
-  SelectedSampleBeatSyncLines = false,
+  SelectedSampleBeatsyncLines = false,
   pakettiLoadOrder = false,
   pakettiDeviceLoadBehaviour = 3, -- 1=Open External Editor, 2=Open Selected Parameter Dialog, 3=Do Nothing
   pakettiOctaMEDNoteEchoDistance=2,
@@ -314,20 +314,20 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   WipeSlices = {
     WipeSlicesLoopMode=2,
     WipeSlicesLoopRelease=false,
-    WipeSlicesBeatSyncMode=1,
+    WipeSlicesBeatsyncMode=1,
     WipeSlicesOneShot=false,
     WipeSlicesAutoseek=false,
     WipeSlicesAutofade=true,
     WipeSlicesMuteGroup=1,
     WipeSlicesNNA=1,
-    WipeSlicesBeatSyncGlobal=false,
+    WipeSlicesBeatsyncGlobal=false,
     sliceCounter=1,
     SliceLoopMode=true, 
     slicePreviousDirection=1
   },
   SlicePro = {
-    SliceProBeatSyncEnabled=false,  -- Enable/disable beat sync on slices (default off)
-    SliceProBeatSyncMode=1,     -- 1=Repitch, 2=Percussion, 3=Texture
+    SliceProBeatsyncEnabled=false,  -- Enable/disable beat sync on slices (default off)
+    SliceProBeatsyncMode=1,     -- 1=Repitch, 2=Percussion, 3=Texture
     SliceProMuteGroup=0,        -- 0-15 (0 = none)
     SliceProNNA=1,              -- 1=Cut, 2=Note Off, 3=Sustain
     SliceProLoopMode=1,         -- 1=Off, 2=Forward, 3=Reverse, 4=PingPong
@@ -561,6 +561,19 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     RandomSeed = 12345,
     -- Multi-pattern generation
     PatternCount = 1,
+    -- Global Intensity (0-100, scales all enabled effects)
+    GlobalIntensity = 100,
+    -- Operation Mode: 1 = Entire Pattern, 2 = Selection Only, 3 = From Cursor Down
+    OperationMode = 1,
+    -- Track Mode: 1 = All Tracks, 2 = Selected Track Only, 3 = All Except Selected
+    TrackMode = 1,
+    -- Output Mode: 1 = Pattern, 2 = Phrase, 3 = Both
+    OutputMode = 1,
+    PhraseStartIndex = 1,
+    -- Swing/Groove Templates
+    SwingEnabled = false,
+    SwingTemplate = 1,  -- 1=MPC, 2=Drunken, 3=Push, 4=Pull, 5=Shuffle, 6=Human Drummer, 7=Custom
+    SwingAmount = 50,
     -- Rhythm Drift - Delay Ticks (micro-timing within row)
     DelayDriftEnabled = false,
     DelayDriftPercentage = 30,
@@ -574,6 +587,11 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     PitchDriftPercentage = 15,
     PitchDriftMax = 2,
     PitchDriftTracks = "",
+    -- Scale-Aware Pitch Drift
+    PitchDriftScaleAware = false,
+    PitchDriftKey = "C",
+    PitchDriftMode = "ionian",
+    PitchDriftDetectFromPattern = false,
     -- Velocity Variation (percentage change from original)
     VelocityEnabled = false,
     VelocityPercentage = 40,
@@ -594,7 +612,45 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     RetrigPercentage = 10,
     RetrigMin = 1,
     RetrigMax = 8,
-    RetrigColumn = 1
+    RetrigColumn = 1,
+    -- Random Effect Commands
+    EffectsEnabled = false,
+    EffectsPercentage = 15,
+    EffectsColumn = 1,  -- 1 = Effect Column, 2 = Sample FX Column
+    Effect_0Y_Enabled = true,
+    Effect_0Y_Min = 20,
+    Effect_0Y_Max = 80,
+    Effect_0V_Enabled = false,
+    Effect_0V_SpeedMin = 2,
+    Effect_0V_SpeedMax = 8,
+    Effect_0V_DepthMin = 2,
+    Effect_0V_DepthMax = 6,
+    Effect_0T_Enabled = false,
+    Effect_0T_SpeedMin = 2,
+    Effect_0T_SpeedMax = 8,
+    Effect_0T_DepthMin = 2,
+    Effect_0T_DepthMax = 6,
+    Effect_0A_Enabled = false,
+    Effect_0A_Semitones1Min = 3,
+    Effect_0A_Semitones1Max = 5,
+    Effect_0A_Semitones2Min = 7,
+    Effect_0A_Semitones2Max = 12,
+    Effect_0G_Enabled = false,
+    Effect_0G_Min = 1,
+    Effect_0G_Max = 16,
+    Effect_0Q_Enabled = false,
+    Effect_0Q_Min = 1,
+    Effect_0Q_Max = 8,
+    Effect_0S_Enabled = false,
+    Effect_0S_Min = 0,
+    Effect_0S_Max = 255,
+    -- Automation Wonkification
+    AutomationEnabled = false,
+    AutomationPercentage = 30,
+    AutomationValueVariation = 15,
+    AutomationTimeVariation = 2,
+    -- Current Preset (0 = custom)
+    CurrentPreset = 0
   },
   -- Menu Configuration Settings
   pakettiMenuConfig = {
@@ -631,7 +687,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     Collapse = false,
     AppendTracksAndInstruments = true,
   },
-  -- Groovebox 8120 per-instrument BeatSync mode defaults (1=Repitch, 2=Percussion, 3=Texture)
+  -- Groovebox 8120 per-instrument Beatsync mode defaults (1=Repitch, 2=Percussion, 3=Texture)
   PakettiGroovebox8120Beatsync = {
     Mode01 = 1,
     Mode02 = 1,
@@ -1146,11 +1202,11 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 }
               },
               vb:row{
-                vb:text{text="Selected Sample BeatSync",width=150},
+                vb:text{text="Selected Sample Beatsync",width=150},
 
                 vb:checkbox{
-                  value=preferences.SelectedSampleBeatSyncLines.value,
-                  notifier=function(value) preferences.SelectedSampleBeatSyncLines.value=value end
+                  value=preferences.SelectedSampleBeatsyncLines.value,
+                  notifier=function(value) preferences.SelectedSampleBeatsyncLines.value=value end
                 },
                 vb:space{width=checkbox_spacing},  
 
@@ -1768,9 +1824,9 @@ vb:row{
               create_loop_mode_switch(preferences.WipeSlices.WipeSlicesLoopMode),
               vb:space{width=checkbox_spacing},
               vb:text{text="Slice Beatsync Mode",width=150},
-              vb:popup{items={"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)","Off"},value=preferences.WipeSlices.WipeSlicesBeatSyncMode.value,width=100,
+              vb:popup{items={"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)","Off"},value=preferences.WipeSlices.WipeSlicesBeatsyncMode.value,width=100,
                 notifier=function(value) 
-                  preferences.WipeSlices.WipeSlicesBeatSyncMode.value=value 
+                  preferences.WipeSlices.WipeSlicesBeatsyncMode.value=value 
                   preferences:save_as("preferences.xml")
                 end}
             },

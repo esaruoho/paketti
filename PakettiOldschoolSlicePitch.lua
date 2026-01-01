@@ -1212,7 +1212,7 @@ function pakettiSlicesToPatternEvenly(start_from_first_row)
     slice_count, start_line, mode_text))
 end
 
-function pakettiSlicesToPatternBeatSyncOnly()
+function pakettiSlicesToPatternBeatsyncOnly()
   -- Simple beat-sync-only approach based on external tool (org.illformed.SlicesToPattern)
   local song = renoise.song()
   
@@ -1700,8 +1700,8 @@ renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern 
 renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
 renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
 renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
-renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatSyncOnly}
-renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatSyncOnly}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatsyncOnly}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatsyncOnly}
 renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
 renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
 renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
@@ -1727,7 +1727,7 @@ renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Oldschool Slice Pi
 -- MIDI Mappings
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (from first row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(true) end end}
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (from current row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(false) end end}
-renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (beat sync only)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPatternBeatSyncOnly() end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (beat sync only)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPatternBeatsyncOnly() end end}
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern Evenly (from first row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPatternEvenly(true) end end}
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern Evenly (from current row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPatternEvenly(false) end end}
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrase (with trigger)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(true) end end}

@@ -134,9 +134,9 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show EQ10 XY Control Dialog...",invoke = pakettiEQ10XYDialog}
 -----
-if preferences.SelectedSampleBeatSyncLines.value == true then 
+if preferences.SelectedSampleBeatsyncLines.value == true then 
   for i=1,512 do
-  renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Lines to " .. i,invoke=function()SelectedSampleBeatsyncLine(i)end}
   end 
 end
 ------------------------
