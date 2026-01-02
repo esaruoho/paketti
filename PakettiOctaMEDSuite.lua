@@ -145,8 +145,20 @@ local function put_note_instrument(slot_index)
   local pattern_length = pattern.number_of_lines
   local edit_step = renoise.song().transport.edit_step
 
+  -- Debug prints to trace EditStep behavior
+  print("put_note_instrument: use_edit_step_for_put =", use_edit_step_for_put)
+  print("put_note_instrument: edit_step =", edit_step)
+  print("put_note_instrument: selection =", selection and "YES" or "NO")
   if selection then
-    -- Process selection range with edit step if enabled
+    print("put_note_instrument: selection.start_line =", selection.start_line, "selection.end_line =", selection.end_line)
+  end
+
+  -- Check if we have a multi-row selection (more than 1 row selected)
+  local multi_row_selection = selection and (selection.end_line > selection.start_line)
+
+  if multi_row_selection then
+    -- Multi-row selection: fill into selection, don't advance cursor
+    print("put_note_instrument: Multi-row selection detected, filling selection")
     local step = (use_edit_step_for_put and edit_step > 0) and edit_step or 1
     for line_index = selection.start_line, selection.end_line, step do
       if randomize_enabled then
@@ -157,13 +169,19 @@ local function put_note_instrument(slot_index)
         table.insert(line_indices, line_index)
       end
     end
+    -- No cursor advancement for multi-row selection
   else
+    -- No selection or single-row selection: put on current line, advance by edit step
+    if selection then
+      -- Single-row selection: clear the selection first
+      print("put_note_instrument: Single-row selection detected, clearing selection")
+      renoise.song().selection_in_pattern = {}
+    end
     -- Process single line
+    table.insert(line_indices, current_line_index)
     if use_edit_step_for_put and edit_step > 0 then
-      table.insert(line_indices, current_line_index)
       renoise.song().selected_line_index = math.min(current_line_index + edit_step, pattern_length)
-    else
-      table.insert(line_indices, current_line_index)
+      print("put_note_instrument: Advancing cursor from", current_line_index, "to", math.min(current_line_index + edit_step, pattern_length))
     end
   end
 

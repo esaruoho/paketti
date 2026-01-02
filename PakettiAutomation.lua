@@ -3737,6 +3737,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_keybinding{name="Global:Paketti:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+renoise.tool():add_midi_mapping{name="Paketti:Snapshot All Devices on Selected Track to Automation",invoke = function(message) if message:is_trigger() then snapshot_all_devices_to_automation() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Snapshot Selected Device to Automation",invoke = function(message) if message:is_trigger() then snapshot_selected_device_to_automation() end end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Convert FX to Automation",invoke = function() read_fx_to_automation(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Convert FX to Automation (Move)",invoke = function() read_fx_to_automation(true) end}

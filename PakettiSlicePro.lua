@@ -1212,6 +1212,21 @@ function SliceProConfigDialog()
   }
   dialog_content:add_child(tools_row)
   
+  -- SliceSafely row (non-destructive slicing)
+  local slicesafely_row = vb:row{
+    vb:text{text = "SliceSafely:"},
+    vb:button{text = "2", width = 25, notifier = function() SliceSafelyWipeAndSlice(2) end},
+    vb:button{text = "4", width = 25, notifier = function() SliceSafelyWipeAndSlice(4) end},
+    vb:button{text = "8", width = 25, notifier = function() SliceSafelyWipeAndSlice(8) end},
+    vb:button{text = "16", width = 30, notifier = function() SliceSafelyWipeAndSlice(16) end},
+    vb:button{text = "32", width = 30, notifier = function() SliceSafelyWipeAndSlice(32) end},
+    vb:button{text = "64", width = 30, notifier = function() SliceSafelyWipeAndSlice(64) end},
+    vb:button{text = "128", width = 35, notifier = function() SliceSafelyWipeAndSlice(128) end},
+    vb:button{text = "256", width = 35, notifier = function() SliceSafelyWipeAndSlice(256) end},
+    vb:button{text = "Dialog", width = 50, notifier = function() SliceSafelyDialog() end}
+  }
+  dialog_content:add_child(slicesafely_row)
+  
   -- Slice List Section (only if there are slices)
   if #markers > 0 then
     -- Multi-column slice display
