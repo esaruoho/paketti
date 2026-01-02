@@ -351,65 +351,65 @@ renoise.tool():add_menu_entry{
 
 -- Menu entries - Instrument Box
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti..:Track/Instrument Organization..:Organize Instruments by Track Use",
+  name = "Instrument Box:Paketti:Track/Instrument Organization..:Organize Instruments by Track Use",
   invoke = PakettiOrganizeInstrumentsByTrackUse
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti..:Track/Instrument Organization..:Organize Tracks by Instrument Box",
+  name = "Instrument Box:Paketti:Track/Instrument Organization..:Organize Tracks by Instrument Box",
   invoke = PakettiOrganizeTracksByInstrumentBox
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti..:Track/Instrument Organization..:Show Analysis (Terminal)",
+  name = "Instrument Box:Paketti:Track/Instrument Organization..:Show Analysis (Terminal)",
   invoke = PakettiOrganizeShowAnalysis
 }
 
 -- Menu entries - Pattern Editor
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti..:Track/Instrument Organization..:Organize Instruments by Track Use",
+  name = "Pattern Editor:Paketti:Track/Instrument Organization..:Organize Instruments by Track Use",
   invoke = PakettiOrganizeInstrumentsByTrackUse
 }
 
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti..:Track/Instrument Organization..:Organize Tracks by Instrument Box",
+  name = "Pattern Editor:Paketti:Track/Instrument Organization..:Organize Tracks by Instrument Box",
   invoke = PakettiOrganizeTracksByInstrumentBox
 }
 
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti..:Track/Instrument Organization..:Show Analysis (Terminal)",
+  name = "Pattern Editor:Paketti:Track/Instrument Organization..:Show Analysis (Terminal)",
   invoke = PakettiOrganizeShowAnalysis
 }
 
 -- Menu entries - Mixer
 renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti..:Track/Instrument Organization..:Organize Instruments by Track Use",
+  name = "Mixer:Paketti:Track/Instrument Organization..:Organize Instruments by Track Use",
   invoke = PakettiOrganizeInstrumentsByTrackUse
 }
 
 renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti..:Track/Instrument Organization..:Organize Tracks by Instrument Box",
+  name = "Mixer:Paketti:Track/Instrument Organization..:Organize Tracks by Instrument Box",
   invoke = PakettiOrganizeTracksByInstrumentBox
 }
 
 renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti..:Track/Instrument Organization..:Show Analysis (Terminal)",
+  name = "Mixer:Paketti:Track/Instrument Organization..:Show Analysis (Terminal)",
   invoke = PakettiOrganizeShowAnalysis
 }
 
 -- Menu entries - Pattern Matrix
 renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti..:Track/Instrument Organization..:Organize Instruments by Track Use",
+  name = "Pattern Matrix:Paketti:Track/Instrument Organization..:Organize Instruments by Track Use",
   invoke = PakettiOrganizeInstrumentsByTrackUse
 }
 
 renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti..:Track/Instrument Organization..:Organize Tracks by Instrument Box",
+  name = "Pattern Matrix:Paketti:Track/Instrument Organization..:Organize Tracks by Instrument Box",
   invoke = PakettiOrganizeTracksByInstrumentBox
 }
 
 renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti..:Track/Instrument Organization..:Show Analysis (Terminal)",
+  name = "Pattern Matrix:Paketti:Track/Instrument Organization..:Show Analysis (Terminal)",
   invoke = PakettiOrganizeShowAnalysis
 }
 

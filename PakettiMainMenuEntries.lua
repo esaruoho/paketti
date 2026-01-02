@@ -32,6 +32,8 @@ local donations = {
   {"2025-12-05", "LotuaStation", 8.81, {"Web","https://lotuastation.neocities.org/"},{"YouTube", "https://www.youtube.com/@LotuaStation"}, {"SoundCloud","https://soundcloud.com/lotuastation"}},
   {"2025-12-19", "Anonymous", 200.00},
   {"2025-12-25", "tkna | TAKAHASHI Naoki", 123.54, {"tkna", "https://tkna.work"}, {"1/a", "https://one-over-a.com"}, {"Ittteki", "https://ittteki.com"}},
+  {"2026-01-02", "Defense Mechanism", 16.33, {"website","https://defensemech.com/"},{"Bandcamp","https://defensemechanism.bandcamp.com/",},
+{"Bluesky","https://bsky.app/profile/defensemech.com"}},
 
 
 }
@@ -132,7 +134,7 @@ local dialog_content = vb:column{
   vb:multiline_textfield{width=textfield_width, height = 65, text = 
   -- IDEAS
   "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, super_lsd, sodiufas, amenburoda, davide, Hyena lord, zolipapa420, Amethyst, JTPE, Cosmic Ollie, Newtined, Kusoipilled, Spencer Williams (spnw), RENEGADE ANDROiD, Phill Tew, croay, ishineee, user22c, Helge H., ShasuraMk2, Mastrcode, Cthonic, Kavoli, polyplexmescalia" ..
-  ", Josh Montgomery, Filthy Animal, AZ-Rotator, Roby, Onix4MAN AKA PinkCell, Pietro Bttns, Guiq, MGI, xpinvert" ..
+  ", Josh Montgomery, Filthy Animal, AZ-Rotator, Roby, Onix4MAN AKA PinkCell, Pietro Bttns, Guiq, MGI, xpinvert, Defense Mechanism" ..
   " and many others."},
 
   vb:text{text="Who made it possible:", style = "strong", font = "bold"},
