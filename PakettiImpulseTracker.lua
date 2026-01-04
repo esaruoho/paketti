@@ -1517,6 +1517,80 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker SHIFT-ALT-L Mark Note Column/Mark Pattern",invoke=function() MarkNoteColumnMarkPattern() end}
 
+-- Progressive ALT-L: Column -> Track -> Pattern selection
+-- First press: Select current column only (entire pattern length)
+-- Second press: Select current track (all columns, entire pattern)
+-- Third press: Select entire pattern (all tracks)
+function MarkColumnTrackPatternProgressive()
+  local s = renoise.song()
+  local sp = s.selected_pattern
+  local sip = s.selection_in_pattern
+  local current_track = s.selected_track_index
+  local total_tracks = s.sequencer_track_count + 1 + s.send_track_count
+  
+  -- Determine current column index
+  local current_note_col = s.selected_note_column_index
+  local current_effect_col = s.selected_effect_column_index
+  local column_index = nil
+  
+  if current_note_col > 0 then
+    column_index = current_note_col
+  elseif current_effect_col > 0 then
+    column_index = s.tracks[current_track].visible_note_columns + current_effect_col
+  else
+    column_index = 1
+  end
+  
+  local last_column = s.tracks[current_track].visible_note_columns + s.tracks[current_track].visible_effect_columns
+  
+  -- Check current selection state and progress to next level
+  if sip ~= nil then
+    -- STATE 3 CHECK: Current track fully selected -> expand to all tracks
+    if sip.start_track == current_track and sip.end_track == current_track and
+       sip.start_column == 1 and sip.end_column == last_column and
+       sip.start_line == 1 and sip.end_line == sp.number_of_lines then
+      -- Select entire pattern
+      s.selection_in_pattern = {
+        start_track = 1,
+        end_track = total_tracks,
+        start_line = 1,
+        end_line = sp.number_of_lines
+      }
+      return
+    end
+    
+    -- STATE 2 CHECK: Current column fully selected -> expand to track
+    if sip.start_track == current_track and sip.end_track == current_track and
+       sip.start_column == column_index and sip.end_column == column_index and
+       sip.start_line == 1 and sip.end_line == sp.number_of_lines then
+      -- Select entire track
+      s.selection_in_pattern = {
+        start_track = current_track,
+        end_track = current_track,
+        start_line = 1,
+        end_line = sp.number_of_lines,
+        start_column = 1,
+        end_column = last_column
+      }
+      return
+    end
+  end
+  
+  -- STATE 1: Select current column only
+  s.selection_in_pattern = {
+    start_track = current_track,
+    end_track = current_track,
+    start_line = 1,
+    end_line = sp.number_of_lines,
+    start_column = column_index,
+    end_column = column_index
+  }
+  
+  selectPatternRangeInAutomation()
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker ALT-L Progressive (Column/Track/Pattern)",invoke=function() MarkColumnTrackPatternProgressive() end}
+
 -- ALT-L for Phrase Editor: Mark Note Column/Mark Phrase
 function PakettiPhraseEditorMarkNoteColumnMarkPhrase()
   local s = renoise.song()

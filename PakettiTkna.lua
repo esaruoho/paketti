@@ -2342,32 +2342,81 @@ for i=1,16 do
   renoise.tool():add_keybinding{name="Global:Paketti:Jump to Pattern " .. formatDigits(2, i) .. " in Section", invoke=function() jumpToPatternInSection(i) end}
 end
 
--- Create keybindings and MIDI mappings for pattern triggering within sections
-for i = 1, 16 do
-  local pattern_id = formatDigits(2, i)
+-- Unified DRY function for scheduling patterns within a section
+-- value: if is_relative: 0 = current, -1 = previous, +1 = next
+--        if not is_relative: 1-32 = absolute pattern position in section
+-- is_relative: boolean - true for relative offset, false for absolute position
+-- do_select: boolean - whether to also select the pattern
+-- add_to_queue: boolean - true = add_scheduled_sequence, false = set_scheduled_sequence
+function PakettiSchedulePatternInSection(value, is_relative, do_select, add_to_queue)
+  local song = renoise.song()
+  local section_start, section_end = findCurrentSectionBounds()
+  local section_length = section_end - section_start + 1
+  local current_sequence = song.selected_sequence_index
+  local target_sequence
+  local pattern_position
+  local description
   
-  -- Keybindings for trigger, schedule, and add to schedule
-  renoise.tool():add_keybinding{name="Global:Paketti:Select and Trigger Pattern " .. pattern_id .. " in Current Section", invoke=function() selectAndTriggerPatternInSection(i) end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Select and Schedule Pattern " .. pattern_id .. " in Current Section", invoke=function() selectAndSchedulePatternInSection(i) end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Select and Add to Schedule Pattern " .. pattern_id .. " in Current Section", invoke=function() selectAndAddSchedulePatternInSection(i) end}
+  if is_relative then
+    -- Relative mode: value is offset from current (0 = current, -1 = prev, +1 = next)
+    if value == 0 then
+      target_sequence = current_sequence
+      description = "current"
+    else
+      target_sequence = current_sequence + value
+      -- Wrap around within section
+      if target_sequence > section_end then
+        target_sequence = section_start + ((target_sequence - section_start) % section_length)
+      elseif target_sequence < section_start then
+        local offset_from_start = section_start - target_sequence
+        target_sequence = section_end - ((offset_from_start - 1) % section_length)
+      end
+      if value > 0 then
+        description = "next"
+      else
+        description = "previous"
+      end
+    end
+  else
+    -- Absolute mode: value is pattern number 1-32 within section
+    if value < 1 or value > section_length then
+      renoise.app():show_status(string.format("Pattern %d not available in current section (only has %d patterns)", value, section_length))
+      return
+    end
+    target_sequence = section_start + value - 1
+    description = string.format("%02d", value)
+  end
   
-  -- MIDI mappings for trigger, schedule, and add to schedule
-  renoise.tool():add_midi_mapping{name="Paketti:Select and Trigger Pattern " .. pattern_id .. " in Current Section [Trigger]", invoke=function(message) if message:is_trigger() then selectAndTriggerPatternInSection(i) end end}
-  renoise.tool():add_midi_mapping{name="Paketti:Select and Schedule Pattern " .. pattern_id .. " in Current Section [Trigger]", invoke=function(message) if message:is_trigger() then selectAndSchedulePatternInSection(i) end end}
-  renoise.tool():add_midi_mapping{name="Paketti:Select and Add to Schedule Pattern " .. pattern_id .. " in Current Section [Trigger]", invoke=function(message) if message:is_trigger() then selectAndAddSchedulePatternInSection(i) end end}
+  -- Validate target is within section bounds
+  if target_sequence < section_start or target_sequence > section_end then
+    renoise.app():show_status("Target pattern is outside current section bounds")
+    return
+  end
+  
+  pattern_position = target_sequence - section_start + 1
+  
+  -- Optionally select the pattern
+  if do_select then
+    song.selected_sequence_index = target_sequence
+  end
+  
+  -- Schedule or add to schedule
+  local action_text
+  if add_to_queue then
+    song.transport:add_scheduled_sequence(target_sequence)
+    action_text = "added to schedule"
+  else
+    song.transport:set_scheduled_sequence(target_sequence)
+    action_text = "scheduled"
+  end
+  
+  -- Build status message
+  local select_text = do_select and "Selected and " or ""
+  renoise.app():show_status(string.format("%s%s pattern %s (%d of %d) in section", select_text, action_text, description, pattern_position, section_length))
 end
 
--- MIDI knob mapping for triggering patterns within current section
-renoise.tool():add_midi_mapping{name="Paketti:Trigger Pattern Within Section [Knob]", invoke=function(message) if message:is_abs_value() then midiTriggerPatternWithinSection(message.int_value) end end}
-
-renoise.tool():add_midi_mapping{name="Paketti:Jump to Section (Next) [Trigger]", invoke=function(message) if message:is_trigger() then jumpToNextSection() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Jump to Section (Previous) [Trigger]", invoke=function(message) if message:is_trigger() then jumpToPreviousSection() end end}
-
-renoise.tool():add_keybinding{name="Global:Paketti:Jump to Section (Next)", invoke=jumpToNextSection}
-renoise.tool():add_keybinding{name="Global:Paketti:Jump to Section (Previous)", invoke=jumpToPreviousSection}
-
--- Function to select and trigger pattern within current section with different actions (DRY approach)
-function tknaSelectTriggerPatternInSection(pattern_number, action)
+-- Function to trigger pattern within current section (immediate jump, kept separate from scheduling)
+function PakettiTriggerPatternInSection(pattern_number, do_select)
   local song = renoise.song()
   local section_start, section_end = findCurrentSectionBounds()
   local section_length = section_end - section_start + 1
@@ -2379,183 +2428,98 @@ function tknaSelectTriggerPatternInSection(pattern_number, action)
   
   local target_sequence = section_start + pattern_number - 1
   
-  -- Select the pattern
-  song.selected_sequence_index = target_sequence
-  
-  -- Perform the specified action
-  local action_text = ""
-  if action == "trigger" then
-    song.transport:trigger_sequence(target_sequence)
-    action_text = "triggered"
-  elseif action == "schedule" then
-    song.transport:set_scheduled_sequence(target_sequence)
-    action_text = "scheduled"
-  elseif action == "add_schedule" then
-    song.transport:add_scheduled_sequence(target_sequence)
-    action_text = "added to schedule"
+  if do_select then
+    song.selected_sequence_index = target_sequence
   end
   
-  renoise.app():show_status(string.format("Pattern %d of %d in current section %s", pattern_number, section_length, action_text))
+  song.transport:trigger_sequence(target_sequence)
+  local select_text = do_select and "Selected and " or ""
+  renoise.app():show_status(string.format("%striggered pattern %d of %d in current section", select_text, pattern_number, section_length))
 end
 
--- Wrapper functions for different actions
-function selectAndTriggerPatternInSection(pattern_number)
-  tknaSelectTriggerPatternInSection(pattern_number, "trigger")
+-- Keybindings and MIDI mappings for absolute pattern positions (01-32)
+for i = 1, 32 do
+  local pattern_id = formatDigits(2, i)
+  
+  -- Trigger (immediate jump) - kept for backwards compatibility
+  renoise.tool():add_keybinding{name="Global:Paketti:Select and Trigger Pattern " .. pattern_id .. " in Current Section", invoke=function() PakettiTriggerPatternInSection(i, true) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select and Trigger Pattern " .. pattern_id .. " in Current Section [Trigger]", invoke=function(message) if message:is_trigger() then PakettiTriggerPatternInSection(i, true) end end}
+  
+  -- Schedule (no select)
+  renoise.tool():add_keybinding{name="Global:Paketti:Schedule Pattern " .. pattern_id .. " in Section", invoke=function() PakettiSchedulePatternInSection(i, false, false, false) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Schedule Pattern " .. pattern_id .. " in Section [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(i, false, false, false) end end}
+  
+  -- Schedule (with select)
+  renoise.tool():add_keybinding{name="Global:Paketti:Select and Schedule Pattern " .. pattern_id .. " in Section", invoke=function() PakettiSchedulePatternInSection(i, false, true, false) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select and Schedule Pattern " .. pattern_id .. " in Section [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(i, false, true, false) end end}
+  
+  -- Add to Schedule (no select)
+  renoise.tool():add_keybinding{name="Global:Paketti:Add Pattern " .. pattern_id .. " in Section to Schedule", invoke=function() PakettiSchedulePatternInSection(i, false, false, true) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Add Pattern " .. pattern_id .. " in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(i, false, false, true) end end}
+  
+  -- Add to Schedule (with select)
+  renoise.tool():add_keybinding{name="Global:Paketti:Select and Add Pattern " .. pattern_id .. " in Section to Schedule", invoke=function() PakettiSchedulePatternInSection(i, false, true, true) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select and Add Pattern " .. pattern_id .. " in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(i, false, true, true) end end}
 end
 
-function selectAndSchedulePatternInSection(pattern_number)
-  tknaSelectTriggerPatternInSection(pattern_number, "schedule")
-end
+-- Keybindings and MIDI mappings for relative pattern positions (Current/Next/Previous)
 
-function selectAndAddSchedulePatternInSection(pattern_number)
-  tknaSelectTriggerPatternInSection(pattern_number, "add_schedule")
-end
+-- Current Pattern - Schedule (no select)
+renoise.tool():add_keybinding{name="Global:Paketti:Schedule Current Pattern in Section", invoke=function() PakettiSchedulePatternInSection(0, true, false, false) end}
+renoise.tool():add_midi_mapping{name="Paketti:Schedule Current Pattern in Section [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(0, true, false, false) end end}
 
--- Function to schedule the currently selected pattern within the current section
-function scheduleCurrentPatternInSection()
-  local song = renoise.song()
-  local section_start, section_end = findCurrentSectionBounds()
-  local current_sequence = song.selected_sequence_index
-  
-  -- Check if current sequence is within a section
-  if current_sequence < section_start or current_sequence > section_end then
-    renoise.app():show_status("Current sequence is not within the current section bounds")
-    return
-  end
-  
-  local section_length = section_end - section_start + 1
-  local pattern_position = current_sequence - section_start + 1
-  
-  song.transport:set_scheduled_sequence(current_sequence)
-  renoise.app():show_status(string.format("Scheduled current pattern %d of %d in section", pattern_position, section_length))
-end
+-- Current Pattern - Schedule (with select)
+renoise.tool():add_keybinding{name="Global:Paketti:Select and Schedule Current Pattern in Section", invoke=function() PakettiSchedulePatternInSection(0, true, true, false) end}
+renoise.tool():add_midi_mapping{name="Paketti:Select and Schedule Current Pattern in Section [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(0, true, true, false) end end}
 
--- Function to add the currently selected pattern to scheduled queue within the current section
-function addScheduleCurrentPatternInSection()
-  local song = renoise.song()
-  local section_start, section_end = findCurrentSectionBounds()
-  local current_sequence = song.selected_sequence_index
-  
-  -- Check if current sequence is within a section
-  if current_sequence < section_start or current_sequence > section_end then
-    renoise.app():show_status("Current sequence is not within the current section bounds")
-    return
-  end
-  
-  local section_length = section_end - section_start + 1
-  local pattern_position = current_sequence - section_start + 1
-  
-  song.transport:add_scheduled_sequence(current_sequence)
-  renoise.app():show_status(string.format("Added current pattern %d of %d in section to schedule", pattern_position, section_length))
-end
+-- Current Pattern - Add to Schedule (no select)
+renoise.tool():add_keybinding{name="Global:Paketti:Add Current Pattern in Section to Schedule", invoke=function() PakettiSchedulePatternInSection(0, true, false, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Add Current Pattern in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(0, true, false, true) end end}
 
--- Keybindings for scheduling current pattern in section
-renoise.tool():add_keybinding{name="Global:Paketti:Schedule Current Pattern in Section", invoke=scheduleCurrentPatternInSection}
-renoise.tool():add_keybinding{name="Global:Paketti:Add Current Pattern in Section to Schedule", invoke=addScheduleCurrentPatternInSection}
+-- Current Pattern - Add to Schedule (with select)
+renoise.tool():add_keybinding{name="Global:Paketti:Select and Add Current Pattern in Section to Schedule", invoke=function() PakettiSchedulePatternInSection(0, true, true, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Select and Add Current Pattern in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(0, true, true, true) end end}
 
--- MIDI mappings for scheduling current pattern in section
-renoise.tool():add_midi_mapping{name="Paketti:Schedule Current Pattern in Section [Trigger]", invoke=function(message) if message:is_trigger() then scheduleCurrentPatternInSection() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Add Current Pattern in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then addScheduleCurrentPatternInSection() end end}
+-- Next Pattern - Schedule (no select)
+renoise.tool():add_keybinding{name="Global:Paketti:Schedule Next Pattern in Section", invoke=function() PakettiSchedulePatternInSection(1, true, false, false) end}
+renoise.tool():add_midi_mapping{name="Paketti:Schedule Next Pattern in Section [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(1, true, false, false) end end}
 
--- Function to select and schedule the next pattern within the current section
-function selectAndScheduleNextPatternInSection()
-  local song = renoise.song()
-  local section_start, section_end = findCurrentSectionBounds()
-  local current_sequence = song.selected_sequence_index
-  local section_length = section_end - section_start + 1
-  
-  -- Calculate the next sequence within the section (wrap around)
-  local next_sequence
-  if current_sequence >= section_end then
-    next_sequence = section_start  -- Wrap to beginning of section
-  else
-    next_sequence = current_sequence + 1
-  end
-  
-  local pattern_position = next_sequence - section_start + 1
-  
-  song.selected_sequence_index = next_sequence
-  song.transport:set_scheduled_sequence(next_sequence)
-  renoise.app():show_status(string.format("Selected and scheduled next pattern %d of %d in section", pattern_position, section_length))
-end
+-- Next Pattern - Schedule (with select)
+renoise.tool():add_keybinding{name="Global:Paketti:Select and Schedule Next Pattern in Section", invoke=function() PakettiSchedulePatternInSection(1, true, true, false) end}
+renoise.tool():add_midi_mapping{name="Paketti:Select and Schedule Next Pattern in Section [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(1, true, true, false) end end}
 
--- Function to select and schedule the previous pattern within the current section
-function selectAndSchedulePreviousPatternInSection()
-  local song = renoise.song()
-  local section_start, section_end = findCurrentSectionBounds()
-  local current_sequence = song.selected_sequence_index
-  local section_length = section_end - section_start + 1
-  
-  -- Calculate the previous sequence within the section (wrap around)
-  local prev_sequence
-  if current_sequence <= section_start then
-    prev_sequence = section_end  -- Wrap to end of section
-  else
-    prev_sequence = current_sequence - 1
-  end
-  
-  local pattern_position = prev_sequence - section_start + 1
-  
-  song.selected_sequence_index = prev_sequence
-  song.transport:set_scheduled_sequence(prev_sequence)
-  renoise.app():show_status(string.format("Selected and scheduled previous pattern %d of %d in section", pattern_position, section_length))
-end
+-- Next Pattern - Add to Schedule (no select)
+renoise.tool():add_keybinding{name="Global:Paketti:Add Next Pattern in Section to Schedule", invoke=function() PakettiSchedulePatternInSection(1, true, false, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Add Next Pattern in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(1, true, false, true) end end}
 
--- Function to select and add next pattern to schedule within the current section
-function selectAndAddScheduleNextPatternInSection()
-  local song = renoise.song()
-  local section_start, section_end = findCurrentSectionBounds()
-  local current_sequence = song.selected_sequence_index
-  local section_length = section_end - section_start + 1
-  
-  -- Calculate the next sequence within the section (wrap around)
-  local next_sequence
-  if current_sequence >= section_end then
-    next_sequence = section_start  -- Wrap to beginning of section
-  else
-    next_sequence = current_sequence + 1
-  end
-  
-  local pattern_position = next_sequence - section_start + 1
-  
-  song.selected_sequence_index = next_sequence
-  song.transport:add_scheduled_sequence(next_sequence)
-  renoise.app():show_status(string.format("Selected and added next pattern %d of %d in section to schedule", pattern_position, section_length))
-end
+-- Next Pattern - Add to Schedule (with select)
+renoise.tool():add_keybinding{name="Global:Paketti:Select and Add Next Pattern in Section to Schedule", invoke=function() PakettiSchedulePatternInSection(1, true, true, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Select and Add Next Pattern in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(1, true, true, true) end end}
 
--- Function to select and add previous pattern to schedule within the current section
-function selectAndAddSchedulePreviousPatternInSection()
-  local song = renoise.song()
-  local section_start, section_end = findCurrentSectionBounds()
-  local current_sequence = song.selected_sequence_index
-  local section_length = section_end - section_start + 1
-  
-  -- Calculate the previous sequence within the section (wrap around)
-  local prev_sequence
-  if current_sequence <= section_start then
-    prev_sequence = section_end  -- Wrap to end of section
-  else
-    prev_sequence = current_sequence - 1
-  end
-  
-  local pattern_position = prev_sequence - section_start + 1
-  
-  song.selected_sequence_index = prev_sequence
-  song.transport:add_scheduled_sequence(prev_sequence)
-  renoise.app():show_status(string.format("Selected and added previous pattern %d of %d in section to schedule", pattern_position, section_length))
-end
+-- Previous Pattern - Schedule (no select)
+renoise.tool():add_keybinding{name="Global:Paketti:Schedule Previous Pattern in Section", invoke=function() PakettiSchedulePatternInSection(-1, true, false, false) end}
+renoise.tool():add_midi_mapping{name="Paketti:Schedule Previous Pattern in Section [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(-1, true, false, false) end end}
 
--- Keybindings for next/previous pattern scheduling in section
-renoise.tool():add_keybinding{name="Global:Paketti:Select and Schedule Next Pattern in Section", invoke=selectAndScheduleNextPatternInSection}
-renoise.tool():add_keybinding{name="Global:Paketti:Select and Schedule Previous Pattern in Section", invoke=selectAndSchedulePreviousPatternInSection}
-renoise.tool():add_keybinding{name="Global:Paketti:Select and Add Next Pattern in Section to Schedule", invoke=selectAndAddScheduleNextPatternInSection}
-renoise.tool():add_keybinding{name="Global:Paketti:Select and Add Previous Pattern in Section to Schedule", invoke=selectAndAddSchedulePreviousPatternInSection}
+-- Previous Pattern - Schedule (with select)
+renoise.tool():add_keybinding{name="Global:Paketti:Select and Schedule Previous Pattern in Section", invoke=function() PakettiSchedulePatternInSection(-1, true, true, false) end}
+renoise.tool():add_midi_mapping{name="Paketti:Select and Schedule Previous Pattern in Section [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(-1, true, true, false) end end}
 
--- MIDI mappings for next/previous pattern scheduling in section
-renoise.tool():add_midi_mapping{name="Paketti:Select and Schedule Next Pattern in Section [Trigger]", invoke=function(message) if message:is_trigger() then selectAndScheduleNextPatternInSection() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Select and Schedule Previous Pattern in Section [Trigger]", invoke=function(message) if message:is_trigger() then selectAndSchedulePreviousPatternInSection() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Select and Add Next Pattern in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then selectAndAddScheduleNextPatternInSection() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Select and Add Previous Pattern in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then selectAndAddSchedulePreviousPatternInSection() end end}
+-- Previous Pattern - Add to Schedule (no select)
+renoise.tool():add_keybinding{name="Global:Paketti:Add Previous Pattern in Section to Schedule", invoke=function() PakettiSchedulePatternInSection(-1, true, false, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Add Previous Pattern in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(-1, true, false, true) end end}
+
+-- Previous Pattern - Add to Schedule (with select)
+renoise.tool():add_keybinding{name="Global:Paketti:Select and Add Previous Pattern in Section to Schedule", invoke=function() PakettiSchedulePatternInSection(-1, true, true, true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Select and Add Previous Pattern in Section to Schedule [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSchedulePatternInSection(-1, true, true, true) end end}
+
+-- MIDI knob mapping for triggering patterns within current section
+renoise.tool():add_midi_mapping{name="Paketti:Trigger Pattern Within Section [Knob]", invoke=function(message) if message:is_abs_value() then midiTriggerPatternWithinSection(message.int_value) end end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Jump to Section (Next) [Trigger]", invoke=function(message) if message:is_trigger() then jumpToNextSection() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Jump to Section (Previous) [Trigger]", invoke=function(message) if message:is_trigger() then jumpToPreviousSection() end end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Jump to Section (Next)", invoke=jumpToNextSection}
+renoise.tool():add_keybinding{name="Global:Paketti:Jump to Section (Previous)", invoke=jumpToPreviousSection}
 
 -- MIDI knob function for triggering patterns within current section
 function midiTriggerPatternWithinSection(midi_value)
