@@ -420,21 +420,32 @@ function AppUI:create_dialog()
                       renoise.app():show_warning(err or "Failed to set ConfigPath")
                     end
                   else
-                    -- Multiple versions found - show dropdown for selection
+                    -- Multiple versions found - auto-apply newest, show dropdown for alternatives
                     self.config_paths = versions
                     
-                    -- Build dropdown items
+                    -- Auto-apply the newest version (first in sorted array)
+                    local newest_version = versions[1]
+                    local success, err = self.owner:set_path_to_config(newest_version.path)
+                    if success then
+                      -- Update the textfield display with the applied path
+                      vb.views["path_to_config"].text = newest_version.path
+                      renoise.app():show_status("Auto-selected newest version: Sononym " .. newest_version.version)
+                    else
+                      renoise.app():show_warning(err or "Failed to set ConfigPath")
+                    end
+                    
+                    -- Build dropdown items for switching versions if needed
                     local dropdown_items = {}
                     for i, version_info in ipairs(versions) do
                       table.insert(dropdown_items, "Sononym " .. version_info.version .. " (" .. version_info.path .. ")")
                     end
                     
-                    -- Populate the popup menu
+                    -- Populate the popup menu and pre-select the newest version
                     vb.views["config_path_popup"].items = dropdown_items
-                    -- Show the popup and hide the textfield
+                    vb.views["config_path_popup"].value = 1
+                    -- Show the popup so user can switch versions if desired
                     vb.views["config_path_popup"].visible = true
                     vb.views["path_to_config"].visible = false
-                    renoise.app():show_status("Multiple versions found - please select one")
                   end
                 end               
               end

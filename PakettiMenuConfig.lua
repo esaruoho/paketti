@@ -2724,6 +2724,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-samplify Pakettify To
 renoise.tool():add_menu_entry{name="--Main Menu:Options:0G01 Loader Toggle",invoke=function() Paketti0G01LoaderToggle() end,selected=function() return preferences._0G01_Loader.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:OctaMED Hold-to-Fill Mode Toggle",invoke=function() PakettiHoldToFillShowDialog() end,selected=PakettiHoldToFillIsEnabled}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Song Frame Calculator Toggle",invoke=PakettiFrameCalculatorToggle,selected=PakettiFrameCalculatorIsEnabled}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Selection Follow Start Toggle",invoke=function() PakettiSelectionFollowToggle() end,selected=function() return PakettiSelectionFollowIsEnabled() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Options:Paketti Preferences...",invoke=pakettiPreferences}
 
 -- Tools Preferences

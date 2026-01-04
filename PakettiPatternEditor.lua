@@ -9863,3 +9863,167 @@ for i = 1, 32 do
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Advance Cursor Backward by " .. step_label .. " Steps", invoke=function() PakettiAdvanceCursorBackwardPhrase(i) end}
   renoise.tool():add_midi_mapping{name="Paketti:Phrase Advance Cursor Backward by " .. step_label .. " Steps", invoke=function(message) if message:is_trigger() then PakettiAdvanceCursorBackwardPhrase(i) end end}
 end
+
+---------------------------------------------------------------------------
+-- Selection Follow Start - Dynamic selection from anchor to cursor
+---------------------------------------------------------------------------
+-- When enabled, saves current cursor position as anchor and continuously
+-- updates selection from anchor to wherever cursor moves
+
+PakettiSelectionFollowEnabled = false
+PakettiSelectionFollowAnchor = nil
+
+-- Helper function to get current column index within the track
+-- Note columns are 1, 2, 3... then effect columns continue after
+function PakettiSelectionFollowGetColumnIndex()
+  local song = renoise.song()
+  local track = song.selected_track
+  local note_col_idx = song.selected_note_column_index
+  local effect_col_idx = song.selected_effect_column_index
+  
+  if note_col_idx > 0 then
+    return note_col_idx
+  elseif effect_col_idx > 0 then
+    return track.visible_note_columns + effect_col_idx
+  else
+    return 1
+  end
+end
+
+-- Idle notifier that updates selection from anchor to current cursor position
+function PakettiSelectionFollowIdleNotifier()
+  if not PakettiSelectionFollowEnabled then
+    return
+  end
+  
+  if not PakettiSelectionFollowAnchor then
+    return
+  end
+  
+  local song
+  local success = pcall(function()
+    song = renoise.song()
+  end)
+  
+  if not success or not song then
+    return
+  end
+  
+  -- Only work in pattern editor
+  if renoise.app().window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+    return
+  end
+  
+  -- Get current cursor position
+  local current_line = song.selected_line_index
+  local current_track = song.selected_track_index
+  local current_column = PakettiSelectionFollowGetColumnIndex()
+  
+  -- Get anchor position
+  local anchor_line = PakettiSelectionFollowAnchor.line
+  local anchor_track = PakettiSelectionFollowAnchor.track
+  local anchor_column = PakettiSelectionFollowAnchor.column
+  
+  -- Calculate start and end lines (Renoise requires start <= end)
+  local start_line = math.min(anchor_line, current_line)
+  local end_line = math.max(anchor_line, current_line)
+  
+  -- Determine track and column ordering
+  local start_track, end_track, start_column, end_column
+  
+  if anchor_track == current_track then
+    -- Same track - simple column min/max
+    start_track = anchor_track
+    end_track = anchor_track
+    start_column = math.min(anchor_column, current_column)
+    end_column = math.max(anchor_column, current_column)
+  elseif anchor_track < current_track then
+    -- Anchor is on an earlier track
+    start_track = anchor_track
+    end_track = current_track
+    start_column = anchor_column
+    end_column = current_column
+  else
+    -- Anchor is on a later track (current is earlier)
+    start_track = current_track
+    end_track = anchor_track
+    start_column = current_column
+    end_column = anchor_column
+  end
+  
+  -- Set the selection with precise column boundaries
+  song.selection_in_pattern = {
+    start_line = start_line,
+    end_line = end_line,
+    start_track = start_track,
+    end_track = end_track,
+    start_column = start_column,
+    end_column = end_column
+  }
+  
+  print("Selection Follow: lines " .. start_line .. "-" .. end_line .. 
+        ", tracks " .. start_track .. "-" .. end_track .. 
+        ", columns " .. start_column .. "-" .. end_column)
+end
+
+-- Attach the idle notifier
+function PakettiSelectionFollowAttachNotifier()
+  if not renoise.tool().app_idle_observable:has_notifier(PakettiSelectionFollowIdleNotifier) then
+    renoise.tool().app_idle_observable:add_notifier(PakettiSelectionFollowIdleNotifier)
+  end
+end
+
+-- Detach the idle notifier
+function PakettiSelectionFollowDetachNotifier()
+  if renoise.tool().app_idle_observable:has_notifier(PakettiSelectionFollowIdleNotifier) then
+    renoise.tool().app_idle_observable:remove_notifier(PakettiSelectionFollowIdleNotifier)
+  end
+end
+
+-- Toggle function
+function PakettiSelectionFollowToggle()
+  PakettiSelectionFollowEnabled = not PakettiSelectionFollowEnabled
+  
+  if PakettiSelectionFollowEnabled then
+    -- Save current position as anchor
+    local song = renoise.song()
+    local column = PakettiSelectionFollowGetColumnIndex()
+    
+    PakettiSelectionFollowAnchor = {
+      line = song.selected_line_index,
+      track = song.selected_track_index,
+      column = column
+    }
+    
+    -- Attach the idle notifier
+    PakettiSelectionFollowAttachNotifier()
+    
+    renoise.app():show_status("Selection Follow Start: ON (Anchor at line " .. 
+      PakettiSelectionFollowAnchor.line .. ", track " .. 
+      PakettiSelectionFollowAnchor.track .. ", column " ..
+      PakettiSelectionFollowAnchor.column .. ")")
+    
+    print("Selection Follow Start enabled - Anchor: line=" .. 
+      PakettiSelectionFollowAnchor.line .. ", track=" .. 
+      PakettiSelectionFollowAnchor.track .. ", column=" .. 
+      PakettiSelectionFollowAnchor.column)
+  else
+    -- Detach the idle notifier
+    PakettiSelectionFollowDetachNotifier()
+    
+    -- Clear the anchor
+    PakettiSelectionFollowAnchor = nil
+    
+    renoise.app():show_status("Selection Follow Start: OFF")
+    print("Selection Follow Start disabled")
+  end
+end
+
+-- Return enabled state for menu checkmark
+function PakettiSelectionFollowIsEnabled()
+  return PakettiSelectionFollowEnabled
+end
+
+-- Keybinding
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Selection Follow Start",invoke=function() PakettiSelectionFollowToggle() end}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Selection Follow Start",invoke=function(message) if message:is_trigger() then PakettiSelectionFollowToggle() end end}
