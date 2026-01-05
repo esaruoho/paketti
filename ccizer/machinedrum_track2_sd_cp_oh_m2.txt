@@ -1,0 +1,28 @@
+# Elektron Machinedrum MK2 - Track Position 2
+# SD (Ch1), CP (Ch2), OH (Ch3), M2 (Ch4)
+# All 24 parameters for the second track in each channel
+40 Param1
+41 Param2
+42 Param3
+43 Param4
+44 Param5
+45 Param6
+46 Param7
+47 Param8
+48 AMDepth
+49 AMRate
+50 EQFreq
+51 EQGain
+52 FilterBase
+53 FilterWidth
+54 FilterQ
+55 SampleRateRed
+56 Distortion
+57 Volume
+58 Pan
+59 DelaySend
+60 ReverbSend
+61 LFOSpeed
+62 LFOAmount
+63 LFOShape
+
