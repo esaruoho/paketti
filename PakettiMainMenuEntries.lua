@@ -133,7 +133,7 @@ local dialog_content = vb:column{
   vb:text{text="Ideas provided by:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height = 65, text = 
   -- IDEAS
-  "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, super_lsd, sodiufas, amenburoda, davide, Hyena lord, zolipapa420, Amethyst, JTPE, Cosmic Ollie, Newtined, Kusoipilled, Spencer Williams (spnw), RENEGADE ANDROiD, Phill Tew, croay, ishineee, user22c, Helge H., ShasuraMk2, Mastrcode, Cthonic, Kavoli, polyplexmescalia" ..
+  "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, Jeeruff, NPC1, Vulkan, super_lsd, sodiufas, amenburoda, davide, Hyena lord, zolipapa420, Amethyst, JTPE, Cosmic Ollie, Newtined, Kusoipilled, Spencer Williams (spnw), RENEGADE ANDROiD, Phill Tew, croay, ishineee, user22c, Helge H., ShasuraMk2, Mastrcode, Cthonic, Kavoli, polyplexmescalia" ..
   ", Josh Montgomery, Filthy Animal, AZ-Rotator, Roby, Onix4MAN AKA PinkCell, Pietro Bttns, Guiq, MGI, xpinvert, Defense Mechanism" ..
   " and many others."},
 
@@ -162,7 +162,8 @@ local dialog_content = vb:column{
 
   vb:row{
     vb:text{text="Talk about Paketti", style = "strong", font = "bold", width=110},
-    vb:button{text="Paketti GitHub", width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://github.com/esaruoho/org.lackluster.Paketti.xrnx") end},
+    vb:button{text="Paketti GitHub", width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://github.com/esaruoho/paketti") end},
+    vb:button{text="Newest Paketti Release", width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://github.com/esaruoho/paketti/releases/latest") end},
     vb:button{text="Paketti Discord", width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://discord.gg/Qex7k5j4wG") end},
     vb:button{text="Paketti Renoise Forum Thread", width=DonationButtonWidth,notifier=function() renoise.app():open_url("https://forum.renoise.com/t/new-tool-3-1-pakettir3/35848/88") end},
     vb:button{text="Email", width=DonationButtonWidth,notifier=function() renoise.app():open_url("mailto:esaruoho@icloud.com") end}

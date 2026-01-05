@@ -66,6 +66,7 @@ PakettiAutomationStack_cached_grid_lpb = nil -- Track LPB for grid cache
 -- Observable management for auto-updating
 PakettiAutomationStack_track_observables = {} -- Track mute state observables
 PakettiAutomationStack_tracks_observable = nil -- Track list observable
+PakettiAutomationStack_selection_range_observable = nil -- Sequencer selection range observable
 
 -- Arbitrary Parameters Selection System
 PakettiAutomationStack_arbitrary_mode = false -- false=current track, true=arbitrary selection
@@ -1620,6 +1621,54 @@ function PakettiAutomationStack_PlaymodeForIndex(idx)
   return renoise.PatternTrackAutomation.PLAYMODE_LINES
 end
 
+-- Create bridge points at pattern boundaries when drawing crosses them
+-- This ensures curve continuity across patterns
+function PakettiAutomationStack_WriteBridgePoints(automation_index, start_line, end_line, start_value, end_value, remove)
+  if not PakettiAutomationStack_stacker_mode or #PakettiAutomationStack_stacker_patterns <= 1 then
+    return -- No bridging needed in single pattern mode
+  end
+  
+  -- Find which patterns the start and end lines are in
+  local _, _, _, start_patt_idx = PakettiAutomationStack_GlobalLineToPatternLine(start_line)
+  local _, _, _, end_patt_idx = PakettiAutomationStack_GlobalLineToPatternLine(end_line)
+  
+  if not start_patt_idx or not end_patt_idx or start_patt_idx == end_patt_idx then
+    return -- Both in same pattern, no bridging needed
+  end
+  
+  -- Determine direction
+  local direction = (end_line > start_line) and 1 or -1
+  local min_patt = math.min(start_patt_idx, end_patt_idx)
+  local max_patt = math.max(start_patt_idx, end_patt_idx)
+  
+  -- For each pattern boundary we cross, create bridge points
+  for patt_idx = min_patt, max_patt - 1 do
+    local boundary_entry = PakettiAutomationStack_stacker_patterns[patt_idx]
+    local next_entry = PakettiAutomationStack_stacker_patterns[patt_idx + 1]
+    if boundary_entry and next_entry then
+      -- The boundary is at the end of this pattern / start of next pattern
+      local boundary_global_line = boundary_entry.start_offset + boundary_entry.num_lines
+      local next_start_global_line = next_entry.start_offset + 1
+      
+      -- Calculate interpolated value at the boundary
+      local total_dist = math.abs(end_line - start_line)
+      if total_dist > 0 then
+        local dist_to_boundary = math.abs(boundary_global_line - start_line)
+        local t = dist_to_boundary / total_dist
+        local boundary_value = start_value + (end_value - start_value) * t
+        
+        -- Write point at end of current pattern (boundary_global_line maps to last line of pattern)
+        PakettiAutomationStack_WritePoint(automation_index, boundary_global_line, boundary_value, remove)
+        
+        -- Write point at start of next pattern
+        PakettiAutomationStack_WritePoint(automation_index, next_start_global_line, boundary_value, remove)
+        
+        print("BRIDGE: Created bridge points at boundary between patterns " .. patt_idx .. " and " .. (patt_idx + 1) .. " at value " .. boundary_value)
+      end
+    end
+  end
+end
+
 -- Show automation envelope in lower frame for visual feedback
 function PakettiAutomationStack_ShowAutomationEnvelope(entry)
   if not entry or not entry.parameter then return end
@@ -1833,6 +1882,13 @@ function PakettiAutomationStack_LaneMouse(automation_index, ev, lane_h)
         if start_l and end_l then
           local step = (end_l >= start_l) and 1 or -1
           local count = math.abs(end_l - start_l)
+          
+          -- In stacker mode, create bridge points at pattern boundaries for curve continuity
+          if PakettiAutomationStack_stacker_mode and count > 1 then
+            PakettiAutomationStack_WriteBridgePoints(automation_index, start_l, end_l, 
+              PakettiAutomationStack_last_draw_value, value, is_alt)
+          end
+          
           if count <= 1 then
             PakettiAutomationStack_WritePoint(automation_index, line, value, is_alt)
           else
@@ -2946,6 +3002,19 @@ function PakettiAutomationStack_SetupObservables()
     end
   end
   
+  -- Sequencer selection range observable (for stacker mode - pattern matrix selection)
+  if song.sequencer and song.sequencer.selection_range_observable then
+    local success, result = pcall(function()
+      if not song.sequencer.selection_range_observable:has_notifier(PakettiAutomationStack_OnSelectionRangeChanged) then
+        song.sequencer.selection_range_observable:add_notifier(PakettiAutomationStack_OnSelectionRangeChanged)
+        PakettiAutomationStack_selection_range_observable = song.sequencer.selection_range_observable
+      end
+    end)
+    if not success then
+      -- Observable is no longer valid, skip setting it up
+    end
+  end
+  
   -- Individual track mute state observables
   for track_idx = 1, #song.tracks do
     local track = song.tracks[track_idx]
@@ -2980,6 +3049,19 @@ function PakettiAutomationStack_CleanupObservables()
       -- Observable is no longer valid, just clear the reference
     end
     PakettiAutomationStack_tracks_observable = nil
+  end
+  
+  -- Clean up selection range observable
+  if PakettiAutomationStack_selection_range_observable then
+    local success, result = pcall(function()
+      if PakettiAutomationStack_selection_range_observable:has_notifier(PakettiAutomationStack_OnSelectionRangeChanged) then
+        PakettiAutomationStack_selection_range_observable:remove_notifier(PakettiAutomationStack_OnSelectionRangeChanged)
+      end
+    end)
+    if not success then
+      -- Observable is no longer valid, just clear the reference
+    end
+    PakettiAutomationStack_selection_range_observable = nil
   end
   
   -- Clean up track mute observables
@@ -3020,6 +3102,49 @@ function PakettiAutomationStack_OnTrackMuteChanged()
   
   -- Just request a visual update since mute state changed
   PakettiAutomationStack_RequestUpdate()
+end
+
+-- Called when pattern matrix selection range changes
+function PakettiAutomationStack_OnSelectionRangeChanged()
+  if not PakettiAutomationStack_dialog or not PakettiAutomationStack_dialog.visible then return end
+  
+  -- Only auto-update if we're in stacker mode or if stacker mode was enabled but had no selection
+  local song = renoise.song()
+  if not song then return end
+  
+  local selection_range = song.sequencer.selection_range
+  local has_selection = selection_range and selection_range[1] > 0 and selection_range[2] > 0
+  
+  if has_selection then
+    -- Rebuild stacker patterns with new selection
+    local success = PakettiAutomationStack_BuildStackerPatterns()
+    if success then
+      -- Enable stacker mode if not already
+      PakettiAutomationStack_stacker_mode = true
+      
+      -- Update UI checkbox and info text if they exist
+      if PakettiAutomationStack_vb then
+        local checkbox_view = PakettiAutomationStack_vb.views["pas_stacker_checkbox"]
+        if checkbox_view then checkbox_view.value = true end
+        local info_view = PakettiAutomationStack_vb.views["pas_stacker_info"]
+        if info_view then
+          info_view.text = string.format("Seq %d-%d (%d lines)", 
+            PakettiAutomationStack_stacker_seq_start, 
+            PakettiAutomationStack_stacker_seq_end,
+            PakettiAutomationStack_stacker_total_lines)
+        end
+      end
+      
+      -- Rebuild display
+      PakettiAutomationStack_RebuildAutomations()
+      PakettiAutomationStack_RebuildCanvases()
+      PakettiAutomationStack_RequestUpdate()
+      
+      renoise.app():show_status("Automation Stacker: Selection updated - Seq " .. 
+        PakettiAutomationStack_stacker_seq_start .. "-" .. PakettiAutomationStack_stacker_seq_end .. 
+        " (" .. PakettiAutomationStack_stacker_total_lines .. " lines)")
+    end
+  end
 end
 
 -- Cleanup

@@ -2450,6 +2450,121 @@ end
 local stem_slice_randomizer_dialog = nil
 local stem_slice_randomizer_vb = nil
 
+-- Carry Selection feature - preserves line range across track changes
+PakettiCarrySelectionEnabled = false
+PakettiCarrySelectionRange = nil
+PakettiCarrySelectionLastTrack = nil
+
+-- Idle notifier for Carry Selection feature
+function PakettiCarrySelectionIdleNotifier()
+  if not PakettiCarrySelectionEnabled then
+    return
+  end
+  
+  if not PakettiCarrySelectionRange then
+    return
+  end
+  
+  local song
+  local success = pcall(function()
+    song = renoise.song()
+  end)
+  
+  if not success or not song then
+    return
+  end
+  
+  -- Only work in pattern editor
+  if renoise.app().window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+    return
+  end
+  
+  local current_track = song.selected_track_index
+  
+  -- Check if track changed
+  if current_track ~= PakettiCarrySelectionLastTrack then
+    PakettiCarrySelectionLastTrack = current_track
+    
+    -- Get track info for column range
+    local track = song.selected_track
+    local last_column = track.visible_note_columns + track.visible_effect_columns
+    
+    -- Apply the saved line range to the new track
+    song.selection_in_pattern = {
+      start_line = PakettiCarrySelectionRange.start_line,
+      end_line = PakettiCarrySelectionRange.end_line,
+      start_track = current_track,
+      end_track = current_track,
+      start_column = 1,
+      end_column = last_column
+    }
+  end
+end
+
+-- Attach the Keep Selection idle notifier
+function PakettiCarrySelectionAttachNotifier()
+  if not renoise.tool().app_idle_observable:has_notifier(PakettiCarrySelectionIdleNotifier) then
+    renoise.tool().app_idle_observable:add_notifier(PakettiCarrySelectionIdleNotifier)
+  end
+end
+
+-- Detach the Keep Selection idle notifier
+function PakettiCarrySelectionDetachNotifier()
+  if renoise.tool().app_idle_observable:has_notifier(PakettiCarrySelectionIdleNotifier) then
+    renoise.tool().app_idle_observable:remove_notifier(PakettiCarrySelectionIdleNotifier)
+  end
+end
+
+-- Toggle Keep Selection feature
+function PakettiCarrySelectionToggle()
+  PakettiCarrySelectionEnabled = not PakettiCarrySelectionEnabled
+  
+  if PakettiCarrySelectionEnabled then
+    local song = renoise.song()
+    local selection = song.selection_in_pattern
+    
+    if selection then
+      -- Save the current selection's line range
+      PakettiCarrySelectionRange = {
+        start_line = selection.start_line,
+        end_line = selection.end_line
+      }
+      PakettiCarrySelectionLastTrack = song.selected_track_index
+      
+      PakettiCarrySelectionAttachNotifier()
+      
+      renoise.app():show_status("Carry Selection: ON (Lines " .. 
+        PakettiCarrySelectionRange.start_line .. "-" .. 
+        PakettiCarrySelectionRange.end_line .. ")")
+    else
+      -- No selection exists, create one for current line to end of pattern
+      local pattern = song.selected_pattern
+      PakettiCarrySelectionRange = {
+        start_line = song.selected_line_index,
+        end_line = pattern.number_of_lines
+      }
+      PakettiCarrySelectionLastTrack = song.selected_track_index
+      
+      PakettiCarrySelectionAttachNotifier()
+      
+      renoise.app():show_status("Carry Selection: ON (Lines " .. 
+        PakettiCarrySelectionRange.start_line .. "-" .. 
+        PakettiCarrySelectionRange.end_line .. ")")
+    end
+  else
+    PakettiCarrySelectionDetachNotifier()
+    PakettiCarrySelectionRange = nil
+    PakettiCarrySelectionLastTrack = nil
+    
+    renoise.app():show_status("Carry Selection: OFF")
+  end
+end
+
+-- Return enabled state for checkbox
+function PakettiCarrySelectionIsEnabled()
+  return PakettiCarrySelectionEnabled
+end
+
 -- Valid step sizes for the sliders
 local stem_slice_step_sizes = {1, 2, 4, 8, 16, 32}
 
@@ -2475,6 +2590,10 @@ function pakettiStemSliceRandomizerDialog()
     -- Disable Selection Follow to End if it was enabled via checkbox
     if PakettiSelectionFollowToEndEnabled then
       PakettiSelectionFollowToEndToggle()
+    end
+    -- Disable Keep Selection if it was enabled via checkbox
+    if PakettiCarrySelectionEnabled then
+      PakettiCarrySelectionToggle()
     end
     stem_slice_randomizer_dialog:close()
     stem_slice_randomizer_dialog = nil
@@ -2512,6 +2631,7 @@ function pakettiStemSliceRandomizerDialog()
             current_independent_step = new_step
             pakettiStemRandomizeSlicesStepIndependent(new_step)
           end
+          renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
         end
       },
       vb:text{id = "independent_label", text = tostring(current_independent_step), width=30}
@@ -2537,6 +2657,7 @@ function pakettiStemSliceRandomizerDialog()
             current_synchronized_step = new_step
             pakettiStemRandomizeSlicesStepSynchronized(new_step)
           end
+          renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
         end
       },
       vb:text{id = "synchronized_label", text = tostring(current_synchronized_step), width=30}
@@ -2561,6 +2682,7 @@ function pakettiStemSliceRandomizerDialog()
             current_reverse_probability = new_prob
             pakettiStemRandomizeSlicesForwardsReverse(current_independent_step, new_prob)
           end
+          renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
         end
       },
       vb:text{id = "reverse_label", text = tostring(current_reverse_probability) .. "%", width=40}
@@ -2603,6 +2725,16 @@ function pakettiStemSliceRandomizerDialog()
             if not PakettiSelectionFollowToEndEnabled then
               PakettiSelectionFollowToEndToggle()
             end
+            -- Also enable Selection Only when Select till End is enabled
+            if not stem_randomizer_selection_only then
+              stem_randomizer_selection_only = true
+              vb.views.selection_checkbox.value = true
+            end
+            -- Disable Keep Selection if it's enabled (mutually exclusive)
+            if PakettiCarrySelectionEnabled then
+              PakettiCarrySelectionToggle()
+              vb.views.carry_selection_checkbox.value = false
+            end
           else
             -- Disable Selection Follow to End
             if PakettiSelectionFollowToEndEnabled then
@@ -2612,6 +2744,36 @@ function pakettiStemSliceRandomizerDialog()
         end
       },
       vb:text{text = "Select till End of Pattern", style = "strong", font = "bold"}
+    },
+    vb:row{
+      vb:checkbox{
+        id = "carry_selection_checkbox",
+        value = PakettiCarrySelectionEnabled or false,
+        notifier = function(value)
+          if value then
+            -- Enable Keep Selection
+            if not PakettiCarrySelectionEnabled then
+              PakettiCarrySelectionToggle()
+            end
+            -- Also enable Selection Only when Keep Selection is enabled
+            if not stem_randomizer_selection_only then
+              stem_randomizer_selection_only = true
+              vb.views.selection_checkbox.value = true
+            end
+            -- Disable Select till End if it's enabled (mutually exclusive)
+            if PakettiSelectionFollowToEndEnabled then
+              PakettiSelectionFollowToEndToggle()
+              vb.views.select_till_end_checkbox.value = false
+            end
+          else
+            -- Disable Keep Selection
+            if PakettiCarrySelectionEnabled then
+              PakettiCarrySelectionToggle()
+            end
+          end
+        end
+      },
+      vb:text{text = "Carry Selection", style = "strong", font = "bold"}
     },
     vb:row{
       vb:button{
@@ -2651,6 +2813,10 @@ function pakettiStemSliceRandomizerDialog()
             -- Disable Selection Follow to End if it was enabled via checkbox
             if PakettiSelectionFollowToEndEnabled then
               PakettiSelectionFollowToEndToggle()
+            end
+            -- Disable Keep Selection if it was enabled via checkbox
+            if PakettiCarrySelectionEnabled then
+              PakettiCarrySelectionToggle()
             end
             stem_slice_randomizer_dialog:close()
           end

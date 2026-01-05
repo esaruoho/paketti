@@ -1,0 +1,8 @@
+PB Pitchbend
+1 Modulation Wheel
+16 Vector Control X-axis
+17 Vector Control Y-axis
+7 Volume
+64 Sustain Switch
+121 Reset All Controllers
+
