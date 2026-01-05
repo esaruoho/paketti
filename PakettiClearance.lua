@@ -12,24 +12,37 @@ function findUsedInstruments()
     end
   end
   
-  -- Scan through all patterns in the song
+  -- Scan through all patterns in the song (OPTIMIZED)
+  local pattern_count = 0
   for _, pattern in ipairs(song.patterns) do
-    for _, track in ipairs(pattern.tracks) do
-      for _, line in ipairs(track.lines) do
-        for _, note_column in ipairs(line.note_columns) do
-          if note_column.instrument_value < 255 then
-            local instr_idx = note_column.instrument_value + 1
-            used_instruments[instr_idx] = true
-            
-            if note_column.note_value < 120 then  -- Valid note
-              local instrument = song.instruments[instr_idx]
-              if instrument then
-                for sample_idx, sample in ipairs(instrument.samples) do
-                  if sample.sample_mapping then
-                    local note_range = sample.sample_mapping.note_range
-                    if note_column.note_value >= note_range[1] and 
-                       note_column.note_value <= note_range[2] then
-                      used_samples[instr_idx][sample_idx] = true
+    pattern_count = pattern_count + 1
+    -- Yield every 10 patterns to prevent script timeout
+    if pattern_count % 10 == 0 then
+      renoise.app():process_idle()
+    end
+    for track_idx, track in ipairs(pattern.tracks) do
+      -- Skip non-sequencer tracks (master, send tracks can't trigger instruments)
+      if song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        for _, line in ipairs(track.lines) do
+          -- Skip empty lines entirely
+          if not line.is_empty then
+            for _, note_column in ipairs(line.note_columns) do
+              -- Skip empty note columns
+              if not note_column.is_empty and note_column.instrument_value < 255 then
+                local instr_idx = note_column.instrument_value + 1
+                used_instruments[instr_idx] = true
+                
+                if note_column.note_value < 120 then  -- Valid note
+                  local instrument = song.instruments[instr_idx]
+                  if instrument then
+                    for sample_idx, sample in ipairs(instrument.samples) do
+                      if sample.sample_mapping then
+                        local note_range = sample.sample_mapping.note_range
+                        if note_column.note_value >= note_range[1] and 
+                           note_column.note_value <= note_range[2] then
+                          used_samples[instr_idx][sample_idx] = true
+                        end
+                      end
                     end
                   end
                 end
@@ -288,6 +301,10 @@ function deleteUnusedInstruments()
   for _, item in ipairs(unused_instruments) do
     song:delete_instrument_at(item.instr_idx)
     deleted_count = deleted_count + 1
+    -- Yield every 10 deletions to prevent script timeout
+    if deleted_count % 10 == 0 then
+      renoise.app():process_idle()
+    end
   end
   
   renoise.app():show_status(string.format(
@@ -321,7 +338,13 @@ function findUsedSamples()
   end
   
   -- First pass: Find notes/velocities from patterns (OPTIMIZED)
+  local pattern_count = 0
   for _, pattern in ipairs(song.patterns) do
+    pattern_count = pattern_count + 1
+    -- Yield every 10 patterns to prevent script timeout
+    if pattern_count % 10 == 0 then
+      renoise.app():process_idle()
+    end
     for track_idx, track in ipairs(pattern.tracks) do
       -- Skip non-sequencer tracks (master, send tracks can't trigger instruments)
       if song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
@@ -354,16 +377,24 @@ function findUsedSamples()
     end
   end
 
-  -- Check phrases for each instrument
+  -- Check phrases for each instrument (OPTIMIZED)
   for instr_idx, instrument in ipairs(song.instruments) do
     if instrument.phrases and #instrument.phrases > 0 then
       for _, phrase in ipairs(instrument.phrases) do
         for _, line in ipairs(phrase.lines) do
-          for _, note_col in ipairs(line.note_columns) do
-            if note_col.note_value and note_col.note_value < 120 then
-              used_notes[instr_idx][note_col.note_value] = true
-              if note_col.volume_value then
-                used_velocities[instr_idx][note_col.volume_value] = true
+          -- Skip empty lines entirely
+          if not line.is_empty then
+            for _, note_col in ipairs(line.note_columns) do
+              -- Skip empty note columns
+              if not note_col.is_empty then
+                local note_val = note_col.note_value
+                if note_val and note_val < 120 then
+                  used_notes[instr_idx][note_val] = true
+                  local vol_val = note_col.volume_value
+                  if vol_val and vol_val ~= 255 then
+                    used_velocities[instr_idx][vol_val] = true
+                  end
+                end
               end
             end
           end
@@ -372,74 +403,82 @@ function findUsedSamples()
     end
   end
   
-  -- Second pass: Check each instrument's type and handle accordingly
+  -- Second pass: Check each instrument's type and handle accordingly (OPTIMIZED with early exits)
   for instr_idx, instrument in ipairs(song.instruments) do
-    -- First check for phrases - if instrument has phrases, we need to be more careful
-    local has_phrases = instrument.phrases and #instrument.phrases > 0
-    
-    -- Check for slice markers
-    local has_slices = #instrument.samples > 0 and 
-                      instrument.samples[1].slice_markers and 
-                      #instrument.samples[1].slice_markers > 0
-    
-    if has_slices then
-      -- Mark all samples as used in sliced instruments
-      for sample_idx = 1, #instrument.samples do
-        used_samples[instr_idx][sample_idx] = true
-      end
+    -- Skip instruments with no samples
+    if #instrument.samples == 0 then
+      -- Nothing to check, skip to next instrument
     else
-      -- Check if this is a velocity-mapped instrument
-      local is_velocity_mapped = false
-      if instrument.sample_mappings and #instrument.sample_mappings > 0 then
+      -- First check for phrases - if instrument has phrases, we need to be more careful
+      local has_phrases = instrument.phrases and #instrument.phrases > 0
+      
+      -- Check for slice markers
+      local has_slices = instrument.samples[1].slice_markers and 
+                        #instrument.samples[1].slice_markers > 0
+      
+      if has_slices then
+        -- Mark all samples as used in sliced instruments
         for sample_idx = 1, #instrument.samples do
-          local mapping = instrument.sample_mappings[1][sample_idx]
-          if mapping and mapping.velocity_range and 
-             (mapping.velocity_range[1] > 0 or mapping.velocity_range[2] < 127) then
-            is_velocity_mapped = true
-            break
+          used_samples[instr_idx][sample_idx] = true
+        end
+      else
+        -- Check if this is a velocity-mapped instrument
+        local is_velocity_mapped = false
+        if instrument.sample_mappings and #instrument.sample_mappings > 0 then
+          for sample_idx = 1, #instrument.samples do
+            local mapping = instrument.sample_mappings[1][sample_idx]
+            if mapping and mapping.velocity_range and 
+               (mapping.velocity_range[1] > 0 or mapping.velocity_range[2] < 127) then
+              is_velocity_mapped = true
+              break
+            end
           end
         end
-      end
 
-      -- Handle based on instrument type
-      if is_velocity_mapped then
-        -- For velocity-mapped instruments, check both note and velocity ranges
-        for sample_idx = 1, #instrument.samples do
-          local mapping = instrument.sample_mappings[1][sample_idx]
-          if mapping then
-            for note in pairs(used_notes[instr_idx]) do
-              if mapping.note_range and 
-                 note >= mapping.note_range[1] and 
-                 note <= mapping.note_range[2] then
-                -- For velocity-mapped samples, check velocity range
-                if has_phrases then
-                  -- If instrument has phrases, be more conservative with velocity-mapped samples
-                  used_samples[instr_idx][sample_idx] = true
-                else
-                  for vel in pairs(used_velocities[instr_idx]) do
-                    if mapping.velocity_range and 
-                       vel >= mapping.velocity_range[1] and 
-                       vel <= mapping.velocity_range[2] then
+        -- Handle based on instrument type
+        if is_velocity_mapped then
+          -- For velocity-mapped instruments, check both note and velocity ranges
+          for sample_idx = 1, #instrument.samples do
+            -- EARLY EXIT: Skip if sample already marked as used
+            if not used_samples[instr_idx][sample_idx] then
+              local mapping = instrument.sample_mappings[1][sample_idx]
+              if mapping and mapping.note_range then
+                local sample_marked = false
+                for note in pairs(used_notes[instr_idx]) do
+                  if sample_marked then break end
+                  if note >= mapping.note_range[1] and note <= mapping.note_range[2] then
+                    -- For velocity-mapped samples, check velocity range
+                    if has_phrases then
+                      -- If instrument has phrases, be more conservative with velocity-mapped samples
                       used_samples[instr_idx][sample_idx] = true
-                      break
+                      sample_marked = true
+                    elseif mapping.velocity_range then
+                      for vel in pairs(used_velocities[instr_idx]) do
+                        if vel >= mapping.velocity_range[1] and vel <= mapping.velocity_range[2] then
+                          used_samples[instr_idx][sample_idx] = true
+                          sample_marked = true
+                          break
+                        end
+                      end
                     end
                   end
                 end
               end
             end
           end
-        end
-      else
-        -- For regular instruments, only check note ranges
-        for sample_idx = 1, #instrument.samples do
-          local mapping = instrument.sample_mappings[1][sample_idx]
-          if mapping then
-            for note in pairs(used_notes[instr_idx]) do
-              if mapping.note_range and 
-                 note >= mapping.note_range[1] and 
-                 note <= mapping.note_range[2] then
-                used_samples[instr_idx][sample_idx] = true
-                break
+        else
+          -- For regular instruments, only check note ranges
+          for sample_idx = 1, #instrument.samples do
+            -- EARLY EXIT: Skip if sample already marked as used
+            if not used_samples[instr_idx][sample_idx] then
+              local mapping = instrument.sample_mappings[1][sample_idx]
+              if mapping and mapping.note_range then
+                for note in pairs(used_notes[instr_idx]) do
+                  if note >= mapping.note_range[1] and note <= mapping.note_range[2] then
+                    used_samples[instr_idx][sample_idx] = true
+                    break
+                  end
+                end
               end
             end
           end
@@ -496,6 +535,7 @@ function deleteUnusedSamples(skip_confirmation)
   
   -- Clear unused sample data (keep slots to preserve mappings)
   local deleted_count = 0
+  local operation_count = 0
   for instr_idx = 1, #song.instruments do
     local instrument = song.instruments[instr_idx]
     for sample_idx = 1, #instrument.samples do
@@ -509,6 +549,11 @@ function deleteUnusedSamples(skip_confirmation)
           -- Mark as cleared
           sample.name = "EmptiedUnused"
           deleted_count = deleted_count + 1
+          operation_count = operation_count + 1
+          -- Yield every 10 deletions to prevent script timeout
+          if operation_count % 10 == 0 then
+            renoise.app():process_idle()
+          end
         end
       end
     end
