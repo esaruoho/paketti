@@ -320,18 +320,31 @@ function findUsedSamples()
     end
   end
   
-  -- First pass: Find notes/velocities from both patterns AND phrases
+  -- First pass: Find notes/velocities from patterns (OPTIMIZED)
   for _, pattern in ipairs(song.patterns) do
-    for _, track in ipairs(pattern.tracks) do
-      for _, line in ipairs(track.lines) do
-        if line.note_columns then
-          for _, note_col in ipairs(line.note_columns) do
-            local instr_idx = note_col.instrument_value + 1
-            if instr_idx > 0 and instr_idx <= #song.instruments then
-              if note_col.note_value and note_col.note_value < 120 then
-                used_notes[instr_idx][note_col.note_value] = true
-                if note_col.volume_value then
-                  used_velocities[instr_idx][note_col.volume_value] = true
+    for track_idx, track in ipairs(pattern.tracks) do
+      -- Skip non-sequencer tracks (master, send tracks can't trigger instruments)
+      if song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        for _, line in ipairs(track.lines) do
+          -- Skip empty lines entirely
+          if not line.is_empty then
+            for _, note_col in ipairs(line.note_columns) do
+              -- Skip empty note columns
+              if not note_col.is_empty then
+                local instr_val = note_col.instrument_value
+                -- 255 means no instrument specified
+                if instr_val ~= 255 then
+                  local instr_idx = instr_val + 1
+                  if instr_idx > 0 and instr_idx <= #song.instruments then
+                    local note_val = note_col.note_value
+                    if note_val and note_val < 120 then
+                      used_notes[instr_idx][note_val] = true
+                      local vol_val = note_col.volume_value
+                      if vol_val and vol_val ~= 255 then
+                        used_velocities[instr_idx][vol_val] = true
+                      end
+                    end
+                  end
                 end
               end
             end
