@@ -1,0 +1,110 @@
+PB Pitchbend
+1 Modulation Wheel (MSB)
+29 VCF Frequency
+30 VCF Resonance
+35 HPF Frequency
+31 VCF Envelope Modulation
+33 VCF LFO Modulation
+34 VCF Keyboard Modulation
+16 LFO 1 Rate
+17 LFO 1 Delay Time
+18 LFO 2 Rate
+19 LFO 2 Delay Time
+20 OSC1 Pitch Modulation
+21 OSC1 Pulse Width Modulation
+23 OSC 2 Pitch Modulation
+24 OSC 2 Tone Modulation
+25 OSC 2 Pitch
+26 OSC 2 Level
+27 Noise Level
+28 Unison Detune
+12 Arpeggiator Rate
+13 Arpeggiator Gate Time
+36 VCA Level
+7 Channel Volume (MSB)
+37 VCA Envelope Attack
+39 VCA Envelope Decay
+40 VCA Envelope Sustain
+41 VCA Envelope Release
+42 VCF Envelope Attack
+43 VCF Envelope Decay
+44 VCA Envelope Sustain
+45 VCF Envelope Release
+46 MOD Envelope Attack
+47 MOD Envelope Decay
+48 MOD Envelope Sustain
+49 MOD Envelope Release
+50 VCA Envelope Attack Curve
+51 VCA Envelope Decay Curve
+52 VCA Envelope Sustain Curve
+53 VCA Envelope Release Curve
+54 VCF Envelope Attack Curve
+55 VCF Envelope Decay Curve
+56 VCA Envelope Sustain Curve
+57 VCF Envelope Release Curve
+58 MOD Envelope Attack Curve
+59 MOD Envelope Decay Curve
+60 MOD Envelope Sustain Curve
+61 MOD Envelope Release Curve
+5 Portamento Time (MSB)
+10 Pan (MSB)
+11 Expression (MSB)
+64 Sustain Pedal
+62 Effects Slot 1 Parameter 1
+63 Effects Slot 1 Parameter 2
+65 Effects Slot 1 Parameter 3
+66 Effects Slot 1 Parameter 4
+67 Effects Slot 1 Parameter 5
+68 Effects Slot 1 Parameter 6
+69 Effects Slot 1 Parameter 7
+70 Effects Slot 1 Parameter 8
+71 Effects Slot 1 Parameter 9
+72 Effects Slot 1 Parameter 10
+73 Effects Slot 1 Parameter 11
+74 Effects Slot 1 Parameter 12
+75 Effects Slot 2 Parameter 1
+76 Effects Slot 2 Parameter 2
+77 Effects Slot 2 Parameter 3
+78 Effects Slot 2 Parameter 4
+79 Effects Slot 2 Parameter 5
+80 Effects Slot 2 Parameter 6
+81 Effects Slot 2 Parameter 7
+82 Effects Slot 2 Parameter 8
+83 Effects Slot 2 Parameter 9
+84 Effects Slot 2 Parameter 10
+85 Effects Slot 2 Parameter 11
+86 Effects Slot 2 Parameter 12
+87 Effects Slot 3 Parameter 1
+88 Effects Slot 3 Parameter 2
+89 Effects Slot 3 Parameter 3
+90 Effects Slot 3 Parameter 4
+91 Effects Slot 3 Parameter 5
+92 Effects Slot 3 Parameter 6
+93 Effects Slot 3 Parameter 7
+94 Effects Slot 3 Parameter 8
+95 Effects Slot 3 Parameter 9
+102 Effects Slot 3 Parameter 10
+103 Effects Slot 3 Parameter 11
+104 Effects Slot 3 Parameter 12
+105 Effects Slot 1 Type
+106 Effects Slot 2 Type
+107 Effects Slot 3 Type
+108 Effects Slot 4 Type
+109 Effects Slot 1 Gain
+110 Effects Slot 2 Gain
+111 Effects Slot 3 Gain
+112 Effects Slot 4 Gain
+113 Analog Thru
+114 Effects Mode
+115 3D Controller X-Axis
+116 3D Controller Y-Axis
+117 3D Controller Z-Axis
+120 All Sound Off
+121 Reset All Controllers
+122 Local Control On/Off
+123 All Notes Off
+124 Omni Mode Off
+125 Omni Mode On
+126 Poly Mode Off
+127 Poly Mode On
+

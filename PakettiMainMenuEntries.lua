@@ -178,7 +178,7 @@ function pakettiAboutDonations()
       function() return dialog end,
       function(value) dialog = value end
     )
-    dialog = renoise.app():show_custom_dialog("About Paketti / Donations, written by Esa Juhani Ruoho (C) 2009-2025", dialog_content, keyhandler)
+    dialog = renoise.app():show_custom_dialog("About Paketti / Donations, written by Esa Juhani Ruoho (C) 2009-2026", dialog_content, keyhandler)
   end
 end
 

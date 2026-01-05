@@ -10027,3 +10027,97 @@ end
 -- Keybinding
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Selection Follow Start",invoke=function() PakettiSelectionFollowToggle() end}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Selection Follow Start",invoke=function(message) if message:is_trigger() then PakettiSelectionFollowToggle() end end}
+
+---------------------------------------------------------------------------
+-- Selection Follow to End - Dynamic selection from cursor to end of pattern
+---------------------------------------------------------------------------
+-- When enabled, automatically selects from current cursor line to the end
+-- of the pattern, spanning full width of the current track
+
+PakettiSelectionFollowToEndEnabled = false
+
+-- Idle notifier that updates selection from current line to end of pattern
+function PakettiSelectionFollowToEndIdleNotifier()
+  if not PakettiSelectionFollowToEndEnabled then
+    return
+  end
+  
+  local song
+  local success = pcall(function()
+    song = renoise.song()
+  end)
+  
+  if not success or not song then
+    return
+  end
+  
+  -- Only work in pattern editor
+  if renoise.app().window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+    return
+  end
+  
+  -- Get current position
+  local current_line = song.selected_line_index
+  local current_track = song.selected_track_index
+  local track = song.selected_track
+  local pattern = song.selected_pattern
+  
+  -- Calculate last column (full track width)
+  local last_column = track.visible_note_columns + track.visible_effect_columns
+  
+  -- Set selection from current line to end of pattern, full track width
+  song.selection_in_pattern = {
+    start_line = current_line,
+    end_line = pattern.number_of_lines,
+    start_track = current_track,
+    end_track = current_track,
+    start_column = 1,
+    end_column = last_column
+  }
+end
+
+-- Attach the idle notifier
+function PakettiSelectionFollowToEndAttachNotifier()
+  if not renoise.tool().app_idle_observable:has_notifier(PakettiSelectionFollowToEndIdleNotifier) then
+    renoise.tool().app_idle_observable:add_notifier(PakettiSelectionFollowToEndIdleNotifier)
+  end
+end
+
+-- Detach the idle notifier
+function PakettiSelectionFollowToEndDetachNotifier()
+  if renoise.tool().app_idle_observable:has_notifier(PakettiSelectionFollowToEndIdleNotifier) then
+    renoise.tool().app_idle_observable:remove_notifier(PakettiSelectionFollowToEndIdleNotifier)
+  end
+end
+
+-- Toggle function
+function PakettiSelectionFollowToEndToggle()
+  PakettiSelectionFollowToEndEnabled = not PakettiSelectionFollowToEndEnabled
+  
+  if PakettiSelectionFollowToEndEnabled then
+    -- Attach the idle notifier
+    PakettiSelectionFollowToEndAttachNotifier()
+    
+    local song = renoise.song()
+    renoise.app():show_status("Selection Follow to End: ON (Line " .. 
+      song.selected_line_index .. " to " .. 
+      song.selected_pattern.number_of_lines .. ")")
+    
+    print("Selection Follow to End enabled")
+  else
+    -- Detach the idle notifier
+    PakettiSelectionFollowToEndDetachNotifier()
+    
+    renoise.app():show_status("Selection Follow to End: OFF")
+    print("Selection Follow to End disabled")
+  end
+end
+
+-- Return enabled state for menu checkmark
+function PakettiSelectionFollowToEndIsEnabled()
+  return PakettiSelectionFollowToEndEnabled
+end
+
+-- Keybinding
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Selection Follow to End",invoke=function() PakettiSelectionFollowToEndToggle() end}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Selection Follow to End",invoke=function(message) if message:is_trigger() then PakettiSelectionFollowToEndToggle() end end}

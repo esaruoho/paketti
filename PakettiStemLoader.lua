@@ -9,6 +9,9 @@
 -- Pattern mode: "current" (default, safer) or "all" (modify all patterns)
 local stem_randomizer_pattern_mode = "current"
 
+-- Selection only mode: when true, randomization only affects the pattern editor selection
+local stem_randomizer_selection_only = false
+
 -- Lua 5.1 compatible IEEE 754 float reader (little-endian)
 local function pakettiStemLoaderReadFloatLE(str, pos)
   local b1, b2, b3, b4 = str:byte(pos, pos+3)
@@ -1733,6 +1736,35 @@ function pakettiStemResetSlicesToSequential()
     return
   end
   
+  -- Selection-only mode handling
+  local sel_start_line = nil
+  local sel_start_track, sel_end_track = nil, nil
+  
+  if stem_randomizer_selection_only then
+    local selection = song.selection_in_pattern
+    if not selection then
+      renoise.app():show_status("Selection Only mode enabled but no selection in pattern")
+      return
+    end
+    sel_start_line = selection.start_line
+    sel_start_track = selection.start_track
+    sel_end_track = selection.end_track
+    
+    -- Filter sliced_tracks to only those within selection
+    local filtered_tracks = {}
+    for _, track_info in ipairs(sliced_tracks) do
+      if track_info.track_index >= sel_start_track and track_info.track_index <= sel_end_track then
+        table.insert(filtered_tracks, track_info)
+      end
+    end
+    sliced_tracks = filtered_tracks
+    
+    if #sliced_tracks == 0 then
+      renoise.app():show_status("No sliced stem tracks within selection")
+      return
+    end
+  end
+  
   -- Determine which patterns to process based on mode
   local seq_positions = {}
   if stem_randomizer_pattern_mode == "current" then
@@ -1763,7 +1795,9 @@ function pakettiStemResetSlicesToSequential()
         local slice_note = base_note + slice_index
         if slice_note > 119 then slice_note = 119 end
         
-        local line = pattern.tracks[track_info.track_index].lines[1]
+        -- Use selection start line if in selection-only mode, otherwise line 1
+        local target_line = sel_start_line or 1
+        local line = pattern.tracks[track_info.track_index].lines[target_line]
         line.note_columns[1].note_value = slice_note
         line.note_columns[1].instrument_value = track_info.instrument_index - 1
       end
@@ -1771,6 +1805,9 @@ function pakettiStemResetSlicesToSequential()
   end
   
   local mode_text = stem_randomizer_pattern_mode == "current" and "current pattern" or string.format("%d patterns", #seq_positions)
+  if stem_randomizer_selection_only then
+    mode_text = mode_text .. " (selection only)"
+  end
   renoise.app():show_status(string.format("Reset %d stem tracks to sequential - %s", #sliced_tracks, mode_text))
 end
 
@@ -1783,6 +1820,36 @@ function pakettiStemRandomizeSlicesStepIndependent(step_size)
   if #sliced_tracks == 0 then
     renoise.app():show_status("No sliced stem tracks found. Load stems with 'Slice to Patterns' first.")
     return
+  end
+  
+  -- Selection-only mode handling
+  local sel_start_line, sel_end_line = nil, nil
+  local sel_start_track, sel_end_track = nil, nil
+  
+  if stem_randomizer_selection_only then
+    local selection = song.selection_in_pattern
+    if not selection then
+      renoise.app():show_status("Selection Only mode enabled but no selection in pattern")
+      return
+    end
+    sel_start_line = selection.start_line
+    sel_end_line = selection.end_line
+    sel_start_track = selection.start_track
+    sel_end_track = selection.end_track
+    
+    -- Filter sliced_tracks to only those within selection
+    local filtered_tracks = {}
+    for _, track_info in ipairs(sliced_tracks) do
+      if track_info.track_index >= sel_start_track and track_info.track_index <= sel_end_track then
+        table.insert(filtered_tracks, track_info)
+      end
+    end
+    sliced_tracks = filtered_tracks
+    
+    if #sliced_tracks == 0 then
+      renoise.app():show_status("No sliced stem tracks within selection")
+      return
+    end
   end
   
   -- Determine which patterns to process based on mode
@@ -1802,8 +1869,9 @@ function pakettiStemRandomizeSlicesStepIndependent(step_size)
     offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
   end
   
-  print(string.format("Stem Randomize %d-Step Independent: Found %d sliced tracks, %d patterns (%s mode), %d offsets", 
-    step_size, #sliced_tracks, #seq_positions, stem_randomizer_pattern_mode, #offset_values))
+  local selection_text = stem_randomizer_selection_only and " (selection only)" or ""
+  print(string.format("Stem Randomize %d-Step Independent: Found %d sliced tracks, %d patterns (%s mode)%s, %d offsets", 
+    step_size, #sliced_tracks, #seq_positions, stem_randomizer_pattern_mode, selection_text, #offset_values))
   
   local total_chunks = 0
   
@@ -1811,8 +1879,13 @@ function pakettiStemRandomizeSlicesStepIndependent(step_size)
     local pattern_index = song.sequencer.pattern_sequence[seq_pos]
     local pattern = song.patterns[pattern_index]
     local pattern_length = pattern.number_of_lines
-    local chunks_per_pattern = math.floor(pattern_length / step_size)
     
+    -- Determine line range to process
+    local start_line = sel_start_line or 1
+    local end_line = sel_end_line or pattern_length
+    if end_line > pattern_length then end_line = pattern_length end
+    
+    local chunks_per_pattern = math.floor(pattern_length / step_size)
     if chunks_per_pattern < 1 then chunks_per_pattern = 1 end
     
     for _, track_info in ipairs(sliced_tracks) do
@@ -1822,8 +1895,8 @@ function pakettiStemRandomizeSlicesStepIndependent(step_size)
         base_note = instrument.samples[1].sample_mapping.base_note
       end
       
-      -- Clear all lines on this track in this pattern first
-      for row = 1, pattern_length do
+      -- Clear lines on this track in this pattern (only within selection if applicable)
+      for row = start_line, end_line do
         local line = pattern.tracks[track_info.track_index].lines[row]
         if line then
           line.note_columns[1]:clear()
@@ -1831,10 +1904,10 @@ function pakettiStemRandomizeSlicesStepIndependent(step_size)
         end
       end
       
-      -- Write new triggers at the specified step interval
+      -- Write new triggers at the specified step interval (only within selection if applicable)
       for chunk = 0, chunks_per_pattern - 1 do
         local row = (chunk * step_size) + 1
-        if row <= pattern_length then
+        if row >= start_line and row <= end_line then
           local random_slice = math.random(1, track_info.slice_count)
           local slice_note = base_note + random_slice
           if slice_note > 119 then slice_note = 119 end
@@ -1860,6 +1933,9 @@ function pakettiStemRandomizeSlicesStepIndependent(step_size)
   end
   
   local mode_text = stem_randomizer_pattern_mode == "current" and "current pattern" or string.format("%d patterns", #seq_positions)
+  if stem_randomizer_selection_only then
+    mode_text = mode_text .. " (selection only)"
+  end
   print(string.format("Stem Randomize %d-Step Independent: Wrote %d slice triggers", step_size, total_chunks))
   renoise.app():show_status(string.format("Randomized %d tracks every %d steps (independent) - %s", #sliced_tracks, step_size, mode_text))
 end
@@ -1873,6 +1949,36 @@ function pakettiStemRandomizeSlicesStepSynchronized(step_size)
   if #sliced_tracks == 0 then
     renoise.app():show_status("No sliced stem tracks found. Load stems with 'Slice to Patterns' first.")
     return
+  end
+  
+  -- Selection-only mode handling
+  local sel_start_line, sel_end_line = nil, nil
+  local sel_start_track, sel_end_track = nil, nil
+  
+  if stem_randomizer_selection_only then
+    local selection = song.selection_in_pattern
+    if not selection then
+      renoise.app():show_status("Selection Only mode enabled but no selection in pattern")
+      return
+    end
+    sel_start_line = selection.start_line
+    sel_end_line = selection.end_line
+    sel_start_track = selection.start_track
+    sel_end_track = selection.end_track
+    
+    -- Filter sliced_tracks to only those within selection
+    local filtered_tracks = {}
+    for _, track_info in ipairs(sliced_tracks) do
+      if track_info.track_index >= sel_start_track and track_info.track_index <= sel_end_track then
+        table.insert(filtered_tracks, track_info)
+      end
+    end
+    sliced_tracks = filtered_tracks
+    
+    if #sliced_tracks == 0 then
+      renoise.app():show_status("No sliced stem tracks within selection")
+      return
+    end
   end
   
   -- Determine which patterns to process based on mode
@@ -1899,8 +2005,9 @@ function pakettiStemRandomizeSlicesStepSynchronized(step_size)
     offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
   end
   
-  print(string.format("Stem Randomize %d-Step Synchronized: Found %d sliced tracks, %d patterns (%s mode), using %d slices, %d offsets", 
-    step_size, #sliced_tracks, #seq_positions, stem_randomizer_pattern_mode, min_slice_count, #offset_values))
+  local selection_text = stem_randomizer_selection_only and " (selection only)" or ""
+  print(string.format("Stem Randomize %d-Step Synchronized: Found %d sliced tracks, %d patterns (%s mode)%s, using %d slices, %d offsets", 
+    step_size, #sliced_tracks, #seq_positions, stem_randomizer_pattern_mode, selection_text, min_slice_count, #offset_values))
   
   local total_chunks = 0
   
@@ -1908,8 +2015,13 @@ function pakettiStemRandomizeSlicesStepSynchronized(step_size)
     local pattern_index = song.sequencer.pattern_sequence[seq_pos]
     local pattern = song.patterns[pattern_index]
     local pattern_length = pattern.number_of_lines
-    local chunks_per_pattern = math.floor(pattern_length / step_size)
     
+    -- Determine line range to process
+    local start_line = sel_start_line or 1
+    local end_line = sel_end_line or pattern_length
+    if end_line > pattern_length then end_line = pattern_length end
+    
+    local chunks_per_pattern = math.floor(pattern_length / step_size)
     if chunks_per_pattern < 1 then chunks_per_pattern = 1 end
     
     local chunk_slices = {}
@@ -1924,8 +2036,8 @@ function pakettiStemRandomizeSlicesStepSynchronized(step_size)
         base_note = instrument.samples[1].sample_mapping.base_note
       end
       
-      -- Clear all lines on this track in this pattern first
-      for row = 1, pattern_length do
+      -- Clear lines on this track in this pattern (only within selection if applicable)
+      for row = start_line, end_line do
         local line = pattern.tracks[track_info.track_index].lines[row]
         if line then
           line.note_columns[1]:clear()
@@ -1933,10 +2045,10 @@ function pakettiStemRandomizeSlicesStepSynchronized(step_size)
         end
       end
       
-      -- Write new triggers at the specified step interval
+      -- Write new triggers at the specified step interval (only within selection if applicable)
       for chunk = 0, chunks_per_pattern - 1 do
         local row = (chunk * step_size) + 1
-        if row <= pattern_length then
+        if row >= start_line and row <= end_line then
           local slice_note = base_note + chunk_slices[chunk]
           if slice_note > 119 then slice_note = 119 end
           
@@ -1961,6 +2073,9 @@ function pakettiStemRandomizeSlicesStepSynchronized(step_size)
   end
   
   local mode_text = stem_randomizer_pattern_mode == "current" and "current pattern" or string.format("%d patterns", #seq_positions)
+  if stem_randomizer_selection_only then
+    mode_text = mode_text .. " (selection only)"
+  end
   print(string.format("Stem Randomize %d-Step Synchronized: Wrote %d slice triggers", step_size, total_chunks))
   renoise.app():show_status(string.format("Randomized %d tracks every %d steps (synchronized) - %s", #sliced_tracks, step_size, mode_text))
 end
@@ -1990,6 +2105,36 @@ function pakettiStemSequentialSlicesAtStep(step_size)
     return
   end
   
+  -- Selection-only mode handling
+  local sel_start_line, sel_end_line = nil, nil
+  local sel_start_track, sel_end_track = nil, nil
+  
+  if stem_randomizer_selection_only then
+    local selection = song.selection_in_pattern
+    if not selection then
+      renoise.app():show_status("Selection Only mode enabled but no selection in pattern")
+      return
+    end
+    sel_start_line = selection.start_line
+    sel_end_line = selection.end_line
+    sel_start_track = selection.start_track
+    sel_end_track = selection.end_track
+    
+    -- Filter sliced_tracks to only those within selection
+    local filtered_tracks = {}
+    for _, track_info in ipairs(sliced_tracks) do
+      if track_info.track_index >= sel_start_track and track_info.track_index <= sel_end_track then
+        table.insert(filtered_tracks, track_info)
+      end
+    end
+    sliced_tracks = filtered_tracks
+    
+    if #sliced_tracks == 0 then
+      renoise.app():show_status("No sliced stem tracks within selection")
+      return
+    end
+  end
+  
   -- Determine which patterns to process based on mode
   local seq_positions = {}
   if stem_randomizer_pattern_mode == "current" then
@@ -2007,8 +2152,9 @@ function pakettiStemSequentialSlicesAtStep(step_size)
     offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
   end
   
-  print(string.format("Stem Sequential %d-Step: Found %d sliced tracks, %d patterns (%s mode)", 
-    step_size, #sliced_tracks, #seq_positions, stem_randomizer_pattern_mode))
+  local selection_text = stem_randomizer_selection_only and " (selection only)" or ""
+  print(string.format("Stem Sequential %d-Step: Found %d sliced tracks, %d patterns (%s mode)%s", 
+    step_size, #sliced_tracks, #seq_positions, stem_randomizer_pattern_mode, selection_text))
   
   local total_triggers = 0
   
@@ -2016,8 +2162,13 @@ function pakettiStemSequentialSlicesAtStep(step_size)
     local pattern_index = song.sequencer.pattern_sequence[seq_pos]
     local pattern = song.patterns[pattern_index]
     local pattern_length = pattern.number_of_lines
-    local chunks_per_pattern = math.floor(pattern_length / step_size)
     
+    -- Determine line range to process
+    local start_line = sel_start_line or 1
+    local end_line = sel_end_line or pattern_length
+    if end_line > pattern_length then end_line = pattern_length end
+    
+    local chunks_per_pattern = math.floor(pattern_length / step_size)
     if chunks_per_pattern < 1 then chunks_per_pattern = 1 end
     
     -- For sequential mode, use sequence position to determine starting slice
@@ -2030,8 +2181,8 @@ function pakettiStemSequentialSlicesAtStep(step_size)
         base_note = instrument.samples[1].sample_mapping.base_note
       end
       
-      -- Clear all lines on this track in this pattern first
-      for row = 1, pattern_length do
+      -- Clear lines on this track in this pattern (only within selection if applicable)
+      for row = start_line, end_line do
         local line = pattern.tracks[track_info.track_index].lines[row]
         if line then
           line.note_columns[1]:clear()
@@ -2039,10 +2190,10 @@ function pakettiStemSequentialSlicesAtStep(step_size)
         end
       end
       
-      -- Write sequential triggers at the specified step interval
+      -- Write sequential triggers at the specified step interval (only within selection if applicable)
       for chunk = 0, chunks_per_pattern - 1 do
         local row = (chunk * step_size) + 1
-        if row <= pattern_length then
+        if row >= start_line and row <= end_line then
           -- Sequential slice: progress through slices in order, wrapping if needed
           local slice_index = ((base_slice_offset + chunk) % track_info.slice_count) + 1
           local slice_note = base_note + slice_index
@@ -2069,6 +2220,9 @@ function pakettiStemSequentialSlicesAtStep(step_size)
   end
   
   local mode_text = stem_randomizer_pattern_mode == "current" and "current pattern" or string.format("%d patterns", #seq_positions)
+  if stem_randomizer_selection_only then
+    mode_text = mode_text .. " (selection only)"
+  end
   print(string.format("Stem Sequential %d-Step: Wrote %d sequential triggers", step_size, total_triggers))
   renoise.app():show_status(string.format("Sequential slices every %d steps - %s", step_size, mode_text))
 end
@@ -2123,6 +2277,36 @@ function pakettiStemRandomizeSlicesForwardsReverse(step_size, reverse_probabilit
     return
   end
   
+  -- Selection-only mode handling
+  local sel_start_line, sel_end_line = nil, nil
+  local sel_start_track, sel_end_track = nil, nil
+  
+  if stem_randomizer_selection_only then
+    local selection = song.selection_in_pattern
+    if not selection then
+      renoise.app():show_status("Selection Only mode enabled but no selection in pattern")
+      return
+    end
+    sel_start_line = selection.start_line
+    sel_end_line = selection.end_line
+    sel_start_track = selection.start_track
+    sel_end_track = selection.end_track
+    
+    -- Filter fwdrev_pairs to only those within selection
+    local filtered_pairs = {}
+    for _, pair in ipairs(fwdrev_pairs) do
+      if pair.track >= sel_start_track and pair.track <= sel_end_track then
+        table.insert(filtered_pairs, pair)
+      end
+    end
+    fwdrev_pairs = filtered_pairs
+    
+    if #fwdrev_pairs == 0 then
+      renoise.app():show_status("No forwards/reverse pairs within selection")
+      return
+    end
+  end
+  
   -- Determine which patterns to process based on mode
   local seq_positions = {}
   if stem_randomizer_pattern_mode == "current" then
@@ -2142,8 +2326,9 @@ function pakettiStemRandomizeSlicesForwardsReverse(step_size, reverse_probabilit
     offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
   end
   
-  print(string.format("Stem Randomize FwdRev: %d pairs, %d patterns (%s mode), step=%d, reverse_prob=%d%%",
-    #fwdrev_pairs, #seq_positions, stem_randomizer_pattern_mode, step_size, prob))
+  local selection_text = stem_randomizer_selection_only and " (selection only)" or ""
+  print(string.format("Stem Randomize FwdRev: %d pairs, %d patterns (%s mode)%s, step=%d, reverse_prob=%d%%",
+    #fwdrev_pairs, #seq_positions, stem_randomizer_pattern_mode, selection_text, step_size, prob))
   
   local total_fwd = 0
   local total_rev = 0
@@ -2152,8 +2337,13 @@ function pakettiStemRandomizeSlicesForwardsReverse(step_size, reverse_probabilit
     local pattern_index = song.sequencer.pattern_sequence[seq_pos]
     local pattern = song.patterns[pattern_index]
     local pattern_length = pattern.number_of_lines
-    local chunks_per_pattern = math.floor(pattern_length / step_size)
     
+    -- Determine line range to process
+    local start_line = sel_start_line or 1
+    local end_line = sel_end_line or pattern_length
+    if end_line > pattern_length then end_line = pattern_length end
+    
+    local chunks_per_pattern = math.floor(pattern_length / step_size)
     if chunks_per_pattern < 1 then chunks_per_pattern = 1 end
     
     for _, pair in ipairs(fwdrev_pairs) do
@@ -2172,8 +2362,8 @@ function pakettiStemRandomizeSlicesForwardsReverse(step_size, reverse_probabilit
         rev_base_note = rev_instrument.samples[1].sample_mapping.base_note
       end
       
-      -- Clear the track in this pattern
-      for row = 1, pattern_length do
+      -- Clear the track in this pattern (only within selection if applicable)
+      for row = start_line, end_line do
         if pattern.tracks[track_index] then
           local line = pattern.tracks[track_index].lines[row]
           if line then
@@ -2183,10 +2373,10 @@ function pakettiStemRandomizeSlicesForwardsReverse(step_size, reverse_probabilit
         end
       end
       
-      -- Write triggers at step intervals, alternating between fwd/rev instruments
+      -- Write triggers at step intervals, alternating between fwd/rev instruments (only within selection if applicable)
       for chunk = 0, chunks_per_pattern - 1 do
         local row = (chunk * step_size) + 1
-        if row <= pattern_length then
+        if row >= start_line and row <= end_line then
           -- Decide forwards or reverse based on probability
           local use_reverse = (math.random(100) <= prob)
           
@@ -2227,6 +2417,9 @@ function pakettiStemRandomizeSlicesForwardsReverse(step_size, reverse_probabilit
   end
   
   local mode_text = stem_randomizer_pattern_mode == "current" and "current pattern" or string.format("%d patterns", #seq_positions)
+  if stem_randomizer_selection_only then
+    mode_text = mode_text .. " (selection only)"
+  end
   print(string.format("Stem Randomize FwdRev: %d forwards, %d reversed triggers",
     total_fwd, total_rev))
   renoise.app():show_status(string.format("FwdRev: %d%% reverse - %d fwd, %d rev - %s",
@@ -2279,6 +2472,10 @@ local current_synchronized_step = 16
 
 function pakettiStemSliceRandomizerDialog()
   if stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
+    -- Disable Selection Follow to End if it was enabled via checkbox
+    if PakettiSelectionFollowToEndEnabled then
+      PakettiSelectionFollowToEndToggle()
+    end
     stem_slice_randomizer_dialog:close()
     stem_slice_randomizer_dialog = nil
     return
@@ -2386,6 +2583,37 @@ function pakettiStemSliceRandomizerDialog()
       }
     },
     vb:row{
+      vb:checkbox{
+        id = "selection_checkbox",
+        value = stem_randomizer_selection_only,
+        notifier = function(value)
+          stem_randomizer_selection_only = value
+          print("Stem Randomizer: Selection only = " .. tostring(value))
+        end
+      },
+      vb:text{text = "Selection Only", style = "strong", font = "bold"}
+    },
+    vb:row{
+      vb:checkbox{
+        id = "select_till_end_checkbox",
+        value = PakettiSelectionFollowToEndEnabled or false,
+        notifier = function(value)
+          if value then
+            -- Enable Selection Follow to End
+            if not PakettiSelectionFollowToEndEnabled then
+              PakettiSelectionFollowToEndToggle()
+            end
+          else
+            -- Disable Selection Follow to End
+            if PakettiSelectionFollowToEndEnabled then
+              PakettiSelectionFollowToEndToggle()
+            end
+          end
+        end
+      },
+      vb:text{text = "Select till End of Pattern", style = "strong", font = "bold"}
+    },
+    vb:row{
       vb:button{
         text = "Dupe",
         width = 48,
@@ -2420,6 +2648,10 @@ function pakettiStemSliceRandomizerDialog()
         width = 48,
         notifier = function()
           if stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
+            -- Disable Selection Follow to End if it was enabled via checkbox
+            if PakettiSelectionFollowToEndEnabled then
+              PakettiSelectionFollowToEndToggle()
+            end
             stem_slice_randomizer_dialog:close()
           end
         end

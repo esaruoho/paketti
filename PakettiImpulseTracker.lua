@@ -825,6 +825,107 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-D Double Select",invoke=DoubleSelect}
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-D Double Select",invoke=DoubleSelect}
 
+--IT: SHIFT-ALT-D (whole track) Halve-select
+function HalveSelect()
+  local s = renoise.song()
+  local win = renoise.app().window
+  local middle_frame = win.active_middle_frame
+
+  ------------------------------------------------------------------------------
+  -- PHRASE EDITOR branch
+  ------------------------------------------------------------------------------
+  if middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+    if renoise.API_VERSION >= 6.2 then
+      local phrase = s.selected_phrase
+      if not phrase then
+        renoise.app():show_error("No phrase is selected!")
+        return
+      end
+
+      local sip = s.selection_in_phrase
+      local start_line = s.selected_phrase_line_index
+      local total_columns = phrase.visible_note_columns + phrase.visible_effect_columns
+
+      -- Ensure there's at least one column
+      if total_columns < 1 then
+        total_columns = 1
+        phrase.visible_note_columns = 1
+      end
+
+      if not sip or (sip.start_line ~= start_line) then
+        -- No selection or selection doesn't start at cursor - create a 1-line selection
+        local new_selection = {
+          start_line   = start_line,
+          end_line     = start_line,
+          start_column = 1,
+          end_column   = total_columns,
+        }
+        s.selection_in_phrase = new_selection
+      else
+        -- Halve the existing selection
+        local current_length = sip.end_line - sip.start_line + 1
+        local new_length = math.max(1, math.floor(current_length / 2))
+        local new_end_line = sip.start_line + new_length - 1
+
+        local new_selection = {
+          start_line   = sip.start_line,
+          end_line     = new_end_line,
+          start_column = 1,
+          end_column   = total_columns,
+        }
+        s.selection_in_phrase = new_selection
+      end
+
+    else
+      renoise.app():show_error("Phrase Editor functionality requires API version 6.2 or higher!")
+      return
+    end
+
+  ------------------------------------------------------------------------------
+  -- PATTERN EDITOR branch
+  ------------------------------------------------------------------------------
+  elseif middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+    local sip = s.selection_in_pattern
+    local last_column = s.selected_track.visible_effect_columns +
+                        s.selected_track.visible_note_columns
+
+    if (not sip)
+       or (sip.start_track ~= s.selected_track_index)
+       or (s.selected_line_index ~= sip.start_line) then
+      -- No selection or selection doesn't match - create a 1-line selection at cursor
+      s.selection_in_pattern = {
+        start_line   = s.selected_line_index,
+        end_line     = s.selected_line_index,
+        start_track  = s.selected_track_index,
+        end_track    = s.selected_track_index,
+        start_column = 1,
+        end_column   = last_column,
+      }
+    else
+      -- Halve the existing selection
+      local current_length = sip.end_line - sip.start_line + 1
+      local new_length = math.max(1, math.floor(current_length / 2))
+      local new_end_line = sip.start_line + new_length - 1
+
+      s.selection_in_pattern = {
+        start_line   = sip.start_line,
+        end_line     = new_end_line,
+        start_track  = s.selected_track_index,
+        end_track    = s.selected_track_index,
+        start_column = 1,
+        end_column   = last_column,
+      }
+    end
+
+  else
+    renoise.app():show_error("Active middle frame not recognized for HalveSelect!")
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker SHIFT-ALT-D Halve Select",invoke=HalveSelect}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker SHIFT-ALT-D Halve Select",invoke=HalveSelect}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker SHIFT-ALT-D Halve Select",invoke=HalveSelect}
+
 -----------
 -- Function to select the pattern range in automation
 function selectPatternRangeInAutomation()

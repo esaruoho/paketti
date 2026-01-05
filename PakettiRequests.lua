@@ -1616,6 +1616,77 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete/Clear/Wipe Sel
 renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Selected Note Column with EditStep", 
   invoke=function() PakettiDeleteClearWipeSelectedNoteColumnWithEditStep() end}
 
+-- Delete/Clear/Wipe Selection - clears all content within the pattern selection
+function PakettiDeleteClearWipeSelection()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  
+  if selection == nil then
+    renoise.app():show_status("No selection in pattern. Please make a selection first.")
+    return
+  end
+  
+  local start_track = selection.start_track
+  local end_track = selection.end_track
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  local start_column = selection.start_column
+  local end_column = selection.end_column
+  local pattern_index = song.selected_pattern_index
+  
+  -- Iterate through each selected track
+  for track_index = start_track, end_track do
+    local track = song:track(track_index)
+    local pattern_track = song:pattern(pattern_index):track(track_index)
+    
+    local visible_note_columns = track.visible_note_columns
+    local visible_effect_columns = track.visible_effect_columns
+    local total_columns = visible_note_columns + visible_effect_columns
+    
+    -- Determine column range to clear for this track
+    local track_column_start, track_column_end
+    
+    if track_index == start_track then
+      track_column_start = start_column
+    else
+      track_column_start = 1
+    end
+    
+    if track_index == end_track then
+      track_column_end = end_column
+    else
+      track_column_end = total_columns
+    end
+    
+    -- Iterate through selected lines
+    for line_index = start_line, end_line do
+      local line = pattern_track:line(line_index)
+      
+      -- Clear note columns within selection range
+      for col = 1, visible_note_columns do
+        if col >= track_column_start and col <= track_column_end then
+          line:note_column(col):clear()
+        end
+      end
+      
+      -- Clear effect columns within selection range
+      for col = 1, visible_effect_columns do
+        local absolute_col = visible_note_columns + col
+        if absolute_col >= track_column_start and absolute_col <= track_column_end then
+          line:effect_column(col):clear()
+        end
+      end
+    end
+  end
+  
+  renoise.app():show_status("Wiped selection in pattern")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Selection",invoke=function() PakettiDeleteClearWipeSelection() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete/Clear/Wipe Selection",invoke=function() PakettiDeleteClearWipeSelection() end}
+renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Selection x[Toggle]",
+  invoke=function(message) if message:is_trigger() then PakettiDeleteClearWipeSelection() end end}
+
 -----
 
 function setInstrumentVolume(amount)
