@@ -18,6 +18,11 @@ local selected_ccizer_file = {}
 local selected_ccizer_file_paths = {} -- Store custom file paths for browsed files
 local open_external_editor = false
 
+-- Preset storage for MIDI Populator
+local recent_presets = {} -- Table of {name, path} for recently used presets
+local recent_presets_dropdown_items = {"<None>"} -- Dropdown items for preset selector
+local MAX_RECENT_PRESETS = 10 -- Maximum number of recent presets to remember
+
 -- Helper function for table indexing
 function table.index_of(tab, val)
   for index, value in ipairs(tab) do
@@ -669,6 +674,289 @@ local function save_preferences()
   -- prefs.pakettiMidiPopulator.externalEditor.value = (external_editor_switch.value == 2)
 end
 
+-- Add preset to recent list and update dropdown
+local function add_preset_to_recent(name, filepath)
+  -- Check if already in list
+  for i, preset in ipairs(recent_presets) do
+    if preset.path == filepath then
+      -- Move to top of list
+      table.remove(recent_presets, i)
+      break
+    end
+  end
+  
+  -- Insert at beginning
+  table.insert(recent_presets, 1, {name = name, path = filepath})
+  
+  -- Trim to max size
+  while #recent_presets > MAX_RECENT_PRESETS do
+    table.remove(recent_presets)
+  end
+  
+  -- Rebuild dropdown items
+  recent_presets_dropdown_items = {"<None>"}
+  for _, preset in ipairs(recent_presets) do
+    table.insert(recent_presets_dropdown_items, preset.name)
+  end
+  
+  -- Update dropdown if it exists
+  if vb and vb.views and vb.views["preset_dropdown"] then
+    vb.views["preset_dropdown"].items = recent_presets_dropdown_items
+    vb.views["preset_dropdown"].value = 2 -- Select the just-added preset
+  end
+end
+
+-- Remove preset from recent list
+local function remove_preset_from_recent(index)
+  if index > 1 and index <= #recent_presets_dropdown_items then
+    local preset_index = index - 1 -- Account for <None> at position 1
+    table.remove(recent_presets, preset_index)
+    
+    -- Rebuild dropdown items
+    recent_presets_dropdown_items = {"<None>"}
+    for _, preset in ipairs(recent_presets) do
+      table.insert(recent_presets_dropdown_items, preset.name)
+    end
+    
+    -- Update dropdown if it exists
+    if vb and vb.views and vb.views["preset_dropdown"] then
+      vb.views["preset_dropdown"].items = recent_presets_dropdown_items
+      vb.views["preset_dropdown"].value = 1 -- Reset to <None>
+    end
+  end
+end
+
+-- Save MIDI Populator preset to file
+local function save_midi_populator_preset(filepath)
+  local file = io.open(filepath, "w")
+  if not file then
+    renoise.app():show_error("Cannot write to file: " .. filepath)
+    return false
+  end
+  
+  -- Write header
+  file:write("# Paketti MIDI Populator Preset\n")
+  file:write("# Generated: " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n\n")
+  
+  -- Write global settings
+  file:write("# Global Settings\n")
+  file:write("note_columns=" .. tostring(note_columns_switch.value) .. "\n")
+  file:write("effect_columns=" .. tostring(effect_columns_switch.value) .. "\n")
+  file:write("delay_column=" .. (delay_column_switch.value == 2 and "on" or "off") .. "\n")
+  file:write("volume_column=" .. (volume_column_switch.value == 2 and "on" or "off") .. "\n")
+  file:write("panning_column=" .. (panning_column_switch.value == 2 and "on" or "off") .. "\n")
+  file:write("sample_effects_column=" .. (sample_effects_column_switch.value == 2 and "on" or "off") .. "\n")
+  file:write("collapsed=" .. (collapsed_switch.value == 2 and "on" or "off") .. "\n")
+  file:write("incoming_audio=" .. (incoming_audio_switch.value == 2 and "on" or "off") .. "\n")
+  file:write("populate_sends=" .. (populate_sends_switch.value == 2 and "on" or "off") .. "\n")
+  file:write("external_editor=" .. (external_editor_switch.value == 2 and "on" or "off") .. "\n")
+  file:write("\n")
+  
+  -- Write track settings
+  file:write("# Track 1-16 Settings (midi_in|channel|midi_out|channel|ccizer|plugin)\n")
+  for i = 1, 16 do
+    local midi_in = midi_input_device[i] or "<None>"
+    local midi_in_ch = midi_input_channel[i] or i
+    local midi_out = midi_output_device[i] or "<None>"
+    local midi_out_ch = midi_output_channel[i] or i
+    local ccizer = selected_ccizer_file[i] or "<None>"
+    local plugin = selected_plugin[i] or "<None>"
+    
+    file:write(string.format("track%d=%s|%d|%s|%d|%s|%s\n", 
+      i, midi_in, midi_in_ch, midi_out, midi_out_ch, ccizer, plugin))
+  end
+  
+  file:close()
+  
+  -- Extract filename for display
+  local filename = filepath:match("([^/\\]+)$")
+  local name_without_ext = filename:match("^(.+)%..+$") or filename
+  
+  -- Add to recent presets
+  add_preset_to_recent(name_without_ext, filepath)
+  
+  renoise.app():show_status("MIDI Populator preset saved: " .. name_without_ext)
+  print("-- MIDI Populator: Preset saved to " .. filepath)
+  return true
+end
+
+-- Load MIDI Populator preset from file
+local function load_midi_populator_preset(filepath)
+  local file = io.open(filepath, "r")
+  if not file then
+    renoise.app():show_error("Cannot open preset file: " .. filepath)
+    return false
+  end
+  
+  print("-- MIDI Populator: Loading preset from " .. filepath)
+  
+  for line in file:lines() do
+    line = line:match("^%s*(.-)%s*$") -- Trim whitespace
+    
+    -- Skip empty lines and comments
+    if line and line ~= "" and not line:match("^#") then
+      local key, value = line:match("^([^=]+)=(.*)$")
+      if key and value then
+        key = key:match("^%s*(.-)%s*$") -- Trim key
+        value = value:match("^%s*(.-)%s*$") -- Trim value
+        
+        -- Parse global settings
+        if key == "note_columns" then
+          local num = tonumber(value)
+          if num and num >= 1 and num <= 12 then
+            note_columns_switch.value = num
+          end
+        elseif key == "effect_columns" then
+          local num = tonumber(value)
+          if num and num >= 1 and num <= 8 then
+            effect_columns_switch.value = num
+          end
+        elseif key == "delay_column" then
+          delay_column_switch.value = (value == "on") and 2 or 1
+        elseif key == "volume_column" then
+          volume_column_switch.value = (value == "on") and 2 or 1
+        elseif key == "panning_column" then
+          panning_column_switch.value = (value == "on") and 2 or 1
+        elseif key == "sample_effects_column" then
+          sample_effects_column_switch.value = (value == "on") and 2 or 1
+        elseif key == "collapsed" then
+          collapsed_switch.value = (value == "on") and 2 or 1
+        elseif key == "incoming_audio" then
+          incoming_audio_switch.value = (value == "on") and 2 or 1
+        elseif key == "populate_sends" then
+          populate_sends_switch.value = (value == "on") and 2 or 1
+        elseif key == "external_editor" then
+          external_editor_switch.value = (value == "on") and 2 or 1
+        else
+          -- Parse track settings
+          local track_num = key:match("^track(%d+)$")
+          if track_num then
+            local i = tonumber(track_num)
+            if i and i >= 1 and i <= 16 then
+              -- Parse pipe-separated values: midi_in|channel|midi_out|channel|ccizer|plugin
+              local parts = {}
+              for part in value:gmatch("[^|]+") do
+                table.insert(parts, part)
+              end
+              
+              if #parts >= 6 then
+                local midi_in = parts[1]
+                local midi_in_ch = tonumber(parts[2]) or i
+                local midi_out = parts[3]
+                local midi_out_ch = tonumber(parts[4]) or i
+                local ccizer = parts[5]
+                local plugin = parts[6]
+                
+                -- Set MIDI input device
+                midi_input_device[i] = midi_in
+                local midi_in_idx = table.index_of(midi_input_devices, midi_in)
+                if midi_in_idx and vb.views["midi_input_popup_" .. i] then
+                  vb.views["midi_input_popup_" .. i].value = midi_in_idx
+                elseif vb.views["midi_input_popup_" .. i] then
+                  vb.views["midi_input_popup_" .. i].value = 1 -- Default to <None>
+                end
+                
+                -- Set MIDI input channel
+                midi_input_channel[i] = midi_in_ch
+                if vb.views["midi_input_channel_popup_" .. i] then
+                  vb.views["midi_input_channel_popup_" .. i].value = midi_in_ch
+                end
+                
+                -- Set MIDI output device
+                midi_output_device[i] = midi_out
+                local midi_out_idx = table.index_of(midi_output_devices, midi_out)
+                if midi_out_idx and vb.views["midi_output_popup_" .. i] then
+                  vb.views["midi_output_popup_" .. i].value = midi_out_idx
+                elseif vb.views["midi_output_popup_" .. i] then
+                  vb.views["midi_output_popup_" .. i].value = 1 -- Default to <None>
+                end
+                
+                -- Set MIDI output channel
+                midi_output_channel[i] = midi_out_ch
+                if vb.views["midi_output_channel_popup_" .. i] then
+                  vb.views["midi_output_channel_popup_" .. i].value = midi_out_ch
+                end
+                
+                -- Set CCizer file
+                selected_ccizer_file[i] = ccizer
+                local ccizer_idx = table.index_of(ccizer_dropdown_items, ccizer)
+                if ccizer_idx and vb.views["ccizer_popup_" .. i] then
+                  vb.views["ccizer_popup_" .. i].value = ccizer_idx
+                elseif vb.views["ccizer_popup_" .. i] then
+                  vb.views["ccizer_popup_" .. i].value = 1 -- Default to <None>
+                end
+                
+                -- Set Plugin
+                selected_plugin[i] = plugin
+                local plugin_idx = table.index_of(plugin_dropdown_items, plugin)
+                if plugin_idx and vb.views["plugin_popup_" .. i] then
+                  vb.views["plugin_popup_" .. i].value = plugin_idx
+                elseif vb.views["plugin_popup_" .. i] then
+                  vb.views["plugin_popup_" .. i].value = 1 -- Default to <None>
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  file:close()
+  
+  -- Extract filename for display
+  local filename = filepath:match("([^/\\]+)$")
+  local name_without_ext = filename:match("^(.+)%..+$") or filename
+  
+  -- Add to recent presets
+  add_preset_to_recent(name_without_ext, filepath)
+  
+  renoise.app():show_status("MIDI Populator preset loaded: " .. name_without_ext)
+  print("-- MIDI Populator: Preset loaded from " .. filepath)
+  return true
+end
+
+-- Handle preset dropdown selection
+local function on_preset_dropdown_changed(value)
+  if value > 1 and value <= #recent_presets_dropdown_items then
+    local preset_index = value - 1 -- Account for <None> at position 1
+    local preset = recent_presets[preset_index]
+    if preset and preset.path then
+      load_midi_populator_preset(preset.path)
+    end
+  end
+end
+
+-- Handle Load Preset button
+local function on_load_preset_button()
+  local filepath = renoise.app():prompt_for_filename_to_read({"*.mpp"}, "Load MIDI Populator Preset")
+  if filepath and filepath ~= "" then
+    load_midi_populator_preset(filepath)
+  end
+end
+
+-- Handle Save Preset button
+local function on_save_preset_button()
+  local filepath = renoise.app():prompt_for_filename_to_write("mpp", "Save MIDI Populator Preset")
+  if filepath and filepath ~= "" then
+    -- Ensure .mpp extension
+    if not filepath:match("%.mpp$") then
+      filepath = filepath .. ".mpp"
+    end
+    save_midi_populator_preset(filepath)
+  end
+end
+
+-- Handle Remove Preset button
+local function on_remove_preset_button()
+  if vb.views["preset_dropdown"] then
+    local current_value = vb.views["preset_dropdown"].value
+    if current_value > 1 then
+      remove_preset_from_recent(current_value)
+    end
+  end
+end
+
 local function on_ok_button_pressed(dialog_content)
   -- Save preferences before applying
   save_preferences()
@@ -732,7 +1020,8 @@ function pakettiMIDIPopulator()
       vb:popup{
         items = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"}, 
         width=40, 
-        notifier=function(value) midi_input_channel[i] = tonumber(value) end, 
+        notifier=function(value) midi_input_channel[i] = value end, 
+        id = "midi_input_channel_popup_" .. i,
         value = midi_input_channel[i] or i
       },
       vb:popup{
@@ -745,7 +1034,8 @@ function pakettiMIDIPopulator()
       vb:popup{
         items = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"}, 
         width=40, 
-        notifier=function(value) midi_output_channel[i] = tonumber(value) end, 
+        notifier=function(value) midi_output_channel[i] = value end, 
+        id = "midi_output_channel_popup_" .. i,
         value = midi_output_channel[i] or i
       },
       vb:popup{
@@ -857,6 +1147,19 @@ function pakettiMIDIPopulator()
 
   dialog_content = vb:column{
     margin=10, spacing=0,
+    vb:horizontal_aligner{mode = "right", vb:row{
+      vb:text{text="Preset:"},
+      vb:popup{
+        items = recent_presets_dropdown_items,
+        width=200,
+        id = "preset_dropdown",
+        notifier = on_preset_dropdown_changed
+      },
+      vb:button{text="Load...", width=70, notifier = on_load_preset_button},
+      vb:button{text="Save...", width=70, notifier = on_save_preset_button},
+      vb:button{text="Remove", width=70, notifier = on_remove_preset_button}
+    }},
+    horizontal_rule(),
     vb:horizontal_aligner{mode = "right", vb:row{
       vb:text{text="MIDI Input Device:"},
       vb:popup{

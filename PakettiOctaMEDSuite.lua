@@ -414,16 +414,28 @@ local function pick_to_preferences(slot_index)
   end
 
   -- Truncate effect columns after the last non-empty column
-  effect_columns_str = {unpack(effect_columns_str, 1, last_non_empty_effect_index)}
+  local truncated_effect_columns = {}
+  for i = 1, last_non_empty_effect_index do
+    truncated_effect_columns[i] = effect_columns_str[i]
+  end
+  effect_columns_str = truncated_effect_columns
 
   -- Combine Note and Effect Columns
   local slot_text = table.concat(note_columns_str, " | ") .. "||" .. table.concat(effect_columns_str, "|")
 
-  -- Update the corresponding textfield
-  vb.views["slot_display_"..string.format("%02d", slot_index)].text = slot_text
+  -- Update the corresponding textfield (only if dialog is open)
+  local view_id = "slot_display_"..string.format("%02d", slot_index)
+  if vb and vb.views and vb.views[view_id] then
+    vb.views[view_id].text = slot_text
+  end
 
-  -- Save the picked slot data
-  save_slot_to_preferences(slot_index)
+  -- Save directly to preferences
+  local slot_key = "Slot" .. string.format("%02d", slot_index)
+  if slot_text ~= "Slot " .. string.format("%02d", slot_index) .. ": Empty" and slot_text ~= "" then
+    print("Saving Slot", slot_index, "to preferences:", slot_text)
+    preferences.OctaMEDPickPutSlots[slot_key].value = slot_text
+  end
+  renoise.tool().preferences:save_as("preferences.xml")
 end
 
 -- Function to handle picking note and instrument data
