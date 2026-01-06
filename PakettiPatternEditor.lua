@@ -3738,6 +3738,282 @@ renoise.tool():add_midi_mapping{name="Paketti:Replicate Selected Subcolumn Above
     PakettiReplicateSelectedSubcolumn("above_and_current")
   end
 end}
+
+-------
+-- Replicate Above Into Selection Only (Pattern Editor version)
+-- Takes content from row 1 to (selection.start_line - 1) and fills only the selection
+local function PakettiReplicateAboveIntoSelectionPattern()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  
+  -- Require a selection
+  if not selection then
+    renoise.app():show_status("No selection in pattern.")
+    return
+  end
+  
+  local selection_start = selection.start_line
+  local selection_end = selection.end_line
+  local start_track = selection.start_track
+  local end_track = selection.end_track
+  
+  -- Need at least 1 row above the selection as source
+  if selection_start <= 1 then
+    renoise.app():show_status("No content above selection to replicate.")
+    return
+  end
+  
+  local source_length = selection_start - 1  -- rows 1 to selection_start-1
+  local pattern_index = song.selected_pattern_index
+  
+  -- Store source data from rows 1 to (selection_start - 1)
+  local source_data = {}
+  
+  -- Iterate over the selected tracks
+  for track_idx = start_track, end_track do
+    local track = song:track(track_idx)
+    
+    -- Skip non-sequencer tracks
+    if track.type == renoise.Track.TRACK_TYPE_GROUP or 
+       track.type == renoise.Track.TRACK_TYPE_SEND or 
+       track.type == renoise.Track.TRACK_TYPE_MASTER then
+      -- Skip this track
+    else
+      local pattern_track = song:pattern(pattern_index):track(track_idx)
+      local num_note_columns = track.visible_note_columns
+      local num_effect_columns = track.visible_effect_columns
+      local total_columns = num_note_columns + num_effect_columns
+      
+      -- Determine start and end columns for the current track
+      local track_start_column = (track_idx == start_track) and selection.start_column or 1
+      local track_end_column = (track_idx == end_track) and selection.end_column or total_columns
+      
+      -- Store the data for this track
+      source_data[track_idx] = {}
+      
+      -- Capture source data from rows 1 to (selection_start - 1)
+      for row = 1, source_length do
+        source_data[track_idx][row] = {}
+        for col_idx = track_start_column, track_end_column do
+          if col_idx <= num_note_columns then
+            -- Capture note column data
+            local note_column = pattern_track:line(row).note_columns[col_idx]
+            source_data[track_idx][row][col_idx] = {
+              note = note_column.note_value,
+              instrument = note_column.instrument_value,
+              volume = note_column.volume_value,
+              panning = note_column.panning_value,
+              delay = note_column.delay_value,
+              effect_number = note_column.effect_number_value,
+              effect_amount = note_column.effect_amount_value
+            }
+          elseif col_idx > num_note_columns and col_idx <= total_columns then
+            -- Capture effect column data
+            local effect_col_idx = col_idx - num_note_columns
+            local effect_column = pattern_track:line(row).effect_columns[effect_col_idx]
+            source_data[track_idx][row][col_idx] = {
+              effect_number = effect_column.number_value,
+              effect_amount = effect_column.amount_value
+            }
+          end
+        end
+      end
+    end
+  end
+  
+  -- Fill only the selection with source data (cycling if needed)
+  for track_idx = start_track, end_track do
+    local track = song:track(track_idx)
+    
+    -- Skip non-sequencer tracks
+    if track.type == renoise.Track.TRACK_TYPE_GROUP or 
+       track.type == renoise.Track.TRACK_TYPE_SEND or 
+       track.type == renoise.Track.TRACK_TYPE_MASTER then
+      -- Skip this track
+    else
+      local pattern_track = song:pattern(pattern_index):track(track_idx)
+      local num_note_columns = track.visible_note_columns
+      local num_effect_columns = track.visible_effect_columns
+      local total_columns = num_note_columns + num_effect_columns
+      
+      -- Determine start and end columns for the current track
+      local track_start_column = (track_idx == start_track) and selection.start_column or 1
+      local track_end_column = (track_idx == end_track) and selection.end_column or total_columns
+      
+      -- Fill each row in the selection
+      for target_row = selection_start, selection_end do
+        -- Calculate which source row to use (cycling through source)
+        local source_row = ((target_row - selection_start) % source_length) + 1
+        
+        for col_idx = track_start_column, track_end_column do
+          if source_data[track_idx] and source_data[track_idx][source_row] and source_data[track_idx][source_row][col_idx] then
+            if col_idx <= num_note_columns then
+              -- Copy note column data
+              local note_data = source_data[track_idx][source_row][col_idx]
+              local target_note_column = pattern_track:line(target_row).note_columns[col_idx]
+              
+              target_note_column.note_value = note_data.note
+              target_note_column.instrument_value = note_data.instrument
+              target_note_column.volume_value = note_data.volume
+              target_note_column.panning_value = note_data.panning
+              target_note_column.delay_value = note_data.delay
+              target_note_column.effect_number_value = note_data.effect_number
+              target_note_column.effect_amount_value = note_data.effect_amount
+            elseif col_idx > num_note_columns and col_idx <= total_columns then
+              -- Copy effect column data
+              local effect_data = source_data[track_idx][source_row][col_idx]
+              local effect_col_idx = col_idx - num_note_columns
+              local target_effect_column = pattern_track:line(target_row).effect_columns[effect_col_idx]
+              
+              target_effect_column.number_value = effect_data.effect_number
+              target_effect_column.amount_value = effect_data.effect_amount
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  local selection_size = selection_end - selection_start + 1
+  renoise.app():show_status(string.format("Replicated %d rows above into %d-row selection.", source_length, selection_size))
+end
+
+-------
+-- Replicate Above Into Selection Only (Phrase Editor version)
+-- Takes content from row 1 to (selection.start_line - 1) and fills only the selection in phrase
+local function PakettiReplicateAboveIntoSelectionPhrase()
+  local song = renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected.")
+    return
+  end
+  
+  local selection = song.selection_in_phrase
+  
+  -- Require a selection
+  if not selection then
+    renoise.app():show_status("No selection in phrase.")
+    return
+  end
+  
+  local selection_start = selection.start_line
+  local selection_end = selection.end_line
+  local start_column = selection.start_column
+  local end_column = selection.end_column
+  
+  -- Need at least 1 row above the selection as source
+  if selection_start <= 1 then
+    renoise.app():show_status("No content above selection to replicate in phrase.")
+    return
+  end
+  
+  local source_length = selection_start - 1  -- rows 1 to selection_start-1
+  local num_note_columns = phrase.visible_note_columns
+  local num_effect_columns = phrase.visible_effect_columns
+  local total_columns = num_note_columns + num_effect_columns
+  
+  -- Store source data from rows 1 to (selection_start - 1)
+  local source_data = {}
+  
+  -- Capture source data from rows 1 to (selection_start - 1)
+  for row = 1, source_length do
+    source_data[row] = {}
+    for col_idx = start_column, end_column do
+      if col_idx <= num_note_columns then
+        -- Capture note column data
+        local note_column = phrase:line(row).note_columns[col_idx]
+        source_data[row][col_idx] = {
+          note = note_column.note_value,
+          instrument = note_column.instrument_value,
+          volume = note_column.volume_value,
+          panning = note_column.panning_value,
+          delay = note_column.delay_value,
+          effect_number = note_column.effect_number_value,
+          effect_amount = note_column.effect_amount_value
+        }
+      elseif col_idx > num_note_columns and col_idx <= total_columns then
+        -- Capture effect column data
+        local effect_col_idx = col_idx - num_note_columns
+        local effect_column = phrase:line(row).effect_columns[effect_col_idx]
+        source_data[row][col_idx] = {
+          effect_number = effect_column.number_value,
+          effect_amount = effect_column.amount_value
+        }
+      end
+    end
+  end
+  
+  -- Fill only the selection with source data (cycling if needed)
+  for target_row = selection_start, selection_end do
+    -- Calculate which source row to use (cycling through source)
+    local source_row = ((target_row - selection_start) % source_length) + 1
+    
+    for col_idx = start_column, end_column do
+      if source_data[source_row] and source_data[source_row][col_idx] then
+        if col_idx <= num_note_columns then
+          -- Copy note column data
+          local note_data = source_data[source_row][col_idx]
+          local target_note_column = phrase:line(target_row).note_columns[col_idx]
+          
+          target_note_column.note_value = note_data.note
+          target_note_column.instrument_value = note_data.instrument
+          target_note_column.volume_value = note_data.volume
+          target_note_column.panning_value = note_data.panning
+          target_note_column.delay_value = note_data.delay
+          target_note_column.effect_number_value = note_data.effect_number
+          target_note_column.effect_amount_value = note_data.effect_amount
+        elseif col_idx > num_note_columns and col_idx <= total_columns then
+          -- Copy effect column data
+          local effect_data = source_data[source_row][col_idx]
+          local effect_col_idx = col_idx - num_note_columns
+          local target_effect_column = phrase:line(target_row).effect_columns[effect_col_idx]
+          
+          target_effect_column.number_value = effect_data.effect_number
+          target_effect_column.amount_value = effect_data.effect_amount
+        end
+      end
+    end
+  end
+  
+  local selection_size = selection_end - selection_start + 1
+  renoise.app():show_status(string.format("Replicated %d rows above into %d-row phrase selection.", source_length, selection_size))
+end
+
+-------
+-- Main dispatcher function that detects context (Pattern Editor vs Phrase Editor)
+function PakettiReplicateAboveIntoSelection()
+  local song = renoise.song()
+  
+  -- Check if we're in phrase editor
+  local in_phrase_editor = false
+  if renoise.API_VERSION >= 6.2 then
+    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+      local phrase = song.selected_phrase
+      if phrase then
+        in_phrase_editor = true
+      end
+    end
+  end
+  
+  if in_phrase_editor then
+    PakettiReplicateAboveIntoSelectionPhrase()
+  else
+    PakettiReplicateAboveIntoSelectionPattern()
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replicate Above Into Selection Only", invoke=PakettiReplicateAboveIntoSelection}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Replicate Above Into Selection Only", invoke=PakettiReplicateAboveIntoSelection}
+renoise.tool():add_midi_mapping{name="Paketti:Replicate Above Into Selection Only", invoke=function(message)
+  if message:is_trigger() then
+    PakettiReplicateAboveIntoSelection()
+  end
+end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Replicate:Replicate Above Into Selection Only", invoke=PakettiReplicateAboveIntoSelection}
+renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Replicate Above Into Selection Only", invoke=PakettiReplicateAboveIntoSelection}
+
 -------
 -------
 -- Main function to replicate content
