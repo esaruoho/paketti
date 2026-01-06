@@ -13,13 +13,7 @@ function findUsedInstruments()
   end
   
   -- Scan through all patterns in the song (OPTIMIZED)
-  local pattern_count = 0
   for _, pattern in ipairs(song.patterns) do
-    pattern_count = pattern_count + 1
-    -- Yield every 10 patterns to prevent script timeout
-    if pattern_count % 10 == 0 then
-      renoise.app():process_idle()
-    end
     for track_idx, track in ipairs(pattern.tracks) do
       -- Skip non-sequencer tracks (master, send tracks can't trigger instruments)
       if song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
@@ -301,10 +295,6 @@ function deleteUnusedInstruments()
   for _, item in ipairs(unused_instruments) do
     song:delete_instrument_at(item.instr_idx)
     deleted_count = deleted_count + 1
-    -- Yield every 10 deletions to prevent script timeout
-    if deleted_count % 10 == 0 then
-      renoise.app():process_idle()
-    end
   end
   
   renoise.app():show_status(string.format(
@@ -338,13 +328,7 @@ function findUsedSamples()
   end
   
   -- First pass: Find notes/velocities from patterns (OPTIMIZED)
-  local pattern_count = 0
   for _, pattern in ipairs(song.patterns) do
-    pattern_count = pattern_count + 1
-    -- Yield every 10 patterns to prevent script timeout
-    if pattern_count % 10 == 0 then
-      renoise.app():process_idle()
-    end
     for track_idx, track in ipairs(pattern.tracks) do
       -- Skip non-sequencer tracks (master, send tracks can't trigger instruments)
       if song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
@@ -535,7 +519,6 @@ function deleteUnusedSamples(skip_confirmation)
   
   -- Clear unused sample data (keep slots to preserve mappings)
   local deleted_count = 0
-  local operation_count = 0
   for instr_idx = 1, #song.instruments do
     local instrument = song.instruments[instr_idx]
     for sample_idx = 1, #instrument.samples do
@@ -549,11 +532,6 @@ function deleteUnusedSamples(skip_confirmation)
           -- Mark as cleared
           sample.name = "EmptiedUnused"
           deleted_count = deleted_count + 1
-          operation_count = operation_count + 1
-          -- Yield every 10 deletions to prevent script timeout
-          if operation_count % 10 == 0 then
-            renoise.app():process_idle()
-          end
         end
       end
     end
