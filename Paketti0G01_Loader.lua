@@ -404,6 +404,18 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     RandomizeEnabled=false,
     RandomizePercentage=10,
   },
+  PakettiClipboard = {
+    Slot01="", Slot01Name="",
+    Slot02="", Slot02Name="",
+    Slot03="", Slot03Name="",
+    Slot04="", Slot04Name="",
+    Slot05="", Slot05Name="",
+    Slot06="", Slot06Name="",
+    Slot07="", Slot07Name="",
+    Slot08="", Slot08Name="",
+    Slot09="", Slot09Name="",
+    Slot10="", Slot10Name="",
+  },
   RandomizeSettings = {
     pakettiRandomizeSelectedDevicePercentage=50,
     pakettiRandomizeSelectedDevicePercentageUserPreference1=10,

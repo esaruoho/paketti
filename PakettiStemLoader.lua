@@ -501,6 +501,7 @@ function pakettiStemLoader(normalize, skip_preset, slice_mode)
   -- Second: Detect BPM from all files (ACID chunks) - only if no folder BPM found
   local detected_bpms = {}
   local acid_bpms_found = 0
+  local filename_bpms_found = 0
   if not folder_bpm then
     print("Paketti Stem Loader: Checking files for ACID chunk BPM data...")
     for _, filename in ipairs(selected_sample_filenames) do
@@ -512,10 +513,27 @@ function pakettiStemLoader(normalize, skip_preset, slice_mode)
       end
     end
     print("Paketti Stem Loader: Found ACID BPM data in " .. acid_bpms_found .. " of " .. #selected_sample_filenames .. " files")
+    
+    -- Third: Try filename BPM detection if no ACID BPMs found
+    if #detected_bpms == 0 then
+      print("Paketti Stem Loader: No ACID BPM found, checking filenames...")
+      for _, filepath in ipairs(selected_sample_filenames) do
+        local filename = filepath:match("([^/]+)$")  -- Extract just filename
+        if filename then
+          local bpm = pakettiStemLoaderExtractBpmFromString(filename)
+          if bpm then
+            table.insert(detected_bpms, bpm)
+            filename_bpms_found = filename_bpms_found + 1
+            print("Paketti Stem Loader: Filename BPM " .. bpm .. " found in: " .. filename)
+          end
+        end
+      end
+      print("Paketti Stem Loader: Found BPM in " .. filename_bpms_found .. " of " .. #selected_sample_filenames .. " filenames")
+    end
   else
     -- Folder BPM takes priority - add it to the list
     table.insert(detected_bpms, folder_bpm)
-    print("Paketti Stem Loader: Using folder name BPM (" .. folder_bpm .. "), skipping ACID chunk detection")
+    print("Paketti Stem Loader: Using folder name BPM (" .. folder_bpm .. "), skipping ACID chunk and filename detection")
   end
   
   -- Set BPM if we found any
@@ -529,14 +547,18 @@ function pakettiStemLoader(normalize, skip_preset, slice_mode)
         bpm_source = "folder name"
         print("Paketti Stem Loader: Set BPM to " .. majority_bpm .. " (from folder name)")
         renoise.app():show_status("Stem Loader: Set BPM to " .. majority_bpm .. " (from folder name)")
-      else
+      elseif acid_bpms_found > 0 then
         bpm_source = "file metadata"
         print("Paketti Stem Loader: Set BPM to " .. majority_bpm .. " (detected from " .. count .. " of " .. #detected_bpms .. " files)")
         renoise.app():show_status("Stem Loader: Set BPM to " .. majority_bpm .. " (detected from " .. count .. " files)")
+      else
+        bpm_source = "filename"
+        print("Paketti Stem Loader: Set BPM to " .. majority_bpm .. " (from " .. count .. " of " .. #detected_bpms .. " filenames)")
+        renoise.app():show_status("Stem Loader: Set BPM to " .. majority_bpm .. " (from " .. count .. " filenames)")
       end
     end
   else
-    print("Paketti Stem Loader: No BPM found in folder name or files, keeping current BPM: " .. renoise.song().transport.bpm)
+    print("Paketti Stem Loader: No BPM found in folder name, files, or filenames, keeping current BPM: " .. renoise.song().transport.bpm)
     renoise.app():show_status("Stem Loader: No BPM detected, keeping current BPM")
   end
   
@@ -938,11 +960,31 @@ function pakettiStemLoaderForwardsReverse(normalize)
   
   -- Detect BPM from files if no folder BPM
   local detected_bpms = {}
+  local acid_bpms_found = 0
+  local filename_bpms_found = 0
   if not folder_bpm then
+    -- Try ACID chunk detection first
     for _, filename in ipairs(selected_sample_filenames) do
       local bpm = pakettiStemLoaderDetectBPM(filename)
       if bpm then
         table.insert(detected_bpms, bpm)
+        acid_bpms_found = acid_bpms_found + 1
+      end
+    end
+    
+    -- Try filename BPM detection if no ACID BPMs found
+    if #detected_bpms == 0 then
+      print("Paketti Stem Loader FwdRev: No ACID BPM found, checking filenames...")
+      for _, filepath in ipairs(selected_sample_filenames) do
+        local filename = filepath:match("([^/]+)$")  -- Extract just filename
+        if filename then
+          local bpm = pakettiStemLoaderExtractBpmFromString(filename)
+          if bpm then
+            table.insert(detected_bpms, bpm)
+            filename_bpms_found = filename_bpms_found + 1
+            print("Paketti Stem Loader FwdRev: Filename BPM " .. bpm .. " found in: " .. filename)
+          end
+        end
       end
     end
   else
@@ -954,9 +996,16 @@ function pakettiStemLoaderForwardsReverse(normalize)
     local majority_bpm, count = pakettiStemLoaderFindMajorityBPM(detected_bpms)
     if majority_bpm then
       renoise.song().transport.bpm = majority_bpm
-      local source = folder_bpm and "folder name" or "file metadata"
+      local source = "unknown"
+      if folder_bpm then
+        source = "folder name"
+      elseif acid_bpms_found > 0 then
+        source = "file metadata"
+      else
+        source = "filename"
+      end
       print("Paketti Stem Loader FwdRev: Set BPM to " .. majority_bpm .. " (from " .. source .. ")")
-      renoise.app():show_status("Stem Loader FwdRev: Set BPM to " .. majority_bpm)
+      renoise.app():show_status("Stem Loader FwdRev: Set BPM to " .. majority_bpm .. " (from " .. source .. ")")
     end
   end
   

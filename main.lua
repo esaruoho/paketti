@@ -1031,6 +1031,7 @@ timed_require("PakettiAKWF")
 timed_require("PakettiImpulseTracker")
 timed_require("PakettiPlayerProSuite")
 timed_require("PakettiOctaMEDSuite")
+timed_require("PakettiClipboard")
 
 timed_require("PakettiBeatDetect")
 
