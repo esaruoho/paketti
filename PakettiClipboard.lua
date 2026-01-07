@@ -403,13 +403,92 @@ end
 
 -- Copy selection from Pattern Editor to clipboard
 -- Uses selection_in_pattern_pro() for precise column selection
+-- If no selection, copies current line on current note column
 local function copy_pattern_selection(slot_index, clear_after_copy)
   local song = renoise.song()
   local selection = song.selection_in_pattern
+  local pattern = song.selected_pattern
   
+  -- If no selection, copy current line on current note column or effect column
   if not selection then
-    renoise.app():show_status("No selection in pattern to copy.")
-    return false
+    local track_idx = song.selected_track_index
+    local track = song.tracks[track_idx]
+    
+    -- Check if it's a sequencer track
+    if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+      renoise.app():show_status("Cannot copy from non-sequencer track (Send/Master/Group).")
+      return false
+    end
+    
+    local line_idx = song.selected_line_index
+    local note_col_idx = song.selected_note_column_index
+    local effect_col_idx = song.selected_effect_column_index
+    local pattern_line = pattern.tracks[track_idx].lines[line_idx]
+    
+    -- Determine if we're in a note column or effect column
+    local in_effect_column = (effect_col_idx and effect_col_idx > 0)
+    
+    -- Build data for single cell
+    local data = {
+      source_type = "pattern",
+      num_rows = 1,
+      num_tracks = 1,
+      track_info = {
+        [1] = {
+          num_note_columns = in_effect_column and 0 or 1,
+          num_effect_columns = in_effect_column and 1 or 0
+        }
+      },
+      rows = {
+        [1] = {
+          [1] = {
+            note_columns = {},
+            effect_columns = {}
+          }
+        }
+      }
+    }
+    
+    local action = clear_after_copy and "Cut" or "Copied"
+    local col_type_str
+    local col_idx_display
+    
+    if in_effect_column then
+      -- Copy the effect column
+      if effect_col_idx <= #pattern_line.effect_columns then
+        local effect_column = pattern_line.effect_columns[effect_col_idx]
+        data.rows[1][1].effect_columns[effect_col_idx] = copy_effect_column_data(effect_column)
+        
+        -- Clear after copy if cutting
+        if clear_after_copy then
+          clear_effect_column_to_empty(effect_column)
+        end
+      end
+      col_type_str = "effect column"
+      col_idx_display = effect_col_idx
+    else
+      -- Copy the note column
+      local col_idx = note_col_idx or 1
+      if col_idx <= #pattern_line.note_columns then
+        local note_column = pattern_line.note_columns[col_idx]
+        data.rows[1][1].note_columns[col_idx] = copy_note_column_data(note_column)
+        
+        -- Clear after copy if cutting
+        if clear_after_copy then
+          clear_note_column_to_empty(note_column)
+        end
+      end
+      col_type_str = "note column"
+      col_idx_display = col_idx
+    end
+    
+    -- Save to preferences
+    save_clipboard_to_preferences(slot_index, data)
+    
+    renoise.app():show_status(string.format("%s %s %d on row %d to Clipboard Slot %s", 
+      action, col_type_str, col_idx_display, line_idx, format_slot_index(slot_index)))
+    
+    return true
   end
   
   -- Use selection_in_pattern_pro() for precise column handling
@@ -419,7 +498,6 @@ local function copy_pattern_selection(slot_index, clear_after_copy)
     return false
   end
   
-  local pattern = song.selected_pattern
   local data = {
     source_type = "pattern",
     num_rows = selection.end_line - selection.start_line + 1,
@@ -1120,6 +1198,7 @@ end
 --------------------------------------------------------------------------------
 
 -- Copy selection from Phrase Editor to clipboard
+-- If no selection, copies current line on current note column
 local function copy_phrase_selection(slot_index, clear_after_copy)
   local song = renoise.song()
   local phrase = song.selected_phrase
@@ -1131,9 +1210,82 @@ local function copy_phrase_selection(slot_index, clear_after_copy)
   
   local selection = song.selection_in_phrase
   
+  -- If no selection, copy current line on current note column or effect column
   if not selection then
-    renoise.app():show_status("No selection in phrase to copy.")
-    return false
+    local line_idx = song.selected_line_index
+    local note_col_idx = song.selected_note_column_index
+    local effect_col_idx = song.selected_effect_column_index
+    
+    if line_idx > phrase.number_of_lines then
+      line_idx = phrase.number_of_lines
+    end
+    
+    local phrase_line = phrase:line(line_idx)
+    
+    -- Determine if we're in a note column or effect column
+    local in_effect_column = (effect_col_idx and effect_col_idx > 0)
+    
+    -- Build data for single cell
+    local data = {
+      source_type = "phrase",
+      num_rows = 1,
+      num_tracks = 1,
+      track_info = {
+        [1] = {
+          num_note_columns = in_effect_column and 0 or 1,
+          num_effect_columns = in_effect_column and 1 or 0
+        }
+      },
+      rows = {
+        [1] = {
+          [1] = {
+            note_columns = {},
+            effect_columns = {}
+          }
+        }
+      }
+    }
+    
+    local action = clear_after_copy and "Cut" or "Copied"
+    local col_type_str
+    local col_idx_display
+    
+    if in_effect_column then
+      -- Copy the effect column
+      if effect_col_idx <= phrase.visible_effect_columns then
+        local effect_column = phrase_line.effect_columns[effect_col_idx]
+        data.rows[1][1].effect_columns[effect_col_idx] = copy_effect_column_data(effect_column)
+        
+        -- Clear after copy if cutting
+        if clear_after_copy then
+          clear_effect_column_to_empty(effect_column)
+        end
+      end
+      col_type_str = "effect column"
+      col_idx_display = effect_col_idx
+    else
+      -- Copy the note column
+      local col_idx = note_col_idx or 1
+      if col_idx <= phrase.visible_note_columns then
+        local note_column = phrase_line.note_columns[col_idx]
+        data.rows[1][1].note_columns[col_idx] = copy_note_column_data(note_column)
+        
+        -- Clear after copy if cutting
+        if clear_after_copy then
+          clear_note_column_to_empty(note_column)
+        end
+      end
+      col_type_str = "note column"
+      col_idx_display = col_idx
+    end
+    
+    -- Save to preferences
+    save_clipboard_to_preferences(slot_index, data)
+    
+    renoise.app():show_status(string.format("%s %s %d on row %d to Clipboard Slot %s", 
+      action, col_type_str, col_idx_display, line_idx, format_slot_index(slot_index)))
+    
+    return true
   end
   
   local data = {
