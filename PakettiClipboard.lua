@@ -83,6 +83,80 @@ local function clear_effect_column_to_empty(effect_column)
   effect_column.amount_value = 0
 end
 
+-- Helper function to check if a row has any actual content
+local function row_has_content(row_data)
+  if not row_data then return false end
+  
+  for _, track_data in pairs(row_data) do
+    -- Check note columns
+    if track_data.note_columns then
+      for _, col_data in pairs(track_data.note_columns) do
+        -- Check for actual note (0-119) or OFF (120)
+        if col_data.note_value and col_data.note_value >= 0 and col_data.note_value <= 120 then
+          return true
+        end
+        -- Check for instrument
+        if col_data.instrument_value and col_data.instrument_value ~= 255 then
+          return true
+        end
+        -- Check for volume
+        if col_data.volume_value and col_data.volume_value ~= 255 then
+          return true
+        end
+        -- Check for panning
+        if col_data.panning_value and col_data.panning_value ~= 255 then
+          return true
+        end
+        -- Check for delay
+        if col_data.delay_value and col_data.delay_value ~= 0 then
+          return true
+        end
+        -- Check for effect
+        if col_data.effect_number_value and col_data.effect_number_value ~= 0 then
+          return true
+        end
+      end
+    end
+    -- Check effect columns
+    if track_data.effect_columns then
+      for _, col_data in pairs(track_data.effect_columns) do
+        if col_data.number_value and col_data.number_value ~= 0 then
+          return true
+        end
+        if col_data.amount_value and col_data.amount_value ~= 0 then
+          return true
+        end
+      end
+    end
+  end
+  
+  return false
+end
+
+-- Helper function to find the last row with actual content in clipboard data
+-- Used by flood fill to determine cycling length
+local function find_content_length(data)
+  if not data or not data.rows or #data.rows == 0 then
+    return 0
+  end
+  
+  -- Find the last row with content
+  local last_content_row = 0
+  for row_idx = #data.rows, 1, -1 do
+    if row_has_content(data.rows[row_idx]) then
+      last_content_row = row_idx
+      break
+    end
+  end
+  
+  -- If no content found, return the full length
+  if last_content_row == 0 then
+    return #data.rows
+  end
+  
+  return last_content_row
+end
+
 -- Serialize clipboard data to string for preferences storage
 local function serialize_clipboard_data(data)
   if not data or not data.rows or #data.rows == 0 then
@@ -789,7 +863,8 @@ local function flood_fill_pattern_from_clipboard(slot_index)
     return false
   end
   
-  local clipboard_rows = #data.rows
+  -- Use content length for cycling (ignores empty trailing rows)
+  local clipboard_rows = find_content_length(data)
   local start_line, end_line
   local use_selection_pro = false
   local selection_pro = nil
@@ -1250,7 +1325,8 @@ local function flood_fill_phrase_from_clipboard(slot_index)
     return false
   end
   
-  local clipboard_rows = #data.rows
+  -- Use content length for cycling (ignores empty trailing rows)
+  local clipboard_rows = find_content_length(data)
   local start_line, end_line
   local start_col, end_col
   local has_selection = false
@@ -3837,61 +3913,61 @@ renoise.tool():add_keybinding{
 
 -- Quick Wonked Paste keybindings (Pattern Editor)
 renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Clipboard Quick Paste Humanized",
+  name = "Pattern Editor:Paketti:Clipboard Wonkify Humanized",
   invoke = PakettiClipboardQuickPasteHumanized
 }
 renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Clipboard Quick Paste Drunk",
+  name = "Pattern Editor:Paketti:Clipboard Wonkify Drunk",
   invoke = PakettiClipboardQuickPasteDrunk
 }
 renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Clipboard Quick Paste Lo-Fi",
+  name = "Pattern Editor:Paketti:Clipboard Wonkify Lo-Fi",
   invoke = PakettiClipboardQuickPasteLoFi
 }
 renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Clipboard Quick Paste Glitchy",
+  name = "Pattern Editor:Paketti:Clipboard Wonkify Glitchy",
   invoke = PakettiClipboardQuickPasteGlitchy
 }
 renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Clipboard Quick Paste Chaos",
+  name = "Pattern Editor:Paketti:Clipboard Wonkify Chaos",
   invoke = PakettiClipboardQuickPasteChaos
 }
 renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Clipboard Quick Paste Jazz",
+  name = "Pattern Editor:Paketti:Clipboard Wonkify Jazz",
   invoke = PakettiClipboardQuickPasteJazz
 }
 renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Clipboard Quick Paste Tight",
+  name = "Pattern Editor:Paketti:Clipboard Wonkify Tight",
   invoke = PakettiClipboardQuickPasteTight
 }
 
 -- Quick Wonked Paste keybindings (Phrase Editor)
 renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Clipboard Quick Paste Humanized",
+  name = "Phrase Editor:Paketti:Clipboard Wonkify Humanized",
   invoke = PakettiClipboardQuickPasteHumanized
 }
 renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Clipboard Quick Paste Drunk",
+  name = "Phrase Editor:Paketti:Clipboard Wonkify Drunk",
   invoke = PakettiClipboardQuickPasteDrunk
 }
 renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Clipboard Quick Paste Lo-Fi",
+  name = "Phrase Editor:Paketti:Clipboard Wonkify Lo-Fi",
   invoke = PakettiClipboardQuickPasteLoFi
 }
 renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Clipboard Quick Paste Glitchy",
+  name = "Phrase Editor:Paketti:Clipboard Wonkify Glitchy",
   invoke = PakettiClipboardQuickPasteGlitchy
 }
 renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Clipboard Quick Paste Chaos",
+  name = "Phrase Editor:Paketti:Clipboard Wonkify Chaos",
   invoke = PakettiClipboardQuickPasteChaos
 }
 renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Clipboard Quick Paste Jazz",
+  name = "Phrase Editor:Paketti:Clipboard Wonkify Jazz",
   invoke = PakettiClipboardQuickPasteJazz
 }
 renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Clipboard Quick Paste Tight",
+  name = "Phrase Editor:Paketti:Clipboard Wonkify Tight",
   invoke = PakettiClipboardQuickPasteTight
 }
 
@@ -4141,7 +4217,7 @@ renoise.tool():add_midi_mapping{
 
 -- Quick Wonked Paste MIDI mappings
 renoise.tool():add_midi_mapping{
-  name = "Paketti:Clipboard Quick Paste Humanized",
+  name = "Paketti:Clipboard Wonkify Humanized",
   invoke = function(message)
     if message:is_trigger() then
       PakettiClipboardQuickPasteHumanized()
@@ -4149,7 +4225,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 renoise.tool():add_midi_mapping{
-  name = "Paketti:Clipboard Quick Paste Drunk",
+  name = "Paketti:Clipboard Wonkify Drunk",
   invoke = function(message)
     if message:is_trigger() then
       PakettiClipboardQuickPasteDrunk()
@@ -4157,7 +4233,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 renoise.tool():add_midi_mapping{
-  name = "Paketti:Clipboard Quick Paste Lo-Fi",
+  name = "Paketti:Clipboard Wonkify Lo-Fi",
   invoke = function(message)
     if message:is_trigger() then
       PakettiClipboardQuickPasteLoFi()
@@ -4165,7 +4241,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 renoise.tool():add_midi_mapping{
-  name = "Paketti:Clipboard Quick Paste Glitchy",
+  name = "Paketti:Clipboard Wonkify Glitchy",
   invoke = function(message)
     if message:is_trigger() then
       PakettiClipboardQuickPasteGlitchy()
@@ -4173,7 +4249,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 renoise.tool():add_midi_mapping{
-  name = "Paketti:Clipboard Quick Paste Chaos",
+  name = "Paketti:Clipboard Wonkify Chaos",
   invoke = function(message)
     if message:is_trigger() then
       PakettiClipboardQuickPasteChaos()
@@ -4181,7 +4257,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 renoise.tool():add_midi_mapping{
-  name = "Paketti:Clipboard Quick Paste Jazz",
+  name = "Paketti:Clipboard Wonkify Jazz",
   invoke = function(message)
     if message:is_trigger() then
       PakettiClipboardQuickPasteJazz()
@@ -4189,7 +4265,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 renoise.tool():add_midi_mapping{
-  name = "Paketti:Clipboard Quick Paste Tight",
+  name = "Paketti:Clipboard Wonkify Tight",
   invoke = function(message)
     if message:is_trigger() then
       PakettiClipboardQuickPasteTight()
@@ -4477,31 +4553,31 @@ renoise.tool():add_menu_entry{
 
 -- Quick Wonked Paste menu entries
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Clipboard:Wonked Paste:Quick Paste Humanized (Slot 01)",
+  name = "Pattern Editor:Paketti:Clipboard:Wonkify:Humanized (Slot 01)",
   invoke = PakettiClipboardQuickPasteHumanized
 }
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Clipboard:Wonked Paste:Quick Paste Drunk (Slot 01)",
+  name = "Pattern Editor:Paketti:Clipboard:Wonkify:Drunk (Slot 01)",
   invoke = PakettiClipboardQuickPasteDrunk
 }
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Clipboard:Wonked Paste:Quick Paste Lo-Fi (Slot 01)",
+  name = "Pattern Editor:Paketti:Clipboard:Wonkify:Lo-Fi (Slot 01)",
   invoke = PakettiClipboardQuickPasteLoFi
 }
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Clipboard:Wonked Paste:Quick Paste Glitchy (Slot 01)",
+  name = "Pattern Editor:Paketti:Clipboard:Wonkify:Glitchy (Slot 01)",
   invoke = PakettiClipboardQuickPasteGlitchy
 }
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Clipboard:Wonked Paste:Quick Paste Chaos (Slot 01)",
+  name = "Pattern Editor:Paketti:Clipboard:Wonkify:Chaos (Slot 01)",
   invoke = PakettiClipboardQuickPasteChaos
 }
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Clipboard:Wonked Paste:Quick Paste Jazz (Slot 01)",
+  name = "Pattern Editor:Paketti:Clipboard:Wonkify:Jazz (Slot 01)",
   invoke = PakettiClipboardQuickPasteJazz
 }
 renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Clipboard:Wonked Paste:Quick Paste Tight (Slot 01)",
+  name = "Pattern Editor:Paketti:Clipboard:Wonkify:Tight (Slot 01)",
   invoke = PakettiClipboardQuickPasteTight
 }
 
