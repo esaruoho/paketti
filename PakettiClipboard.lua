@@ -41,14 +41,62 @@ local function copy_note_column_data(note_column)
 end
 
 -- Helper function to write note column data
-local function write_note_column_data(note_column, data)
-  note_column.note_value = data.note_value
-  note_column.instrument_value = data.instrument_value
-  note_column.volume_value = data.volume_value
-  note_column.panning_value = data.panning_value
-  note_column.delay_value = data.delay_value
-  note_column.effect_number_value = data.effect_number_value
-  note_column.effect_amount_value = data.effect_amount_value
+-- If preserve_notes is true, don't overwrite existing notes with empty clipboard values
+local function write_note_column_data(note_column, data, preserve_notes)
+  if preserve_notes then
+    -- Only write note/instrument if clipboard has actual content
+    if data.note_value and data.note_value >= 0 and data.note_value <= 120 then
+      note_column.note_value = data.note_value
+    end
+    if data.instrument_value and data.instrument_value ~= 255 then
+      note_column.instrument_value = data.instrument_value
+    end
+    -- Only write effects if they have actual content
+    if data.volume_value and data.volume_value ~= 255 then
+      note_column.volume_value = data.volume_value
+    end
+    if data.panning_value and data.panning_value ~= 255 then
+      note_column.panning_value = data.panning_value
+    end
+    if data.delay_value and data.delay_value ~= 0 then
+      note_column.delay_value = data.delay_value
+    end
+    if data.effect_number_value and data.effect_number_value ~= 0 then
+      note_column.effect_number_value = data.effect_number_value
+    end
+    if data.effect_amount_value and data.effect_amount_value ~= 0 then
+      note_column.effect_amount_value = data.effect_amount_value
+    end
+  else
+    -- Original behavior: write everything
+    note_column.note_value = data.note_value
+    note_column.instrument_value = data.instrument_value
+    note_column.volume_value = data.volume_value
+    note_column.panning_value = data.panning_value
+    note_column.delay_value = data.delay_value
+    note_column.effect_number_value = data.effect_number_value
+    note_column.effect_amount_value = data.effect_amount_value
+  end
+end
+
+-- Helper to check if clipboard data contains only effects (no actual notes)
+local function clipboard_has_only_effects(data)
+  if not data or not data.rows then return false end
+  
+  for _, row_data in ipairs(data.rows) do
+    for _, track_data in pairs(row_data) do
+      if track_data.note_columns then
+        for _, col_data in pairs(track_data.note_columns) do
+          -- If any column has an actual note (0-120), it's not effects-only
+          if col_data.note_value and col_data.note_value >= 0 and col_data.note_value <= 120 then
+            return false
+          end
+        end
+      end
+    end
+  end
+  
+  return true
 end
 
 -- Helper function to copy effect column data
@@ -458,6 +506,10 @@ local function paste_pattern_from_clipboard(slot_index)
     return false
   end
   
+  -- Check if clipboard contains only effects (no actual notes)
+  -- If so, we'll preserve existing notes when pasting
+  local preserve_notes = clipboard_has_only_effects(data)
+  
   local pattern = song.selected_pattern
   local selection = song.selection_in_pattern
   local pattern_length = pattern.number_of_lines
@@ -553,7 +605,7 @@ local function paste_pattern_from_clipboard(slot_index)
                           table.concat(track_info.note_columns, ",")))
                         
                         if dest_col and dest_col <= #pattern_line.note_columns then
-                          write_note_column_data(pattern_line.note_columns[dest_col], col_data)
+                          write_note_column_data(pattern_line.note_columns[dest_col], col_data, preserve_notes)
                         end
                       end
                     end
@@ -578,7 +630,7 @@ local function paste_pattern_from_clipboard(slot_index)
                       if col_idx <= #pattern_line.note_columns then
                         local col_data = track_data.note_columns[col_idx]
                         if col_data then
-                          write_note_column_data(pattern_line.note_columns[col_idx], col_data)
+                          write_note_column_data(pattern_line.note_columns[col_idx], col_data, preserve_notes)
                         end
                       end
                     end
@@ -710,7 +762,7 @@ local function paste_pattern_from_clipboard(slot_index)
           for col_idx, col_data in pairs(track_data.note_columns) do
             local target_col = col_idx + col_offset
             if target_col >= 1 and target_col <= track.visible_note_columns then
-              write_note_column_data(pattern_line.note_columns[target_col], col_data)
+              write_note_column_data(pattern_line.note_columns[target_col], col_data, preserve_notes)
             end
           end
         end
@@ -735,12 +787,13 @@ local function paste_pattern_from_clipboard(slot_index)
   end
   
   -- Show appropriate status message
+  local mode_str = preserve_notes and " (effects only, notes preserved)" or ""
   if is_cross_editor then
-    renoise.app():show_status(string.format("Pasted %d rows from Phrase to Pattern (Slot %s)", 
-      rows_pasted, format_slot_index(slot_index)))
+    renoise.app():show_status(string.format("Pasted %d rows from Phrase to Pattern (Slot %s)%s", 
+      rows_pasted, format_slot_index(slot_index), mode_str))
   else
-    renoise.app():show_status(string.format("Pasted %d rows from Clipboard Slot %s", 
-      rows_pasted, format_slot_index(slot_index)))
+    renoise.app():show_status(string.format("Pasted %d rows from Clipboard Slot %s%s", 
+      rows_pasted, format_slot_index(slot_index), mode_str))
   end
   
   return true
@@ -863,6 +916,10 @@ local function flood_fill_pattern_from_clipboard(slot_index)
     return false
   end
   
+  -- Check if clipboard contains only effects (no actual notes)
+  -- If so, we'll preserve existing notes when pasting
+  local preserve_notes = clipboard_has_only_effects(data)
+  
   -- Use content length for cycling (ignores empty trailing rows)
   local clipboard_rows = find_content_length(data)
   local start_line, end_line
@@ -981,7 +1038,7 @@ local function flood_fill_pattern_from_clipboard(slot_index)
                       local dest_col = track_info.note_columns[sel_col_idx]
                       
                       if dest_col and dest_col <= #pattern_line.note_columns then
-                        write_note_column_data(pattern_line.note_columns[dest_col], col_data)
+                        write_note_column_data(pattern_line.note_columns[dest_col], col_data, preserve_notes)
                       end
                     end
                   end
@@ -993,7 +1050,7 @@ local function flood_fill_pattern_from_clipboard(slot_index)
                     if col_idx <= #pattern_line.note_columns then
                       local col_data = track_data.note_columns[col_idx]
                       if col_data then
-                        write_note_column_data(pattern_line.note_columns[col_idx], col_data)
+                        write_note_column_data(pattern_line.note_columns[col_idx], col_data, preserve_notes)
                       end
                     end
                   end
@@ -1027,7 +1084,7 @@ local function flood_fill_pattern_from_clipboard(slot_index)
           if track_data.note_columns then
             for col_idx, col_data in pairs(track_data.note_columns) do
               if col_idx <= track.visible_note_columns then
-                write_note_column_data(pattern_line.note_columns[col_idx], col_data)
+                write_note_column_data(pattern_line.note_columns[col_idx], col_data, preserve_notes)
               end
             end
           end
@@ -1046,12 +1103,13 @@ local function flood_fill_pattern_from_clipboard(slot_index)
   end
   
   local filled_rows = end_line - start_line + 1
+  local mode_str = preserve_notes and " (effects only, notes preserved)" or ""
   if use_selection_pro then
-    renoise.app():show_status(string.format("Flood filled %d rows with Clipboard Slot %s (%d row pattern)", 
-      filled_rows, format_slot_index(slot_index), clipboard_rows))
+    renoise.app():show_status(string.format("Flood filled %d rows with Clipboard Slot %s (%d row pattern)%s", 
+      filled_rows, format_slot_index(slot_index), clipboard_rows, mode_str))
   else
-    renoise.app():show_status(string.format("Flood filled from row %d to %d with Clipboard Slot %s (%d row pattern)", 
-      start_line, end_line, format_slot_index(slot_index), clipboard_rows))
+    renoise.app():show_status(string.format("Flood filled from row %d to %d with Clipboard Slot %s (%d row pattern)%s", 
+      start_line, end_line, format_slot_index(slot_index), clipboard_rows, mode_str))
   end
   
   return true
