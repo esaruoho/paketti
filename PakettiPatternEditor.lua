@@ -8934,22 +8934,50 @@ function PakettiTempoInterpolateCurrentToNext()
     return
   end
   
-  -- Get current and next pattern indices
+  -- Get current pattern index
   local current_pattern_index = pattern_sequence[current_seq_index]
-  local next_pattern_index = pattern_sequence[current_seq_index + 1]
   
-  -- Get BPM values from both patterns
-  local current_bpm = PakettiTempoExtractBPMFromPattern(current_pattern_index)
-  local next_bpm = PakettiTempoExtractBPMFromPattern(next_pattern_index)
+  -- Search BACKWARDS through sequence to find source BPM (most recent pattern with ZT command)
+  local source_bpm = nil
+  local source_seq_index = nil
+  for seq_idx = current_seq_index, 1, -1 do
+    local pattern_idx = pattern_sequence[seq_idx]
+    local bpm = PakettiTempoExtractBPMFromPattern(pattern_idx)
+    if bpm then
+      source_bpm = bpm
+      source_seq_index = seq_idx
+      break
+    end
+  end
   
-  -- Fallback to transport BPM if no ZT effects found
-  if not current_bpm then
-    current_bpm = song.transport.bpm
+  -- Fallback to transport BPM if no previous ZT effect found
+  if not source_bpm then
+    source_bpm = math.floor(song.transport.bpm)
+    renoise.app():show_status("No previous BPM found in sequence, using transport BPM: " .. source_bpm)
   end
-  if not next_bpm then
-    next_bpm = song.transport.bpm
-    renoise.app():show_status("Warning: Next pattern has no BPM info, using current transport BPM")
+  
+  -- Search FORWARDS through sequence to find target BPM (next pattern with ZT command)
+  local target_bpm = nil
+  local target_seq_index = nil
+  for seq_idx = current_seq_index + 1, #pattern_sequence do
+    local pattern_idx = pattern_sequence[seq_idx]
+    local bpm = PakettiTempoExtractBPMFromPattern(pattern_idx)
+    if bpm then
+      target_bpm = bpm
+      target_seq_index = seq_idx
+      break
+    end
   end
+  
+  -- Error if no target BPM found
+  if not target_bpm then
+    renoise.app():show_status("No BPM (ZT command) found in any following pattern in the sequence")
+    return
+  end
+  
+  -- Use source_bpm as current_bpm and target_bpm as next_bpm for the rest of the function
+  local current_bpm = source_bpm
+  local next_bpm = target_bpm
   
   -- Check if interpolation is needed
   local optimal_bpm = (current_bpm < next_bpm) and (next_bpm - 1) or (next_bpm + 1)
@@ -9072,8 +9100,9 @@ function PakettiTempoInterpolateCurrentToNext()
     current_bpm, target_end_bpm, bpm_changes_written))
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:BPM Interpolate Current to Next Pattern", invoke=PakettiTempoInterpolateCurrentToNext}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM Interpolate Current to Next Pattern", invoke=PakettiTempoInterpolateCurrentToNext}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write BPM (Interpolated) to Master Track", invoke=PakettiTempoInterpolateCurrentToNext}
+renoise.tool():add_keybinding{name="Global:Paketti:Write BPM (Interpolated) to Master Track", invoke=PakettiTempoInterpolateCurrentToNext}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write BPM (Interpolated) to Master Track", invoke=PakettiTempoInterpolateCurrentToNext}
 
 
 -------
