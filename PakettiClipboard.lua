@@ -877,6 +877,126 @@ local function paste_pattern_from_clipboard(slot_index)
   return true
 end
 
+-- Paste by EditStep: spreads clipboard rows according to current editstep value
+-- Row 1 → cursor, Row 2 → cursor + editstep, Row 3 → cursor + 2*editstep, etc.
+local function paste_pattern_by_editstep(slot_index)
+  local song = renoise.song()
+  local data = load_clipboard_from_preferences(slot_index)
+  
+  if not data or not data.rows or #data.rows == 0 then
+    renoise.app():show_status("Clipboard Slot " .. format_slot_index(slot_index) .. " is empty. Copy something first.")
+    return false
+  end
+  
+  local pattern = song.selected_pattern
+  local start_line = song.selected_line_index
+  local start_track = song.selected_track_index
+  local start_note_column = song.selected_note_column_index or 1
+  local pattern_length = pattern.number_of_lines
+  local editstep = song.transport.edit_step
+  
+  -- Check if target track is a sequencer track
+  local target_track = song.tracks[start_track]
+  if target_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Cannot paste to non-sequencer track (Send/Master/Group).")
+    return false
+  end
+  
+  -- If editstep is 0, treat it as 1 (paste consecutively)
+  if editstep == 0 then
+    editstep = 1
+  end
+  
+  -- Check if clipboard contains only effects
+  local preserve_notes = clipboard_has_only_effects(data)
+  
+  -- Find the min column index in the clipboard data to calculate offset
+  local min_clipboard_col = 999
+  for _, row_data in ipairs(data.rows) do
+    for _, track_data in pairs(row_data) do
+      if track_data.note_columns then
+        for col_idx, _ in pairs(track_data.note_columns) do
+          if col_idx < min_clipboard_col then
+            min_clipboard_col = col_idx
+          end
+        end
+      end
+    end
+  end
+  if min_clipboard_col == 999 then min_clipboard_col = 1 end
+  
+  local col_offset = start_note_column - min_clipboard_col
+  
+  -- Collect rows that have actual content
+  local content_rows = {}
+  for row_idx, row_data in ipairs(data.rows) do
+    if row_has_content(row_data) then
+      table.insert(content_rows, {idx = row_idx, data = row_data})
+    end
+  end
+  
+  if #content_rows == 0 then
+    renoise.app():show_status("Clipboard has no content to paste.")
+    return false
+  end
+  
+  local rows_pasted = 0
+  
+  -- Paste each content row at editstep intervals
+  for content_idx, content_row in ipairs(content_rows) do
+    local target_line = start_line + ((content_idx - 1) * editstep)
+    
+    if target_line > pattern_length then
+      break
+    end
+    
+    local row_data = content_row.data
+    
+    for relative_track_idx, track_data in pairs(row_data) do
+      local target_track_idx = start_track + relative_track_idx - 1
+      if target_track_idx > #song.tracks then
+        break
+      end
+      
+      local track = song.tracks[target_track_idx]
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local pattern_line = pattern.tracks[target_track_idx].lines[target_line]
+        
+        -- Paste note columns
+        if track_data.note_columns then
+          for col_idx, col_data in pairs(track_data.note_columns) do
+            local target_col = col_idx + col_offset
+            if target_col >= 1 and target_col <= track.visible_note_columns then
+              write_note_column_data(pattern_line.note_columns[target_col], col_data, preserve_notes)
+            end
+          end
+        end
+        
+        -- Paste effect columns
+        if track_data.effect_columns then
+          for col_idx, col_data in pairs(track_data.effect_columns) do
+            if col_idx <= track.visible_effect_columns then
+              write_effect_column_data(pattern_line.effect_columns[col_idx], col_data)
+            end
+          end
+        end
+      end
+    end
+    
+    rows_pasted = rows_pasted + 1
+  end
+  
+  if rows_pasted == 0 then
+    renoise.app():show_status("Paste by EditStep failed - no data could be pasted.")
+    return false
+  end
+  
+  renoise.app():show_status(string.format("Pasted %d notes by editstep %d from Slot %s", 
+    rows_pasted, editstep, format_slot_index(slot_index)))
+  
+  return true
+end
+
 -- Mix-Paste from clipboard to Pattern Editor (only paste into empty cells)
 -- Uses selection_in_pattern_pro() for precise column selection
 local function mix_paste_pattern_from_clipboard(slot_index)
@@ -1431,6 +1551,94 @@ local function paste_phrase_from_clipboard(slot_index)
   return true
 end
 
+-- Paste by EditStep to Phrase: spreads clipboard rows according to current editstep value
+local function paste_phrase_by_editstep(slot_index)
+  local song = renoise.song()
+  local phrase = song.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected.")
+    return false
+  end
+  
+  local data = load_clipboard_from_preferences(slot_index)
+  
+  if not data or not data.rows or #data.rows == 0 then
+    renoise.app():show_status("Clipboard Slot " .. format_slot_index(slot_index) .. " is empty.")
+    return false
+  end
+  
+  local start_line = song.selected_line_index
+  local phrase_length = phrase.number_of_lines
+  local editstep = song.transport.edit_step
+  
+  -- If editstep is 0, treat it as 1 (paste consecutively)
+  if editstep == 0 then
+    editstep = 1
+  end
+  
+  -- Collect rows that have actual content
+  local content_rows = {}
+  for row_idx, row_data in ipairs(data.rows) do
+    if row_has_content(row_data) then
+      table.insert(content_rows, {idx = row_idx, data = row_data})
+    end
+  end
+  
+  if #content_rows == 0 then
+    renoise.app():show_status("Clipboard has no content to paste.")
+    return false
+  end
+  
+  local rows_pasted = 0
+  
+  -- Paste each content row at editstep intervals
+  for content_idx, content_row in ipairs(content_rows) do
+    local target_line = start_line + ((content_idx - 1) * editstep)
+    
+    if target_line > phrase_length then
+      break
+    end
+    
+    local row_data = content_row.data
+    local track_data = row_data[1]  -- Phrases are single-track
+    
+    if track_data then
+      local phrase_line = phrase:line(target_line)
+      
+      -- Paste note columns
+      if track_data.note_columns then
+        for col_idx, col_data in pairs(track_data.note_columns) do
+          if col_idx <= phrase.visible_note_columns then
+            write_note_column_data(phrase_line.note_columns[col_idx], col_data)
+          end
+        end
+      end
+      
+      -- Paste effect columns
+      if track_data.effect_columns then
+        for col_idx, col_data in pairs(track_data.effect_columns) do
+          if col_idx <= phrase.visible_effect_columns then
+            write_effect_column_data(phrase_line.effect_columns[col_idx], col_data)
+          end
+        end
+      end
+      
+      rows_pasted = rows_pasted + 1
+    end
+  end
+  
+  if rows_pasted == 0 then
+    renoise.app():show_status("Paste by EditStep failed - no data could be pasted.")
+    return false
+  end
+  
+  renoise.app():show_status(string.format("Pasted %d notes by editstep %d to phrase from Slot %s", 
+    rows_pasted, editstep, format_slot_index(slot_index)))
+  
+  return true
+end
+
 -- Mix-Paste from clipboard to Phrase Editor (only paste into empty cells)
 local function mix_paste_phrase_from_clipboard(slot_index)
   local song = renoise.song()
@@ -1793,6 +2001,16 @@ function PakettiClipboardMixPaste(slot_index)
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
+function PakettiClipboardPasteByEditStep(slot_index)
+  local editor = get_active_editor()
+  if editor == "phrase" then
+    paste_phrase_by_editstep(slot_index)
+  else
+    paste_pattern_by_editstep(slot_index)
+  end
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
 function PakettiClipboardReplicateIntoSelection()
   local editor = get_active_editor()
   if editor == "phrase" then
@@ -1830,6 +2048,10 @@ end
 
 function PakettiClipboardQuickFloodFill()
   PakettiClipboardFloodFill(1)
+end
+
+function PakettiClipboardQuickPasteByEditStep()
+  PakettiClipboardPasteByEditStep(1)
 end
 
 --------------------------------------------------------------------------------
@@ -3824,6 +4046,14 @@ function PakettiClipboardDialog()
           PakettiClipboardMixPaste(slot_idx)
         end
       },
+      vb:button{
+        text = "ES",
+        tooltip = "Paste by EditStep",
+        width = 30,
+        notifier = function()
+          PakettiClipboardPasteByEditStep(slot_idx)
+        end
+      },
       vb:text{
         id = "clipboard_info_" .. i,
         text = slot_info,
@@ -4101,6 +4331,10 @@ renoise.tool():add_keybinding{
   invoke = PakettiClipboardQuickFloodFill
 }
 renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Clipboard Quick Paste by EditStep",
+  invoke = PakettiClipboardQuickPasteByEditStep
+}
+renoise.tool():add_keybinding{
   name = "Phrase Editor:Paketti:Clipboard Quick Copy",
   invoke = PakettiClipboardQuickCopy
 }
@@ -4119,6 +4353,10 @@ renoise.tool():add_keybinding{
 renoise.tool():add_keybinding{
   name = "Phrase Editor:Paketti:Clipboard Quick Flood Fill",
   invoke = PakettiClipboardQuickFloodFill
+}
+renoise.tool():add_keybinding{
+  name = "Phrase Editor:Paketti:Clipboard Quick Paste by EditStep",
+  invoke = PakettiClipboardQuickPasteByEditStep
 }
 
 -- Quick Wonked Paste keybindings (Pattern Editor)
@@ -4314,6 +4552,10 @@ for i = 1, NUM_CLIPBOARD_SLOTS do
     name = "Pattern Editor:Paketti:Clipboard Mix-Paste from Slot " .. slot_str,
     invoke = function() PakettiClipboardMixPaste(i) end
   }
+  renoise.tool():add_keybinding{
+    name = "Pattern Editor:Paketti:Clipboard Paste by EditStep from Slot " .. slot_str,
+    invoke = function() PakettiClipboardPasteByEditStep(i) end
+  }
   
   -- Phrase Editor
   renoise.tool():add_keybinding{
@@ -4335,6 +4577,10 @@ for i = 1, NUM_CLIPBOARD_SLOTS do
   renoise.tool():add_keybinding{
     name = "Phrase Editor:Paketti:Clipboard Mix-Paste from Slot " .. slot_str,
     invoke = function() PakettiClipboardMixPaste(i) end
+  }
+  renoise.tool():add_keybinding{
+    name = "Phrase Editor:Paketti:Clipboard Paste by EditStep from Slot " .. slot_str,
+    invoke = function() PakettiClipboardPasteByEditStep(i) end
   }
   
   -- Swap Operations
@@ -4421,6 +4667,14 @@ renoise.tool():add_midi_mapping{
   invoke = function(message)
     if message:is_trigger() then
       PakettiClipboardQuickFloodFill()
+    end
+  end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Clipboard Quick Paste by EditStep",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiClipboardQuickPasteByEditStep()
     end
   end
 }
@@ -4679,6 +4933,15 @@ for i = 1, NUM_CLIPBOARD_SLOTS do
   }
   
   renoise.tool():add_midi_mapping{
+    name = "Paketti:Clipboard Paste by EditStep from Slot " .. slot_str,
+    invoke = function(message)
+      if message:is_trigger() then
+        PakettiClipboardPasteByEditStep(i)
+      end
+    end
+  }
+  
+  renoise.tool():add_midi_mapping{
     name = "Paketti:Clipboard Swap with Slot " .. slot_str,
     invoke = function(message)
       if message:is_trigger() then
@@ -4759,6 +5022,10 @@ renoise.tool():add_menu_entry{
 renoise.tool():add_menu_entry{
   name = "Pattern Editor:Paketti:Clipboard:Quick Flood Fill (Slot 01)",
   invoke = PakettiClipboardQuickFloodFill
+}
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti:Clipboard:Quick Paste by EditStep (Slot 01)",
+  invoke = PakettiClipboardQuickPasteByEditStep
 }
 
 -- Quick Wonked Paste menu entries
@@ -4891,6 +5158,10 @@ for i = 1, NUM_CLIPBOARD_SLOTS do
   renoise.tool():add_menu_entry{
     name = "Pattern Editor:Paketti:Clipboard:Mix-Paste from Slot " .. slot_str,
     invoke = function() PakettiClipboardMixPaste(i) end
+  }
+  renoise.tool():add_menu_entry{
+    name = "Pattern Editor:Paketti:Clipboard:Paste by EditStep from Slot " .. slot_str,
+    invoke = function() PakettiClipboardPasteByEditStep(i) end
   }
   renoise.tool():add_menu_entry{
     name = "Pattern Editor:Paketti:Clipboard:Swap with Slot " .. slot_str,

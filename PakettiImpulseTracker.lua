@@ -3588,9 +3588,8 @@ function PakettiImpulseTrackerPatternToSample()
   print("DEBUG: Starting Pattern to Sample render")
   print("DEBUG: Pattern " .. pattern_index .. " - " .. pattern.number_of_lines .. " lines")
   
-  -- Create temporary file path (simpler approach for CoreAudio compatibility)
-  local temp_filename = "paketti_pattern_render_" .. os.time() .. ".wav"
-  local temp_path = renoise.tool().bundle_path .. temp_filename
+  -- Create temporary file path using proper temp directory
+  local temp_path = pakettiGetTempFilePath(".wav")
   print("DEBUG: Temp file path: " .. temp_path)
   
   -- Setup render options for current pattern
