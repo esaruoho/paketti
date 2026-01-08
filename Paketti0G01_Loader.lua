@@ -782,6 +782,10 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     HorizontalPlayhead = true,  -- Show/hide horizontal playhead (yellow line)
     VerticalPlayhead = true     -- Show/hide vertical playhead (yellow line)
   },
+  -- Mixer Parameter Exposer Settings
+  pakettiMixerParameterExposer = {
+    MaxRowsPerColumn = 25  -- Max parameters per column before splitting (10-50)
+  },
 }
 
 renoise.tool().preferences = preferences
@@ -821,6 +825,8 @@ PakettiParameterEditor = renoise.tool().preferences.pakettiParameterEditor
 PakettiCreateNewSends = renoise.tool().preferences.pakettiCreateNewSends
 -- Add PlayerPro Waveform Viewer preferences accessor
 PakettiPlayerProWaveformViewer = renoise.tool().preferences.pakettiPlayerProWaveformViewer
+-- Add Mixer Parameter Exposer preferences accessor
+PakettiMixerParameterExposer = renoise.tool().preferences.pakettiMixerParameterExposer
 
       -- Define available keys for dialog closing
       local dialog_close_keys = {"tab", "esc", "space", "return", "q", "donteverclose"}

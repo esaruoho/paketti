@@ -1426,7 +1426,14 @@ function PakettiCanvasExperimentsCreateDialog()
           end
         end
       },
-      vb:text{text="Randomize",style="strong",font="bold",width=50},
+      vb:button{
+        text="Randomize",
+        width=60,
+        tooltip="Randomize all device parameters with current strength",
+        notifier=function()
+          PakettiCanvasExperimentsRandomizeCurrentMode()
+        end
+      },
       vb:button {
         text = "Automation",
         width = 60,
@@ -2493,13 +2500,15 @@ function PakettiCanvasExperimentsSetupGlobalDeviceObserver()
     -- For Wavetable Mod *LFO devices during auto-open, add a small delay to ensure device is fully initialized
     if device_name == "Wavetable Mod *LFO" then
       print("AUTO_OPEN: Wavetable Mod *LFO detected - adding delay before opening Parameter Editor")
-      renoise.tool():add_timer(function()
-        renoise.tool():remove_timer(PakettiCanvasExperimentsInit)
+      local delay_timer
+      delay_timer = function()
+        renoise.tool():remove_timer(delay_timer)
         if song.selected_device and song.selected_device.display_name == "Wavetable Mod *LFO" then
           print("AUTO_OPEN: Opening Parameter Editor for Wavetable Mod *LFO after delay")
           PakettiCanvasExperimentsInit()
         end
-      end, 100)  -- 100ms delay
+      end
+      renoise.tool():add_timer(delay_timer, 100)  -- 100ms delay
       return
     end
     

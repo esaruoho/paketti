@@ -2726,6 +2726,9 @@ renoise.tool():add_menu_entry{name="Main Menu:Options:OctaMED Hold-to-Fill Mode 
 renoise.tool():add_menu_entry{name="Main Menu:Options:Song Frame Calculator Toggle",invoke=PakettiFrameCalculatorToggle,selected=PakettiFrameCalculatorIsEnabled}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Selection Follow Start Toggle",invoke=function() PakettiSelectionFollowToggle() end,selected=function() return PakettiSelectionFollowIsEnabled() end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Selection Follow to End Toggle",invoke=function() PakettiSelectionFollowToEndToggle() end,selected=function() return PakettiSelectionFollowToEndIsEnabled() end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Show Automated Parameters in Mixer for Selected Device",invoke=PakettiShowAutomatedParametersInMixer}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Automated Parameters in Mixer for Selected Device",invoke=PakettiShowAutomatedParametersInMixer}
+renoise.tool():add_midi_mapping{name="Paketti:Mixer:Show Automated Parameters in Mixer for Selected Device",invoke=function(message) if message:is_trigger() then PakettiShowAutomatedParametersInMixer() end end}
 renoise.tool():add_menu_entry{name="--Main Menu:Options:Paketti Preferences...",invoke=pakettiPreferences}
 
 -- Tools Preferences

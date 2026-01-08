@@ -415,6 +415,26 @@ local function create_button_list()
   table.insert(buttons, {"OT Debug", "PakettiOTDebugDialog"})
   table.insert(buttons, {"Polyend Slice Switcher", "PakettiPolyendSliceSwitcherCreateDialog"})
   
+  -- **ADDITIONAL MISSING DIALOGS (2025-01-08):**
+  table.insert(buttons, {"Stem Slice Randomizer", "pakettiStemSliceRandomizerDialog"})
+  table.insert(buttons, {"Mixer Parameter Exposer", "PakettiMixerParameterExposerShowDialog"})
+  table.insert(buttons, {"Wonkify Quick", "PakettiWonkifyQuickDialog"})
+  table.insert(buttons, {"Wonkify Advanced", "PakettiWonkifyDialog"})
+  table.insert(buttons, {"Clipboard", "PakettiClipboardDialog"})
+  table.insert(buttons, {"Automation Curve Fill", "PakettiAutomationCurveFill"})
+  table.insert(buttons, {"Effect Column Curve Fill", "PakettiEffectColumnCurveFill"})
+  table.insert(buttons, {"Quick Flicks", "PakettiQuickFlicksShowDialog"})
+  table.insert(buttons, {"Phrase Grid", "PakettiPhraseGridShowDialog"})
+  table.insert(buttons, {"Phrase Grid Performance", "PakettiPhraseGridShowPerformanceDialog"})
+  table.insert(buttons, {"SlicePro Config", "SliceProConfigDialog"})
+  table.insert(buttons, {"SliceSafely", "SliceSafelyDialog"})
+  table.insert(buttons, {"MPC Cycler", "show_mpc_cycler_dialog"})
+  table.insert(buttons, {"ZDxx Pattern Delay", "show_zdxx_dialog"})
+  table.insert(buttons, {"Equation Calculator", "PakettiEquationCalculator"})
+  table.insert(buttons, {"Slab'o'Patterns", "PakettiSlabOPatternsToggle"})
+  table.insert(buttons, {"Paketti Toggler", "PakettiTogglerDialog"})
+  table.insert(buttons, {"Canvas Font Preview", "PakettiCanvasFontPreviewInit"})
+  
   return buttons
 end
 

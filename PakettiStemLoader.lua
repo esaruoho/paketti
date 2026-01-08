@@ -2143,6 +2143,38 @@ function pakettiStemRandomizeSlices1Synchronized() pakettiStemRandomizeSlicesSte
 function pakettiStemRandomizeSlices32Independent() pakettiStemRandomizeSlicesStepIndependent(32) end
 function pakettiStemRandomizeSlices32Synchronized() pakettiStemRandomizeSlicesStepSynchronized(32) end
 
+-- Wrapper functions for odd step sizes
+function pakettiStemRandomizeSlices3Independent() pakettiStemRandomizeSlicesStepIndependent(3) end
+function pakettiStemRandomizeSlices3Synchronized() pakettiStemRandomizeSlicesStepSynchronized(3) end
+function pakettiStemRandomizeSlices5Independent() pakettiStemRandomizeSlicesStepIndependent(5) end
+function pakettiStemRandomizeSlices5Synchronized() pakettiStemRandomizeSlicesStepSynchronized(5) end
+function pakettiStemRandomizeSlices7Independent() pakettiStemRandomizeSlicesStepIndependent(7) end
+function pakettiStemRandomizeSlices7Synchronized() pakettiStemRandomizeSlicesStepSynchronized(7) end
+function pakettiStemRandomizeSlices9Independent() pakettiStemRandomizeSlicesStepIndependent(9) end
+function pakettiStemRandomizeSlices9Synchronized() pakettiStemRandomizeSlicesStepSynchronized(9) end
+function pakettiStemRandomizeSlices11Independent() pakettiStemRandomizeSlicesStepIndependent(11) end
+function pakettiStemRandomizeSlices11Synchronized() pakettiStemRandomizeSlicesStepSynchronized(11) end
+function pakettiStemRandomizeSlices13Independent() pakettiStemRandomizeSlicesStepIndependent(13) end
+function pakettiStemRandomizeSlices13Synchronized() pakettiStemRandomizeSlicesStepSynchronized(13) end
+function pakettiStemRandomizeSlices15Independent() pakettiStemRandomizeSlicesStepIndependent(15) end
+function pakettiStemRandomizeSlices15Synchronized() pakettiStemRandomizeSlicesStepSynchronized(15) end
+function pakettiStemRandomizeSlices17Independent() pakettiStemRandomizeSlicesStepIndependent(17) end
+function pakettiStemRandomizeSlices17Synchronized() pakettiStemRandomizeSlicesStepSynchronized(17) end
+function pakettiStemRandomizeSlices19Independent() pakettiStemRandomizeSlicesStepIndependent(19) end
+function pakettiStemRandomizeSlices19Synchronized() pakettiStemRandomizeSlicesStepSynchronized(19) end
+function pakettiStemRandomizeSlices21Independent() pakettiStemRandomizeSlicesStepIndependent(21) end
+function pakettiStemRandomizeSlices21Synchronized() pakettiStemRandomizeSlicesStepSynchronized(21) end
+function pakettiStemRandomizeSlices23Independent() pakettiStemRandomizeSlicesStepIndependent(23) end
+function pakettiStemRandomizeSlices23Synchronized() pakettiStemRandomizeSlicesStepSynchronized(23) end
+function pakettiStemRandomizeSlices25Independent() pakettiStemRandomizeSlicesStepIndependent(25) end
+function pakettiStemRandomizeSlices25Synchronized() pakettiStemRandomizeSlicesStepSynchronized(25) end
+function pakettiStemRandomizeSlices27Independent() pakettiStemRandomizeSlicesStepIndependent(27) end
+function pakettiStemRandomizeSlices27Synchronized() pakettiStemRandomizeSlicesStepSynchronized(27) end
+function pakettiStemRandomizeSlices29Independent() pakettiStemRandomizeSlicesStepIndependent(29) end
+function pakettiStemRandomizeSlices29Synchronized() pakettiStemRandomizeSlicesStepSynchronized(29) end
+function pakettiStemRandomizeSlices31Independent() pakettiStemRandomizeSlicesStepIndependent(31) end
+function pakettiStemRandomizeSlices31Synchronized() pakettiStemRandomizeSlicesStepSynchronized(31) end
+
 -- Sequential slices at specified step interval (NOT randomized - "Go Forwards" mode)
 -- This writes slices in order: slice 1, slice 2, slice 3... progressing through the song
 function pakettiStemSequentialSlicesAtStep(step_size)
@@ -2275,6 +2307,146 @@ function pakettiStemSequentialSlicesAtStep(step_size)
   print(string.format("Stem Sequential %d-Step: Wrote %d sequential triggers", step_size, total_triggers))
   renoise.app():show_status(string.format("Sequential slices every %d steps - %s", step_size, mode_text))
 end
+
+-- Write consecutive sequential slices to the current selection
+-- This ALWAYS writes to the selection (ignores Selection Only checkbox)
+-- Writes slices in order: 1, 2, 3... wrapping when slice count is exceeded
+function pakettiStemSelectionSequentialSlices(step_size)
+  local song = renoise.song()
+  local sliced_tracks = pakettiStemFindSlicedTracks()
+  
+  if #sliced_tracks == 0 then
+    renoise.app():show_status("No sliced stem tracks found. Load stems with 'Slice to Patterns' first.")
+    return
+  end
+  
+  -- This function ALWAYS requires a selection
+  local selection = song.selection_in_pattern
+  if not selection then
+    renoise.app():show_status("No selection in pattern - make a selection first")
+    return
+  end
+  
+  local sel_start_line = selection.start_line
+  local sel_end_line = selection.end_line
+  local sel_start_track = selection.start_track
+  local sel_end_track = selection.end_track
+  
+  -- Filter sliced_tracks to only those within selection
+  local filtered_tracks = {}
+  for _, track_info in ipairs(sliced_tracks) do
+    if track_info.track_index >= sel_start_track and track_info.track_index <= sel_end_track then
+      table.insert(filtered_tracks, track_info)
+    end
+  end
+  sliced_tracks = filtered_tracks
+  
+  if #sliced_tracks == 0 then
+    renoise.app():show_status("No sliced stem tracks within selection")
+    return
+  end
+  
+  local pattern_index = song.selected_pattern_index
+  local pattern = song.patterns[pattern_index]
+  local pattern_length = pattern.number_of_lines
+  
+  -- Clamp selection to pattern bounds
+  local start_line = sel_start_line
+  local end_line = sel_end_line
+  if end_line > pattern_length then end_line = pattern_length end
+  
+  -- Calculate how many rows are in the selection
+  local selection_rows = (end_line - start_line) + 1
+  
+  -- Calculate how many triggers fit in the selection
+  local triggers_count = math.floor(selection_rows / step_size)
+  if triggers_count < 1 then triggers_count = 1 end
+  
+  -- Calculate offset values for sub-slice positioning
+  local triggers_per_64 = math.floor(64 / step_size)
+  if triggers_per_64 < 1 then triggers_per_64 = 1 end
+  local offset_values = {}
+  for i = 0, triggers_per_64 - 1 do
+    offset_values[i + 1] = math.floor(i * 256 / triggers_per_64)
+  end
+  
+  print(string.format("Stem Selection Sequential %d-Step: Found %d sliced tracks, selection rows %d-%d", 
+    step_size, #sliced_tracks, start_line, end_line))
+  
+  local total_triggers = 0
+  
+  for _, track_info in ipairs(sliced_tracks) do
+    local instrument = song.instruments[track_info.instrument_index]
+    local base_note = 48
+    if instrument and instrument.samples[1] and instrument.samples[1].sample_mapping then
+      base_note = instrument.samples[1].sample_mapping.base_note
+    end
+    
+    -- Clear lines on this track within selection
+    for row = start_line, end_line do
+      local line = pattern.tracks[track_info.track_index].lines[row]
+      if line then
+        line.note_columns[1]:clear()
+        line.effect_columns[1]:clear()
+      end
+    end
+    
+    -- Write consecutive sequential slices at step intervals within selection
+    local slice_counter = 0
+    for trigger = 0, triggers_count - 1 do
+      local row = start_line + (trigger * step_size)
+      if row <= end_line then
+        -- Sequential slice: 1, 2, 3, ... wrapping when exceeding slice count
+        local slice_index = (slice_counter % track_info.slice_count) + 1
+        local slice_note = base_note + slice_index
+        if slice_note > 119 then slice_note = 119 end
+        
+        local offset = offset_values[(trigger % #offset_values) + 1]
+        
+        local line = pattern.tracks[track_info.track_index].lines[row]
+        if line then
+          line.note_columns[1].note_value = slice_note
+          line.note_columns[1].instrument_value = track_info.instrument_index - 1
+          line.effect_columns[1].number_string = "0S"
+          line.effect_columns[1].amount_value = offset
+          
+          if song.tracks[track_info.track_index].visible_effect_columns < 1 then
+            song.tracks[track_info.track_index].visible_effect_columns = 1
+          end
+        end
+        
+        slice_counter = slice_counter + 1
+        total_triggers = total_triggers + 1
+      end
+    end
+  end
+  
+  print(string.format("Stem Selection Sequential %d-Step: Wrote %d sequential triggers to selection", step_size, total_triggers))
+  renoise.app():show_status(string.format("Sequential slices every %d steps to selection (rows %d-%d)", step_size, start_line, end_line))
+end
+
+-- Wrapper functions for Selection Sequential Slices at different step sizes
+function pakettiStemSelectionSequential1() pakettiStemSelectionSequentialSlices(1) end
+function pakettiStemSelectionSequential2() pakettiStemSelectionSequentialSlices(2) end
+function pakettiStemSelectionSequential4() pakettiStemSelectionSequentialSlices(4) end
+function pakettiStemSelectionSequential8() pakettiStemSelectionSequentialSlices(8) end
+function pakettiStemSelectionSequential16() pakettiStemSelectionSequentialSlices(16) end
+function pakettiStemSelectionSequential32() pakettiStemSelectionSequentialSlices(32) end
+function pakettiStemSelectionSequential3() pakettiStemSelectionSequentialSlices(3) end
+function pakettiStemSelectionSequential5() pakettiStemSelectionSequentialSlices(5) end
+function pakettiStemSelectionSequential7() pakettiStemSelectionSequentialSlices(7) end
+function pakettiStemSelectionSequential9() pakettiStemSelectionSequentialSlices(9) end
+function pakettiStemSelectionSequential11() pakettiStemSelectionSequentialSlices(11) end
+function pakettiStemSelectionSequential13() pakettiStemSelectionSequentialSlices(13) end
+function pakettiStemSelectionSequential15() pakettiStemSelectionSequentialSlices(15) end
+function pakettiStemSelectionSequential17() pakettiStemSelectionSequentialSlices(17) end
+function pakettiStemSelectionSequential19() pakettiStemSelectionSequentialSlices(19) end
+function pakettiStemSelectionSequential21() pakettiStemSelectionSequentialSlices(21) end
+function pakettiStemSelectionSequential23() pakettiStemSelectionSequentialSlices(23) end
+function pakettiStemSelectionSequential25() pakettiStemSelectionSequentialSlices(25) end
+function pakettiStemSelectionSequential27() pakettiStemSelectionSequentialSlices(27) end
+function pakettiStemSelectionSequential29() pakettiStemSelectionSequentialSlices(29) end
+function pakettiStemSelectionSequential31() pakettiStemSelectionSequentialSlices(31) end
 
 -----------
 -- Forwards+Reverse Slice Randomization
@@ -2630,9 +2802,27 @@ local function stepSizeToSlider(step_size)
   return 1
 end
 
+-- Valid step sizes for odd signatures
+local stem_slice_odd_step_sizes = {3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31}
+
+-- Convert slider value (1-15) to odd step size
+local function sliderToOddStepSize(slider_value)
+  return stem_slice_odd_step_sizes[slider_value] or 3
+end
+
+-- Convert odd step size to slider value (1-15)
+local function oddStepSizeToSlider(step_size)
+  for i, size in ipairs(stem_slice_odd_step_sizes) do
+    if size == step_size then return i end
+  end
+  return 1
+end
+
 -- Current step sizes for display
 local current_independent_step = 16
 local current_synchronized_step = 16
+local current_odd_independent_step = 3
+local current_odd_synchronized_step = 3
 
 function pakettiStemSliceRandomizerDialog()
   if stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
@@ -2655,6 +2845,8 @@ function pakettiStemSliceRandomizerDialog()
   -- Track last triggered step to avoid duplicate triggers
   local last_independent_step = current_independent_step
   local last_synchronized_step = current_synchronized_step
+  local last_odd_independent_step = current_odd_independent_step
+  local last_odd_synchronized_step = current_odd_synchronized_step
   local last_reverse_prob = current_reverse_probability
   local last_fwdrev_step = current_independent_step  -- Use independent step for fwd/rev
   
@@ -2710,6 +2902,58 @@ function pakettiStemSliceRandomizerDialog()
         end
       },
       vb:text{id = "synchronized_label", text = tostring(current_synchronized_step), width=30}
+    },
+    vb:row{
+      vb:text{text = "Odd Indep", font="bold", style="strong", width=80},
+      vb:slider{
+        id = "odd_independent_slider",
+        min = 1,
+        max = 15,
+        steps = {1, 1},
+        default = oddStepSizeToSlider(current_odd_independent_step),
+        value = oddStepSizeToSlider(current_odd_independent_step),
+        width = 120,
+        notifier = function(value)
+          local snapped = math.floor(value + 0.5)
+          if snapped < 1 then snapped = 1 end
+          if snapped > 15 then snapped = 15 end
+          local new_step = stem_slice_odd_step_sizes[snapped]
+          vb.views.odd_independent_label.text = tostring(new_step)
+          if new_step ~= last_odd_independent_step then
+            last_odd_independent_step = new_step
+            current_odd_independent_step = new_step
+            pakettiStemRandomizeSlicesStepIndependent(new_step)
+          end
+          renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+        end
+      },
+      vb:text{id = "odd_independent_label", text = tostring(current_odd_independent_step), width=30}
+    },
+    vb:row{
+      vb:text{text = "Odd Synced", font="bold", style="strong", width=80},
+      vb:slider{
+        id = "odd_synchronized_slider",
+        min = 1,
+        max = 15,
+        steps = {1, 1},
+        default = oddStepSizeToSlider(current_odd_synchronized_step),
+        value = oddStepSizeToSlider(current_odd_synchronized_step),
+        width = 120,
+        notifier = function(value)
+          local snapped = math.floor(value + 0.5)
+          if snapped < 1 then snapped = 1 end
+          if snapped > 15 then snapped = 15 end
+          local new_step = stem_slice_odd_step_sizes[snapped]
+          vb.views.odd_synchronized_label.text = tostring(new_step)
+          if new_step ~= last_odd_synchronized_step then
+            last_odd_synchronized_step = new_step
+            current_odd_synchronized_step = new_step
+            pakettiStemRandomizeSlicesStepSynchronized(new_step)
+          end
+          renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+        end
+      },
+      vb:text{id = "odd_synchronized_label", text = tostring(current_odd_synchronized_step), width=30}
     },
     vb:row{
       vb:text{text = "Reverse %", font="bold", style="strong", width=80},
@@ -2827,14 +3071,14 @@ function pakettiStemSliceRandomizerDialog()
     vb:row{
       vb:button{
         text = "Dupe",
-        width = 48,
+        width = 40,
         notifier = function()
           pakettiStemDuplicatePatternAndJump()
         end
       },
       vb:button{
-        text = "Re-roll",
-        width = 48,
+        text = "Roll",
+        width = 40,
         notifier = function()
           -- Re-roll using the last used step size (synchronized)
           pakettiStemRandomizeSlicesStepSynchronized(current_synchronized_step)
@@ -2842,21 +3086,29 @@ function pakettiStemSliceRandomizerDialog()
       },
       vb:button{
         text = "Fwd",
-        width = 48,
+        width = 40,
         notifier = function()
           pakettiStemSequentialSlicesAtStep(current_independent_step)
         end
       },
       vb:button{
+        text = "Sel",
+        width = 40,
+        tooltip = "Write sequential slices to selection",
+        notifier = function()
+          pakettiStemSelectionSequentialSlices(current_independent_step)
+        end
+      },
+      vb:button{
         text = "Reset",
-        width = 48,
+        width = 40,
         notifier = function()
           pakettiStemResetSlicesToSequential()
         end
       },
       vb:button{
         text = "Close",
-        width = 48,
+        width = 40,
         notifier = function()
           if stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
             -- Disable Selection Follow to End if it was enabled via checkbox
@@ -2930,6 +3182,53 @@ local function pakettiStemSliceRandomizerMidiSynchronized(message)
   end
 end
 
+-- MIDI knob handlers for odd step sizes
+-- Maps MIDI CC value (0-127) to odd step sizes (3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31)
+local function midiValueToOddStepSize(midi_value)
+  -- Divide 0-127 into 15 zones for the 15 odd step sizes
+  local zone = math.floor(midi_value / 8.47)  -- 127 / 15 ≈ 8.47
+  if zone < 0 then zone = 0 end
+  if zone > 14 then zone = 14 end
+  return stem_slice_odd_step_sizes[zone + 1]
+end
+
+local last_odd_independent_midi_step = nil
+local last_odd_synchronized_midi_step = nil
+
+local function pakettiStemSliceRandomizerMidiOddIndependent(message)
+  if message:is_abs_value() then
+    local step_size = midiValueToOddStepSize(message.int_value)
+    -- Only trigger if step size changed (prevents repeated triggers)
+    if step_size ~= last_odd_independent_midi_step then
+      last_odd_independent_midi_step = step_size
+      current_odd_independent_step = step_size
+      pakettiStemRandomizeSlicesStepIndependent(step_size)
+      -- Update dialog slider if open
+      if stem_slice_randomizer_vb and stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
+        stem_slice_randomizer_vb.views.odd_independent_slider.value = oddStepSizeToSlider(step_size)
+        stem_slice_randomizer_vb.views.odd_independent_label.text = tostring(step_size)
+      end
+    end
+  end
+end
+
+local function pakettiStemSliceRandomizerMidiOddSynchronized(message)
+  if message:is_abs_value() then
+    local step_size = midiValueToOddStepSize(message.int_value)
+    -- Only trigger if step size changed (prevents repeated triggers)
+    if step_size ~= last_odd_synchronized_midi_step then
+      last_odd_synchronized_midi_step = step_size
+      current_odd_synchronized_step = step_size
+      pakettiStemRandomizeSlicesStepSynchronized(step_size)
+      -- Update dialog slider if open
+      if stem_slice_randomizer_vb and stem_slice_randomizer_dialog and stem_slice_randomizer_dialog.visible then
+        stem_slice_randomizer_vb.views.odd_synchronized_slider.value = oddStepSizeToSlider(step_size)
+        stem_slice_randomizer_vb.views.odd_synchronized_label.text = tostring(step_size)
+      end
+    end
+  end
+end
+
 -- Keybindings for slice randomization
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices (Independent)",invoke=function() pakettiStemRandomizeSlicesIndependent() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices (Synchronized)",invoke=function() pakettiStemRandomizeSlicesSynchronized() end}
@@ -2948,6 +3247,46 @@ renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 3
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 32 (Synchronized)",invoke=function() pakettiStemRandomizeSlices32Synchronized() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Stem Slice Randomizer Dialog...",invoke=function() pakettiStemSliceRandomizerDialog() end}
 
+-- Keybindings for odd step sizes
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 3 (Independent)",invoke=function() pakettiStemRandomizeSlices3Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 3 (Synchronized)",invoke=function() pakettiStemRandomizeSlices3Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 5 (Independent)",invoke=function() pakettiStemRandomizeSlices5Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 5 (Synchronized)",invoke=function() pakettiStemRandomizeSlices5Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 7 (Independent)",invoke=function() pakettiStemRandomizeSlices7Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 7 (Synchronized)",invoke=function() pakettiStemRandomizeSlices7Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 9 (Independent)",invoke=function() pakettiStemRandomizeSlices9Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 9 (Synchronized)",invoke=function() pakettiStemRandomizeSlices9Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 11 (Independent)",invoke=function() pakettiStemRandomizeSlices11Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 11 (Synchronized)",invoke=function() pakettiStemRandomizeSlices11Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 13 (Independent)",invoke=function() pakettiStemRandomizeSlices13Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 13 (Synchronized)",invoke=function() pakettiStemRandomizeSlices13Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 15 (Independent)",invoke=function() pakettiStemRandomizeSlices15Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 15 (Synchronized)",invoke=function() pakettiStemRandomizeSlices15Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 17 (Independent)",invoke=function() pakettiStemRandomizeSlices17Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 17 (Synchronized)",invoke=function() pakettiStemRandomizeSlices17Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 19 (Independent)",invoke=function() pakettiStemRandomizeSlices19Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 19 (Synchronized)",invoke=function() pakettiStemRandomizeSlices19Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 21 (Independent)",invoke=function() pakettiStemRandomizeSlices21Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 21 (Synchronized)",invoke=function() pakettiStemRandomizeSlices21Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 23 (Independent)",invoke=function() pakettiStemRandomizeSlices23Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 23 (Synchronized)",invoke=function() pakettiStemRandomizeSlices23Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 25 (Independent)",invoke=function() pakettiStemRandomizeSlices25Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 25 (Synchronized)",invoke=function() pakettiStemRandomizeSlices25Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 27 (Independent)",invoke=function() pakettiStemRandomizeSlices27Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 27 (Synchronized)",invoke=function() pakettiStemRandomizeSlices27Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 29 (Independent)",invoke=function() pakettiStemRandomizeSlices29Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 29 (Synchronized)",invoke=function() pakettiStemRandomizeSlices29Synchronized() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 31 (Independent)",invoke=function() pakettiStemRandomizeSlices31Independent() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Stem Slices Every 31 (Synchronized)",invoke=function() pakettiStemRandomizeSlices31Synchronized() end}
+
+-- Keybindings for Selection Sequential Slices
+renoise.tool():add_keybinding{name="Global:Paketti:Selection Sequential Slices Every 1",invoke=function() pakettiStemSelectionSequential1() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Selection Sequential Slices Every 2",invoke=function() pakettiStemSelectionSequential2() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Selection Sequential Slices Every 4",invoke=function() pakettiStemSelectionSequential4() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Selection Sequential Slices Every 8",invoke=function() pakettiStemSelectionSequential8() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Selection Sequential Slices Every 16",invoke=function() pakettiStemSelectionSequential16() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Selection Sequential Slices Every 32",invoke=function() pakettiStemSelectionSequential32() end}
+
 -- MIDI mappings for slice randomization
 renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlicesIndependent() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlicesSynchronized() end end}
@@ -2965,7 +3304,49 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 1
 renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 32 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices32Independent() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 32 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices32Synchronized() end end}
 
+-- MIDI mappings for odd step sizes
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 3 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices3Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 3 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices3Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 5 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices5Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 5 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices5Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 7 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices7Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 7 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices7Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 9 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices9Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 9 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices9Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 11 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices11Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 11 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices11Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 13 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices13Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 13 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices13Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 15 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices15Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 15 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices15Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 17 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices17Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 17 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices17Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 19 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices19Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 19 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices19Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 21 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices21Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 21 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices21Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 23 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices23Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 23 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices23Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 25 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices25Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 25 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices25Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 27 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices27Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 27 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices27Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 29 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices29Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 29 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices29Synchronized() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 31 (Independent)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices31Independent() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Randomize Stem Slices Every 31 (Synchronized)",invoke=function(message) if message:is_trigger() then pakettiStemRandomizeSlices31Synchronized() end end}
+
+-- MIDI mappings for Selection Sequential Slices
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selection Sequential Slices Every 1",invoke=function(message) if message:is_trigger() then pakettiStemSelectionSequential1() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selection Sequential Slices Every 2",invoke=function(message) if message:is_trigger() then pakettiStemSelectionSequential2() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selection Sequential Slices Every 4",invoke=function(message) if message:is_trigger() then pakettiStemSelectionSequential4() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selection Sequential Slices Every 8",invoke=function(message) if message:is_trigger() then pakettiStemSelectionSequential8() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selection Sequential Slices Every 16",invoke=function(message) if message:is_trigger() then pakettiStemSelectionSequential16() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selection Sequential Slices Every 32",invoke=function(message) if message:is_trigger() then pakettiStemSelectionSequential32() end end}
+
 -- MIDI knob mappings for continuous control (use with MIDI knobs/encoders)
 renoise.tool():add_midi_mapping{name="Paketti:Midi Knob Stem Slice Randomizer (Independent)",invoke=pakettiStemSliceRandomizerMidiIndependent}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Knob Stem Slice Randomizer (Synchronized)",invoke=pakettiStemSliceRandomizerMidiSynchronized}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Knob Stem Slice Randomizer Odd (Independent)",invoke=pakettiStemSliceRandomizerMidiOddIndependent}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Knob Stem Slice Randomizer Odd (Synchronized)",invoke=pakettiStemSliceRandomizerMidiOddSynchronized}
 

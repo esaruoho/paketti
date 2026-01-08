@@ -3288,10 +3288,12 @@ function PakettiHyperEditCreateDialog()
               -- Close and reopen dialog with expanded rows
               if hyperedit_dialog and hyperedit_dialog.visible then
                 hyperedit_dialog:close()
-                renoise.tool():add_timer(function()
+                local reopen_timer
+                reopen_timer = function()
+                  renoise.tool():remove_timer(reopen_timer)
                   PakettiHyperEditInit()
-                  renoise.tool():remove_timer(PakettiHyperEditInit)
-                end, 100)
+                end
+                renoise.tool():add_timer(reopen_timer, 100)
               end
             else
               renoise.app():show_status("HyperEdit: Auto-fit enabled")
@@ -3304,10 +3306,12 @@ function PakettiHyperEditCreateDialog()
               -- Close and reopen dialog with manual row count
               if hyperedit_dialog and hyperedit_dialog.visible then
                 hyperedit_dialog:close()
-                renoise.tool():add_timer(function()
+                local reopen_timer
+                reopen_timer = function()
+                  renoise.tool():remove_timer(reopen_timer)
                   PakettiHyperEditInit()
-                  renoise.tool():remove_timer(PakettiHyperEditInit)
-                end, 100)
+                end
+                renoise.tool():add_timer(reopen_timer, 100)
               end
             else
               renoise.app():show_status("HyperEdit: Auto-fit disabled - using manual row count")
@@ -3347,11 +3351,13 @@ function PakettiHyperEditCreateDialog()
           -- Close dialog to force recreation with new row count
           if hyperedit_dialog and hyperedit_dialog.visible then
             hyperedit_dialog:close()
-            -- Reopen after a brief delay
-            renoise.tool():add_timer(function()
+            -- Reopen after a brief delay using a self-removing timer
+            local reopen_timer
+            reopen_timer = function()
+              renoise.tool():remove_timer(reopen_timer)
               PakettiHyperEditInit()
-              renoise.tool():remove_timer(PakettiHyperEditInit)
-            end, 100)
+            end
+            renoise.tool():add_timer(reopen_timer, 100)
           end
         end
       },

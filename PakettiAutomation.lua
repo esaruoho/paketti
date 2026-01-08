@@ -3181,6 +3181,9 @@ function follow_single_parameter()
     envelope = track_automation:create_automation(automation_parameter)
   end
 
+  -- Automatically expose this parameter in the mixer
+  automation_parameter.show_in_mixer = true
+
   local playhead_line = song.transport.playback_pos.line
   envelope:add_point_at(playhead_line, writer_value)
 end
@@ -4284,4 +4287,42 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Curve Fill", invoke = PakettiAutomationCurveFill}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Automation Curve Fill", invoke = PakettiAutomationCurveFill}
 renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Fill", invoke = function(message) if message:is_trigger() then PakettiAutomationCurveFill() end end}
+
+----------------------------------------------------------------------------
+-- Show Automated Parameters in Mixer for Selected Device
+-- Scans all patterns for automation data on the selected device's parameters
+-- and sets show_in_mixer = true for any parameter that has automation
+----------------------------------------------------------------------------
+function PakettiShowAutomatedParametersInMixer()
+  local song = renoise.song()
+  local track_index = song.selected_track_index
+  local track = song.selected_track
+  local device = song.selected_device
+  
+  if not device then
+    renoise.app():show_status("No device selected")
+    return
+  end
+  
+  local count = 0
+  -- Check each parameter
+  for param_index = 1, #device.parameters do
+    local param = device.parameters[param_index]
+    if param.is_automatable then
+      -- Scan all patterns for automation
+      for pattern_index = 1, #song.patterns do
+        local pattern_track = song:pattern(pattern_index):track(track_index)
+        local automation = pattern_track:find_automation(param)
+        if automation and #automation.points > 0 then
+          param.show_in_mixer = true
+          count = count + 1
+          print("Exposed parameter in mixer: " .. (param.name or "Unknown"))
+          break -- Found automation, no need to check more patterns
+        end
+      end
+    end
+  end
+  
+  renoise.app():show_status("Exposed " .. count .. " automated parameters in mixer for " .. device.display_name)
+end
 

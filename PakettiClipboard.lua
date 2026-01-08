@@ -8,6 +8,26 @@ local clipboard_dialog = nil
 -- Number of clipboard slots
 local NUM_CLIPBOARD_SLOTS = 10
 
+-- Dedicated storage for Inverse Cut (Solo Selection) feature
+-- Stores content from all OTHER tracks so it can be restored later
+local inverse_cut_storage = nil
+-- Structure when populated:
+-- {
+--   pattern_index = 1,        -- Pattern where the cut was made
+--   row_start = 48,           -- Start row of the range
+--   row_end = 64,             -- End row of the range  
+--   preserved_tracks = {3},   -- Track indices that were NOT cut (the selection)
+--   track_data = {            -- Content from other tracks, keyed by track index
+--     [1] = {
+--       visible_note_columns = 4,
+--       visible_effect_columns = 2,
+--       rows = { [1] = { note_columns = {...}, effect_columns = {...} }, ... }
+--     },
+--     [2] = { ... },
+--     ...
+--   }
+-- }
+
 --------------------------------------------------------------------------------
 -- Helper Functions
 --------------------------------------------------------------------------------
@@ -751,6 +771,11 @@ local function paste_pattern_from_clipboard(slot_index)
       renoise.app():show_status(string.format("Pasted %d rows into selection from Slot %s%s", 
         rows_pasted, format_slot_index(slot_index), squeeze_msg))
       return true
+    else
+      -- selection exists but selection_in_pattern_pro() failed - don't fall through to cursor paste
+      print("DEBUG: selection exists but selection_in_pattern_pro() returned nil")
+      renoise.app():show_status("Paste failed: Could not get selection details")
+      return false
     end
   end
   
@@ -3514,6 +3539,225 @@ function PakettiClipboardQuickSwap()
 end
 
 --------------------------------------------------------------------------------
+-- Inverse Cut/Restore (Solo Selection) Functions
+-- Cut content from all OTHER tracks, preserving only the selected track(s)
+-- Allows non-destructive isolation and restoration
+--------------------------------------------------------------------------------
+
+-- Inverse Cut: Cut all OTHER tracks within the selection's row range
+-- Preserves the selected track(s), cuts everything else
+function PakettiClipboardInverseCut()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  
+  if not selection then
+    renoise.app():show_status("Inverse Cut: Select a region first to identify what to preserve.")
+    return false
+  end
+  
+  local pattern = song.selected_pattern
+  local pattern_index = song.selected_pattern_index
+  local row_start = selection.start_line
+  local row_end = selection.end_line
+  
+  -- Get the track(s) to preserve (the selected ones)
+  local preserved_tracks = {}
+  for track_idx = selection.start_track, selection.end_track do
+    table.insert(preserved_tracks, track_idx)
+  end
+  
+  -- Create lookup for fast checking
+  local preserved_lookup = {}
+  for _, track_idx in ipairs(preserved_tracks) do
+    preserved_lookup[track_idx] = true
+  end
+  
+  -- Initialize storage
+  inverse_cut_storage = {
+    pattern_index = pattern_index,
+    row_start = row_start,
+    row_end = row_end,
+    preserved_tracks = preserved_tracks,
+    track_data = {}
+  }
+  
+  local tracks_cut = 0
+  local rows_cut = 0
+  
+  -- Iterate through ALL tracks and cut those not in the preserved list
+  for track_idx = 1, #song.tracks do
+    local track = song.tracks[track_idx]
+    
+    -- Skip preserved tracks
+    if preserved_lookup[track_idx] then
+      -- This track is in the selection, skip it
+    else
+      -- Only process sequencer tracks (skip master, send, group for cutting)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local track_storage = {
+          visible_note_columns = track.visible_note_columns,
+          visible_effect_columns = track.visible_effect_columns,
+          rows = {}
+        }
+        
+        local pattern_track = pattern.tracks[track_idx]
+        local track_has_content = false
+        
+        -- Copy and clear each row in the range
+        for line_idx = row_start, row_end do
+          local relative_row = line_idx - row_start + 1
+          local pattern_line = pattern_track.lines[line_idx]
+          
+          track_storage.rows[relative_row] = {
+            note_columns = {},
+            effect_columns = {}
+          }
+          
+          -- Copy note columns
+          for col_idx = 1, track.visible_note_columns do
+            local note_column = pattern_line.note_columns[col_idx]
+            if not note_column.is_empty then
+              track_has_content = true
+            end
+            track_storage.rows[relative_row].note_columns[col_idx] = copy_note_column_data(note_column)
+            -- Clear the column
+            clear_note_column_to_empty(note_column)
+          end
+          
+          -- Copy effect columns
+          for col_idx = 1, track.visible_effect_columns do
+            local effect_column = pattern_line.effect_columns[col_idx]
+            if not effect_column.is_empty then
+              track_has_content = true
+            end
+            track_storage.rows[relative_row].effect_columns[col_idx] = copy_effect_column_data(effect_column)
+            -- Clear the column
+            clear_effect_column_to_empty(effect_column)
+          end
+        end
+        
+        -- Only store if track had any content
+        if track_has_content then
+          inverse_cut_storage.track_data[track_idx] = track_storage
+          tracks_cut = tracks_cut + 1
+        end
+      end
+    end
+  end
+  
+  rows_cut = row_end - row_start + 1
+  
+  -- Build preserved tracks string for status
+  local preserved_str = ""
+  if #preserved_tracks == 1 then
+    preserved_str = "Track " .. preserved_tracks[1]
+  else
+    preserved_str = "Tracks " .. preserved_tracks[1] .. "-" .. preserved_tracks[#preserved_tracks]
+  end
+  
+  renoise.app():show_status(string.format("Inverse Cut: Isolated %s (rows %d-%d), cut %d other tracks. Use Inverse Restore to bring them back.",
+    preserved_str, row_start, row_end, tracks_cut))
+  
+  return true
+end
+
+-- Inverse Restore: Put all the cut content back to its original positions
+function PakettiClipboardInverseRestore()
+  local song = renoise.song()
+  
+  if not inverse_cut_storage or not inverse_cut_storage.track_data then
+    renoise.app():show_status("Inverse Restore: Nothing to restore. Use Inverse Cut first.")
+    return false
+  end
+  
+  -- Check if we're on the same pattern (optional - could warn or just proceed)
+  local pattern_index = inverse_cut_storage.pattern_index
+  local pattern = song.patterns[pattern_index]
+  
+  if not pattern then
+    renoise.app():show_status("Inverse Restore: Original pattern no longer exists.")
+    inverse_cut_storage = nil
+    return false
+  end
+  
+  local row_start = inverse_cut_storage.row_start
+  local row_end = inverse_cut_storage.row_end
+  local tracks_restored = 0
+  
+  -- Restore each track's data
+  for track_idx, track_storage in pairs(inverse_cut_storage.track_data) do
+    if track_idx <= #song.tracks then
+      local track = song.tracks[track_idx]
+      
+      -- Only restore to sequencer tracks
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local pattern_track = pattern.tracks[track_idx]
+        
+        -- Restore each row
+        for relative_row, row_data in pairs(track_storage.rows) do
+          local line_idx = row_start + relative_row - 1
+          if line_idx <= pattern.number_of_lines then
+            local pattern_line = pattern_track.lines[line_idx]
+            
+            -- Restore note columns
+            if row_data.note_columns then
+              for col_idx, col_data in pairs(row_data.note_columns) do
+                if col_idx <= track.visible_note_columns then
+                  write_note_column_data(pattern_line.note_columns[col_idx], col_data)
+                end
+              end
+            end
+            
+            -- Restore effect columns
+            if row_data.effect_columns then
+              for col_idx, col_data in pairs(row_data.effect_columns) do
+                if col_idx <= track.visible_effect_columns then
+                  write_effect_column_data(pattern_line.effect_columns[col_idx], col_data)
+                end
+              end
+            end
+          end
+        end
+        
+        tracks_restored = tracks_restored + 1
+      end
+    end
+  end
+  
+  -- Build preserved tracks string for status
+  local preserved_tracks = inverse_cut_storage.preserved_tracks
+  local preserved_str = ""
+  if #preserved_tracks == 1 then
+    preserved_str = "Track " .. preserved_tracks[1]
+  else
+    preserved_str = "Tracks " .. preserved_tracks[1] .. "-" .. preserved_tracks[#preserved_tracks]
+  end
+  
+  renoise.app():show_status(string.format("Inverse Restore: Restored %d tracks around %s (rows %d-%d).",
+    tracks_restored, preserved_str, row_start, row_end))
+  
+  -- Keep storage so user can restore multiple times if needed
+  -- To clear, user can do another Inverse Cut or we could add a Clear function
+  
+  return true
+end
+
+-- Clear the inverse cut storage without restoring
+function PakettiClipboardInverseClear()
+  if inverse_cut_storage then
+    inverse_cut_storage = nil
+    renoise.app():show_status("Inverse Cut storage cleared.")
+  else
+    renoise.app():show_status("Inverse Cut storage is already empty.")
+  end
+end
+
+-- Check if there's inverse cut data stored
+function PakettiClipboardHasInverseData()
+  return inverse_cut_storage ~= nil and inverse_cut_storage.track_data ~= nil
+end
+
+--------------------------------------------------------------------------------
 -- Export/Import Functions
 -- Save and load clipboard slots to/from external files
 --------------------------------------------------------------------------------
@@ -4266,6 +4510,45 @@ function PakettiClipboardDialog()
           PakettiClipboardPreview(slot)
         end
       }
+    },
+    
+    vb:space{height = 5},
+    
+    -- Solo Selection (Inverse Cut/Restore) section
+    vb:row{
+      vb:text{
+        text = "Solo Selection:",
+        font = "bold",
+        width = 90
+      },
+      vb:button{
+        text = "Inverse Cut",
+        tooltip = "Cut all OTHER tracks within selection's row range",
+        width = 80,
+        notifier = function()
+          PakettiClipboardInverseCut()
+        end
+      },
+      vb:button{
+        text = "Restore",
+        tooltip = "Restore previously cut tracks",
+        width = 60,
+        notifier = function()
+          PakettiClipboardInverseRestore()
+        end
+      },
+      vb:button{
+        text = "Clear",
+        tooltip = "Clear inverse cut storage",
+        width = 50,
+        notifier = function()
+          PakettiClipboardInverseClear()
+        end
+      },
+      vb:text{
+        text = "(Isolate selection, cut rest)",
+        font = "italic"
+      }
     }
   }
   
@@ -4505,6 +4788,20 @@ renoise.tool():add_keybinding{
 renoise.tool():add_keybinding{
   name = "Phrase Editor:Paketti:Clipboard Quick Swap",
   invoke = PakettiClipboardQuickSwap
+}
+
+-- Inverse Cut/Restore keybindings (Solo Selection)
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Clipboard Inverse Cut (Solo Selection)",
+  invoke = PakettiClipboardInverseCut
+}
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Clipboard Inverse Restore",
+  invoke = PakettiClipboardInverseRestore
+}
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Clipboard Inverse Clear",
+  invoke = PakettiClipboardInverseClear
 }
 
 -- Export/Import keybindings
@@ -4847,6 +5144,32 @@ renoise.tool():add_midi_mapping{
   end
 }
 
+-- Inverse Cut/Restore MIDI mappings (Solo Selection)
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Clipboard Inverse Cut (Solo Selection)",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiClipboardInverseCut()
+    end
+  end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Clipboard Inverse Restore",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiClipboardInverseRestore()
+    end
+  end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Clipboard Inverse Clear",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiClipboardInverseClear()
+    end
+  end
+}
+
 -- Export/Import MIDI mappings
 renoise.tool():add_midi_mapping{
   name = "Paketti:Clipboard Quick Export",
@@ -5114,6 +5437,20 @@ renoise.tool():add_menu_entry{
 renoise.tool():add_menu_entry{
   name = "Pattern Editor:Paketti:Clipboard:Quick Swap (Slot 01)",
   invoke = PakettiClipboardQuickSwap
+}
+
+-- Inverse Cut/Restore menu entries (Solo Selection)
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti:Clipboard:Solo Selection:Inverse Cut (Solo Selection)",
+  invoke = PakettiClipboardInverseCut
+}
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti:Clipboard:Solo Selection:Inverse Restore",
+  invoke = PakettiClipboardInverseRestore
+}
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti:Clipboard:Solo Selection:Inverse Clear",
+  invoke = PakettiClipboardInverseClear
 }
 
 -- Export/Import menu entries

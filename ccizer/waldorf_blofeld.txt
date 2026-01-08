@@ -1,0 +1,149 @@
+# Waldorf Blofeld MIDI CC Mappings
+# Most commonly used parameters prioritized first (35 CC limit for MIDI Control device)
+
+PB Pitchbend
+1 Mod Wheel
+69 Filter 1 Cutoff
+70 Filter 1 Resonance
+71 Filter 1 Drive
+73 Filter 1 Env Amount
+80 Filter 2 Cutoff
+81 Filter 2 Resonance
+82 Filter 2 Drive
+84 Filter 2 Env Amount
+101 Amp Env Attack
+102 Amp Env Decay
+103 Amp Env Sustain
+106 Amp Env Release
+95 Filter Env Attack
+96 Filter Env Decay
+97 Filter Env Sustain
+100 Filter Env Release
+16 LFO 1 Speed
+15 LFO 1 Shape
+20 LFO 2 Speed
+19 LFO 2 Shape
+24 LFO 3 Speed
+23 LFO 3 Shape
+31 Osc 1 Shape
+39 Osc 2 Shape
+46 Osc 3 Shape
+52 Osc 1 Level
+56 Osc 2 Level
+58 Osc 3 Level
+93 FX1 Mix
+94 FX2 Mix
+90 Amp Volume
+7 Channel Volume
+10 Pan
+
+# Additional parameters (will exceed 35 CC limit, shown for reference)
+5 Glide Rate
+64 Sustain Pedal
+2 Breath Control
+4 Foot Control
+
+# Oscillator 1
+63 Osc 1 Octave
+64 Osc 1 Semitone
+29 Osc 1 Detune
+30 Osc 1 FM
+33 Osc 1 PW
+34 Osc 1 PWM
+
+# Oscillator 2
+35 Osc 2 Octave
+36 Osc 2 Semitone
+37 Osc 2 Detune
+38 Osc 2 FM
+40 Osc 2 PW
+41 Osc 2 PWM
+
+# Oscillator 3
+42 Osc 3 Octave
+43 Osc 3 Semitone
+44 Osc 3 Detune
+45 Osc 3 FM
+47 Osc 3 PW
+48 Osc 3 PWM
+
+# Oscillators Common
+49 Osc Sync
+50 Osc Pitchmod
+51 Glide Mode
+65 Glide Active
+
+# Filter 1 Extended
+68 Filter 1 Type
+72 Filter 1 Keytrack
+74 Filter 1 Env Velocity
+75 Filter 1 Cutoff Mod
+76 Filter 1 FM
+77 Filter 1 Pan
+78 Filter 1 Panmod
+
+# Filter 2 Extended
+79 Filter 2 Type
+83 Filter 2 Keytrack
+85 Filter 2 Env Velocity
+86 Filter 2 Cutoff Mod
+87 Filter 2 FM
+88 Filter 2 Pan
+89 Filter 2 Panmod
+
+# Filter Common
+67 Filter Routing
+
+# Amp Common
+91 Amp Velocity
+92 Amp Mod
+
+# Filter Envelope Extended
+98 Filter Env Decay 2
+99 Filter Env Sustain 2
+
+# Amp Envelope Extended
+104 Amp Env Decay 2
+105 Amp Env Sustain 2
+
+# Envelope 3
+107 Env 3 Attack
+108 Env 3 Decay
+109 Env 3 Sustain
+110 Env 3 Decay 2
+111 Env 3 Sustain 2
+112 Env 3 Release
+
+# Envelope 4
+113 Env 4 Attack
+114 Env 4 Decay
+115 Env 4 Sustain
+116 Env 4 Decay 2
+117 Env 4 Sustain 2
+118 Env 4 Release
+
+# LFO Extended
+17 LFO 1 Sync
+18 LFO 1 Delay
+21 LFO 2 Sync
+22 LFO 2 Delay
+25 LFO 3 Sync
+26 LFO 3 Delay
+
+# Mixer
+53 Osc 1 Filter Balance
+57 Osc 2 Filter Balance
+59 Osc 3 Filter Balance
+54 Ring Level
+55 Ring Filter Balance
+60 Noise Level
+61 Noise Filter Balance
+
+# Noise
+62 Noise Colour
+
+# Arpeggiator
+12 Arp Range
+13 Arp Length
+14 Arp Active
+

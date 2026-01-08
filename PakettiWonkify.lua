@@ -1179,8 +1179,6 @@ function PakettiWonkifyQuickDialog()
   local button_height = 30
   
   local dialog_content = vb:column{
-    margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-    spacing = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING,
     
     -- Intensity Slider
     vb:row{
@@ -1241,11 +1239,9 @@ function PakettiWonkifyQuickDialog()
       }
     },
     
-    vb:space{height = 10},
     
     -- Preset Buttons Row 1
     vb:row{
-      spacing = 5,
       vb:button{
         text = "Subtle Humanize",
         width = button_width,
@@ -1277,7 +1273,6 @@ function PakettiWonkifyQuickDialog()
     
     -- Preset Buttons Row 2
     vb:row{
-      spacing = 5,
       vb:button{
         text = "Glitchy",
         width = button_width,
@@ -1309,7 +1304,6 @@ function PakettiWonkifyQuickDialog()
     
     -- Preset Button Row 3
     vb:row{
-      spacing = 5,
       vb:button{
         text = "Machine Tight",
         width = button_width,
@@ -1321,11 +1315,9 @@ function PakettiWonkifyQuickDialog()
       }
     },
     
-    vb:space{height = 10},
     
     -- Action Buttons
     vb:row{
-      spacing = 10,
       vb:button{
         text = "Wonkify Current",
         width = 100,
@@ -1371,9 +1363,9 @@ function PakettiWonkifyDialog()
   local prefs = preferences.pakettiWonkify
   
   local slider_width = 150
-  local label_width = 120
-  local value_width = 40
-  local group_width = 380
+  local label_width = 130
+  local value_width = 60
+  local group_width = 354
   
   -- Helper function to create a labeled slider row
   local function create_slider_row(label, min_val, max_val, pref, suffix)
@@ -1410,22 +1402,18 @@ function PakettiWonkifyDialog()
     table.insert(mode_items, mode)
   end
   
-  local dialog_content = vb:column{
-    margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-    spacing = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING,
+  -- Left Column
+  local left_column = vb:column{
     
     -- Global Settings Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:text{text = "Global Settings", font = "bold", style = "strong"},
       
-      -- Global Intensity
       create_slider_row("Global Intensity", 0, 100, prefs.GlobalIntensity, "%"),
       
-      -- Operation Mode
       vb:row{
         vb:text{text = "Operation Mode", width = label_width},
         vb:popup{
@@ -1436,7 +1424,6 @@ function PakettiWonkifyDialog()
         }
       },
       
-      -- Track Mode
       vb:row{
         vb:text{text = "Track Mode", width = label_width},
         vb:popup{
@@ -1447,13 +1434,12 @@ function PakettiWonkifyDialog()
         }
       },
       
-      -- Random Seed
       vb:row{
         vb:checkbox{
           value = prefs.RandomSeedEnabled.value,
           notifier = function(value) prefs.RandomSeedEnabled.value = value end
         },
-        vb:text{text = "Random Seed"},
+        vb:text{text = "Random Seed", width = label_width - 18},
         vb:valuebox{
           min = 1,
           max = 999999,
@@ -1471,14 +1457,13 @@ function PakettiWonkifyDialog()
         }
       },
       
-      -- Pattern Count
       vb:row{
         vb:text{text = "Pattern Count", width = label_width},
         vb:valuebox{
           min = 1,
           max = 16,
           value = prefs.PatternCount.value,
-          width = 60,
+          width = 80,
           notifier = function(value) prefs.PatternCount.value = value end
         },
         vb:text{text = "(for chain generation)"}
@@ -1488,7 +1473,6 @@ function PakettiWonkifyDialog()
     -- Swing/Groove Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:row{
@@ -1513,7 +1497,6 @@ function PakettiWonkifyDialog()
     -- Rhythm Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:text{text = "Rhythm", font = "bold", style = "strong"},
@@ -1527,8 +1510,6 @@ function PakettiWonkifyDialog()
       },
       create_slider_row("Percentage", 0, 100, prefs.DelayDriftPercentage, "%"),
       create_slider_row("Max Ticks (+/-)", 0, 255, prefs.DelayDriftMax),
-      
-      vb:space{height = 5},
       
       vb:row{
         vb:checkbox{
@@ -1544,7 +1525,6 @@ function PakettiWonkifyDialog()
     -- Pitch Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:row{
@@ -1566,15 +1546,16 @@ function PakettiWonkifyDialog()
         }
       },
       
-      vb:space{height = 5},
       
-      -- Scale-Aware Options
       vb:row{
-        vb:checkbox{
-          value = prefs.PitchDriftScaleAware.value,
-          notifier = function(value) prefs.PitchDriftScaleAware.value = value end
-        },
-        vb:text{text = "Scale-Aware (stay in key)"}
+        vb:row{
+          width = label_width,
+          vb:checkbox{
+            value = prefs.PitchDriftScaleAware.value,
+            notifier = function(value) prefs.PitchDriftScaleAware.value = value end
+          },
+          vb:text{text = "Scale-Aware (stay in key)"}
+        }
       },
       vb:row{
         vb:text{text = "Key", width = label_width},
@@ -1584,11 +1565,11 @@ function PakettiWonkifyDialog()
           width = 60,
           notifier = function(value) prefs.PitchDriftKey.value = PakettiWonkify_keys[value] end
         },
-        vb:text{text = "Mode", width = 40},
+        vb:text{text = "Mode", width = 50},
         vb:popup{
           items = mode_items,
           value = 1,
-          width = 100,
+          width = slider_width - 110,
           notifier = function(value) prefs.PitchDriftMode.value = PakettiWonkify_modes[value] end
         }
       }
@@ -1597,7 +1578,6 @@ function PakettiWonkifyDialog()
     -- Velocity Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:row{
@@ -1614,7 +1594,6 @@ function PakettiWonkifyDialog()
     -- Density Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:row{
@@ -1626,12 +1605,15 @@ function PakettiWonkifyDialog()
       },
       create_slider_row("Add Notes %", 0, 50, prefs.DensityAddPercentage, "%"),
       create_slider_row("Remove Notes %", 0, 50, prefs.DensityRemovePercentage, "%")
-    },
+    }
+  }
+  
+  -- Right Column
+  local right_column = vb:column{
     
     -- Effects Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:row{
@@ -1674,7 +1656,6 @@ function PakettiWonkifyDialog()
     -- Ghost Notes Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:row{
@@ -1702,7 +1683,6 @@ function PakettiWonkifyDialog()
     -- Retrig Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:row{
@@ -1729,7 +1709,6 @@ function PakettiWonkifyDialog()
     -- Automation Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:row{
@@ -1747,7 +1726,6 @@ function PakettiWonkifyDialog()
     -- Phrase Output Section
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       width = group_width,
       
       vb:text{text = "Phrase Output", font = "bold", style = "strong"},
@@ -1765,19 +1743,24 @@ function PakettiWonkifyDialog()
           width = 100,
           notifier = PakettiWonkifyToPhrase
         }
-      },
-      vb:text{text = "Writes selected track to phrase with wonkify effects", style = "disabled"}
+      }
+    }
+  }
+  
+  local dialog_content = vb:column{
+    
+    -- Two column layout
+    vb:row{
+      left_column,
+      right_column
     },
     
-    -- Presets Section
+    -- Presets Section (spans both columns)
     vb:column{
       style = "group",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-      width = group_width,
-      
+      width= group_width,
       vb:text{text = "Quick Presets", font = "bold", style = "strong"},
       vb:row{
-        spacing = 5,
         vb:button{text = "Subtle", width = 50, notifier = function() PakettiWonkifyApplyPreset(1) end},
         vb:button{text = "Drunk", width = 50, notifier = function() PakettiWonkifyApplyPreset(2) end},
         vb:button{text = "Lo-Fi", width = 50, notifier = function() PakettiWonkifyApplyPreset(3) end},
@@ -1790,26 +1773,25 @@ function PakettiWonkifyDialog()
     -- Action Buttons
     vb:horizontal_aligner{
       mode = "center",
-      margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
       
       vb:button{
         text = "Wonkify Current",
-        width = 100,
+        width = group_width/2,
         notifier = PakettiWonkifyCurrentPattern
       },
       vb:button{
-        text = "Dup & Wonkify",
-        width = 100,
+        text = "Duplicate & Wonkify",
+        width = group_width/2,
         notifier = PakettiWonkifyDuplicatePattern
       },
       vb:button{
-        text = "Gen Chain",
-        width = 80,
+        text = "Generate Chain",
+        width = group_width/2,
         notifier = PakettiWonkifyGenerateChain
       },
       vb:button{
         text = "To Phrase",
-        width = 80,
+        width = group_width/2,
         notifier = PakettiWonkifyToPhrase
       }
     }
