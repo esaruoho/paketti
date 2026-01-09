@@ -3058,6 +3058,19 @@ renoise.tool():add_menu_entry{
   invoke=function() PakettiSelectPreviousPhraseEditor() end
 }
 
+-- MIDI Mappings for phrase navigation
+renoise.tool():add_midi_mapping{name="Paketti:Select Next Phrase [Trigger]",
+  invoke=function(message) if message:is_trigger() then PakettiSelectNextPhrase() end end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Select Previous Phrase [Trigger]",
+  invoke=function(message) if message:is_trigger() then PakettiSelectPreviousPhrase() end end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Select Next Phrase (Phrase Editor) [Trigger]",
+  invoke=function(message) if message:is_trigger() then PakettiSelectNextPhraseEditor() end end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Select Previous Phrase (Phrase Editor) [Trigger]",
+  invoke=function(message) if message:is_trigger() then PakettiSelectPreviousPhraseEditor() end end}
+
 -- Direct phrase selection (01-16) WITHOUT switching views
 for i = 1, 16 do
   renoise.tool():add_keybinding{

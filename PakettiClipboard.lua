@@ -3616,12 +3616,24 @@ function PakettiClipboardInverseCut()
           -- Copy note columns
           for col_idx = 1, track.visible_note_columns do
             local note_column = pattern_line.note_columns[col_idx]
+            local had_note = (note_column.note_value >= 0 and note_column.note_value <= 119)
             if not note_column.is_empty then
               track_has_content = true
             end
             track_storage.rows[relative_row].note_columns[col_idx] = copy_note_column_data(note_column)
-            -- Clear the column
-            clear_note_column_to_empty(note_column)
+            -- If this column had an actual note (not empty, not OFF), write NOTE OFF
+            -- If it was empty, leave it empty (don't introduce NOTE OFFs where there was nothing)
+            if had_note then
+              note_column.note_value = 120  -- OFF
+              note_column.instrument_value = 255
+              note_column.volume_value = 255
+              note_column.panning_value = 255
+              note_column.delay_value = 0
+              note_column.effect_number_value = 0
+              note_column.effect_amount_value = 0
+            else
+              clear_note_column_to_empty(note_column)
+            end
           end
           
           -- Copy effect columns

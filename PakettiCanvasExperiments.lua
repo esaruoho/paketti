@@ -51,6 +51,9 @@ local device_parameter_observers = {}
 -- Auto-switch to automation view when enabling automation sync (DEFAULT: OFF)
 local auto_show_automation = false
 
+-- Expose parameters on mixer when drawing with automation sync (DEFAULT: OFF)
+local expose_params_on_mixer = false
+
 -- Clean parameter names by removing "CC XX " prefix (DEFAULT: ON)
 local clean_parameter_names = true
 
@@ -77,6 +80,12 @@ local COLOR_CROSSFADE = {80, 160, 40, 255}          -- Green for crossfade outli
 local canvas_update_timer = nil
 -- Remember previous device index for smart restoration
 local previous_device_index = nil
+
+-- Performance throttling variables
+local status_update_throttle_ms = 100  -- Update status text less frequently
+local last_status_update_time = 0
+local canvas_refresh_rate = 1  -- Default 1ms, user-configurable (fastest)
+local canvas_refresh_options = {1, 5, 10, 25, 50, 100}  -- Dropdown options in ms
 
 -- Helper function to get UI width (no longer scaled by half-size preference)
 local function get_ui_width(base_width)
@@ -791,25 +800,15 @@ function PakettiCanvasExperimentsHandleMouse(ev)
     end
   elseif ev.type == "move" then
     if mouse_is_down then
-      -- print("DEBUG: Mouse drag - mouse_in_content: " .. tostring(mouse_in_content))
-      -- Only apply parameter changes if we're in the content area
+      -- Update immediately on every mouse move for maximum responsiveness
       if mouse_in_content then
-        -- print("DEBUG: Mouse drag in content area - DRAWING CURVE")
         PakettiCanvasExperimentsHandleMouseInput(x, y)
       else
-        -- print("DEBUG: Mouse drag outside content area - tracking cursor but not applying changes")
         -- Keep current_drawing_parameter visible even when outside content area
-        -- Still update the canvas to show cursor movement
         if canvas_experiments_canvas then
           canvas_experiments_canvas:update()
         end
-        -- Update status text to show the parameter info
-        if status_text_view then
-          status_text_view.text = PakettiCanvasExperimentsGetStatusText()
-        end
       end
-    else
-      -- print("DEBUG: Mouse move (not drawing)")
     end
   end
 end
@@ -855,18 +854,27 @@ function PakettiCanvasExperimentsHandleMouseInput(x, y)
       -- Write to automation if following is enabled
       if follow_automation then
         WriteParameterToAutomation(param_info.parameter, new_value, false)  -- Show envelope for manual drawing
-        -- Removed debug spam for performance during manual drawing
+        
+        -- Expose parameter on mixer if option is enabled
+        if expose_params_on_mixer then
+          pcall(function()
+            param_info.parameter.show_in_mixer = true
+          end)
+        end
       end
-      -- Removed manual set debug spam for performance
     elseif current_edit_mode == "B" then
       -- Edit B mode: modify Edit B values only, device unchanged until crossfade
       parameter_values_B[parameter_index] = new_value
       -- print("DEBUG: Stored Edit B value for parameter " .. parameter_index .. ": " .. new_value)
     end
     
-    -- Update status text to show current parameter info
-    if status_text_view then
-      status_text_view.text = PakettiCanvasExperimentsGetStatusText()
+    -- Throttle status text updates for performance
+    local current_time = os.clock() * 1000
+    if current_time - last_status_update_time >= status_update_throttle_ms then
+      last_status_update_time = current_time
+      if status_text_view then
+        status_text_view.text = PakettiCanvasExperimentsGetStatusText()
+      end
     end
     
     -- Update canvas IMMEDIATELY for responsive drawing feedback
@@ -1065,7 +1073,8 @@ function PakettiCanvasExperimentsDrawCanvas(ctx)
         
         
         -- Draw parameter name vertically using custom text rendering
-        if parameter_width > 20 then  -- Only draw text if there's enough space
+        -- Skip text rendering during drag for performance
+        if not mouse_is_down and parameter_width > 20 then  -- Only draw text if there's enough space and not dragging
           ctx.stroke_color = {200, 200, 200, 255}  -- Light gray text
           ctx.line_width = 2  -- Make text bold by using thicker lines
           
@@ -1420,11 +1429,33 @@ function PakettiCanvasExperimentsCreateDialog()
               renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
               renoise.app():show_status("Automation Sync ON + Switched to Automation View")
             end
+            
           else
             RemoveParameterObservers()
             renoise.app():show_status("Automation Sync OFF: Manual parameter control only")
           end
         end
+      },
+      vb:row {
+        vb:checkbox {
+          id = "expose_mixer_checkbox",
+          value = expose_params_on_mixer,
+          tooltip = "When enabled, drawing a parameter will expose it on the mixer (show_in_mixer)",
+          notifier = function(value)
+            expose_params_on_mixer = value
+            if value then
+              renoise.app():show_status("Expose Parameters on Mixer: ENABLED")
+            else
+              renoise.app():show_status("Expose Parameters on Mixer: DISABLED")
+            end
+          end
+        },
+        vb:text {
+          text = "Expose on Mixer",
+          font = "bold",
+          style = "strong",
+          tooltip = "When enabled, drawing a parameter will expose it on the mixer (show_in_mixer)"
+        }
       },
       vb:button{
         text="Randomize",
@@ -1512,6 +1543,22 @@ function PakettiCanvasExperimentsCreateDialog()
         end
       },
       
+      -- Refresh rate control
+      vb:text { text = "Refresh", font = "bold", style = "strong" },
+      vb:popup {
+        id = "refresh_rate_popup",
+        items = {"1ms", "5ms", "10ms", "25ms", "50ms", "100ms"},
+        value = 1,  -- Default to 1ms (fastest)
+        width = 60,
+        tooltip = "Canvas refresh rate for automation visualization - lower = smoother",
+        notifier = function(value)
+          canvas_refresh_rate = canvas_refresh_options[value]
+          -- Restart timer with new rate
+          RemoveCanvasUpdateTimer()
+          SetupCanvasUpdateTimer()
+          renoise.app():show_status("Canvas refresh rate: " .. canvas_refresh_rate .. "ms")
+        end
+      },
       -- Device status text at the end of this row
       vb:text{
         id="status_text_view",
@@ -2211,23 +2258,20 @@ function SetupParameterObservers()
   for i, param_info in ipairs(device_parameters) do
     local parameter = param_info.parameter
     if parameter.value_observable then
-              local observer = function()
-          -- CRITICAL: Only run if dialog is still open
-          if not canvas_experiments_dialog or not canvas_experiments_dialog.visible then
-            return
-          end
-          
-          -- Skip automation updates for parameters currently being drawn (prevents feedback loops)
-          if parameter_being_drawn == i then
-            return -- Don't update canvas for parameter being manually drawn
-          end
-          
-          -- ALWAYS update canvas when parameter changes externally (automation playback)
-          -- This ensures canvas follows automation even when automation sync is OFF
-          if canvas_experiments_canvas then
-            canvas_experiments_canvas:update()
-          end
+      local observer = function()
+        -- CRITICAL: Only run if dialog is still open
+        if not canvas_experiments_dialog or not canvas_experiments_dialog.visible then
+          return
         end
+        
+        -- Skip automation updates for parameters currently being drawn (prevents feedback loops)
+        if parameter_being_drawn == i then
+          return -- Don't update canvas for parameter being manually drawn
+        end
+        
+        -- Canvas updates are now handled by the timer for consistent refresh rate
+        -- Parameter observers only track state, not trigger redraws
+      end
       parameter.value_observable:add_notifier(observer)
       device_parameter_observers[parameter] = observer
     end
@@ -2360,8 +2404,8 @@ function SetupCanvasUpdateTimer()
     -- Removed timer debug spam for cleaner console output
   end
   
-  -- Update every 100ms for smooth automation visualization
-  renoise.tool():add_timer(canvas_update_timer, 100)
+  -- Update using configurable refresh rate for smooth automation visualization
+  renoise.tool():add_timer(canvas_update_timer, canvas_refresh_rate)
 end
 
 -- Remove canvas update timer
@@ -2667,6 +2711,8 @@ end
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Selected Device Parameter Editor",invoke = PakettiCanvasExperimentsInit}
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Duplicate to Next Pattern",invoke = PakettiCanvasExperimentsDuplicateToNextPattern}
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Snapshot to Next Pattern",invoke = PakettiCanvasExperimentsSnapshotToNextPattern}
+
+renoise.tool():add_menu_entry {name = "Mixer:Paketti Gadgets:Selected Device Parameter Editor...", invoke = PakettiCanvasExperimentsInit}
 
 --------------------------------------------------------------------------------
 -- PHRASEGRID INTEGRATION: Device Parameter Snapshots
