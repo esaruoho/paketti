@@ -2953,6 +2953,9 @@ local function select_phrase_internal(phrase_number, switch_to_editor)
 end
 
 -- Core function to navigate phrases (next/previous) with optional view switching
+-- Includes "off" state (index 0) in the wrapping cycle:
+-- Forward: 1 → 2 → ... → N → off → 1
+-- Backward: N → ... → 2 → 1 → off → N
 local function navigate_phrase_internal(direction, switch_to_editor)
   if not has_phrases() then
     return
@@ -2963,12 +2966,26 @@ local function navigate_phrase_internal(direction, switch_to_editor)
   local num_phrases = #instrument.phrases
   local current_index = song.selected_phrase_index
   
-  -- Calculate new index with wrapping
-  local new_index = current_index + direction
-  if new_index > num_phrases then
-    new_index = 1
-  elseif new_index < 1 then
-    new_index = num_phrases
+  -- Calculate new index with wrapping, including "off" (0) state
+  local new_index
+  if direction > 0 then
+    -- Moving forward
+    if current_index == 0 then
+      new_index = 1
+    elseif current_index >= num_phrases then
+      new_index = 0  -- off
+    else
+      new_index = current_index + 1
+    end
+  else
+    -- Moving backward
+    if current_index == 0 then
+      new_index = num_phrases
+    elseif current_index <= 1 then
+      new_index = 0  -- off
+    else
+      new_index = current_index - 1
+    end
   end
   
   -- Switch to phrase editor view if requested
@@ -2979,11 +2996,16 @@ local function navigate_phrase_internal(direction, switch_to_editor)
   -- Select the phrase
   song.selected_phrase_index = new_index
   
-  renoise.app():show_status(string.format(
-    "Selected Phrase %02d: %s",
-    new_index,
-    instrument.phrases[new_index].name
-  ))
+  -- Show status message
+  if new_index == 0 then
+    renoise.app():show_status("Phrase: Off")
+  else
+    renoise.app():show_status(string.format(
+      "Selected Phrase %02d: %s",
+      new_index,
+      instrument.phrases[new_index].name
+    ))
+  end
 end
 
 -- Public wrapper functions WITHOUT switching to phrase editor
