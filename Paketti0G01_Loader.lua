@@ -148,6 +148,17 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiSBxFollowEnabled=true,
   PakettiPhraseFollowPatternPlayback=false,
   
+  -- PhraseVoice Orchestration Preferences
+  PakettiPhraseVoiceOutputMode="track",      -- "track" or "column"
+  PakettiPhraseVoiceMaxVoices=8,             -- Max concurrent voices (track mode)
+  PakettiPhraseVoiceMaxColumns=12,           -- Max concurrent voices (column mode)
+  PakettiPhraseVoicePhaseLockEnabled=true,   -- Global phase lock setting
+  PakettiPhraseVoiceOperationMode="switcher", -- "editor" or "switcher"
+  PakettiPhraseVoicePreserveExistingNotes=true,  -- Don't overwrite existing pattern data
+  PakettiPhraseVoiceFadeOutEnabled=false,    -- Fade out voices on stop
+  PakettiPhraseVoiceAdditiveMode=false,      -- Additive layering mode
+  PakettiPhraseVoiceDebugEnabled=false,      -- Debug logging mode
+  
   pakettiCaptureLastTakeSmartNoteOff=true,
   pakettiSwitcharooAutoGrab=true,
   PakettiImpulseTrackerF8=1,
@@ -246,6 +257,16 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiMPCCyclerInstrumentIndex = 1,
   pakettiMPCCyclerGlobalLock = false,
   pakettiMPCCyclerPreviewEnabled = false,
+  -- Glider (Quantized Legato Engine) Preferences
+  pakettiGliderEnabled = false,
+  pakettiGliderDuration = 4,
+  pakettiGliderMode = "live",        -- "live" or "noteoff"
+  pakettiGliderMinInterval = 1,
+  pakettiGliderLegatoOnly = true,
+  pakettiGliderMultiLine = true,
+  pakettiGliderMidiDevice = "",
+  pakettiGliderScaleFactor = 16,     -- Base scale factor for Gxx calculation
+  pakettiGliderDebug = false,        -- Debug logging toggle
   ActionSelector = {
  Index01="",
  Index02="",

@@ -43,6 +43,1712 @@ PakettiPhraseFollowActionsEnabled = true
 PakettiPhraseFollowActionLoopCount = {} -- Track loop counts per state
 
 --------------------------------------------------------------------------------
+-- PHRASE VOICE ORCHESTRATION SYSTEM
+-- Enables multiple concurrent phrase voices per instrument with phase-locked starts
+--------------------------------------------------------------------------------
+
+-- Voice Pool: Tracks all active phrase voices
+PakettiPhraseVoicePool = {}
+
+-- Voice Configuration (defaults, will be overridden by preferences on load)
+PakettiPhraseVoiceOutputMode = "track"    -- "track" or "column"
+PakettiPhraseVoiceMaxVoices = 8           -- Max concurrent voices (track mode default)
+PakettiPhraseVoiceMaxColumnsPerTrack = 12 -- Max voices in column mode
+PakettiPhraseVoicePhaseLockEnabled = true -- Global phase lock setting
+PakettiPhraseVoiceNextVoiceId = 1         -- Auto-increment voice ID
+PakettiPhraseVoicePreserveExistingNotes = true  -- Don't overwrite existing pattern data
+PakettiPhraseVoiceDebugEnabled = false    -- Enable debug logging
+PakettiPhraseVoiceFadeOutEnabled = false  -- Fade out voices on stop
+PakettiPhraseVoiceAdditiveMode = false    -- Additive layering mode (don't clear on state recall)
+
+-- Forward declaration for UI update function (defined later)
+-- This allows pool functions to call it safely
+function PakettiPhraseVoiceUpdateUI() end
+
+-- Load PhraseVoice preferences (called on tool load and new document)
+function PakettiPhraseVoiceLoadPreferences()
+  local success, err = pcall(function()
+    local prefs = renoise.tool().preferences
+    if prefs then
+      if prefs.PakettiPhraseVoiceOutputMode then
+        PakettiPhraseVoiceOutputMode = prefs.PakettiPhraseVoiceOutputMode.value or "track"
+      end
+      if prefs.PakettiPhraseVoiceMaxVoices then
+        PakettiPhraseVoiceMaxVoices = prefs.PakettiPhraseVoiceMaxVoices.value or 8
+      end
+      if prefs.PakettiPhraseVoiceMaxColumns then
+        PakettiPhraseVoiceMaxColumnsPerTrack = prefs.PakettiPhraseVoiceMaxColumns.value or 12
+      end
+      if prefs.PakettiPhraseVoicePhaseLockEnabled then
+        PakettiPhraseVoicePhaseLockEnabled = prefs.PakettiPhraseVoicePhaseLockEnabled.value
+      end
+      if prefs.PakettiPhraseVoiceOperationMode then
+        PakettiPhraseVoiceOperationMode = prefs.PakettiPhraseVoiceOperationMode.value or "switcher"
+      end
+      if prefs.PakettiPhraseVoicePreserveExistingNotes then
+        PakettiPhraseVoicePreserveExistingNotes = prefs.PakettiPhraseVoicePreserveExistingNotes.value
+      end
+      if prefs.PakettiPhraseVoiceFadeOutEnabled then
+        PakettiPhraseVoiceFadeOutEnabled = prefs.PakettiPhraseVoiceFadeOutEnabled.value
+      end
+      if prefs.PakettiPhraseVoiceAdditiveMode then
+        PakettiPhraseVoiceAdditiveMode = prefs.PakettiPhraseVoiceAdditiveMode.value
+      end
+      if prefs.PakettiPhraseVoiceDebugEnabled then
+        PakettiPhraseVoiceDebugEnabled = prefs.PakettiPhraseVoiceDebugEnabled.value
+      end
+    end
+  end)
+  if not success then
+    -- Preferences not available yet, use defaults
+    PakettiPhraseVoiceOutputMode = "track"
+    PakettiPhraseVoiceMaxVoices = 8
+    PakettiPhraseVoiceMaxColumnsPerTrack = 12
+    PakettiPhraseVoicePhaseLockEnabled = true
+    PakettiPhraseVoiceOperationMode = "switcher"
+    PakettiPhraseVoicePreserveExistingNotes = true
+    PakettiPhraseVoiceFadeOutEnabled = false
+    PakettiPhraseVoiceAdditiveMode = false
+    PakettiPhraseVoiceDebugEnabled = false
+  end
+end
+
+-- Save PhraseVoice preferences
+function PakettiPhraseVoiceSavePreferences()
+  local success, err = pcall(function()
+    local prefs = renoise.tool().preferences
+    if prefs then
+      if prefs.PakettiPhraseVoiceOutputMode then
+        prefs.PakettiPhraseVoiceOutputMode.value = PakettiPhraseVoiceOutputMode
+      end
+      if prefs.PakettiPhraseVoiceMaxVoices then
+        prefs.PakettiPhraseVoiceMaxVoices.value = PakettiPhraseVoiceMaxVoices
+      end
+      if prefs.PakettiPhraseVoiceMaxColumns then
+        prefs.PakettiPhraseVoiceMaxColumns.value = PakettiPhraseVoiceMaxColumnsPerTrack
+      end
+      if prefs.PakettiPhraseVoicePhaseLockEnabled then
+        prefs.PakettiPhraseVoicePhaseLockEnabled.value = PakettiPhraseVoicePhaseLockEnabled
+      end
+      if prefs.PakettiPhraseVoiceOperationMode then
+        prefs.PakettiPhraseVoiceOperationMode.value = PakettiPhraseVoiceOperationMode
+      end
+      if prefs.PakettiPhraseVoicePreserveExistingNotes then
+        prefs.PakettiPhraseVoicePreserveExistingNotes.value = PakettiPhraseVoicePreserveExistingNotes
+      end
+      if prefs.PakettiPhraseVoiceFadeOutEnabled then
+        prefs.PakettiPhraseVoiceFadeOutEnabled.value = PakettiPhraseVoiceFadeOutEnabled
+      end
+      if prefs.PakettiPhraseVoiceAdditiveMode then
+        prefs.PakettiPhraseVoiceAdditiveMode.value = PakettiPhraseVoiceAdditiveMode
+      end
+      if prefs.PakettiPhraseVoiceDebugEnabled then
+        prefs.PakettiPhraseVoiceDebugEnabled.value = PakettiPhraseVoiceDebugEnabled
+      end
+      prefs:save_as("preferences.xml")
+    end
+  end)
+end
+
+-- Clear voice pool on new document (reset state)
+function PakettiPhraseVoiceOnNewDocument()
+  PakettiPhraseVoiceDebugLog("New document loaded - resetting voice state")
+  
+  -- Clear all active voices
+  PakettiPhraseVoicePool = {}
+  PakettiPhraseVoicePendingQueue = {}
+  PakettiPhraseVoiceNextVoiceId = 1
+  PakettiPhraseVoiceLastQuantBoundary = 0
+  PakettiPhraseVoiceLastPlaybackLine = 0
+  
+  -- Clear voice track references
+  PakettiPhraseVoiceTracks = {}
+  
+  -- Reload preferences
+  PakettiPhraseVoiceLoadPreferences()
+  
+  -- Update UI
+  PakettiPhraseVoiceUpdateUI()
+end
+
+-- Validate voice pool: remove voices with invalid track/column indices
+function PakettiPhraseVoiceValidatePool()
+  local song = renoise.song()
+  if not song then return end
+  
+  local valid_voices = {}
+  local removed_count = 0
+  
+  for _, voice in ipairs(PakettiPhraseVoicePool) do
+    local valid = true
+    
+    -- Check track index
+    if not voice.track_index or voice.track_index < 1 or voice.track_index > #song.tracks then
+      valid = false
+      PakettiPhraseVoiceDebugLog(string.format("Removing voice %d: invalid track index %s", 
+        voice.voice_id or 0, tostring(voice.track_index)))
+    end
+    
+    -- Check instrument index
+    if valid and (not voice.instrument_index or voice.instrument_index < 1 or voice.instrument_index > #song.instruments) then
+      valid = false
+      PakettiPhraseVoiceDebugLog(string.format("Removing voice %d: invalid instrument index %s", 
+        voice.voice_id or 0, tostring(voice.instrument_index)))
+    end
+    
+    -- Check phrase index
+    if valid and voice.instrument_index then
+      local instrument = song.instruments[voice.instrument_index]
+      if instrument and (not voice.phrase_index or voice.phrase_index < 1 or voice.phrase_index > #instrument.phrases) then
+        valid = false
+        PakettiPhraseVoiceDebugLog(string.format("Removing voice %d: invalid phrase index %s", 
+          voice.voice_id or 0, tostring(voice.phrase_index)))
+      end
+    end
+    
+    if valid then
+      table.insert(valid_voices, voice)
+    else
+      removed_count = removed_count + 1
+    end
+  end
+  
+  if removed_count > 0 then
+    PakettiPhraseVoicePool = valid_voices
+    PakettiPhraseVoiceDebugLog(string.format("Removed %d invalid voices from pool", removed_count))
+    PakettiPhraseVoiceUpdateUI()
+  end
+end
+
+-- Handle pattern/sequence changes (called from idle notifier)
+PakettiPhraseVoiceLastPatternIndex = 0
+PakettiPhraseVoiceLastSequenceIndex = 0
+
+function PakettiPhraseVoiceCheckPatternChange()
+  local song = renoise.song()
+  if not song then return end
+  
+  local current_pattern = song.selected_pattern_index
+  local current_sequence = song.selected_sequence_index
+  
+  if current_pattern ~= PakettiPhraseVoiceLastPatternIndex or 
+     current_sequence ~= PakettiPhraseVoiceLastSequenceIndex then
+    
+    PakettiPhraseVoiceLastPatternIndex = current_pattern
+    PakettiPhraseVoiceLastSequenceIndex = current_sequence
+    
+    -- Validate voice pool on pattern change
+    PakettiPhraseVoiceValidatePool()
+  end
+end
+
+-- Register new document notifier for proper initialization
+if not renoise.tool().app_new_document_observable:has_notifier(PakettiPhraseVoiceOnNewDocument) then
+  renoise.tool().app_new_document_observable:add_notifier(PakettiPhraseVoiceOnNewDocument)
+end
+
+-- Initialize preferences on tool load (with pcall protection)
+PakettiPhraseVoiceLoadPreferences()
+
+-- Pending Voice Queue: Voices scheduled for next quantization boundary
+PakettiPhraseVoicePendingQueue = {}
+
+-- Voice Tracks: Dedicated tracks for track-per-voice mode
+PakettiPhraseVoiceTracks = {}             -- [voice_id] = track_index
+PakettiPhraseVoiceTrackPrefix = "PhraseVoice_"
+
+-- Create a new PhraseVoice data structure
+function PakettiPhraseVoiceCreate(instrument_index, phrase_index, options)
+  options = options or {}
+  
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local instrument = song.instruments[instrument_index]
+  if not instrument then return nil end
+  
+  local phrase = instrument.phrases[phrase_index]
+  if not phrase then return nil end
+  
+  local voice = {
+    voice_id = PakettiPhraseVoiceNextVoiceId,
+    instrument_index = instrument_index,
+    phrase_index = phrase_index,
+    track_index = options.track_index or nil,
+    column_index = options.column_index or nil,
+    start_song_line = options.start_song_line or song.transport.playback_pos.line,
+    start_phrase_line = options.start_phrase_line or 1,  -- Sxx equivalent
+    phrase_length_lines = phrase.number_of_lines,
+    quantization_lines = options.quantization_lines or PakettiPhraseSwitcherCustomQuant,
+    phase_locked = (options.phase_locked ~= nil) and options.phase_locked or PakettiPhraseVoicePhaseLockEnabled,
+    looping = (options.looping ~= nil) and options.looping or true,
+    active = true,
+    spawn_time = os.clock()
+  }
+  
+  PakettiPhraseVoiceNextVoiceId = PakettiPhraseVoiceNextVoiceId + 1
+  
+  return voice
+end
+
+-- Add voice to the pool
+function PakettiPhraseVoicePoolAdd(voice)
+  if not voice then return false end
+  
+  -- Check max voices limit
+  local max_voices = PakettiPhraseVoiceOutputMode == "column" 
+    and PakettiPhraseVoiceMaxColumnsPerTrack 
+    or PakettiPhraseVoiceMaxVoices
+  
+  if #PakettiPhraseVoicePool >= max_voices then
+    -- Voice stealing: remove oldest voice
+    local oldest_index = 1
+    local oldest_time = PakettiPhraseVoicePool[1] and PakettiPhraseVoicePool[1].spawn_time or os.clock()
+    for i, v in ipairs(PakettiPhraseVoicePool) do
+      if v.spawn_time and v.spawn_time < oldest_time then
+        oldest_time = v.spawn_time
+        oldest_index = i
+      end
+    end
+    PakettiPhraseVoicePoolRemove(oldest_index)
+  end
+  
+  table.insert(PakettiPhraseVoicePool, voice)
+  
+  -- Trigger UI update
+  PakettiPhraseVoiceUpdateUI()
+  
+  return true
+end
+
+-- Remove voice from pool by index
+function PakettiPhraseVoicePoolRemove(index)
+  if index < 1 or index > #PakettiPhraseVoicePool then return false end
+  
+  local voice = PakettiPhraseVoicePool[index]
+  if voice then
+    voice.active = false
+  end
+  
+  table.remove(PakettiPhraseVoicePool, index)
+  
+  -- Trigger UI update
+  PakettiPhraseVoiceUpdateUI()
+  
+  return true
+end
+
+-- Remove voice from pool by voice_id
+function PakettiPhraseVoicePoolRemoveById(voice_id)
+  for i, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.voice_id == voice_id then
+      return PakettiPhraseVoicePoolRemove(i)
+    end
+  end
+  return false
+end
+
+-- Remove all voices for a specific phrase
+function PakettiPhraseVoicePoolRemoveByPhrase(instrument_index, phrase_index)
+  local removed = 0
+  for i = #PakettiPhraseVoicePool, 1, -1 do
+    local voice = PakettiPhraseVoicePool[i]
+    if voice.instrument_index == instrument_index and voice.phrase_index == phrase_index then
+      PakettiPhraseVoicePoolRemove(i)
+      removed = removed + 1
+    end
+  end
+  return removed
+end
+
+-- Remove all voices for a specific instrument
+function PakettiPhraseVoicePoolRemoveByInstrument(instrument_index)
+  local removed = 0
+  for i = #PakettiPhraseVoicePool, 1, -1 do
+    local voice = PakettiPhraseVoicePool[i]
+    if voice.instrument_index == instrument_index then
+      PakettiPhraseVoicePoolRemove(i)
+      removed = removed + 1
+    end
+  end
+  return removed
+end
+
+-- Clear all voices from pool
+function PakettiPhraseVoicePoolClear()
+  for i = #PakettiPhraseVoicePool, 1, -1 do
+    PakettiPhraseVoicePool[i].active = false
+  end
+  PakettiPhraseVoicePool = {}
+  renoise.app():show_status("Cleared all phrase voices")
+end
+
+-- Get all active voices
+function PakettiPhraseVoicePoolGetActive()
+  local active = {}
+  for _, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.active then
+      table.insert(active, voice)
+    end
+  end
+  return active
+end
+
+-- Get voices for a specific instrument
+function PakettiPhraseVoicePoolGetByInstrument(instrument_index)
+  local voices = {}
+  for _, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.instrument_index == instrument_index and voice.active then
+      table.insert(voices, voice)
+    end
+  end
+  return voices
+end
+
+-- Check if a specific phrase is currently playing
+function PakettiPhraseVoiceIsPlaying(instrument_index, phrase_index)
+  for _, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.instrument_index == instrument_index 
+       and voice.phrase_index == phrase_index 
+       and voice.active then
+      return true, voice
+    end
+  end
+  return false, nil
+end
+
+-- Voice stealing: find and kill the oldest voice to make room for a new one
+-- Returns the stolen voice's track/column info, or nil if stealing failed
+function PakettiPhraseVoiceStealOldest(mode, target_track_index)
+  local song = renoise.song()
+  if not song then return nil end
+  
+  if #PakettiPhraseVoicePool == 0 then return nil end
+  
+  local oldest_voice = nil
+  local oldest_index = nil
+  local oldest_spawn_time = math.huge
+  
+  for i, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.active then
+      -- Filter by mode
+      local match = true
+      if mode == "column" and target_track_index then
+        match = (voice.track_index == target_track_index)
+      end
+      
+      if match then
+        -- Use spawn time (start_song_line) to find oldest
+        local spawn_time = voice.start_song_line or 0
+        if spawn_time < oldest_spawn_time then
+          oldest_spawn_time = spawn_time
+          oldest_voice = voice
+          oldest_index = i
+        end
+      end
+    end
+  end
+  
+  if not oldest_voice then return nil end
+  
+  -- Inject note-off for the stolen voice
+  PakettiPhraseVoiceInjectNoteOff(
+    oldest_voice.instrument_index, 
+    oldest_voice.track_index, 
+    oldest_voice.column_index
+  )
+  
+  -- Save track/column info before removing
+  local stolen_info = {
+    track_index = oldest_voice.track_index,
+    column_index = oldest_voice.column_index
+  }
+  
+  -- Remove from pool
+  table.remove(PakettiPhraseVoicePool, oldest_index)
+  
+  return stolen_info
+end
+
+-- Get next available track for voice output (track mode)
+function PakettiPhraseVoiceGetNextTrack()
+  local song = renoise.song()
+  if not song then return nil end
+  
+  -- Find existing voice tracks
+  local used_tracks = {}
+  for _, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.track_index then
+      used_tracks[voice.track_index] = true
+    end
+  end
+  
+  -- Find first available voice track
+  for i = 1, #song.tracks do
+    local track = song.tracks[i]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      if track.name:match("^" .. PakettiPhraseVoiceTrackPrefix) then
+        if not used_tracks[i] then
+          return i
+        end
+      end
+    end
+  end
+  
+  -- No available track, create one if under limit
+  local voice_track_count = 0
+  for i = 1, #song.tracks do
+    if song.tracks[i].name:match("^" .. PakettiPhraseVoiceTrackPrefix) then
+      voice_track_count = voice_track_count + 1
+    end
+  end
+  
+  if voice_track_count < PakettiPhraseVoiceMaxVoices then
+    -- Create new voice track at end of sequencer tracks
+    local insert_pos = 1
+    for i = #song.tracks, 1, -1 do
+      if song.tracks[i].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        insert_pos = i + 1
+        break
+      end
+    end
+    
+    song:insert_track_at(insert_pos)
+    song.tracks[insert_pos].name = PakettiPhraseVoiceTrackPrefix .. string.format("%02d", voice_track_count + 1)
+    return insert_pos
+  end
+  
+  return nil
+end
+
+-- Get next available column for voice output (column mode)
+function PakettiPhraseVoiceGetNextColumn(track_index)
+  local song = renoise.song()
+  if not song then return nil end
+  
+  track_index = track_index or song.selected_track_index
+  local track = song.tracks[track_index]
+  
+  if not track or track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    return nil
+  end
+  
+  -- Find columns used by active voices
+  local used_columns = {}
+  for _, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.track_index == track_index and voice.column_index then
+      used_columns[voice.column_index] = true
+    end
+  end
+  
+  -- Find first available column
+  for col = 1, track.visible_note_columns do
+    if not used_columns[col] then
+      return col
+    end
+  end
+  
+  -- Expand columns if possible
+  if track.visible_note_columns < PakettiPhraseVoiceMaxColumnsPerTrack then
+    track.visible_note_columns = track.visible_note_columns + 1
+    return track.visible_note_columns
+  end
+  
+  return nil
+end
+
+-- Set voice output mode
+function PakettiPhraseVoiceSetOutputMode(mode)
+  if mode == "track" or mode == "column" then
+    PakettiPhraseVoiceOutputMode = mode
+    renoise.app():show_status("Phrase Voice output mode: " .. mode)
+  else
+    renoise.app():show_status("Invalid output mode: " .. tostring(mode))
+  end
+end
+
+-- Toggle voice output mode
+function PakettiPhraseVoiceToggleOutputMode()
+  if PakettiPhraseVoiceOutputMode == "track" then
+    PakettiPhraseVoiceSetOutputMode("column")
+  else
+    PakettiPhraseVoiceSetOutputMode("track")
+  end
+end
+
+-- Toggle global phase lock
+function PakettiPhraseVoiceTogglePhaseLock()
+  PakettiPhraseVoicePhaseLockEnabled = not PakettiPhraseVoicePhaseLockEnabled
+  local status = PakettiPhraseVoicePhaseLockEnabled and "enabled" or "disabled"
+  renoise.app():show_status("Phrase Voice phase lock: " .. status)
+end
+
+--------------------------------------------------------------------------------
+-- PHRASE VOICE PHASE CALCULATOR (Sxx-equivalent)
+-- Calculates phase-correct start offset for groove-locked phrase playback
+--------------------------------------------------------------------------------
+
+-- Calculate phase offset for a phrase to start as if it had been playing
+-- Returns the Sxx-equivalent line offset (1-based)
+-- Uses global song position for true groove-locked playback
+function PakettiPhraseVoiceCalculatePhaseOffset(phrase_length, quant_type)
+  local song = renoise.song()
+  if not song then return 1 end
+  
+  local transport = song.transport
+  if not transport.playing then return 1 end
+  
+  local playback_pos = transport.playback_pos
+  local current_line = playback_pos.line
+  local current_sequence = playback_pos.sequence
+  local lpb = transport.lpb
+  
+  quant_type = quant_type or PakettiPhraseSwitcherDefaultQuant
+  
+  -- Determine quantization resolution in lines
+  local quant_lines = 1
+  if quant_type == "line" then
+    quant_lines = 1
+  elseif quant_type == "beat" then
+    quant_lines = lpb
+  elseif quant_type == "bar" then
+    quant_lines = lpb * 4
+  elseif quant_type == "custom" then
+    quant_lines = PakettiPhraseSwitcherCustomQuant or 4
+  end
+  
+  -- Calculate global song line position (absolute line from song start)
+  -- This is essential for groove-locked playback across patterns
+  local global_line = 0
+  for seq_idx = 1, current_sequence - 1 do
+    local pattern_idx = song.sequencer:pattern(seq_idx)
+    if pattern_idx and song.patterns[pattern_idx] then
+      global_line = global_line + song.patterns[pattern_idx].number_of_lines
+    end
+  end
+  global_line = global_line + current_line
+  
+  -- Calculate the next quantization boundary (global)
+  local next_quant_boundary = math.ceil(global_line / quant_lines) * quant_lines
+  
+  -- Phase offset: where the phrase WOULD be if it had been playing from song start
+  -- This is the key calculation for groove-locked playback (Sxx-equivalent)
+  local start_phrase_line = (next_quant_boundary % phrase_length) + 1
+  
+  -- Ensure valid range
+  if start_phrase_line < 1 then start_phrase_line = 1 end
+  if start_phrase_line > phrase_length then start_phrase_line = 1 end
+  
+  return start_phrase_line
+end
+
+-- Calculate phase offset from global beat position (immediate mode)
+-- Used when in Phrase Editor for non-quantized but phase-correct starts
+function PakettiPhraseVoiceCalculateImmediatePhaseOffset(phrase_length, phrase_lpb)
+  local song = renoise.song()
+  if not song then return 1 end
+  
+  local transport = song.transport
+  if not transport.playing then return 1 end
+  
+  local playback_pos = transport.playback_pos
+  local song_lpb = transport.lpb
+  phrase_lpb = phrase_lpb or song_lpb
+  
+  -- Calculate global beat position
+  local global_beat = (playback_pos.line - 1) / song_lpb
+  
+  -- Convert to phrase line position
+  local phrase_beat_lines = global_beat * phrase_lpb
+  local phrase_line = math.floor(phrase_beat_lines % phrase_length) + 1
+  
+  -- Ensure valid range
+  if phrase_line < 1 then phrase_line = 1 end
+  if phrase_line > phrase_length then phrase_line = 1 end
+  
+  return phrase_line
+end
+
+-- Convert phase offset to Sxx effect value (0x00-0xFF)
+function PakettiPhraseVoicePhaseToSxx(phrase_line, phrase_length)
+  if phrase_length <= 1 then return 0x00 end
+  
+  -- Sxx value represents position within phrase as 0-255 range
+  -- S00 = start, SFF = near end
+  local normalized = (phrase_line - 1) / (phrase_length - 1)
+  local sxx_value = math.floor(normalized * 255)
+  
+  -- Clamp to valid range
+  if sxx_value < 0 then sxx_value = 0 end
+  if sxx_value > 255 then sxx_value = 255 end
+  
+  return sxx_value
+end
+
+-- Convert Sxx effect value to phrase line
+function PakettiPhraseVoiceSxxToPhraseLine(sxx_value, phrase_length)
+  if phrase_length <= 1 then return 1 end
+  
+  -- Reverse the calculation
+  local normalized = sxx_value / 255
+  local phrase_line = math.floor(normalized * (phrase_length - 1)) + 1
+  
+  -- Clamp to valid range
+  if phrase_line < 1 then phrase_line = 1 end
+  if phrase_line > phrase_length then phrase_line = phrase_length end
+  
+  return phrase_line
+end
+
+-- Get quantization lines for a given quant type
+function PakettiPhraseVoiceGetQuantLines(quant_type)
+  local song = renoise.song()
+  if not song then return 4 end
+  
+  local lpb = song.transport.lpb
+  
+  if quant_type == "line" then
+    return 1
+  elseif quant_type == "beat" then
+    return lpb
+  elseif quant_type == "bar" then
+    return lpb * 4
+  elseif quant_type == "custom" then
+    return PakettiPhraseSwitcherCustomQuant
+  else
+    return lpb  -- Default to beat
+  end
+end
+
+--------------------------------------------------------------------------------
+-- PHRASE VOICE SPAWN SYSTEM
+-- Spawns phrase voices with track-per-voice or column-per-voice output
+--------------------------------------------------------------------------------
+
+-- Spawn a new phrase voice (main entry point)
+-- This is the additive version that doesn't stop other phrases
+-- Validate environment for voice spawning and provide helpful feedback
+function PakettiPhraseVoiceValidateEnvironment(instrument_index, phrase_index)
+  local song = renoise.song()
+  if not song then return false, "No song loaded" end
+  
+  -- Validate instrument
+  if not instrument_index or instrument_index < 1 or instrument_index > #song.instruments then
+    return false, "Invalid instrument index"
+  end
+  
+  local instrument = song.instruments[instrument_index]
+  if not instrument then
+    return false, "Instrument not found"
+  end
+  
+  -- Check for phrases
+  if #instrument.phrases == 0 then
+    return false, string.format("Instrument '%s' has no phrases. Create phrases first.", instrument.name or "")
+  end
+  
+  -- Validate phrase index
+  if phrase_index < 1 or phrase_index > #instrument.phrases then
+    return false, string.format("Phrase %02d does not exist (instrument has %d phrases)", phrase_index, #instrument.phrases)
+  end
+  
+  local phrase = instrument.phrases[phrase_index]
+  local pattern = song.selected_pattern
+  
+  -- Check phrase length vs pattern length
+  if phrase.number_of_lines > pattern.number_of_lines then
+    PakettiPhraseVoiceDebugLog(string.format("Warning: Phrase (%d lines) is longer than pattern (%d lines)", 
+      phrase.number_of_lines, pattern.number_of_lines))
+  end
+  
+  -- Check quantization vs pattern length
+  local quant_lines = PakettiPhraseVoiceGetQuantLines(PakettiPhraseSwitcherDefaultQuant)
+  if quant_lines > pattern.number_of_lines then
+    PakettiPhraseVoiceDebugLog(string.format("Warning: Quantization (%d lines) exceeds pattern length (%d lines)", 
+      quant_lines, pattern.number_of_lines))
+  end
+  
+  -- Check available sequencer tracks
+  local sequencer_tracks = 0
+  for i = 1, #song.tracks do
+    if song.tracks[i].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      sequencer_tracks = sequencer_tracks + 1
+    end
+  end
+  
+  if sequencer_tracks == 0 then
+    return false, "No sequencer tracks available. Add a track first."
+  end
+  
+  return true, nil
+end
+
+function PakettiPhraseVoiceSpawn(phrase_index, options)
+  local song = renoise.song()
+  if not song then return nil end
+  
+  options = options or {}
+  local instrument_index = options.instrument_index or song.selected_instrument_index
+  
+  -- Comprehensive validation with helpful messages
+  local valid, error_msg = PakettiPhraseVoiceValidateEnvironment(instrument_index, phrase_index)
+  if not valid then
+    renoise.app():show_status(error_msg)
+    PakettiPhraseVoiceDebugLog("Spawn failed: " .. error_msg)
+    return nil
+  end
+  
+  local instrument = song.instruments[instrument_index]
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return nil
+  end
+  
+  if #instrument.phrases == 0 then
+    renoise.app():show_status("No phrases in selected instrument")
+    return nil
+  end
+  
+  if phrase_index < 1 or phrase_index > #instrument.phrases then
+    renoise.app():show_status(string.format("Phrase %02d does not exist", phrase_index))
+    return nil
+  end
+  
+  local phrase = instrument.phrases[phrase_index]
+  local quant_type = options.quant_type or PakettiPhraseSwitcherDefaultQuant
+  local phase_locked = (options.phase_locked ~= nil) and options.phase_locked or PakettiPhraseVoicePhaseLockEnabled
+  local output_mode = options.output_mode or PakettiPhraseVoiceOutputMode
+  local immediate = options.immediate or false
+  
+  -- Check if this phrase is already playing (for toggle behavior)
+  if options.toggle then
+    local is_playing, existing_voice = PakettiPhraseVoiceIsPlaying(instrument_index, phrase_index)
+    if is_playing then
+      PakettiPhraseVoicePoolRemoveById(existing_voice.voice_id)
+      PakettiPhraseVoiceInjectNoteOff(instrument_index, existing_voice.track_index, existing_voice.column_index)
+      renoise.app():show_status(string.format("Stopped Phrase Voice %02d", phrase_index))
+      return nil
+    end
+  end
+  
+  -- Calculate phase offset if phase-locked
+  local start_phrase_line = 1
+  if phase_locked and song.transport.playing then
+    if immediate then
+      start_phrase_line = PakettiPhraseVoiceCalculateImmediatePhaseOffset(phrase.number_of_lines, phrase.lpb)
+    else
+      start_phrase_line = PakettiPhraseVoiceCalculatePhaseOffset(phrase.number_of_lines, quant_type)
+    end
+  end
+  
+  -- Determine target track and column based on output mode
+  local track_index, column_index
+  local voice_stolen = false
+  
+  if output_mode == "track" then
+    track_index = PakettiPhraseVoiceGetNextTrack()
+    column_index = 1
+    if not track_index then
+      -- Voice stealing: kill oldest voice and reuse its track
+      local stolen = PakettiPhraseVoiceStealOldest("track")
+      if stolen then
+        track_index = stolen.track_index
+        column_index = stolen.column_index
+        voice_stolen = true
+      else
+        renoise.app():show_status("No available tracks for voice (max reached, stealing failed)")
+        return nil
+      end
+    end
+  else  -- column mode
+    track_index = options.track_index or song.selected_track_index
+    column_index = PakettiPhraseVoiceGetNextColumn(track_index)
+    if not column_index then
+      -- Voice stealing: kill oldest voice on this track and reuse its column
+      local stolen = PakettiPhraseVoiceStealOldest("column", track_index)
+      if stolen then
+        track_index = stolen.track_index
+        column_index = stolen.column_index
+        voice_stolen = true
+      else
+        renoise.app():show_status("No available columns for voice (max reached, stealing failed)")
+        return nil
+      end
+    end
+  end
+  
+  -- Create voice data structure
+  local voice = PakettiPhraseVoiceCreate(instrument_index, phrase_index, {
+    track_index = track_index,
+    column_index = column_index,
+    start_song_line = song.transport.playback_pos.line,
+    start_phrase_line = start_phrase_line,
+    quantization_lines = PakettiPhraseVoiceGetQuantLines(quant_type),
+    phase_locked = phase_locked,
+    looping = true
+  })
+  
+  if not voice then
+    renoise.app():show_status("Failed to create voice")
+    return nil
+  end
+  
+  -- Write the note trigger to the pattern
+  local target_line
+  if immediate then
+    target_line = song.transport.playback_pos.line
+  else
+    target_line = PakettiPhraseSwitcherGetNextQuantLine(quant_type)
+  end
+  
+  local success = PakettiPhraseVoiceWriteTrigger(voice, target_line, start_phrase_line)
+  
+  if success then
+    PakettiPhraseVoicePoolAdd(voice)
+    
+    local status_msg = string.format("Spawned Phrase Voice %02d on %s %d (phase: line %d)%s", 
+      phrase_index, 
+      output_mode == "track" and "track" or "column",
+      output_mode == "track" and track_index or column_index,
+      start_phrase_line,
+      voice_stolen and " [voice stolen]" or "")
+    renoise.app():show_status(status_msg)
+    
+    return voice
+  else
+    renoise.app():show_status("Failed to write voice trigger")
+    return nil
+  end
+end
+
+-- Write phrase trigger to pattern (internal)
+-- Helper: Check if a note column is empty
+function PakettiPhraseVoiceIsColumnEmpty(note_col)
+  if not note_col then return true end
+  return note_col.is_empty
+end
+
+-- Helper: Find an empty line within quantization window
+function PakettiPhraseVoiceFindEmptyLine(pattern_track, track, start_line, window_size, column_index)
+  local pattern_length = pattern_track.lines_in_pattern
+  window_size = window_size or 4
+  
+  for offset = 0, window_size - 1 do
+    local line_idx = start_line + offset
+    if line_idx > pattern_length then
+      line_idx = line_idx - pattern_length
+    end
+    
+    local line = pattern_track:line(line_idx)
+    if line then
+      local note_col = line:note_column(column_index)
+      if note_col and note_col.is_empty then
+        return line_idx
+      end
+    end
+  end
+  
+  return nil  -- No empty line found
+end
+
+-- Helper: Debug logging
+function PakettiPhraseVoiceDebugLog(message)
+  if PakettiPhraseVoiceDebugEnabled then
+    print("[PhraseVoice] " .. message)
+  end
+end
+
+function PakettiPhraseVoiceWriteTrigger(voice, target_line, phase_offset)
+  local song = renoise.song()
+  if not song then return false end
+  
+  -- Nil guards for voice data
+  if not voice then return false end
+  
+  local pattern = song.selected_pattern
+  if not pattern then return false end
+  
+  local track_index = voice.track_index
+  local column_index = voice.column_index or 1
+  
+  if not track_index or track_index < 1 or track_index > #song.tracks then return false end
+  
+  local track = song.tracks[track_index]
+  if not track or track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then return false end
+  
+  -- Ensure column_index is valid
+  if column_index < 1 then column_index = 1 end
+  if column_index > track.visible_note_columns then
+    if track.visible_note_columns < 12 then
+      track.visible_note_columns = column_index
+    else
+      column_index = 1
+    end
+  end
+  
+  local pattern_track = pattern:track(track_index)
+  if not pattern_track then return false end
+  
+  if target_line < 1 or target_line > pattern.number_of_lines then
+    target_line = 1
+  end
+  
+  local line = pattern_track:line(target_line)
+  if not line then return false end
+  
+  local note_col = line:note_column(column_index)
+  if not note_col then return false end
+  
+  -- Pattern write safety: check if we would overwrite existing data
+  if PakettiPhraseVoicePreserveExistingNotes and not note_col.is_empty then
+    -- Try to find an empty line within quantization window
+    local quant_lines = PakettiPhraseVoiceGetQuantLines(PakettiPhraseSwitcherDefaultQuant)
+    local empty_line = PakettiPhraseVoiceFindEmptyLine(pattern_track, track, target_line, quant_lines, column_index)
+    
+    if empty_line then
+      target_line = empty_line
+      line = pattern_track:line(target_line)
+      note_col = line:note_column(column_index)
+      PakettiPhraseVoiceDebugLog(string.format("Found empty line at %d (original was %d)", empty_line, target_line))
+    else
+      -- Try next column if available
+      for col = column_index + 1, math.min(12, track.visible_note_columns + 1) do
+        local alt_col = line:note_column(col)
+        if alt_col and alt_col.is_empty then
+          column_index = col
+          note_col = alt_col
+          if col > track.visible_note_columns then
+            track.visible_note_columns = col
+          end
+          PakettiPhraseVoiceDebugLog(string.format("Using alternate column %d", col))
+          break
+        end
+      end
+      
+      -- If still not empty, warn but proceed (override safety)
+      if not note_col.is_empty then
+        PakettiPhraseVoiceDebugLog("Warning: Overwriting existing note data")
+        renoise.app():show_status("Voice trigger: overwriting existing note")
+      end
+    end
+  end
+  
+  -- Write note with phrase trigger (Zxx command)
+  note_col.note_value = 48  -- C-4
+  note_col.instrument_value = (voice.instrument_index or 1) - 1
+  
+  -- Write Zxx command for phrase trigger
+  track.sample_effects_column_visible = true
+  note_col.effect_number_value = 0x23  -- Z command (phrase trigger)
+  note_col.effect_amount_value = voice.phrase_index or 1
+  
+  -- If phase-locked with offset > 1, write Sxx command in effect column
+  if voice.phase_locked and phase_offset and phase_offset > 1 then
+    local sxx_value = PakettiPhraseVoicePhaseToSxx(phase_offset, voice.phrase_length_lines or 16)
+    if sxx_value and sxx_value > 0 then
+      -- Find or create an effect column for Sxx
+      if track.visible_effect_columns < 1 then
+        track.visible_effect_columns = 1
+      end
+      local effect_col = line:effect_column(1)
+      if effect_col then
+        effect_col.number_string = "0S"  -- Sample offset / phrase position command
+        effect_col.amount_value = sxx_value
+      end
+    end
+  end
+  
+  return true
+end
+
+-- Inject note-off for a specific voice
+-- Inject fade-out effect before note-off for smooth voice stopping
+function PakettiPhraseVoiceInjectFadeOut(track_index, column_index, start_line, fade_lines)
+  local song = renoise.song()
+  if not song then return false end
+  
+  fade_lines = fade_lines or 4
+  local pattern = song.selected_pattern
+  if not pattern then return false end
+  
+  local track = song.tracks[track_index]
+  if not track or track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then return false end
+  
+  local pattern_track = pattern:track(track_index)
+  if not pattern_track then return false end
+  
+  -- Ensure effect column is visible
+  if track.visible_effect_columns < 1 then
+    track.visible_effect_columns = 1
+  end
+  
+  -- Write fade-out over specified lines using 0O command
+  for i = 0, fade_lines - 1 do
+    local line_idx = start_line + i
+    if line_idx > pattern.number_of_lines then
+      line_idx = line_idx - pattern.number_of_lines
+    end
+    
+    local line = pattern_track:line(line_idx)
+    if line then
+      local effect_col = line:effect_column(1)
+      if effect_col then
+        -- Calculate fade value (FF down to 00)
+        local fade_value = math.floor(255 - (255 * i / fade_lines))
+        effect_col.number_string = "0O"  -- Output volume
+        effect_col.amount_value = fade_value
+      end
+    end
+  end
+  
+  PakettiPhraseVoiceDebugLog(string.format("Injected fade-out over %d lines starting at line %d", fade_lines, start_line))
+  return true
+end
+
+function PakettiPhraseVoiceInjectNoteOff(instrument_index, track_index, column_index, use_fade_out)
+  local song = renoise.song()
+  if not song then return false end
+  
+  -- Nil guards for parameters
+  if not instrument_index or instrument_index < 1 then return false end
+  if not track_index or track_index < 1 or track_index > #song.tracks then return false end
+  
+  local track = song.tracks[track_index]
+  if not track or track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then return false end
+  
+  local target_line = PakettiPhraseSwitcherGetNextQuantLine(PakettiPhraseSwitcherDefaultQuant)
+  local pattern = song.selected_pattern
+  if not pattern then return false end
+  
+  local pattern_track = pattern:track(track_index)
+  if not pattern_track then return false end
+  
+  if target_line < 1 or target_line > pattern.number_of_lines then
+    target_line = 1
+  end
+  
+  -- Use fade-out if enabled (default from preference)
+  use_fade_out = (use_fade_out ~= nil) and use_fade_out or PakettiPhraseVoiceFadeOutEnabled
+  
+  if use_fade_out then
+    -- Inject fade-out before note-off
+    local fade_lines = 4  -- Fade over 4 lines
+    PakettiPhraseVoiceInjectFadeOut(track_index, column_index, target_line, fade_lines)
+    -- Offset note-off to after fade
+    target_line = target_line + fade_lines
+    if target_line > pattern.number_of_lines then
+      target_line = target_line - pattern.number_of_lines
+    end
+  end
+  
+  local line = pattern_track:line(target_line)
+  local note_col = line:note_column(column_index or 1)
+  
+  note_col.note_value = 120  -- OFF
+  note_col.instrument_value = instrument_index - 1
+  
+  PakettiPhraseVoiceDebugLog(string.format("Injected note-off at line %d%s", 
+    target_line, use_fade_out and " (with fade)" or ""))
+  
+  return true
+end
+
+-- Kill all voices (stop all phrase playback)
+function PakettiPhraseVoiceKillAll()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Inject note-offs for all active voices
+  for _, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.active then
+      PakettiPhraseVoiceInjectNoteOff(voice.instrument_index, voice.track_index, voice.column_index)
+    end
+  end
+  
+  PakettiPhraseVoicePoolClear()
+end
+
+-- Kill voice by phrase index
+function PakettiPhraseVoiceKillPhrase(phrase_index, instrument_index)
+  local song = renoise.song()
+  if not song then return end
+  
+  instrument_index = instrument_index or song.selected_instrument_index
+  
+  -- Find and kill voices for this phrase
+  for i = #PakettiPhraseVoicePool, 1, -1 do
+    local voice = PakettiPhraseVoicePool[i]
+    if voice.instrument_index == instrument_index and voice.phrase_index == phrase_index then
+      PakettiPhraseVoiceInjectNoteOff(voice.instrument_index, voice.track_index, voice.column_index)
+      PakettiPhraseVoicePoolRemove(i)
+    end
+  end
+  
+  renoise.app():show_status(string.format("Killed Phrase %02d voices", phrase_index))
+end
+
+-- Spawn multiple phrases as a state (concurrent voices)
+function PakettiPhraseVoiceSpawnState(phrase_indices, options)
+  local song = renoise.song()
+  if not song then return {} end
+  
+  options = options or {}
+  local voices = {}
+  
+  for _, phrase_index in ipairs(phrase_indices) do
+    local voice = PakettiPhraseVoiceSpawn(phrase_index, options)
+    if voice then
+      table.insert(voices, voice)
+    end
+  end
+  
+  if #voices > 0 then
+    renoise.app():show_status(string.format("Spawned %d phrase voices", #voices))
+  end
+  
+  return voices
+end
+
+-- Quick spawn functions for keybindings (additive)
+function PakettiPhraseVoiceSpawnPhrase01() PakettiPhraseVoiceSpawn(1) end
+function PakettiPhraseVoiceSpawnPhrase02() PakettiPhraseVoiceSpawn(2) end
+function PakettiPhraseVoiceSpawnPhrase03() PakettiPhraseVoiceSpawn(3) end
+function PakettiPhraseVoiceSpawnPhrase04() PakettiPhraseVoiceSpawn(4) end
+function PakettiPhraseVoiceSpawnPhrase05() PakettiPhraseVoiceSpawn(5) end
+function PakettiPhraseVoiceSpawnPhrase06() PakettiPhraseVoiceSpawn(6) end
+function PakettiPhraseVoiceSpawnPhrase07() PakettiPhraseVoiceSpawn(7) end
+function PakettiPhraseVoiceSpawnPhrase08() PakettiPhraseVoiceSpawn(8) end
+function PakettiPhraseVoiceSpawnPhrase09() PakettiPhraseVoiceSpawn(9) end
+function PakettiPhraseVoiceSpawnPhrase10() PakettiPhraseVoiceSpawn(10) end
+function PakettiPhraseVoiceSpawnPhrase11() PakettiPhraseVoiceSpawn(11) end
+function PakettiPhraseVoiceSpawnPhrase12() PakettiPhraseVoiceSpawn(12) end
+function PakettiPhraseVoiceSpawnPhrase13() PakettiPhraseVoiceSpawn(13) end
+function PakettiPhraseVoiceSpawnPhrase14() PakettiPhraseVoiceSpawn(14) end
+function PakettiPhraseVoiceSpawnPhrase15() PakettiPhraseVoiceSpawn(15) end
+function PakettiPhraseVoiceSpawnPhrase16() PakettiPhraseVoiceSpawn(16) end
+
+-- Quick kill functions for keybindings
+function PakettiPhraseVoiceKillPhrase01() PakettiPhraseVoiceKillPhrase(1) end
+function PakettiPhraseVoiceKillPhrase02() PakettiPhraseVoiceKillPhrase(2) end
+function PakettiPhraseVoiceKillPhrase03() PakettiPhraseVoiceKillPhrase(3) end
+function PakettiPhraseVoiceKillPhrase04() PakettiPhraseVoiceKillPhrase(4) end
+function PakettiPhraseVoiceKillPhrase05() PakettiPhraseVoiceKillPhrase(5) end
+function PakettiPhraseVoiceKillPhrase06() PakettiPhraseVoiceKillPhrase(6) end
+function PakettiPhraseVoiceKillPhrase07() PakettiPhraseVoiceKillPhrase(7) end
+function PakettiPhraseVoiceKillPhrase08() PakettiPhraseVoiceKillPhrase(8) end
+function PakettiPhraseVoiceKillPhrase09() PakettiPhraseVoiceKillPhrase(9) end
+function PakettiPhraseVoiceKillPhrase10() PakettiPhraseVoiceKillPhrase(10) end
+function PakettiPhraseVoiceKillPhrase11() PakettiPhraseVoiceKillPhrase(11) end
+function PakettiPhraseVoiceKillPhrase12() PakettiPhraseVoiceKillPhrase(12) end
+function PakettiPhraseVoiceKillPhrase13() PakettiPhraseVoiceKillPhrase(13) end
+function PakettiPhraseVoiceKillPhrase14() PakettiPhraseVoiceKillPhrase(14) end
+function PakettiPhraseVoiceKillPhrase15() PakettiPhraseVoiceKillPhrase(15) end
+function PakettiPhraseVoiceKillPhrase16() PakettiPhraseVoiceKillPhrase(16) end
+
+--------------------------------------------------------------------------------
+-- PHRASE VOICE OPERATION MODES
+-- Editor Mode: Immediate, non-quantized playback for phrase editing
+-- Switcher Mode: Quantized, scheduled playback for live performance
+--------------------------------------------------------------------------------
+
+-- Current operation mode
+PakettiPhraseVoiceOperationMode = "switcher"  -- "editor" or "switcher"
+
+-- Set operation mode
+function PakettiPhraseVoiceSetOperationMode(mode)
+  if mode == "editor" or mode == "switcher" then
+    PakettiPhraseVoiceOperationMode = mode
+    renoise.app():show_status("Phrase Voice operation mode: " .. mode)
+  else
+    renoise.app():show_status("Invalid operation mode: " .. tostring(mode))
+  end
+end
+
+-- Toggle operation mode
+function PakettiPhraseVoiceToggleOperationMode()
+  if PakettiPhraseVoiceOperationMode == "editor" then
+    PakettiPhraseVoiceSetOperationMode("switcher")
+  else
+    PakettiPhraseVoiceSetOperationMode("editor")
+  end
+end
+
+-- Auto-detect operation mode based on current view
+function PakettiPhraseVoiceAutoDetectMode()
+  local app = renoise.app()
+  if app.window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+    return "editor"
+  else
+    return "switcher"
+  end
+end
+
+-- Editor Mode: Immediate phrase voice spawn
+-- Used when in Phrase Editor for instant, phase-correct playback
+function PakettiPhraseVoiceEditorModeSpawn(phrase_index, options)
+  local song = renoise.song()
+  if not song then return nil end
+  
+  options = options or {}
+  options.immediate = true  -- No quantization delay
+  options.phase_locked = true  -- Always phase-correct in editor mode
+  
+  -- Use the phrase's own LPB for phase calculation
+  local instrument_index = options.instrument_index or song.selected_instrument_index
+  local instrument = song.instruments[instrument_index]
+  if instrument and phrase_index <= #instrument.phrases then
+    local phrase = instrument.phrases[phrase_index]
+    -- Pass phrase LPB for accurate phase calculation
+    options.phrase_lpb = phrase.lpb
+  end
+  
+  return PakettiPhraseVoiceSpawn(phrase_index, options)
+end
+
+-- Editor Mode: Multi-select spawn
+-- Spawns multiple phrases immediately when selected in Phrase Index
+function PakettiPhraseVoiceEditorModeMultiSpawn(phrase_indices, options)
+  local song = renoise.song()
+  if not song then return {} end
+  
+  options = options or {}
+  options.immediate = true
+  options.phase_locked = true
+  
+  local voices = {}
+  
+  for _, phrase_index in ipairs(phrase_indices) do
+    local voice = PakettiPhraseVoiceEditorModeSpawn(phrase_index, options)
+    if voice then
+      table.insert(voices, voice)
+    end
+  end
+  
+  if #voices > 0 then
+    renoise.app():show_status(string.format("Editor Mode: Spawned %d phrase voices", #voices))
+  end
+  
+  return voices
+end
+
+-- Spawn currently selected phrase in Editor mode
+-- Can be called when user selects phrase in Phrase Index
+function PakettiPhraseVoiceSpawnSelectedPhrase()
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.phrases == 0 then
+    renoise.app():show_status("No phrases in selected instrument")
+    return nil
+  end
+  
+  local phrase_index = song.selected_phrase_index
+  if phrase_index < 1 or phrase_index > #instrument.phrases then
+    renoise.app():show_status("No phrase selected")
+    return nil
+  end
+  
+  PakettiPhraseVoiceDebugLog(string.format("Spawning selected phrase %d", phrase_index))
+  return PakettiPhraseVoiceEditorModeSpawn(phrase_index)
+end
+
+-- Spawn a range of phrases (for modular phrase construction)
+function PakettiPhraseVoiceSpawnRange(start_phrase, end_phrase, options)
+  local song = renoise.song()
+  if not song then return {} end
+  
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.phrases == 0 then
+    renoise.app():show_status("No phrases in selected instrument")
+    return {}
+  end
+  
+  local phrase_indices = {}
+  for i = start_phrase, math.min(end_phrase, #instrument.phrases) do
+    table.insert(phrase_indices, i)
+  end
+  
+  return PakettiPhraseVoiceEditorModeMultiSpawn(phrase_indices, options)
+end
+
+-- Spawn all active phrase voices for kick/snare/hat separation
+-- This uses special naming convention: phrases named "Kick", "Snare", "Hat", etc.
+function PakettiPhraseVoiceSpawnByName(name_pattern, options)
+  local song = renoise.song()
+  if not song then return {} end
+  
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.phrases == 0 then
+    return {}
+  end
+  
+  local phrase_indices = {}
+  for i, phrase in ipairs(instrument.phrases) do
+    if phrase.name:lower():find(name_pattern:lower()) then
+      table.insert(phrase_indices, i)
+    end
+  end
+  
+  if #phrase_indices > 0 then
+    PakettiPhraseVoiceDebugLog(string.format("Spawning %d phrases matching '%s'", #phrase_indices, name_pattern))
+    return PakettiPhraseVoiceEditorModeMultiSpawn(phrase_indices, options)
+  end
+  
+  return {}
+end
+
+-- Quick spawn functions for modular phrase construction
+function PakettiPhraseVoiceSpawnKick() return PakettiPhraseVoiceSpawnByName("kick") end
+function PakettiPhraseVoiceSpawnSnare() return PakettiPhraseVoiceSpawnByName("snare") end
+function PakettiPhraseVoiceSpawnHihat() return PakettiPhraseVoiceSpawnByName("hat") end
+function PakettiPhraseVoiceSpawnBass() return PakettiPhraseVoiceSpawnByName("bass") end
+function PakettiPhraseVoiceSpawnLead() return PakettiPhraseVoiceSpawnByName("lead") end
+function PakettiPhraseVoiceSpawnPad() return PakettiPhraseVoiceSpawnByName("pad") end
+
+-- Switcher Mode: Quantized phrase voice spawn
+-- Used for live performance with groove-safe switching
+function PakettiPhraseVoiceSwitcherModeSpawn(phrase_index, options)
+  local song = renoise.song()
+  if not song then return nil end
+  
+  options = options or {}
+  options.immediate = false  -- Quantized spawning
+  options.quant_type = options.quant_type or PakettiPhraseSwitcherDefaultQuant
+  
+  return PakettiPhraseVoiceSpawn(phrase_index, options)
+end
+
+-- Switcher Mode: Schedule voice spawn at next boundary
+-- Adds to pending queue for sloppy triggering support
+function PakettiPhraseVoiceSwitcherModeSchedule(phrase_index, options)
+  local song = renoise.song()
+  if not song then return false end
+  
+  options = options or {}
+  local instrument_index = options.instrument_index or song.selected_instrument_index
+  
+  -- Check for duplicate in pending queue
+  for i, pending in ipairs(PakettiPhraseVoicePendingQueue) do
+    if pending.instrument_index == instrument_index and pending.phrase_index == phrase_index then
+      -- Already scheduled, cancel it (toggle behavior)
+      table.remove(PakettiPhraseVoicePendingQueue, i)
+      renoise.app():show_status(string.format("Cancelled scheduled Phrase %02d", phrase_index))
+      return false
+    end
+  end
+  
+  -- Add to pending queue
+  table.insert(PakettiPhraseVoicePendingQueue, {
+    instrument_index = instrument_index,
+    phrase_index = phrase_index,
+    options = options,
+    scheduled_at = os.clock()
+  })
+  
+  renoise.app():show_status(string.format("Scheduled Phrase %02d for next boundary", phrase_index))
+  return true
+end
+
+-- Process pending voice queue (called on quantization boundaries)
+function PakettiPhraseVoiceProcessPendingQueue()
+  local spawned = 0
+  
+  for i = #PakettiPhraseVoicePendingQueue, 1, -1 do
+    local pending = PakettiPhraseVoicePendingQueue[i]
+    local options = pending.options or {}
+    options.instrument_index = pending.instrument_index
+    
+    local voice = PakettiPhraseVoiceSwitcherModeSpawn(pending.phrase_index, options)
+    if voice then
+      spawned = spawned + 1
+    end
+    
+    table.remove(PakettiPhraseVoicePendingQueue, i)
+  end
+  
+  if spawned > 0 then
+    renoise.app():show_status(string.format("Processed %d pending voice(s)", spawned))
+  end
+end
+
+-- Clear pending queue
+function PakettiPhraseVoiceClearPendingQueue()
+  local count = #PakettiPhraseVoicePendingQueue
+  PakettiPhraseVoicePendingQueue = {}
+  if count > 0 then
+    renoise.app():show_status(string.format("Cleared %d pending voice(s)", count))
+  end
+end
+
+-- Track last processed quantization boundary for pending queue
+PakettiPhraseVoiceLastQuantBoundary = 0
+PakettiPhraseVoiceIdleNotifierActive = false
+PakettiPhraseVoiceLastPlaybackLine = 0
+
+-- Track last UI update time for throttling
+PakettiPhraseVoiceUILastUpdate = 0
+PakettiPhraseVoiceUIUpdateInterval = 0.1  -- Update UI every 100ms
+
+-- Update voice pool: track playhead positions and cleanup finished voices
+function PakettiPhraseVoicePoolUpdate()
+  local song = renoise.song()
+  if not song then return end
+  
+  local transport = song.transport
+  local current_time = os.clock()
+  local pool_changed = false
+  
+  -- If transport stopped, mark all voices as inactive (but don't remove)
+  if not transport.playing then
+    for _, voice in ipairs(PakettiPhraseVoicePool) do
+      if voice.active then
+        voice.active = false
+        pool_changed = true
+      end
+    end
+    if pool_changed then
+      PakettiPhraseVoiceUpdateUI()
+    end
+    return
+  end
+  
+  local current_line = transport.playback_pos.line
+  local voices_to_remove = {}
+  
+  -- Update each voice's estimated playhead position
+  for i, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.active then
+      -- Calculate elapsed lines since spawn
+      local elapsed_lines = current_line - (voice.start_song_line or 0)
+      if elapsed_lines < 0 then
+        -- Pattern wrapped, estimate based on pattern length
+        local pattern_length = song.selected_pattern.number_of_lines
+        elapsed_lines = elapsed_lines + pattern_length
+      end
+      
+      -- Calculate current phrase playhead position
+      local phrase_line = (voice.start_phrase_line or 1) + elapsed_lines
+      if voice.looping then
+        phrase_line = ((phrase_line - 1) % (voice.phrase_length_lines or 16)) + 1
+      else
+        -- Non-looping voice: check if it has finished
+        if phrase_line > (voice.phrase_length_lines or 16) then
+          voice.active = false
+          table.insert(voices_to_remove, i)
+          pool_changed = true
+        end
+      end
+      
+      -- Store estimated playhead for UI display
+      voice.current_playhead = phrase_line
+    end
+  end
+  
+  -- Remove finished non-looping voices (iterate in reverse to avoid index issues)
+  for i = #voices_to_remove, 1, -1 do
+    table.remove(PakettiPhraseVoicePool, voices_to_remove[i])
+    pool_changed = true
+  end
+  
+  -- Throttled UI update
+  if pool_changed or (current_time - PakettiPhraseVoiceUILastUpdate > PakettiPhraseVoiceUIUpdateInterval) then
+    PakettiPhraseVoiceUILastUpdate = current_time
+    PakettiPhraseVoiceUpdateUI()
+  end
+end
+
+-- Update Performance Hub UI with current voice state
+-- Update button highlighting for active voices
+function PakettiPhraseVoiceUpdateButtonHighlights()
+  if not PakettiPhraseGridPerformanceVb or not PakettiPhraseGridPerformanceDialog then return end
+  if not PakettiPhraseGridPerformanceDialog.visible then return end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  local instrument_index = song.selected_instrument_index
+  
+  -- Build set of active phrase indices for current instrument
+  local active_phrases = {}
+  local pending_phrases = {}
+  
+  for _, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.instrument_index == instrument_index and voice.active then
+      active_phrases[voice.phrase_index] = true
+    end
+  end
+  
+  for _, pending in ipairs(PakettiPhraseVoicePendingQueue) do
+    if pending.instrument_index == instrument_index then
+      pending_phrases[pending.phrase_index] = true
+    end
+  end
+  
+  -- Update button text to show state
+  for i = 1, 16 do
+    local btn_id = string.format("voice_btn_%02d", i)
+    local btn = PakettiPhraseGridPerformanceVb.views[btn_id]
+    if btn then
+      if active_phrases[i] then
+        -- Active voice: show with marker
+        btn.text = string.format("[%02d]", i)
+      elseif pending_phrases[i] then
+        -- Pending voice: show with pending marker
+        btn.text = string.format("*%02d*", i)
+      else
+        -- Inactive: normal text
+        btn.text = string.format("P%02d", i)
+      end
+    end
+  end
+end
+
+function PakettiPhraseVoiceUpdateUI()
+  -- Update Performance Hub voice count if dialog is open
+  if PakettiPhraseGridPerformanceVb and PakettiPhraseGridPerformanceDialog 
+     and PakettiPhraseGridPerformanceDialog.visible then
+    local count_text = PakettiPhraseGridPerformanceVb.views["perf_voice_count"]
+    if count_text then 
+      local active_count = 0
+      for _, voice in ipairs(PakettiPhraseVoicePool) do
+        if voice.active then active_count = active_count + 1 end
+      end
+      count_text.text = tostring(active_count)
+    end
+    
+    -- Update button highlights
+    PakettiPhraseVoiceUpdateButtonHighlights()
+  end
+end
+
+-- Idle notifier function for processing pending voice queue and voice lifetime
+function PakettiPhraseVoiceIdleNotifier()
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Check for pattern/sequence changes (always, even when stopped)
+  PakettiPhraseVoiceCheckPatternChange()
+  
+  local transport = song.transport
+  if not transport.playing then
+    PakettiPhraseVoiceLastQuantBoundary = 0
+    PakettiPhraseVoiceLastPlaybackLine = 0
+    return
+  end
+  
+  local current_line = transport.playback_pos.line
+  
+  -- Only update voice pool when playback line changes (reduce CPU)
+  if current_line ~= PakettiPhraseVoiceLastPlaybackLine then
+    PakettiPhraseVoiceLastPlaybackLine = current_line
+    
+    -- Update voice pool (track playheads, cleanup finished voices)
+    PakettiPhraseVoicePoolUpdate()
+  end
+  
+  -- Process pending voices at quantization boundaries
+  if #PakettiPhraseVoicePendingQueue > 0 then
+    local quant_type = PakettiPhraseSwitcherDefaultQuant or "beat"
+    local quant_lines = PakettiPhraseVoiceGetQuantLines(quant_type)
+    local current_boundary = math.floor((current_line - 1) / quant_lines) * quant_lines + 1
+    
+    -- Check if we've crossed a new quantization boundary
+    if current_boundary ~= PakettiPhraseVoiceLastQuantBoundary and current_boundary > 0 then
+      PakettiPhraseVoiceLastQuantBoundary = current_boundary
+      
+      -- Process all pending voices at this boundary
+      PakettiPhraseVoiceProcessPendingQueue()
+    end
+  end
+end
+
+-- Start the pending queue processor
+function PakettiPhraseVoiceStartIdleNotifier()
+  if not PakettiPhraseVoiceIdleNotifierActive then
+    if not renoise.tool().app_idle_observable:has_notifier(PakettiPhraseVoiceIdleNotifier) then
+      renoise.tool().app_idle_observable:add_notifier(PakettiPhraseVoiceIdleNotifier)
+    end
+    PakettiPhraseVoiceIdleNotifierActive = true
+  end
+end
+
+-- Stop the pending queue processor
+function PakettiPhraseVoiceStopIdleNotifier()
+  if PakettiPhraseVoiceIdleNotifierActive then
+    if renoise.tool().app_idle_observable:has_notifier(PakettiPhraseVoiceIdleNotifier) then
+      renoise.tool().app_idle_observable:remove_notifier(PakettiPhraseVoiceIdleNotifier)
+    end
+    PakettiPhraseVoiceIdleNotifierActive = false
+  end
+end
+
+-- Auto-start idle notifier when tool loads
+PakettiPhraseVoiceStartIdleNotifier()
+
+-- Smart spawn: Auto-selects mode based on current context
+function PakettiPhraseVoiceSmartSpawn(phrase_index, options)
+  local mode = PakettiPhraseVoiceAutoDetectMode()
+  
+  if mode == "editor" then
+    return PakettiPhraseVoiceEditorModeSpawn(phrase_index, options)
+  else
+    return PakettiPhraseVoiceSwitcherModeSpawn(phrase_index, options)
+  end
+end
+
+-- Toggle spawn: Spawn or kill depending on current state
+function PakettiPhraseVoiceToggleSpawn(phrase_index, options)
+  options = options or {}
+  options.toggle = true
+  
+  local mode = PakettiPhraseVoiceAutoDetectMode()
+  
+  if mode == "editor" then
+    return PakettiPhraseVoiceEditorModeSpawn(phrase_index, options)
+  else
+    return PakettiPhraseVoiceSwitcherModeSpawn(phrase_index, options)
+  end
+end
+
+-- Smart spawn functions for keybindings
+function PakettiPhraseVoiceSmartSpawn01() PakettiPhraseVoiceSmartSpawn(1) end
+function PakettiPhraseVoiceSmartSpawn02() PakettiPhraseVoiceSmartSpawn(2) end
+function PakettiPhraseVoiceSmartSpawn03() PakettiPhraseVoiceSmartSpawn(3) end
+function PakettiPhraseVoiceSmartSpawn04() PakettiPhraseVoiceSmartSpawn(4) end
+function PakettiPhraseVoiceSmartSpawn05() PakettiPhraseVoiceSmartSpawn(5) end
+function PakettiPhraseVoiceSmartSpawn06() PakettiPhraseVoiceSmartSpawn(6) end
+function PakettiPhraseVoiceSmartSpawn07() PakettiPhraseVoiceSmartSpawn(7) end
+function PakettiPhraseVoiceSmartSpawn08() PakettiPhraseVoiceSmartSpawn(8) end
+function PakettiPhraseVoiceSmartSpawn09() PakettiPhraseVoiceSmartSpawn(9) end
+function PakettiPhraseVoiceSmartSpawn10() PakettiPhraseVoiceSmartSpawn(10) end
+function PakettiPhraseVoiceSmartSpawn11() PakettiPhraseVoiceSmartSpawn(11) end
+function PakettiPhraseVoiceSmartSpawn12() PakettiPhraseVoiceSmartSpawn(12) end
+function PakettiPhraseVoiceSmartSpawn13() PakettiPhraseVoiceSmartSpawn(13) end
+function PakettiPhraseVoiceSmartSpawn14() PakettiPhraseVoiceSmartSpawn(14) end
+function PakettiPhraseVoiceSmartSpawn15() PakettiPhraseVoiceSmartSpawn(15) end
+function PakettiPhraseVoiceSmartSpawn16() PakettiPhraseVoiceSmartSpawn(16) end
+
+-- Toggle spawn functions for keybindings
+function PakettiPhraseVoiceToggle01() PakettiPhraseVoiceToggleSpawn(1) end
+function PakettiPhraseVoiceToggle02() PakettiPhraseVoiceToggleSpawn(2) end
+function PakettiPhraseVoiceToggle03() PakettiPhraseVoiceToggleSpawn(3) end
+function PakettiPhraseVoiceToggle04() PakettiPhraseVoiceToggleSpawn(4) end
+function PakettiPhraseVoiceToggle05() PakettiPhraseVoiceToggleSpawn(5) end
+function PakettiPhraseVoiceToggle06() PakettiPhraseVoiceToggleSpawn(6) end
+function PakettiPhraseVoiceToggle07() PakettiPhraseVoiceToggleSpawn(7) end
+function PakettiPhraseVoiceToggle08() PakettiPhraseVoiceToggleSpawn(8) end
+function PakettiPhraseVoiceToggle09() PakettiPhraseVoiceToggleSpawn(9) end
+function PakettiPhraseVoiceToggle10() PakettiPhraseVoiceToggleSpawn(10) end
+function PakettiPhraseVoiceToggle11() PakettiPhraseVoiceToggleSpawn(11) end
+function PakettiPhraseVoiceToggle12() PakettiPhraseVoiceToggleSpawn(12) end
+function PakettiPhraseVoiceToggle13() PakettiPhraseVoiceToggleSpawn(13) end
+function PakettiPhraseVoiceToggle14() PakettiPhraseVoiceToggleSpawn(14) end
+function PakettiPhraseVoiceToggle15() PakettiPhraseVoiceToggleSpawn(15) end
+function PakettiPhraseVoiceToggle16() PakettiPhraseVoiceToggleSpawn(16) end
+
+--------------------------------------------------------------------------------
 -- 1. PHRASE TRANSPORT (Enhanced Visual Follow)
 --------------------------------------------------------------------------------
 
@@ -486,7 +2192,7 @@ PakettiPhraseGridAutoRestoreSequencers = true
 function PakettiPhraseGridCreateEmptyState()
   return {
     name = "",
-    phrases = {},           -- [instrument_index] = phrase_index
+    phrases = {},           -- [instrument_index] = phrase_index (legacy single-phrase mode)
     pattern_index = nil,    -- Optional automation binding
     follow_action = nil,    -- Follow action config
     group = nil,            -- Mute group index
@@ -494,9 +2200,173 @@ function PakettiPhraseGridCreateEmptyState()
     -- Step sequencer snapshots
     eight_one_twenty = nil, -- 8120 checkbox state snapshot
     gater = nil,            -- Gater checkbox state snapshot
-    slice_step = nil        -- SliceStepSequencer checkbox state snapshot
+    slice_step = nil,       -- SliceStepSequencer checkbox state snapshot
+    -- Voice Orchestration (NEW)
+    phrase_voices = {},     -- Array of voice configs: {phrase_index, phase_locked, track_or_column}
+    voice_output_mode = nil, -- "track" or "column" (nil = use global default)
+    voice_quantization = nil -- Quantization lines override (nil = use global default)
   }
 end
+
+--------------------------------------------------------------------------------
+-- PHRASE VOICE STATE MANAGEMENT
+-- Save and recall multi-voice configurations as PhraseGrid states
+--------------------------------------------------------------------------------
+
+-- Save current active voices as a PhraseGrid state
+function PakettiPhraseVoiceStateSave(state_index, name)
+  local song = renoise.song()
+  if not song then return false end
+  
+  if state_index < 1 or state_index > PakettiPhraseGridMaxStates then
+    renoise.app():show_status(string.format("Invalid state index: %d", state_index))
+    return false
+  end
+  
+  -- Create state if it doesn't exist
+  if not PakettiPhraseGridStates[state_index] then
+    PakettiPhraseGridStates[state_index] = PakettiPhraseGridCreateEmptyState()
+  end
+  
+  local state = PakettiPhraseGridStates[state_index]
+  state.name = name or string.format("Voice State %02d", state_index)
+  
+  -- Clear existing voice data
+  state.phrase_voices = {}
+  
+  -- Save all active voices
+  for _, voice in ipairs(PakettiPhraseVoicePool) do
+    if voice.active then
+      table.insert(state.phrase_voices, {
+        instrument_index = voice.instrument_index,
+        phrase_index = voice.phrase_index,
+        phase_locked = voice.phase_locked,
+        track_or_column = PakettiPhraseVoiceOutputMode == "track" and voice.track_index or voice.column_index
+      })
+    end
+  end
+  
+  -- Save current output mode and quantization
+  state.voice_output_mode = PakettiPhraseVoiceOutputMode
+  state.voice_quantization = PakettiPhraseSwitcherCustomQuant
+  
+  PakettiPhraseGridCurrentState = state_index
+  
+  renoise.app():show_status(string.format("Saved %d phrase voice(s) to State %02d", 
+    #state.phrase_voices, state_index))
+  
+  return true
+end
+
+-- Recall voices from a PhraseGrid state
+function PakettiPhraseVoiceStateRecall(state_index, options)
+  local song = renoise.song()
+  if not song then return false end
+  
+  if state_index < 1 or state_index > PakettiPhraseGridMaxStates then
+    renoise.app():show_status(string.format("Invalid state index: %d", state_index))
+    return false
+  end
+  
+  local state = PakettiPhraseGridStates[state_index]
+  if not state then
+    renoise.app():show_status(string.format("State %02d is empty", state_index))
+    return false
+  end
+  
+  options = options or {}
+  
+  -- Additive mode: never clear existing voices
+  -- Otherwise respect the option (default true = clear)
+  local clear_existing = not PakettiPhraseVoiceAdditiveMode and (options.clear_existing ~= false)
+  
+  -- Clear existing voices if requested and not in additive mode
+  if clear_existing then
+    PakettiPhraseVoiceKillAll()
+    PakettiPhraseVoiceDebugLog("State recall: cleared existing voices")
+  else
+    PakettiPhraseVoiceDebugLog("State recall: additive mode - keeping existing voices")
+  end
+  
+  -- Apply saved output mode and quantization if stored
+  if state.voice_output_mode then
+    PakettiPhraseVoiceOutputMode = state.voice_output_mode
+  end
+  if state.voice_quantization then
+    PakettiPhraseSwitcherCustomQuant = state.voice_quantization
+  end
+  
+  local spawned = 0
+  
+  -- Check if state has voice data (new format) or legacy phrase data
+  if state.phrase_voices and #state.phrase_voices > 0 then
+    -- New format: spawn multi-voice configuration
+    for _, voice_config in ipairs(state.phrase_voices) do
+      local spawn_options = {
+        instrument_index = voice_config.instrument_index,
+        phase_locked = voice_config.phase_locked
+      }
+      
+      local voice = PakettiPhraseVoiceSwitcherModeSpawn(voice_config.phrase_index, spawn_options)
+      if voice then
+        spawned = spawned + 1
+      end
+    end
+  elseif state.phrases and next(state.phrases) then
+    -- Legacy format: convert single-phrase-per-instrument to voices
+    for inst_index, phrase_index in pairs(state.phrases) do
+      local spawn_options = {
+        instrument_index = inst_index,
+        phase_locked = PakettiPhraseVoicePhaseLockEnabled
+      }
+      
+      local voice = PakettiPhraseVoiceSwitcherModeSpawn(phrase_index, spawn_options)
+      if voice then
+        spawned = spawned + 1
+      end
+    end
+  end
+  
+  PakettiPhraseGridCurrentState = state_index
+  
+  renoise.app():show_status(string.format("Recalled %d phrase voice(s) from State %02d: %s", 
+    spawned, state_index, state.name or ""))
+  
+  return true
+end
+
+-- Merge voices from state (additive, doesn't clear existing)
+function PakettiPhraseVoiceStateMerge(state_index)
+  return PakettiPhraseVoiceStateRecall(state_index, {clear_existing = false})
+end
+
+-- Quick recall functions for keybindings
+function PakettiPhraseVoiceStateRecall01() PakettiPhraseVoiceStateRecall(1) end
+function PakettiPhraseVoiceStateRecall02() PakettiPhraseVoiceStateRecall(2) end
+function PakettiPhraseVoiceStateRecall03() PakettiPhraseVoiceStateRecall(3) end
+function PakettiPhraseVoiceStateRecall04() PakettiPhraseVoiceStateRecall(4) end
+function PakettiPhraseVoiceStateRecall05() PakettiPhraseVoiceStateRecall(5) end
+function PakettiPhraseVoiceStateRecall06() PakettiPhraseVoiceStateRecall(6) end
+function PakettiPhraseVoiceStateRecall07() PakettiPhraseVoiceStateRecall(7) end
+function PakettiPhraseVoiceStateRecall08() PakettiPhraseVoiceStateRecall(8) end
+function PakettiPhraseVoiceStateRecall09() PakettiPhraseVoiceStateRecall(9) end
+function PakettiPhraseVoiceStateRecall10() PakettiPhraseVoiceStateRecall(10) end
+function PakettiPhraseVoiceStateRecall11() PakettiPhraseVoiceStateRecall(11) end
+function PakettiPhraseVoiceStateRecall12() PakettiPhraseVoiceStateRecall(12) end
+function PakettiPhraseVoiceStateRecall13() PakettiPhraseVoiceStateRecall(13) end
+function PakettiPhraseVoiceStateRecall14() PakettiPhraseVoiceStateRecall(14) end
+function PakettiPhraseVoiceStateRecall15() PakettiPhraseVoiceStateRecall(15) end
+function PakettiPhraseVoiceStateRecall16() PakettiPhraseVoiceStateRecall(16) end
+
+-- Quick save functions for keybindings
+function PakettiPhraseVoiceStateSave01() PakettiPhraseVoiceStateSave(1) end
+function PakettiPhraseVoiceStateSave02() PakettiPhraseVoiceStateSave(2) end
+function PakettiPhraseVoiceStateSave03() PakettiPhraseVoiceStateSave(3) end
+function PakettiPhraseVoiceStateSave04() PakettiPhraseVoiceStateSave(4) end
+function PakettiPhraseVoiceStateSave05() PakettiPhraseVoiceStateSave(5) end
+function PakettiPhraseVoiceStateSave06() PakettiPhraseVoiceStateSave(6) end
+function PakettiPhraseVoiceStateSave07() PakettiPhraseVoiceStateSave(7) end
+function PakettiPhraseVoiceStateSave08() PakettiPhraseVoiceStateSave(8) end
 
 -- Store current phrase selections as a state
 function PakettiPhraseGridStore(state_index, name)
@@ -3762,6 +5632,78 @@ renoise.tool():add_keybinding{name="Global:Paketti:Quick Flick Slice Sequential"
 renoise.tool():add_keybinding{name="Global:Paketti:Quick Flick Slice Reverse", invoke=function() PakettiQuickFlickSliceReverse() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Quick Flick Slice Random", invoke=function() PakettiQuickFlickSliceRandom() end}
 
+-- Voice Orchestration Keybindings (NEW)
+-- Voice Spawn (additive)
+for i = 1, 16 do
+  local phrase_num = string.format("%02d", i)
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:PhraseVoice Spawn Phrase " .. phrase_num,
+    invoke=function() PakettiPhraseVoiceSpawn(i) end
+  }
+end
+
+-- Voice Toggle (spawn or kill)
+for i = 1, 16 do
+  local phrase_num = string.format("%02d", i)
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:PhraseVoice Toggle Phrase " .. phrase_num,
+    invoke=function() PakettiPhraseVoiceToggleSpawn(i) end
+  }
+end
+
+-- Voice Smart Spawn (auto-detect editor/switcher mode)
+for i = 1, 16 do
+  local phrase_num = string.format("%02d", i)
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:PhraseVoice Smart Spawn Phrase " .. phrase_num,
+    invoke=function() PakettiPhraseVoiceSmartSpawn(i) end
+  }
+end
+
+-- Voice Kill (stop specific phrase)
+for i = 1, 16 do
+  local phrase_num = string.format("%02d", i)
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:PhraseVoice Kill Phrase " .. phrase_num,
+    invoke=function() PakettiPhraseVoiceKillPhrase(i) end
+  }
+end
+
+-- Voice State Recall
+for i = 1, 16 do
+  local state_num = string.format("%02d", i)
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:PhraseVoice State Recall " .. state_num,
+    invoke=function() PakettiPhraseVoiceStateRecall(i) end
+  }
+end
+
+-- Voice State Save
+for i = 1, 8 do
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:PhraseVoice State Save " .. i,
+    invoke=function() PakettiPhraseVoiceStateSave(i) end
+  }
+end
+
+-- Voice Control Keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Kill All", invoke=PakettiPhraseVoiceKillAll}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Toggle Phase Lock", invoke=PakettiPhraseVoiceTogglePhaseLock}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Toggle Output Mode", invoke=PakettiPhraseVoiceToggleOutputMode}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Toggle Operation Mode", invoke=PakettiPhraseVoiceToggleOperationMode}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Clear Pending Queue", invoke=PakettiPhraseVoiceClearPendingQueue}
+
+-- Editor Mode: Spawn Selected and Modular Construction
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Spawn Selected Phrase", invoke=PakettiPhraseVoiceSpawnSelectedPhrase}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Spawn Kick Phrases", invoke=PakettiPhraseVoiceSpawnKick}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Spawn Snare Phrases", invoke=PakettiPhraseVoiceSpawnSnare}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Spawn HiHat Phrases", invoke=PakettiPhraseVoiceSpawnHihat}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Spawn Bass Phrases", invoke=PakettiPhraseVoiceSpawnBass}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Spawn Lead Phrases", invoke=PakettiPhraseVoiceSpawnLead}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Spawn Pad Phrases", invoke=PakettiPhraseVoiceSpawnPad}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Toggle Additive Mode", invoke=function() PakettiPhraseVoiceAdditiveMode = not PakettiPhraseVoiceAdditiveMode renoise.app():show_status("Additive Mode: " .. (PakettiPhraseVoiceAdditiveMode and "ON" or "OFF")) end}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Toggle Debug Mode", invoke=function() PakettiPhraseVoiceDebugEnabled = not PakettiPhraseVoiceDebugEnabled renoise.app():show_status("Debug Mode: " .. (PakettiPhraseVoiceDebugEnabled and "ON" or "OFF")) end}
+
 --------------------------------------------------------------------------------
 -- 16. MIDI MAPPINGS
 --------------------------------------------------------------------------------
@@ -3843,6 +5785,67 @@ renoise.tool():add_midi_mapping{name="Paketti:Quick Select Lines 33-48 [Trigger]
 renoise.tool():add_midi_mapping{name="Paketti:Quick Select Lines 49-64 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiQuickFlicksSelectRange_48_64() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Quick Select Full Pattern [Trigger]", invoke=function(message) if message:is_trigger() then PakettiQuickFlicksSelectFullPattern() end end}
 renoise.tool():add_midi_mapping{name="Paketti:PhraseGrid Snapshot All Sequencers [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseGridSnapshotAllSequencersToState(PakettiPhraseGridCurrentState > 0 and PakettiPhraseGridCurrentState or 1) end end}
+
+-- Voice Orchestration MIDI Mappings (NEW)
+-- Voice Spawn (additive) 01-16
+for i = 1, 16 do
+  local phrase_num = string.format("%02d", i)
+  renoise.tool():add_midi_mapping{
+    name="Paketti:PhraseVoice Spawn Phrase " .. phrase_num .. " [Trigger]",
+    invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceSpawn(i) end end
+  }
+end
+
+-- Voice Toggle (spawn or kill) 01-16
+for i = 1, 16 do
+  local phrase_num = string.format("%02d", i)
+  renoise.tool():add_midi_mapping{
+    name="Paketti:PhraseVoice Toggle Phrase " .. phrase_num .. " [Trigger]",
+    invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceToggleSpawn(i) end end
+  }
+end
+
+-- Voice Smart Spawn 01-16
+for i = 1, 16 do
+  local phrase_num = string.format("%02d", i)
+  renoise.tool():add_midi_mapping{
+    name="Paketti:PhraseVoice Smart Spawn Phrase " .. phrase_num .. " [Trigger]",
+    invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceSmartSpawn(i) end end
+  }
+end
+
+-- Voice Kill 01-16
+for i = 1, 16 do
+  local phrase_num = string.format("%02d", i)
+  renoise.tool():add_midi_mapping{
+    name="Paketti:PhraseVoice Kill Phrase " .. phrase_num .. " [Trigger]",
+    invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceKillPhrase(i) end end
+  }
+end
+
+-- Voice State Recall 01-16
+for i = 1, 16 do
+  local state_num = string.format("%02d", i)
+  renoise.tool():add_midi_mapping{
+    name="Paketti:PhraseVoice State Recall " .. state_num .. " [Trigger]",
+    invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceStateRecall(i) end end
+  }
+end
+
+-- Voice State Save 01-08
+for i = 1, 8 do
+  renoise.tool():add_midi_mapping{
+    name="Paketti:PhraseVoice State Save " .. i .. " [Trigger]",
+    invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceStateSave(i) end end
+  }
+end
+
+-- Voice Control MIDI Mappings
+renoise.tool():add_midi_mapping{name="Paketti:PhraseVoice Kill All [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceKillAll() end end}
+renoise.tool():add_midi_mapping{name="Paketti:PhraseVoice Toggle Phase Lock [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceTogglePhaseLock() end end}
+renoise.tool():add_midi_mapping{name="Paketti:PhraseVoice Toggle Output Mode [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceToggleOutputMode() end end}
+renoise.tool():add_midi_mapping{name="Paketti:PhraseVoice Toggle Operation Mode [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceToggleOperationMode() end end}
+renoise.tool():add_midi_mapping{name="Paketti:PhraseVoice Clear Pending Queue [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceClearPendingQueue() end end}
 
 --------------------------------------------------------------------------------
 -- 16b. UNIFIED QUICK CAPTURE/RECALL COMMANDS
@@ -4882,6 +6885,300 @@ function PakettiPhraseGridShowPerformanceDialog()
               PakettiStackerCreateSparseRandomPhrase(16)
             else
               renoise.app():show_status("Stacker functions not loaded")
+            end
+          end
+        }
+      }
+    },
+    
+    -- Voice Orchestration Section (NEW)
+    vb:column{
+      style = "group",
+      margin = 5,
+      vb:text{text = "Voice Orchestration", font = "bold"},
+      
+      -- Active Voices Display
+      vb:row{
+        vb:text{text = "Active Voices: "},
+        vb:text{
+          id = "perf_voice_count",
+          text = tostring(#PakettiPhraseVoicePool),
+          font = "bold"
+        },
+        vb:text{text = " / "},
+        vb:text{text = tostring(PakettiPhraseVoiceMaxVoices)},
+        vb:button{
+          text = "Kill All",
+          width = 60,
+          tooltip = "Stop all phrase voices",
+          notifier = function()
+            PakettiPhraseVoiceKillAll()
+            -- Refresh voice count display
+            if PakettiPhraseGridPerformanceVb then
+              local count_text = PakettiPhraseGridPerformanceVb.views["perf_voice_count"]
+              if count_text then count_text.text = "0" end
+            end
+          end
+        }
+      },
+      
+      -- Voice Output Mode
+      vb:row{
+        spacing = 5,
+        vb:text{text = "Output:"},
+        vb:switch{
+          items = {"Track", "Column"},
+          width = 100,
+          value = (PakettiPhraseVoiceOutputMode == "column") and 2 or 1,
+          notifier = function(value)
+            PakettiPhraseVoiceSetOutputMode((value == 2) and "column" or "track")
+          end
+        },
+        vb:checkbox{
+          value = PakettiPhraseVoicePhaseLockEnabled,
+          notifier = function(value)
+            PakettiPhraseVoicePhaseLockEnabled = value
+          end
+        },
+        vb:text{text = "Phase Lock"}
+      },
+      
+      -- Voice Trigger Grid (8 buttons for phrases 1-8)
+      -- Buttons have IDs for highlighting active voices
+      vb:row{
+        spacing = 2,
+        vb:button{id = "voice_btn_01", text = "P01", width = 35, tooltip = "Toggle Phrase 01 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(1) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_02", text = "P02", width = 35, tooltip = "Toggle Phrase 02 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(2) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_03", text = "P03", width = 35, tooltip = "Toggle Phrase 03 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(3) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_04", text = "P04", width = 35, tooltip = "Toggle Phrase 04 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(4) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_05", text = "P05", width = 35, tooltip = "Toggle Phrase 05 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(5) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_06", text = "P06", width = 35, tooltip = "Toggle Phrase 06 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(6) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_07", text = "P07", width = 35, tooltip = "Toggle Phrase 07 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(7) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_08", text = "P08", width = 35, tooltip = "Toggle Phrase 08 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(8) PakettiPhraseVoiceUpdateButtonHighlights() end}
+      },
+      vb:row{
+        spacing = 2,
+        vb:button{id = "voice_btn_09", text = "P09", width = 35, tooltip = "Toggle Phrase 09 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(9) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_10", text = "P10", width = 35, tooltip = "Toggle Phrase 10 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(10) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_11", text = "P11", width = 35, tooltip = "Toggle Phrase 11 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(11) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_12", text = "P12", width = 35, tooltip = "Toggle Phrase 12 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(12) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_13", text = "P13", width = 35, tooltip = "Toggle Phrase 13 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(13) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_14", text = "P14", width = 35, tooltip = "Toggle Phrase 14 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(14) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_15", text = "P15", width = 35, tooltip = "Toggle Phrase 15 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(15) PakettiPhraseVoiceUpdateButtonHighlights() end},
+        vb:button{id = "voice_btn_16", text = "P16", width = 35, tooltip = "Toggle Phrase 16 voice", notifier = function() PakettiPhraseVoiceToggleSpawn(16) PakettiPhraseVoiceUpdateButtonHighlights() end}
+      },
+      
+      -- Quantization Control
+      vb:row{
+        spacing = 5,
+        vb:text{text = "Quant:"},
+        vb:popup{
+          width = 80,
+          items = {"Line", "Beat", "Bar", "Custom"},
+          value = (function()
+            if PakettiPhraseSwitcherDefaultQuant == "line" then return 1
+            elseif PakettiPhraseSwitcherDefaultQuant == "beat" then return 2
+            elseif PakettiPhraseSwitcherDefaultQuant == "bar" then return 3
+            else return 4 end
+          end)(),
+          notifier = function(value)
+            local quants = {"line", "beat", "bar", "custom"}
+            PakettiPhraseSwitcherSetDefaultQuant(quants[value])
+          end
+        },
+        vb:text{text = "Custom:"},
+        vb:valuebox{
+          min = 1,
+          max = 64,
+          value = PakettiPhraseSwitcherCustomQuant,
+          width = 50,
+          notifier = function(value)
+            PakettiPhraseSwitcherCustomQuant = value
+          end
+        },
+        vb:text{text = "lines"}
+      },
+      
+      -- Voice State Actions
+      vb:row{
+        spacing = 5,
+        vb:button{
+          text = "Save Voices",
+          width = 80,
+          tooltip = "Save active voices as PhraseGrid state",
+          notifier = function()
+            local state_idx = PakettiPhraseGridCurrentState > 0 and PakettiPhraseGridCurrentState or 1
+            PakettiPhraseVoiceStateSave(state_idx)
+          end
+        },
+        vb:button{
+          text = "Clear Pending",
+          width = 80,
+          tooltip = "Clear scheduled voice queue",
+          notifier = function()
+            PakettiPhraseVoiceClearPendingQueue()
+          end
+        }
+      }
+    },
+    
+    -- Live Recording Section (from PakettiPhraseTransportRecording)
+    vb:column{
+      style = "group",
+      margin = 5,
+      vb:text{text = "Live Phrase Recording", font = "bold"},
+      
+      -- State display and controls
+      vb:row{
+        spacing = 5,
+        vb:text{text = "State:"},
+        vb:text{
+          id = "perf_rec_state",
+          text = (PakettiPhraseRec_GetStateName and PakettiPhraseRec_GetStateName(PakettiPhraseRec_CurrentState or 1)) or "IDLE",
+          font = "bold"
+        },
+        vb:button{
+          id = "perf_rec_arm_btn",
+          text = "Arm",
+          width = 50,
+          tooltip = "Arm phrase recording (MIDI interception begins)",
+          notifier = function()
+            if PakettiPhraseRec_Arm then
+              if PakettiPhraseRec_CurrentState == PakettiPhraseRec_STATE_IDLE then
+                PakettiPhraseRec_Arm()
+              else
+                PakettiPhraseRec_Disarm()
+              end
+              -- Update state display
+              local state_text = vb.views["perf_rec_state"]
+              if state_text then
+                state_text.text = PakettiPhraseRec_GetStateName(PakettiPhraseRec_CurrentState)
+              end
+            end
+          end
+        },
+        vb:button{
+          id = "perf_rec_rec_btn",
+          text = "Record",
+          width = 55,
+          tooltip = "Start recording to phrase",
+          notifier = function()
+            if PakettiPhraseRec_StartRecording then
+              if PakettiPhraseRec_CurrentState == PakettiPhraseRec_STATE_RECORDING_ACTIVE then
+                PakettiPhraseRec_StopRecording()
+              else
+                PakettiPhraseRec_StartRecording()
+              end
+              -- Update state display
+              local state_text = vb.views["perf_rec_state"]
+              if state_text then
+                state_text.text = PakettiPhraseRec_GetStateName(PakettiPhraseRec_CurrentState)
+              end
+            end
+          end
+        },
+        vb:button{
+          text = "Stop",
+          width = 45,
+          tooltip = "Stop recording and disarm",
+          notifier = function()
+            if PakettiPhraseRec_StopRecording then
+              PakettiPhraseRec_StopRecording()
+              -- Update state display
+              local state_text = vb.views["perf_rec_state"]
+              if state_text then
+                state_text.text = PakettiPhraseRec_GetStateName(PakettiPhraseRec_CurrentState)
+              end
+            end
+          end
+        }
+      },
+      
+      -- MIDI and Quantize settings
+      vb:row{
+        spacing = 5,
+        vb:checkbox{
+          value = PakettiPhraseRec_MidiInterceptEnabled or true,
+          notifier = function(value)
+            if PakettiPhraseRec_MidiInterceptEnabled ~= nil then
+              PakettiPhraseRec_MidiInterceptEnabled = value
+              if PakettiPhraseRec_SavePreferences then
+                PakettiPhraseRec_SavePreferences()
+              end
+            end
+          end
+        },
+        vb:text{text = "MIDI Intercept"},
+        vb:checkbox{
+          value = PakettiPhraseRec_QuantizeEnabled or true,
+          notifier = function(value)
+            if PakettiPhraseRec_QuantizeEnabled ~= nil then
+              PakettiPhraseRec_QuantizeEnabled = value
+              if PakettiPhraseRec_SavePreferences then
+                PakettiPhraseRec_SavePreferences()
+              end
+            end
+          end
+        },
+        vb:text{text = "Quantize"},
+        vb:popup{
+          items = {"OFF", "1", "2", "3", "4", "6", "8", "12", "16"},
+          value = (function()
+            local grid = PakettiPhraseRec_QuantizeGrid or 4
+            if grid == 0 then return 1
+            elseif grid == 1 then return 2
+            elseif grid == 2 then return 3
+            elseif grid == 3 then return 4
+            elseif grid == 4 then return 5
+            elseif grid == 6 then return 6
+            elseif grid == 8 then return 7
+            elseif grid == 12 then return 8
+            elseif grid == 16 then return 9
+            else return 5 end
+          end)(),
+          width = 55,
+          notifier = function(idx)
+            local grid_values = {0, 1, 2, 3, 4, 6, 8, 12, 16}
+            if PakettiPhraseRec_QuantizeGrid ~= nil then
+              PakettiPhraseRec_QuantizeGrid = grid_values[idx]
+              if PakettiPhraseRec_SavePreferences then
+                PakettiPhraseRec_SavePreferences()
+              end
+            end
+          end
+        }
+      },
+      
+      -- Quantize actions
+      vb:row{
+        spacing = 5,
+        vb:button{
+          text = "Quantize Sel",
+          width = 80,
+          tooltip = "Quantize notes in current phrase selection",
+          notifier = function()
+            if PakettiPhraseRec_QuantizeSelection then
+              PakettiPhraseRec_QuantizeSelection()
+            end
+          end
+        },
+        vb:button{
+          text = "Quantize Phrase",
+          width = 95,
+          tooltip = "Quantize all notes in current phrase",
+          notifier = function()
+            if PakettiPhraseRec_QuantizePhrase then
+              PakettiPhraseRec_QuantizePhrase()
+            end
+          end
+        },
+        vb:button{
+          text = "Dialog...",
+          width = 60,
+          tooltip = "Open full Phrase Recording dialog",
+          notifier = function()
+            if PakettiPhraseRec_ShowDialog then
+              PakettiPhraseRec_ShowDialog()
             end
           end
         }
