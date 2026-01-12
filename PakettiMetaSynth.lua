@@ -815,8 +815,8 @@ function PakettiMetaSynthAddLFOToModSet(mod_set, target_type, params)
     if params.frequency and device.frequency then
       device.frequency.value = params.frequency
     end
-    if params.amount and device.amount then
-      device.amount.value = params.amount
+    if params.amount and device.amplitude then
+      device.amplitude.value = params.amount
     end
     if params.phase and device.phase then
       device.phase.value = params.phase

@@ -1698,6 +1698,11 @@ vb:checkbox{
     value = false,
     width=20,
     notifier=function(new_value)
+        -- Safety check: ensure song and sample exist
+        if not renoise.song() then return end
+        if not renoise.song().selected_instrument then return end
+        if not renoise.song().selected_sample then return end
+        
         local instrument = renoise.song().selected_instrument
         
         -- Find Volume AHDSR device
