@@ -41,7 +41,12 @@ function PakettiMetaSynthCreateDefaultArchitecture()
             sample_source = "akwf",
             sample_folder = nil,
             detune_spread = 10,
-            pan_spread = 0.8
+            pan_spread = 0.8,
+            -- Oscillator FX settings (processing after frame morphing, before group morphing)
+            osc_fx_enabled = false,
+            osc_fx_mode = "random",
+            osc_fx_count = 2,
+            osc_fx_types = {}
           }
         }
       }
@@ -88,8 +93,20 @@ function PakettiMetaSynthCalculateTotalFXChains(architecture)
   for _, group in ipairs(architecture.oscillator_groups) do
     for _, osc in ipairs(group.oscillators) do
       -- Each frame needs its own FX chain
-      total = total + (osc.sample_count * osc.frame_count)
+      total = total + osc.frame_count
+      -- Add 1 chain per oscillator when Oscillator FX is enabled
+      if osc.osc_fx_enabled then
+        total = total + 1
+      end
     end
+    -- Add 1 chain per group when Group Master FX is enabled
+    if group.group_master_fx_enabled then
+      total = total + 1
+    end
+  end
+  -- Add 1 chain for Stacked Master FX when enabled
+  if architecture.stacked_master_fx_enabled then
+    total = total + 1
   end
   return total
 end
@@ -142,6 +159,19 @@ function PakettiMetaSynthValidateArchitecture(architecture)
       end
       if osc.frame_count < 1 or osc.frame_count > 16 then
         table.insert(errors, string.format("Oscillator '%s' frame_count must be 1-16", osc.name))
+      end
+      
+      -- Validate Oscillator FX settings
+      if osc.osc_fx_enabled then
+        if osc.osc_fx_count < 1 or osc.osc_fx_count > 5 then
+          table.insert(errors, string.format("Oscillator '%s' FX count must be 1-5", osc.name))
+        end
+        if osc.osc_fx_mode ~= "random" and osc.osc_fx_mode ~= "selective" then
+          table.insert(errors, string.format("Oscillator '%s' FX mode must be 'random' or 'selective'", osc.name))
+        end
+        if osc.osc_fx_mode == "selective" and (not osc.osc_fx_types or #osc.osc_fx_types == 0) then
+          table.insert(warnings, string.format("Oscillator '%s' has selective FX mode but no FX types selected", osc.name))
+        end
       end
     end
   end
@@ -818,9 +848,8 @@ function PakettiMetaSynthAddLFOToModSet(mod_set, target_type, params)
     if params.amount and device.amplitude then
       device.amplitude.value = params.amount
     end
-    if params.phase and device.phase then
-      device.phase.value = params.phase
-    end
+    -- Note: SampleLfoModulationDevice does not have a 'phase' property in the API
+    -- Phase offset would require XML injection if needed
     if params.mode and device.mode then
       device.mode = params.mode
     end
@@ -984,6 +1013,66 @@ function PakettiMetaSynthBuildGroupCrossfadeRouting(chains_created, osc_index, t
   return chains_created
 end
 
+-- Add group-level crossfade to a single chain (typically the Oscillator FX chain)
+-- This is used when Oscillator FX is enabled, so Group Gainer goes on the Osc FX chain instead of every frame chain
+function PakettiMetaSynthAddGroupCrossfadeToChain(chain, chain_info, osc_index, total_oscs, group_config)
+  -- Skip if only one oscillator (nothing to crossfade between)
+  if total_oscs <= 1 then
+    return chain_info
+  end
+  
+  -- Skip if group crossfade is disabled
+  if not group_config.group_crossfade_enabled then
+    return chain_info
+  end
+  
+  local curve_type = group_config.group_crossfade_curve or "equal_power"
+  local crossfade_time = group_config.group_crossfade_time or 4.0
+  
+  -- Generate crossfade curve for this oscillator's position within the group
+  local group_crossfade_curve = PakettiMetaSynthGenerateCrossfadeCurve(
+    curve_type,
+    128,
+    osc_index,
+    total_oscs
+  )
+  
+  -- Create Group Gainer at the end of the chain
+  local initial_gain = group_crossfade_curve[1].value
+  local group_gainer, group_gainer_position = PakettiMetaSynthCreateGainer(
+    chain, 
+    initial_gain, 
+    string.format("Group XFade Osc %d/%d", osc_index, total_oscs)
+  )
+  
+  -- Create Group LFO with crossfade envelope routed to the Group Gainer
+  local scaled_curve = {}
+  for i, point in ipairs(group_crossfade_curve) do
+    table.insert(scaled_curve, {
+      time = point.time,
+      value = point.value
+    })
+  end
+  
+  local group_lfo = PakettiMetaSynthCreateCrossfadeLFO(
+    chain,
+    scaled_curve,
+    string.format("Group LFO Osc %d", osc_index),
+    group_gainer_position,  -- Destination device index
+    1                       -- Destination parameter index (Gain)
+  )
+  
+  -- Store group crossfade info in chain_info
+  chain_info.group_gainer = group_gainer
+  chain_info.group_gainer_position = group_gainer_position
+  chain_info.group_lfo = group_lfo
+  chain_info.group_crossfade_curve = group_crossfade_curve
+  chain_info.osc_position = osc_index
+  chain_info.total_oscs = total_oscs
+  
+  return chain_info
+end
+
 -- Helper function to add a #Send device to a chain that routes to a destination chain
 function PakettiMetaSynthAddSendDevice(chain, dest_chain_index, display_name)
   local position = #chain.devices + 1
@@ -1027,6 +1116,98 @@ function PakettiMetaSynthAddSendDevice(chain, dest_chain_index, display_name)
   end
   
   return send_device
+end
+
+-- Build Oscillator FX chain (single chain where all frame chains converge)
+-- Creates ONE dedicated FX chain per oscillator that processes the summed oscillator output
+-- This sits between frame morphing and group morphing in the signal flow
+-- routing_mode: "output_routing" (chain property) or "send_device" (#Send devices)
+function PakettiMetaSynthBuildOscillatorFX(instrument, frame_chains, osc_config, routing_mode, randomization_amount)
+  -- If Oscillator FX is disabled, return frame chains unchanged
+  if not osc_config.osc_fx_enabled then
+    return frame_chains, nil
+  end
+  
+  if #frame_chains == 0 then
+    return frame_chains, nil
+  end
+  
+  local mode = osc_config.osc_fx_mode or "random"
+  local device_count = osc_config.osc_fx_count or 2
+  local fx_types = osc_config.osc_fx_types or {}
+  routing_mode = routing_mode or "output_routing"
+  randomization_amount = randomization_amount or 0.3
+  
+  -- Create a dedicated Oscillator FX chain
+  local osc_fx_chain_name = osc_config.name .. " FX"
+  local osc_fx_chain_index = #instrument.sample_device_chains + 1
+  instrument:insert_sample_device_chain_at(osc_fx_chain_index)
+  local osc_fx_chain = instrument.sample_device_chains[osc_fx_chain_index]
+  osc_fx_chain.name = osc_fx_chain_name
+  
+  -- Add FX devices to the Oscillator FX chain
+  local osc_fx_devices = {}
+  
+  if mode == "selective" and #fx_types > 0 then
+    -- Selective mode: use specified FX types
+    for i = 1, device_count do
+      local type_index = ((i - 1) % #fx_types) + 1
+      local fx_type_name = fx_types[type_index]
+      local device = PakettiMetaSynthBuildFXByType(osc_fx_chain, fx_type_name, randomization_amount)
+      if device then
+        device.display_name = string.format("OscFX %s %d", fx_type_name, i)
+        table.insert(osc_fx_devices, device)
+      end
+    end
+  else
+    -- Random mode: use random devices from the safe pool
+    for i = 1, device_count do
+      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+      local device = PakettiMetaSynthInsertDevice(osc_fx_chain, random_device)
+      if device then
+        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+        device.display_name = string.format("OscFX %d", i)
+        table.insert(osc_fx_devices, device)
+      end
+    end
+  end
+  
+  -- Route all frame chains from this oscillator to the Oscillator FX chain
+  if routing_mode == "send_device" then
+    -- Use #Send devices to route to the oscillator FX chain
+    for _, chain_info in ipairs(frame_chains) do
+      local chain = chain_info.chain
+      local send_device = PakettiMetaSynthAddSendDevice(
+        chain, 
+        osc_fx_chain_index, 
+        string.format("Send to %s", osc_fx_chain_name)
+      )
+      chain_info.send_to_osc_fx = send_device
+      chain_info.routed_to_osc_fx = osc_fx_chain_name
+    end
+    print(string.format("PakettiMetaSynth: Created Oscillator FX chain '%s' with %d devices, added #Send devices to %d frame chains", 
+      osc_fx_chain_name, #osc_fx_devices, #frame_chains))
+  else
+    -- Use output_routing property
+    for _, chain_info in ipairs(frame_chains) do
+      local chain = chain_info.chain
+      chain.output_routing = osc_fx_chain_name
+      chain_info.routed_to_osc_fx = osc_fx_chain_name
+    end
+    print(string.format("PakettiMetaSynth: Created Oscillator FX chain '%s' with %d devices, routed %d frame chains via output_routing", 
+      osc_fx_chain_name, #osc_fx_devices, #frame_chains))
+  end
+  
+  -- Return the oscillator FX chain info
+  local osc_fx_info = {
+    chain = osc_fx_chain,
+    chain_index = osc_fx_chain_index,
+    chain_name = osc_fx_chain_name,
+    devices = osc_fx_devices,
+    osc_name = osc_config.name
+  }
+  
+  return frame_chains, osc_fx_info
 end
 
 -- Build Group Master FX chain (single chain that all oscillator chains route to)
@@ -1295,18 +1476,45 @@ function PakettiMetaSynthGenerateInstrument(architecture)
         architecture.crossfade
       )
       
-      -- Apply group-level crossfade (wavetable scanning between oscillators)
+      -- Get routing mode and randomization amount
+      local routing_mode = architecture.master_routing_mode or "output_routing"
+      local randomization_amount = architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
       local total_oscs_in_group = #group.oscillators
-      frame_routing = PakettiMetaSynthBuildGroupCrossfadeRouting(
+      
+      -- Build Oscillator FX chain (if enabled) and route frame chains to it
+      local osc_fx_info = nil
+      frame_routing, osc_fx_info = PakettiMetaSynthBuildOscillatorFX(
+        instrument,
         frame_routing,
-        oi,                -- Current oscillator index in group
-        total_oscs_in_group,
-        group              -- Group config with crossfade settings
+        osc,
+        routing_mode,
+        randomization_amount
       )
       
-      -- Add frame chains to group tracking
-      for _, chain_info in ipairs(frame_routing) do
-        table.insert(all_group_chains, chain_info)
+      -- Apply group-level crossfade (wavetable scanning between oscillators)
+      if osc_fx_info then
+        -- Oscillator FX is enabled: add Group Gainer to the Oscillator FX chain
+        PakettiMetaSynthAddGroupCrossfadeToChain(
+          osc_fx_info.chain,
+          osc_fx_info,
+          oi,                -- Current oscillator index in group
+          total_oscs_in_group,
+          group              -- Group config with crossfade settings
+        )
+        -- Track the Oscillator FX chain for Group Master routing
+        table.insert(all_group_chains, osc_fx_info)
+      else
+        -- Oscillator FX is disabled: add Group Gainer to each frame chain (legacy behavior)
+        frame_routing = PakettiMetaSynthBuildGroupCrossfadeRouting(
+          frame_routing,
+          oi,                -- Current oscillator index in group
+          total_oscs_in_group,
+          group              -- Group config with crossfade settings
+        )
+        -- Track frame chains for Group Master routing
+        for _, chain_info in ipairs(frame_routing) do
+          table.insert(all_group_chains, chain_info)
+        end
       end
       
       -- Create modulation set for this oscillator
@@ -1324,11 +1532,9 @@ function PakettiMetaSynthGenerateInstrument(architecture)
       
       -- Add LFO for pitch vibrato if random phase offsets enabled
       if architecture.modulation and architecture.modulation.random_phase_offsets then
-        local random_phase = math.random() * 360
         PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, {
           frequency = 0.3 + math.random() * 0.3,
-          amount = 0.02,
-          phase = random_phase
+          amount = 0.02
         })
       end
       
@@ -1393,18 +1599,22 @@ function PakettiMetaSynthGenerateInstrument(architecture)
         end
       end
       
+      -- Update chain_index: frame chains + optional Oscillator FX chain
       chain_index = chain_index + osc.frame_count
+      if osc.osc_fx_enabled then
+        chain_index = chain_index + 1
+      end
     end
     
     -- Apply Group Master FX - creates single chain and routes all oscillator chains to it
     local group_master_info
-    local routing_mode = architecture.master_routing_mode or "output_routing"
+    local routing_mode_for_group = architecture.master_routing_mode or "output_routing"
     all_group_chains, group_master_info = PakettiMetaSynthBuildGroupMasterFX(
       instrument,
       all_group_chains,
       group,
       group.name,
-      routing_mode,
+      routing_mode_for_group,
       architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
     )
     
@@ -1484,6 +1694,27 @@ function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining)
   -- Random spread values
   osc.detune_spread = 5 + math.random() * 20  -- 5-25 cents
   osc.pan_spread = 0.3 + math.random() * 0.7  -- 0.3-1.0
+  
+  -- Random Oscillator FX settings
+  osc.osc_fx_enabled = math.random() > 0.5
+  osc.osc_fx_mode = math.random() > 0.5 and "random" or "selective"
+  osc.osc_fx_count = math.random(1, 4)
+  osc.osc_fx_types = {}
+  
+  -- If selective mode, randomly pick some FX types
+  if osc.osc_fx_mode == "selective" then
+    local fx_names = PakettiMetaSynthGetSelectableFXTypeNames()
+    local num_types = math.random(1, math.min(3, #fx_names))
+    local shuffled_types = {}
+    for _, name in ipairs(fx_names) do table.insert(shuffled_types, name) end
+    for i = #shuffled_types, 2, -1 do
+      local j = math.random(1, i)
+      shuffled_types[i], shuffled_types[j] = shuffled_types[j], shuffled_types[i]
+    end
+    for i = 1, num_types do
+      table.insert(osc.osc_fx_types, shuffled_types[i])
+    end
+  end
   
   return osc
 end
@@ -1597,14 +1828,15 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
     end
   end
   
-  -- Random master routing mode
-  architecture.master_routing_mode = math.random() > 0.5 and "output_routing" or "send_device"
+  -- Default to output_routing (safer, no sends) - can be overridden by caller
+  architecture.master_routing_mode = "output_routing"
   
   return architecture
 end
 
--- Quick random instrument generation
-function PakettiMetaSynthGenerateRandomInstrument()
+-- Quick random instrument generation with specified routing mode
+-- routing_mode: "output_routing" (chain routing, no sends) or "send_device" (#Send devices)
+function PakettiMetaSynthGenerateRandomInstrumentWithRouting(routing_mode)
   -- Safety check: ensure song is loaded
   if not renoise.song() then
     renoise.app():show_status("PakettiMetaSynth: No song loaded")
@@ -1613,8 +1845,20 @@ function PakettiMetaSynthGenerateRandomInstrument()
   
   local architecture = PakettiMetaSynthCreateDefaultArchitecture()
   PakettiMetaSynthRandomizeArchitecture(architecture)
+  -- Override the routing mode with specified value
+  architecture.master_routing_mode = routing_mode or "output_routing"
   architecture.name = "MetaSynth Random " .. os.date("%H%M%S")
   return PakettiMetaSynthGenerateInstrument(architecture)
+end
+
+-- Quick random instrument generation (uses output_routing - no sends, more reliable)
+function PakettiMetaSynthGenerateRandomInstrument()
+  return PakettiMetaSynthGenerateRandomInstrumentWithRouting("output_routing")
+end
+
+-- Quick random instrument generation with #Send devices
+function PakettiMetaSynthGenerateRandomInstrumentWithSends()
+  return PakettiMetaSynthGenerateRandomInstrumentWithRouting("send_device")
 end
 
 -- ============================================================================
@@ -1754,94 +1998,143 @@ function PakettiMetaSynthKeyHandler(dialog, key)
   end
 end
 
--- Build oscillator row for GUI (with folder browse button)
+-- Build oscillator row for GUI (with folder browse button and Oscillator FX controls)
 function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
   local row_id = string.format("osc_%d_%d", group_index, osc_index)
   
-  return vb:row {
+  -- Get oscillator FX values with defaults
+  local osc_fx_enabled = osc.osc_fx_enabled or false
+  local osc_fx_mode = osc.osc_fx_mode or "random"
+  local osc_fx_count = osc.osc_fx_count or 2
+  local osc_fx_mode_index = osc_fx_mode == "selective" and 2 or 1
+  
+  return vb:column {
     id = row_id,
-    spacing = 4,
+    spacing = 2,
     
-    vb:text {
-      text = osc.name,
-      width = 50
-    },
-    
-    vb:text { text = "S:" },
-    vb:valuebox {
-      id = row_id .. "_samples",
-      min = 1,
-      max = 12,
-      value = osc.sample_count,
-      width = 40,
-      notifier = function(value)
-        osc.sample_count = value
-        PakettiMetaSynthUpdatePreview()
-      end
-    },
-    
-    vb:text { text = "U:" },
-    vb:valuebox {
-      id = row_id .. "_unison",
-      min = 1,
-      max = 8,
-      value = osc.unison_voices,
-      width = 40,
-      notifier = function(value)
-        osc.unison_voices = value
-        PakettiMetaSynthUpdatePreview()
-      end
-    },
-    
-    vb:text { text = "F:" },
-    vb:valuebox {
-      id = row_id .. "_frames",
-      min = 1,
-      max = 16,
-      value = osc.frame_count,
-      width = 40,
-      notifier = function(value)
-        osc.frame_count = value
-        PakettiMetaSynthUpdatePreview()
-      end
-    },
-    
-    vb:popup {
-      id = row_id .. "_source",
-      items = {"AKWF", "Folder"},
-      value = osc.sample_source == "akwf" and 1 or 2,
-      width = 60,
-      notifier = function(value)
-        osc.sample_source = value == 1 and "akwf" or "folder"
-      end
-    },
-    
-    vb:button {
-      id = row_id .. "_browse",
-      text = "...",
-      width = 24,
-      notifier = function()
-        local folder = renoise.app():prompt_for_path("Select Sample Folder")
-        if folder then
-          osc.sample_folder = folder
-          osc.sample_source = "folder"
-          PakettiMetaSynthLastFolderPath = folder
-          -- Update the source popup
-          local source_popup = vb.views[row_id .. "_source"]
-          if source_popup then
-            source_popup.value = 2
-          end
-          renoise.app():show_status("PakettiMetaSynth: Folder set to " .. folder)
+    -- Main oscillator controls row
+    vb:row {
+      spacing = 4,
+      
+      vb:text {
+        text = osc.name,
+        width = 50
+      },
+      
+      vb:text { text = "S:" },
+      vb:valuebox {
+        id = row_id .. "_samples",
+        min = 1,
+        max = 12,
+        value = osc.sample_count,
+        width = 40,
+        notifier = function(value)
+          osc.sample_count = value
+          PakettiMetaSynthUpdatePreview()
         end
-      end
+      },
+      
+      vb:text { text = "U:" },
+      vb:valuebox {
+        id = row_id .. "_unison",
+        min = 1,
+        max = 8,
+        value = osc.unison_voices,
+        width = 40,
+        notifier = function(value)
+          osc.unison_voices = value
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      
+      vb:text { text = "F:" },
+      vb:valuebox {
+        id = row_id .. "_frames",
+        min = 1,
+        max = 16,
+        value = osc.frame_count,
+        width = 40,
+        notifier = function(value)
+          osc.frame_count = value
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      
+      vb:popup {
+        id = row_id .. "_source",
+        items = {"AKWF", "Folder"},
+        value = osc.sample_source == "akwf" and 1 or 2,
+        width = 60,
+        notifier = function(value)
+          osc.sample_source = value == 1 and "akwf" or "folder"
+        end
+      },
+      
+      vb:button {
+        id = row_id .. "_browse",
+        text = "...",
+        width = 24,
+        notifier = function()
+          local folder = renoise.app():prompt_for_path("Select Sample Folder")
+          if folder then
+            osc.sample_folder = folder
+            osc.sample_source = "folder"
+            PakettiMetaSynthLastFolderPath = folder
+            -- Update the source popup
+            local source_popup = vb.views[row_id .. "_source"]
+            if source_popup then
+              source_popup.value = 2
+            end
+            renoise.app():show_status("PakettiMetaSynth: Folder set to " .. folder)
+          end
+        end
+      },
+      
+      vb:button {
+        text = "X",
+        width = 20,
+        notifier = function()
+          PakettiMetaSynthRemoveOscillator(group_index, osc_index)
+        end
+      }
     },
     
-    vb:button {
-      text = "X",
-      width = 20,
-      notifier = function()
-        PakettiMetaSynthRemoveOscillator(group_index, osc_index)
-      end
+    -- Oscillator FX controls row
+    vb:row {
+      spacing = 4,
+      
+      vb:space { width = 50 },  -- Align with oscillator name
+      
+      vb:checkbox {
+        id = row_id .. "_fx_enabled",
+        value = osc_fx_enabled,
+        notifier = function(value)
+          osc.osc_fx_enabled = value
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      vb:text { text = "Osc FX", width = 40 },
+      vb:popup {
+        id = row_id .. "_fx_mode",
+        items = {"Random", "Selective"},
+        value = osc_fx_mode_index,
+        width = 70,
+        notifier = function(value)
+          osc.osc_fx_mode = value == 1 and "random" or "selective"
+        end
+      },
+      vb:text { text = "Count:" },
+      vb:valuebox {
+        id = row_id .. "_fx_count",
+        min = 1,
+        max = 5,
+        value = osc_fx_count,
+        width = 40,
+        notifier = function(value)
+          osc.osc_fx_count = value
+          PakettiMetaSynthUpdatePreview()
+        end
+      }
     }
   }
 end
@@ -2029,6 +2322,26 @@ function PakettiMetaSynthUpdatePreview()
     end
   end
   
+  -- Update oscillator FX display
+  local osc_fx_text = vb.views["preview_osc_fx"]
+  if osc_fx_text then
+    local osc_fx_count = 0
+    local osc_fx_info = {}
+    for gi, group in ipairs(PakettiMetaSynthCurrentArchitecture.oscillator_groups) do
+      for oi, osc in ipairs(group.oscillators) do
+        if osc.osc_fx_enabled then
+          osc_fx_count = osc_fx_count + 1
+          table.insert(osc_fx_info, osc.name)
+        end
+      end
+    end
+    if osc_fx_count > 0 then
+      osc_fx_text.text = string.format("Osc FX: %d (%s)", osc_fx_count, table.concat(osc_fx_info, ", "))
+    else
+      osc_fx_text.text = "Osc FX: Off"
+    end
+  end
+  
   -- Update master FX display
   local master_fx_text = vb.views["preview_master_fx"]
   if master_fx_text then
@@ -2086,7 +2399,12 @@ function PakettiMetaSynthAddOscillator(group_index)
     sample_source = "akwf",
     sample_folder = PakettiMetaSynthLastFolderPath,
     detune_spread = 10,
-    pan_spread = 0.8
+    pan_spread = 0.8,
+    -- Oscillator FX settings (processing after frame morphing, before group morphing)
+    osc_fx_enabled = false,
+    osc_fx_mode = "random",
+    osc_fx_count = 2,
+    osc_fx_types = {}
   }
   
   table.insert(group.oscillators, new_osc)
@@ -2218,6 +2536,7 @@ function PakettiMetaSynthBuildDialogContent()
           vb:text { id = "preview_samples", text = "Samples: 0/12" },
           vb:text { id = "preview_fx_chains", text = "FX Chains: 0" },
           vb:text { id = "preview_group_morph", text = "Group Morph: Off" },
+          vb:text { id = "preview_osc_fx", text = "Osc FX: Off" },
           vb:text { id = "preview_master_fx", text = "Master FX: Off" },
           vb:text { id = "preview_warning", text = "" }
         },
@@ -2532,6 +2851,13 @@ renoise.tool():add_menu_entry {
 }
 
 renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Generate Random Instrument (with Sends)",
+  invoke = function()
+    PakettiMetaSynthGenerateRandomInstrumentWithSends()
+  end
+}
+
+renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Open Architecture Designer...",
   invoke = function()
     PakettiMetaSynthShowDialog()
@@ -2542,6 +2868,13 @@ renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Generate Random Instrument",
   invoke = function()
     PakettiMetaSynthGenerateRandomInstrument()
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Instrument Box:Paketti:MetaSynth:Generate Random Instrument (with Sends)",
+  invoke = function()
+    PakettiMetaSynthGenerateRandomInstrumentWithSends()
   end
 }
 
@@ -2574,12 +2907,28 @@ renoise.tool():add_keybinding {
   end
 }
 
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Generate Random Instrument (with Sends)",
+  invoke = function()
+    PakettiMetaSynthGenerateRandomInstrumentWithSends()
+  end
+}
+
 -- MIDI mappings
 renoise.tool():add_midi_mapping {
   name = "Paketti:MetaSynth Generate Random Instrument",
   invoke = function(message)
     if message:is_trigger() then
       PakettiMetaSynthGenerateRandomInstrument()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Generate Random Instrument (with Sends)",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthGenerateRandomInstrumentWithSends()
     end
   end
 }
