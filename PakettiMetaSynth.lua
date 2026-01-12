@@ -293,59 +293,72 @@ function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name
   if device then
     device.display_name = display_name or "Crossfade LFO"
     
-    -- Build XML for custom envelope with routing
+    -- Build XML for custom envelope (NO routing in XML - done via parameters)
     local points_xml = {}
     for i, point in ipairs(envelope_points) do
       table.insert(points_xml, string.format('<Point>%d,%.6f,0.0</Point>', point.time, point.value))
     end
     
-    -- Destination device and parameter for routing (0-based in XML)
-    local dest_device = dest_device_index and (dest_device_index - 1) or 0
-    local dest_param = dest_param_index and (dest_param_index - 1) or 0
-    
     -- DEBUG: Print routing info
-    print(string.format("DEBUG LFO '%s': chain='%s', LFO position=%d, dest_device_index=%s (0-based=%d), dest_param_index=%s (0-based=%d)",
+    print(string.format("DEBUG LFO '%s': chain='%s', LFO position=%d, dest_device_index=%s, dest_param_index=%s",
       display_name or "Crossfade LFO",
       chain.name,
       position,
-      tostring(dest_device_index), dest_device,
-      tostring(dest_param_index), dest_param))
+      tostring(dest_device_index),
+      tostring(dest_param_index)))
     
     -- DEBUG: List all devices in chain
-    print(string.format("DEBUG LFO '%s': Chain devices before XML apply:", display_name))
+    print(string.format("DEBUG LFO '%s': Chain devices:", display_name))
     for di = 1, #chain.devices do
       local d = chain.devices[di]
-      print(string.format("  Device %d (0-based %d): %s", di, di-1, d.display_name or d.name))
+      print(string.format("  Device %d: %s", di, d.display_name or d.name))
     end
     
+    -- XML for custom envelope only (routing done via parameters after)
     local lfo_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="LfoDevice">
     <IsMaximized>true</IsMaximized>
-    <DestDevice>%d</DestDevice>
-    <DestParameter>%d</DestParameter>
-    <CustomDeviceParams>
-      <Type>4</Type>
-      <Freq>1.0</Freq>
-      <Amp>1.0</Amp>
-      <Offset>0.0</Offset>
-    </CustomDeviceParams>
+    <Amplitude>
+      <Value>0.5</Value>
+    </Amplitude>
+    <Offset>
+      <Value>0.0</Value>
+    </Offset>
+    <Frequency>
+      <Value>0.9375</Value>
+    </Frequency>
+    <Type>
+      <Value>0.0</Value>
+    </Type>
     <CustomEnvelope>
-      <PlayMode>2</PlayMode>
+      <PlayMode>Lines</PlayMode>
       <Length>%d</Length>
       <ValueQuantum>0.0</ValueQuantum>
-      <Polarity>1</Polarity>
+      <Polarity>Unipolar</Polarity>
       <Points>
         %s
       </Points>
     </CustomEnvelope>
+    <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
+    <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
   </DeviceSlot>
-</FilterDevicePreset>]=], dest_device, dest_param, #envelope_points, table.concat(points_xml, "\n        "))
+</FilterDevicePreset>]=], #envelope_points, table.concat(points_xml, "\n        "))
     
     device.active_preset_data = lfo_xml
     
-    -- DEBUG: Print what the LFO is actually connected to after XML apply
-    print(string.format("DEBUG LFO '%s': After XML apply, checking actual routing...", display_name))
+    -- Set routing via parameters (the correct way!)
+    -- parameters[1] = Dest. Track (-1 = "Cur" = current chain)
+    -- parameters[2] = Dest. Effect (device index in dropdown)
+    -- parameters[3] = Dest. Parameter (parameter index)
+    if dest_device_index and dest_param_index then
+      device.parameters[1].value = -1  -- Current chain
+      device.parameters[2].value = dest_device_index  -- Target device
+      device.parameters[3].value = dest_param_index   -- Target parameter (1 = Gain)
+      
+      print(string.format("DEBUG LFO '%s': Set routing params[1]=-1, params[2]=%d, params[3]=%d",
+        display_name, dest_device_index, dest_param_index))
+    end
   end
   
   return device
