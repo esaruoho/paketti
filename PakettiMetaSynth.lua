@@ -1119,18 +1119,12 @@ function PakettiMetaSynthAddSendDevice(chain, dest_chain_index, display_name)
 end
 
 -- Create Oscillator FX chain (NO routing - chain creation only)
--- Creates ONE dedicated FX chain per oscillator that processes the summed oscillator output
+-- ALWAYS creates ONE dedicated FX chain per oscillator as a summing bus
 -- This sits between frame morphing and group morphing in the signal flow
+-- Structure: [Osc FX devices (0+)] → [Osc Gainer + LFO added later]
 -- Routing is done separately in Phase 2
 function PakettiMetaSynthCreateOscillatorFXChain(instrument, osc_config, randomization_amount)
-  -- If Oscillator FX is disabled, return nil
-  if not osc_config.osc_fx_enabled then
-    return nil
-  end
-  
-  local mode = osc_config.osc_fx_mode or "random"
-  local device_count = osc_config.osc_fx_count or 2
-  local fx_types = osc_config.osc_fx_types or {}
+  -- ALWAYS create the Osc FX chain as a summing bus (even with 0 FX devices)
   randomization_amount = randomization_amount or 0.3
   
   -- Create a dedicated Oscillator FX chain
@@ -1140,37 +1134,43 @@ function PakettiMetaSynthCreateOscillatorFXChain(instrument, osc_config, randomi
   local osc_fx_chain = instrument.sample_device_chains[osc_fx_chain_index]
   osc_fx_chain.name = osc_fx_chain_name
   
-  -- Add FX devices to the Oscillator FX chain
+  -- Add FX devices to the Oscillator FX chain ONLY if FX is enabled
   local osc_fx_devices = {}
   
-  if mode == "selective" and #fx_types > 0 then
-    -- Selective mode: use specified FX types
-    for i = 1, device_count do
-      local type_index = ((i - 1) % #fx_types) + 1
-      local fx_type_name = fx_types[type_index]
-      local device = PakettiMetaSynthBuildFXByType(osc_fx_chain, fx_type_name, randomization_amount)
-      if device then
-        device.display_name = string.format("OscFX %s %d", fx_type_name, i)
-        table.insert(osc_fx_devices, device)
+  if osc_config.osc_fx_enabled then
+    local mode = osc_config.osc_fx_mode or "random"
+    local device_count = osc_config.osc_fx_count or 2
+    local fx_types = osc_config.osc_fx_types or {}
+    
+    if mode == "selective" and #fx_types > 0 then
+      -- Selective mode: use specified FX types
+      for i = 1, device_count do
+        local type_index = ((i - 1) % #fx_types) + 1
+        local fx_type_name = fx_types[type_index]
+        local device = PakettiMetaSynthBuildFXByType(osc_fx_chain, fx_type_name, randomization_amount)
+        if device then
+          device.display_name = string.format("OscFX %s %d", fx_type_name, i)
+          table.insert(osc_fx_devices, device)
+        end
       end
-    end
-  else
-    -- Random mode: use random devices from the safe pool
-    for i = 1, device_count do
-      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
-      local device = PakettiMetaSynthInsertDevice(osc_fx_chain, random_device)
-      if device then
-        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
-        device.display_name = string.format("OscFX %d", i)
-        table.insert(osc_fx_devices, device)
+    else
+      -- Random mode: use random devices from the safe pool
+      for i = 1, device_count do
+        local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+        local device = PakettiMetaSynthInsertDevice(osc_fx_chain, random_device)
+        if device then
+          PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+          device.display_name = string.format("OscFX %d", i)
+          table.insert(osc_fx_devices, device)
+        end
       end
     end
   end
   
-  print(string.format("PakettiMetaSynth: Created Oscillator FX chain '%s' with %d devices", 
+  print(string.format("PakettiMetaSynth: Created Oscillator FX bus '%s' with %d FX devices", 
     osc_fx_chain_name, #osc_fx_devices))
   
-  -- Return the oscillator FX chain info (no routing yet)
+  -- Return the oscillator FX chain info (Osc Gainer added later, routing in Phase 2)
   return {
     chain = osc_fx_chain,
     chain_index = osc_fx_chain_index,
@@ -1181,17 +1181,11 @@ function PakettiMetaSynthCreateOscillatorFXChain(instrument, osc_config, randomi
 end
 
 -- Create Group Master FX chain (NO routing - chain creation only)
--- Creates ONE dedicated FX chain per group
+-- ALWAYS creates ONE dedicated FX chain per group as a summing bus
+-- Structure: [Group FX devices (0+)] → [Group Gainer + LFO]
 -- Routing is done separately in Phase 2
-function PakettiMetaSynthCreateGroupMasterChain(instrument, group_config, group_name, randomization_amount)
-  -- Skip if Group Master FX is disabled
-  if not group_config.group_master_fx_enabled then
-    return nil
-  end
-  
-  local mode = group_config.group_master_fx_mode or "random"
-  local device_count = group_config.group_master_fx_count or 3
-  local fx_types = group_config.group_master_fx_types or {}
+function PakettiMetaSynthCreateGroupMasterChain(instrument, group_config, group_name, group_index, total_groups, randomization_amount)
+  -- ALWAYS create the Group Master chain as a summing bus (even with 0 FX devices)
   randomization_amount = randomization_amount or 0.3
   
   -- Create a dedicated Group Master FX chain
@@ -1201,58 +1195,100 @@ function PakettiMetaSynthCreateGroupMasterChain(instrument, group_config, group_
   local master_chain = instrument.sample_device_chains[master_chain_index]
   master_chain.name = master_chain_name
   
-  -- Add FX devices to the Group Master chain
+  -- Add FX devices to the Group Master chain ONLY if FX is enabled
   local group_master_devices = {}
   
-  if mode == "selective" and #fx_types > 0 then
-    -- Selective mode: use specified FX types
-    for i = 1, device_count do
-      local type_index = ((i - 1) % #fx_types) + 1
-      local fx_type_name = fx_types[type_index]
-      local device = PakettiMetaSynthBuildFXByType(master_chain, fx_type_name, randomization_amount)
-      if device then
-        device.display_name = string.format("GrpMaster %s %d", fx_type_name, i)
-        table.insert(group_master_devices, device)
+  if group_config.group_master_fx_enabled then
+    local mode = group_config.group_master_fx_mode or "random"
+    local device_count = group_config.group_master_fx_count or 3
+    local fx_types = group_config.group_master_fx_types or {}
+    
+    if mode == "selective" and #fx_types > 0 then
+      -- Selective mode: use specified FX types
+      for i = 1, device_count do
+        local type_index = ((i - 1) % #fx_types) + 1
+        local fx_type_name = fx_types[type_index]
+        local device = PakettiMetaSynthBuildFXByType(master_chain, fx_type_name, randomization_amount)
+        if device then
+          device.display_name = string.format("GrpMaster %s %d", fx_type_name, i)
+          table.insert(group_master_devices, device)
+        end
       end
-    end
-  else
-    -- Random mode: use random devices from the safe pool
-    for i = 1, device_count do
-      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
-      local device = PakettiMetaSynthInsertDevice(master_chain, random_device)
-      if device then
-        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
-        device.display_name = string.format("GrpMaster FX %d", i)
-        table.insert(group_master_devices, device)
+    else
+      -- Random mode: use random devices from the safe pool
+      for i = 1, device_count do
+        local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+        local device = PakettiMetaSynthInsertDevice(master_chain, random_device)
+        if device then
+          PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+          device.display_name = string.format("GrpMaster FX %d", i)
+          table.insert(group_master_devices, device)
+        end
       end
     end
   end
   
-  print(string.format("PakettiMetaSynth: Created Group Master chain '%s' with %d devices", 
+  -- ALWAYS add Group Gainer for group-level morphing/volume control
+  -- Generate crossfade curve for this group's position
+  local curve_type = group_config.group_crossfade_curve or "equal_power"
+  local group_crossfade_curve = PakettiMetaSynthGenerateCrossfadeCurve(
+    curve_type,
+    128,
+    group_index,
+    total_groups
+  )
+  
+  -- Create Group Gainer at the end of the chain
+  local initial_gain = (total_groups > 1) and group_crossfade_curve[1].value or 1.0
+  local group_gainer, group_gainer_position = PakettiMetaSynthCreateGainer(
+    master_chain, 
+    initial_gain, 
+    string.format("Group Gainer %s", group_name)
+  )
+  
+  -- Create Group LFO for group-level morphing (only if multiple groups)
+  local group_lfo = nil
+  if total_groups > 1 then
+    local scaled_curve = {}
+    for i, point in ipairs(group_crossfade_curve) do
+      table.insert(scaled_curve, {
+        time = point.time,
+        value = point.value
+      })
+    end
+    
+    group_lfo = PakettiMetaSynthCreateCrossfadeLFO(
+      master_chain,
+      scaled_curve,
+      string.format("Group LFO %s", group_name),
+      group_gainer_position,
+      1  -- Gain parameter
+    )
+  end
+  
+  print(string.format("PakettiMetaSynth: Created Group Master bus '%s' with %d FX devices + Gainer", 
     master_chain_name, #group_master_devices))
   
-  -- Return the group master chain info (no routing yet)
+  -- Return the group master chain info (routing in Phase 2)
   return {
     chain = master_chain,
     chain_index = master_chain_index,
     chain_name = master_chain_name,
     devices = group_master_devices,
-    group_name = group_name
+    group_name = group_name,
+    group_gainer = group_gainer,
+    group_gainer_position = group_gainer_position,
+    group_lfo = group_lfo,
+    group_crossfade_curve = group_crossfade_curve
   }
 end
 
 -- Create Stacked Master FX chain (NO routing - chain creation only)
--- Creates ONE dedicated FX chain for the entire instrument
+-- ALWAYS creates ONE dedicated FX chain for the entire instrument as final summing bus
+-- Structure: [Stack FX devices (0+)]
 -- Routing is done separately in Phase 2
 function PakettiMetaSynthCreateStackedMasterChain(instrument, architecture, randomization_amount)
-  -- Skip if Stacked Master FX is disabled
-  if not architecture.stacked_master_fx_enabled then
-    return nil
-  end
-  
-  local mode = architecture.stacked_master_fx_mode or "random"
-  local device_count = architecture.stacked_master_fx_count or 3
-  local fx_types = architecture.stacked_master_fx_types or {}
+  -- ALWAYS create the Stacked Master chain as a summing bus (even with 0 FX devices)
   randomization_amount = randomization_amount or 0.3
   
   -- Create a dedicated Stacked Master FX chain
@@ -1262,36 +1298,42 @@ function PakettiMetaSynthCreateStackedMasterChain(instrument, architecture, rand
   local stacked_chain = instrument.sample_device_chains[stacked_chain_index]
   stacked_chain.name = stacked_chain_name
   
-  -- Add FX devices to the Stacked Master chain
+  -- Add FX devices to the Stacked Master chain ONLY if FX is enabled
   local stacked_master_devices = {}
   
-  if mode == "selective" and #fx_types > 0 then
-    -- Selective mode: use specified FX types
-    for i = 1, device_count do
-      local type_index = ((i - 1) % #fx_types) + 1
-      local fx_type_name = fx_types[type_index]
-      local device = PakettiMetaSynthBuildFXByType(stacked_chain, fx_type_name, randomization_amount)
-      if device then
-        device.display_name = string.format("StackMaster %s %d", fx_type_name, i)
-        table.insert(stacked_master_devices, device)
+  if architecture.stacked_master_fx_enabled then
+    local mode = architecture.stacked_master_fx_mode or "random"
+    local device_count = architecture.stacked_master_fx_count or 3
+    local fx_types = architecture.stacked_master_fx_types or {}
+    
+    if mode == "selective" and #fx_types > 0 then
+      -- Selective mode: use specified FX types
+      for i = 1, device_count do
+        local type_index = ((i - 1) % #fx_types) + 1
+        local fx_type_name = fx_types[type_index]
+        local device = PakettiMetaSynthBuildFXByType(stacked_chain, fx_type_name, randomization_amount)
+        if device then
+          device.display_name = string.format("StackMaster %s %d", fx_type_name, i)
+          table.insert(stacked_master_devices, device)
+        end
       end
-    end
-  else
-    -- Random mode: use random devices from the safe pool
-    for i = 1, device_count do
-      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
-      local device = PakettiMetaSynthInsertDevice(stacked_chain, random_device)
-      if device then
-        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
-        device.display_name = string.format("StackMaster FX %d", i)
-        table.insert(stacked_master_devices, device)
+    else
+      -- Random mode: use random devices from the safe pool
+      for i = 1, device_count do
+        local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+        local device = PakettiMetaSynthInsertDevice(stacked_chain, random_device)
+        if device then
+          PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+          device.display_name = string.format("StackMaster FX %d", i)
+          table.insert(stacked_master_devices, device)
+        end
       end
     end
   end
   
-  print(string.format("PakettiMetaSynth: Created Stacked Master chain with %d devices", #stacked_master_devices))
+  print(string.format("PakettiMetaSynth: Created Stacked Master bus with %d FX devices", #stacked_master_devices))
   
-  -- Return the stacked master chain info (no routing yet)
+  -- Return the stacked master chain info (routing in Phase 2)
   return {
     chain = stacked_chain,
     chain_index = stacked_chain_index,
@@ -1492,36 +1534,24 @@ function PakettiMetaSynthGenerateInstrument(architecture)
         table.insert(chain_registry.groups[gi].oscillators[oi].frame_chains, frame_info)
       end
       
-      -- Create Oscillator FX chain (if enabled) - NO ROUTING YET
+      -- ALWAYS create Oscillator FX chain as summing bus - NO ROUTING YET
       local osc_fx_info = PakettiMetaSynthCreateOscillatorFXChain(
         instrument,
         osc,
         randomization_amount
       )
       
-      -- Store Osc FX chain in registry
-      if osc_fx_info then
-        chain_registry.groups[gi].oscillators[oi].osc_fx = osc_fx_info
-        
-        -- Add Group Gainer to the Oscillator FX chain
-        PakettiMetaSynthAddGroupCrossfadeToChain(
-          osc_fx_info.chain,
-          osc_fx_info,
-          oi,
-          total_oscs_in_group,
-          group
-        )
-      else
-        -- No Osc FX: add Group Gainer to each frame chain
-        frame_routing = PakettiMetaSynthBuildGroupCrossfadeRouting(
-          frame_routing,
-          oi,
-          total_oscs_in_group,
-          group
-        )
-        -- Update registry with modified frame_routing
-        chain_registry.groups[gi].oscillators[oi].frame_chains = frame_routing
-      end
+      -- Store Osc FX chain in registry (always exists now)
+      chain_registry.groups[gi].oscillators[oi].osc_fx = osc_fx_info
+      
+      -- Add Osc Gainer (for oscillator crossfade) to the Oscillator FX chain
+      PakettiMetaSynthAddGroupCrossfadeToChain(
+        osc_fx_info.chain,
+        osc_fx_info,
+        oi,
+        total_oscs_in_group,
+        group
+      )
       
       -- Create modulation set for this oscillator
       local mod_set, mod_set_idx = PakettiMetaSynthCreateModulationSet(instrument, osc.name .. " Mod")
@@ -1607,34 +1637,34 @@ function PakettiMetaSynthGenerateInstrument(architecture)
       end
     end
     
-    -- Create Group Master chain (if enabled) - NO ROUTING YET
+    -- ALWAYS create Group Master chain as summing bus - NO ROUTING YET
+    local total_groups = #architecture.oscillator_groups
     local group_master_info = PakettiMetaSynthCreateGroupMasterChain(
       instrument,
       group,
       group.name,
+      gi,              -- group_index for Group Gainer crossfade position
+      total_groups,    -- total_groups for Group Gainer crossfade calculation
       randomization_amount
     )
     
-    -- Store Group Master in registry
-    if group_master_info then
-      chain_registry.groups[gi].group_master = group_master_info
-    end
+    -- Store Group Master in registry (always exists now)
+    chain_registry.groups[gi].group_master = group_master_info
   end
   
-  -- Create Stacked Master chain (if enabled) - NO ROUTING YET
+  -- ALWAYS create Stacked Master chain as final summing bus - NO ROUTING YET
   local stacked_master_info = PakettiMetaSynthCreateStackedMasterChain(
     instrument,
     architecture,
     randomization_amount
   )
   
-  -- Store Stacked Master in registry
-  if stacked_master_info then
-    chain_registry.stacked_master = stacked_master_info
-  end
+  -- Store Stacked Master in registry (always exists now)
+  chain_registry.stacked_master = stacked_master_info
   
   -- ========================================================================
   -- PHASE 2: ADD ALL SENDS (using stable indices from registry)
+  -- All buses now always exist, so routing is deterministic
   -- ========================================================================
   
   print("PakettiMetaSynth: === PHASE 2: Adding sends with stable indices ===")
@@ -1643,38 +1673,23 @@ function PakettiMetaSynthGenerateInstrument(architecture)
   local all_group_master_chains = {}
   
   for gi, group_data in ipairs(chain_registry.groups) do
-    local group = architecture.oscillator_groups[gi]
-    
-    -- Collect chains that need to route to Group Master
-    local chains_for_group_master = {}
+    -- Collect Osc FX chains that need to route to Group Master
+    local osc_fx_chains_for_group_master = {}
     
     for oi, osc_data in ipairs(group_data.oscillators) do
-      local osc = group.oscillators[oi]
-      
-      -- Route Frame chains -> Osc FX chain (if Osc FX enabled)
-      if osc_data.osc_fx then
-        PakettiMetaSynthRouteFramesToOscFX(osc_data.frame_chains, osc_data.osc_fx)
-        -- Osc FX chain goes to Group Master
-        table.insert(chains_for_group_master, osc_data.osc_fx)
-      else
-        -- No Osc FX: Frame chains go directly to Group Master
-        for _, frame_info in ipairs(osc_data.frame_chains) do
-          table.insert(chains_for_group_master, frame_info)
-        end
-      end
+      -- Route Frame chains -> Osc FX chain (Osc FX always exists now)
+      PakettiMetaSynthRouteFramesToOscFX(osc_data.frame_chains, osc_data.osc_fx)
+      -- Osc FX chain goes to Group Master
+      table.insert(osc_fx_chains_for_group_master, osc_data.osc_fx)
     end
     
-    -- Route chains -> Group Master (if enabled)
-    if group_data.group_master then
-      PakettiMetaSynthRouteChainsToGroupMaster(chains_for_group_master, group_data.group_master)
-      table.insert(all_group_master_chains, group_data.group_master)
-    end
+    -- Route Osc FX chains -> Group Master (Group Master always exists now)
+    PakettiMetaSynthRouteChainsToGroupMaster(osc_fx_chains_for_group_master, group_data.group_master)
+    table.insert(all_group_master_chains, group_data.group_master)
   end
   
-  -- Route Group Masters -> Stacked Master (if enabled)
-  if chain_registry.stacked_master and #all_group_master_chains > 0 then
-    PakettiMetaSynthRouteGroupMastersToStackedMaster(all_group_master_chains, chain_registry.stacked_master)
-  end
+  -- Route Group Masters -> Stacked Master (Stacked Master always exists now)
+  PakettiMetaSynthRouteGroupMastersToStackedMaster(all_group_master_chains, chain_registry.stacked_master)
   
   -- ========================================================================
   -- FINALIZATION
