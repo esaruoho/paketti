@@ -23,6 +23,10 @@ function PakettiMetaSynthCreateDefaultArchitecture()
       {
         name = "Group A",
         crossfade_mode = "linear",
+        -- Group-level crossfade settings (wavetable scanning between oscillators)
+        group_crossfade_enabled = false,
+        group_crossfade_curve = "equal_power",
+        group_crossfade_time = 4.0,
         oscillators = {
           {
             name = "Osc 1",
@@ -797,6 +801,72 @@ function PakettiMetaSynthBuildFrameRouting(instrument, osc_config, base_chain_in
   return chains_created
 end
 
+-- Build group-level crossfade routing for oscillator-to-oscillator morphing (wavetable scanning)
+-- This adds a Group Gainer and Group LFO to each frame chain of an oscillator
+function PakettiMetaSynthBuildGroupCrossfadeRouting(chains_created, osc_index, total_oscs, group_config)
+  -- Skip if only one oscillator (nothing to crossfade between)
+  if total_oscs <= 1 then
+    return chains_created
+  end
+  
+  -- Skip if group crossfade is disabled
+  if not group_config.group_crossfade_enabled then
+    return chains_created
+  end
+  
+  local curve_type = group_config.group_crossfade_curve or "equal_power"
+  local crossfade_time = group_config.group_crossfade_time or 4.0
+  
+  -- Generate crossfade curve for this oscillator's position within the group
+  local group_crossfade_curve = PakettiMetaSynthGenerateCrossfadeCurve(
+    curve_type,
+    128,
+    osc_index,
+    total_oscs
+  )
+  
+  -- Add Group Gainer and LFO to each frame chain
+  for _, chain_info in ipairs(chains_created) do
+    local chain = chain_info.chain
+    
+    -- Create Group Gainer at the end of the chain
+    local initial_gain = group_crossfade_curve[1].value
+    local group_gainer, group_gainer_position = PakettiMetaSynthCreateGainer(
+      chain, 
+      initial_gain, 
+      string.format("Group XFade Osc %d/%d", osc_index, total_oscs)
+    )
+    
+    -- Create Group LFO with crossfade envelope routed to the Group Gainer
+    -- Scale envelope points by crossfade time
+    local scaled_curve = {}
+    for i, point in ipairs(group_crossfade_curve) do
+      table.insert(scaled_curve, {
+        time = point.time,
+        value = point.value
+      })
+    end
+    
+    local group_lfo = PakettiMetaSynthCreateCrossfadeLFO(
+      chain,
+      scaled_curve,
+      string.format("Group LFO Osc %d", osc_index),
+      group_gainer_position,  -- Destination device index
+      1                       -- Destination parameter index (Gain)
+    )
+    
+    -- Store group crossfade info in chain_info
+    chain_info.group_gainer = group_gainer
+    chain_info.group_gainer_position = group_gainer_position
+    chain_info.group_lfo = group_lfo
+    chain_info.group_crossfade_curve = group_crossfade_curve
+    chain_info.osc_position = osc_index
+    chain_info.total_oscs = total_oscs
+  end
+  
+  return chains_created
+end
+
 -- ============================================================================
 -- SECTION 7: INSTRUMENT GENERATION
 -- ============================================================================
@@ -875,6 +945,15 @@ function PakettiMetaSynthGenerateInstrument(architecture)
         },
         chain_index,
         architecture.crossfade
+      )
+      
+      -- Apply group-level crossfade (wavetable scanning between oscillators)
+      local total_oscs_in_group = #group.oscillators
+      frame_routing = PakettiMetaSynthBuildGroupCrossfadeRouting(
+        frame_routing,
+        oi,                -- Current oscillator index in group
+        total_oscs_in_group,
+        group              -- Group config with crossfade settings
       )
       
       -- Create modulation set for this oscillator
@@ -1038,6 +1117,10 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
     local group = {
       name = "Group " .. string.char(64 + gi), -- A, B, C...
       crossfade_mode = ({"linear", "xy", "stack"})[math.random(1, 3)],
+      -- Random group crossfade settings (wavetable scanning)
+      group_crossfade_enabled = math.random() > 0.5,
+      group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
+      group_crossfade_time = 1.0 + math.random() * 6.0,  -- 1-7 seconds
       oscillators = {}
     }
     
@@ -1343,6 +1426,21 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     osc_rows:add_child(PakettiMetaSynthBuildOscillatorRow(vb, group_index, oi, osc))
   end
   
+  -- Determine initial values for group crossfade controls (with defaults for legacy data)
+  local group_xfade_enabled = group.group_crossfade_enabled or false
+  local group_xfade_curve = group.group_crossfade_curve or "equal_power"
+  local group_xfade_time = group.group_crossfade_time or 4.0
+  
+  -- Map curve type to popup index
+  local curve_index = 2  -- Default to equal_power
+  if group_xfade_curve == "linear" then
+    curve_index = 1
+  elseif group_xfade_curve == "equal_power" then
+    curve_index = 2
+  elseif group_xfade_curve == "s_curve" then
+    curve_index = 3
+  end
+  
   return vb:column {
     id = group_id,
     style = "group",
@@ -1380,6 +1478,42 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
       }
     },
     
+    -- Group Crossfade Controls (Wavetable Scanning)
+    vb:row {
+      spacing = 4,
+      vb:checkbox {
+        id = group_id .. "_xfade_enabled",
+        value = group_xfade_enabled,
+        notifier = function(value)
+          group.group_crossfade_enabled = value
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      vb:text { text = "Group Morph", width = 65 },
+      vb:popup {
+        id = group_id .. "_xfade_curve",
+        items = {"Linear", "Equal Power", "S-Curve"},
+        value = curve_index,
+        width = 85,
+        notifier = function(value)
+          group.group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[value]
+        end
+      },
+      vb:text { text = "Time:" },
+      vb:valuefield {
+        id = group_id .. "_xfade_time",
+        min = 0.1,
+        max = 30.0,
+        value = group_xfade_time,
+        width = 45,
+        tostring = function(value) return string.format("%.1fs", value) end,
+        tonumber = function(str) return tonumber(str:gsub("s", "")) or 4.0 end,
+        notifier = function(value)
+          group.group_crossfade_time = value
+        end
+      }
+    },
+    
     osc_rows
   }
 end
@@ -1403,6 +1537,24 @@ function PakettiMetaSynthUpdatePreview()
   local fx_text = vb.views["preview_fx_chains"]
   if fx_text then
     fx_text.text = string.format("FX Chains: %d", validation.total_fx_chains)
+  end
+  
+  -- Update group morph display
+  local group_morph_text = vb.views["preview_group_morph"]
+  if group_morph_text then
+    local morph_count = 0
+    local morph_info = {}
+    for gi, group in ipairs(PakettiMetaSynthCurrentArchitecture.oscillator_groups) do
+      if group.group_crossfade_enabled and #group.oscillators > 1 then
+        morph_count = morph_count + 1
+        table.insert(morph_info, string.format("%s:%d", group.name, #group.oscillators))
+      end
+    end
+    if morph_count > 0 then
+      group_morph_text.text = string.format("Group Morph: %s", table.concat(morph_info, ", "))
+    else
+      group_morph_text.text = "Group Morph: Off"
+    end
   end
   
   -- Update warning display
@@ -1461,6 +1613,10 @@ function PakettiMetaSynthAddGroup()
   local new_group = {
     name = "Group " .. string.char(64 + #PakettiMetaSynthCurrentArchitecture.oscillator_groups + 1),
     crossfade_mode = "linear",
+    -- Group-level crossfade settings (wavetable scanning between oscillators)
+    group_crossfade_enabled = false,
+    group_crossfade_curve = "equal_power",
+    group_crossfade_time = 4.0,
     oscillators = {
       {
         name = "Osc 1",
@@ -1558,6 +1714,7 @@ function PakettiMetaSynthBuildDialogContent()
           vb:text { text = "Preview", font = "bold" },
           vb:text { id = "preview_samples", text = "Samples: 0/12" },
           vb:text { id = "preview_fx_chains", text = "FX Chains: 0" },
+          vb:text { id = "preview_group_morph", text = "Group Morph: Off" },
           vb:text { id = "preview_warning", text = "" }
         },
         
