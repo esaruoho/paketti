@@ -303,6 +303,21 @@ function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name
     local dest_device = dest_device_index and (dest_device_index - 1) or 0
     local dest_param = dest_param_index and (dest_param_index - 1) or 0
     
+    -- DEBUG: Print routing info
+    print(string.format("DEBUG LFO '%s': chain='%s', LFO position=%d, dest_device_index=%s (0-based=%d), dest_param_index=%s (0-based=%d)",
+      display_name or "Crossfade LFO",
+      chain.name,
+      position,
+      tostring(dest_device_index), dest_device,
+      tostring(dest_param_index), dest_param))
+    
+    -- DEBUG: List all devices in chain
+    print(string.format("DEBUG LFO '%s': Chain devices before XML apply:", display_name))
+    for di = 1, #chain.devices do
+      local d = chain.devices[di]
+      print(string.format("  Device %d (0-based %d): %s", di, di-1, d.display_name or d.name))
+    end
+    
     local lfo_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="LfoDevice">
@@ -328,6 +343,9 @@ function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name
 </FilterDevicePreset>]=], dest_device, dest_param, #envelope_points, table.concat(points_xml, "\n        "))
     
     device.active_preset_data = lfo_xml
+    
+    -- DEBUG: Print what the LFO is actually connected to after XML apply
+    print(string.format("DEBUG LFO '%s': After XML apply, checking actual routing...", display_name))
   end
   
   return device
@@ -920,9 +938,15 @@ function PakettiMetaSynthBuildFrameRouting(instrument, osc_config, base_chain_in
     local initial_gain = crossfade_curve[1].value
     local gainer, gainer_position = PakettiMetaSynthCreateGainer(chain, initial_gain, "Crossfade Gain")
     
+    -- DEBUG: Print gainer info
+    print(string.format("DEBUG Frame %d: Created Gainer at position %d, chain has %d devices total",
+      frame, gainer_position, #chain.devices))
+    
     -- If using LFO control, create LFO with crossfade envelope and route to gainer
     local lfo = nil
     if crossfade_config.control_source == "lfo" and frame_count > 1 then
+      print(string.format("DEBUG Frame %d: Creating LFO to route to Gainer at position %d, param 1 (Gain)",
+        frame, gainer_position))
       -- Route LFO to the Gainer's gain parameter (parameter 1)
       lfo = PakettiMetaSynthCreateCrossfadeLFO(
         chain, 
@@ -1074,6 +1098,7 @@ function PakettiMetaSynthAddGroupCrossfadeToChain(chain, chain_info, osc_index, 
 end
 
 -- Helper function to add a #Send device to a chain that routes to a destination chain
+-- NOTE: dest_chain_index is 1-based (Lua convention), but #Send Receiver is 0-based
 function PakettiMetaSynthAddSendDevice(chain, dest_chain_index, display_name)
   local position = #chain.devices + 1
   local success, err = pcall(function()
@@ -1087,6 +1112,9 @@ function PakettiMetaSynthAddSendDevice(chain, dest_chain_index, display_name)
   
   local send_device = chain.devices[position]
   if send_device then
+    -- Convert 1-based chain index to 0-based Receiver index
+    local receiver_index = dest_chain_index - 1
+    
     -- Apply Send device configuration via XML
     local send_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
@@ -1105,13 +1133,13 @@ function PakettiMetaSynthAddSendDevice(chain, dest_chain_index, display_name)
     <SmoothParameterChanges>true</SmoothParameterChanges>
     <ApplyPostVolume>true</ApplyPostVolume>
   </DeviceSlot>
-</FilterDevicePreset>]=], dest_chain_index)
+</FilterDevicePreset>]=], receiver_index)
     
     send_device.active_preset_data = send_xml
     send_device.display_name = display_name or "#Send"
     send_device.parameters[1].value = 1.0   -- Amount = 100%
     send_device.parameters[2].value = 0.5   -- Panning = center
-    send_device.parameters[3].value = dest_chain_index  -- Receiver = destination chain
+    send_device.parameters[3].value = receiver_index  -- Receiver = 0-based index
     send_device.parameters[1].show_in_mixer = true
   end
   
@@ -1755,9 +1783,18 @@ function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining)
   local max_unison = math.max(1, math.floor(max_samples_remaining / samples_used))
   osc.unison_voices = math.min(math.random(1, 4), max_unison)
   
-  -- Random source (bias toward AKWF as it's always available)
-  local sources = {"akwf", "akwf", "akwf", "folder"}
-  osc.sample_source = sources[math.random(1, #sources)]
+  -- Check if a custom sample folder is configured
+  if PakettiMetaSynthLastFolderPath and PakettiMetaSynthLastFolderPath ~= "" then
+    -- Folder path is configured - allow random selection between akwf and folder
+    local sources = {"akwf", "akwf", "akwf", "folder"}
+    osc.sample_source = sources[math.random(1, #sources)]
+    if osc.sample_source == "folder" then
+      osc.sample_folder = PakettiMetaSynthLastFolderPath
+    end
+  else
+    -- No folder path configured - always use AKWF
+    osc.sample_source = "akwf"
+  end
   
   -- Random spread values
   osc.detune_spread = 5 + math.random() * 20  -- 5-25 cents
