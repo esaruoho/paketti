@@ -65,7 +65,9 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     stacked_master_fx_enabled = false,
     stacked_master_fx_mode = "random",
     stacked_master_fx_count = 3,
-    stacked_master_fx_types = {}
+    stacked_master_fx_types = {},
+    -- Master routing mode: "output_routing" (chain property) or "send_device" (#Send devices)
+    master_routing_mode = "output_routing"
   }
 end
 
@@ -982,131 +984,226 @@ function PakettiMetaSynthBuildGroupCrossfadeRouting(chains_created, osc_index, t
   return chains_created
 end
 
--- Build Group Master FX (glue FX applied to all chains in a group)
--- The same devices are added to all chains to simulate a group bus
-function PakettiMetaSynthBuildGroupMasterFX(all_group_chains, group_config, randomization_amount)
-  -- Skip if Group Master FX is disabled
+-- Helper function to add a #Send device to a chain that routes to a destination chain
+function PakettiMetaSynthAddSendDevice(chain, dest_chain_index, display_name)
+  local position = #chain.devices + 1
+  local success, err = pcall(function()
+    chain:insert_device_at("Audio/Effects/Native/#Send", position)
+  end)
+  
+  if not success then
+    print("PakettiMetaSynth: Failed to insert #Send device: " .. tostring(err))
+    return nil
+  end
+  
+  local send_device = chain.devices[position]
+  if send_device then
+    -- Apply Send device configuration via XML
+    local send_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="SendDevice">
+    <IsMaximized>true</IsMaximized>
+    <SendAmount>
+      <Value>1.0</Value>
+    </SendAmount>
+    <SendPan>
+      <Value>0.5</Value>
+    </SendPan>
+    <DestSendTrack>
+      <Value>%d</Value>
+    </DestSendTrack>
+    <MuteSource>true</MuteSource>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+    <ApplyPostVolume>true</ApplyPostVolume>
+  </DeviceSlot>
+</FilterDevicePreset>]=], dest_chain_index)
+    
+    send_device.active_preset_data = send_xml
+    send_device.display_name = display_name or "#Send"
+    send_device.parameters[1].value = 1.0   -- Amount = 100%
+    send_device.parameters[2].value = 0.5   -- Panning = center
+    send_device.parameters[3].value = dest_chain_index  -- Receiver = destination chain
+    send_device.parameters[1].show_in_mixer = true
+  end
+  
+  return send_device
+end
+
+-- Build Group Master FX chain (single chain that all oscillator chains route to)
+-- Creates ONE dedicated FX chain per group and routes all frame chains to it
+-- routing_mode: "output_routing" (chain property) or "send_device" (#Send devices)
+function PakettiMetaSynthBuildGroupMasterFX(instrument, all_group_chains, group_config, group_name, routing_mode, randomization_amount)
+  -- Skip if Group Master FX is disabled or no chains to route
   if not group_config.group_master_fx_enabled then
-    return all_group_chains
+    return all_group_chains, nil
+  end
+  
+  if #all_group_chains == 0 then
+    return all_group_chains, nil
   end
   
   local mode = group_config.group_master_fx_mode or "random"
   local device_count = group_config.group_master_fx_count or 3
   local fx_types = group_config.group_master_fx_types or {}
+  routing_mode = routing_mode or "output_routing"
   randomization_amount = randomization_amount or 0.3
   
-  -- For consistent "bus" effect, we generate one set of device configurations
-  -- and apply them to all chains in the group
-  local device_configs = {}
+  -- Create a dedicated Group Master FX chain
+  local master_chain_name = group_name .. " Master"
+  local master_chain_index = #instrument.sample_device_chains + 1
+  instrument:insert_sample_device_chain_at(master_chain_index)
+  local master_chain = instrument.sample_device_chains[master_chain_index]
+  master_chain.name = master_chain_name
+  
+  -- Add FX devices to the Group Master chain
+  local group_master_devices = {}
   
   if mode == "selective" and #fx_types > 0 then
-    -- Selective mode: determine which FX types to use
+    -- Selective mode: use specified FX types
     for i = 1, device_count do
       local type_index = ((i - 1) % #fx_types) + 1
       local fx_type_name = fx_types[type_index]
-      local device_name = PakettiMetaSynthGetDeviceForFXType(fx_type_name)
-      if device_name then
-        table.insert(device_configs, {
-          device_name = device_name,
-          display_name = string.format("GrpMaster %s %d", fx_type_name, i)
-        })
-      end
-    end
-  else
-    -- Random mode: select random devices from the safe pool
-    for i = 1, device_count do
-      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
-      table.insert(device_configs, {
-        device_name = random_device,
-        display_name = string.format("GrpMaster FX %d", i)
-      })
-    end
-  end
-  
-  -- Apply the same devices to all chains in the group
-  for _, chain_info in ipairs(all_group_chains) do
-    local chain = chain_info.chain
-    local group_master_devices = {}
-    
-    for _, config in ipairs(device_configs) do
-      local device = PakettiMetaSynthInsertDevice(chain, config.device_name)
+      local device = PakettiMetaSynthBuildFXByType(master_chain, fx_type_name, randomization_amount)
       if device then
-        device.display_name = config.display_name
-        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+        device.display_name = string.format("GrpMaster %s %d", fx_type_name, i)
         table.insert(group_master_devices, device)
       end
     end
-    
-    chain_info.group_master_devices = group_master_devices
+  else
+    -- Random mode: use random devices from the safe pool
+    for i = 1, device_count do
+      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+      local device = PakettiMetaSynthInsertDevice(master_chain, random_device)
+      if device then
+        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+        device.display_name = string.format("GrpMaster FX %d", i)
+        table.insert(group_master_devices, device)
+      end
+    end
   end
   
-  print(string.format("PakettiMetaSynth: Added Group Master FX (%d devices) to %d chains", 
-    #device_configs, #all_group_chains))
+  -- Route all frame chains in this group to the Group Master chain
+  if routing_mode == "send_device" then
+    -- Use #Send devices to route to the master chain
+    for _, chain_info in ipairs(all_group_chains) do
+      local chain = chain_info.chain
+      local send_device = PakettiMetaSynthAddSendDevice(
+        chain, 
+        master_chain_index, 
+        string.format("Send to %s", master_chain_name)
+      )
+      chain_info.send_device = send_device
+      chain_info.routed_to_group_master = master_chain_name
+    end
+    print(string.format("PakettiMetaSynth: Created Group Master chain '%s' with %d devices, added #Send devices to %d chains", 
+      master_chain_name, #group_master_devices, #all_group_chains))
+  else
+    -- Use output_routing property
+    for _, chain_info in ipairs(all_group_chains) do
+      local chain = chain_info.chain
+      chain.output_routing = master_chain_name
+      chain_info.routed_to_group_master = master_chain_name
+    end
+    print(string.format("PakettiMetaSynth: Created Group Master chain '%s' with %d devices, routed %d chains via output_routing", 
+      master_chain_name, #group_master_devices, #all_group_chains))
+  end
   
-  return all_group_chains
+  -- Return the group master chain info for Stacked Master routing
+  local group_master_info = {
+    chain = master_chain,
+    chain_index = master_chain_index,
+    chain_name = master_chain_name,
+    devices = group_master_devices
+  }
+  
+  return all_group_chains, group_master_info
 end
 
--- Build Stacked Master FX (final processing applied to ALL chains across ALL groups)
--- The same devices are added to all chains to simulate a master bus
-function PakettiMetaSynthBuildStackedMasterFX(all_chains, architecture, randomization_amount)
-  -- Skip if Stacked Master FX is disabled
+-- Build Stacked Master FX chain (single chain that all Group Master chains route to)
+-- Creates ONE dedicated FX chain and routes all group master chains to it
+-- routing_mode: "output_routing" (chain property) or "send_device" (#Send devices)
+function PakettiMetaSynthBuildStackedMasterFX(instrument, group_master_chains, architecture, routing_mode, randomization_amount)
+  -- Skip if Stacked Master FX is disabled or no group master chains to route
   if not architecture.stacked_master_fx_enabled then
-    return all_chains
+    return nil
+  end
+  
+  if #group_master_chains == 0 then
+    return nil
   end
   
   local mode = architecture.stacked_master_fx_mode or "random"
   local device_count = architecture.stacked_master_fx_count or 3
   local fx_types = architecture.stacked_master_fx_types or {}
+  routing_mode = routing_mode or "output_routing"
   randomization_amount = randomization_amount or 0.3
   
-  -- Generate one set of device configurations for the stacked master
-  local device_configs = {}
+  -- Create a dedicated Stacked Master FX chain
+  local stacked_chain_name = "Stacked Master"
+  local stacked_chain_index = #instrument.sample_device_chains + 1
+  instrument:insert_sample_device_chain_at(stacked_chain_index)
+  local stacked_chain = instrument.sample_device_chains[stacked_chain_index]
+  stacked_chain.name = stacked_chain_name
+  
+  -- Add FX devices to the Stacked Master chain
+  local stacked_master_devices = {}
   
   if mode == "selective" and #fx_types > 0 then
-    -- Selective mode: determine which FX types to use
+    -- Selective mode: use specified FX types
     for i = 1, device_count do
       local type_index = ((i - 1) % #fx_types) + 1
       local fx_type_name = fx_types[type_index]
-      local device_name = PakettiMetaSynthGetDeviceForFXType(fx_type_name)
-      if device_name then
-        table.insert(device_configs, {
-          device_name = device_name,
-          display_name = string.format("StackMaster %s %d", fx_type_name, i)
-        })
-      end
-    end
-  else
-    -- Random mode: select random devices from the safe pool
-    for i = 1, device_count do
-      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
-      table.insert(device_configs, {
-        device_name = random_device,
-        display_name = string.format("StackMaster FX %d", i)
-      })
-    end
-  end
-  
-  -- Apply the same devices to ALL chains
-  for _, chain_info in ipairs(all_chains) do
-    local chain = chain_info.chain
-    local stacked_master_devices = {}
-    
-    for _, config in ipairs(device_configs) do
-      local device = PakettiMetaSynthInsertDevice(chain, config.device_name)
+      local device = PakettiMetaSynthBuildFXByType(stacked_chain, fx_type_name, randomization_amount)
       if device then
-        device.display_name = config.display_name
-        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+        device.display_name = string.format("StackMaster %s %d", fx_type_name, i)
         table.insert(stacked_master_devices, device)
       end
     end
-    
-    chain_info.stacked_master_devices = stacked_master_devices
+  else
+    -- Random mode: use random devices from the safe pool
+    for i = 1, device_count do
+      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+      local device = PakettiMetaSynthInsertDevice(stacked_chain, random_device)
+      if device then
+        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+        device.display_name = string.format("StackMaster FX %d", i)
+        table.insert(stacked_master_devices, device)
+      end
+    end
   end
   
-  print(string.format("PakettiMetaSynth: Added Stacked Master FX (%d devices) to %d chains", 
-    #device_configs, #all_chains))
+  -- Route all Group Master chains to the Stacked Master chain
+  if routing_mode == "send_device" then
+    -- Use #Send devices to route to the stacked master chain
+    for _, group_master_info in ipairs(group_master_chains) do
+      local chain = group_master_info.chain
+      local send_device = PakettiMetaSynthAddSendDevice(
+        chain,
+        stacked_chain_index,
+        "Send to Stacked Master"
+      )
+      group_master_info.send_device = send_device
+      print(string.format("PakettiMetaSynth: Added #Send to '%s' -> Stacked Master", group_master_info.chain_name))
+    end
+    print(string.format("PakettiMetaSynth: Created Stacked Master chain with %d devices, added #Send devices to %d group masters", 
+      #stacked_master_devices, #group_master_chains))
+  else
+    -- Use output_routing property
+    for _, group_master_info in ipairs(group_master_chains) do
+      local chain = group_master_info.chain
+      chain.output_routing = stacked_chain_name
+      print(string.format("PakettiMetaSynth: Routed '%s' to Stacked Master via output_routing", group_master_info.chain_name))
+    end
+    print(string.format("PakettiMetaSynth: Created Stacked Master chain with %d devices, routed %d group masters via output_routing", 
+      #stacked_master_devices, #group_master_chains))
+  end
   
-  return all_chains
+  return {
+    chain = stacked_chain,
+    chain_index = stacked_chain_index,
+    chain_name = stacked_chain_name,
+    devices = stacked_master_devices
+  }
 end
 
 -- ============================================================================
@@ -1160,6 +1257,9 @@ function PakettiMetaSynthGenerateInstrument(architecture)
   
   -- Track all chains for Stacked Master FX
   local all_instrument_chains = {}
+  
+  -- Track Group Master chains for Stacked Master routing
+  local all_group_master_chains = {}
   
   -- Process each oscillator group
   for gi, group in ipairs(architecture.oscillator_groups) do
@@ -1296,12 +1396,22 @@ function PakettiMetaSynthGenerateInstrument(architecture)
       chain_index = chain_index + osc.frame_count
     end
     
-    -- Apply Group Master FX to all chains in this group
-    all_group_chains = PakettiMetaSynthBuildGroupMasterFX(
+    -- Apply Group Master FX - creates single chain and routes all oscillator chains to it
+    local group_master_info
+    local routing_mode = architecture.master_routing_mode or "output_routing"
+    all_group_chains, group_master_info = PakettiMetaSynthBuildGroupMasterFX(
+      instrument,
       all_group_chains,
       group,
+      group.name,
+      routing_mode,
       architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
     )
+    
+    -- Track Group Master chain for Stacked Master routing
+    if group_master_info then
+      table.insert(all_group_master_chains, group_master_info)
+    end
     
     -- Add all group chains to the instrument-wide tracking
     for _, chain_info in ipairs(all_group_chains) do
@@ -1309,10 +1419,13 @@ function PakettiMetaSynthGenerateInstrument(architecture)
     end
   end
   
-  -- Apply Stacked Master FX to all chains across all groups
-  all_instrument_chains = PakettiMetaSynthBuildStackedMasterFX(
-    all_instrument_chains,
+  -- Apply Stacked Master FX - creates single chain and routes all Group Master chains to it
+  local routing_mode = architecture.master_routing_mode or "output_routing"
+  local stacked_master_info = PakettiMetaSynthBuildStackedMasterFX(
+    instrument,
+    all_group_master_chains,
     architecture,
+    routing_mode,
     architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
   )
   
@@ -1483,6 +1596,9 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       table.insert(architecture.stacked_master_fx_types, shuffled_types[i])
     end
   end
+  
+  -- Random master routing mode
+  architecture.master_routing_mode = math.random() > 0.5 and "output_routing" or "send_device"
   
   return architecture
 end
@@ -2230,6 +2346,20 @@ function PakettiMetaSynthBuildDialogContent()
               width = 50,
               notifier = function(value)
                 arch.stacked_master_fx_count = value
+              end
+            }
+          },
+          
+          vb:row {
+            vb:text { text = "Route:", width = 35 },
+            vb:popup {
+              id = "master_routing_mode",
+              items = {"Chain Output", "#Send Device"},
+              value = (arch.master_routing_mode or "output_routing") == "send_device" and 2 or 1,
+              width = 90,
+              tooltip = "Chain Output: uses output_routing property\n#Send Device: adds #Send device to each chain",
+              notifier = function(value)
+                arch.master_routing_mode = value == 1 and "output_routing" or "send_device"
               end
             }
           }
