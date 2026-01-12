@@ -1118,24 +1118,19 @@ function PakettiMetaSynthAddSendDevice(chain, dest_chain_index, display_name)
   return send_device
 end
 
--- Build Oscillator FX chain (single chain where all frame chains converge)
+-- Create Oscillator FX chain (NO routing - chain creation only)
 -- Creates ONE dedicated FX chain per oscillator that processes the summed oscillator output
 -- This sits between frame morphing and group morphing in the signal flow
--- routing_mode: "output_routing" (chain property) or "send_device" (#Send devices)
-function PakettiMetaSynthBuildOscillatorFX(instrument, frame_chains, osc_config, routing_mode, randomization_amount)
-  -- If Oscillator FX is disabled, return frame chains unchanged
+-- Routing is done separately in Phase 2
+function PakettiMetaSynthCreateOscillatorFXChain(instrument, osc_config, randomization_amount)
+  -- If Oscillator FX is disabled, return nil
   if not osc_config.osc_fx_enabled then
-    return frame_chains, nil
-  end
-  
-  if #frame_chains == 0 then
-    return frame_chains, nil
+    return nil
   end
   
   local mode = osc_config.osc_fx_mode or "random"
   local device_count = osc_config.osc_fx_count or 2
   local fx_types = osc_config.osc_fx_types or {}
-  routing_mode = routing_mode or "output_routing"
   randomization_amount = randomization_amount or 0.3
   
   -- Create a dedicated Oscillator FX chain
@@ -1172,61 +1167,31 @@ function PakettiMetaSynthBuildOscillatorFX(instrument, frame_chains, osc_config,
     end
   end
   
-  -- Route all frame chains from this oscillator to the Oscillator FX chain
-  if routing_mode == "send_device" then
-    -- Use #Send devices to route to the oscillator FX chain
-    for _, chain_info in ipairs(frame_chains) do
-      local chain = chain_info.chain
-      local send_device = PakettiMetaSynthAddSendDevice(
-        chain, 
-        osc_fx_chain_index, 
-        string.format("Send to %s", osc_fx_chain_name)
-      )
-      chain_info.send_to_osc_fx = send_device
-      chain_info.routed_to_osc_fx = osc_fx_chain_name
-    end
-    print(string.format("PakettiMetaSynth: Created Oscillator FX chain '%s' with %d devices, added #Send devices to %d frame chains", 
-      osc_fx_chain_name, #osc_fx_devices, #frame_chains))
-  else
-    -- Use output_routing property
-    for _, chain_info in ipairs(frame_chains) do
-      local chain = chain_info.chain
-      chain.output_routing = osc_fx_chain_name
-      chain_info.routed_to_osc_fx = osc_fx_chain_name
-    end
-    print(string.format("PakettiMetaSynth: Created Oscillator FX chain '%s' with %d devices, routed %d frame chains via output_routing", 
-      osc_fx_chain_name, #osc_fx_devices, #frame_chains))
-  end
+  print(string.format("PakettiMetaSynth: Created Oscillator FX chain '%s' with %d devices", 
+    osc_fx_chain_name, #osc_fx_devices))
   
-  -- Return the oscillator FX chain info
-  local osc_fx_info = {
+  -- Return the oscillator FX chain info (no routing yet)
+  return {
     chain = osc_fx_chain,
     chain_index = osc_fx_chain_index,
     chain_name = osc_fx_chain_name,
     devices = osc_fx_devices,
     osc_name = osc_config.name
   }
-  
-  return frame_chains, osc_fx_info
 end
 
--- Build Group Master FX chain (single chain that all oscillator chains route to)
--- Creates ONE dedicated FX chain per group and routes all frame chains to it
--- routing_mode: "output_routing" (chain property) or "send_device" (#Send devices)
-function PakettiMetaSynthBuildGroupMasterFX(instrument, all_group_chains, group_config, group_name, routing_mode, randomization_amount)
-  -- Skip if Group Master FX is disabled or no chains to route
+-- Create Group Master FX chain (NO routing - chain creation only)
+-- Creates ONE dedicated FX chain per group
+-- Routing is done separately in Phase 2
+function PakettiMetaSynthCreateGroupMasterChain(instrument, group_config, group_name, randomization_amount)
+  -- Skip if Group Master FX is disabled
   if not group_config.group_master_fx_enabled then
-    return all_group_chains, nil
-  end
-  
-  if #all_group_chains == 0 then
-    return all_group_chains, nil
+    return nil
   end
   
   local mode = group_config.group_master_fx_mode or "random"
   local device_count = group_config.group_master_fx_count or 3
   local fx_types = group_config.group_master_fx_types or {}
-  routing_mode = routing_mode or "output_routing"
   randomization_amount = randomization_amount or 0.3
   
   -- Create a dedicated Group Master FX chain
@@ -1263,60 +1228,31 @@ function PakettiMetaSynthBuildGroupMasterFX(instrument, all_group_chains, group_
     end
   end
   
-  -- Route all frame chains in this group to the Group Master chain
-  if routing_mode == "send_device" then
-    -- Use #Send devices to route to the master chain
-    for _, chain_info in ipairs(all_group_chains) do
-      local chain = chain_info.chain
-      local send_device = PakettiMetaSynthAddSendDevice(
-        chain, 
-        master_chain_index, 
-        string.format("Send to %s", master_chain_name)
-      )
-      chain_info.send_device = send_device
-      chain_info.routed_to_group_master = master_chain_name
-    end
-    print(string.format("PakettiMetaSynth: Created Group Master chain '%s' with %d devices, added #Send devices to %d chains", 
-      master_chain_name, #group_master_devices, #all_group_chains))
-  else
-    -- Use output_routing property
-    for _, chain_info in ipairs(all_group_chains) do
-      local chain = chain_info.chain
-      chain.output_routing = master_chain_name
-      chain_info.routed_to_group_master = master_chain_name
-    end
-    print(string.format("PakettiMetaSynth: Created Group Master chain '%s' with %d devices, routed %d chains via output_routing", 
-      master_chain_name, #group_master_devices, #all_group_chains))
-  end
+  print(string.format("PakettiMetaSynth: Created Group Master chain '%s' with %d devices", 
+    master_chain_name, #group_master_devices))
   
-  -- Return the group master chain info for Stacked Master routing
-  local group_master_info = {
+  -- Return the group master chain info (no routing yet)
+  return {
     chain = master_chain,
     chain_index = master_chain_index,
     chain_name = master_chain_name,
-    devices = group_master_devices
+    devices = group_master_devices,
+    group_name = group_name
   }
-  
-  return all_group_chains, group_master_info
 end
 
--- Build Stacked Master FX chain (single chain that all Group Master chains route to)
--- Creates ONE dedicated FX chain and routes all group master chains to it
--- routing_mode: "output_routing" (chain property) or "send_device" (#Send devices)
-function PakettiMetaSynthBuildStackedMasterFX(instrument, group_master_chains, architecture, routing_mode, randomization_amount)
-  -- Skip if Stacked Master FX is disabled or no group master chains to route
+-- Create Stacked Master FX chain (NO routing - chain creation only)
+-- Creates ONE dedicated FX chain for the entire instrument
+-- Routing is done separately in Phase 2
+function PakettiMetaSynthCreateStackedMasterChain(instrument, architecture, randomization_amount)
+  -- Skip if Stacked Master FX is disabled
   if not architecture.stacked_master_fx_enabled then
-    return nil
-  end
-  
-  if #group_master_chains == 0 then
     return nil
   end
   
   local mode = architecture.stacked_master_fx_mode or "random"
   local device_count = architecture.stacked_master_fx_count or 3
   local fx_types = architecture.stacked_master_fx_types or {}
-  routing_mode = routing_mode or "output_routing"
   randomization_amount = randomization_amount or 0.3
   
   -- Create a dedicated Stacked Master FX chain
@@ -1353,32 +1289,9 @@ function PakettiMetaSynthBuildStackedMasterFX(instrument, group_master_chains, a
     end
   end
   
-  -- Route all Group Master chains to the Stacked Master chain
-  if routing_mode == "send_device" then
-    -- Use #Send devices to route to the stacked master chain
-    for _, group_master_info in ipairs(group_master_chains) do
-      local chain = group_master_info.chain
-      local send_device = PakettiMetaSynthAddSendDevice(
-        chain,
-        stacked_chain_index,
-        "Send to Stacked Master"
-      )
-      group_master_info.send_device = send_device
-      print(string.format("PakettiMetaSynth: Added #Send to '%s' -> Stacked Master", group_master_info.chain_name))
-    end
-    print(string.format("PakettiMetaSynth: Created Stacked Master chain with %d devices, added #Send devices to %d group masters", 
-      #stacked_master_devices, #group_master_chains))
-  else
-    -- Use output_routing property
-    for _, group_master_info in ipairs(group_master_chains) do
-      local chain = group_master_info.chain
-      chain.output_routing = stacked_chain_name
-      print(string.format("PakettiMetaSynth: Routed '%s' to Stacked Master via output_routing", group_master_info.chain_name))
-    end
-    print(string.format("PakettiMetaSynth: Created Stacked Master chain with %d devices, routed %d group masters via output_routing", 
-      #stacked_master_devices, #group_master_chains))
-  end
+  print(string.format("PakettiMetaSynth: Created Stacked Master chain with %d devices", #stacked_master_devices))
   
+  -- Return the stacked master chain info (no routing yet)
   return {
     chain = stacked_chain,
     chain_index = stacked_chain_index,
@@ -1388,10 +1301,83 @@ function PakettiMetaSynthBuildStackedMasterFX(instrument, group_master_chains, a
 end
 
 -- ============================================================================
--- SECTION 7: INSTRUMENT GENERATION
+-- PHASE 2: ROUTING FUNCTIONS (Add sends AFTER all chains are created)
+-- ============================================================================
+
+-- Route all frame chains to their Oscillator FX chain using #Send devices
+function PakettiMetaSynthRouteFramesToOscFX(frame_chains, osc_fx_info)
+  if not osc_fx_info then return end
+  
+  local dest_chain_index = osc_fx_info.chain_index
+  local dest_chain_name = osc_fx_info.chain_name
+  
+  for _, chain_info in ipairs(frame_chains) do
+    local chain = chain_info.chain
+    local send_device = PakettiMetaSynthAddSendDevice(
+      chain, 
+      dest_chain_index, 
+      string.format("Send to %s", dest_chain_name)
+    )
+    chain_info.send_to_osc_fx = send_device
+    chain_info.routed_to_osc_fx = dest_chain_name
+  end
+  
+  print(string.format("PakettiMetaSynth: Routed %d frame chains -> %s (index %d)", 
+    #frame_chains, dest_chain_name, dest_chain_index))
+end
+
+-- Route chains to their Group Master chain using #Send devices
+-- source_chains: either Osc FX chains or frame chains (if no Osc FX)
+function PakettiMetaSynthRouteChainsToGroupMaster(source_chains, group_master_info)
+  if not group_master_info then return end
+  
+  local dest_chain_index = group_master_info.chain_index
+  local dest_chain_name = group_master_info.chain_name
+  
+  for _, chain_info in ipairs(source_chains) do
+    local chain = chain_info.chain
+    local send_device = PakettiMetaSynthAddSendDevice(
+      chain, 
+      dest_chain_index, 
+      string.format("Send to %s", dest_chain_name)
+    )
+    chain_info.send_to_group_master = send_device
+    chain_info.routed_to_group_master = dest_chain_name
+  end
+  
+  print(string.format("PakettiMetaSynth: Routed %d chains -> %s (index %d)", 
+    #source_chains, dest_chain_name, dest_chain_index))
+end
+
+-- Route all Group Master chains to the Stacked Master chain using #Send devices
+function PakettiMetaSynthRouteGroupMastersToStackedMaster(group_master_chains, stacked_master_info)
+  if not stacked_master_info then return end
+  if #group_master_chains == 0 then return end
+  
+  local dest_chain_index = stacked_master_info.chain_index
+  local dest_chain_name = stacked_master_info.chain_name
+  
+  for _, group_master_info_item in ipairs(group_master_chains) do
+    local chain = group_master_info_item.chain
+    local send_device = PakettiMetaSynthAddSendDevice(
+      chain,
+      dest_chain_index,
+      "Send to Stacked Master"
+    )
+    group_master_info_item.send_to_stacked_master = send_device
+    print(string.format("PakettiMetaSynth: Routed '%s' -> Stacked Master (index %d)", 
+      group_master_info_item.chain_name, dest_chain_index))
+  end
+end
+
+-- ============================================================================
+-- SECTION 7: INSTRUMENT GENERATION (TWO-PHASE APPROACH)
 -- ============================================================================
 
 -- Generate a complete instrument from an architecture
+-- Uses two-phase approach: 
+--   Phase 1: Create ALL chains first (no sends)
+--   Phase 2: Add ALL sends using stable indices
 function PakettiMetaSynthGenerateInstrument(architecture)
   -- Safety check: ensure song is loaded
   local song = renoise.song()
@@ -1433,26 +1419,48 @@ function PakettiMetaSynthGenerateInstrument(architecture)
   instrument.name = architecture.name
   
   local sample_index = 1
-  local chain_index = 0
   local mod_set_index = 0
+  local randomization_amount = architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
   
-  -- Track all chains for Stacked Master FX
-  local all_instrument_chains = {}
+  -- ========================================================================
+  -- CHAIN REGISTRY: Stores all chain info for Phase 2 routing
+  -- ========================================================================
+  local chain_registry = {
+    -- Per-group data
+    groups = {},  -- [group_index] = { frame_chains = {}, osc_fx_chains = {}, group_master = nil }
+    -- Global
+    stacked_master = nil
+  }
   
-  -- Track Group Master chains for Stacked Master routing
-  local all_group_master_chains = {}
+  print("PakettiMetaSynth: === PHASE 1: Creating all chains (no sends) ===")
   
-  -- Process each oscillator group
+  -- ========================================================================
+  -- PHASE 1: CREATE ALL CHAINS (NO ROUTING/SENDS)
+  -- ========================================================================
+  
   for gi, group in ipairs(architecture.oscillator_groups) do
     print(string.format("PakettiMetaSynth: Building Group '%s'", group.name))
     
-    -- Track all chains for this group (for Group Master FX)
-    local all_group_chains = {}
+    -- Initialize registry for this group
+    chain_registry.groups[gi] = {
+      group_name = group.name,
+      oscillators = {},  -- [osc_index] = { frame_chains = {}, osc_fx = nil }
+      group_master = nil
+    }
+    
+    local total_oscs_in_group = #group.oscillators
     
     -- Process each oscillator in the group
     for oi, osc in ipairs(group.oscillators) do
       print(string.format("PakettiMetaSynth: Building Oscillator '%s' (%d samples, %d unison, %d frames)",
         osc.name, osc.sample_count, osc.unison_voices, osc.frame_count))
+      
+      -- Initialize registry for this oscillator
+      chain_registry.groups[gi].oscillators[oi] = {
+        osc_name = osc.name,
+        frame_chains = {},
+        osc_fx = nil
+      }
       
       -- Get sample files based on source
       local sample_files = {}
@@ -1464,7 +1472,10 @@ function PakettiMetaSynthGenerateInstrument(architecture)
         sample_files = PakettiMetaSynthGetRandomSamplesFromFolder(osc.sample_folder, total_samples_needed)
       end
       
-      -- Build frame routing for this oscillator
+      -- Get current chain index before creating frame chains
+      local starting_chain_index = #instrument.sample_device_chains
+      
+      -- Build frame chains for this oscillator (creates chains, adds FX, no sends)
       local frame_routing = PakettiMetaSynthBuildFrameRouting(
         instrument, 
         {
@@ -1472,49 +1483,44 @@ function PakettiMetaSynthGenerateInstrument(architecture)
           frame_count = osc.frame_count,
           fx_randomization = architecture.fx_randomization
         },
-        chain_index,
+        starting_chain_index,
         architecture.crossfade
       )
       
-      -- Get routing mode and randomization amount
-      local routing_mode = architecture.master_routing_mode or "output_routing"
-      local randomization_amount = architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
-      local total_oscs_in_group = #group.oscillators
+      -- Store frame chains in registry
+      for fi, frame_info in ipairs(frame_routing) do
+        table.insert(chain_registry.groups[gi].oscillators[oi].frame_chains, frame_info)
+      end
       
-      -- Build Oscillator FX chain (if enabled) and route frame chains to it
-      local osc_fx_info = nil
-      frame_routing, osc_fx_info = PakettiMetaSynthBuildOscillatorFX(
+      -- Create Oscillator FX chain (if enabled) - NO ROUTING YET
+      local osc_fx_info = PakettiMetaSynthCreateOscillatorFXChain(
         instrument,
-        frame_routing,
         osc,
-        routing_mode,
         randomization_amount
       )
       
-      -- Apply group-level crossfade (wavetable scanning between oscillators)
+      -- Store Osc FX chain in registry
       if osc_fx_info then
-        -- Oscillator FX is enabled: add Group Gainer to the Oscillator FX chain
+        chain_registry.groups[gi].oscillators[oi].osc_fx = osc_fx_info
+        
+        -- Add Group Gainer to the Oscillator FX chain
         PakettiMetaSynthAddGroupCrossfadeToChain(
           osc_fx_info.chain,
           osc_fx_info,
-          oi,                -- Current oscillator index in group
+          oi,
           total_oscs_in_group,
-          group              -- Group config with crossfade settings
+          group
         )
-        -- Track the Oscillator FX chain for Group Master routing
-        table.insert(all_group_chains, osc_fx_info)
       else
-        -- Oscillator FX is disabled: add Group Gainer to each frame chain (legacy behavior)
+        -- No Osc FX: add Group Gainer to each frame chain
         frame_routing = PakettiMetaSynthBuildGroupCrossfadeRouting(
           frame_routing,
-          oi,                -- Current oscillator index in group
+          oi,
           total_oscs_in_group,
-          group              -- Group config with crossfade settings
+          group
         )
-        -- Track frame chains for Group Master routing
-        for _, chain_info in ipairs(frame_routing) do
-          table.insert(all_group_chains, chain_info)
-        end
+        -- Update registry with modified frame_routing
+        chain_registry.groups[gi].oscillators[oi].frame_chains = frame_routing
       end
       
       -- Create modulation set for this oscillator
@@ -1583,8 +1589,9 @@ function PakettiMetaSynthGenerateInstrument(architecture)
           
           -- Assign to frame (cycle through frames)
           local frame_for_sample = ((si - 1) % osc.frame_count) + 1
-          if frame_routing[frame_for_sample] then
-            PakettiMetaSynthAssignSampleToFXChain(sample, frame_routing[frame_for_sample].chain_index)
+          local frame_chains = chain_registry.groups[gi].oscillators[oi].frame_chains
+          if frame_chains[frame_for_sample] then
+            PakettiMetaSynthAssignSampleToFXChain(sample, frame_chains[frame_for_sample].chain_index)
           end
           
           -- Assign to modulation set
@@ -1598,46 +1605,80 @@ function PakettiMetaSynthGenerateInstrument(architecture)
           sample_index = sample_index + 1
         end
       end
-      
-      -- Update chain_index: frame chains + optional Oscillator FX chain
-      chain_index = chain_index + osc.frame_count
-      if osc.osc_fx_enabled then
-        chain_index = chain_index + 1
-      end
     end
     
-    -- Apply Group Master FX - creates single chain and routes all oscillator chains to it
-    local group_master_info
-    local routing_mode_for_group = architecture.master_routing_mode or "output_routing"
-    all_group_chains, group_master_info = PakettiMetaSynthBuildGroupMasterFX(
+    -- Create Group Master chain (if enabled) - NO ROUTING YET
+    local group_master_info = PakettiMetaSynthCreateGroupMasterChain(
       instrument,
-      all_group_chains,
       group,
       group.name,
-      routing_mode_for_group,
-      architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
+      randomization_amount
     )
     
-    -- Track Group Master chain for Stacked Master routing
+    -- Store Group Master in registry
     if group_master_info then
-      table.insert(all_group_master_chains, group_master_info)
-    end
-    
-    -- Add all group chains to the instrument-wide tracking
-    for _, chain_info in ipairs(all_group_chains) do
-      table.insert(all_instrument_chains, chain_info)
+      chain_registry.groups[gi].group_master = group_master_info
     end
   end
   
-  -- Apply Stacked Master FX - creates single chain and routes all Group Master chains to it
-  local routing_mode = architecture.master_routing_mode or "output_routing"
-  local stacked_master_info = PakettiMetaSynthBuildStackedMasterFX(
+  -- Create Stacked Master chain (if enabled) - NO ROUTING YET
+  local stacked_master_info = PakettiMetaSynthCreateStackedMasterChain(
     instrument,
-    all_group_master_chains,
     architecture,
-    routing_mode,
-    architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
+    randomization_amount
   )
+  
+  -- Store Stacked Master in registry
+  if stacked_master_info then
+    chain_registry.stacked_master = stacked_master_info
+  end
+  
+  -- ========================================================================
+  -- PHASE 2: ADD ALL SENDS (using stable indices from registry)
+  -- ========================================================================
+  
+  print("PakettiMetaSynth: === PHASE 2: Adding sends with stable indices ===")
+  
+  -- Collect all group master chains for Stacked Master routing
+  local all_group_master_chains = {}
+  
+  for gi, group_data in ipairs(chain_registry.groups) do
+    local group = architecture.oscillator_groups[gi]
+    
+    -- Collect chains that need to route to Group Master
+    local chains_for_group_master = {}
+    
+    for oi, osc_data in ipairs(group_data.oscillators) do
+      local osc = group.oscillators[oi]
+      
+      -- Route Frame chains -> Osc FX chain (if Osc FX enabled)
+      if osc_data.osc_fx then
+        PakettiMetaSynthRouteFramesToOscFX(osc_data.frame_chains, osc_data.osc_fx)
+        -- Osc FX chain goes to Group Master
+        table.insert(chains_for_group_master, osc_data.osc_fx)
+      else
+        -- No Osc FX: Frame chains go directly to Group Master
+        for _, frame_info in ipairs(osc_data.frame_chains) do
+          table.insert(chains_for_group_master, frame_info)
+        end
+      end
+    end
+    
+    -- Route chains -> Group Master (if enabled)
+    if group_data.group_master then
+      PakettiMetaSynthRouteChainsToGroupMaster(chains_for_group_master, group_data.group_master)
+      table.insert(all_group_master_chains, group_data.group_master)
+    end
+  end
+  
+  -- Route Group Masters -> Stacked Master (if enabled)
+  if chain_registry.stacked_master and #all_group_master_chains > 0 then
+    PakettiMetaSynthRouteGroupMastersToStackedMaster(all_group_master_chains, chain_registry.stacked_master)
+  end
+  
+  -- ========================================================================
+  -- FINALIZATION
+  -- ========================================================================
   
   -- Set up macros
   if architecture.crossfade.control_source == "macro" then
@@ -1659,11 +1700,14 @@ function PakettiMetaSynthGenerateInstrument(architecture)
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
   end
   
+  -- Calculate total chains
+  local total_chains = #instrument.sample_device_chains
+  
   renoise.app():show_status(string.format(
     "PakettiMetaSynth: Generated '%s' with %d samples, %d FX chains",
     architecture.name,
     sample_index - 1,
-    chain_index
+    total_chains
   ))
   
   return instrument
@@ -1677,15 +1721,24 @@ end
 function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining)
   max_samples_remaining = max_samples_remaining or 12
   
-  -- Random sample count (1-4, limited by remaining budget)
-  osc.sample_count = math.min(math.random(1, 4), max_samples_remaining)
-  
-  -- Random unison (1-4)
-  local max_unison = math.max(1, math.floor(max_samples_remaining / osc.sample_count))
-  osc.unison_voices = math.min(math.random(1, 4), max_unison)
-  
-  -- Random frame count (1-4)
+  -- Random frame count FIRST (1-4) - determines minimum samples needed
   osc.frame_count = math.random(1, 4)
+  
+  -- Sample count must be >= frame_count so each frame has at least one sample
+  -- Limited by remaining budget
+  local min_samples = osc.frame_count
+  local max_samples = math.min(4, max_samples_remaining)
+  if min_samples > max_samples then
+    -- Not enough budget for this many frames, reduce frame count
+    osc.frame_count = max_samples
+    min_samples = max_samples
+  end
+  osc.sample_count = math.max(min_samples, math.min(math.random(min_samples, 4), max_samples_remaining))
+  
+  -- Random unison (1-4), limited by remaining budget after samples
+  local samples_used = osc.sample_count
+  local max_unison = math.max(1, math.floor(max_samples_remaining / samples_used))
+  osc.unison_voices = math.min(math.random(1, 4), max_unison)
   
   -- Random source (bias toward AKWF as it's always available)
   local sources = {"akwf", "akwf", "akwf", "folder"}
@@ -1695,8 +1748,8 @@ function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining)
   osc.detune_spread = 5 + math.random() * 20  -- 5-25 cents
   osc.pan_spread = 0.3 + math.random() * 0.7  -- 0.3-1.0
   
-  -- Random Oscillator FX settings
-  osc.osc_fx_enabled = math.random() > 0.5
+  -- Oscillator FX settings - always enabled to ensure full architecture
+  osc.osc_fx_enabled = true
   osc.osc_fx_mode = math.random() > 0.5 and "random" or "selective"
   osc.osc_fx_count = math.random(1, 4)
   osc.osc_fx_types = {}
@@ -1733,12 +1786,12 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
     local group = {
       name = "Group " .. string.char(64 + gi), -- A, B, C...
       crossfade_mode = ({"linear", "xy", "stack"})[math.random(1, 3)],
-      -- Random group crossfade settings (wavetable scanning)
-      group_crossfade_enabled = math.random() > 0.5,
+      -- Group crossfade settings (wavetable scanning) - always enabled for full architecture
+      group_crossfade_enabled = true,
       group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
       group_crossfade_time = 1.0 + math.random() * 6.0,  -- 1-7 seconds
-      -- Random Group Master FX settings
-      group_master_fx_enabled = math.random() > 0.6,
+      -- Group Master FX settings - always enabled for full architecture
+      group_master_fx_enabled = true,
       group_master_fx_mode = math.random() > 0.5 and "random" or "selective",
       group_master_fx_count = math.random(1, 4),
       group_master_fx_types = {},
@@ -1760,8 +1813,15 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       end
     end
     
-    -- Random number of oscillators per group (1-3)
-    local num_oscs = math.random(1, math.min(3, samples_remaining))
+    -- Skip creating this group if no samples remaining
+    if samples_remaining <= 0 then
+      break
+    end
+    
+    -- Random number of oscillators per group (1-3), minimum 1
+    local max_oscs = math.min(3, samples_remaining)
+    if max_oscs < 1 then max_oscs = 1 end
+    local num_oscs = math.random(1, max_oscs)
     
     for oi = 1, num_oscs do
       if samples_remaining <= 0 then break end
@@ -1782,7 +1842,10 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       table.insert(group.oscillators, osc)
     end
     
-    table.insert(architecture.oscillator_groups, group)
+    -- Only add group if it has at least one oscillator
+    if #group.oscillators > 0 then
+      table.insert(architecture.oscillator_groups, group)
+    end
   end
   
   -- Random crossfade settings
@@ -1807,8 +1870,8 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
   end
   architecture.fx_randomization.device_pool = pool
   
-  -- Random Stacked Master FX settings
-  architecture.stacked_master_fx_enabled = math.random() > 0.7
+  -- Stacked Master FX settings - always enabled for full architecture
+  architecture.stacked_master_fx_enabled = true
   architecture.stacked_master_fx_mode = math.random() > 0.5 and "random" or "selective"
   architecture.stacked_master_fx_count = math.random(1, 4)
   architecture.stacked_master_fx_types = {}
