@@ -27,6 +27,11 @@ function PakettiMetaSynthCreateDefaultArchitecture()
         group_crossfade_enabled = false,
         group_crossfade_curve = "equal_power",
         group_crossfade_time = 4.0,
+        -- Group Master FX settings (glue FX per wavetable group)
+        group_master_fx_enabled = false,
+        group_master_fx_mode = "random",
+        group_master_fx_count = 3,
+        group_master_fx_types = {},
         oscillators = {
           {
             name = "Osc 1",
@@ -55,7 +60,12 @@ function PakettiMetaSynthCreateDefaultArchitecture()
       random_phase_offsets = true,
       lfo_rate_range = {0.1, 2.0},
       envelope_attack_range = {0.0, 0.5}
-    }
+    },
+    -- Stacked Master FX settings (final processing across all groups)
+    stacked_master_fx_enabled = false,
+    stacked_master_fx_mode = "random",
+    stacked_master_fx_count = 3,
+    stacked_master_fx_types = {}
   }
 end
 
@@ -111,6 +121,16 @@ function PakettiMetaSynthValidateArchitecture(architecture)
       table.insert(errors, string.format("Group '%s' has no oscillators", group.name))
     end
     
+    -- Validate Group Master FX settings
+    if group.group_master_fx_enabled then
+      if group.group_master_fx_count < 1 or group.group_master_fx_count > 5 then
+        table.insert(errors, string.format("Group '%s' master FX count must be 1-5", group.name))
+      end
+      if group.group_master_fx_mode == "selective" and #group.group_master_fx_types == 0 then
+        table.insert(warnings, string.format("Group '%s' has selective FX mode but no FX types selected", group.name))
+      end
+    end
+    
     for oi, osc in ipairs(group.oscillators) do
       if osc.sample_count < 1 or osc.sample_count > 12 then
         table.insert(errors, string.format("Oscillator '%s' sample_count must be 1-12", osc.name))
@@ -121,6 +141,16 @@ function PakettiMetaSynthValidateArchitecture(architecture)
       if osc.frame_count < 1 or osc.frame_count > 16 then
         table.insert(errors, string.format("Oscillator '%s' frame_count must be 1-16", osc.name))
       end
+    end
+  end
+  
+  -- Validate Stacked Master FX settings
+  if architecture.stacked_master_fx_enabled then
+    if architecture.stacked_master_fx_count < 1 or architecture.stacked_master_fx_count > 5 then
+      table.insert(errors, "Stacked Master FX count must be 1-5")
+    end
+    if architecture.stacked_master_fx_mode == "selective" and #architecture.stacked_master_fx_types == 0 then
+      table.insert(warnings, "Stacked Master FX has selective mode but no FX types selected")
     end
   end
   
@@ -297,6 +327,91 @@ function PakettiMetaSynthBuildRandomFXChain(chain, device_pool, device_count, ra
     if device then
       PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
       table.insert(inserted_devices, device)
+    end
+  end
+  
+  return inserted_devices
+end
+
+-- Selectable FX types for Group Master and Stacked Master (glue-appropriate FX)
+PakettiMetaSynthSelectableFXTypes = {
+  { name = "Filter", device = "Analog Filter" },
+  { name = "Digital Filter", device = "Digital Filter" },
+  { name = "EQ", device = "EQ 5" },
+  { name = "Saturation", device = "Distortion 2" },
+  { name = "LoFi", device = "LofiMat 2" },
+  { name = "Chorus", device = "Chorus 2" },
+  { name = "Phaser", device = "Phaser 2" },
+  { name = "Flanger", device = "Flanger 2" },
+  { name = "Comb Filter", device = "Comb Filter 2" },
+  { name = "Delay", device = "Delay" },
+  { name = "Ring Mod", device = "RingMod 2" },
+  { name = "Stereo Expander", device = "Stereo Expander" }
+}
+
+-- Get list of selectable FX type names (for GUI)
+function PakettiMetaSynthGetSelectableFXTypeNames()
+  local names = {}
+  for _, fx in ipairs(PakettiMetaSynthSelectableFXTypes) do
+    table.insert(names, fx.name)
+  end
+  return names
+end
+
+-- Get device name from FX type name
+function PakettiMetaSynthGetDeviceForFXType(fx_type_name)
+  for _, fx in ipairs(PakettiMetaSynthSelectableFXTypes) do
+    if fx.name == fx_type_name then
+      return fx.device
+    end
+  end
+  return nil
+end
+
+-- Build a specific FX device by type name
+function PakettiMetaSynthBuildFXByType(chain, fx_type_name, randomization_amount)
+  local device_name = PakettiMetaSynthGetDeviceForFXType(fx_type_name)
+  if not device_name then
+    print("PakettiMetaSynth: Unknown FX type '" .. tostring(fx_type_name) .. "'")
+    return nil
+  end
+  
+  local device = PakettiMetaSynthInsertDevice(chain, device_name)
+  if device then
+    PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount or 0.3)
+  end
+  return device
+end
+
+-- Build FX devices based on mode (random or selective)
+function PakettiMetaSynthBuildMasterFXDevices(chain, mode, device_count, fx_types, randomization_amount, display_prefix)
+  randomization_amount = randomization_amount or 0.3
+  display_prefix = display_prefix or "Master"
+  
+  local inserted_devices = {}
+  
+  if mode == "selective" and fx_types and #fx_types > 0 then
+    -- Selective mode: use specified FX types
+    for i = 1, device_count do
+      -- Cycle through the selected types
+      local type_index = ((i - 1) % #fx_types) + 1
+      local fx_type_name = fx_types[type_index]
+      local device = PakettiMetaSynthBuildFXByType(chain, fx_type_name, randomization_amount)
+      if device then
+        device.display_name = string.format("%s %s %d", display_prefix, fx_type_name, i)
+        table.insert(inserted_devices, device)
+      end
+    end
+  else
+    -- Random mode: use the safe FX device pool
+    for i = 1, device_count do
+      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+      local device = PakettiMetaSynthInsertDevice(chain, random_device)
+      if device then
+        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+        device.display_name = string.format("%s FX %d", display_prefix, i)
+        table.insert(inserted_devices, device)
+      end
     end
   end
   
@@ -867,6 +982,133 @@ function PakettiMetaSynthBuildGroupCrossfadeRouting(chains_created, osc_index, t
   return chains_created
 end
 
+-- Build Group Master FX (glue FX applied to all chains in a group)
+-- The same devices are added to all chains to simulate a group bus
+function PakettiMetaSynthBuildGroupMasterFX(all_group_chains, group_config, randomization_amount)
+  -- Skip if Group Master FX is disabled
+  if not group_config.group_master_fx_enabled then
+    return all_group_chains
+  end
+  
+  local mode = group_config.group_master_fx_mode or "random"
+  local device_count = group_config.group_master_fx_count or 3
+  local fx_types = group_config.group_master_fx_types or {}
+  randomization_amount = randomization_amount or 0.3
+  
+  -- For consistent "bus" effect, we generate one set of device configurations
+  -- and apply them to all chains in the group
+  local device_configs = {}
+  
+  if mode == "selective" and #fx_types > 0 then
+    -- Selective mode: determine which FX types to use
+    for i = 1, device_count do
+      local type_index = ((i - 1) % #fx_types) + 1
+      local fx_type_name = fx_types[type_index]
+      local device_name = PakettiMetaSynthGetDeviceForFXType(fx_type_name)
+      if device_name then
+        table.insert(device_configs, {
+          device_name = device_name,
+          display_name = string.format("GrpMaster %s %d", fx_type_name, i)
+        })
+      end
+    end
+  else
+    -- Random mode: select random devices from the safe pool
+    for i = 1, device_count do
+      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+      table.insert(device_configs, {
+        device_name = random_device,
+        display_name = string.format("GrpMaster FX %d", i)
+      })
+    end
+  end
+  
+  -- Apply the same devices to all chains in the group
+  for _, chain_info in ipairs(all_group_chains) do
+    local chain = chain_info.chain
+    local group_master_devices = {}
+    
+    for _, config in ipairs(device_configs) do
+      local device = PakettiMetaSynthInsertDevice(chain, config.device_name)
+      if device then
+        device.display_name = config.display_name
+        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+        table.insert(group_master_devices, device)
+      end
+    end
+    
+    chain_info.group_master_devices = group_master_devices
+  end
+  
+  print(string.format("PakettiMetaSynth: Added Group Master FX (%d devices) to %d chains", 
+    #device_configs, #all_group_chains))
+  
+  return all_group_chains
+end
+
+-- Build Stacked Master FX (final processing applied to ALL chains across ALL groups)
+-- The same devices are added to all chains to simulate a master bus
+function PakettiMetaSynthBuildStackedMasterFX(all_chains, architecture, randomization_amount)
+  -- Skip if Stacked Master FX is disabled
+  if not architecture.stacked_master_fx_enabled then
+    return all_chains
+  end
+  
+  local mode = architecture.stacked_master_fx_mode or "random"
+  local device_count = architecture.stacked_master_fx_count or 3
+  local fx_types = architecture.stacked_master_fx_types or {}
+  randomization_amount = randomization_amount or 0.3
+  
+  -- Generate one set of device configurations for the stacked master
+  local device_configs = {}
+  
+  if mode == "selective" and #fx_types > 0 then
+    -- Selective mode: determine which FX types to use
+    for i = 1, device_count do
+      local type_index = ((i - 1) % #fx_types) + 1
+      local fx_type_name = fx_types[type_index]
+      local device_name = PakettiMetaSynthGetDeviceForFXType(fx_type_name)
+      if device_name then
+        table.insert(device_configs, {
+          device_name = device_name,
+          display_name = string.format("StackMaster %s %d", fx_type_name, i)
+        })
+      end
+    end
+  else
+    -- Random mode: select random devices from the safe pool
+    for i = 1, device_count do
+      local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+      table.insert(device_configs, {
+        device_name = random_device,
+        display_name = string.format("StackMaster FX %d", i)
+      })
+    end
+  end
+  
+  -- Apply the same devices to ALL chains
+  for _, chain_info in ipairs(all_chains) do
+    local chain = chain_info.chain
+    local stacked_master_devices = {}
+    
+    for _, config in ipairs(device_configs) do
+      local device = PakettiMetaSynthInsertDevice(chain, config.device_name)
+      if device then
+        device.display_name = config.display_name
+        PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+        table.insert(stacked_master_devices, device)
+      end
+    end
+    
+    chain_info.stacked_master_devices = stacked_master_devices
+  end
+  
+  print(string.format("PakettiMetaSynth: Added Stacked Master FX (%d devices) to %d chains", 
+    #device_configs, #all_chains))
+  
+  return all_chains
+end
+
 -- ============================================================================
 -- SECTION 7: INSTRUMENT GENERATION
 -- ============================================================================
@@ -916,9 +1158,15 @@ function PakettiMetaSynthGenerateInstrument(architecture)
   local chain_index = 0
   local mod_set_index = 0
   
+  -- Track all chains for Stacked Master FX
+  local all_instrument_chains = {}
+  
   -- Process each oscillator group
   for gi, group in ipairs(architecture.oscillator_groups) do
     print(string.format("PakettiMetaSynth: Building Group '%s'", group.name))
+    
+    -- Track all chains for this group (for Group Master FX)
+    local all_group_chains = {}
     
     -- Process each oscillator in the group
     for oi, osc in ipairs(group.oscillators) do
@@ -955,6 +1203,11 @@ function PakettiMetaSynthGenerateInstrument(architecture)
         total_oscs_in_group,
         group              -- Group config with crossfade settings
       )
+      
+      -- Add frame chains to group tracking
+      for _, chain_info in ipairs(frame_routing) do
+        table.insert(all_group_chains, chain_info)
+      end
       
       -- Create modulation set for this oscillator
       local mod_set, mod_set_idx = PakettiMetaSynthCreateModulationSet(instrument, osc.name .. " Mod")
@@ -1042,7 +1295,26 @@ function PakettiMetaSynthGenerateInstrument(architecture)
       
       chain_index = chain_index + osc.frame_count
     end
+    
+    -- Apply Group Master FX to all chains in this group
+    all_group_chains = PakettiMetaSynthBuildGroupMasterFX(
+      all_group_chains,
+      group,
+      architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
+    )
+    
+    -- Add all group chains to the instrument-wide tracking
+    for _, chain_info in ipairs(all_group_chains) do
+      table.insert(all_instrument_chains, chain_info)
+    end
   end
+  
+  -- Apply Stacked Master FX to all chains across all groups
+  all_instrument_chains = PakettiMetaSynthBuildStackedMasterFX(
+    all_instrument_chains,
+    architecture,
+    architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
+  )
   
   -- Set up macros
   if architecture.crossfade.control_source == "macro" then
@@ -1121,8 +1393,28 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       group_crossfade_enabled = math.random() > 0.5,
       group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
       group_crossfade_time = 1.0 + math.random() * 6.0,  -- 1-7 seconds
+      -- Random Group Master FX settings
+      group_master_fx_enabled = math.random() > 0.6,
+      group_master_fx_mode = math.random() > 0.5 and "random" or "selective",
+      group_master_fx_count = math.random(1, 4),
+      group_master_fx_types = {},
       oscillators = {}
     }
+    
+    -- If selective mode, randomly pick some FX types
+    if group.group_master_fx_mode == "selective" then
+      local fx_names = PakettiMetaSynthGetSelectableFXTypeNames()
+      local num_types = math.random(1, math.min(3, #fx_names))
+      local shuffled_types = {}
+      for _, name in ipairs(fx_names) do table.insert(shuffled_types, name) end
+      for i = #shuffled_types, 2, -1 do
+        local j = math.random(1, i)
+        shuffled_types[i], shuffled_types[j] = shuffled_types[j], shuffled_types[i]
+      end
+      for i = 1, num_types do
+        table.insert(group.group_master_fx_types, shuffled_types[i])
+      end
+    end
     
     -- Random number of oscillators per group (1-3)
     local num_oscs = math.random(1, math.min(3, samples_remaining))
@@ -1170,6 +1462,27 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
     table.insert(pool, shuffled[i])
   end
   architecture.fx_randomization.device_pool = pool
+  
+  -- Random Stacked Master FX settings
+  architecture.stacked_master_fx_enabled = math.random() > 0.7
+  architecture.stacked_master_fx_mode = math.random() > 0.5 and "random" or "selective"
+  architecture.stacked_master_fx_count = math.random(1, 4)
+  architecture.stacked_master_fx_types = {}
+  
+  -- If selective mode, randomly pick some FX types for stacked master
+  if architecture.stacked_master_fx_mode == "selective" then
+    local fx_names = PakettiMetaSynthGetSelectableFXTypeNames()
+    local num_types = math.random(1, math.min(3, #fx_names))
+    local shuffled_types = {}
+    for _, name in ipairs(fx_names) do table.insert(shuffled_types, name) end
+    for i = #shuffled_types, 2, -1 do
+      local j = math.random(1, i)
+      shuffled_types[i], shuffled_types[j] = shuffled_types[j], shuffled_types[i]
+    end
+    for i = 1, num_types do
+      table.insert(architecture.stacked_master_fx_types, shuffled_types[i])
+    end
+  end
   
   return architecture
 end
@@ -1441,6 +1754,15 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     curve_index = 3
   end
   
+  -- Determine initial values for Group Master FX controls (with defaults)
+  local group_master_fx_enabled = group.group_master_fx_enabled or false
+  local group_master_fx_mode = group.group_master_fx_mode or "random"
+  local group_master_fx_count = group.group_master_fx_count or 3
+  local group_master_fx_types = group.group_master_fx_types or {}
+  
+  -- Map mode to popup index (Random=1, Selective=2)
+  local master_fx_mode_index = group_master_fx_mode == "selective" and 2 or 1
+  
   return vb:column {
     id = group_id,
     style = "group",
@@ -1514,6 +1836,40 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
       }
     },
     
+    -- Group Master FX Controls
+    vb:row {
+      spacing = 4,
+      vb:checkbox {
+        id = group_id .. "_master_fx_enabled",
+        value = group_master_fx_enabled,
+        notifier = function(value)
+          group.group_master_fx_enabled = value
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      vb:text { text = "Grp Master FX", width = 75 },
+      vb:popup {
+        id = group_id .. "_master_fx_mode",
+        items = {"Random", "Selective"},
+        value = master_fx_mode_index,
+        width = 70,
+        notifier = function(value)
+          group.group_master_fx_mode = value == 1 and "random" or "selective"
+        end
+      },
+      vb:text { text = "Count:" },
+      vb:valuebox {
+        id = group_id .. "_master_fx_count",
+        min = 1,
+        max = 5,
+        value = group_master_fx_count,
+        width = 40,
+        notifier = function(value)
+          group.group_master_fx_count = value
+        end
+      }
+    },
+    
     osc_rows
   }
 end
@@ -1554,6 +1910,32 @@ function PakettiMetaSynthUpdatePreview()
       group_morph_text.text = string.format("Group Morph: %s", table.concat(morph_info, ", "))
     else
       group_morph_text.text = "Group Morph: Off"
+    end
+  end
+  
+  -- Update master FX display
+  local master_fx_text = vb.views["preview_master_fx"]
+  if master_fx_text then
+    local master_info = {}
+    -- Count groups with Group Master FX enabled
+    local group_master_count = 0
+    for gi, group in ipairs(PakettiMetaSynthCurrentArchitecture.oscillator_groups) do
+      if group.group_master_fx_enabled then
+        group_master_count = group_master_count + 1
+      end
+    end
+    if group_master_count > 0 then
+      table.insert(master_info, string.format("Grp:%d", group_master_count))
+    end
+    -- Check Stacked Master FX
+    if PakettiMetaSynthCurrentArchitecture.stacked_master_fx_enabled then
+      table.insert(master_info, "Stack")
+    end
+    
+    if #master_info > 0 then
+      master_fx_text.text = string.format("Master FX: %s", table.concat(master_info, "+"))
+    else
+      master_fx_text.text = "Master FX: Off"
     end
   end
   
@@ -1617,6 +1999,11 @@ function PakettiMetaSynthAddGroup()
     group_crossfade_enabled = false,
     group_crossfade_curve = "equal_power",
     group_crossfade_time = 4.0,
+    -- Group Master FX settings (glue FX per wavetable group)
+    group_master_fx_enabled = false,
+    group_master_fx_mode = "random",
+    group_master_fx_count = 3,
+    group_master_fx_types = {},
     oscillators = {
       {
         name = "Osc 1",
@@ -1715,6 +2102,7 @@ function PakettiMetaSynthBuildDialogContent()
           vb:text { id = "preview_samples", text = "Samples: 0/12" },
           vb:text { id = "preview_fx_chains", text = "FX Chains: 0" },
           vb:text { id = "preview_group_morph", text = "Group Morph: Off" },
+          vb:text { id = "preview_master_fx", text = "Master FX: Off" },
           vb:text { id = "preview_warning", text = "" }
         },
         
@@ -1795,6 +2183,53 @@ function PakettiMetaSynthBuildDialogContent()
               width = 100,
               notifier = function(value)
                 arch.fx_randomization.param_randomization = value
+              end
+            }
+          }
+        },
+        
+        -- Stacked Master FX (global settings)
+        vb:column {
+          style = "group",
+          margin = 4,
+          
+          vb:text { text = "Stacked Master FX", font = "bold" },
+          
+          vb:row {
+            vb:checkbox {
+              id = "stacked_master_enabled",
+              value = arch.stacked_master_fx_enabled or false,
+              notifier = function(value)
+                arch.stacked_master_fx_enabled = value
+                PakettiMetaSynthUpdatePreview()
+              end
+            },
+            vb:text { text = "Enable" }
+          },
+          
+          vb:row {
+            vb:text { text = "Mode:", width = 35 },
+            vb:popup {
+              id = "stacked_master_mode",
+              items = {"Random", "Selective"},
+              value = (arch.stacked_master_fx_mode or "random") == "selective" and 2 or 1,
+              width = 80,
+              notifier = function(value)
+                arch.stacked_master_fx_mode = value == 1 and "random" or "selective"
+              end
+            }
+          },
+          
+          vb:row {
+            vb:text { text = "Count:", width = 35 },
+            vb:valuebox {
+              id = "stacked_master_count",
+              min = 1,
+              max = 5,
+              value = arch.stacked_master_fx_count or 3,
+              width = 50,
+              notifier = function(value)
+                arch.stacked_master_fx_count = value
               end
             }
           }
