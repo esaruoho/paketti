@@ -774,8 +774,8 @@ function PakettiMetaSynthAddAHDSRToModSet(mod_set, target_type, params)
     if params.hold and device.hold then
       device.hold.value = params.hold
     end
-    if params.decay and device.duration then
-      device.duration.value = params.decay
+    if params.decay and device.decay then
+      device.decay.value = params.decay
     end
     if params.sustain and device.sustain then
       device.sustain.value = params.sustain
