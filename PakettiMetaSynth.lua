@@ -1919,8 +1919,8 @@ end
 function PakettiMetaSynthGenerateWavetableInstrument(architecture)
   -- Temporarily disable AutoSamplify monitoring
   local AutoSamplifyMonitoringState = nil
-  if PakettiDisableNewSampleMonitoring then
-    AutoSamplifyMonitoringState = PakettiDisableNewSampleMonitoring()
+  if rawget(_G, "PakettiTemporarilyDisableNewSampleMonitoring") then
+    AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   end
   
   -- Create new instrument
@@ -2300,7 +2300,7 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
   instrument.macros[4].name = "Attack"
   instrument.macros[5].name = "Release"
   
-  if PakettiRestoreNewSampleMonitoring and AutoSamplifyMonitoringState then
+  if rawget(_G, "PakettiRestoreNewSampleMonitoring") and AutoSamplifyMonitoringState then
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
   end
   
@@ -2554,6 +2554,35 @@ end
 -- Quick random instrument generation with #Send devices
 function PakettiMetaSynthGenerateRandomInstrumentWithSends()
   return PakettiMetaSynthGenerateRandomInstrumentWithRouting("send_device")
+end
+
+-- Batch generate multiple randomized instruments for quick auditioning
+function PakettiMetaSynthGenerateBatchInstruments(use_sends, count)
+  count = count or 20
+  local song = renoise.song()
+  
+  if not song then
+    renoise.app():show_status("PakettiMetaSynth: No song loaded")
+    return
+  end
+  
+  for i = 1, count do
+    -- Insert new instrument after current
+    local insert_index = song.selected_instrument_index + 1
+    song:insert_instrument_at(insert_index)
+    song.selected_instrument_index = insert_index
+    
+    -- Generate randomized instrument
+    if use_sends then
+      PakettiMetaSynthGenerateRandomInstrumentWithSends()
+    else
+      PakettiMetaSynthGenerateRandomInstrument()
+    end
+    
+    renoise.app():show_status(string.format("PakettiMetaSynth: Generated instrument %d of %d", i, count))
+  end
+  
+  renoise.app():show_status(string.format("PakettiMetaSynth: Batch complete - %d instruments created", count))
 end
 
 -- Randomize architecture for wavetable mode
@@ -3764,6 +3793,20 @@ renoise.tool():add_menu_entry {
 }
 
 renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Instruments",
+  invoke = function()
+    PakettiMetaSynthGenerateBatchInstruments(false, 20)
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Instruments (with Sends)",
+  invoke = function()
+    PakettiMetaSynthGenerateBatchInstruments(true, 20)
+  end
+}
+
+renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Open Architecture Designer...",
   invoke = function()
     PakettiMetaSynthShowDialog()
@@ -3788,6 +3831,20 @@ renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Generate Random Instrument (Wavetable)",
   invoke = function()
     PakettiMetaSynthGenerateRandomWavetableInstrument()
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Instruments",
+  invoke = function()
+    PakettiMetaSynthGenerateBatchInstruments(false, 20)
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Instruments (with Sends)",
+  invoke = function()
+    PakettiMetaSynthGenerateBatchInstruments(true, 20)
   end
 }
 
@@ -3827,6 +3884,20 @@ renoise.tool():add_keybinding {
   end
 }
 
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Generate 20 Random Instruments",
+  invoke = function()
+    PakettiMetaSynthGenerateBatchInstruments(false, 20)
+  end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Generate 20 Random Instruments (with Sends)",
+  invoke = function()
+    PakettiMetaSynthGenerateBatchInstruments(true, 20)
+  end
+}
+
 -- MIDI mappings
 renoise.tool():add_midi_mapping {
   name = "Paketti:MetaSynth Generate Random Instrument",
@@ -3842,6 +3913,24 @@ renoise.tool():add_midi_mapping {
   invoke = function(message)
     if message:is_trigger() then
       PakettiMetaSynthGenerateRandomInstrumentWithSends()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Generate 20 Random Instruments",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthGenerateBatchInstruments(false, 20)
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Generate 20 Random Instruments (with Sends)",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthGenerateBatchInstruments(true, 20)
     end
   end
 }
