@@ -53,7 +53,7 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     },
     crossfade = {
       curve_type = "equal_power",
-      control_source = "macro",
+      control_source = "lfo",  -- LFO mode works; macro mode not fully implemented
       macro_index = 1
     },
     fx_randomization = {
@@ -349,15 +349,18 @@ function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name
     
     -- Set routing via parameters (the correct way!)
     -- parameters[1] = Dest. Track (-1 = "Cur" = current chain)
-    -- parameters[2] = Dest. Effect (device index in dropdown)
-    -- parameters[3] = Dest. Parameter (parameter index)
+    -- parameters[2] = Dest. Effect (0-based device index in dropdown)
+    -- parameters[3] = Dest. Parameter (0=None, 1=Gain, 2=Panning for Gainer)
     if dest_device_index and dest_param_index then
-      device.parameters[1].value = -1  -- Current chain
-      device.parameters[2].value = dest_device_index  -- Target device
-      device.parameters[3].value = dest_param_index   -- Target parameter (1 = Gain)
+      local effect_index = dest_device_index - 1  -- Convert 1-based position to 0-based dropdown index
+      local param_index = dest_param_index        -- 1 = Gain (no conversion needed)
       
-      print(string.format("DEBUG LFO '%s': Set routing params[1]=-1, params[2]=%d, params[3]=%d",
-        display_name, dest_device_index, dest_param_index))
+      device.parameters[1].value = -1          -- Current chain ("Cur")
+      device.parameters[2].value = effect_index  -- Target device (0-based)
+      device.parameters[3].value = param_index   -- Target parameter (1 = Gain)
+      
+      print(string.format("DEBUG LFO '%s': Set routing params[1]=-1, params[2]=%d (device %d), params[3]=%d (Gain)",
+        display_name, effect_index, dest_device_index, param_index))
     end
   end
   
@@ -1915,7 +1918,8 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
   
   -- Random crossfade settings
   architecture.crossfade.curve_type = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)]
-  architecture.crossfade.control_source = ({"macro", "lfo"})[math.random(1, 2)]
+  -- Always use LFO for now - macro mode routing is not fully implemented
+  architecture.crossfade.control_source = "lfo"
   architecture.crossfade.macro_index = math.random(1, 4)
   
   -- Random FX settings
