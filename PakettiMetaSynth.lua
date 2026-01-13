@@ -26,7 +26,11 @@ function PakettiMetaSynthCreateDefaultArchitecture()
         -- Group-level crossfade settings (wavetable scanning between oscillators)
         group_crossfade_enabled = false,
         group_crossfade_curve = "equal_power",
-        group_crossfade_time = 4.0,
+        -- Group LFO rate settings
+        group_lfo_rate_mode = "preset",  -- "free", "tempo_sync", "preset"
+        group_lfo_rate_free = 0.5,       -- Hz when mode = "free"
+        group_lfo_rate_sync = "1 bar",   -- Beat division when mode = "tempo_sync"
+        group_lfo_rate_preset = "medium", -- "slow", "medium", "fast" when mode = "preset"
         -- Group Master FX settings (glue FX per wavetable group)
         group_master_fx_enabled = false,
         group_master_fx_mode = "random",
@@ -54,7 +58,12 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     crossfade = {
       curve_type = "equal_power",
       control_source = "lfo",  -- LFO mode works; macro mode not fully implemented
-      macro_index = 1
+      macro_index = 1,
+      -- Frame LFO rate settings
+      lfo_rate_mode = "preset",    -- "free", "tempo_sync", "preset"
+      lfo_rate_free = 0.5,         -- Hz when mode = "free"
+      lfo_rate_sync = "1/4",       -- Beat division when mode = "tempo_sync"
+      lfo_rate_preset = "medium"   -- "slow", "medium", "fast" when mode = "preset"
     },
     fx_randomization = {
       enabled = false,
@@ -230,7 +239,20 @@ function PakettiMetaSynthCreateFXChain(instrument, chain_name)
   instrument:insert_sample_device_chain_at(chain_index)
   local chain = instrument.sample_device_chains[chain_index]
   chain.name = chain_name
+  PakettiMetaSynthAddDCOffset(chain)
   return chain, chain_index
+end
+
+-- Add DC Offset device (Automatic mode) to a chain right after Mixer
+function PakettiMetaSynthAddDCOffset(chain)
+  local success, err = pcall(function()
+    chain:insert_device_at("Audio/Effects/Native/DC Offset", 2)
+  end)
+  if success then
+    local device = chain.devices[2]
+    device.parameters[2].value = 1  -- Automatic mode
+    device.display_name = "DC Offset"
+  end
 end
 
 -- Insert a native device into an FX chain
@@ -259,11 +281,11 @@ function PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
   for i, param in ipairs(device.parameters) do
     -- Skip the first parameter (usually bypass/active)
     if i > 1 and param.value_quantum == 0 then
-      -- Continuous parameter - randomize within range
+      -- Continuous parameter - randomize within full range
       local range = param.value_max - param.value_min
-      local current = param.value
-      local variation = (math.random() - 0.5) * 2 * randomization_amount * range
-      local new_value = math.max(param.value_min, math.min(param.value_max, current + variation))
+      local new_value = param.value_min + math.random() * range * randomization_amount
+      -- Ensure we stay within bounds
+      new_value = math.max(param.value_min, math.min(param.value_max, new_value))
       param.value = new_value
     end
   end
@@ -285,8 +307,76 @@ function PakettiMetaSynthCreateGainer(chain, gain_value, display_name)
   return device, position
 end
 
+-- LFO Rate Presets (in Hz)
+PakettiMetaSynthLFORatePresets = {
+  slow = 0.1,     -- 10 second cycle
+  medium = 0.5,   -- 2 second cycle
+  fast = 2.0      -- 0.5 second cycle
+}
+
+-- Tempo-sync divisions mapped to LPB-relative values
+-- These are based on lines-per-beat and need song tempo to calculate actual Hz
+PakettiMetaSynthLFOSyncDivisions = {
+  ["1/16"] = 0.25,   -- 1/16 of a beat
+  ["1/8"] = 0.5,     -- 1/8 of a beat (half beat)
+  ["1/4"] = 1,       -- 1 beat
+  ["1/2"] = 2,       -- 2 beats (half bar in 4/4)
+  ["1 bar"] = 4,     -- 4 beats (1 bar in 4/4)
+  ["2 bars"] = 8,    -- 8 beats (2 bars)
+  ["4 bars"] = 16    -- 16 beats (4 bars)
+}
+
+-- Calculate LFO frequency from rate settings
+-- Returns frequency in Hz (Renoise LFO frequency parameter, 0-1 maps to Hz range)
+function PakettiMetaSynthCalculateLFOFrequency(rate_mode, rate_free, rate_sync, rate_preset)
+  rate_mode = rate_mode or "preset"
+  rate_preset = rate_preset or "medium"
+  rate_free = rate_free or 0.5
+  rate_sync = rate_sync or "1 bar"
+  
+  local frequency_hz = 0.5  -- Default
+  
+  if rate_mode == "free" then
+    -- Direct Hz value
+    frequency_hz = rate_free
+    
+  elseif rate_mode == "preset" then
+    -- Use preset values
+    frequency_hz = PakettiMetaSynthLFORatePresets[rate_preset] or 0.5
+    
+  elseif rate_mode == "tempo_sync" then
+    -- Calculate from song tempo
+    local song = renoise.song()
+    local bpm = song.transport.bpm
+    local lpb = song.transport.lpb
+    
+    -- Get beat multiplier for this sync division
+    local beat_multiplier = PakettiMetaSynthLFOSyncDivisions[rate_sync] or 4
+    
+    -- Calculate cycle duration in seconds
+    -- beats_per_second = bpm / 60
+    -- cycle_duration = beat_multiplier / beats_per_second = beat_multiplier * 60 / bpm
+    local cycle_duration = beat_multiplier * 60 / bpm
+    
+    -- Frequency = 1 / cycle_duration
+    frequency_hz = 1 / cycle_duration
+  end
+  
+  -- Clamp to reasonable range (0.01 Hz to 10 Hz)
+  frequency_hz = math.max(0.01, math.min(10, frequency_hz))
+  
+  -- Convert Hz to Renoise LFO frequency parameter (0-1 range, logarithmic)
+  -- Renoise LFO frequency: 0 = 0.001 Hz, 1 = ~16 Hz (approximately log scale)
+  -- Using approximation: param = log10(hz * 1000) / 4.2
+  local param_value = math.log10(frequency_hz * 1000) / 4.2
+  param_value = math.max(0, math.min(1, param_value))
+  
+  return param_value, frequency_hz
+end
+
 -- Create an LFO device with custom envelope for crossfade control, routed to a specific destination
-function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name, dest_device_index, dest_param_index)
+-- Now accepts optional lfo_frequency parameter (Renoise param value 0-1)
+function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name, dest_device_index, dest_param_index, lfo_frequency)
   local position = #chain.devices + 1
   local device = PakettiMetaSynthInsertDevice(chain, "*LFO", position)
   
@@ -314,6 +404,9 @@ function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name
       print(string.format("  Device %d: %s", di, d.display_name or d.name))
     end
     
+    -- Use provided frequency or default
+    local freq_value = lfo_frequency or 0.9375
+    
     -- XML for custom envelope only (routing done via parameters after)
     local lfo_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
@@ -326,7 +419,7 @@ function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name
       <Value>0.0</Value>
     </Offset>
     <Frequency>
-      <Value>0.9375</Value>
+      <Value>%.6f</Value>
     </Frequency>
     <Type>
       <Value>0.0</Value>
@@ -343,7 +436,7 @@ function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name
     <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
     <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
   </DeviceSlot>
-</FilterDevicePreset>]=], #envelope_points, table.concat(points_xml, "\n        "))
+</FilterDevicePreset>]=], freq_value, #envelope_points, table.concat(points_xml, "\n        "))
     
     device.active_preset_data = lfo_xml
     
@@ -963,13 +1056,23 @@ function PakettiMetaSynthBuildFrameRouting(instrument, osc_config, base_chain_in
     if crossfade_config.control_source == "lfo" and frame_count > 1 then
       print(string.format("DEBUG Frame %d: Creating LFO to route to Gainer at position %d, param 1 (Gain)",
         frame, gainer_position))
+      
+      -- Calculate LFO frequency from rate settings
+      local lfo_freq = PakettiMetaSynthCalculateLFOFrequency(
+        crossfade_config.lfo_rate_mode,
+        crossfade_config.lfo_rate_free,
+        crossfade_config.lfo_rate_sync,
+        crossfade_config.lfo_rate_preset
+      )
+      
       -- Route LFO to the Gainer's gain parameter (parameter 1)
       lfo = PakettiMetaSynthCreateCrossfadeLFO(
         chain, 
         crossfade_curve, 
         "Frame " .. frame .. " Crossfade",
         gainer_position,  -- Destination device index
-        1                 -- Destination parameter index (Gain)
+        1,                -- Destination parameter index (Gain)
+        lfo_freq          -- LFO frequency
       )
     end
     
@@ -1033,12 +1136,21 @@ function PakettiMetaSynthBuildGroupCrossfadeRouting(chains_created, osc_index, t
       })
     end
     
+    -- Calculate Group LFO frequency from rate settings
+    local group_lfo_freq = PakettiMetaSynthCalculateLFOFrequency(
+      group_config.group_lfo_rate_mode,
+      group_config.group_lfo_rate_free,
+      group_config.group_lfo_rate_sync,
+      group_config.group_lfo_rate_preset
+    )
+    
     local group_lfo = PakettiMetaSynthCreateCrossfadeLFO(
       chain,
       scaled_curve,
       string.format("Group LFO Osc %d", osc_index),
       group_gainer_position,  -- Destination device index
-      1                       -- Destination parameter index (Gain)
+      1,                      -- Destination parameter index (Gain)
+      group_lfo_freq          -- LFO frequency
     )
     
     -- Store group crossfade info in chain_info
@@ -1094,12 +1206,21 @@ function PakettiMetaSynthAddGroupCrossfadeToChain(chain, chain_info, osc_index, 
     })
   end
   
+  -- Calculate Group LFO frequency from rate settings
+  local group_lfo_freq = PakettiMetaSynthCalculateLFOFrequency(
+    group_config.group_lfo_rate_mode,
+    group_config.group_lfo_rate_free,
+    group_config.group_lfo_rate_sync,
+    group_config.group_lfo_rate_preset
+  )
+  
   local group_lfo = PakettiMetaSynthCreateCrossfadeLFO(
     chain,
     scaled_curve,
     string.format("Group LFO Osc %d", osc_index),
     group_gainer_position,  -- Destination device index
-    1                       -- Destination parameter index (Gain)
+    1,                      -- Destination parameter index (Gain)
+    group_lfo_freq          -- LFO frequency
   )
   
   -- Store group crossfade info in chain_info
@@ -1177,6 +1298,7 @@ function PakettiMetaSynthCreateOscillatorFXChain(instrument, osc_config, randomi
   instrument:insert_sample_device_chain_at(osc_fx_chain_index)
   local osc_fx_chain = instrument.sample_device_chains[osc_fx_chain_index]
   osc_fx_chain.name = osc_fx_chain_name
+  PakettiMetaSynthAddDCOffset(osc_fx_chain)
   
   -- Add FX devices to the Oscillator FX chain ONLY if FX is enabled
   local osc_fx_devices = {}
@@ -1238,6 +1360,7 @@ function PakettiMetaSynthCreateGroupMasterChain(instrument, group_config, group_
   instrument:insert_sample_device_chain_at(master_chain_index)
   local master_chain = instrument.sample_device_chains[master_chain_index]
   master_chain.name = master_chain_name
+  PakettiMetaSynthAddDCOffset(master_chain)
   
   -- Add FX devices to the Group Master chain ONLY if FX is enabled
   local group_master_devices = {}
@@ -1301,12 +1424,21 @@ function PakettiMetaSynthCreateGroupMasterChain(instrument, group_config, group_
       })
     end
     
+    -- Calculate Group LFO frequency from rate settings
+    local group_lfo_freq = PakettiMetaSynthCalculateLFOFrequency(
+      group_config.group_lfo_rate_mode,
+      group_config.group_lfo_rate_free,
+      group_config.group_lfo_rate_sync,
+      group_config.group_lfo_rate_preset
+    )
+    
     group_lfo = PakettiMetaSynthCreateCrossfadeLFO(
       master_chain,
       scaled_curve,
       string.format("Group LFO %s", group_name),
       group_gainer_position,
-      1  -- Gain parameter
+      1,              -- Gain parameter
+      group_lfo_freq  -- LFO frequency
     )
   end
   
@@ -1341,6 +1473,7 @@ function PakettiMetaSynthCreateStackedMasterChain(instrument, architecture, rand
   instrument:insert_sample_device_chain_at(stacked_chain_index)
   local stacked_chain = instrument.sample_device_chains[stacked_chain_index]
   stacked_chain.name = stacked_chain_name
+  PakettiMetaSynthAddDCOffset(stacked_chain)
   
   -- Add FX devices to the Stacked Master chain ONLY if FX is enabled
   local stacked_master_devices = {}
@@ -1773,6 +1906,417 @@ function PakettiMetaSynthGenerateInstrument(architecture)
 end
 
 -- ============================================================================
+-- SECTION 7B: WAVETABLE ARCHITECTURE GENERATOR
+-- ============================================================================
+-- This implements the "true wavetable" conceptual model where:
+-- - All samples go to a SOURCE CHAIN (Frame 1)
+-- - #Send devices split the signal to parallel FRAME FX chains
+-- - Each frame applies different FX to the SAME source
+-- - Frame Gainers + Frame Morph LFO blend between FX treatments
+-- - Oscillator Groups provide wavetable-style scanning between oscillators
+
+-- Generate a wavetable-style instrument from an architecture
+function PakettiMetaSynthGenerateWavetableInstrument(architecture)
+  -- Temporarily disable AutoSamplify monitoring
+  local AutoSamplifyMonitoringState = nil
+  if PakettiDisableNewSampleMonitoring then
+    AutoSamplifyMonitoringState = PakettiDisableNewSampleMonitoring()
+  end
+  
+  -- Create new instrument
+  local song = renoise.song()
+  song:insert_instrument_at(song.selected_instrument_index + 1)
+  local instrument = song.instruments[song.selected_instrument_index + 1]
+  instrument.name = architecture.name or "MetaSynth Wavetable"
+  song.selected_instrument_index = song.selected_instrument_index + 1
+  
+  local randomization_amount = architecture.fx_randomization and architecture.fx_randomization.param_randomization or 0.3
+  local sample_index = 1
+  
+  -- Registry to track all chains for routing
+  local chain_registry = {
+    groups = {},
+    stacked_master = nil
+  }
+  
+  print("PakettiMetaSynth Wavetable: === PHASE 1: Creating all chains ===")
+  
+  -- ========================================================================
+  -- PHASE 1: CREATE ALL CHAINS
+  -- ========================================================================
+  
+  for gi, group in ipairs(architecture.oscillator_groups) do
+    print(string.format("PakettiMetaSynth Wavetable: Building Group '%s'", group.name))
+    
+    chain_registry.groups[gi] = {
+      group_name = group.name,
+      oscillators = {},
+      group_master = nil
+    }
+    
+    local total_oscs_in_group = #group.oscillators
+    
+    for oi, osc in ipairs(group.oscillators) do
+      print(string.format("PakettiMetaSynth Wavetable: Building Oscillator '%s' (%d samples, %d unison, %d frames)",
+        osc.name, osc.sample_count, osc.unison_voices, osc.frame_count))
+      
+      chain_registry.groups[gi].oscillators[oi] = {
+        osc_name = osc.name,
+        source_chain = nil,
+        frame_chains = {},
+        osc_fx = nil
+      }
+      
+      -- Get sample files
+      local sample_files = {}
+      local total_samples_needed = osc.sample_count * osc.unison_voices
+      
+      if osc.sample_source == "akwf" then
+        sample_files = PakettiMetaSynthGetRandomAKWFSamples(total_samples_needed)
+      elseif osc.sample_source == "folder" and osc.sample_folder then
+        sample_files = PakettiMetaSynthGetRandomSamplesFromFolder(osc.sample_folder, total_samples_needed)
+      end
+      
+      -- ================================================================
+      -- CREATE SOURCE CHAIN (Frame 1) - All samples go here
+      -- ================================================================
+      local source_chain_name = string.format("%s Source", osc.name)
+      local source_chain, source_chain_index = PakettiMetaSynthCreateFXChain(instrument, source_chain_name)
+      
+      chain_registry.groups[gi].oscillators[oi].source_chain = {
+        chain = source_chain,
+        chain_index = source_chain_index,
+        chain_name = source_chain_name
+      }
+      
+      -- ================================================================
+      -- CREATE FRAME FX CHAINS (Frame 2, 3, N) - Receive via #Send
+      -- ================================================================
+      local frame_count = osc.frame_count
+      
+      for frame = 1, frame_count do
+        local frame_chain_name = string.format("%s Frame %d", osc.name, frame)
+        local frame_chain, frame_chain_index = PakettiMetaSynthCreateFXChain(instrument, frame_chain_name)
+        
+        -- Add random FX to each frame chain
+        if architecture.fx_randomization and architecture.fx_randomization.enabled then
+          PakettiMetaSynthBuildRandomFXChain(
+            frame_chain,
+            architecture.fx_randomization.device_pool or PakettiMetaSynthSafeFXDevices,
+            2,
+            randomization_amount
+          )
+        end
+        
+        -- Generate crossfade curve for this frame position
+        local crossfade_curve = PakettiMetaSynthGenerateCrossfadeCurve(
+          architecture.crossfade.curve_type or "equal_power",
+          128,
+          frame,
+          frame_count
+        )
+        
+        -- Add Frame Gainer at the end
+        local initial_gain = crossfade_curve[1].value
+        local gainer, gainer_position = PakettiMetaSynthCreateGainer(frame_chain, initial_gain, 
+          string.format("Frame %d Gainer", frame))
+        
+        -- Add Frame Morph LFO (controls this frame's gainer)
+        local lfo = nil
+        if frame_count > 1 then
+          -- Calculate Frame LFO frequency from rate settings
+          local frame_lfo_freq = PakettiMetaSynthCalculateLFOFrequency(
+            architecture.crossfade.lfo_rate_mode,
+            architecture.crossfade.lfo_rate_free,
+            architecture.crossfade.lfo_rate_sync,
+            architecture.crossfade.lfo_rate_preset
+          )
+          
+          lfo = PakettiMetaSynthCreateCrossfadeLFO(
+            frame_chain,
+            crossfade_curve,
+            string.format("Frame %d Morph LFO", frame),
+            gainer_position,
+            1,              -- Gain parameter
+            frame_lfo_freq  -- LFO frequency
+          )
+        end
+        
+        table.insert(chain_registry.groups[gi].oscillators[oi].frame_chains, {
+          chain = frame_chain,
+          chain_index = frame_chain_index,
+          chain_name = frame_chain_name,
+          frame_number = frame,
+          gainer = gainer,
+          gainer_position = gainer_position,
+          lfo = lfo,
+          crossfade_curve = crossfade_curve
+        })
+      end
+      
+      -- ================================================================
+      -- CREATE OSC FX CHAIN (summing bus for all frames)
+      -- ================================================================
+      local osc_fx_chain_name = osc.name .. " FX"
+      local osc_fx_chain, osc_fx_chain_index = PakettiMetaSynthCreateFXChain(instrument, osc_fx_chain_name)
+      
+      -- Add Osc FX devices if enabled
+      local osc_fx_devices = {}
+      if osc.osc_fx_enabled then
+        local device_count = osc.osc_fx_count or 2
+        for i = 1, device_count do
+          local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+          local device = PakettiMetaSynthInsertDevice(osc_fx_chain, random_device)
+          if device then
+            PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+            device.display_name = string.format("OscFX %d", i)
+            table.insert(osc_fx_devices, device)
+          end
+        end
+      end
+      
+      -- Add Osc Gainer for group crossfade (oscillator morphing within group)
+      local osc_gainer = nil
+      local osc_gainer_position = nil
+      local osc_lfo = nil
+      
+      if total_oscs_in_group > 1 and group.group_crossfade_enabled then
+        local osc_curve = PakettiMetaSynthGenerateCrossfadeCurve(
+          group.group_crossfade_curve or "equal_power",
+          128,
+          oi,
+          total_oscs_in_group
+        )
+        
+        local osc_initial_gain = osc_curve[1].value
+        osc_gainer, osc_gainer_position = PakettiMetaSynthCreateGainer(
+          osc_fx_chain,
+          osc_initial_gain,
+          string.format("Osc %d/%d Gainer", oi, total_oscs_in_group)
+        )
+        
+        -- Calculate Group LFO frequency from rate settings
+        local group_lfo_freq = PakettiMetaSynthCalculateLFOFrequency(
+          group.group_lfo_rate_mode,
+          group.group_lfo_rate_free,
+          group.group_lfo_rate_sync,
+          group.group_lfo_rate_preset
+        )
+        
+        osc_lfo = PakettiMetaSynthCreateCrossfadeLFO(
+          osc_fx_chain,
+          osc_curve,
+          string.format("Osc %d Morph LFO", oi),
+          osc_gainer_position,
+          1,              -- Gain parameter
+          group_lfo_freq  -- LFO frequency
+        )
+      end
+      
+      chain_registry.groups[gi].oscillators[oi].osc_fx = {
+        chain = osc_fx_chain,
+        chain_index = osc_fx_chain_index,
+        chain_name = osc_fx_chain_name,
+        devices = osc_fx_devices,
+        osc_gainer = osc_gainer,
+        osc_gainer_position = osc_gainer_position,
+        osc_lfo = osc_lfo
+      }
+      
+      print(string.format("PakettiMetaSynth Wavetable: Created Osc FX '%s' with %d devices", 
+        osc_fx_chain_name, #osc_fx_devices))
+      
+      -- ================================================================
+      -- CREATE MODULATION SET
+      -- ================================================================
+      local mod_set, mod_set_idx = PakettiMetaSynthCreateModulationSet(instrument, osc.name .. " Mod")
+      
+      PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, {
+        attack = 0.0,
+        hold = 0.0,
+        decay = 0.5,
+        sustain = 0.8,
+        release = 0.3
+      })
+      
+      if architecture.modulation and architecture.modulation.random_phase_offsets then
+        PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, {
+          frequency = 0.3 + math.random() * 0.3,
+          amount = 0.02
+        })
+      end
+      
+      -- ================================================================
+      -- LOAD SAMPLES - ALL go to SOURCE CHAIN
+      -- ================================================================
+      local detune_spread = osc.detune_spread or 10
+      local pan_spread = osc.pan_spread or 0.8
+      local file_index = 1
+      
+      for si = 1, osc.sample_count do
+        for ui = 1, osc.unison_voices do
+          while #instrument.samples < sample_index do
+            instrument:insert_sample_at(#instrument.samples + 1)
+          end
+          
+          local sample = instrument.samples[sample_index]
+          
+          if file_index <= #sample_files then
+            local success = sample.sample_buffer:load_from(sample_files[file_index])
+            if success then
+              sample.name = string.format("%s S%d U%d", osc.name, si, ui)
+            else
+              sample.name = string.format("%s S%d U%d (load failed)", osc.name, si, ui)
+            end
+            file_index = file_index + 1
+          else
+            sample.name = string.format("%s S%d U%d (empty)", osc.name, si, ui)
+          end
+          
+          -- Unison detuning
+          if osc.unison_voices > 1 then
+            local detune_offset = ((ui - 1) / (osc.unison_voices - 1) - 0.5) * 2 * detune_spread
+            sample.fine_tune = math.floor(detune_offset * 1.28)
+            local pan_offset = ((ui - 1) / (osc.unison_voices - 1) - 0.5) * 2 * pan_spread
+            sample.panning = 0.5 + pan_offset * 0.5
+          else
+            sample.fine_tune = 0
+            sample.panning = 0.5
+          end
+          
+          -- ALL samples go to SOURCE CHAIN (this is the key difference!)
+          PakettiMetaSynthAssignSampleToFXChain(sample, source_chain_index)
+          PakettiMetaSynthAssignSampleToModSet(sample, mod_set_idx)
+          
+          if osc.sample_source == "akwf" then
+            sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+          end
+          
+          sample_index = sample_index + 1
+        end
+      end
+    end
+    
+    -- ================================================================
+    -- CREATE GROUP MASTER CHAIN
+    -- ================================================================
+    local total_groups = #architecture.oscillator_groups
+    local group_master_info = PakettiMetaSynthCreateGroupMasterChain(
+      instrument,
+      group,
+      group.name,
+      gi,
+      total_groups,
+      randomization_amount
+    )
+    
+    chain_registry.groups[gi].group_master = group_master_info
+  end
+  
+  -- ================================================================
+  -- CREATE STACKED MASTER CHAIN
+  -- ================================================================
+  local stacked_master_info = PakettiMetaSynthCreateStackedMasterChain(
+    instrument,
+    architecture,
+    randomization_amount
+  )
+  chain_registry.stacked_master = stacked_master_info
+  
+  -- ========================================================================
+  -- PHASE 2: ADD ALL ROUTING (#Send devices)
+  -- ========================================================================
+  
+  print("PakettiMetaSynth Wavetable: === PHASE 2: Adding routing ===")
+  
+  local all_group_master_chains = {}
+  
+  for gi, group_data in ipairs(chain_registry.groups) do
+    local osc_fx_chains_for_group = {}
+    
+    for oi, osc_data in ipairs(group_data.oscillators) do
+      local source_chain = osc_data.source_chain.chain
+      local frame_chains = osc_data.frame_chains
+      local osc_fx = osc_data.osc_fx
+      
+      -- Route SOURCE CHAIN -> all FRAME CHAINS via #Send
+      -- Frame 1 gets the dry signal (no send needed, just route output)
+      -- Frames 2+ get signal via #Send from source
+      
+      for fi, frame_info in ipairs(frame_chains) do
+        if fi == 1 then
+          -- Frame 1: Route source chain output directly to Frame 1
+          -- Add #Send from source to Frame 1
+          PakettiMetaSynthAddSendDevice(
+            source_chain,
+            frame_info.chain_index,
+            "Send to Frame 1"
+          )
+        else
+          -- Frames 2+: Add #Send from source chain
+          PakettiMetaSynthAddSendDevice(
+            source_chain,
+            frame_info.chain_index,
+            string.format("Send to Frame %d", fi)
+          )
+        end
+        
+        -- Route each Frame chain -> Osc FX chain
+        PakettiMetaSynthAddSendDevice(
+          frame_info.chain,
+          osc_fx.chain_index,
+          "Send to Osc FX"
+        )
+      end
+      
+      print(string.format("PakettiMetaSynth Wavetable: Routed %s Source -> %d Frames -> Osc FX",
+        osc_data.osc_name, #frame_chains))
+      
+      table.insert(osc_fx_chains_for_group, osc_fx)
+    end
+    
+    -- Route all Osc FX chains -> Group Master
+    PakettiMetaSynthRouteChainsToGroupMaster(osc_fx_chains_for_group, group_data.group_master)
+    table.insert(all_group_master_chains, group_data.group_master)
+  end
+  
+  -- Route Group Masters -> Stacked Master
+  PakettiMetaSynthRouteGroupMastersToStackedMaster(all_group_master_chains, chain_registry.stacked_master)
+  
+  -- ========================================================================
+  -- FINALIZATION
+  -- ========================================================================
+  
+  if architecture.crossfade.control_source == "macro" then
+    local macro_idx = architecture.crossfade.macro_index
+    if macro_idx >= 1 and macro_idx <= 8 then
+      instrument.macros[macro_idx].name = "Frame Morph"
+      instrument.macros[macro_idx].value = 0.5
+    end
+  end
+  
+  instrument.macros[2].name = "Osc Morph"
+  instrument.macros[3].name = "Filter Cutoff"
+  instrument.macros[4].name = "Attack"
+  instrument.macros[5].name = "Release"
+  
+  if PakettiRestoreNewSampleMonitoring and AutoSamplifyMonitoringState then
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  end
+  
+  local total_chains = #instrument.sample_device_chains
+  
+  renoise.app():show_status(string.format(
+    "PakettiMetaSynth Wavetable: Generated '%s' with %d samples, %d FX chains",
+    architecture.name,
+    sample_index - 1,
+    total_chains
+  ))
+  
+  return instrument
+end
+
+-- ============================================================================
 -- SECTION 8: RANDOMIZATION SYSTEM
 -- ============================================================================
 
@@ -1850,14 +2394,26 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
   
   local samples_remaining = 12
   
+  -- LFO rate mode options
+  local rate_modes = {"free", "tempo_sync", "preset"}
+  local rate_presets = {"slow", "medium", "fast"}
+  local rate_syncs = {"1/16", "1/8", "1/4", "1/2", "1 bar", "2 bars", "4 bars"}
+  
   for gi = 1, num_groups do
+    -- Randomize Group LFO rate settings
+    local group_rate_mode = rate_modes[math.random(1, #rate_modes)]
+    
     local group = {
       name = "Group " .. string.char(64 + gi), -- A, B, C...
       crossfade_mode = ({"linear", "xy", "stack"})[math.random(1, 3)],
       -- Group crossfade settings (wavetable scanning) - always enabled for full architecture
       group_crossfade_enabled = true,
       group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
-      group_crossfade_time = 1.0 + math.random() * 6.0,  -- 1-7 seconds
+      -- Group LFO rate settings
+      group_lfo_rate_mode = group_rate_mode,
+      group_lfo_rate_free = 0.1 + math.random() * 1.9,  -- 0.1-2.0 Hz
+      group_lfo_rate_sync = rate_syncs[math.random(1, #rate_syncs)],
+      group_lfo_rate_preset = rate_presets[math.random(1, #rate_presets)],
       -- Group Master FX settings - always enabled for full architecture
       group_master_fx_enabled = true,
       group_master_fx_mode = math.random() > 0.5 and "random" or "selective",
@@ -1921,6 +2477,13 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
   -- Always use LFO for now - macro mode routing is not fully implemented
   architecture.crossfade.control_source = "lfo"
   architecture.crossfade.macro_index = math.random(1, 4)
+  
+  -- Randomize Frame LFO rate settings
+  local frame_rate_mode = rate_modes[math.random(1, #rate_modes)]
+  architecture.crossfade.lfo_rate_mode = frame_rate_mode
+  architecture.crossfade.lfo_rate_free = 0.1 + math.random() * 1.9  -- 0.1-2.0 Hz
+  architecture.crossfade.lfo_rate_sync = rate_syncs[math.random(1, #rate_syncs)]
+  architecture.crossfade.lfo_rate_preset = rate_presets[math.random(1, #rate_presets)]
   
   -- Random FX settings
   architecture.fx_randomization.enabled = math.random() > 0.3
@@ -1991,6 +2554,119 @@ end
 -- Quick random instrument generation with #Send devices
 function PakettiMetaSynthGenerateRandomInstrumentWithSends()
   return PakettiMetaSynthGenerateRandomInstrumentWithRouting("send_device")
+end
+
+-- Randomize architecture for wavetable mode
+-- Key difference: frames are parallel FX paths for the SAME source, not different samples
+function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
+  trueRandomSeed()
+  
+  -- LFO rate mode options
+  local rate_modes = {"free", "tempo_sync", "preset"}
+  local rate_presets = {"slow", "medium", "fast"}
+  local rate_syncs = {"1/16", "1/8", "1/4", "1/2", "1 bar", "2 bars", "4 bars"}
+  
+  -- Wavetable mode: typically 1 group with multiple oscillators for scanning
+  local num_groups = 1  -- Keep it simple for wavetable
+  architecture.oscillator_groups = {}
+  
+  local samples_remaining = 12
+  
+  for gi = 1, num_groups do
+    -- Randomize Group LFO rate settings
+    local group_rate_mode = rate_modes[math.random(1, #rate_modes)]
+    
+    local group = {
+      name = "Group " .. string.char(64 + gi),
+      crossfade_mode = "linear",
+      -- Group crossfade = wavetable scanning between oscillators
+      group_crossfade_enabled = true,
+      group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
+      -- Group LFO rate settings (wavetable scanning speed)
+      group_lfo_rate_mode = group_rate_mode,
+      group_lfo_rate_free = 0.1 + math.random() * 0.9,  -- 0.1-1.0 Hz (slower for wavetable)
+      group_lfo_rate_sync = rate_syncs[math.random(4, #rate_syncs)],  -- Prefer slower syncs (1/2 to 4 bars)
+      group_lfo_rate_preset = rate_presets[math.random(1, 2)],  -- Prefer slow/medium for wavetable
+      -- Group Master FX for glue
+      group_master_fx_enabled = true,
+      group_master_fx_mode = "random",
+      group_master_fx_count = math.random(1, 3),
+      group_master_fx_types = {},
+      oscillators = {}
+    }
+    
+    if samples_remaining <= 0 then break end
+    
+    -- Wavetable mode: 2-4 oscillators for scanning between different waveforms
+    local num_oscs = math.random(2, math.min(4, samples_remaining))
+    
+    for oi = 1, num_oscs do
+      if samples_remaining <= 0 then break end
+      
+      local osc = {
+        name = "Osc " .. oi,
+        sample_count = 1,  -- Wavetable: 1 sample per oscillator
+        unison_voices = math.random(1, 3),  -- Unison for thickness
+        frame_count = math.random(2, 4),  -- 2-4 parallel FX frames
+        sample_source = "akwf",
+        detune_spread = 5 + math.random() * 15,  -- 5-20 cents
+        pan_spread = 0.3 + math.random() * 0.5,  -- 0.3-0.8
+        -- Osc FX enabled for summing
+        osc_fx_enabled = math.random() > 0.3,  -- 70% chance
+        osc_fx_mode = "random",
+        osc_fx_count = math.random(1, 3)
+      }
+      
+      -- Check if custom folder is configured
+      if PakettiMetaSynthLastFolderPath and PakettiMetaSynthLastFolderPath ~= "" then
+        if math.random() > 0.75 then
+          osc.sample_source = "folder"
+          osc.sample_folder = PakettiMetaSynthLastFolderPath
+        end
+      end
+      
+      samples_remaining = samples_remaining - (osc.sample_count * osc.unison_voices)
+      table.insert(group.oscillators, osc)
+    end
+    
+    if #group.oscillators > 0 then
+      table.insert(architecture.oscillator_groups, group)
+    end
+  end
+  
+  -- Crossfade settings for frame morphing
+  architecture.crossfade.curve_type = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)]
+  architecture.crossfade.control_source = "lfo"  -- LFO for frame morphing
+  architecture.crossfade.macro_index = 1
+  
+  -- Randomize Frame LFO rate settings (frame morphing speed)
+  local frame_rate_mode = rate_modes[math.random(1, #rate_modes)]
+  architecture.crossfade.lfo_rate_mode = frame_rate_mode
+  architecture.crossfade.lfo_rate_free = 0.2 + math.random() * 1.3  -- 0.2-1.5 Hz
+  architecture.crossfade.lfo_rate_sync = rate_syncs[math.random(3, #rate_syncs)]  -- 1/4 to 4 bars
+  architecture.crossfade.lfo_rate_preset = rate_presets[math.random(1, #rate_presets)]
+  
+  -- FX randomization enabled for frame variation
+  architecture.fx_randomization.enabled = true
+  architecture.fx_randomization.param_randomization = 0.2 + math.random() * 0.3  -- 0.2-0.5
+  
+  -- Stacked Master FX (global polish)
+  architecture.stacked_master_fx_enabled = true
+  architecture.stacked_master_fx_mode = "random"
+  architecture.stacked_master_fx_count = math.random(2, 4)
+  
+  -- Modulation
+  architecture.modulation.random_phase_offsets = math.random() > 0.5
+  
+  return architecture
+end
+
+-- Quick wavetable instrument generation
+function PakettiMetaSynthGenerateRandomWavetableInstrument()
+  local architecture = PakettiMetaSynthCreateDefaultArchitecture()
+  PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
+  architecture.name = "MetaSynth Wavetable " .. os.date("%H%M%S")
+  return PakettiMetaSynthGenerateWavetableInstrument(architecture)
 end
 
 -- ============================================================================
@@ -2362,17 +3038,52 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           group.group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[value]
         end
       },
-      vb:text { text = "Time:" },
-      vb:valuefield {
-        id = group_id .. "_xfade_time",
-        min = 0.1,
-        max = 30.0,
-        value = group_xfade_time,
-        width = 45,
-        tostring = function(value) return string.format("%.1fs", value) end,
-        tonumber = function(str) return tonumber(str:gsub("s", "")) or 4.0 end,
+      vb:text { text = "LFO:" },
+      vb:popup {
+        id = group_id .. "_lfo_rate_mode",
+        items = {"Free", "Sync", "Preset"},
+        value = group.group_lfo_rate_mode == "free" and 1 or 
+               (group.group_lfo_rate_mode == "tempo_sync" and 2 or 3),
+        width = 55,
         notifier = function(value)
-          group.group_crossfade_time = value
+          group.group_lfo_rate_mode = ({"free", "tempo_sync", "preset"})[value]
+        end
+      }
+    },
+    
+    -- Group LFO Rate Details Row
+    vb:row {
+      spacing = 4,
+      vb:text { text = "Hz:", width = 25 },
+      vb:valuefield {
+        id = group_id .. "_lfo_rate_free",
+        min = 0.01,
+        max = 10,
+        value = group.group_lfo_rate_free or 0.5,
+        width = 45,
+        notifier = function(value)
+          group.group_lfo_rate_free = value
+        end
+      },
+      vb:text { text = "Sync:" },
+      vb:popup {
+        id = group_id .. "_lfo_rate_sync",
+        items = {"1/16", "1/8", "1/4", "1/2", "1bar", "2bar", "4bar"},
+        value = ({["1/16"]=1, ["1/8"]=2, ["1/4"]=3, ["1/2"]=4, ["1 bar"]=5, ["2 bars"]=6, ["4 bars"]=7})[group.group_lfo_rate_sync or "1 bar"] or 5,
+        width = 50,
+        notifier = function(value)
+          group.group_lfo_rate_sync = ({"1/16", "1/8", "1/4", "1/2", "1 bar", "2 bars", "4 bars"})[value]
+        end
+      },
+      vb:text { text = "Pre:" },
+      vb:popup {
+        id = group_id .. "_lfo_rate_preset",
+        items = {"Slow", "Med", "Fast"},
+        value = group.group_lfo_rate_preset == "slow" and 1 or 
+               (group.group_lfo_rate_preset == "medium" and 2 or 3),
+        width = 50,
+        notifier = function(value)
+          group.group_lfo_rate_preset = ({"slow", "medium", "fast"})[value]
         end
       }
     },
@@ -2719,6 +3430,62 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.crossfade.macro_index = value
               end
             }
+          },
+          
+          -- Frame LFO Rate Mode
+          vb:row {
+            vb:text { text = "LFO Mode:", width = 55 },
+            vb:popup {
+              id = "frame_lfo_rate_mode",
+              items = {"Free", "Tempo Sync", "Preset"},
+              value = arch.crossfade.lfo_rate_mode == "free" and 1 or 
+                     (arch.crossfade.lfo_rate_mode == "tempo_sync" and 2 or 3),
+              width = 80,
+              notifier = function(value)
+                arch.crossfade.lfo_rate_mode = ({"free", "tempo_sync", "preset"})[value]
+              end
+            }
+          },
+          
+          vb:row {
+            vb:text { text = "Free Hz:", width = 55 },
+            vb:valuefield {
+              id = "frame_lfo_rate_free",
+              min = 0.01,
+              max = 10,
+              value = arch.crossfade.lfo_rate_free or 0.5,
+              width = 60,
+              notifier = function(value)
+                arch.crossfade.lfo_rate_free = value
+              end
+            }
+          },
+          
+          vb:row {
+            vb:text { text = "Sync:", width = 55 },
+            vb:popup {
+              id = "frame_lfo_rate_sync",
+              items = {"1/16", "1/8", "1/4", "1/2", "1 bar", "2 bars", "4 bars"},
+              value = ({["1/16"]=1, ["1/8"]=2, ["1/4"]=3, ["1/2"]=4, ["1 bar"]=5, ["2 bars"]=6, ["4 bars"]=7})[arch.crossfade.lfo_rate_sync or "1 bar"] or 5,
+              width = 80,
+              notifier = function(value)
+                arch.crossfade.lfo_rate_sync = ({"1/16", "1/8", "1/4", "1/2", "1 bar", "2 bars", "4 bars"})[value]
+              end
+            }
+          },
+          
+          vb:row {
+            vb:text { text = "Preset:", width = 55 },
+            vb:popup {
+              id = "frame_lfo_rate_preset",
+              items = {"Slow", "Medium", "Fast"},
+              value = arch.crossfade.lfo_rate_preset == "slow" and 1 or 
+                     (arch.crossfade.lfo_rate_preset == "medium" and 2 or 3),
+              width = 80,
+              notifier = function(value)
+                arch.crossfade.lfo_rate_preset = ({"slow", "medium", "fast"})[value]
+              end
+            }
           }
         },
         
@@ -2990,6 +3757,13 @@ renoise.tool():add_menu_entry {
 }
 
 renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Generate Random Instrument (Wavetable)",
+  invoke = function()
+    PakettiMetaSynthGenerateRandomWavetableInstrument()
+  end
+}
+
+renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Open Architecture Designer...",
   invoke = function()
     PakettiMetaSynthShowDialog()
@@ -3007,6 +3781,13 @@ renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Generate Random Instrument (with Sends)",
   invoke = function()
     PakettiMetaSynthGenerateRandomInstrumentWithSends()
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Instrument Box:Paketti:MetaSynth:Generate Random Instrument (Wavetable)",
+  invoke = function()
+    PakettiMetaSynthGenerateRandomWavetableInstrument()
   end
 }
 
