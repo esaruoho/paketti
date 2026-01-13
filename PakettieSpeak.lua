@@ -416,8 +416,19 @@ end
 -- Initialize default_executable using auto-detection
 local default_executable = PakettieSpeakGuessExecutable() or PakettieSpeakGetDefaultPath()
 
+-- Helper function to extract string value from observable or convert to string
+function PakettieSpeakGetStringValue(value)
+  if type(value) == "userdata" then
+    -- Try to get the .value property if it's an observable
+    if value.value ~= nil then
+      return tostring(value.value)
+    end
+  end
+  return tostring(value)
+end
+
 function PakettieSpeakConvertPath(path)
-  path = tostring(path)
+  path = PakettieSpeakGetStringValue(path)
   if os_name == "WINDOWS" then
     return string.gsub(path, "/", "\\")
   else
@@ -426,7 +437,7 @@ function PakettieSpeakConvertPath(path)
 end
 
 function PakettieSpeakRevertPath(path)
-  path = tostring(path)
+  path = PakettieSpeakGetStringValue(path)
   if os_name == "WINDOWS" then
     return string.gsub(path, "\\", "/")
   else
@@ -1450,6 +1461,8 @@ end
 
 -- Check if file exists
 function PakettieSpeakFileExists(path)
+  -- Handle userdata (observable) objects
+  path = PakettieSpeakGetStringValue(path)
   local f = io.open(path, "r")
   return f ~= nil and io.close(f)
 end
@@ -1461,6 +1474,18 @@ function PakettieSpeakValidateExecutable(executable_path, try_auto_detect)
   -- Default to trying auto-detection if not specified
   if try_auto_detect == nil then
     try_auto_detect = true
+  end
+  
+  -- Handle the case where executable_path is a preference object (userdata) instead of a string
+  if type(executable_path) == "userdata" then
+    -- Try to get the .value property if it's an observable
+    if executable_path.value ~= nil then
+      executable_path = tostring(executable_path.value)
+    else
+      executable_path = tostring(executable_path)
+    end
+  elseif type(executable_path) ~= "string" then
+    executable_path = tostring(executable_path)
   end
   
   print("PakettieSpeakValidateExecutable: Validating path: " .. tostring(executable_path))
