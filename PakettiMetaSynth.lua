@@ -2567,6 +2567,11 @@ function PakettiMetaSynthGenerateBatchInstruments(use_sends, count)
   end
   
   for i = 1, count do
+    -- Fresh random seeds for each instrument to ensure uniqueness
+    trueRandomSeed()
+    trueRandomSeed()
+    trueRandomSeed()
+    
     -- Insert new instrument after current
     local insert_index = song.selected_instrument_index + 1
     song:insert_instrument_at(insert_index)

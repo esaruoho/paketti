@@ -24,14 +24,397 @@ for _, voice in pairs(VOICES) do
 end
 
 local os_name = os.platform()
-local default_executable
-if os_name == "WINDOWS" then
-  default_executable = "C:\\Program Files\\espeak\\espeak.exe"
-elseif os_name == "MACINTOSH" then
-  default_executable = "/opt/homebrew/bin/espeak-ng"
-else
-  default_executable = "/usr/bin/espeak-ng"
+
+-- Auto-detect eSpeak executable path by checking multiple known locations
+-- Returns the path to the executable if found, or nil if not found
+function PakettieSpeakGuessExecutable()
+  print("PakettieSpeakGuessExecutable: Starting auto-detection...")
+  
+  local paths_to_check = {}
+  
+  if os_name == "WINDOWS" then
+    paths_to_check = {
+      "C:\\Program Files\\espeak-ng\\espeak-ng.exe",
+      "C:\\Program Files\\espeak\\espeak.exe",
+      "C:\\Program Files (x86)\\espeak-ng\\espeak-ng.exe",
+      "C:\\Program Files (x86)\\espeak\\espeak.exe",
+    }
+  elseif os_name == "MACINTOSH" then
+    -- Check both Apple Silicon and Intel Mac Homebrew locations
+    paths_to_check = {
+      "/opt/homebrew/bin/espeak-ng",           -- Apple Silicon Homebrew
+      "/opt/homebrew/bin/espeak",              -- Apple Silicon Homebrew (alt)
+      "/usr/local/bin/espeak-ng",              -- Intel Mac Homebrew
+      "/usr/local/bin/espeak",                 -- Intel Mac Homebrew (alt)
+      "/usr/local/opt/espeak-ng/bin/espeak-ng", -- Intel Mac Homebrew Cellar
+      "/usr/local/opt/espeak/bin/espeak",      -- Intel Mac Homebrew Cellar (alt)
+    }
+  else
+    -- Linux
+    paths_to_check = {
+      "/usr/bin/espeak-ng",
+      "/usr/bin/espeak",
+      "/usr/local/bin/espeak-ng",
+      "/usr/local/bin/espeak",
+    }
+  end
+  
+  -- Check each path
+  for _, path in ipairs(paths_to_check) do
+    print("PakettieSpeakGuessExecutable: Checking path: " .. path)
+    local f = io.open(path, "r")
+    if f then
+      io.close(f)
+      print("PakettieSpeakGuessExecutable: Found executable at: " .. path)
+      return path
+    end
+  end
+  
+  -- If not found in known paths, try using 'which' command on Unix systems
+  if os_name ~= "WINDOWS" then
+    print("PakettieSpeakGuessExecutable: Trying 'which' command...")
+    local executables_to_find = {"espeak-ng", "espeak"}
+    
+    for _, exe_name in ipairs(executables_to_find) do
+      local cmd = "which " .. exe_name
+      print("PakettieSpeakGuessExecutable: Running: " .. cmd)
+      local handle = io.popen(cmd)
+      if handle then
+        local result = handle:read("*line")
+        handle:close()
+        if result and result ~= "" then
+          -- Trim whitespace
+          result = result:match("^%s*(.-)%s*$")
+          if result ~= "" then
+            -- Verify the path exists
+            local f = io.open(result, "r")
+            if f then
+              io.close(f)
+              print("PakettieSpeakGuessExecutable: Found via 'which': " .. result)
+              return result
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  print("PakettieSpeakGuessExecutable: No executable found")
+  return nil
 end
+
+-- Get a fallback default path for the current platform (used if detection fails)
+function PakettieSpeakGetDefaultPath()
+  if os_name == "WINDOWS" then
+    return "C:\\Program Files\\espeak-ng\\espeak-ng.exe"
+  elseif os_name == "MACINTOSH" then
+    return "/opt/homebrew/bin/espeak-ng"
+  else
+    return "/usr/bin/espeak-ng"
+  end
+end
+
+-- Show installation instructions dialog for eSpeak (macOS focused)
+-- Returns true if user wants to try detection again, false otherwise
+function PakettieSpeakShowInstallDialog()
+  print("PakettieSpeakShowInstallDialog: Showing installation instructions...")
+  
+  local install_vb = renoise.ViewBuilder()
+  local install_dialog = nil
+  
+  local dialog_content
+  
+  if os_name == "MACINTOSH" then
+    dialog_content = install_vb:column{
+      margin = 10,
+      spacing = 8,
+      
+      install_vb:text{
+        text = "eSpeak Text-to-Speech is not installed on your system.",
+        font = "bold",
+      },
+      
+      install_vb:space{height = 5},
+      
+      install_vb:text{
+        text = "To install eSpeak on macOS, you need Homebrew package manager.",
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:text{
+        text = "Step 1: Install Homebrew (if not already installed)",
+        font = "bold",
+      },
+      install_vb:text{
+        text = "Open Terminal and paste this command:",
+      },
+      install_vb:textfield{
+        id = "homebrew_cmd",
+        width = 500,
+        text = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
+        edit_mode = true,
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:text{
+        text = "Step 2: Install eSpeak-NG",
+        font = "bold",
+      },
+      install_vb:text{
+        text = "After Homebrew is installed, run this command:",
+      },
+      install_vb:textfield{
+        id = "espeak_cmd",
+        width = 500,
+        text = "brew install espeak-ng",
+        edit_mode = true,
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:text{
+        text = "After installation, click 'Detect Again' or manually browse for the executable.",
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:row{
+        spacing = 10,
+        install_vb:button{
+          text = "Detect Again",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            -- Try to detect again
+            local detected_path = PakettieSpeakGuessExecutable()
+            if detected_path then
+              eSpeak.executable = PakettieSpeakConvertPath(detected_path)
+              renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+              renoise.app():show_status("eSpeak found at: " .. detected_path)
+            else
+              renoise.app():show_error("eSpeak still not found. Please install it first.")
+            end
+          end
+        },
+        install_vb:button{
+          text = "Browse...",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            local filename = renoise.app():prompt_for_filename_to_read({"*.*"}, "Select eSpeak Executable")
+            if filename ~= "" then
+              eSpeak.executable = PakettieSpeakConvertPath(filename)
+              renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+              renoise.app():show_status("eSpeak path set to: " .. filename)
+            end
+          end
+        },
+        install_vb:button{
+          text = "Close",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+          end
+        },
+      },
+    }
+  elseif os_name == "WINDOWS" then
+    dialog_content = install_vb:column{
+      margin = 10,
+      spacing = 8,
+      
+      install_vb:text{
+        text = "eSpeak Text-to-Speech is not installed on your system.",
+        font = "bold",
+      },
+      
+      install_vb:space{height = 5},
+      
+      install_vb:text{
+        text = "To install eSpeak on Windows:",
+      },
+      
+      install_vb:text{
+        text = "1. Download eSpeak-NG from: https://github.com/espeak-ng/espeak-ng/releases",
+      },
+      install_vb:text{
+        text = "2. Run the installer and follow the installation wizard",
+      },
+      install_vb:text{
+        text = "3. Restart Renoise after installation",
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:text{
+        text = "After installation, click 'Detect Again' or manually browse for the executable.",
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:row{
+        spacing = 10,
+        install_vb:button{
+          text = "Open Download Page",
+          width = 150,
+          notifier = function()
+            renoise.app():open_url("https://github.com/espeak-ng/espeak-ng/releases")
+          end
+        },
+        install_vb:button{
+          text = "Detect Again",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            local detected_path = PakettieSpeakGuessExecutable()
+            if detected_path then
+              eSpeak.executable = PakettieSpeakConvertPath(detected_path)
+              renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+              renoise.app():show_status("eSpeak found at: " .. detected_path)
+            else
+              renoise.app():show_error("eSpeak still not found. Please install it first.")
+            end
+          end
+        },
+        install_vb:button{
+          text = "Browse...",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            local filename = renoise.app():prompt_for_filename_to_read({"*.exe"}, "Select eSpeak Executable")
+            if filename ~= "" then
+              eSpeak.executable = PakettieSpeakConvertPath(filename)
+              renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+              renoise.app():show_status("eSpeak path set to: " .. filename)
+            end
+          end
+        },
+        install_vb:button{
+          text = "Close",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+          end
+        },
+      },
+    }
+  else
+    -- Linux
+    dialog_content = install_vb:column{
+      margin = 10,
+      spacing = 8,
+      
+      install_vb:text{
+        text = "eSpeak Text-to-Speech is not installed on your system.",
+        font = "bold",
+      },
+      
+      install_vb:space{height = 5},
+      
+      install_vb:text{
+        text = "To install eSpeak on Linux, use your package manager:",
+      },
+      
+      install_vb:space{height = 5},
+      
+      install_vb:text{
+        text = "Debian/Ubuntu:",
+        font = "bold",
+      },
+      install_vb:textfield{
+        width = 400,
+        text = "sudo apt install espeak-ng",
+        edit_mode = true,
+      },
+      
+      install_vb:text{
+        text = "Fedora:",
+        font = "bold",
+      },
+      install_vb:textfield{
+        width = 400,
+        text = "sudo dnf install espeak-ng",
+        edit_mode = true,
+      },
+      
+      install_vb:text{
+        text = "Arch Linux:",
+        font = "bold",
+      },
+      install_vb:textfield{
+        width = 400,
+        text = "sudo pacman -S espeak-ng",
+        edit_mode = true,
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:row{
+        spacing = 10,
+        install_vb:button{
+          text = "Detect Again",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            local detected_path = PakettieSpeakGuessExecutable()
+            if detected_path then
+              eSpeak.executable = PakettieSpeakConvertPath(detected_path)
+              renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+              renoise.app():show_status("eSpeak found at: " .. detected_path)
+            else
+              renoise.app():show_error("eSpeak still not found. Please install it first.")
+            end
+          end
+        },
+        install_vb:button{
+          text = "Browse...",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            local filename = renoise.app():prompt_for_filename_to_read({"*.*"}, "Select eSpeak Executable")
+            if filename ~= "" then
+              eSpeak.executable = PakettieSpeakConvertPath(filename)
+              renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+              renoise.app():show_status("eSpeak path set to: " .. filename)
+            end
+          end
+        },
+        install_vb:button{
+          text = "Close",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+          end
+        },
+      },
+    }
+  end
+  
+  install_dialog = renoise.app():show_custom_dialog("eSpeak Installation Required", dialog_content)
+end
+
+-- Initialize default_executable using auto-detection
+local default_executable = PakettieSpeakGuessExecutable() or PakettieSpeakGetDefaultPath()
 
 function PakettieSpeakConvertPath(path)
   path = tostring(path)
@@ -181,11 +564,20 @@ local test_exe_button = vb:button{id="PakettieSpeak_test_exe_button",
         height = 24,
         text = "Test eSpeak Installation",
         notifier=function()
-          local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+          local is_valid, error_message, detected_path = PakettieSpeakValidateExecutable(eSpeak.executable, true)
           if is_valid then
-            renoise.app():show_status("eSpeak installation is working correctly!")
+            -- If auto-detection found a new path, update it
+            if detected_path then
+              eSpeak.executable = PakettieSpeakConvertPath(detected_path)
+              renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+              vb.views.PakettieSpeak_exe_button.text = PakettieSpeakRevertPath(eSpeak.executable)
+              renoise.app():show_status("eSpeak auto-detected and working at: " .. detected_path)
+            else
+              renoise.app():show_status("eSpeak installation is working correctly!")
+            end
           else
-            renoise.app():show_error(error_message)
+            -- Show install dialog instead of just error
+            PakettieSpeakShowInstallDialog()
           end
         end}
 
@@ -732,22 +1124,32 @@ function PakettieSpeakPrepare()
     return
   end
 
+  -- Get the saved executable path from preferences
   local espeak_location = renoise.tool().preferences.pakettieSpeak.executable
-  if espeak_location ~= "" then
-    eSpeak.executable = PakettieSpeakConvertPath(espeak_location)
+  print("PakettieSpeakPrepare: Saved executable path: " .. tostring(espeak_location))
+  
+  -- Validate and potentially auto-detect the executable
+  local is_valid, message, detected_path = PakettieSpeakValidateExecutable(espeak_location, true)
+  
+  if is_valid then
+    -- If auto-detection found a new path, update the preferences
+    if detected_path then
+      print("PakettieSpeakPrepare: Using auto-detected path: " .. detected_path)
+      eSpeak.executable = PakettieSpeakConvertPath(detected_path)
+      renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+      renoise.app():show_status("eSpeak auto-detected at: " .. detected_path)
+    else
+      -- Use the saved path
+      eSpeak.executable = PakettieSpeakConvertPath(espeak_location)
+    end
+    
+    -- Show the dialog
+    PakettieSpeakShowGUI()
   else
-    renoise.app():show_error("Please set the eSpeak path before running.")
-    return
+    -- eSpeak not found - show installation instructions dialog
+    print("PakettieSpeakPrepare: eSpeak not found, showing install dialog")
+    PakettieSpeakShowInstallDialog()
   end
-
-  -- Validate the eSpeak executable before showing the dialog
-  local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
-  if not is_valid then
-    renoise.app():show_error(error_message)
-    return
-  end
-
-  PakettieSpeakShowGUI()
 end
 
 function PakettieSpeakKeyHandlerFunc(dialog, key)
@@ -815,13 +1217,22 @@ function PakettieSpeakCreateSample(custom_text)
   local text_to_render = custom_text or eSpeak.text.value
   print(text_to_render)
 
-  -- Validate eSpeak executable before starting the process
-  local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+  -- Validate eSpeak executable before starting the process (with auto-detection)
+  local is_valid, error_message, detected_path = PakettieSpeakValidateExecutable(eSpeak.executable, true)
   if not is_valid then
-    renoise.app():show_error(error_message)
-    -- Restore AutoSamplify monitoring state
+    -- Restore AutoSamplify monitoring state before showing dialog
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    -- Show installation instructions instead of just error
+    PakettieSpeakShowInstallDialog()
     return
+  end
+  
+  -- If auto-detection found a new path, update it
+  if detected_path then
+    print("PakettieSpeakCreateSample: Using auto-detected path: " .. detected_path)
+    eSpeak.executable = PakettieSpeakConvertPath(detected_path)
+    renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+    renoise.app():show_status("eSpeak auto-detected at: " .. detected_path)
   end
 
   -- Create the process slicer with our process function
@@ -1044,34 +1455,79 @@ function PakettieSpeakFileExists(path)
 end
 
 -- Check if eSpeak executable exists and is accessible
-function PakettieSpeakValidateExecutable(executable_path)
+-- If the provided path is invalid, attempts auto-detection
+-- Returns: is_valid (boolean), message (string), detected_path (string or nil)
+function PakettieSpeakValidateExecutable(executable_path, try_auto_detect)
+  -- Default to trying auto-detection if not specified
+  if try_auto_detect == nil then
+    try_auto_detect = true
+  end
+  
+  print("PakettieSpeakValidateExecutable: Validating path: " .. tostring(executable_path))
+  
+  -- Check if path is empty
   if not executable_path or executable_path == "" then
-    return false, "No eSpeak executable path is set. Please configure the eSpeak path in the dialog."
+    print("PakettieSpeakValidateExecutable: Path is empty, attempting auto-detection...")
+    if try_auto_detect then
+      local detected = PakettieSpeakGuessExecutable()
+      if detected then
+        print("PakettieSpeakValidateExecutable: Auto-detected: " .. detected)
+        return true, "eSpeak auto-detected at: " .. detected, detected
+      end
+    end
+    return false, "No eSpeak executable path is set. Please configure the eSpeak path in the dialog.", nil
   end
   
   -- Check if the file exists
   if not PakettieSpeakFileExists(executable_path) then
-    return false, "eSpeak executable not found at: " .. PakettieSpeakRevertPath(executable_path) .. "\n\nPlease check the path and ensure eSpeak is properly installed."
+    print("PakettieSpeakValidateExecutable: File not found at: " .. executable_path)
+    if try_auto_detect then
+      print("PakettieSpeakValidateExecutable: Attempting auto-detection...")
+      local detected = PakettieSpeakGuessExecutable()
+      if detected then
+        print("PakettieSpeakValidateExecutable: Auto-detected: " .. detected)
+        return true, "eSpeak auto-detected at: " .. detected, detected
+      end
+    end
+    return false, "eSpeak executable not found at: " .. PakettieSpeakRevertPath(executable_path) .. "\n\nPlease check the path and ensure eSpeak is properly installed.", nil
   end
   
   -- Try to run eSpeak with --version to test if it's working
   local test_cmd = '"' .. executable_path .. '" --version'
+  print("PakettieSpeakValidateExecutable: Testing with command: " .. test_cmd)
   local exit_code = os.execute(test_cmd)
   
   if exit_code ~= 0 then
-    return false, "eSpeak executable found but failed to run properly.\n\nPath: " .. PakettieSpeakRevertPath(executable_path) .. "\nExit code: " .. tostring(exit_code) .. "\n\nPlease ensure eSpeak is properly installed and accessible."
+    print("PakettieSpeakValidateExecutable: Test failed with exit code: " .. tostring(exit_code))
+    if try_auto_detect then
+      print("PakettieSpeakValidateExecutable: Attempting auto-detection...")
+      local detected = PakettieSpeakGuessExecutable()
+      if detected and detected ~= executable_path then
+        print("PakettieSpeakValidateExecutable: Auto-detected alternative: " .. detected)
+        return true, "eSpeak auto-detected at: " .. detected, detected
+      end
+    end
+    return false, "eSpeak executable found but failed to run properly.\n\nPath: " .. PakettieSpeakRevertPath(executable_path) .. "\nExit code: " .. tostring(exit_code) .. "\n\nPlease ensure eSpeak is properly installed and accessible.", nil
   end
   
-  return true, "eSpeak executable is valid and working"
+  print("PakettieSpeakValidateExecutable: Validation successful")
+  return true, "eSpeak executable is valid and working", nil
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Text-to-Speech Dialog...",invoke=function() pakettieSpeakDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Sample",invoke=function()
-    -- Validate eSpeak before attempting to generate
-    local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+    -- Validate eSpeak before attempting to generate (with auto-detection)
+    local is_valid, error_message, detected_path = PakettieSpeakValidateExecutable(eSpeak.executable, true)
     if not is_valid then
-      renoise.app():show_error(error_message)
+      PakettieSpeakShowInstallDialog()
       return
+    end
+    
+    -- If auto-detection found a new path, update it
+    if detected_path then
+      eSpeak.executable = PakettieSpeakConvertPath(detected_path)
+      renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+      renoise.app():show_status("eSpeak auto-detected at: " .. detected_path)
     end
     
     if dialog and dialog.visible then
@@ -1080,11 +1536,18 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Sampl
     else PakettieSpeakPrepare() end end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Selection",invoke=function()
-    -- Validate eSpeak before attempting to generate
-    local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+    -- Validate eSpeak before attempting to generate (with auto-detection)
+    local is_valid, error_message, detected_path = PakettieSpeakValidateExecutable(eSpeak.executable, true)
     if not is_valid then
-      renoise.app():show_error(error_message)
+      PakettieSpeakShowInstallDialog()
       return
+    end
+    
+    -- If auto-detection found a new path, update it
+    if detected_path then
+      eSpeak.executable = PakettieSpeakConvertPath(detected_path)
+      renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+      renoise.app():show_status("eSpeak auto-detected at: " .. detected_path)
     end
     
     if dialog and dialog.visible then
@@ -1105,11 +1568,18 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Selec
 
 for value = 0, 31 do
   renoise.tool():add_keybinding{name=("Global:Paketti:Paketti eSpeak Generate Row %02d"):format(value),invoke=function()
-      -- Validate eSpeak before attempting to generate
-      local is_valid, error_message = PakettieSpeakValidateExecutable(eSpeak.executable)
+      -- Validate eSpeak before attempting to generate (with auto-detection)
+      local is_valid, error_message, detected_path = PakettieSpeakValidateExecutable(eSpeak.executable, true)
       if not is_valid then
-        renoise.app():show_error(error_message)
+        PakettieSpeakShowInstallDialog()
         return
+      end
+      
+      -- If auto-detection found a new path, update it
+      if detected_path then
+        eSpeak.executable = PakettieSpeakConvertPath(detected_path)
+        renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
+        renoise.app():show_status("eSpeak auto-detected at: " .. detected_path)
       end
       
       local text = vb.views.PakettieSpeak_text_field.text
