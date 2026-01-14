@@ -1829,24 +1829,27 @@ function PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
     PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, profile.filter_lfo)
   end
   
-  -- Set filter type and parameters if filter cutoff is defined
-  if profile.filter_cutoff then
-    -- Enable low-pass filter
-    mod_set.filter_type = renoise.SampleModulationSet.FILTER_TYPE_LP_CLEAN
-    
-    -- Set filter parameters if available
-    if mod_set.available_devices then
-      -- Filter cutoff and resonance are set via the global filter on the modulation set
-      -- Note: Direct API access to filter parameters varies by Renoise version
+  -- Set filter type and parameters if filter cutoff or resonance is defined
+  if profile.filter_cutoff or profile.filter_resonance then
+    -- Enable low-pass filter if cutoff is specified
+    if profile.filter_cutoff then
+      mod_set.filter_type = renoise.SampleModulationSet.FILTER_TYPE_LP_CLEAN
+      -- Set base cutoff value on the modulation set's filter input
+      if mod_set.cutoff_input then
+        mod_set.cutoff_input.value = profile.filter_cutoff
+      end
+    end
+    -- Set resonance value on the modulation set's resonance input
+    if profile.filter_resonance and mod_set.resonance_input then
+      mod_set.resonance_input.value = profile.filter_resonance
     end
   end
   
-  -- Set filter keytracking if defined
-  -- Note: Keytracking is typically set per-sample or via keytracking device
-  -- This is a placeholder for future implementation
-  if profile.filter_keytrack and profile.filter_keytrack > 0 then
-    -- Keytracking would be applied here if the API supports it
-    -- For now, we note this in the profile for informational purposes
+  -- Add Key Tracking device for filter cutoff if keytracking is defined
+  if profile.filter_keytrack and profile.filter_keytrack > 0.1 then
+    PakettiMetaSynthAddKeyTrackingToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, {
+      amount = profile.filter_keytrack
+    })
   end
   
   print(string.format("PakettiMetaSynth: Applied modulation profile '%s' (%s)", 
@@ -1884,6 +1887,49 @@ function PakettiMetaSynthAddVelocityToModSet(mod_set, target_type, params)
       device.amount.value = params.amount
     elseif params.amount and device.scaling then
       device.scaling.value = params.amount
+    end
+  end
+  
+  return device
+end
+
+-- Add a Key Tracking device to a modulation set
+function PakettiMetaSynthAddKeyTrackingToModSet(mod_set, target_type, params)
+  params = params or {}
+  
+  local available = mod_set.available_devices
+  local keytrack_path = nil
+  
+  -- Search for Key Tracking device in available devices
+  for _, device_path in ipairs(available) do
+    if device_path:find("Key Tracking") or device_path:find("KeyTracking") or device_path:find("Key") then
+      keytrack_path = device_path
+      break
+    end
+  end
+  
+  if not keytrack_path then
+    print("PakettiMetaSynth: Key Tracking device not found in available modulation devices")
+    return nil
+  end
+  
+  local device_index = #mod_set.devices + 1
+  mod_set:insert_device_at(keytrack_path, target_type, device_index)
+  local device = mod_set.devices[device_index]
+  
+  if device then
+    -- Set keytracking amount/scaling if available
+    if params.amount then
+      if device.scaling then
+        device.scaling.value = params.amount
+      elseif device.amount then
+        device.amount.value = params.amount
+      elseif device.min then
+        -- Some keytracking devices use min/max range
+        -- Set a range based on the amount (0-1 maps to key range)
+        device.min.value = 0
+        device.max.value = params.amount
+      end
     end
   end
   
@@ -3539,8 +3585,10 @@ function PakettiMetaSynthGenerateRandomInstrumentWithSends()
 end
 
 -- Batch generate multiple randomized instruments for quick auditioning
-function PakettiMetaSynthGenerateBatchInstruments(use_sends, count)
-  count = count or 20
+function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
+  -- generation_type: "standard", "sends", or "wavetable"
+  generation_type = generation_type or "standard"
+  count = count or 1
   local song = renoise.song()
   
   if not song then
@@ -3559,9 +3607,11 @@ function PakettiMetaSynthGenerateBatchInstruments(use_sends, count)
     song:insert_instrument_at(insert_index)
     song.selected_instrument_index = insert_index
     
-    -- Generate randomized instrument
-    if use_sends then
+    -- Generate randomized instrument based on type
+    if generation_type == "sends" then
       PakettiMetaSynthGenerateRandomInstrumentWithSends()
+    elseif generation_type == "wavetable" then
+      PakettiMetaSynthGenerateRandomWavetableInstrument()
     else
       PakettiMetaSynthGenerateRandomInstrument()
     end
@@ -3569,7 +3619,96 @@ function PakettiMetaSynthGenerateBatchInstruments(use_sends, count)
     renoise.app():show_status(string.format("PakettiMetaSynth: Generated instrument %d of %d", i, count))
   end
   
-  renoise.app():show_status(string.format("PakettiMetaSynth: Batch complete - %d instruments created", count))
+  renoise.app():show_status(string.format("PakettiMetaSynth: Batch complete - %d %s instruments created", count, generation_type))
+end
+
+-- Dialog for batch generation with user-specified count
+PakettiMetaSynthBatchDialogVb = nil
+PakettiMetaSynthBatchDialogHandle = nil
+
+function PakettiMetaSynthShowBatchGenerationDialog()
+  -- Close existing dialog if open
+  if PakettiMetaSynthBatchDialogHandle and PakettiMetaSynthBatchDialogHandle.visible then
+    PakettiMetaSynthBatchDialogHandle:close()
+    PakettiMetaSynthBatchDialogHandle = nil
+  end
+  
+  PakettiMetaSynthBatchDialogVb = renoise.ViewBuilder()
+  local vb = PakettiMetaSynthBatchDialogVb
+  
+  local dialog_content = vb:column {
+    margin = 10,
+    spacing = 8,
+    
+    vb:text { text = "MetaSynth Batch Generation", font = "bold" },
+    
+    vb:space { height = 5 },
+    
+    vb:row {
+      vb:text { text = "Number of instruments:", width = 130 },
+      vb:valuebox {
+        id = "instrument_count",
+        min = 1,
+        max = 1000,
+        value = 10,
+        width = 80
+      }
+    },
+    
+    vb:row {
+      vb:text { text = "Generation type:", width = 130 },
+      vb:popup {
+        id = "generation_type",
+        items = {"Standard", "With Sends", "Wavetable"},
+        value = 1,
+        width = 150
+      }
+    },
+    
+    vb:space { height = 10 },
+    
+    vb:row {
+      spacing = 10,
+      vb:button {
+        text = "Generate",
+        width = 100,
+        notifier = function()
+          local count = vb.views.instrument_count.value
+          local type_idx = vb.views.generation_type.value
+          local gen_type = "standard"
+          if type_idx == 2 then
+            gen_type = "sends"
+          elseif type_idx == 3 then
+            gen_type = "wavetable"
+          end
+          
+          -- Close dialog before generating
+          if PakettiMetaSynthBatchDialogHandle then
+            PakettiMetaSynthBatchDialogHandle:close()
+            PakettiMetaSynthBatchDialogHandle = nil
+          end
+          
+          -- Generate instruments
+          PakettiMetaSynthGenerateBatchInstruments(gen_type, count)
+        end
+      },
+      vb:button {
+        text = "Cancel",
+        width = 80,
+        notifier = function()
+          if PakettiMetaSynthBatchDialogHandle then
+            PakettiMetaSynthBatchDialogHandle:close()
+            PakettiMetaSynthBatchDialogHandle = nil
+          end
+        end
+      }
+    }
+  }
+  
+  PakettiMetaSynthBatchDialogHandle = renoise.app():show_custom_dialog(
+    "MetaSynth Batch Generation",
+    dialog_content
+  )
 end
 
 -- Randomize architecture for wavetable mode
@@ -5072,16 +5211,30 @@ renoise.tool():add_menu_entry {
 }
 
 renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Generate Batch Instruments...",
+  invoke = function()
+    PakettiMetaSynthShowBatchGenerationDialog()
+  end
+}
+
+renoise.tool():add_menu_entry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Instruments",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments(false, 20)
+    PakettiMetaSynthGenerateBatchInstruments("standard", 20)
   end
 }
 
 renoise.tool():add_menu_entry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Instruments (with Sends)",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments(true, 20)
+    PakettiMetaSynthGenerateBatchInstruments("sends", 20)
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Wavetable Instruments",
+  invoke = function()
+    PakettiMetaSynthGenerateBatchInstruments("wavetable", 20)
   end
 }
 
@@ -5412,16 +5565,30 @@ renoise.tool():add_menu_entry {
 }
 
 renoise.tool():add_menu_entry {
+  name = "Instrument Box:Paketti:MetaSynth:Generate Batch Instruments...",
+  invoke = function()
+    PakettiMetaSynthShowBatchGenerationDialog()
+  end
+}
+
+renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Instruments",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments(false, 20)
+    PakettiMetaSynthGenerateBatchInstruments("standard", 20)
   end
 }
 
 renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Instruments (with Sends)",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments(true, 20)
+    PakettiMetaSynthGenerateBatchInstruments("sends", 20)
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Wavetable Instruments",
+  invoke = function()
+    PakettiMetaSynthGenerateBatchInstruments("wavetable", 20)
   end
 }
 
@@ -5469,16 +5636,30 @@ renoise.tool():add_keybinding {
 }
 
 renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Generate Batch Instruments Dialog",
+  invoke = function()
+    PakettiMetaSynthShowBatchGenerationDialog()
+  end
+}
+
+renoise.tool():add_keybinding {
   name = "Global:Paketti:MetaSynth Generate 20 Random Instruments",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments(false, 20)
+    PakettiMetaSynthGenerateBatchInstruments("standard", 20)
   end
 }
 
 renoise.tool():add_keybinding {
   name = "Global:Paketti:MetaSynth Generate 20 Random Instruments (with Sends)",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments(true, 20)
+    PakettiMetaSynthGenerateBatchInstruments("sends", 20)
+  end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Generate 20 Random Wavetable Instruments",
+  invoke = function()
+    PakettiMetaSynthGenerateBatchInstruments("wavetable", 20)
   end
 }
 
@@ -5566,10 +5747,19 @@ renoise.tool():add_midi_mapping {
 }
 
 renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Generate Batch Instruments Dialog",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthShowBatchGenerationDialog()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
   name = "Paketti:MetaSynth Generate 20 Random Instruments",
   invoke = function(message)
     if message:is_trigger() then
-      PakettiMetaSynthGenerateBatchInstruments(false, 20)
+      PakettiMetaSynthGenerateBatchInstruments("standard", 20)
     end
   end
 }
@@ -5578,7 +5768,16 @@ renoise.tool():add_midi_mapping {
   name = "Paketti:MetaSynth Generate 20 Random Instruments (with Sends)",
   invoke = function(message)
     if message:is_trigger() then
-      PakettiMetaSynthGenerateBatchInstruments(true, 20)
+      PakettiMetaSynthGenerateBatchInstruments("sends", 20)
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Generate 20 Random Wavetable Instruments",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthGenerateBatchInstruments("wavetable", 20)
     end
   end
 }
