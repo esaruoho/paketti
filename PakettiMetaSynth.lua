@@ -15,6 +15,747 @@ PakettiMetaSynthAKWFCache = nil
 -- Last used folder path for sample loading
 PakettiMetaSynthLastFolderPath = nil
 
+-- ============================================================================
+-- MODULATION PROFILES - Voice articulation presets (GESTURE layer)
+-- These define HOW a sound is played, independent of WHAT the sound is (TIMBRE)
+-- 
+-- Profile parameters:
+--   volume_ahdsr: Volume envelope (attack, hold, decay, sustain, release)
+--   filter_ahdsr: Filter cutoff envelope
+--   pitch_ahdsr:  Pitch envelope (includes 'amount' for direction/depth)
+--   volume_lfo:   Tremolo (frequency, amount)
+--   pitch_lfo:    Vibrato (frequency, amount)
+--   filter_lfo:   Filter modulation (frequency, amount)
+--   velocity_volume: 0-1, velocity influence on volume
+--   velocity_filter: 0-1, velocity influence on filter cutoff
+--   filter_keytrack: 0-1, filter cutoff keytracking amount
+--   filter_cutoff:   Base cutoff value (0-1)
+--   filter_resonance: Resonance amount (0-1)
+-- ============================================================================
+
+PakettiMetaSynthModulationProfiles = {
+  -- ========================================================================
+  -- NEUTRAL family - Raw/experimental starting points
+  -- ========================================================================
+  neutral_flat = {
+    name = "Neutral (Flat)",
+    description = "Raw oscillator, flat sustain, sound design starting point",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.1 },
+    filter_ahdsr = nil,
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.2,
+    velocity_filter = 0.0,
+    filter_keytrack = 0.0,
+    filter_cutoff = nil,
+    filter_resonance = nil
+  },
+  neutral_none = {
+    name = "Neutral (No Envelope)",
+    description = "Bypass envelope, raw oscillator behavior",
+    volume_ahdsr = nil,
+    filter_ahdsr = nil,
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.0,
+    velocity_filter = 0.0,
+    filter_keytrack = 0.0,
+    filter_cutoff = nil,
+    filter_resonance = nil
+  },
+  
+  -- ========================================================================
+  -- BASS family - Solid low-end sounds
+  -- ========================================================================
+  bass_tight = {
+    name = "Bass (Tight)",
+    description = "Mono basses, acid-style, precise low-end",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.7, release = 0.1 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.4, release = 0.1 },
+    pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.03, sustain = 0.0, release = 0.02, amount = -0.03 },
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.6,
+    velocity_filter = 0.5,
+    filter_keytrack = 0.4,
+    filter_cutoff = 0.45,
+    filter_resonance = 0.35
+  },
+  bass_sustain = {
+    name = "Bass (Sustain)",
+    description = "Sub bass, held notes, minimal articulation",
+    volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.05, sustain = 1.0, release = 0.2 },
+    filter_ahdsr = nil,
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.3,
+    velocity_filter = 0.0,
+    filter_keytrack = 0.6,
+    filter_cutoff = 0.3,
+    filter_resonance = 0.1
+  },
+  bass_filter = {
+    name = "Bass (Filter-Driven)",
+    description = "Acid bass, aggressive filter envelope, resonance sweep",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.85, release = 0.12 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.35, sustain = 0.25, release = 0.15 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.5,
+    velocity_filter = 0.7,
+    filter_keytrack = 0.5,
+    filter_cutoff = 0.55,
+    filter_resonance = 0.55
+  },
+  bass_wide = {
+    name = "Bass (Wide/Slow)",
+    description = "Reese bass, slow movement, wide stereo",
+    volume_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.2, sustain = 0.9, release = 0.25 },
+    filter_ahdsr = { attack = 0.3, hold = 0.0, decay = 0.5, sustain = 0.5, release = 0.3 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = { frequency = 0.3, amount = 0.15 },
+    velocity_volume = 0.4,
+    velocity_filter = 0.3,
+    filter_keytrack = 0.3,
+    filter_cutoff = 0.5,
+    filter_resonance = 0.25
+  },
+  bass_dynamic = {
+    name = "Bass (Dynamic)",
+    description = "FM bass, velocity-sensitive, punchy",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.12, sustain = 0.75, release = 0.1 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.5, release = 0.1 },
+    pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.02, sustain = 0.0, release = 0.01, amount = -0.05 },
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.8,
+    velocity_filter = 0.6,
+    filter_keytrack = 0.4,
+    filter_cutoff = 0.6,
+    filter_resonance = 0.3
+  },
+  
+  -- ========================================================================
+  -- PLUCK family - Short, percussive attacks
+  -- ========================================================================
+  pluck_short = {
+    name = "Pluck (Short)",
+    description = "Plucks, mallets, short hits",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.08 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.15, release = 0.08 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.8,
+    velocity_filter = 0.6,
+    filter_keytrack = 0.3,
+    filter_cutoff = 0.7,
+    filter_resonance = 0.25
+  },
+  pluck_natural = {
+    name = "Pluck (Natural)",
+    description = "Harp/guitar, slightly longer decay, natural release",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.0, release = 0.2 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.5, sustain = 0.2, release = 0.25 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.7,
+    velocity_filter = 0.5,
+    filter_keytrack = 0.4,
+    filter_cutoff = 0.65,
+    filter_resonance = 0.2
+  },
+  pluck_percussive = {
+    name = "Pluck (Percussive)",
+    description = "Very fast, mallet-like",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.0, release = 0.05 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.05 },
+    pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.02, sustain = 0.0, release = 0.01, amount = -0.08 },
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.9,
+    velocity_filter = 0.7,
+    filter_keytrack = 0.2,
+    filter_cutoff = 0.8,
+    filter_resonance = 0.15
+  },
+  pluck_soft = {
+    name = "Pluck (Soft)",
+    description = "Kalimba, gentler attack, softer filter",
+    volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.5, sustain = 0.0, release = 0.3 },
+    filter_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.6, sustain = 0.25, release = 0.35 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.5,
+    velocity_filter = 0.4,
+    filter_keytrack = 0.5,
+    filter_cutoff = 0.5,
+    filter_resonance = 0.15
+  },
+  
+  -- ========================================================================
+  -- LEAD family - Expressive, melodic sounds
+  -- ========================================================================
+  lead_expressive = {
+    name = "Lead (Expressive)",
+    description = "Classic synth leads, melodic expression, vibrato",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.7, release = 0.2 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.35, sustain = 0.5, release = 0.2 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = { frequency = 5.0, amount = 0.025 },
+    filter_lfo = nil,
+    velocity_volume = 0.6,
+    velocity_filter = 0.5,
+    filter_keytrack = 0.3,
+    filter_cutoff = 0.65,
+    filter_resonance = 0.3
+  },
+  lead_smooth = {
+    name = "Lead (Smooth)",
+    description = "Poly leads, longer attack/release",
+    volume_ahdsr = { attack = 0.03, hold = 0.0, decay = 0.25, sustain = 0.75, release = 0.3 },
+    filter_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.3, sustain = 0.6, release = 0.25 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = { frequency = 4.5, amount = 0.02 },
+    filter_lfo = nil,
+    velocity_volume = 0.5,
+    velocity_filter = 0.4,
+    filter_keytrack = 0.35,
+    filter_cutoff = 0.6,
+    filter_resonance = 0.25
+  },
+  lead_classic = {
+    name = "Lead (Classic)",
+    description = "Square-wave style, moderate envelopes",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.8, release = 0.15 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.25, sustain = 0.55, release = 0.15 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = { frequency = 5.5, amount = 0.02 },
+    filter_lfo = nil,
+    velocity_volume = 0.5,
+    velocity_filter = 0.4,
+    filter_keytrack = 0.3,
+    filter_cutoff = 0.7,
+    filter_resonance = 0.35
+  },
+  lead_wide = {
+    name = "Lead (Wide)",
+    description = "Supersaw-optimized, slow filter, unison-heavy",
+    volume_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.2, sustain = 0.85, release = 0.35 },
+    filter_ahdsr = { attack = 0.1, hold = 0.0, decay = 0.4, sustain = 0.6, release = 0.3 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = { frequency = 0.15, amount = 0.1 },
+    velocity_volume = 0.4,
+    velocity_filter = 0.3,
+    filter_keytrack = 0.25,
+    filter_cutoff = 0.55,
+    filter_resonance = 0.2
+  },
+  lead_glide = {
+    name = "Lead (Glide)",
+    description = "Portamento-friendly, legato-style",
+    volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.15, sustain = 0.9, release = 0.2 },
+    filter_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.2, sustain = 0.65, release = 0.15 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = { frequency = 5.0, amount = 0.015 },
+    filter_lfo = nil,
+    velocity_volume = 0.4,
+    velocity_filter = 0.35,
+    filter_keytrack = 0.4,
+    filter_cutoff = 0.6,
+    filter_resonance = 0.3
+  },
+  
+  -- ========================================================================
+  -- PAD family - Slow, evolving sounds
+  -- ========================================================================
+  pad_slow = {
+    name = "Pad (Slow)",
+    description = "Atmospheric pads, ambient layers",
+    volume_ahdsr = { attack = 0.8, hold = 0.0, decay = 0.5, sustain = 0.75, release = 1.5 },
+    filter_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.4, sustain = 0.6, release = 1.2 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.3,
+    velocity_filter = 0.2,
+    filter_keytrack = 0.2,
+    filter_cutoff = 0.55,
+    filter_resonance = 0.15
+  },
+  pad_evolving = {
+    name = "Pad (Evolving)",
+    description = "Long-form soundscapes, LFO-based filter movement",
+    volume_ahdsr = { attack = 0.6, hold = 0.0, decay = 0.4, sustain = 0.8, release = 1.8 },
+    filter_ahdsr = { attack = 0.8, hold = 0.0, decay = 0.5, sustain = 0.55, release = 1.5 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = { frequency = 0.15, amount = 0.2 },
+    velocity_volume = 0.25,
+    velocity_filter = 0.15,
+    filter_keytrack = 0.25,
+    filter_cutoff = 0.5,
+    filter_resonance = 0.2
+  },
+  pad_ensemble = {
+    name = "Pad (Ensemble)",
+    description = "String pad, gentle vibrato",
+    volume_ahdsr = { attack = 0.5, hold = 0.0, decay = 0.3, sustain = 0.85, release = 1.0 },
+    filter_ahdsr = { attack = 0.6, hold = 0.0, decay = 0.35, sustain = 0.6, release = 0.8 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = { frequency = 4.5, amount = 0.015 },
+    filter_lfo = nil,
+    velocity_volume = 0.35,
+    velocity_filter = 0.25,
+    filter_keytrack = 0.3,
+    filter_cutoff = 0.6,
+    filter_resonance = 0.15
+  },
+  pad_formant = {
+    name = "Pad (Formant-Friendly)",
+    description = "Choir/vocal pad, minimal filter for formant clarity",
+    volume_ahdsr = { attack = 0.7, hold = 0.0, decay = 0.4, sustain = 0.8, release = 1.3 },
+    filter_ahdsr = nil,
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = { frequency = 5.0, amount = 0.01 },
+    filter_lfo = nil,
+    velocity_volume = 0.3,
+    velocity_filter = 0.0,
+    filter_keytrack = 0.0,
+    filter_cutoff = nil,
+    filter_resonance = nil
+  },
+  
+  -- ========================================================================
+  -- KEYS family - Piano/organ/EP sounds
+  -- ========================================================================
+  keys_dynamic = {
+    name = "Keys (Dynamic)",
+    description = "EPs, synth keys, performance-oriented",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.35, sustain = 0.6, release = 0.25 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.45, release = 0.25 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.75,
+    velocity_filter = 0.6,
+    filter_keytrack = 0.4,
+    filter_cutoff = 0.7,
+    filter_resonance = 0.2
+  },
+  keys_sustain = {
+    name = "Keys (Sustain)",
+    description = "Organ-like, flat sustain, quick release",
+    volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.06 },
+    filter_ahdsr = nil,
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.3,
+    velocity_filter = 0.0,
+    filter_keytrack = 0.0,
+    filter_cutoff = nil,
+    filter_resonance = nil
+  },
+  keys_velocity = {
+    name = "Keys (Velocity-Shaped)",
+    description = "Piano-like, heavy velocity shaping",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.5, sustain = 0.5, release = 0.35 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.6, sustain = 0.35, release = 0.3 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.9,
+    velocity_filter = 0.75,
+    filter_keytrack = 0.5,
+    filter_cutoff = 0.65,
+    filter_resonance = 0.15
+  },
+  
+  -- ========================================================================
+  -- ARP family - Gated, rhythmic sounds
+  -- ========================================================================
+  arp_tight = {
+    name = "Arp (Tight)",
+    description = "Very fast attack, short decay, zero sustain",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.06, sustain = 0.0, release = 0.03 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.0, release = 0.03 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.5,
+    velocity_filter = 0.4,
+    filter_keytrack = 0.3,
+    filter_cutoff = 0.75,
+    filter_resonance = 0.2
+  },
+  arp_gated = {
+    name = "Arp (Gated)",
+    description = "Similar to tight but with slight hold",
+    volume_ahdsr = { attack = 0.0, hold = 0.02, decay = 0.08, sustain = 0.0, release = 0.04 },
+    filter_ahdsr = { attack = 0.0, hold = 0.01, decay = 0.1, sustain = 0.1, release = 0.04 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.4,
+    velocity_filter = 0.35,
+    filter_keytrack = 0.25,
+    filter_cutoff = 0.7,
+    filter_resonance = 0.25
+  },
+  arp_rhythmic = {
+    name = "Arp (Rhythmic)",
+    description = "One-note sequence optimized, tracker-friendly",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.05 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.12, sustain = 0.15, release = 0.05 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.6,
+    velocity_filter = 0.5,
+    filter_keytrack = 0.35,
+    filter_cutoff = 0.65,
+    filter_resonance = 0.3
+  },
+  
+  -- ========================================================================
+  -- FX family - Special effects
+  -- ========================================================================
+  fx_envelope = {
+    name = "FX (Envelope-Driven)",
+    description = "Risers, transitions, long ramps",
+    volume_ahdsr = { attack = 2.0, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.5 },
+    filter_ahdsr = { attack = 2.5, hold = 0.0, decay = 0.0, sustain = 0.85, release = 0.4 },
+    pitch_ahdsr = { attack = 2.0, hold = 0.0, decay = 0.0, sustain = 0.6, release = 0.3, amount = 0.15 },
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.2,
+    velocity_filter = 0.15,
+    filter_keytrack = 0.1,
+    filter_cutoff = 0.25,
+    filter_resonance = 0.4
+  },
+  fx_percussive = {
+    name = "FX (Percussive)",
+    description = "Impacts, fast transient",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.0, release = 0.4 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.25, sustain = 0.0, release = 0.3 },
+    pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.1, amount = -0.25 },
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.7,
+    velocity_filter = 0.5,
+    filter_keytrack = 0.15,
+    filter_cutoff = 0.8,
+    filter_resonance = 0.25
+  },
+  fx_sustain = {
+    name = "FX (Sustain)",
+    description = "Drones, flat envelope",
+    volume_ahdsr = { attack = 0.3, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.8 },
+    filter_ahdsr = nil,
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = { frequency = 0.1, amount = 0.15 },
+    velocity_volume = 0.15,
+    velocity_filter = 0.1,
+    filter_keytrack = 0.0,
+    filter_cutoff = 0.5,
+    filter_resonance = 0.2
+  },
+  
+  -- ========================================================================
+  -- ORCHESTRAL family - Strings, brass, etc.
+  -- ========================================================================
+  strings = {
+    name = "Strings",
+    description = "Orchestral strings",
+    volume_ahdsr = { attack = 0.4, hold = 0.0, decay = 0.3, sustain = 0.85, release = 0.6 },
+    filter_ahdsr = { attack = 0.5, hold = 0.0, decay = 0.2, sustain = 0.6, release = 0.5 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = { frequency = 5.0, amount = 0.02 },
+    filter_lfo = nil,
+    velocity_volume = 0.5,
+    velocity_filter = 0.35,
+    filter_keytrack = 0.3,
+    filter_cutoff = 0.65,
+    filter_resonance = 0.15
+  },
+  brass = {
+    name = "Brass",
+    description = "Bold attack, bold brass",
+    volume_ahdsr = { attack = 0.08, hold = 0.0, decay = 0.2, sustain = 0.75, release = 0.2 },
+    filter_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.3, sustain = 0.5, release = 0.15 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = { frequency = 5.0, amount = 0.015 },
+    filter_lfo = nil,
+    velocity_volume = 0.6,
+    velocity_filter = 0.5,
+    filter_keytrack = 0.35,
+    filter_cutoff = 0.7,
+    filter_resonance = 0.3
+  },
+  
+  -- ========================================================================
+  -- BELL family - Long decay sounds
+  -- ========================================================================
+  bell = {
+    name = "Bell",
+    description = "Long decay, bell-like",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 1.5, sustain = 0.0, release = 2.0 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.8, sustain = 0.2, release = 1.5 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.6,
+    velocity_filter = 0.4,
+    filter_keytrack = 0.4,
+    filter_cutoff = 0.85,
+    filter_resonance = 0.15
+  },
+  
+  -- ========================================================================
+  -- LEGACY profiles (kept for backward compatibility)
+  -- ========================================================================
+  default = {
+    name = "Default",
+    description = "Generic starting point",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.5, sustain = 0.8, release = 0.3 },
+    filter_ahdsr = nil,
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.5,
+    velocity_filter = 0.0,
+    filter_keytrack = 0.0,
+    filter_cutoff = nil,
+    filter_resonance = nil
+  },
+  pluck = {
+    name = "Pluck",
+    description = "Short, percussive (legacy)",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.0, release = 0.1 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.2, release = 0.1 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.7,
+    velocity_filter = 0.5,
+    filter_keytrack = 0.3,
+    filter_cutoff = 0.7,
+    filter_resonance = 0.3
+  },
+  bass = {
+    name = "Bass",
+    description = "Solid low end (legacy)",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.9, release = 0.15 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.5, release = 0.1 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.5,
+    velocity_filter = 0.4,
+    filter_keytrack = 0.4,
+    filter_cutoff = 0.5,
+    filter_resonance = 0.35
+  },
+  pad = {
+    name = "Pad",
+    description = "Slow, evolving (legacy)",
+    volume_ahdsr = { attack = 0.8, hold = 0.0, decay = 0.5, sustain = 0.7, release = 1.5 },
+    filter_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.3, sustain = 0.6, release = 1.0 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.3,
+    velocity_filter = 0.2,
+    filter_keytrack = 0.2,
+    filter_cutoff = 0.6,
+    filter_resonance = 0.2
+  },
+  lead = {
+    name = "Lead",
+    description = "Expressive lead (legacy)",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.7, release = 0.2 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.5, release = 0.2 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = { frequency = 5.0, amount = 0.03 },
+    filter_lfo = nil,
+    velocity_volume = 0.6,
+    velocity_filter = 0.5,
+    filter_keytrack = 0.3,
+    filter_cutoff = 0.65,
+    filter_resonance = 0.3
+  },
+  organ = {
+    name = "Organ",
+    description = "Flat sustain (legacy)",
+    volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.05 },
+    filter_ahdsr = nil,
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.3,
+    velocity_filter = 0.0,
+    filter_keytrack = 0.0,
+    filter_cutoff = nil,
+    filter_resonance = nil
+  },
+  keys = {
+    name = "Keys",
+    description = "Piano-like (legacy)",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.6, release = 0.3 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.5, sustain = 0.4, release = 0.25 },
+    pitch_ahdsr = nil,
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.7,
+    velocity_filter = 0.5,
+    filter_keytrack = 0.4,
+    filter_cutoff = 0.75,
+    filter_resonance = 0.2
+  },
+  percussive = {
+    name = "Percussive",
+    description = "Drum-like (legacy)",
+    volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.0, release = 0.05 },
+    filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.05 },
+    pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.05, sustain = 0.0, release = 0.02, amount = -0.15 },
+    volume_lfo = nil,
+    pitch_lfo = nil,
+    filter_lfo = nil,
+    velocity_volume = 0.8,
+    velocity_filter = 0.6,
+    filter_keytrack = 0.2,
+    filter_cutoff = 0.8,
+    filter_resonance = 0.2
+  }
+}
+
+-- ============================================================================
+-- SOUND CATEGORIES - High-level category to profile mapping
+-- Users select a Sound Category, which maps to an appropriate Modulation Profile
+-- ============================================================================
+
+PakettiMetaSynthSoundCategories = {
+  -- Bass
+  { name = "Mono Bass", profile = "bass_tight", family = "bass" },
+  { name = "Sub Bass", profile = "bass_sustain", family = "bass" },
+  { name = "Acid Bass", profile = "bass_filter", family = "bass" },
+  { name = "Reese Bass", profile = "bass_wide", family = "bass" },
+  { name = "FM Bass", profile = "bass_dynamic", family = "bass" },
+  -- Pluck
+  { name = "Pluck", profile = "pluck_short", family = "pluck" },
+  { name = "Harp / Guitar", profile = "pluck_natural", family = "pluck" },
+  { name = "Mallet", profile = "pluck_percussive", family = "pluck" },
+  { name = "Kalimba", profile = "pluck_soft", family = "pluck" },
+  -- Lead
+  { name = "Lead (Mono)", profile = "lead_expressive", family = "lead" },
+  { name = "Lead (Poly)", profile = "lead_smooth", family = "lead" },
+  { name = "Square Lead", profile = "lead_classic", family = "lead" },
+  { name = "Supersaw Lead", profile = "lead_wide", family = "lead" },
+  { name = "Portamento Lead", profile = "lead_glide", family = "lead" },
+  -- Pad
+  { name = "Pad", profile = "pad_slow", family = "pad" },
+  { name = "Ambient Pad", profile = "pad_evolving", family = "pad" },
+  { name = "String Pad", profile = "pad_ensemble", family = "pad" },
+  { name = "Choir / Vocal Pad", profile = "pad_formant", family = "pad" },
+  -- Keys
+  { name = "Keys / EP", profile = "keys_dynamic", family = "keys" },
+  { name = "Organ", profile = "keys_sustain", family = "keys" },
+  { name = "Piano-like", profile = "keys_velocity", family = "keys" },
+  -- Arp
+  { name = "Arp", profile = "arp_tight", family = "arp" },
+  { name = "Sequenced", profile = "arp_gated", family = "arp" },
+  { name = "One-Note Sequence", profile = "arp_rhythmic", family = "arp" },
+  -- FX
+  { name = "FX / Risers", profile = "fx_envelope", family = "fx" },
+  { name = "FX / Impacts", profile = "fx_percussive", family = "fx" },
+  { name = "FX / Drones", profile = "fx_sustain", family = "fx" },
+  -- Neutral
+  { name = "Experimental", profile = "neutral_flat", family = "neutral" },
+  { name = "Raw Oscillator", profile = "neutral_none", family = "neutral" }
+}
+
+-- Profile names list for UI dropdowns and randomization
+PakettiMetaSynthModulationProfileNames = {
+  -- Neutral
+  "neutral_flat", "neutral_none",
+  -- Bass
+  "bass_tight", "bass_sustain", "bass_filter", "bass_wide", "bass_dynamic",
+  -- Pluck
+  "pluck_short", "pluck_natural", "pluck_percussive", "pluck_soft",
+  -- Lead
+  "lead_expressive", "lead_smooth", "lead_classic", "lead_wide", "lead_glide",
+  -- Pad
+  "pad_slow", "pad_evolving", "pad_ensemble", "pad_formant",
+  -- Keys
+  "keys_dynamic", "keys_sustain", "keys_velocity",
+  -- Arp
+  "arp_tight", "arp_gated", "arp_rhythmic",
+  -- FX
+  "fx_envelope", "fx_percussive", "fx_sustain",
+  -- Orchestral
+  "strings", "brass",
+  -- Bell
+  "bell",
+  -- Legacy (kept for compatibility)
+  "default", "pluck", "bass", "pad", "lead", "organ", "keys", "percussive"
+}
+
+-- Sound Category names for UI dropdown
+PakettiMetaSynthSoundCategoryNames = {}
+for i, cat in ipairs(PakettiMetaSynthSoundCategories) do
+  PakettiMetaSynthSoundCategoryNames[i] = cat.name
+end
+
 -- Default architecture template
 function PakettiMetaSynthCreateDefaultArchitecture()
   return {
@@ -50,7 +791,9 @@ function PakettiMetaSynthCreateDefaultArchitecture()
             osc_fx_enabled = false,
             osc_fx_mode = "random",
             osc_fx_count = 2,
-            osc_fx_types = {}
+            osc_fx_types = {},
+            -- Modulation profile: defines voice articulation (GESTURE layer)
+            modulation_profile = "default"
           }
         }
       }
@@ -1002,6 +1745,266 @@ function PakettiMetaSynthMapMacroToParameter(instrument, macro_index, parameter)
   return true
 end
 
+-- Clear all devices from a modulation set
+function PakettiMetaSynthClearModulationSet(mod_set)
+  -- Remove devices from end to start to avoid index shifting issues
+  while #mod_set.devices > 0 do
+    mod_set:delete_device_at(#mod_set.devices)
+  end
+end
+
+-- Apply a modulation profile to a modulation set
+-- This clears existing devices and rebuilds from the profile definition
+function PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
+  -- Get profile definition
+  local profile = PakettiMetaSynthModulationProfiles[profile_name]
+  if not profile then
+    print("PakettiMetaSynth: Unknown modulation profile '" .. tostring(profile_name) .. "', using default")
+    profile = PakettiMetaSynthModulationProfiles["default"]
+  end
+  
+  -- Clear existing modulation devices
+  PakettiMetaSynthClearModulationSet(mod_set)
+  
+  -- Handle neutral_none profile - no envelope at all
+  if profile_name == "neutral_none" then
+    print(string.format("PakettiMetaSynth: Applied neutral profile '%s' (no modulation)", profile_name))
+    return true
+  end
+  
+  -- Add Volume AHDSR if defined
+  if profile.volume_ahdsr then
+    PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, profile.volume_ahdsr)
+  end
+  
+  -- Add Filter AHDSR if defined
+  if profile.filter_ahdsr then
+    PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, profile.filter_ahdsr)
+  end
+  
+  -- Add Pitch AHDSR if defined
+  if profile.pitch_ahdsr then
+    local pitch_params = {
+      attack = profile.pitch_ahdsr.attack,
+      hold = profile.pitch_ahdsr.hold,
+      decay = profile.pitch_ahdsr.decay,
+      sustain = profile.pitch_ahdsr.sustain,
+      release = profile.pitch_ahdsr.release
+    }
+    local pitch_env = PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, pitch_params)
+    -- Set envelope amount if specified
+    if pitch_env and profile.pitch_ahdsr.amount then
+      if pitch_env.amplitude then
+        pitch_env.amplitude.value = math.abs(profile.pitch_ahdsr.amount)
+      end
+    end
+  end
+  
+  -- Add Velocity device for volume if velocity_volume is significant
+  if profile.velocity_volume and profile.velocity_volume > 0.1 then
+    PakettiMetaSynthAddVelocityToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, {
+      amount = profile.velocity_volume
+    })
+  end
+  
+  -- Add Velocity device for filter if velocity_filter is significant
+  if profile.velocity_filter and profile.velocity_filter > 0.1 then
+    PakettiMetaSynthAddVelocityToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, {
+      amount = profile.velocity_filter
+    })
+  end
+  
+  -- Add Volume LFO (tremolo) if defined
+  if profile.volume_lfo then
+    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, profile.volume_lfo)
+  end
+  
+  -- Add Pitch LFO (vibrato) if defined
+  if profile.pitch_lfo then
+    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, profile.pitch_lfo)
+  end
+  
+  -- Add Filter LFO if defined
+  if profile.filter_lfo then
+    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, profile.filter_lfo)
+  end
+  
+  -- Set filter type and parameters if filter cutoff is defined
+  if profile.filter_cutoff then
+    -- Enable low-pass filter
+    mod_set.filter_type = renoise.SampleModulationSet.FILTER_TYPE_LP_CLEAN
+    
+    -- Set filter parameters if available
+    if mod_set.available_devices then
+      -- Filter cutoff and resonance are set via the global filter on the modulation set
+      -- Note: Direct API access to filter parameters varies by Renoise version
+    end
+  end
+  
+  -- Set filter keytracking if defined
+  -- Note: Keytracking is typically set per-sample or via keytracking device
+  -- This is a placeholder for future implementation
+  if profile.filter_keytrack and profile.filter_keytrack > 0 then
+    -- Keytracking would be applied here if the API supports it
+    -- For now, we note this in the profile for informational purposes
+  end
+  
+  print(string.format("PakettiMetaSynth: Applied modulation profile '%s' (%s)", 
+    profile_name, profile.description or ""))
+  
+  return true
+end
+
+-- Add a Velocity device to a modulation set
+function PakettiMetaSynthAddVelocityToModSet(mod_set, target_type, params)
+  params = params or {}
+  
+  local available = mod_set.available_devices
+  local velocity_path = nil
+  
+  for _, device_path in ipairs(available) do
+    if device_path:find("Velocity") then
+      velocity_path = device_path
+      break
+    end
+  end
+  
+  if not velocity_path then
+    print("PakettiMetaSynth: Velocity device not found in available modulation devices")
+    return nil
+  end
+  
+  local device_index = #mod_set.devices + 1
+  mod_set:insert_device_at(velocity_path, target_type, device_index)
+  local device = mod_set.devices[device_index]
+  
+  if device then
+    -- Set velocity amount/scaling if available
+    if params.amount and device.amount then
+      device.amount.value = params.amount
+    elseif params.amount and device.scaling then
+      device.scaling.value = params.amount
+    end
+  end
+  
+  return device
+end
+
+-- Get a random modulation profile name from the available profiles
+function PakettiMetaSynthGetRandomModulationProfile()
+  local profile_count = #PakettiMetaSynthModulationProfileNames
+  local random_index = math.random(1, profile_count)
+  return PakettiMetaSynthModulationProfileNames[random_index]
+end
+
+-- Get a contextually appropriate modulation profile based on architecture hints
+function PakettiMetaSynthGetProfileForContext(frame_count, is_bass_range, is_percussive)
+  -- Weight pools based on context - using new profile names
+  local weighted_pool = {}
+  
+  if is_percussive then
+    -- Percussive context: favor short envelopes
+    weighted_pool = {
+      "pluck_percussive", "pluck_percussive", "pluck_short", 
+      "arp_tight", "arp_rhythmic", "fx_percussive", "bell"
+    }
+  elseif is_bass_range then
+    -- Bass range: favor bass profiles
+    weighted_pool = {
+      "bass_tight", "bass_tight", "bass_sustain", "bass_filter", 
+      "bass_wide", "bass_dynamic", "keys_sustain"
+    }
+  elseif frame_count and frame_count > 2 then
+    -- Multiple frames suggest evolving sounds: favor pads and leads
+    weighted_pool = {
+      "pad_slow", "pad_slow", "pad_evolving", "pad_ensemble",
+      "lead_smooth", "lead_wide", "strings"
+    }
+  else
+    -- General pool with balanced weights
+    weighted_pool = {
+      "pluck_short", "pluck_natural", "pluck_soft",
+      "bass_tight", "bass_sustain",
+      "pad_slow", "pad_evolving",
+      "lead_expressive", "lead_smooth",
+      "keys_dynamic", "keys_sustain", "bell", "strings", "brass"
+    }
+  end
+  
+  return weighted_pool[math.random(1, #weighted_pool)]
+end
+
+-- Get a random sound category
+function PakettiMetaSynthGetRandomSoundCategory()
+  local category_count = #PakettiMetaSynthSoundCategories
+  local random_index = math.random(1, category_count)
+  return PakettiMetaSynthSoundCategories[random_index]
+end
+
+-- Get profile name from sound category name
+function PakettiMetaSynthGetProfileFromCategory(category_name)
+  for _, cat in ipairs(PakettiMetaSynthSoundCategories) do
+    if cat.name == category_name then
+      return cat.profile
+    end
+  end
+  return "default"
+end
+
+-- Get sound category index by name
+function PakettiMetaSynthGetCategoryIndex(category_name)
+  for i, cat in ipairs(PakettiMetaSynthSoundCategories) do
+    if cat.name == category_name then
+      return i
+    end
+  end
+  return 1
+end
+
+-- Get category by profile name
+function PakettiMetaSynthGetCategoryByProfile(profile_name)
+  for _, cat in ipairs(PakettiMetaSynthSoundCategories) do
+    if cat.profile == profile_name then
+      return cat
+    end
+  end
+  return nil
+end
+
+-- Apply modulation profile to an existing instrument's modulation set by index
+function PakettiMetaSynthApplyProfileToInstrument(instrument, mod_set_index, profile_name)
+  if not instrument then
+    print("PakettiMetaSynth: No instrument provided")
+    return false
+  end
+  
+  if mod_set_index < 1 or mod_set_index > #instrument.sample_modulation_sets then
+    print("PakettiMetaSynth: Invalid modulation set index " .. tostring(mod_set_index))
+    return false
+  end
+  
+  local mod_set = instrument.sample_modulation_sets[mod_set_index]
+  return PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
+end
+
+-- Apply modulation profile to all modulation sets in an instrument
+function PakettiMetaSynthApplyProfileToAllModSets(instrument, profile_name)
+  if not instrument then
+    print("PakettiMetaSynth: No instrument provided")
+    return false
+  end
+  
+  local count = 0
+  for i = 1, #instrument.sample_modulation_sets do
+    if PakettiMetaSynthApplyProfileToInstrument(instrument, i, profile_name) then
+      count = count + 1
+    end
+  end
+  
+  print(string.format("PakettiMetaSynth: Applied profile '%s' to %d modulation sets", profile_name, count))
+  return count > 0
+end
+
 -- ============================================================================
 -- SECTION 6: FRAME-BASED FX ROUTING
 -- ============================================================================
@@ -1734,22 +2737,9 @@ function PakettiMetaSynthGenerateInstrument(architecture)
       local mod_set, mod_set_idx = PakettiMetaSynthCreateModulationSet(instrument, osc.name .. " Mod")
       mod_set_index = mod_set_idx
       
-      -- Add AHDSR for volume
-      PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, {
-        attack = 0.0,
-        hold = 0.0,
-        decay = 0.5,
-        sustain = 0.8,
-        release = 0.3
-      })
-      
-      -- Add LFO for pitch vibrato if random phase offsets enabled
-      if architecture.modulation and architecture.modulation.random_phase_offsets then
-        PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, {
-          frequency = 0.3 + math.random() * 0.3,
-          amount = 0.02
-        })
-      end
+      -- Apply modulation profile (GESTURE layer - voice articulation)
+      local profile_name = osc.modulation_profile or "default"
+      PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
       
       -- Get detune and pan spread values (with defaults)
       local detune_spread = osc.detune_spread or 10
@@ -2131,20 +3121,9 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
       -- ================================================================
       local mod_set, mod_set_idx = PakettiMetaSynthCreateModulationSet(instrument, osc.name .. " Mod")
       
-      PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, {
-        attack = 0.0,
-        hold = 0.0,
-        decay = 0.5,
-        sustain = 0.8,
-        release = 0.3
-      })
-      
-      if architecture.modulation and architecture.modulation.random_phase_offsets then
-        PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, {
-          frequency = 0.3 + math.random() * 0.3,
-          amount = 0.02
-        })
-      end
+      -- Apply modulation profile (GESTURE layer - voice articulation)
+      local profile_name = osc.modulation_profile or "default"
+      PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
       
       -- ================================================================
       -- LOAD SAMPLES - ALL go to SOURCE CHAIN
@@ -2380,6 +3359,9 @@ function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining)
       table.insert(osc.osc_fx_types, shuffled_types[i])
     end
   end
+  
+  -- Modulation profile: random selection from available profiles
+  osc.modulation_profile = PakettiMetaSynthGetRandomModulationProfile()
   
   return osc
 end
@@ -2648,7 +3630,9 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
         -- Osc FX enabled for summing
         osc_fx_enabled = math.random() > 0.3,  -- 70% chance
         osc_fx_mode = "random",
-        osc_fx_count = math.random(1, 3)
+        osc_fx_count = math.random(1, 3),
+        -- Modulation profile: favor pad/lead for wavetable sounds
+        modulation_profile = PakettiMetaSynthGetProfileForContext(math.random(2, 4), false, false)
       }
       
       -- Check if custom folder is configured
@@ -3765,6 +4749,296 @@ function PakettiMetaSynthShowDialog()
 end
 
 -- ============================================================================
+-- SECTION 10.5: MODULATION PROFILE DIALOG
+-- ============================================================================
+
+-- Dialog state for modulation profile selector
+PakettiMetaSynthProfileDialogVb = nil
+PakettiMetaSynthProfileDialogHandle = nil
+
+-- Show the modulation profile selection dialog
+function PakettiMetaSynthShowProfileDialog()
+  -- Close existing dialog if open
+  if PakettiMetaSynthProfileDialogHandle and PakettiMetaSynthProfileDialogHandle.visible then
+    PakettiMetaSynthProfileDialogHandle:close()
+    PakettiMetaSynthProfileDialogHandle = nil
+  end
+  
+  -- Check if we have a valid instrument with modulation sets
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("PakettiMetaSynth: No instrument selected")
+    return
+  end
+  
+  if #instrument.sample_modulation_sets == 0 then
+    renoise.app():show_status("PakettiMetaSynth: No modulation sets in selected instrument")
+    return
+  end
+  
+  PakettiMetaSynthProfileDialogVb = renoise.ViewBuilder()
+  local vb = PakettiMetaSynthProfileDialogVb
+  
+  -- Build sound category dropdown items
+  local category_items = {}
+  for i, cat in ipairs(PakettiMetaSynthSoundCategories) do
+    category_items[i] = cat.name
+  end
+  
+  -- Build profile dropdown items
+  local profile_items = {}
+  for i, profile_name in ipairs(PakettiMetaSynthModulationProfileNames) do
+    local profile = PakettiMetaSynthModulationProfiles[profile_name]
+    profile_items[i] = profile.name .. " - " .. (profile.description or "")
+  end
+  
+  -- Build modulation set dropdown items
+  local mod_set_items = {"All Modulation Sets"}
+  for i, mod_set in ipairs(instrument.sample_modulation_sets) do
+    mod_set_items[i + 1] = string.format("%d: %s", i, mod_set.name or "Unnamed")
+  end
+  
+  -- Helper to find profile index by name
+  local function getProfileIndex(profile_name)
+    for i, name in ipairs(PakettiMetaSynthModulationProfileNames) do
+      if name == profile_name then
+        return i
+      end
+    end
+    return 1
+  end
+  
+  local dialog_content = vb:column {
+    margin = 10,
+    spacing = 8,
+    
+    -- Sound Category selection (high-level)
+    vb:row {
+      vb:text { text = "Sound Category:", width = 120 },
+      vb:popup {
+        id = "category_selector",
+        items = category_items,
+        value = 1,
+        width = 250,
+        notifier = function(idx)
+          -- Auto-select the associated profile when category changes
+          local category = PakettiMetaSynthSoundCategories[idx]
+          if category then
+            local profile_idx = getProfileIndex(category.profile)
+            vb.views.profile_selector.value = profile_idx
+            -- Update description and details
+            local profile = PakettiMetaSynthModulationProfiles[category.profile]
+            if profile then
+              vb.views.profile_description.text = profile.description or ""
+              vb.views.profile_details.text = PakettiMetaSynthGetProfileDetailsText(category.profile)
+            end
+          end
+        end
+      }
+    },
+    
+    vb:space { height = 5 },
+    
+    -- Direct Profile selection (detailed)
+    vb:row {
+      vb:text { text = "Modulation Profile:", width = 120 },
+      vb:popup {
+        id = "profile_selector",
+        items = profile_items,
+        value = 1,
+        width = 250,
+        notifier = function(idx)
+          -- Update description when profile changes
+          local profile_name = PakettiMetaSynthModulationProfileNames[idx]
+          local profile = PakettiMetaSynthModulationProfiles[profile_name]
+          vb.views.profile_description.text = profile.description or ""
+          vb.views.profile_details.text = PakettiMetaSynthGetProfileDetailsText(profile_name)
+        end
+      }
+    },
+    
+    vb:row {
+      vb:text { text = "Description:", width = 120 },
+      vb:text {
+        id = "profile_description",
+        text = PakettiMetaSynthModulationProfiles["neutral_flat"].description or "",
+        width = 250,
+        font = "italic"
+      }
+    },
+    
+    vb:space { height = 5 },
+    
+    vb:row {
+      vb:text { text = "Apply to:", width = 120 },
+      vb:popup {
+        id = "target_selector",
+        items = mod_set_items,
+        value = 1,
+        width = 250
+      }
+    },
+    
+    vb:space { height = 10 },
+    
+    -- Profile details preview
+    vb:column {
+      style = "group",
+      margin = 5,
+      vb:text { text = "Profile Components:", font = "bold" },
+      vb:text {
+        id = "profile_details",
+        text = PakettiMetaSynthGetProfileDetailsText("neutral_flat"),
+        font = "mono"
+      }
+    },
+    
+    vb:space { height = 10 },
+    
+    vb:row {
+      spacing = 10,
+      vb:button {
+        text = "Apply Profile",
+        width = 120,
+        notifier = function()
+          local profile_idx = vb.views.profile_selector.value
+          local target_idx = vb.views.target_selector.value
+          local profile_name = PakettiMetaSynthModulationProfileNames[profile_idx]
+          
+          if target_idx == 1 then
+            -- Apply to all modulation sets
+            PakettiMetaSynthApplyProfileToAllModSets(instrument, profile_name)
+            renoise.app():show_status("Applied '" .. profile_name .. "' to all modulation sets")
+          else
+            -- Apply to specific modulation set
+            local mod_set_index = target_idx - 1
+            PakettiMetaSynthApplyProfileToInstrument(instrument, mod_set_index, profile_name)
+            renoise.app():show_status("Applied '" .. profile_name .. "' to modulation set " .. mod_set_index)
+          end
+        end
+      },
+      vb:button {
+        text = "Close",
+        width = 80,
+        notifier = function()
+          if PakettiMetaSynthProfileDialogHandle and PakettiMetaSynthProfileDialogHandle.visible then
+            PakettiMetaSynthProfileDialogHandle:close()
+          end
+        end
+      }
+    }
+  }
+  
+  -- Update profile details when selection changes
+  vb.views.profile_selector:add_notifier(function(idx)
+    local profile_name = PakettiMetaSynthModulationProfileNames[idx]
+    vb.views.profile_details.text = PakettiMetaSynthGetProfileDetailsText(profile_name)
+  end)
+  
+  PakettiMetaSynthProfileDialogHandle = renoise.app():show_custom_dialog(
+    "MetaSynth - Apply Modulation Profile",
+    dialog_content,
+    my_keyhandler_func
+  )
+  
+  -- Restore keyboard focus
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- Generate a text description of profile components
+function PakettiMetaSynthGetProfileDetailsText(profile_name)
+  local profile = PakettiMetaSynthModulationProfiles[profile_name]
+  if not profile then return "Unknown profile" end
+  
+  local lines = {}
+  
+  -- Volume envelope
+  if profile.volume_ahdsr then
+    local env = profile.volume_ahdsr
+    table.insert(lines, string.format("Volume Env: A:%.2f H:%.2f D:%.2f S:%.2f R:%.2f",
+      env.attack, env.hold, env.decay, env.sustain, env.release))
+  else
+    table.insert(lines, "Volume Env: None (raw)")
+  end
+  
+  -- Filter envelope
+  if profile.filter_ahdsr then
+    local env = profile.filter_ahdsr
+    table.insert(lines, string.format("Filter Env: A:%.2f H:%.2f D:%.2f S:%.2f R:%.2f",
+      env.attack, env.hold, env.decay, env.sustain, env.release))
+  else
+    table.insert(lines, "Filter Env: None")
+  end
+  
+  -- Pitch envelope
+  if profile.pitch_ahdsr then
+    local env = profile.pitch_ahdsr
+    table.insert(lines, string.format("Pitch Env:  A:%.2f D:%.2f Amt:%.2f",
+      env.attack, env.decay, env.amount or 0))
+  else
+    table.insert(lines, "Pitch Env:  None")
+  end
+  
+  -- Velocity tracking
+  local vel_parts = {}
+  if profile.velocity_volume and profile.velocity_volume > 0 then
+    table.insert(vel_parts, string.format("Vol:%.0f%%", profile.velocity_volume * 100))
+  end
+  if profile.velocity_filter and profile.velocity_filter > 0 then
+    table.insert(vel_parts, string.format("Filter:%.0f%%", profile.velocity_filter * 100))
+  end
+  if #vel_parts > 0 then
+    table.insert(lines, "Velocity: " .. table.concat(vel_parts, ", "))
+  else
+    table.insert(lines, "Velocity: None")
+  end
+  
+  -- Keytracking
+  if profile.filter_keytrack and profile.filter_keytrack > 0 then
+    table.insert(lines, string.format("Filter Keytrack: %.0f%%", profile.filter_keytrack * 100))
+  end
+  
+  -- LFOs
+  local lfos = {}
+  if profile.volume_lfo then
+    table.insert(lfos, string.format("Vol:%.1fHz", profile.volume_lfo.frequency))
+  end
+  if profile.pitch_lfo then
+    table.insert(lfos, string.format("Pitch:%.1fHz", profile.pitch_lfo.frequency))
+  end
+  if profile.filter_lfo then
+    table.insert(lfos, string.format("Filter:%.1fHz", profile.filter_lfo.frequency))
+  end
+  
+  if #lfos > 0 then
+    table.insert(lines, "LFOs: " .. table.concat(lfos, ", "))
+  else
+    table.insert(lines, "LFOs: None")
+  end
+  
+  return table.concat(lines, "\n")
+end
+
+-- Quick apply profile to current instrument (all modulation sets)
+function PakettiMetaSynthQuickApplyProfile(profile_name)
+  local instrument = renoise.song().selected_instrument
+  if not instrument then
+    renoise.app():show_status("PakettiMetaSynth: No instrument selected")
+    return
+  end
+  
+  if #instrument.sample_modulation_sets == 0 then
+    renoise.app():show_status("PakettiMetaSynth: No modulation sets in selected instrument")
+    return
+  end
+  
+  PakettiMetaSynthApplyProfileToAllModSets(instrument, profile_name)
+  renoise.app():show_status("Applied modulation profile: " .. profile_name)
+end
+
+-- ============================================================================
 -- SECTION 11: MENU ENTRIES, KEYBINDINGS, AND MIDI MAPPINGS
 -- ============================================================================
 
@@ -3812,6 +5086,304 @@ renoise.tool():add_menu_entry {
 }
 
 renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Modulation Profile...",
+  invoke = function()
+    PakettiMetaSynthShowProfileDialog()
+  end
+}
+
+-- Neutral profiles
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Neutral:Flat",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("neutral_flat")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Neutral:None",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("neutral_none")
+  end
+}
+
+-- Bass profiles
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Tight",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("bass_tight")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Sustain",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("bass_sustain")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Filter",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("bass_filter")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Wide",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("bass_wide")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Dynamic",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("bass_dynamic")
+  end
+}
+
+-- Pluck profiles
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pluck:Short",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pluck_short")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pluck:Natural",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pluck_natural")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pluck:Percussive",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pluck_percussive")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pluck:Soft",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pluck_soft")
+  end
+}
+
+-- Lead profiles
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Expressive",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("lead_expressive")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Smooth",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("lead_smooth")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Classic",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("lead_classic")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Wide",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("lead_wide")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Glide",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("lead_glide")
+  end
+}
+
+-- Pad profiles
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pad:Slow",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pad_slow")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pad:Evolving",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pad_evolving")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pad:Ensemble",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pad_ensemble")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pad:Formant",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pad_formant")
+  end
+}
+
+-- Keys profiles
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Keys:Dynamic",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("keys_dynamic")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Keys:Sustain",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("keys_sustain")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Keys:Velocity",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("keys_velocity")
+  end
+}
+
+-- Arp profiles
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Arp:Tight",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("arp_tight")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Arp:Gated",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("arp_gated")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Arp:Rhythmic",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("arp_rhythmic")
+  end
+}
+
+-- FX profiles
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:FX:Envelope",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("fx_envelope")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:FX:Percussive",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("fx_percussive")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:FX:Sustain",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("fx_sustain")
+  end
+}
+
+-- Orchestral profiles
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Orchestral:Strings",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("strings")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Orchestral:Brass",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("brass")
+  end
+}
+
+-- Bell profile
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bell",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("bell")
+  end
+}
+
+-- Legacy profiles (for backward compatibility)
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Default",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("default")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Pluck",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pluck")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Bass",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("bass")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Pad",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pad")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Lead",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("lead")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Organ",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("organ")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Keys",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("keys")
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Percussive",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("percussive")
+  end
+}
+
+renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Open Architecture Designer...",
   invoke = function()
     PakettiMetaSynthShowDialog()
@@ -3850,6 +5422,13 @@ renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Instruments (with Sends)",
   invoke = function()
     PakettiMetaSynthGenerateBatchInstruments(true, 20)
+  end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Instrument Box:Paketti:MetaSynth:Apply Modulation Profile...",
+  invoke = function()
+    PakettiMetaSynthShowProfileDialog()
   end
 }
 
@@ -3903,6 +5482,70 @@ renoise.tool():add_keybinding {
   end
 }
 
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Apply Modulation Profile Dialog",
+  invoke = function()
+    PakettiMetaSynthShowProfileDialog()
+  end
+}
+
+-- Quick profile application keybindings by family
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Apply Profile Bass Tight",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("bass_tight")
+  end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Apply Profile Pluck Short",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pluck_short")
+  end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Apply Profile Lead Expressive",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("lead_expressive")
+  end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Apply Profile Pad Slow",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("pad_slow")
+  end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Apply Profile Keys Dynamic",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("keys_dynamic")
+  end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Apply Profile Arp Tight",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("arp_tight")
+  end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Apply Profile FX Envelope",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("fx_envelope")
+  end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:MetaSynth Apply Profile Neutral Flat",
+  invoke = function()
+    PakettiMetaSynthQuickApplyProfile("neutral_flat")
+  end
+}
+
 -- MIDI mappings
 renoise.tool():add_midi_mapping {
   name = "Paketti:MetaSynth Generate Random Instrument",
@@ -3945,6 +5588,88 @@ renoise.tool():add_midi_mapping {
   invoke = function(message)
     if message:is_trigger() then
       PakettiMetaSynthShowDialog()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Apply Modulation Profile Dialog",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthShowProfileDialog()
+    end
+  end
+}
+
+-- Quick profile MIDI mappings by family
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Apply Profile Bass Tight",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthQuickApplyProfile("bass_tight")
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Apply Profile Pluck Short",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthQuickApplyProfile("pluck_short")
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Apply Profile Lead Expressive",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthQuickApplyProfile("lead_expressive")
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Apply Profile Pad Slow",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthQuickApplyProfile("pad_slow")
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Apply Profile Keys Dynamic",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthQuickApplyProfile("keys_dynamic")
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Apply Profile Arp Tight",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthQuickApplyProfile("arp_tight")
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Apply Profile FX Envelope",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthQuickApplyProfile("fx_envelope")
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:MetaSynth Apply Profile Neutral Flat",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiMetaSynthQuickApplyProfile("neutral_flat")
     end
   end
 }
