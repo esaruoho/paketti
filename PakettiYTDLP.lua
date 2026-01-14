@@ -6,6 +6,494 @@ local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
 
 local yt_dlp_path = ""  -- Will be set by PakettiYTDLPSetExecutablePaths() based on OS detection
 local ffmpeg_path = ""
+
+-- Helper function to extract string value from observable or convert to string
+function PakettiYTDLPGetStringValue(value)
+  if type(value) == "userdata" then
+    -- Try to get the .value property if it's an observable
+    if value.value ~= nil then
+      return tostring(value.value)
+    end
+  end
+  return tostring(value)
+end
+
+-- Auto-detect yt-dlp executable path by checking multiple known locations
+-- Returns the path to the executable if found, or nil if not found
+function PakettiYTDLPGuessExecutable()
+  print("PakettiYTDLPGuessExecutable: Starting auto-detection...")
+  
+  local os_name = os.platform()
+  local paths_to_check = {}
+  
+  if os_name == "MACINTOSH" then
+    paths_to_check = {
+      "/opt/homebrew/bin/yt-dlp",           -- Apple Silicon Homebrew
+      "/usr/local/bin/yt-dlp",              -- Intel Mac Homebrew
+      "/usr/bin/yt-dlp",                    -- System installation
+    }
+  elseif os_name == "LINUX" then
+    paths_to_check = {
+      "/usr/bin/yt-dlp",                        -- System-wide installation (most common)
+      "/usr/local/bin/yt-dlp",                  -- Local installation
+      "/home/linuxbrew/.linuxbrew/bin/yt-dlp",  -- Linux Homebrew path
+      "/snap/bin/yt-dlp",                       -- Snap installation
+    }
+  elseif os_name == "WINDOWS" then
+    paths_to_check = {
+      "C:\\Program Files\\yt-dlp\\yt-dlp.exe",
+      "C:\\Program Files (x86)\\yt-dlp\\yt-dlp.exe",
+    }
+  end
+  
+  -- Check each path
+  for _, path in ipairs(paths_to_check) do
+    print("PakettiYTDLPGuessExecutable: Checking path: " .. path)
+    local f = io.open(path, "r")
+    if f then
+      io.close(f)
+      print("PakettiYTDLPGuessExecutable: Found yt-dlp at: " .. path)
+      return path
+    end
+  end
+  
+  -- If not found in known paths, try using 'which' command on Unix systems
+  if os_name ~= "WINDOWS" then
+    print("PakettiYTDLPGuessExecutable: Trying 'which' command...")
+    local cmd = "which yt-dlp"
+    print("PakettiYTDLPGuessExecutable: Running: " .. cmd)
+    local handle = io.popen(cmd)
+    if handle then
+      local result = handle:read("*line")
+      handle:close()
+      if result and result ~= "" then
+        -- Trim whitespace
+        result = result:match("^%s*(.-)%s*$")
+        if result ~= "" then
+          -- Verify the path exists
+          local f = io.open(result, "r")
+          if f then
+            io.close(f)
+            print("PakettiYTDLPGuessExecutable: Found via 'which': " .. result)
+            return result
+          end
+        end
+      end
+    end
+  end
+  
+  print("PakettiYTDLPGuessExecutable: No yt-dlp executable found")
+  return nil
+end
+
+-- Auto-detect ffmpeg executable path by checking multiple known locations
+-- Returns the path to the executable if found, or nil if not found
+function PakettiYTDLPGuessFFmpeg()
+  print("PakettiYTDLPGuessFFmpeg: Starting auto-detection...")
+  
+  local os_name = os.platform()
+  local paths_to_check = {}
+  
+  if os_name == "MACINTOSH" then
+    paths_to_check = {
+      "/opt/homebrew/bin/ffmpeg",           -- Apple Silicon Homebrew
+      "/usr/local/bin/ffmpeg",              -- Intel Mac Homebrew
+      "/usr/bin/ffmpeg",                    -- System installation
+    }
+  elseif os_name == "LINUX" then
+    paths_to_check = {
+      "/usr/bin/ffmpeg",                        -- System-wide installation (most common)
+      "/usr/local/bin/ffmpeg",                  -- Local installation
+      "/home/linuxbrew/.linuxbrew/bin/ffmpeg",  -- Linux Homebrew path
+    }
+  elseif os_name == "WINDOWS" then
+    paths_to_check = {
+      "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe",
+      "C:\\Program Files (x86)\\ffmpeg\\bin\\ffmpeg.exe",
+    }
+  end
+  
+  -- Check each path
+  for _, path in ipairs(paths_to_check) do
+    print("PakettiYTDLPGuessFFmpeg: Checking path: " .. path)
+    local f = io.open(path, "r")
+    if f then
+      io.close(f)
+      print("PakettiYTDLPGuessFFmpeg: Found ffmpeg at: " .. path)
+      return path
+    end
+  end
+  
+  -- If not found in known paths, try using 'which' command on Unix systems
+  if os_name ~= "WINDOWS" then
+    print("PakettiYTDLPGuessFFmpeg: Trying 'which' command...")
+    local cmd = "which ffmpeg"
+    print("PakettiYTDLPGuessFFmpeg: Running: " .. cmd)
+    local handle = io.popen(cmd)
+    if handle then
+      local result = handle:read("*line")
+      handle:close()
+      if result and result ~= "" then
+        -- Trim whitespace
+        result = result:match("^%s*(.-)%s*$")
+        if result ~= "" then
+          -- Verify the path exists
+          local f = io.open(result, "r")
+          if f then
+            io.close(f)
+            print("PakettiYTDLPGuessFFmpeg: Found via 'which': " .. result)
+            return result
+          end
+        end
+      end
+    end
+  end
+  
+  print("PakettiYTDLPGuessFFmpeg: No ffmpeg executable found")
+  return nil
+end
+
+-- Show installation instructions dialog for yt-dlp and ffmpeg
+function PakettiYTDLPShowInstallDialog()
+  print("PakettiYTDLPShowInstallDialog: Showing installation instructions...")
+  
+  local install_vb = renoise.ViewBuilder()
+  local install_dialog = nil
+  local os_name = os.platform()
+  
+  local dialog_content
+  
+  if os_name == "MACINTOSH" then
+    dialog_content = install_vb:column{
+      margin = 10,
+      spacing = 8,
+      
+      install_vb:text{
+        text = "yt-dlp and/or ffmpeg are not installed on your system.",
+        font = "bold",
+      },
+      
+      install_vb:space{height = 5},
+      
+      install_vb:text{
+        text = "To install these tools on macOS, you need Homebrew package manager.",
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:text{
+        text = "Step 1: Install Homebrew (if not already installed)",
+        font = "bold",
+      },
+      install_vb:text{
+        text = "Open Terminal and paste this command:",
+      },
+      install_vb:textfield{
+        width = 550,
+        text = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
+        edit_mode = true,
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:text{
+        text = "Step 2: Install yt-dlp",
+        font = "bold",
+      },
+      install_vb:text{
+        text = "After Homebrew is installed, run this command:",
+      },
+      install_vb:textfield{
+        width = 550,
+        text = "brew install yt-dlp",
+        edit_mode = true,
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:text{
+        text = "Step 3: Install ffmpeg (required for audio extraction)",
+        font = "bold",
+      },
+      install_vb:textfield{
+        width = 550,
+        text = "brew install ffmpeg",
+        edit_mode = true,
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:text{
+        text = "After installation, click 'Detect Again' or manually browse for the executable.",
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:row{
+        spacing = 10,
+        install_vb:button{
+          text = "Detect Again",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            -- Try to detect again
+            local detected_path = PakettiYTDLPGuessExecutable()
+            if detected_path then
+              yt_dlp_path = detected_path
+              preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = detected_path
+              renoise.app():show_status("yt-dlp found at: " .. detected_path)
+              -- Also detect ffmpeg
+              local ffmpeg_detected = PakettiYTDLPGuessFFmpeg()
+              if ffmpeg_detected then
+                ffmpeg_path = ffmpeg_detected
+                renoise.app():show_status("yt-dlp and ffmpeg found!")
+              end
+            else
+              renoise.app():show_error("yt-dlp still not found. Please install it first.")
+            end
+          end
+        },
+        install_vb:button{
+          text = "Browse for yt-dlp...",
+          width = 140,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            local filename = renoise.app():prompt_for_filename_to_read({"*.*"}, "Select yt-dlp Executable")
+            if filename ~= "" then
+              yt_dlp_path = filename
+              preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = filename
+              renoise.app():show_status("yt-dlp path set to: " .. filename)
+            end
+          end
+        },
+        install_vb:button{
+          text = "Close",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+          end
+        },
+      },
+    }
+  elseif os_name == "LINUX" then
+    dialog_content = install_vb:column{
+      margin = 10,
+      spacing = 8,
+      
+      install_vb:text{
+        text = "yt-dlp and/or ffmpeg are not installed on your system.",
+        font = "bold",
+      },
+      
+      install_vb:space{height = 5},
+      
+      install_vb:text{
+        text = "To install these tools on Linux, use your package manager:",
+      },
+      
+      install_vb:space{height = 5},
+      
+      install_vb:text{
+        text = "Debian/Ubuntu:",
+        font = "bold",
+      },
+      install_vb:textfield{
+        width = 450,
+        text = "sudo apt install yt-dlp ffmpeg",
+        edit_mode = true,
+      },
+      
+      install_vb:text{
+        text = "Fedora:",
+        font = "bold",
+      },
+      install_vb:textfield{
+        width = 450,
+        text = "sudo dnf install yt-dlp ffmpeg",
+        edit_mode = true,
+      },
+      
+      install_vb:text{
+        text = "Arch Linux:",
+        font = "bold",
+      },
+      install_vb:textfield{
+        width = 450,
+        text = "sudo pacman -S yt-dlp ffmpeg",
+        edit_mode = true,
+      },
+      
+      install_vb:text{
+        text = "Or using pip (if package manager version is outdated):",
+        font = "bold",
+      },
+      install_vb:textfield{
+        width = 450,
+        text = "pip install yt-dlp",
+        edit_mode = true,
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:row{
+        spacing = 10,
+        install_vb:button{
+          text = "Detect Again",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            local detected_path = PakettiYTDLPGuessExecutable()
+            if detected_path then
+              yt_dlp_path = detected_path
+              preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = detected_path
+              renoise.app():show_status("yt-dlp found at: " .. detected_path)
+              local ffmpeg_detected = PakettiYTDLPGuessFFmpeg()
+              if ffmpeg_detected then
+                ffmpeg_path = ffmpeg_detected
+                renoise.app():show_status("yt-dlp and ffmpeg found!")
+              end
+            else
+              renoise.app():show_error("yt-dlp still not found. Please install it first.")
+            end
+          end
+        },
+        install_vb:button{
+          text = "Browse for yt-dlp...",
+          width = 140,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            local filename = renoise.app():prompt_for_filename_to_read({"*.*"}, "Select yt-dlp Executable")
+            if filename ~= "" then
+              yt_dlp_path = filename
+              preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = filename
+              renoise.app():show_status("yt-dlp path set to: " .. filename)
+            end
+          end
+        },
+        install_vb:button{
+          text = "Close",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+          end
+        },
+      },
+    }
+  else
+    -- Windows
+    dialog_content = install_vb:column{
+      margin = 10,
+      spacing = 8,
+      
+      install_vb:text{
+        text = "yt-dlp and/or ffmpeg are not installed on your system.",
+        font = "bold",
+      },
+      
+      install_vb:space{height = 5},
+      
+      install_vb:text{
+        text = "To install these tools on Windows:",
+      },
+      
+      install_vb:text{
+        text = "1. Download yt-dlp from: https://github.com/yt-dlp/yt-dlp/releases",
+      },
+      install_vb:text{
+        text = "2. Download ffmpeg from: https://ffmpeg.org/download.html",
+      },
+      install_vb:text{
+        text = "3. Place the executables in your PATH or select them manually",
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:row{
+        spacing = 10,
+        install_vb:button{
+          text = "Open yt-dlp Download Page",
+          width = 180,
+          notifier = function()
+            renoise.app():open_url("https://github.com/yt-dlp/yt-dlp/releases")
+          end
+        },
+        install_vb:button{
+          text = "Open ffmpeg Download Page",
+          width = 180,
+          notifier = function()
+            renoise.app():open_url("https://ffmpeg.org/download.html")
+          end
+        },
+      },
+      
+      install_vb:space{height = 10},
+      
+      install_vb:row{
+        spacing = 10,
+        install_vb:button{
+          text = "Detect Again",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            local detected_path = PakettiYTDLPGuessExecutable()
+            if detected_path then
+              yt_dlp_path = detected_path
+              preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = detected_path
+              renoise.app():show_status("yt-dlp found at: " .. detected_path)
+              local ffmpeg_detected = PakettiYTDLPGuessFFmpeg()
+              if ffmpeg_detected then
+                ffmpeg_path = ffmpeg_detected
+                renoise.app():show_status("yt-dlp and ffmpeg found!")
+              end
+            else
+              renoise.app():show_error("yt-dlp still not found. Please install it first.")
+            end
+          end
+        },
+        install_vb:button{
+          text = "Browse for yt-dlp...",
+          width = 140,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+            local filename = renoise.app():prompt_for_filename_to_read({"*.exe"}, "Select yt-dlp Executable")
+            if filename ~= "" then
+              yt_dlp_path = filename
+              preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = filename
+              renoise.app():show_status("yt-dlp path set to: " .. filename)
+            end
+          end
+        },
+        install_vb:button{
+          text = "Close",
+          width = 120,
+          notifier = function()
+            if install_dialog then
+              install_dialog:close()
+            end
+          end
+        },
+      },
+    }
+  end
+  
+  install_dialog = renoise.app():show_custom_dialog("yt-dlp Installation Required", dialog_content)
+end
 local RUNTIME = tostring(os.time())
 local SAMPLE_LENGTH = 10
 local dialog = nil
@@ -36,94 +524,78 @@ function PakettiYTDLPGetPathEnv()
 end
 
 -- Function to detect the operating system and assign paths
-function PakettiYTDLPSetExecutablePaths()
+-- Returns true if yt-dlp was found, false otherwise
+function PakettiYTDLPSetExecutablePaths(show_install_dialog_if_not_found)
+  print("PakettiYTDLPSetExecutablePaths: Starting...")
+  
+  -- Default to showing install dialog if not specified
+  if show_install_dialog_if_not_found == nil then
+    show_install_dialog_if_not_found = false
+  end
+  
+  local os_name = os.platform()
+  
   -- First check if path is already set in preferences
-  yt_dlp_path = preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value
+  local saved_path = PakettiYTDLPGetStringValue(preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value)
+  print("PakettiYTDLPSetExecutablePaths: Saved path from preferences: " .. tostring(saved_path))
   
   -- Clear preferences if they contain wrong OS-specific paths
-  local os_name = os.platform()
-  if os_name == "LINUX" and yt_dlp_path and yt_dlp_path:match("^/opt/homebrew/") then
-    PakettiYTDLPLogMessage("Clearing macOS path from Linux system preferences")
-    yt_dlp_path = ""
+  if os_name == "LINUX" and saved_path and saved_path:match("^/opt/homebrew/") then
+    print("PakettiYTDLPSetExecutablePaths: Clearing macOS path from Linux system preferences")
+    saved_path = ""
     preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = ""
-  elseif os_name == "MACINTOSH" and yt_dlp_path and yt_dlp_path:match("^/usr/bin/") then
-    PakettiYTDLPLogMessage("Clearing Linux path from macOS system preferences")
-    yt_dlp_path = ""
+  elseif os_name == "MACINTOSH" and saved_path and saved_path:match("^/usr/bin/") then
+    print("PakettiYTDLPSetExecutablePaths: Clearing Linux path from macOS system preferences")
+    saved_path = ""
     preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = ""
   end
-
-  -- If not set in preferences or cleared, try to find it automatically
-  if yt_dlp_path == nil or yt_dlp_path == "" then
-    local os_name = os.platform()
-    
-    if os_name == "MACINTOSH" then
-      -- Try multiple common macOS paths in order
-      local macos_paths = {
-        "/opt/homebrew/bin/yt-dlp",        -- Apple Silicon Homebrew
-        "/usr/local/bin/yt-dlp",           -- Intel Homebrew
-        "/usr/bin/yt-dlp"                  -- System installation
-      }
-      
-      for _, path in ipairs(macos_paths) do
-        local file = io.open(path, "r")
-        if file then
-          file:close()
-          yt_dlp_path = path
-          PakettiYTDLPLogMessage("Found yt-dlp at: " .. path)
-          break
-        end
-      end
-      
-      if not yt_dlp_path or yt_dlp_path == "" then
-        PakettiYTDLPLogMessage("Could not find yt-dlp in common macOS paths.")
-      end
-    
-    elseif os_name == "LINUX" then
-      -- Try multiple common Linux paths in order (most common first)
-      local linux_paths = {
-        "/usr/bin/yt-dlp",                        -- System-wide installation (most common)
-        "/usr/local/bin/yt-dlp",                  -- Local installation
-        "/home/linuxbrew/.linuxbrew/bin/yt-dlp",  -- Linux Homebrew path
-        "/snap/bin/yt-dlp"                        -- Snap installation
-      }
-      
-      for _, path in ipairs(linux_paths) do
-        local file = io.open(path, "r")
-        if file then
-          file:close()
-          yt_dlp_path = path
-          PakettiYTDLPLogMessage("Found yt-dlp at: " .. path)
-          break
-        end
-      end
-      
-      if not yt_dlp_path or yt_dlp_path == "" then
-        PakettiYTDLPLogMessage("Could not find yt-dlp in common Linux paths.")
-      end
-    
-    elseif os_name == "WINDOWS" then
-      renoise.app():show_status("Windows is currently not supported.")
-      PakettiYTDLPLogMessage("Windows detected. Exiting as it's not supported.")
-      error("Windows is currently not supported.")
+  
+  -- If saved path is valid, use it
+  if saved_path and saved_path ~= "" then
+    local file = io.open(saved_path, "r")
+    if file then
+      file:close()
+      yt_dlp_path = saved_path
+      print("PakettiYTDLPSetExecutablePaths: Using saved path: " .. yt_dlp_path)
     else
-      renoise.app():show_status("Unsupported OS detected.")
-      PakettiYTDLPLogMessage("Unsupported OS detected. Exiting.")
-      error("Unsupported OS detected.")
+      -- Saved path is invalid, clear it and try auto-detection
+      print("PakettiYTDLPSetExecutablePaths: Saved path invalid, trying auto-detection...")
+      saved_path = ""
     end
   end
-
-  -- If we still don't have a path, we need to ask the user
-  if not yt_dlp_path or yt_dlp_path == "" then
-    PakettiYTDLPLogMessage("yt-dlp path not found automatically. Please set it manually.")
-    return
+  
+  -- If not set in preferences or invalid, try to find it automatically
+  if saved_path == nil or saved_path == "" then
+    print("PakettiYTDLPSetExecutablePaths: Attempting auto-detection...")
+    local detected_path = PakettiYTDLPGuessExecutable()
+    
+    if detected_path then
+      yt_dlp_path = detected_path
+      -- Save to preferences
+      preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = detected_path
+      print("PakettiYTDLPSetExecutablePaths: Auto-detected and saved: " .. detected_path)
+      renoise.app():show_status("yt-dlp auto-detected at: " .. detected_path)
+    else
+      print("PakettiYTDLPSetExecutablePaths: Auto-detection failed")
+      yt_dlp_path = ""
+    end
   end
-
+  
+  -- If we still don't have a path, show install dialog or return false
+  if not yt_dlp_path or yt_dlp_path == "" then
+    print("PakettiYTDLPSetExecutablePaths: yt-dlp not found")
+    if show_install_dialog_if_not_found then
+      PakettiYTDLPShowInstallDialog()
+    end
+    return false
+  end
+  
   -- Final verification that the path actually exists and is executable
   local file = io.open(yt_dlp_path, "r")
   if file then
     file:close()
-    PakettiYTDLPLogMessage("Using yt-dlp path: " .. yt_dlp_path)
-    PakettiYTDLPLogMessage("Running on OS: " .. os.platform())
+    print("PakettiYTDLPSetExecutablePaths: Using yt-dlp path: " .. yt_dlp_path)
+    print("PakettiYTDLPSetExecutablePaths: Running on OS: " .. os_name)
     
     -- Test if yt-dlp is actually working
     local test_command = string.format('%s"%s" --version', PakettiYTDLPGetPathEnv(), yt_dlp_path)
@@ -132,64 +604,38 @@ function PakettiYTDLPSetExecutablePaths()
       local version_output = test_handle:read("*a")
       test_handle:close()
       if version_output and version_output ~= "" then
-        PakettiYTDLPLogMessage("yt-dlp version check successful")
+        print("PakettiYTDLPSetExecutablePaths: yt-dlp version check successful")
       else
-        PakettiYTDLPLogMessage("WARNING: yt-dlp version check failed - binary might not be working")
+        print("PakettiYTDLPSetExecutablePaths: WARNING - yt-dlp version check failed")
       end
     end
   else
-    PakettiYTDLPLogMessage("ERROR: yt-dlp not found at: " .. yt_dlp_path)
-    PakettiYTDLPLogMessage("Please manually set the correct path in preferences")
-    error("yt-dlp executable not found at specified path")
+    print("PakettiYTDLPSetExecutablePaths: ERROR - yt-dlp not found at: " .. yt_dlp_path)
+    if show_install_dialog_if_not_found then
+      PakettiYTDLPShowInstallDialog()
+    end
+    return false
   end
-
-  -- Set ffmpeg_path based on OS
-  local os_name = os.platform()
-  if os_name == "MACINTOSH" then
-    -- Try multiple ffmpeg paths on macOS
-    local macos_ffmpeg_paths = {
-      "/opt/homebrew/bin/ffmpeg",          -- Apple Silicon Homebrew
-      "/usr/local/bin/ffmpeg",             -- Intel Homebrew
-      "/usr/bin/ffmpeg"                    -- System installation
-    }
-    
-    for _, path in ipairs(macos_ffmpeg_paths) do
-      local file = io.open(path, "r")
-      if file then
-        file:close()
-        ffmpeg_path = path
-        PakettiYTDLPLogMessage("Found ffmpeg at: " .. path)
-        break
-      end
+  
+  -- Now detect ffmpeg using the new function
+  print("PakettiYTDLPSetExecutablePaths: Detecting ffmpeg...")
+  local detected_ffmpeg = PakettiYTDLPGuessFFmpeg()
+  if detected_ffmpeg then
+    ffmpeg_path = detected_ffmpeg
+    print("PakettiYTDLPSetExecutablePaths: Found ffmpeg at: " .. ffmpeg_path)
+  else
+    -- Set a default fallback based on OS
+    if os_name == "MACINTOSH" then
+      ffmpeg_path = "/opt/homebrew/bin/ffmpeg"
+    elseif os_name == "LINUX" then
+      ffmpeg_path = "/usr/bin/ffmpeg"
+    elseif os_name == "WINDOWS" then
+      ffmpeg_path = "ffmpeg.exe"
     end
-    
-    if not ffmpeg_path or ffmpeg_path == "" then
-      ffmpeg_path = "/opt/homebrew/bin/ffmpeg"  -- Default fallback
-      PakettiYTDLPLogMessage("Defaulting to Homebrew ffmpeg path")
-    end
-  elseif os_name == "LINUX" then
-    -- Try multiple ffmpeg paths on Linux
-    local linux_ffmpeg_paths = {
-      "/home/linuxbrew/.linuxbrew/bin/ffmpeg",  -- Linux Homebrew
-      "/usr/bin/ffmpeg",                        -- System installation
-      "/usr/local/bin/ffmpeg"                   -- Local installation
-    }
-    
-    for _, path in ipairs(linux_ffmpeg_paths) do
-      local file = io.open(path, "r")
-      if file then
-        file:close()
-        ffmpeg_path = path
-        PakettiYTDLPLogMessage("Found ffmpeg at: " .. path)
-        break
-      end
-    end
-    
-    if not ffmpeg_path or ffmpeg_path == "" then
-      ffmpeg_path = "/usr/bin/ffmpeg"  -- Default fallback
-      PakettiYTDLPLogMessage("Defaulting to standard ffmpeg path")
-    end
+    print("PakettiYTDLPSetExecutablePaths: ffmpeg not found, using default: " .. ffmpeg_path)
   end
+  
+  return true
 end
 
 
@@ -253,6 +699,8 @@ end
 
 -- Function to check if a file exists
 function PakettiYTDLPFileExists(path)
+  -- Handle userdata (observable) objects
+  path = PakettiYTDLPGetStringValue(path)
   local file = io.open(path, "r")
   if file then
     file:close()
@@ -1411,11 +1859,21 @@ function PakettiYTDLPDialogContent()
         id = "start_button",
         text="Start",
         notifier=function()
-          -- Disable Start if yt-dlp location is not set
-          if preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value == nil or preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value == "" then
-            PakettiYTDLPPromptForYTDLPPath()
-            if preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value == nil or preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value == "" then
-              renoise.app():show_warning("Please set the yt-dlp location")
+          -- Check if yt-dlp location is set, try auto-detection first
+          local saved_path = PakettiYTDLPGetStringValue(preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value)
+          if saved_path == nil or saved_path == "" then
+            -- Try auto-detection
+            local detected = PakettiYTDLPGuessExecutable()
+            if detected then
+              yt_dlp_path = detected
+              preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = detected
+              if vb.views.yt_dlp_location then
+                vb.views.yt_dlp_location.text = detected
+              end
+              renoise.app():show_status("yt-dlp auto-detected at: " .. detected)
+            else
+              -- Show install dialog instead of just prompting to browse
+              PakettiYTDLPShowInstallDialog()
               return
             end
           end
@@ -1452,9 +1910,18 @@ function PakettiYTDLPDialogContent()
     }
   }
 
-  -- If yt-dlp location is not set, prompt immediately
-  if preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value == nil or preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value == "" then
-    PakettiYTDLPPromptForYTDLPPath()
+  -- If yt-dlp location is not set, try auto-detection first, then show install dialog if needed
+  local saved_path = PakettiYTDLPGetStringValue(preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value)
+  if saved_path == nil or saved_path == "" then
+    -- Try auto-detection
+    local detected = PakettiYTDLPGuessExecutable()
+    if detected then
+      yt_dlp_path = detected
+      preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = detected
+      vb.views.yt_dlp_location.text = detected
+      renoise.app():show_status("yt-dlp auto-detected at: " .. detected)
+    end
+    -- Note: If not found, the Start button will show install dialog when clicked
   end
 
   -- Store references to UI elements
@@ -1481,20 +1948,24 @@ end
 end
 
 function pakettiYTDLPDialog()
-  -- Set up paths when dialog is opened
-  PakettiYTDLPSetExecutablePaths()
+  -- Set up paths when dialog is opened (with install dialog if not found)
+  local yt_dlp_found = PakettiYTDLPSetExecutablePaths(true)
   
   if dialog and dialog.visible then
     PakettiYTDLPLogMessage("Dialog is visible, closing dialog.")
     PakettiYTDLPCloseDialog()
   else
-    dialog_content = PakettiYTDLPDialogContent()
-    local keyhandler = create_keyhandler_for_dialog(
-    function() return dialog end,
-    function(value) dialog = value end
-  )
-  dialog = renoise.app():show_custom_dialog("Paketti YT-DLP Downloader", dialog_content, keyhandler)
-    PakettiYTDLPLogMessage("YT-DLP Downloader Initialized and ready to go.")
+    -- Only show the main dialog if yt-dlp was found
+    if yt_dlp_found then
+      dialog_content = PakettiYTDLPDialogContent()
+      local keyhandler = create_keyhandler_for_dialog(
+        function() return dialog end,
+        function(value) dialog = value end
+      )
+      dialog = renoise.app():show_custom_dialog("Paketti YT-DLP Downloader", dialog_content, keyhandler)
+      PakettiYTDLPLogMessage("YT-DLP Downloader Initialized and ready to go.")
+    end
+    -- If yt-dlp wasn't found, PakettiYTDLPSetExecutablePaths already showed the install dialog
   end
 end
 
