@@ -1,19 +1,69 @@
 -- PakettiAutomateLastTouched.lua
 -- FL Studio-style "Automate Last Touched Parameter" functionality
--- Touch any parameter, wait 3 seconds, automation gets created and automation view opens
+-- Touch any parameter, wait for timeout, automation gets created and automation view opens
 
 --------------------------------------------------------------------------------
 -- Global State Variables
 --------------------------------------------------------------------------------
 
-local last_touched_parameter = nil      -- The parameter reference
-local last_touched_device = nil         -- The device it belongs to
-local last_touched_track_index = nil    -- Track index where the device is
+local touched_parameters = {}           -- Table of touched parameters: {param, device, track_index, is_plugin_instrument}
+local watching_device = nil             -- The device being watched
+local watching_track_index = nil        -- Track index where the device is
 local watching_active = false           -- Is watching currently active
-local inactivity_timer = nil            -- 3-second timeout timer function
+local inactivity_timer = nil            -- Timeout timer function
 local parameter_observers = {}          -- Table: parameter -> observer function
-local watching_timeout_seconds = 3      -- Configurable timeout (default 3 sec)
-local is_instrument_plugin = false      -- Flag to track if watching instrument plugin
+local is_watching_instrument_plugin = false  -- Flag to track if watching instrument plugin
+local edit_mode_observer = nil          -- Observer for edit mode changes (continuous recording)
+
+--------------------------------------------------------------------------------
+-- Helper: Get preference value with fallback
+--------------------------------------------------------------------------------
+
+function PakettiAutomateLastTouchedGetPref(key, default_value)
+  local success, result = pcall(function()
+    if preferences and preferences.pakettiAutomateLastTouched and preferences.pakettiAutomateLastTouched[key] then
+      return preferences.pakettiAutomateLastTouched[key].value
+    end
+    return default_value
+  end)
+  
+  if success then
+    return result
+  end
+  return default_value
+end
+
+--------------------------------------------------------------------------------
+-- Helper: Get fractional line position for continuous recording
+-- Based on ffx GUIAutomationRecorder's approach
+--------------------------------------------------------------------------------
+
+function PakettiAutomateLastTouchedGetFractionalLinePos()
+  local song = renoise.song()
+  if not song then return nil end
+  
+  local beats, line
+  if song.transport.playing then
+    -- Use playback position when playing
+    beats = song.transport.playback_pos_beats - math.floor(song.transport.playback_pos_beats)
+    line = song.transport.playback_pos.line
+  else
+    -- Use edit position when stopped
+    beats = song.transport.edit_pos_beats - math.floor(song.transport.edit_pos_beats)
+    line = song.transport.edit_pos.line
+  end
+  
+  local lpb = song.transport.lpb
+  local beats_scaled = beats * lpb
+  local line_in_beat = math.floor(beats_scaled)
+  local fraction = 0
+  if (line_in_beat + 1) - line_in_beat ~= 0 then
+    fraction = (beats_scaled - line_in_beat) / ((line_in_beat + 1) - line_in_beat)
+  end
+  
+  local line_fract = line + fraction
+  return line_fract
+end
 
 --------------------------------------------------------------------------------
 -- Cleanup Functions
@@ -34,6 +84,18 @@ function PakettiAutomateLastTouchedCleanup()
     inactivity_timer = nil
   end
   
+  -- Remove edit mode observer if present
+  if edit_mode_observer then
+    pcall(function()
+      local song = renoise.song()
+      if song and song.transport.edit_mode_observable:has_notifier(edit_mode_observer) then
+        song.transport.edit_mode_observable:remove_notifier(edit_mode_observer)
+        print("AUTOMATE_LAST_TOUCHED: Removed edit mode observer")
+      end
+    end)
+    edit_mode_observer = nil
+  end
+  
   -- Remove all parameter observers safely
   for parameter, observer in pairs(parameter_observers) do
     pcall(function()
@@ -45,11 +107,11 @@ function PakettiAutomateLastTouchedCleanup()
   parameter_observers = {}
   
   -- Reset state variables
-  last_touched_parameter = nil
-  last_touched_device = nil
-  last_touched_track_index = nil
+  touched_parameters = {}
+  watching_device = nil
+  watching_track_index = nil
   watching_active = false
-  is_instrument_plugin = false
+  is_watching_instrument_plugin = false
   
   print("AUTOMATE_LAST_TOUCHED: Cleanup complete")
 end
@@ -58,8 +120,11 @@ end
 -- Timer Functions
 --------------------------------------------------------------------------------
 
--- Reset/restart the 3-second inactivity timer
+-- Reset/restart the inactivity timer
 function PakettiAutomateLastTouchedResetTimer()
+  -- Get timeout from preferences (default 3 seconds)
+  local timeout_seconds = PakettiAutomateLastTouchedGetPref("TimeoutSeconds", 3)
+  
   -- Remove existing timer if present
   if inactivity_timer then
     pcall(function()
@@ -82,16 +147,72 @@ function PakettiAutomateLastTouchedResetTimer()
     end)
     inactivity_timer = nil
     
-    -- Create automation for last touched parameter
+    -- Create automation for touched parameters
     PakettiAutomateLastTouchedCreate()
     
-    -- Cleanup
-    PakettiAutomateLastTouchedCleanup()
+    -- Check if quick rewatch is enabled
+    local quick_rewatch = PakettiAutomateLastTouchedGetPref("QuickRewatch", false)
+    
+    if quick_rewatch and watching_device then
+      -- Clear touched parameters but keep watching
+      touched_parameters = {}
+      PakettiAutomateLastTouchedResetTimer()
+      renoise.app():show_status("Created automation - watching again for next parameter...")
+      print("AUTOMATE_LAST_TOUCHED: Quick rewatch - continuing to watch")
+    else
+      -- Full cleanup
+      PakettiAutomateLastTouchedCleanup()
+    end
   end
   
   -- Add timer (timeout in milliseconds)
-  renoise.tool():add_timer(inactivity_timer, watching_timeout_seconds * 1000)
-  print("AUTOMATE_LAST_TOUCHED: Timer reset - " .. watching_timeout_seconds .. " seconds until automation creation")
+  renoise.tool():add_timer(inactivity_timer, timeout_seconds * 1000)
+  print("AUTOMATE_LAST_TOUCHED: Timer reset - " .. timeout_seconds .. " seconds until automation creation")
+end
+
+--------------------------------------------------------------------------------
+-- Continuous Recording: Write automation point immediately
+--------------------------------------------------------------------------------
+
+function PakettiAutomateLastTouchedWriteAutomationPoint(param, device, track_index)
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Must be in edit mode for continuous recording
+  if not song.transport.edit_mode then
+    return
+  end
+  
+  -- Get current pattern track
+  local current_pattern = song.selected_pattern_index
+  local pattern_track = song:pattern(current_pattern):track(track_index)
+  
+  -- Find or create automation for the parameter
+  local automation = pattern_track:find_automation(param)
+  
+  if not automation then
+    automation = pattern_track:create_automation(param)
+  end
+  
+  if automation then
+    -- Get fractional line position for precision
+    local line_pos = PakettiAutomateLastTouchedGetFractionalLinePos()
+    if not line_pos then
+      line_pos = song.selected_line_index
+    end
+    
+    -- Get current value and normalize to 0.0-1.0 range
+    local value = param.value
+    local value_min = param.value_min
+    local value_max = param.value_max
+    local normalized_value = (value - value_min) / (value_max - value_min)
+    normalized_value = math.max(0.0, math.min(1.0, normalized_value))
+    
+    -- Add automation point at current position
+    automation:add_point_at(line_pos, normalized_value)
+    
+    print("AUTOMATE_LAST_TOUCHED: Continuous recording - wrote point for '" .. param.name .. "' at " .. string.format("%.2f", line_pos) .. " = " .. string.format("%.3f", normalized_value))
+  end
 end
 
 --------------------------------------------------------------------------------
@@ -106,14 +227,52 @@ function PakettiAutomateLastTouchedOnParameterTouched(param, device, track_index
   
   print("AUTOMATE_LAST_TOUCHED: Parameter touched: " .. param.name)
   
-  -- Store the last touched parameter info
-  last_touched_parameter = param
-  last_touched_device = device
-  last_touched_track_index = track_index
-  is_instrument_plugin = is_plugin_instrument or false
+  -- Check if continuous recording is enabled
+  local continuous_recording = PakettiAutomateLastTouchedGetPref("ContinuousRecording", false)
   
-  -- Show status
-  renoise.app():show_status("Last touched: " .. param.name .. " - waiting " .. watching_timeout_seconds .. "s...")
+  if continuous_recording then
+    -- Write automation point immediately if in edit mode
+    local song = renoise.song()
+    if song and song.transport.edit_mode then
+      PakettiAutomateLastTouchedWriteAutomationPoint(param, device, track_index)
+    end
+  end
+  
+  -- Check if multi-parameter mode is enabled
+  local multi_param = PakettiAutomateLastTouchedGetPref("MultiParameter", true)
+  
+  if multi_param then
+    -- Multi-parameter mode: add to list if not already present
+    local already_touched = false
+    for i, entry in ipairs(touched_parameters) do
+      if entry.param == param then
+        already_touched = true
+        break
+      end
+    end
+    
+    if not already_touched then
+      table.insert(touched_parameters, {
+        param = param,
+        device = device,
+        track_index = track_index,
+        is_plugin_instrument = is_plugin_instrument
+      })
+      print("AUTOMATE_LAST_TOUCHED: Added parameter to list (total: " .. #touched_parameters .. ")")
+    end
+    
+    -- Show status with count
+    renoise.app():show_status("Touched " .. #touched_parameters .. " parameter(s) - waiting...")
+  else
+    -- Single parameter mode: replace list with just this one
+    touched_parameters = {{
+      param = param,
+      device = device,
+      track_index = track_index,
+      is_plugin_instrument = is_plugin_instrument
+    }}
+    renoise.app():show_status("Last touched: " .. param.name .. " - waiting...")
+  end
   
   -- Reset the inactivity timer
   PakettiAutomateLastTouchedResetTimer()
@@ -150,6 +309,25 @@ function PakettiAutomateLastTouchedSetupWatching(device, track_index, is_plugin_
     end
   end
   
+  -- Setup edit mode observer for continuous recording status feedback
+  local continuous_recording = PakettiAutomateLastTouchedGetPref("ContinuousRecording", false)
+  if continuous_recording then
+    local song = renoise.song()
+    if song then
+      edit_mode_observer = function()
+        if song.transport.edit_mode then
+          renoise.app():show_status("Continuous recording: ACTIVE (edit mode on)")
+        else
+          renoise.app():show_status("Continuous recording: PAUSED (edit mode off)")
+        end
+      end
+      
+      if not song.transport.edit_mode_observable:has_notifier(edit_mode_observer) then
+        song.transport.edit_mode_observable:add_notifier(edit_mode_observer)
+      end
+    end
+  end
+  
   print("AUTOMATE_LAST_TOUCHED: Added observers to " .. param_count .. " automatable parameters")
   return param_count > 0
 end
@@ -158,11 +336,11 @@ end
 -- Automation Creation
 --------------------------------------------------------------------------------
 
--- Create automation for the last touched parameter
+-- Create automation for all touched parameters
 function PakettiAutomateLastTouchedCreate()
-  if not last_touched_parameter then
+  if #touched_parameters == 0 then
     renoise.app():show_status("No parameter was touched - nothing to automate")
-    print("AUTOMATE_LAST_TOUCHED: No parameter was touched")
+    print("AUTOMATE_LAST_TOUCHED: No parameters were touched")
     return
   end
   
@@ -172,95 +350,100 @@ function PakettiAutomateLastTouchedCreate()
     return
   end
   
-  local param = last_touched_parameter
-  local param_name = param.name
+  local created_count = 0
+  local first_param = nil
   
-  -- Handle instrument plugin vs track DSP
-  if is_instrument_plugin then
-    -- For instrument plugins, we need to guide user to use Instr. Automation device
-    -- Check if there's an Instr. Automation device on the current track
-    local track = song.tracks[last_touched_track_index or song.selected_track_index]
-    local instr_auto_device = nil
-    local instr_auto_device_index = nil
+  for i, entry in ipairs(touched_parameters) do
+    local param = entry.param
+    local device = entry.device
+    local track_index = entry.track_index
+    local is_plugin_instrument = entry.is_plugin_instrument
+    local param_name = param.name
     
-    if track then
-      for i, dev in ipairs(track.devices) do
-        if dev.device_path == "Audio/Effects/Native/*Instr. Automation" then
-          instr_auto_device = dev
-          instr_auto_device_index = i
-          break
+    -- Handle instrument plugin vs track DSP
+    if is_plugin_instrument then
+      -- For instrument plugins, guide user to use Instr. Automation device
+      local track = song.tracks[track_index]
+      local instr_auto_device = nil
+      local instr_auto_device_index = nil
+      
+      if track then
+        for j, dev in ipairs(track.devices) do
+          if dev.device_path == "Audio/Effects/Native/*Instr. Automation" then
+            instr_auto_device = dev
+            instr_auto_device_index = j
+            break
+          end
         end
       end
-    end
-    
-    if instr_auto_device then
-      -- Found Instr. Automation device - select it and show automation view
-      song.selected_device_index = instr_auto_device_index
       
-      -- Open automation view
-      pcall(function()
-        renoise.app().window.lower_frame_is_visible = true
-        renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
-      end)
-      
-      renoise.app():show_status("Instrument plugin: Use Instr. Automation device to automate '" .. param_name .. "'")
-      print("AUTOMATE_LAST_TOUCHED: Instrument plugin parameter '" .. param_name .. "' - directed to Instr. Automation device")
+      if instr_auto_device then
+        -- Found Instr. Automation device
+        if i == 1 then
+          song.selected_device_index = instr_auto_device_index
+        end
+        print("AUTOMATE_LAST_TOUCHED: Instrument plugin parameter '" .. param_name .. "' - use Instr. Automation device")
+      else
+        renoise.app():show_status("Add '*Instr. Automation' device to automate instrument plugin parameters")
+        print("AUTOMATE_LAST_TOUCHED: No Instr. Automation device found")
+      end
     else
-      -- No Instr. Automation device found
-      renoise.app():show_status("Add '*Instr. Automation' device to automate instrument plugin parameter '" .. param_name .. "'")
-      print("AUTOMATE_LAST_TOUCHED: No Instr. Automation device found for instrument plugin parameter")
+      -- For track DSP devices, create automation directly
+      local current_pattern = song.selected_pattern_index
+      local pattern_track = song:pattern(current_pattern):track(track_index)
+      
+      -- Find or create automation for the parameter
+      local automation = pattern_track:find_automation(param)
+      
+      if not automation then
+        automation = pattern_track:create_automation(param)
+        print("AUTOMATE_LAST_TOUCHED: Created new automation envelope for '" .. param_name .. "'")
+      else
+        print("AUTOMATE_LAST_TOUCHED: Found existing automation envelope for '" .. param_name .. "'")
+      end
+      
+      if automation then
+        -- Write current value at current line position
+        local current_line = song.selected_line_index
+        local value = param.value
+        local value_min = param.value_min
+        local value_max = param.value_max
+        
+        -- Normalize value to 0.0-1.0 range for automation
+        local normalized_value = (value - value_min) / (value_max - value_min)
+        normalized_value = math.max(0.0, math.min(1.0, normalized_value))
+        
+        -- Remove existing point at this time if it exists
+        if automation:has_point_at(current_line) then
+          automation:remove_point_at(current_line)
+        end
+        
+        -- Add new automation point
+        automation:add_point_at(current_line, normalized_value)
+        created_count = created_count + 1
+        
+        -- Store first parameter for automation view selection
+        if not first_param then
+          first_param = param
+        end
+        
+        print("AUTOMATE_LAST_TOUCHED: Added automation point at line " .. current_line .. " for '" .. param_name .. "'")
+      end
     end
-    return
   end
   
-  -- For track DSP devices, create automation directly
-  local track_index = last_touched_track_index or song.selected_track_index
-  local current_pattern = song.selected_pattern_index
-  local pattern_track = song:pattern(current_pattern):track(track_index)
-  
-  -- Find or create automation for the parameter
-  local automation = pattern_track:find_automation(param)
-  
-  if not automation then
-    automation = pattern_track:create_automation(param)
-    print("AUTOMATE_LAST_TOUCHED: Created new automation envelope for '" .. param_name .. "'")
-  else
-    print("AUTOMATE_LAST_TOUCHED: Found existing automation envelope for '" .. param_name .. "'")
-  end
-  
-  if automation then
-    -- Write current value at current line position
-    local current_line = song.selected_line_index
-    local value = param.value
-    local value_min = param.value_min
-    local value_max = param.value_max
-    
-    -- Normalize value to 0.0-1.0 range for automation
-    local normalized_value = (value - value_min) / (value_max - value_min)
-    normalized_value = math.max(0.0, math.min(1.0, normalized_value))
-    
-    -- Remove existing point at this time if it exists
-    if automation:has_point_at(current_line) then
-      automation:remove_point_at(current_line)
-    end
-    
-    -- Add new automation point
-    automation:add_point_at(current_line, normalized_value)
-    print("AUTOMATE_LAST_TOUCHED: Added automation point at line " .. current_line .. " with value " .. normalized_value)
-    
-    -- Open automation view and select this parameter
+  -- Open automation view and select first parameter
+  if created_count > 0 and first_param then
     pcall(function()
       renoise.app().window.lower_frame_is_visible = true
       renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
-      
-      -- Select the automation parameter to show it
-      song.selected_automation_parameter = param
+      song.selected_automation_parameter = first_param
     end)
     
-    renoise.app():show_status("Created automation for: " .. param_name .. " at line " .. current_line)
+    renoise.app():show_status("Created automation for " .. created_count .. " parameter(s)")
   else
-    renoise.app():show_status("Failed to create automation for: " .. param_name)
-    print("AUTOMATE_LAST_TOUCHED: Failed to create automation envelope")
+    renoise.app():show_status("Failed to create automation")
+    print("AUTOMATE_LAST_TOUCHED: Failed to create automation envelopes")
   end
 end
 
@@ -332,20 +515,45 @@ function PakettiAutomateLastTouchedStart()
     return
   end
   
-  -- Setup watching
+  -- Auto-open external editor if preference is enabled
+  local auto_open_editor = PakettiAutomateLastTouchedGetPref("AutoOpenExternalEditor", true)
+  if auto_open_editor and device_to_watch.external_editor_available then
+    device_to_watch.external_editor_visible = true
+    print("AUTOMATE_LAST_TOUCHED: Auto-opened external editor for " .. device_name)
+  end
+  
+  -- Store watching state
+  watching_device = device_to_watch
+  watching_track_index = track_index
+  is_watching_instrument_plugin = is_plugin_instrument
   watching_active = true
   
+  -- Setup watching
   local success = PakettiAutomateLastTouchedSetupWatching(device_to_watch, track_index, is_plugin_instrument)
   
   if success then
     -- Start the initial inactivity timer
     PakettiAutomateLastTouchedResetTimer()
     
+    local timeout_seconds = PakettiAutomateLastTouchedGetPref("TimeoutSeconds", 3)
+    local continuous_recording = PakettiAutomateLastTouchedGetPref("ContinuousRecording", false)
+    local multi_param = PakettiAutomateLastTouchedGetPref("MultiParameter", true)
+    
     local type_str = is_plugin_instrument and "instrument" or "device"
-    renoise.app():show_status("Watching " .. type_str .. " '" .. device_name .. "' (" .. automatable_count .. " params) - touch a parameter within " .. watching_timeout_seconds .. "s...")
+    local mode_str = ""
+    if continuous_recording then
+      mode_str = " [CONTINUOUS]"
+    end
+    if multi_param then
+      mode_str = mode_str .. " [MULTI]"
+    end
+    
+    renoise.app():show_status("Watching " .. type_str .. " '" .. device_name .. "' (" .. automatable_count .. " params)" .. mode_str .. " - touch a parameter within " .. timeout_seconds .. "s...")
     print("AUTOMATE_LAST_TOUCHED: Started watching " .. type_str .. " '" .. device_name .. "' with " .. automatable_count .. " automatable parameters")
   else
     watching_active = false
+    watching_device = nil
+    watching_track_index = nil
     renoise.app():show_status("Failed to setup parameter watching for '" .. device_name .. "'")
     print("AUTOMATE_LAST_TOUCHED: Failed to setup parameter watching")
   end
@@ -416,4 +624,3 @@ renoise.tool():add_midi_mapping{
 }
 
 print("PakettiAutomateLastTouched.lua loaded")
-

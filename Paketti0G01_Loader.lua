@@ -807,6 +807,14 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiMixerParameterExposer = {
     MaxRowsPerColumn = 25  -- Max parameters per column before splitting (10-50)
   },
+  -- Automate Last Touched Parameter Settings
+  pakettiAutomateLastTouched = {
+    TimeoutSeconds = 3,           -- Seconds to wait before auto-creating automation (default 3)
+    AutoOpenExternalEditor = true, -- Auto-open VST/AU external editor when watching starts
+    ContinuousRecording = false,  -- Real-time automation writing when edit mode is on
+    MultiParameter = true,        -- Track all touched parameters, not just the last one
+    QuickRewatch = false          -- Keep watching after automation is created
+  },
 }
 
 renoise.tool().preferences = preferences
@@ -848,6 +856,8 @@ PakettiCreateNewSends = renoise.tool().preferences.pakettiCreateNewSends
 PakettiPlayerProWaveformViewer = renoise.tool().preferences.pakettiPlayerProWaveformViewer
 -- Add Mixer Parameter Exposer preferences accessor
 PakettiMixerParameterExposer = renoise.tool().preferences.pakettiMixerParameterExposer
+-- Add Automate Last Touched preferences accessor
+PakettiAutomateLastTouched = renoise.tool().preferences.pakettiAutomateLastTouched
 
       -- Define available keys for dialog closing
       local dialog_close_keys = {"tab", "esc", "space", "return", "q", "donteverclose"}
