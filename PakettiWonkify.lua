@@ -1776,7 +1776,7 @@ function PakettiWonkifyDialog()
       
       vb:button{
         text = "Wonkify Current",
-        width = group_width/2,
+        width = group_width/1,
         notifier = PakettiWonkifyCurrentPattern
       },
       vb:button{

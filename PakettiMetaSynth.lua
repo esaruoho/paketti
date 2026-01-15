@@ -12,8 +12,132 @@ PakettiMetaSynthCurrentArchitecture = nil
 -- AKWF file list cache for performance
 PakettiMetaSynthAKWFCache = nil
 
+-- AKWF samples organized by family (populated on first use)
+PakettiMetaSynthAKWFFamilyCache = nil
+
 -- Last used folder path for sample loading
 PakettiMetaSynthLastFolderPath = nil
+
+-- ============================================================================
+-- CROSSFADE CURVE TYPES
+-- Available curve types for all frame/morphing levels (uniform across system)
+-- ============================================================================
+METASYNTH_CROSSFADE_CURVES = {"linear", "equal_power", "s_curve", "stepped", "spectral", "vector"}
+METASYNTH_CROSSFADE_CURVE_NAMES = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"}
+
+-- Helper function to get random crossfade curve
+function PakettiMetaSynthGetRandomCrossfadeCurve()
+  return METASYNTH_CROSSFADE_CURVES[math.random(1, #METASYNTH_CROSSFADE_CURVES)]
+end
+
+-- ============================================================================
+-- AKWF WAVEFORM FAMILIES
+-- Maps family names to AKWF folder name patterns for profile-driven sample selection
+-- Each family groups related waveform types for musical coherence
+-- ============================================================================
+PakettiMetaSynthAKWFWaveformFamilies = {
+  -- Basic/General waveforms (numeric folders)
+  basic = {
+    patterns = {"AKWF_0"},  -- Matches AKWF_0001, AKWF_0002, etc.
+    description = "General purpose waveforms"
+  },
+  
+  -- Saw waveforms - good for bass, leads
+  saw = {
+    patterns = {"AKWF_bw_saw", "AKWF_saw", "AKWF_rsaw", "AKWF_sawbright", "AKWF_sawgap", "AKWF_sawmod", "AKWF_sawrounded"},
+    description = "Sawtooth and saw-based waveforms"
+  },
+  
+  -- Square waveforms - good for bass, chiptune, hollow sounds
+  square = {
+    patterns = {"AKWF_bw_sqr", "AKWF_sqr", "AKWF_bw_square", "AKWF_squaresynth"},
+    description = "Square and pulse waveforms"
+  },
+  
+  -- Triangle waveforms - soft, mellow
+  triangle = {
+    patterns = {"AKWF_bw_tri", "AKWF_tri", "AKWF_triangle"},
+    description = "Triangle and soft waveforms"
+  },
+  
+  -- Sine/harmonic waveforms - pure, sub bass
+  sine = {
+    patterns = {"AKWF_sin", "AKWF_sinharm", "AKWF_sinefold"},
+    description = "Sine and pure harmonic waveforms"
+  },
+  
+  -- Organ waveforms - keys, organs
+  organ = {
+    patterns = {"AKWF_eorgan", "AKWF_organ", "AKWF_hvoice"},
+    description = "Electric and pipe organ waveforms"
+  },
+  
+  -- Piano/EP waveforms - keys, electric piano
+  piano = {
+    patterns = {"AKWF_epiano", "AKWF_piano", "AKWF_eguitar"},
+    description = "Piano and electric piano waveforms"
+  },
+  
+  -- String waveforms - pads, orchestral
+  strings = {
+    patterns = {"AKWF_violin", "AKWF_cello", "AKWF_viol", "AKWF_string", "AKWF_bowed"},
+    description = "Bowed string instrument waveforms"
+  },
+  
+  -- Wind/Flute waveforms - leads, airy sounds
+  flute = {
+    patterns = {"AKWF_flute", "AKWF_oboe", "AKWF_clarinet", "AKWF_wood", "AKWF_blow", "AKWF_breath"},
+    description = "Woodwind and airy waveforms"
+  },
+  
+  -- Brass waveforms - horns, brass
+  brass = {
+    patterns = {"AKWF_brass", "AKWF_trombone", "AKWF_trumpet", "AKWF_horn"},
+    description = "Brass instrument waveforms"
+  },
+  
+  -- Distorted/aggressive waveforms
+  distorted = {
+    patterns = {"AKWF_distorted", "AKWF_fmsynth", "AKWF_bitreduced", "AKWF_gapsaw", "AKWF_gapsqr"},
+    description = "Distorted and aggressive waveforms"
+  },
+  
+  -- Chiptune/8-bit waveforms
+  chiptune = {
+    patterns = {"AKWF_oscchip", "AKWF_vgame", "AKWF_c64", "AKWF_blip", "AKWF_snippet"},
+    description = "Retro and chiptune waveforms"
+  },
+  
+  -- Complex/experimental waveforms
+  complex = {
+    patterns = {"AKWF_granular", "AKWF_raw", "AKWF_stereo", "AKWF_spectral", "AKWF_linear"},
+    description = "Complex and experimental waveforms"
+  },
+  
+  -- Harmonic/overtone waveforms
+  harmonic = {
+    patterns = {"AKWF_harmonic", "AKWF_overtone", "AKWF_symetric", "AKWF_perfect"},
+    description = "Harmonic series and overtone waveforms"
+  },
+  
+  -- Voice/formant waveforms
+  voice = {
+    patterns = {"AKWF_hvoice", "AKWF_vox", "AKWF_formant", "AKWF_vowel"},
+    description = "Voice and formant waveforms"
+  },
+  
+  -- Noise/texture waveforms
+  noise = {
+    patterns = {"AKWF_noise", "AKWF_nes_noise"},
+    description = "Noise and texture waveforms"
+  },
+  
+  -- Pulse waveforms
+  pulse = {
+    patterns = {"AKWF_bw_pulse", "AKWF_pulse"},
+    description = "Pulse width waveforms"
+  },
+}
 
 -- ============================================================================
 -- MULTI-LAYER PROFILES - Musical intent projected across all architectural layers
@@ -22,14 +146,15 @@ PakettiMetaSynthLastFolderPath = nil
 -- That same profile is then projected downward into each architectural layer,
 -- where every section consumes the subset of rules that apply to it.
 --
--- 7-LAYER STRUCTURE:
---   1. oscillator:   Wave types, unison tendencies, frame usage
---   2. frame:        Whether frames exist, morph speed, allowed FX
---   3. group:        Crossfade settings, scanning behavior, LFO rate
---   4. modulation:   AHDSR/LFO/velocity/keytracking (SEPARATE layer)
---   5. group_frame:  Meta-wavetable at group level (default OFF)
---   6. group_fx:     Character FX tendencies (filters, distortion)
---   7. global_fx:    Polish FX tendencies (reverb, delay, compression)
+-- 8-LAYER STRUCTURE:
+--   1. oscillator:        Wave types, unison tendencies, frame usage
+--   2. frame:             Whether frames exist, morph speed, allowed FX
+--   3. group:             Crossfade settings, scanning behavior, LFO rate
+--   4. modulation:        AHDSR/LFO/velocity/keytracking (SEPARATE layer)
+--   5. group_frame:       Meta-wavetable at group level (default OFF)
+--   6. group_fx:          Character FX tendencies (filters, distortion)
+--   7. global_fx:         Polish FX tendencies (reverb, delay, compression)
+--   8. sample_selection:  AKWF waveform families and source preferences
 --
 -- OVERRIDE CHAIN: oscillator > group > architecture.global_profile > "default"
 -- MODULATION can be overridden independently via architecture.modulation_layer
@@ -107,6 +232,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {},
       reverb_size = nil,
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"basic"},
+      avoid_families = {},
+    },
   },
   
   neutral_none = {
@@ -167,6 +299,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {},
       reverb_size = nil,
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"basic"},
+      avoid_families = {},
     },
   },
   
@@ -232,6 +371,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Compressor", "EQ 5"},
       reverb_size = nil,
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "sine"},
+      avoid_families = {"chiptune", "flute"},
+    },
   },
   
   bass_sustain = {
@@ -292,6 +438,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Compressor"},
       reverb_size = nil,
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "sine"},
+      avoid_families = {"chiptune", "flute"},
     },
   },
   
@@ -354,6 +507,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Compressor", "EQ 5"},
       reverb_size = nil,
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "sine"},
+      avoid_families = {"chiptune", "flute"},
+    },
   },
   
   bass_wide = {
@@ -415,6 +575,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Compressor", "Stereo Expander"},
       reverb_size = nil,
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "sine"},
+      avoid_families = {"chiptune", "flute"},
+    },
   },
   
   bass_dynamic = {
@@ -475,6 +642,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Compressor", "EQ 5"},
       reverb_size = nil,
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "sine"},
+      avoid_families = {"chiptune", "flute"},
     },
   },
   
@@ -540,6 +714,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "small",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "triangle", "piano"},
+      avoid_families = {"complex"},
+    },
   },
   
   pluck_natural = {
@@ -600,6 +781,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "triangle", "piano"},
+      avoid_families = {"complex"},
     },
   },
   
@@ -662,6 +850,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb"},
       reverb_size = "small",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "triangle", "piano"},
+      avoid_families = {"complex"},
+    },
   },
   
   pluck_soft = {
@@ -722,6 +917,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "triangle", "piano"},
+      avoid_families = {"complex"},
     },
   },
   
@@ -787,6 +989,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "distorted"},
+      avoid_families = {"strings"},
+    },
   },
   
   lead_smooth = {
@@ -847,6 +1056,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "distorted"},
+      avoid_families = {"strings"},
     },
   },
   
@@ -909,6 +1125,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "small",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "distorted"},
+      avoid_families = {"strings"},
+    },
   },
   
   lead_wide = {
@@ -970,6 +1193,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Delay", "Stereo Expander"},
       reverb_size = "large",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "distorted"},
+      avoid_families = {"strings"},
+    },
   },
   
   lead_glide = {
@@ -1030,6 +1260,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "distorted"},
+      avoid_families = {"strings"},
     },
   },
   
@@ -1095,6 +1332,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"strings", "harmonic", "complex", "sine"},
+      avoid_families = {"chiptune"},
+    },
   },
   
   pad_evolving = {
@@ -1157,6 +1401,23 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"strings", "harmonic", "complex", "sine"},
+      avoid_families = {"chiptune"},
+    },
+    
+    -- LAYER 9: Global FX Frames (meta-wavetable at final output)
+    global_fx_frames = {
+      enabled = true,
+      frame_count_range = {2, 3},
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Reverb", "Delay"},
+      fx_count_range = {1, 2},
+    },
   },
   
   pad_ensemble = {
@@ -1218,6 +1479,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "EQ 5"},
       reverb_size = "large",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"strings", "harmonic", "complex", "sine"},
+      avoid_families = {"chiptune"},
+    },
   },
   
   pad_formant = {
@@ -1278,6 +1546,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"strings", "harmonic", "complex", "voice"},
+      avoid_families = {"chiptune"},
     },
   },
   
@@ -1343,6 +1618,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Compressor"},
       reverb_size = "small",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"piano", "organ", "harmonic"},
+      avoid_families = {"distorted"},
+    },
   },
   
   keys_sustain = {
@@ -1404,6 +1686,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "EQ 5"},
       reverb_size = "medium",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"piano", "organ", "harmonic"},
+      avoid_families = {"distorted"},
+    },
   },
   
   keys_velocity = {
@@ -1464,6 +1753,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "Compressor"},
       reverb_size = "medium",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"piano", "organ", "harmonic"},
+      avoid_families = {"distorted"},
     },
   },
   
@@ -1529,6 +1825,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Delay", "Reverb"},
       reverb_size = "small",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "chiptune"},
+      avoid_families = {"complex", "strings"},
+    },
   },
   
   arp_gated = {
@@ -1590,6 +1893,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Delay", "Reverb"},
       reverb_size = "small",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "chiptune"},
+      avoid_families = {"complex", "strings"},
+    },
   },
   
   arp_rhythmic = {
@@ -1650,6 +1960,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Delay", "Reverb"},
       reverb_size = "small",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "chiptune"},
+      avoid_families = {"complex", "strings"},
     },
   },
   
@@ -1716,6 +2033,23 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"complex", "distorted"},
+      avoid_families = {"basic"},
+    },
+    
+    -- LAYER 9: Global FX Frames (meta-wavetable at final output)
+    global_fx_frames = {
+      enabled = true,
+      frame_count_range = {2, 4},
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Reverb", "Delay", "Phaser"},
+      fx_count_range = {1, 2},
+    },
   },
   
   fx_percussive = {
@@ -1776,6 +2110,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb"},
       reverb_size = "medium",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"complex", "distorted", "noise"},
+      avoid_families = {"basic"},
     },
   },
   
@@ -1838,6 +2179,23 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"complex", "distorted", "harmonic"},
+      avoid_families = {"basic"},
+    },
+    
+    -- LAYER 9: Global FX Frames (meta-wavetable at final output)
+    global_fx_frames = {
+      enabled = true,
+      frame_count_range = {2, 3},
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Reverb", "Delay", "Chorus"},
+      fx_count_range = {1, 2},
     },
   },
   
@@ -1903,6 +2261,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "EQ 5"},
       reverb_size = "large",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"strings", "brass", "flute"},
+      avoid_families = {"chiptune"},
+    },
   },
   
   brass = {
@@ -1963,6 +2328,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "EQ 5"},
       reverb_size = "medium",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"strings", "brass", "flute"},
+      avoid_families = {"chiptune"},
     },
   },
   
@@ -2028,6 +2400,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"harmonic", "sine"},
+      avoid_families = {},
+    },
   },
   
   -- ========================================================================
@@ -2092,6 +2471,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb"},
       reverb_size = "medium",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"basic", "saw"},
+      avoid_families = {},
+    },
   },
   
   pluck = {
@@ -2152,6 +2538,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "small",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "triangle", "piano"},
+      avoid_families = {"complex"},
     },
   },
   
@@ -2214,6 +2607,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Compressor", "EQ 5"},
       reverb_size = nil,
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "sine"},
+      avoid_families = {"chiptune", "flute"},
+    },
   },
   
   pad = {
@@ -2274,6 +2674,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"strings", "harmonic", "complex", "sine"},
+      avoid_families = {"chiptune"},
     },
   },
   
@@ -2336,6 +2743,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square", "distorted"},
+      avoid_families = {"strings"},
+    },
   },
   
   organ = {
@@ -2396,6 +2810,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb", "EQ 5"},
       reverb_size = "medium",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"organ", "harmonic"},
+      avoid_families = {},
     },
   },
   
@@ -2458,6 +2879,13 @@ PakettiMetaSynthProfiles = {
       tendencies = {"Reverb", "Compressor"},
       reverb_size = "small",
     },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"piano", "organ", "harmonic"},
+      avoid_families = {"distorted"},
+    },
   },
   
   percussive = {
@@ -2518,6 +2946,13 @@ PakettiMetaSynthProfiles = {
     global_fx = {
       tendencies = {"Reverb"},
       reverb_size = "small",
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"saw", "square"},
+      avoid_families = {},
     },
   },
 }
@@ -3265,6 +3700,120 @@ for i, cat in ipairs(PakettiMetaSynthSoundCategories) do
   PakettiMetaSynthSoundCategoryNames[i] = cat.name
 end
 
+-- Profile names list for group-level profile selector dropdowns
+-- Returns list of profile keys and display items for UI
+PakettiMetaSynthProfileNamesList = {}
+PakettiMetaSynthProfileDisplayList = {"Inherit Global"}  -- First item is always "Inherit"
+for _, profile_name in ipairs(PakettiMetaSynthModulationProfileNames) do
+  local profile = PakettiMetaSynthProfiles[profile_name]
+  if profile then
+    table.insert(PakettiMetaSynthProfileNamesList, profile_name)
+    table.insert(PakettiMetaSynthProfileDisplayList, profile.name or profile_name)
+  end
+end
+
+-- ============================================================================
+-- FX PROFILES - Separate FX character that can be applied independently
+-- These profiles define ONLY FX tendencies, allowing you to apply
+-- the FX character of one sound type to a different structure.
+-- Example: Apply "lead bright" FX to a bass structure
+-- ============================================================================
+PakettiMetaSynthFXProfiles = {
+  fx_none = {
+    name = "None / Bypass",
+    description = "No FX processing",
+    frame_fx = {},
+    group_fx = {},
+    global_fx = {},
+  },
+  fx_bass_heavy = {
+    name = "Bass Heavy",
+    description = "Sub-focused processing with saturation",
+    frame_fx = {"Analog Filter", "Distortion"},
+    group_fx = {"Analog Filter", "Saturator", "Compressor"},
+    global_fx = {"EQ 5", "Maximizer"},
+  },
+  fx_bass_clean = {
+    name = "Bass Clean",
+    description = "Clean low-end with subtle compression",
+    frame_fx = {"Analog Filter"},
+    group_fx = {"EQ 5", "Compressor"},
+    global_fx = {"EQ 5"},
+  },
+  fx_lead_bright = {
+    name = "Lead Bright",
+    description = "Cutting, present lead character",
+    frame_fx = {"Analog Filter", "Distortion", "Chorus"},
+    group_fx = {"Saturator", "EQ 5"},
+    global_fx = {"Reverb", "Delay"},
+  },
+  fx_lead_smooth = {
+    name = "Lead Smooth",
+    description = "Warm, rounded lead character",
+    frame_fx = {"Analog Filter", "Chorus"},
+    group_fx = {"Saturator", "Chorus"},
+    global_fx = {"Reverb", "EQ 5"},
+  },
+  fx_pad_ambient = {
+    name = "Pad Ambient",
+    description = "Spacious, evolving atmosphere",
+    frame_fx = {"Chorus", "Phaser", "Analog Filter"},
+    group_fx = {"Chorus", "Flanger"},
+    global_fx = {"Reverb", "Delay", "EQ 5"},
+  },
+  fx_pad_warm = {
+    name = "Pad Warm",
+    description = "Warm, enveloping pad character",
+    frame_fx = {"Analog Filter", "Chorus"},
+    group_fx = {"Chorus", "Saturator"},
+    global_fx = {"Reverb", "EQ 5"},
+  },
+  fx_pluck_bright = {
+    name = "Pluck Bright",
+    description = "Crisp, percussive transients",
+    frame_fx = {"Analog Filter", "Distortion"},
+    group_fx = {"Saturator", "EQ 5"},
+    global_fx = {"Reverb", "Delay"},
+  },
+  fx_keys_vintage = {
+    name = "Keys Vintage",
+    description = "Classic electric piano character",
+    frame_fx = {"Chorus", "Phaser"},
+    group_fx = {"Saturator", "Chorus"},
+    global_fx = {"Reverb", "EQ 5"},
+  },
+  fx_experimental = {
+    name = "Experimental",
+    description = "Heavy modulation and distortion",
+    frame_fx = {"Ring Mod", "Distortion", "Phaser"},
+    group_fx = {"Flanger", "Distortion", "Filter 3"},
+    global_fx = {"Reverb", "Delay"},
+  },
+  fx_clean = {
+    name = "Clean / Minimal",
+    description = "Minimal processing, transparent",
+    frame_fx = {},
+    group_fx = {"EQ 5"},
+    global_fx = {"EQ 5"},
+  },
+}
+
+-- FX Profile names list for dropdowns
+PakettiMetaSynthFXProfileNamesList = {
+  "fx_none", "fx_bass_heavy", "fx_bass_clean", "fx_lead_bright", "fx_lead_smooth",
+  "fx_pad_ambient", "fx_pad_warm", "fx_pluck_bright", "fx_keys_vintage",
+  "fx_experimental", "fx_clean"
+}
+
+-- FX Profile display names for UI dropdowns
+PakettiMetaSynthFXProfileDisplayList = {"Use Sound Profile"}  -- First item uses sound profile's FX
+for _, fx_name in ipairs(PakettiMetaSynthFXProfileNamesList) do
+  local fx_profile = PakettiMetaSynthFXProfiles[fx_name]
+  if fx_profile then
+    table.insert(PakettiMetaSynthFXProfileDisplayList, fx_profile.name)
+  end
+end
+
 -- Default architecture template
 function PakettiMetaSynthCreateDefaultArchitecture()
   return {
@@ -3273,6 +3822,13 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     -- This defines the musical intent (Pluck, Pad, Bass, Lead, etc.)
     -- Each layer consumes the subset of rules that apply to it
     global_profile = "default",
+    
+    -- ================================================================
+    -- FX PROFILE OVERRIDE: Apply FX character independently from sound profile
+    -- nil = use the sound profile's FX tendencies
+    -- Set to an FX profile name to override FX at all levels
+    -- ================================================================
+    fx_profile_override = nil,
     
     -- ================================================================
     -- MODULATION LAYER (NEW): Separate layer with independent profile override
@@ -3324,6 +3880,9 @@ function PakettiMetaSynthCreateDefaultArchitecture()
         -- PROFILE OVERRIDE at GROUP level (nil = inherit from global_profile)
         -- When set, this group uses a different profile than the global one
         profile_override = nil,
+        -- FX PROFILE OVERRIDE at GROUP level (nil = inherit from architecture)
+        -- Allows applying different FX character to specific groups
+        fx_profile_override = nil,
         -- DEPRECATED: modulation_profile - use profile_override instead
         -- Kept for backward compatibility, will be migrated to profile_override
         modulation_profile = nil,
@@ -3371,13 +3930,157 @@ function PakettiMetaSynthCreateDefaultArchitecture()
       lfo_rate_range = {0.1, 2.0},
       envelope_attack_range = {0.0, 0.5}
     },
-    -- Stacked Master FX settings (final processing across all groups)
-    stacked_master_fx_enabled = false,
-    stacked_master_fx_mode = "random",
-    stacked_master_fx_count = 3,
-    stacked_master_fx_types = {},
+    -- Stack Master FX settings (final processing across all groups)
+    stack_master_fx_enabled = false,
+    stack_master_fx_mode = "random",
+    stack_master_fx_count = 3,
+    stack_master_fx_types = {},
     -- Master routing mode: "output_routing" (chain property) or "send_device" (#Send devices)
-    master_routing_mode = "output_routing"
+    master_routing_mode = "output_routing",
+    
+    -- ================================================================
+    -- INTER-GROUP SCAN: Wavetable/Vector synthesis across groups
+    -- Morphs between groups at the Stack Master level
+    -- Default OFF - enable for inter-group wavetable/vector behavior
+    -- ================================================================
+    group_scan_enabled = false,             -- Default OFF
+    group_scan_curve = "equal_power",       -- "linear", "equal_power", "s_curve", "stepped", "spectral", "vector"
+    group_scan_speed = "slow",              -- "slow", "medium", "fast"
+    group_scan_control_source = "lfo",      -- "lfo", "macro"
+    group_scan_lfo_rate_preset = "slow",    -- LFO speed preset
+    group_scan_macro_index = 6,             -- Macro index for manual control
+    
+    -- ================================================================
+    -- VECTOR SYNTHESIS: XY pad control for 4-group morphing
+    -- Enables joystick-style blending between 4 corners (groups)
+    -- Default OFF - requires exactly 4 groups to function
+    -- ================================================================
+    vector_enabled = false,                 -- Default OFF
+    vector_mode = "xy",                     -- "xy" (4 groups) or "linear" (2+ groups)
+    vector_x_source = "macro",              -- "macro", "lfo", "envelope"
+    vector_y_source = "macro",              -- "macro", "lfo", "envelope"
+    vector_x_macro = 7,                     -- X axis macro (1-8)
+    vector_y_macro = 8,                     -- Y axis macro (1-8)
+    vector_x_lfo_speed = "slow",            -- LFO speed if using LFO
+    vector_y_lfo_speed = "medium",          -- LFO speed if using LFO
+    
+    -- ================================================================
+    -- VECTOR ENVELOPE PATH (PHASE 3 - DATA MODEL ONLY)
+    -- Animated XY movement over time - not yet implemented in generation
+    -- ================================================================
+    vector_envelope = {
+      enabled = false,                      -- Not yet implemented
+      points = {                            -- XY path points with time
+        {x = 0.5, y = 0.5, time = 0},       -- Start at center
+        {x = 0.5, y = 0.5, time = 1}        -- End at center
+      },
+      loop = false,                         -- Loop the envelope path
+      duration = 4.0,                       -- Total duration in seconds
+    },
+    
+    -- ================================================================
+    -- GLOBAL MODULATION (PHASE 3 - DATA MODEL ONLY)
+    -- Shared modulation sources across all groups - not yet implemented
+    -- ================================================================
+    global_modulation = {
+      enabled = false,                      -- Not yet implemented
+      lfo1 = {
+        enabled = false,
+        frequency = 0.5,                    -- Hz
+        shape = "sine",                     -- "sine", "triangle", "square", "saw"
+        targets = {},                       -- e.g. {"group_a_gain", "group_b_filter"}
+      },
+      lfo2 = {
+        enabled = false,
+        frequency = 0.25,
+        shape = "triangle",
+        targets = {},
+      },
+      envelope = {
+        enabled = false,
+        attack = 0.1,
+        decay = 0.2,
+        sustain = 0.7,
+        release = 0.5,
+        targets = {},
+      },
+    },
+    
+    -- ================================================================
+    -- GLOBAL FX FRAMES (NEW): Frame scanning at the final output stage
+    -- Similar to Group Frames but for the Stack Master level
+    -- Default OFF - advanced feature for evolving final polish
+    -- ================================================================
+    global_fx_frames_enabled = false,       -- Default OFF
+    global_fx_frame_count = 1,              -- 1-8 frames at global level
+    global_fx_frame_morph_enabled = false,  -- Whether to morph between frames
+    global_fx_frame_morph_speed = "slow",   -- "none", "slow", "medium", "fast"
+    global_fx_frame_crossfade_curve = "equal_power",  -- Curve type
+    global_fx_frame_control_source = "lfo", -- "lfo" or "macro"
+    global_fx_frame_lfo_rate_preset = "slow", -- LFO speed
+    -- Per-global-frame FX (optional processing per frame)
+    global_fx_frame_fx_enabled = false,
+    global_fx_frame_fx_tendencies = {},
+    global_fx_frame_fx_count = 1,
+    
+    -- ================================================================
+    -- GLOBAL FX SCAN: Sequential wavetable-style scanning across Global FX Frames
+    -- Works with any frame count >= 2
+    -- Default OFF
+    -- ================================================================
+    global_fx_scan_enabled = false,
+    global_fx_scan_curve = "equal_power",       -- All 6 curve types supported
+    global_fx_scan_control_source = "lfo",      -- "lfo" or "macro"
+    global_fx_scan_lfo_rate_preset = "slow",    -- LFO speed preset
+    
+    -- ================================================================
+    -- GLOBAL FX VECTOR: XY-based morphing between 4 Global FX Frames
+    -- Requires exactly 4 frames (corners of XY space)
+    -- Default OFF
+    -- ================================================================
+    global_fx_vector_enabled = false,
+    global_fx_vector_x_source = "lfo",          -- "lfo" or "macro"
+    global_fx_vector_y_source = "lfo",          -- "lfo" or "macro"
+    global_fx_vector_x_lfo_rate = 0.25,         -- X-axis LFO frequency
+    global_fx_vector_y_lfo_rate = 0.15,         -- Y-axis LFO frequency
+    
+    -- ================================================================
+    -- GROUP FRAME VECTOR: XY-based morphing between 4 Group Frames
+    -- Requires exactly 4 group frames (corners of XY space)
+    -- Default OFF - per-group setting
+    -- ================================================================
+    group_frame_vector_enabled = false,
+    group_frame_vector_x_source = "lfo",        -- "lfo" or "macro"
+    group_frame_vector_y_source = "lfo",        -- "lfo" or "macro"
+    group_frame_vector_x_lfo_rate = 0.2,        -- X-axis LFO frequency
+    group_frame_vector_y_lfo_rate = 0.12,       -- Y-axis LFO frequency
+    
+    -- ================================================================
+    -- SPECTRAL MORPH MACRO: Macro-controllable spectral morphing intensity
+    -- Controls how pronounced the spectral crossfade effect is
+    -- Default OFF
+    -- ================================================================
+    spectral_morph_enabled = false,
+    spectral_morph_macro_index = 5,             -- Which macro (1-8) controls intensity
+    spectral_morph_intensity = 0.5,             -- Base intensity (0.0 to 1.0)
+    
+    -- ================================================================
+    -- FINAL OUTPUT STAGE (True Output - Master EQ, Limiter, Output Shaping)
+    -- This is the LAST stage before instrument output
+    -- Always present when enabled - handles polish and protection
+    -- ================================================================
+    final_output_enabled = false,               -- Enable final output processing
+    final_output_master_eq_enabled = true,      -- Master EQ for tonal shaping
+    final_output_master_eq_low_shelf = 0.0,     -- Low shelf gain (-12 to +12 dB)
+    final_output_master_eq_high_shelf = 0.0,    -- High shelf gain (-12 to +12 dB)
+    final_output_master_eq_presence = 0.0,      -- Presence boost (2-5kHz)
+    final_output_limiter_enabled = true,        -- Output limiter/protection
+    final_output_limiter_ceiling = -0.3,        -- Ceiling in dB
+    final_output_limiter_release = 100,         -- Release in ms
+    final_output_saturation_enabled = false,    -- Subtle saturation/warmth
+    final_output_saturation_amount = 0.1,       -- Saturation intensity
+    final_output_width_enabled = false,         -- Stereo width control
+    final_output_width_amount = 1.0             -- Width (0.0 = mono, 1.0 = normal, 2.0 = wide)
   }
 end
 
@@ -3409,8 +4112,8 @@ function PakettiMetaSynthCalculateTotalFXChains(architecture)
       total = total + 1
     end
   end
-  -- Add 1 chain for Stacked Master FX when enabled
-  if architecture.stacked_master_fx_enabled then
+  -- Add 1 chain for Stack Master FX when enabled
+  if architecture.stack_master_fx_enabled then
     total = total + 1
   end
   return total
@@ -3481,13 +4184,13 @@ function PakettiMetaSynthValidateArchitecture(architecture)
     end
   end
   
-  -- Validate Stacked Master FX settings
-  if architecture.stacked_master_fx_enabled then
-    if architecture.stacked_master_fx_count < 1 or architecture.stacked_master_fx_count > 5 then
-      table.insert(errors, "Stacked Master FX count must be 1-5")
+  -- Validate Stack Master FX settings
+  if architecture.stack_master_fx_enabled then
+    if architecture.stack_master_fx_count < 1 or architecture.stack_master_fx_count > 5 then
+      table.insert(errors, "Stack Master FX count must be 1-5")
     end
-    if architecture.stacked_master_fx_mode == "selective" and #architecture.stacked_master_fx_types == 0 then
-      table.insert(warnings, "Stacked Master FX has selective mode but no FX types selected")
+    if architecture.stack_master_fx_mode == "selective" and #architecture.stack_master_fx_types == 0 then
+      table.insert(warnings, "Stack Master FX has selective mode but no FX types selected")
     end
   end
   
@@ -3788,7 +4491,7 @@ function PakettiMetaSynthBuildRandomFXChain(chain, device_pool, device_count, ra
   return inserted_devices
 end
 
--- Selectable FX types for Group Master and Stacked Master (glue-appropriate FX)
+-- Selectable FX types for Group Master and Stack Master (glue-appropriate FX)
 PakettiMetaSynthSelectableFXTypes = {
   { name = "Filter", device = "Analog Filter" },
   { name = "Digital Filter", device = "Digital Filter" },
@@ -4027,6 +4730,199 @@ function PakettiMetaSynthGenerateSCurveCrossfade(num_points, frame_index, total_
   return points
 end
 
+-- Generate stepped/quantized crossfade curve (classic wavetable behavior)
+-- Each frame gets full gain during its "slot", hard transitions between frames
+function PakettiMetaSynthGenerateSteppedCrossfade(num_points, frame_index, total_frames)
+  local points = {}
+  
+  -- Handle edge case: single frame = full gain
+  if total_frames <= 1 then
+    for i = 1, num_points do
+      table.insert(points, {time = i, value = 1.0})
+    end
+    return points
+  end
+  
+  -- Handle edge case: single point
+  if num_points <= 1 then
+    table.insert(points, {time = 1, value = frame_index == 1 and 1.0 or 0.0})
+    return points
+  end
+  
+  -- Calculate the slot boundaries for this frame
+  -- Frame 1 occupies 0.0 to 1/n, Frame 2 occupies 1/n to 2/n, etc.
+  local slot_width = 1.0 / total_frames
+  local slot_start = (frame_index - 1) * slot_width
+  local slot_end = frame_index * slot_width
+  
+  for i = 1, num_points do
+    local position = (i - 1) / (num_points - 1)
+    local value
+    
+    -- Check if current position is within this frame's slot
+    if position >= slot_start and position < slot_end then
+      value = 1.0
+    elseif frame_index == total_frames and position >= slot_start then
+      -- Last frame includes the endpoint
+      value = 1.0
+    else
+      value = 0.0
+    end
+    
+    table.insert(points, {time = i, value = value})
+  end
+  
+  return points
+end
+
+-- Generate spectral-style crossfade curve (Gaussian/bell-curve for smooth harmonic morphing)
+-- This creates wider overlap regions and smoother transitions ideal for wavetable morphing
+-- The Gaussian shape preserves harmonic content better during crossfades
+function PakettiMetaSynthGenerateSpectralCrossfade(num_points, frame_index, total_frames)
+  local points = {}
+  
+  -- Handle edge case: single frame = full gain
+  if total_frames <= 1 then
+    for i = 1, num_points do
+      table.insert(points, {time = i, value = 1.0})
+    end
+    return points
+  end
+  
+  -- Handle edge case: single point
+  if num_points <= 1 then
+    table.insert(points, {time = 1, value = frame_index == 1 and 1.0 or 0.0})
+    return points
+  end
+  
+  -- Gaussian sigma (width) - wider for smoother morphing
+  -- A larger sigma means more overlap between frames
+  local sigma = 1.0 / (total_frames * 0.7)  -- Wider than linear, narrower than full overlap
+  
+  for i = 1, num_points do
+    local position = (i - 1) / (num_points - 1)
+    local value
+    
+    if total_frames == 2 then
+      -- Simple A/B spectral crossfade with Gaussian blend
+      -- Use complementary Gaussian curves
+      local center_a = 0.0
+      local center_b = 1.0
+      local sigma_2frame = 0.35  -- Wider sigma for 2-frame case
+      
+      if frame_index == 1 then
+        -- Gaussian centered at 0, falling off toward 1
+        local dist = position - center_a
+        value = math.exp(-(dist * dist) / (2 * sigma_2frame * sigma_2frame))
+        -- Normalize to ensure crossfade at 0.5 is equal
+        value = math.cos(position * math.pi / 2)  -- Fallback to equal power for 2-frame
+      else
+        -- Gaussian centered at 1, falling off toward 0
+        local dist = position - center_b
+        value = math.exp(-(dist * dist) / (2 * sigma_2frame * sigma_2frame))
+        value = math.sin(position * math.pi / 2)  -- Fallback to equal power for 2-frame
+      end
+    else
+      -- Multi-frame Gaussian crossfade
+      -- Each frame has a Gaussian envelope centered at its position
+      local frame_center = (frame_index - 1) / (total_frames - 1)
+      local distance = math.abs(position - frame_center)
+      
+      -- Gaussian envelope: e^(-(x^2)/(2*sigma^2))
+      -- Adjust sigma based on number of frames for proper overlap
+      local adjusted_sigma = sigma * 1.5  -- Increase overlap for spectral smoothness
+      
+      value = math.exp(-(distance * distance) / (2 * adjusted_sigma * adjusted_sigma))
+      
+      -- Apply equal power normalization to maintain constant energy
+      -- Sum all frame contributions at this position and normalize
+      local total_power = 0
+      for f = 1, total_frames do
+        local f_center = (f - 1) / (total_frames - 1)
+        local f_dist = math.abs(position - f_center)
+        local f_value = math.exp(-(f_dist * f_dist) / (2 * adjusted_sigma * adjusted_sigma))
+        total_power = total_power + f_value * f_value
+      end
+      
+      -- Normalize to maintain constant power (equal power style)
+      if total_power > 0 then
+        value = value / math.sqrt(total_power)
+      end
+    end
+    
+    table.insert(points, {time = i, value = value})
+  end
+  
+  return points
+end
+
+-- Generate vector-style crossfade curve (4-corner XY blending within frames)
+-- This creates bilinear interpolation curves for XY joystick-style control
+-- Best suited for exactly 4 frames arranged in a 2x2 grid
+function PakettiMetaSynthGenerateVectorCrossfade(num_points, frame_index, total_frames)
+  local points = {}
+  
+  -- Handle edge case: single frame = full gain
+  if total_frames <= 1 then
+    for i = 1, num_points do
+      table.insert(points, {time = i, value = 1.0})
+    end
+    return points
+  end
+  
+  -- Handle edge case: single point
+  if num_points <= 1 then
+    table.insert(points, {time = 1, value = frame_index == 1 and 1.0 or 0.0})
+    return points
+  end
+  
+  -- For non-4 frame cases, fall back to equal power
+  if total_frames ~= 4 then
+    return PakettiMetaSynthGenerateEqualPowerCrossfade(num_points, frame_index, total_frames)
+  end
+  
+  -- 4-frame vector arrangement:
+  -- Frame 1 = Bottom-Left (BL): strong when position near 0
+  -- Frame 2 = Bottom-Right (BR): strong when position near 0.33
+  -- Frame 3 = Top-Left (TL): strong when position near 0.67
+  -- Frame 4 = Top-Right (TR): strong when position near 1.0
+  
+  -- Map the 1D position to a 2D XY space
+  -- Position 0-0.5 sweeps X from 0-1 at Y=0
+  -- Position 0.5-1.0 sweeps Y from 0-1 at X varying
+  
+  for i = 1, num_points do
+    local position = (i - 1) / (num_points - 1)
+    local value
+    
+    -- Create a circular/orbital path through XY space
+    -- Use sine/cosine to create a smooth path
+    local angle = position * math.pi * 2  -- Full circle
+    local x = (math.cos(angle) + 1) / 2   -- 0-1 range
+    local y = (math.sin(angle) + 1) / 2   -- 0-1 range
+    
+    -- Equal power version of bilinear interpolation
+    local cos_x = math.cos(x * math.pi / 2)
+    local sin_x = math.sin(x * math.pi / 2)
+    local cos_y = math.cos(y * math.pi / 2)
+    local sin_y = math.sin(y * math.pi / 2)
+    
+    if frame_index == 1 then
+      value = cos_x * cos_y      -- Bottom-left
+    elseif frame_index == 2 then
+      value = sin_x * cos_y      -- Bottom-right
+    elseif frame_index == 3 then
+      value = cos_x * sin_y      -- Top-left
+    else
+      value = sin_x * sin_y      -- Top-right
+    end
+    
+    table.insert(points, {time = i, value = value})
+  end
+  
+  return points
+end
+
 -- Master function to generate crossfade curves
 function PakettiMetaSynthGenerateCrossfadeCurve(curve_type, num_points, frame_index, total_frames)
   num_points = num_points or 128
@@ -4037,6 +4933,12 @@ function PakettiMetaSynthGenerateCrossfadeCurve(curve_type, num_points, frame_in
     return PakettiMetaSynthGenerateEqualPowerCrossfade(num_points, frame_index, total_frames)
   elseif curve_type == "s_curve" then
     return PakettiMetaSynthGenerateSCurveCrossfade(num_points, frame_index, total_frames)
+  elseif curve_type == "stepped" then
+    return PakettiMetaSynthGenerateSteppedCrossfade(num_points, frame_index, total_frames)
+  elseif curve_type == "spectral" then
+    return PakettiMetaSynthGenerateSpectralCrossfade(num_points, frame_index, total_frames)
+  elseif curve_type == "vector" then
+    return PakettiMetaSynthGenerateVectorCrossfade(num_points, frame_index, total_frames)
   else
     -- Default to equal power
     return PakettiMetaSynthGenerateEqualPowerCrossfade(num_points, frame_index, total_frames)
@@ -4146,6 +5048,122 @@ function PakettiMetaSynthGetRandomAKWFSamples(count)
   return selected
 end
 
+-- Build family cache from AKWF list (groups samples by family)
+function PakettiMetaSynthBuildFamilyCache()
+  if PakettiMetaSynthAKWFFamilyCache then
+    return PakettiMetaSynthAKWFFamilyCache
+  end
+  
+  local wav_files = PakettiMetaSynthGetAKWFList()
+  if #wav_files == 0 then
+    return {}
+  end
+  
+  PakettiMetaSynthAKWFFamilyCache = {}
+  
+  -- Initialize empty arrays for each family
+  for family_name, _ in pairs(PakettiMetaSynthAKWFWaveformFamilies) do
+    PakettiMetaSynthAKWFFamilyCache[family_name] = {}
+  end
+  PakettiMetaSynthAKWFFamilyCache["unmatched"] = {}  -- For samples that don't match any family
+  
+  -- Categorize each sample by family
+  for _, file_path in ipairs(wav_files) do
+    -- Extract folder name from path (e.g., "AKWF_bw_saw" from ".../AKWF/AKWF_bw_saw/AKWF_bw_saw_0001.wav")
+    local folder_name = file_path:match("AKWF/([^/]+)/")
+    if folder_name then
+      local matched = false
+      
+      -- Check against each family's patterns
+      for family_name, family_data in pairs(PakettiMetaSynthAKWFWaveformFamilies) do
+        for _, pattern in ipairs(family_data.patterns) do
+          if folder_name:find(pattern, 1, true) then
+            table.insert(PakettiMetaSynthAKWFFamilyCache[family_name], file_path)
+            matched = true
+            break
+          end
+        end
+        if matched then break end
+      end
+      
+      if not matched then
+        table.insert(PakettiMetaSynthAKWFFamilyCache["unmatched"], file_path)
+      end
+    end
+  end
+  
+  -- Log family counts
+  for family_name, samples in pairs(PakettiMetaSynthAKWFFamilyCache) do
+    if #samples > 0 then
+      print(string.format("PakettiMetaSynth: Family '%s' has %d samples", family_name, #samples))
+    end
+  end
+  
+  return PakettiMetaSynthAKWFFamilyCache
+end
+
+-- Get AKWF samples filtered by waveform families
+-- families: array of family names to include (e.g., {"saw", "square"})
+-- count: number of samples to return
+-- avoid_families: optional array of families to exclude
+function PakettiMetaSynthGetAKWFSamplesByFamily(families, count, avoid_families)
+  local family_cache = PakettiMetaSynthBuildFamilyCache()
+  avoid_families = avoid_families or {}
+  
+  -- Build pool of eligible samples
+  local pool = {}
+  
+  -- If no families specified, use all except avoided
+  if not families or #families == 0 then
+    for family_name, samples in pairs(family_cache) do
+      local avoid = false
+      for _, avoid_name in ipairs(avoid_families) do
+        if family_name == avoid_name then
+          avoid = true
+          break
+        end
+      end
+      if not avoid then
+        for _, sample in ipairs(samples) do
+          table.insert(pool, sample)
+        end
+      end
+    end
+  else
+    -- Use only specified families
+    for _, family_name in ipairs(families) do
+      local avoid = false
+      for _, avoid_name in ipairs(avoid_families) do
+        if family_name == avoid_name then
+          avoid = true
+          break
+        end
+      end
+      
+      if not avoid and family_cache[family_name] then
+        for _, sample in ipairs(family_cache[family_name]) do
+          table.insert(pool, sample)
+        end
+      end
+    end
+  end
+  
+  -- If pool is empty, fall back to all samples
+  if #pool == 0 then
+    print("PakettiMetaSynth: No samples matched families, falling back to all AKWF samples")
+    return PakettiMetaSynthGetRandomAKWFSamples(count)
+  end
+  
+  -- Random selection from pool
+  local selected = {}
+  for i = 1, count do
+    local random_index = math.random(1, #pool)
+    table.insert(selected, pool[random_index])
+  end
+  
+  return selected
+end
+
 -- Get random samples from a user folder
 function PakettiMetaSynthGetRandomSamplesFromFolder(folder_path, count)
   local files = PakettiMetaSynthScanFolder(folder_path)
@@ -4220,21 +5238,21 @@ function PakettiMetaSynthAddAHDSRToModSet(mod_set, target_type, params)
   local device = mod_set.devices[device_index]
   
   if device then
-    -- Set AHDSR parameters
+    -- Set AHDSR parameters (clamped to 0-1 range as required by Renoise API)
     if params.attack and device.attack then
-      device.attack.value = params.attack
+      device.attack.value = math.min(1, math.max(0, params.attack))
     end
     if params.hold and device.hold then
-      device.hold.value = params.hold
+      device.hold.value = math.min(1, math.max(0, params.hold))
     end
     if params.decay and device.decay then
-      device.decay.value = params.decay
+      device.decay.value = math.min(1, math.max(0, params.decay))
     end
     if params.sustain and device.sustain then
-      device.sustain.value = params.sustain
+      device.sustain.value = math.min(1, math.max(0, params.sustain))
     end
     if params.release and device.release then
-      device.release.value = params.release
+      device.release.value = math.min(1, math.max(0, params.release))
     end
   end
   
@@ -4265,11 +5283,12 @@ function PakettiMetaSynthAddLFOToModSet(mod_set, target_type, params)
   local device = mod_set.devices[device_index]
   
   if device then
+    -- Clamp frequency and amount to 0-1 range as required by Renoise API
     if params.frequency and device.frequency then
-      device.frequency.value = params.frequency
+      device.frequency.value = math.min(1, math.max(0, params.frequency))
     end
     if params.amount and device.amplitude then
-      device.amplitude.value = params.amount
+      device.amplitude.value = math.min(1, math.max(0, params.amount))
     end
     -- Note: SampleLfoModulationDevice does not have a 'phase' property in the API
     -- Phase offset would require XML injection if needed
@@ -4397,7 +5416,7 @@ function PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
   if profile.filter_cutoff or profile.filter_resonance then
     -- Enable low-pass filter if cutoff is specified
     if profile.filter_cutoff then
-      mod_set.filter_type = renoise.SampleModulationSet.FILTER_TYPE_LP_CLEAN
+      mod_set.filter_type = "LP Clean"
       -- Set base cutoff value on the modulation set's filter input
       if mod_set.cutoff_input then
         mod_set.cutoff_input.value = profile.filter_cutoff
@@ -4414,6 +5433,26 @@ function PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
     PakettiMetaSynthAddKeyTrackingToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, {
       amount = profile.filter_keytrack
     })
+  end
+  
+  -- Add Volume Stepper if defined
+  if profile.volume_stepper then
+    PakettiMetaSynthAddStepperToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, profile.volume_stepper)
+  end
+  
+  -- Add Filter Stepper if defined
+  if profile.filter_stepper then
+    PakettiMetaSynthAddStepperToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, profile.filter_stepper)
+  end
+  
+  -- Add Pitch Stepper if defined
+  if profile.pitch_stepper then
+    PakettiMetaSynthAddStepperToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, profile.pitch_stepper)
+  end
+  
+  -- Add Arp Pattern if defined
+  if profile.arp_pattern and profile.arp_pattern.enabled then
+    PakettiMetaSynthAddArpPatternToModSet(mod_set, profile.arp_pattern)
   end
   
   print(string.format("PakettiMetaSynth: Applied modulation profile '%s' (%s)", 
@@ -4456,11 +5495,8 @@ function PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
       release = profile.pitch_ahdsr.release
     }
     local pitch_env = PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, pitch_params)
-    if pitch_env and profile.pitch_ahdsr.amount then
-      if pitch_env.amplitude then
-        pitch_env.amplitude.value = math.abs(profile.pitch_ahdsr.amount)
-      end
-    end
+    -- Note: SampleAhdsrModulationDevice does not have an 'amplitude' property
+    -- Pitch envelope intensity is controlled by mod_set.pitch_range instead
   end
   
   -- Add Velocity device for volume if velocity_volume is significant
@@ -4495,7 +5531,7 @@ function PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
   -- Set filter type and parameters if filter cutoff or resonance is defined
   if profile.filter_cutoff or profile.filter_resonance then
     if profile.filter_cutoff then
-      mod_set.filter_type = renoise.SampleModulationSet.FILTER_TYPE_LP_CLEAN
+      mod_set.filter_type = "LP Clean"
       if mod_set.cutoff_input then
         mod_set.cutoff_input.value = profile.filter_cutoff
       end
@@ -4510,6 +5546,26 @@ function PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
     PakettiMetaSynthAddKeyTrackingToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, {
       amount = profile.filter_keytrack
     })
+  end
+  
+  -- Add Volume Stepper if defined
+  if profile.volume_stepper then
+    PakettiMetaSynthAddStepperToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, profile.volume_stepper)
+  end
+  
+  -- Add Filter Stepper if defined
+  if profile.filter_stepper then
+    PakettiMetaSynthAddStepperToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, profile.filter_stepper)
+  end
+  
+  -- Add Pitch Stepper if defined
+  if profile.pitch_stepper then
+    PakettiMetaSynthAddStepperToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, profile.pitch_stepper)
+  end
+  
+  -- Add Arp Pattern if defined
+  if profile.arp_pattern and profile.arp_pattern.enabled then
+    PakettiMetaSynthAddArpPatternToModSet(mod_set, profile.arp_pattern)
   end
   
   return true
@@ -4539,11 +5595,19 @@ function PakettiMetaSynthAddVelocityToModSet(mod_set, target_type, params)
   local device = mod_set.devices[device_index]
   
   if device then
-    -- Set velocity amount/scaling if available
-    if params.amount and device.amount then
-      device.amount.value = params.amount
-    elseif params.amount and device.scaling then
-      device.scaling.value = params.amount
+    -- Velocity tracking uses min/max range (0-127)
+    -- Convert amount (0-1) to a velocity range
+    if params.amount then
+      local amount = params.amount
+      -- Set min based on amount: higher amount = lower min (more range)
+      -- amount 0 = min 127 (no effect), amount 1 = min 0 (full range)
+      local min_vel = math.floor(127 * (1 - amount))
+      if device.min then
+        device.min.value = min_vel
+      end
+      if device.max then
+        device.max.value = 127
+      end
     end
   end
   
@@ -4575,19 +5639,227 @@ function PakettiMetaSynthAddKeyTrackingToModSet(mod_set, target_type, params)
   local device = mod_set.devices[device_index]
   
   if device then
-    -- Set keytracking amount/scaling if available
+    -- Key tracking uses min/max note range (0-119)
+    -- Convert amount (0-1) to a key range
     if params.amount then
-      if device.scaling then
-        device.scaling.value = params.amount
-      elseif device.amount then
-        device.amount.value = params.amount
-      elseif device.min then
-        -- Some keytracking devices use min/max range
-        -- Set a range based on the amount (0-1 maps to key range)
-        device.min.value = 0
-        device.max.value = params.amount
+      local amount = params.amount
+      -- Set min/max based on amount for key tracking range
+      -- amount 0 = small range, amount 1 = full keyboard range
+      if device.min and device.max then
+        -- Center the range around middle C (60)
+        local half_range = math.floor(60 * amount)
+        device.min.value = math.max(0, 60 - half_range)
+        device.max.value = math.min(119, 60 + half_range)
       end
     end
+  end
+  
+  return device
+end
+
+-- ============================================================================
+-- STEPPER MODULATION
+-- Adds step sequencer-style modulation to a modulation set
+-- Creates rhythmic, stepped changes to volume/pitch/filter
+-- ============================================================================
+
+-- Convert rate string to LFO frequency
+function PakettiMetaSynthStepRateToFrequency(rate_str, bpm)
+  bpm = bpm or 120  -- Default BPM
+  local beats_per_second = bpm / 60
+  
+  local rate_map = {
+    ["1/1"] = beats_per_second / 4,
+    ["1/2"] = beats_per_second / 2,
+    ["1/4"] = beats_per_second,
+    ["1/8"] = beats_per_second * 2,
+    ["1/16"] = beats_per_second * 4,
+    ["1/32"] = beats_per_second * 8,
+    ["1/64"] = beats_per_second * 16,
+    ["1/4T"] = beats_per_second * 1.5,
+    ["1/8T"] = beats_per_second * 3,
+    ["1/16T"] = beats_per_second * 6,
+  }
+  
+  return rate_map[rate_str] or beats_per_second * 4  -- Default to 1/16
+end
+
+-- Add a Stepper device to a modulation set
+-- params: { steps = {1.0, 0.8, 0.6, 0.4, ...}, rate = "1/16", smooth = false }
+function PakettiMetaSynthAddStepperToModSet(mod_set, target_type, params)
+  params = params or {}
+  local steps = params.steps or {1.0, 0.5, 0.75, 0.25}
+  local rate = params.rate or "1/16"
+  local smooth = params.smooth or false
+  
+  -- Renoise doesn't have a native "Stepper" device, but we can use an LFO with custom envelope
+  -- Or we create an AHDSR with very short times that acts like a step
+  -- For now, we'll use an LFO and generate a stepped custom envelope
+  
+  local available = mod_set.available_devices
+  local lfo_path = nil
+  
+  for _, device_path in ipairs(available) do
+    if device_path:find("LFO") then
+      lfo_path = device_path
+      break
+    end
+  end
+  
+  if not lfo_path then
+    print("PakettiMetaSynth: LFO device not found for stepper emulation")
+    return nil
+  end
+  
+  local device_index = #mod_set.devices + 1
+  mod_set:insert_device_at(lfo_path, target_type, device_index)
+  local device = mod_set.devices[device_index]
+  
+  if device then
+    -- Calculate LFO frequency based on rate and step count
+    local bpm = renoise.song().transport.bpm
+    local base_freq = PakettiMetaSynthStepRateToFrequency(rate, bpm)
+    local step_freq = base_freq / #steps
+    
+    -- Set LFO to custom mode (mode 5 = Custom in some versions)
+    if device.mode then
+      -- Try to set to custom/sample-and-hold mode
+      device.mode.value = 4  -- Sample & Hold for stepped behavior
+    end
+    
+    -- Set frequency
+    if device.frequency then
+      device.frequency.value = step_freq
+    end
+    
+    -- Set amplitude based on step range
+    local max_step = 0
+    local min_step = 1
+    for _, v in ipairs(steps) do
+      max_step = math.max(max_step, v)
+      min_step = math.min(min_step, v)
+    end
+    
+    if device.amplitude then
+      device.amplitude.value = (max_step - min_step) * 0.5
+    end
+    
+    if device.offset then
+      device.offset.value = (max_step + min_step) * 0.5
+    end
+    
+    print(string.format("PakettiMetaSynth: Added Stepper (LFO-based) with %d steps at %s", #steps, rate))
+  end
+  
+  return device
+end
+
+-- ============================================================================
+-- ARP PATTERN MODULATION
+-- Adds arpeggiator-style pitch modulation patterns
+-- Creates musical note sequences through pitch modulation
+-- ============================================================================
+
+-- Predefined arp patterns (semitone offsets)
+METASYNTH_ARP_PATTERNS = {
+  up = {0, 4, 7, 12},           -- Major chord ascending
+  down = {12, 7, 4, 0},         -- Major chord descending
+  updown = {0, 4, 7, 12, 7, 4}, -- Major chord up-down
+  minor_up = {0, 3, 7, 12},     -- Minor chord ascending
+  minor_down = {12, 7, 3, 0},   -- Minor chord descending
+  octave = {0, 12, 0, 12},      -- Octave bounce
+  fifth = {0, 7, 0, 7},         -- Fifth bounce
+  random = nil,                  -- Will be generated randomly
+  custom = nil                   -- User-defined
+}
+
+-- Add an Arp Pattern to a modulation set (pitch modulation)
+-- params: { pattern = "up", rate = "1/16", octaves = 1, custom_steps = nil }
+function PakettiMetaSynthAddArpPatternToModSet(mod_set, params)
+  params = params or {}
+  local pattern_name = params.pattern or "up"
+  local rate = params.rate or "1/16"
+  local octaves = params.octaves or 1
+  local custom_steps = params.custom_steps
+  
+  -- Get pattern steps
+  local pattern_steps = METASYNTH_ARP_PATTERNS[pattern_name]
+  if pattern_name == "custom" and custom_steps then
+    pattern_steps = custom_steps
+  elseif pattern_name == "random" then
+    -- Generate random pattern
+    pattern_steps = {}
+    local notes = {0, 3, 4, 5, 7, 9, 11, 12}  -- Scale degrees
+    for i = 1, math.random(4, 8) do
+      table.insert(pattern_steps, notes[math.random(1, #notes)])
+    end
+  end
+  
+  if not pattern_steps then
+    pattern_steps = {0, 4, 7, 12}  -- Default to major up
+  end
+  
+  -- Extend pattern for octaves
+  if octaves > 1 then
+    local extended = {}
+    for o = 0, octaves - 1 do
+      for _, step in ipairs(pattern_steps) do
+        table.insert(extended, step + (o * 12))
+      end
+    end
+    pattern_steps = extended
+  end
+  
+  -- Use LFO targeting pitch with calculated frequency
+  local available = mod_set.available_devices
+  local lfo_path = nil
+  
+  for _, device_path in ipairs(available) do
+    if device_path:find("LFO") then
+      lfo_path = device_path
+      break
+    end
+  end
+  
+  if not lfo_path then
+    print("PakettiMetaSynth: LFO device not found for arp pattern")
+    return nil
+  end
+  
+  local target_type = renoise.SampleModulationDevice.TARGET_PITCH
+  local device_index = #mod_set.devices + 1
+  mod_set:insert_device_at(lfo_path, target_type, device_index)
+  local device = mod_set.devices[device_index]
+  
+  if device then
+    -- Calculate frequency based on rate and pattern length
+    local bpm = renoise.song().transport.bpm
+    local base_freq = PakettiMetaSynthStepRateToFrequency(rate, bpm)
+    local pattern_freq = base_freq / #pattern_steps
+    
+    -- Set to sample-and-hold mode for stepped arp
+    if device.mode then
+      device.mode.value = 4  -- Sample & Hold
+    end
+    
+    -- Set frequency
+    if device.frequency then
+      device.frequency.value = pattern_freq
+    end
+    
+    -- Calculate amplitude based on pitch range
+    local max_semitones = 0
+    for _, v in ipairs(pattern_steps) do
+      max_semitones = math.max(max_semitones, math.abs(v))
+    end
+    
+    -- Pitch amplitude: semitones / 128 (Renoise pitch range)
+    if device.amplitude then
+      device.amplitude.value = max_semitones / 128
+    end
+    
+    print(string.format("PakettiMetaSynth: Added Arp Pattern '%s' (%d steps, %d octaves) at %s",
+      pattern_name, #pattern_steps, octaves, rate))
   end
   
   return device
@@ -4702,9 +5974,82 @@ function PakettiMetaSynthGetDefaultLayerRules(layer)
       tendencies = {"Reverb"},
       reverb_size = "medium",
     },
+    -- Sample Selection - AKWF family preferences
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"basic", "saw"},
+      avoid_families = {},
+    },
+    -- Global FX Frames - meta-wavetable at final output stage (default OFF)
+    global_fx_frames = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
   }
   
   return defaults[layer] or {}
+end
+
+-- ============================================================================
+-- FX PROFILE RESOLUTION - Get FX tendencies from FX profile or sound profile
+-- Override chain: group.fx_profile_override > architecture.fx_profile_override > sound profile
+-- Returns: { frame_fx, group_fx, global_fx } or nil (use sound profile)
+-- ============================================================================
+function PakettiMetaSynthResolveFXProfile(layer, group, architecture)
+  -- layer: "frame", "group", "global" - which FX level to resolve
+  
+  -- Check group-level FX override first
+  if group and group.fx_profile_override then
+    local fx_profile = PakettiMetaSynthFXProfiles[group.fx_profile_override]
+    if fx_profile then
+      if layer == "frame" then return fx_profile.frame_fx or {}
+      elseif layer == "group" then return fx_profile.group_fx or {}
+      elseif layer == "global" then return fx_profile.global_fx or {}
+      end
+    end
+  end
+  
+  -- Check architecture-level FX override
+  if architecture and architecture.fx_profile_override then
+    local fx_profile = PakettiMetaSynthFXProfiles[architecture.fx_profile_override]
+    if fx_profile then
+      if layer == "frame" then return fx_profile.frame_fx or {}
+      elseif layer == "group" then return fx_profile.group_fx or {}
+      elseif layer == "global" then return fx_profile.global_fx or {}
+      end
+    end
+  end
+  
+  -- No FX profile override - return nil to signal "use sound profile"
+  return nil
+end
+
+-- Get FX tendencies for a specific layer, considering FX profile overrides
+-- Falls back to sound profile if no FX override is set
+function PakettiMetaSynthGetFXTendencies(layer, osc, group, architecture)
+  -- First check if there's an FX profile override
+  local fx_tendencies = PakettiMetaSynthResolveFXProfile(layer, group, architecture)
+  if fx_tendencies then
+    return fx_tendencies
+  end
+  
+  -- Fall back to sound profile's FX tendencies
+  if layer == "frame" then
+    local frame_rules = PakettiMetaSynthResolveProfile("frame", osc, group, architecture)
+    return frame_rules.fx_tendencies or {}
+  elseif layer == "group" then
+    local group_fx_rules = PakettiMetaSynthResolveProfile("group_fx", osc, group, architecture)
+    return group_fx_rules.tendencies or {}
+  elseif layer == "global" then
+    local global_fx_rules = PakettiMetaSynthResolveProfile("global_fx", osc, group, architecture)
+    return global_fx_rules.tendencies or {}
+  end
+  
+  return {}
 end
 
 -- ============================================================================
@@ -4742,6 +6087,87 @@ end
 -- Helper: Get modulation rules (backward compatibility wrapper)
 function PakettiMetaSynthResolveModulation(osc, group, architecture)
   return PakettiMetaSynthResolveModulationProfile(osc, group, architecture)
+end
+
+-- ============================================================================
+-- APPLY PROFILE DEFAULTS TO GROUP
+-- Populates group settings from a selected profile's rules
+-- Used by "Load Defaults" button in UI
+-- ============================================================================
+function PakettiMetaSynthApplyProfileDefaultsToGroup(group, profile_name, architecture)
+  local profile = PakettiMetaSynthGetProfile(profile_name)
+  if not profile then
+    print("PakettiMetaSynth: Profile '" .. tostring(profile_name) .. "' not found")
+    return false
+  end
+  
+  -- Apply GROUP rules
+  local group_rules = profile.group or {}
+  group.group_crossfade_enabled = group_rules.crossfade_enabled or false
+  group.group_lfo_rate_preset = group_rules.lfo_rate_preset or "medium"
+  
+  -- Apply GROUP FX rules
+  local fx_rules = profile.group_fx or {}
+  group.group_master_fx_enabled = fx_rules.enabled ~= false
+  local fx_count_range = fx_rules.count_range or {1, 2}
+  group.group_master_fx_count = math.random(fx_count_range[1], fx_count_range[2])
+  
+  -- Set FX types from tendencies
+  group.group_master_fx_types = {}
+  local tendencies = fx_rules.tendencies or {}
+  if #tendencies > 0 then
+    group.group_master_fx_mode = "selective"
+    for i = 1, math.min(group.group_master_fx_count, #tendencies) do
+      table.insert(group.group_master_fx_types, tendencies[i])
+    end
+  else
+    group.group_master_fx_mode = "random"
+  end
+  
+  -- Apply GROUP FRAME rules
+  local group_frame_rules = profile.group_frame or {}
+  group.group_frames_enabled = group_frame_rules.enabled or false
+  local frame_count_range = group_frame_rules.frame_count_range or {1, 1}
+  group.group_frame_count = math.random(frame_count_range[1], frame_count_range[2])
+  group.group_frame_morph_enabled = group_frame_rules.morph_enabled or false
+  group.group_frame_morph_speed = group_frame_rules.morph_speed or "none"
+  
+  -- Apply OSCILLATOR rules to all oscillators in this group
+  local osc_rules = profile.oscillator or {}
+  local frame_rules = profile.frame or {}
+  
+  for _, osc in ipairs(group.oscillators) do
+    -- Apply oscillator-level defaults
+    local unison_range = osc_rules.unison_range or {1, 3}
+    osc.unison_voices = math.random(unison_range[1], unison_range[2])
+    
+    local frame_range = osc_rules.frame_count_range or {1, 3}
+    osc.frame_count = math.random(frame_range[1], frame_range[2])
+    
+    local detune_range = osc_rules.detune_range or {5, 20}
+    osc.detune_spread = math.random(detune_range[1], detune_range[2])
+    
+    local pan_range = osc_rules.pan_spread_range or {0.2, 0.5}
+    osc.pan_spread = pan_range[1] + math.random() * (pan_range[2] - pan_range[1])
+    
+    -- Apply frame FX settings
+    osc.osc_fx_enabled = frame_rules.morph_enabled or false
+    local fx_count_range = frame_rules.fx_count_range or {1, 2}
+    osc.osc_fx_count = math.random(fx_count_range[1], fx_count_range[2])
+    osc.osc_fx_types = {}
+    local frame_fx = frame_rules.fx_tendencies or {}
+    if #frame_fx > 0 then
+      osc.osc_fx_mode = "selective"
+      for i = 1, math.min(osc.osc_fx_count, #frame_fx) do
+        table.insert(osc.osc_fx_types, frame_fx[i])
+      end
+    else
+      osc.osc_fx_mode = "random"
+    end
+  end
+  
+  print("PakettiMetaSynth: Applied profile '" .. profile_name .. "' defaults to group")
+  return true
 end
 
 -- Helper: Get a value within a range from profile rules
@@ -5337,29 +6763,786 @@ function PakettiMetaSynthCreateGroupMasterChain(instrument, group_config, group_
   }
 end
 
--- Create Stacked Master FX chain (NO routing - chain creation only)
+-- ============================================================================
+-- GROUP FRAME CHAINS
+-- Creates multiple "snapshots" of a group that can be morphed between
+-- This is the "meta-wavetable at group level" feature
+-- Structure per frame: [FX devices (0+)] → [Frame Gainer + Frame LFO]
+-- ============================================================================
+function PakettiMetaSynthCreateGroupFrameChains(instrument, group_config, group_name, randomization_amount)
+  randomization_amount = randomization_amount or 0.3
+  
+  local frame_count = group_config.group_frame_count or 1
+  local morph_enabled = group_config.group_frame_morph_enabled or false
+  local morph_speed = group_config.group_frame_morph_speed or "slow"
+  local curve_type = group_config.group_frame_crossfade_curve or "equal_power"
+  local fx_enabled = group_config.group_frame_fx_enabled or false
+  local fx_tendencies = group_config.group_frame_fx_tendencies or {}
+  local fx_count = group_config.group_frame_fx_count or 1
+  
+  -- Calculate LFO frequency for group frame morphing
+  local lfo_freq = PakettiMetaSynthCalculateLFOFrequency(
+    "preset",
+    0.5,
+    "1 bar",
+    group_config.group_frame_lfo_rate_preset or morph_speed
+  )
+  
+  local group_frame_chains = {}
+  
+  for frame_idx = 1, frame_count do
+    local frame_chain_name = string.format("%s GrpFrame %d", group_name, frame_idx)
+    local frame_chain_index = #instrument.sample_device_chains + 1
+    instrument:insert_sample_device_chain_at(frame_chain_index)
+    local frame_chain = instrument.sample_device_chains[frame_chain_index]
+    frame_chain.name = frame_chain_name
+    PakettiMetaSynthAddDCOffset(frame_chain)
+    
+    -- Add FX devices if enabled
+    local frame_devices = {}
+    if fx_enabled and fx_count > 0 then
+      if #fx_tendencies > 0 then
+        -- Use FX tendencies
+        for i = 1, fx_count do
+          local type_index = ((i - 1) % #fx_tendencies) + 1
+          local fx_type_name = fx_tendencies[type_index]
+          local device = PakettiMetaSynthBuildFXByType(frame_chain, fx_type_name, randomization_amount)
+          if device then
+            device.display_name = string.format("GrpFrm%d %s", frame_idx, fx_type_name)
+            table.insert(frame_devices, device)
+          end
+        end
+      else
+        -- Random FX
+        for i = 1, fx_count do
+          local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+          local device = PakettiMetaSynthInsertDevice(frame_chain, random_device)
+          if device then
+            PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+            device.display_name = string.format("GrpFrm%d FX %d", frame_idx, i)
+            table.insert(frame_devices, device)
+          end
+        end
+      end
+    end
+    
+    -- Generate crossfade curve for this group frame position
+    local frame_crossfade_curve = PakettiMetaSynthGenerateCrossfadeCurve(
+      curve_type,
+      128,
+      frame_idx,
+      frame_count
+    )
+    
+    -- Add Frame Gainer for crossfade control
+    local initial_gain = frame_crossfade_curve[1].value
+    local frame_gainer, frame_gainer_position = PakettiMetaSynthCreateGainer(
+      frame_chain, 
+      initial_gain, 
+      string.format("GrpFrame %d Gainer", frame_idx)
+    )
+    
+    -- Add Frame LFO if morphing enabled and more than 1 frame
+    local frame_lfo = nil
+    if morph_enabled and frame_count > 1 then
+      -- Scale curve to 0-1 range
+      local scaled_curve = {}
+      for _, point in ipairs(frame_crossfade_curve) do
+        table.insert(scaled_curve, {
+          time = point.time,
+          value = math.min(1.0, math.max(0.0, point.value))
+        })
+      end
+      
+      frame_lfo = PakettiMetaSynthCreateCrossfadeLFO(
+        frame_chain,
+        scaled_curve,
+        string.format("GrpFrame %d LFO", frame_idx),
+        frame_gainer_position,
+        1,              -- Gain parameter
+        lfo_freq
+      )
+    end
+    
+    table.insert(group_frame_chains, {
+      chain = frame_chain,
+      chain_index = frame_chain_index,
+      chain_name = frame_chain_name,
+      frame_index = frame_idx,
+      devices = frame_devices,
+      frame_gainer = frame_gainer,
+      frame_gainer_position = frame_gainer_position,
+      frame_lfo = frame_lfo,
+      crossfade_curve = frame_crossfade_curve
+    })
+    
+    print(string.format("PakettiMetaSynth: Created Group Frame chain '%s' with %d FX + Gainer", 
+      frame_chain_name, #frame_devices))
+  end
+  
+  return group_frame_chains
+end
+
+-- Route Osc FX chains to Group Frame chains (sends from Osc FX to all Group Frames)
+function PakettiMetaSynthRouteOscFXToGroupFrames(osc_fx_chains, group_frame_chains)
+  if not group_frame_chains or #group_frame_chains == 0 then
+    return
+  end
+  
+  for _, osc_fx_info in ipairs(osc_fx_chains) do
+    local osc_fx_chain = osc_fx_info.chain
+    
+    -- Send to all group frame chains
+    for _, frame_info in ipairs(group_frame_chains) do
+      local send_device = osc_fx_chain:insert_device_at("Audio/Effects/Native/#Send", #osc_fx_chain.devices + 1)
+      if send_device then
+        send_device.display_name = string.format("→ %s", frame_info.chain_name)
+        -- Set send parameters: [1]=Amount, [2]=Panning, [3]=Receiver
+        send_device.parameters[1].value = 1.0  -- Amount = 100%
+        send_device.parameters[3].value = frame_info.chain_index  -- Receiver = chain index
+        -- Mute source is controlled via active_preset_data or other means
+      end
+    end
+  end
+end
+
+-- Route Group Frame chains to Group Master
+function PakettiMetaSynthRouteGroupFramesToMaster(group_frame_chains, group_master_info)
+  if not group_frame_chains or #group_frame_chains == 0 then
+    return
+  end
+  
+  for _, frame_info in ipairs(group_frame_chains) do
+    local frame_chain = frame_info.chain
+    local send_device = frame_chain:insert_device_at("Audio/Effects/Native/#Send", #frame_chain.devices + 1)
+    if send_device then
+      send_device.display_name = string.format("→ %s", group_master_info.chain_name)
+      -- Set send parameters: [1]=Amount, [2]=Panning, [3]=Receiver
+      send_device.parameters[1].value = 1.0  -- Amount = 100%
+      send_device.parameters[3].value = group_master_info.chain_index  -- Receiver = chain index
+    end
+  end
+end
+
+-- ============================================================================
+-- GROUP FRAME VECTOR SYNTHESIS: XY-based morphing between 4 Group Frames
+-- Creates 4-corner XY vector morphing at the group frame level
+-- Requires exactly 4 group frames (treated as corners: A=bottom-left, B=bottom-right, C=top-left, D=top-right)
+-- ============================================================================
+function PakettiMetaSynthAddGroupFrameVectorSynthesis(group_frame_chains, group_config, architecture)
+  local total_frames = #group_frame_chains
+  if total_frames ~= 4 then
+    print(string.format("PakettiMetaSynth: Group Frame Vector requires exactly 4 frames (got %d), skipping", total_frames))
+    return
+  end
+  
+  -- Check group-level or architecture-level vector settings
+  local vector_enabled = group_config.group_frame_vector_enabled or architecture.group_frame_vector_enabled
+  if not vector_enabled then
+    return
+  end
+  
+  local x_source = group_config.group_frame_vector_x_source or architecture.group_frame_vector_x_source or "lfo"
+  local y_source = group_config.group_frame_vector_y_source or architecture.group_frame_vector_y_source or "lfo"
+  local x_lfo_rate = group_config.group_frame_vector_x_lfo_rate or architecture.group_frame_vector_x_lfo_rate or 0.2
+  local y_lfo_rate = group_config.group_frame_vector_y_lfo_rate or architecture.group_frame_vector_y_lfo_rate or 0.12
+  
+  local group_name = group_config.name or "Group"
+  print(string.format("PakettiMetaSynth: Adding Group Frame Vector Synthesis to '%s' (X: %s, Y: %s)", 
+    group_name, x_source, y_source))
+  
+  -- Frame mapping: 1=A(BL), 2=B(BR), 3=C(TL), 4=D(TR)
+  -- Initial position: center (0.5, 0.5) = equal blend of all 4 frames
+  local initial_gains = PakettiMetaSynthCalculateVectorGainsEqualPower(0.5, 0.5)
+  local gain_values = {initial_gains.group_a, initial_gains.group_b, initial_gains.group_c, initial_gains.group_d}
+  local corner_names = {"BL", "BR", "TL", "TR"}
+  
+  for fi, frame_info in ipairs(group_frame_chains) do
+    local chain = frame_info.chain
+    
+    -- Add Vector Gainer for XY control
+    local vector_gainer, vector_gainer_position = PakettiMetaSynthCreateGainer(
+      chain,
+      gain_values[fi],
+      string.format("%s GrpFr Vec %s", group_name:sub(1, 3), corner_names[fi])
+    )
+    
+    frame_info.vector_gainer = vector_gainer
+    frame_info.vector_gainer_position = vector_gainer_position
+    
+    print(string.format("PakettiMetaSynth: Added Group Frame Vector Gainer to '%s' (corner=%s, gain=%.2f)",
+      frame_info.chain_name, corner_names[fi], gain_values[fi]))
+  end
+  
+  -- Add X-axis LFO if using LFO control
+  if x_source == "lfo" then
+    local x_chain = group_frame_chains[1].chain
+    local x_lfo = PakettiMetaSynthInsertDevice(x_chain, "Audio/Effects/Native/*LFO")
+    if x_lfo then
+      x_lfo.display_name = string.format("%s GrpFr Vec X", group_name:sub(1, 3))
+      local freq_param = x_lfo:parameter(1)
+      if freq_param then
+        freq_param.value = x_lfo_rate
+      end
+      local shape_param = x_lfo:parameter(2)
+      if shape_param then
+        shape_param.value = 0  -- Sine
+      end
+      group_frame_chains[1].vector_x_lfo = x_lfo
+      print(string.format("PakettiMetaSynth: Added Group Frame Vector X LFO (rate=%.3f)", x_lfo_rate))
+    end
+  end
+  
+  -- Add Y-axis LFO if using LFO control
+  if y_source == "lfo" then
+    local y_chain = group_frame_chains[2].chain
+    local y_lfo = PakettiMetaSynthInsertDevice(y_chain, "Audio/Effects/Native/*LFO")
+    if y_lfo then
+      y_lfo.display_name = string.format("%s GrpFr Vec Y", group_name:sub(1, 3))
+      local freq_param = y_lfo:parameter(1)
+      if freq_param then
+        freq_param.value = y_lfo_rate
+      end
+      local shape_param = y_lfo:parameter(2)
+      if shape_param then
+        shape_param.value = 0  -- Sine
+      end
+      group_frame_chains[2].vector_y_lfo = y_lfo
+      print(string.format("PakettiMetaSynth: Added Group Frame Vector Y LFO (rate=%.3f)", y_lfo_rate))
+    end
+  end
+end
+
+-- ============================================================================
+-- GLOBAL FX FRAME CHAINS
+-- Creates multiple "snapshots" of final output processing that can be morphed between
+-- This is frame scanning at the global/output level
+-- Structure per frame: [FX devices (0+)] → [Frame Gainer + Frame LFO]
+-- ============================================================================
+function PakettiMetaSynthCreateGlobalFXFrameChains(instrument, architecture, randomization_amount)
+  randomization_amount = randomization_amount or 0.3
+  
+  local frame_count = architecture.global_fx_frame_count or 1
+  local morph_enabled = architecture.global_fx_frame_morph_enabled or false
+  local morph_speed = architecture.global_fx_frame_morph_speed or "slow"
+  local curve_type = architecture.global_fx_frame_crossfade_curve or "equal_power"
+  local fx_enabled = architecture.global_fx_frame_fx_enabled or false
+  local fx_tendencies = architecture.global_fx_frame_fx_tendencies or {}
+  local fx_count = architecture.global_fx_frame_fx_count or 1
+  
+  -- Calculate LFO frequency for global frame morphing
+  local lfo_freq = PakettiMetaSynthCalculateLFOFrequency(
+    "preset",
+    0.5,
+    "1 bar",
+    architecture.global_fx_frame_lfo_rate_preset or morph_speed
+  )
+  
+  local global_fx_frame_chains = {}
+  
+  for frame_idx = 1, frame_count do
+    local frame_chain_name = string.format("Global FX Frame %d", frame_idx)
+    local frame_chain_index = #instrument.sample_device_chains + 1
+    instrument:insert_sample_device_chain_at(frame_chain_index)
+    local frame_chain = instrument.sample_device_chains[frame_chain_index]
+    frame_chain.name = frame_chain_name
+    PakettiMetaSynthAddDCOffset(frame_chain)
+    
+    -- Add FX devices if enabled
+    local frame_devices = {}
+    if fx_enabled and fx_count > 0 then
+      if #fx_tendencies > 0 then
+        -- Use FX tendencies
+        for i = 1, fx_count do
+          local type_index = ((i - 1) % #fx_tendencies) + 1
+          local fx_type_name = fx_tendencies[type_index]
+          local device = PakettiMetaSynthBuildFXByType(frame_chain, fx_type_name, randomization_amount)
+          if device then
+            device.display_name = string.format("GlbFrm%d %s", frame_idx, fx_type_name)
+            table.insert(frame_devices, device)
+          end
+        end
+      else
+        -- Random FX
+        for i = 1, fx_count do
+          local random_device = PakettiMetaSynthSafeFXDevices[math.random(1, #PakettiMetaSynthSafeFXDevices)]
+          local device = PakettiMetaSynthInsertDevice(frame_chain, random_device)
+          if device then
+            PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
+            device.display_name = string.format("GlbFrm%d FX %d", frame_idx, i)
+            table.insert(frame_devices, device)
+          end
+        end
+      end
+    end
+    
+    -- Generate crossfade curve for this global frame position
+    local frame_crossfade_curve = PakettiMetaSynthGenerateCrossfadeCurve(
+      curve_type,
+      128,
+      frame_idx,
+      frame_count
+    )
+    
+    -- Add Frame Gainer for crossfade control
+    local initial_gain = frame_crossfade_curve[1].value
+    local frame_gainer, frame_gainer_position = PakettiMetaSynthCreateGainer(
+      frame_chain, 
+      initial_gain, 
+      string.format("Global Frame %d Gainer", frame_idx)
+    )
+    
+    -- Add Frame LFO if morphing enabled and more than 1 frame
+    local frame_lfo = nil
+    if morph_enabled and frame_count > 1 then
+      -- Scale curve to 0-1 range
+      local scaled_curve = {}
+      for _, point in ipairs(frame_crossfade_curve) do
+        table.insert(scaled_curve, {
+          time = point.time,
+          value = math.min(1.0, math.max(0.0, point.value))
+        })
+      end
+      
+      frame_lfo = PakettiMetaSynthCreateCrossfadeLFO(
+        frame_chain,
+        scaled_curve,
+        string.format("Global Frame %d LFO", frame_idx),
+        frame_gainer_position,
+        1,              -- Gain parameter
+        lfo_freq
+      )
+    end
+    
+    table.insert(global_fx_frame_chains, {
+      chain = frame_chain,
+      chain_index = frame_chain_index,
+      chain_name = frame_chain_name,
+      frame_index = frame_idx,
+      devices = frame_devices,
+      frame_gainer = frame_gainer,
+      frame_gainer_position = frame_gainer_position,
+      frame_lfo = frame_lfo,
+      crossfade_curve = frame_crossfade_curve
+    })
+    
+    print(string.format("PakettiMetaSynth: Created Global FX Frame chain '%s' with %d FX + Gainer", 
+      frame_chain_name, #frame_devices))
+  end
+  
+  return global_fx_frame_chains
+end
+
+-- Route Stack Master to Global FX Frame chains
+function PakettiMetaSynthRouteStackedMasterToGlobalFrames(stack_master_info, global_fx_frame_chains)
+  if not global_fx_frame_chains or #global_fx_frame_chains == 0 then
+    return
+  end
+  
+  local stacked_chain = stack_master_info.chain
+  
+  for _, frame_info in ipairs(global_fx_frame_chains) do
+    local send_device = stacked_chain:insert_device_at("Audio/Effects/Native/#Send", #stacked_chain.devices + 1)
+    if send_device then
+      send_device.display_name = string.format("→ %s", frame_info.chain_name)
+      -- Set send parameters: [1]=Amount, [2]=Panning, [3]=Receiver
+      send_device.parameters[1].value = 1.0  -- Amount = 100%
+      send_device.parameters[3].value = frame_info.chain_index  -- Receiver = chain index
+    end
+  end
+end
+
+-- ============================================================================
+-- GLOBAL FX WAVETABLE SCAN: Sequential scanning across Global FX Frames
+-- Adds Scan Gainers + LFOs to each Global FX Frame chain for wavetable-style morphing
+-- Works with any frame count >= 2
+-- ============================================================================
+function PakettiMetaSynthAddGlobalFXWavetableScan(global_fx_frame_chains, architecture)
+  local total_frames = #global_fx_frame_chains
+  if total_frames < 2 then
+    print("PakettiMetaSynth: Global FX Scan requires 2+ frames, skipping")
+    return
+  end
+  
+  if not architecture.global_fx_scan_enabled then
+    return
+  end
+  
+  local curve_type = architecture.global_fx_scan_curve or "equal_power"
+  local control_source = architecture.global_fx_scan_control_source or "lfo"
+  
+  -- Calculate LFO frequency for global FX frame scanning
+  local lfo_freq = PakettiMetaSynthCalculateLFOFrequency(
+    "preset",
+    0.5,
+    "1 bar",
+    architecture.global_fx_scan_lfo_rate_preset or "slow"
+  )
+  
+  print(string.format("PakettiMetaSynth: Adding Global FX Scan to %d frames (curve: %s, source: %s)",
+    total_frames, curve_type, control_source))
+  
+  for fi, frame_info in ipairs(global_fx_frame_chains) do
+    local chain = frame_info.chain
+    
+    -- Generate crossfade curve for this frame's position
+    local frame_crossfade_curve = PakettiMetaSynthGenerateCrossfadeCurve(
+      curve_type,
+      128,
+      fi,
+      total_frames
+    )
+    
+    -- Add Global FX Scan Gainer
+    local initial_gain = frame_crossfade_curve[1].value
+    local scan_gainer, scan_gainer_position = PakettiMetaSynthCreateGainer(
+      chain,
+      initial_gain,
+      string.format("GFX Scan %d/%d", fi, total_frames)
+    )
+    
+    frame_info.scan_gainer = scan_gainer
+    frame_info.scan_gainer_position = scan_gainer_position
+    
+    -- Add Global FX Scan LFO if using LFO control
+    if control_source == "lfo" then
+      -- Scale curve to 0-1 range
+      local scaled_curve = {}
+      for _, point in ipairs(frame_crossfade_curve) do
+        table.insert(scaled_curve, {
+          time = point.time,
+          value = math.min(1.0, math.max(0.0, point.value))
+        })
+      end
+      
+      local scan_lfo = PakettiMetaSynthCreateCrossfadeLFO(
+        chain,
+        scaled_curve,
+        string.format("GFX Scan LFO %d", fi),
+        scan_gainer_position,
+        1,  -- Gain parameter
+        lfo_freq
+      )
+      
+      frame_info.scan_lfo = scan_lfo
+      print(string.format("PakettiMetaSynth: Added GFX Scan Gainer + LFO to '%s' (gain=%.2f, freq=%.3f)",
+        frame_info.chain_name, initial_gain, lfo_freq))
+    else
+      -- Macro control - just leave gainer for manual control
+      print(string.format("PakettiMetaSynth: Added GFX Scan Gainer to '%s' (gain=%.2f, macro control)",
+        frame_info.chain_name, initial_gain))
+    end
+  end
+end
+
+-- ============================================================================
+-- GLOBAL FX VECTOR SYNTHESIS: XY-based morphing between 4 Global FX Frames
+-- Creates 4-corner XY vector morphing similar to group-level vector synthesis
+-- Requires exactly 4 frames (treated as corners: A=bottom-left, B=bottom-right, C=top-left, D=top-right)
+-- ============================================================================
+function PakettiMetaSynthAddGlobalFXVectorSynthesis(global_fx_frame_chains, architecture)
+  local total_frames = #global_fx_frame_chains
+  if total_frames ~= 4 then
+    print(string.format("PakettiMetaSynth: Global FX Vector requires exactly 4 frames (got %d), skipping", total_frames))
+    return
+  end
+  
+  if not architecture.global_fx_vector_enabled then
+    return
+  end
+  
+  local x_source = architecture.global_fx_vector_x_source or "lfo"
+  local y_source = architecture.global_fx_vector_y_source or "lfo"
+  local x_lfo_rate = architecture.global_fx_vector_x_lfo_rate or 0.25
+  local y_lfo_rate = architecture.global_fx_vector_y_lfo_rate or 0.15
+  
+  print(string.format("PakettiMetaSynth: Adding Global FX Vector Synthesis (X: %s, Y: %s)", x_source, y_source))
+  
+  -- Frame mapping: 1=A(BL), 2=B(BR), 3=C(TL), 4=D(TR)
+  -- Initial position: center (0.5, 0.5) = equal blend of all 4 frames
+  local initial_gains = PakettiMetaSynthCalculateVectorGainsEqualPower(0.5, 0.5)
+  local gain_values = {initial_gains.group_a, initial_gains.group_b, initial_gains.group_c, initial_gains.group_d}
+  local corner_names = {"BL", "BR", "TL", "TR"}
+  
+  for fi, frame_info in ipairs(global_fx_frame_chains) do
+    local chain = frame_info.chain
+    
+    -- Add Vector Gainer for XY control
+    local vector_gainer, vector_gainer_position = PakettiMetaSynthCreateGainer(
+      chain,
+      gain_values[fi],
+      string.format("GFX Vector %s", corner_names[fi])
+    )
+    
+    frame_info.vector_gainer = vector_gainer
+    frame_info.vector_gainer_position = vector_gainer_position
+    
+    print(string.format("PakettiMetaSynth: Added GFX Vector Gainer to '%s' (corner=%s, gain=%.2f)",
+      frame_info.chain_name, corner_names[fi], gain_values[fi]))
+  end
+  
+  -- Add X-axis LFO if using LFO control
+  if x_source == "lfo" then
+    -- X-axis affects frames horizontally (A/C vs B/D)
+    -- Create sine wave LFO that sweeps 0-1 on X axis
+    local x_chain = global_fx_frame_chains[1].chain  -- Add to first frame chain
+    local x_lfo = PakettiMetaSynthInsertDevice(x_chain, "Audio/Effects/Native/*LFO")
+    if x_lfo then
+      x_lfo.display_name = "GFX Vector X"
+      -- Set LFO parameters
+      local freq_param = x_lfo:parameter(1)
+      if freq_param then
+        freq_param.value = x_lfo_rate
+      end
+      -- Shape: Sine
+      local shape_param = x_lfo:parameter(2)
+      if shape_param then
+        shape_param.value = 0  -- Sine
+      end
+      global_fx_frame_chains[1].vector_x_lfo = x_lfo
+      print(string.format("PakettiMetaSynth: Added GFX Vector X LFO (rate=%.3f)", x_lfo_rate))
+    end
+  end
+  
+  -- Add Y-axis LFO if using LFO control
+  if y_source == "lfo" then
+    -- Y-axis affects frames vertically (A/B vs C/D)
+    local y_chain = global_fx_frame_chains[2].chain  -- Add to second frame chain
+    local y_lfo = PakettiMetaSynthInsertDevice(y_chain, "Audio/Effects/Native/*LFO")
+    if y_lfo then
+      y_lfo.display_name = "GFX Vector Y"
+      -- Set LFO parameters
+      local freq_param = y_lfo:parameter(1)
+      if freq_param then
+        freq_param.value = y_lfo_rate
+      end
+      -- Shape: Sine
+      local shape_param = y_lfo:parameter(2)
+      if shape_param then
+        shape_param.value = 0  -- Sine
+      end
+      global_fx_frame_chains[2].vector_y_lfo = y_lfo
+      print(string.format("PakettiMetaSynth: Added GFX Vector Y LFO (rate=%.3f)", y_lfo_rate))
+    end
+  end
+end
+
+-- ============================================================================
+-- SPECTRAL MORPH MACRO: Adds macro-controllable spectral morphing intensity
+-- Creates a *Hydra device that scales the spectral crossfade effect
+-- ============================================================================
+function PakettiMetaSynthAddSpectralMorphMacro(instrument, architecture)
+  if not architecture.spectral_morph_enabled then
+    return nil
+  end
+  
+  local macro_index = architecture.spectral_morph_macro_index or 5
+  local intensity = architecture.spectral_morph_intensity or 0.5
+  
+  -- Set up the macro
+  if macro_index >= 1 and macro_index <= 8 then
+    instrument.macros[macro_index].name = "Spectral Morph"
+    instrument.macros[macro_index].value = intensity
+    
+    print(string.format("PakettiMetaSynth: Configured Spectral Morph Macro %d (intensity=%.2f)", 
+      macro_index, intensity))
+  end
+  
+  return macro_index
+end
+
+-- ============================================================================
+-- FINAL OUTPUT CHAIN: True output stage with Master EQ, Limiter, and Output Shaping
+-- This is the LAST processing stage before instrument output
+-- Structure: [Master EQ] → [Saturation] → [Width] → [Limiter]
+-- ============================================================================
+function PakettiMetaSynthCreateFinalOutputChain(instrument, architecture, randomization_amount)
+  if not architecture.final_output_enabled then
+    return nil
+  end
+  
+  randomization_amount = randomization_amount or 0.3
+  
+  -- Create the Final Output chain
+  local final_chain_name = "Final Output"
+  local final_chain_index = #instrument.sample_device_chains + 1
+  instrument:insert_sample_device_chain_at(final_chain_index)
+  local final_chain = instrument.sample_device_chains[final_chain_index]
+  final_chain.name = final_chain_name
+  
+  local final_devices = {}
+  
+  -- Add DC Offset first
+  PakettiMetaSynthAddDCOffset(final_chain)
+  
+  -- 1. MASTER EQ (Parametric EQ for tonal shaping)
+  if architecture.final_output_master_eq_enabled then
+    local eq_device = PakettiMetaSynthInsertDevice(final_chain, "Audio/Effects/Native/EQ 10")
+    if eq_device then
+      eq_device.display_name = "Master EQ"
+      
+      -- Apply shelf settings if non-zero
+      local low_shelf = architecture.final_output_master_eq_low_shelf or 0.0
+      local high_shelf = architecture.final_output_master_eq_high_shelf or 0.0
+      local presence = architecture.final_output_master_eq_presence or 0.0
+      
+      -- EQ 10 has 10 bands - use band 1 for low shelf, band 10 for high shelf, band 7 for presence
+      -- Band gain parameters are typically at indices 2, 5, 8, 11, 14, 17, 20, 23, 26, 29
+      if low_shelf ~= 0.0 then
+        local low_param = eq_device:parameter(2)  -- First band gain
+        if low_param then
+          -- Convert dB to parameter value (0.5 = 0dB, range roughly 0-1)
+          low_param.value = 0.5 + (low_shelf / 24.0)
+        end
+      end
+      
+      if high_shelf ~= 0.0 then
+        local high_param = eq_device:parameter(29)  -- Last band gain
+        if high_param then
+          high_param.value = 0.5 + (high_shelf / 24.0)
+        end
+      end
+      
+      if presence ~= 0.0 then
+        local presence_param = eq_device:parameter(20)  -- Band 7 (around 2-5kHz)
+        if presence_param then
+          presence_param.value = 0.5 + (presence / 24.0)
+        end
+      end
+      
+      table.insert(final_devices, eq_device)
+      print("PakettiMetaSynth: Added Master EQ to Final Output")
+    end
+  end
+  
+  -- 2. SATURATION (Subtle warmth/color)
+  if architecture.final_output_saturation_enabled then
+    local sat_device = PakettiMetaSynthInsertDevice(final_chain, "Audio/Effects/Native/Distortion")
+    if sat_device then
+      sat_device.display_name = "Output Warmth"
+      
+      local sat_amount = architecture.final_output_saturation_amount or 0.1
+      -- Set to subtle saturation mode
+      local mode_param = sat_device:parameter(1)  -- Distortion mode
+      if mode_param then
+        mode_param.value = 0  -- Usually soft/tube mode
+      end
+      
+      local drive_param = sat_device:parameter(2)  -- Drive amount
+      if drive_param then
+        drive_param.value = sat_amount * 0.3  -- Keep it subtle
+      end
+      
+      local wet_param = sat_device:parameter(3)  -- Wet/dry mix
+      if wet_param then
+        wet_param.value = sat_amount
+      end
+      
+      table.insert(final_devices, sat_device)
+      print(string.format("PakettiMetaSynth: Added Output Saturation (amount=%.2f)", sat_amount))
+    end
+  end
+  
+  -- 3. STEREO WIDTH (Stereo expander/narrower)
+  if architecture.final_output_width_enabled then
+    local width_device = PakettiMetaSynthInsertDevice(final_chain, "Audio/Effects/Native/Stereo Expander")
+    if width_device then
+      width_device.display_name = "Output Width"
+      
+      local width_amount = architecture.final_output_width_amount or 1.0
+      -- Stereo Expander has width parameter
+      local width_param = width_device:parameter(1)
+      if width_param then
+        -- Map 0-2 range to device range
+        width_param.value = width_amount * 0.5
+      end
+      
+      table.insert(final_devices, width_device)
+      print(string.format("PakettiMetaSynth: Added Output Width (amount=%.2f)", width_amount))
+    end
+  end
+  
+  -- 4. LIMITER (Output protection - always last)
+  if architecture.final_output_limiter_enabled then
+    local limiter_device = PakettiMetaSynthInsertDevice(final_chain, "Audio/Effects/Native/Maximizer")
+    if limiter_device then
+      limiter_device.display_name = "Output Limiter"
+      
+      local ceiling = architecture.final_output_limiter_ceiling or -0.3
+      local release = architecture.final_output_limiter_release or 100
+      
+      -- Maximizer parameters
+      local ceiling_param = limiter_device:parameter(1)  -- Ceiling/threshold
+      if ceiling_param then
+        -- Convert dB to parameter value
+        ceiling_param.value = 1.0 + (ceiling / 12.0)  -- Rough conversion
+      end
+      
+      local release_param = limiter_device:parameter(2)  -- Release
+      if release_param then
+        release_param.value = release / 1000.0  -- Convert ms to seconds
+      end
+      
+      table.insert(final_devices, limiter_device)
+      print(string.format("PakettiMetaSynth: Added Output Limiter (ceiling=%.1fdB, release=%dms)", 
+        ceiling, release))
+    end
+  end
+  
+  local final_output_info = {
+    chain = final_chain,
+    chain_name = final_chain_name,
+    chain_index = final_chain_index,
+    devices = final_devices
+  }
+  
+  print(string.format("PakettiMetaSynth: Created Final Output chain '%s' with %d devices",
+    final_chain_name, #final_devices))
+  
+  return final_output_info
+end
+
+-- Route to Final Output chain (from Global FX Frames or Stack Master)
+function PakettiMetaSynthRouteToFinalOutput(source_info, final_output_info)
+  if not final_output_info then
+    return
+  end
+  
+  local source_chain = source_info.chain
+  local send_device = source_chain:insert_device_at("Audio/Effects/Native/#Send", #source_chain.devices + 1)
+  if send_device then
+    send_device.display_name = string.format("→ %s", final_output_info.chain_name)
+    -- Set send parameters: [1]=Amount, [2]=Panning, [3]=Receiver
+    send_device.parameters[1].value = 1.0  -- Amount = 100%
+    send_device.parameters[3].value = final_output_info.chain_index  -- Receiver = chain index
+  end
+  
+  print(string.format("PakettiMetaSynth: Routed '%s' to Final Output", source_info.chain_name))
+end
+
+-- Create Stack Master FX chain (NO routing - chain creation only)
 -- ALWAYS creates ONE dedicated FX chain for the entire instrument as final summing bus
 -- Structure: [Stack FX devices (0+)]
 -- Routing is done separately in Phase 2
 function PakettiMetaSynthCreateStackedMasterChain(instrument, architecture, randomization_amount)
-  -- ALWAYS create the Stacked Master chain as a summing bus (even with 0 FX devices)
+  -- ALWAYS create the Stack Master chain as a summing bus (even with 0 FX devices)
   randomization_amount = randomization_amount or 0.3
   
-  -- Create a dedicated Stacked Master FX chain
-  local stacked_chain_name = "Stacked Master"
+  -- Create a dedicated Stack Master FX chain
+  local stacked_chain_name = "Stack Master"
   local stacked_chain_index = #instrument.sample_device_chains + 1
   instrument:insert_sample_device_chain_at(stacked_chain_index)
   local stacked_chain = instrument.sample_device_chains[stacked_chain_index]
   stacked_chain.name = stacked_chain_name
   PakettiMetaSynthAddDCOffset(stacked_chain)
   
-  -- Add FX devices to the Stacked Master chain ONLY if FX is enabled
-  local stacked_master_devices = {}
+  -- Add FX devices to the Stack Master chain ONLY if FX is enabled
+  local stack_master_devices = {}
   
-  if architecture.stacked_master_fx_enabled then
-    local mode = architecture.stacked_master_fx_mode or "random"
-    local device_count = architecture.stacked_master_fx_count or 3
-    local fx_types = architecture.stacked_master_fx_types or {}
+  if architecture.stack_master_fx_enabled then
+    local mode = architecture.stack_master_fx_mode or "random"
+    local device_count = architecture.stack_master_fx_count or 3
+    local fx_types = architecture.stack_master_fx_types or {}
     
     if mode == "selective" and #fx_types > 0 then
       -- Selective mode: use specified FX types
@@ -5369,7 +7552,7 @@ function PakettiMetaSynthCreateStackedMasterChain(instrument, architecture, rand
         local device = PakettiMetaSynthBuildFXByType(stacked_chain, fx_type_name, randomization_amount)
         if device then
           device.display_name = string.format("StackMaster %s %d", fx_type_name, i)
-          table.insert(stacked_master_devices, device)
+          table.insert(stack_master_devices, device)
         end
       end
     else
@@ -5380,20 +7563,20 @@ function PakettiMetaSynthCreateStackedMasterChain(instrument, architecture, rand
         if device then
           PakettiMetaSynthRandomizeDeviceParams(device, randomization_amount)
           device.display_name = string.format("StackMaster FX %d", i)
-          table.insert(stacked_master_devices, device)
+          table.insert(stack_master_devices, device)
         end
       end
     end
   end
   
-  print(string.format("PakettiMetaSynth: Created Stacked Master bus with %d FX devices", #stacked_master_devices))
+  print(string.format("PakettiMetaSynth: Created Stack Master bus with %d FX devices", #stack_master_devices))
   
   -- Return the stacked master chain info (routing in Phase 2)
   return {
     chain = stacked_chain,
     chain_index = stacked_chain_index,
     chain_name = stacked_chain_name,
-    devices = stacked_master_devices
+    devices = stack_master_devices
   }
 end
 
@@ -5446,25 +7629,707 @@ function PakettiMetaSynthRouteChainsToGroupMaster(source_chains, group_master_in
     #source_chains, dest_chain_name, dest_chain_index))
 end
 
--- Route all Group Master chains to the Stacked Master chain using #Send devices
-function PakettiMetaSynthRouteGroupMastersToStackedMaster(group_master_chains, stacked_master_info)
-  if not stacked_master_info then return end
+-- Route all Group Master chains to the Stack Master chain using #Send devices
+function PakettiMetaSynthRouteGroupMastersToStackedMaster(group_master_chains, stack_master_info)
+  if not stack_master_info then return end
   if #group_master_chains == 0 then return end
   
-  local dest_chain_index = stacked_master_info.chain_index
-  local dest_chain_name = stacked_master_info.chain_name
+  local dest_chain_index = stack_master_info.chain_index
+  local dest_chain_name = stack_master_info.chain_name
   
   for _, group_master_info_item in ipairs(group_master_chains) do
     local chain = group_master_info_item.chain
     local send_device = PakettiMetaSynthAddSendDevice(
       chain,
       dest_chain_index,
-      "Send to Stacked Master"
+      "Send to Stack Master"
     )
-    group_master_info_item.send_to_stacked_master = send_device
-    print(string.format("PakettiMetaSynth: Routed '%s' -> Stacked Master (index %d)", 
+    group_master_info_item.send_to_stack_master = send_device
+    print(string.format("PakettiMetaSynth: Routed '%s' -> Stack Master (index %d)", 
       group_master_info_item.chain_name, dest_chain_index))
   end
+end
+
+-- ============================================================================
+-- INTER-GROUP SCAN: Add wavetable/vector scanning across groups
+-- Adds Gainers and LFOs to Group Master chains for inter-group morphing
+-- ============================================================================
+function PakettiMetaSynthAddInterGroupScan(group_master_chains, architecture)
+  local total_groups = #group_master_chains
+  if total_groups < 2 then
+    print("PakettiMetaSynth: Inter-group scan requires 2+ groups, skipping")
+    return
+  end
+  
+  if not architecture.group_scan_enabled then
+    return
+  end
+  
+  local curve_type = architecture.group_scan_curve or "equal_power"
+  local control_source = architecture.group_scan_control_source or "lfo"
+  
+  -- Calculate LFO frequency for group scanning
+  local lfo_freq = PakettiMetaSynthCalculateLFOFrequency(
+    "preset",
+    0.5,
+    "1 bar",
+    architecture.group_scan_lfo_rate_preset or architecture.group_scan_speed or "slow"
+  )
+  
+  print(string.format("PakettiMetaSynth: Adding inter-group scan to %d groups (curve: %s, source: %s)",
+    total_groups, curve_type, control_source))
+  
+  for gi, group_master_info in ipairs(group_master_chains) do
+    local chain = group_master_info.chain
+    
+    -- Generate crossfade curve for this group's position
+    local group_crossfade_curve = PakettiMetaSynthGenerateCrossfadeCurve(
+      curve_type,
+      128,
+      gi,
+      total_groups
+    )
+    
+    -- Add Group Scan Gainer
+    local initial_gain = group_crossfade_curve[1].value
+    local scan_gainer, scan_gainer_position = PakettiMetaSynthCreateGainer(
+      chain,
+      initial_gain,
+      string.format("Group Scan %d/%d", gi, total_groups)
+    )
+    
+    group_master_info.scan_gainer = scan_gainer
+    group_master_info.scan_gainer_position = scan_gainer_position
+    
+    -- Add Group Scan LFO if using LFO control
+    if control_source == "lfo" then
+      -- Scale curve to 0-1 range
+      local scaled_curve = {}
+      for _, point in ipairs(group_crossfade_curve) do
+        table.insert(scaled_curve, {
+          time = point.time,
+          value = math.min(1.0, math.max(0.0, point.value))
+        })
+      end
+      
+      local scan_lfo = PakettiMetaSynthCreateCrossfadeLFO(
+        chain,
+        scaled_curve,
+        string.format("Group Scan LFO %d", gi),
+        scan_gainer_position,
+        1,  -- Gain parameter
+        lfo_freq
+      )
+      
+      group_master_info.scan_lfo = scan_lfo
+      print(string.format("PakettiMetaSynth: Added Group Scan Gainer + LFO to '%s' (gain=%.2f, freq=%.3f)",
+        group_master_info.chain_name, initial_gain, lfo_freq))
+    else
+      -- Macro control - just leave gainer for manual control
+      print(string.format("PakettiMetaSynth: Added Group Scan Gainer to '%s' (gain=%.2f, macro control)",
+        group_master_info.chain_name, initial_gain))
+    end
+  end
+end
+
+-- ============================================================================
+-- VECTOR SYNTHESIS: Calculate gains for 4-corner XY vector blending
+-- Maps X/Y coordinates (0-1) to gain values for 4 groups (corners)
+-- ============================================================================
+
+-- Calculate vector gains for 4 groups based on X/Y position
+-- Returns table with gains for group_a (BL), group_b (BR), group_c (TL), group_d (TR)
+function PakettiMetaSynthCalculateVectorGains(x, y)
+  -- Clamp inputs to 0-1 range
+  x = math.min(1.0, math.max(0.0, x or 0.5))
+  y = math.min(1.0, math.max(0.0, y or 0.5))
+  
+  -- Bilinear interpolation for 4-corner blending
+  -- Bottom-left (Group A): strong when x=0, y=0
+  -- Bottom-right (Group B): strong when x=1, y=0
+  -- Top-left (Group C): strong when x=0, y=1
+  -- Top-right (Group D): strong when x=1, y=1
+  return {
+    group_a = (1 - x) * (1 - y),  -- Bottom-left
+    group_b = x * (1 - y),        -- Bottom-right
+    group_c = (1 - x) * y,        -- Top-left
+    group_d = x * y               -- Top-right
+  }
+end
+
+-- Calculate vector gains with equal power crossfade (prevents volume dips)
+function PakettiMetaSynthCalculateVectorGainsEqualPower(x, y)
+  x = math.min(1.0, math.max(0.0, x or 0.5))
+  y = math.min(1.0, math.max(0.0, y or 0.5))
+  
+  -- Equal power uses cosine/sine curves
+  local cos_x = math.cos(x * math.pi / 2)
+  local sin_x = math.sin(x * math.pi / 2)
+  local cos_y = math.cos(y * math.pi / 2)
+  local sin_y = math.sin(y * math.pi / 2)
+  
+  return {
+    group_a = cos_x * cos_y,  -- Bottom-left
+    group_b = sin_x * cos_y,  -- Bottom-right
+    group_c = cos_x * sin_y,  -- Top-left
+    group_d = sin_x * sin_y   -- Top-right
+  }
+end
+
+-- Add Vector Synthesis to 4 group master chains
+function PakettiMetaSynthAddVectorSynthesis(group_master_chains, architecture)
+  local total_groups = #group_master_chains
+  if total_groups ~= 4 then
+    print(string.format("PakettiMetaSynth: Vector synthesis requires exactly 4 groups (got %d), skipping", total_groups))
+    return
+  end
+  
+  if not architecture.vector_enabled then
+    return
+  end
+  
+  local x_source = architecture.vector_x_source or "macro"
+  local y_source = architecture.vector_y_source or "macro"
+  
+  print(string.format("PakettiMetaSynth: Adding Vector Synthesis (X: %s, Y: %s)", x_source, y_source))
+  
+  -- Initial position at center (0.5, 0.5)
+  local initial_gains = PakettiMetaSynthCalculateVectorGainsEqualPower(0.5, 0.5)
+  local corner_names = {"group_a", "group_b", "group_c", "group_d"}
+  local corner_labels = {"BL", "BR", "TL", "TR"}  -- Bottom-Left, Bottom-Right, Top-Left, Top-Right
+  
+  for gi, group_master_info in ipairs(group_master_chains) do
+    local chain = group_master_info.chain
+    local corner = corner_names[gi]
+    local initial_gain = initial_gains[corner]
+    
+    -- Add Vector Gainer
+    local vector_gainer, vector_gainer_position = PakettiMetaSynthCreateGainer(
+      chain,
+      initial_gain,
+      string.format("Vector %s", corner_labels[gi])
+    )
+    
+    group_master_info.vector_gainer = vector_gainer
+    group_master_info.vector_gainer_position = vector_gainer_position
+    group_master_info.vector_corner = corner
+    
+    print(string.format("PakettiMetaSynth: Added Vector Gainer to '%s' (%s, gain=%.3f)",
+      group_master_info.chain_name, corner_labels[gi], initial_gain))
+  end
+  
+  -- Add Vector Envelope LFOs if envelope mode is enabled
+  if architecture.vector_envelope and architecture.vector_envelope.enabled then
+    PakettiMetaSynthAddVectorEnvelopeLFOs(group_master_chains, architecture)
+  end
+end
+
+-- ============================================================================
+-- VECTOR ENVELOPE: Generate per-group gain curves from XY path
+-- Converts vector_envelope.points into LFO envelopes for each of the 4 groups
+-- ============================================================================
+
+-- Convert vector envelope XY path points to per-group gain envelopes
+-- Returns a table with envelope points for each of the 4 groups
+function PakettiMetaSynthGenerateVectorEnvelopeCurves(vector_envelope, num_points)
+  num_points = num_points or 128
+  
+  local points = vector_envelope.points or {}
+  if #points < 2 then
+    -- Default to center position if no valid path
+    points = {
+      {x = 0.5, y = 0.5, time = 0},
+      {x = 0.5, y = 0.5, time = 1}
+    }
+  end
+  
+  -- Generate envelope curves for each of the 4 groups
+  local group_curves = {
+    group_a = {},  -- Bottom-left
+    group_b = {},  -- Bottom-right
+    group_c = {},  -- Top-left
+    group_d = {}   -- Top-right
+  }
+  
+  -- Interpolate XY position at each point in the envelope
+  for i = 1, num_points do
+    local normalized_time = (i - 1) / (num_points - 1)  -- 0 to 1
+    
+    -- Find the two path points that bracket this time
+    local x, y
+    local found = false
+    
+    for pi = 1, #points - 1 do
+      local p1 = points[pi]
+      local p2 = points[pi + 1]
+      
+      if normalized_time >= p1.time and normalized_time <= p2.time then
+        -- Linear interpolation between path points
+        local segment_progress = 0
+        if p2.time ~= p1.time then
+          segment_progress = (normalized_time - p1.time) / (p2.time - p1.time)
+        end
+        
+        x = p1.x + (p2.x - p1.x) * segment_progress
+        y = p1.y + (p2.y - p1.y) * segment_progress
+        found = true
+        break
+      end
+    end
+    
+    -- If not found (edge case), use nearest point
+    if not found then
+      if normalized_time <= points[1].time then
+        x = points[1].x
+        y = points[1].y
+      else
+        x = points[#points].x
+        y = points[#points].y
+      end
+    end
+    
+    -- Calculate equal power gains for this XY position
+    local gains = PakettiMetaSynthCalculateVectorGainsEqualPower(x, y)
+    
+    -- Store gain values for each group
+    table.insert(group_curves.group_a, {time = i, value = gains.group_a})
+    table.insert(group_curves.group_b, {time = i, value = gains.group_b})
+    table.insert(group_curves.group_c, {time = i, value = gains.group_c})
+    table.insert(group_curves.group_d, {time = i, value = gains.group_d})
+  end
+  
+  return group_curves
+end
+
+-- Add Vector Envelope LFOs to all 4 group master chains
+-- Creates one LFO per group with a custom envelope derived from the XY path
+function PakettiMetaSynthAddVectorEnvelopeLFOs(group_master_chains, architecture)
+  if #group_master_chains ~= 4 then
+    print("PakettiMetaSynth: Vector envelope requires exactly 4 groups")
+    return
+  end
+  
+  local vector_envelope = architecture.vector_envelope
+  if not vector_envelope or not vector_envelope.enabled then
+    return
+  end
+  
+  -- Generate per-group gain curves from the XY path
+  local group_curves = PakettiMetaSynthGenerateVectorEnvelopeCurves(vector_envelope, 128)
+  
+  -- Calculate LFO frequency from envelope duration
+  local duration = vector_envelope.duration or 4.0
+  local lfo_freq = 1.0 / duration  -- Hz
+  
+  -- Convert to Renoise LFO frequency parameter value
+  local lfo_freq_param = PakettiMetaSynthCalculateLFOFrequency("free", lfo_freq, nil, nil)
+  
+  local corner_names = {"group_a", "group_b", "group_c", "group_d"}
+  local corner_labels = {"BL", "BR", "TL", "TR"}
+  
+  print(string.format("PakettiMetaSynth: Adding Vector Envelope LFOs (duration=%.1fs, freq=%.3f Hz)",
+    duration, lfo_freq))
+  
+  for gi, group_master_info in ipairs(group_master_chains) do
+    local chain = group_master_info.chain
+    local corner = corner_names[gi]
+    local envelope_curve = group_curves[corner]
+    
+    -- Get the vector gainer position
+    local gainer_position = group_master_info.vector_gainer_position
+    if not gainer_position then
+      print(string.format("PakettiMetaSynth: No vector gainer found for group %d, skipping envelope LFO", gi))
+    else
+      -- Create LFO with custom envelope
+      local lfo = PakettiMetaSynthCreateCrossfadeLFO(
+        chain,
+        envelope_curve,
+        string.format("Vector Env %s", corner_labels[gi]),
+        gainer_position,
+        1,              -- Gain parameter
+        lfo_freq_param
+      )
+      
+      if lfo then
+        -- Set one-shot mode if envelope doesn't loop
+        if not vector_envelope.loop then
+          -- Note: One-shot mode is set via XML in CreateCrossfadeLFO, but we can update it here
+          -- The current implementation loops by default - we'd need to modify the XML for one-shot
+          print(string.format("PakettiMetaSynth: Vector Envelope LFO added to '%s' (looping)", 
+            group_master_info.chain_name))
+        else
+          print(string.format("PakettiMetaSynth: Vector Envelope LFO added to '%s' (looping)", 
+            group_master_info.chain_name))
+        end
+        
+        group_master_info.vector_envelope_lfo = lfo
+      end
+    end
+  end
+end
+
+-- Helper function to generate common vector envelope presets
+function PakettiMetaSynthGetVectorEnvelopePreset(preset_name)
+  local presets = {
+    -- Circle: sweep around all 4 corners
+    circle = {
+      enabled = true,
+      points = {
+        {x = 0.5, y = 0.0, time = 0.0},    -- Bottom center
+        {x = 1.0, y = 0.5, time = 0.25},   -- Right center
+        {x = 0.5, y = 1.0, time = 0.5},    -- Top center
+        {x = 0.0, y = 0.5, time = 0.75},   -- Left center
+        {x = 0.5, y = 0.0, time = 1.0}     -- Back to bottom
+      },
+      loop = true,
+      duration = 4.0
+    },
+    
+    -- Figure-8: sweep in figure-8 pattern
+    figure8 = {
+      enabled = true,
+      points = {
+        {x = 0.5, y = 0.5, time = 0.0},    -- Center
+        {x = 1.0, y = 1.0, time = 0.125},  -- Top-right
+        {x = 0.5, y = 0.5, time = 0.25},   -- Center
+        {x = 0.0, y = 1.0, time = 0.375},  -- Top-left
+        {x = 0.5, y = 0.5, time = 0.5},    -- Center
+        {x = 0.0, y = 0.0, time = 0.625},  -- Bottom-left
+        {x = 0.5, y = 0.5, time = 0.75},   -- Center
+        {x = 1.0, y = 0.0, time = 0.875},  -- Bottom-right
+        {x = 0.5, y = 0.5, time = 1.0}     -- Back to center
+      },
+      loop = true,
+      duration = 8.0
+    },
+    
+    -- Diagonal: sweep from BL to TR and back
+    diagonal = {
+      enabled = true,
+      points = {
+        {x = 0.0, y = 0.0, time = 0.0},    -- Bottom-left
+        {x = 1.0, y = 1.0, time = 0.5},    -- Top-right
+        {x = 0.0, y = 0.0, time = 1.0}     -- Back to BL
+      },
+      loop = true,
+      duration = 4.0
+    },
+    
+    -- Square: visit each corner in sequence
+    square = {
+      enabled = true,
+      points = {
+        {x = 0.0, y = 0.0, time = 0.0},    -- Bottom-left
+        {x = 1.0, y = 0.0, time = 0.25},   -- Bottom-right
+        {x = 1.0, y = 1.0, time = 0.5},    -- Top-right
+        {x = 0.0, y = 1.0, time = 0.75},   -- Top-left
+        {x = 0.0, y = 0.0, time = 1.0}     -- Back to BL
+      },
+      loop = true,
+      duration = 4.0
+    },
+    
+    -- X sweep: sweep X axis at center Y
+    x_sweep = {
+      enabled = true,
+      points = {
+        {x = 0.0, y = 0.5, time = 0.0},    -- Left center
+        {x = 1.0, y = 0.5, time = 0.5},    -- Right center
+        {x = 0.0, y = 0.5, time = 1.0}     -- Back to left
+      },
+      loop = true,
+      duration = 2.0
+    },
+    
+    -- Y sweep: sweep Y axis at center X
+    y_sweep = {
+      enabled = true,
+      points = {
+        {x = 0.5, y = 0.0, time = 0.0},    -- Bottom center
+        {x = 0.5, y = 1.0, time = 0.5},    -- Top center
+        {x = 0.5, y = 0.0, time = 1.0}     -- Back to bottom
+      },
+      loop = true,
+      duration = 2.0
+    },
+    
+    -- Random walk: visit random positions
+    random_walk = {
+      enabled = true,
+      points = {
+        {x = 0.5, y = 0.5, time = 0.0},
+        {x = math.random(), y = math.random(), time = 0.2},
+        {x = math.random(), y = math.random(), time = 0.4},
+        {x = math.random(), y = math.random(), time = 0.6},
+        {x = math.random(), y = math.random(), time = 0.8},
+        {x = 0.5, y = 0.5, time = 1.0}
+      },
+      loop = true,
+      duration = 6.0
+    }
+  }
+  
+  return presets[preset_name] or presets.circle
+end
+
+-- ============================================================================
+-- GLOBAL MODULATION: Shared LFO sources across all groups
+-- Creates synchronized LFOs in each group master chain that modulate the same targets
+-- This provides instrument-wide modulation without being limited to a single chain
+-- ============================================================================
+
+-- LFO wave type mapping for XML generation
+local GLOBAL_MOD_LFO_TYPES = {
+  sine = 0,
+  triangle = 1,
+  square = 2,
+  saw = 3,
+  random = 4
+}
+
+-- Create a global modulation LFO on a chain
+-- Returns the LFO device or nil if creation failed
+function PakettiMetaSynthCreateGlobalModLFO(chain, lfo_config, lfo_name, target_device_index, target_param_index)
+  if not lfo_config or not lfo_config.enabled then
+    return nil
+  end
+  
+  local position = #chain.devices + 1
+  local device = PakettiMetaSynthInsertDevice(chain, "*LFO", position)
+  
+  if device then
+    device.display_name = lfo_name or "Global LFO"
+    
+    -- Calculate LFO frequency
+    local freq_param = PakettiMetaSynthCalculateLFOFrequency(
+      "free",
+      lfo_config.frequency or 0.5,
+      nil,
+      nil
+    )
+    
+    -- Get wave type
+    local wave_type = GLOBAL_MOD_LFO_TYPES[lfo_config.shape or "sine"] or 0
+    
+    -- Set LFO type parameter (parameter index for Type varies by device)
+    -- For *LFO: Type is usually parameter 4
+    local params = device.parameters
+    for pi = 1, #params do
+      local param = params[pi]
+      if param.name == "Type" then
+        -- Set to specified wave type
+        param.value = wave_type / 4.0  -- Normalize to 0-1 range (5 types: 0,1,2,3,4)
+        break
+      end
+    end
+    
+    -- Set frequency
+    for pi = 1, #params do
+      local param = params[pi]
+      if param.name == "Frequency" then
+        param.value = freq_param
+        break
+      end
+    end
+    
+    -- Set amplitude (modulation depth)
+    for pi = 1, #params do
+      local param = params[pi]
+      if param.name == "Amplitude" then
+        param.value = lfo_config.amplitude or 0.5
+        break
+      end
+    end
+    
+    -- Set offset (center point)
+    for pi = 1, #params do
+      local param = params[pi]
+      if param.name == "Offset" then
+        param.value = lfo_config.offset or 0.0
+        break
+      end
+    end
+    
+    -- Set routing if target specified
+    if target_device_index and target_param_index then
+      local effect_index = target_device_index - 1
+      device.parameters[1].value = -1            -- Current chain
+      device.parameters[2].value = effect_index  -- Target device
+      device.parameters[3].value = target_param_index  -- Target parameter
+    end
+    
+    return device
+  end
+  
+  return nil
+end
+
+-- Add global modulation to group master chains
+-- Creates synchronized LFOs in each group based on global_modulation settings
+function PakettiMetaSynthAddGlobalModulation(group_master_chains, architecture)
+  local global_mod = architecture.global_modulation
+  if not global_mod or not global_mod.enabled then
+    return
+  end
+  
+  print("PakettiMetaSynth: Adding Global Modulation to groups")
+  
+  local lfo1_config = global_mod.lfo1
+  local lfo2_config = global_mod.lfo2
+  
+  for gi, group_master_info in ipairs(group_master_chains) do
+    local chain = group_master_info.chain
+    
+    -- Add Global LFO 1 if enabled
+    if lfo1_config and lfo1_config.enabled then
+      -- Find target device and parameter based on target name
+      local target_info = PakettiMetaSynthResolveGlobalModTarget(chain, lfo1_config.targets, gi)
+      
+      local lfo1 = PakettiMetaSynthCreateGlobalModLFO(
+        chain,
+        lfo1_config,
+        string.format("Global LFO1 G%d", gi),
+        target_info.device_index,
+        target_info.param_index
+      )
+      
+      if lfo1 then
+        group_master_info.global_lfo1 = lfo1
+        print(string.format("PakettiMetaSynth: Added Global LFO1 to '%s' (%.2f Hz, %s)",
+          group_master_info.chain_name, lfo1_config.frequency, lfo1_config.shape))
+      end
+    end
+    
+    -- Add Global LFO 2 if enabled
+    if lfo2_config and lfo2_config.enabled then
+      local target_info = PakettiMetaSynthResolveGlobalModTarget(chain, lfo2_config.targets, gi)
+      
+      local lfo2 = PakettiMetaSynthCreateGlobalModLFO(
+        chain,
+        lfo2_config,
+        string.format("Global LFO2 G%d", gi),
+        target_info.device_index,
+        target_info.param_index
+      )
+      
+      if lfo2 then
+        group_master_info.global_lfo2 = lfo2
+        print(string.format("PakettiMetaSynth: Added Global LFO2 to '%s' (%.2f Hz, %s)",
+          group_master_info.chain_name, lfo2_config.frequency, lfo2_config.shape))
+      end
+    end
+  end
+end
+
+-- Resolve global modulation target to device/parameter indices
+-- targets can include: "group_gain", "filter_cutoff", "filter_resonance", etc.
+function PakettiMetaSynthResolveGlobalModTarget(chain, targets, group_index)
+  local result = {
+    device_index = nil,
+    param_index = nil
+  }
+  
+  if not targets or #targets == 0 then
+    return result
+  end
+  
+  local target_name = targets[1]  -- Use first target for now
+  
+  -- Search for target device in chain
+  for di = 1, #chain.devices do
+    local device = chain.devices[di]
+    local device_name = device.display_name or device.name
+    
+    -- Match target name to device type
+    if target_name == "group_gain" then
+      if device_name:find("Group") and device_name:find("Gainer") then
+        result.device_index = di
+        result.param_index = 1  -- Gain parameter
+        break
+      end
+    elseif target_name == "filter_cutoff" then
+      if device_name:find("Filter") then
+        -- Look for cutoff parameter
+        for pi = 1, #device.parameters do
+          if device.parameters[pi].name:find("Cutoff") or 
+             device.parameters[pi].name:find("Frequency") then
+            result.device_index = di
+            result.param_index = pi
+            break
+          end
+        end
+        if result.device_index then break end
+      end
+    elseif target_name == "filter_resonance" then
+      if device_name:find("Filter") then
+        for pi = 1, #device.parameters do
+          if device.parameters[pi].name:find("Resonance") or 
+             device.parameters[pi].name:find("Q") then
+            result.device_index = di
+            result.param_index = pi
+            break
+          end
+        end
+        if result.device_index then break end
+      end
+    elseif target_name == "scan_gain" then
+      if device_name:find("Scan") and device_name:find("Gainer") then
+        result.device_index = di
+        result.param_index = 1
+        break
+      end
+    elseif target_name == "vector_gain" then
+      if device_name:find("Vector") then
+        result.device_index = di
+        result.param_index = 1
+        break
+      end
+    end
+  end
+  
+  return result
+end
+
+-- Helper to get available global modulation targets for UI
+function PakettiMetaSynthGetGlobalModTargets()
+  return {
+    {name = "group_gain", label = "Group Gain"},
+    {name = "scan_gain", label = "Scan Gain"},
+    {name = "vector_gain", label = "Vector Gain"},
+    {name = "filter_cutoff", label = "Filter Cutoff"},
+    {name = "filter_resonance", label = "Filter Resonance"}
+  }
+end
+
+-- Get default global modulation settings
+function PakettiMetaSynthGetDefaultGlobalModulation()
+  return {
+    enabled = false,
+    lfo1 = {
+      enabled = false,
+      frequency = 0.5,
+      shape = "sine",
+      amplitude = 0.5,
+      offset = 0.0,
+      targets = {"group_gain"}
+    },
+    lfo2 = {
+      enabled = false,
+      frequency = 0.25,
+      shape = "triangle",
+      amplitude = 0.3,
+      offset = 0.0,
+      targets = {}
+    },
+    envelope = {
+      enabled = false,
+      attack = 0.1,
+      decay = 0.2,
+      sustain = 0.7,
+      release = 0.5,
+      targets = {}
+    }
+  }
 end
 
 -- ============================================================================
@@ -5524,9 +8389,9 @@ function PakettiMetaSynthGenerateInstrument(architecture)
   -- ========================================================================
   local chain_registry = {
     -- Per-group data
-    groups = {},  -- [group_index] = { frame_chains = {}, osc_fx_chains = {}, group_master = nil }
+    groups = {},  -- [group_index] = { oscillators = {}, group_frame_chains = {}, group_master = nil }
     -- Global
-    stacked_master = nil
+    stack_master = nil
   }
   
   print("PakettiMetaSynth: === PHASE 1: Creating all chains (no sends) ===")
@@ -5564,7 +8429,16 @@ function PakettiMetaSynthGenerateInstrument(architecture)
       local total_samples_needed = osc.sample_count * osc.unison_voices
       
       if osc.sample_source == "akwf" then
-        sample_files = PakettiMetaSynthGetRandomAKWFSamples(total_samples_needed)
+        -- Use profile-driven family filtering if waveform families are specified
+        if osc.waveform_families and #osc.waveform_families > 0 then
+          sample_files = PakettiMetaSynthGetAKWFSamplesByFamily(
+            osc.waveform_families, 
+            total_samples_needed, 
+            osc.avoid_families
+          )
+        else
+          sample_files = PakettiMetaSynthGetRandomAKWFSamples(total_samples_needed)
+        end
       elseif osc.sample_source == "folder" and osc.sample_folder then
         sample_files = PakettiMetaSynthGetRandomSamplesFromFolder(osc.sample_folder, total_samples_needed)
       end
@@ -5680,6 +8554,20 @@ function PakettiMetaSynthGenerateInstrument(architecture)
       end
     end
     
+    -- CREATE GROUP FRAME CHAINS if enabled (meta-wavetable at group level)
+    local group_frame_chains = nil
+    if group.group_frames_enabled and group.group_frame_count > 1 then
+      group_frame_chains = PakettiMetaSynthCreateGroupFrameChains(
+        instrument,
+        group,
+        group.name,
+        randomization_amount
+      )
+      print(string.format("PakettiMetaSynth: Created %d Group Frame chains for '%s'", 
+        #group_frame_chains, group.name))
+    end
+    chain_registry.groups[gi].group_frame_chains = group_frame_chains
+    
     -- ALWAYS create Group Master chain as summing bus - NO ROUTING YET
     local total_groups = #architecture.oscillator_groups
     local group_master_info = PakettiMetaSynthCreateGroupMasterChain(
@@ -5695,15 +8583,28 @@ function PakettiMetaSynthGenerateInstrument(architecture)
     chain_registry.groups[gi].group_master = group_master_info
   end
   
-  -- ALWAYS create Stacked Master chain as final summing bus - NO ROUTING YET
-  local stacked_master_info = PakettiMetaSynthCreateStackedMasterChain(
+  -- ALWAYS create Stack Master chain as final summing bus - NO ROUTING YET
+  local stack_master_info = PakettiMetaSynthCreateStackedMasterChain(
     instrument,
     architecture,
     randomization_amount
   )
   
-  -- Store Stacked Master in registry (always exists now)
-  chain_registry.stacked_master = stacked_master_info
+  -- Store Stack Master in registry (always exists now)
+  chain_registry.stack_master = stack_master_info
+  
+  -- Create Global FX Frame chains if enabled - NO ROUTING YET
+  local global_fx_frame_chains = nil
+  if architecture.global_fx_frames_enabled and architecture.global_fx_frame_count > 1 then
+    print(string.format("PakettiMetaSynth: Creating %d Global FX Frame chains...", 
+      architecture.global_fx_frame_count))
+    global_fx_frame_chains = PakettiMetaSynthCreateGlobalFXFrameChains(
+      instrument,
+      architecture,
+      randomization_amount
+    )
+    chain_registry.global_fx_frames = global_fx_frame_chains
+  end
   
   -- ========================================================================
   -- PHASE 2: ADD ALL SENDS (using stable indices from registry)
@@ -5712,27 +8613,104 @@ function PakettiMetaSynthGenerateInstrument(architecture)
   
   print("PakettiMetaSynth: === PHASE 2: Adding sends with stable indices ===")
   
-  -- Collect all group master chains for Stacked Master routing
+  -- Collect all group master chains for Stack Master routing
   local all_group_master_chains = {}
   
   for gi, group_data in ipairs(chain_registry.groups) do
-    -- Collect Osc FX chains that need to route to Group Master
-    local osc_fx_chains_for_group_master = {}
+    -- Collect Osc FX chains that need routing
+    local osc_fx_chains_for_routing = {}
     
     for oi, osc_data in ipairs(group_data.oscillators) do
       -- Route Frame chains -> Osc FX chain (Osc FX always exists now)
       PakettiMetaSynthRouteFramesToOscFX(osc_data.frame_chains, osc_data.osc_fx)
-      -- Osc FX chain goes to Group Master
-      table.insert(osc_fx_chains_for_group_master, osc_data.osc_fx)
+      -- Collect Osc FX chain for group routing
+      table.insert(osc_fx_chains_for_routing, osc_data.osc_fx)
     end
     
-    -- Route Osc FX chains -> Group Master (Group Master always exists now)
-    PakettiMetaSynthRouteChainsToGroupMaster(osc_fx_chains_for_group_master, group_data.group_master)
+    -- Check if Group Frame chains are enabled
+    if group_data.group_frame_chains and #group_data.group_frame_chains > 0 then
+      -- NEW: Route Osc FX -> Group Frame chains -> Group Master
+      print(string.format("PakettiMetaSynth: Routing through %d Group Frame chains for '%s'",
+        #group_data.group_frame_chains, group_data.group_name))
+      
+      -- Route Osc FX chains to all Group Frame chains
+      PakettiMetaSynthRouteOscFXToGroupFrames(osc_fx_chains_for_routing, group_data.group_frame_chains)
+      
+      -- Add Group Frame Vector Synthesis if enabled (requires 4 frames)
+      if #group_data.group_frame_chains == 4 then
+        local group_config = architecture.oscillator_groups[gi]
+        PakettiMetaSynthAddGroupFrameVectorSynthesis(group_data.group_frame_chains, group_config, architecture)
+      end
+      
+      -- Route Group Frame chains to Group Master
+      PakettiMetaSynthRouteGroupFramesToMaster(group_data.group_frame_chains, group_data.group_master)
+    else
+      -- Standard routing: Osc FX -> Group Master
+      PakettiMetaSynthRouteChainsToGroupMaster(osc_fx_chains_for_routing, group_data.group_master)
+    end
+    
     table.insert(all_group_master_chains, group_data.group_master)
   end
   
-  -- Route Group Masters -> Stacked Master (Stacked Master always exists now)
-  PakettiMetaSynthRouteGroupMastersToStackedMaster(all_group_master_chains, chain_registry.stacked_master)
+  -- Add Inter-Group Scan if enabled (wavetable/vector across groups)
+  if architecture.group_scan_enabled and #all_group_master_chains > 1 then
+    PakettiMetaSynthAddInterGroupScan(all_group_master_chains, architecture)
+  end
+  
+  -- Add Vector Synthesis if enabled (requires exactly 4 groups)
+  if architecture.vector_enabled and #all_group_master_chains == 4 then
+    PakettiMetaSynthAddVectorSynthesis(all_group_master_chains, architecture)
+  end
+  
+  -- Add Global Modulation if enabled (shared LFOs across all groups)
+  if architecture.global_modulation and architecture.global_modulation.enabled then
+    PakettiMetaSynthAddGlobalModulation(all_group_master_chains, architecture)
+  end
+  
+  -- Route Group Masters -> Stack Master (Stack Master always exists now)
+  PakettiMetaSynthRouteGroupMastersToStackedMaster(all_group_master_chains, chain_registry.stack_master)
+  
+  -- Route Stack Master -> Global FX Frame chains (if enabled)
+  if chain_registry.global_fx_frames and #chain_registry.global_fx_frames > 0 then
+    print(string.format("PakettiMetaSynth: Routing Stack Master through %d Global FX Frame chains",
+      #chain_registry.global_fx_frames))
+    PakettiMetaSynthRouteStackedMasterToGlobalFrames(chain_registry.stack_master, chain_registry.global_fx_frames)
+    
+    -- Add Global FX Wavetable Scan if enabled
+    if architecture.global_fx_scan_enabled and #chain_registry.global_fx_frames >= 2 then
+      PakettiMetaSynthAddGlobalFXWavetableScan(chain_registry.global_fx_frames, architecture)
+    end
+    
+    -- Add Global FX Vector Synthesis if enabled (requires exactly 4 frames)
+    if architecture.global_fx_vector_enabled and #chain_registry.global_fx_frames == 4 then
+      PakettiMetaSynthAddGlobalFXVectorSynthesis(chain_registry.global_fx_frames, architecture)
+    end
+  end
+  
+  -- ========================================================================
+  -- FINAL OUTPUT STAGE (Master EQ, Limiter, Output Shaping)
+  -- ========================================================================
+  local final_output_info = nil
+  if architecture.final_output_enabled then
+    final_output_info = PakettiMetaSynthCreateFinalOutputChain(instrument, architecture, randomization_amount)
+    chain_registry.final_output = final_output_info
+    
+    -- Route to Final Output from the last stage
+    if final_output_info then
+      if chain_registry.global_fx_frames and #chain_registry.global_fx_frames > 0 then
+        -- Route from each Global FX Frame to Final Output
+        for _, frame_info in ipairs(chain_registry.global_fx_frames) do
+          PakettiMetaSynthRouteToFinalOutput(frame_info, final_output_info)
+        end
+      else
+        -- Route from Stack Master to Final Output
+        PakettiMetaSynthRouteToFinalOutput(chain_registry.stack_master, final_output_info)
+      end
+    end
+  end
+  
+  -- Add Spectral Morph Macro if enabled
+  PakettiMetaSynthAddSpectralMorphMacro(instrument, architecture)
   
   -- ========================================================================
   -- FINALIZATION
@@ -5744,6 +8722,33 @@ function PakettiMetaSynthGenerateInstrument(architecture)
     if macro_idx >= 1 and macro_idx <= 8 then
       instrument.macros[macro_idx].name = "Crossfade"
       instrument.macros[macro_idx].value = 0.5
+    end
+  end
+  
+  -- Set up Group Scan macro if using macro control
+  if architecture.group_scan_enabled and architecture.group_scan_control_source == "macro" then
+    local macro_idx = architecture.group_scan_macro_index or 6
+    if macro_idx >= 1 and macro_idx <= 8 then
+      instrument.macros[macro_idx].name = "Group Scan"
+      instrument.macros[macro_idx].value = 0.5
+    end
+  end
+  
+  -- Set up Vector macros if using macro control
+  if architecture.vector_enabled then
+    if architecture.vector_x_source == "macro" then
+      local macro_idx = architecture.vector_x_macro or 7
+      if macro_idx >= 1 and macro_idx <= 8 then
+        instrument.macros[macro_idx].name = "Vector X"
+        instrument.macros[macro_idx].value = 0.5
+      end
+    end
+    if architecture.vector_y_source == "macro" then
+      local macro_idx = architecture.vector_y_macro or 8
+      if macro_idx >= 1 and macro_idx <= 8 then
+        instrument.macros[macro_idx].name = "Vector Y"
+        instrument.macros[macro_idx].value = 0.5
+      end
     end
   end
   
@@ -5802,7 +8807,7 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
   -- Registry to track all chains for routing
   local chain_registry = {
     groups = {},
-    stacked_master = nil
+    stack_master = nil
   }
   
   print("PakettiMetaSynth Wavetable: === PHASE 1: Creating all chains ===")
@@ -5838,7 +8843,16 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
       local total_samples_needed = osc.sample_count * osc.unison_voices
       
       if osc.sample_source == "akwf" then
-        sample_files = PakettiMetaSynthGetRandomAKWFSamples(total_samples_needed)
+        -- Use profile-driven family filtering if waveform families are specified
+        if osc.waveform_families and #osc.waveform_families > 0 then
+          sample_files = PakettiMetaSynthGetAKWFSamplesByFamily(
+            osc.waveform_families, 
+            total_samples_needed, 
+            osc.avoid_families
+          )
+        else
+          sample_files = PakettiMetaSynthGetRandomAKWFSamples(total_samples_needed)
+        end
       elseif osc.sample_source == "folder" and osc.sample_folder then
         sample_files = PakettiMetaSynthGetRandomSamplesFromFolder(osc.sample_folder, total_samples_needed)
       end
@@ -6054,6 +9068,22 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
     end
     
     -- ================================================================
+    -- CREATE GROUP FRAME CHAINS (if enabled - meta-wavetable at group level)
+    -- ================================================================
+    local group_frame_chains = nil
+    if group.group_frames_enabled and group.group_frame_count > 1 then
+      group_frame_chains = PakettiMetaSynthCreateGroupFrameChains(
+        instrument,
+        group,
+        group.name,
+        randomization_amount
+      )
+      print(string.format("PakettiMetaSynth Wavetable: Created %d Group Frame chains for '%s'", 
+        #group_frame_chains, group.name))
+    end
+    chain_registry.groups[gi].group_frame_chains = group_frame_chains
+    
+    -- ================================================================
     -- CREATE GROUP MASTER CHAIN
     -- ================================================================
     local total_groups = #architecture.oscillator_groups
@@ -6072,12 +9102,25 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
   -- ================================================================
   -- CREATE STACKED MASTER CHAIN
   -- ================================================================
-  local stacked_master_info = PakettiMetaSynthCreateStackedMasterChain(
+  local stack_master_info = PakettiMetaSynthCreateStackedMasterChain(
     instrument,
     architecture,
     randomization_amount
   )
-  chain_registry.stacked_master = stacked_master_info
+  chain_registry.stack_master = stack_master_info
+  
+  -- Create Global FX Frame chains if enabled - NO ROUTING YET
+  local global_fx_frame_chains = nil
+  if architecture.global_fx_frames_enabled and architecture.global_fx_frame_count > 1 then
+    print(string.format("PakettiMetaSynth Wavetable: Creating %d Global FX Frame chains...", 
+      architecture.global_fx_frame_count))
+    global_fx_frame_chains = PakettiMetaSynthCreateGlobalFXFrameChains(
+      instrument,
+      architecture,
+      randomization_amount
+    )
+    chain_registry.global_fx_frames = global_fx_frame_chains
+  end
   
   -- ========================================================================
   -- PHASE 2: ADD ALL ROUTING (#Send devices)
@@ -6131,13 +9174,90 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
       table.insert(osc_fx_chains_for_group, osc_fx)
     end
     
-    -- Route all Osc FX chains -> Group Master
-    PakettiMetaSynthRouteChainsToGroupMaster(osc_fx_chains_for_group, group_data.group_master)
+    -- Check if Group Frame chains are enabled
+    if group_data.group_frame_chains and #group_data.group_frame_chains > 0 then
+      -- NEW: Route Osc FX -> Group Frame chains -> Group Master
+      print(string.format("PakettiMetaSynth Wavetable: Routing through %d Group Frame chains for '%s'",
+        #group_data.group_frame_chains, group_data.group_name))
+      
+      -- Route Osc FX chains to all Group Frame chains
+      PakettiMetaSynthRouteOscFXToGroupFrames(osc_fx_chains_for_group, group_data.group_frame_chains)
+      
+      -- Add Group Frame Vector Synthesis if enabled (requires 4 frames)
+      if #group_data.group_frame_chains == 4 then
+        local group_config = architecture.oscillator_groups[gi]
+        PakettiMetaSynthAddGroupFrameVectorSynthesis(group_data.group_frame_chains, group_config, architecture)
+      end
+      
+      -- Route Group Frame chains to Group Master
+      PakettiMetaSynthRouteGroupFramesToMaster(group_data.group_frame_chains, group_data.group_master)
+    else
+      -- Standard routing: Osc FX -> Group Master
+      PakettiMetaSynthRouteChainsToGroupMaster(osc_fx_chains_for_group, group_data.group_master)
+    end
+    
     table.insert(all_group_master_chains, group_data.group_master)
   end
   
-  -- Route Group Masters -> Stacked Master
-  PakettiMetaSynthRouteGroupMastersToStackedMaster(all_group_master_chains, chain_registry.stacked_master)
+  -- Add Inter-Group Scan if enabled (wavetable/vector across groups)
+  if architecture.group_scan_enabled and #all_group_master_chains > 1 then
+    PakettiMetaSynthAddInterGroupScan(all_group_master_chains, architecture)
+  end
+  
+  -- Add Vector Synthesis if enabled (requires exactly 4 groups)
+  if architecture.vector_enabled and #all_group_master_chains == 4 then
+    PakettiMetaSynthAddVectorSynthesis(all_group_master_chains, architecture)
+  end
+  
+  -- Add Global Modulation if enabled (shared LFOs across all groups)
+  if architecture.global_modulation and architecture.global_modulation.enabled then
+    PakettiMetaSynthAddGlobalModulation(all_group_master_chains, architecture)
+  end
+  
+  -- Route Group Masters -> Stack Master
+  PakettiMetaSynthRouteGroupMastersToStackedMaster(all_group_master_chains, chain_registry.stack_master)
+  
+  -- Route Stack Master -> Global FX Frame chains (if enabled)
+  if chain_registry.global_fx_frames and #chain_registry.global_fx_frames > 0 then
+    print(string.format("PakettiMetaSynth Wavetable: Routing Stack Master through %d Global FX Frame chains",
+      #chain_registry.global_fx_frames))
+    PakettiMetaSynthRouteStackedMasterToGlobalFrames(chain_registry.stack_master, chain_registry.global_fx_frames)
+    
+    -- Add Global FX Wavetable Scan if enabled
+    if architecture.global_fx_scan_enabled and #chain_registry.global_fx_frames >= 2 then
+      PakettiMetaSynthAddGlobalFXWavetableScan(chain_registry.global_fx_frames, architecture)
+    end
+    
+    -- Add Global FX Vector Synthesis if enabled (requires exactly 4 frames)
+    if architecture.global_fx_vector_enabled and #chain_registry.global_fx_frames == 4 then
+      PakettiMetaSynthAddGlobalFXVectorSynthesis(chain_registry.global_fx_frames, architecture)
+    end
+  end
+  
+  -- ========================================================================
+  -- FINAL OUTPUT STAGE (Master EQ, Limiter, Output Shaping)
+  -- ========================================================================
+  local final_output_info = nil
+  if architecture.final_output_enabled then
+    final_output_info = PakettiMetaSynthCreateFinalOutputChain(instrument, architecture, randomization_amount)
+    chain_registry.final_output = final_output_info
+    
+    -- Route to Final Output from the last stage
+    if final_output_info then
+      if chain_registry.global_fx_frames and #chain_registry.global_fx_frames > 0 then
+        -- Route from each Global FX Frame to Final Output
+        for _, frame_info in ipairs(chain_registry.global_fx_frames) do
+          PakettiMetaSynthRouteToFinalOutput(frame_info, final_output_info)
+        end
+      else
+        -- Route from Stack Master to Final Output
+        PakettiMetaSynthRouteToFinalOutput(chain_registry.stack_master, final_output_info)
+      end
+    end
+  end
+  
+  -- Add Spectral Morph Macro if enabled
+  PakettiMetaSynthAddSpectralMorphMacro(instrument, architecture)
   
   -- ========================================================================
   -- FINALIZATION
@@ -6148,6 +9268,33 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
     if macro_idx >= 1 and macro_idx <= 8 then
       instrument.macros[macro_idx].name = "Frame Morph"
       instrument.macros[macro_idx].value = 0.5
+    end
+  end
+  
+  -- Set up Group Scan macro if using macro control
+  if architecture.group_scan_enabled and architecture.group_scan_control_source == "macro" then
+    local macro_idx = architecture.group_scan_macro_index or 6
+    if macro_idx >= 1 and macro_idx <= 8 then
+      instrument.macros[macro_idx].name = "Group Scan"
+      instrument.macros[macro_idx].value = 0.5
+    end
+  end
+  
+  -- Set up Vector macros if using macro control
+  if architecture.vector_enabled then
+    if architecture.vector_x_source == "macro" then
+      local macro_idx = architecture.vector_x_macro or 7
+      if macro_idx >= 1 and macro_idx <= 8 then
+        instrument.macros[macro_idx].name = "Vector X"
+        instrument.macros[macro_idx].value = 0.5
+      end
+    end
+    if architecture.vector_y_source == "macro" then
+      local macro_idx = architecture.vector_y_macro or 8
+      if macro_idx >= 1 and macro_idx <= 8 then
+        instrument.macros[macro_idx].name = "Vector Y"
+        instrument.macros[macro_idx].value = 0.5
+      end
     end
   end
   
@@ -6213,25 +9360,52 @@ function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining, profile
   local profile_unison = PakettiMetaSynthGetIntInRange(unison_range)
   osc.unison_voices = math.min(profile_unison, max_unison)
   
-  -- Check if a custom sample folder is configured
-  if PakettiMetaSynthLastFolderPath and PakettiMetaSynthLastFolderPath ~= "" then
-    -- Folder path is configured - allow random selection between akwf and folder
+  -- Get sample selection rules from profile
+  local sample_rules = PakettiMetaSynthResolveProfile("sample_selection", nil, group, architecture)
+  local source_pref = sample_rules.source_preference or "akwf"
+  local waveform_families = sample_rules.waveform_families or {}
+  local avoid_families = sample_rules.avoid_families or {}
+  
+  -- Determine sample source based on profile preference and folder availability
+  if source_pref == "folder" and PakettiMetaSynthLastFolderPath and PakettiMetaSynthLastFolderPath ~= "" then
+    osc.sample_source = "folder"
+    osc.sample_folder = PakettiMetaSynthLastFolderPath
+  elseif source_pref == "both" and PakettiMetaSynthLastFolderPath and PakettiMetaSynthLastFolderPath ~= "" then
+    -- Mix between folder and AKWF based on random selection
+    local sources = {"akwf", "akwf", "folder"}
+    osc.sample_source = sources[math.random(1, #sources)]
+    if osc.sample_source == "folder" then
+      osc.sample_folder = PakettiMetaSynthLastFolderPath
+    end
+  elseif source_pref == "akwf_first" and PakettiMetaSynthLastFolderPath and PakettiMetaSynthLastFolderPath ~= "" then
+    -- Prefer AKWF but allow folder as fallback
     local sources = {"akwf", "akwf", "akwf", "folder"}
     osc.sample_source = sources[math.random(1, #sources)]
     if osc.sample_source == "folder" then
       osc.sample_folder = PakettiMetaSynthLastFolderPath
     end
+  elseif source_pref == "folder_first" and PakettiMetaSynthLastFolderPath and PakettiMetaSynthLastFolderPath ~= "" then
+    -- Prefer folder but allow AKWF as fallback
+    local sources = {"folder", "folder", "folder", "akwf"}
+    osc.sample_source = sources[math.random(1, #sources)]
+    if osc.sample_source == "folder" then
+      osc.sample_folder = PakettiMetaSynthLastFolderPath
+    end
   else
-    -- No folder path configured - always use AKWF
+    -- Default to AKWF
     osc.sample_source = "akwf"
   end
+  
+  -- Store waveform families for profile-driven AKWF selection
+  osc.waveform_families = waveform_families
+  osc.avoid_families = avoid_families
   
   -- Random spread values using profile ranges
   osc.detune_spread = PakettiMetaSynthGetValueInRange(detune_range)
   osc.pan_spread = PakettiMetaSynthGetValueInRange(pan_range)
   
-  -- Oscillator FX settings - guided by frame rules
-  local fx_tendencies = frame_rules.fx_tendencies or {}
+  -- Oscillator FX settings - guided by FX profile (if set) or frame rules
+  local fx_tendencies = PakettiMetaSynthGetFXTendencies("frame", nil, group, architecture)
   local fx_count_range = frame_rules.fx_count_range or {1, 4}
   
   osc.osc_fx_enabled = true
@@ -6334,7 +9508,7 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       crossfade_mode = ({"linear", "xy", "stack"})[math.random(1, 3)],
       -- Group crossfade settings (wavetable scanning) - guided by profile
       group_crossfade_enabled = group_rules.crossfade_enabled ~= false,
-      group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
+      group_crossfade_curve = PakettiMetaSynthGetRandomCrossfadeCurve(),
       -- Group LFO rate settings - guided by profile
       group_lfo_rate_mode = group_rate_mode,
       group_lfo_rate_free = 0.1 + math.random() * 1.9,  -- 0.1-2.0 Hz
@@ -6351,7 +9525,7 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       group_frame_count = PakettiMetaSynthGetIntInRange(group_frame_rules.frame_count_range or {1, 1}),
       group_frame_morph_enabled = group_frame_rules.morph_enabled == true,
       group_frame_morph_speed = group_frame_rules.morph_speed or "none",
-      group_frame_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
+      group_frame_crossfade_curve = PakettiMetaSynthGetRandomCrossfadeCurve(),
       group_frame_control_source = "lfo",  -- Always LFO for now
       group_frame_lfo_rate_preset = rate_presets[math.random(1, #rate_presets)],
       group_frame_fx_enabled = group_frame_rules.enabled and #(group_frame_rules.fx_tendencies or {}) > 0,
@@ -6365,8 +9539,8 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       oscillators = {}
     }
     
-    -- Set group FX types from profile tendencies
-    local fx_tendencies = group_fx_rules.tendencies or {}
+    -- Set group FX types from FX profile (respects fx_profile_override) or sound profile
+    local fx_tendencies = PakettiMetaSynthGetFXTendencies("group", nil, group, architecture)
     if #fx_tendencies > 0 then
       local shuffled = {}
       for _, fx in ipairs(fx_tendencies) do table.insert(shuffled, fx) end
@@ -6424,7 +9598,7 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
   -- Random crossfade settings - guided by frame rules from global profile
   local frame_rules = PakettiMetaSynthResolveProfile("frame", nil, nil, architecture)
   
-  architecture.crossfade.curve_type = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)]
+  architecture.crossfade.curve_type = PakettiMetaSynthGetRandomCrossfadeCurve()
   -- Always use LFO for now - macro mode routing is not fully implemented
   architecture.crossfade.control_source = "lfo"
   architecture.crossfade.macro_index = math.random(1, 4)
@@ -6461,14 +9635,14 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
   end
   architecture.fx_randomization.device_pool = pool
   
-  -- Stacked Master FX settings - always enabled for full architecture
-  architecture.stacked_master_fx_enabled = true
-  architecture.stacked_master_fx_mode = math.random() > 0.5 and "random" or "selective"
-  architecture.stacked_master_fx_count = math.random(1, 4)
-  architecture.stacked_master_fx_types = {}
+  -- Stack Master FX settings - always enabled for full architecture
+  architecture.stack_master_fx_enabled = true
+  architecture.stack_master_fx_mode = math.random() > 0.5 and "random" or "selective"
+  architecture.stack_master_fx_count = math.random(1, 4)
+  architecture.stack_master_fx_types = {}
   
   -- If selective mode, randomly pick some FX types for stacked master
-  if architecture.stacked_master_fx_mode == "selective" then
+  if architecture.stack_master_fx_mode == "selective" then
     local fx_names = PakettiMetaSynthGetSelectableFXTypeNames()
     local num_types = math.random(1, math.min(3, #fx_names))
     local shuffled_types = {}
@@ -6478,7 +9652,7 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       shuffled_types[i], shuffled_types[j] = shuffled_types[j], shuffled_types[i]
     end
     for i = 1, num_types do
-      table.insert(architecture.stacked_master_fx_types, shuffled_types[i])
+      table.insert(architecture.stack_master_fx_types, shuffled_types[i])
     end
   end
   
@@ -6527,6 +9701,21 @@ function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
     return
   end
   
+  -- Renoise has a maximum of 255 instruments per song
+  local current_count = #song.instruments
+  local available_slots = 255 - current_count
+  
+  if available_slots <= 0 then
+    renoise.app():show_warning("Cannot add more instruments - song already has 255 instruments (maximum)")
+    return
+  end
+  
+  -- Cap the requested count to available slots
+  if count > available_slots then
+    renoise.app():show_status(string.format("PakettiMetaSynth: Limiting batch to %d instruments (max 255 per song)", available_slots))
+    count = available_slots
+  end
+  
   for i = 1, count do
     -- Fresh random seeds for each instrument to ensure uniqueness
     trueRandomSeed()
@@ -6567,65 +9756,87 @@ function PakettiMetaSynthShowBatchGenerationDialog()
   PakettiMetaSynthBatchDialogVb = renoise.ViewBuilder()
   local vb = PakettiMetaSynthBatchDialogVb
   
+  -- Function to execute batch generation
+  local function execute_batch_generation()
+    local count_text = vb.views.instrument_count.text
+    local count = tonumber(count_text)
+    if not count or count < 1 then
+      count = 10
+    end
+    if count > 1000 then
+      count = 1000
+    end
+    
+    local type_idx = vb.views.generation_type.value
+    local gen_type = "standard"
+    if type_idx == 2 then
+      gen_type = "sends"
+    elseif type_idx == 3 then
+      gen_type = "wavetable"
+    end
+    
+    -- Close dialog before generating
+    if PakettiMetaSynthBatchDialogHandle then
+      PakettiMetaSynthBatchDialogHandle:close()
+      PakettiMetaSynthBatchDialogHandle = nil
+    end
+    
+    -- Generate instruments
+    PakettiMetaSynthGenerateBatchInstruments(gen_type, count)
+  end
+  
+  -- Key handler for Enter key
+  local function batch_key_handler(dialog, key)
+    if key.name == "return" or key.name == "numpadenter" then
+      execute_batch_generation()
+      return nil  -- Consume the key
+    elseif key.name == "esc" then
+      if PakettiMetaSynthBatchDialogHandle then
+        PakettiMetaSynthBatchDialogHandle:close()
+        PakettiMetaSynthBatchDialogHandle = nil
+      end
+      return nil
+    end
+    return key
+  end
+  
   local dialog_content = vb:column {
-    margin = 10,
-    spacing = 8,
-    
-    vb:text { text = "MetaSynth Batch Generation", font = "bold" },
-    
-    vb:space { height = 5 },
-    
     vb:row {
-      vb:text { text = "Number of instruments:", width = 130 },
-      vb:valuebox {
+      vb:text { text = "Number of instruments", width = 140 },
+      vb:textfield {
         id = "instrument_count",
-        min = 1,
-        max = 1000,
-        value = 10,
-        width = 80
+        text = "10",
+        width = 120,
+        edit_mode = true,
+        notifier = function(value)
+          -- notifier fires when Enter is pressed to confirm textfield
+          local num = tonumber(value)
+          if num and num >= 1 and num <= 1000 then
+            execute_batch_generation()
+          end
+        end
       }
     },
     
     vb:row {
-      vb:text { text = "Generation type:", width = 130 },
+      vb:text { text = "Generation type", width = 140 },
       vb:popup {
         id = "generation_type",
         items = {"Standard", "With Sends", "Wavetable"},
         value = 1,
-        width = 150
+        width = 120
       }
     },
     
-    vb:space { height = 10 },
-    
     vb:row {
-      spacing = 10,
       vb:button {
         text = "Generate",
-        width = 100,
-        notifier = function()
-          local count = vb.views.instrument_count.value
-          local type_idx = vb.views.generation_type.value
-          local gen_type = "standard"
-          if type_idx == 2 then
-            gen_type = "sends"
-          elseif type_idx == 3 then
-            gen_type = "wavetable"
-          end
-          
-          -- Close dialog before generating
-          if PakettiMetaSynthBatchDialogHandle then
-            PakettiMetaSynthBatchDialogHandle:close()
-            PakettiMetaSynthBatchDialogHandle = nil
-          end
-          
-          -- Generate instruments
-          PakettiMetaSynthGenerateBatchInstruments(gen_type, count)
-        end
+        width = 130,
+        notifier = execute_batch_generation
       },
       vb:button {
         text = "Cancel",
-        width = 80,
+        width = 130,
         notifier = function()
           if PakettiMetaSynthBatchDialogHandle then
             PakettiMetaSynthBatchDialogHandle:close()
@@ -6633,13 +9844,19 @@ function PakettiMetaSynthShowBatchGenerationDialog()
           end
         end
       }
-    }
+    },
+    
+    vb:text { text = "Press Enter to generate, Esc to cancel", style = "disabled" }
   }
   
   PakettiMetaSynthBatchDialogHandle = renoise.app():show_custom_dialog(
     "MetaSynth Batch Generation",
-    dialog_content
+    dialog_content,
+    batch_key_handler
   )
+  
+  -- Set focus to the textfield and focus Renoise
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 -- Randomize architecture for wavetable mode
@@ -6682,7 +9899,7 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
       crossfade_mode = "linear",
       -- Group crossfade = wavetable scanning between oscillators - always enabled
       group_crossfade_enabled = true,
-      group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
+      group_crossfade_curve = PakettiMetaSynthGetRandomCrossfadeCurve(),
       -- Group LFO rate settings (wavetable scanning speed) - guided by profile
       group_lfo_rate_mode = group_rate_mode,
       group_lfo_rate_free = 0.1 + math.random() * 0.9,  -- 0.1-1.0 Hz (slower for wavetable)
@@ -6700,7 +9917,7 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
       group_frame_count = PakettiMetaSynthGetIntInRange(group_frame_rules.frame_count_range or {1, 1}),
       group_frame_morph_enabled = group_frame_rules.morph_enabled == true,
       group_frame_morph_speed = group_frame_rules.morph_speed or "none",
-      group_frame_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
+      group_frame_crossfade_curve = PakettiMetaSynthGetRandomCrossfadeCurve(),
       group_frame_control_source = "lfo",
       group_frame_lfo_rate_preset = rate_presets[math.random(1, #rate_presets)],
       group_frame_fx_enabled = group_frame_rules.enabled and #(group_frame_rules.fx_tendencies or {}) > 0,
@@ -6714,8 +9931,8 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
       oscillators = {}
     }
     
-    -- Set group FX types from profile tendencies
-    local fx_tendencies = group_fx_rules.tendencies or {}
+    -- Set group FX types from FX profile (respects fx_profile_override) or sound profile
+    local fx_tendencies = PakettiMetaSynthGetFXTendencies("group", nil, group, architecture)
     if #fx_tendencies > 0 then
       local shuffled = {}
       for _, fx in ipairs(fx_tendencies) do table.insert(shuffled, fx) end
@@ -6761,8 +9978,8 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
         modulation_profile = nil
       }
       
-      -- Set osc FX from frame tendencies
-      local osc_fx_tendencies = frame_rules.fx_tendencies or {}
+      -- Set osc FX from FX profile (if set) or frame tendencies
+      local osc_fx_tendencies = PakettiMetaSynthGetFXTendencies("frame", nil, group, architecture)
       if #osc_fx_tendencies > 0 then
         local shuffled = {}
         for _, fx in ipairs(osc_fx_tendencies) do table.insert(shuffled, fx) end
@@ -6798,7 +10015,7 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
   -- Crossfade settings for frame morphing - guided by frame rules
   local frame_rules = PakettiMetaSynthResolveProfile("frame", nil, nil, architecture)
   
-  architecture.crossfade.curve_type = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)]
+  architecture.crossfade.curve_type = PakettiMetaSynthGetRandomCrossfadeCurve()
   architecture.crossfade.control_source = "lfo"  -- LFO for frame morphing
   architecture.crossfade.macro_index = 1
   
@@ -6821,12 +10038,12 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
   architecture.fx_randomization.enabled = true
   architecture.fx_randomization.param_randomization = 0.2 + math.random() * 0.3  -- 0.2-0.5
   
-  -- Stacked Master FX (global polish) - guided by global_fx rules
+  -- Stack Master FX (global polish) - guided by global_fx rules
   local global_fx_rules = PakettiMetaSynthResolveProfile("global_fx", nil, nil, architecture)
-  architecture.stacked_master_fx_enabled = true
-  architecture.stacked_master_fx_mode = "selective"
-  architecture.stacked_master_fx_count = math.random(2, 4)
-  architecture.stacked_master_fx_types = {}
+  architecture.stack_master_fx_enabled = true
+  architecture.stack_master_fx_mode = "selective"
+  architecture.stack_master_fx_count = math.random(2, 4)
+  architecture.stack_master_fx_types = {}
   
   -- Set stacked FX from global_fx tendencies
   local global_tendencies = global_fx_rules.tendencies or {}
@@ -6837,12 +10054,12 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
       local j = math.random(1, i)
       shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
     end
-    local num_fx = math.min(architecture.stacked_master_fx_count, #shuffled)
+    local num_fx = math.min(architecture.stack_master_fx_count, #shuffled)
     for i = 1, num_fx do
-      table.insert(architecture.stacked_master_fx_types, shuffled[i])
+      table.insert(architecture.stack_master_fx_types, shuffled[i])
     end
   else
-    architecture.stacked_master_fx_mode = "random"
+    architecture.stack_master_fx_mode = "random"
   end
   
   -- Modulation
@@ -7008,11 +10225,9 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
   
   return vb:column {
     id = row_id,
-    spacing = 2,
     
     -- Main oscillator controls row
     vb:row {
-      spacing = 4,
       
       vb:text {
         text = osc.name,
@@ -7159,6 +10374,12 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     curve_index = 2
   elseif group_xfade_curve == "s_curve" then
     curve_index = 3
+  elseif group_xfade_curve == "stepped" then
+    curve_index = 4
+  elseif group_xfade_curve == "spectral" then
+    curve_index = 5
+  elseif group_xfade_curve == "vector" then
+    curve_index = 6
   end
   
   -- Determine initial values for Group Master FX controls (with defaults)
@@ -7173,20 +10394,24 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
   return vb:column {
     id = group_id,
     style = "group",
-    margin = 4,
-    spacing = 4,
     
+    -- ================================================================
+    -- GROUP + MODULATION LAYER (Unified Structural Level)
+    -- Oscillator summing + modulation chain + first vector point
+    -- ================================================================
     vb:row {
       vb:text {
-        text = group.name,
+        text = group.name .. " + Mod",
         font = "bold",
-        width = 80
+        width = 100,
+        tooltip = "Group + Modulation: Oscillator summing and voice articulation"
       },
       vb:popup {
         id = group_id .. "_mode",
         items = {"Linear", "XY", "Stack"},
         value = group.crossfade_mode == "linear" and 1 or (group.crossfade_mode == "xy" and 2 or 3),
-        width = 70,
+        width = 60,
+        tooltip = "Crossfade mode for oscillators in this group",
         notifier = function(value)
           group.crossfade_mode = ({"linear", "xy", "stack"})[value]
         end
@@ -7207,6 +10432,66 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
       }
     },
     
+    -- Sound Profile & Modulation Selector Row (defines articulation)
+    vb:row {
+      spacing = 4,
+      vb:text { text = "Profile:", width = 45 },
+      vb:popup {
+        id = group_id .. "_profile",
+        items = PakettiMetaSynthProfileDisplayList,
+        value = (function()
+          if not group.profile_override then return 1 end
+          for i, name in ipairs(PakettiMetaSynthProfileNamesList) do
+            if name == group.profile_override then return i + 1 end
+          end
+          return 1
+        end)(),
+        width = 110,
+        notifier = function(value)
+          if value == 1 then
+            group.profile_override = nil
+          else
+            group.profile_override = PakettiMetaSynthProfileNamesList[value - 1]
+          end
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      vb:button {
+        text = "Load",
+        width = 35,
+        tooltip = "Load profile defaults into this group",
+        notifier = function()
+          local profile_name = group.profile_override
+          if not profile_name then
+            profile_name = PakettiMetaSynthCurrentArchitecture.global_profile or "default"
+          end
+          PakettiMetaSynthApplyProfileDefaultsToGroup(group, profile_name, PakettiMetaSynthCurrentArchitecture)
+          PakettiMetaSynthRebuildDialog()
+        end
+      },
+      vb:text { text = "FX:", width = 20 },
+      vb:popup {
+        id = group_id .. "_fx_profile",
+        items = PakettiMetaSynthFXProfileDisplayList,
+        value = (function()
+          if not group.fx_profile_override then return 1 end
+          for i, name in ipairs(PakettiMetaSynthFXProfileNamesList) do
+            if name == group.fx_profile_override then return i + 1 end
+          end
+          return 1
+        end)(),
+        width = 100,
+        notifier = function(value)
+          if value == 1 then
+            group.fx_profile_override = nil
+          else
+            group.fx_profile_override = PakettiMetaSynthFXProfileNamesList[value - 1]
+          end
+          PakettiMetaSynthUpdatePreview()
+        end
+      }
+    },
+    
     -- Group Crossfade Controls (Wavetable Scanning)
     vb:row {
       spacing = 4,
@@ -7221,11 +10506,11 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
       vb:text { text = "Group Morph", width = 65 },
       vb:popup {
         id = group_id .. "_xfade_curve",
-        items = {"Linear", "Equal Power", "S-Curve"},
+        items = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"},
         value = curve_index,
         width = 85,
         notifier = function(value)
-          group.group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[value]
+          group.group_crossfade_curve = ({"linear", "equal_power", "s_curve", "stepped", "spectral", "vector"})[value]
         end
       },
       vb:text { text = "LFO:" },
@@ -7312,6 +10597,174 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
       }
     },
     
+    -- Group Frames Controls (Meta-wavetable at group level)
+    vb:row {
+      spacing = 4,
+      vb:checkbox {
+        id = group_id .. "_gframes_enabled",
+        value = group.group_frames_enabled or false,
+        notifier = function(value)
+          group.group_frames_enabled = value
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      vb:text { text = "Group Frames", width = 70 },
+      vb:text { text = "Count:" },
+      vb:valuebox {
+        id = group_id .. "_gframe_count",
+        min = 1,
+        max = 8,
+        value = group.group_frame_count or 1,
+        width = 40,
+        notifier = function(value)
+          group.group_frame_count = value
+        end
+      },
+      vb:checkbox {
+        id = group_id .. "_gframe_morph",
+        value = group.group_frame_morph_enabled or false,
+        notifier = function(value)
+          group.group_frame_morph_enabled = value
+        end
+      },
+      vb:text { text = "Morph", width = 35 },
+      vb:popup {
+        id = group_id .. "_gframe_speed",
+        items = {"None", "Slow", "Med", "Fast"},
+        value = (function()
+          local speed = group.group_frame_morph_speed or "none"
+          if speed == "none" then return 1
+          elseif speed == "slow" then return 2
+          elseif speed == "medium" then return 3
+          else return 4 end
+        end)(),
+        width = 50,
+        notifier = function(value)
+          group.group_frame_morph_speed = ({"none", "slow", "medium", "fast"})[value]
+        end
+      }
+    },
+    
+    -- Per-Group Modulation Controls (Stepper, ARP)
+    vb:row {
+      spacing = 4,
+      vb:text { text = "Modulation:", width = 60, font = "italic" },
+      vb:checkbox {
+        id = group_id .. "_stepper_enabled",
+        value = group.stepper_enabled or false,
+        tooltip = "Enable step sequencer modulation for this group",
+        notifier = function(value)
+          group.stepper_enabled = value
+          if value and not group.stepper_config then
+            group.stepper_config = { steps = {1.0, 0.8, 0.5, 0.3}, rate = "1/16", target = "volume" }
+          end
+        end
+      },
+      vb:text { text = "Stepper", width = 45 },
+      vb:popup {
+        id = group_id .. "_stepper_target",
+        items = {"Volume", "Filter", "Pitch"},
+        value = (function()
+          local target = group.stepper_config and group.stepper_config.target or "volume"
+          if target == "volume" then return 1
+          elseif target == "filter" then return 2
+          else return 3 end
+        end)(),
+        width = 55,
+        notifier = function(value)
+          if not group.stepper_config then
+            group.stepper_config = { steps = {1.0, 0.8, 0.5, 0.3}, rate = "1/16" }
+          end
+          group.stepper_config.target = ({"volume", "filter", "pitch"})[value]
+        end
+      },
+      vb:popup {
+        id = group_id .. "_stepper_rate",
+        items = {"1/4", "1/8", "1/16", "1/32"},
+        value = (function()
+          local rate = group.stepper_config and group.stepper_config.rate or "1/16"
+          if rate == "1/4" then return 1
+          elseif rate == "1/8" then return 2
+          elseif rate == "1/16" then return 3
+          else return 4 end
+        end)(),
+        width = 45,
+        notifier = function(value)
+          if not group.stepper_config then
+            group.stepper_config = { steps = {1.0, 0.8, 0.5, 0.3} }
+          end
+          group.stepper_config.rate = ({"1/4", "1/8", "1/16", "1/32"})[value]
+        end
+      }
+    },
+    
+    -- ARP Pattern Controls
+    vb:row {
+      spacing = 4,
+      vb:text { text = "", width = 60 },
+      vb:checkbox {
+        id = group_id .. "_arp_enabled",
+        value = group.arp_enabled or false,
+        tooltip = "Enable arpeggiator-style pitch modulation for this group",
+        notifier = function(value)
+          group.arp_enabled = value
+          if value and not group.arp_config then
+            group.arp_config = { pattern = "up", rate = "1/16", octaves = 1, enabled = true }
+          end
+        end
+      },
+      vb:text { text = "ARP", width = 25 },
+      vb:popup {
+        id = group_id .. "_arp_pattern",
+        items = {"Up", "Down", "Up-Down", "Minor Up", "Minor Down", "Octave", "Fifth", "Random"},
+        value = (function()
+          local pattern = group.arp_config and group.arp_config.pattern or "up"
+          local patterns = {up=1, down=2, updown=3, minor_up=4, minor_down=5, octave=6, fifth=7, random=8}
+          return patterns[pattern] or 1
+        end)(),
+        width = 70,
+        notifier = function(value)
+          if not group.arp_config then
+            group.arp_config = { rate = "1/16", octaves = 1, enabled = true }
+          end
+          local patterns = {"up", "down", "updown", "minor_up", "minor_down", "octave", "fifth", "random"}
+          group.arp_config.pattern = patterns[value]
+        end
+      },
+      vb:popup {
+        id = group_id .. "_arp_rate",
+        items = {"1/4", "1/8", "1/16", "1/32"},
+        value = (function()
+          local rate = group.arp_config and group.arp_config.rate or "1/16"
+          if rate == "1/4" then return 1
+          elseif rate == "1/8" then return 2
+          elseif rate == "1/16" then return 3
+          else return 4 end
+        end)(),
+        width = 45,
+        notifier = function(value)
+          if not group.arp_config then
+            group.arp_config = { pattern = "up", octaves = 1, enabled = true }
+          end
+          group.arp_config.rate = ({"1/4", "1/8", "1/16", "1/32"})[value]
+        end
+      },
+      vb:text { text = "Oct:", width = 25 },
+      vb:valuebox {
+        id = group_id .. "_arp_octaves",
+        min = 1,
+        max = 4,
+        value = group.arp_config and group.arp_config.octaves or 1,
+        width = 35,
+        notifier = function(value)
+          if not group.arp_config then
+            group.arp_config = { pattern = "up", rate = "1/16", enabled = true }
+          end
+          group.arp_config.octaves = value
+        end
+      }
+    },
+    
     osc_rows
   }
 end
@@ -7389,8 +10842,8 @@ function PakettiMetaSynthUpdatePreview()
     if group_master_count > 0 then
       table.insert(master_info, string.format("Grp:%d", group_master_count))
     end
-    -- Check Stacked Master FX
-    if PakettiMetaSynthCurrentArchitecture.stacked_master_fx_enabled then
+    -- Check Stack Master FX
+    if PakettiMetaSynthCurrentArchitecture.stack_master_fx_enabled then
       table.insert(master_info, "Stack")
     end
     
@@ -7398,6 +10851,51 @@ function PakettiMetaSynthUpdatePreview()
       master_fx_text.text = string.format("Master FX: %s", table.concat(master_info, "+"))
     else
       master_fx_text.text = "Master FX: Off"
+    end
+  end
+  
+  -- Update Global FX Frames display
+  local global_frames_text = vb.views["preview_global_frames"]
+  if global_frames_text then
+    if PakettiMetaSynthCurrentArchitecture.global_fx_frames_enabled and 
+       PakettiMetaSynthCurrentArchitecture.global_fx_frame_count > 1 then
+      local morph_info = PakettiMetaSynthCurrentArchitecture.global_fx_frame_morph_enabled and "M" or ""
+      local fx_info = PakettiMetaSynthCurrentArchitecture.global_fx_frame_fx_enabled and 
+        string.format("+%dFX", PakettiMetaSynthCurrentArchitecture.global_fx_frame_fx_count) or ""
+      global_frames_text.text = string.format("Global Frames: %d%s%s", 
+        PakettiMetaSynthCurrentArchitecture.global_fx_frame_count, morph_info, fx_info)
+    else
+      global_frames_text.text = "Global Frames: Off"
+    end
+  end
+  
+  -- Update Group Scan display
+  local group_scan_text = vb.views["preview_group_scan"]
+  if group_scan_text then
+    local num_groups = #PakettiMetaSynthCurrentArchitecture.oscillator_groups
+    if PakettiMetaSynthCurrentArchitecture.group_scan_enabled and num_groups > 1 then
+      local curve_abbrev = ({linear = "L", equal_power = "EP", s_curve = "S", stepped = "St", spectral = "Sp", vector = "V"})[
+        PakettiMetaSynthCurrentArchitecture.group_scan_curve or "equal_power"] or "EP"
+      group_scan_text.text = string.format("Group Scan: %dG/%s", num_groups, curve_abbrev)
+    else
+      group_scan_text.text = "Group Scan: Off"
+    end
+  end
+  
+  -- Update Vector display
+  local vector_text = vb.views["preview_vector"]
+  if vector_text then
+    local num_groups = #PakettiMetaSynthCurrentArchitecture.oscillator_groups
+    if PakettiMetaSynthCurrentArchitecture.vector_enabled then
+      if num_groups == 4 then
+        vector_text.text = string.format("Vector: XY M%d/%d", 
+          PakettiMetaSynthCurrentArchitecture.vector_x_macro or 7,
+          PakettiMetaSynthCurrentArchitecture.vector_y_macro or 8)
+      else
+        vector_text.text = string.format("Vector: Need 4G (have %d)", num_groups)
+      end
+    else
+      vector_text.text = "Vector: Off"
     end
   end
   
@@ -7489,6 +10987,105 @@ function PakettiMetaSynthAddGroup()
   PakettiMetaSynthRebuildDialog()
 end
 
+-- Add a new group from a profile (creates group with profile defaults applied)
+function PakettiMetaSynthAddGroupFromProfile(profile_name)
+  if not PakettiMetaSynthCurrentArchitecture then return end
+  if not profile_name or profile_name == "" or profile_name == "default" then
+    -- Fall back to regular add group
+    PakettiMetaSynthAddGroup()
+    return
+  end
+  
+  local profile = PakettiMetaSynthGetProfile(profile_name)
+  if not profile then
+    print("PakettiMetaSynth: Profile '" .. tostring(profile_name) .. "' not found, adding blank group")
+    PakettiMetaSynthAddGroup()
+    return
+  end
+  
+  -- Get profile rules for oscillator creation
+  local osc_rules = profile.oscillator or {}
+  local frame_rules = profile.frame or {}
+  local group_rules = profile.group or {}
+  local group_frame_rules = profile.group_frame or {}
+  local fx_rules = profile.group_fx or {}
+  local sample_rules = profile.sample_selection or {}
+  
+  -- Determine oscillator count (1-3 based on profile family)
+  local osc_count = 1
+  if profile.family == "pad" or profile.family == "fx" then
+    osc_count = math.random(2, 3)
+  elseif profile.family == "lead" then
+    osc_count = math.random(1, 2)
+  end
+  
+  -- Create oscillators based on profile rules
+  local oscillators = {}
+  for oi = 1, osc_count do
+    local unison_range = osc_rules.unison_range or {1, 3}
+    local frame_range = osc_rules.frame_count_range or {1, 3}
+    local detune_range = osc_rules.detune_range or {5, 20}
+    local pan_range = osc_rules.pan_spread_range or {0.2, 0.5}
+    local sample_range = osc_rules.sample_count_range or {1, 2}
+    
+    table.insert(oscillators, {
+      name = "Osc " .. oi,
+      sample_count = math.random(sample_range[1], sample_range[2]),
+      unison_voices = math.random(unison_range[1], unison_range[2]),
+      frame_count = math.random(frame_range[1], frame_range[2]),
+      sample_source = sample_rules.source_preference or "akwf",
+      sample_folder = PakettiMetaSynthLastFolderPath,
+      detune_spread = math.random(detune_range[1], detune_range[2]),
+      pan_spread = detune_range[1] + math.random() * (pan_range[2] - pan_range[1]),
+      -- Store waveform preferences from profile
+      waveform_families = sample_rules.waveform_families,
+      avoid_families = sample_rules.avoid_families,
+      -- Frame morph settings from profile
+      frame_morph_enabled = frame_rules.morph_enabled or false,
+      frame_morph_speed = frame_rules.morph_speed or "medium",
+      -- Oscillator FX settings
+      osc_fx_enabled = (#(frame_rules.fx_tendencies or {}) > 0),
+      osc_fx_mode = "selective",
+      osc_fx_count = math.random((frame_rules.fx_count_range or {1, 2})[1], (frame_rules.fx_count_range or {1, 2})[2]),
+      osc_fx_types = frame_rules.fx_tendencies or {},
+    })
+  end
+  
+  -- Create the new group with profile-derived settings
+  local new_group = {
+    name = "Group " .. string.char(64 + #PakettiMetaSynthCurrentArchitecture.oscillator_groups + 1),
+    profile_override = profile_name,  -- Remember which profile this came from
+    crossfade_mode = "linear",
+    -- Group-level crossfade settings (from profile group rules)
+    group_crossfade_enabled = group_rules.crossfade_enabled or false,
+    group_crossfade_curve = "equal_power",
+    group_crossfade_time = 4.0,
+    group_lfo_rate_preset = group_rules.lfo_rate_preset or "medium",
+    -- Group Master FX settings (from profile group_fx rules)
+    group_master_fx_enabled = fx_rules.enabled ~= false,
+    group_master_fx_mode = (#(fx_rules.tendencies or {}) > 0) and "selective" or "random",
+    group_master_fx_count = math.random((fx_rules.count_range or {1, 2})[1], (fx_rules.count_range or {1, 2})[2]),
+    group_master_fx_types = fx_rules.tendencies or {},
+    -- Group Frames settings (from profile group_frame rules)
+    group_frames_enabled = group_frame_rules.enabled or false,
+    group_frame_count = math.random((group_frame_rules.frame_count_range or {1, 1})[1], (group_frame_rules.frame_count_range or {1, 1})[2]),
+    group_frame_morph_enabled = group_frame_rules.morph_enabled or false,
+    group_frame_morph_speed = group_frame_rules.morph_speed or "none",
+    group_frame_fx_enabled = (#(group_frame_rules.fx_tendencies or {}) > 0),
+    group_frame_fx_tendencies = group_frame_rules.fx_tendencies or {},
+    group_frame_fx_count = math.random((group_frame_rules.fx_count_range or {0, 0})[1], (group_frame_rules.fx_count_range or {0, 0})[2]),
+    -- Oscillators
+    oscillators = oscillators
+  }
+  
+  table.insert(PakettiMetaSynthCurrentArchitecture.oscillator_groups, new_group)
+  
+  print(string.format("PakettiMetaSynth: Added group '%s' from profile '%s' with %d oscillator(s)", 
+    new_group.name, profile_name, #oscillators))
+  
+  PakettiMetaSynthRebuildDialog()
+end
+
 -- Remove a group
 function PakettiMetaSynthRemoveGroup(group_index)
   if not PakettiMetaSynthCurrentArchitecture then return end
@@ -7515,8 +11112,6 @@ function PakettiMetaSynthBuildDialogContent()
   
   -- Main content
   local content = vb:column {
-    margin = 8,
-    spacing = 8,
     
     -- Instrument name
     vb:row {
@@ -7531,6 +11126,53 @@ function PakettiMetaSynthBuildDialogContent()
       }
     },
     
+    -- Global Profile & FX Profile Selectors
+    vb:row {
+      spacing = 10,
+      vb:text { text = "Global Profile:", width = 85 },
+      vb:popup {
+        id = "global_profile",
+        items = PakettiMetaSynthProfileDisplayList,
+        value = (function()
+          if not arch.global_profile or arch.global_profile == "default" then return 1 end
+          for i, name in ipairs(PakettiMetaSynthProfileNamesList) do
+            if name == arch.global_profile then return i + 1 end
+          end
+          return 1
+        end)(),
+        width = 120,
+        notifier = function(value)
+          if value == 1 then
+            arch.global_profile = "default"
+          else
+            arch.global_profile = PakettiMetaSynthProfileNamesList[value - 1]
+          end
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      vb:text { text = "FX Style:", width = 55 },
+      vb:popup {
+        id = "fx_profile",
+        items = PakettiMetaSynthFXProfileDisplayList,
+        value = (function()
+          if not arch.fx_profile_override then return 1 end
+          for i, name in ipairs(PakettiMetaSynthFXProfileNamesList) do
+            if name == arch.fx_profile_override then return i + 1 end
+          end
+          return 1
+        end)(),
+        width = 110,
+        notifier = function(value)
+          if value == 1 then
+            arch.fx_profile_override = nil
+          else
+            arch.fx_profile_override = PakettiMetaSynthFXProfileNamesList[value - 1]
+          end
+          PakettiMetaSynthUpdatePreview()
+        end
+      }
+    },
+    
     -- Two-column layout
     vb:row {
       spacing = 16,
@@ -7538,16 +11180,37 @@ function PakettiMetaSynthBuildDialogContent()
       -- Left column: Oscillator Groups
       vb:column {
         style = "panel",
-        margin = 4,
         width = 460,
         
         vb:row {
           vb:text { text = "Oscillator Groups", font = "bold" },
           vb:button {
-            text = "+ Add Group",
-            width = 80,
+            text = "+ Add",
+            width = 45,
+            tooltip = "Add blank group",
             notifier = function()
               PakettiMetaSynthAddGroup()
+            end
+          },
+          vb:popup {
+            id = "add_from_profile_selector",
+            items = PakettiMetaSynthProfileDisplayList,
+            value = 1,
+            width = 100,
+            tooltip = "Select a profile to add as a new group"
+          },
+          vb:button {
+            text = "+ From Profile",
+            width = 85,
+            tooltip = "Add new group with selected profile's defaults",
+            notifier = function()
+              local popup = vb.views["add_from_profile_selector"]
+              if popup and popup.value > 1 then
+                local profile_name = PakettiMetaSynthProfileNamesList[popup.value - 1]
+                PakettiMetaSynthAddGroupFromProfile(profile_name)
+              else
+                PakettiMetaSynthAddGroup()
+              end
             end
           }
         },
@@ -7563,7 +11226,6 @@ function PakettiMetaSynthBuildDialogContent()
         -- Preview section
         vb:column {
           style = "group",
-          margin = 4,
           
           vb:text { text = "Preview", font = "bold" },
           vb:text { id = "preview_samples", text = "Samples: 0/12" },
@@ -7571,13 +11233,15 @@ function PakettiMetaSynthBuildDialogContent()
           vb:text { id = "preview_group_morph", text = "Group Morph: Off" },
           vb:text { id = "preview_osc_fx", text = "Osc FX: Off" },
           vb:text { id = "preview_master_fx", text = "Master FX: Off" },
+          vb:text { id = "preview_global_frames", text = "Global Frames: Off" },
+          vb:text { id = "preview_group_scan", text = "Group Scan: Off" },
+          vb:text { id = "preview_vector", text = "Vector: Off" },
           vb:text { id = "preview_warning", text = "" }
         },
         
         -- Crossfade Settings
         vb:column {
           style = "group",
-          margin = 4,
           
           vb:text { text = "Crossfade", font = "bold" },
           
@@ -7585,12 +11249,19 @@ function PakettiMetaSynthBuildDialogContent()
             vb:text { text = "Curve:", width = 45 },
             vb:popup {
               id = "crossfade_curve",
-              items = {"Linear", "Equal Power", "S-Curve"},
-              value = arch.crossfade.curve_type == "linear" and 1 or 
-                     (arch.crossfade.curve_type == "equal_power" and 2 or 3),
+              items = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"},
+              value = (function()
+                local curve = arch.crossfade.curve_type or "equal_power"
+                if curve == "linear" then return 1
+                elseif curve == "equal_power" then return 2
+                elseif curve == "s_curve" then return 3
+                elseif curve == "stepped" then return 4
+                elseif curve == "spectral" then return 5
+                else return 6 end
+              end)(),
               width = 90,
               notifier = function(value)
-                arch.crossfade.curve_type = ({"linear", "equal_power", "s_curve"})[value]
+                arch.crossfade.curve_type = ({"linear", "equal_power", "s_curve", "stepped", "spectral", "vector"})[value]
               end
             }
           },
@@ -7682,7 +11353,6 @@ function PakettiMetaSynthBuildDialogContent()
         -- FX Randomization
         vb:column {
           style = "group",
-          margin = 4,
           
           vb:text { text = "FX Randomization", font = "bold" },
           
@@ -7712,19 +11382,18 @@ function PakettiMetaSynthBuildDialogContent()
           }
         },
         
-        -- Stacked Master FX (global settings)
+        -- Stack Master FX (global settings)
         vb:column {
           style = "group",
-          margin = 4,
           
-          vb:text { text = "Stacked Master FX", font = "bold" },
+          vb:text { text = "Stack Master FX", font = "bold" },
           
           vb:row {
             vb:checkbox {
-              id = "stacked_master_enabled",
-              value = arch.stacked_master_fx_enabled or false,
+              id = "stack_master_enabled",
+              value = arch.stack_master_fx_enabled or false,
               notifier = function(value)
-                arch.stacked_master_fx_enabled = value
+                arch.stack_master_fx_enabled = value
                 PakettiMetaSynthUpdatePreview()
               end
             },
@@ -7734,12 +11403,12 @@ function PakettiMetaSynthBuildDialogContent()
           vb:row {
             vb:text { text = "Mode:", width = 35 },
             vb:popup {
-              id = "stacked_master_mode",
+              id = "stack_master_mode",
               items = {"Random", "Selective"},
-              value = (arch.stacked_master_fx_mode or "random") == "selective" and 2 or 1,
+              value = (arch.stack_master_fx_mode or "random") == "selective" and 2 or 1,
               width = 80,
               notifier = function(value)
-                arch.stacked_master_fx_mode = value == 1 and "random" or "selective"
+                arch.stack_master_fx_mode = value == 1 and "random" or "selective"
               end
             }
           },
@@ -7747,13 +11416,13 @@ function PakettiMetaSynthBuildDialogContent()
           vb:row {
             vb:text { text = "Count:", width = 35 },
             vb:valuebox {
-              id = "stacked_master_count",
+              id = "stack_master_count",
               min = 1,
               max = 5,
-              value = arch.stacked_master_fx_count or 3,
+              value = arch.stack_master_fx_count or 3,
               width = 50,
               notifier = function(value)
-                arch.stacked_master_fx_count = value
+                arch.stack_master_fx_count = value
               end
             }
           },
@@ -7773,10 +11442,718 @@ function PakettiMetaSynthBuildDialogContent()
           }
         },
         
+        -- Global FX Frames (frame scanning at output stage)
+        vb:column {
+          style = "group",
+          
+          vb:text { text = "Global FX Frames", font = "bold" },
+          
+          vb:row {
+            vb:checkbox {
+              id = "global_fx_frames_enabled",
+              value = arch.global_fx_frames_enabled or false,
+              notifier = function(value)
+                arch.global_fx_frames_enabled = value
+                PakettiMetaSynthUpdatePreview()
+              end
+            },
+            vb:text { text = "Enable" }
+          },
+          
+          vb:row {
+            vb:text { text = "Frames:", width = 40 },
+            vb:valuebox {
+              id = "global_fx_frame_count",
+              min = 1,
+              max = 8,
+              value = arch.global_fx_frame_count or 1,
+              width = 45,
+              notifier = function(value)
+                arch.global_fx_frame_count = value
+                PakettiMetaSynthUpdatePreview()
+              end
+            }
+          },
+          
+          vb:row {
+            vb:checkbox {
+              id = "global_fx_frame_morph_enabled",
+              value = arch.global_fx_frame_morph_enabled or false,
+              notifier = function(value)
+                arch.global_fx_frame_morph_enabled = value
+              end
+            },
+            vb:text { text = "Morph" },
+            vb:popup {
+              id = "global_fx_frame_morph_speed",
+              items = {"Slow", "Medium", "Fast"},
+              value = (function()
+                local speed = arch.global_fx_frame_morph_speed or "slow"
+                if speed == "slow" then return 1
+                elseif speed == "medium" then return 2
+                else return 3 end
+              end)(),
+              width = 60,
+              notifier = function(value)
+                local speeds = {"slow", "medium", "fast"}
+                arch.global_fx_frame_morph_speed = speeds[value]
+              end
+            }
+          },
+          
+          vb:row {
+            vb:text { text = "Curve:", width = 35 },
+            vb:popup {
+              id = "global_fx_frame_curve",
+              items = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"},
+              value = (function()
+                local curve = arch.global_fx_frame_crossfade_curve or "equal_power"
+                if curve == "linear" then return 1
+                elseif curve == "equal_power" then return 2
+                elseif curve == "s_curve" then return 3
+                elseif curve == "stepped" then return 4
+                elseif curve == "spectral" then return 5
+                else return 6 end
+              end)(),
+              width = 85,
+              notifier = function(value)
+                local curves = {"linear", "equal_power", "s_curve", "stepped", "spectral", "vector"}
+                arch.global_fx_frame_crossfade_curve = curves[value]
+              end
+            }
+          },
+          
+          vb:row {
+            vb:checkbox {
+              id = "global_fx_frame_fx_enabled",
+              value = arch.global_fx_frame_fx_enabled or false,
+              notifier = function(value)
+                arch.global_fx_frame_fx_enabled = value
+              end
+            },
+            vb:text { text = "Per-Frame FX" },
+            vb:valuebox {
+              id = "global_fx_frame_fx_count",
+              min = 0,
+              max = 3,
+              value = arch.global_fx_frame_fx_count or 1,
+              width = 40,
+              notifier = function(value)
+                arch.global_fx_frame_fx_count = value
+              end
+            }
+          },
+          
+          -- Global FX Scan section
+          vb:text { text = "GFX Scan:", font = "italic" },
+          vb:row {
+            vb:checkbox {
+              id = "global_fx_scan_enabled",
+              value = arch.global_fx_scan_enabled or false,
+              tooltip = "Enable wavetable scanning across Global FX Frames (requires 2+ frames)",
+              notifier = function(value)
+                arch.global_fx_scan_enabled = value
+              end
+            },
+            vb:text { text = "Enable", width = 40 }
+          },
+          vb:row {
+            vb:text { text = "Curve:", width = 35 },
+            vb:popup {
+              id = "global_fx_scan_curve",
+              items = METASYNTH_CROSSFADE_CURVE_NAMES,
+              value = (function()
+                local curve = arch.global_fx_scan_curve or "equal_power"
+                for i, c in ipairs(METASYNTH_CROSSFADE_CURVES) do
+                  if c == curve then return i end
+                end
+                return 2  -- Default to equal_power
+              end)(),
+              width = 85,
+              notifier = function(value)
+                arch.global_fx_scan_curve = METASYNTH_CROSSFADE_CURVES[value]
+              end
+            }
+          },
+          vb:row {
+            vb:text { text = "Ctrl:", width = 35 },
+            vb:popup {
+              id = "global_fx_scan_control",
+              items = {"LFO", "Macro"},
+              value = arch.global_fx_scan_control_source == "macro" and 2 or 1,
+              width = 60,
+              notifier = function(value)
+                arch.global_fx_scan_control_source = value == 2 and "macro" or "lfo"
+              end
+            },
+            vb:popup {
+              id = "global_fx_scan_speed",
+              items = {"Slow", "Medium", "Fast"},
+              value = (function()
+                local speed = arch.global_fx_scan_lfo_rate_preset or "slow"
+                if speed == "slow" then return 1
+                elseif speed == "medium" then return 2
+                else return 3 end
+              end)(),
+              width = 60,
+              notifier = function(value)
+                local speeds = {"slow", "medium", "fast"}
+                arch.global_fx_scan_lfo_rate_preset = speeds[value]
+              end
+            }
+          },
+          
+          -- Global FX Vector section
+          vb:text { text = "GFX Vector:", font = "italic" },
+          vb:row {
+            vb:checkbox {
+              id = "global_fx_vector_enabled",
+              value = arch.global_fx_vector_enabled or false,
+              tooltip = "Enable XY vector synthesis on Global FX Frames (requires exactly 4 frames)",
+              notifier = function(value)
+                arch.global_fx_vector_enabled = value
+              end
+            },
+            vb:text { text = "Enable (4 Frames)", width = 90 }
+          },
+          vb:row {
+            vb:text { text = "X:", width = 15 },
+            vb:popup {
+              id = "global_fx_vector_x_source",
+              items = {"Macro", "LFO"},
+              value = arch.global_fx_vector_x_source == "lfo" and 2 or 1,
+              width = 55,
+              notifier = function(value)
+                arch.global_fx_vector_x_source = value == 2 and "lfo" or "macro"
+              end
+            },
+            vb:text { text = "Y:", width = 15 },
+            vb:popup {
+              id = "global_fx_vector_y_source",
+              items = {"Macro", "LFO"},
+              value = arch.global_fx_vector_y_source == "lfo" and 2 or 1,
+              width = 55,
+              notifier = function(value)
+                arch.global_fx_vector_y_source = value == 2 and "lfo" or "macro"
+              end
+            }
+          },
+          vb:row {
+            vb:text { text = "X Rate:", width = 40 },
+            vb:valuebox {
+              id = "global_fx_vector_x_rate",
+              min = 0.01,
+              max = 5.0,
+              value = arch.global_fx_vector_x_lfo_rate or 0.25,
+              width = 50,
+              tostring = function(v) return string.format("%.2f", v) end,
+              tonumber = function(s) return tonumber(s) or 0.25 end,
+              notifier = function(value)
+                arch.global_fx_vector_x_lfo_rate = value
+              end
+            },
+            vb:text { text = "Y:", width = 15 },
+            vb:valuebox {
+              id = "global_fx_vector_y_rate",
+              min = 0.01,
+              max = 5.0,
+              value = arch.global_fx_vector_y_lfo_rate or 0.15,
+              width = 50,
+              tostring = function(v) return string.format("%.2f", v) end,
+              tonumber = function(s) return tonumber(s) or 0.15 end,
+              notifier = function(value)
+                arch.global_fx_vector_y_lfo_rate = value
+              end
+            }
+          }
+        },
+        
+        -- Inter-Group Scan (wavetable across groups)
+        vb:column {
+          style = "group",
+          
+          vb:text { text = "Group Scan", font = "bold" },
+          
+          vb:row {
+            vb:checkbox {
+              id = "group_scan_enabled",
+              value = arch.group_scan_enabled or false,
+              tooltip = "Enable wavetable scanning between groups (requires 2+ groups)",
+              notifier = function(value)
+                arch.group_scan_enabled = value
+                PakettiMetaSynthUpdatePreview()
+              end
+            },
+            vb:text { text = "Enable", width = 50 }
+          },
+          
+          vb:row {
+            vb:text { text = "Curve:", width = 35 },
+            vb:popup {
+              id = "group_scan_curve",
+              items = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"},
+              value = (function()
+                local curve = arch.group_scan_curve or "equal_power"
+                if curve == "linear" then return 1
+                elseif curve == "equal_power" then return 2
+                elseif curve == "s_curve" then return 3
+                elseif curve == "stepped" then return 4
+                elseif curve == "spectral" then return 5
+                else return 6 end
+              end)(),
+              width = 85,
+              notifier = function(value)
+                local curves = {"linear", "equal_power", "s_curve", "stepped", "spectral", "vector"}
+                arch.group_scan_curve = curves[value]
+              end
+            }
+          },
+          
+          vb:row {
+            vb:text { text = "Ctrl:", width = 35 },
+            vb:popup {
+              id = "group_scan_control",
+              items = {"LFO", "Macro"},
+              value = arch.group_scan_control_source == "macro" and 2 or 1,
+              width = 60,
+              notifier = function(value)
+                arch.group_scan_control_source = value == 2 and "macro" or "lfo"
+              end
+            },
+            vb:popup {
+              id = "group_scan_speed",
+              items = {"Slow", "Medium", "Fast"},
+              value = (function()
+                local speed = arch.group_scan_speed or "slow"
+                if speed == "slow" then return 1
+                elseif speed == "medium" then return 2
+                else return 3 end
+              end)(),
+              width = 60,
+              notifier = function(value)
+                local speeds = {"slow", "medium", "fast"}
+                arch.group_scan_speed = speeds[value]
+              end
+            }
+          }
+        },
+        
+        -- Vector Synthesis (4-group XY morph)
+        vb:column {
+          style = "group",
+          
+          
+          vb:text { text = "Vector Synthesis", font = "bold" },
+          
+          vb:row {
+            vb:checkbox {
+              id = "vector_enabled",
+              value = arch.vector_enabled or false,
+              tooltip = "Enable XY vector synthesis (requires exactly 4 groups)",
+              notifier = function(value)
+                arch.vector_enabled = value
+                PakettiMetaSynthUpdatePreview()
+              end
+            },
+            vb:text { text = "Enable (4 Groups)", width = 90 }
+          },
+          
+          vb:row {
+            vb:text { text = "X:", width = 15 },
+            vb:popup {
+              id = "vector_x_source",
+              items = {"Macro", "LFO"},
+              value = arch.vector_x_source == "lfo" and 2 or 1,
+              width = 55,
+              notifier = function(value)
+                arch.vector_x_source = value == 2 and "lfo" or "macro"
+              end
+            },
+            vb:text { text = "Y:", width = 15 },
+            vb:popup {
+              id = "vector_y_source",
+              items = {"Macro", "LFO"},
+              value = arch.vector_y_source == "lfo" and 2 or 1,
+              width = 55,
+              notifier = function(value)
+                arch.vector_y_source = value == 2 and "lfo" or "macro"
+              end
+            }
+          },
+          
+          vb:row {
+            vb:text { text = "X Macro:", width = 50 },
+            vb:valuebox {
+              id = "vector_x_macro",
+              min = 1,
+              max = 8,
+              value = arch.vector_x_macro or 7,
+              width = 40,
+              notifier = function(value)
+                arch.vector_x_macro = value
+              end
+            },
+            vb:text { text = "Y:", width = 15 },
+            vb:valuebox {
+              id = "vector_y_macro",
+              min = 1,
+              max = 8,
+              value = arch.vector_y_macro or 8,
+              width = 40,
+              notifier = function(value)
+                arch.vector_y_macro = value
+              end
+            }
+          },
+          
+          -- Vector Envelope controls
+          vb:row {
+            vb:checkbox {
+              id = "vector_envelope_enabled",
+              value = arch.vector_envelope and arch.vector_envelope.enabled or false,
+              notifier = function(value)
+                if not arch.vector_envelope then
+                  arch.vector_envelope = PakettiMetaSynthGetVectorEnvelopePreset("circle")
+                end
+                arch.vector_envelope.enabled = value
+              end
+            },
+            vb:text { text = "Envelope Path" }
+          },
+          
+          vb:row {
+            vb:text { text = "Preset:", width = 40 },
+            vb:popup {
+              id = "vector_envelope_preset",
+              items = {"Circle", "Figure-8", "Diagonal", "Square", "X Sweep", "Y Sweep", "Random"},
+              value = 1,
+              width = 75,
+              notifier = function(value)
+                local preset_names = {"circle", "figure8", "diagonal", "square", "x_sweep", "y_sweep", "random_walk"}
+                local preset = PakettiMetaSynthGetVectorEnvelopePreset(preset_names[value])
+                arch.vector_envelope = preset
+                -- Update duration display
+                local duration_view = vb.views["vector_envelope_duration"]
+                if duration_view then
+                  duration_view.value = preset.duration
+                end
+                -- Update loop checkbox
+                local loop_view = vb.views["vector_envelope_loop"]
+                if loop_view then
+                  loop_view.value = preset.loop
+                end
+              end
+            }
+          },
+          
+          vb:row {
+            vb:text { text = "Duration:", width = 50 },
+            vb:valuebox {
+              id = "vector_envelope_duration",
+              min = 0.5,
+              max = 32.0,
+              value = arch.vector_envelope and arch.vector_envelope.duration or 4.0,
+              width = 50,
+              notifier = function(value)
+                if arch.vector_envelope then
+                  arch.vector_envelope.duration = value
+                end
+              end
+            },
+            vb:text { text = "s" },
+            vb:checkbox {
+              id = "vector_envelope_loop",
+              value = arch.vector_envelope and arch.vector_envelope.loop or true,
+              notifier = function(value)
+                if arch.vector_envelope then
+                  arch.vector_envelope.loop = value
+                end
+              end
+            },
+            vb:text { text = "Loop" }
+          }
+        },
+        
+        -- Global Modulation (shared LFOs across groups)
+        vb:column {
+          style = "group",
+          
+          
+          vb:text { text = "Global Modulation", font = "bold" },
+          
+          vb:row {
+            vb:checkbox {
+              id = "global_mod_enabled",
+              value = arch.global_modulation and arch.global_modulation.enabled or false,
+              tooltip = "Enable shared LFO modulation across all groups",
+              notifier = function(value)
+                if not arch.global_modulation then
+                  arch.global_modulation = PakettiMetaSynthGetDefaultGlobalModulation()
+                end
+                arch.global_modulation.enabled = value
+              end
+            },
+            vb:text { text = "Enable" }
+          },
+          
+          vb:text { text = "LFO 1:", font = "italic" },
+          vb:row {
+            vb:checkbox {
+              id = "global_mod_lfo1_enabled",
+              value = arch.global_modulation and arch.global_modulation.lfo1 and arch.global_modulation.lfo1.enabled or false,
+              notifier = function(value)
+                if not arch.global_modulation then
+                  arch.global_modulation = PakettiMetaSynthGetDefaultGlobalModulation()
+                end
+                arch.global_modulation.lfo1.enabled = value
+              end
+            },
+            vb:valuebox {
+              id = "global_mod_lfo1_freq",
+              min = 0.01,
+              max = 20.0,
+              value = arch.global_modulation and arch.global_modulation.lfo1 and arch.global_modulation.lfo1.frequency or 0.5,
+              width = 50,
+              tostring = function(v) return string.format("%.2f", v) end,
+              tonumber = function(s) return tonumber(s) or 0.5 end,
+              notifier = function(value)
+                if arch.global_modulation and arch.global_modulation.lfo1 then
+                  arch.global_modulation.lfo1.frequency = value
+                end
+              end
+            },
+            vb:text { text = "Hz" },
+            vb:popup {
+              id = "global_mod_lfo1_shape",
+              items = {"Sine", "Triangle", "Square", "Saw"},
+              value = (function()
+                if arch.global_modulation and arch.global_modulation.lfo1 then
+                  local shape = arch.global_modulation.lfo1.shape or "sine"
+                  if shape == "sine" then return 1
+                  elseif shape == "triangle" then return 2
+                  elseif shape == "square" then return 3
+                  else return 4 end
+                end
+                return 1
+              end)(),
+              width = 65,
+              notifier = function(value)
+                if arch.global_modulation and arch.global_modulation.lfo1 then
+                  local shapes = {"sine", "triangle", "square", "saw"}
+                  arch.global_modulation.lfo1.shape = shapes[value]
+                end
+              end
+            }
+          },
+          
+          vb:text { text = "LFO 2:", font = "italic" },
+          vb:row {
+            vb:checkbox {
+              id = "global_mod_lfo2_enabled",
+              value = arch.global_modulation and arch.global_modulation.lfo2 and arch.global_modulation.lfo2.enabled or false,
+              notifier = function(value)
+                if not arch.global_modulation then
+                  arch.global_modulation = PakettiMetaSynthGetDefaultGlobalModulation()
+                end
+                arch.global_modulation.lfo2.enabled = value
+              end
+            },
+            vb:valuebox {
+              id = "global_mod_lfo2_freq",
+              min = 0.01,
+              max = 20.0,
+              value = arch.global_modulation and arch.global_modulation.lfo2 and arch.global_modulation.lfo2.frequency or 0.25,
+              width = 50,
+              tostring = function(v) return string.format("%.2f", v) end,
+              tonumber = function(s) return tonumber(s) or 0.25 end,
+              notifier = function(value)
+                if arch.global_modulation and arch.global_modulation.lfo2 then
+                  arch.global_modulation.lfo2.frequency = value
+                end
+              end
+            },
+            vb:text { text = "Hz" },
+            vb:popup {
+              id = "global_mod_lfo2_shape",
+              items = {"Sine", "Triangle", "Square", "Saw"},
+              value = (function()
+                if arch.global_modulation and arch.global_modulation.lfo2 then
+                  local shape = arch.global_modulation.lfo2.shape or "triangle"
+                  if shape == "sine" then return 1
+                  elseif shape == "triangle" then return 2
+                  elseif shape == "square" then return 3
+                  else return 4 end
+                end
+                return 2
+              end)(),
+              width = 65,
+              notifier = function(value)
+                if arch.global_modulation and arch.global_modulation.lfo2 then
+                  local shapes = {"sine", "triangle", "square", "saw"}
+                  arch.global_modulation.lfo2.shape = shapes[value]
+                end
+              end
+            }
+          },
+          
+          vb:row {
+            vb:text { text = "Target:", width = 40 },
+            vb:popup {
+              id = "global_mod_lfo1_target",
+              items = {"Group Gain", "Scan Gain", "Vector Gain"},
+              value = 1,
+              width = 80,
+              notifier = function(value)
+                if arch.global_modulation and arch.global_modulation.lfo1 then
+                  local targets = {"group_gain", "scan_gain", "vector_gain"}
+                  arch.global_modulation.lfo1.targets = {targets[value]}
+                end
+              end
+            }
+          }
+        },
+        
+        -- Final Output Stage (Master EQ, Limiter, Output Shaping)
+        vb:column {
+          style = "group",
+          
+          
+          vb:text { text = "Final Output", font = "bold" },
+          
+          vb:row {
+            vb:checkbox {
+              id = "final_output_enabled",
+              value = arch.final_output_enabled or false,
+              tooltip = "Enable final output processing (Master EQ, Limiter, Width)",
+              notifier = function(value)
+                arch.final_output_enabled = value
+              end
+            },
+            vb:text { text = "Enable Final Output Stage" }
+          },
+          
+          -- Master EQ
+          vb:text { text = "Master EQ:", font = "italic" },
+          vb:row {
+            vb:checkbox {
+              id = "final_output_eq_enabled",
+              value = arch.final_output_master_eq_enabled ~= false,
+              notifier = function(value)
+                arch.final_output_master_eq_enabled = value
+              end
+            },
+            vb:text { text = "EQ", width = 25 },
+            vb:text { text = "Low:", width = 25 },
+            vb:valuebox {
+              id = "final_output_eq_low",
+              min = -12,
+              max = 12,
+              value = arch.final_output_master_eq_low_shelf or 0,
+              width = 40,
+              notifier = function(value)
+                arch.final_output_master_eq_low_shelf = value
+              end
+            },
+            vb:text { text = "Hi:", width = 20 },
+            vb:valuebox {
+              id = "final_output_eq_high",
+              min = -12,
+              max = 12,
+              value = arch.final_output_master_eq_high_shelf or 0,
+              width = 40,
+              notifier = function(value)
+                arch.final_output_master_eq_high_shelf = value
+              end
+            }
+          },
+          
+          -- Limiter
+          vb:text { text = "Limiter:", font = "italic" },
+          vb:row {
+            vb:checkbox {
+              id = "final_output_limiter_enabled",
+              value = arch.final_output_limiter_enabled ~= false,
+              notifier = function(value)
+                arch.final_output_limiter_enabled = value
+              end
+            },
+            vb:text { text = "On", width = 20 },
+            vb:text { text = "Ceil:", width = 30 },
+            vb:valuebox {
+              id = "final_output_limiter_ceiling",
+              min = -6.0,
+              max = 0.0,
+              value = arch.final_output_limiter_ceiling or -0.3,
+              width = 45,
+              tostring = function(v) return string.format("%.1f", v) end,
+              tonumber = function(s) return tonumber(s) or -0.3 end,
+              notifier = function(value)
+                arch.final_output_limiter_ceiling = value
+              end
+            },
+            vb:text { text = "dB" }
+          },
+          
+          -- Saturation & Width
+          vb:row {
+            vb:checkbox {
+              id = "final_output_saturation_enabled",
+              value = arch.final_output_saturation_enabled or false,
+              notifier = function(value)
+                arch.final_output_saturation_enabled = value
+              end
+            },
+            vb:text { text = "Warmth", width = 45 },
+            vb:checkbox {
+              id = "final_output_width_enabled",
+              value = arch.final_output_width_enabled or false,
+              notifier = function(value)
+                arch.final_output_width_enabled = value
+              end
+            },
+            vb:text { text = "Width", width = 35 },
+            vb:valuebox {
+              id = "final_output_width_amount",
+              min = 0.0,
+              max = 2.0,
+              value = arch.final_output_width_amount or 1.0,
+              width = 45,
+              tostring = function(v) return string.format("%.1f", v) end,
+              tonumber = function(s) return tonumber(s) or 1.0 end,
+              notifier = function(value)
+                arch.final_output_width_amount = value
+              end
+            }
+          },
+          
+          -- Spectral Morph Macro
+          vb:row {
+            vb:checkbox {
+              id = "spectral_morph_enabled",
+              value = arch.spectral_morph_enabled or false,
+              tooltip = "Enable macro-controlled spectral morphing intensity",
+              notifier = function(value)
+                arch.spectral_morph_enabled = value
+              end
+            },
+            vb:text { text = "Spectral Morph Macro:", width = 110 },
+            vb:valuebox {
+              id = "spectral_morph_macro",
+              min = 1,
+              max = 8,
+              value = arch.spectral_morph_macro_index or 5,
+              width = 35,
+              notifier = function(value)
+                arch.spectral_morph_macro_index = value
+              end
+            }
+          }
+        },
+        
         -- Shortcuts hint
         vb:column {
           style = "group",
-          margin = 4,
+          
           
           vb:text { text = "Shortcuts", font = "bold" },
           vb:text { text = "Enter: Generate" },
@@ -7983,8 +12360,6 @@ function PakettiMetaSynthShowProfileDialog()
   end
   
   local dialog_content = vb:column {
-    margin = 10,
-    spacing = 8,
     
     -- Sound Category selection (high-level)
     vb:row {
@@ -8011,7 +12386,7 @@ function PakettiMetaSynthShowProfileDialog()
       }
     },
     
-    vb:space { height = 5 },
+    
     
     -- Direct Profile selection (detailed)
     vb:row {
@@ -8041,7 +12416,6 @@ function PakettiMetaSynthShowProfileDialog()
       }
     },
     
-    vb:space { height = 5 },
     
     vb:row {
       vb:text { text = "Apply to:", width = 120 },
@@ -8053,12 +12427,12 @@ function PakettiMetaSynthShowProfileDialog()
       }
     },
     
-    vb:space { height = 10 },
+    
     
     -- Profile details preview
     vb:column {
       style = "group",
-      margin = 5,
+      
       vb:text { text = "Profile Components:", font = "bold" },
       vb:text {
         id = "profile_details",
@@ -8067,10 +12441,8 @@ function PakettiMetaSynthShowProfileDialog()
       }
     },
     
-    vb:space { height = 10 },
     
     vb:row {
-      spacing = 10,
       vb:button {
         text = "Apply Profile",
         width = 120,
