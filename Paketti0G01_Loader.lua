@@ -809,11 +809,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   },
   -- Automate Last Touched Parameter Settings
   pakettiAutomateLastTouched = {
-    TimeoutSeconds = 3,           -- Seconds to wait before auto-creating automation (default 3)
     AutoOpenExternalEditor = true, -- Auto-open VST/AU external editor when watching starts
-    ContinuousRecording = false,  -- Real-time automation writing when edit mode is on
-    MultiParameter = true,        -- Track all touched parameters, not just the last one
-    QuickRewatch = false          -- Keep watching after automation is created
+    ContinuousRecording = false   -- Real-time automation writing (stay watching after first touch)
   },
 }
 

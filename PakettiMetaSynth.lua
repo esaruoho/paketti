@@ -16,24 +16,2533 @@ PakettiMetaSynthAKWFCache = nil
 PakettiMetaSynthLastFolderPath = nil
 
 -- ============================================================================
--- MODULATION PROFILES - Voice articulation presets (GESTURE layer)
--- These define HOW a sound is played, independent of WHAT the sound is (TIMBRE)
+-- MULTI-LAYER PROFILES - Musical intent projected across all architectural layers
 -- 
--- Profile parameters:
---   volume_ahdsr: Volume envelope (attack, hold, decay, sustain, release)
---   filter_ahdsr: Filter cutoff envelope
---   pitch_ahdsr:  Pitch envelope (includes 'amount' for direction/depth)
---   volume_lfo:   Tremolo (frequency, amount)
---   pitch_lfo:    Vibrato (frequency, amount)
---   filter_lfo:   Filter modulation (frequency, amount)
---   velocity_volume: 0-1, velocity influence on volume
---   velocity_filter: 0-1, velocity influence on filter cutoff
---   filter_keytrack: 0-1, filter cutoff keytracking amount
---   filter_cutoff:   Base cutoff value (0-1)
---   filter_resonance: Resonance amount (0-1)
+-- A Global Profile (Pluck, Pad, Bass, Lead, etc.) defines MUSICAL INTENT.
+-- That same profile is then projected downward into each architectural layer,
+-- where every section consumes the subset of rules that apply to it.
+--
+-- 7-LAYER STRUCTURE:
+--   1. oscillator:   Wave types, unison tendencies, frame usage
+--   2. frame:        Whether frames exist, morph speed, allowed FX
+--   3. group:        Crossfade settings, scanning behavior, LFO rate
+--   4. modulation:   AHDSR/LFO/velocity/keytracking (SEPARATE layer)
+--   5. group_frame:  Meta-wavetable at group level (default OFF)
+--   6. group_fx:     Character FX tendencies (filters, distortion)
+--   7. global_fx:    Polish FX tendencies (reverb, delay, compression)
+--
+-- OVERRIDE CHAIN: oscillator > group > architecture.global_profile > "default"
+-- MODULATION can be overridden independently via architecture.modulation_layer
+-- All layers default to the same profile (coherent instrument)
+-- Any layer can override with a different profile (hybrid sounds)
 -- ============================================================================
 
-PakettiMetaSynthModulationProfiles = {
+PakettiMetaSynthProfiles = {
+  -- ========================================================================
+  -- NEUTRAL family - Raw/experimental starting points
+  -- ========================================================================
+  neutral_flat = {
+    name = "Neutral (Flat)",
+    description = "Raw oscillator, flat sustain, sound design starting point",
+    family = "neutral",
+    
+    -- LAYER 1: Oscillator rules
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {0, 10},
+      pan_spread_range = {0.0, 0.3},
+      sample_count_range = {1, 2},
+    },
+    
+    -- LAYER 2: Frame rules
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 1},
+    },
+    
+    -- LAYER 3: Group rules (crossfade, scanning - NO modulation)
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+    },
+    
+    -- LAYER 4: Modulation rules (SEPARATE layer)
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.1 },
+      filter_ahdsr = nil,
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.2,
+      velocity_filter = 0.0,
+      filter_keytrack = 0.0,
+      filter_cutoff = nil,
+      filter_resonance = nil,
+    },
+    
+    -- LAYER 5: Group Frames (meta-wavetable at group level)
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    -- LAYER 6: Group FX rules
+    group_fx = {
+      enabled = false,
+      tendencies = {},
+      count_range = {0, 1},
+    },
+    
+    -- LAYER 7: Global FX rules
+    global_fx = {
+      tendencies = {},
+      reverb_size = nil,
+    },
+  },
+  
+  neutral_none = {
+    name = "Neutral (No Envelope)",
+    description = "Bypass envelope, raw oscillator behavior",
+    family = "neutral",
+    
+    oscillator = {
+      unison_range = {1, 1},
+      frame_count_range = {1, 1},
+      detune_range = {0, 0},
+      pan_spread_range = {0.0, 0.0},
+      sample_count_range = {1, 1},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+    },
+    
+    modulation = {
+      volume_ahdsr = nil,
+      filter_ahdsr = nil,
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.0,
+      velocity_filter = 0.0,
+      filter_keytrack = 0.0,
+      filter_cutoff = nil,
+      filter_resonance = nil,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = false,
+      tendencies = {},
+      count_range = {0, 0},
+    },
+    
+    global_fx = {
+      tendencies = {},
+      reverb_size = nil,
+    },
+  },
+  
+  -- ========================================================================
+  -- BASS family - Solid low-end sounds
+  -- ========================================================================
+  bass_tight = {
+    name = "Bass (Tight)",
+    description = "Mono basses, acid-style, precise low-end",
+    family = "bass",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {3, 12},
+      pan_spread_range = {0.0, 0.2},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.7, release = 0.1 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.4, release = 0.1 },
+      pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.03, sustain = 0.0, release = 0.02, amount = -0.03 },
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.6,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.4,
+      filter_cutoff = 0.45,
+      filter_resonance = 0.35,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Saturator", "Compressor"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Compressor", "EQ 5"},
+      reverb_size = nil,
+    },
+  },
+  
+  bass_sustain = {
+    name = "Bass (Sustain)",
+    description = "Sub bass, held notes, minimal articulation",
+    family = "bass",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 1},
+      detune_range = {0, 8},
+      pan_spread_range = {0.0, 0.1},
+      sample_count_range = {1, 1},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {"Analog Filter"},
+      fx_count_range = {0, 1},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.05, sustain = 1.0, release = 0.2 },
+      filter_ahdsr = nil,
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.3,
+      velocity_filter = 0.0,
+      filter_keytrack = 0.6,
+      filter_cutoff = 0.3,
+      filter_resonance = 0.1,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Compressor"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Compressor"},
+      reverb_size = nil,
+    },
+  },
+  
+  bass_filter = {
+    name = "Bass (Filter-Driven)",
+    description = "Acid bass, aggressive filter envelope, resonance sweep",
+    family = "bass",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {5, 15},
+      pan_spread_range = {0.0, 0.2},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.85, release = 0.12 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.35, sustain = 0.25, release = 0.15 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.5,
+      velocity_filter = 0.7,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.55,
+      filter_resonance = 0.55,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Distortion", "Saturator"},
+      count_range = {1, 3},
+    },
+    
+    global_fx = {
+      tendencies = {"Compressor", "EQ 5"},
+      reverb_size = nil,
+    },
+  },
+  
+  bass_wide = {
+    name = "Bass (Wide/Slow)",
+    description = "Reese bass, slow movement, wide stereo",
+    family = "bass",
+    
+    oscillator = {
+      unison_range = {2, 4},
+      frame_count_range = {1, 2},
+      detune_range = {10, 25},
+      pan_spread_range = {0.3, 0.6},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Analog Filter", "Phaser"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "slow",
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.2, sustain = 0.9, release = 0.25 },
+      filter_ahdsr = { attack = 0.3, hold = 0.0, decay = 0.5, sustain = 0.5, release = 0.3 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = { frequency = 0.3, amount = 0.15 },
+      velocity_volume = 0.4,
+      velocity_filter = 0.3,
+      filter_keytrack = 0.3,
+      filter_cutoff = 0.5,
+      filter_resonance = 0.25,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Chorus", "Phaser"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Compressor", "Stereo Expander"},
+      reverb_size = nil,
+    },
+  },
+  
+  bass_dynamic = {
+    name = "Bass (Dynamic)",
+    description = "FM bass, velocity-sensitive, punchy",
+    family = "bass",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {3, 10},
+      pan_spread_range = {0.0, 0.2},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.12, sustain = 0.75, release = 0.1 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.5, release = 0.1 },
+      pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.02, sustain = 0.0, release = 0.01, amount = -0.05 },
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.8,
+      velocity_filter = 0.6,
+      filter_keytrack = 0.4,
+      filter_cutoff = 0.6,
+      filter_resonance = 0.3,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Saturator", "Compressor"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Compressor", "EQ 5"},
+      reverb_size = nil,
+    },
+  },
+  
+  -- ========================================================================
+  -- PLUCK family - Short, percussive attacks
+  -- ========================================================================
+  pluck_short = {
+    name = "Pluck (Short)",
+    description = "Plucks, mallets, short hits",
+    family = "pluck",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {3, 12},
+      pan_spread_range = {0.2, 0.5},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.08 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.15, release = 0.08 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.8,
+      velocity_filter = 0.6,
+      filter_keytrack = 0.3,
+      filter_cutoff = 0.7,
+      filter_resonance = 0.25,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Saturator"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "small",
+    },
+  },
+  
+  pluck_natural = {
+    name = "Pluck (Natural)",
+    description = "Harp/guitar, slightly longer decay, natural release",
+    family = "pluck",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {2, 8},
+      pan_spread_range = {0.2, 0.5},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.0, release = 0.2 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.5, sustain = 0.2, release = 0.25 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.7,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.4,
+      filter_cutoff = 0.65,
+      filter_resonance = 0.2,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Chorus"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "medium",
+    },
+  },
+  
+  pluck_percussive = {
+    name = "Pluck (Percussive)",
+    description = "Very fast, mallet-like",
+    family = "pluck",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 1},
+      detune_range = {2, 8},
+      pan_spread_range = {0.2, 0.4},
+      sample_count_range = {1, 1},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.0, release = 0.05 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.05 },
+      pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.02, sustain = 0.0, release = 0.01, amount = -0.08 },
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.9,
+      velocity_filter = 0.7,
+      filter_keytrack = 0.2,
+      filter_cutoff = 0.8,
+      filter_resonance = 0.15,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Saturator"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb"},
+      reverb_size = "small",
+    },
+  },
+  
+  pluck_soft = {
+    name = "Pluck (Soft)",
+    description = "Kalimba, gentler attack, softer filter",
+    family = "pluck",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {2, 8},
+      pan_spread_range = {0.3, 0.6},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "medium",
+      fx_tendencies = {"Analog Filter"},
+      fx_count_range = {0, 1},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.5, sustain = 0.0, release = 0.3 },
+      filter_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.6, sustain = 0.25, release = 0.35 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.5,
+      velocity_filter = 0.4,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.5,
+      filter_resonance = 0.15,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Chorus"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "medium",
+    },
+  },
+  
+  -- ========================================================================
+  -- LEAD family - Expressive, melodic sounds
+  -- ========================================================================
+  lead_expressive = {
+    name = "Lead (Expressive)",
+    description = "Solo mono lead, vibrato, expression-driven",
+    family = "lead",
+    
+    oscillator = {
+      unison_range = {1, 3},
+      frame_count_range = {1, 3},
+      detune_range = {5, 20},
+      pan_spread_range = {0.2, 0.5},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "medium",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "medium",
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.1, sustain = 0.8, release = 0.15 },
+      filter_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.2, sustain = 0.6, release = 0.15 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = { frequency = 5.0, amount = 0.02 },
+      filter_lfo = nil,
+      velocity_volume = 0.7,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.65,
+      filter_resonance = 0.3,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Distortion", "Chorus"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "medium",
+    },
+  },
+  
+  lead_smooth = {
+    name = "Lead (Smooth)",
+    description = "Polyphonic lead, softer, more legato",
+    family = "lead",
+    
+    oscillator = {
+      unison_range = {2, 4},
+      frame_count_range = {2, 3},
+      detune_range = {8, 20},
+      pan_spread_range = {0.3, 0.6},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Analog Filter", "Chorus"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "slow",
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.08, hold = 0.0, decay = 0.15, sustain = 0.85, release = 0.25 },
+      filter_ahdsr = { attack = 0.1, hold = 0.0, decay = 0.3, sustain = 0.6, release = 0.25 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = { frequency = 4.5, amount = 0.015 },
+      filter_lfo = nil,
+      velocity_volume = 0.5,
+      velocity_filter = 0.4,
+      filter_keytrack = 0.4,
+      filter_cutoff = 0.55,
+      filter_resonance = 0.2,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Chorus", "Phaser"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "medium",
+    },
+  },
+  
+  lead_classic = {
+    name = "Lead (Classic)",
+    description = "Square lead, classic mono synth sound",
+    family = "lead",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {5, 15},
+      pan_spread_range = {0.1, 0.3},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.75, release = 0.12 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.5, release = 0.12 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = { frequency = 5.5, amount = 0.025 },
+      filter_lfo = nil,
+      velocity_volume = 0.6,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.6,
+      filter_cutoff = 0.7,
+      filter_resonance = 0.35,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Distortion"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "small",
+    },
+  },
+  
+  lead_wide = {
+    name = "Lead (Wide)",
+    description = "Supersaw lead, huge stereo width, modern trance",
+    family = "lead",
+    
+    oscillator = {
+      unison_range = {4, 7},
+      frame_count_range = {1, 2},
+      detune_range = {15, 35},
+      pan_spread_range = {0.6, 1.0},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.08, sustain = 0.9, release = 0.2 },
+      filter_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.2, sustain = 0.7, release = 0.2 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.4,
+      velocity_filter = 0.3,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.75,
+      filter_resonance = 0.2,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Chorus", "Stereo Expander"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay", "Stereo Expander"},
+      reverb_size = "large",
+    },
+  },
+  
+  lead_glide = {
+    name = "Lead (Glide)",
+    description = "Portamento lead, smooth pitch slides",
+    family = "lead",
+    
+    oscillator = {
+      unison_range = {1, 3},
+      frame_count_range = {1, 2},
+      detune_range = {5, 15},
+      pan_spread_range = {0.2, 0.4},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "medium",
+      fx_tendencies = {"Analog Filter"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "slow",
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.03, hold = 0.0, decay = 0.12, sustain = 0.8, release = 0.18 },
+      filter_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.25, sustain = 0.55, release = 0.2 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = { frequency = 5.0, amount = 0.02 },
+      filter_lfo = nil,
+      velocity_volume = 0.6,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.6,
+      filter_resonance = 0.25,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Chorus"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "medium",
+    },
+  },
+  
+  -- ========================================================================
+  -- PAD family - Long, sustained, evolving sounds
+  -- ========================================================================
+  pad_slow = {
+    name = "Pad (Slow)",
+    description = "Classic pad, slow attack and release",
+    family = "pad",
+    
+    oscillator = {
+      unison_range = {2, 5},
+      frame_count_range = {2, 4},
+      detune_range = {8, 25},
+      pan_spread_range = {0.4, 0.8},
+      sample_count_range = {1, 3},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Analog Filter", "Chorus", "Phaser"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "slow",
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.5, hold = 0.0, decay = 0.3, sustain = 0.85, release = 0.8 },
+      filter_ahdsr = { attack = 0.8, hold = 0.0, decay = 0.5, sustain = 0.6, release = 0.8 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = { frequency = 0.3, amount = 0.1 },
+      velocity_volume = 0.3,
+      velocity_filter = 0.2,
+      filter_keytrack = 0.4,
+      filter_cutoff = 0.5,
+      filter_resonance = 0.15,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Chorus", "Phaser", "Analog Filter"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "large",
+    },
+  },
+  
+  pad_evolving = {
+    name = "Pad (Evolving)",
+    description = "Ambient pad, slow movement, drifting",
+    family = "pad",
+    
+    oscillator = {
+      unison_range = {3, 6},
+      frame_count_range = {3, 5},
+      detune_range = {10, 30},
+      pan_spread_range = {0.5, 1.0},
+      sample_count_range = {2, 4},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Analog Filter", "Chorus", "Phaser", "Flanger"},
+      fx_count_range = {2, 3},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "slow",
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.5, sustain = 0.8, release = 1.5 },
+      filter_ahdsr = { attack = 1.5, hold = 0.0, decay = 1.0, sustain = 0.5, release = 1.5 },
+      pitch_ahdsr = nil,
+      volume_lfo = { frequency = 0.15, amount = 0.08 },
+      pitch_lfo = nil,
+      filter_lfo = { frequency = 0.2, amount = 0.15 },
+      velocity_volume = 0.2,
+      velocity_filter = 0.15,
+      filter_keytrack = 0.3,
+      filter_cutoff = 0.45,
+      filter_resonance = 0.1,
+    },
+    
+    -- pad_evolving has GROUP FRAMES ENABLED for meta-wavetable behavior
+    group_frame = {
+      enabled = true,
+      frame_count_range = {2, 4},
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Phaser", "Flanger"},
+      fx_count_range = {1, 2},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Chorus", "Phaser", "Flanger", "Analog Filter"},
+      count_range = {2, 3},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "large",
+    },
+  },
+  
+  pad_ensemble = {
+    name = "Pad (Ensemble)",
+    description = "String pad, warm, orchestral feel",
+    family = "pad",
+    
+    oscillator = {
+      unison_range = {3, 5},
+      frame_count_range = {2, 4},
+      detune_range = {8, 20},
+      pan_spread_range = {0.4, 0.7},
+      sample_count_range = {2, 3},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Analog Filter", "Chorus"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "slow",
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.4, hold = 0.0, decay = 0.2, sustain = 0.9, release = 0.6 },
+      filter_ahdsr = { attack = 0.5, hold = 0.0, decay = 0.4, sustain = 0.7, release = 0.6 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = { frequency = 4.5, amount = 0.008 },
+      filter_lfo = nil,
+      velocity_volume = 0.4,
+      velocity_filter = 0.3,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.55,
+      filter_resonance = 0.15,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Chorus", "Analog Filter", "EQ 5"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "EQ 5"},
+      reverb_size = "large",
+    },
+  },
+  
+  pad_formant = {
+    name = "Pad (Formant)",
+    description = "Choir/vocal pad, formant-like character",
+    family = "pad",
+    
+    oscillator = {
+      unison_range = {2, 4},
+      frame_count_range = {3, 5},
+      detune_range = {5, 15},
+      pan_spread_range = {0.3, 0.6},
+      sample_count_range = {2, 4},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "medium",
+      fx_tendencies = {"Analog Filter", "Comb Filter"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "medium",
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.3, hold = 0.0, decay = 0.25, sustain = 0.85, release = 0.5 },
+      filter_ahdsr = { attack = 0.4, hold = 0.0, decay = 0.4, sustain = 0.65, release = 0.5 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = { frequency = 5.0, amount = 0.01 },
+      filter_lfo = { frequency = 0.4, amount = 0.12 },
+      velocity_volume = 0.35,
+      velocity_filter = 0.3,
+      filter_keytrack = 0.6,
+      filter_cutoff = 0.5,
+      filter_resonance = 0.25,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Chorus", "Analog Filter", "Comb Filter"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "large",
+    },
+  },
+  
+  -- ========================================================================
+  -- KEYS family - Piano, organ, electric piano sounds
+  -- ========================================================================
+  keys_dynamic = {
+    name = "Keys (Dynamic)",
+    description = "Electric piano, Rhodes-like, velocity-sensitive",
+    family = "keys",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {2, 8},
+      pan_spread_range = {0.2, 0.4},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter", "Chorus"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.5, release = 0.25 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.4, release = 0.25 },
+      pitch_ahdsr = nil,
+      volume_lfo = { frequency = 5.0, amount = 0.03 },
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.8,
+      velocity_filter = 0.6,
+      filter_keytrack = 0.6,
+      filter_cutoff = 0.65,
+      filter_resonance = 0.2,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Chorus", "Analog Filter", "Compressor"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Compressor"},
+      reverb_size = "small",
+    },
+  },
+  
+  keys_sustain = {
+    name = "Keys (Organ)",
+    description = "Organ, full sustain, drawbar-style",
+    family = "keys",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {0, 5},
+      pan_spread_range = {0.1, 0.3},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {"Chorus", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.05 },
+      filter_ahdsr = nil,
+      pitch_ahdsr = nil,
+      volume_lfo = { frequency = 6.0, amount = 0.05 },
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.3,
+      velocity_filter = 0.0,
+      filter_keytrack = 0.0,
+      filter_cutoff = nil,
+      filter_resonance = nil,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Chorus", "Distortion", "Cabinet Simulator"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "EQ 5"},
+      reverb_size = "medium",
+    },
+  },
+  
+  keys_velocity = {
+    name = "Keys (Velocity)",
+    description = "Piano-like, highly velocity-sensitive",
+    family = "keys",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {1, 5},
+      pan_spread_range = {0.2, 0.4},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter"},
+      fx_count_range = {0, 1},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.8, sustain = 0.0, release = 0.4 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 1.0, sustain = 0.3, release = 0.4 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.9,
+      velocity_filter = 0.7,
+      filter_keytrack = 0.7,
+      filter_cutoff = 0.7,
+      filter_resonance = 0.1,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Compressor", "EQ 5"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Compressor"},
+      reverb_size = "medium",
+    },
+  },
+  
+  -- ========================================================================
+  -- ARP family - Short, rhythmic, sequencer-friendly sounds
+  -- ========================================================================
+  arp_tight = {
+    name = "Arp (Tight)",
+    description = "Fast arpeggio, very short, punchy",
+    family = "arp",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 1},
+      detune_range = {3, 10},
+      pan_spread_range = {0.2, 0.4},
+      sample_count_range = {1, 1},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {"Analog Filter"},
+      fx_count_range = {1, 1},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.05, sustain = 0.0, release = 0.03 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.06, sustain = 0.0, release = 0.03 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.7,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.3,
+      filter_cutoff = 0.75,
+      filter_resonance = 0.3,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Gate"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Delay", "Reverb"},
+      reverb_size = "small",
+    },
+  },
+  
+  arp_gated = {
+    name = "Arp (Gated)",
+    description = "Gated arpeggio, rhythmic chopping",
+    family = "arp",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 1},
+      detune_range = {3, 10},
+      pan_spread_range = {0.2, 0.5},
+      sample_count_range = {1, 1},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {"Analog Filter", "Gate"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.6, release = 0.05 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.5, release = 0.05 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.6,
+      velocity_filter = 0.4,
+      filter_keytrack = 0.3,
+      filter_cutoff = 0.7,
+      filter_resonance = 0.25,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Gate", "Compressor"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Delay", "Reverb"},
+      reverb_size = "small",
+    },
+  },
+  
+  arp_rhythmic = {
+    name = "Arp (Rhythmic)",
+    description = "One-note sequence, rhythmic pattern potential",
+    family = "arp",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {5, 12},
+      pan_spread_range = {0.3, 0.5},
+      sample_count_range = {1, 1},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter"},
+      fx_count_range = {1, 1},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.3, release = 0.08 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.4, release = 0.08 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.7,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.4,
+      filter_cutoff = 0.65,
+      filter_resonance = 0.3,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Gate"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Delay", "Reverb"},
+      reverb_size = "small",
+    },
+  },
+  
+  -- ========================================================================
+  -- FX family - Sound effects, risers, impacts
+  -- ========================================================================
+  fx_envelope = {
+    name = "FX (Envelope)",
+    description = "Risers, sweeps, long envelope-driven FX",
+    family = "fx",
+    
+    oscillator = {
+      unison_range = {2, 5},
+      frame_count_range = {2, 4},
+      detune_range = {10, 30},
+      pan_spread_range = {0.5, 1.0},
+      sample_count_range = {2, 4},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Analog Filter", "Phaser", "Flanger", "Distortion"},
+      fx_count_range = {2, 4},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "slow",
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 2.0, hold = 0.5, decay = 1.0, sustain = 0.5, release = 1.5 },
+      filter_ahdsr = { attack = 3.0, hold = 0.0, decay = 1.5, sustain = 0.3, release = 1.5 },
+      pitch_ahdsr = { attack = 2.5, hold = 0.0, decay = 0.5, sustain = 0.8, release = 0.5, amount = 0.2 },
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = { frequency = 0.2, amount = 0.2 },
+      velocity_volume = 0.2,
+      velocity_filter = 0.15,
+      filter_keytrack = 0.2,
+      filter_cutoff = 0.3,
+      filter_resonance = 0.3,
+    },
+    
+    -- fx_envelope has GROUP FRAMES ENABLED for evolving FX
+    group_frame = {
+      enabled = true,
+      frame_count_range = {2, 4},
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Phaser", "Flanger"},
+      fx_count_range = {1, 2},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Phaser", "Flanger", "Analog Filter", "Distortion"},
+      count_range = {2, 4},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "large",
+    },
+  },
+  
+  fx_percussive = {
+    name = "FX (Percussive)",
+    description = "Impacts, hits, one-shot FX",
+    family = "fx",
+    
+    oscillator = {
+      unison_range = {1, 3},
+      frame_count_range = {1, 2},
+      detune_range = {5, 20},
+      pan_spread_range = {0.3, 0.6},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Distortion", "Analog Filter"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.0, release = 0.2 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.0, release = 0.2 },
+      pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.1, amount = -0.3 },
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.8,
+      velocity_filter = 0.6,
+      filter_keytrack = 0.2,
+      filter_cutoff = 0.8,
+      filter_resonance = 0.2,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Distortion", "Analog Filter", "Saturator"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb"},
+      reverb_size = "medium",
+    },
+  },
+  
+  fx_sustain = {
+    name = "FX (Drone)",
+    description = "Drones, sustained atmospheric FX",
+    family = "fx",
+    
+    oscillator = {
+      unison_range = {3, 6},
+      frame_count_range = {3, 5},
+      detune_range = {15, 40},
+      pan_spread_range = {0.6, 1.0},
+      sample_count_range = {2, 4},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Analog Filter", "Phaser", "Flanger", "Chorus"},
+      fx_count_range = {2, 4},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "slow",
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 1.5, hold = 0.0, decay = 0.5, sustain = 0.9, release = 2.0 },
+      filter_ahdsr = { attack = 2.0, hold = 0.0, decay = 1.0, sustain = 0.6, release = 2.0 },
+      pitch_ahdsr = nil,
+      volume_lfo = { frequency = 0.1, amount = 0.1 },
+      pitch_lfo = { frequency = 0.05, amount = 0.005 },
+      filter_lfo = { frequency = 0.15, amount = 0.15 },
+      velocity_volume = 0.15,
+      velocity_filter = 0.1,
+      filter_keytrack = 0.2,
+      filter_cutoff = 0.4,
+      filter_resonance = 0.2,
+    },
+    
+    -- fx_sustain has GROUP FRAMES ENABLED for evolving drones
+    group_frame = {
+      enabled = true,
+      frame_count_range = {2, 3},
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Phaser", "Flanger", "Chorus"},
+      fx_count_range = {1, 2},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Phaser", "Flanger", "Chorus", "Analog Filter"},
+      count_range = {2, 4},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "large",
+    },
+  },
+  
+  -- ========================================================================
+  -- ORCHESTRAL family - Strings, brass, woodwinds
+  -- ========================================================================
+  strings = {
+    name = "Strings",
+    description = "Orchestral strings, expressive, legato",
+    family = "orchestral",
+    
+    oscillator = {
+      unison_range = {2, 4},
+      frame_count_range = {2, 4},
+      detune_range = {5, 15},
+      pan_spread_range = {0.3, 0.6},
+      sample_count_range = {2, 3},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Analog Filter", "Chorus"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "slow",
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.25, hold = 0.0, decay = 0.15, sustain = 0.9, release = 0.4 },
+      filter_ahdsr = { attack = 0.3, hold = 0.0, decay = 0.2, sustain = 0.75, release = 0.4 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = { frequency = 5.0, amount = 0.01 },
+      filter_lfo = nil,
+      velocity_volume = 0.5,
+      velocity_filter = 0.4,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.6,
+      filter_resonance = 0.15,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Chorus", "Analog Filter", "EQ 5"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "EQ 5"},
+      reverb_size = "large",
+    },
+  },
+  
+  brass = {
+    name = "Brass",
+    description = "Brass section, punchy attack, bright filter",
+    family = "orchestral",
+    
+    oscillator = {
+      unison_range = {1, 3},
+      frame_count_range = {1, 2},
+      detune_range = {3, 10},
+      pan_spread_range = {0.2, 0.5},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "medium",
+      fx_tendencies = {"Analog Filter"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "medium",
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.08, hold = 0.0, decay = 0.12, sustain = 0.85, release = 0.2 },
+      filter_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.15, sustain = 0.7, release = 0.2 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = { frequency = 5.0, amount = 0.012 },
+      filter_lfo = nil,
+      velocity_volume = 0.7,
+      velocity_filter = 0.6,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.7,
+      filter_resonance = 0.2,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Saturator", "EQ 5"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "EQ 5"},
+      reverb_size = "medium",
+    },
+  },
+  
+  -- ========================================================================
+  -- BELL family - Metallic, bell-like, FM sounds
+  -- ========================================================================
+  bell = {
+    name = "Bell",
+    description = "Metallic bell, FM-like, bright harmonics",
+    family = "bell",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {2, 8},
+      pan_spread_range = {0.3, 0.5},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter"},
+      fx_count_range = {0, 1},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 1.5, sustain = 0.0, release = 0.8 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 2.0, sustain = 0.2, release = 0.8 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.7,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.6,
+      filter_cutoff = 0.8,
+      filter_resonance = 0.15,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Chorus"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "large",
+    },
+  },
+  
+  -- ========================================================================
+  -- LEGACY profiles - Kept for backward compatibility
+  -- ========================================================================
+  default = {
+    name = "Default",
+    description = "Balanced default, general purpose",
+    family = "legacy",
+    
+    oscillator = {
+      unison_range = {1, 3},
+      frame_count_range = {1, 3},
+      detune_range = {5, 20},
+      pan_spread_range = {0.2, 0.5},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "medium",
+      fx_tendencies = {"Analog Filter", "Chorus"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "medium",
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.2, sustain = 0.7, release = 0.3 },
+      filter_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.3, sustain = 0.5, release = 0.3 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.5,
+      velocity_filter = 0.3,
+      filter_keytrack = 0.4,
+      filter_cutoff = 0.6,
+      filter_resonance = 0.2,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Chorus"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb"},
+      reverb_size = "medium",
+    },
+  },
+  
+  pluck = {
+    name = "Pluck (Legacy)",
+    description = "Legacy pluck profile",
+    family = "legacy",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {3, 12},
+      pan_spread_range = {0.2, 0.5},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.0, release = 0.15 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.2, release = 0.15 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.7,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.3,
+      filter_cutoff = 0.65,
+      filter_resonance = 0.2,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Saturator"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "small",
+    },
+  },
+  
+  bass = {
+    name = "Bass (Legacy)",
+    description = "Legacy bass profile",
+    family = "legacy",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {3, 12},
+      pan_spread_range = {0.0, 0.2},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.8, release = 0.12 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.25, sustain = 0.4, release = 0.12 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.5,
+      velocity_filter = 0.4,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.5,
+      filter_resonance = 0.3,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Saturator", "Compressor"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Compressor", "EQ 5"},
+      reverb_size = nil,
+    },
+  },
+  
+  pad = {
+    name = "Pad (Legacy)",
+    description = "Legacy pad profile",
+    family = "legacy",
+    
+    oscillator = {
+      unison_range = {2, 5},
+      frame_count_range = {2, 4},
+      detune_range = {8, 25},
+      pan_spread_range = {0.4, 0.8},
+      sample_count_range = {1, 3},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "slow",
+      fx_tendencies = {"Analog Filter", "Chorus", "Phaser"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "slow",
+      lfo_rate_preset = "slow",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.4, hold = 0.0, decay = 0.3, sustain = 0.85, release = 0.7 },
+      filter_ahdsr = { attack = 0.6, hold = 0.0, decay = 0.5, sustain = 0.6, release = 0.7 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = { frequency = 0.3, amount = 0.1 },
+      velocity_volume = 0.3,
+      velocity_filter = 0.2,
+      filter_keytrack = 0.4,
+      filter_cutoff = 0.5,
+      filter_resonance = 0.15,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Chorus", "Phaser", "Analog Filter"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "large",
+    },
+  },
+  
+  lead = {
+    name = "Lead (Legacy)",
+    description = "Legacy lead profile",
+    family = "legacy",
+    
+    oscillator = {
+      unison_range = {1, 3},
+      frame_count_range = {1, 3},
+      detune_range = {5, 20},
+      pan_spread_range = {0.2, 0.5},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = true,
+      morph_speed = "medium",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "medium",
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.12, sustain = 0.8, release = 0.15 },
+      filter_ahdsr = { attack = 0.03, hold = 0.0, decay = 0.2, sustain = 0.55, release = 0.15 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = { frequency = 5.0, amount = 0.02 },
+      filter_lfo = nil,
+      velocity_volume = 0.6,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.65,
+      filter_resonance = 0.25,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Distortion", "Chorus"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Delay"},
+      reverb_size = "medium",
+    },
+  },
+  
+  organ = {
+    name = "Organ (Legacy)",
+    description = "Legacy organ profile",
+    family = "legacy",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {0, 5},
+      pan_spread_range = {0.1, 0.3},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {"Chorus", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.05 },
+      filter_ahdsr = nil,
+      pitch_ahdsr = nil,
+      volume_lfo = { frequency = 6.0, amount = 0.05 },
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.3,
+      velocity_filter = 0.0,
+      filter_keytrack = 0.0,
+      filter_cutoff = nil,
+      filter_resonance = nil,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Chorus", "Distortion", "Cabinet Simulator"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "EQ 5"},
+      reverb_size = "medium",
+    },
+  },
+  
+  keys = {
+    name = "Keys (Legacy)",
+    description = "Legacy keys profile",
+    family = "legacy",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 2},
+      detune_range = {2, 8},
+      pan_spread_range = {0.2, 0.4},
+      sample_count_range = {1, 2},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter", "Chorus"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.35, sustain = 0.5, release = 0.25 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.45, sustain = 0.4, release = 0.25 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.7,
+      velocity_filter = 0.5,
+      filter_keytrack = 0.5,
+      filter_cutoff = 0.6,
+      filter_resonance = 0.2,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Chorus", "Analog Filter", "Compressor"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb", "Compressor"},
+      reverb_size = "small",
+    },
+  },
+  
+  percussive = {
+    name = "Percussive (Legacy)",
+    description = "Legacy percussive profile",
+    family = "legacy",
+    
+    oscillator = {
+      unison_range = {1, 2},
+      frame_count_range = {1, 1},
+      detune_range = {2, 8},
+      pan_spread_range = {0.2, 0.4},
+      sample_count_range = {1, 1},
+    },
+    
+    frame = {
+      morph_enabled = false,
+      morph_speed = "fast",
+      fx_tendencies = {"Analog Filter", "Distortion"},
+      fx_count_range = {1, 2},
+    },
+    
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "fast",
+    },
+    
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.05 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.12, sustain = 0.0, release = 0.05 },
+      pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.05, sustain = 0.0, release = 0.02, amount = -0.1 },
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.9,
+      velocity_filter = 0.7,
+      filter_keytrack = 0.2,
+      filter_cutoff = 0.75,
+      filter_resonance = 0.15,
+    },
+    
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Saturator"},
+      count_range = {1, 2},
+    },
+    
+    global_fx = {
+      tendencies = {"Reverb"},
+      reverb_size = "small",
+    },
+  },
+}
+
+-- ============================================================================
+-- BACKWARD COMPATIBILITY: Map old modulation profile access to new structure
+-- This allows existing code to access modulation data from the new structure
+-- ============================================================================
+PakettiMetaSynthModulationProfiles = setmetatable({}, {
+  __index = function(t, key)
+    local profile = PakettiMetaSynthProfiles[key]
+    if profile and profile.modulation then
+      return profile.modulation
+    end
+    return nil
+  end
+})
+
+-- Note: The old flat modulation profile structure has been migrated to the new
+-- multi-layer PakettiMetaSynthProfiles structure above. The modulation data is
+-- now accessed via profile.modulation (separate layer). The PakettiMetaSynthModulationProfiles
+-- metatable provides backward compatibility for existing code.
+
+-- Legacy reference table (not used, preserved for documentation)
+PakettiMetaSynthOldModulationProfiles_DEPRECATED = {
   -- ========================================================================
   -- NEUTRAL family - Raw/experimental starting points
   -- ========================================================================
@@ -760,6 +3269,23 @@ end
 function PakettiMetaSynthCreateDefaultArchitecture()
   return {
     name = "New MetaSynth Instrument",
+    -- GLOBAL PROFILE: Master profile applied to ALL layers unless overridden
+    -- This defines the musical intent (Pluck, Pad, Bass, Lead, etc.)
+    -- Each layer consumes the subset of rules that apply to it
+    global_profile = "default",
+    
+    -- ================================================================
+    -- MODULATION LAYER (NEW): Separate layer with independent profile override
+    -- Allows modulation to be controlled independently from other layers
+    -- ================================================================
+    modulation_layer = {
+      -- Profile override for modulation only (nil = use global_profile's modulation)
+      profile_override = nil,
+      -- Optional: custom modulation settings that bypass profile entirely
+      -- When set, these values override the profile's modulation settings
+      custom_modulation = nil,
+    },
+    
     oscillator_groups = {
       {
         name = "Group A",
@@ -777,6 +3303,30 @@ function PakettiMetaSynthCreateDefaultArchitecture()
         group_master_fx_mode = "random",
         group_master_fx_count = 3,
         group_master_fx_types = {},
+        
+        -- ================================================================
+        -- GROUP FRAMES (NEW): Meta-wavetable at group level
+        -- Allows the entire group to morph between different "snapshots"
+        -- Default OFF - advanced feature for evolving/ambient sounds
+        -- ================================================================
+        group_frames_enabled = false,       -- Default OFF for most profiles
+        group_frame_count = 1,              -- 1-8 frames at group level
+        group_frame_morph_enabled = false,  -- Whether to morph between group frames
+        group_frame_morph_speed = "slow",   -- "none", "slow", "medium", "fast"
+        group_frame_crossfade_curve = "linear",  -- Curve type for group frame morphing
+        group_frame_control_source = "lfo", -- "lfo" or "macro"
+        group_frame_lfo_rate_preset = "slow",  -- LFO speed for group frame morphing
+        -- Per-group-frame FX (optional processing per group frame)
+        group_frame_fx_enabled = false,
+        group_frame_fx_tendencies = {},
+        group_frame_fx_count = 1,
+        
+        -- PROFILE OVERRIDE at GROUP level (nil = inherit from global_profile)
+        -- When set, this group uses a different profile than the global one
+        profile_override = nil,
+        -- DEPRECATED: modulation_profile - use profile_override instead
+        -- Kept for backward compatibility, will be migrated to profile_override
+        modulation_profile = nil,
         oscillators = {
           {
             name = "Osc 1",
@@ -792,8 +3342,11 @@ function PakettiMetaSynthCreateDefaultArchitecture()
             osc_fx_mode = "random",
             osc_fx_count = 2,
             osc_fx_types = {},
-            -- Modulation profile: defines voice articulation (GESTURE layer)
-            modulation_profile = "default"
+            -- PROFILE OVERRIDE at OSCILLATOR level (nil = inherit from group/global)
+            -- When set, this specific oscillator uses a different profile
+            profile_override = nil,
+            -- DEPRECATED: modulation_profile - use profile_override instead
+            modulation_profile = nil
           }
         }
       }
@@ -1756,11 +4309,22 @@ end
 -- Apply a modulation profile to a modulation set
 -- This clears existing devices and rebuilds from the profile definition
 function PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
-  -- Get profile definition
-  local profile = PakettiMetaSynthModulationProfiles[profile_name]
+  -- Get full multi-layer profile
+  local full_profile = PakettiMetaSynthGetProfile(profile_name)
+  if not full_profile then
+    print("PakettiMetaSynth: Unknown profile '" .. tostring(profile_name) .. "', using default")
+    full_profile = PakettiMetaSynthGetProfile("default")
+  end
+  
+  -- Extract modulation rules from top-level modulation layer (new structure)
+  local profile = full_profile.modulation
   if not profile then
-    print("PakettiMetaSynth: Unknown modulation profile '" .. tostring(profile_name) .. "', using default")
-    profile = PakettiMetaSynthModulationProfiles["default"]
+    -- Fallback: try backward compatibility (old flat structure via metatable)
+    profile = PakettiMetaSynthModulationProfiles[profile_name]
+    if not profile then
+      print("PakettiMetaSynth: No modulation data for profile '" .. tostring(profile_name) .. "'")
+      return false
+    end
   end
   
   -- Clear existing modulation devices
@@ -1853,7 +4417,100 @@ function PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
   end
   
   print(string.format("PakettiMetaSynth: Applied modulation profile '%s' (%s)", 
-    profile_name, profile.description or ""))
+    profile_name, full_profile.description or ""))
+  
+  return true
+end
+
+-- Apply modulation rules directly (bypasses profile lookup)
+-- This is used when modulation has been resolved via PakettiMetaSynthResolveModulationProfile
+function PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
+  if not modulation_rules then
+    print("PakettiMetaSynth: No modulation rules provided")
+    return false
+  end
+  
+  -- Clear existing modulation devices
+  PakettiMetaSynthClearModulationSet(mod_set)
+  
+  -- Use the modulation rules directly (same logic as ApplyModulationProfile)
+  local profile = modulation_rules
+  
+  -- Add Volume AHDSR if defined
+  if profile.volume_ahdsr then
+    PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, profile.volume_ahdsr)
+  end
+  
+  -- Add Filter AHDSR if defined
+  if profile.filter_ahdsr then
+    PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, profile.filter_ahdsr)
+  end
+  
+  -- Add Pitch AHDSR if defined
+  if profile.pitch_ahdsr then
+    local pitch_params = {
+      attack = profile.pitch_ahdsr.attack,
+      hold = profile.pitch_ahdsr.hold,
+      decay = profile.pitch_ahdsr.decay,
+      sustain = profile.pitch_ahdsr.sustain,
+      release = profile.pitch_ahdsr.release
+    }
+    local pitch_env = PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, pitch_params)
+    if pitch_env and profile.pitch_ahdsr.amount then
+      if pitch_env.amplitude then
+        pitch_env.amplitude.value = math.abs(profile.pitch_ahdsr.amount)
+      end
+    end
+  end
+  
+  -- Add Velocity device for volume if velocity_volume is significant
+  if profile.velocity_volume and profile.velocity_volume > 0.1 then
+    PakettiMetaSynthAddVelocityToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, {
+      amount = profile.velocity_volume
+    })
+  end
+  
+  -- Add Velocity device for filter if velocity_filter is significant
+  if profile.velocity_filter and profile.velocity_filter > 0.1 then
+    PakettiMetaSynthAddVelocityToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, {
+      amount = profile.velocity_filter
+    })
+  end
+  
+  -- Add Volume LFO (tremolo) if defined
+  if profile.volume_lfo then
+    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, profile.volume_lfo)
+  end
+  
+  -- Add Pitch LFO (vibrato) if defined
+  if profile.pitch_lfo then
+    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, profile.pitch_lfo)
+  end
+  
+  -- Add Filter LFO if defined
+  if profile.filter_lfo then
+    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, profile.filter_lfo)
+  end
+  
+  -- Set filter type and parameters if filter cutoff or resonance is defined
+  if profile.filter_cutoff or profile.filter_resonance then
+    if profile.filter_cutoff then
+      mod_set.filter_type = renoise.SampleModulationSet.FILTER_TYPE_LP_CLEAN
+      if mod_set.cutoff_input then
+        mod_set.cutoff_input.value = profile.filter_cutoff
+      end
+    end
+    if profile.filter_resonance and mod_set.resonance_input then
+      mod_set.resonance_input.value = profile.filter_resonance
+    end
+  end
+  
+  -- Add Key Tracking device for filter if filter_keytrack is significant
+  if profile.filter_keytrack and profile.filter_keytrack > 0.1 then
+    PakettiMetaSynthAddKeyTrackingToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, {
+      amount = profile.filter_keytrack
+    })
+  end
   
   return true
 end
@@ -1934,6 +4591,178 @@ function PakettiMetaSynthAddKeyTrackingToModSet(mod_set, target_type, params)
   end
   
   return device
+end
+
+-- ============================================================================
+-- MULTI-LAYER PROFILE RESOLUTION
+-- Resolves the appropriate profile for a specific layer based on override chain
+-- Override chain: oscillator > group > architecture.global_profile > "default"
+-- ============================================================================
+
+-- Resolve the profile name for a given context
+-- Returns the profile name that should be used
+function PakettiMetaSynthResolveProfileName(osc, group, architecture)
+  -- Override chain: osc.profile_override > osc.modulation_profile (legacy) >
+  --                 group.profile_override > group.modulation_profile (legacy) >
+  --                 architecture.global_profile > "default"
+  if osc then
+    if osc.profile_override then return osc.profile_override end
+    if osc.modulation_profile then return osc.modulation_profile end
+  end
+  if group then
+    if group.profile_override then return group.profile_override end
+    if group.modulation_profile then return group.modulation_profile end
+  end
+  if architecture and architecture.global_profile then
+    return architecture.global_profile
+  end
+  return "default"
+end
+
+-- Get the full profile data for a given profile name
+-- Returns the complete multi-layer profile table
+function PakettiMetaSynthGetProfile(profile_name)
+  local profile = PakettiMetaSynthProfiles[profile_name]
+  if not profile then
+    print("PakettiMetaSynth: Profile '" .. tostring(profile_name) .. "' not found, using 'default'")
+    profile = PakettiMetaSynthProfiles["default"]
+  end
+  return profile
+end
+
+-- Resolve and return profile rules for a specific LAYER
+-- layer: "oscillator", "frame", "group", "group_fx", "global_fx"
+-- Returns the layer-specific rules table, or empty table with defaults if missing
+function PakettiMetaSynthResolveProfile(layer, osc, group, architecture)
+  local profile_name = PakettiMetaSynthResolveProfileName(osc, group, architecture)
+  local profile = PakettiMetaSynthGetProfile(profile_name)
+  
+  if not profile then
+    return PakettiMetaSynthGetDefaultLayerRules(layer)
+  end
+  
+  local layer_rules = profile[layer]
+  if not layer_rules then
+    return PakettiMetaSynthGetDefaultLayerRules(layer)
+  end
+  
+  return layer_rules
+end
+
+-- Get default rules for a layer when profile is missing or incomplete
+function PakettiMetaSynthGetDefaultLayerRules(layer)
+  local defaults = {
+    oscillator = {
+      unison_range = {1, 3},
+      frame_count_range = {1, 3},
+      detune_range = {5, 20},
+      pan_spread_range = {0.2, 0.5},
+      sample_count_range = {1, 2},
+    },
+    frame = {
+      morph_enabled = true,
+      morph_speed = "medium",
+      fx_tendencies = {"Analog Filter", "Chorus"},
+      fx_count_range = {1, 2},
+    },
+    group = {
+      crossfade_enabled = true,
+      scan_speed = "medium",
+      lfo_rate_preset = "medium",
+    },
+    -- Modulation is now a SEPARATE layer (not nested in group)
+    modulation = {
+      volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.2, sustain = 0.7, release = 0.3 },
+      filter_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.3, sustain = 0.5, release = 0.3 },
+      pitch_ahdsr = nil,
+      volume_lfo = nil,
+      pitch_lfo = nil,
+      filter_lfo = nil,
+      velocity_volume = 0.5,
+      velocity_filter = 0.3,
+      filter_keytrack = 0.4,
+      filter_cutoff = 0.6,
+      filter_resonance = 0.2,
+    },
+    -- Group frames - meta-wavetable at group level (default OFF)
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    group_fx = {
+      enabled = true,
+      tendencies = {"Analog Filter", "Chorus"},
+      count_range = {1, 2},
+    },
+    global_fx = {
+      tendencies = {"Reverb"},
+      reverb_size = "medium",
+    },
+  }
+  
+  return defaults[layer] or {}
+end
+
+-- ============================================================================
+-- MODULATION LAYER RESOLUTION - Independent from other layers
+-- Checks architecture.modulation_layer.profile_override first, then falls back
+-- to the normal profile resolution chain
+-- ============================================================================
+function PakettiMetaSynthResolveModulationProfile(osc, group, architecture)
+  -- First check if there's a modulation layer override in the architecture
+  if architecture and architecture.modulation_layer then
+    -- If custom modulation is defined, use it directly
+    if architecture.modulation_layer.custom_modulation then
+      return architecture.modulation_layer.custom_modulation
+    end
+    -- If modulation profile override is set, resolve from that profile
+    if architecture.modulation_layer.profile_override then
+      local mod_profile = PakettiMetaSynthGetProfile(architecture.modulation_layer.profile_override)
+      if mod_profile and mod_profile.modulation then
+        return mod_profile.modulation
+      end
+    end
+  end
+  
+  -- Fall back to normal profile resolution chain
+  local profile_name = PakettiMetaSynthResolveProfileName(osc, group, architecture)
+  local profile = PakettiMetaSynthGetProfile(profile_name)
+  
+  if profile and profile.modulation then
+    return profile.modulation
+  end
+  
+  return PakettiMetaSynthGetDefaultLayerRules("modulation")
+end
+
+-- Helper: Get modulation rules (backward compatibility wrapper)
+function PakettiMetaSynthResolveModulation(osc, group, architecture)
+  return PakettiMetaSynthResolveModulationProfile(osc, group, architecture)
+end
+
+-- Helper: Get a value within a range from profile rules
+function PakettiMetaSynthGetValueInRange(range)
+  if not range or type(range) ~= "table" or #range < 2 then
+    return 1
+  end
+  local min_val, max_val = range[1], range[2]
+  if min_val == max_val then
+    return min_val
+  end
+  return min_val + math.random() * (max_val - min_val)
+end
+
+-- Helper: Get an integer within a range from profile rules
+function PakettiMetaSynthGetIntInRange(range)
+  if not range or type(range) ~= "table" or #range < 2 then
+    return 1
+  end
+  local min_val, max_val = range[1], range[2]
+  return math.random(math.floor(min_val), math.floor(max_val))
 end
 
 -- Get a random modulation profile name from the available profiles
@@ -2784,8 +5613,9 @@ function PakettiMetaSynthGenerateInstrument(architecture)
       mod_set_index = mod_set_idx
       
       -- Apply modulation profile (GESTURE layer - voice articulation)
-      local profile_name = osc.modulation_profile or "default"
-      PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
+      -- Use modulation-specific resolution that checks architecture.modulation_layer first
+      local modulation_rules = PakettiMetaSynthResolveModulationProfile(osc, group, architecture)
+      PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
       
       -- Get detune and pan spread values (with defaults)
       local detune_spread = osc.detune_spread or 10
@@ -3168,8 +5998,9 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
       local mod_set, mod_set_idx = PakettiMetaSynthCreateModulationSet(instrument, osc.name .. " Mod")
       
       -- Apply modulation profile (GESTURE layer - voice articulation)
-      local profile_name = osc.modulation_profile or "default"
-      PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
+      -- Use modulation-specific resolution that checks architecture.modulation_layer first
+      local modulation_rules = PakettiMetaSynthResolveModulationProfile(osc, group, architecture)
+      PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
       
       -- ================================================================
       -- LOAD SAMPLES - ALL go to SOURCE CHAIN
@@ -3346,27 +6177,41 @@ end
 -- ============================================================================
 
 -- Randomize oscillator configuration
-function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining)
+function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining, profile_name, group, architecture)
   max_samples_remaining = max_samples_remaining or 12
   
-  -- Random frame count FIRST (1-4) - determines minimum samples needed
-  osc.frame_count = math.random(1, 4)
+  -- Get oscillator rules from profile
+  local osc_rules = PakettiMetaSynthResolveProfile("oscillator", nil, group, architecture)
+  local frame_rules = PakettiMetaSynthResolveProfile("frame", nil, group, architecture)
+  
+  -- Use profile-guided ranges or fallback to defaults
+  local frame_range = osc_rules.frame_count_range or {1, 4}
+  local unison_range = osc_rules.unison_range or {1, 4}
+  local sample_range = osc_rules.sample_count_range or {1, 2}
+  local detune_range = osc_rules.detune_range or {5, 25}
+  local pan_range = osc_rules.pan_spread_range or {0.3, 1.0}
+  
+  -- Random frame count using profile range - determines minimum samples needed
+  osc.frame_count = PakettiMetaSynthGetIntInRange(frame_range)
   
   -- Sample count must be >= frame_count so each frame has at least one sample
   -- Limited by remaining budget
   local min_samples = osc.frame_count
-  local max_samples = math.min(4, max_samples_remaining)
+  local profile_max_samples = sample_range[2] or 4
+  local max_samples = math.min(profile_max_samples, max_samples_remaining)
   if min_samples > max_samples then
     -- Not enough budget for this many frames, reduce frame count
     osc.frame_count = max_samples
     min_samples = max_samples
   end
-  osc.sample_count = math.max(min_samples, math.min(math.random(min_samples, 4), max_samples_remaining))
+  local sample_min = math.max(min_samples, sample_range[1] or 1)
+  osc.sample_count = math.max(sample_min, math.min(math.random(sample_min, profile_max_samples), max_samples_remaining))
   
-  -- Random unison (1-4), limited by remaining budget after samples
+  -- Random unison using profile range, limited by remaining budget after samples
   local samples_used = osc.sample_count
   local max_unison = math.max(1, math.floor(max_samples_remaining / samples_used))
-  osc.unison_voices = math.min(math.random(1, 4), max_unison)
+  local profile_unison = PakettiMetaSynthGetIntInRange(unison_range)
+  osc.unison_voices = math.min(profile_unison, max_unison)
   
   -- Check if a custom sample folder is configured
   if PakettiMetaSynthLastFolderPath and PakettiMetaSynthLastFolderPath ~= "" then
@@ -3381,33 +6226,60 @@ function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining)
     osc.sample_source = "akwf"
   end
   
-  -- Random spread values
-  osc.detune_spread = 5 + math.random() * 20  -- 5-25 cents
-  osc.pan_spread = 0.3 + math.random() * 0.7  -- 0.3-1.0
+  -- Random spread values using profile ranges
+  osc.detune_spread = PakettiMetaSynthGetValueInRange(detune_range)
+  osc.pan_spread = PakettiMetaSynthGetValueInRange(pan_range)
   
-  -- Oscillator FX settings - always enabled to ensure full architecture
+  -- Oscillator FX settings - guided by frame rules
+  local fx_tendencies = frame_rules.fx_tendencies or {}
+  local fx_count_range = frame_rules.fx_count_range or {1, 4}
+  
   osc.osc_fx_enabled = true
-  osc.osc_fx_mode = math.random() > 0.5 and "random" or "selective"
-  osc.osc_fx_count = math.random(1, 4)
-  osc.osc_fx_types = {}
+  osc.osc_fx_count = PakettiMetaSynthGetIntInRange(fx_count_range)
   
-  -- If selective mode, randomly pick some FX types
-  if osc.osc_fx_mode == "selective" then
-    local fx_names = PakettiMetaSynthGetSelectableFXTypeNames()
-    local num_types = math.random(1, math.min(3, #fx_names))
-    local shuffled_types = {}
-    for _, name in ipairs(fx_names) do table.insert(shuffled_types, name) end
-    for i = #shuffled_types, 2, -1 do
+  -- Use profile FX tendencies if available, otherwise random
+  if #fx_tendencies > 0 then
+    osc.osc_fx_mode = "selective"
+    osc.osc_fx_types = {}
+    -- Pick FX from tendencies
+    local shuffled = {}
+    for _, fx in ipairs(fx_tendencies) do table.insert(shuffled, fx) end
+    for i = #shuffled, 2, -1 do
       local j = math.random(1, i)
-      shuffled_types[i], shuffled_types[j] = shuffled_types[j], shuffled_types[i]
+      shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
     end
-    for i = 1, num_types do
-      table.insert(osc.osc_fx_types, shuffled_types[i])
+    local num_fx = math.min(osc.osc_fx_count, #shuffled)
+    for i = 1, num_fx do
+      table.insert(osc.osc_fx_types, shuffled[i])
+    end
+  else
+    -- Random mode when no tendencies defined
+    osc.osc_fx_mode = math.random() > 0.5 and "random" or "selective"
+    osc.osc_fx_types = {}
+    if osc.osc_fx_mode == "selective" then
+      local fx_names = PakettiMetaSynthGetSelectableFXTypeNames()
+      local num_types = math.random(1, math.min(3, #fx_names))
+      local shuffled_types = {}
+      for _, name in ipairs(fx_names) do table.insert(shuffled_types, name) end
+      for i = #shuffled_types, 2, -1 do
+        local j = math.random(1, i)
+        shuffled_types[i], shuffled_types[j] = shuffled_types[j], shuffled_types[i]
+      end
+      for i = 1, num_types do
+        table.insert(osc.osc_fx_types, shuffled_types[i])
+      end
     end
   end
   
-  -- Modulation profile: random selection from available profiles
-  osc.modulation_profile = PakettiMetaSynthGetRandomModulationProfile()
+  -- Profile override: nil means inherit from group (default behavior)
+  -- Optionally randomize a per-oscillator override (rare - 10% chance)
+  if math.random() < 0.1 then
+    osc.profile_override = PakettiMetaSynthGetRandomModulationProfile()
+  else
+    osc.profile_override = nil  -- Inherit from group/global
+  end
+  -- Clear deprecated field
+  osc.modulation_profile = nil
   
   return osc
 end
@@ -3415,6 +6287,19 @@ end
 -- Randomize entire architecture
 function PakettiMetaSynthRandomizeArchitecture(architecture)
   trueRandomSeed()
+  
+  -- Set GLOBAL PROFILE at architecture level - defines musical intent for all layers
+  architecture.global_profile = PakettiMetaSynthGetRandomModulationProfile()
+  
+  -- Initialize MODULATION LAYER settings
+  -- 20% chance to override modulation independently of other layers
+  architecture.modulation_layer = architecture.modulation_layer or {}
+  if math.random() < 0.2 then
+    architecture.modulation_layer.profile_override = PakettiMetaSynthGetRandomModulationProfile()
+  else
+    architecture.modulation_layer.profile_override = nil
+  end
+  architecture.modulation_layer.custom_modulation = nil  -- No custom modulation by default
   
   -- Random number of oscillator groups (1-2)
   local num_groups = math.random(1, 2)
@@ -3431,38 +6316,71 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
     -- Randomize Group LFO rate settings
     local group_rate_mode = rate_modes[math.random(1, #rate_modes)]
     
+    -- Get group rules from the global profile (or override if set)
+    local group_profile_name = nil  -- nil = inherit from global
+    -- 30% chance to override with a different profile for this group (hybrid sound)
+    if math.random() < 0.3 then
+      group_profile_name = PakettiMetaSynthGetRandomModulationProfile()
+    end
+    
+    -- Get profile rules for this group
+    local temp_group = { profile_override = group_profile_name }
+    local group_rules = PakettiMetaSynthResolveProfile("group", nil, temp_group, architecture)
+    local group_fx_rules = PakettiMetaSynthResolveProfile("group_fx", nil, temp_group, architecture)
+    local group_frame_rules = PakettiMetaSynthResolveProfile("group_frame", nil, temp_group, architecture)
+    
     local group = {
       name = "Group " .. string.char(64 + gi), -- A, B, C...
       crossfade_mode = ({"linear", "xy", "stack"})[math.random(1, 3)],
-      -- Group crossfade settings (wavetable scanning) - always enabled for full architecture
-      group_crossfade_enabled = true,
+      -- Group crossfade settings (wavetable scanning) - guided by profile
+      group_crossfade_enabled = group_rules.crossfade_enabled ~= false,
       group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
-      -- Group LFO rate settings
+      -- Group LFO rate settings - guided by profile
       group_lfo_rate_mode = group_rate_mode,
       group_lfo_rate_free = 0.1 + math.random() * 1.9,  -- 0.1-2.0 Hz
       group_lfo_rate_sync = rate_syncs[math.random(1, #rate_syncs)],
-      group_lfo_rate_preset = rate_presets[math.random(1, #rate_presets)],
-      -- Group Master FX settings - always enabled for full architecture
-      group_master_fx_enabled = true,
-      group_master_fx_mode = math.random() > 0.5 and "random" or "selective",
-      group_master_fx_count = math.random(1, 4),
+      group_lfo_rate_preset = group_rules.lfo_rate_preset or rate_presets[math.random(1, #rate_presets)],
+      -- Group Master FX settings - guided by profile group_fx rules
+      group_master_fx_enabled = group_fx_rules.enabled ~= false,
+      group_master_fx_mode = "selective",  -- Use profile tendencies
+      group_master_fx_count = PakettiMetaSynthGetIntInRange(group_fx_rules.count_range or {1, 4}),
       group_master_fx_types = {},
+      
+      -- GROUP FRAMES (meta-wavetable at group level) - guided by profile
+      group_frames_enabled = group_frame_rules.enabled == true,  -- Default OFF unless profile enables it
+      group_frame_count = PakettiMetaSynthGetIntInRange(group_frame_rules.frame_count_range or {1, 1}),
+      group_frame_morph_enabled = group_frame_rules.morph_enabled == true,
+      group_frame_morph_speed = group_frame_rules.morph_speed or "none",
+      group_frame_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
+      group_frame_control_source = "lfo",  -- Always LFO for now
+      group_frame_lfo_rate_preset = rate_presets[math.random(1, #rate_presets)],
+      group_frame_fx_enabled = group_frame_rules.enabled and #(group_frame_rules.fx_tendencies or {}) > 0,
+      group_frame_fx_tendencies = group_frame_rules.fx_tendencies or {},
+      group_frame_fx_count = PakettiMetaSynthGetIntInRange(group_frame_rules.fx_count_range or {0, 0}),
+      
+      -- Profile override at GROUP level (nil = inherit from global_profile)
+      profile_override = group_profile_name,
+      -- DEPRECATED: modulation_profile - cleared for new architecture
+      modulation_profile = nil,
       oscillators = {}
     }
     
-    -- If selective mode, randomly pick some FX types
-    if group.group_master_fx_mode == "selective" then
-      local fx_names = PakettiMetaSynthGetSelectableFXTypeNames()
-      local num_types = math.random(1, math.min(3, #fx_names))
-      local shuffled_types = {}
-      for _, name in ipairs(fx_names) do table.insert(shuffled_types, name) end
-      for i = #shuffled_types, 2, -1 do
+    -- Set group FX types from profile tendencies
+    local fx_tendencies = group_fx_rules.tendencies or {}
+    if #fx_tendencies > 0 then
+      local shuffled = {}
+      for _, fx in ipairs(fx_tendencies) do table.insert(shuffled, fx) end
+      for i = #shuffled, 2, -1 do
         local j = math.random(1, i)
-        shuffled_types[i], shuffled_types[j] = shuffled_types[j], shuffled_types[i]
+        shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
       end
-      for i = 1, num_types do
-        table.insert(group.group_master_fx_types, shuffled_types[i])
+      local num_fx = math.min(group.group_master_fx_count, #shuffled)
+      for i = 1, num_fx do
+        table.insert(group.group_master_fx_types, shuffled[i])
       end
+    else
+      -- Fallback: random FX if no tendencies defined
+      group.group_master_fx_mode = "random"
     end
     
     -- Skip creating this group if no samples remaining
@@ -3485,10 +6403,13 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
         frame_count = 1,
         sample_source = "akwf",
         detune_spread = 10,
-        pan_spread = 0.8
+        pan_spread = 0.8,
+        profile_override = nil,
+        modulation_profile = nil
       }
       
-      PakettiMetaSynthRandomizeOscillator(osc, samples_remaining)
+      -- Pass group and architecture context for profile-guided randomization
+      PakettiMetaSynthRandomizeOscillator(osc, samples_remaining, nil, group, architecture)
       samples_remaining = samples_remaining - (osc.sample_count * osc.unison_voices)
       
       table.insert(group.oscillators, osc)
@@ -3500,18 +6421,28 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
     end
   end
   
-  -- Random crossfade settings
+  -- Random crossfade settings - guided by frame rules from global profile
+  local frame_rules = PakettiMetaSynthResolveProfile("frame", nil, nil, architecture)
+  
   architecture.crossfade.curve_type = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)]
   -- Always use LFO for now - macro mode routing is not fully implemented
   architecture.crossfade.control_source = "lfo"
   architecture.crossfade.macro_index = math.random(1, 4)
   
-  -- Randomize Frame LFO rate settings
+  -- Randomize Frame LFO rate settings - guided by frame morph_speed from profile
+  local morph_speed = frame_rules.morph_speed or "medium"
   local frame_rate_mode = rate_modes[math.random(1, #rate_modes)]
   architecture.crossfade.lfo_rate_mode = frame_rate_mode
   architecture.crossfade.lfo_rate_free = 0.1 + math.random() * 1.9  -- 0.1-2.0 Hz
   architecture.crossfade.lfo_rate_sync = rate_syncs[math.random(1, #rate_syncs)]
-  architecture.crossfade.lfo_rate_preset = rate_presets[math.random(1, #rate_presets)]
+  -- Map morph_speed to rate preset
+  if morph_speed == "slow" then
+    architecture.crossfade.lfo_rate_preset = "slow"
+  elseif morph_speed == "fast" then
+    architecture.crossfade.lfo_rate_preset = "fast"
+  else
+    architecture.crossfade.lfo_rate_preset = "medium"
+  end
   
   -- Random FX settings
   architecture.fx_randomization.enabled = math.random() > 0.3
@@ -3716,6 +6647,16 @@ end
 function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
   trueRandomSeed()
   
+  -- Set GLOBAL PROFILE - wavetable mode favors pad/lead profiles
+  -- Use context-aware selection for evolving sounds
+  architecture.global_profile = PakettiMetaSynthGetProfileForContext(math.random(2, 4), false, false)
+  
+  -- Initialize MODULATION LAYER settings
+  -- Wavetable mode: modulation usually inherits from global profile
+  architecture.modulation_layer = architecture.modulation_layer or {}
+  architecture.modulation_layer.profile_override = nil  -- Inherit from global for wavetable
+  architecture.modulation_layer.custom_modulation = nil
+  
   -- LFO rate mode options
   local rate_modes = {"free", "tempo_sync", "preset"}
   local rate_presets = {"slow", "medium", "fast"}
@@ -3731,26 +6672,70 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
     -- Randomize Group LFO rate settings
     local group_rate_mode = rate_modes[math.random(1, #rate_modes)]
     
+    -- Get profile rules for group configuration
+    local group_rules = PakettiMetaSynthResolveProfile("group", nil, nil, architecture)
+    local group_fx_rules = PakettiMetaSynthResolveProfile("group_fx", nil, nil, architecture)
+    local group_frame_rules = PakettiMetaSynthResolveProfile("group_frame", nil, nil, architecture)
+    
     local group = {
       name = "Group " .. string.char(64 + gi),
       crossfade_mode = "linear",
-      -- Group crossfade = wavetable scanning between oscillators
+      -- Group crossfade = wavetable scanning between oscillators - always enabled
       group_crossfade_enabled = true,
       group_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
-      -- Group LFO rate settings (wavetable scanning speed)
+      -- Group LFO rate settings (wavetable scanning speed) - guided by profile
       group_lfo_rate_mode = group_rate_mode,
       group_lfo_rate_free = 0.1 + math.random() * 0.9,  -- 0.1-1.0 Hz (slower for wavetable)
       group_lfo_rate_sync = rate_syncs[math.random(4, #rate_syncs)],  -- Prefer slower syncs (1/2 to 4 bars)
-      group_lfo_rate_preset = rate_presets[math.random(1, 2)],  -- Prefer slow/medium for wavetable
-      -- Group Master FX for glue
-      group_master_fx_enabled = true,
-      group_master_fx_mode = "random",
-      group_master_fx_count = math.random(1, 3),
+      group_lfo_rate_preset = group_rules.lfo_rate_preset or rate_presets[math.random(1, 2)],
+      -- Group Master FX - guided by profile
+      group_master_fx_enabled = group_fx_rules.enabled ~= false,
+      group_master_fx_mode = "selective",
+      group_master_fx_count = PakettiMetaSynthGetIntInRange(group_fx_rules.count_range or {1, 3}),
       group_master_fx_types = {},
+      
+      -- GROUP FRAMES (meta-wavetable at group level) - guided by profile
+      -- Wavetable mode: group frames can add extra morphing layer
+      group_frames_enabled = group_frame_rules.enabled == true,
+      group_frame_count = PakettiMetaSynthGetIntInRange(group_frame_rules.frame_count_range or {1, 1}),
+      group_frame_morph_enabled = group_frame_rules.morph_enabled == true,
+      group_frame_morph_speed = group_frame_rules.morph_speed or "none",
+      group_frame_crossfade_curve = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)],
+      group_frame_control_source = "lfo",
+      group_frame_lfo_rate_preset = rate_presets[math.random(1, #rate_presets)],
+      group_frame_fx_enabled = group_frame_rules.enabled and #(group_frame_rules.fx_tendencies or {}) > 0,
+      group_frame_fx_tendencies = group_frame_rules.fx_tendencies or {},
+      group_frame_fx_count = PakettiMetaSynthGetIntInRange(group_frame_rules.fx_count_range or {0, 0}),
+      
+      -- Profile override at GROUP level (nil = inherit from global_profile)
+      profile_override = nil,
+      -- DEPRECATED: modulation_profile
+      modulation_profile = nil,
       oscillators = {}
     }
     
+    -- Set group FX types from profile tendencies
+    local fx_tendencies = group_fx_rules.tendencies or {}
+    if #fx_tendencies > 0 then
+      local shuffled = {}
+      for _, fx in ipairs(fx_tendencies) do table.insert(shuffled, fx) end
+      for i = #shuffled, 2, -1 do
+        local j = math.random(1, i)
+        shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+      end
+      local num_fx = math.min(group.group_master_fx_count, #shuffled)
+      for i = 1, num_fx do
+        table.insert(group.group_master_fx_types, shuffled[i])
+      end
+    else
+      group.group_master_fx_mode = "random"
+    end
+    
     if samples_remaining <= 0 then break end
+    
+    -- Get oscillator rules from profile
+    local osc_rules = PakettiMetaSynthResolveProfile("oscillator", nil, group, architecture)
+    local frame_rules = PakettiMetaSynthResolveProfile("frame", nil, group, architecture)
     
     -- Wavetable mode: 2-4 oscillators for scanning between different waveforms
     local num_oscs = math.random(2, math.min(4, samples_remaining))
@@ -3761,18 +6746,37 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
       local osc = {
         name = "Osc " .. oi,
         sample_count = 1,  -- Wavetable: 1 sample per oscillator
-        unison_voices = math.random(1, 3),  -- Unison for thickness
-        frame_count = math.random(2, 4),  -- 2-4 parallel FX frames
+        unison_voices = PakettiMetaSynthGetIntInRange(osc_rules.unison_range or {1, 3}),
+        frame_count = PakettiMetaSynthGetIntInRange(osc_rules.frame_count_range or {2, 4}),
         sample_source = "akwf",
-        detune_spread = 5 + math.random() * 15,  -- 5-20 cents
-        pan_spread = 0.3 + math.random() * 0.5,  -- 0.3-0.8
-        -- Osc FX enabled for summing
+        detune_spread = PakettiMetaSynthGetValueInRange(osc_rules.detune_range or {5, 20}),
+        pan_spread = PakettiMetaSynthGetValueInRange(osc_rules.pan_spread_range or {0.3, 0.8}),
+        -- Osc FX enabled for summing - guided by frame rules
         osc_fx_enabled = math.random() > 0.3,  -- 70% chance
-        osc_fx_mode = "random",
-        osc_fx_count = math.random(1, 3),
-        -- Modulation profile: favor pad/lead for wavetable sounds
-        modulation_profile = PakettiMetaSynthGetProfileForContext(math.random(2, 4), false, false)
+        osc_fx_mode = "selective",
+        osc_fx_count = PakettiMetaSynthGetIntInRange(frame_rules.fx_count_range or {1, 3}),
+        osc_fx_types = {},
+        -- Profile override: nil = inherit from group/global
+        profile_override = nil,
+        modulation_profile = nil
       }
+      
+      -- Set osc FX from frame tendencies
+      local osc_fx_tendencies = frame_rules.fx_tendencies or {}
+      if #osc_fx_tendencies > 0 then
+        local shuffled = {}
+        for _, fx in ipairs(osc_fx_tendencies) do table.insert(shuffled, fx) end
+        for i = #shuffled, 2, -1 do
+          local j = math.random(1, i)
+          shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+        end
+        local num_fx = math.min(osc.osc_fx_count, #shuffled)
+        for i = 1, num_fx do
+          table.insert(osc.osc_fx_types, shuffled[i])
+        end
+      else
+        osc.osc_fx_mode = "random"
+      end
       
       -- Check if custom folder is configured
       if PakettiMetaSynthLastFolderPath and PakettiMetaSynthLastFolderPath ~= "" then
@@ -3791,26 +6795,55 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
     end
   end
   
-  -- Crossfade settings for frame morphing
+  -- Crossfade settings for frame morphing - guided by frame rules
+  local frame_rules = PakettiMetaSynthResolveProfile("frame", nil, nil, architecture)
+  
   architecture.crossfade.curve_type = ({"linear", "equal_power", "s_curve"})[math.random(1, 3)]
   architecture.crossfade.control_source = "lfo"  -- LFO for frame morphing
   architecture.crossfade.macro_index = 1
   
-  -- Randomize Frame LFO rate settings (frame morphing speed)
+  -- Randomize Frame LFO rate settings - guided by morph_speed from profile
+  local morph_speed = frame_rules.morph_speed or "slow"
   local frame_rate_mode = rate_modes[math.random(1, #rate_modes)]
   architecture.crossfade.lfo_rate_mode = frame_rate_mode
   architecture.crossfade.lfo_rate_free = 0.2 + math.random() * 1.3  -- 0.2-1.5 Hz
   architecture.crossfade.lfo_rate_sync = rate_syncs[math.random(3, #rate_syncs)]  -- 1/4 to 4 bars
-  architecture.crossfade.lfo_rate_preset = rate_presets[math.random(1, #rate_presets)]
+  -- Map morph_speed to rate preset
+  if morph_speed == "slow" then
+    architecture.crossfade.lfo_rate_preset = "slow"
+  elseif morph_speed == "fast" then
+    architecture.crossfade.lfo_rate_preset = "fast"
+  else
+    architecture.crossfade.lfo_rate_preset = "medium"
+  end
   
   -- FX randomization enabled for frame variation
   architecture.fx_randomization.enabled = true
   architecture.fx_randomization.param_randomization = 0.2 + math.random() * 0.3  -- 0.2-0.5
   
-  -- Stacked Master FX (global polish)
+  -- Stacked Master FX (global polish) - guided by global_fx rules
+  local global_fx_rules = PakettiMetaSynthResolveProfile("global_fx", nil, nil, architecture)
   architecture.stacked_master_fx_enabled = true
-  architecture.stacked_master_fx_mode = "random"
+  architecture.stacked_master_fx_mode = "selective"
   architecture.stacked_master_fx_count = math.random(2, 4)
+  architecture.stacked_master_fx_types = {}
+  
+  -- Set stacked FX from global_fx tendencies
+  local global_tendencies = global_fx_rules.tendencies or {}
+  if #global_tendencies > 0 then
+    local shuffled = {}
+    for _, fx in ipairs(global_tendencies) do table.insert(shuffled, fx) end
+    for i = #shuffled, 2, -1 do
+      local j = math.random(1, i)
+      shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+    end
+    local num_fx = math.min(architecture.stacked_master_fx_count, #shuffled)
+    for i = 1, num_fx do
+      table.insert(architecture.stacked_master_fx_types, shuffled[i])
+    end
+  else
+    architecture.stacked_master_fx_mode = "random"
+  end
   
   -- Modulation
   architecture.modulation.random_phase_offsets = math.random() > 0.5
