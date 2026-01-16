@@ -1,0 +1,417 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"selected_pattern",
+				"selected_pattern_index"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"install package",
+				"Package Control: Install Package"
+			],
+			[
+				"preferences: LSP",
+				"Preferences: LSP Settings"
+			],
+			[
+				"install c",
+				"Package Control: Install Package"
+			],
+			[
+				"hex",
+				"HexViewer: Toggle Hex View"
+			],
+			[
+				"package control",
+				"Package Control: Install Package"
+			],
+			[
+				"remove packa",
+				"Package Control: Remove Package"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 136.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/Users/esaruoho/Downloads/konzengofundme.txt",
+		"/Users/esaruoho/Downloads/ricky.txt",
+		"/Users/esaruoho/Downloads/friedrich_window_motor_descriptions.txt",
+		"/Users/esaruoho/work/pakettiwtf/paketti/pakettiRequests.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/renoise/Solution.txt",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/browser/resources/ray_ui/popup/src/components/app/app.tsx",
+		"/Users/esaruoho/work/chromium-ray-poc/raybotics/ray.gherkin",
+		"/Users/esaruoho/Downloads/octacycle.txt",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/akaisampleformat.txt",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/akais5000-akais6000.txt",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/preferences.xml",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/.gitignore",
+		"/Users/esaruoho/work/paketti/.gitignore",
+		"/Users/esaruoho/work/definitions/library/renoise/midi.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/rx2/build_mac.sh",
+		"/Users/esaruoho/Downloads/amigaknight/tryagain.py",
+		"/Users/esaruoho/Downloads/Ray.gherkin",
+		"/Users/esaruoho/Downloads/rx2/build_win.sh",
+		"/Users/esaruoho/Downloads/rx2/rex2decoder_win.cpp",
+		"/Users/esaruoho/Downloads/rx2/REXSDK_Win_1.9.2/REX.c",
+		"/Users/esaruoho/Downloads/rx2/rex2decoder_JE.cpp",
+		"/Users/esaruoho/Downloads/rx2/build.sh",
+		"/Users/esaruoho/work/paketti-manual/build.sh",
+		"/Users/esaruoho/Downloads/paketti_todo.txt",
+		"/Users/esaruoho/Downloads/rx2/rex2decoder.cpp",
+		"/Applications/Ableton Live 12 Beta.app/Contents/Frameworks/REX Shared Library.framework/Versions/A/REX Shared Library",
+		"/Users/esaruoho/Downloads/rx2/rex2_decode.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/renoise/Solution.txt:interpolate",
+		"/Users/esaruoho/Music/samples/PTI/Renegade Android - Living Hardware/instruments/instrument_48.mti",
+		"/Users/esaruoho/Downloads/rx2/rex2decoder.app",
+		"/Users/esaruoho/Downloads/rx2/REXSharedLibrary.sh",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/test/chromedriver/test/run_py_tests.py",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/test/chromedriver/chrome_launcher.cc",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/browser/about_flags.cc",
+		"/Users/esaruoho/Library/Preferences/Renoise/V3.4.4/Config.xml",
+		"/Users/esaruoho/work/paketti/Research/FormulaDeviceManual.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/lackluster biography 2024.txt",
+		"/Users/esaruoho/Downloads/_config.yml",
+		"/Users/esaruoho/work/paketti-manual/.github/workflows/github-pages.yml",
+		"/Users/esaruoho/work/pakettibot/paketti_updates.md",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/app/chrome_exe.rc",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/browser/resources/history/side_bar.html-111",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/browser/resources/history/side_bar.html",
+		"/Users/esaruoho/work/pakettibot/pakettibot.py",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/browser/ui/views/ray_ui/ray_settings_view.cc",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/paketti.sublime-project",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/main.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiControls.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiDeviceChains.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettieSpeak.lua",
+		"/Users/esaruoho/Downloads/myver.lua",
+		"/Users/esaruoho/Downloads/itver.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/Paketti0G01_Loader.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiAudioProcessing.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiChordsPlus.lua",
+		"/Users/esaruoho/Downloads/pakettiupdate.txt",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiRequests.lua",
+		"/Applications/Renoise.app/Contents/Resources/Skin/Fonts/PatternConfig.xml",
+		"/Users/esaruoho/Downloads/rayrc2_nonrandomized.txt",
+		"/Users/esaruoho/work/paketti/PakettiRequests.lua",
+		"/Users/esaruoho/work/paketti/PakettiPatternEditor.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiExperimental_Verify.lua",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/app/settings_chromium_strings.grdp",
+		"/Users/esaruoho/Downloads/rayrc_nonrandomized.txt",
+		"/Users/esaruoho/Downloads/rayrcrandomizedprofile.txt",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/browser/resources/ray_ui/login/src/components/welcome_flow/welcome_flow.tsx",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/renoise/Solution.txt:sample_pos",
+		"/Users/esaruoho/work/raybotics/tests/0001_sidebar_open_close.py",
+		"/Users/esaruoho/work/raybotics/tests/0000_onboarding.py",
+		"/Users/esaruoho/work/raybotics/tests/0002_favstrip_1_to_9.py",
+		"/Users/esaruoho/work/raybotics/tests/0003_invite_friends.py",
+		"/Users/esaruoho/work/raybotics/tests/0005_talk_to_us.py",
+		"/Users/esaruoho/work/raybotics/tests/0007_open_new_tab.py",
+		"/Users/esaruoho/work/raybotics/tests/0008_mode_change.py",
+		"/Users/esaruoho/work/raybotics/helpers.py",
+		"/Users/esaruoho/work/raybotics/tests/0006_set_as_default.py",
+		"/Users/esaruoho/work/raybotics/tests/0011_nofavoritetabs.py",
+		"/Users/esaruoho/work/raybotics/tests/0010_highlight_addressbar_on_specific_site.py",
+		"/Users/esaruoho/work/raybotics/tests/0009_open_new_tab.py",
+		"/Users/esaruoho/Downloads/traum.txt",
+		"/Users/esaruoho/Downloads/id_ed25519.pub",
+		"/Users/esaruoho/work/raybotics/tests/expect_800x600/0001_sidebar_open.png",
+		"/Users/esaruoho/Downloads/renoise.txt",
+		"/Users/esaruoho/Downloads/rich processing.txt",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/TouchOSC.txt",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/pdfreq.txt",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/renoise/Solution.txt:5671sol",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiSamples.lua",
+		"/Users/esaruoho/Downloads/ideoforms_abletonosc.txt",
+		"/Users/esaruoho/Downloads/arthur.txt",
+		"/Users/esaruoho/Downloads/pakettifeatures.txt",
+		"/Users/esaruoho/Downloads/playerpro_notegrid.txt",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/browser/ui/views/ray_ui/ray_browser_logic.cc",
+		"/Users/esaruoho/work/chromium-ray-poc/chrome/browser/resources/ray_ui/popup/src/popup_proxy.ts",
+		"/Users/esaruoho/Downloads/blaa.xrni",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiDynamicViews.lua",
+		"/Users/esaruoho/Downloads/stumbleguys variations.txt",
+		"/Users/esaruoho/work/TauonMusicBox/dist/TauonMusicBox/mac.spec",
+		"/Users/esaruoho/work/TauonMusicBox/tauon.py",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiLoadPlugins.lua",
+		"/Users/esaruoho/Downloads/pluginloaders_simplified.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiAutomation.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiMainMenuEntries.lua",
+		"/Users/esaruoho/Downloads/prefsexample.lua",
+		"/Users/esaruoho/Downloads/pluginloader_wip.lua",
+		"/Users/esaruoho/Downloads/pluginloaders_with_roottagmaybe.lua",
+		"/Users/esaruoho/work/TauonMusicBox/mac.spec",
+		"/Users/esaruoho/work/TauonMusicBox/requirements.txt",
+		"/Users/esaruoho/Downloads/outside-preferencesxml-prefs.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/preferences_pluginLoaders.xml",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiLoadDevices.lua",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiPhraseEditor.lua",
+		"/Users/esaruoho/work/org.lackluster.Paketti.xrnx/160",
+		"/Users/esaruoho/work/org.lackluster.Paketti.xrnx/PakettiExperimental_Verify.lua",
+		"/Users/esaruoho/work/org.lackluster.Paketti.xrnx/PakettiRecorder.lua",
+		"/Users/esaruoho/work/org.lackluster.Paketti.xrnx/PakettiLoaders.lua",
+		"/Users/esaruoho/work/org.lackluster.Paketti.xrnx/PakettiMidi.lua",
+		"/Users/esaruoho/work/org.lackluster.Paketti.xrnx/base64float.lua",
+		"/Users/esaruoho/work/org.lackluster.Paketti.xrnx/PakettiSamples.lua",
+		"/Users/esaruoho/Downloads/unisongenerator.lua",
+		"/Users/esaruoho/Downloads/Renoise Beginners Forum/11 Ideas and Suggestions PDF/narrower.sh",
+		"/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/PakettiEightOneTwenty.lua",
+		"/Users/esaruoho/Downloads/gater.lua",
+		"/Users/esaruoho/work/random-issue-picker/index.html",
+		"/Users/esaruoho/Downloads/8120_before_o1-mini.lua",
+		"/Users/esaruoho/Downloads/8120_before_o1-mini-oct14.lua",
+		"/Users/esaruoho/Downloads/pakettiaudioprocessing.lua",
+		"/Users/esaruoho/Downloads/8120_before_o1-mini-oct15A.lua"
+	],
+	"find":
+	{
+		"height": 40.0
+	},
+	"find_in_files":
+	{
+		"height": 104.0,
+		"where_history":
+		[
+			"<current file>",
+			"",
+			"<open files>",
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"_pattern",
+			"create_",
+			"script_ed",
+			"editor",
+			"_visible",
+			"transpose",
+			"midi",
+			"train",
+			"update",
+			"phrase mappings",
+			"REX::REXInitializeDLL_DirPath(const wchar_t* iDirPath);",
+			"drex_windows",
+			"path",
+			"bundle_path",
+			"rexinit",
+			"REX::",
+			"fsampleoffs",
+			"msample",
+			"rex shared",
+			"local rex",
+			"<br>",
+			"cmd-s",
+			"primer",
+			"turbosh",
+			"elcas",
+			"grymmj",
+			"tkna",
+			"tkna91",
+			"master",
+			"grymm",
+			"interpolat",
+			"{name = \"",
+			"name = \"",
+			"name = ",
+			"invoke = function",
+			"_instrument",
+			"create_instr",
+			"Save Song with Timestamp",
+			"save song with timestamp",
+			"inverted values in selected",
+			"untilde/paketti-unofficial-manual/",
+			"selection_range",
+			":clear",
+			"master,",
+			"current,",
+			"save",
+			"say",
+			"800",
+			"png",
+			"800",
+			"xrni",
+			"say"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"",
+			"{name=\"",
+			"name=\"",
+			"name=",
+			"invoke=function",
+			"esaruoho/paketti-manual/",
+			"esaruoho/paketti-manual",
+			"\"master\",",
+			"\"current\",",
+			"xrnt"
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 28.0
+	},
+	"input":
+	{
+		"height": 40.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.LSP Log Panel":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"output.diagnostics":
+	{
+		"height": 132.0,
+		"history":
+		[
+		]
+	},
+	"output.find_results":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"output.mdpopups":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"pinned_build_system": "",
+	"project": "paketti.sublime-project",
+	"replace":
+	{
+		"height": 52.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+		"lsp_show_inlay_hints": false
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 264.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

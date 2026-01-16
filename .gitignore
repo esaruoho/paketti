@@ -1,21 +1,2 @@
-.DS_Store
-Customization/
-autocomplete_cache.txt
-paketti_commands.txt
-paketti_complete_menu_list.txt
-paketti_sorted_menu_list.txt
-ITTECH2.TXT
-xm-form.txt
-akaisampleformat.txt
-akais5000-akais6000.txt
-autocomplete_usage.txt
-analyze_ot_comparison.lua
-KeyBindings/Debug_Paketti_KeyBindings.log
-KeyBindings/Debug_Renoise_KeyBindings.log
-cache*.json
-.cursor/*
-prune-tags.sh
-paketti.sublime-project
-paketti.sublime-workspace
-.dsp_cache
-preferences.xml
+# Documentation generated for AI assistants
+Docs/

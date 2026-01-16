@@ -31,6 +31,259 @@ function PakettiMetaSynthGetRandomCrossfadeCurve()
 end
 
 -- ============================================================================
+-- FX ARCHETYPES
+-- Named FX character presets that group devices by musical purpose
+-- Used for rule-based FX selection with user-controllable intent
+-- ============================================================================
+METASYNTH_FX_ARCHETYPES = {
+  clean = {
+    name = "Clean",
+    description = "Transparent, pristine sound",
+    devices = {"EQ 10", "Compressor", "DC Offset"},
+    weight = 1.0
+  },
+  character = {
+    name = "Character",
+    description = "Adds color and personality",
+    devices = {"Analog Filter", "Distortion", "Lofimat 2", "Cabinet Simulator"},
+    weight = 1.0
+  },
+  movement = {
+    name = "Movement",
+    description = "Motion and modulation",
+    devices = {"Chorus", "Flanger", "Phaser", "Tremolo", "Vibrato"},
+    weight = 1.0
+  },
+  spatial = {
+    name = "Spatial",
+    description = "Depth and space",
+    devices = {"Reverb", "mpReverb 2", "Convolver", "Stereo Expander"},
+    weight = 1.0
+  },
+  aggressive = {
+    name = "Aggressive",
+    description = "Hard-hitting and intense",
+    devices = {"Distortion", "Cabinet Simulator", "Exciter", "Maximizer"},
+    weight = 1.0
+  }
+}
+
+-- List of archetype keys for UI dropdowns
+METASYNTH_FX_ARCHETYPE_KEYS = {"clean", "character", "movement", "spatial", "aggressive"}
+METASYNTH_FX_ARCHETYPE_NAMES = {"Clean", "Character", "Movement", "Spatial", "Aggressive"}
+
+-- Helper function: Get FX devices from enabled archetypes
+-- enabled_archetypes: table of archetype keys, e.g. {"clean", "character"}
+-- count: number of devices to select
+-- Returns: table of device names randomly selected from the enabled archetypes
+function PakettiMetaSynthGetFXFromArchetypes(enabled_archetypes, count)
+  if not enabled_archetypes or #enabled_archetypes == 0 then
+    return {}
+  end
+  
+  -- Collect all devices from enabled archetypes
+  local available_devices = {}
+  for _, archetype_key in ipairs(enabled_archetypes) do
+    local archetype = METASYNTH_FX_ARCHETYPES[archetype_key]
+    if archetype and archetype.devices then
+      for _, device in ipairs(archetype.devices) do
+        -- Add device if not already in list
+        local found = false
+        for _, existing in ipairs(available_devices) do
+          if existing == device then
+            found = true
+            break
+          end
+        end
+        if not found then
+          table.insert(available_devices, device)
+        end
+      end
+    end
+  end
+  
+  if #available_devices == 0 then
+    return {}
+  end
+  
+  -- Randomly select 'count' devices (or all if count > available)
+  local selected = {}
+  local pool = {}
+  for i, device in ipairs(available_devices) do
+    pool[i] = device
+  end
+  
+  count = math.min(count, #pool)
+  for i = 1, count do
+    local idx = math.random(1, #pool)
+    table.insert(selected, pool[idx])
+    table.remove(pool, idx)
+  end
+  
+  return selected
+end
+
+-- Helper function: Get archetype names from keys for UI
+function PakettiMetaSynthGetArchetypeNamesFromKeys(keys)
+  local names = {}
+  for _, key in ipairs(keys) do
+    local archetype = METASYNTH_FX_ARCHETYPES[key]
+    if archetype then
+      table.insert(names, archetype.name)
+    end
+  end
+  return names
+end
+
+-- ============================================================================
+-- MODULATION CHARACTER PRESETS
+-- Quick-select presets for modulation behavior (envelope shape + LFO)
+-- Provides musical intent without needing full profile knowledge
+-- ============================================================================
+METASYNTH_MODULATION_CHARACTERS = {
+  { 
+    key = "pluck_short", 
+    name = "Short Pluck", 
+    description = "Quick attack, fast decay",
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.1 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.15, release = 0.1 },
+      velocity_volume = 0.8
+    }
+  },
+  { 
+    key = "soft_pad", 
+    name = "Soft Pad", 
+    description = "Slow attack, long sustain",
+    modulation = {
+      volume_ahdsr = { attack = 0.5, hold = 0.0, decay = 0.3, sustain = 0.8, release = 0.8 },
+      filter_ahdsr = { attack = 0.6, hold = 0.0, decay = 0.4, sustain = 0.6, release = 0.7 },
+      velocity_volume = 0.3
+    }
+  },
+  { 
+    key = "long_evolving", 
+    name = "Long Evolving", 
+    description = "Slow movement over time",
+    modulation = {
+      volume_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.5, sustain = 0.7, release = 1.0 },
+      filter_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.8, sustain = 0.5, release = 1.0 },
+      filter_lfo = { frequency = 0.1, amount = 0.15 },
+      velocity_volume = 0.2
+    }
+  },
+  { 
+    key = "percussive", 
+    name = "Percussive Hit", 
+    description = "Instant attack, no sustain",
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.0, release = 0.05 },
+      filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.05 },
+      velocity_volume = 0.9
+    }
+  },
+  { 
+    key = "swell", 
+    name = "Swell", 
+    description = "Long attack building up",
+    modulation = {
+      volume_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.5 },
+      filter_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.0, sustain = 0.8, release = 0.4 },
+      velocity_volume = 0.4
+    }
+  },
+  { 
+    key = "gated", 
+    name = "Gated", 
+    description = "Short sustain, rhythmic",
+    modulation = {
+      volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.6, release = 0.05 },
+      velocity_volume = 0.7
+    }
+  },
+  { 
+    key = "tremolo", 
+    name = "Tremolo", 
+    description = "Volume LFO modulation",
+    modulation = {
+      volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.1, sustain = 0.8, release = 0.2 },
+      volume_lfo = { frequency = 0.5, amount = 0.3 },
+      velocity_volume = 0.5
+    }
+  },
+  { 
+    key = "vibrato_slow", 
+    name = "Vibrato (Slow)", 
+    description = "Slow pitch wobble",
+    modulation = {
+      volume_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.1, sustain = 0.85, release = 0.25 },
+      pitch_lfo = { frequency = 0.3, amount = 0.02 },
+      velocity_volume = 0.5
+    }
+  },
+  { 
+    key = "vibrato_fast", 
+    name = "Vibrato (Fast)", 
+    description = "Fast pitch wobble",
+    modulation = {
+      volume_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.1, sustain = 0.85, release = 0.25 },
+      pitch_lfo = { frequency = 0.7, amount = 0.025 },
+      velocity_volume = 0.5
+    }
+  }
+}
+
+-- List of modulation character names for UI dropdown
+METASYNTH_MODULATION_CHARACTER_NAMES = {}
+for _, char in ipairs(METASYNTH_MODULATION_CHARACTERS) do
+  table.insert(METASYNTH_MODULATION_CHARACTER_NAMES, char.name)
+end
+-- Add "None" option at the beginning
+table.insert(METASYNTH_MODULATION_CHARACTER_NAMES, 1, "(Default)")
+
+-- Helper function: Get modulation character by key
+function PakettiMetaSynthGetModulationCharacter(key)
+  for _, char in ipairs(METASYNTH_MODULATION_CHARACTERS) do
+    if char.key == key then
+      return char
+    end
+  end
+  return nil
+end
+
+-- Helper function: Apply modulation character to architecture
+function PakettiMetaSynthApplyModulationCharacter(architecture, character_key)
+  local character = PakettiMetaSynthGetModulationCharacter(character_key)
+  if character and character.modulation then
+    -- Set custom modulation in the architecture's modulation layer
+    architecture.modulation_layer = architecture.modulation_layer or {}
+    architecture.modulation_layer.custom_modulation = character.modulation
+    print(string.format("PakettiMetaSynth: Applied modulation character '%s'", character.name))
+    return true
+  end
+  return false
+end
+
+-- Helper function: Clear modulation character (use profile default)
+function PakettiMetaSynthClearModulationCharacter(architecture)
+  if architecture.modulation_layer then
+    architecture.modulation_layer.custom_modulation = nil
+    print("PakettiMetaSynth: Cleared custom modulation (using profile default)")
+  end
+end
+
+-- ============================================================================
+-- LFO PHASE MODES
+-- Control LFO phase/retrigger behavior for more musical modulation
+-- ============================================================================
+METASYNTH_LFO_PHASE_MODES = {
+  "free",      -- Free-running (default) - LFO runs continuously
+  "retrigger", -- Reset on note - phase resets to 0 on each note
+  "random"     -- Random start phase - randomize phase per note
+}
+METASYNTH_LFO_PHASE_MODE_NAMES = {"Free", "Retrigger", "Random"}
+
+-- ============================================================================
 -- AKWF WAVEFORM FAMILIES
 -- Maps family names to AKWF folder name patterns for profile-driven sample selection
 -- Each family groups related waveform types for musical coherence
@@ -3713,6 +3966,85 @@ for _, profile_name in ipairs(PakettiMetaSynthModulationProfileNames) do
 end
 
 -- ============================================================================
+-- LAYER-FILTERED PROFILE LISTS
+-- Per the Profile Architecture Proposal: profiles should only appear in
+-- dropdowns for layers where they are enabled. This avoids confusing UX
+-- where profiles appear but do nothing for that layer.
+-- ============================================================================
+
+-- Helper: Get profiles filtered by layer enabled state
+-- layer_key: the profile layer to check (e.g., "group_frame", "group_fx")
+-- enabled_check: function(layer_data) -> boolean, or nil to check layer.enabled
+function PakettiMetaSynthGetFilteredProfiles(layer_key, enabled_check)
+  local names = {}
+  local display = {"Inherit Global"}
+  
+  for _, profile_name in ipairs(PakettiMetaSynthModulationProfileNames) do
+    local profile = PakettiMetaSynthProfiles[profile_name]
+    if profile then
+      local layer_data = profile[layer_key]
+      local is_enabled = true
+      
+      if layer_data then
+        if enabled_check then
+          is_enabled = enabled_check(layer_data)
+        elseif layer_data.enabled ~= nil then
+          is_enabled = layer_data.enabled
+        end
+      end
+      
+      if is_enabled then
+        table.insert(names, profile_name)
+        table.insert(display, profile.name or profile_name)
+      end
+    end
+  end
+  
+  return names, display
+end
+
+-- GROUP FRAMES: Only show profiles where group_frame.enabled = true
+PakettiMetaSynthGroupFrameProfileNames, PakettiMetaSynthGroupFrameProfileDisplay = 
+  PakettiMetaSynthGetFilteredProfiles("group_frame", function(layer)
+    return layer.enabled == true
+  end)
+
+-- GROUP FX: Only show profiles where group_fx.enabled ~= false (default enabled)
+PakettiMetaSynthGroupFXProfileNames, PakettiMetaSynthGroupFXProfileDisplay = 
+  PakettiMetaSynthGetFilteredProfiles("group_fx", function(layer)
+    return layer.enabled ~= false
+  end)
+
+-- FRAME MORPH: Only show profiles where frame.morph_enabled = true
+PakettiMetaSynthFrameMorphProfileNames, PakettiMetaSynthFrameMorphProfileDisplay = 
+  PakettiMetaSynthGetFilteredProfiles("frame", function(layer)
+    return layer.morph_enabled == true
+  end)
+
+-- GROUP CROSSFADE: Only show profiles where group.crossfade_enabled = true
+PakettiMetaSynthGroupCrossfadeProfileNames, PakettiMetaSynthGroupCrossfadeProfileDisplay = 
+  PakettiMetaSynthGetFilteredProfiles("group", function(layer)
+    return layer.crossfade_enabled == true
+  end)
+
+-- Helper function: Find profile index in a filtered list by profile key
+function PakettiMetaSynthFindProfileIndex(profile_key, names_list)
+  if not profile_key then return 1 end  -- Return "Inherit Global" index
+  for i, name in ipairs(names_list) do
+    if name == profile_key then
+      return i + 1  -- +1 because "Inherit Global" is at index 1
+    end
+  end
+  return 1  -- Default to "Inherit Global" if not found in filtered list
+end
+
+-- Helper function: Get profile key from filtered list by index
+function PakettiMetaSynthGetProfileKey(index, names_list)
+  if index == 1 then return nil end  -- "Inherit Global" means no override
+  return names_list[index - 1]  -- -1 because "Inherit Global" is at index 1
+end
+
+-- ============================================================================
 -- FX PROFILES - Separate FX character that can be applied independently
 -- These profiles define ONLY FX tendencies, allowing you to apply
 -- the FX character of one sound type to a different structure.
@@ -3859,6 +4191,8 @@ function PakettiMetaSynthCreateDefaultArchitecture()
         group_master_fx_mode = "random",
         group_master_fx_count = 3,
         group_master_fx_types = {},
+        -- FX Archetype selection (rule-based FX by musical character)
+        group_fx_archetypes = {"character"},  -- Enabled archetypes: clean, character, movement, spatial, aggressive
         
         -- ================================================================
         -- GROUP FRAMES (NEW): Meta-wavetable at group level
@@ -3883,6 +4217,15 @@ function PakettiMetaSynthCreateDefaultArchitecture()
         -- FX PROFILE OVERRIDE at GROUP level (nil = inherit from architecture)
         -- Allows applying different FX character to specific groups
         fx_profile_override = nil,
+        -- GROUP FRAME PROFILE OVERRIDE (nil = inherit from group/global_profile)
+        -- Only profiles with group_frame.enabled = true appear in dropdown
+        group_frame_profile_override = nil,
+        -- GROUP FX PROFILE OVERRIDE (nil = inherit from group/global_profile)
+        -- Only profiles with group_fx.enabled ~= false appear in dropdown
+        group_fx_profile_override = nil,
+        -- GROUP CROSSFADE PROFILE OVERRIDE (nil = inherit from group/global_profile)
+        -- Only profiles with group.crossfade_enabled = true appear in dropdown
+        group_crossfade_profile_override = nil,
         -- DEPRECATED: modulation_profile - use profile_override instead
         -- Kept for backward compatibility, will be migrated to profile_override
         modulation_profile = nil,
@@ -3935,6 +4278,8 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     stack_master_fx_mode = "random",
     stack_master_fx_count = 3,
     stack_master_fx_types = {},
+    -- FX Archetype selection for Stack Master (rule-based FX by musical character)
+    stack_master_fx_archetypes = {"clean", "spatial"},  -- Enabled archetypes
     -- Master routing mode: "output_routing" (chain property) or "send_device" (#Send devices)
     master_routing_mode = "output_routing",
     
@@ -5290,10 +5635,27 @@ function PakettiMetaSynthAddLFOToModSet(mod_set, target_type, params)
     if params.amount and device.amplitude then
       device.amplitude.value = math.min(1, math.max(0, params.amount))
     end
-    -- Note: SampleLfoModulationDevice does not have a 'phase' property in the API
-    -- Phase offset would require XML injection if needed
+    
+    -- LFO waveform mode (sin, saw, pulse, random)
     if params.mode and device.mode then
       device.mode = params.mode
+    end
+    
+    -- Handle LFO phase mode (free, retrigger, random)
+    -- Phase is a DeviceParameter with range 0-360
+    if device.phase then
+      local phase_mode = params.phase_mode or "free"
+      if phase_mode == "retrigger" then
+        -- Reset phase to 0 for consistent note-on behavior
+        device.phase.value = 0
+      elseif phase_mode == "random" then
+        -- Random phase start for each voice/instance
+        device.phase.value = math.random() * 360
+      elseif params.phase then
+        -- Allow explicit phase value if provided (0-360)
+        device.phase.value = math.min(360, math.max(0, params.phase))
+      end
+      -- "free" mode: leave phase at default or don't change it
     end
   end
   
@@ -10523,6 +10885,18 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
         notifier = function(value)
           group.group_lfo_rate_mode = ({"free", "tempo_sync", "preset"})[value]
         end
+      },
+      -- Filtered profile dropdown: only profiles with group.crossfade_enabled = true
+      vb:popup {
+        id = group_id .. "_xfade_profile",
+        items = PakettiMetaSynthGroupCrossfadeProfileDisplay,
+        value = PakettiMetaSynthFindProfileIndex(group.group_crossfade_profile_override, PakettiMetaSynthGroupCrossfadeProfileNames),
+        width = 80,
+        tooltip = "Profile for Group Crossfade (filtered: only shows profiles with crossfade enabled)",
+        notifier = function(value)
+          group.group_crossfade_profile_override = PakettiMetaSynthGetProfileKey(value, PakettiMetaSynthGroupCrossfadeProfileNames)
+          PakettiMetaSynthUpdatePreview()
+        end
       }
     },
     
@@ -10594,7 +10968,120 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
         notifier = function(value)
           group.group_master_fx_count = value
         end
+      },
+      -- Filtered profile dropdown: only profiles with group_fx.enabled ~= false
+      vb:popup {
+        id = group_id .. "_group_fx_profile",
+        items = PakettiMetaSynthGroupFXProfileDisplay,
+        value = PakettiMetaSynthFindProfileIndex(group.group_fx_profile_override, PakettiMetaSynthGroupFXProfileNames),
+        width = 90,
+        tooltip = "Profile for Group FX (filtered: only shows profiles with Group FX enabled)",
+        notifier = function(value)
+          group.group_fx_profile_override = PakettiMetaSynthGetProfileKey(value, PakettiMetaSynthGroupFXProfileNames)
+          PakettiMetaSynthUpdatePreview()
+        end
       }
+    },
+    
+    -- Group FX Archetype Selection
+    vb:row {
+      spacing = 2,
+      vb:text { text = "FX Style:", width = 50 },
+      vb:checkbox {
+        id = group_id .. "_fx_clean",
+        value = (function()
+          local archetypes = group.group_fx_archetypes or {}
+          for _, a in ipairs(archetypes) do if a == "clean" then return true end end
+          return false
+        end)(),
+        notifier = function(value)
+          group.group_fx_archetypes = group.group_fx_archetypes or {}
+          if value then
+            table.insert(group.group_fx_archetypes, "clean")
+          else
+            for i, a in ipairs(group.group_fx_archetypes) do
+              if a == "clean" then table.remove(group.group_fx_archetypes, i) break end
+            end
+          end
+        end
+      },
+      vb:text { text = "Cln", width = 22 },
+      vb:checkbox {
+        id = group_id .. "_fx_character",
+        value = (function()
+          local archetypes = group.group_fx_archetypes or {}
+          for _, a in ipairs(archetypes) do if a == "character" then return true end end
+          return false
+        end)(),
+        notifier = function(value)
+          group.group_fx_archetypes = group.group_fx_archetypes or {}
+          if value then
+            table.insert(group.group_fx_archetypes, "character")
+          else
+            for i, a in ipairs(group.group_fx_archetypes) do
+              if a == "character" then table.remove(group.group_fx_archetypes, i) break end
+            end
+          end
+        end
+      },
+      vb:text { text = "Chr", width = 22 },
+      vb:checkbox {
+        id = group_id .. "_fx_movement",
+        value = (function()
+          local archetypes = group.group_fx_archetypes or {}
+          for _, a in ipairs(archetypes) do if a == "movement" then return true end end
+          return false
+        end)(),
+        notifier = function(value)
+          group.group_fx_archetypes = group.group_fx_archetypes or {}
+          if value then
+            table.insert(group.group_fx_archetypes, "movement")
+          else
+            for i, a in ipairs(group.group_fx_archetypes) do
+              if a == "movement" then table.remove(group.group_fx_archetypes, i) break end
+            end
+          end
+        end
+      },
+      vb:text { text = "Mov", width = 24 },
+      vb:checkbox {
+        id = group_id .. "_fx_spatial",
+        value = (function()
+          local archetypes = group.group_fx_archetypes or {}
+          for _, a in ipairs(archetypes) do if a == "spatial" then return true end end
+          return false
+        end)(),
+        notifier = function(value)
+          group.group_fx_archetypes = group.group_fx_archetypes or {}
+          if value then
+            table.insert(group.group_fx_archetypes, "spatial")
+          else
+            for i, a in ipairs(group.group_fx_archetypes) do
+              if a == "spatial" then table.remove(group.group_fx_archetypes, i) break end
+            end
+          end
+        end
+      },
+      vb:text { text = "Spc", width = 22 },
+      vb:checkbox {
+        id = group_id .. "_fx_aggressive",
+        value = (function()
+          local archetypes = group.group_fx_archetypes or {}
+          for _, a in ipairs(archetypes) do if a == "aggressive" then return true end end
+          return false
+        end)(),
+        notifier = function(value)
+          group.group_fx_archetypes = group.group_fx_archetypes or {}
+          if value then
+            table.insert(group.group_fx_archetypes, "aggressive")
+          else
+            for i, a in ipairs(group.group_fx_archetypes) do
+              if a == "aggressive" then table.remove(group.group_fx_archetypes, i) break end
+            end
+          end
+        end
+      },
+      vb:text { text = "Agr", width = 22 }
     },
     
     -- Group Frames Controls (Meta-wavetable at group level)
@@ -10641,6 +11128,18 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
         width = 50,
         notifier = function(value)
           group.group_frame_morph_speed = ({"none", "slow", "medium", "fast"})[value]
+        end
+      },
+      -- Filtered profile dropdown: only profiles with group_frame.enabled = true
+      vb:popup {
+        id = group_id .. "_gframe_profile",
+        items = PakettiMetaSynthGroupFrameProfileDisplay,
+        value = PakettiMetaSynthFindProfileIndex(group.group_frame_profile_override, PakettiMetaSynthGroupFrameProfileNames),
+        width = 90,
+        tooltip = "Profile for Group Frames (filtered: only shows profiles with Group Frames enabled)",
+        notifier = function(value)
+          group.group_frame_profile_override = PakettiMetaSynthGetProfileKey(value, PakettiMetaSynthGroupFrameProfileNames)
+          PakettiMetaSynthUpdatePreview()
         end
       }
     },
@@ -11173,6 +11672,50 @@ function PakettiMetaSynthBuildDialogContent()
       }
     },
     
+    -- Modulation Character Quick-Select
+    vb:row {
+      spacing = 10,
+      vb:text { text = "Mod Character:", width = 85 },
+      vb:popup {
+        id = "mod_character",
+        items = METASYNTH_MODULATION_CHARACTER_NAMES,
+        value = (function()
+          -- Check if custom modulation matches a character
+          if arch.modulation_layer and arch.modulation_layer.custom_modulation then
+            for i, char in ipairs(METASYNTH_MODULATION_CHARACTERS) do
+              -- Simple check: compare keys
+              if arch.modulation_layer.modulation_character_key == char.key then
+                return i + 1  -- +1 because "(Default)" is at index 1
+              end
+            end
+          end
+          return 1  -- Default
+        end)(),
+        width = 120,
+        tooltip = "Quick-select modulation envelope character",
+        notifier = function(value)
+          if value == 1 then
+            -- Clear custom modulation, use profile default
+            PakettiMetaSynthClearModulationCharacter(arch)
+            arch.modulation_layer.modulation_character_key = nil
+          else
+            local char = METASYNTH_MODULATION_CHARACTERS[value - 1]
+            if char then
+              PakettiMetaSynthApplyModulationCharacter(arch, char.key)
+              arch.modulation_layer.modulation_character_key = char.key
+            end
+          end
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      vb:text { 
+        id = "mod_character_desc",
+        text = "",
+        width = 200,
+        font = "italic"
+      }
+    },
+    
     -- Two-column layout
     vb:row {
       spacing = 16,
@@ -11439,6 +11982,106 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.master_routing_mode = value == 1 and "output_routing" or "send_device"
               end
             }
+          },
+          
+          -- FX Archetype selection
+          vb:text { text = "FX Style:", font = "italic" },
+          vb:row {
+            vb:checkbox {
+              id = "stack_fx_clean",
+              value = (function()
+                local archetypes = arch.stack_master_fx_archetypes or {}
+                for _, a in ipairs(archetypes) do if a == "clean" then return true end end
+                return false
+              end)(),
+              notifier = function(value)
+                arch.stack_master_fx_archetypes = arch.stack_master_fx_archetypes or {}
+                if value then
+                  table.insert(arch.stack_master_fx_archetypes, "clean")
+                else
+                  for i, a in ipairs(arch.stack_master_fx_archetypes) do
+                    if a == "clean" then table.remove(arch.stack_master_fx_archetypes, i) break end
+                  end
+                end
+              end
+            },
+            vb:text { text = "Clean", width = 45 },
+            vb:checkbox {
+              id = "stack_fx_character",
+              value = (function()
+                local archetypes = arch.stack_master_fx_archetypes or {}
+                for _, a in ipairs(archetypes) do if a == "character" then return true end end
+                return false
+              end)(),
+              notifier = function(value)
+                arch.stack_master_fx_archetypes = arch.stack_master_fx_archetypes or {}
+                if value then
+                  table.insert(arch.stack_master_fx_archetypes, "character")
+                else
+                  for i, a in ipairs(arch.stack_master_fx_archetypes) do
+                    if a == "character" then table.remove(arch.stack_master_fx_archetypes, i) break end
+                  end
+                end
+              end
+            },
+            vb:text { text = "Char", width = 35 },
+            vb:checkbox {
+              id = "stack_fx_movement",
+              value = (function()
+                local archetypes = arch.stack_master_fx_archetypes or {}
+                for _, a in ipairs(archetypes) do if a == "movement" then return true end end
+                return false
+              end)(),
+              notifier = function(value)
+                arch.stack_master_fx_archetypes = arch.stack_master_fx_archetypes or {}
+                if value then
+                  table.insert(arch.stack_master_fx_archetypes, "movement")
+                else
+                  for i, a in ipairs(arch.stack_master_fx_archetypes) do
+                    if a == "movement" then table.remove(arch.stack_master_fx_archetypes, i) break end
+                  end
+                end
+              end
+            },
+            vb:text { text = "Move", width = 35 },
+            vb:checkbox {
+              id = "stack_fx_spatial",
+              value = (function()
+                local archetypes = arch.stack_master_fx_archetypes or {}
+                for _, a in ipairs(archetypes) do if a == "spatial" then return true end end
+                return false
+              end)(),
+              notifier = function(value)
+                arch.stack_master_fx_archetypes = arch.stack_master_fx_archetypes or {}
+                if value then
+                  table.insert(arch.stack_master_fx_archetypes, "spatial")
+                else
+                  for i, a in ipairs(arch.stack_master_fx_archetypes) do
+                    if a == "spatial" then table.remove(arch.stack_master_fx_archetypes, i) break end
+                  end
+                end
+              end
+            },
+            vb:text { text = "Space", width = 40 },
+            vb:checkbox {
+              id = "stack_fx_aggressive",
+              value = (function()
+                local archetypes = arch.stack_master_fx_archetypes or {}
+                for _, a in ipairs(archetypes) do if a == "aggressive" then return true end end
+                return false
+              end)(),
+              notifier = function(value)
+                arch.stack_master_fx_archetypes = arch.stack_master_fx_archetypes or {}
+                if value then
+                  table.insert(arch.stack_master_fx_archetypes, "aggressive")
+                else
+                  for i, a in ipairs(arch.stack_master_fx_archetypes) do
+                    if a == "aggressive" then table.remove(arch.stack_master_fx_archetypes, i) break end
+                  end
+                end
+              end
+            },
+            vb:text { text = "Aggro", width = 40 }
           }
         },
         

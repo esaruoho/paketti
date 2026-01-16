@@ -60,6 +60,7 @@ PakettiPhraseVoicePreserveExistingNotes = true  -- Don't overwrite existing patt
 PakettiPhraseVoiceDebugEnabled = false    -- Enable debug logging
 PakettiPhraseVoiceFadeOutEnabled = false  -- Fade out voices on stop
 PakettiPhraseVoiceAdditiveMode = false    -- Additive layering mode (don't clear on state recall)
+PakettiPhraseVoiceAutoSpawnEnabled = false -- Auto-spawn phrase voice on phrase selection
 
 -- Forward declaration for UI update function (defined later)
 -- This allows pool functions to call it safely
@@ -97,6 +98,9 @@ function PakettiPhraseVoiceLoadPreferences()
       if prefs.PakettiPhraseVoiceDebugEnabled then
         PakettiPhraseVoiceDebugEnabled = prefs.PakettiPhraseVoiceDebugEnabled.value
       end
+      if prefs.PakettiPhraseVoiceAutoSpawnEnabled then
+        PakettiPhraseVoiceAutoSpawnEnabled = prefs.PakettiPhraseVoiceAutoSpawnEnabled.value
+      end
     end
   end)
   if not success then
@@ -110,6 +114,7 @@ function PakettiPhraseVoiceLoadPreferences()
     PakettiPhraseVoiceFadeOutEnabled = false
     PakettiPhraseVoiceAdditiveMode = false
     PakettiPhraseVoiceDebugEnabled = false
+    PakettiPhraseVoiceAutoSpawnEnabled = false
   end
 end
 
@@ -145,6 +150,9 @@ function PakettiPhraseVoiceSavePreferences()
       if prefs.PakettiPhraseVoiceDebugEnabled then
         prefs.PakettiPhraseVoiceDebugEnabled.value = PakettiPhraseVoiceDebugEnabled
       end
+      if prefs.PakettiPhraseVoiceAutoSpawnEnabled then
+        prefs.PakettiPhraseVoiceAutoSpawnEnabled.value = PakettiPhraseVoiceAutoSpawnEnabled
+      end
       prefs:save_as("preferences.xml")
     end
   end)
@@ -163,6 +171,10 @@ function PakettiPhraseVoiceOnNewDocument()
   
   -- Clear voice track references
   PakettiPhraseVoiceTracks = {}
+  
+  -- Reset phrase selection state
+  PakettiPhraseVoiceLastSelectedPhraseIndex = 0
+  PakettiPhraseVoiceSelectionNotifierActive = false
   
   -- Reload preferences
   PakettiPhraseVoiceLoadPreferences()
@@ -1284,6 +1296,140 @@ function PakettiPhraseVoiceAutoDetectMode()
   end
 end
 
+--------------------------------------------------------------------------------
+-- PHRASE SELECTION AUTO-SPAWN
+-- Automatically spawns phrase voices when selecting phrases in the Phrase Index
+-- Section 5 (Editor Mode): Immediate, phase-correct spawn
+-- Section 6 (Switcher Mode): Quantized, scheduled spawn at next boundary
+--------------------------------------------------------------------------------
+
+-- Track if notifier is currently active
+PakettiPhraseVoiceSelectionNotifierActive = false
+
+-- Last selected phrase index (to avoid duplicate triggers)
+PakettiPhraseVoiceLastSelectedPhraseIndex = 0
+
+-- Phrase selection notifier callback
+-- Called when user selects a different phrase in the Phrase Index
+function PakettiPhraseVoiceOnPhraseSelectionChanged()
+  -- Check if auto-spawn is enabled
+  if not PakettiPhraseVoiceAutoSpawnEnabled then
+    return
+  end
+  
+  -- Check if phrase transport is enabled
+  if not PakettiPhraseTransportEnabled then
+    return
+  end
+  
+  local song = renoise.song()
+  if not song then return end
+  
+  -- Get current phrase index
+  local phrase_index = song.selected_phrase_index
+  if phrase_index < 1 then return end
+  
+  -- Avoid duplicate triggers on same phrase
+  if phrase_index == PakettiPhraseVoiceLastSelectedPhraseIndex then
+    return
+  end
+  PakettiPhraseVoiceLastSelectedPhraseIndex = phrase_index
+  
+  -- Validate phrase exists
+  local instrument = song.selected_instrument
+  if not instrument then return end
+  if phrase_index > #instrument.phrases then return end
+  
+  -- Check transport - only spawn when playing
+  if not song.transport.playing then
+    PakettiPhraseVoiceDebugLog(string.format("Auto-spawn skipped (not playing): Phrase %02d", phrase_index))
+    return
+  end
+  
+  -- Determine mode and spawn accordingly
+  local mode = PakettiPhraseVoiceAutoDetectMode()
+  
+  if mode == "editor" then
+    -- Editor Mode (Section 5): Immediate, phase-correct spawn
+    PakettiPhraseVoiceDebugLog(string.format("Auto-spawn (editor mode): Phrase %02d", phrase_index))
+    PakettiPhraseVoiceEditorModeSpawn(phrase_index)
+  else
+    -- Switcher Mode (Section 6): Schedule for next quantization boundary
+    PakettiPhraseVoiceDebugLog(string.format("Auto-spawn (switcher mode): Scheduling Phrase %02d", phrase_index))
+    PakettiPhraseVoiceSwitcherModeSchedule(phrase_index)
+  end
+end
+
+-- Toggle auto-spawn on phrase selection
+function PakettiPhraseVoiceToggleAutoSpawn()
+  PakettiPhraseVoiceAutoSpawnEnabled = not PakettiPhraseVoiceAutoSpawnEnabled
+  local status = PakettiPhraseVoiceAutoSpawnEnabled and "enabled" or "disabled"
+  renoise.app():show_status("Phrase Voice auto-spawn on selection: " .. status)
+  
+  -- Save preference
+  PakettiPhraseVoiceSavePreferences()
+  
+  -- If enabled, ensure notifier is added
+  if PakettiPhraseVoiceAutoSpawnEnabled then
+    PakettiPhraseVoiceAddSelectionNotifier()
+  end
+end
+
+-- Add phrase selection notifier (safe - checks if already present)
+function PakettiPhraseVoiceAddSelectionNotifier()
+  local song = renoise.song()
+  if not song then return false end
+  
+  -- Don't add if already active
+  if PakettiPhraseVoiceSelectionNotifierActive then
+    return true
+  end
+  
+  -- Add the notifier
+  local success = pcall(function()
+    if not song.selected_phrase_index_observable:has_notifier(PakettiPhraseVoiceOnPhraseSelectionChanged) then
+      song.selected_phrase_index_observable:add_notifier(PakettiPhraseVoiceOnPhraseSelectionChanged)
+      PakettiPhraseVoiceSelectionNotifierActive = true
+      PakettiPhraseVoiceDebugLog("Phrase selection notifier added")
+    else
+      PakettiPhraseVoiceSelectionNotifierActive = true
+    end
+  end)
+  
+  return success
+end
+
+-- Remove phrase selection notifier (safe - checks if present)
+function PakettiPhraseVoiceRemoveSelectionNotifier()
+  local song = renoise.song()
+  if not song then
+    PakettiPhraseVoiceSelectionNotifierActive = false
+    return true
+  end
+  
+  -- Remove the notifier
+  local success = pcall(function()
+    if song.selected_phrase_index_observable:has_notifier(PakettiPhraseVoiceOnPhraseSelectionChanged) then
+      song.selected_phrase_index_observable:remove_notifier(PakettiPhraseVoiceOnPhraseSelectionChanged)
+      PakettiPhraseVoiceDebugLog("Phrase selection notifier removed")
+    end
+    PakettiPhraseVoiceSelectionNotifierActive = false
+  end)
+  
+  return success
+end
+
+-- Reset selection state on new document
+function PakettiPhraseVoiceResetSelectionState()
+  PakettiPhraseVoiceLastSelectedPhraseIndex = 0
+  PakettiPhraseVoiceSelectionNotifierActive = false
+  
+  -- Re-add notifier if auto-spawn is enabled and transport is on
+  if PakettiPhraseVoiceAutoSpawnEnabled and PakettiPhraseTransportEnabled then
+    PakettiPhraseVoiceAddSelectionNotifier()
+  end
+end
+
 -- Editor Mode: Immediate phrase voice spawn
 -- Used when in Phrase Editor for instant, phase-correct playback
 function PakettiPhraseVoiceEditorModeSpawn(phrase_index, options)
@@ -1826,22 +1972,31 @@ function PakettiPhraseTransportEnable()
   -- Switch to phrase editor
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
   
-  -- Add notifier if not present
+  -- Add transport notifier if not present
   if not renoise.tool().app_idle_observable:has_notifier(PakettiPhraseTransportNotifier) then
     renoise.tool().app_idle_observable:add_notifier(PakettiPhraseTransportNotifier)
   end
   
   PakettiPhraseTransportEnabled = true
   PakettiPhraseTransportCurrentSection = 0
+  
+  -- Add phrase selection notifier for auto-spawn if enabled
+  if PakettiPhraseVoiceAutoSpawnEnabled then
+    PakettiPhraseVoiceAddSelectionNotifier()
+  end
+  
   renoise.app():show_status("Phrase Transport: ON")
 end
 
 -- Disable phrase transport
 function PakettiPhraseTransportDisable()
-  -- Remove notifier if present
+  -- Remove transport notifier if present
   if renoise.tool().app_idle_observable:has_notifier(PakettiPhraseTransportNotifier) then
     renoise.tool().app_idle_observable:remove_notifier(PakettiPhraseTransportNotifier)
   end
+  
+  -- Remove phrase selection notifier
+  PakettiPhraseVoiceRemoveSelectionNotifier()
   
   PakettiPhraseTransportEnabled = false
   PakettiPhraseTransportCurrentSection = 0
@@ -5703,6 +5858,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Spawn Lead Phrase
 renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Spawn Pad Phrases", invoke=PakettiPhraseVoiceSpawnPad}
 renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Toggle Additive Mode", invoke=function() PakettiPhraseVoiceAdditiveMode = not PakettiPhraseVoiceAdditiveMode renoise.app():show_status("Additive Mode: " .. (PakettiPhraseVoiceAdditiveMode and "ON" or "OFF")) end}
 renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Toggle Debug Mode", invoke=function() PakettiPhraseVoiceDebugEnabled = not PakettiPhraseVoiceDebugEnabled renoise.app():show_status("Debug Mode: " .. (PakettiPhraseVoiceDebugEnabled and "ON" or "OFF")) end}
+renoise.tool():add_keybinding{name="Global:Paketti:PhraseVoice Toggle Auto-Spawn on Selection", invoke=PakettiPhraseVoiceToggleAutoSpawn}
 
 --------------------------------------------------------------------------------
 -- 16. MIDI MAPPINGS
@@ -5846,6 +6002,7 @@ renoise.tool():add_midi_mapping{name="Paketti:PhraseVoice Toggle Phase Lock [Tri
 renoise.tool():add_midi_mapping{name="Paketti:PhraseVoice Toggle Output Mode [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceToggleOutputMode() end end}
 renoise.tool():add_midi_mapping{name="Paketti:PhraseVoice Toggle Operation Mode [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceToggleOperationMode() end end}
 renoise.tool():add_midi_mapping{name="Paketti:PhraseVoice Clear Pending Queue [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceClearPendingQueue() end end}
+renoise.tool():add_midi_mapping{name="Paketti:PhraseVoice Toggle Auto-Spawn on Selection [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseVoiceToggleAutoSpawn() end end}
 
 --------------------------------------------------------------------------------
 -- 16b. UNIFIED QUICK CAPTURE/RECALL COMMANDS
@@ -6730,6 +6887,23 @@ function PakettiPhraseGridShowPerformanceDialog()
             end
           },
           vb:text{text = "Phrase Transport"}
+        },
+        vb:row{
+          spacing = 5,
+          vb:checkbox{
+            id = "perf_auto_spawn_cb",
+            value = PakettiPhraseVoiceAutoSpawnEnabled or false,
+            notifier = function(value)
+              PakettiPhraseVoiceAutoSpawnEnabled = value
+              PakettiPhraseVoiceSavePreferences()
+              if value and PakettiPhraseTransportEnabled then
+                PakettiPhraseVoiceAddSelectionNotifier()
+              elseif not value then
+                PakettiPhraseVoiceRemoveSelectionNotifier()
+              end
+            end
+          },
+          vb:text{text = "Auto-Spawn on Selection"}
         }
       }
     },
@@ -7221,6 +7395,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Show Ph
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Show Performance Hub", invoke=PakettiPhraseGridShowPerformanceDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Show Quick Popup", invoke=PakettiPhraseGridShowPopup}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Toggle Phrase Transport", invoke=PakettiPhraseTransportToggle}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Toggle Auto-Spawn on Selection", invoke=PakettiPhraseVoiceToggleAutoSpawn}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Templates:Create Empty Phrase (16 lines)", invoke=function() PakettiPhraseTemplateCreate("empty", {length = 16}) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Templates:Create Phrase From Slices", invoke=PakettiPhraseTemplateFromSlices}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Templates:Create Drum Pattern (Basic)", invoke=function() PakettiPhraseTemplateDrum("basic") end}
