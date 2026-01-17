@@ -39,31 +39,56 @@ METASYNTH_FX_ARCHETYPES = {
   clean = {
     name = "Clean",
     description = "Transparent, pristine sound",
-    devices = {"EQ 10", "Compressor", "DC Offset"},
+    devices = {
+      { name = "EQ 10", enabled = true, weight = 1.0 },
+      { name = "Compressor", enabled = true, weight = 1.0 },
+      { name = "DC Offset", enabled = true, weight = 0.5 }
+    },
     weight = 1.0
   },
   character = {
     name = "Character",
     description = "Adds color and personality",
-    devices = {"Analog Filter", "Distortion", "Lofimat 2", "Cabinet Simulator"},
+    devices = {
+      { name = "Analog Filter", enabled = true, weight = 1.0 },
+      { name = "Distortion", enabled = true, weight = 0.8 },
+      { name = "Lofimat 2", enabled = true, weight = 0.6 },
+      { name = "Cabinet Simulator", enabled = true, weight = 0.7 }
+    },
     weight = 1.0
   },
   movement = {
     name = "Movement",
     description = "Motion and modulation",
-    devices = {"Chorus", "Flanger", "Phaser", "Tremolo", "Vibrato"},
+    devices = {
+      { name = "Chorus", enabled = true, weight = 1.0 },
+      { name = "Flanger", enabled = true, weight = 0.8 },
+      { name = "Phaser", enabled = true, weight = 0.8 },
+      { name = "Tremolo", enabled = true, weight = 0.7 },
+      { name = "Vibrato", enabled = true, weight = 0.6 }
+    },
     weight = 1.0
   },
   spatial = {
     name = "Spatial",
     description = "Depth and space",
-    devices = {"Reverb", "mpReverb 2", "Convolver", "Stereo Expander"},
+    devices = {
+      { name = "Reverb", enabled = true, weight = 1.0 },
+      { name = "mpReverb 2", enabled = true, weight = 0.8 },
+      { name = "Convolver", enabled = true, weight = 0.5 },
+      { name = "Stereo Expander", enabled = true, weight = 0.7 }
+    },
     weight = 1.0
   },
   aggressive = {
     name = "Aggressive",
     description = "Hard-hitting and intense",
-    devices = {"Distortion", "Cabinet Simulator", "Exciter", "Maximizer"},
+    devices = {
+      { name = "Distortion", enabled = true, weight = 1.0 },
+      { name = "Cabinet Simulator", enabled = true, weight = 0.8 },
+      { name = "Exciter", enabled = true, weight = 0.7 },
+      { name = "Maximizer", enabled = true, weight = 0.9 }
+    },
     weight = 1.0
   }
 }
@@ -72,31 +97,115 @@ METASYNTH_FX_ARCHETYPES = {
 METASYNTH_FX_ARCHETYPE_KEYS = {"clean", "character", "movement", "spatial", "aggressive"}
 METASYNTH_FX_ARCHETYPE_NAMES = {"Clean", "Character", "Movement", "Spatial", "Aggressive"}
 
--- Helper function: Get FX devices from enabled archetypes
+-- Helper function: Get FX devices from enabled archetypes (supports new per-device format)
 -- enabled_archetypes: table of archetype keys, e.g. {"clean", "character"}
 -- count: number of devices to select
+-- architecture: optional architecture for checking constraints and fx_device_overrides
 -- Returns: table of device names randomly selected from the enabled archetypes
-function PakettiMetaSynthGetFXFromArchetypes(enabled_archetypes, count)
+function PakettiMetaSynthGetFXFromArchetypes(enabled_archetypes, count, architecture)
   if not enabled_archetypes or #enabled_archetypes == 0 then
     return {}
   end
   
-  -- Collect all devices from enabled archetypes
-  local available_devices = {}
+  -- Get constraints and overrides from architecture
+  local constraints = architecture and architecture.constraints or {}
+  local overrides = architecture and architecture.fx_device_overrides or {}
+  
+  -- Build a map of constraint device toggles
+  local constraint_map = {
+    ["Reverb"] = constraints.allow_reverb,
+    ["mpReverb 2"] = constraints.allow_reverb,
+    ["Chorus"] = constraints.allow_chorus,
+    ["Phaser"] = constraints.allow_phaser,
+    ["Flanger"] = constraints.allow_flanger,
+    ["Distortion"] = constraints.allow_distortion,
+    ["Analog Filter"] = constraints.allow_filter,
+    ["Digital Filter"] = constraints.allow_filter,
+    ["EQ 10"] = constraints.allow_eq,
+    ["Compressor"] = constraints.allow_compressor,
+    ["Maximizer"] = constraints.allow_maximizer,
+    ["Convolver"] = constraints.allow_convolver,
+    ["Cabinet Simulator"] = constraints.allow_cabinet,
+    ["Lofimat 2"] = constraints.allow_lofimat,
+    ["Exciter"] = constraints.allow_exciter,
+    ["Stereo Expander"] = constraints.allow_stereo_expander,
+    ["Tremolo"] = constraints.allow_tremolo,
+    ["Vibrato"] = constraints.allow_vibrato,
+  }
+  
+  -- Check if device is forbidden by constraints
+  local forbidden = constraints.forbidden_devices or {}
+  local function is_forbidden(device_name)
+    for _, forbidden_name in ipairs(forbidden) do
+      if device_name == forbidden_name then
+        return true
+      end
+    end
+    return false
+  end
+  
+  -- Collect all devices from enabled archetypes with weights
+  local available_devices = {}  -- { { name = "...", weight = 1.0 }, ... }
   for _, archetype_key in ipairs(enabled_archetypes) do
     local archetype = METASYNTH_FX_ARCHETYPES[archetype_key]
     if archetype and archetype.devices then
-      for _, device in ipairs(archetype.devices) do
-        -- Add device if not already in list
-        local found = false
-        for _, existing in ipairs(available_devices) do
-          if existing == device then
-            found = true
-            break
-          end
+      for _, device_entry in ipairs(archetype.devices) do
+        -- Handle both old format (string) and new format (table)
+        local device_name, device_enabled, device_weight
+        if type(device_entry) == "string" then
+          -- Old format: just a device name string
+          device_name = device_entry
+          device_enabled = true
+          device_weight = 1.0
+        else
+          -- New format: { name = "...", enabled = true, weight = 1.0 }
+          device_name = device_entry.name
+          device_enabled = device_entry.enabled ~= false
+          device_weight = device_entry.weight or 1.0
         end
-        if not found then
-          table.insert(available_devices, device)
+        
+        -- Check if device is enabled at archetype level
+        if not device_enabled then
+          -- Skip disabled devices
+        -- Check override
+        elseif overrides[device_name] then
+          local override = overrides[device_name]
+          if override.enabled ~= false then
+            -- Apply override weight
+            local weight = override.weight or device_weight
+            -- Add device with weight if not already in list
+            local found = false
+            for _, existing in ipairs(available_devices) do
+              if existing.name == device_name then
+                found = true
+                -- Update weight to higher value
+                if weight > existing.weight then
+                  existing.weight = weight
+                end
+                break
+              end
+            end
+            if not found then
+              table.insert(available_devices, { name = device_name, weight = weight })
+            end
+          end
+        -- Check constraints
+        elseif constraint_map[device_name] == false then
+          -- Device disabled by constraint
+        elseif is_forbidden(device_name) then
+          -- Device in forbidden list
+        else
+          -- Add device if not already in list
+          local found = false
+          for _, existing in ipairs(available_devices) do
+            if existing.name == device_name then
+              found = true
+              break
+            end
+          end
+          if not found then
+            table.insert(available_devices, { name = device_name, weight = device_weight })
+          end
         end
       end
     end
@@ -106,18 +215,36 @@ function PakettiMetaSynthGetFXFromArchetypes(enabled_archetypes, count)
     return {}
   end
   
-  -- Randomly select 'count' devices (or all if count > available)
+  -- Weighted random selection of 'count' devices
   local selected = {}
-  local pool = {}
-  for i, device in ipairs(available_devices) do
-    pool[i] = device
-  end
+  count = math.min(count, #available_devices)
   
-  count = math.min(count, #pool)
   for i = 1, count do
-    local idx = math.random(1, #pool)
-    table.insert(selected, pool[idx])
-    table.remove(pool, idx)
+    -- Calculate total weight
+    local total_weight = 0
+    for _, device in ipairs(available_devices) do
+      total_weight = total_weight + device.weight
+    end
+    
+    if total_weight <= 0 then
+      break
+    end
+    
+    -- Pick random device by weight
+    local rand = math.random() * total_weight
+    local cumulative = 0
+    local selected_idx = 1
+    for idx, device in ipairs(available_devices) do
+      cumulative = cumulative + device.weight
+      if rand <= cumulative then
+        selected_idx = idx
+        break
+      end
+    end
+    
+    -- Add selected device and remove from pool
+    table.insert(selected, available_devices[selected_idx].name)
+    table.remove(available_devices, selected_idx)
   end
   
   return selected
@@ -146,6 +273,7 @@ METASYNTH_MODULATION_CHARACTERS = {
     name = "Short Pluck", 
     description = "Quick attack, fast decay",
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.1 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.15, release = 0.1 },
       velocity_volume = 0.8
@@ -156,6 +284,7 @@ METASYNTH_MODULATION_CHARACTERS = {
     name = "Soft Pad", 
     description = "Slow attack, long sustain",
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.5, hold = 0.0, decay = 0.3, sustain = 0.8, release = 0.8 },
       filter_ahdsr = { attack = 0.6, hold = 0.0, decay = 0.4, sustain = 0.6, release = 0.7 },
       velocity_volume = 0.3
@@ -166,6 +295,7 @@ METASYNTH_MODULATION_CHARACTERS = {
     name = "Long Evolving", 
     description = "Slow movement over time",
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.5, sustain = 0.7, release = 1.0 },
       filter_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.8, sustain = 0.5, release = 1.0 },
       filter_lfo = { frequency = 0.1, amount = 0.15 },
@@ -177,6 +307,7 @@ METASYNTH_MODULATION_CHARACTERS = {
     name = "Percussive Hit", 
     description = "Instant attack, no sustain",
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.0, release = 0.05 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.05 },
       velocity_volume = 0.9
@@ -187,6 +318,7 @@ METASYNTH_MODULATION_CHARACTERS = {
     name = "Swell", 
     description = "Long attack building up",
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.5 },
       filter_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.0, sustain = 0.8, release = 0.4 },
       velocity_volume = 0.4
@@ -197,6 +329,7 @@ METASYNTH_MODULATION_CHARACTERS = {
     name = "Gated", 
     description = "Short sustain, rhythmic",
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.6, release = 0.05 },
       velocity_volume = 0.7
     }
@@ -206,6 +339,7 @@ METASYNTH_MODULATION_CHARACTERS = {
     name = "Tremolo", 
     description = "Volume LFO modulation",
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.1, sustain = 0.8, release = 0.2 },
       volume_lfo = { frequency = 0.5, amount = 0.3 },
       velocity_volume = 0.5
@@ -216,6 +350,7 @@ METASYNTH_MODULATION_CHARACTERS = {
     name = "Vibrato (Slow)", 
     description = "Slow pitch wobble",
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.1, sustain = 0.85, release = 0.25 },
       pitch_lfo = { frequency = 0.3, amount = 0.02 },
       velocity_volume = 0.5
@@ -226,6 +361,7 @@ METASYNTH_MODULATION_CHARACTERS = {
     name = "Vibrato (Fast)", 
     description = "Fast pitch wobble",
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.1, sustain = 0.85, release = 0.25 },
       pitch_lfo = { frequency = 0.7, amount = 0.025 },
       velocity_volume = 0.5
@@ -450,6 +586,7 @@ PakettiMetaSynthProfiles = {
     
     -- LAYER 4: Modulation rules (SEPARATE layer)
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.1 },
       filter_ahdsr = nil,
       pitch_ahdsr = nil,
@@ -482,6 +619,7 @@ PakettiMetaSynthProfiles = {
     
     -- LAYER 7: Global FX rules
     global_fx = {
+      enabled = false,
       tendencies = {},
       reverb_size = nil,
     },
@@ -521,6 +659,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = false,
       volume_ahdsr = nil,
       filter_ahdsr = nil,
       pitch_ahdsr = nil,
@@ -550,6 +689,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = false,
       tendencies = {},
       reverb_size = nil,
     },
@@ -592,6 +732,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.7, release = 0.1 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.4, release = 0.1 },
       pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.03, sustain = 0.0, release = 0.02, amount = -0.03 },
@@ -621,6 +762,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Compressor", "EQ 5"},
       reverb_size = nil,
     },
@@ -660,6 +802,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.05, sustain = 1.0, release = 0.2 },
       filter_ahdsr = nil,
       pitch_ahdsr = nil,
@@ -689,6 +832,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Compressor"},
       reverb_size = nil,
     },
@@ -728,6 +872,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.85, release = 0.12 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.35, sustain = 0.25, release = 0.15 },
       pitch_ahdsr = nil,
@@ -757,6 +902,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Compressor", "EQ 5"},
       reverb_size = nil,
     },
@@ -796,6 +942,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.2, sustain = 0.9, release = 0.25 },
       filter_ahdsr = { attack = 0.3, hold = 0.0, decay = 0.5, sustain = 0.5, release = 0.3 },
       pitch_ahdsr = nil,
@@ -825,6 +972,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Compressor", "Stereo Expander"},
       reverb_size = nil,
     },
@@ -864,6 +1012,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.12, sustain = 0.75, release = 0.1 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.5, release = 0.1 },
       pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.02, sustain = 0.0, release = 0.01, amount = -0.05 },
@@ -893,6 +1042,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Compressor", "EQ 5"},
       reverb_size = nil,
     },
@@ -935,6 +1085,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.08 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.15, release = 0.08 },
       pitch_ahdsr = nil,
@@ -964,6 +1115,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "small",
     },
@@ -1003,6 +1155,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.0, release = 0.2 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.5, sustain = 0.2, release = 0.25 },
       pitch_ahdsr = nil,
@@ -1032,6 +1185,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
     },
@@ -1071,6 +1225,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.0, release = 0.05 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.05 },
       pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.02, sustain = 0.0, release = 0.01, amount = -0.08 },
@@ -1100,6 +1255,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb"},
       reverb_size = "small",
     },
@@ -1139,6 +1295,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.5, sustain = 0.0, release = 0.3 },
       filter_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.6, sustain = 0.25, release = 0.35 },
       pitch_ahdsr = nil,
@@ -1168,6 +1325,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
     },
@@ -1210,6 +1368,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.1, sustain = 0.8, release = 0.15 },
       filter_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.2, sustain = 0.6, release = 0.15 },
       pitch_ahdsr = nil,
@@ -1239,6 +1398,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
     },
@@ -1278,6 +1438,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.08, hold = 0.0, decay = 0.15, sustain = 0.85, release = 0.25 },
       filter_ahdsr = { attack = 0.1, hold = 0.0, decay = 0.3, sustain = 0.6, release = 0.25 },
       pitch_ahdsr = nil,
@@ -1307,6 +1468,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
     },
@@ -1346,6 +1508,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.75, release = 0.12 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.5, release = 0.12 },
       pitch_ahdsr = nil,
@@ -1375,6 +1538,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "small",
     },
@@ -1414,6 +1578,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.08, sustain = 0.9, release = 0.2 },
       filter_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.2, sustain = 0.7, release = 0.2 },
       pitch_ahdsr = nil,
@@ -1443,6 +1608,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay", "Stereo Expander"},
       reverb_size = "large",
     },
@@ -1482,6 +1648,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.03, hold = 0.0, decay = 0.12, sustain = 0.8, release = 0.18 },
       filter_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.25, sustain = 0.55, release = 0.2 },
       pitch_ahdsr = nil,
@@ -1511,6 +1678,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
     },
@@ -1553,6 +1721,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.5, hold = 0.0, decay = 0.3, sustain = 0.85, release = 0.8 },
       filter_ahdsr = { attack = 0.8, hold = 0.0, decay = 0.5, sustain = 0.6, release = 0.8 },
       pitch_ahdsr = nil,
@@ -1582,6 +1751,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
@@ -1621,6 +1791,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 1.0, hold = 0.0, decay = 0.5, sustain = 0.8, release = 1.5 },
       filter_ahdsr = { attack = 1.5, hold = 0.0, decay = 1.0, sustain = 0.5, release = 1.5 },
       pitch_ahdsr = nil,
@@ -1651,6 +1822,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
@@ -1700,6 +1872,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.4, hold = 0.0, decay = 0.2, sustain = 0.9, release = 0.6 },
       filter_ahdsr = { attack = 0.5, hold = 0.0, decay = 0.4, sustain = 0.7, release = 0.6 },
       pitch_ahdsr = nil,
@@ -1729,6 +1902,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "EQ 5"},
       reverb_size = "large",
     },
@@ -1768,6 +1942,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.3, hold = 0.0, decay = 0.25, sustain = 0.85, release = 0.5 },
       filter_ahdsr = { attack = 0.4, hold = 0.0, decay = 0.4, sustain = 0.65, release = 0.5 },
       pitch_ahdsr = nil,
@@ -1797,6 +1972,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
@@ -1839,6 +2015,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.5, release = 0.25 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.4, release = 0.25 },
       pitch_ahdsr = nil,
@@ -1868,6 +2045,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Compressor"},
       reverb_size = "small",
     },
@@ -1907,6 +2085,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.05 },
       filter_ahdsr = nil,
       pitch_ahdsr = nil,
@@ -1936,6 +2115,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "EQ 5"},
       reverb_size = "medium",
     },
@@ -1975,6 +2155,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.8, sustain = 0.0, release = 0.4 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 1.0, sustain = 0.3, release = 0.4 },
       pitch_ahdsr = nil,
@@ -2004,6 +2185,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Compressor"},
       reverb_size = "medium",
     },
@@ -2046,6 +2228,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.05, sustain = 0.0, release = 0.03 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.06, sustain = 0.0, release = 0.03 },
       pitch_ahdsr = nil,
@@ -2075,6 +2258,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Delay", "Reverb"},
       reverb_size = "small",
     },
@@ -2114,6 +2298,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.6, release = 0.05 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.5, release = 0.05 },
       pitch_ahdsr = nil,
@@ -2143,6 +2328,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Delay", "Reverb"},
       reverb_size = "small",
     },
@@ -2182,6 +2368,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.3, release = 0.08 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.4, release = 0.08 },
       pitch_ahdsr = nil,
@@ -2211,6 +2398,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Delay", "Reverb"},
       reverb_size = "small",
     },
@@ -2253,6 +2441,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 2.0, hold = 0.5, decay = 1.0, sustain = 0.5, release = 1.5 },
       filter_ahdsr = { attack = 3.0, hold = 0.0, decay = 1.5, sustain = 0.3, release = 1.5 },
       pitch_ahdsr = { attack = 2.5, hold = 0.0, decay = 0.5, sustain = 0.8, release = 0.5, amount = 0.2 },
@@ -2283,6 +2472,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
@@ -2332,6 +2522,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.0, release = 0.2 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.0, release = 0.2 },
       pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.1, amount = -0.3 },
@@ -2361,6 +2552,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb"},
       reverb_size = "medium",
     },
@@ -2400,6 +2592,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 1.5, hold = 0.0, decay = 0.5, sustain = 0.9, release = 2.0 },
       filter_ahdsr = { attack = 2.0, hold = 0.0, decay = 1.0, sustain = 0.6, release = 2.0 },
       pitch_ahdsr = nil,
@@ -2430,6 +2623,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
@@ -2482,6 +2676,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.25, hold = 0.0, decay = 0.15, sustain = 0.9, release = 0.4 },
       filter_ahdsr = { attack = 0.3, hold = 0.0, decay = 0.2, sustain = 0.75, release = 0.4 },
       pitch_ahdsr = nil,
@@ -2511,6 +2706,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "EQ 5"},
       reverb_size = "large",
     },
@@ -2550,6 +2746,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.08, hold = 0.0, decay = 0.12, sustain = 0.85, release = 0.2 },
       filter_ahdsr = { attack = 0.05, hold = 0.0, decay = 0.15, sustain = 0.7, release = 0.2 },
       pitch_ahdsr = nil,
@@ -2579,6 +2776,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "EQ 5"},
       reverb_size = "medium",
     },
@@ -2621,6 +2819,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 1.5, sustain = 0.0, release = 0.8 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 2.0, sustain = 0.2, release = 0.8 },
       pitch_ahdsr = nil,
@@ -2650,6 +2849,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
@@ -2692,6 +2892,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.2, sustain = 0.7, release = 0.3 },
       filter_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.3, sustain = 0.5, release = 0.3 },
       pitch_ahdsr = nil,
@@ -2721,6 +2922,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb"},
       reverb_size = "medium",
     },
@@ -2760,6 +2962,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.0, release = 0.15 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.2, release = 0.15 },
       pitch_ahdsr = nil,
@@ -2789,6 +2992,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "small",
     },
@@ -2828,6 +3032,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.8, release = 0.12 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.25, sustain = 0.4, release = 0.12 },
       pitch_ahdsr = nil,
@@ -2857,6 +3062,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Compressor", "EQ 5"},
       reverb_size = nil,
     },
@@ -2896,6 +3102,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.4, hold = 0.0, decay = 0.3, sustain = 0.85, release = 0.7 },
       filter_ahdsr = { attack = 0.6, hold = 0.0, decay = 0.5, sustain = 0.6, release = 0.7 },
       pitch_ahdsr = nil,
@@ -2925,6 +3132,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "large",
     },
@@ -2964,6 +3172,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.12, sustain = 0.8, release = 0.15 },
       filter_ahdsr = { attack = 0.03, hold = 0.0, decay = 0.2, sustain = 0.55, release = 0.15 },
       pitch_ahdsr = nil,
@@ -2993,6 +3202,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Delay"},
       reverb_size = "medium",
     },
@@ -3032,6 +3242,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.05 },
       filter_ahdsr = nil,
       pitch_ahdsr = nil,
@@ -3061,6 +3272,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "EQ 5"},
       reverb_size = "medium",
     },
@@ -3100,6 +3312,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.35, sustain = 0.5, release = 0.25 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.45, sustain = 0.4, release = 0.25 },
       pitch_ahdsr = nil,
@@ -3129,6 +3342,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb", "Compressor"},
       reverb_size = "small",
     },
@@ -3168,6 +3382,7 @@ PakettiMetaSynthProfiles = {
     },
     
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.05 },
       filter_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.12, sustain = 0.0, release = 0.05 },
       pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.05, sustain = 0.0, release = 0.02, amount = -0.1 },
@@ -3197,6 +3412,7 @@ PakettiMetaSynthProfiles = {
     },
     
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb"},
       reverb_size = "small",
     },
@@ -4027,6 +4243,18 @@ PakettiMetaSynthGroupCrossfadeProfileNames, PakettiMetaSynthGroupCrossfadeProfil
     return layer.crossfade_enabled == true
   end)
 
+-- MODULATION: Only show profiles where modulation.enabled ~= false (default enabled)
+PakettiMetaSynthModulationProfileFilteredNames, PakettiMetaSynthModulationProfileFilteredDisplay = 
+  PakettiMetaSynthGetFilteredProfiles("modulation", function(layer)
+    return layer.enabled ~= false
+  end)
+
+-- GLOBAL FX: Only show profiles where global_fx.enabled = true
+PakettiMetaSynthGlobalFXFilteredNames, PakettiMetaSynthGlobalFXFilteredDisplay = 
+  PakettiMetaSynthGetFilteredProfiles("global_fx", function(layer)
+    return layer.enabled == true
+  end)
+
 -- Helper function: Find profile index in a filtered list by profile key
 function PakettiMetaSynthFindProfileIndex(profile_key, names_list)
   if not profile_key then return 1 end  -- Return "Inherit Global" index
@@ -4173,6 +4401,56 @@ function PakettiMetaSynthCreateDefaultArchitecture()
       -- When set, these values override the profile's modulation settings
       custom_modulation = nil,
     },
+    
+    -- ================================================================
+    -- CONSTRAINTS: Override profile defaults for randomization bounds
+    -- These settings constrain what randomization can do
+    -- ================================================================
+    constraints = {
+      -- Parameter ranges (override profile defaults during randomization)
+      group_count_range = {1, 2},
+      oscillator_count_range = {1, 3},
+      unison_range = {1, 4},
+      frame_count_range = {1, 4},
+      fx_count_range = {0, 4},
+      
+      -- Feature toggles (allow/forbid specific features)
+      allow_group_frames = true,
+      allow_vector = true,
+      allow_group_scan = true,
+      allow_global_fx_frames = true,
+      allow_global_fx_scan = true,
+      allow_global_fx_vector = true,
+      allow_stepper = true,
+      allow_arp = true,
+      
+      -- FX device toggles (allow/forbid specific FX devices)
+      allow_reverb = true,
+      allow_chorus = true,
+      allow_phaser = true,
+      allow_flanger = true,
+      allow_distortion = true,
+      allow_filter = true,
+      allow_eq = true,
+      allow_compressor = true,
+      allow_maximizer = true,
+      allow_convolver = true,
+      allow_cabinet = true,
+      allow_lofimat = true,
+      allow_exciter = true,
+      allow_stereo_expander = true,
+      allow_tremolo = true,
+      allow_vibrato = true,
+      
+      -- FX device blacklist (more specific control)
+      forbidden_devices = {},  -- e.g., {"Convolver", "mpReverb 2"}
+    },
+    
+    -- ================================================================
+    -- FX DEVICE OVERRIDES: Per-device enable/weight settings
+    -- Allows fine-grained control over FX selection probability
+    -- ================================================================
+    fx_device_overrides = {},  -- e.g., { ["Reverb"] = { enabled = true, weight = 1.0 } }
     
     oscillator_groups = {
       {
@@ -6306,6 +6584,7 @@ function PakettiMetaSynthGetDefaultLayerRules(layer)
     },
     -- Modulation is now a SEPARATE layer (not nested in group)
     modulation = {
+      enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.2, sustain = 0.7, release = 0.3 },
       filter_ahdsr = { attack = 0.02, hold = 0.0, decay = 0.3, sustain = 0.5, release = 0.3 },
       pitch_ahdsr = nil,
@@ -6333,6 +6612,7 @@ function PakettiMetaSynthGetDefaultLayerRules(layer)
       count_range = {1, 2},
     },
     global_fx = {
+      enabled = true,
       tendencies = {"Reverb"},
       reverb_size = "medium",
     },
@@ -9824,6 +10104,10 @@ end
 function PakettiMetaSynthRandomizeArchitecture(architecture)
   trueRandomSeed()
   
+  -- Initialize constraints if not present
+  architecture.constraints = architecture.constraints or {}
+  local constraints = architecture.constraints
+  
   -- Set GLOBAL PROFILE at architecture level - defines musical intent for all layers
   architecture.global_profile = PakettiMetaSynthGetRandomModulationProfile()
   
@@ -9837,8 +10121,9 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
   end
   architecture.modulation_layer.custom_modulation = nil  -- No custom modulation by default
   
-  -- Random number of oscillator groups (1-2)
-  local num_groups = math.random(1, 2)
+  -- Random number of oscillator groups - respect constraints
+  local group_range = constraints.group_count_range or {1, 2}
+  local num_groups = math.random(group_range[1], group_range[2])
   architecture.oscillator_groups = {}
   
   local samples_remaining = 12
@@ -9882,8 +10167,8 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       group_master_fx_count = PakettiMetaSynthGetIntInRange(group_fx_rules.count_range or {1, 4}),
       group_master_fx_types = {},
       
-      -- GROUP FRAMES (meta-wavetable at group level) - guided by profile
-      group_frames_enabled = group_frame_rules.enabled == true,  -- Default OFF unless profile enables it
+      -- GROUP FRAMES (meta-wavetable at group level) - guided by profile AND constraints
+      group_frames_enabled = (constraints.allow_group_frames ~= false) and (group_frame_rules.enabled == true),
       group_frame_count = PakettiMetaSynthGetIntInRange(group_frame_rules.frame_count_range or {1, 1}),
       group_frame_morph_enabled = group_frame_rules.morph_enabled == true,
       group_frame_morph_speed = group_frame_rules.morph_speed or "none",
@@ -9892,7 +10177,7 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       group_frame_lfo_rate_preset = rate_presets[math.random(1, #rate_presets)],
       group_frame_fx_enabled = group_frame_rules.enabled and #(group_frame_rules.fx_tendencies or {}) > 0,
       group_frame_fx_tendencies = group_frame_rules.fx_tendencies or {},
-      group_frame_fx_count = PakettiMetaSynthGetIntInRange(group_frame_rules.fx_count_range or {0, 0}),
+      group_frame_fx_count = PakettiMetaSynthGetIntInRange(constraints.fx_count_range or group_frame_rules.fx_count_range or {0, 0}),
       
       -- Profile override at GROUP level (nil = inherit from global_profile)
       profile_override = group_profile_name,
@@ -10108,6 +10393,95 @@ end
 PakettiMetaSynthBatchDialogVb = nil
 PakettiMetaSynthBatchDialogHandle = nil
 
+-- Batch export instruments to XRNI files
+-- start_idx: first instrument index to export (1-based)
+-- count: number of instruments to export
+-- folder_path: destination folder path
+function PakettiMetaSynthBatchExportXRNI(start_idx, count, folder_path)
+  local song = renoise.song()
+  local exported = 0
+  local failed = 0
+  
+  for i = 0, count - 1 do
+    local inst_idx = start_idx + i
+    if inst_idx <= #song.instruments then
+      -- Select the instrument
+      song.selected_instrument_index = inst_idx
+      local instrument = song.instruments[inst_idx]
+      
+      -- Generate filename from instrument name or index
+      local inst_name = instrument.name
+      if inst_name == "" then
+        inst_name = string.format("MetaSynth_%03d", inst_idx)
+      else
+        -- Sanitize filename
+        inst_name = inst_name:gsub("[/\\:*?\"<>|]", "_")
+      end
+      
+      local filepath = folder_path .. "/" .. inst_name .. ".xrni"
+      
+      -- Export
+      local success = renoise.app():save_instrument(filepath)
+      if success then
+        exported = exported + 1
+        print(string.format("PakettiMetaSynth: Exported %s", filepath))
+      else
+        failed = failed + 1
+        print(string.format("PakettiMetaSynth: Failed to export %s", filepath))
+      end
+    end
+  end
+  
+  renoise.app():show_status(string.format("PakettiMetaSynth: Exported %d instruments (%d failed)", exported, failed))
+  return exported, failed
+end
+
+-- Show batch XRNI export dialog
+function PakettiMetaSynthShowBatchExportDialog()
+  local vb = renoise.ViewBuilder()
+  local song = renoise.song()
+  
+  local dialog_content = vb:column {
+    vb:row {
+      vb:text { text = "Start instrument", width = 140 },
+      vb:valuebox {
+        id = "start_idx",
+        min = 1,
+        max = #song.instruments,
+        value = song.selected_instrument_index,
+        width = 80
+      }
+    },
+    vb:row {
+      vb:text { text = "Number to export", width = 140 },
+      vb:valuebox {
+        id = "export_count",
+        min = 1,
+        max = #song.instruments,
+        value = math.min(10, #song.instruments),
+        width = 80
+      }
+    },
+    vb:row {
+      vb:button {
+        text = "Select Folder & Export",
+        width = 220,
+        notifier = function()
+          local folder = renoise.app():prompt_for_path("Select export folder")
+          if folder and folder ~= "" then
+            local start_idx = vb.views.start_idx.value
+            local count = vb.views.export_count.value
+            PakettiMetaSynthBatchExportXRNI(start_idx, count, folder)
+          end
+        end
+      }
+    }
+  }
+  
+  renoise.app():show_custom_dialog("MetaSynth Batch XRNI Export", dialog_content, my_keyhandler_func)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
 function PakettiMetaSynthShowBatchGenerationDialog()
   -- Close existing dialog if open
   if PakettiMetaSynthBatchDialogHandle and PakettiMetaSynthBatchDialogHandle.visible then
@@ -10193,17 +10567,28 @@ function PakettiMetaSynthShowBatchGenerationDialog()
     vb:row {
       vb:button {
         text = "Generate",
-        width = 130,
+        width = 85,
         notifier = execute_batch_generation
       },
       vb:button {
         text = "Cancel",
-        width = 130,
+        width = 85,
         notifier = function()
           if PakettiMetaSynthBatchDialogHandle then
             PakettiMetaSynthBatchDialogHandle:close()
             PakettiMetaSynthBatchDialogHandle = nil
           end
+        end
+      },
+      vb:button {
+        text = "Batch Export",
+        width = 85,
+        notifier = function()
+          if PakettiMetaSynthBatchDialogHandle then
+            PakettiMetaSynthBatchDialogHandle:close()
+            PakettiMetaSynthBatchDialogHandle = nil
+          end
+          PakettiMetaSynthShowBatchExportDialog()
         end
       }
     },
@@ -10530,6 +10915,749 @@ function PakettiMetaSynthLoadArchitecture(filepath)
 end
 
 -- ============================================================================
+-- SECTION 9.5: USER PROFILE SAVE/LOAD SYSTEM
+-- ============================================================================
+
+-- User profiles folder path
+PakettiMetaSynthUserProfilesPath = nil
+
+function PakettiMetaSynthGetUserProfilesPath()
+  if not PakettiMetaSynthUserProfilesPath then
+    local separator = package.config:sub(1,1)
+    PakettiMetaSynthUserProfilesPath = renoise.tool().bundle_path .. "MetaSynthUserProfiles" .. separator
+  end
+  return PakettiMetaSynthUserProfilesPath
+end
+
+-- Ensure user profiles folder exists
+function PakettiMetaSynthEnsureUserProfilesFolder()
+  local path = PakettiMetaSynthGetUserProfilesPath()
+  -- Try to create directory (will fail silently if exists)
+  os.execute('mkdir -p "' .. path .. '"')
+  return path
+end
+
+-- Convert current architecture to profile format
+function PakettiMetaSynthArchitectureToProfile(architecture, profile_name)
+  local profile = {
+    name = profile_name,
+    description = "User-created profile from architecture",
+    family = "user",
+    
+    -- LAYER 1: Oscillator rules (extract from first group/oscillator)
+    oscillator = {
+      unison_range = {1, 4},
+      frame_count_range = {1, 4},
+      detune_range = {5, 25},
+      pan_spread_range = {0.0, 1.0},
+      sample_count_range = {1, 4},
+    },
+    
+    -- LAYER 2: Frame rules
+    frame = {
+      morph_enabled = architecture.crossfade and architecture.crossfade.control_source == "lfo",
+      morph_speed = "medium",
+      fx_tendencies = {},
+      fx_count_range = {0, 3},
+    },
+    
+    -- LAYER 3: Group rules
+    group = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+    },
+    
+    -- LAYER 4: Modulation rules
+    modulation = {},
+    
+    -- LAYER 5: Group Frames
+    group_frame = {
+      enabled = false,
+      frame_count_range = {1, 2},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 2},
+    },
+    
+    -- LAYER 6: Group FX rules
+    group_fx = {
+      enabled = false,
+      tendencies = {},
+      count_range = {0, 3},
+    },
+    
+    -- LAYER 7: Global FX rules
+    global_fx = {
+      enabled = true,
+      tendencies = {},
+      reverb_size = nil,
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = "akwf",
+      waveform_families = {"basic", "saw", "square"},
+      avoid_families = {},
+    },
+  }
+  
+  -- Extract modulation from architecture if available
+  if architecture.modulation_layer and architecture.modulation_layer.custom_modulation then
+    local mod = architecture.modulation_layer.custom_modulation
+    if mod.volume_ahdsr then
+      profile.modulation.volume_ahdsr = mod.volume_ahdsr
+    end
+    if mod.filter_ahdsr then
+      profile.modulation.filter_ahdsr = mod.filter_ahdsr
+    end
+    if mod.volume_lfo then
+      profile.modulation.volume_lfo = mod.volume_lfo
+    end
+    if mod.filter_lfo then
+      profile.modulation.filter_lfo = mod.filter_lfo
+    end
+    if mod.pitch_lfo then
+      profile.modulation.pitch_lfo = mod.pitch_lfo
+    end
+    if mod.velocity_volume then
+      profile.modulation.velocity_volume = mod.velocity_volume
+    end
+  end
+  
+  -- Extract from first group if available
+  if architecture.oscillator_groups and #architecture.oscillator_groups > 0 then
+    local group = architecture.oscillator_groups[1]
+    
+    -- Group crossfade settings
+    if group.group_crossfade_enabled then
+      profile.group.crossfade_enabled = true
+      profile.group.lfo_rate_preset = group.group_crossfade_lfo_rate_preset or "medium"
+    end
+    
+    -- Group frames
+    if group.group_frames_enabled then
+      profile.group_frame.enabled = true
+      profile.group_frame.frame_count_range = {group.group_frame_count or 2, group.group_frame_count or 2}
+    end
+    
+    -- Group FX
+    if group.group_fx_enabled then
+      profile.group_fx.enabled = true
+      profile.group_fx.count_range = {group.group_fx_count or 2, group.group_fx_count or 2}
+    end
+    
+    -- Extract from first oscillator
+    if group.oscillators and #group.oscillators > 0 then
+      local osc = group.oscillators[1]
+      profile.oscillator.frame_count_range = {osc.frame_count or 1, osc.frame_count or 4}
+      profile.oscillator.unison_range = {osc.unison_voices or 1, osc.unison_voices or 4}
+      profile.oscillator.sample_count_range = {osc.sample_count or 1, osc.sample_count or 4}
+    end
+  end
+  
+  -- Stack master FX
+  if architecture.stack_master_fx_enabled then
+    profile.global_fx.tendencies = {}
+  end
+  
+  return profile
+end
+
+-- Serialize profile to string
+function PakettiMetaSynthSerializeProfile(profile)
+  local function serialize_value(val, indent)
+    indent = indent or 0
+    local spaces = string.rep("  ", indent)
+    
+    if type(val) == "string" then
+      return '"' .. val:gsub('"', '\\"') .. '"'
+    elseif type(val) == "number" then
+      return tostring(val)
+    elseif type(val) == "boolean" then
+      return tostring(val)
+    elseif type(val) == "nil" then
+      return "nil"
+    elseif type(val) == "table" then
+      local result = "{\n"
+      local is_array = #val > 0
+      
+      if is_array then
+        for i, v in ipairs(val) do
+          result = result .. spaces .. "  " .. serialize_value(v, indent + 1) .. ",\n"
+        end
+      else
+        for k, v in pairs(val) do
+          local key_str
+          if type(k) == "string" then
+            key_str = k
+          else
+            key_str = "[" .. tostring(k) .. "]"
+          end
+          result = result .. spaces .. "  " .. key_str .. " = " .. serialize_value(v, indent + 1) .. ",\n"
+        end
+      end
+      
+      result = result .. spaces .. "}"
+      return result
+    else
+      return '"<unsupported type>"'
+    end
+  end
+  
+  return "return " .. serialize_value(profile)
+end
+
+-- Save user profile to file
+function PakettiMetaSynthSaveUserProfile(profile, profile_key)
+  local folder = PakettiMetaSynthEnsureUserProfilesFolder()
+  local separator = package.config:sub(1,1)
+  local filepath = folder .. profile_key .. ".lua"
+  
+  local content = PakettiMetaSynthSerializeProfile(profile)
+  local file = io.open(filepath, "w")
+  if file then
+    file:write(content)
+    file:close()
+    print("PakettiMetaSynth: User profile saved to " .. filepath)
+    return true
+  else
+    print("PakettiMetaSynth: Failed to save user profile to " .. filepath)
+    return false
+  end
+end
+
+-- Load a single user profile from file
+function PakettiMetaSynthLoadUserProfile(filepath)
+  local file = io.open(filepath, "r")
+  if not file then
+    return nil
+  end
+  
+  local content = file:read("*all")
+  file:close()
+  
+  local loader, err = loadstring(content)
+  if not loader then
+    print("PakettiMetaSynth: Failed to parse profile file: " .. tostring(err))
+    return nil
+  end
+  
+  local success, result = pcall(loader)
+  if success and type(result) == "table" then
+    return result
+  end
+  return nil
+end
+
+-- Storage for user profiles
+PakettiMetaSynthUserProfiles = {}
+
+-- Load all user profiles from folder
+function PakettiMetaSynthLoadAllUserProfiles()
+  local folder = PakettiMetaSynthGetUserProfilesPath()
+  PakettiMetaSynthUserProfiles = {}
+  
+  -- Try to list .lua files in the folder
+  local success, files = pcall(os.filenames, folder, "*.lua")
+  if not success or not files then
+    print("PakettiMetaSynth: No user profiles folder or no profiles found")
+    return
+  end
+  
+  local loaded_count = 0
+  for _, filename in ipairs(files) do
+    local separator = package.config:sub(1,1)
+    local filepath = folder .. filename
+    local profile = PakettiMetaSynthLoadUserProfile(filepath)
+    if profile then
+      -- Extract profile key from filename (remove .lua extension)
+      local profile_key = "user_" .. filename:gsub("%.lua$", "")
+      
+      -- Add to user profiles storage
+      PakettiMetaSynthUserProfiles[profile_key] = profile
+      
+      -- Also add to main profiles table
+      PakettiMetaSynthProfiles[profile_key] = profile
+      
+      -- Add to profile lists
+      table.insert(PakettiMetaSynthProfileNamesList, profile_key)
+      table.insert(PakettiMetaSynthProfileDisplayList, profile.name or profile_key)
+      
+      loaded_count = loaded_count + 1
+      print("PakettiMetaSynth: Loaded user profile: " .. profile_key)
+    end
+  end
+  
+  if loaded_count > 0 then
+    print(string.format("PakettiMetaSynth: Loaded %d user profiles", loaded_count))
+  end
+end
+
+-- Quick-save current architecture as a new profile
+function PakettiMetaSynthQuickSaveAsProfile(architecture)
+  local vb = renoise.ViewBuilder()
+  
+  local dialog_content = vb:column {
+    vb:row {
+      vb:text { text = "Profile Name:", width = 100 },
+      vb:textfield {
+        id = "profile_name",
+        text = architecture.name or "My Profile",
+        width = 200
+      }
+    },
+    vb:row {
+      vb:text { text = "Profile Key:", width = 100 },
+      vb:textfield {
+        id = "profile_key",
+        text = "my_profile",
+        width = 200
+      }
+    },
+    vb:row {
+      vb:button {
+        text = "Save Profile",
+        width = 150,
+        notifier = function()
+          local profile_name = vb.views.profile_name.text
+          local profile_key = vb.views.profile_key.text
+          
+          -- Sanitize key
+          profile_key = profile_key:gsub("[^%w_]", "_"):lower()
+          if profile_key == "" then
+            profile_key = "user_profile_" .. os.time()
+          end
+          
+          -- Convert architecture to profile
+          local profile = PakettiMetaSynthArchitectureToProfile(architecture, profile_name)
+          
+          -- Save to file
+          if PakettiMetaSynthSaveUserProfile(profile, profile_key) then
+            -- Add to runtime profiles
+            local full_key = "user_" .. profile_key
+            PakettiMetaSynthUserProfiles[full_key] = profile
+            PakettiMetaSynthProfiles[full_key] = profile
+            table.insert(PakettiMetaSynthProfileNamesList, full_key)
+            table.insert(PakettiMetaSynthProfileDisplayList, profile_name)
+            
+            renoise.app():show_status("PakettiMetaSynth: Profile saved as " .. profile_name)
+          else
+            renoise.app():show_status("PakettiMetaSynth: Failed to save profile")
+          end
+        end
+      },
+      vb:button {
+        text = "Cancel",
+        width = 150,
+        notifier = function()
+          -- Dialog will close automatically
+        end
+      }
+    }
+  }
+  
+  renoise.app():show_custom_dialog("Save as Profile", dialog_content, my_keyhandler_func)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- Full Profile Editor Dialog
+PakettiMetaSynthProfileEditorVb = nil
+PakettiMetaSynthProfileEditorDialog = nil
+PakettiMetaSynthEditingProfile = nil
+
+function PakettiMetaSynthShowProfileEditorDialog(profile_key)
+  -- Close existing dialog
+  if PakettiMetaSynthProfileEditorDialog and PakettiMetaSynthProfileEditorDialog.visible then
+    PakettiMetaSynthProfileEditorDialog:close()
+  end
+  
+  PakettiMetaSynthProfileEditorVb = renoise.ViewBuilder()
+  local vb = PakettiMetaSynthProfileEditorVb
+  
+  -- Load existing profile or create new one
+  local profile
+  local is_new = false
+  if profile_key and PakettiMetaSynthProfiles[profile_key] then
+    -- Deep copy the profile for editing
+    profile = {}
+    for k, v in pairs(PakettiMetaSynthProfiles[profile_key]) do
+      if type(v) == "table" then
+        profile[k] = {}
+        for k2, v2 in pairs(v) do
+          if type(v2) == "table" then
+            profile[k][k2] = {}
+            for k3, v3 in pairs(v2) do
+              profile[k][k2][k3] = v3
+            end
+          else
+            profile[k][k2] = v2
+          end
+        end
+      else
+        profile[k] = v
+      end
+    end
+  else
+    -- New profile template
+    is_new = true
+    profile = {
+      name = "New Profile",
+      description = "User-created profile",
+      family = "user",
+      oscillator = {
+        unison_range = {1, 4},
+        frame_count_range = {1, 4},
+        detune_range = {5, 25},
+        pan_spread_range = {0.0, 1.0},
+        sample_count_range = {1, 4},
+      },
+      frame = {
+        morph_enabled = true,
+        morph_speed = "medium",
+        fx_tendencies = {},
+        fx_count_range = {0, 3},
+      },
+      group = {
+        crossfade_enabled = false,
+        scan_speed = nil,
+        lfo_rate_preset = "medium",
+      },
+      modulation = {
+        volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.2, sustain = 0.7, release = 0.3 },
+        velocity_volume = 0.5,
+      },
+      group_frame = {
+        enabled = false,
+        frame_count_range = {1, 2},
+        morph_enabled = false,
+        morph_speed = "none",
+        fx_tendencies = {},
+        fx_count_range = {0, 2},
+      },
+      group_fx = {
+        enabled = false,
+        tendencies = {},
+        count_range = {0, 3},
+      },
+      global_fx = {
+        tendencies = {},
+        reverb_size = nil,
+      },
+      sample_selection = {
+        source_preference = "akwf",
+        waveform_families = {"basic", "saw", "square"},
+        avoid_families = {},
+      },
+    }
+    profile_key = "user_new_" .. os.time()
+  end
+  
+  PakettiMetaSynthEditingProfile = profile
+  
+  -- Build the dialog UI
+  local dialog_content = vb:column {
+    vb:row {
+      vb:text { text = "Profile Name:", width = 100 },
+      vb:textfield {
+        id = "profile_name",
+        text = profile.name or "New Profile",
+        width = 200,
+        notifier = function(value)
+          profile.name = value
+        end
+      }
+    },
+    vb:row {
+      vb:text { text = "Description:", width = 100 },
+      vb:textfield {
+        id = "profile_desc",
+        text = profile.description or "",
+        width = 200,
+        notifier = function(value)
+          profile.description = value
+        end
+      }
+    },
+    
+    -- Oscillator Layer
+    vb:column {
+      style = "group",
+      vb:text { text = "Oscillator Layer", font = "bold" },
+      vb:row {
+        vb:text { text = "Unison:", width = 80 },
+        vb:valuebox {
+          min = 1, max = 8,
+          value = profile.oscillator.unison_range[1],
+          width = 50,
+          notifier = function(v) profile.oscillator.unison_range[1] = v end
+        },
+        vb:text { text = "to" },
+        vb:valuebox {
+          min = 1, max = 8,
+          value = profile.oscillator.unison_range[2],
+          width = 50,
+          notifier = function(v) profile.oscillator.unison_range[2] = v end
+        }
+      },
+      vb:row {
+        vb:text { text = "Frames:", width = 80 },
+        vb:valuebox {
+          min = 1, max = 8,
+          value = profile.oscillator.frame_count_range[1],
+          width = 50,
+          notifier = function(v) profile.oscillator.frame_count_range[1] = v end
+        },
+        vb:text { text = "to" },
+        vb:valuebox {
+          min = 1, max = 8,
+          value = profile.oscillator.frame_count_range[2],
+          width = 50,
+          notifier = function(v) profile.oscillator.frame_count_range[2] = v end
+        }
+      },
+      vb:row {
+        vb:text { text = "Detune:", width = 80 },
+        vb:valuebox {
+          min = 0, max = 100,
+          value = profile.oscillator.detune_range[1],
+          width = 50,
+          notifier = function(v) profile.oscillator.detune_range[1] = v end
+        },
+        vb:text { text = "to" },
+        vb:valuebox {
+          min = 0, max = 100,
+          value = profile.oscillator.detune_range[2],
+          width = 50,
+          notifier = function(v) profile.oscillator.detune_range[2] = v end
+        }
+      }
+    },
+    
+    -- Modulation Layer
+    vb:column {
+      style = "group",
+      vb:text { text = "Modulation Layer", font = "bold" },
+      vb:row {
+        vb:text { text = "Attack:", width = 60 },
+        vb:slider {
+          min = 0, max = 1,
+          value = profile.modulation.volume_ahdsr and profile.modulation.volume_ahdsr.attack or 0.01,
+          width = 100,
+          notifier = function(v)
+            profile.modulation.volume_ahdsr = profile.modulation.volume_ahdsr or {}
+            profile.modulation.volume_ahdsr.attack = v
+          end
+        }
+      },
+      vb:row {
+        vb:text { text = "Hold:", width = 60 },
+        vb:slider {
+          min = 0, max = 1,
+          value = profile.modulation.volume_ahdsr and profile.modulation.volume_ahdsr.hold or 0.0,
+          width = 100,
+          notifier = function(v)
+            profile.modulation.volume_ahdsr = profile.modulation.volume_ahdsr or {}
+            profile.modulation.volume_ahdsr.hold = v
+          end
+        }
+      },
+      vb:row {
+        vb:text { text = "Decay:", width = 60 },
+        vb:slider {
+          min = 0, max = 1,
+          value = profile.modulation.volume_ahdsr and profile.modulation.volume_ahdsr.decay or 0.2,
+          width = 100,
+          notifier = function(v)
+            profile.modulation.volume_ahdsr = profile.modulation.volume_ahdsr or {}
+            profile.modulation.volume_ahdsr.decay = v
+          end
+        }
+      },
+      vb:row {
+        vb:text { text = "Sustain:", width = 60 },
+        vb:slider {
+          min = 0, max = 1,
+          value = profile.modulation.volume_ahdsr and profile.modulation.volume_ahdsr.sustain or 0.7,
+          width = 100,
+          notifier = function(v)
+            profile.modulation.volume_ahdsr = profile.modulation.volume_ahdsr or {}
+            profile.modulation.volume_ahdsr.sustain = v
+          end
+        }
+      },
+      vb:row {
+        vb:text { text = "Release:", width = 60 },
+        vb:slider {
+          min = 0, max = 1,
+          value = profile.modulation.volume_ahdsr and profile.modulation.volume_ahdsr.release or 0.3,
+          width = 100,
+          notifier = function(v)
+            profile.modulation.volume_ahdsr = profile.modulation.volume_ahdsr or {}
+            profile.modulation.volume_ahdsr.release = v
+          end
+        }
+      },
+      vb:row {
+        vb:text { text = "Velocity:", width = 60 },
+        vb:slider {
+          min = 0, max = 1,
+          value = profile.modulation.velocity_volume or 0.5,
+          width = 100,
+          notifier = function(v)
+            profile.modulation.velocity_volume = v
+          end
+        }
+      }
+    },
+    
+    -- Group Frame Layer
+    vb:column {
+      style = "group",
+      vb:text { text = "Group Frame Layer", font = "bold" },
+      vb:row {
+        vb:checkbox {
+          value = profile.group_frame.enabled or false,
+          notifier = function(v) profile.group_frame.enabled = v end
+        },
+        vb:text { text = "Enable Group Frames" }
+      },
+      vb:row {
+        vb:text { text = "Frame Count:", width = 80 },
+        vb:valuebox {
+          min = 1, max = 8,
+          value = profile.group_frame.frame_count_range[1],
+          width = 50,
+          notifier = function(v) profile.group_frame.frame_count_range[1] = v end
+        },
+        vb:text { text = "to" },
+        vb:valuebox {
+          min = 1, max = 8,
+          value = profile.group_frame.frame_count_range[2],
+          width = 50,
+          notifier = function(v) profile.group_frame.frame_count_range[2] = v end
+        }
+      }
+    },
+    
+    -- Group FX Layer
+    vb:column {
+      style = "group",
+      vb:text { text = "Group FX Layer", font = "bold" },
+      vb:row {
+        vb:checkbox {
+          value = profile.group_fx.enabled or false,
+          notifier = function(v) profile.group_fx.enabled = v end
+        },
+        vb:text { text = "Enable Group FX" }
+      },
+      vb:row {
+        vb:text { text = "FX Count:", width = 80 },
+        vb:valuebox {
+          min = 0, max = 8,
+          value = profile.group_fx.count_range[1],
+          width = 50,
+          notifier = function(v) profile.group_fx.count_range[1] = v end
+        },
+        vb:text { text = "to" },
+        vb:valuebox {
+          min = 0, max = 8,
+          value = profile.group_fx.count_range[2],
+          width = 50,
+          notifier = function(v) profile.group_fx.count_range[2] = v end
+        }
+      }
+    },
+    
+    -- Sample Selection
+    vb:column {
+      style = "group",
+      vb:text { text = "Sample Selection", font = "bold" },
+      vb:row {
+        vb:text { text = "Source:", width = 80 },
+        vb:popup {
+          items = {"AKWF", "Folder", "Both", "AKWF First", "Folder First"},
+          value = (function()
+            local src = profile.sample_selection.source_preference or "akwf"
+            if src == "akwf" then return 1
+            elseif src == "folder" then return 2
+            elseif src == "both" then return 3
+            elseif src == "akwf_first" then return 4
+            else return 5 end
+          end)(),
+          width = 100,
+          notifier = function(idx)
+            local sources = {"akwf", "folder", "both", "akwf_first", "folder_first"}
+            profile.sample_selection.source_preference = sources[idx]
+          end
+        }
+      }
+    },
+    
+    -- Buttons
+    vb:row {
+      vb:button {
+        text = "Save Profile",
+        width = 100,
+        notifier = function()
+          -- Generate a safe key
+          local safe_key = profile.name:gsub("[^%w_]", "_"):lower()
+          if safe_key == "" then
+            safe_key = "user_profile_" .. os.time()
+          else
+            safe_key = "user_" .. safe_key
+          end
+          
+          -- Save to file
+          if PakettiMetaSynthSaveUserProfile(profile, safe_key:gsub("^user_", "")) then
+            -- Add to runtime profiles
+            PakettiMetaSynthUserProfiles[safe_key] = profile
+            PakettiMetaSynthProfiles[safe_key] = profile
+            
+            -- Check if already in list, if not add it
+            local found = false
+            for i, key in ipairs(PakettiMetaSynthProfileNamesList) do
+              if key == safe_key then
+                found = true
+                PakettiMetaSynthProfileDisplayList[i + 1] = profile.name
+                break
+              end
+            end
+            if not found then
+              table.insert(PakettiMetaSynthProfileNamesList, safe_key)
+              table.insert(PakettiMetaSynthProfileDisplayList, profile.name)
+            end
+            
+            renoise.app():show_status("PakettiMetaSynth: Profile saved as " .. profile.name)
+            
+            if PakettiMetaSynthProfileEditorDialog then
+              PakettiMetaSynthProfileEditorDialog:close()
+            end
+          end
+        end
+      },
+      vb:button {
+        text = "Cancel",
+        width = 100,
+        notifier = function()
+          if PakettiMetaSynthProfileEditorDialog then
+            PakettiMetaSynthProfileEditorDialog:close()
+          end
+        end
+      }
+    }
+  }
+  
+  PakettiMetaSynthProfileEditorDialog = renoise.app():show_custom_dialog(
+    "MetaSynth Profile Editor",
+    dialog_content,
+    my_keyhandler_func
+  )
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- ============================================================================
 -- SECTION 10: GUI - VISUAL ARCHITECTURE DESIGNER
 -- ============================================================================
 
@@ -10676,9 +11804,7 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
     
     -- Oscillator FX controls row
     vb:row {
-      spacing = 4,
-      
-      vb:space { width = 50 },  -- Align with oscillator name
+      vb:text { text = "", width = 50 },  -- Align with oscillator name
       
       vb:checkbox {
         id = row_id .. "_fx_enabled",
@@ -10717,7 +11843,7 @@ end
 -- Build group section for GUI
 function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
   local group_id = string.format("group_%d", group_index)
-  local osc_rows = vb:column { spacing = 2 }
+  local osc_rows = vb:column {}
   
   for oi, osc in ipairs(group.oscillators) do
     osc_rows:add_child(PakettiMetaSynthBuildOscillatorRow(vb, group_index, oi, osc))
@@ -10796,7 +11922,6 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     
     -- Sound Profile & Modulation Selector Row (defines articulation)
     vb:row {
-      spacing = 4,
       vb:text { text = "Profile:", width = 45 },
       vb:popup {
         id = group_id .. "_profile",
@@ -10856,7 +11981,6 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     
     -- Group Crossfade Controls (Wavetable Scanning)
     vb:row {
-      spacing = 4,
       vb:checkbox {
         id = group_id .. "_xfade_enabled",
         value = group_xfade_enabled,
@@ -10902,7 +12026,6 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     
     -- Group LFO Rate Details Row
     vb:row {
-      spacing = 4,
       vb:text { text = "Hz:", width = 25 },
       vb:valuefield {
         id = group_id .. "_lfo_rate_free",
@@ -10939,7 +12062,6 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     
     -- Group Master FX Controls
     vb:row {
-      spacing = 4,
       vb:checkbox {
         id = group_id .. "_master_fx_enabled",
         value = group_master_fx_enabled,
@@ -10985,7 +12107,6 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     
     -- Group FX Archetype Selection
     vb:row {
-      spacing = 2,
       vb:text { text = "FX Style:", width = 50 },
       vb:checkbox {
         id = group_id .. "_fx_clean",
@@ -11086,7 +12207,6 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     
     -- Group Frames Controls (Meta-wavetable at group level)
     vb:row {
-      spacing = 4,
       vb:checkbox {
         id = group_id .. "_gframes_enabled",
         value = group.group_frames_enabled or false,
@@ -11146,7 +12266,6 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     
     -- Per-Group Modulation Controls (Stepper, ARP)
     vb:row {
-      spacing = 4,
       vb:text { text = "Modulation:", width = 60, font = "italic" },
       vb:checkbox {
         id = group_id .. "_stepper_enabled",
@@ -11199,7 +12318,6 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
     
     -- ARP Pattern Controls
     vb:row {
-      spacing = 4,
       vb:text { text = "", width = 60 },
       vb:checkbox {
         id = group_id .. "_arp_enabled",
@@ -11601,8 +12719,7 @@ function PakettiMetaSynthBuildDialogContent()
   
   -- Build oscillator groups section
   local groups_column = vb:column {
-    id = "groups_container",
-    spacing = 4
+    id = "groups_container"
   }
   
   for gi, group in ipairs(arch.oscillator_groups) do
@@ -11627,8 +12744,7 @@ function PakettiMetaSynthBuildDialogContent()
     
     -- Global Profile & FX Profile Selectors
     vb:row {
-      spacing = 10,
-      vb:text { text = "Global Profile:", width = 85 },
+      vb:text { text = "Global Profile:", width = 100 },
       vb:popup {
         id = "global_profile",
         items = PakettiMetaSynthProfileDisplayList,
@@ -11674,8 +12790,7 @@ function PakettiMetaSynthBuildDialogContent()
     
     -- Modulation Character Quick-Select
     vb:row {
-      spacing = 10,
-      vb:text { text = "Mod Character:", width = 85 },
+      vb:text { text = "Mod Character:", width = 100 },
       vb:popup {
         id = "mod_character",
         items = METASYNTH_MODULATION_CHARACTER_NAMES,
@@ -11718,7 +12833,6 @@ function PakettiMetaSynthBuildDialogContent()
     
     -- Two-column layout
     vb:row {
-      spacing = 16,
       
       -- Left column: Oscillator Groups
       vb:column {
@@ -11763,7 +12877,6 @@ function PakettiMetaSynthBuildDialogContent()
       
       -- Right column: Preview and Settings
       vb:column {
-        spacing = 8,
         width = 180,
         
         -- Preview section
@@ -11789,7 +12902,7 @@ function PakettiMetaSynthBuildDialogContent()
           vb:text { text = "Crossfade", font = "bold" },
           
           vb:row {
-            vb:text { text = "Curve:", width = 45 },
+            vb:text { text = "Curve:", width = 55 },
             vb:popup {
               id = "crossfade_curve",
               items = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"},
@@ -11810,7 +12923,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Ctrl:", width = 45 },
+            vb:text { text = "Ctrl:", width = 55 },
             vb:popup {
               id = "crossfade_control",
               items = {"Macro", "LFO"},
@@ -11823,7 +12936,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Macro:", width = 45 },
+            vb:text { text = "Macro:", width = 55 },
             vb:valuebox {
               id = "crossfade_macro",
               min = 1,
@@ -11911,7 +13024,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Amt:", width = 30 },
+            vb:text { text = "Amt:", width = 55 },
             vb:slider {
               id = "fx_amount",
               min = 0,
@@ -11944,7 +13057,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Mode:", width = 35 },
+            vb:text { text = "Mode:", width = 40 },
             vb:popup {
               id = "stack_master_mode",
               items = {"Random", "Selective"},
@@ -11957,7 +13070,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Count:", width = 35 },
+            vb:text { text = "Count:", width = 40 },
             vb:valuebox {
               id = "stack_master_count",
               min = 1,
@@ -11971,7 +13084,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Route:", width = 35 },
+            vb:text { text = "Route:", width = 40 },
             vb:popup {
               id = "master_routing_mode",
               items = {"Chain Output", "#Send Device"},
@@ -12145,7 +13258,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Curve:", width = 35 },
+            vb:text { text = "Curve:", width = 40 },
             vb:popup {
               id = "global_fx_frame_curve",
               items = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"},
@@ -12201,7 +13314,7 @@ function PakettiMetaSynthBuildDialogContent()
             vb:text { text = "Enable", width = 40 }
           },
           vb:row {
-            vb:text { text = "Curve:", width = 35 },
+            vb:text { text = "Curve:", width = 40 },
             vb:popup {
               id = "global_fx_scan_curve",
               items = METASYNTH_CROSSFADE_CURVE_NAMES,
@@ -12219,7 +13332,7 @@ function PakettiMetaSynthBuildDialogContent()
             }
           },
           vb:row {
-            vb:text { text = "Ctrl:", width = 35 },
+            vb:text { text = "Ctrl:", width = 40 },
             vb:popup {
               id = "global_fx_scan_control",
               items = {"LFO", "Macro"},
@@ -12331,7 +13444,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Curve:", width = 35 },
+            vb:text { text = "Curve:", width = 40 },
             vb:popup {
               id = "group_scan_curve",
               items = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"},
@@ -12353,7 +13466,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Ctrl:", width = 35 },
+            vb:text { text = "Ctrl:", width = 40 },
             vb:popup {
               id = "group_scan_control",
               items = {"LFO", "Macro"},
@@ -12793,11 +13906,177 @@ function PakettiMetaSynthBuildDialogContent()
           }
         },
         
+        -- Constraints Section
+        vb:column {
+          style = "group",
+          vb:text { text = "Constraints", font = "bold" },
+          vb:row {
+            vb:text { text = "Groups:", width = 55 },
+            vb:valuebox {
+              min = 1, max = 4,
+              value = arch.constraints and arch.constraints.group_count_range and arch.constraints.group_count_range[1] or 1,
+              width = 40,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.group_count_range = arch.constraints.group_count_range or {1, 2}
+                arch.constraints.group_count_range[1] = v
+              end
+            },
+            vb:text { text = "-" },
+            vb:valuebox {
+              min = 1, max = 4,
+              value = arch.constraints and arch.constraints.group_count_range and arch.constraints.group_count_range[2] or 2,
+              width = 40,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.group_count_range = arch.constraints.group_count_range or {1, 2}
+                arch.constraints.group_count_range[2] = v
+              end
+            }
+          },
+          vb:row {
+            vb:text { text = "Frames:", width = 55 },
+            vb:valuebox {
+              min = 1, max = 8,
+              value = arch.constraints and arch.constraints.frame_count_range and arch.constraints.frame_count_range[1] or 1,
+              width = 40,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.frame_count_range = arch.constraints.frame_count_range or {1, 4}
+                arch.constraints.frame_count_range[1] = v
+              end
+            },
+            vb:text { text = "-" },
+            vb:valuebox {
+              min = 1, max = 8,
+              value = arch.constraints and arch.constraints.frame_count_range and arch.constraints.frame_count_range[2] or 4,
+              width = 40,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.frame_count_range = arch.constraints.frame_count_range or {1, 4}
+                arch.constraints.frame_count_range[2] = v
+              end
+            }
+          },
+          vb:row {
+            vb:text { text = "FX:", width = 55 },
+            vb:valuebox {
+              min = 0, max = 8,
+              value = arch.constraints and arch.constraints.fx_count_range and arch.constraints.fx_count_range[1] or 0,
+              width = 40,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.fx_count_range = arch.constraints.fx_count_range or {0, 4}
+                arch.constraints.fx_count_range[1] = v
+              end
+            },
+            vb:text { text = "-" },
+            vb:valuebox {
+              min = 0, max = 8,
+              value = arch.constraints and arch.constraints.fx_count_range and arch.constraints.fx_count_range[2] or 4,
+              width = 40,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.fx_count_range = arch.constraints.fx_count_range or {0, 4}
+                arch.constraints.fx_count_range[2] = v
+              end
+            }
+          },
+          vb:text { text = "Features:", font = "italic" },
+          vb:row {
+            vb:checkbox {
+              value = arch.constraints and arch.constraints.allow_group_frames ~= false,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.allow_group_frames = v
+              end
+            },
+            vb:text { text = "Group Frames" },
+            vb:checkbox {
+              value = arch.constraints and arch.constraints.allow_vector ~= false,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.allow_vector = v
+              end
+            },
+            vb:text { text = "Vector" }
+          },
+          vb:row {
+            vb:checkbox {
+              value = arch.constraints and arch.constraints.allow_group_scan ~= false,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.allow_group_scan = v
+              end
+            },
+            vb:text { text = "Group Scan" },
+            vb:checkbox {
+              value = arch.constraints and arch.constraints.allow_stepper ~= false,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.allow_stepper = v
+              end
+            },
+            vb:text { text = "Stepper" }
+          },
+          vb:text { text = "FX Devices:", font = "italic" },
+          vb:row {
+            vb:checkbox {
+              value = arch.constraints and arch.constraints.allow_reverb ~= false,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.allow_reverb = v
+              end
+            },
+            vb:text { text = "Reverb" },
+            vb:checkbox {
+              value = arch.constraints and arch.constraints.allow_chorus ~= false,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.allow_chorus = v
+              end
+            },
+            vb:text { text = "Chorus" },
+            vb:checkbox {
+              value = arch.constraints and arch.constraints.allow_distortion ~= false,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.allow_distortion = v
+              end
+            },
+            vb:text { text = "Dist" }
+          },
+          vb:row {
+            vb:checkbox {
+              value = arch.constraints and arch.constraints.allow_filter ~= false,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.allow_filter = v
+              end
+            },
+            vb:text { text = "Filter" },
+            vb:checkbox {
+              value = arch.constraints and arch.constraints.allow_eq ~= false,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.allow_eq = v
+              end
+            },
+            vb:text { text = "EQ" },
+            vb:checkbox {
+              value = arch.constraints and arch.constraints.allow_maximizer ~= false,
+              notifier = function(v)
+                arch.constraints = arch.constraints or {}
+                arch.constraints.allow_maximizer = v
+              end
+            },
+            vb:text { text = "Max" }
+          }
+        },
+        
         -- Shortcuts hint
         vb:column {
           style = "group",
-          
-          
           vb:text { text = "Shortcuts", font = "bold" },
           vb:text { text = "Enter: Generate" },
           vb:text { text = "R: Randomize" },
@@ -12808,7 +14087,6 @@ function PakettiMetaSynthBuildDialogContent()
     
     -- Bottom buttons
     vb:row {
-      spacing = 8,
       
       vb:button {
         text = "Generate",
@@ -12873,6 +14151,32 @@ function PakettiMetaSynthBuildDialogContent()
         notifier = function()
           PakettiMetaSynthCurrentArchitecture = PakettiMetaSynthCreateDefaultArchitecture()
           PakettiMetaSynthRebuildDialog()
+        end
+      },
+      
+      vb:button {
+        text = "Export XRNI",
+        width = 80,
+        height = 28,
+        notifier = function()
+          local filename = renoise.app():prompt_for_filename_to_write("xrni", "Export Instrument as XRNI")
+          if filename then
+            local success = renoise.app():save_instrument(filename)
+            if success then
+              renoise.app():show_status("PakettiMetaSynth: Exported to " .. filename)
+            else
+              renoise.app():show_status("PakettiMetaSynth: Export failed")
+            end
+          end
+        end
+      },
+      
+      vb:button {
+        text = "Save Profile",
+        width = 80,
+        height = 28,
+        notifier = function()
+          PakettiMetaSynthQuickSaveAsProfile(PakettiMetaSynthCurrentArchitecture)
         end
       },
       
@@ -13228,6 +14532,9 @@ end
 -- ============================================================================
 -- SECTION 11: MENU ENTRIES, KEYBINDINGS, AND MIDI MAPPINGS
 -- ============================================================================
+
+-- Load user profiles on tool startup
+PakettiMetaSynthLoadAllUserProfiles()
 
 -- Menu entries
 renoise.tool():add_menu_entry {
