@@ -2178,16 +2178,6 @@ PakettiMetaSynthProfiles = {
       waveform_families = {"strings", "harmonic", "complex", "sine"},
       avoid_families = {"chiptune"},
     },
-    
-    -- LAYER 7: Total Group Frames (already added above, removing duplicate)
-    -- global_fx_frames = {
-      enabled = true,
-      frame_count_range = {2, 3},
-      morph_enabled = true,
-      morph_speed = "slow",
-      fx_tendencies = {"Reverb", "Delay"},
-      fx_count_range = {1, 2},
-    },
   },
   
   pad_ensemble = {
@@ -2880,16 +2870,6 @@ PakettiMetaSynthProfiles = {
       waveform_families = {"complex", "distorted"},
       avoid_families = {"basic"},
     },
-    
-    -- LAYER 7: Total Group Frames (already added above, removing duplicate)
-    -- global_fx_frames = {
-      enabled = true,
-      frame_count_range = {2, 4},
-      morph_enabled = true,
-      morph_speed = "slow",
-      fx_tendencies = {"Reverb", "Delay", "Phaser"},
-      fx_count_range = {1, 2},
-    },
   },
   
   fx_percussive = {
@@ -3035,16 +3015,6 @@ PakettiMetaSynthProfiles = {
       source_preference = "akwf",
       waveform_families = {"complex", "distorted", "harmonic"},
       avoid_families = {"basic"},
-    },
-    
-    -- LAYER 7: Total Group Frames (already added above, removing duplicate)
-    -- global_fx_frames = {
-      enabled = true,
-      frame_count_range = {2, 3},
-      morph_enabled = true,
-      morph_speed = "slow",
-      fx_tendencies = {"Reverb", "Delay", "Chorus"},
-      fx_count_range = {1, 2},
     },
   },
   
@@ -6553,7 +6523,8 @@ function PakettiMetaSynthCreateDefaultArchitecture()
         group_lfo_rate_free = 0.5,       -- Hz when mode = "free"
         group_lfo_rate_sync = "1 bar",   -- Beat division when mode = "tempo_sync"
         group_lfo_rate_preset = "medium", -- "slow", "medium", "fast" when mode = "preset"
-        -- Group Master FX settings (glue FX per wavetable group)
+        -- LAYER 4: Oscillator Groups FX (FX applied to summed oscillators per group)
+        -- This is Level 4 FX option - FX added to each oscillator group after summing
         group_master_fx_enabled = false,
         group_master_fx_mode = "random",
         group_master_fx_count = 3,
@@ -6640,7 +6611,8 @@ function PakettiMetaSynthCreateDefaultArchitecture()
       lfo_rate_range = {0.1, 2.0},
       envelope_attack_range = {0.0, 0.5}
     },
-    -- Stack Master FX settings (final processing across all groups)
+    -- LAYER 6: Total Group FX (FX applied after all groups summed)
+    -- This is Level 6 FX option - FX added to the total summed groups (Stack Master)
     stack_master_fx_enabled = false,
     stack_master_fx_mode = "random",
     stack_master_fx_count = 3,
@@ -8020,31 +7992,48 @@ function PakettiMetaSynthAddLFOToModSet(mod_set, target_type, params)
     end
     
     -- Clamp frequency and amount to 0-1 range as required by Renoise API
-    if params.frequency and device.frequency then
-      device.frequency.value = math.min(1, math.max(0, params.frequency))
+    -- Use pcall to safely check if properties exist
+    if params.frequency then
+      local has_freq, freq_param = pcall(function() return device.frequency end)
+      if has_freq and freq_param then
+        freq_param.value = math.min(1, math.max(0, params.frequency))
+      end
     end
-    if params.amount and device.amplitude then
-      device.amplitude.value = math.min(1, math.max(0, params.amount))
+    if params.amount then
+      local has_amp, amp_param = pcall(function() return device.amplitude end)
+      if has_amp and amp_param then
+        amp_param.value = math.min(1, math.max(0, params.amount))
+      end
     end
     
     -- LFO waveform mode (sin, saw, pulse, random)
-    if params.mode and device.mode then
-      device.mode = params.mode
+    if params.mode then
+      local has_mode, mode_param = pcall(function() return device.mode end)
+      if has_mode and mode_param then
+        device.mode = params.mode
+      end
     end
     
     -- Handle LFO phase mode (free, retrigger, random)
-    -- Phase is a DeviceParameter with range 0-360
-    if device.phase then
+    -- Phase is a DeviceParameter with range 0-360 (if device supports it)
+    -- Use pcall to safely check if phase property exists and can be accessed
+    local phase_param = nil
+    local has_phase = pcall(function() 
+      phase_param = device.phase
+      return true
+    end)
+    
+    if has_phase and phase_param then
       local phase_mode = params.phase_mode or "free"
       if phase_mode == "retrigger" then
         -- Reset phase to 0 for consistent note-on behavior
-        device.phase.value = 0
+        phase_param.value = 0
       elseif phase_mode == "random" then
         -- Random phase start for each voice/instance
-        device.phase.value = math.random() * 360
+        phase_param.value = math.random() * 360
       elseif params.phase then
         -- Allow explicit phase value if provided (0-360)
-        device.phase.value = math.min(360, math.max(0, params.phase))
+        phase_param.value = math.min(360, math.max(0, params.phase))
       end
       -- "free" mode: leave phase at default or don't change it
     end
@@ -11138,35 +11127,48 @@ function PakettiMetaSynthGenerateInstrument(architecture)
   -- Safety check: ensure song is loaded
   local song = renoise.song()
   if not song then
+    print("[PakettiMetaSynth Generate] ERROR: No song loaded in GenerateInstrument")
     renoise.app():show_status("PakettiMetaSynth: No song loaded")
     return nil
   end
+  
+  local selected_index = song.selected_instrument_index
+  local instrument_name = architecture and architecture.name or "unknown"
+  print(string.format("[PakettiMetaSynth Generate] === Starting GenerateInstrument ==="))
+  print(string.format("[PakettiMetaSynth Generate] Instrument index: %d, architecture name: '%s'", selected_index, instrument_name))
   
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = nil
   if PakettiTemporarilyDisableNewSampleMonitoring then
     AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    print("[PakettiMetaSynth Generate] AutoSamplify monitoring disabled")
   end
   
   trueRandomSeed()
   
   -- Validate architecture first
+  print("[PakettiMetaSynth Generate] Validating architecture...")
   local validation = PakettiMetaSynthValidateArchitecture(architecture)
   if not validation.valid then
+    print(string.format("[PakettiMetaSynth Generate] ERROR: Architecture validation FAILED with %d errors", #validation.errors))
     for _, err in ipairs(validation.errors) do
-      print("PakettiMetaSynth Error: " .. err)
+      print(string.format("[PakettiMetaSynth Generate] Validation error: %s", err))
     end
     renoise.app():show_status("PakettiMetaSynth: Architecture validation failed - check console")
     -- Restore AutoSamplify monitoring
     if PakettiRestoreNewSampleMonitoring and AutoSamplifyMonitoringState then
       PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+      print("[PakettiMetaSynth Generate] AutoSamplify monitoring restored (after validation failure)")
     end
+    print(string.format("[PakettiMetaSynth Generate] Returning nil due to validation failure"))
     return nil
   end
   
+  print(string.format("[PakettiMetaSynth Generate] Architecture validation PASSED (%d warnings)", #validation.warnings))
+  
   -- Show warnings
   for _, warn in ipairs(validation.warnings) do
-    print("PakettiMetaSynth Warning: " .. warn)
+    print(string.format("[PakettiMetaSynth Generate] Validation warning: %s", warn))
   end
   
   -- Create or reset instrument
@@ -11555,18 +11557,36 @@ function PakettiMetaSynthGenerateInstrument(architecture)
   -- Restore AutoSamplify monitoring
   if PakettiRestoreNewSampleMonitoring and AutoSamplifyMonitoringState then
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    print("[PakettiMetaSynth Generate] AutoSamplify monitoring restored")
   end
   
   -- Calculate total chains
   local total_chains = #instrument.sample_device_chains
+  local total_samples = sample_index - 1
+  
+  print(string.format("[PakettiMetaSynth Generate] === Generation completed successfully ==="))
+  print(string.format("[PakettiMetaSynth Generate] Instrument: index=%d, name='%s', samples=%d, chains=%d", 
+    selected_index, instrument.name, total_samples, total_chains))
+  
+  -- Verify instrument has content
+  if total_samples == 0 then
+    print(string.format("[PakettiMetaSynth Generate] WARNING: Generated instrument has NO SAMPLES!"))
+  end
+  if total_chains == 0 then
+    print(string.format("[PakettiMetaSynth Generate] WARNING: Generated instrument has NO FX CHAINS!"))
+  end
+  if instrument.name == "" or instrument.name == nil then
+    print(string.format("[PakettiMetaSynth Generate] WARNING: Generated instrument has NO NAME!"))
+  end
   
   renoise.app():show_status(string.format(
     "PakettiMetaSynth: Generated '%s' with %d samples, %d FX chains",
     architecture.name,
-    sample_index - 1,
+    total_samples,
     total_chains
   ))
   
+  print(string.format("[PakettiMetaSynth Generate] Returning instrument object"))
   return instrument
 end
 
@@ -12471,17 +12491,42 @@ end
 -- routing_mode: "output_routing" (chain routing, no sends) or "send_device" (#Send devices)
 function PakettiMetaSynthGenerateRandomInstrumentWithRouting(routing_mode)
   -- Safety check: ensure song is loaded
-  if not renoise.song() then
+  local song = renoise.song()
+  if not song then
+    print("[PakettiMetaSynth Generate] ERROR: No song loaded in GenerateRandomInstrumentWithRouting")
     renoise.app():show_status("PakettiMetaSynth: No song loaded")
     return nil
   end
   
+  local selected_index = song.selected_instrument_index
+  print(string.format("[PakettiMetaSynth Generate] Starting random generation: routing_mode=%s, instrument_index=%d", 
+    routing_mode or "output_routing", selected_index))
+  
   local architecture = PakettiMetaSynthCreateDefaultArchitecture()
+  if not architecture then
+    print("[PakettiMetaSynth Generate] ERROR: Failed to create default architecture")
+    return nil
+  end
+  
+  print("[PakettiMetaSynth Generate] Architecture created, randomizing...")
   PakettiMetaSynthRandomizeArchitecture(architecture)
+  
   -- Override the routing mode with specified value
   architecture.master_routing_mode = routing_mode or "output_routing"
   architecture.name = "MetaSynth Random " .. os.date("%H%M%S")
-  return PakettiMetaSynthGenerateInstrument(architecture)
+  
+  print(string.format("[PakettiMetaSynth Generate] Architecture ready: name='%s', routing_mode=%s", 
+    architecture.name, architecture.master_routing_mode))
+  
+  local result = PakettiMetaSynthGenerateInstrument(architecture)
+  
+  if result then
+    print(string.format("[PakettiMetaSynth Generate] Random generation completed successfully for instrument %d", selected_index))
+  else
+    print(string.format("[PakettiMetaSynth Generate] WARNING: Random generation returned nil for instrument %d", selected_index))
+  end
+  
+  return result
 end
 
 -- Quick random instrument generation (uses output_routing - no sends, more reliable)
@@ -12501,7 +12546,10 @@ function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
   count = count or 1
   local song = renoise.song()
   
+  print(string.format("[PakettiMetaSynth Batch] Starting batch generation: type=%s, requested_count=%d", generation_type, count))
+  
   if not song then
+    print("[PakettiMetaSynth Batch] ERROR: No song loaded")
     renoise.app():show_status("PakettiMetaSynth: No song loaded")
     return
   end
@@ -12510,18 +12558,28 @@ function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
   local current_count = #song.instruments
   local available_slots = 255 - current_count
   
+  print(string.format("[PakettiMetaSynth Batch] Initial state: current_instruments=%d, available_slots=%d", current_count, available_slots))
+  
   if available_slots <= 0 then
+    print("[PakettiMetaSynth Batch] ERROR: No available slots (song has 255 instruments)")
     renoise.app():show_warning("Cannot add more instruments - song already has 255 instruments (maximum)")
     return
   end
   
   -- Cap the requested count to available slots
   if count > available_slots then
+    print(string.format("[PakettiMetaSynth Batch] Limiting count from %d to %d (max available)", count, available_slots))
     renoise.app():show_status(string.format("PakettiMetaSynth: Limiting batch to %d instruments (max 255 per song)", available_slots))
     count = available_slots
   end
   
+  local success_count = 0
+  local failed_count = 0
+  local empty_slots_count = 0
+  
   for i = 1, count do
+    print(string.format("[PakettiMetaSynth Batch] === Iteration %d of %d ===", i, count))
+    
     -- Fresh random seeds for each instrument to ensure uniqueness
     trueRandomSeed()
     trueRandomSeed()
@@ -12529,22 +12587,98 @@ function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
     
     -- Insert new instrument after current
     local insert_index = song.selected_instrument_index + 1
+    print(string.format("[PakettiMetaSynth Batch] Creating instrument slot at index %d", insert_index))
+    
     song:insert_instrument_at(insert_index)
     song.selected_instrument_index = insert_index
     
-    -- Generate randomized instrument based on type
-    if generation_type == "sends" then
-      PakettiMetaSynthGenerateRandomInstrumentWithSends()
-    elseif generation_type == "wavetable" then
-      PakettiMetaSynthGenerateRandomWavetableInstrument()
+    -- Verify instrument was created
+    local instrument = song.selected_instrument
+    if not instrument then
+      print(string.format("[PakettiMetaSynth Batch] ERROR: Failed to create instrument at index %d", insert_index))
+      failed_count = failed_count + 1
+      empty_slots_count = empty_slots_count + 1
     else
-      PakettiMetaSynthGenerateRandomInstrument()
+      print(string.format("[PakettiMetaSynth Batch] Instrument slot created: index=%d, name='%s', samples=%d, chains=%d", 
+        insert_index, instrument.name, #instrument.samples, #instrument.sample_device_chains))
+      
+      -- Generate randomized instrument based on type
+      local generation_success = false
+      local generation_result = nil
+      local generation_error = nil
+      
+      print(string.format("[PakettiMetaSynth Batch] Starting generation (type=%s)...", generation_type))
+      
+      local success, result = pcall(function()
+        if generation_type == "sends" then
+          return PakettiMetaSynthGenerateRandomInstrumentWithSends()
+        elseif generation_type == "wavetable" then
+          return PakettiMetaSynthGenerateRandomWavetableInstrument()
+        else
+          return PakettiMetaSynthGenerateRandomInstrument()
+        end
+      end)
+      
+      if not success then
+        generation_error = result
+        print(string.format("[PakettiMetaSynth Batch] ERROR: Generation failed with Lua error: %s", tostring(result)))
+        print(string.format("[PakettiMetaSynth Batch] Stack trace: %s", debug.traceback()))
+        failed_count = failed_count + 1
+      else
+        generation_result = result
+        if generation_result == nil then
+          print(string.format("[PakettiMetaSynth Batch] WARNING: Generation returned nil (generation may have failed silently)"))
+          failed_count = failed_count + 1
+        else
+          generation_success = true
+          print(string.format("[PakettiMetaSynth Batch] Generation returned instrument object"))
+        end
+      end
+      
+      -- Verify instrument content after generation
+      local instrument_after = song.selected_instrument
+      if instrument_after then
+        local sample_count = #instrument_after.samples
+        local chain_count = #instrument_after.sample_device_chains
+        local has_name = instrument_after.name ~= "" and instrument_after.name ~= nil
+        
+        print(string.format("[PakettiMetaSynth Batch] Instrument after generation: index=%d, name='%s', samples=%d, chains=%d, has_name=%s", 
+          insert_index, instrument_after.name, sample_count, chain_count, tostring(has_name)))
+        
+        if sample_count == 0 and chain_count == 0 then
+          print(string.format("[PakettiMetaSynth Batch] WARNING: Instrument at index %d is EMPTY (no samples, no chains)", insert_index))
+          empty_slots_count = empty_slots_count + 1
+          if generation_success then
+            print(string.format("[PakettiMetaSynth Batch] ERROR: Generation reported success but instrument is empty!"))
+            failed_count = failed_count + 1
+            success_count = success_count - 1
+          end
+        elseif sample_count == 0 then
+          print(string.format("[PakettiMetaSynth Batch] WARNING: Instrument at index %d has no samples (but has %d chains)", insert_index, chain_count))
+        elseif chain_count == 0 then
+          print(string.format("[PakettiMetaSynth Batch] WARNING: Instrument at index %d has no chains (but has %d samples)", insert_index, sample_count))
+        else
+          if generation_success then
+            success_count = success_count + 1
+            print(string.format("[PakettiMetaSynth Batch] SUCCESS: Instrument at index %d generated successfully", insert_index))
+          end
+        end
+      else
+        print(string.format("[PakettiMetaSynth Batch] ERROR: Instrument at index %d no longer exists after generation!", insert_index))
+        failed_count = failed_count + 1
+        empty_slots_count = empty_slots_count + 1
+      end
     end
     
     renoise.app():show_status(string.format("PakettiMetaSynth: Generated instrument %d of %d", i, count))
   end
   
-  renoise.app():show_status(string.format("PakettiMetaSynth: Batch complete - %d %s instruments created", count, generation_type))
+  print(string.format("[PakettiMetaSynth Batch] === BATCH COMPLETE ==="))
+  print(string.format("[PakettiMetaSynth Batch] Summary: requested=%d, successful=%d, failed=%d, empty_slots=%d", 
+    count, success_count, failed_count, empty_slots_count))
+  
+  renoise.app():show_status(string.format("PakettiMetaSynth: Batch complete - %d %s instruments created (%d successful, %d failed)", 
+    count, generation_type, success_count, failed_count))
 end
 
 -- Dialog for batch generation with user-specified count
@@ -13709,6 +13843,41 @@ function PakettiMetaSynthShowProfileEditorDialog(profile_key)
       }
     },
     
+    -- Oscillator Groups Layer (Layer 4) - Summing and FX
+    vb:column {
+      style = "group",
+      vb:text { text = "Oscillator Groups Layer (Level 4)", font = "bold" },
+      vb:row {
+        vb:checkbox {
+          value = profile.oscillator_groups.osc_group_fx_enabled or false,
+          notifier = function(v) profile.oscillator_groups.osc_group_fx_enabled = v end
+        },
+        vb:text { text = "Enable Oscillator Group FX (FX on summed oscillators per group)" }
+      },
+      vb:row {
+        vb:text { text = "FX Count:", width = 80 },
+        vb:valuebox {
+          min = 0, max = 8,
+          value = profile.oscillator_groups.osc_group_fx_count_range[1] or 0,
+          width = 50,
+          notifier = function(v) 
+            profile.oscillator_groups.osc_group_fx_count_range = profile.oscillator_groups.osc_group_fx_count_range or {0, 2}
+            profile.oscillator_groups.osc_group_fx_count_range[1] = v 
+          end
+        },
+        vb:text { text = "to" },
+        vb:valuebox {
+          min = 0, max = 8,
+          value = profile.oscillator_groups.osc_group_fx_count_range[2] or 2,
+          width = 50,
+          notifier = function(v) 
+            profile.oscillator_groups.osc_group_fx_count_range = profile.oscillator_groups.osc_group_fx_count_range or {0, 2}
+            profile.oscillator_groups.osc_group_fx_count_range[2] = v 
+          end
+        }
+      }
+    },
+    
     -- Group Frame Layer
     vb:column {
       style = "group",
@@ -13738,16 +13907,16 @@ function PakettiMetaSynthShowProfileEditorDialog(profile_key)
       }
     },
     
-    -- Total Group FX Layer (Layer 6)
+    -- Total Group FX Layer (Layer 6) - FX on all summed groups
     vb:column {
       style = "group",
-      vb:text { text = "Total Group FX Layer", font = "bold" },
+      vb:text { text = "Total Group FX Layer (Level 6)", font = "bold" },
       vb:row {
         vb:checkbox {
           value = profile.total_group_fx.enabled or false,
           notifier = function(v) profile.total_group_fx.enabled = v end
         },
-        vb:text { text = "Enable Total Group FX" }
+        vb:text { text = "Enable Total Group FX (FX on all summed groups)" }
       },
       vb:row {
         vb:text { text = "FX Count:", width = 80 },
