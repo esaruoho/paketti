@@ -2705,6 +2705,59 @@ vb:row{
             }
           },
           
+          vb:text{style="strong",font="bold",text="Automate Last Touched"},
+          vb:row{
+            vb:text{text="Watching Mode",width=150,tooltip="Shortcut First: Press shortcut, then move parameter. Track/Always Watching: Move parameter first, then press shortcut."},
+            vb:popup{
+              items={"Shortcut First (default)","Track Watching","Always Watching"},
+              value=preferences.pakettiAutomateLastTouched.WatchingMode.value,
+              width=150,
+              tooltip="Shortcut First: Press shortcut, then move parameter. Track/Always Watching: Move parameter first, then press shortcut.",
+              notifier=function(value)
+                preferences.pakettiAutomateLastTouched.WatchingMode.value = value
+                preferences:save_as("preferences.xml")
+                local mode_names = {"Shortcut First", "Track Watching", "Always Watching"}
+                renoise.app():show_status("Automate Last Touched: " .. mode_names[value] .. " (restart Renoise to apply)")
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Device Scope",width=150,tooltip="Selected Device: lowest performance impact. All Track/Song: higher performance impact."},
+            vb:popup{
+              items={"Selected Device (default)","All Track Devices","All Song Devices"},
+              value=preferences.pakettiAutomateLastTouched.DeviceScope.value,
+              width=150,
+              tooltip="Selected Device: lowest performance impact. All Track/Song: higher performance impact.",
+              notifier=function(value)
+                preferences.pakettiAutomateLastTouched.DeviceScope.value = value
+                preferences:save_as("preferences.xml")
+                local scope_names = {"Selected Device", "All Track Devices", "All Song Devices"}
+                renoise.app():show_status("Automate Last Touched Scope: " .. scope_names[value])
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Auto-Open External Editor",width=150,tooltip="Automatically open VST/AU external editor when watching starts"},
+            vb:checkbox{
+              value=preferences.pakettiAutomateLastTouched.AutoOpenExternalEditor.value,
+              tooltip="Automatically open VST/AU external editor when watching starts",
+              notifier=function(value)
+                preferences.pakettiAutomateLastTouched.AutoOpenExternalEditor.value = value
+                preferences:save_as("preferences.xml")
+              end
+            },
+            vb:space{width=checkbox_spacing},
+            vb:text{text="Continuous Recording",width=120,tooltip="Real-time automation writing while moving parameters (requires Edit Mode)"},
+            vb:checkbox{
+              value=preferences.pakettiAutomateLastTouched.ContinuousRecording.value,
+              tooltip="Real-time automation writing while moving parameters (requires Edit Mode)",
+              notifier=function(value)
+                preferences.pakettiAutomateLastTouched.ContinuousRecording.value = value
+                preferences:save_as("preferences.xml")
+              end
+            }
+          },
+          
           vb:text{style="strong",font="bold",text="Large Chunk of Keyboard Shortcuts"},
           vb:row{
             vb:text{text="Jump Row Commands",width=150,tooltip="Enable 2,048 'Play at Row' keybindings and MIDI mappings (000-511). When enabled, creates 'Play at Row 000-511' commands. Warning: Significantly increases startup time."},
