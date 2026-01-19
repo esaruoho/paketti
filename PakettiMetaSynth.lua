@@ -529,6 +529,199 @@ PakettiMetaSynthAKWFWaveformFamilies = {
 }
 
 -- ============================================================================
+-- PROFILE GENERATION PRESETS
+-- Building blocks for systematic profile generation (200+ profiles)
+-- ============================================================================
+
+-- AXIS 1: ENVELOPE CHARACTER PRESETS
+METASYNTH_ENVELOPE_PRESETS = {
+  ultra_tight = { attack = 0.0, hold = 0.0, decay = 0.05, sustain = 0.0, release = 0.05 },
+  tight = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.1 },
+  snappy = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.3, release = 0.15 },
+  punchy = { attack = 0.0, hold = 0.02, decay = 0.25, sustain = 0.4, release = 0.2 },
+  medium = { attack = 0.05, hold = 0.0, decay = 0.3, sustain = 0.5, release = 0.3 },
+  soft = { attack = 0.1, hold = 0.0, decay = 0.4, sustain = 0.6, release = 0.4 },
+  slow = { attack = 0.3, hold = 0.0, decay = 0.5, sustain = 0.7, release = 0.6 },
+  very_slow = { attack = 0.7, hold = 0.0, decay = 0.8, sustain = 0.8, release = 1.0 },
+  sustain = { attack = 0.0, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.2 },
+  organ = { attack = 0.0, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.05 },
+  swell = { attack = 0.5, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.5 },
+  reverse = { attack = 1.0, hold = 0.0, decay = 0.0, sustain = 0.8, release = 0.3 },
+}
+
+-- AXIS 2: FILTER CHARACTER PRESETS
+METASYNTH_FILTER_PRESETS = {
+  none = { cutoff = nil, resonance = nil, ahdsr = nil, keytrack = 0.0 },
+  full_open = { cutoff = 1.0, resonance = 0.0, ahdsr = nil, keytrack = 0.0 },
+  bright = { cutoff = 0.85, resonance = 0.1, ahdsr = nil, keytrack = 0.3 },
+  warm = { cutoff = 0.55, resonance = 0.2, ahdsr = nil, keytrack = 0.4 },
+  dark = { cutoff = 0.3, resonance = 0.15, ahdsr = nil, keytrack = 0.5 },
+  muted = { cutoff = 0.2, resonance = 0.1, ahdsr = nil, keytrack = 0.3 },
+  sweep_fast = { cutoff = 0.35, resonance = 0.35, ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.2, release = 0.1 }, keytrack = 0.4 },
+  sweep_medium = { cutoff = 0.4, resonance = 0.3, ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.3, release = 0.2 }, keytrack = 0.4 },
+  sweep_slow = { cutoff = 0.45, resonance = 0.25, ahdsr = { attack = 0.1, hold = 0.0, decay = 0.5, sustain = 0.4, release = 0.4 }, keytrack = 0.5 },
+  resonant = { cutoff = 0.4, resonance = 0.6, ahdsr = { attack = 0.0, hold = 0.0, decay = 0.2, sustain = 0.3, release = 0.15 }, keytrack = 0.5 },
+  acid = { cutoff = 0.25, resonance = 0.8, ahdsr = { attack = 0.0, hold = 0.0, decay = 0.12, sustain = 0.1, release = 0.08 }, keytrack = 0.6 },
+  aggressive = { cutoff = 0.2, resonance = 0.75, ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.0, release = 0.05 }, keytrack = 0.5 },
+  formant = { cutoff = 0.5, resonance = 0.5, ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.5, release = 0.3 }, keytrack = 0.7 },
+}
+
+-- AXIS 3: WIDTH/STEREO PRESETS
+METASYNTH_WIDTH_PRESETS = {
+  mono = { unison_range = {1, 1}, detune_range = {0, 0}, pan_spread_range = {0.0, 0.0} },
+  narrow = { unison_range = {1, 2}, detune_range = {0, 8}, pan_spread_range = {0.0, 0.2} },
+  medium = { unison_range = {2, 3}, detune_range = {5, 15}, pan_spread_range = {0.2, 0.5} },
+  wide = { unison_range = {3, 4}, detune_range = {8, 20}, pan_spread_range = {0.5, 0.8} },
+  ultra_wide = { unison_range = {4, 6}, detune_range = {12, 30}, pan_spread_range = {0.7, 1.0} },
+  supersaw = { unison_range = {5, 7}, detune_range = {15, 35}, pan_spread_range = {0.8, 1.0} },
+}
+
+-- AXIS 4: COMPLEXITY PRESETS
+METASYNTH_COMPLEXITY_PRESETS = {
+  minimal = { frame_count_range = {1, 1}, sample_count_range = {1, 1}, fx_count_range = {0, 0}, group_frame_enabled = false },
+  simple = { frame_count_range = {1, 2}, sample_count_range = {1, 2}, fx_count_range = {0, 1}, group_frame_enabled = false },
+  medium = { frame_count_range = {2, 3}, sample_count_range = {1, 2}, fx_count_range = {1, 2}, group_frame_enabled = false },
+  complex = { frame_count_range = {3, 4}, sample_count_range = {2, 3}, fx_count_range = {2, 3}, group_frame_enabled = false },
+  dense = { frame_count_range = {4, 6}, sample_count_range = {2, 4}, fx_count_range = {2, 4}, group_frame_enabled = true },
+  wavetable = { frame_count_range = {4, 8}, sample_count_range = {1, 1}, fx_count_range = {1, 2}, group_frame_enabled = true },
+}
+
+-- AXIS 5: FX TENDENCIES PRESETS
+METASYNTH_FX_TENDENCY_PRESETS = {
+  clean = { frame = {}, group = {}, global = {} },
+  warm = { frame = {"Analog Filter"}, group = {}, global = {"EQ 10"} },
+  saturated = { frame = {"Distortion"}, group = {}, global = {"EQ 10", "Compressor"} },
+  heavily_saturated = { frame = {"Distortion", "Cabinet Simulator"}, group = {"Exciter"}, global = {"EQ 10", "Compressor"} },
+  spatial = { frame = {}, group = {}, global = {"Reverb", "mpReverb 2"} },
+  spatial_delay = { frame = {}, group = {}, global = {"Delay", "Reverb"} },
+  movement = { frame = {"Chorus", "Flanger"}, group = {}, global = {} },
+  phaser = { frame = {"Phaser"}, group = {}, global = {} },
+  lofi = { frame = {"Lofimat 2"}, group = {}, global = {} },
+  aggressive = { frame = {"Distortion", "Analog Filter"}, group = {"Exciter"}, global = {"Compressor"} },
+  cinematic = { frame = {}, group = {"Stereo Expander"}, global = {"Reverb", "mpReverb 2", "EQ 10"} },
+  vintage = { frame = {"Analog Filter", "Chorus"}, group = {}, global = {"Compressor", "EQ 10"} },
+}
+
+-- AXIS 6: MOVEMENT/MODULATION PRESETS
+METASYNTH_MOVEMENT_PRESETS = {
+  static = { morph_enabled = false, crossfade_enabled = false, volume_lfo = nil, pitch_lfo = nil, filter_lfo = nil },
+  subtle_vibrato = { morph_enabled = false, crossfade_enabled = false, volume_lfo = nil, pitch_lfo = { frequency = 0.4, amount = 0.15, mode = 1 }, filter_lfo = nil },
+  vibrato = { morph_enabled = false, crossfade_enabled = false, volume_lfo = nil, pitch_lfo = { frequency = 0.5, amount = 0.25, mode = 1 }, filter_lfo = nil },
+  tremolo = { morph_enabled = false, crossfade_enabled = false, volume_lfo = { frequency = 0.4, amount = 0.3, mode = 1 }, pitch_lfo = nil, filter_lfo = nil },
+  filter_wobble = { morph_enabled = false, crossfade_enabled = false, volume_lfo = nil, pitch_lfo = nil, filter_lfo = { frequency = 0.3, amount = 0.4, mode = 1 } },
+  filter_slow = { morph_enabled = false, crossfade_enabled = false, volume_lfo = nil, pitch_lfo = nil, filter_lfo = { frequency = 0.15, amount = 0.3, mode = 1 } },
+  morphing = { morph_enabled = true, morph_speed = "medium", crossfade_enabled = false, volume_lfo = nil, pitch_lfo = nil, filter_lfo = nil },
+  morphing_slow = { morph_enabled = true, morph_speed = "slow", crossfade_enabled = false, volume_lfo = nil, pitch_lfo = nil, filter_lfo = nil },
+  crossfade = { morph_enabled = false, crossfade_enabled = true, scan_speed = "medium", volume_lfo = nil, pitch_lfo = nil, filter_lfo = nil },
+  evolving = { morph_enabled = true, morph_speed = "slow", crossfade_enabled = true, scan_speed = "slow", volume_lfo = nil, pitch_lfo = nil, filter_lfo = { frequency = 0.1, amount = 0.2, mode = 1 } },
+  full_motion = { morph_enabled = true, morph_speed = "medium", crossfade_enabled = true, scan_speed = "medium", volume_lfo = { frequency = 0.2, amount = 0.15, mode = 1 }, pitch_lfo = { frequency = 0.35, amount = 0.1, mode = 1 }, filter_lfo = { frequency = 0.25, amount = 0.25, mode = 1 } },
+}
+
+-- AXIS 7: VELOCITY/DYNAMICS PRESETS
+METASYNTH_DYNAMICS_PRESETS = {
+  none = { velocity_volume = 0.0, velocity_filter = 0.0 },
+  subtle = { velocity_volume = 0.3, velocity_filter = 0.2 },
+  moderate = { velocity_volume = 0.5, velocity_filter = 0.4 },
+  expressive = { velocity_volume = 0.7, velocity_filter = 0.6 },
+  full = { velocity_volume = 1.0, velocity_filter = 0.8 },
+  filter_only = { velocity_volume = 0.2, velocity_filter = 0.7 },
+}
+
+-- ============================================================================
+-- PROFILE BUILDER FUNCTION
+-- Combines presets to generate complete profile definitions
+-- ============================================================================
+
+function PakettiMetaSynthBuildProfile(config)
+  local envelope = METASYNTH_ENVELOPE_PRESETS[config.envelope or "medium"]
+  local filter = METASYNTH_FILTER_PRESETS[config.filter or "none"]
+  local width = METASYNTH_WIDTH_PRESETS[config.width or "narrow"]
+  local complexity = METASYNTH_COMPLEXITY_PRESETS[config.complexity or "simple"]
+  local fx = METASYNTH_FX_TENDENCY_PRESETS[config.fx or "clean"]
+  local movement = METASYNTH_MOVEMENT_PRESETS[config.movement or "static"]
+  local dynamics = METASYNTH_DYNAMICS_PRESETS[config.dynamics or "moderate"]
+  
+  local profile = {
+    name = config.name or "Unnamed Profile",
+    description = config.description or "",
+    family = config.family or "misc",
+    
+    -- LAYER 1: Oscillator rules
+    oscillator = {
+      unison_range = width.unison_range,
+      frame_count_range = complexity.frame_count_range,
+      detune_range = width.detune_range,
+      pan_spread_range = width.pan_spread_range,
+      sample_count_range = complexity.sample_count_range,
+    },
+    
+    -- LAYER 2: Frame rules
+    frame = {
+      morph_enabled = movement.morph_enabled or false,
+      morph_speed = movement.morph_speed or "none",
+      fx_tendencies = fx.frame or {},
+      fx_count_range = complexity.fx_count_range,
+    },
+    
+    -- LAYER 3: Group rules
+    group = {
+      crossfade_enabled = movement.crossfade_enabled or false,
+      scan_speed = movement.scan_speed,
+      lfo_rate_preset = config.lfo_rate or "medium",
+    },
+    
+    -- LAYER 4: Modulation rules
+    modulation = {
+      enabled = true,
+      volume_ahdsr = envelope,
+      filter_ahdsr = filter.ahdsr,
+      pitch_ahdsr = config.pitch_ahdsr,
+      volume_lfo = movement.volume_lfo,
+      pitch_lfo = movement.pitch_lfo,
+      filter_lfo = movement.filter_lfo,
+      velocity_volume = dynamics.velocity_volume,
+      velocity_filter = dynamics.velocity_filter,
+      filter_keytrack = filter.keytrack or 0.0,
+      filter_cutoff = filter.cutoff,
+      filter_resonance = filter.resonance,
+    },
+    
+    -- LAYER 5: Group Frames
+    group_frame = {
+      enabled = complexity.group_frame_enabled or false,
+      frame_count_range = complexity.group_frame_enabled and {2, 4} or {1, 1},
+      morph_enabled = complexity.group_frame_enabled and movement.morph_enabled or false,
+      morph_speed = complexity.group_frame_enabled and movement.morph_speed or "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    -- LAYER 6: Group FX rules
+    group_fx = {
+      enabled = #(fx.group or {}) > 0 or config.group_fx_enabled,
+      tendencies = fx.group or {},
+      count_range = {0, 2},
+    },
+    
+    -- LAYER 7: Global FX rules
+    global_fx = {
+      enabled = #(fx.global or {}) > 0 or config.global_fx_enabled,
+      tendencies = fx.global or {},
+      reverb_size = config.reverb_size,
+    },
+    
+    -- LAYER 8: Sample Selection rules
+    sample_selection = {
+      source_preference = config.source or "akwf",
+      waveform_families = config.waveforms or {"basic"},
+      avoid_families = config.avoid_waveforms or {},
+    },
+  }
+  
+  return profile
+end
+
+-- ============================================================================
 -- MULTI-LAYER PROFILES - Musical intent projected across all architectural layers
 -- 
 -- A Global Profile (Pluck, Pad, Bass, Lead, etc.) defines MUSICAL INTENT.
@@ -3424,6 +3617,1282 @@ PakettiMetaSynthProfiles = {
       avoid_families = {},
     },
   },
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category A: Keys & Piano (25 profiles)
+  -- ========================================================================
+  keys_piano_spectral_sine = PakettiMetaSynthBuildProfile({
+    name = "Acoustic Piano - Spectral (Sine)", family = "keys",
+    description = "Spectral illusion piano using sine-derived waveforms",
+    envelope = "snappy", filter = "warm", width = "narrow", complexity = "medium",
+    fx = "warm", movement = "static", dynamics = "expressive",
+    waveforms = {"sine", "harmonic"}, lfo_rate = "medium"
+  }),
+  keys_piano_spectral_additive = PakettiMetaSynthBuildProfile({
+    name = "Acoustic Piano - Spectral (Additive)", family = "keys",
+    description = "Piano using additive harmonic sets",
+    envelope = "snappy", filter = "bright", width = "narrow", complexity = "medium",
+    fx = "warm", movement = "static", dynamics = "expressive",
+    waveforms = {"harmonic"}, lfo_rate = "medium"
+  }),
+  keys_piano_bright = PakettiMetaSynthBuildProfile({
+    name = "Acoustic Piano - Bright/Pop", family = "keys",
+    description = "Bright pop piano illusion",
+    envelope = "tight", filter = "bright", width = "narrow", complexity = "simple",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"piano", "harmonic"}, lfo_rate = "medium"
+  }),
+  keys_piano_soft = PakettiMetaSynthBuildProfile({
+    name = "Acoustic Piano - Soft/Felt", family = "keys",
+    description = "Soft felt piano with warm character",
+    envelope = "soft", filter = "warm", width = "narrow", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "expressive",
+    waveforms = {"piano", "sine"}, lfo_rate = "slow"
+  }),
+  keys_piano_lofi = PakettiMetaSynthBuildProfile({
+    name = "Acoustic Piano - Lo-Fi/Detuned", family = "keys",
+    description = "Lo-fi detuned piano character",
+    envelope = "medium", filter = "dark", width = "medium", complexity = "simple",
+    fx = "lofi", movement = "static", dynamics = "moderate",
+    waveforms = {"piano"}, lfo_rate = "slow"
+  }),
+  keys_piano_cinematic = PakettiMetaSynthBuildProfile({
+    name = "Acoustic Piano - Cinematic", family = "keys",
+    description = "Long decay cinematic piano",
+    envelope = "slow", filter = "warm", width = "wide", complexity = "medium",
+    fx = "cinematic", movement = "static", dynamics = "expressive",
+    waveforms = {"piano", "harmonic"}, lfo_rate = "slow"
+  }),
+  keys_piano_prepared = PakettiMetaSynthBuildProfile({
+    name = "Acoustic Piano - Prepared/Inharmonic", family = "keys",
+    description = "Prepared piano with inharmonic character",
+    envelope = "snappy", filter = "resonant", width = "medium", complexity = "complex",
+    fx = "saturated", movement = "static", dynamics = "full",
+    waveforms = {"complex", "distorted"}, lfo_rate = "medium"
+  }),
+  keys_upright = PakettiMetaSynthBuildProfile({
+    name = "Upright Piano - Narrow Spectrum", family = "keys",
+    description = "Upright piano narrow spectrum illusion",
+    envelope = "snappy", filter = "warm", width = "mono", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "expressive",
+    waveforms = {"piano"}, lfo_rate = "medium"
+  }),
+  keys_toy_piano = PakettiMetaSynthBuildProfile({
+    name = "Toy Piano - Formant Weighted", family = "keys",
+    description = "Toy piano with formant-weighted cycles",
+    envelope = "tight", filter = "bright", width = "mono", complexity = "minimal",
+    fx = "clean", movement = "static", dynamics = "moderate",
+    waveforms = {"sine", "harmonic"}, lfo_rate = "fast"
+  }),
+  keys_hybrid_synth = PakettiMetaSynthBuildProfile({
+    name = "Hybrid Piano-Synth", family = "keys",
+    description = "Piano-synth hybrid sound",
+    envelope = "snappy", filter = "sweep_medium", width = "medium", complexity = "medium",
+    fx = "movement", movement = "subtle_vibrato", dynamics = "expressive",
+    waveforms = {"piano", "saw"}, lfo_rate = "medium"
+  }),
+  keys_ep_sine = PakettiMetaSynthBuildProfile({
+    name = "Electric Piano - Sine/Triangle Core", family = "keys",
+    description = "EP with sine/triangle core",
+    envelope = "snappy", filter = "warm", width = "narrow", complexity = "simple",
+    fx = "movement", movement = "tremolo", dynamics = "expressive",
+    waveforms = {"sine", "triangle"}, lfo_rate = "medium"
+  }),
+  keys_ep_fm = PakettiMetaSynthBuildProfile({
+    name = "Electric Piano - FM Inspired", family = "keys",
+    description = "FM-style harmonic cycles EP",
+    envelope = "snappy", filter = "bright", width = "narrow", complexity = "medium",
+    fx = "clean", movement = "tremolo", dynamics = "full",
+    waveforms = {"harmonic", "sine"}, lfo_rate = "medium"
+  }),
+  keys_ep_bell = PakettiMetaSynthBuildProfile({
+    name = "Electric Piano - Bell Weighted", family = "keys",
+    description = "Bell-weighted cycles EP",
+    envelope = "tight", filter = "bright", width = "narrow", complexity = "simple",
+    fx = "spatial", movement = "tremolo", dynamics = "expressive",
+    waveforms = {"sine", "harmonic"}, lfo_rate = "medium"
+  }),
+  keys_ep_digital = PakettiMetaSynthBuildProfile({
+    name = "Electric Piano - Digital/DX Style", family = "keys",
+    description = "DX-style digital EP",
+    envelope = "snappy", filter = "bright", width = "narrow", complexity = "medium",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"sine", "harmonic"}, lfo_rate = "fast"
+  }),
+  keys_ep_warm = PakettiMetaSynthBuildProfile({
+    name = "Electric Piano - Warm Analog", family = "keys",
+    description = "Warm analog EP illusion",
+    envelope = "medium", filter = "warm", width = "medium", complexity = "simple",
+    fx = "vintage", movement = "subtle_vibrato", dynamics = "expressive",
+    waveforms = {"triangle", "sine"}, lfo_rate = "slow"
+  }),
+  keys_analog_saw = PakettiMetaSynthBuildProfile({
+    name = "Analog Keys - Saw Based", family = "keys",
+    description = "Saw-based analog keys",
+    envelope = "medium", filter = "sweep_medium", width = "medium", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  keys_analog_square = PakettiMetaSynthBuildProfile({
+    name = "Analog Keys - Square Based", family = "keys",
+    description = "Square-based analog keys",
+    envelope = "medium", filter = "warm", width = "narrow", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "moderate",
+    waveforms = {"square"}, lfo_rate = "medium"
+  }),
+  keys_analog_triangle = PakettiMetaSynthBuildProfile({
+    name = "Analog Keys - Triangle Based", family = "keys",
+    description = "Triangle-based analog keys",
+    envelope = "medium", filter = "bright", width = "narrow", complexity = "simple",
+    fx = "clean", movement = "static", dynamics = "moderate",
+    waveforms = {"triangle"}, lfo_rate = "medium"
+  }),
+  keys_analog_mixed = PakettiMetaSynthBuildProfile({
+    name = "Analog Keys - Mixed Waveforms", family = "keys",
+    description = "Mixed basic waveform keys",
+    envelope = "medium", filter = "warm", width = "medium", complexity = "medium",
+    fx = "warm", movement = "subtle_vibrato", dynamics = "moderate",
+    waveforms = {"saw", "square", "triangle"}, lfo_rate = "medium"
+  }),
+  keys_vintage_synth = PakettiMetaSynthBuildProfile({
+    name = "Vintage Synth Keys", family = "keys",
+    description = "Vintage synth key sound",
+    envelope = "medium", filter = "sweep_slow", width = "medium", complexity = "medium",
+    fx = "vintage", movement = "subtle_vibrato", dynamics = "expressive",
+    waveforms = {"saw", "pulse"}, lfo_rate = "slow"
+  }),
+  keys_digital_complex = PakettiMetaSynthBuildProfile({
+    name = "Digital Keys - Complex Spectral", family = "keys",
+    description = "Complex spectral cycles digital keys",
+    envelope = "snappy", filter = "bright", width = "narrow", complexity = "complex",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"complex", "harmonic"}, lfo_rate = "medium"
+  }),
+  keys_soft = PakettiMetaSynthBuildProfile({
+    name = "Soft Keys - Low Harmonic", family = "keys",
+    description = "Low harmonic density soft keys",
+    envelope = "soft", filter = "dark", width = "narrow", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "subtle",
+    waveforms = {"sine", "triangle"}, lfo_rate = "slow"
+  }),
+  keys_hard_percussive = PakettiMetaSynthBuildProfile({
+    name = "Hard/Percussive Keys", family = "keys",
+    description = "High transient emphasis percussive keys",
+    envelope = "tight", filter = "bright", width = "narrow", complexity = "simple",
+    fx = "saturated", movement = "static", dynamics = "full",
+    waveforms = {"saw", "square"}, lfo_rate = "fast"
+  }),
+  keys_plucked = PakettiMetaSynthBuildProfile({
+    name = "Plucked Keys - Short Envelope", family = "keys",
+    description = "Short envelope plucked key illusion",
+    envelope = "tight", filter = "sweep_fast", width = "narrow", complexity = "simple",
+    fx = "clean", movement = "static", dynamics = "expressive",
+    waveforms = {"piano", "harmonic"}, lfo_rate = "medium"
+  }),
+  keys_pad_hybrid = PakettiMetaSynthBuildProfile({
+    name = "Key-Pad Hybrid", family = "keys",
+    description = "Keys blended with pad character",
+    envelope = "slow", filter = "warm", width = "wide", complexity = "medium",
+    fx = "spatial", movement = "morphing_slow", dynamics = "moderate",
+    waveforms = {"piano", "saw"}, lfo_rate = "slow"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category B: Mallets, Bells & Struck Tones (14 profiles)
+  -- ========================================================================
+  mallet_sine = PakettiMetaSynthBuildProfile({
+    name = "Mallets - Sine Dominant", family = "bell",
+    description = "Sine-dominant mallet sound",
+    envelope = "tight", filter = "bright", width = "mono", complexity = "minimal",
+    fx = "clean", movement = "static", dynamics = "expressive",
+    waveforms = {"sine"}, lfo_rate = "fast"
+  }),
+  mallet_triangle = PakettiMetaSynthBuildProfile({
+    name = "Mallets - Triangle Dominant", family = "bell",
+    description = "Triangle-dominant mallet sound",
+    envelope = "tight", filter = "bright", width = "mono", complexity = "minimal",
+    fx = "clean", movement = "static", dynamics = "expressive",
+    waveforms = {"triangle"}, lfo_rate = "fast"
+  }),
+  mallet_inharmonic = PakettiMetaSynthBuildProfile({
+    name = "Mallets - Inharmonic Additive", family = "bell",
+    description = "Inharmonic additive cycles mallet",
+    envelope = "tight", filter = "resonant", width = "narrow", complexity = "medium",
+    fx = "spatial", movement = "static", dynamics = "full",
+    waveforms = {"complex", "harmonic"}, lfo_rate = "fast"
+  }),
+  mallet_fm = PakettiMetaSynthBuildProfile({
+    name = "Mallets - FM Inspired", family = "bell",
+    description = "FM-inspired single cycles mallet",
+    envelope = "ultra_tight", filter = "bright", width = "mono", complexity = "simple",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"sine", "harmonic"}, lfo_rate = "fast"
+  }),
+  mallet_wooden = PakettiMetaSynthBuildProfile({
+    name = "Wooden Mallet Illusion", family = "bell",
+    description = "Wooden mallet illusion",
+    envelope = "tight", filter = "warm", width = "mono", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "expressive",
+    waveforms = {"triangle", "sine"}, lfo_rate = "fast"
+  }),
+  mallet_metallic = PakettiMetaSynthBuildProfile({
+    name = "Metallic Mallet Illusion", family = "bell",
+    description = "Metallic mallet illusion",
+    envelope = "tight", filter = "resonant", width = "narrow", complexity = "medium",
+    fx = "spatial", movement = "static", dynamics = "full",
+    waveforms = {"harmonic", "complex"}, lfo_rate = "fast"
+  }),
+  bell_pure_sine = PakettiMetaSynthBuildProfile({
+    name = "Bells - Pure Sine Stack", family = "bell",
+    description = "Pure sine stack bell illusion",
+    envelope = "snappy", filter = "full_open", width = "narrow", complexity = "medium",
+    fx = "spatial", movement = "static", dynamics = "expressive",
+    waveforms = {"sine"}, lfo_rate = "slow"
+  }),
+  bell_inharmonic = PakettiMetaSynthBuildProfile({
+    name = "Bells - Inharmonic Spectral", family = "bell",
+    description = "Inharmonic spectral cycles bell",
+    envelope = "snappy", filter = "bright", width = "medium", complexity = "complex",
+    fx = "cinematic", movement = "static", dynamics = "full",
+    waveforms = {"complex", "harmonic"}, lfo_rate = "slow"
+  }),
+  bell_glassy = PakettiMetaSynthBuildProfile({
+    name = "Bells - Glassy High Harmonic", family = "bell",
+    description = "Glassy high-harmonic cycles bell",
+    envelope = "tight", filter = "full_open", width = "narrow", complexity = "simple",
+    fx = "spatial", movement = "static", dynamics = "expressive",
+    waveforms = {"sine", "harmonic"}, lfo_rate = "medium"
+  }),
+  bell_digital_fm = PakettiMetaSynthBuildProfile({
+    name = "Bells - Digital/FM", family = "bell",
+    description = "Digital FM bells",
+    envelope = "snappy", filter = "bright", width = "narrow", complexity = "medium",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"sine", "harmonic"}, lfo_rate = "medium"
+  }),
+  bell_gamelan = PakettiMetaSynthBuildProfile({
+    name = "Bells - Gamelan Inspired", family = "bell",
+    description = "Gamelan-inspired bell",
+    envelope = "snappy", filter = "resonant", width = "medium", complexity = "complex",
+    fx = "spatial", movement = "static", dynamics = "expressive",
+    waveforms = {"complex"}, lfo_rate = "slow"
+  }),
+  bell_cinematic = PakettiMetaSynthBuildProfile({
+    name = "Bells - Cinematic Long Tail", family = "bell",
+    description = "Cinematic long-tail bell",
+    envelope = "slow", filter = "warm", width = "wide", complexity = "medium",
+    fx = "cinematic", movement = "static", dynamics = "moderate",
+    waveforms = {"sine", "harmonic"}, lfo_rate = "slow"
+  }),
+  music_box = PakettiMetaSynthBuildProfile({
+    name = "Music Box Cycles", family = "bell",
+    description = "Music box character",
+    envelope = "tight", filter = "bright", width = "mono", complexity = "minimal",
+    fx = "spatial", movement = "static", dynamics = "expressive",
+    waveforms = {"sine"}, lfo_rate = "fast"
+  }),
+  toy_clockwork = PakettiMetaSynthBuildProfile({
+    name = "Toy/Clockwork Cycles", family = "bell",
+    description = "Toy and clockwork character",
+    envelope = "ultra_tight", filter = "bright", width = "mono", complexity = "simple",
+    fx = "lofi", movement = "static", dynamics = "moderate",
+    waveforms = {"sine", "square"}, lfo_rate = "fast"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category C: Pads (17 profiles)
+  -- ========================================================================
+  pad_analog_saw = PakettiMetaSynthBuildProfile({
+    name = "Analog Pad - Saw Based", family = "pad",
+    description = "Saw-based analog pad",
+    envelope = "slow", filter = "sweep_slow", width = "wide", complexity = "medium",
+    fx = "spatial", movement = "filter_slow", dynamics = "subtle",
+    waveforms = {"saw"}, lfo_rate = "slow"
+  }),
+  pad_analog_square = PakettiMetaSynthBuildProfile({
+    name = "Analog Pad - Square Based", family = "pad",
+    description = "Square-based analog pad",
+    envelope = "slow", filter = "warm", width = "wide", complexity = "medium",
+    fx = "spatial", movement = "filter_slow", dynamics = "subtle",
+    waveforms = {"square"}, lfo_rate = "slow"
+  }),
+  pad_analog_triangle = PakettiMetaSynthBuildProfile({
+    name = "Analog Pad - Triangle Based", family = "pad",
+    description = "Triangle-based analog pad",
+    envelope = "slow", filter = "bright", width = "medium", complexity = "simple",
+    fx = "spatial", movement = "subtle_vibrato", dynamics = "subtle",
+    waveforms = {"triangle"}, lfo_rate = "slow"
+  }),
+  pad_analog_mixed = PakettiMetaSynthBuildProfile({
+    name = "Analog Pad - Mixed Cycles", family = "pad",
+    description = "Mixed basic cycles analog pad",
+    envelope = "slow", filter = "sweep_slow", width = "wide", complexity = "medium",
+    fx = "spatial", movement = "evolving", dynamics = "subtle",
+    waveforms = {"saw", "square", "triangle"}, lfo_rate = "slow"
+  }),
+  pad_warm = PakettiMetaSynthBuildProfile({
+    name = "Warm Pad - Low Harmonic", family = "pad",
+    description = "Low harmonic density warm pad",
+    envelope = "very_slow", filter = "dark", width = "wide", complexity = "simple",
+    fx = "cinematic", movement = "filter_slow", dynamics = "none",
+    waveforms = {"triangle", "sine"}, lfo_rate = "slow"
+  }),
+  pad_dark = PakettiMetaSynthBuildProfile({
+    name = "Dark Pad - Filtered Spectral", family = "pad",
+    description = "Filtered spectral cycles dark pad",
+    envelope = "very_slow", filter = "muted", width = "wide", complexity = "medium",
+    fx = "cinematic", movement = "morphing_slow", dynamics = "none",
+    waveforms = {"saw", "complex"}, lfo_rate = "slow"
+  }),
+  pad_bright = PakettiMetaSynthBuildProfile({
+    name = "Bright Pad - High Harmonic", family = "pad",
+    description = "High harmonic emphasis bright pad",
+    envelope = "slow", filter = "bright", width = "wide", complexity = "medium",
+    fx = "spatial", movement = "subtle_vibrato", dynamics = "subtle",
+    waveforms = {"saw", "harmonic"}, lfo_rate = "slow"
+  }),
+  pad_digital = PakettiMetaSynthBuildProfile({
+    name = "Digital Pad - Complex Cycles", family = "pad",
+    description = "Complex cycles digital pad",
+    envelope = "slow", filter = "sweep_slow", width = "wide", complexity = "complex",
+    fx = "spatial", movement = "morphing_slow", dynamics = "subtle",
+    waveforms = {"complex", "harmonic"}, lfo_rate = "slow"
+  }),
+  pad_motion = PakettiMetaSynthBuildProfile({
+    name = "Motion Pad - Frame Spectral Shift", family = "pad",
+    description = "Frame-based spectral shift motion pad",
+    envelope = "very_slow", filter = "sweep_slow", width = "ultra_wide", complexity = "complex",
+    fx = "movement", movement = "evolving", dynamics = "subtle",
+    waveforms = {"saw", "complex"}, lfo_rate = "slow"
+  }),
+  pad_evolving_multi = PakettiMetaSynthBuildProfile({
+    name = "Evolving Pad - Multi-Frame", family = "pad",
+    description = "Multi-frame oscillator + group frames evolving pad",
+    envelope = "very_slow", filter = "sweep_slow", width = "ultra_wide", complexity = "dense",
+    fx = "cinematic", movement = "full_motion", dynamics = "subtle",
+    waveforms = {"saw", "complex", "harmonic"}, lfo_rate = "slow"
+  }),
+  pad_static = PakettiMetaSynthBuildProfile({
+    name = "Static Pad", family = "pad",
+    description = "Static unchanging pad",
+    envelope = "slow", filter = "warm", width = "wide", complexity = "simple",
+    fx = "spatial", movement = "static", dynamics = "none",
+    waveforms = {"saw", "triangle"}, lfo_rate = "slow"
+  }),
+  pad_ambient = PakettiMetaSynthBuildProfile({
+    name = "Ambient Pad", family = "pad",
+    description = "Ambient atmospheric pad",
+    envelope = "very_slow", filter = "dark", width = "ultra_wide", complexity = "medium",
+    fx = "cinematic", movement = "morphing_slow", dynamics = "none",
+    waveforms = {"sine", "complex"}, reverb_size = "large", lfo_rate = "slow"
+  }),
+  pad_cinematic = PakettiMetaSynthBuildProfile({
+    name = "Cinematic Pad", family = "pad",
+    description = "Cinematic atmospheric pad",
+    envelope = "very_slow", filter = "sweep_slow", width = "ultra_wide", complexity = "complex",
+    fx = "cinematic", movement = "evolving", dynamics = "subtle",
+    waveforms = {"complex", "strings"}, reverb_size = "large", lfo_rate = "slow"
+  }),
+  pad_air = PakettiMetaSynthBuildProfile({
+    name = "Air Pad - Noise Infused", family = "pad",
+    description = "Noise-infused cycles air pad",
+    envelope = "very_slow", filter = "dark", width = "ultra_wide", complexity = "medium",
+    fx = "cinematic", movement = "static", dynamics = "none",
+    waveforms = {"noise", "sine"}, lfo_rate = "slow"
+  }),
+  pad_choir = PakettiMetaSynthBuildProfile({
+    name = "Choir-Like Pad - Formant", family = "pad",
+    description = "Formant cycles choir-like pad",
+    envelope = "slow", filter = "formant", width = "wide", complexity = "medium",
+    fx = "cinematic", movement = "subtle_vibrato", dynamics = "subtle",
+    waveforms = {"voice"}, lfo_rate = "slow"
+  }),
+  pad_detuned = PakettiMetaSynthBuildProfile({
+    name = "Detuned Pad", family = "pad",
+    description = "Heavily detuned pad",
+    envelope = "slow", filter = "warm", width = "supersaw", complexity = "medium",
+    fx = "spatial", movement = "filter_slow", dynamics = "subtle",
+    waveforms = {"saw"}, lfo_rate = "slow"
+  }),
+  pad_wide_stereo = PakettiMetaSynthBuildProfile({
+    name = "Wide Stereo Pad", family = "pad",
+    description = "Ultra-wide stereo pad",
+    envelope = "slow", filter = "sweep_slow", width = "ultra_wide", complexity = "medium",
+    fx = "cinematic", movement = "evolving", dynamics = "subtle",
+    waveforms = {"saw", "triangle"}, lfo_rate = "slow"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category D: Drones & Atmospheres (10 profiles)
+  -- ========================================================================
+  drone_static_harmonic = PakettiMetaSynthBuildProfile({
+    name = "Static Harmonic Drone", family = "drone",
+    description = "Static harmonic drone",
+    envelope = "sustain", filter = "warm", width = "wide", complexity = "simple",
+    fx = "cinematic", movement = "static", dynamics = "none",
+    waveforms = {"harmonic", "sine"}, lfo_rate = "slow"
+  }),
+  drone_evolving = PakettiMetaSynthBuildProfile({
+    name = "Slowly Evolving Drone", family = "drone",
+    description = "Slowly evolving harmonic drone",
+    envelope = "sustain", filter = "sweep_slow", width = "ultra_wide", complexity = "complex",
+    fx = "cinematic", movement = "evolving", dynamics = "none",
+    waveforms = {"complex", "harmonic"}, lfo_rate = "slow"
+  }),
+  drone_noise = PakettiMetaSynthBuildProfile({
+    name = "Noise-Weighted Drone", family = "drone",
+    description = "Noise-weighted texture drone",
+    envelope = "sustain", filter = "dark", width = "ultra_wide", complexity = "medium",
+    fx = "cinematic", movement = "filter_slow", dynamics = "none",
+    waveforms = {"noise", "complex"}, lfo_rate = "slow"
+  }),
+  drone_sub = PakettiMetaSynthBuildProfile({
+    name = "Sub-Harmonic Drone", family = "drone",
+    description = "Sub-harmonic frequency drone",
+    envelope = "sustain", filter = "muted", width = "mono", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "none",
+    waveforms = {"sine"}, lfo_rate = "slow"
+  }),
+  atmosphere_cinematic = PakettiMetaSynthBuildProfile({
+    name = "Cinematic Atmosphere", family = "drone",
+    description = "Cinematic atmospheric texture",
+    envelope = "very_slow", filter = "sweep_slow", width = "ultra_wide", complexity = "dense",
+    fx = "cinematic", movement = "full_motion", dynamics = "none",
+    waveforms = {"complex", "strings"}, reverb_size = "large", lfo_rate = "slow"
+  }),
+  atmosphere_scifi = PakettiMetaSynthBuildProfile({
+    name = "Sci-Fi Atmosphere", family = "drone",
+    description = "Science fiction atmospheric texture",
+    envelope = "sustain", filter = "resonant", width = "ultra_wide", complexity = "complex",
+    fx = "movement", movement = "evolving", dynamics = "none",
+    waveforms = {"complex", "distorted"}, lfo_rate = "slow"
+  }),
+  atmosphere_dark_ambient = PakettiMetaSynthBuildProfile({
+    name = "Dark Ambient Bed", family = "drone",
+    description = "Dark ambient background bed",
+    envelope = "sustain", filter = "muted", width = "ultra_wide", complexity = "medium",
+    fx = "cinematic", movement = "morphing_slow", dynamics = "none",
+    waveforms = {"complex", "noise"}, reverb_size = "large", lfo_rate = "slow"
+  }),
+  atmosphere_industrial = PakettiMetaSynthBuildProfile({
+    name = "Industrial Spectral Bed", family = "drone",
+    description = "Industrial spectral background",
+    envelope = "sustain", filter = "aggressive", width = "wide", complexity = "complex",
+    fx = "aggressive", movement = "filter_wobble", dynamics = "none",
+    waveforms = {"distorted", "noise"}, lfo_rate = "medium"
+  }),
+  atmosphere_tonal = PakettiMetaSynthBuildProfile({
+    name = "Tonal Background Bed", family = "drone",
+    description = "Tonal background bed texture",
+    envelope = "sustain", filter = "warm", width = "wide", complexity = "simple",
+    fx = "spatial", movement = "static", dynamics = "none",
+    waveforms = {"sine", "triangle"}, lfo_rate = "slow"
+  }),
+  atmosphere_dissonant = PakettiMetaSynthBuildProfile({
+    name = "Dissonant Spectral Field", family = "drone",
+    description = "Dissonant spectral field texture",
+    envelope = "sustain", filter = "resonant", width = "ultra_wide", complexity = "dense",
+    fx = "cinematic", movement = "evolving", dynamics = "none",
+    waveforms = {"complex"}, lfo_rate = "slow"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category E: Leads - Saw Family (10 profiles)
+  -- ========================================================================
+  lead_saw_mono = PakettiMetaSynthBuildProfile({
+    name = "Saw Lead - Mono", family = "lead",
+    description = "Mono saw lead",
+    envelope = "snappy", filter = "sweep_fast", width = "mono", complexity = "simple",
+    fx = "warm", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  lead_saw_poly = PakettiMetaSynthBuildProfile({
+    name = "Saw Lead - Poly", family = "lead",
+    description = "Polyphonic saw lead",
+    envelope = "medium", filter = "sweep_medium", width = "medium", complexity = "simple",
+    fx = "warm", movement = "subtle_vibrato", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  lead_supersaw = PakettiMetaSynthBuildProfile({
+    name = "Supersaw Lead - Unison", family = "lead",
+    description = "Unison single cycles supersaw lead",
+    envelope = "medium", filter = "bright", width = "supersaw", complexity = "medium",
+    fx = "spatial", movement = "subtle_vibrato", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  lead_saw_soft = PakettiMetaSynthBuildProfile({
+    name = "Soft Saw Lead", family = "lead",
+    description = "Soft saw lead",
+    envelope = "soft", filter = "warm", width = "medium", complexity = "simple",
+    fx = "warm", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"saw"}, lfo_rate = "slow"
+  }),
+  lead_saw_bright = PakettiMetaSynthBuildProfile({
+    name = "Bright Saw Lead", family = "lead",
+    description = "Bright saw lead",
+    envelope = "snappy", filter = "bright", width = "medium", complexity = "simple",
+    fx = "clean", movement = "vibrato", dynamics = "full",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  lead_saw_detuned = PakettiMetaSynthBuildProfile({
+    name = "Detuned Saw Lead", family = "lead",
+    description = "Detuned saw lead",
+    envelope = "medium", filter = "sweep_medium", width = "wide", complexity = "medium",
+    fx = "movement", movement = "vibrato", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  lead_saw_vintage = PakettiMetaSynthBuildProfile({
+    name = "Vintage Analog Saw Lead", family = "lead",
+    description = "Vintage analog saw lead",
+    envelope = "medium", filter = "sweep_slow", width = "narrow", complexity = "simple",
+    fx = "vintage", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"saw"}, lfo_rate = "slow"
+  }),
+  lead_saw_digital = PakettiMetaSynthBuildProfile({
+    name = "Digital Saw Lead", family = "lead",
+    description = "Digital saw lead",
+    envelope = "snappy", filter = "bright", width = "narrow", complexity = "simple",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"saw"}, lfo_rate = "fast"
+  }),
+  lead_trance = PakettiMetaSynthBuildProfile({
+    name = "Trance Lead", family = "lead",
+    description = "Classic trance lead",
+    envelope = "snappy", filter = "sweep_fast", width = "wide", complexity = "medium",
+    fx = "spatial_delay", movement = "static", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "fast"
+  }),
+  lead_edm_festival = PakettiMetaSynthBuildProfile({
+    name = "EDM Festival Lead", family = "lead",
+    description = "Big EDM festival lead",
+    envelope = "tight", filter = "bright", width = "supersaw", complexity = "medium",
+    fx = "heavily_saturated", movement = "static", dynamics = "full",
+    waveforms = {"saw"}, lfo_rate = "fast"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category F: Leads - Square/Pulse Family (8 profiles)
+  -- ========================================================================
+  lead_square = PakettiMetaSynthBuildProfile({
+    name = "Square Lead", family = "lead",
+    description = "Classic square lead",
+    envelope = "snappy", filter = "sweep_medium", width = "narrow", complexity = "simple",
+    fx = "warm", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"square"}, lfo_rate = "medium"
+  }),
+  lead_pulse = PakettiMetaSynthBuildProfile({
+    name = "Pulse Lead", family = "lead",
+    description = "Pulse wave lead",
+    envelope = "snappy", filter = "sweep_medium", width = "narrow", complexity = "simple",
+    fx = "warm", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"pulse"}, lfo_rate = "medium"
+  }),
+  lead_pwm = PakettiMetaSynthBuildProfile({
+    name = "PWM-Style Illusion Lead", family = "lead",
+    description = "Frame-based PWM illusion lead",
+    envelope = "medium", filter = "warm", width = "medium", complexity = "complex",
+    fx = "movement", movement = "morphing", dynamics = "moderate",
+    waveforms = {"pulse", "square"}, lfo_rate = "medium"
+  }),
+  lead_hollow_square = PakettiMetaSynthBuildProfile({
+    name = "Hollow Square Lead", family = "lead",
+    description = "Hollow square lead",
+    envelope = "medium", filter = "dark", width = "narrow", complexity = "simple",
+    fx = "warm", movement = "vibrato", dynamics = "moderate",
+    waveforms = {"square"}, lfo_rate = "slow"
+  }),
+  lead_retro_game = PakettiMetaSynthBuildProfile({
+    name = "Retro Game Lead", family = "lead",
+    description = "Retro game style lead",
+    envelope = "tight", filter = "bright", width = "mono", complexity = "minimal",
+    fx = "clean", movement = "vibrato", dynamics = "moderate",
+    waveforms = {"square", "chiptune"}, lfo_rate = "fast"
+  }),
+  lead_chiptune = PakettiMetaSynthBuildProfile({
+    name = "Chiptune Lead", family = "lead",
+    description = "8-bit chiptune lead",
+    envelope = "tight", filter = "full_open", width = "mono", complexity = "minimal",
+    fx = "lofi", movement = "vibrato", dynamics = "moderate",
+    waveforms = {"chiptune", "square"}, lfo_rate = "fast"
+  }),
+  lead_analog_square = PakettiMetaSynthBuildProfile({
+    name = "Analog Square Lead", family = "lead",
+    description = "Analog square lead",
+    envelope = "medium", filter = "sweep_slow", width = "narrow", complexity = "simple",
+    fx = "vintage", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"square"}, lfo_rate = "slow"
+  }),
+  lead_digital_square = PakettiMetaSynthBuildProfile({
+    name = "Digital Square Lead", family = "lead",
+    description = "Digital square lead",
+    envelope = "snappy", filter = "bright", width = "narrow", complexity = "simple",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"square"}, lfo_rate = "fast"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category G: Leads - Sine/Triangle Family (6 profiles)
+  -- ========================================================================
+  lead_sine = PakettiMetaSynthBuildProfile({
+    name = "Sine Lead", family = "lead",
+    description = "Pure sine lead",
+    envelope = "medium", filter = "none", width = "mono", complexity = "minimal",
+    fx = "spatial", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"sine"}, lfo_rate = "medium"
+  }),
+  lead_triangle = PakettiMetaSynthBuildProfile({
+    name = "Triangle Lead", family = "lead",
+    description = "Triangle wave lead",
+    envelope = "medium", filter = "none", width = "mono", complexity = "minimal",
+    fx = "clean", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"triangle"}, lfo_rate = "medium"
+  }),
+  lead_soft_expressive = PakettiMetaSynthBuildProfile({
+    name = "Soft Expressive Lead", family = "lead",
+    description = "Soft expressive sine/triangle lead",
+    envelope = "soft", filter = "warm", width = "narrow", complexity = "simple",
+    fx = "spatial", movement = "vibrato", dynamics = "full",
+    waveforms = {"sine", "triangle"}, lfo_rate = "slow"
+  }),
+  lead_whistle = PakettiMetaSynthBuildProfile({
+    name = "Whistle-Style Lead", family = "lead",
+    description = "Whistle-style sine lead",
+    envelope = "medium", filter = "bright", width = "mono", complexity = "minimal",
+    fx = "spatial", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"sine"}, lfo_rate = "medium"
+  }),
+  lead_minimal = PakettiMetaSynthBuildProfile({
+    name = "Minimal Lead", family = "lead",
+    description = "Minimal sine/triangle lead",
+    envelope = "snappy", filter = "none", width = "mono", complexity = "minimal",
+    fx = "clean", movement = "static", dynamics = "moderate",
+    waveforms = {"sine", "triangle"}, lfo_rate = "medium"
+  }),
+  lead_ambient = PakettiMetaSynthBuildProfile({
+    name = "Ambient Lead", family = "lead",
+    description = "Ambient atmospheric lead",
+    envelope = "slow", filter = "warm", width = "medium", complexity = "simple",
+    fx = "cinematic", movement = "subtle_vibrato", dynamics = "subtle",
+    waveforms = {"sine", "triangle"}, lfo_rate = "slow"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category H: Leads - Complex/Aggressive (7 profiles)
+  -- ========================================================================
+  lead_hybrid = PakettiMetaSynthBuildProfile({
+    name = "Hybrid Lead", family = "lead",
+    description = "Hybrid multi-waveform lead",
+    envelope = "snappy", filter = "sweep_medium", width = "wide", complexity = "complex",
+    fx = "saturated", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"saw", "square", "complex"}, lfo_rate = "medium"
+  }),
+  lead_digital_aggressive = PakettiMetaSynthBuildProfile({
+    name = "Digital Aggressive Lead", family = "lead",
+    description = "Aggressive digital lead",
+    envelope = "tight", filter = "aggressive", width = "medium", complexity = "medium",
+    fx = "aggressive", movement = "static", dynamics = "full",
+    waveforms = {"distorted", "complex"}, lfo_rate = "fast"
+  }),
+  lead_fm_inspired = PakettiMetaSynthBuildProfile({
+    name = "FM-Inspired Lead", family = "lead",
+    description = "FM-style single cycle lead",
+    envelope = "snappy", filter = "bright", width = "narrow", complexity = "medium",
+    fx = "clean", movement = "vibrato", dynamics = "full",
+    waveforms = {"harmonic", "sine"}, lfo_rate = "medium"
+  }),
+  lead_acid = PakettiMetaSynthBuildProfile({
+    name = "Acid Lead", family = "lead",
+    description = "303-style acid lead",
+    envelope = "snappy", filter = "acid", width = "mono", complexity = "simple",
+    fx = "saturated", movement = "static", dynamics = "full",
+    waveforms = {"saw", "square"}, lfo_rate = "fast"
+  }),
+  lead_distorted = PakettiMetaSynthBuildProfile({
+    name = "Distorted Lead", family = "lead",
+    description = "Heavily distorted lead",
+    envelope = "medium", filter = "aggressive", width = "medium", complexity = "simple",
+    fx = "heavily_saturated", movement = "vibrato", dynamics = "full",
+    waveforms = {"distorted", "saw"}, lfo_rate = "medium"
+  }),
+  lead_neuro = PakettiMetaSynthBuildProfile({
+    name = "Neuro Lead", family = "lead",
+    description = "Neurofunk-style lead",
+    envelope = "tight", filter = "aggressive", width = "wide", complexity = "complex",
+    fx = "aggressive", movement = "filter_wobble", dynamics = "full",
+    waveforms = {"distorted", "complex"}, lfo_rate = "fast"
+  }),
+  lead_dubstep = PakettiMetaSynthBuildProfile({
+    name = "Dubstep Lead", family = "lead",
+    description = "Dubstep-style lead",
+    envelope = "tight", filter = "resonant", width = "wide", complexity = "medium",
+    fx = "aggressive", movement = "filter_wobble", dynamics = "full",
+    waveforms = {"saw", "distorted"}, lfo_rate = "medium"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category I: Vocal, Formant & Organic (7 profiles)
+  -- ========================================================================
+  vocal_pad_vowel = PakettiMetaSynthBuildProfile({
+    name = "Vocal Pad - Vowel Cycles", family = "vocal",
+    description = "Vowel cycles vocal pad",
+    envelope = "slow", filter = "formant", width = "wide", complexity = "medium",
+    fx = "cinematic", movement = "morphing_slow", dynamics = "subtle",
+    waveforms = {"voice"}, lfo_rate = "slow"
+  }),
+  vocal_lead_formant = PakettiMetaSynthBuildProfile({
+    name = "Vocal Lead - Formant Cycles", family = "vocal",
+    description = "Formant cycles vocal lead",
+    envelope = "medium", filter = "formant", width = "narrow", complexity = "medium",
+    fx = "spatial", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"voice"}, lfo_rate = "medium"
+  }),
+  vocal_choir = PakettiMetaSynthBuildProfile({
+    name = "Choir Illusion - Multi-Formant", family = "vocal",
+    description = "Multi-formant sets choir illusion",
+    envelope = "slow", filter = "formant", width = "ultra_wide", complexity = "complex",
+    fx = "cinematic", movement = "evolving", dynamics = "subtle",
+    waveforms = {"voice"}, lfo_rate = "slow"
+  }),
+  vocal_talking = PakettiMetaSynthBuildProfile({
+    name = "Talking Synth", family = "vocal",
+    description = "Talking synth character",
+    envelope = "snappy", filter = "formant", width = "narrow", complexity = "medium",
+    fx = "movement", movement = "morphing", dynamics = "expressive",
+    waveforms = {"voice"}, lfo_rate = "medium"
+  }),
+  vocal_breath = PakettiMetaSynthBuildProfile({
+    name = "Breath/Air Synth", family = "vocal",
+    description = "Breath and air synth",
+    envelope = "slow", filter = "dark", width = "wide", complexity = "simple",
+    fx = "spatial", movement = "static", dynamics = "none",
+    waveforms = {"noise", "flute"}, lfo_rate = "slow"
+  }),
+  vocal_whisper = PakettiMetaSynthBuildProfile({
+    name = "Whisper Pad", family = "vocal",
+    description = "Whisper pad texture",
+    envelope = "very_slow", filter = "muted", width = "ultra_wide", complexity = "medium",
+    fx = "cinematic", movement = "filter_slow", dynamics = "none",
+    waveforms = {"noise", "voice"}, lfo_rate = "slow"
+  }),
+  vocal_organic = PakettiMetaSynthBuildProfile({
+    name = "Organic Motion Texture", family = "vocal",
+    description = "Organic motion texture",
+    envelope = "slow", filter = "sweep_slow", width = "wide", complexity = "complex",
+    fx = "cinematic", movement = "evolving", dynamics = "subtle",
+    waveforms = {"voice", "strings"}, lfo_rate = "slow"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category J: Basses - Sub & Clean (7 profiles)
+  -- ========================================================================
+  bass_sub_sine = PakettiMetaSynthBuildProfile({
+    name = "Sub Bass - Sine", family = "bass",
+    description = "Pure sine sub bass",
+    envelope = "sustain", filter = "muted", width = "mono", complexity = "minimal",
+    fx = "clean", movement = "static", dynamics = "moderate",
+    waveforms = {"sine"}, lfo_rate = "slow"
+  }),
+  bass_sub_triangle = PakettiMetaSynthBuildProfile({
+    name = "Sub Bass - Triangle", family = "bass",
+    description = "Triangle sub bass",
+    envelope = "sustain", filter = "muted", width = "mono", complexity = "minimal",
+    fx = "clean", movement = "static", dynamics = "moderate",
+    waveforms = {"triangle"}, lfo_rate = "slow"
+  }),
+  bass_clean = PakettiMetaSynthBuildProfile({
+    name = "Clean Bass - Low Harmonic", family = "bass",
+    description = "Low harmonic clean bass",
+    envelope = "snappy", filter = "warm", width = "mono", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "moderate",
+    waveforms = {"triangle", "sine"}, lfo_rate = "medium"
+  }),
+  bass_mono = PakettiMetaSynthBuildProfile({
+    name = "Mono Bass", family = "bass",
+    description = "Classic mono bass",
+    envelope = "snappy", filter = "sweep_fast", width = "mono", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "expressive",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  bass_analog_sub = PakettiMetaSynthBuildProfile({
+    name = "Analog Sub", family = "bass",
+    description = "Analog-style sub bass",
+    envelope = "medium", filter = "dark", width = "mono", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "moderate",
+    waveforms = {"sine", "triangle"}, lfo_rate = "slow"
+  }),
+  bass_digital_sub = PakettiMetaSynthBuildProfile({
+    name = "Digital Sub", family = "bass",
+    description = "Digital sub bass",
+    envelope = "snappy", filter = "muted", width = "mono", complexity = "simple",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"sine"}, lfo_rate = "medium"
+  }),
+  bass_808 = PakettiMetaSynthBuildProfile({
+    name = "808-Style Bass", family = "bass",
+    description = "808-style sine + saturation illusion bass",
+    envelope = "punchy", filter = "warm", width = "mono", complexity = "simple",
+    fx = "saturated", movement = "static", dynamics = "full",
+    waveforms = {"sine"}, pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.0, release = 0.05 }, lfo_rate = "fast"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category K: Basses - Saw/Square (8 profiles)
+  -- ========================================================================
+  bass_saw = PakettiMetaSynthBuildProfile({
+    name = "Saw Bass", family = "bass",
+    description = "Classic saw bass",
+    envelope = "snappy", filter = "sweep_fast", width = "mono", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "expressive",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  bass_square = PakettiMetaSynthBuildProfile({
+    name = "Square Bass", family = "bass",
+    description = "Classic square bass",
+    envelope = "snappy", filter = "sweep_fast", width = "mono", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "expressive",
+    waveforms = {"square"}, lfo_rate = "medium"
+  }),
+  bass_detuned = PakettiMetaSynthBuildProfile({
+    name = "Detuned Bass", family = "bass",
+    description = "Detuned unison bass",
+    envelope = "snappy", filter = "sweep_medium", width = "medium", complexity = "medium",
+    fx = "saturated", movement = "static", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  bass_reese = PakettiMetaSynthBuildProfile({
+    name = "Reese Bass", family = "bass",
+    description = "Classic Reese bass",
+    envelope = "medium", filter = "sweep_slow", width = "wide", complexity = "medium",
+    fx = "saturated", movement = "filter_slow", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "slow"
+  }),
+  bass_acid = PakettiMetaSynthBuildProfile({
+    name = "Acid Bass", family = "bass",
+    description = "303-style acid bass",
+    envelope = "tight", filter = "acid", width = "mono", complexity = "simple",
+    fx = "saturated", movement = "static", dynamics = "full",
+    waveforms = {"saw", "square"}, lfo_rate = "fast"
+  }),
+  bass_vintage = PakettiMetaSynthBuildProfile({
+    name = "Vintage Bass", family = "bass",
+    description = "Vintage analog bass",
+    envelope = "snappy", filter = "sweep_slow", width = "mono", complexity = "simple",
+    fx = "vintage", movement = "static", dynamics = "expressive",
+    waveforms = {"saw"}, lfo_rate = "slow"
+  }),
+  bass_techno = PakettiMetaSynthBuildProfile({
+    name = "Techno Bass", family = "bass",
+    description = "Techno-style bass",
+    envelope = "tight", filter = "sweep_fast", width = "mono", complexity = "simple",
+    fx = "saturated", movement = "static", dynamics = "full",
+    waveforms = {"saw"}, lfo_rate = "fast"
+  }),
+  bass_house = PakettiMetaSynthBuildProfile({
+    name = "House Bass", family = "bass",
+    description = "House music bass",
+    envelope = "snappy", filter = "sweep_medium", width = "narrow", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "moderate",
+    waveforms = {"saw", "square"}, lfo_rate = "medium"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category L: Basses - Complex/Modern (9 profiles)
+  -- ========================================================================
+  bass_wobble = PakettiMetaSynthBuildProfile({
+    name = "Wobble Bass", family = "bass",
+    description = "LFO wobble bass",
+    envelope = "sustain", filter = "resonant", width = "mono", complexity = "simple",
+    fx = "saturated", movement = "filter_wobble", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  bass_growl = PakettiMetaSynthBuildProfile({
+    name = "Growl Bass", family = "bass",
+    description = "Growling bass",
+    envelope = "medium", filter = "aggressive", width = "medium", complexity = "complex",
+    fx = "aggressive", movement = "filter_wobble", dynamics = "full",
+    waveforms = {"distorted", "saw"}, lfo_rate = "medium"
+  }),
+  bass_fm = PakettiMetaSynthBuildProfile({
+    name = "FM Bass", family = "bass",
+    description = "FM-style bass",
+    envelope = "snappy", filter = "sweep_fast", width = "mono", complexity = "medium",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"harmonic", "sine"}, lfo_rate = "fast"
+  }),
+  bass_talking = PakettiMetaSynthBuildProfile({
+    name = "Talking Bass", family = "bass",
+    description = "Formant talking bass",
+    envelope = "snappy", filter = "formant", width = "mono", complexity = "medium",
+    fx = "movement", movement = "morphing", dynamics = "expressive",
+    waveforms = {"voice", "saw"}, lfo_rate = "medium"
+  }),
+  bass_distorted = PakettiMetaSynthBuildProfile({
+    name = "Distorted Bass", family = "bass",
+    description = "Heavily distorted bass",
+    envelope = "snappy", filter = "aggressive", width = "narrow", complexity = "simple",
+    fx = "heavily_saturated", movement = "static", dynamics = "full",
+    waveforms = {"distorted", "saw"}, lfo_rate = "medium"
+  }),
+  bass_neuro = PakettiMetaSynthBuildProfile({
+    name = "Neuro Bass", family = "bass",
+    description = "Neurofunk bass",
+    envelope = "tight", filter = "aggressive", width = "wide", complexity = "complex",
+    fx = "aggressive", movement = "filter_wobble", dynamics = "full",
+    waveforms = {"distorted", "complex"}, lfo_rate = "fast"
+  }),
+  bass_dubstep = PakettiMetaSynthBuildProfile({
+    name = "Dubstep Bass", family = "bass",
+    description = "Dubstep-style bass",
+    envelope = "sustain", filter = "resonant", width = "medium", complexity = "medium",
+    fx = "aggressive", movement = "filter_wobble", dynamics = "full",
+    waveforms = {"saw", "distorted"}, lfo_rate = "medium"
+  }),
+  bass_trap = PakettiMetaSynthBuildProfile({
+    name = "Trap Bass", family = "bass",
+    description = "Trap-style 808 bass",
+    envelope = "punchy", filter = "warm", width = "mono", complexity = "simple",
+    fx = "saturated", movement = "static", dynamics = "full",
+    waveforms = {"sine"}, pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.08 }, lfo_rate = "fast"
+  }),
+  bass_drill = PakettiMetaSynthBuildProfile({
+    name = "Drill Bass", family = "bass",
+    description = "UK Drill-style bass",
+    envelope = "punchy", filter = "dark", width = "mono", complexity = "simple",
+    fx = "saturated", movement = "static", dynamics = "full",
+    waveforms = {"sine"}, pitch_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.1 }, lfo_rate = "fast"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category M: Plucks (7 profiles)
+  -- ========================================================================
+  pluck_soft_gentle = PakettiMetaSynthBuildProfile({
+    name = "Soft Pluck", family = "pluck",
+    description = "Gentle soft pluck",
+    envelope = "snappy", filter = "warm", width = "narrow", complexity = "simple",
+    fx = "spatial", movement = "static", dynamics = "expressive",
+    waveforms = {"triangle", "sine"}, lfo_rate = "medium"
+  }),
+  pluck_hard = PakettiMetaSynthBuildProfile({
+    name = "Hard Pluck", family = "pluck",
+    description = "Hard attack pluck",
+    envelope = "tight", filter = "bright", width = "narrow", complexity = "simple",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"saw", "harmonic"}, lfo_rate = "fast"
+  }),
+  pluck_digital = PakettiMetaSynthBuildProfile({
+    name = "Digital Pluck", family = "pluck",
+    description = "Digital character pluck",
+    envelope = "tight", filter = "sweep_fast", width = "narrow", complexity = "medium",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"harmonic", "complex"}, lfo_rate = "fast"
+  }),
+  pluck_analog = PakettiMetaSynthBuildProfile({
+    name = "Analog Pluck", family = "pluck",
+    description = "Analog-style pluck",
+    envelope = "snappy", filter = "sweep_medium", width = "narrow", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "expressive",
+    waveforms = {"saw"}, lfo_rate = "medium"
+  }),
+  pluck_fm = PakettiMetaSynthBuildProfile({
+    name = "FM Pluck", family = "pluck",
+    description = "FM-style pluck",
+    envelope = "tight", filter = "bright", width = "mono", complexity = "medium",
+    fx = "spatial", movement = "static", dynamics = "full",
+    waveforms = {"harmonic", "sine"}, lfo_rate = "fast"
+  }),
+  pluck_bell = PakettiMetaSynthBuildProfile({
+    name = "Bell Pluck", family = "pluck",
+    description = "Bell-like pluck",
+    envelope = "snappy", filter = "bright", width = "narrow", complexity = "simple",
+    fx = "spatial", movement = "static", dynamics = "expressive",
+    waveforms = {"sine", "harmonic"}, lfo_rate = "medium"
+  }),
+  pluck_short_perc = PakettiMetaSynthBuildProfile({
+    name = "Short Percussive Pluck", family = "pluck",
+    description = "Very short percussive pluck",
+    envelope = "ultra_tight", filter = "sweep_fast", width = "mono", complexity = "minimal",
+    fx = "clean", movement = "static", dynamics = "full",
+    waveforms = {"saw", "triangle"}, lfo_rate = "fast"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category N: Arps & Sequenced (7 profiles)
+  -- ========================================================================
+  arp_synth = PakettiMetaSynthBuildProfile({
+    name = "Synth Arp", family = "arp",
+    description = "Classic synth arp",
+    envelope = "tight", filter = "sweep_fast", width = "narrow", complexity = "simple",
+    fx = "spatial_delay", movement = "static", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "fast"
+  }),
+  arp_pluck = PakettiMetaSynthBuildProfile({
+    name = "Pluck Arp", family = "arp",
+    description = "Pluck-style arp",
+    envelope = "tight", filter = "bright", width = "narrow", complexity = "simple",
+    fx = "spatial_delay", movement = "static", dynamics = "expressive",
+    waveforms = {"harmonic", "saw"}, lfo_rate = "fast"
+  }),
+  arp_poly = PakettiMetaSynthBuildProfile({
+    name = "Polyphonic Arp", family = "arp",
+    description = "Polyphonic arp sound",
+    envelope = "snappy", filter = "sweep_medium", width = "medium", complexity = "medium",
+    fx = "spatial_delay", movement = "static", dynamics = "moderate",
+    waveforms = {"saw", "square"}, lfo_rate = "fast"
+  }),
+  arp_mono = PakettiMetaSynthBuildProfile({
+    name = "Monophonic Arp", family = "arp",
+    description = "Monophonic arp sound",
+    envelope = "tight", filter = "sweep_fast", width = "mono", complexity = "simple",
+    fx = "spatial_delay", movement = "static", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "fast"
+  }),
+  arp_rhythmic = PakettiMetaSynthBuildProfile({
+    name = "Rhythmic Sequence", family = "arp",
+    description = "Rhythmic sequence sound",
+    envelope = "ultra_tight", filter = "sweep_fast", width = "narrow", complexity = "simple",
+    fx = "clean", movement = "static", dynamics = "moderate",
+    waveforms = {"saw", "square"}, lfo_rate = "fast"
+  }),
+  arp_gated = PakettiMetaSynthBuildProfile({
+    name = "Gated Synth", family = "arp",
+    description = "Gated synth sequence",
+    envelope = "ultra_tight", filter = "bright", width = "medium", complexity = "simple",
+    fx = "spatial_delay", movement = "static", dynamics = "moderate",
+    waveforms = {"saw"}, lfo_rate = "fast"
+  }),
+  arp_pulsing = PakettiMetaSynthBuildProfile({
+    name = "Pulsing Pad", family = "arp",
+    description = "Pulsing pad sequence",
+    envelope = "snappy", filter = "sweep_slow", width = "wide", complexity = "medium",
+    fx = "spatial", movement = "tremolo", dynamics = "subtle",
+    waveforms = {"saw", "triangle"}, lfo_rate = "medium"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category O: Synth Strings (8 profiles)
+  -- ========================================================================
+  strings_synth_saw = PakettiMetaSynthBuildProfile({
+    name = "Synth Strings - Saw Based", family = "strings",
+    description = "Saw-based synth strings",
+    envelope = "slow", filter = "sweep_slow", width = "wide", complexity = "medium",
+    fx = "cinematic", movement = "subtle_vibrato", dynamics = "subtle",
+    waveforms = {"saw"}, lfo_rate = "slow"
+  }),
+  strings_synth_square = PakettiMetaSynthBuildProfile({
+    name = "Synth Strings - Square Based", family = "strings",
+    description = "Square-based synth strings",
+    envelope = "slow", filter = "warm", width = "wide", complexity = "medium",
+    fx = "cinematic", movement = "subtle_vibrato", dynamics = "subtle",
+    waveforms = {"square"}, lfo_rate = "slow"
+  }),
+  strings_synth_mixed = PakettiMetaSynthBuildProfile({
+    name = "Synth Strings - Mixed Cycles", family = "strings",
+    description = "Mixed basic cycles synth strings",
+    envelope = "slow", filter = "sweep_slow", width = "wide", complexity = "medium",
+    fx = "cinematic", movement = "vibrato", dynamics = "subtle",
+    waveforms = {"saw", "square", "strings"}, lfo_rate = "slow"
+  }),
+  strings_warm_pad = PakettiMetaSynthBuildProfile({
+    name = "Warm String Pad", family = "strings",
+    description = "Warm string pad",
+    envelope = "slow", filter = "warm", width = "ultra_wide", complexity = "medium",
+    fx = "cinematic", movement = "evolving", dynamics = "subtle",
+    waveforms = {"strings", "saw"}, lfo_rate = "slow"
+  }),
+  strings_ensemble = PakettiMetaSynthBuildProfile({
+    name = "Ensemble String Illusion", family = "strings",
+    description = "Ensemble string illusion",
+    envelope = "slow", filter = "sweep_slow", width = "ultra_wide", complexity = "complex",
+    fx = "cinematic", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"strings"}, lfo_rate = "slow"
+  }),
+  strings_cinematic = PakettiMetaSynthBuildProfile({
+    name = "Cinematic String Bed", family = "strings",
+    description = "Cinematic string bed",
+    envelope = "very_slow", filter = "sweep_slow", width = "ultra_wide", complexity = "complex",
+    fx = "cinematic", movement = "evolving", dynamics = "subtle",
+    waveforms = {"strings"}, reverb_size = "large", lfo_rate = "slow"
+  }),
+  strings_motion = PakettiMetaSynthBuildProfile({
+    name = "Motion Strings", family = "strings",
+    description = "Motion strings with movement",
+    envelope = "slow", filter = "sweep_slow", width = "ultra_wide", complexity = "complex",
+    fx = "movement", movement = "full_motion", dynamics = "subtle",
+    waveforms = {"strings", "saw"}, lfo_rate = "slow"
+  }),
+  strings_vintage_machine = PakettiMetaSynthBuildProfile({
+    name = "Vintage String Machine", family = "strings",
+    description = "Vintage string machine illusion",
+    envelope = "slow", filter = "warm", width = "wide", complexity = "medium",
+    fx = "vintage", movement = "vibrato", dynamics = "subtle",
+    waveforms = {"saw", "strings"}, lfo_rate = "slow"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category P: Synth Brass (7 profiles)
+  -- ========================================================================
+  brass_synth_saw = PakettiMetaSynthBuildProfile({
+    name = "Synth Brass - Saw Based", family = "brass",
+    description = "Saw-based synth brass",
+    envelope = "medium", filter = "sweep_medium", width = "medium", complexity = "simple",
+    fx = "warm", movement = "subtle_vibrato", dynamics = "expressive",
+    waveforms = {"saw", "brass"}, lfo_rate = "medium"
+  }),
+  brass_synth_square = PakettiMetaSynthBuildProfile({
+    name = "Synth Brass - Square Based", family = "brass",
+    description = "Square-based synth brass",
+    envelope = "medium", filter = "sweep_medium", width = "medium", complexity = "simple",
+    fx = "warm", movement = "subtle_vibrato", dynamics = "expressive",
+    waveforms = {"square", "brass"}, lfo_rate = "medium"
+  }),
+  brass_soft_pad = PakettiMetaSynthBuildProfile({
+    name = "Soft Brass Pad", family = "brass",
+    description = "Soft brass pad",
+    envelope = "slow", filter = "warm", width = "wide", complexity = "medium",
+    fx = "spatial", movement = "subtle_vibrato", dynamics = "moderate",
+    waveforms = {"brass", "saw"}, lfo_rate = "slow"
+  }),
+  brass_stab = PakettiMetaSynthBuildProfile({
+    name = "Stab Brass", family = "brass",
+    description = "Brass stab",
+    envelope = "tight", filter = "sweep_fast", width = "medium", complexity = "simple",
+    fx = "saturated", movement = "static", dynamics = "full",
+    waveforms = {"saw", "brass"}, lfo_rate = "fast"
+  }),
+  brass_funk = PakettiMetaSynthBuildProfile({
+    name = "Funk Brass", family = "brass",
+    description = "Funky brass stab",
+    envelope = "snappy", filter = "sweep_medium", width = "medium", complexity = "simple",
+    fx = "warm", movement = "static", dynamics = "expressive",
+    waveforms = {"saw", "brass"}, lfo_rate = "medium"
+  }),
+  brass_cinematic = PakettiMetaSynthBuildProfile({
+    name = "Cinematic Brass Hits", family = "brass",
+    description = "Cinematic brass hits",
+    envelope = "medium", filter = "sweep_medium", width = "wide", complexity = "medium",
+    fx = "cinematic", movement = "subtle_vibrato", dynamics = "full",
+    waveforms = {"brass"}, reverb_size = "medium", lfo_rate = "medium"
+  }),
+  brass_hybrid = PakettiMetaSynthBuildProfile({
+    name = "Hybrid Brass", family = "brass",
+    description = "Hybrid synth/brass",
+    envelope = "medium", filter = "sweep_medium", width = "wide", complexity = "medium",
+    fx = "saturated", movement = "vibrato", dynamics = "expressive",
+    waveforms = {"brass", "saw", "square"}, lfo_rate = "medium"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category Q: FX & Sound Design (8 profiles)
+  -- ========================================================================
+  fx_riser = PakettiMetaSynthBuildProfile({
+    name = "Riser", family = "fx",
+    description = "Rising tension FX",
+    envelope = "reverse", filter = "sweep_slow", width = "ultra_wide", complexity = "complex",
+    fx = "cinematic", movement = "evolving", dynamics = "none",
+    waveforms = {"noise", "saw"}, lfo_rate = "slow"
+  }),
+  fx_downlifter = PakettiMetaSynthBuildProfile({
+    name = "Downlifter", family = "fx",
+    description = "Falling tension FX",
+    envelope = "slow", filter = "sweep_slow", width = "ultra_wide", complexity = "complex",
+    fx = "cinematic", movement = "evolving", dynamics = "none",
+    waveforms = {"noise", "saw"}, lfo_rate = "slow"
+  }),
+  fx_impact = PakettiMetaSynthBuildProfile({
+    name = "Impact", family = "fx",
+    description = "Impact hit FX",
+    envelope = "ultra_tight", filter = "resonant", width = "ultra_wide", complexity = "medium",
+    fx = "heavily_saturated", movement = "static", dynamics = "full",
+    waveforms = {"noise", "sine"}, lfo_rate = "fast"
+  }),
+  fx_sweep = PakettiMetaSynthBuildProfile({
+    name = "Sweep", family = "fx",
+    description = "Filter sweep FX",
+    envelope = "sustain", filter = "sweep_slow", width = "wide", complexity = "simple",
+    fx = "movement", movement = "filter_slow", dynamics = "none",
+    waveforms = {"noise", "saw"}, lfo_rate = "slow"
+  }),
+  fx_whoosh = PakettiMetaSynthBuildProfile({
+    name = "Whoosh", family = "fx",
+    description = "Whoosh transition FX",
+    envelope = "snappy", filter = "sweep_fast", width = "ultra_wide", complexity = "medium",
+    fx = "spatial", movement = "static", dynamics = "none",
+    waveforms = {"noise"}, lfo_rate = "fast"
+  }),
+  fx_glitch = PakettiMetaSynthBuildProfile({
+    name = "Glitch FX", family = "fx",
+    description = "Glitchy digital FX",
+    envelope = "ultra_tight", filter = "aggressive", width = "wide", complexity = "complex",
+    fx = "lofi", movement = "filter_wobble", dynamics = "full",
+    waveforms = {"distorted", "chiptune"}, lfo_rate = "fast"
+  }),
+  fx_noise = PakettiMetaSynthBuildProfile({
+    name = "Noise FX", family = "fx",
+    description = "Noise texture FX",
+    envelope = "sustain", filter = "sweep_slow", width = "ultra_wide", complexity = "simple",
+    fx = "spatial", movement = "filter_slow", dynamics = "none",
+    waveforms = {"noise"}, lfo_rate = "slow"
+  }),
+  fx_tonal = PakettiMetaSynthBuildProfile({
+    name = "Tonal FX", family = "fx",
+    description = "Tonal texture FX",
+    envelope = "slow", filter = "resonant", width = "wide", complexity = "medium",
+    fx = "movement", movement = "evolving", dynamics = "none",
+    waveforms = {"complex", "harmonic"}, lfo_rate = "slow"
+  }),
+  
+  -- ========================================================================
+  -- GENERATED PROFILES - Category R: Meta & Experimental (7 profiles)
+  -- ========================================================================
+  meta_vector = PakettiMetaSynthBuildProfile({
+    name = "Vector Synth Texture", family = "experimental",
+    description = "Vector synthesis texture",
+    envelope = "slow", filter = "sweep_slow", width = "ultra_wide", complexity = "dense",
+    fx = "movement", movement = "full_motion", dynamics = "subtle",
+    waveforms = {"complex", "harmonic", "saw"}, lfo_rate = "slow"
+  }),
+  meta_wavetable = PakettiMetaSynthBuildProfile({
+    name = "Meta-Wavetable Instrument", family = "experimental",
+    description = "Multi-level frame morph instrument",
+    envelope = "medium", filter = "sweep_medium", width = "wide", complexity = "dense",
+    fx = "spatial", movement = "evolving", dynamics = "moderate",
+    waveforms = {"complex"}, lfo_rate = "medium"
+  }),
+  meta_frame_morph = PakettiMetaSynthBuildProfile({
+    name = "Multi-Level Frame Morph", family = "experimental",
+    description = "Multi-level frame morphing instrument",
+    envelope = "slow", filter = "sweep_slow", width = "ultra_wide", complexity = "dense",
+    fx = "cinematic", movement = "full_motion", dynamics = "subtle",
+    waveforms = {"complex", "harmonic"}, lfo_rate = "slow"
+  }),
+  meta_frame_of_frames = PakettiMetaSynthBuildProfile({
+    name = "Frame-of-Frames Instrument", family = "experimental",
+    description = "Nested frame architecture instrument",
+    envelope = "slow", filter = "sweep_slow", width = "ultra_wide", complexity = "dense",
+    fx = "cinematic", movement = "evolving", dynamics = "subtle",
+    waveforms = {"complex"}, lfo_rate = "slow"
+  }),
+  meta_self_modulating = PakettiMetaSynthBuildProfile({
+    name = "Self-Modulating Spectral", family = "experimental",
+    description = "Self-modulating spectral system",
+    envelope = "sustain", filter = "resonant", width = "ultra_wide", complexity = "dense",
+    fx = "movement", movement = "full_motion", dynamics = "none",
+    waveforms = {"complex", "harmonic"}, lfo_rate = "medium"
+  }),
+  meta_genre_cross = PakettiMetaSynthBuildProfile({
+    name = "Genre-Cross Hybrid", family = "experimental",
+    description = "Genre-crossing hybrid instrument",
+    envelope = "medium", filter = "sweep_medium", width = "wide", complexity = "complex",
+    fx = "saturated", movement = "morphing", dynamics = "expressive",
+    waveforms = {"saw", "complex", "strings"}, lfo_rate = "medium"
+  }),
+  meta_impossible = PakettiMetaSynthBuildProfile({
+    name = "Impossible Instrument", family = "experimental",
+    description = "MetaSynth-only impossible instrument",
+    envelope = "reverse", filter = "formant", width = "ultra_wide", complexity = "dense",
+    fx = "cinematic", movement = "full_motion", dynamics = "expressive",
+    waveforms = {"complex", "voice", "noise"}, lfo_rate = "slow"
+  }),
 }
 
 -- ============================================================================
@@ -4098,69 +5567,391 @@ PakettiMetaSynthOldModulationProfiles_DEPRECATED = {
 -- ============================================================================
 
 PakettiMetaSynthSoundCategories = {
-  -- Bass
-  { name = "Mono Bass", profile = "bass_tight", family = "bass" },
-  { name = "Sub Bass", profile = "bass_sustain", family = "bass" },
-  { name = "Acid Bass", profile = "bass_filter", family = "bass" },
-  { name = "Reese Bass", profile = "bass_wide", family = "bass" },
-  { name = "FM Bass", profile = "bass_dynamic", family = "bass" },
-  -- Pluck
-  { name = "Pluck", profile = "pluck_short", family = "pluck" },
-  { name = "Harp / Guitar", profile = "pluck_natural", family = "pluck" },
-  { name = "Mallet", profile = "pluck_percussive", family = "pluck" },
-  { name = "Kalimba", profile = "pluck_soft", family = "pluck" },
-  -- Lead
-  { name = "Lead (Mono)", profile = "lead_expressive", family = "lead" },
-  { name = "Lead (Poly)", profile = "lead_smooth", family = "lead" },
-  { name = "Square Lead", profile = "lead_classic", family = "lead" },
-  { name = "Supersaw Lead", profile = "lead_wide", family = "lead" },
-  { name = "Portamento Lead", profile = "lead_glide", family = "lead" },
-  -- Pad
-  { name = "Pad", profile = "pad_slow", family = "pad" },
-  { name = "Ambient Pad", profile = "pad_evolving", family = "pad" },
-  { name = "String Pad", profile = "pad_ensemble", family = "pad" },
-  { name = "Choir / Vocal Pad", profile = "pad_formant", family = "pad" },
-  -- Keys
-  { name = "Keys / EP", profile = "keys_dynamic", family = "keys" },
-  { name = "Organ", profile = "keys_sustain", family = "keys" },
-  { name = "Piano-like", profile = "keys_velocity", family = "keys" },
-  -- Arp
-  { name = "Arp", profile = "arp_tight", family = "arp" },
-  { name = "Sequenced", profile = "arp_gated", family = "arp" },
-  { name = "One-Note Sequence", profile = "arp_rhythmic", family = "arp" },
-  -- FX
-  { name = "FX / Risers", profile = "fx_envelope", family = "fx" },
-  { name = "FX / Impacts", profile = "fx_percussive", family = "fx" },
-  { name = "FX / Drones", profile = "fx_sustain", family = "fx" },
-  -- Neutral
-  { name = "Experimental", profile = "neutral_flat", family = "neutral" },
-  { name = "Raw Oscillator", profile = "neutral_none", family = "neutral" }
+  -- ========================================================================
+  -- A. KEYS & PIANO (25 categories)
+  -- ========================================================================
+  { name = "Acoustic Piano - Spectral (Sine)", profile = "keys_piano_spectral_sine", family = "keys" },
+  { name = "Acoustic Piano - Spectral (Additive)", profile = "keys_piano_spectral_additive", family = "keys" },
+  { name = "Acoustic Piano - Bright/Pop", profile = "keys_piano_bright", family = "keys" },
+  { name = "Acoustic Piano - Soft/Felt", profile = "keys_piano_soft", family = "keys" },
+  { name = "Acoustic Piano - Lo-Fi", profile = "keys_piano_lofi", family = "keys" },
+  { name = "Acoustic Piano - Cinematic", profile = "keys_piano_cinematic", family = "keys" },
+  { name = "Acoustic Piano - Prepared", profile = "keys_piano_prepared", family = "keys" },
+  { name = "Upright Piano", profile = "keys_upright", family = "keys" },
+  { name = "Toy Piano", profile = "keys_toy_piano", family = "keys" },
+  { name = "Hybrid Piano-Synth", profile = "keys_hybrid_synth", family = "keys" },
+  { name = "Electric Piano - Sine Core", profile = "keys_ep_sine", family = "keys" },
+  { name = "Electric Piano - FM", profile = "keys_ep_fm", family = "keys" },
+  { name = "Electric Piano - Bell", profile = "keys_ep_bell", family = "keys" },
+  { name = "Electric Piano - DX Digital", profile = "keys_ep_digital", family = "keys" },
+  { name = "Electric Piano - Warm Analog", profile = "keys_ep_warm", family = "keys" },
+  { name = "Analog Keys - Saw", profile = "keys_analog_saw", family = "keys" },
+  { name = "Analog Keys - Square", profile = "keys_analog_square", family = "keys" },
+  { name = "Analog Keys - Triangle", profile = "keys_analog_triangle", family = "keys" },
+  { name = "Analog Keys - Mixed", profile = "keys_analog_mixed", family = "keys" },
+  { name = "Vintage Synth Keys", profile = "keys_vintage_synth", family = "keys" },
+  { name = "Digital Keys - Complex", profile = "keys_digital_complex", family = "keys" },
+  { name = "Soft Keys", profile = "keys_soft", family = "keys" },
+  { name = "Hard/Percussive Keys", profile = "keys_hard_percussive", family = "keys" },
+  { name = "Plucked Keys", profile = "keys_plucked", family = "keys" },
+  { name = "Key-Pad Hybrid", profile = "keys_pad_hybrid", family = "keys" },
+  
+  -- ========================================================================
+  -- B. MALLETS, BELLS & STRUCK TONES (14 categories)
+  -- ========================================================================
+  { name = "Mallets - Sine", profile = "mallet_sine", family = "bell" },
+  { name = "Mallets - Triangle", profile = "mallet_triangle", family = "bell" },
+  { name = "Mallets - Inharmonic", profile = "mallet_inharmonic", family = "bell" },
+  { name = "Mallets - FM", profile = "mallet_fm", family = "bell" },
+  { name = "Wooden Mallet", profile = "mallet_wooden", family = "bell" },
+  { name = "Metallic Mallet", profile = "mallet_metallic", family = "bell" },
+  { name = "Bells - Pure Sine", profile = "bell_pure_sine", family = "bell" },
+  { name = "Bells - Inharmonic", profile = "bell_inharmonic", family = "bell" },
+  { name = "Bells - Glassy", profile = "bell_glassy", family = "bell" },
+  { name = "Bells - Digital/FM", profile = "bell_digital_fm", family = "bell" },
+  { name = "Bells - Gamelan", profile = "bell_gamelan", family = "bell" },
+  { name = "Bells - Cinematic", profile = "bell_cinematic", family = "bell" },
+  { name = "Music Box", profile = "music_box", family = "bell" },
+  { name = "Toy/Clockwork", profile = "toy_clockwork", family = "bell" },
+  
+  -- ========================================================================
+  -- C. PADS (17 categories)
+  -- ========================================================================
+  { name = "Analog Pad - Saw", profile = "pad_analog_saw", family = "pad" },
+  { name = "Analog Pad - Square", profile = "pad_analog_square", family = "pad" },
+  { name = "Analog Pad - Triangle", profile = "pad_analog_triangle", family = "pad" },
+  { name = "Analog Pad - Mixed", profile = "pad_analog_mixed", family = "pad" },
+  { name = "Warm Pad", profile = "pad_warm", family = "pad" },
+  { name = "Dark Pad", profile = "pad_dark", family = "pad" },
+  { name = "Bright Pad", profile = "pad_bright", family = "pad" },
+  { name = "Digital Pad", profile = "pad_digital", family = "pad" },
+  { name = "Motion Pad", profile = "pad_motion", family = "pad" },
+  { name = "Evolving Pad - Multi-Frame", profile = "pad_evolving_multi", family = "pad" },
+  { name = "Static Pad", profile = "pad_static", family = "pad" },
+  { name = "Ambient Pad", profile = "pad_ambient", family = "pad" },
+  { name = "Cinematic Pad", profile = "pad_cinematic", family = "pad" },
+  { name = "Air Pad", profile = "pad_air", family = "pad" },
+  { name = "Choir-Like Pad", profile = "pad_choir", family = "pad" },
+  { name = "Detuned Pad", profile = "pad_detuned", family = "pad" },
+  { name = "Wide Stereo Pad", profile = "pad_wide_stereo", family = "pad" },
+  
+  -- ========================================================================
+  -- D. DRONES & ATMOSPHERES (10 categories)
+  -- ========================================================================
+  { name = "Static Harmonic Drone", profile = "drone_static_harmonic", family = "drone" },
+  { name = "Evolving Drone", profile = "drone_evolving", family = "drone" },
+  { name = "Noise Drone", profile = "drone_noise", family = "drone" },
+  { name = "Sub Drone", profile = "drone_sub", family = "drone" },
+  { name = "Cinematic Atmosphere", profile = "atmosphere_cinematic", family = "drone" },
+  { name = "Sci-Fi Atmosphere", profile = "atmosphere_scifi", family = "drone" },
+  { name = "Dark Ambient Bed", profile = "atmosphere_dark_ambient", family = "drone" },
+  { name = "Industrial Bed", profile = "atmosphere_industrial", family = "drone" },
+  { name = "Tonal Background", profile = "atmosphere_tonal", family = "drone" },
+  { name = "Dissonant Field", profile = "atmosphere_dissonant", family = "drone" },
+  
+  -- ========================================================================
+  -- E. LEADS - SAW FAMILY (10 categories)
+  -- ========================================================================
+  { name = "Saw Lead - Mono", profile = "lead_saw_mono", family = "lead" },
+  { name = "Saw Lead - Poly", profile = "lead_saw_poly", family = "lead" },
+  { name = "Supersaw Lead", profile = "lead_supersaw", family = "lead" },
+  { name = "Soft Saw Lead", profile = "lead_saw_soft", family = "lead" },
+  { name = "Bright Saw Lead", profile = "lead_saw_bright", family = "lead" },
+  { name = "Detuned Saw Lead", profile = "lead_saw_detuned", family = "lead" },
+  { name = "Vintage Saw Lead", profile = "lead_saw_vintage", family = "lead" },
+  { name = "Digital Saw Lead", profile = "lead_saw_digital", family = "lead" },
+  { name = "Trance Lead", profile = "lead_trance", family = "lead" },
+  { name = "EDM Festival Lead", profile = "lead_edm_festival", family = "lead" },
+  
+  -- ========================================================================
+  -- F. LEADS - SQUARE/PULSE FAMILY (8 categories)
+  -- ========================================================================
+  { name = "Square Lead", profile = "lead_square", family = "lead" },
+  { name = "Pulse Lead", profile = "lead_pulse", family = "lead" },
+  { name = "PWM Lead", profile = "lead_pwm", family = "lead" },
+  { name = "Hollow Square Lead", profile = "lead_hollow_square", family = "lead" },
+  { name = "Retro Game Lead", profile = "lead_retro_game", family = "lead" },
+  { name = "Chiptune Lead", profile = "lead_chiptune", family = "lead" },
+  { name = "Analog Square Lead", profile = "lead_analog_square", family = "lead" },
+  { name = "Digital Square Lead", profile = "lead_digital_square", family = "lead" },
+  
+  -- ========================================================================
+  -- G. LEADS - SINE/TRIANGLE FAMILY (6 categories)
+  -- ========================================================================
+  { name = "Sine Lead", profile = "lead_sine", family = "lead" },
+  { name = "Triangle Lead", profile = "lead_triangle", family = "lead" },
+  { name = "Soft Expressive Lead", profile = "lead_soft_expressive", family = "lead" },
+  { name = "Whistle Lead", profile = "lead_whistle", family = "lead" },
+  { name = "Minimal Lead", profile = "lead_minimal", family = "lead" },
+  { name = "Ambient Lead", profile = "lead_ambient", family = "lead" },
+  
+  -- ========================================================================
+  -- H. LEADS - COMPLEX/AGGRESSIVE (7 categories)
+  -- ========================================================================
+  { name = "Hybrid Lead", profile = "lead_hybrid", family = "lead" },
+  { name = "Digital Aggressive Lead", profile = "lead_digital_aggressive", family = "lead" },
+  { name = "FM Lead", profile = "lead_fm_inspired", family = "lead" },
+  { name = "Acid Lead", profile = "lead_acid", family = "lead" },
+  { name = "Distorted Lead", profile = "lead_distorted", family = "lead" },
+  { name = "Neuro Lead", profile = "lead_neuro", family = "lead" },
+  { name = "Dubstep Lead", profile = "lead_dubstep", family = "lead" },
+  
+  -- ========================================================================
+  -- I. VOCAL, FORMANT & ORGANIC (7 categories)
+  -- ========================================================================
+  { name = "Vocal Pad - Vowel", profile = "vocal_pad_vowel", family = "vocal" },
+  { name = "Vocal Lead - Formant", profile = "vocal_lead_formant", family = "vocal" },
+  { name = "Choir Illusion", profile = "vocal_choir", family = "vocal" },
+  { name = "Talking Synth", profile = "vocal_talking", family = "vocal" },
+  { name = "Breath/Air Synth", profile = "vocal_breath", family = "vocal" },
+  { name = "Whisper Pad", profile = "vocal_whisper", family = "vocal" },
+  { name = "Organic Motion", profile = "vocal_organic", family = "vocal" },
+  
+  -- ========================================================================
+  -- J. BASSES - SUB & CLEAN (7 categories)
+  -- ========================================================================
+  { name = "Sub Bass - Sine", profile = "bass_sub_sine", family = "bass" },
+  { name = "Sub Bass - Triangle", profile = "bass_sub_triangle", family = "bass" },
+  { name = "Clean Bass", profile = "bass_clean", family = "bass" },
+  { name = "Mono Bass", profile = "bass_mono", family = "bass" },
+  { name = "Analog Sub", profile = "bass_analog_sub", family = "bass" },
+  { name = "Digital Sub", profile = "bass_digital_sub", family = "bass" },
+  { name = "808 Bass", profile = "bass_808", family = "bass" },
+  
+  -- ========================================================================
+  -- K. BASSES - SAW/SQUARE (8 categories)
+  -- ========================================================================
+  { name = "Saw Bass", profile = "bass_saw", family = "bass" },
+  { name = "Square Bass", profile = "bass_square", family = "bass" },
+  { name = "Detuned Bass", profile = "bass_detuned", family = "bass" },
+  { name = "Reese Bass", profile = "bass_reese", family = "bass" },
+  { name = "Acid Bass", profile = "bass_acid", family = "bass" },
+  { name = "Vintage Bass", profile = "bass_vintage", family = "bass" },
+  { name = "Techno Bass", profile = "bass_techno", family = "bass" },
+  { name = "House Bass", profile = "bass_house", family = "bass" },
+  
+  -- ========================================================================
+  -- L. BASSES - COMPLEX/MODERN (9 categories)
+  -- ========================================================================
+  { name = "Wobble Bass", profile = "bass_wobble", family = "bass" },
+  { name = "Growl Bass", profile = "bass_growl", family = "bass" },
+  { name = "FM Bass", profile = "bass_fm", family = "bass" },
+  { name = "Talking Bass", profile = "bass_talking", family = "bass" },
+  { name = "Distorted Bass", profile = "bass_distorted", family = "bass" },
+  { name = "Neuro Bass", profile = "bass_neuro", family = "bass" },
+  { name = "Dubstep Bass", profile = "bass_dubstep", family = "bass" },
+  { name = "Trap Bass", profile = "bass_trap", family = "bass" },
+  { name = "Drill Bass", profile = "bass_drill", family = "bass" },
+  
+  -- ========================================================================
+  -- M. PLUCKS (7 categories)
+  -- ========================================================================
+  { name = "Soft Pluck", profile = "pluck_soft_gentle", family = "pluck" },
+  { name = "Hard Pluck", profile = "pluck_hard", family = "pluck" },
+  { name = "Digital Pluck", profile = "pluck_digital", family = "pluck" },
+  { name = "Analog Pluck", profile = "pluck_analog", family = "pluck" },
+  { name = "FM Pluck", profile = "pluck_fm", family = "pluck" },
+  { name = "Bell Pluck", profile = "pluck_bell", family = "pluck" },
+  { name = "Short Percussive Pluck", profile = "pluck_short_perc", family = "pluck" },
+  
+  -- ========================================================================
+  -- N. ARPS & SEQUENCED (7 categories)
+  -- ========================================================================
+  { name = "Synth Arp", profile = "arp_synth", family = "arp" },
+  { name = "Pluck Arp", profile = "arp_pluck", family = "arp" },
+  { name = "Polyphonic Arp", profile = "arp_poly", family = "arp" },
+  { name = "Monophonic Arp", profile = "arp_mono", family = "arp" },
+  { name = "Rhythmic Sequence", profile = "arp_rhythmic", family = "arp" },
+  { name = "Gated Synth", profile = "arp_gated", family = "arp" },
+  { name = "Pulsing Pad", profile = "arp_pulsing", family = "arp" },
+  
+  -- ========================================================================
+  -- O. SYNTH STRINGS (8 categories)
+  -- ========================================================================
+  { name = "Synth Strings - Saw", profile = "strings_synth_saw", family = "strings" },
+  { name = "Synth Strings - Square", profile = "strings_synth_square", family = "strings" },
+  { name = "Synth Strings - Mixed", profile = "strings_synth_mixed", family = "strings" },
+  { name = "Warm String Pad", profile = "strings_warm_pad", family = "strings" },
+  { name = "Ensemble Strings", profile = "strings_ensemble", family = "strings" },
+  { name = "Cinematic Strings", profile = "strings_cinematic", family = "strings" },
+  { name = "Motion Strings", profile = "strings_motion", family = "strings" },
+  { name = "Vintage String Machine", profile = "strings_vintage_machine", family = "strings" },
+  
+  -- ========================================================================
+  -- P. SYNTH BRASS (7 categories)
+  -- ========================================================================
+  { name = "Synth Brass - Saw", profile = "brass_synth_saw", family = "brass" },
+  { name = "Synth Brass - Square", profile = "brass_synth_square", family = "brass" },
+  { name = "Soft Brass Pad", profile = "brass_soft_pad", family = "brass" },
+  { name = "Stab Brass", profile = "brass_stab", family = "brass" },
+  { name = "Funk Brass", profile = "brass_funk", family = "brass" },
+  { name = "Cinematic Brass", profile = "brass_cinematic", family = "brass" },
+  { name = "Hybrid Brass", profile = "brass_hybrid", family = "brass" },
+  
+  -- ========================================================================
+  -- Q. FX & SOUND DESIGN (8 categories)
+  -- ========================================================================
+  { name = "Riser", profile = "fx_riser", family = "fx" },
+  { name = "Downlifter", profile = "fx_downlifter", family = "fx" },
+  { name = "Impact", profile = "fx_impact", family = "fx" },
+  { name = "Sweep", profile = "fx_sweep", family = "fx" },
+  { name = "Whoosh", profile = "fx_whoosh", family = "fx" },
+  { name = "Glitch FX", profile = "fx_glitch", family = "fx" },
+  { name = "Noise FX", profile = "fx_noise", family = "fx" },
+  { name = "Tonal FX", profile = "fx_tonal", family = "fx" },
+  
+  -- ========================================================================
+  -- R. META & EXPERIMENTAL (7 categories)
+  -- ========================================================================
+  { name = "Vector Synth", profile = "meta_vector", family = "experimental" },
+  { name = "Meta-Wavetable", profile = "meta_wavetable", family = "experimental" },
+  { name = "Multi-Level Frame Morph", profile = "meta_frame_morph", family = "experimental" },
+  { name = "Frame-of-Frames", profile = "meta_frame_of_frames", family = "experimental" },
+  { name = "Self-Modulating Spectral", profile = "meta_self_modulating", family = "experimental" },
+  { name = "Genre-Cross Hybrid", profile = "meta_genre_cross", family = "experimental" },
+  { name = "Impossible Instrument", profile = "meta_impossible", family = "experimental" },
+  
+  -- ========================================================================
+  -- LEGACY CATEGORIES (kept for backward compatibility)
+  -- ========================================================================
+  { name = "[Legacy] Mono Bass", profile = "bass_tight", family = "bass" },
+  { name = "[Legacy] Sub Bass", profile = "bass_sustain", family = "bass" },
+  { name = "[Legacy] Acid Bass", profile = "bass_filter", family = "bass" },
+  { name = "[Legacy] Reese Bass", profile = "bass_wide", family = "bass" },
+  { name = "[Legacy] FM Bass", profile = "bass_dynamic", family = "bass" },
+  { name = "[Legacy] Pluck", profile = "pluck_short", family = "pluck" },
+  { name = "[Legacy] Harp/Guitar", profile = "pluck_natural", family = "pluck" },
+  { name = "[Legacy] Mallet", profile = "pluck_percussive", family = "pluck" },
+  { name = "[Legacy] Kalimba", profile = "pluck_soft", family = "pluck" },
+  { name = "[Legacy] Lead (Mono)", profile = "lead_expressive", family = "lead" },
+  { name = "[Legacy] Lead (Poly)", profile = "lead_smooth", family = "lead" },
+  { name = "[Legacy] Square Lead", profile = "lead_classic", family = "lead" },
+  { name = "[Legacy] Supersaw Lead", profile = "lead_wide", family = "lead" },
+  { name = "[Legacy] Portamento Lead", profile = "lead_glide", family = "lead" },
+  { name = "[Legacy] Pad", profile = "pad_slow", family = "pad" },
+  { name = "[Legacy] Ambient Pad", profile = "pad_evolving", family = "pad" },
+  { name = "[Legacy] String Pad", profile = "pad_ensemble", family = "pad" },
+  { name = "[Legacy] Choir/Vocal Pad", profile = "pad_formant", family = "pad" },
+  { name = "[Legacy] Keys/EP", profile = "keys_dynamic", family = "keys" },
+  { name = "[Legacy] Organ", profile = "keys_sustain", family = "keys" },
+  { name = "[Legacy] Piano-like", profile = "keys_velocity", family = "keys" },
+  { name = "[Legacy] Arp", profile = "arp_tight", family = "arp" },
+  { name = "[Legacy] Sequenced", profile = "arp_gated", family = "arp" },
+  { name = "[Legacy] One-Note Sequence", profile = "arp_rhythmic", family = "arp" },
+  { name = "[Legacy] FX/Risers", profile = "fx_envelope", family = "fx" },
+  { name = "[Legacy] FX/Impacts", profile = "fx_percussive", family = "fx" },
+  { name = "[Legacy] FX/Drones", profile = "fx_sustain", family = "fx" },
+  { name = "[Legacy] Experimental", profile = "neutral_flat", family = "neutral" },
+  { name = "[Legacy] Raw Oscillator", profile = "neutral_none", family = "neutral" }
 }
 
 -- Profile names list for UI dropdowns and randomization
 PakettiMetaSynthModulationProfileNames = {
   -- Neutral
   "neutral_flat", "neutral_none",
-  -- Bass
+  -- Bass (Original)
   "bass_tight", "bass_sustain", "bass_filter", "bass_wide", "bass_dynamic",
-  -- Pluck
+  -- Pluck (Original)
   "pluck_short", "pluck_natural", "pluck_percussive", "pluck_soft",
-  -- Lead
+  -- Lead (Original)
   "lead_expressive", "lead_smooth", "lead_classic", "lead_wide", "lead_glide",
-  -- Pad
+  -- Pad (Original)
   "pad_slow", "pad_evolving", "pad_ensemble", "pad_formant",
-  -- Keys
+  -- Keys (Original)
   "keys_dynamic", "keys_sustain", "keys_velocity",
-  -- Arp
+  -- Arp (Original)
   "arp_tight", "arp_gated", "arp_rhythmic",
-  -- FX
+  -- FX (Original)
   "fx_envelope", "fx_percussive", "fx_sustain",
   -- Orchestral
   "strings", "brass",
   -- Bell
   "bell",
   -- Legacy (kept for compatibility)
-  "default", "pluck", "bass", "pad", "lead", "organ", "keys", "percussive"
+  "default", "pluck", "bass", "pad", "lead", "organ", "keys", "percussive",
+  
+  -- ========================================================================
+  -- GENERATED PROFILES (172 new profiles)
+  -- ========================================================================
+  
+  -- Category A: Keys & Piano (25)
+  "keys_piano_spectral_sine", "keys_piano_spectral_additive", "keys_piano_bright",
+  "keys_piano_soft", "keys_piano_lofi", "keys_piano_cinematic", "keys_piano_prepared",
+  "keys_upright", "keys_toy_piano", "keys_hybrid_synth", "keys_ep_sine", "keys_ep_fm",
+  "keys_ep_bell", "keys_ep_digital", "keys_ep_warm", "keys_analog_saw", "keys_analog_square",
+  "keys_analog_triangle", "keys_analog_mixed", "keys_vintage_synth", "keys_digital_complex",
+  "keys_soft", "keys_hard_percussive", "keys_plucked", "keys_pad_hybrid",
+  
+  -- Category B: Mallets/Bells (14)
+  "mallet_sine", "mallet_triangle", "mallet_inharmonic", "mallet_fm", "mallet_wooden",
+  "mallet_metallic", "bell_pure_sine", "bell_inharmonic", "bell_glassy", "bell_digital_fm",
+  "bell_gamelan", "bell_cinematic", "music_box", "toy_clockwork",
+  
+  -- Category C: Pads (17)
+  "pad_analog_saw", "pad_analog_square", "pad_analog_triangle", "pad_analog_mixed",
+  "pad_warm", "pad_dark", "pad_bright", "pad_digital", "pad_motion", "pad_evolving_multi",
+  "pad_static", "pad_ambient", "pad_cinematic", "pad_air", "pad_choir", "pad_detuned",
+  "pad_wide_stereo",
+  
+  -- Category D: Drones/Atmospheres (10)
+  "drone_static_harmonic", "drone_evolving", "drone_noise", "drone_sub",
+  "atmosphere_cinematic", "atmosphere_scifi", "atmosphere_dark_ambient",
+  "atmosphere_industrial", "atmosphere_tonal", "atmosphere_dissonant",
+  
+  -- Category E: Leads - Saw (10)
+  "lead_saw_mono", "lead_saw_poly", "lead_supersaw", "lead_saw_soft", "lead_saw_bright",
+  "lead_saw_detuned", "lead_saw_vintage", "lead_saw_digital", "lead_trance", "lead_edm_festival",
+  
+  -- Category F: Leads - Square/Pulse (8)
+  "lead_square", "lead_pulse", "lead_pwm", "lead_hollow_square", "lead_retro_game",
+  "lead_chiptune", "lead_analog_square", "lead_digital_square",
+  
+  -- Category G: Leads - Sine/Triangle (6)
+  "lead_sine", "lead_triangle", "lead_soft_expressive", "lead_whistle", "lead_minimal",
+  "lead_ambient",
+  
+  -- Category H: Leads - Complex/Aggressive (7)
+  "lead_hybrid", "lead_digital_aggressive", "lead_fm_inspired", "lead_acid",
+  "lead_distorted", "lead_neuro", "lead_dubstep",
+  
+  -- Category I: Vocal/Formant (7)
+  "vocal_pad_vowel", "vocal_lead_formant", "vocal_choir", "vocal_talking",
+  "vocal_breath", "vocal_whisper", "vocal_organic",
+  
+  -- Category J: Basses - Sub/Clean (7)
+  "bass_sub_sine", "bass_sub_triangle", "bass_clean", "bass_mono",
+  "bass_analog_sub", "bass_digital_sub", "bass_808",
+  
+  -- Category K: Basses - Saw/Square (8)
+  "bass_saw", "bass_square", "bass_detuned", "bass_reese", "bass_acid",
+  "bass_vintage", "bass_techno", "bass_house",
+  
+  -- Category L: Basses - Complex/Modern (9)
+  "bass_wobble", "bass_growl", "bass_fm", "bass_talking", "bass_distorted",
+  "bass_neuro", "bass_dubstep", "bass_trap", "bass_drill",
+  
+  -- Category M: Plucks (7)
+  "pluck_soft_gentle", "pluck_hard", "pluck_digital", "pluck_analog", "pluck_fm",
+  "pluck_bell", "pluck_short_perc",
+  
+  -- Category N: Arps/Sequenced (7)
+  "arp_synth", "arp_pluck", "arp_poly", "arp_mono", "arp_rhythmic", "arp_gated", "arp_pulsing",
+  
+  -- Category O: Synth Strings (8)
+  "strings_synth_saw", "strings_synth_square", "strings_synth_mixed", "strings_warm_pad",
+  "strings_ensemble", "strings_cinematic", "strings_motion", "strings_vintage_machine",
+  
+  -- Category P: Synth Brass (7)
+  "brass_synth_saw", "brass_synth_square", "brass_soft_pad", "brass_stab", "brass_funk",
+  "brass_cinematic", "brass_hybrid",
+  
+  -- Category Q: FX/Sound Design (8)
+  "fx_riser", "fx_downlifter", "fx_impact", "fx_sweep", "fx_whoosh", "fx_glitch",
+  "fx_noise", "fx_tonal",
+  
+  -- Category R: Meta/Experimental (7)
+  "meta_vector", "meta_wavetable", "meta_frame_morph", "meta_frame_of_frames",
+  "meta_self_modulating", "meta_genre_cross", "meta_impossible"
 }
 
 -- Sound Category names for UI dropdown
@@ -4400,6 +6191,9 @@ function PakettiMetaSynthCreateDefaultArchitecture()
       -- Optional: custom modulation settings that bypass profile entirely
       -- When set, these values override the profile's modulation settings
       custom_modulation = nil,
+      -- Global tempo sync: when true, all AHDSR and LFO devices will be tempo-synced
+      -- This allows envelope times to be in beat divisions instead of milliseconds
+      tempo_synced = false,
     },
     
     -- ================================================================
@@ -5837,6 +7631,8 @@ function PakettiMetaSynthCreateModulationSet(instrument, set_name)
 end
 
 -- Add an AHDSR device to a modulation set
+-- params can include: attack, hold, decay, sustain, release (0-1 range)
+-- Optional: tempo_synced (boolean) - if true, times are beat-synced instead of ms
 function PakettiMetaSynthAddAHDSRToModSet(mod_set, target_type, params)
   params = params or {}
   
@@ -5861,6 +7657,16 @@ function PakettiMetaSynthAddAHDSRToModSet(mod_set, target_type, params)
   local device = mod_set.devices[device_index]
   
   if device then
+    -- Enable tempo sync if requested and device supports it
+    if params.tempo_synced then
+      if device.tempo_sync_switching_allowed then
+        device.tempo_synced = true
+        print("PakettiMetaSynth: AHDSR tempo sync enabled")
+      else
+        print("PakettiMetaSynth: AHDSR device does not support tempo sync switching")
+      end
+    end
+    
     -- Set AHDSR parameters (clamped to 0-1 range as required by Renoise API)
     if params.attack and device.attack then
       device.attack.value = math.min(1, math.max(0, params.attack))
@@ -5883,6 +7689,8 @@ function PakettiMetaSynthAddAHDSRToModSet(mod_set, target_type, params)
 end
 
 -- Add an LFO device to a modulation set
+-- params can include: frequency, amount (0-1 range), mode (waveform), phase_mode, phase
+-- Optional: tempo_synced (boolean) - if true, frequency is beat-synced instead of Hz
 function PakettiMetaSynthAddLFOToModSet(mod_set, target_type, params)
   params = params or {}
   
@@ -5906,6 +7714,16 @@ function PakettiMetaSynthAddLFOToModSet(mod_set, target_type, params)
   local device = mod_set.devices[device_index]
   
   if device then
+    -- Enable tempo sync if requested and device supports it
+    if params.tempo_synced then
+      if device.tempo_sync_switching_allowed then
+        device.tempo_synced = true
+        print("PakettiMetaSynth: LFO tempo sync enabled")
+      else
+        print("PakettiMetaSynth: LFO device does not support tempo sync switching")
+      end
+    end
+    
     -- Clamp frequency and amount to 0-1 range as required by Renoise API
     if params.frequency and device.frequency then
       device.frequency.value = math.min(1, math.max(0, params.frequency))
@@ -6103,7 +7921,8 @@ end
 
 -- Apply modulation rules directly (bypasses profile lookup)
 -- This is used when modulation has been resolved via PakettiMetaSynthResolveModulationProfile
-function PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
+-- Optional third parameter: architecture - if provided, uses architecture.modulation_layer.tempo_synced
+function PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules, architecture)
   if not modulation_rules then
     print("PakettiMetaSynth: No modulation rules provided")
     return false
@@ -6115,14 +7934,34 @@ function PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
   -- Use the modulation rules directly (same logic as ApplyModulationProfile)
   local profile = modulation_rules
   
+  -- Check for global tempo sync setting from architecture
+  local global_tempo_synced = false
+  if architecture and architecture.modulation_layer and architecture.modulation_layer.tempo_synced then
+    global_tempo_synced = true
+  end
+  
+  -- Helper to merge tempo_synced into params
+  local function with_tempo_sync(params)
+    if params then
+      -- Use profile-specific tempo_synced if set, otherwise use global setting
+      if params.tempo_synced == nil and global_tempo_synced then
+        local merged = {}
+        for k, v in pairs(params) do merged[k] = v end
+        merged.tempo_synced = true
+        return merged
+      end
+    end
+    return params
+  end
+  
   -- Add Volume AHDSR if defined
   if profile.volume_ahdsr then
-    PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, profile.volume_ahdsr)
+    PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, with_tempo_sync(profile.volume_ahdsr))
   end
   
   -- Add Filter AHDSR if defined
   if profile.filter_ahdsr then
-    PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, profile.filter_ahdsr)
+    PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, with_tempo_sync(profile.filter_ahdsr))
   end
   
   -- Add Pitch AHDSR if defined
@@ -6132,9 +7971,10 @@ function PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
       hold = profile.pitch_ahdsr.hold,
       decay = profile.pitch_ahdsr.decay,
       sustain = profile.pitch_ahdsr.sustain,
-      release = profile.pitch_ahdsr.release
+      release = profile.pitch_ahdsr.release,
+      tempo_synced = profile.pitch_ahdsr.tempo_synced
     }
-    local pitch_env = PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, pitch_params)
+    local pitch_env = PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, with_tempo_sync(pitch_params))
     -- Note: SampleAhdsrModulationDevice does not have an 'amplitude' property
     -- Pitch envelope intensity is controlled by mod_set.pitch_range instead
   end
@@ -6153,19 +7993,19 @@ function PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
     })
   end
   
-  -- Add Volume LFO (tremolo) if defined
+  -- Add Volume LFO (tremolo) if defined (with global tempo sync support)
   if profile.volume_lfo then
-    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, profile.volume_lfo)
+    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_VOLUME, with_tempo_sync(profile.volume_lfo))
   end
   
-  -- Add Pitch LFO (vibrato) if defined
+  -- Add Pitch LFO (vibrato) if defined (with global tempo sync support)
   if profile.pitch_lfo then
-    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, profile.pitch_lfo)
+    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, with_tempo_sync(profile.pitch_lfo))
   end
   
-  -- Add Filter LFO if defined
+  -- Add Filter LFO if defined (with global tempo sync support)
   if profile.filter_lfo then
-    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, profile.filter_lfo)
+    PakettiMetaSynthAddLFOToModSet(mod_set, renoise.SampleModulationDevice.TARGET_CUTOFF, with_tempo_sync(profile.filter_lfo))
   end
   
   -- Set filter type and parameters if filter cutoff or resonance is defined
@@ -9131,7 +10971,7 @@ function PakettiMetaSynthGenerateInstrument(architecture)
       -- Apply modulation profile (GESTURE layer - voice articulation)
       -- Use modulation-specific resolution that checks architecture.modulation_layer first
       local modulation_rules = PakettiMetaSynthResolveModulationProfile(osc, group, architecture)
-      PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
+      PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules, architecture)
       
       -- Get detune and pan spread values (with defaults)
       local detune_spread = osc.detune_spread or 10
@@ -9656,7 +11496,7 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
       -- Apply modulation profile (GESTURE layer - voice articulation)
       -- Use modulation-specific resolution that checks architecture.modulation_layer first
       local modulation_rules = PakettiMetaSynthResolveModulationProfile(osc, group, architecture)
-      PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules)
+      PakettiMetaSynthApplyModulationRules(mod_set, modulation_rules, architecture)
       
       -- ================================================================
       -- LOAD SAMPLES - ALL go to SOURCE CHAIN
@@ -12828,7 +14668,18 @@ function PakettiMetaSynthBuildDialogContent()
         text = "",
         width = 200,
         font = "italic"
-      }
+      },
+      vb:checkbox {
+        id = "mod_tempo_sync",
+        value = arch.modulation_layer and arch.modulation_layer.tempo_synced or false,
+        tooltip = "Enable tempo sync for all modulation devices (AHDSR, LFO)",
+        notifier = function(value)
+          arch.modulation_layer = arch.modulation_layer or {}
+          arch.modulation_layer.tempo_synced = value
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      vb:text { text = "Tempo Sync", width = 70 }
     },
     
     -- Two-column layout
