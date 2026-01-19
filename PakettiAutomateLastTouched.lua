@@ -37,6 +37,7 @@ local global_last_touched_is_instrument = false
 local persistent_parameter_observers = {}
 local track_change_observer = nil
 local device_list_observers = {}  -- Track -> observer for devices_observable
+local persistent_setup_timer = nil  -- Timer function reference for persistent watching setup
 
 --------------------------------------------------------------------------------
 -- Helper: Get preference value with fallback
@@ -629,11 +630,21 @@ function PakettiAutomateLastTouchedOnSongChange()
   -- Re-setup persistent watching if mode requires it
   local watching_mode = PakettiAutomateLastTouchedGetPref("WatchingMode", WATCHING_MODE_SHORTCUT_FIRST)
   if watching_mode == WATCHING_MODE_TRACK_WATCHING or watching_mode == WATCHING_MODE_ALWAYS_WATCHING then
+    -- Remove existing timer if it exists
+    if persistent_setup_timer and renoise.tool():has_timer(persistent_setup_timer) then
+      renoise.tool():remove_timer(persistent_setup_timer)
+    end
+    
     -- Delay setup to ensure song is fully loaded
-    renoise.tool():add_timer(function()
-      renoise.tool():remove_timer(PakettiAutomateLastTouchedSetupPersistentWatching)
+    persistent_setup_timer = function()
+      if persistent_setup_timer and renoise.tool():has_timer(persistent_setup_timer) then
+        renoise.tool():remove_timer(persistent_setup_timer)
+      end
+      persistent_setup_timer = nil
       PakettiAutomateLastTouchedSetupPersistentWatching()
-    end, 100)
+    end
+    
+    renoise.tool():add_timer(persistent_setup_timer, 100)
   end
 end
 
@@ -650,11 +661,22 @@ function PakettiAutomateLastTouchedInitialize()
   
   if watching_mode == WATCHING_MODE_TRACK_WATCHING or watching_mode == WATCHING_MODE_ALWAYS_WATCHING then
     print("AUTOMATE_LAST_TOUCHED: Initializing persistent watching on tool load")
+    
+    -- Remove existing timer if it exists
+    if persistent_setup_timer and renoise.tool():has_timer(persistent_setup_timer) then
+      renoise.tool():remove_timer(persistent_setup_timer)
+    end
+    
     -- Delay to ensure song is loaded
-    renoise.tool():add_timer(function()
-      renoise.tool():remove_timer(PakettiAutomateLastTouchedSetupPersistentWatching)
+    persistent_setup_timer = function()
+      if persistent_setup_timer and renoise.tool():has_timer(persistent_setup_timer) then
+        renoise.tool():remove_timer(persistent_setup_timer)
+      end
+      persistent_setup_timer = nil
       PakettiAutomateLastTouchedSetupPersistentWatching()
-    end, 500)
+    end
+    
+    renoise.tool():add_timer(persistent_setup_timer, 500)
   end
 end
 
