@@ -6298,6 +6298,18 @@ PakettiMetaSynthOscillatorGroupsProfileNames, PakettiMetaSynthOscillatorGroupsPr
     return layer.crossfade_enabled == true
   end)
 
+-- GROUP CROSSFADE: Only show profiles where group_frame.enabled = true
+PakettiMetaSynthGroupCrossfadeProfileNames, PakettiMetaSynthGroupCrossfadeProfileDisplay = 
+  PakettiMetaSynthGetFilteredProfiles("group_frame", function(layer)
+    return layer.enabled == true
+  end)
+
+-- GROUP FX: Only show profiles where oscillator_groups.group_master_fx_enabled = true
+PakettiMetaSynthGroupFXProfileNames, PakettiMetaSynthGroupFXProfileDisplay = 
+  PakettiMetaSynthGetFilteredProfiles("oscillator_groups", function(layer)
+    return layer.group_master_fx_enabled == true
+  end)
+
 -- MODULATION: Only show profiles where modulation.enabled ~= false (default enabled)
 PakettiMetaSynthModulationProfileFilteredNames, PakettiMetaSynthModulationProfileFilteredDisplay = 
   PakettiMetaSynthGetFilteredProfiles("modulation", function(layer)

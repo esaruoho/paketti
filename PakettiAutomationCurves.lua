@@ -11,6 +11,7 @@ PakettiAutomationCurvesOffset = 0.0
 PakettiAutomationCurvesAttenuation = 1.0
 PakettiAutomationCurvesInputDivisor = 1
 PakettiAutomationCurvesStepLength = 4
+PakettiAutomationCurvesMoveBySelection = false
 
 -- Shape data (initialized at load time)
 PakettiAutomationCurvesShapes = nil
@@ -392,6 +393,28 @@ function PakettiAutomationCurvesInsert(shape_name)
       new_line = new_line - num_lines
     end
     rs.selected_line_index = new_line
+  end
+  
+  -- Move selection forward if checkbox is enabled and there was a selection
+  if PakettiAutomationCurvesMoveBySelection and selection and selection[1] and selection[2] then
+    local selection_length = end_line - start_line
+    local new_start = end_line
+    local new_end = end_line + selection_length
+    
+    -- Handle pattern boundary: clamp to pattern end if selection would exceed it
+    if new_end > num_lines then
+      new_end = num_lines
+      -- Adjust start to maintain selection length if possible
+      new_start = math.max(1, new_end - selection_length)
+    end
+    
+    -- Set new selection range
+    automation.selection_range = {new_start, new_end}
+    
+    -- Move cursor to new selection start
+    rs.selected_line_index = new_start
+    
+    print("PakettiAutomationCurves: Moved selection from " .. start_line .. "-" .. end_line .. " to " .. new_start .. "-" .. new_end)
   end
   
   local label = shape.label or shape_name
@@ -856,6 +879,18 @@ function PakettiAutomationCurvesShowDialog()
               vb.views.step_length.value = PakettiAutomationCurvesStepLength
             end
           }
+        },
+        
+        -- Move by selection checkbox
+        vb:row{
+          vb:checkbox{
+            id = "move_by_selection",
+            value = PakettiAutomationCurvesMoveBySelection,
+            notifier = function(value)
+              PakettiAutomationCurvesMoveBySelection = value
+            end
+          },
+          vb:text{text = "Move by selection"}
         },
         
         -- Input divisor switch
