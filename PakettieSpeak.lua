@@ -413,9 +413,6 @@ function PakettieSpeakShowInstallDialog()
   install_dialog = renoise.app():show_custom_dialog("eSpeak Installation Required", dialog_content)
 end
 
--- Initialize default_executable using auto-detection
-local default_executable = PakettieSpeakGuessExecutable() or PakettieSpeakGetDefaultPath()
-
 -- Helper function to extract string value from observable or convert to string
 function PakettieSpeakGetStringValue(value)
   if type(value) == "userdata" then

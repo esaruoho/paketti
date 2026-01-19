@@ -906,5 +906,3 @@ renoise.tool():add_midi_mapping{
     end
   end
 }
-
-print("PakettiAutomateLastTouched.lua loaded")

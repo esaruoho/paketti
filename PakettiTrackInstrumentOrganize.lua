@@ -442,5 +442,3 @@ renoise.tool():add_midi_mapping{
     end
   end
 }
-
-print("PakettiTrackInstrumentOrganize.lua loaded")

@@ -1733,5 +1733,3 @@ renoise.tool():add_midi_mapping{
     end
   end
 }
-
-print("PakettiCommandWheel.lua loaded")

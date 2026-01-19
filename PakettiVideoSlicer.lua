@@ -1020,7 +1020,6 @@ PakettiVideoSlicerDetectYTDLPPath()
 -- Start the ping file watcher
 PakettiVideoSlicerStartPingWatcher()
 
-print("PakettiVideoSlicer: Loaded")
 print("PakettiVideoSlicer: Watching for ping at " .. PING_FILE)
 
 

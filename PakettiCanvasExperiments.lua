@@ -1073,8 +1073,7 @@ function PakettiCanvasExperimentsDrawCanvas(ctx)
         
         
         -- Draw parameter name vertically using custom text rendering
-        -- Skip text rendering during drag for performance
-        if not mouse_is_down and parameter_width > 20 then  -- Only draw text if there's enough space and not dragging
+        if parameter_width > 20 then  -- Only draw text if there's enough space
           ctx.stroke_color = {200, 200, 200, 255}  -- Light gray text
           ctx.line_width = 2  -- Make text bold by using thicker lines
           

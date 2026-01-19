@@ -7178,9 +7178,11 @@ end
 -- Selectable FX types for Group Master and Stack Master (glue-appropriate FX)
 PakettiMetaSynthSelectableFXTypes = {
   { name = "Filter", device = "Analog Filter" },
+  { name = "Analog Filter", device = "Analog Filter" },  -- Profile name mapping
   { name = "Digital Filter", device = "Digital Filter" },
   { name = "EQ", device = "EQ 5" },
   { name = "Saturation", device = "Distortion 2" },
+  { name = "Distortion", device = "Distortion 2" },  -- Profile name mapping
   { name = "LoFi", device = "LofiMat 2" },
   { name = "Chorus", device = "Chorus 2" },
   { name = "Phaser", device = "Phaser 2" },
@@ -7188,7 +7190,8 @@ PakettiMetaSynthSelectableFXTypes = {
   { name = "Comb Filter", device = "Comb Filter 2" },
   { name = "Delay", device = "Delay" },
   { name = "Ring Mod", device = "RingMod 2" },
-  { name = "Stereo Expander", device = "Stereo Expander" }
+  { name = "Stereo Expander", device = "Stereo Expander" },
+  { name = "Exciter", device = "Exciter" }  -- Profile name mapping (if device exists, otherwise will fail gracefully)
 }
 
 -- Get list of selectable FX type names (for GUI)
@@ -8937,6 +8940,14 @@ function PakettiMetaSynthApplyProfileDefaultsToGroup(group, profile_name, archit
     osc.osc_fx_enabled = frame_rules.morph_enabled or false
     local fx_count_range = frame_rules.fx_count_range or {1, 2}
     osc.osc_fx_count = math.random(fx_count_range[1], fx_count_range[2])
+    -- Clamp to 1-5 when enabled (validation requires 1-5 when enabled)
+    if osc.osc_fx_enabled then
+      if osc.osc_fx_count < 1 then
+        osc.osc_fx_count = 1
+      elseif osc.osc_fx_count > 5 then
+        osc.osc_fx_count = 5
+      end
+    end
     osc.osc_fx_types = {}
     local frame_fx = frame_rules.fx_tendencies or {}
     if #frame_fx > 0 then
@@ -12224,6 +12235,12 @@ function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining, profile
   
   osc.osc_fx_enabled = true
   osc.osc_fx_count = PakettiMetaSynthGetIntInRange(fx_count_range)
+  -- Clamp to 1-5 when enabled (validation requires 1-5 when enabled)
+  if osc.osc_fx_count < 1 then
+    osc.osc_fx_count = 1
+  elseif osc.osc_fx_count > 5 then
+    osc.osc_fx_count = 5
+  end
   
   -- Use profile FX tendencies if available, otherwise random
   if #fx_tendencies > 0 then
@@ -12273,8 +12290,12 @@ function PakettiMetaSynthRandomizeOscillator(osc, max_samples_remaining, profile
 end
 
 -- Randomize entire architecture
-function PakettiMetaSynthRandomizeArchitecture(architecture)
-  trueRandomSeed()
+-- skip_seed: if true, skip seeding (useful when seed is already set, e.g. in batch generation)
+function PakettiMetaSynthRandomizeArchitecture(architecture, skip_seed)
+  skip_seed = skip_seed or false
+  if not skip_seed then
+    trueRandomSeed()
+  end
   
   -- Initialize constraints if not present
   architecture.constraints = architecture.constraints or {}
@@ -12364,6 +12385,13 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
       oscillators = {}
     }
     
+    -- Ensure group master FX count is valid when enabled (must be 1-5)
+    if group.group_master_fx_enabled and group.group_master_fx_count < 1 then
+      group.group_master_fx_count = 1
+    elseif group.group_master_fx_enabled and group.group_master_fx_count > 5 then
+      group.group_master_fx_count = 5
+    end
+    
     -- Set group FX types from FX profile (respects fx_profile_override) or sound profile
     local fx_tendencies = PakettiMetaSynthGetFXTendencies("group", nil, group, architecture)
     if #fx_tendencies > 0 then
@@ -12420,6 +12448,44 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
     end
   end
   
+  -- Validate and adjust total sample count to ensure it never exceeds 12 (Renoise limit)
+  local total_samples = PakettiMetaSynthCalculateTotalSamples(architecture)
+  if total_samples > 12 then
+    -- Reduce to fit within limit - prefer reducing unison voices first (less impact on sound)
+    local reduction_factor = 12 / total_samples
+    for gi, group in ipairs(architecture.oscillator_groups) do
+      for oi, osc in ipairs(group.oscillators) do
+        local osc_total = osc.sample_count * osc.unison_voices
+        local new_total = math.max(1, math.floor(osc_total * reduction_factor))
+        -- Prefer reducing unison first, then sample count if needed
+        if osc.unison_voices > 1 then
+          osc.unison_voices = math.max(1, math.floor(osc.unison_voices * reduction_factor))
+          osc.sample_count = math.max(1, math.ceil(new_total / osc.unison_voices))
+        else
+          osc.sample_count = math.max(1, new_total)
+        end
+      end
+    end
+    -- Verify the adjustment worked
+    total_samples = PakettiMetaSynthCalculateTotalSamples(architecture)
+    if total_samples > 12 then
+      -- If still over limit, more aggressive reduction
+      for gi, group in ipairs(architecture.oscillator_groups) do
+        for oi, osc in ipairs(group.oscillators) do
+          if total_samples > 12 then
+            if osc.unison_voices > 1 then
+              osc.unison_voices = osc.unison_voices - 1
+              total_samples = total_samples - osc.sample_count
+            elseif osc.sample_count > 1 then
+              osc.sample_count = osc.sample_count - 1
+              total_samples = total_samples - 1
+            end
+          end
+        end
+      end
+    end
+  end
+  
   -- Random crossfade settings - guided by frame rules from global profile
   local frame_rules = PakettiMetaSynthResolveProfile("frame", nil, nil, architecture)
   
@@ -12465,6 +12531,13 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
   architecture.stack_master_fx_mode = math.random() > 0.5 and "random" or "selective"
   architecture.stack_master_fx_count = math.random(1, 4)
   architecture.stack_master_fx_types = {}
+  
+  -- Ensure stack master FX count is valid when enabled (must be 1-5)
+  if architecture.stack_master_fx_enabled and architecture.stack_master_fx_count < 1 then
+    architecture.stack_master_fx_count = 1
+  elseif architecture.stack_master_fx_enabled and architecture.stack_master_fx_count > 5 then
+    architecture.stack_master_fx_count = 5
+  end
   
   -- If selective mode, randomly pick some FX types for stacked master
   if architecture.stack_master_fx_mode == "selective" then
@@ -12539,6 +12612,22 @@ function PakettiMetaSynthGenerateRandomInstrumentWithSends()
   return PakettiMetaSynthGenerateRandomInstrumentWithRouting("send_device")
 end
 
+-- Global counter for ensuring unique random seeds in batch generation
+PakettiMetaSynthBatchSeedCounter = 0
+
+-- Generate a unique random seed for batch generation
+-- Combines time, counter, and clock to ensure uniqueness even when called multiple times per second
+function PakettiMetaSynthGetUniqueSeed()
+  PakettiMetaSynthBatchSeedCounter = PakettiMetaSynthBatchSeedCounter + 1
+  local time_seed = os.time()
+  local counter_seed = PakettiMetaSynthBatchSeedCounter
+  local clock_seed = math.floor(os.clock() * 1000) % 1000  -- milliseconds component
+  local combined_seed = time_seed * 10000 + counter_seed * 1000 + clock_seed
+  math.randomseed(combined_seed)
+  -- Warm up the generator
+  math.random(); math.random(); math.random()
+end
+
 -- Batch generate multiple randomized instruments for quick auditioning
 function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
   -- generation_type: "standard", "sends", or "wavetable"
@@ -12580,61 +12669,130 @@ function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
   for i = 1, count do
     print(string.format("[PakettiMetaSynth Batch] === Iteration %d of %d ===", i, count))
     
-    -- Fresh random seeds for each instrument to ensure uniqueness
-    trueRandomSeed()
-    trueRandomSeed()
-    trueRandomSeed()
-    
-    -- Insert new instrument after current
+    -- Retry logic: try up to 3 times to generate a valid instrument
+    local max_retries = 3
+    local retry_count = 0
+    local generation_success = false
+    local generation_result = nil
+    local generation_error = nil
     local insert_index = song.selected_instrument_index + 1
-    print(string.format("[PakettiMetaSynth Batch] Creating instrument slot at index %d", insert_index))
     
-    song:insert_instrument_at(insert_index)
-    song.selected_instrument_index = insert_index
-    
-    -- Verify instrument was created
-    local instrument = song.selected_instrument
-    if not instrument then
-      print(string.format("[PakettiMetaSynth Batch] ERROR: Failed to create instrument at index %d", insert_index))
-      failed_count = failed_count + 1
-      empty_slots_count = empty_slots_count + 1
-    else
-      print(string.format("[PakettiMetaSynth Batch] Instrument slot created: index=%d, name='%s', samples=%d, chains=%d", 
-        insert_index, instrument.name, #instrument.samples, #instrument.sample_device_chains))
+    while not generation_success and retry_count < max_retries do
+      retry_count = retry_count + 1
       
-      -- Generate randomized instrument based on type
-      local generation_success = false
-      local generation_result = nil
-      local generation_error = nil
+      if retry_count > 1 then
+        print(string.format("[PakettiMetaSynth Batch] Retry attempt %d of %d", retry_count, max_retries))
+      end
       
-      print(string.format("[PakettiMetaSynth Batch] Starting generation (type=%s)...", generation_type))
+      -- Fresh unique random seed for each attempt to ensure uniqueness
+      PakettiMetaSynthGetUniqueSeed()
+      
+      -- Generate and validate architecture BEFORE creating instrument slot
+      print(string.format("[PakettiMetaSynth Batch] Creating and validating architecture (type=%s, attempt=%d)...", generation_type, retry_count))
+      
+      local architecture = nil
+      local validation = nil
       
       local success, result = pcall(function()
-        if generation_type == "sends" then
-          return PakettiMetaSynthGenerateRandomInstrumentWithSends()
-        elseif generation_type == "wavetable" then
-          return PakettiMetaSynthGenerateRandomWavetableInstrument()
+        -- Create architecture based on type
+        local arch = nil
+        if generation_type == "wavetable" then
+          -- For wavetable, we need to check if there's a separate randomization function
+          -- For now, use standard randomization
+          arch = PakettiMetaSynthCreateDefaultArchitecture()
+          PakettiMetaSynthRandomizeArchitecture(arch, true)  -- skip_seed=true: seed already set uniquely
+          arch.master_routing_mode = "output_routing"
         else
-          return PakettiMetaSynthGenerateRandomInstrument()
+          arch = PakettiMetaSynthCreateDefaultArchitecture()
+          PakettiMetaSynthRandomizeArchitecture(arch, true)  -- skip_seed=true: seed already set uniquely
+          if generation_type == "sends" then
+            arch.master_routing_mode = "send_device"
+          else
+            arch.master_routing_mode = "output_routing"
+          end
         end
+        arch.name = "MetaSynth Random " .. os.date("%H%M%S")
+        
+        -- Validate architecture before creating instrument slot
+        local valid = PakettiMetaSynthValidateArchitecture(arch)
+        return {architecture = arch, validation = valid}
       end)
       
       if not success then
         generation_error = result
-        print(string.format("[PakettiMetaSynth Batch] ERROR: Generation failed with Lua error: %s", tostring(result)))
+        print(string.format("[PakettiMetaSynth Batch] ERROR: Architecture creation failed with Lua error: %s", tostring(result)))
         print(string.format("[PakettiMetaSynth Batch] Stack trace: %s", debug.traceback()))
-        failed_count = failed_count + 1
       else
-        generation_result = result
-        if generation_result == nil then
-          print(string.format("[PakettiMetaSynth Batch] WARNING: Generation returned nil (generation may have failed silently)"))
-          failed_count = failed_count + 1
+        architecture = result.architecture
+        validation = result.validation
+        if not validation.valid then
+          print(string.format("[PakettiMetaSynth Batch] Architecture validation FAILED with %d errors (attempt %d)", #validation.errors, retry_count))
+          for _, err in ipairs(validation.errors) do
+            print(string.format("[PakettiMetaSynth Batch] Validation error: %s", err))
+          end
+          -- Will retry with new random architecture
+          coroutine.yield()
         else
-          generation_success = true
-          print(string.format("[PakettiMetaSynth Batch] Generation returned instrument object"))
+          -- Validation passed! Now create instrument slot and generate
+        print(string.format("[PakettiMetaSynth Batch] Architecture validation PASSED (attempt %d)", retry_count))
+        
+        -- Insert new instrument after current
+        print(string.format("[PakettiMetaSynth Batch] Creating instrument slot at index %d", insert_index))
+        song:insert_instrument_at(insert_index)
+        song.selected_instrument_index = insert_index
+        
+        -- Verify instrument was created
+        local instrument = song.selected_instrument
+        if not instrument then
+          print(string.format("[PakettiMetaSynth Batch] ERROR: Failed to create instrument at index %d", insert_index))
+          generation_error = "Failed to create instrument slot"
+        else
+          print(string.format("[PakettiMetaSynth Batch] Instrument slot created: index=%d, name='%s', samples=%d, chains=%d", 
+            insert_index, instrument.name, #instrument.samples, #instrument.sample_device_chains))
+          
+          -- Generate instrument with the validated architecture
+          print(string.format("[PakettiMetaSynth Batch] Generating instrument with validated architecture..."))
+          
+          local gen_success, gen_result = pcall(function()
+            return PakettiMetaSynthGenerateInstrument(architecture)
+          end)
+          
+          if not gen_success then
+            generation_error = gen_result
+            print(string.format("[PakettiMetaSynth Batch] ERROR: Generation failed with Lua error: %s", tostring(gen_result)))
+            print(string.format("[PakettiMetaSynth Batch] Stack trace: %s", debug.traceback()))
+          else
+            generation_result = gen_result
+            if generation_result == nil then
+              print(string.format("[PakettiMetaSynth Batch] WARNING: Generation returned nil"))
+              generation_error = "Generation returned nil"
+            else
+              generation_success = true
+              print(string.format("[PakettiMetaSynth Batch] Generation returned instrument object"))
+            end
+          end
+        end
         end
       end
+    end
+    
+    -- Handle result after retries
+    if not generation_success then
+      print(string.format("[PakettiMetaSynth Batch] ERROR: Failed to generate valid instrument after %d attempts", max_retries))
+      failed_count = failed_count + 1
       
+      -- Check if instrument slot was created (it would be if validation passed but generation failed)
+      local instrument_check = song.selected_instrument
+      if instrument_check and song.selected_instrument_index == insert_index then
+        local sample_count = #instrument_check.samples
+        local chain_count = #instrument_check.sample_device_chains
+        if sample_count == 0 and chain_count == 0 then
+          empty_slots_count = empty_slots_count + 1
+          print(string.format("[PakettiMetaSynth Batch] Empty slot left at index %d", insert_index))
+        end
+      end
+      coroutine.yield()  -- Yield after error handling
+    else
       -- Verify instrument content after generation
       local instrument_after = song.selected_instrument
       if instrument_after then
@@ -12648,20 +12806,15 @@ function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
         if sample_count == 0 and chain_count == 0 then
           print(string.format("[PakettiMetaSynth Batch] WARNING: Instrument at index %d is EMPTY (no samples, no chains)", insert_index))
           empty_slots_count = empty_slots_count + 1
-          if generation_success then
-            print(string.format("[PakettiMetaSynth Batch] ERROR: Generation reported success but instrument is empty!"))
-            failed_count = failed_count + 1
-            success_count = success_count - 1
-          end
+          failed_count = failed_count + 1
+          success_count = success_count - 1
         elseif sample_count == 0 then
           print(string.format("[PakettiMetaSynth Batch] WARNING: Instrument at index %d has no samples (but has %d chains)", insert_index, chain_count))
         elseif chain_count == 0 then
           print(string.format("[PakettiMetaSynth Batch] WARNING: Instrument at index %d has no chains (but has %d samples)", insert_index, sample_count))
         else
-          if generation_success then
-            success_count = success_count + 1
-            print(string.format("[PakettiMetaSynth Batch] SUCCESS: Instrument at index %d generated successfully", insert_index))
-          end
+          success_count = success_count + 1
+          print(string.format("[PakettiMetaSynth Batch] SUCCESS: Instrument at index %d generated successfully", insert_index))
         end
       else
         print(string.format("[PakettiMetaSynth Batch] ERROR: Instrument at index %d no longer exists after generation!", insert_index))
@@ -12671,6 +12824,7 @@ function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
     end
     
     renoise.app():show_status(string.format("PakettiMetaSynth: Generated instrument %d of %d", i, count))
+    coroutine.yield()  -- Yield after each instrument to maintain UI responsiveness
   end
   
   print(string.format("[PakettiMetaSynth Batch] === BATCH COMPLETE ==="))
@@ -12809,8 +12963,14 @@ function PakettiMetaSynthShowBatchGenerationDialog()
       PakettiMetaSynthBatchDialogHandle = nil
     end
     
-    -- Generate instruments
-    PakettiMetaSynthGenerateBatchInstruments(gen_type, count)
+    -- Wrap batch generation in ProcessSlicer for non-blocking execution
+    -- The function already has coroutine.yield() calls, so ProcessSlicer will handle the yielding
+    local function batch_generation_wrapper()
+      PakettiMetaSynthGenerateBatchInstruments(gen_type, count)
+    end
+    
+    local slicer = ProcessSlicer(batch_generation_wrapper)
+    slicer:start()
   end
   
   -- Key handler for Enter key
@@ -13022,6 +13182,15 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
         profile_override = nil,
         modulation_profile = nil
       }
+      
+      -- Clamp osc_fx_count to 1-5 when enabled (validation requires 1-5 when enabled)
+      if osc.osc_fx_enabled then
+        if osc.osc_fx_count < 1 then
+          osc.osc_fx_count = 1
+        elseif osc.osc_fx_count > 5 then
+          osc.osc_fx_count = 5
+        end
+      end
       
       -- Set osc FX from FX profile (if set) or frame tendencies
       local osc_fx_tendencies = PakettiMetaSynthGetFXTendencies("frame", nil, group, architecture)
@@ -15032,6 +15201,14 @@ function PakettiMetaSynthAddGroupFromProfile(profile_name)
       osc_fx_count = math.random((frame_rules.fx_count_range or {1, 2})[1], (frame_rules.fx_count_range or {1, 2})[2]),
       osc_fx_types = frame_rules.fx_tendencies or {},
     })
+    -- Clamp osc_fx_count to 1-5 when enabled (validation requires 1-5 when enabled)
+    if oscillators[#oscillators].osc_fx_enabled then
+      if oscillators[#oscillators].osc_fx_count < 1 then
+        oscillators[#oscillators].osc_fx_count = 1
+      elseif oscillators[#oscillators].osc_fx_count > 5 then
+        oscillators[#oscillators].osc_fx_count = 5
+      end
+    end
   end
   
   -- Create the new group with profile-derived settings

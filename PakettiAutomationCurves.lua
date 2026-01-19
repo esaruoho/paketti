@@ -20,6 +20,24 @@ PakettiAutomationCurvesKeyMap = nil
 PakettiAutomationCurvesImagePath = "images/automation_shapes/"
 
 ------------------------------------------------------------------------
+-- Validation Helper Functions
+------------------------------------------------------------------------
+
+-- Clamp step length to valid range (1 to num_lines)
+function PakettiAutomationCurvesClampStepLength(step_length, num_lines)
+  if not num_lines or num_lines < 1 then
+    num_lines = 1
+  end
+  if step_length < 1 then
+    return 1
+  elseif step_length > num_lines then
+    return num_lines
+  else
+    return step_length
+  end
+end
+
+------------------------------------------------------------------------
 -- Shape Definitions
 -- Each shape has: values (array of {x, y} points), key (keyboard shortcut)
 ------------------------------------------------------------------------
@@ -279,13 +297,24 @@ end
 ------------------------------------------------------------------------
 function PakettiAutomationCurvesInsert(shape_name)
   local rs = renoise.song()
+  if not rs then
+    renoise.app():show_status("No song loaded")
+    return
+  end
+  
   local pattern = rs.selected_pattern
+  if not pattern then
+    renoise.app():show_status("No pattern selected")
+    return
+  end
+  
   local num_lines = pattern.number_of_lines
+  if num_lines < 1 then
+    num_lines = 1
+  end
   
   -- Clamp step length to pattern length
-  if PakettiAutomationCurvesStepLength > num_lines then
-    PakettiAutomationCurvesStepLength = num_lines
-  end
+  PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(PakettiAutomationCurvesStepLength, num_lines)
   
   local current_line = rs.selected_line_index
   local step = PakettiAutomationCurvesStepLength
@@ -394,7 +423,15 @@ function PakettiAutomationCurvesProcessPoints(process_func)
 end
 
 function PakettiAutomationCurvesFadeIn()
-  local num_lines = renoise.song().selected_pattern.number_of_lines
+  local rs = renoise.song()
+  if not rs or not rs.selected_pattern then
+    renoise.app():show_status("No pattern selected")
+    return
+  end
+  local num_lines = rs.selected_pattern.number_of_lines
+  if num_lines < 1 then
+    num_lines = 1
+  end
   PakettiAutomationCurvesProcessPoints(function(index, point)
     point.value = (point.time - 1) / num_lines * point.value
     return point
@@ -403,7 +440,15 @@ function PakettiAutomationCurvesFadeIn()
 end
 
 function PakettiAutomationCurvesFadeOut()
-  local num_lines = renoise.song().selected_pattern.number_of_lines
+  local rs = renoise.song()
+  if not rs or not rs.selected_pattern then
+    renoise.app():show_status("No pattern selected")
+    return
+  end
+  local num_lines = rs.selected_pattern.number_of_lines
+  if num_lines < 1 then
+    num_lines = 1
+  end
   PakettiAutomationCurvesProcessPoints(function(index, point)
     point.value = (1 - (point.time - 1) / num_lines) * point.value
     return point
@@ -499,9 +544,16 @@ end
 function PakettiAutomationCurvesKeyHandler(dialog, key)
   local handled = false
   local rs = renoise.song()
+  if not rs or not rs.selected_pattern then
+    return key
+  end
+  
   local current_line = rs.selected_line_index
   local step = PakettiAutomationCurvesStepLength
   local num_lines = rs.selected_pattern.number_of_lines
+  if num_lines < 1 then
+    num_lines = 1
+  end
   local closer = preferences.pakettiDialogClose.value
   
   print("PakettiAutomationCurves KEYHANDLER: name:'" .. tostring(key.name) .. "' modifiers:'" .. tostring(key.modifiers) .. "'")
@@ -539,20 +591,21 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
   -- Edit step emulation with Control modifier
   if key.modifiers == "control" then
     if key.name == "`" then
-      PakettiAutomationCurvesStepLength = num_lines
+      PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(num_lines, num_lines)
       if PakettiAutomationCurvesVb and PakettiAutomationCurvesVb.views.step_length then
-        PakettiAutomationCurvesVb.views.step_length.value = num_lines
+        PakettiAutomationCurvesVb.views.step_length.value = PakettiAutomationCurvesStepLength
       end
       handled = true
     end
     
     local num_keys = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
-    local num_vals = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}
+    local num_vals = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
     for idx, k in ipairs(num_keys) do
       if key.name == k then
-        PakettiAutomationCurvesStepLength = num_vals[idx]
+        local new_val = num_vals[idx]
+        PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(new_val, num_lines)
         if PakettiAutomationCurvesVb and PakettiAutomationCurvesVb.views.step_length then
-          PakettiAutomationCurvesVb.views.step_length.value = num_vals[idx]
+          PakettiAutomationCurvesVb.views.step_length.value = PakettiAutomationCurvesStepLength
         end
         handled = true
         break
@@ -560,8 +613,9 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
     end
     
     if key.name == "-" then
-      if PakettiAutomationCurvesStepLength > 0 then
+      if PakettiAutomationCurvesStepLength > 1 then
         PakettiAutomationCurvesStepLength = PakettiAutomationCurvesStepLength - 1
+        PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(PakettiAutomationCurvesStepLength, num_lines)
         if PakettiAutomationCurvesVb and PakettiAutomationCurvesVb.views.step_length then
           PakettiAutomationCurvesVb.views.step_length.value = PakettiAutomationCurvesStepLength
         end
@@ -572,6 +626,7 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
     if key.name == "=" then
       if PakettiAutomationCurvesStepLength < num_lines then
         PakettiAutomationCurvesStepLength = PakettiAutomationCurvesStepLength + 1
+        PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(PakettiAutomationCurvesStepLength, num_lines)
         if PakettiAutomationCurvesVb and PakettiAutomationCurvesVb.views.step_length then
           PakettiAutomationCurvesVb.views.step_length.value = PakettiAutomationCurvesStepLength
         end
@@ -634,12 +689,30 @@ function PakettiAutomationCurvesShowDialog()
   end
   
   local rs = renoise.song()
-  PakettiAutomationCurvesStepLength = rs.transport.edit_step
+  if not rs then
+    renoise.app():show_status("No song loaded")
+    return
+  end
+  
+  local pattern = rs.selected_pattern
+  if not pattern then
+    renoise.app():show_status("No pattern selected")
+    return
+  end
+  
+  local num_lines = pattern.number_of_lines
+  if num_lines < 1 then
+    num_lines = 1
+  end
+  
+  local edit_step = rs.transport.edit_step
+  if edit_step < 1 then
+    edit_step = 1
+  end
+  PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(edit_step, num_lines)
   
   local vb = renoise.ViewBuilder()
   PakettiAutomationCurvesVb = vb
-  
-  local num_lines = rs.selected_pattern.number_of_lines
   
   local content = vb:column{
     margin = 10,
@@ -760,17 +833,18 @@ function PakettiAutomationCurvesShowDialog()
           vb:valuebox{
             id = "step_length",
             min = 1,
-            max = num_lines,
-            value = PakettiAutomationCurvesStepLength,
+            max = math.max(1, num_lines),
+            value = PakettiAutomationCurvesClampStepLength(PakettiAutomationCurvesStepLength, num_lines),
             width = 60,
             notifier = function(value)
-              PakettiAutomationCurvesStepLength = value
+              PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(value, num_lines)
             end
           },
           vb:button{
             text = "Halve",
             notifier = function()
               PakettiAutomationCurvesStepLength = math.max(1, math.floor(PakettiAutomationCurvesStepLength / 2))
+              PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(PakettiAutomationCurvesStepLength, num_lines)
               vb.views.step_length.value = PakettiAutomationCurvesStepLength
             end
           },
@@ -778,6 +852,7 @@ function PakettiAutomationCurvesShowDialog()
             text = "Double",
             notifier = function()
               PakettiAutomationCurvesStepLength = math.min(num_lines, PakettiAutomationCurvesStepLength * 2)
+              PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(PakettiAutomationCurvesStepLength, num_lines)
               vb.views.step_length.value = PakettiAutomationCurvesStepLength
             end
           }
@@ -924,6 +999,4 @@ renoise.tool():add_keybinding{
   name = "Global:Paketti:Automation Curves Quantize",
   invoke = function() PakettiAutomationCurvesQuantize(0.125) end
 }
-
-print("PakettiAutomationCurves loaded")
 
