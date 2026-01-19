@@ -1,2 +1,5 @@
 # Documentation generated for AI assistants
 Docs/
+
+# Cursor IDE rules (local AI context)
+.cursor/

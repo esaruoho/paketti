@@ -810,7 +810,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   -- Automate Last Touched Parameter Settings
   pakettiAutomateLastTouched = {
     AutoOpenExternalEditor = true, -- Auto-open VST/AU external editor when watching starts
-    ContinuousRecording = false   -- Real-time automation writing (stay watching after first touch)
+    ContinuousRecording = false,  -- Real-time automation writing (stay watching after first touch)
+    WatchingMode = 1,             -- 1=Shortcut First (lowest perf), 2=Track Watching (medium), 3=Always Watching (highest)
+    DeviceScope = 1               -- 1=Selected Device (lowest perf), 2=All Track Devices (medium), 3=All Song Devices (highest)
   },
 }
 
