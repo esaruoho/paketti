@@ -9,6 +9,7 @@
 local WATCHING_MODE_SHORTCUT_FIRST = 1  -- Press shortcut to start watching (default)
 local WATCHING_MODE_TRACK_WATCHING = 2  -- Always watching current track's devices
 local WATCHING_MODE_ALWAYS_WATCHING = 3 -- Always watching all devices in scope
+local WATCHING_MODE_TIMER = 4           -- Timer mode: parameter touch starts timer, shortcut must be pressed within timer window
 
 local DEVICE_SCOPE_SELECTED = 1         -- Only watch selected device (default)
 local DEVICE_SCOPE_ALL_TRACK = 2        -- Watch all devices on current track
@@ -38,6 +39,17 @@ local persistent_parameter_observers = {}
 local track_change_observer = nil
 local device_list_observers = {}  -- Track -> observer for devices_observable
 local persistent_setup_timer = nil  -- Timer function reference for persistent watching setup
+
+--------------------------------------------------------------------------------
+-- Global State Variables - Timer Mode
+--------------------------------------------------------------------------------
+
+local timer_mode_active = false
+local timer_mode_timer = nil  -- Timer function reference
+local timer_mode_stored_param = nil
+local timer_mode_stored_device = nil
+local timer_mode_stored_track_index = nil
+local timer_mode_stored_is_instrument = false
 
 --------------------------------------------------------------------------------
 -- Helper: Get preference value with fallback
@@ -154,6 +166,9 @@ function PakettiAutomateLastTouchedCleanupPersistent()
   global_last_touched_track_index = nil
   global_last_touched_is_instrument = false
   
+  -- Also cleanup timer mode
+  PakettiAutomateLastTouchedStopTimerMode()
+  
   print("AUTOMATE_LAST_TOUCHED: Persistent cleanup complete")
 end
 
@@ -161,6 +176,65 @@ end
 function PakettiAutomateLastTouchedCleanup()
   PakettiAutomateLastTouchedCleanupTemporary()
   PakettiAutomateLastTouchedCleanupPersistent()
+  PakettiAutomateLastTouchedStopTimerMode()
+end
+
+--------------------------------------------------------------------------------
+-- Timer Mode Functions
+--------------------------------------------------------------------------------
+
+-- Stop timer mode and cleanup
+function PakettiAutomateLastTouchedStopTimerMode()
+  if timer_mode_timer and renoise.tool():has_timer(timer_mode_timer) then
+    renoise.tool():remove_timer(timer_mode_timer)
+  end
+  timer_mode_timer = nil
+  timer_mode_active = false
+  timer_mode_stored_param = nil
+  timer_mode_stored_device = nil
+  timer_mode_stored_track_index = nil
+  timer_mode_stored_is_instrument = false
+end
+
+-- Called when timer expires
+function PakettiAutomateLastTouchedOnTimerExpired()
+  print("AUTOMATE_LAST_TOUCHED: Timer expired - no automation created")
+  timer_mode_active = false
+  timer_mode_stored_param = nil
+  timer_mode_stored_device = nil
+  timer_mode_stored_track_index = nil
+  timer_mode_stored_is_instrument = false
+end
+
+-- Start timer when parameter is touched
+function PakettiAutomateLastTouchedStartTimerMode(param, device, track_index, is_plugin_instrument)
+  -- Stop any existing timer
+  PakettiAutomateLastTouchedStopTimerMode()
+  
+  -- Store parameter info
+  timer_mode_stored_param = param
+  timer_mode_stored_device = device
+  timer_mode_stored_track_index = track_index
+  timer_mode_stored_is_instrument = is_plugin_instrument
+  timer_mode_active = true
+  
+  -- Get timer duration from preferences
+  local timer_duration = PakettiAutomateLastTouchedGetPref("TimerDuration", 3)
+  
+  -- Create timer function
+  timer_mode_timer = function()
+    if timer_mode_timer and renoise.tool():has_timer(timer_mode_timer) then
+      renoise.tool():remove_timer(timer_mode_timer)
+    end
+    timer_mode_timer = nil
+    PakettiAutomateLastTouchedOnTimerExpired()
+  end
+  
+  -- Start timer
+  renoise.tool():add_timer(timer_mode_timer, timer_duration * 1000)
+  
+  print("AUTOMATE_LAST_TOUCHED: Timer started for parameter: " .. param.name .. " (" .. timer_duration .. " seconds)")
+  renoise.app():show_status("Parameter touched: " .. param.name .. " - press shortcut within " .. timer_duration .. " seconds")
 end
 
 --------------------------------------------------------------------------------
@@ -228,6 +302,18 @@ function PakettiAutomateLastTouchedCreateForParameter(param, device, track_index
     
     automation:add_point_at(current_line, normalized_value)
     
+    -- Copy selection range from pattern editor to automation envelope
+    local pattern_selection = song.selection_in_pattern
+    if pattern_selection then
+      local start_line = pattern_selection.start_line
+      local end_line = pattern_selection.end_line
+      if start_line and end_line and start_line > 0 and end_line > 0 then
+        -- Set selection range in automation envelope (using line numbers directly)
+        automation.selection_range = {start_line, end_line}
+        print("AUTOMATE_LAST_TOUCHED: Set automation selection range: " .. start_line .. " to " .. end_line)
+      end
+    end
+    
     pcall(function()
       renoise.app().window.lower_frame_is_visible = true
       renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
@@ -293,14 +379,27 @@ end
 
 -- For Persistent modes - just store the last touched parameter
 function PakettiAutomateLastTouchedOnPersistentParameterTouched(param, device, track_index, is_plugin_instrument)
-  if not persistent_watching_active then return end
+  if not persistent_watching_active then 
+    print("AUTOMATE_LAST_TOUCHED: Parameter touched but persistent watching not active")
+    return 
+  end
   
+  local watching_mode = PakettiAutomateLastTouchedGetPref("WatchingMode", WATCHING_MODE_SHORTCUT_FIRST)
+  
+  -- Timer mode: start timer when parameter is touched
+  if watching_mode == WATCHING_MODE_TIMER then
+    PakettiAutomateLastTouchedStartTimerMode(param, device, track_index, is_plugin_instrument)
+    return
+  end
+  
+  -- Other persistent modes: just store the parameter
   global_last_touched_parameter = param
   global_last_touched_device = device
   global_last_touched_track_index = track_index
   global_last_touched_is_instrument = is_plugin_instrument
   
-  print("AUTOMATE_LAST_TOUCHED: Stored last touched: " .. param.name)
+  local device_name = device and device.display_name or "unknown"
+  print("AUTOMATE_LAST_TOUCHED: Stored last touched: " .. param.name .. " on device: " .. device_name)
   renoise.app():show_status("Last touched: " .. param.name .. " - press shortcut to automate")
 end
 
@@ -313,6 +412,7 @@ function PakettiAutomateLastTouchedAddDeviceObservers(device, track_index, is_pl
   if not device then return 0 end
   
   local param_count = 0
+  local device_name = device.display_name or "unknown"
   
   for i = 1, #device.parameters do
     local param = device.parameters[i]
@@ -328,6 +428,10 @@ function PakettiAutomateLastTouchedAddDeviceObservers(device, track_index, is_pl
         param_count = param_count + 1
       end
     end
+  end
+  
+  if param_count > 0 then
+    print("AUTOMATE_LAST_TOUCHED: Added " .. param_count .. " observers to device: " .. device_name)
   end
   
   return param_count
@@ -460,14 +564,28 @@ end
 function PakettiAutomateLastTouchedSetupDeviceListObserver(track, track_index)
   if device_list_observers[track] then return end
   
+  local refresh_timer = nil
   local observer = function()
-    print("AUTOMATE_LAST_TOUCHED: Device list changed on track " .. track_index)
-    PakettiAutomateLastTouchedRefreshPersistentWatching()
+    print("AUTOMATE_LAST_TOUCHED: Device list changed on track " .. track_index .. " - scheduling refresh")
+    -- Remove existing refresh timer if any
+    if refresh_timer and renoise.tool():has_timer(refresh_timer) then
+      renoise.tool():remove_timer(refresh_timer)
+    end
+    -- Small delay to ensure device is fully added before refreshing
+    refresh_timer = function()
+      if refresh_timer and renoise.tool():has_timer(refresh_timer) then
+        renoise.tool():remove_timer(refresh_timer)
+      end
+      refresh_timer = nil
+      PakettiAutomateLastTouchedRefreshPersistentWatching()
+    end
+    renoise.tool():add_timer(refresh_timer, 50)
   end
   
   if not track.devices_observable:has_notifier(observer) then
     track.devices_observable:add_notifier(observer)
     device_list_observers[track] = observer
+    print("AUTOMATE_LAST_TOUCHED: Device list observer added for track " .. track_index)
   end
 end
 
@@ -484,12 +602,13 @@ function PakettiAutomateLastTouchedSetupPersistentWatching()
   
   print("AUTOMATE_LAST_TOUCHED: Setting up persistent watching (mode=" .. watching_mode .. ")")
   
-  -- Cleanup any existing persistent watching
+  -- Cleanup any existing persistent watching and timer mode
   PakettiAutomateLastTouchedCleanupPersistent()
+  PakettiAutomateLastTouchedStopTimerMode()
   
   persistent_watching_active = true
   
-  -- Setup track change observer (for Track Watching mode)
+  -- Setup track change observer (for Track Watching mode only)
   if watching_mode == WATCHING_MODE_TRACK_WATCHING then
     track_change_observer = function()
       print("AUTOMATE_LAST_TOUCHED: Track changed")
@@ -501,19 +620,21 @@ function PakettiAutomateLastTouchedSetupPersistentWatching()
     end
   end
   
-  -- Setup device list observers
+  -- Setup device list observers (for Track Watching and Always Watching modes)
   local scope = PakettiAutomateLastTouchedGetPref("DeviceScope", DEVICE_SCOPE_SELECTED)
   
-  if scope == DEVICE_SCOPE_ALL_TRACK then
-    -- Only current track
-    local track = song.tracks[song.selected_track_index]
-    if track then
-      PakettiAutomateLastTouchedSetupDeviceListObserver(track, song.selected_track_index)
-    end
-  elseif scope == DEVICE_SCOPE_ALL_SONG then
-    -- All tracks
-    for track_index, track in ipairs(song.tracks) do
-      PakettiAutomateLastTouchedSetupDeviceListObserver(track, track_index)
+  if watching_mode == WATCHING_MODE_TRACK_WATCHING or watching_mode == WATCHING_MODE_ALWAYS_WATCHING then
+    if scope == DEVICE_SCOPE_ALL_TRACK then
+      -- Only current track
+      local track = song.tracks[song.selected_track_index]
+      if track then
+        PakettiAutomateLastTouchedSetupDeviceListObserver(track, song.selected_track_index)
+      end
+    elseif scope == DEVICE_SCOPE_ALL_SONG then
+      -- All tracks
+      for track_index, track in ipairs(song.tracks) do
+        PakettiAutomateLastTouchedSetupDeviceListObserver(track, track_index)
+      end
     end
   end
   
@@ -521,7 +642,7 @@ function PakettiAutomateLastTouchedSetupPersistentWatching()
   PakettiAutomateLastTouchedRefreshPersistentWatching()
   
   local scope_names = {"Selected Device", "All Track Devices", "All Song Devices"}
-  local mode_names = {"Shortcut First", "Track Watching", "Always Watching"}
+  local mode_names = {"Shortcut First", "Track Watching", "Always Watching", "Timer Mode"}
   renoise.app():show_status("Persistent watching active: " .. mode_names[watching_mode] .. " + " .. scope_names[scope])
 end
 
@@ -537,6 +658,33 @@ function PakettiAutomateLastTouchedStart()
   end
   
   local watching_mode = PakettiAutomateLastTouchedGetPref("WatchingMode", WATCHING_MODE_SHORTCUT_FIRST)
+  
+  -- Timer mode: check if timer is active and parameter is stored
+  if watching_mode == WATCHING_MODE_TIMER then
+    -- If persistent watching isn't active, set it up
+    if not persistent_watching_active then
+      PakettiAutomateLastTouchedSetupPersistentWatching()
+      return
+    end
+    
+    -- Check if timer is active and we have a stored parameter
+    if timer_mode_active and timer_mode_stored_param then
+      -- Create automation immediately
+      PakettiAutomateLastTouchedCreateForParameter(
+        timer_mode_stored_param,
+        timer_mode_stored_device,
+        timer_mode_stored_track_index,
+        timer_mode_stored_is_instrument
+      )
+      -- Stop timer and cleanup
+      PakettiAutomateLastTouchedStopTimerMode()
+    else
+      -- Timer not active or no parameter stored
+      local timer_duration = PakettiAutomateLastTouchedGetPref("TimerDuration", 3)
+      renoise.app():show_status("Touch a parameter first, then press shortcut within " .. timer_duration .. " seconds to automate")
+    end
+    return
+  end
   
   -- For persistent modes (2 and 3): check if we have a stored parameter
   if watching_mode == WATCHING_MODE_TRACK_WATCHING or watching_mode == WATCHING_MODE_ALWAYS_WATCHING then
@@ -562,7 +710,36 @@ function PakettiAutomateLastTouchedStart()
       global_last_touched_track_index = nil
       global_last_touched_is_instrument = false
     else
-      renoise.app():show_status("Touch a parameter first, then press shortcut to automate")
+      -- No parameter detected - refresh observers in case a new device was added
+      print("AUTOMATE_LAST_TOUCHED: No parameter detected, refreshing observers...")
+      PakettiAutomateLastTouchedRefreshPersistentWatching()
+      
+      -- Check again after refresh
+      if global_last_touched_parameter then
+        PakettiAutomateLastTouchedCreateForParameter(
+          global_last_touched_parameter,
+          global_last_touched_device,
+          global_last_touched_track_index,
+          global_last_touched_is_instrument
+        )
+        global_last_touched_parameter = nil
+        global_last_touched_device = nil
+        global_last_touched_track_index = nil
+        global_last_touched_is_instrument = false
+      else
+        local devices = PakettiAutomateLastTouchedGetDevicesToWatch()
+        local total_params = 0
+        for _, entry in ipairs(devices) do
+          if entry.device then
+            for i = 1, #entry.device.parameters do
+              if entry.device.parameters[i].is_automatable then
+                total_params = total_params + 1
+              end
+            end
+          end
+        end
+        renoise.app():show_status("Touch a parameter first, then press shortcut to automate (watching " .. #devices .. " devices, " .. total_params .. " params)")
+      end
     end
     return
   end
@@ -629,7 +806,7 @@ function PakettiAutomateLastTouchedOnSongChange()
   
   -- Re-setup persistent watching if mode requires it
   local watching_mode = PakettiAutomateLastTouchedGetPref("WatchingMode", WATCHING_MODE_SHORTCUT_FIRST)
-  if watching_mode == WATCHING_MODE_TRACK_WATCHING or watching_mode == WATCHING_MODE_ALWAYS_WATCHING then
+  if watching_mode == WATCHING_MODE_TRACK_WATCHING or watching_mode == WATCHING_MODE_ALWAYS_WATCHING or watching_mode == WATCHING_MODE_TIMER then
     -- Remove existing timer if it exists
     if persistent_setup_timer and renoise.tool():has_timer(persistent_setup_timer) then
       renoise.tool():remove_timer(persistent_setup_timer)
@@ -659,7 +836,7 @@ end
 function PakettiAutomateLastTouchedInitialize()
   local watching_mode = PakettiAutomateLastTouchedGetPref("WatchingMode", WATCHING_MODE_SHORTCUT_FIRST)
   
-  if watching_mode == WATCHING_MODE_TRACK_WATCHING or watching_mode == WATCHING_MODE_ALWAYS_WATCHING then
+  if watching_mode == WATCHING_MODE_TRACK_WATCHING or watching_mode == WATCHING_MODE_ALWAYS_WATCHING or watching_mode == WATCHING_MODE_TIMER then
     print("AUTOMATE_LAST_TOUCHED: Initializing persistent watching on tool load")
     
     -- Remove existing timer if it exists

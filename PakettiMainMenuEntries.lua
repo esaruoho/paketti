@@ -262,6 +262,7 @@ local function create_button_list()
     {"Dynamic Views 4-6", function() pakettiDynamicViewDialog(4,6) end},
     {"Dynamic Views 7-9", function() pakettiDynamicViewDialog(7,9) end},
     {"Automation Value Dialog", "pakettiAutomationValue"},
+    {"Enhanced Automation (Curves)", "PakettiAutomationCurvesShowDialog"},
     {"Merge Instruments", "pakettiMergeInstrumentsDialog"},
     {"Track DSP Device&Instrument Loader", "pakettiDeviceChainDialog"},
     {"Volume/Delay/Pan Slider Controls", "pakettiVolDelayPanSliderDialog"},

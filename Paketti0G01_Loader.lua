@@ -811,8 +811,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiAutomateLastTouched = {
     AutoOpenExternalEditor = true, -- Auto-open VST/AU external editor when watching starts
     ContinuousRecording = false,  -- Real-time automation writing (stay watching after first touch)
-    WatchingMode = 1,             -- 1=Shortcut First (lowest perf), 2=Track Watching (medium), 3=Always Watching (highest)
-    DeviceScope = 1               -- 1=Selected Device (lowest perf), 2=All Track Devices (medium), 3=All Song Devices (highest)
+    WatchingMode = 1,             -- 1=Shortcut First (lowest perf), 2=Track Watching (medium), 3=Always Watching (highest), 4=Timer Mode
+    DeviceScope = 1,              -- 1=Selected Device (lowest perf), 2=All Track Devices (medium), 3=All Song Devices (highest)
+    TimerDuration = 3             -- Timer duration in seconds for Timer Mode (1-10 seconds)
   },
 }
 
@@ -2707,16 +2708,16 @@ vb:row{
           
           vb:text{style="strong",font="bold",text="Automate Last Touched"},
           vb:row{
-            vb:text{text="Watching Mode",width=150,tooltip="Shortcut First: Press shortcut, then move parameter. Track/Always Watching: Move parameter first, then press shortcut."},
+            vb:text{text="Watching Mode",width=150,tooltip="Shortcut First: Press shortcut, then move parameter. Track/Always Watching: Move parameter first, then press shortcut. Timer Mode: Move parameter, timer starts, press shortcut within timer window."},
             vb:popup{
-              items={"Shortcut First (default)","Track Watching","Always Watching"},
+              items={"Shortcut First (default)","Track Watching","Always Watching","Timer Mode"},
               value=preferences.pakettiAutomateLastTouched.WatchingMode.value,
               width=150,
-              tooltip="Shortcut First: Press shortcut, then move parameter. Track/Always Watching: Move parameter first, then press shortcut.",
+              tooltip="Shortcut First: Press shortcut, then move parameter. Track/Always Watching: Move parameter first, then press shortcut. Timer Mode: Move parameter, timer starts, press shortcut within timer window.",
               notifier=function(value)
                 preferences.pakettiAutomateLastTouched.WatchingMode.value = value
                 preferences:save_as("preferences.xml")
-                local mode_names = {"Shortcut First", "Track Watching", "Always Watching"}
+                local mode_names = {"Shortcut First", "Track Watching", "Always Watching", "Timer Mode"}
                 renoise.app():show_status("Automate Last Touched: " .. mode_names[value] .. " (restart Renoise to apply)")
               end
             }
@@ -2754,6 +2755,21 @@ vb:row{
               notifier=function(value)
                 preferences.pakettiAutomateLastTouched.ContinuousRecording.value = value
                 preferences:save_as("preferences.xml")
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Timer Duration (seconds)",width=150,tooltip="Timer duration for Timer Mode (1-10 seconds). When a parameter is touched, you have this many seconds to press the shortcut."},
+            vb:valuebox{
+              min=1,
+              max=10,
+              value=preferences.pakettiAutomateLastTouched.TimerDuration.value,
+              width=60,
+              tooltip="Timer duration for Timer Mode (1-10 seconds). When a parameter is touched, you have this many seconds to press the shortcut.",
+              notifier=function(value)
+                preferences.pakettiAutomateLastTouched.TimerDuration.value = value
+                preferences:save_as("preferences.xml")
+                renoise.app():show_status("Timer Duration set to " .. value .. " seconds")
               end
             }
           },

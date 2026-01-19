@@ -17,7 +17,7 @@ PakettiAutomationCurvesShapes = nil
 PakettiAutomationCurvesKeyMap = nil
 
 -- Image path for bitmaps
-PakettiAutomationCurvesImagePath = "images/automatron/"
+PakettiAutomationCurvesImagePath = "images/automation_shapes/"
 
 ------------------------------------------------------------------------
 -- Shape Definitions
@@ -295,6 +295,19 @@ function PakettiAutomationCurvesInsert(shape_name)
     return
   end
   
+  -- Check for automation selection range
+  local start_line, end_line
+  local selection = automation.selection_range
+  if selection and selection[1] and selection[2] then
+    start_line = selection[1]
+    end_line = selection[2]
+    step = end_line - start_line
+    print("PakettiAutomationCurves: Using selection range from " .. start_line .. " to " .. end_line)
+  else
+    start_line = current_line
+    end_line = current_line + step
+  end
+  
   -- Get shape data
   local shape = PakettiAutomationCurvesShapes[shape_name]
   if not shape then
@@ -319,7 +332,7 @@ function PakettiAutomationCurvesInsert(shape_name)
   local old_points = automation.points
   local new_points = {}
   for _, v in pairs(old_points) do
-    if v.time >= current_line and v.time < current_line + step then
+    if v.time >= start_line and v.time < end_line then
       -- Skip points in the range we're about to fill
     else
       table.insert(new_points, v)
@@ -335,7 +348,7 @@ function PakettiAutomationCurvesInsert(shape_name)
   for slice = 0, (divisor - 1) do
     local start = slice / divisor * step
     for _, point in ipairs(shape_values) do
-      local time = current_line + start + step * point[1] * (1 / divisor)
+      local time = start_line + start + step * point[1] * (1 / divisor)
       local val = offset + ((1 - offset) * point[2]) * attenuation
       -- Clamp value to 0-1
       val = math.max(0, math.min(1, val))
@@ -343,12 +356,14 @@ function PakettiAutomationCurvesInsert(shape_name)
     end
   end
   
-  -- Advance cursor by step length
-  local new_line = current_line + step
-  while new_line > num_lines do
-    new_line = new_line - num_lines
+  -- Advance cursor by step length (only if not using selection range)
+  if not selection or not selection[1] then
+    local new_line = current_line + step
+    while new_line > num_lines do
+      new_line = new_line - num_lines
+    end
+    rs.selected_line_index = new_line
   end
-  rs.selected_line_index = new_line
   
   local label = shape.label or shape_name
   renoise.app():show_status("Inserted " .. label .. " (" .. step .. " lines)")
@@ -611,9 +626,10 @@ function PakettiAutomationCurvesShowDialog()
     PakettiAutomationCurvesInitShapes()
   end
   
-  -- Reuse existing dialog
+  -- Toggle: close if open, open if closed
   if PakettiAutomationCurvesDialog and PakettiAutomationCurvesDialog.visible then
-    PakettiAutomationCurvesDialog:show()
+    PakettiAutomationCurvesDialog:close()
+    PakettiAutomationCurvesDialog = nil
     return
   end
   
@@ -821,12 +837,12 @@ PakettiAutomationCurvesInitShapes()
 ------------------------------------------------------------------------
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Automation..:Enhanced Automation (Curves)...",
+  name = "Main Menu:Tools:Paketti Gadgets:Enhanced Automation (Curves)...",
   invoke = PakettiAutomationCurvesShowDialog
 }
 
 renoise.tool():add_menu_entry{
-  name = "Track Automation:Paketti:Enhanced Automation (Curves)...",
+  name = "Track Automation:Paketti Gadgets:Enhanced Automation (Curves)...",
   invoke = PakettiAutomationCurvesShowDialog
 }
 
