@@ -715,7 +715,7 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
       handled = true
     end
     
-    if key.name == "=" then
+    if key.name == "+" then
       if PakettiAutomationCurvesInputDivisor < 8 then
         PakettiAutomationCurvesInputDivisor = PakettiAutomationCurvesInputDivisor + 1
         if PakettiAutomationCurvesVb and PakettiAutomationCurvesVb.views.input_divisor then
