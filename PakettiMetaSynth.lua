@@ -663,14 +663,7 @@ function PakettiMetaSynthBuildProfile(config)
       fx_count_range = complexity.fx_count_range,
     },
     
-    -- LAYER 3: Group rules
-    group = {
-      crossfade_enabled = movement.crossfade_enabled or false,
-      scan_speed = movement.scan_speed,
-      lfo_rate_preset = config.lfo_rate or "medium",
-    },
-    
-    -- LAYER 4: Modulation rules
+    -- LAYER 3: Oscillator Modulation rules (SEPARATE layer)
     modulation = {
       enabled = true,
       volume_ahdsr = envelope,
@@ -686,6 +679,20 @@ function PakettiMetaSynthBuildProfile(config)
       filter_resonance = filter.resonance,
     },
     
+    -- LAYER 4: Oscillator Groups (summing, organization, oscillator group FX, wavetable/vector control)
+    oscillator_groups = {
+      crossfade_enabled = movement.crossfade_enabled or false,
+      scan_speed = movement.scan_speed,
+      lfo_rate_preset = config.lfo_rate or "medium",
+      -- Oscillator group FX (per-group FX)
+      osc_group_fx_enabled = #(fx.group or {}) > 0 or config.group_fx_enabled or false,
+      osc_group_fx_tendencies = fx.group or {},
+      osc_group_fx_count_range = {0, 2},
+      -- Wavetable/vector control
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     -- LAYER 5: Group Frames
     group_frame = {
       enabled = complexity.group_frame_enabled or false,
@@ -696,14 +703,24 @@ function PakettiMetaSynthBuildProfile(config)
       fx_count_range = {0, 0},
     },
     
-    -- LAYER 6: Group FX rules
-    group_fx = {
-      enabled = #(fx.group or {}) > 0 or config.group_fx_enabled,
-      tendencies = fx.group or {},
+    -- LAYER 6: Total Group FX (FX after all groups summed - Stack Master FX)
+    total_group_fx = {
+      enabled = #(fx.global or {}) > 0 or config.global_fx_enabled or false,
+      tendencies = fx.global or {},
       count_range = {0, 2},
     },
     
-    -- LAYER 7: Global FX rules
+    -- LAYER 7: Total Group Frames / Vector Layer (frame morphing at total summed groups level)
+    total_group_frames = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    -- LAYER 8: Global FX rules
     global_fx = {
       enabled = #(fx.global or {}) > 0 or config.global_fx_enabled,
       tendencies = fx.global or {},
@@ -728,15 +745,16 @@ end
 -- That same profile is then projected downward into each architectural layer,
 -- where every section consumes the subset of rules that apply to it.
 --
--- 8-LAYER STRUCTURE:
+-- 8-LAYER STRUCTURE (Canonical MetaSynth Template):
 --   1. oscillator:        Wave types, unison tendencies, frame usage
---   2. frame:             Whether frames exist, morph speed, allowed FX
---   3. group:             Crossfade settings, scanning behavior, LFO rate
---   4. modulation:        AHDSR/LFO/velocity/keytracking (SEPARATE layer)
---   5. group_frame:       Meta-wavetable at group level (default OFF)
---   6. group_fx:          Character FX tendencies (filters, distortion)
---   7. global_fx:         Polish FX tendencies (reverb, delay, compression)
---   8. sample_selection:  AKWF waveform families and source preferences
+--   2. frame:             Oscillator Frames - spectral variation of individual oscillators
+--   3. modulation:        Oscillator Modulation - polyphonic modulation per oscillator (SEPARATE layer)
+--   4. oscillator_groups: Oscillator Groups - summing, organization, oscillator group FX, wavetable/vector control
+--   5. group_frame:       Group Frames - meta-wavetable at group level (default OFF)
+--   6. total_group_fx:    Total Group FX - FX applied after all groups summed (Stack Master FX)
+--   7. total_group_frames: Total Group Frames / Vector Layer - frame morphing at total summed groups level
+--   8. global_fx:         Global FX - final instrument polish and mix translation
+--   9. sample_selection:  AKWF waveform families and source preferences (metadata layer)
 --
 -- OVERRIDE CHAIN: oscillator > group > architecture.global_profile > "default"
 -- MODULATION can be overridden independently via architecture.modulation_layer
@@ -770,14 +788,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 1},
     },
     
-    -- LAYER 3: Group rules (crossfade, scanning - NO modulation)
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "medium",
-    },
-    
-    -- LAYER 4: Modulation rules (SEPARATE layer)
+    -- LAYER 3: Oscillator Modulation rules (SEPARATE layer)
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.1 },
@@ -793,6 +804,18 @@ PakettiMetaSynthProfiles = {
       filter_resonance = nil,
     },
     
+    -- LAYER 4: Oscillator Groups (summing, organization, oscillator group FX, wavetable/vector control)
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = "medium",
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 1},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     -- LAYER 5: Group Frames (meta-wavetable at group level)
     group_frame = {
       enabled = false,
@@ -803,14 +826,24 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    -- LAYER 6: Group FX rules
-    group_fx = {
+    -- LAYER 6: Total Group FX (FX after all groups summed - Stack Master FX)
+    total_group_fx = {
       enabled = false,
       tendencies = {},
       count_range = {0, 1},
     },
     
-    -- LAYER 7: Global FX rules
+    -- LAYER 7: Total Group Frames / Vector Layer (frame morphing at total summed groups level)
+    total_group_frames = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    -- LAYER 8: Global FX rules
     global_fx = {
       enabled = false,
       tendencies = {},
@@ -845,12 +878,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = nil,
-    },
-    
     modulation = {
       enabled = false,
       volume_ahdsr = nil,
@@ -866,6 +893,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = nil,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -875,10 +913,19 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = false,
       tendencies = {},
       count_range = {0, 0},
+    },
+    
+    total_group_frames = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
     },
     
     global_fx = {
@@ -918,12 +965,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.7, release = 0.1 },
@@ -939,6 +980,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.35,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -948,7 +1000,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Saturator", "Compressor"},
       count_range = {1, 2},
@@ -988,12 +1040,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 1},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "slow",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.05, sustain = 1.0, release = 0.2 },
@@ -1009,6 +1055,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.1,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1018,7 +1075,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Compressor"},
       count_range = {1, 2},
@@ -1058,12 +1115,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.85, release = 0.12 },
@@ -1079,6 +1130,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.55,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1088,7 +1150,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Distortion", "Saturator"},
       count_range = {1, 3},
@@ -1128,7 +1190,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "slow",
       lfo_rate_preset = "slow",
@@ -1149,6 +1211,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.25,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1158,7 +1231,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Chorus", "Phaser"},
       count_range = {1, 2},
@@ -1198,12 +1271,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.12, sustain = 0.75, release = 0.1 },
@@ -1219,6 +1286,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.3,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1228,7 +1306,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Saturator", "Compressor"},
       count_range = {1, 2},
@@ -1271,12 +1349,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.0, release = 0.08 },
@@ -1292,6 +1364,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.25,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1301,7 +1384,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Saturator"},
       count_range = {1, 2},
@@ -1341,12 +1424,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "medium",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.4, sustain = 0.0, release = 0.2 },
@@ -1362,6 +1439,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.2,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1371,7 +1459,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Chorus"},
       count_range = {1, 2},
@@ -1411,12 +1499,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.0, release = 0.05 },
@@ -1432,6 +1514,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.15,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1441,7 +1534,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Saturator"},
       count_range = {1, 2},
@@ -1481,12 +1574,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 1},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "medium",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.5, sustain = 0.0, release = 0.3 },
@@ -1502,6 +1589,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.15,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1511,7 +1609,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Chorus"},
       count_range = {1, 2},
@@ -1554,7 +1652,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "medium",
       lfo_rate_preset = "medium",
@@ -1575,6 +1673,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.3,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1584,7 +1693,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Distortion", "Chorus"},
       count_range = {1, 2},
@@ -1624,7 +1733,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "slow",
       lfo_rate_preset = "slow",
@@ -1645,6 +1754,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.2,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1654,7 +1774,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Chorus", "Phaser"},
       count_range = {1, 2},
@@ -1694,12 +1814,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.75, release = 0.12 },
@@ -1715,6 +1829,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.35,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1724,7 +1849,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Distortion"},
       count_range = {1, 2},
@@ -1764,12 +1889,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "medium",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.08, sustain = 0.9, release = 0.2 },
@@ -1785,6 +1904,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.2,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1794,7 +1924,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Chorus", "Stereo Expander"},
       count_range = {1, 2},
@@ -1834,7 +1964,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "slow",
       lfo_rate_preset = "medium",
@@ -1855,6 +1985,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.25,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1864,7 +2005,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Chorus"},
       count_range = {1, 2},
@@ -1907,7 +2048,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "slow",
       lfo_rate_preset = "slow",
@@ -1928,6 +2069,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.15,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -1937,7 +2089,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Chorus", "Phaser", "Analog Filter"},
       count_range = {1, 2},
@@ -1977,7 +2129,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {2, 3},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "slow",
       lfo_rate_preset = "slow",
@@ -2008,7 +2160,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Chorus", "Phaser", "Flanger", "Analog Filter"},
       count_range = {2, 3},
@@ -2027,8 +2179,8 @@ PakettiMetaSynthProfiles = {
       avoid_families = {"chiptune"},
     },
     
-    -- LAYER 9: Global FX Frames (meta-wavetable at final output)
-    global_fx_frames = {
+    -- LAYER 7: Total Group Frames (already added above, removing duplicate)
+    -- global_fx_frames = {
       enabled = true,
       frame_count_range = {2, 3},
       morph_enabled = true,
@@ -2058,7 +2210,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "slow",
       lfo_rate_preset = "slow",
@@ -2079,6 +2231,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.15,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2088,7 +2251,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Chorus", "Analog Filter", "EQ 5"},
       count_range = {1, 2},
@@ -2128,7 +2291,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "medium",
       lfo_rate_preset = "slow",
@@ -2149,6 +2312,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.25,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2158,7 +2332,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Chorus", "Analog Filter", "Comb Filter"},
       count_range = {1, 2},
@@ -2201,12 +2375,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "medium",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.5, release = 0.25 },
@@ -2222,6 +2390,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.2,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2231,7 +2410,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Chorus", "Analog Filter", "Compressor"},
       count_range = {1, 2},
@@ -2271,12 +2450,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "medium",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.05 },
@@ -2292,6 +2465,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = nil,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2301,7 +2485,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Chorus", "Distortion", "Cabinet Simulator"},
       count_range = {1, 2},
@@ -2341,12 +2525,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 1},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.8, sustain = 0.0, release = 0.4 },
@@ -2362,6 +2540,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.1,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2371,7 +2560,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Compressor", "EQ 5"},
       count_range = {1, 2},
@@ -2414,12 +2603,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 1},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.05, sustain = 0.0, release = 0.03 },
@@ -2435,6 +2618,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.3,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2444,7 +2638,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Gate"},
       count_range = {1, 2},
@@ -2484,12 +2678,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.08, sustain = 0.6, release = 0.05 },
@@ -2505,6 +2693,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.25,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2514,7 +2713,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Gate", "Compressor"},
       count_range = {1, 2},
@@ -2554,12 +2753,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 1},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.3, release = 0.08 },
@@ -2575,6 +2768,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.3,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2584,7 +2788,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Gate"},
       count_range = {1, 2},
@@ -2627,7 +2831,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {2, 4},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "slow",
       lfo_rate_preset = "slow",
@@ -2658,7 +2862,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Phaser", "Flanger", "Analog Filter", "Distortion"},
       count_range = {2, 4},
@@ -2677,8 +2881,8 @@ PakettiMetaSynthProfiles = {
       avoid_families = {"basic"},
     },
     
-    -- LAYER 9: Global FX Frames (meta-wavetable at final output)
-    global_fx_frames = {
+    -- LAYER 7: Total Group Frames (already added above, removing duplicate)
+    -- global_fx_frames = {
       enabled = true,
       frame_count_range = {2, 4},
       morph_enabled = true,
@@ -2708,12 +2912,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.0, release = 0.2 },
@@ -2729,6 +2927,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.2,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2738,7 +2947,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Distortion", "Analog Filter", "Saturator"},
       count_range = {1, 2},
@@ -2778,7 +2987,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {2, 4},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "slow",
       lfo_rate_preset = "slow",
@@ -2809,7 +3018,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Phaser", "Flanger", "Chorus", "Analog Filter"},
       count_range = {2, 4},
@@ -2828,8 +3037,8 @@ PakettiMetaSynthProfiles = {
       avoid_families = {"basic"},
     },
     
-    -- LAYER 9: Global FX Frames (meta-wavetable at final output)
-    global_fx_frames = {
+    -- LAYER 7: Total Group Frames (already added above, removing duplicate)
+    -- global_fx_frames = {
       enabled = true,
       frame_count_range = {2, 3},
       morph_enabled = true,
@@ -2862,7 +3071,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "slow",
       lfo_rate_preset = "slow",
@@ -2883,6 +3092,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.15,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2892,7 +3112,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Chorus", "Analog Filter", "EQ 5"},
       count_range = {1, 2},
@@ -2932,7 +3152,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "medium",
       lfo_rate_preset = "medium",
@@ -2953,6 +3173,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.2,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -2962,7 +3193,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Saturator", "EQ 5"},
       count_range = {1, 2},
@@ -3005,12 +3236,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 1},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "medium",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 1.5, sustain = 0.0, release = 0.8 },
@@ -3026,6 +3251,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.15,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -3035,7 +3271,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Chorus"},
       count_range = {1, 2},
@@ -3078,7 +3314,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "medium",
       lfo_rate_preset = "medium",
@@ -3099,6 +3335,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.2,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -3108,7 +3355,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Chorus"},
       count_range = {1, 2},
@@ -3148,12 +3395,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.3, sustain = 0.0, release = 0.15 },
@@ -3169,6 +3410,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.2,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -3178,7 +3430,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Saturator"},
       count_range = {1, 2},
@@ -3218,12 +3470,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.15, sustain = 0.8, release = 0.12 },
@@ -3239,6 +3485,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.3,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -3248,7 +3505,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Saturator", "Compressor"},
       count_range = {1, 2},
@@ -3288,7 +3545,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "slow",
       lfo_rate_preset = "slow",
@@ -3309,6 +3566,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.15,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -3318,7 +3586,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Chorus", "Phaser", "Analog Filter"},
       count_range = {1, 2},
@@ -3358,7 +3626,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
+    oscillator_groups = {
       crossfade_enabled = true,
       scan_speed = "medium",
       lfo_rate_preset = "medium",
@@ -3379,6 +3647,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.25,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -3388,7 +3667,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Distortion", "Chorus"},
       count_range = {1, 2},
@@ -3428,12 +3707,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "medium",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.0, sustain = 1.0, release = 0.05 },
@@ -3449,6 +3722,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = nil,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -3458,7 +3742,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Chorus", "Distortion", "Cabinet Simulator"},
       count_range = {1, 2},
@@ -3498,12 +3782,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "medium",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.35, sustain = 0.5, release = 0.25 },
@@ -3519,6 +3797,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.2,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -3528,7 +3817,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Chorus", "Analog Filter", "Compressor"},
       count_range = {1, 2},
@@ -3568,12 +3857,6 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {1, 2},
     },
     
-    group = {
-      crossfade_enabled = false,
-      scan_speed = nil,
-      lfo_rate_preset = "fast",
-    },
-    
     modulation = {
       enabled = true,
       volume_ahdsr = { attack = 0.0, hold = 0.0, decay = 0.1, sustain = 0.0, release = 0.05 },
@@ -3589,6 +3872,17 @@ PakettiMetaSynthProfiles = {
       filter_resonance = 0.15,
     },
     
+    oscillator_groups = {
+      crossfade_enabled = false,
+      scan_speed = nil,
+      lfo_rate_preset = nil,
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 0},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
+    
     group_frame = {
       enabled = false,
       frame_count_range = {1, 1},
@@ -3598,7 +3892,7 @@ PakettiMetaSynthProfiles = {
       fx_count_range = {0, 0},
     },
     
-    group_fx = {
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Saturator"},
       count_range = {1, 2},
@@ -5980,7 +6274,7 @@ end
 -- ============================================================================
 
 -- Helper: Get profiles filtered by layer enabled state
--- layer_key: the profile layer to check (e.g., "group_frame", "group_fx")
+-- layer_key: the profile layer to check (e.g., "group_frame", "total_group_fx", "oscillator_groups")
 -- enabled_check: function(layer_data) -> boolean, or nil to check layer.enabled
 function PakettiMetaSynthGetFilteredProfiles(layer_key, enabled_check)
   local names = {}
@@ -6016,9 +6310,9 @@ PakettiMetaSynthGroupFrameProfileNames, PakettiMetaSynthGroupFrameProfileDisplay
     return layer.enabled == true
   end)
 
--- GROUP FX: Only show profiles where group_fx.enabled ~= false (default enabled)
-PakettiMetaSynthGroupFXProfileNames, PakettiMetaSynthGroupFXProfileDisplay = 
-  PakettiMetaSynthGetFilteredProfiles("group_fx", function(layer)
+-- TOTAL GROUP FX: Only show profiles where total_group_fx.enabled ~= false (default enabled)
+PakettiMetaSynthTotalGroupFXProfileNames, PakettiMetaSynthTotalGroupFXProfileDisplay = 
+  PakettiMetaSynthGetFilteredProfiles("total_group_fx", function(layer)
     return layer.enabled ~= false
   end)
 
@@ -6028,9 +6322,9 @@ PakettiMetaSynthFrameMorphProfileNames, PakettiMetaSynthFrameMorphProfileDisplay
     return layer.morph_enabled == true
   end)
 
--- GROUP CROSSFADE: Only show profiles where group.crossfade_enabled = true
-PakettiMetaSynthGroupCrossfadeProfileNames, PakettiMetaSynthGroupCrossfadeProfileDisplay = 
-  PakettiMetaSynthGetFilteredProfiles("group", function(layer)
+-- OSCILLATOR GROUPS: Only show profiles where oscillator_groups.crossfade_enabled = true
+PakettiMetaSynthOscillatorGroupsProfileNames, PakettiMetaSynthOscillatorGroupsProfileDisplay = 
+  PakettiMetaSynthGetFilteredProfiles("oscillator_groups", function(layer)
     return layer.crossfade_enabled == true
   end)
 
@@ -6074,77 +6368,78 @@ PakettiMetaSynthFXProfiles = {
     name = "None / Bypass",
     description = "No FX processing",
     frame_fx = {},
-    group_fx = {},
+    group_fx = {},  -- Oscillator group FX (per-group)
+    total_group_fx = {},  -- Total Group FX (Stack Master)
     global_fx = {},
   },
   fx_bass_heavy = {
     name = "Bass Heavy",
     description = "Sub-focused processing with saturation",
     frame_fx = {"Analog Filter", "Distortion"},
-    group_fx = {"Analog Filter", "Saturator", "Compressor"},
+    total_group_fx = {"Analog Filter", "Saturator", "Compressor"},
     global_fx = {"EQ 5", "Maximizer"},
   },
   fx_bass_clean = {
     name = "Bass Clean",
     description = "Clean low-end with subtle compression",
     frame_fx = {"Analog Filter"},
-    group_fx = {"EQ 5", "Compressor"},
+    total_group_fx = {"EQ 5", "Compressor"},
     global_fx = {"EQ 5"},
   },
   fx_lead_bright = {
     name = "Lead Bright",
     description = "Cutting, present lead character",
     frame_fx = {"Analog Filter", "Distortion", "Chorus"},
-    group_fx = {"Saturator", "EQ 5"},
+    total_group_fx = {"Saturator", "EQ 5"},
     global_fx = {"Reverb", "Delay"},
   },
   fx_lead_smooth = {
     name = "Lead Smooth",
     description = "Warm, rounded lead character",
     frame_fx = {"Analog Filter", "Chorus"},
-    group_fx = {"Saturator", "Chorus"},
+    total_group_fx = {"Saturator", "Chorus"},
     global_fx = {"Reverb", "EQ 5"},
   },
   fx_pad_ambient = {
     name = "Pad Ambient",
     description = "Spacious, evolving atmosphere",
     frame_fx = {"Chorus", "Phaser", "Analog Filter"},
-    group_fx = {"Chorus", "Flanger"},
+    total_group_fx = {"Chorus", "Flanger"},
     global_fx = {"Reverb", "Delay", "EQ 5"},
   },
   fx_pad_warm = {
     name = "Pad Warm",
     description = "Warm, enveloping pad character",
     frame_fx = {"Analog Filter", "Chorus"},
-    group_fx = {"Chorus", "Saturator"},
+    total_group_fx = {"Chorus", "Saturator"},
     global_fx = {"Reverb", "EQ 5"},
   },
   fx_pluck_bright = {
     name = "Pluck Bright",
     description = "Crisp, percussive transients",
     frame_fx = {"Analog Filter", "Distortion"},
-    group_fx = {"Saturator", "EQ 5"},
+    total_group_fx = {"Saturator", "EQ 5"},
     global_fx = {"Reverb", "Delay"},
   },
   fx_keys_vintage = {
     name = "Keys Vintage",
     description = "Classic electric piano character",
     frame_fx = {"Chorus", "Phaser"},
-    group_fx = {"Saturator", "Chorus"},
+    total_group_fx = {"Saturator", "Chorus"},
     global_fx = {"Reverb", "EQ 5"},
   },
   fx_experimental = {
     name = "Experimental",
     description = "Heavy modulation and distortion",
     frame_fx = {"Ring Mod", "Distortion", "Phaser"},
-    group_fx = {"Flanger", "Distortion", "Filter 3"},
+    total_group_fx = {"Flanger", "Distortion", "Filter 3"},
     global_fx = {"Reverb", "Delay"},
   },
   fx_clean = {
     name = "Clean / Minimal",
     description = "Minimal processing, transparent",
     frame_fx = {},
-    group_fx = {"EQ 5"},
+    total_group_fx = {"EQ 5"},
     global_fx = {"EQ 5"},
   },
 }
@@ -6292,8 +6587,8 @@ function PakettiMetaSynthCreateDefaultArchitecture()
         -- GROUP FRAME PROFILE OVERRIDE (nil = inherit from group/global_profile)
         -- Only profiles with group_frame.enabled = true appear in dropdown
         group_frame_profile_override = nil,
-        -- GROUP FX PROFILE OVERRIDE (nil = inherit from group/global_profile)
-        -- Only profiles with group_fx.enabled ~= false appear in dropdown
+        -- OSCILLATOR GROUP FX PROFILE OVERRIDE (nil = inherit from group/global_profile)
+        -- Only profiles with oscillator_groups.osc_group_fx_enabled ~= false appear in dropdown
         group_fx_profile_override = nil,
         -- GROUP CROSSFADE PROFILE OVERRIDE (nil = inherit from group/global_profile)
         -- Only profiles with group.crossfade_enabled = true appear in dropdown
@@ -6441,7 +6736,7 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     global_fx_frame_fx_count = 1,
     
     -- ================================================================
-    -- GLOBAL FX SCAN: Sequential wavetable-style scanning across Global FX Frames
+    -- TOTAL GROUP FRAMES SCAN: Sequential wavetable-style scanning across Total Group Frames
     -- Works with any frame count >= 2
     -- Default OFF
     -- ================================================================
@@ -6451,7 +6746,7 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     global_fx_scan_lfo_rate_preset = "slow",    -- LFO speed preset
     
     -- ================================================================
-    -- GLOBAL FX VECTOR: XY-based morphing between 4 Global FX Frames
+    -- TOTAL GROUP FRAMES VECTOR: XY-based morphing between 4 Total Group Frames
     -- Requires exactly 4 frames (corners of XY space)
     -- Default OFF
     -- ================================================================
@@ -8383,7 +8678,7 @@ function PakettiMetaSynthGetProfile(profile_name)
 end
 
 -- Resolve and return profile rules for a specific LAYER
--- layer: "oscillator", "frame", "group", "group_fx", "global_fx"
+-- layer: "oscillator", "frame", "modulation", "oscillator_groups", "group_frame", "total_group_fx", "total_group_frames", "global_fx", "sample_selection"
 -- Returns the layer-specific rules table, or empty table with defaults if missing
 function PakettiMetaSynthResolveProfile(layer, osc, group, architecture)
   local profile_name = PakettiMetaSynthResolveProfileName(osc, group, architecture)
@@ -8417,11 +8712,6 @@ function PakettiMetaSynthGetDefaultLayerRules(layer)
       fx_tendencies = {"Analog Filter", "Chorus"},
       fx_count_range = {1, 2},
     },
-    group = {
-      crossfade_enabled = true,
-      scan_speed = "medium",
-      lfo_rate_preset = "medium",
-    },
     -- Modulation is now a SEPARATE layer (not nested in group)
     modulation = {
       enabled = true,
@@ -8437,6 +8727,17 @@ function PakettiMetaSynthGetDefaultLayerRules(layer)
       filter_cutoff = 0.6,
       filter_resonance = 0.2,
     },
+    -- Oscillator Groups - summing, organization, oscillator group FX, wavetable/vector control
+    oscillator_groups = {
+      crossfade_enabled = true,
+      scan_speed = "medium",
+      lfo_rate_preset = "medium",
+      osc_group_fx_enabled = true,
+      osc_group_fx_tendencies = {"Analog Filter", "Chorus"},
+      osc_group_fx_count_range = {1, 2},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
+    },
     -- Group frames - meta-wavetable at group level (default OFF)
     group_frame = {
       enabled = false,
@@ -8446,10 +8747,20 @@ function PakettiMetaSynthGetDefaultLayerRules(layer)
       fx_tendencies = {},
       fx_count_range = {0, 0},
     },
-    group_fx = {
+    -- Total Group FX - FX after all groups summed (Stack Master FX)
+    total_group_fx = {
       enabled = true,
       tendencies = {"Analog Filter", "Chorus"},
       count_range = {1, 2},
+    },
+    -- Total Group Frames - frame morphing at total summed groups level (default OFF)
+    total_group_frames = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
     },
     global_fx = {
       enabled = true,
@@ -8462,15 +8773,6 @@ function PakettiMetaSynthGetDefaultLayerRules(layer)
       waveform_families = {"basic", "saw"},
       avoid_families = {},
     },
-    -- Global FX Frames - meta-wavetable at final output stage (default OFF)
-    global_fx_frames = {
-      enabled = false,
-      frame_count_range = {1, 1},
-      morph_enabled = false,
-      morph_speed = "none",
-      fx_tendencies = {},
-      fx_count_range = {0, 0},
-    },
   }
   
   return defaults[layer] or {}
@@ -8482,14 +8784,15 @@ end
 -- Returns: { frame_fx, group_fx, global_fx } or nil (use sound profile)
 -- ============================================================================
 function PakettiMetaSynthResolveFXProfile(layer, group, architecture)
-  -- layer: "frame", "group", "global" - which FX level to resolve
+  -- layer: "frame", "group" (oscillator group FX), "total_group" (total group FX), "global" - which FX level to resolve
   
   -- Check group-level FX override first
   if group and group.fx_profile_override then
     local fx_profile = PakettiMetaSynthFXProfiles[group.fx_profile_override]
     if fx_profile then
       if layer == "frame" then return fx_profile.frame_fx or {}
-      elseif layer == "group" then return fx_profile.group_fx or {}
+      elseif layer == "group" then return fx_profile.group_fx or {}  -- Oscillator group FX (per-group)
+      elseif layer == "total_group" then return fx_profile.total_group_fx or {}  -- Total Group FX (Stack Master)
       elseif layer == "global" then return fx_profile.global_fx or {}
       end
     end
@@ -8500,7 +8803,8 @@ function PakettiMetaSynthResolveFXProfile(layer, group, architecture)
     local fx_profile = PakettiMetaSynthFXProfiles[architecture.fx_profile_override]
     if fx_profile then
       if layer == "frame" then return fx_profile.frame_fx or {}
-      elseif layer == "group" then return fx_profile.group_fx or {}
+      elseif layer == "group" then return fx_profile.group_fx or {}  -- Oscillator group FX (per-group)
+      elseif layer == "total_group" then return fx_profile.total_group_fx or {}  -- Total Group FX (Stack Master)
       elseif layer == "global" then return fx_profile.global_fx or {}
       end
     end
@@ -8524,8 +8828,13 @@ function PakettiMetaSynthGetFXTendencies(layer, osc, group, architecture)
     local frame_rules = PakettiMetaSynthResolveProfile("frame", osc, group, architecture)
     return frame_rules.fx_tendencies or {}
   elseif layer == "group" then
-    local group_fx_rules = PakettiMetaSynthResolveProfile("group_fx", osc, group, architecture)
-    return group_fx_rules.tendencies or {}
+    -- Oscillator group FX (per-group FX)
+    local osc_group_rules = PakettiMetaSynthResolveProfile("oscillator_groups", osc, group, architecture)
+    return osc_group_rules.osc_group_fx_tendencies or {}
+  elseif layer == "total_group" then
+    -- Total Group FX (Stack Master FX)
+    local total_group_fx_rules = PakettiMetaSynthResolveProfile("total_group_fx", osc, group, architecture)
+    return total_group_fx_rules.tendencies or {}
   elseif layer == "global" then
     local global_fx_rules = PakettiMetaSynthResolveProfile("global_fx", osc, group, architecture)
     return global_fx_rules.tendencies or {}
@@ -8583,20 +8892,19 @@ function PakettiMetaSynthApplyProfileDefaultsToGroup(group, profile_name, archit
     return false
   end
   
-  -- Apply GROUP rules
-  local group_rules = profile.group or {}
-  group.group_crossfade_enabled = group_rules.crossfade_enabled or false
-  group.group_lfo_rate_preset = group_rules.lfo_rate_preset or "medium"
+  -- Apply OSCILLATOR GROUPS rules (Layer 4)
+  local osc_group_rules = profile.oscillator_groups or {}
+  group.group_crossfade_enabled = osc_group_rules.crossfade_enabled or false
+  group.group_lfo_rate_preset = osc_group_rules.lfo_rate_preset or "medium"
   
-  -- Apply GROUP FX rules
-  local fx_rules = profile.group_fx or {}
-  group.group_master_fx_enabled = fx_rules.enabled ~= false
-  local fx_count_range = fx_rules.count_range or {1, 2}
+  -- Apply OSCILLATOR GROUP FX rules (per-group FX from Layer 4)
+  group.group_master_fx_enabled = osc_group_rules.osc_group_fx_enabled ~= false
+  local fx_count_range = osc_group_rules.osc_group_fx_count_range or {1, 2}
   group.group_master_fx_count = math.random(fx_count_range[1], fx_count_range[2])
   
   -- Set FX types from tendencies
   group.group_master_fx_types = {}
-  local tendencies = fx_rules.tendencies or {}
+  local tendencies = osc_group_rules.osc_group_fx_tendencies or {}
   if #tendencies > 0 then
     group.group_master_fx_mode = "selective"
     for i = 1, math.min(group.group_master_fx_count, #tendencies) do
@@ -8605,6 +8913,10 @@ function PakettiMetaSynthApplyProfileDefaultsToGroup(group, profile_name, archit
   else
     group.group_master_fx_mode = "random"
   end
+  
+  -- Apply wavetable/vector control settings from Layer 4
+  architecture.group_scan_enabled = osc_group_rules.wavetable_scan_enabled or false
+  architecture.vector_enabled = osc_group_rules.vector_enabled or false
   
   -- Apply GROUP FRAME rules
   local group_frame_rules = profile.group_frame or {}
@@ -9496,12 +9808,12 @@ function PakettiMetaSynthAddGroupFrameVectorSynthesis(group_frame_chains, group_
 end
 
 -- ============================================================================
--- GLOBAL FX FRAME CHAINS
--- Creates multiple "snapshots" of final output processing that can be morphed between
--- This is frame scanning at the global/output level
+-- TOTAL GROUP FRAME CHAINS (Layer 7)
+-- Creates multiple "snapshots" of total summed groups that can be morphed between
+-- This is frame scanning at the total group level (after Stack Master, before Global FX)
 -- Structure per frame: [FX devices (0+)] → [Frame Gainer + Frame LFO]
 -- ============================================================================
-function PakettiMetaSynthCreateGlobalFXFrameChains(instrument, architecture, randomization_amount)
+function PakettiMetaSynthCreateTotalGroupFrameChains(instrument, architecture, randomization_amount)
   randomization_amount = randomization_amount or 0.3
   
   local frame_count = architecture.global_fx_frame_count or 1
@@ -9520,10 +9832,10 @@ function PakettiMetaSynthCreateGlobalFXFrameChains(instrument, architecture, ran
     architecture.global_fx_frame_lfo_rate_preset or morph_speed
   )
   
-  local global_fx_frame_chains = {}
+  local total_group_frame_chains = {}
   
   for frame_idx = 1, frame_count do
-    local frame_chain_name = string.format("Global FX Frame %d", frame_idx)
+    local frame_chain_name = string.format("Total Group Frame %d", frame_idx)
     local frame_chain_index = #instrument.sample_device_chains + 1
     instrument:insert_sample_device_chain_at(frame_chain_index)
     local frame_chain = instrument.sample_device_chains[frame_chain_index]
@@ -9571,7 +9883,7 @@ function PakettiMetaSynthCreateGlobalFXFrameChains(instrument, architecture, ran
     local frame_gainer, frame_gainer_position = PakettiMetaSynthCreateGainer(
       frame_chain, 
       initial_gain, 
-      string.format("Global Frame %d Gainer", frame_idx)
+      string.format("Total Group Frame %d Gainer", frame_idx)
     )
     
     -- Add Frame LFO if morphing enabled and more than 1 frame
@@ -9589,14 +9901,14 @@ function PakettiMetaSynthCreateGlobalFXFrameChains(instrument, architecture, ran
       frame_lfo = PakettiMetaSynthCreateCrossfadeLFO(
         frame_chain,
         scaled_curve,
-        string.format("Global Frame %d LFO", frame_idx),
+        string.format("Total Group Frame %d LFO", frame_idx),
         frame_gainer_position,
         1,              -- Gain parameter
         lfo_freq
       )
     end
     
-    table.insert(global_fx_frame_chains, {
+    table.insert(total_group_frame_chains, {
       chain = frame_chain,
       chain_index = frame_chain_index,
       chain_name = frame_chain_name,
@@ -9608,22 +9920,22 @@ function PakettiMetaSynthCreateGlobalFXFrameChains(instrument, architecture, ran
       crossfade_curve = frame_crossfade_curve
     })
     
-    print(string.format("PakettiMetaSynth: Created Global FX Frame chain '%s' with %d FX + Gainer", 
-      frame_chain_name, #frame_devices))
+  print(string.format("PakettiMetaSynth: Created Total Group Frame chain '%s' with %d FX + Gainer", 
+    frame_chain_name, #frame_devices))
   end
   
-  return global_fx_frame_chains
+  return total_group_frame_chains
 end
 
--- Route Stack Master to Global FX Frame chains
-function PakettiMetaSynthRouteStackedMasterToGlobalFrames(stack_master_info, global_fx_frame_chains)
-  if not global_fx_frame_chains or #global_fx_frame_chains == 0 then
+-- Route Stack Master to Total Group Frame chains
+function PakettiMetaSynthRouteStackedMasterToTotalGroupFrames(stack_master_info, total_group_frame_chains)
+  if not total_group_frame_chains or #total_group_frame_chains == 0 then
     return
   end
   
   local stacked_chain = stack_master_info.chain
   
-  for _, frame_info in ipairs(global_fx_frame_chains) do
+  for _, frame_info in ipairs(total_group_frame_chains) do
     local send_device = stacked_chain:insert_device_at("Audio/Effects/Native/#Send", #stacked_chain.devices + 1)
     if send_device then
       send_device.display_name = string.format("→ %s", frame_info.chain_name)
@@ -9635,14 +9947,14 @@ function PakettiMetaSynthRouteStackedMasterToGlobalFrames(stack_master_info, glo
 end
 
 -- ============================================================================
--- GLOBAL FX WAVETABLE SCAN: Sequential scanning across Global FX Frames
--- Adds Scan Gainers + LFOs to each Global FX Frame chain for wavetable-style morphing
+-- TOTAL GROUP FRAMES WAVETABLE SCAN: Sequential scanning across Total Group Frames
+-- Adds Scan Gainers + LFOs to each Total Group Frame chain for wavetable-style morphing
 -- Works with any frame count >= 2
 -- ============================================================================
-function PakettiMetaSynthAddGlobalFXWavetableScan(global_fx_frame_chains, architecture)
-  local total_frames = #global_fx_frame_chains
+function PakettiMetaSynthAddTotalGroupFramesWavetableScan(total_group_frame_chains, architecture)
+  local total_frames = #total_group_frame_chains
   if total_frames < 2 then
-    print("PakettiMetaSynth: Global FX Scan requires 2+ frames, skipping")
+    print("PakettiMetaSynth: Total Group Frames Scan requires 2+ frames, skipping")
     return
   end
   
@@ -9661,10 +9973,10 @@ function PakettiMetaSynthAddGlobalFXWavetableScan(global_fx_frame_chains, archit
     architecture.global_fx_scan_lfo_rate_preset or "slow"
   )
   
-  print(string.format("PakettiMetaSynth: Adding Global FX Scan to %d frames (curve: %s, source: %s)",
+  print(string.format("PakettiMetaSynth: Adding Total Group Frames Scan to %d frames (curve: %s, source: %s)",
     total_frames, curve_type, control_source))
   
-  for fi, frame_info in ipairs(global_fx_frame_chains) do
+  for fi, frame_info in ipairs(total_group_frame_chains) do
     local chain = frame_info.chain
     
     -- Generate crossfade curve for this frame's position
@@ -9680,7 +9992,7 @@ function PakettiMetaSynthAddGlobalFXWavetableScan(global_fx_frame_chains, archit
     local scan_gainer, scan_gainer_position = PakettiMetaSynthCreateGainer(
       chain,
       initial_gain,
-      string.format("GFX Scan %d/%d", fi, total_frames)
+      string.format("TGF Scan %d/%d", fi, total_frames)
     )
     
     frame_info.scan_gainer = scan_gainer
@@ -9700,32 +10012,32 @@ function PakettiMetaSynthAddGlobalFXWavetableScan(global_fx_frame_chains, archit
       local scan_lfo = PakettiMetaSynthCreateCrossfadeLFO(
         chain,
         scaled_curve,
-        string.format("GFX Scan LFO %d", fi),
+        string.format("TGF Scan LFO %d", fi),
         scan_gainer_position,
         1,  -- Gain parameter
         lfo_freq
       )
       
       frame_info.scan_lfo = scan_lfo
-      print(string.format("PakettiMetaSynth: Added GFX Scan Gainer + LFO to '%s' (gain=%.2f, freq=%.3f)",
+      print(string.format("PakettiMetaSynth: Added Total Group Frames Scan Gainer + LFO to '%s' (gain=%.2f, freq=%.3f)",
         frame_info.chain_name, initial_gain, lfo_freq))
     else
       -- Macro control - just leave gainer for manual control
-      print(string.format("PakettiMetaSynth: Added GFX Scan Gainer to '%s' (gain=%.2f, macro control)",
+      print(string.format("PakettiMetaSynth: Added Total Group Frames Scan Gainer to '%s' (gain=%.2f, macro control)",
         frame_info.chain_name, initial_gain))
     end
   end
 end
 
 -- ============================================================================
--- GLOBAL FX VECTOR SYNTHESIS: XY-based morphing between 4 Global FX Frames
+-- TOTAL GROUP FRAMES VECTOR SYNTHESIS: XY-based morphing between 4 Total Group Frames
 -- Creates 4-corner XY vector morphing similar to group-level vector synthesis
 -- Requires exactly 4 frames (treated as corners: A=bottom-left, B=bottom-right, C=top-left, D=top-right)
 -- ============================================================================
-function PakettiMetaSynthAddGlobalFXVectorSynthesis(global_fx_frame_chains, architecture)
-  local total_frames = #global_fx_frame_chains
+function PakettiMetaSynthAddTotalGroupFramesVectorSynthesis(total_group_frame_chains, architecture)
+  local total_frames = #total_group_frame_chains
   if total_frames ~= 4 then
-    print(string.format("PakettiMetaSynth: Global FX Vector requires exactly 4 frames (got %d), skipping", total_frames))
+    print(string.format("PakettiMetaSynth: Total Group Frames Vector requires exactly 4 frames (got %d), skipping", total_frames))
     return
   end
   
@@ -9746,20 +10058,20 @@ function PakettiMetaSynthAddGlobalFXVectorSynthesis(global_fx_frame_chains, arch
   local gain_values = {initial_gains.group_a, initial_gains.group_b, initial_gains.group_c, initial_gains.group_d}
   local corner_names = {"BL", "BR", "TL", "TR"}
   
-  for fi, frame_info in ipairs(global_fx_frame_chains) do
+  for fi, frame_info in ipairs(total_group_frame_chains) do
     local chain = frame_info.chain
     
     -- Add Vector Gainer for XY control
     local vector_gainer, vector_gainer_position = PakettiMetaSynthCreateGainer(
       chain,
       gain_values[fi],
-      string.format("GFX Vector %s", corner_names[fi])
+      string.format("TGF Vector %s", corner_names[fi])
     )
     
     frame_info.vector_gainer = vector_gainer
     frame_info.vector_gainer_position = vector_gainer_position
     
-    print(string.format("PakettiMetaSynth: Added GFX Vector Gainer to '%s' (corner=%s, gain=%.2f)",
+    print(string.format("PakettiMetaSynth: Added Total Group Frames Vector Gainer to '%s' (corner=%s, gain=%.2f)",
       frame_info.chain_name, corner_names[fi], gain_values[fi]))
   end
   
@@ -9767,10 +10079,10 @@ function PakettiMetaSynthAddGlobalFXVectorSynthesis(global_fx_frame_chains, arch
   if x_source == "lfo" then
     -- X-axis affects frames horizontally (A/C vs B/D)
     -- Create sine wave LFO that sweeps 0-1 on X axis
-    local x_chain = global_fx_frame_chains[1].chain  -- Add to first frame chain
+    local x_chain = total_group_frame_chains[1].chain  -- Add to first frame chain
     local x_lfo = PakettiMetaSynthInsertDevice(x_chain, "Audio/Effects/Native/*LFO")
     if x_lfo then
-      x_lfo.display_name = "GFX Vector X"
+      x_lfo.display_name = "TGF Vector X"
       -- Set LFO parameters
       local freq_param = x_lfo:parameter(1)
       if freq_param then
@@ -9781,18 +10093,18 @@ function PakettiMetaSynthAddGlobalFXVectorSynthesis(global_fx_frame_chains, arch
       if shape_param then
         shape_param.value = 0  -- Sine
       end
-      global_fx_frame_chains[1].vector_x_lfo = x_lfo
-      print(string.format("PakettiMetaSynth: Added GFX Vector X LFO (rate=%.3f)", x_lfo_rate))
+      total_group_frame_chains[1].vector_x_lfo = x_lfo
+      print(string.format("PakettiMetaSynth: Added Total Group Frames Vector X LFO (rate=%.3f)", x_lfo_rate))
     end
   end
   
   -- Add Y-axis LFO if using LFO control
   if y_source == "lfo" then
     -- Y-axis affects frames vertically (A/B vs C/D)
-    local y_chain = global_fx_frame_chains[2].chain  -- Add to second frame chain
+    local y_chain = total_group_frame_chains[2].chain  -- Add to second frame chain
     local y_lfo = PakettiMetaSynthInsertDevice(y_chain, "Audio/Effects/Native/*LFO")
     if y_lfo then
-      y_lfo.display_name = "GFX Vector Y"
+      y_lfo.display_name = "TGF Vector Y"
       -- Set LFO parameters
       local freq_param = y_lfo:parameter(1)
       if freq_param then
@@ -9803,8 +10115,8 @@ function PakettiMetaSynthAddGlobalFXVectorSynthesis(global_fx_frame_chains, arch
       if shape_param then
         shape_param.value = 0  -- Sine
       end
-      global_fx_frame_chains[2].vector_y_lfo = y_lfo
-      print(string.format("PakettiMetaSynth: Added GFX Vector Y LFO (rate=%.3f)", y_lfo_rate))
+      total_group_frame_chains[2].vector_y_lfo = y_lfo
+      print(string.format("PakettiMetaSynth: Added Total Group Frames Vector Y LFO (rate=%.3f)", y_lfo_rate))
     end
   end
 end
@@ -9984,7 +10296,7 @@ function PakettiMetaSynthCreateFinalOutputChain(instrument, architecture, random
   return final_output_info
 end
 
--- Route to Final Output chain (from Global FX Frames or Stack Master)
+-- Route to Final Output chain (from Total Group Frames or Stack Master)
 function PakettiMetaSynthRouteToFinalOutput(source_info, final_output_info)
   if not final_output_info then
     return
@@ -11075,17 +11387,17 @@ function PakettiMetaSynthGenerateInstrument(architecture)
   -- Store Stack Master in registry (always exists now)
   chain_registry.stack_master = stack_master_info
   
-  -- Create Global FX Frame chains if enabled - NO ROUTING YET
-  local global_fx_frame_chains = nil
+  -- Create Total Group Frame chains if enabled (Layer 7) - NO ROUTING YET
+  local total_group_frame_chains = nil
   if architecture.global_fx_frames_enabled and architecture.global_fx_frame_count > 1 then
-    print(string.format("PakettiMetaSynth: Creating %d Global FX Frame chains...", 
+    print(string.format("PakettiMetaSynth: Creating %d Total Group Frame chains...", 
       architecture.global_fx_frame_count))
-    global_fx_frame_chains = PakettiMetaSynthCreateGlobalFXFrameChains(
+    total_group_frame_chains = PakettiMetaSynthCreateTotalGroupFrameChains(
       instrument,
       architecture,
       randomization_amount
     )
-    chain_registry.global_fx_frames = global_fx_frame_chains
+    chain_registry.total_group_frames = total_group_frame_chains
   end
   
   -- ========================================================================
@@ -11152,20 +11464,20 @@ function PakettiMetaSynthGenerateInstrument(architecture)
   -- Route Group Masters -> Stack Master (Stack Master always exists now)
   PakettiMetaSynthRouteGroupMastersToStackedMaster(all_group_master_chains, chain_registry.stack_master)
   
-  -- Route Stack Master -> Global FX Frame chains (if enabled)
-  if chain_registry.global_fx_frames and #chain_registry.global_fx_frames > 0 then
-    print(string.format("PakettiMetaSynth: Routing Stack Master through %d Global FX Frame chains",
-      #chain_registry.global_fx_frames))
-    PakettiMetaSynthRouteStackedMasterToGlobalFrames(chain_registry.stack_master, chain_registry.global_fx_frames)
+  -- Route Stack Master -> Total Group Frame chains (Layer 7, if enabled)
+  if chain_registry.total_group_frames and #chain_registry.total_group_frames > 0 then
+    print(string.format("PakettiMetaSynth: Routing Stack Master through %d Total Group Frame chains",
+      #chain_registry.total_group_frames))
+    PakettiMetaSynthRouteStackedMasterToTotalGroupFrames(chain_registry.stack_master, chain_registry.total_group_frames)
     
     -- Add Global FX Wavetable Scan if enabled
-    if architecture.global_fx_scan_enabled and #chain_registry.global_fx_frames >= 2 then
-      PakettiMetaSynthAddGlobalFXWavetableScan(chain_registry.global_fx_frames, architecture)
+    if architecture.global_fx_scan_enabled and #chain_registry.total_group_frames >= 2 then
+      PakettiMetaSynthAddTotalGroupFramesWavetableScan(chain_registry.total_group_frames, architecture)
     end
     
     -- Add Global FX Vector Synthesis if enabled (requires exactly 4 frames)
-    if architecture.global_fx_vector_enabled and #chain_registry.global_fx_frames == 4 then
-      PakettiMetaSynthAddGlobalFXVectorSynthesis(chain_registry.global_fx_frames, architecture)
+    if architecture.global_fx_vector_enabled and #chain_registry.total_group_frames == 4 then
+      PakettiMetaSynthAddTotalGroupFramesVectorSynthesis(chain_registry.total_group_frames, architecture)
     end
   end
   
@@ -11179,9 +11491,9 @@ function PakettiMetaSynthGenerateInstrument(architecture)
     
     -- Route to Final Output from the last stage
     if final_output_info then
-      if chain_registry.global_fx_frames and #chain_registry.global_fx_frames > 0 then
+      if chain_registry.total_group_frames and #chain_registry.total_group_frames > 0 then
         -- Route from each Global FX Frame to Final Output
-        for _, frame_info in ipairs(chain_registry.global_fx_frames) do
+        for _, frame_info in ipairs(chain_registry.total_group_frames) do
           PakettiMetaSynthRouteToFinalOutput(frame_info, final_output_info)
         end
       else
@@ -11591,17 +11903,17 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
   )
   chain_registry.stack_master = stack_master_info
   
-  -- Create Global FX Frame chains if enabled - NO ROUTING YET
-  local global_fx_frame_chains = nil
+  -- Create Total Group Frame chains if enabled (Layer 7) - NO ROUTING YET
+  local total_group_frame_chains = nil
   if architecture.global_fx_frames_enabled and architecture.global_fx_frame_count > 1 then
-    print(string.format("PakettiMetaSynth Wavetable: Creating %d Global FX Frame chains...", 
+    print(string.format("PakettiMetaSynth Wavetable: Creating %d Total Group Frame chains...", 
       architecture.global_fx_frame_count))
-    global_fx_frame_chains = PakettiMetaSynthCreateGlobalFXFrameChains(
+    total_group_frame_chains = PakettiMetaSynthCreateTotalGroupFrameChains(
       instrument,
       architecture,
       randomization_amount
     )
-    chain_registry.global_fx_frames = global_fx_frame_chains
+    chain_registry.total_group_frames = total_group_frame_chains
   end
   
   -- ========================================================================
@@ -11700,19 +12012,19 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
   PakettiMetaSynthRouteGroupMastersToStackedMaster(all_group_master_chains, chain_registry.stack_master)
   
   -- Route Stack Master -> Global FX Frame chains (if enabled)
-  if chain_registry.global_fx_frames and #chain_registry.global_fx_frames > 0 then
+  if chain_registry.total_group_frames and #chain_registry.total_group_frames > 0 then
     print(string.format("PakettiMetaSynth Wavetable: Routing Stack Master through %d Global FX Frame chains",
-      #chain_registry.global_fx_frames))
-    PakettiMetaSynthRouteStackedMasterToGlobalFrames(chain_registry.stack_master, chain_registry.global_fx_frames)
+      #chain_registry.total_group_frames))
+    PakettiMetaSynthRouteStackedMasterToTotalGroupFrames(chain_registry.stack_master, chain_registry.total_group_frames)
     
     -- Add Global FX Wavetable Scan if enabled
-    if architecture.global_fx_scan_enabled and #chain_registry.global_fx_frames >= 2 then
-      PakettiMetaSynthAddGlobalFXWavetableScan(chain_registry.global_fx_frames, architecture)
+    if architecture.global_fx_scan_enabled and #chain_registry.total_group_frames >= 2 then
+      PakettiMetaSynthAddTotalGroupFramesWavetableScan(chain_registry.total_group_frames, architecture)
     end
     
     -- Add Global FX Vector Synthesis if enabled (requires exactly 4 frames)
-    if architecture.global_fx_vector_enabled and #chain_registry.global_fx_frames == 4 then
-      PakettiMetaSynthAddGlobalFXVectorSynthesis(chain_registry.global_fx_frames, architecture)
+    if architecture.global_fx_vector_enabled and #chain_registry.total_group_frames == 4 then
+      PakettiMetaSynthAddTotalGroupFramesVectorSynthesis(chain_registry.total_group_frames, architecture)
     end
   end
   
@@ -11726,9 +12038,9 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
     
     -- Route to Final Output from the last stage
     if final_output_info then
-      if chain_registry.global_fx_frames and #chain_registry.global_fx_frames > 0 then
+      if chain_registry.total_group_frames and #chain_registry.total_group_frames > 0 then
         -- Route from each Global FX Frame to Final Output
-        for _, frame_info in ipairs(chain_registry.global_fx_frames) do
+        for _, frame_info in ipairs(chain_registry.total_group_frames) do
           PakettiMetaSynthRouteToFinalOutput(frame_info, final_output_info)
         end
       else
@@ -11977,7 +12289,7 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
     -- Randomize Group LFO rate settings
     local group_rate_mode = rate_modes[math.random(1, #rate_modes)]
     
-    -- Get group rules from the global profile (or override if set)
+    -- Get oscillator groups rules from the global profile (or override if set)
     local group_profile_name = nil  -- nil = inherit from global
     -- 30% chance to override with a different profile for this group (hybrid sound)
     if math.random() < 0.3 then
@@ -11986,25 +12298,31 @@ function PakettiMetaSynthRandomizeArchitecture(architecture)
     
     -- Get profile rules for this group
     local temp_group = { profile_override = group_profile_name }
-    local group_rules = PakettiMetaSynthResolveProfile("group", nil, temp_group, architecture)
-    local group_fx_rules = PakettiMetaSynthResolveProfile("group_fx", nil, temp_group, architecture)
+    local osc_group_rules = PakettiMetaSynthResolveProfile("oscillator_groups", nil, temp_group, architecture)
     local group_frame_rules = PakettiMetaSynthResolveProfile("group_frame", nil, temp_group, architecture)
+    
+    -- Extract oscillator group FX from oscillator_groups layer
+    local osc_group_fx_rules = {
+      enabled = osc_group_rules.osc_group_fx_enabled,
+      count_range = osc_group_rules.osc_group_fx_count_range or {1, 2},
+      tendencies = osc_group_rules.osc_group_fx_tendencies or {}
+    }
     
     local group = {
       name = "Group " .. string.char(64 + gi), -- A, B, C...
       crossfade_mode = ({"linear", "xy", "stack"})[math.random(1, 3)],
       -- Group crossfade settings (wavetable scanning) - guided by profile
-      group_crossfade_enabled = group_rules.crossfade_enabled ~= false,
+      group_crossfade_enabled = osc_group_rules.crossfade_enabled ~= false,
       group_crossfade_curve = PakettiMetaSynthGetRandomCrossfadeCurve(),
       -- Group LFO rate settings - guided by profile
       group_lfo_rate_mode = group_rate_mode,
       group_lfo_rate_free = 0.1 + math.random() * 1.9,  -- 0.1-2.0 Hz
       group_lfo_rate_sync = rate_syncs[math.random(1, #rate_syncs)],
-      group_lfo_rate_preset = group_rules.lfo_rate_preset or rate_presets[math.random(1, #rate_presets)],
-      -- Group Master FX settings - guided by profile group_fx rules
-      group_master_fx_enabled = group_fx_rules.enabled ~= false,
+      group_lfo_rate_preset = osc_group_rules.lfo_rate_preset or rate_presets[math.random(1, #rate_presets)],
+      -- Group Master FX settings - guided by profile oscillator_groups.osc_group_fx rules
+      group_master_fx_enabled = osc_group_fx_rules.enabled ~= false,
       group_master_fx_mode = "selective",  -- Use profile tendencies
-      group_master_fx_count = PakettiMetaSynthGetIntInRange(group_fx_rules.count_range or {1, 4}),
+      group_master_fx_count = PakettiMetaSynthGetIntInRange(osc_group_fx_rules.count_range or {1, 4}),
       group_master_fx_types = {},
       
       -- GROUP FRAMES (meta-wavetable at group level) - guided by profile AND constraints
@@ -12477,9 +12795,15 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
     local group_rate_mode = rate_modes[math.random(1, #rate_modes)]
     
     -- Get profile rules for group configuration
-    local group_rules = PakettiMetaSynthResolveProfile("group", nil, nil, architecture)
-    local group_fx_rules = PakettiMetaSynthResolveProfile("group_fx", nil, nil, architecture)
+    local osc_group_rules = PakettiMetaSynthResolveProfile("oscillator_groups", nil, nil, architecture)
     local group_frame_rules = PakettiMetaSynthResolveProfile("group_frame", nil, nil, architecture)
+    
+    -- Extract oscillator group FX from oscillator_groups layer
+    local osc_group_fx_rules = {
+      enabled = osc_group_rules.osc_group_fx_enabled,
+      count_range = osc_group_rules.osc_group_fx_count_range or {1, 2},
+      tendencies = osc_group_rules.osc_group_fx_tendencies or {}
+    }
     
     local group = {
       name = "Group " .. string.char(64 + gi),
@@ -12491,11 +12815,11 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
       group_lfo_rate_mode = group_rate_mode,
       group_lfo_rate_free = 0.1 + math.random() * 0.9,  -- 0.1-1.0 Hz (slower for wavetable)
       group_lfo_rate_sync = rate_syncs[math.random(4, #rate_syncs)],  -- Prefer slower syncs (1/2 to 4 bars)
-      group_lfo_rate_preset = group_rules.lfo_rate_preset or rate_presets[math.random(1, 2)],
-      -- Group Master FX - guided by profile
-      group_master_fx_enabled = group_fx_rules.enabled ~= false,
+      group_lfo_rate_preset = osc_group_rules.lfo_rate_preset or rate_presets[math.random(1, 2)],
+      -- Group Master FX - guided by profile oscillator_groups.osc_group_fx rules
+      group_master_fx_enabled = osc_group_fx_rules.enabled ~= false,
       group_master_fx_mode = "selective",
-      group_master_fx_count = PakettiMetaSynthGetIntInRange(group_fx_rules.count_range or {1, 3}),
+      group_master_fx_count = PakettiMetaSynthGetIntInRange(osc_group_fx_rules.count_range or {1, 3}),
       group_master_fx_types = {},
       
       -- GROUP FRAMES (meta-wavetable at group level) - guided by profile
@@ -12625,18 +12949,19 @@ function PakettiMetaSynthRandomizeWavetableArchitecture(architecture)
   architecture.fx_randomization.enabled = true
   architecture.fx_randomization.param_randomization = 0.2 + math.random() * 0.3  -- 0.2-0.5
   
-  -- Stack Master FX (global polish) - guided by global_fx rules
-  local global_fx_rules = PakettiMetaSynthResolveProfile("global_fx", nil, nil, architecture)
-  architecture.stack_master_fx_enabled = true
-  architecture.stack_master_fx_mode = "selective"
-  architecture.stack_master_fx_count = math.random(2, 4)
+  -- Total Group FX (Stack Master FX) - guided by total_group_fx rules (Layer 6)
+  local total_group_fx_rules = PakettiMetaSynthResolveProfile("total_group_fx", nil, nil, architecture)
+  architecture.stack_master_fx_enabled = total_group_fx_rules.enabled ~= false
+  local fx_count_range = total_group_fx_rules.count_range or {2, 4}
+  architecture.stack_master_fx_count = math.random(fx_count_range[1], fx_count_range[2])
   architecture.stack_master_fx_types = {}
   
-  -- Set stacked FX from global_fx tendencies
-  local global_tendencies = global_fx_rules.tendencies or {}
-  if #global_tendencies > 0 then
+  -- Set stacked FX from total_group_fx tendencies
+  local total_group_tendencies = total_group_fx_rules.tendencies or {}
+  if #total_group_tendencies > 0 then
+    architecture.stack_master_fx_mode = "selective"
     local shuffled = {}
-    for _, fx in ipairs(global_tendencies) do table.insert(shuffled, fx) end
+    for _, fx in ipairs(total_group_tendencies) do table.insert(shuffled, fx) end
     for i = #shuffled, 2, -1 do
       local j = math.random(1, i)
       shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
@@ -12801,15 +13126,20 @@ function PakettiMetaSynthArchitectureToProfile(architecture, profile_name)
       fx_count_range = {0, 3},
     },
     
-    -- LAYER 3: Group rules
-    group = {
+    -- LAYER 3: Oscillator Modulation rules (SEPARATE layer)
+    modulation = {},
+    
+    -- LAYER 4: Oscillator Groups (summing, organization, oscillator group FX, wavetable/vector control)
+    oscillator_groups = {
       crossfade_enabled = false,
       scan_speed = nil,
       lfo_rate_preset = "medium",
+      osc_group_fx_enabled = false,
+      osc_group_fx_tendencies = {},
+      osc_group_fx_count_range = {0, 3},
+      wavetable_scan_enabled = false,
+      vector_enabled = false,
     },
-    
-    -- LAYER 4: Modulation rules
-    modulation = {},
     
     -- LAYER 5: Group Frames
     group_frame = {
@@ -12821,21 +13151,31 @@ function PakettiMetaSynthArchitectureToProfile(architecture, profile_name)
       fx_count_range = {0, 2},
     },
     
-    -- LAYER 6: Group FX rules
-    group_fx = {
+    -- LAYER 6: Total Group FX (FX after all groups summed - Stack Master FX)
+    total_group_fx = {
       enabled = false,
       tendencies = {},
       count_range = {0, 3},
     },
     
-    -- LAYER 7: Global FX rules
+    -- LAYER 7: Total Group Frames / Vector Layer (frame morphing at total summed groups level)
+    total_group_frames = {
+      enabled = false,
+      frame_count_range = {1, 1},
+      morph_enabled = false,
+      morph_speed = "none",
+      fx_tendencies = {},
+      fx_count_range = {0, 0},
+    },
+    
+    -- LAYER 8: Global FX rules
     global_fx = {
       enabled = true,
       tendencies = {},
       reverb_size = nil,
     },
     
-    -- LAYER 8: Sample Selection rules
+    -- LAYER 9: Sample Selection rules
     sample_selection = {
       source_preference = "akwf",
       waveform_families = {"basic", "saw", "square"},
@@ -12870,10 +13210,16 @@ function PakettiMetaSynthArchitectureToProfile(architecture, profile_name)
   if architecture.oscillator_groups and #architecture.oscillator_groups > 0 then
     local group = architecture.oscillator_groups[1]
     
-    -- Group crossfade settings
+    -- Oscillator Groups crossfade settings
     if group.group_crossfade_enabled then
-      profile.group.crossfade_enabled = true
-      profile.group.lfo_rate_preset = group.group_crossfade_lfo_rate_preset or "medium"
+      profile.oscillator_groups.crossfade_enabled = true
+      profile.oscillator_groups.lfo_rate_preset = group.group_crossfade_lfo_rate_preset or "medium"
+    end
+    
+    -- Oscillator Groups FX (per-group FX)
+    if group.group_master_fx_enabled then
+      profile.oscillator_groups.osc_group_fx_enabled = true
+      profile.oscillator_groups.osc_group_fx_count_range = {group.group_master_fx_count or 2, group.group_master_fx_count or 2}
     end
     
     -- Group frames
@@ -12882,10 +13228,16 @@ function PakettiMetaSynthArchitectureToProfile(architecture, profile_name)
       profile.group_frame.frame_count_range = {group.group_frame_count or 2, group.group_frame_count or 2}
     end
     
-    -- Group FX
-    if group.group_fx_enabled then
-      profile.group_fx.enabled = true
-      profile.group_fx.count_range = {group.group_fx_count or 2, group.group_fx_count or 2}
+    -- Total Group FX (Stack Master FX)
+    if architecture.stack_master_fx_enabled then
+      profile.total_group_fx.enabled = true
+      profile.total_group_fx.count_range = {architecture.stack_master_fx_count or 2, architecture.stack_master_fx_count or 2}
+    end
+    
+    -- Total Group Frames
+    if architecture.global_fx_frames_enabled then
+      profile.total_group_frames.enabled = true
+      profile.total_group_frames.frame_count_range = {architecture.global_fx_frame_count or 2, architecture.global_fx_frame_count or 2}
     end
     
     -- Extract from first oscillator
@@ -13159,10 +13511,15 @@ function PakettiMetaSynthShowProfileEditorDialog(profile_key)
         fx_tendencies = {},
         fx_count_range = {0, 3},
       },
-      group = {
+      oscillator_groups = {
         crossfade_enabled = false,
         scan_speed = nil,
         lfo_rate_preset = "medium",
+        osc_group_fx_enabled = false,
+        osc_group_fx_tendencies = {},
+        osc_group_fx_count_range = {0, 3},
+        wavetable_scan_enabled = false,
+        vector_enabled = false,
       },
       modulation = {
         volume_ahdsr = { attack = 0.01, hold = 0.0, decay = 0.2, sustain = 0.7, release = 0.3 },
@@ -13176,7 +13533,7 @@ function PakettiMetaSynthShowProfileEditorDialog(profile_key)
         fx_tendencies = {},
         fx_count_range = {0, 2},
       },
-      group_fx = {
+      total_group_fx = {
         enabled = false,
         tendencies = {},
         count_range = {0, 3},
@@ -13381,31 +13738,31 @@ function PakettiMetaSynthShowProfileEditorDialog(profile_key)
       }
     },
     
-    -- Group FX Layer
+    -- Total Group FX Layer (Layer 6)
     vb:column {
       style = "group",
-      vb:text { text = "Group FX Layer", font = "bold" },
+      vb:text { text = "Total Group FX Layer", font = "bold" },
       vb:row {
         vb:checkbox {
-          value = profile.group_fx.enabled or false,
-          notifier = function(v) profile.group_fx.enabled = v end
+          value = profile.total_group_fx.enabled or false,
+          notifier = function(v) profile.total_group_fx.enabled = v end
         },
-        vb:text { text = "Enable Group FX" }
+        vb:text { text = "Enable Total Group FX" }
       },
       vb:row {
         vb:text { text = "FX Count:", width = 80 },
         vb:valuebox {
           min = 0, max = 8,
-          value = profile.group_fx.count_range[1],
+          value = profile.total_group_fx.count_range[1],
           width = 50,
-          notifier = function(v) profile.group_fx.count_range[1] = v end
+          notifier = function(v) profile.total_group_fx.count_range[1] = v end
         },
         vb:text { text = "to" },
         vb:valuebox {
           min = 0, max = 8,
-          value = profile.group_fx.count_range[2],
+          value = profile.total_group_fx.count_range[2],
           width = 50,
-          notifier = function(v) profile.group_fx.count_range[2] = v end
+          notifier = function(v) profile.total_group_fx.count_range[2] = v end
         }
       }
     },
@@ -14463,9 +14820,9 @@ function PakettiMetaSynthAddGroupFromProfile(profile_name)
   -- Get profile rules for oscillator creation
   local osc_rules = profile.oscillator or {}
   local frame_rules = profile.frame or {}
-  local group_rules = profile.group or {}
+  local osc_group_rules = profile.oscillator_groups or {}
   local group_frame_rules = profile.group_frame or {}
-  local fx_rules = profile.group_fx or {}
+  local osc_group_fx_rules = { enabled = osc_group_rules.osc_group_fx_enabled, count_range = osc_group_rules.osc_group_fx_count_range or {0, 2} }
   local sample_rules = profile.sample_selection or {}
   
   -- Determine oscillator count (1-3 based on profile family)
