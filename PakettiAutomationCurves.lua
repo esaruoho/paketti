@@ -511,15 +511,55 @@ function PakettiAutomationCurvesMaxEven()
   renoise.app():show_status("Maxed even points")
 end
 
--- Randomize existing points
+-- Randomize existing points (selection-aware)
 function PakettiAutomationCurvesRandomize(amount)
   amount = amount or 0.2
-  PakettiAutomationCurvesProcessPoints(function(index, point)
-    local noise = (math.random() - 0.5) * 2 * amount
-    point.value = point.value + noise
-    return point
-  end)
-  renoise.app():show_status("Randomized automation points")
+  local automation = PakettiAutomationCurvesGetAutomation()
+  if not automation then
+    return
+  end
+  
+  local old_points = automation.points
+  if #old_points == 0 then
+    renoise.app():show_status("No automation points to randomize")
+    return
+  end
+  
+  local new_points = {}
+  
+  -- Check for selection range
+  local selection = automation.selection_range
+  local has_selection = selection and selection[1] and selection[2]
+  local start_line, end_line
+  if has_selection then
+    start_line = selection[1]
+    end_line = selection[2]
+  end
+  
+  local randomized_count = 0
+  for i, point in ipairs(old_points) do
+    local new_point = {time = point.time, value = point.value}
+    
+    -- Randomize if no selection, or if point is within selection range
+    if not has_selection or (point.time >= start_line and point.time < end_line) then
+      local noise = (math.random() - 0.5) * 2 * amount
+      new_point.value = new_point.value + noise
+      -- Clamp value to 0-1
+      if new_point.value < 0 then new_point.value = 0 end
+      if new_point.value > 1 then new_point.value = 1 end
+      randomized_count = randomized_count + 1
+    end
+    
+    table.insert(new_points, new_point)
+  end
+  
+  automation.points = new_points
+  
+  if has_selection then
+    renoise.app():show_status("Randomized " .. randomized_count .. " points in selection")
+  else
+    renoise.app():show_status("Randomized " .. randomized_count .. " automation points")
+  end
 end
 
 -- Smooth existing points
@@ -660,6 +700,31 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
     -- Undo/Redo
     if key.name == "z" then renoise.song():undo(); handled = true end
     if key.name == "y" then renoise.song():redo(); handled = true end
+  end
+  
+  -- Input divisor control with + and - keys (without modifiers)
+  if key.modifiers == "" then
+    if key.name == "-" then
+      if PakettiAutomationCurvesInputDivisor > 1 then
+        PakettiAutomationCurvesInputDivisor = PakettiAutomationCurvesInputDivisor - 1
+        if PakettiAutomationCurvesVb and PakettiAutomationCurvesVb.views.input_divisor then
+          PakettiAutomationCurvesVb.views.input_divisor.value = PakettiAutomationCurvesInputDivisor
+        end
+        renoise.app():show_status("Repeat Count: " .. PakettiAutomationCurvesInputDivisor .. "x")
+      end
+      handled = true
+    end
+    
+    if key.name == "=" then
+      if PakettiAutomationCurvesInputDivisor < 8 then
+        PakettiAutomationCurvesInputDivisor = PakettiAutomationCurvesInputDivisor + 1
+        if PakettiAutomationCurvesVb and PakettiAutomationCurvesVb.views.input_divisor then
+          PakettiAutomationCurvesVb.views.input_divisor.value = PakettiAutomationCurvesInputDivisor
+        end
+        renoise.app():show_status("Repeat Count: " .. PakettiAutomationCurvesInputDivisor .. "x")
+      end
+      handled = true
+    end
   end
   
   -- Shape keys (only without modifiers)

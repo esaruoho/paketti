@@ -1,204 +1,80 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ScriptingToolPreferences doc_version="0">
-  <pakettiImportPTI>true</pakettiImportPTI>
-  <pakettiImportMTP>true</pakettiImportMTP>
-  <pakettiImportMID>true</pakettiImportMID>
-  <pakettiImportTXT>true</pakettiImportTXT>
-  <pakettiImportImage>true</pakettiImportImage>
-  <pakettiImportCSV>true</pakettiImportCSV>
-  <pakettiImportEXE>true</pakettiImportEXE>
-  <pakettiQuickSampleTrackVolume>true</pakettiQuickSampleTrackVolume>
-  <pakettiMPCCyclerLastSampleFolder/>
-  <pakettiMPCCyclerLastInstrumentFolder/>
-  <pakettiMPCCyclerSampleIndex>1.0</pakettiMPCCyclerSampleIndex>
-  <pakettiMPCCyclerInstrumentIndex>1.0</pakettiMPCCyclerInstrumentIndex>
-  <pakettiMPCCyclerGlobalLock>false</pakettiMPCCyclerGlobalLock>
-  <pakettiMPCCyclerPreviewEnabled>false</pakettiMPCCyclerPreviewEnabled>
-  <pakettiGliderEnabled>false</pakettiGliderEnabled>
-  <pakettiGliderDuration>4</pakettiGliderDuration>
-  <pakettiGliderMode>live</pakettiGliderMode>
-  <pakettiGliderMinInterval>1.0</pakettiGliderMinInterval>
-  <pakettiGliderLegatoOnly>true</pakettiGliderLegatoOnly>
-  <pakettiGliderMultiLine>true</pakettiGliderMultiLine>
-  <pakettiGliderMidiDevice/>
-  <pakettiGliderScaleFactor>16</pakettiGliderScaleFactor>
-  <singlewaveformwriterhex>false</singlewaveformwriterhex>
-  <paketti_auto_disk_browser_mode>0.0</paketti_auto_disk_browser_mode>
-  <pakettiRePitchEnhanced>false</pakettiRePitchEnhanced>
-  <PakettiSteppersGlobalStepCount>256</PakettiSteppersGlobalStepCount>
-  <UserSetTunings/>
-  <AutoInputTuning>false</AutoInputTuning>
-  <MinimizedPitchControlSmall>false</MinimizedPitchControlSmall>
-  <PolyendRoot>/Users/esaruoho/Music/samples/PTI/Polyend Packs/</PolyendRoot>
-  <PolyendLocalPath>/Users/esaruoho/Music/samples/PTI/</PolyendLocalPath>
-  <PolyendLocalBackupPath/>
-  <PolyendUseLocalBackup>true</PolyendUseLocalBackup>
-  <pakettiMarkerLine>1.0</pakettiMarkerLine>
-  <pakettiMarkerSequence>2</pakettiMarkerSequence>
-  <pakettiMarkerExists>false</pakettiMarkerExists>
-  <PolyendPTISavePath>/Volumes/TRACKER_P/Instruments/fromRenoiseInstrumentsSaveFolder/</PolyendPTISavePath>
-  <PolyendWAVSavePath>/Volumes/TRACKER_P/Samples/fromRenoiseDropFolder/</PolyendWAVSavePath>
-  <PolyendUseSavePaths>true</PolyendUseSavePaths>
-  <pakettifyReplaceInstrument>false</pakettifyReplaceInstrument>
-  <pakettiInstrumentProperties>0.0</pakettiInstrumentProperties>
-  <pakettiPitchSliderRange>2</pakettiPitchSliderRange>
-  <pakettiREXBundlePath>./rx2</pakettiREXBundlePath>
-  <pakettiShowSampleDetails>false</pakettiShowSampleDetails>
-  <pakettiShowSampleDetailsFrequencyAnalysis>true</pakettiShowSampleDetailsFrequencyAnalysis>
-  <pakettiSampleDetailsCycles>1.0</pakettiSampleDetailsCycles>
-  <pakettiSampleRangeDeviceLoaderEnabled>false</pakettiSampleRangeDeviceLoaderEnabled>
-  <pakettiLoaderDontCreateAutomationDevice>false</pakettiLoaderDontCreateAutomationDevice>
-  <pakettiWipeExplodedTrack>false</pakettiWipeExplodedTrack>
-  <pakettiAutomationFormat>2</pakettiAutomationFormat>
-  <pakettiAutomationWipeAfterSwitch>true</pakettiAutomationWipeAfterSwitch>
-  <SelectedSampleBeatsyncLines>false</SelectedSampleBeatsyncLines>
-  <pakettiLoadOrder>false</pakettiLoadOrder>
-  <pakettiDeviceLoadBehaviour>2</pakettiDeviceLoadBehaviour>
-  <pakettiOctaMEDNoteEchoDistance>2</pakettiOctaMEDNoteEchoDistance>
-  <pakettiOctaMEDNoteEchoMin>1.0</pakettiOctaMEDNoteEchoMin>
-  <pakettiRotateSampleBufferCoarse>1000</pakettiRotateSampleBufferCoarse>
-  <pakettiRotateSampleBufferFine>10</pakettiRotateSampleBufferFine>
-  <pakettiBlendValue>40</pakettiBlendValue>
-  <SononymphShowSearchWarning>true</SononymphShowSearchWarning>
-  <pakettiPlayerProEffectDialogDarkMode>true</pakettiPlayerProEffectDialogDarkMode>
-  <pakettiPlayerProEffectCanvasWrite>true</pakettiPlayerProEffectCanvasWrite>
-  <pakettiPlayerProEffectCanvasSubColumn>true</pakettiPlayerProEffectCanvasSubColumn>
-  <pakettiPlayerProNoteCanvasWrite>true</pakettiPlayerProNoteCanvasWrite>
-  <pakettiPlayerProNoteCanvasPianoKeys>false</pakettiPlayerProNoteCanvasPianoKeys>
-  <pakettiPlayerProNoteCanvasSpray>false</pakettiPlayerProNoteCanvasSpray>
-  <pakettiPlayerProNoteCanvasClearSelection>true</pakettiPlayerProNoteCanvasClearSelection>
-  <pakettiPlayerProAlwaysOpen>false</pakettiPlayerProAlwaysOpen>
-  <pakettiPlayerProSmartSubColumn>true</pakettiPlayerProSmartSubColumn>
-  <pakettiPlayerProAutoHideOnFrameSwitch>true</pakettiPlayerProAutoHideOnFrameSwitch>
-  <pakettiInstrumentInfoDialogHeight>750</pakettiInstrumentInfoDialogHeight>
-  <pakettiFrameCalculatorLiveUpdate>1.0</pakettiFrameCalculatorLiveUpdate>
-  <PakettiSBxFollowEnabled>false</PakettiSBxFollowEnabled>
-  <PakettiPhraseFollowPatternPlayback>false</PakettiPhraseFollowPatternPlayback>
-  <PakettiPhraseVoiceOutputMode>track</PakettiPhraseVoiceOutputMode>
-  <PakettiPhraseVoiceMaxVoices>8</PakettiPhraseVoiceMaxVoices>
-  <PakettiPhraseVoiceMaxColumns>12</PakettiPhraseVoiceMaxColumns>
-  <PakettiPhraseVoicePhaseLockEnabled>true</PakettiPhraseVoicePhaseLockEnabled>
-  <PakettiPhraseVoiceOperationMode>switcher</PakettiPhraseVoiceOperationMode>
-  <PakettiPhraseVoicePreserveExistingNotes>true</PakettiPhraseVoicePreserveExistingNotes>
-  <PakettiPhraseVoiceFadeOutEnabled>false</PakettiPhraseVoiceFadeOutEnabled>
-  <PakettiPhraseVoiceAdditiveMode>false</PakettiPhraseVoiceAdditiveMode>
-  <PakettiPhraseVoiceDebugEnabled>false</PakettiPhraseVoiceDebugEnabled>
-  <pakettiCaptureLastTakeSmartNoteOff>false</pakettiCaptureLastTakeSmartNoteOff>
-  <pakettiSwitcharooAutoGrab>true</pakettiSwitcharooAutoGrab>
-  <PakettiImpulseTrackerF8>1.0</PakettiImpulseTrackerF8>
-  <PakettiCaptureTrackFromInstrumentMode>0.0</PakettiCaptureTrackFromInstrumentMode>
-  <PakettiDeviceChainPath>./DeviceChains/</PakettiDeviceChainPath>
-  <PakettiIRPath>/Users/esaruoho/Music/samples/~IRs/ir_for_esa/</PakettiIRPath>
-  <PakettiLFOWriteDelete>true</PakettiLFOWriteDelete>
-  <PakettiEQ30ColumnGradient>false</PakettiEQ30ColumnGradient>
-  <PakettiEQ30AutomationPlaymode>2</PakettiEQ30AutomationPlaymode>
-  <PakettiEQ30Autofocus>false</PakettiEQ30Autofocus>
-  <PakettiEQ30MinimizeDevices>true</PakettiEQ30MinimizeDevices>
-  <PakettiCanvasAutomationPlaymode>1.0</PakettiCanvasAutomationPlaymode>
-  <upperFramePreference>0.0</upperFramePreference>
-  <_0G01_Loader>false</_0G01_Loader>
-  <RandomBPM>false</RandomBPM>
-  <loadPaleGreenTheme>false</loadPaleGreenTheme>
-  <PakettiStripSilenceThreshold>0.0121</PakettiStripSilenceThreshold>
-  <PakettiMoveSilenceThreshold>0.011999999999999999</PakettiMoveSilenceThreshold>
-  <renderSampleRate>88200</renderSampleRate>
-  <renderBitDepth>32</renderBitDepth>
-  <renderBypass>false</renderBypass>
-  <RenderDCOffset>false</RenderDCOffset>
-  <renderInterpolation>precise</renderInterpolation>
-  <experimentalRenderPriority>high</experimentalRenderPriority>
-  <AppSelection>
-    <AppSelection1>/Applications/Audacity.app</AppSelection1>
-    <AppSelection2>/Applications/Ableton Live 12 Suite.app</AppSelection2>
-    <AppSelection3>/System/Applications/Music.app</AppSelection3>
-    <AppSelection4>/Applications/Cog.app</AppSelection4>
-    <AppSelection5/>
-    <AppSelection6/>
-    <SmartFoldersApp1>/Users/esaruoho/Music/samples/LiveSmartFolder/</SmartFoldersApp1>
-    <SmartFoldersApp2>/Users/esaruoho/Music/samples/LogicSmartFolder/</SmartFoldersApp2>
-    <SmartFoldersApp3>/Users/esaruoho/Music/samples/RenoiseSmartFolder/</SmartFoldersApp3>
-  </AppSelection>
-  <experimentalRenderSilenceMultiplier>1.0</experimentalRenderSilenceMultiplier>
-  <experimentalRenderRemoveSilence>true</experimentalRenderRemoveSilence>
-  <pakettiLoaderInterpolation>4</pakettiLoaderInterpolation>
-  <pakettiLoaderFilterType>LP Moog</pakettiLoaderFilterType>
-  <pakettiLoaderOverSampling>true</pakettiLoaderOverSampling>
-  <pakettiLoaderOneshot>false</pakettiLoaderOneshot>
-  <pakettiLoaderAutofade>true</pakettiLoaderAutofade>
-  <pakettiLoaderAutoseek>false</pakettiLoaderAutoseek>
-  <pakettiLoaderLoopMode>1.0</pakettiLoaderLoopMode>
-  <pakettiLoaderNNA>1.0</pakettiLoaderNNA>
-  <pakettiLoaderLoopExit>false</pakettiLoaderLoopExit>
-  <pakettiLoaderMoveSilenceToEnd>false</pakettiLoaderMoveSilenceToEnd>
-  <pakettiLoaderNormalizeSamples>false</pakettiLoaderNormalizeSamples>
-  <pakettiLoaderNormalizeLargeSamples>false</pakettiLoaderNormalizeLargeSamples>
-  <pakettiStemLoaderDestructive>true</pakettiStemLoaderDestructive>
-  <pakettiStemLoaderAutoSliceOnMixedRates>true</pakettiStemLoaderAutoSliceOnMixedRates>
-  <pakettiLoadToAllTracksPosition>true</pakettiLoadToAllTracksPosition>
-  <pakettiLazySlicerShowNewestSlice>false</pakettiLazySlicerShowNewestSlice>
-  <pakettiPolyendOpenDialog>true</pakettiPolyendOpenDialog>
-  <pakettiExplodeTrackNaming>true</pakettiExplodeTrackNaming>
-  <selectionNewInstrumentSelect>true</selectionNewInstrumentSelect>
-  <selectionNewInstrumentLoop>2</selectionNewInstrumentLoop>
-  <selectionNewInstrumentInterpolation>4</selectionNewInstrumentInterpolation>
-  <selectionNewInstrumentAutofade>true</selectionNewInstrumentAutofade>
-  <UserDefinedSampleFolders09/>
-  <UserDefinedSampleFolders10/>
-  <PakettiFuzzySampleSearchPath>/Users/esaruoho/Music/rMBP_2024_01_27 samples/_drums/Vermona DRM-1 Sampled by Akai MPC2500-The Beat Bender Samplekits/</PakettiFuzzySampleSearchPath>
-  <pakettieSpeak>
-    <capitals>73</capitals>
-    <pitch>79</pitch>
-    <amplitude>5</amplitude>
-    <language>75</language>
-    <voice>8</voice>
-    <render_on_change>false</render_on_change>
-    <executable>/opt/homebrew/bin/espeak-ng</executable>
-    <clear_all_samples>true</clear_all_samples>
-    <add_render_to_current_instrument>false</add_render_to_current_instrument>
-    <dont_pakettify>false</dont_pakettify>
-    <text>hi i'm doing a demo for sonfx
-</text>
-    <speed>72</speed>
-    <word_gap>10</word_gap>
-  </pakettieSpeak>
+  <pakettiMixerParameterExposer>
+    <MaxRowsPerColumn>25</MaxRowsPerColumn>
+  </pakettiMixerParameterExposer>
   <pakettiAutomateLastTouched>
+    <ContinuousRecording>false</ContinuousRecording>
     <WatchingMode>3</WatchingMode>
     <DeviceScope>3</DeviceScope>
     <TimerDuration>3</TimerDuration>
     <AutoOpenExternalEditor>true</AutoOpenExternalEditor>
-    <ContinuousRecording>false</ContinuousRecording>
   </pakettiAutomateLastTouched>
-  <pakettiMixerParameterExposer>
-    <MaxRowsPerColumn>25</MaxRowsPerColumn>
-  </pakettiMixerParameterExposer>
-  <pakettiPlayerProWaveformViewer>
-    <Direction>1.0</Direction>
-    <HorizontalPlayhead>false</HorizontalPlayhead>
-    <VerticalPlayhead>false</VerticalPlayhead>
-    <OnlySelectedTrack>false</OnlySelectedTrack>
-    <SampleName>false</SampleName>
-    <InstrumentName>false</InstrumentName>
-    <NoteName>false</NoteName>
-    <Zoom>1.0</Zoom>
-  </pakettiPlayerProWaveformViewer>
-  <pakettiCreateNewSends>
-    <Collapsed>false</Collapsed>
-    <SendNamingPerTrack>true</SendNamingPerTrack>
-  </pakettiCreateNewSends>
-  <pakettiParameterEditor>
-    <PreviousNext>false</PreviousNext>
-    <AB>false</AB>
-    <AutomationPlaymode>false</AutomationPlaymode>
-    <RandomizeStrength>false</RandomizeStrength>
-    <HalfSize>true</HalfSize>
-    <HalfSizeFont>true</HalfSizeFont>
-    <AutoOpen>false</AutoOpen>
-  </pakettiParameterEditor>
+  <pakettiCheatSheet>
+    <pakettiCheatSheetRandomize>true</pakettiCheatSheetRandomize>
+    <pakettiCheatSheetRandomizeMin>1.0</pakettiCheatSheetRandomizeMin>
+    <pakettiCheatSheetRandomizeMax>12</pakettiCheatSheetRandomizeMax>
+    <pakettiCheatSheetFillAll>99</pakettiCheatSheetFillAll>
+    <pakettiCheatSheetRandomizeWholeTrack>false</pakettiCheatSheetRandomizeWholeTrack>
+    <pakettiCheatSheetRandomizeSwitch>false</pakettiCheatSheetRandomizeSwitch>
+    <pakettiCheatSheetRandomizeDontOverwrite>false</pakettiCheatSheetRandomizeDontOverwrite>
+    <pakettiCheatSheetOnlyModifyEffects>true</pakettiCheatSheetOnlyModifyEffects>
+    <pakettiCheatSheetOnlyModifyNotes>false</pakettiCheatSheetOnlyModifyNotes>
+  </pakettiCheatSheet>
+  <pakettiThemeSelector>
+    <RenoiseLaunchRandomLoad>false</RenoiseLaunchRandomLoad>
+    <RenoiseLaunchFavoritesLoad>false</RenoiseLaunchFavoritesLoad>
+    <PreviousSelectedTheme>Macrohard Windows 95 (JRS)</PreviousSelectedTheme>
+    <FavoritedList>
+      <Favorited>&lt;No Theme Selected&gt;</Favorited>
+    </FavoritedList>
+  </pakettiThemeSelector>
+  <UserPreferences>
+    <userPreferredDevice06>&lt;None&gt;</userPreferredDevice06>
+    <userPreferredDevice07>&lt;None&gt;</userPreferredDevice07>
+    <userPreferredDevice08>&lt;None&gt;</userPreferredDevice08>
+    <userPreferredDevice09>&lt;None&gt;</userPreferredDevice09>
+    <userPreferredDevice10>&lt;None&gt;</userPreferredDevice10>
+    <userPreferredDeviceLoad>true</userPreferredDeviceLoad>
+    <userPreferredDevice01>Audio/Effects/AU/aufx:4FwL:4FNT</userPreferredDevice01>
+    <userPreferredDevice02>Audio/Effects/AU/aumf:FQ3p:FabF</userPreferredDevice02>
+    <userPreferredDevice03>&lt;None&gt;</userPreferredDevice03>
+    <userPreferredDevice04>&lt;None&gt;</userPreferredDevice04>
+    <userPreferredDevice05>&lt;None&gt;</userPreferredDevice05>
+  </UserPreferences>
+  <pakettiPhraseInitDialog>
+    <InstrumentColumnVisible>false</InstrumentColumnVisible>
+    <DelayColumnVisible>false</DelayColumnVisible>
+    <SampleFXColumnVisible>false</SampleFXColumnVisible>
+    <NoteColumns>1.0</NoteColumns>
+    <EffectColumns>1.0</EffectColumns>
+    <Shuffle>0.0</Shuffle>
+    <LPB>4</LPB>
+    <Length>64</Length>
+    <SetName>false</SetName>
+    <Name>Phrase 01</Name>
+    <Autoseek>false</Autoseek>
+    <PhraseLooping>true</PhraseLooping>
+    <VolumeColumnVisible>false</VolumeColumnVisible>
+    <PanningColumnVisible>false</PanningColumnVisible>
+  </pakettiPhraseInitDialog>
+  <paketti_auto_disk_browser_mode>0.0</paketti_auto_disk_browser_mode>
+  <SlicePro>
+    <SliceProRequireSampleEditor>false</SliceProRequireSampleEditor>
+    <SliceProOverrides/>
+    <SliceProFallbackOnLowConfidence>true</SliceProFallbackOnLowConfidence>
+    <SliceProConfidenceThreshold>0.29999999999999999</SliceProConfidenceThreshold>
+    <SliceProBeatsyncEnabled>false</SliceProBeatsyncEnabled>
+    <SliceProBeatsyncMode>1.0</SliceProBeatsyncMode>
+    <SliceProMuteGroup>0.0</SliceProMuteGroup>
+    <SliceProNNA>1.0</SliceProNNA>
+    <SliceProLoopMode>1.0</SliceProLoopMode>
+    <SliceProAutofade>true</SliceProAutofade>
+    <SliceProLoopRelease>false</SliceProLoopRelease>
+    <SliceProOneShot>true</SliceProOneShot>
+  </SlicePro>
+  <UserDefinedSampleFolders01>/Users/esaruoho/Music/rMBP_2024_01_27 samples</UserDefinedSampleFolders01>
   <pakettiExecute>
-    <App01>/System/Applications/VoiceMemos.app</App01>
-    <App01Argument/>
-    <App02/>
-    <App02Argument/>
     <App03/>
     <App03Argument/>
     <App04/>
@@ -215,27 +91,163 @@
     <App09Argument/>
     <App10/>
     <App10Argument/>
+    <App01>/System/Applications/VoiceMemos.app</App01>
+    <App01Argument/>
+    <App02/>
+    <App02Argument/>
   </pakettiExecute>
   <pakettiSliceStepSeqShowVelocity>true</pakettiSliceStepSeqShowVelocity>
   <pakettiDialogOfDialogsColumnsPerRow>5</pakettiDialogOfDialogsColumnsPerRow>
-  <PakettiSelectTrackSelectInstrument>true</PakettiSelectTrackSelectInstrument>
   <SononymphShowPrefs>true</SononymphShowPrefs>
+  <SononymphShowSearchWarning>true</SononymphShowSearchWarning>
+  <WipeSlices>
+    <WipeSlicesAutofade>true</WipeSlicesAutofade>
+    <WipeSlicesMuteGroup>1.0</WipeSlicesMuteGroup>
+    <WipeSlicesNNA>1.0</WipeSlicesNNA>
+    <WipeSlicesBeatsyncGlobal>false</WipeSlicesBeatsyncGlobal>
+    <sliceCounter>1.0</sliceCounter>
+    <SliceLoopMode>true</SliceLoopMode>
+    <slicePreviousDirection>1.0</slicePreviousDirection>
+    <WipeSlicesLoopMode>2</WipeSlicesLoopMode>
+    <WipeSlicesLoopRelease>false</WipeSlicesLoopRelease>
+    <WipeSlicesBeatsyncMode>1.0</WipeSlicesBeatsyncMode>
+    <WipeSlicesOneShot>false</WipeSlicesOneShot>
+    <WipeSlicesAutoseek>false</WipeSlicesAutoseek>
+  </WipeSlices>
   <SononymphShowTransferWarning>false</SononymphShowTransferWarning>
   <SononymphPathToConfig>/Users/esaruoho/Library/Application Support/Sononym/1.6.0/query.json</SononymphPathToConfig>
   <SononymphPathToExe>/Applications/Sononym.app/Contents/MacOS/Sononym</SononymphPathToExe>
+  <pakettiTrackInitDialog>
+    <DelayColumnVisible>true</DelayColumnVisible>
+    <SampleFXColumnVisible>true</SampleFXColumnVisible>
+    <NoteColumns>1.0</NoteColumns>
+    <EffectColumns>1.0</EffectColumns>
+    <SetName>true</SetName>
+    <Name>T#</Name>
+    <SendEffectColumns>1.0</SendEffectColumns>
+    <VolumeColumnVisible>true</VolumeColumnVisible>
+    <PanningColumnVisible>true</PanningColumnVisible>
+  </pakettiTrackInitDialog>
   <SononymphPollingInterval>1.0</SononymphPollingInterval>
+  <PakettiPluginLoaders>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <name>Surge XT (AU)</name>
+      <path>Audio/Generators/AU/aumu:SgXT:VmbA</path>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <name>Surge XT (AU) + surgemacros</name>
+      <path>Audio/Generators/AU/aumu:SgXT:VmbA</path>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <name>ZebraHZ (AU)</name>
+      <path>Audio/Generators/AU/aumu:SMHZ:UHfX</path>
+    </PakettiPluginLoader>
+  </PakettiPluginLoaders>
+  <pakettiTitler>
+    <notes_file_path>External/notes.txt</notes_file_path>
+    <textfile_path>External/wordlist.txt</textfile_path>
+    <trackTitlerDateFormat>YYYY_MM_DD</trackTitlerDateFormat>
+  </pakettiTitler>
+  <UserDevices>
+    <Slot01>/Users/esaruoho/Music/samples/xrnt//Slot01.xrnt</Slot01>
+    <Slot02/>
+    <Slot03/>
+    <Slot04/>
+    <Slot05/>
+    <Slot06/>
+    <Slot07/>
+    <Slot08/>
+    <Slot09/>
+    <Slot10/>
+    <Path>/Users/esaruoho/Music/samples/xrnt/</Path>
+  </UserDevices>
   <SononymphAutotransfercreateslot>false</SononymphAutotransfercreateslot>
+  <UserInstruments>
+    <Slot01>/Users/esaruoho/Music/samples/xrnt//Slot01.xrni</Slot01>
+    <Slot02/>
+    <Slot03/>
+    <Slot04/>
+    <Slot05/>
+    <Slot06/>
+    <Slot07/>
+    <Slot08/>
+    <Slot09/>
+    <Slot10/>
+    <Path/>
+  </UserInstruments>
+  <pakettiAlwaysOpenDSPsOnTrack>false</pakettiAlwaysOpenDSPsOnTrack>
   <SononymphAutotransfercreatenew>true</SononymphAutotransfercreatenew>
+  <pakettiAlwaysOpenSampleFXChainDevices>false</pakettiAlwaysOpenSampleFXChainDevices>
+  <pakettiMidiPopulator>
+    <volumeColumn>false</volumeColumn>
+    <panningColumn>true</panningColumn>
+    <delayColumn>true</delayColumn>
+    <sampleEffectsColumn>true</sampleEffectsColumn>
+    <noteColumns>3</noteColumns>
+    <effectColumns>2</effectColumns>
+    <incomingAudio>false</incomingAudio>
+    <populateSends>true</populateSends>
+    <sendDeviceType>1.0</sendDeviceType>
+    <collapsed>false</collapsed>
+  </pakettiMidiPopulator>
+  <pakettiEditMode>2</pakettiEditMode>
+  <singlewaveformwriterhex>false</singlewaveformwriterhex>
+  <pakettiKeepSequenceSorted>0.0</pakettiKeepSequenceSorted>
+  <pakettiRePitchEnhanced>false</pakettiRePitchEnhanced>
+  <PakettiSteppersGlobalStepCount>256</PakettiSteppersGlobalStepCount>
+  <pakettiEnableGlobalGrooveOnStartup>false</pakettiEnableGlobalGrooveOnStartup>
+  <UserSetTunings/>
+  <AutoInputTuning>false</AutoInputTuning>
+  <pakettiPatternStatusMonitor>true</pakettiPatternStatusMonitor>
+  <PolyendRoot>/Users/esaruoho/Music/samples/PTI/Polyend Packs/</PolyendRoot>
+  <pakettiAuditionOnLineChangeEnabled>false</pakettiAuditionOnLineChangeEnabled>
+  <PolyendLocalBackupPath/>
+  <PolyendUseLocalBackup>true</PolyendUseLocalBackup>
+  <pakettiMarkerLine>1.0</pakettiMarkerLine>
+  <pakettiMarkerSequence>2</pakettiMarkerSequence>
+  <pakettiAutomaticRenameTrack>false</pakettiAutomaticRenameTrack>
+  <PolyendPTISavePath>/Volumes/TRACKER_P/Instruments/fromRenoiseInstrumentsSaveFolder/</PolyendPTISavePath>
+  <PolyendWAVSavePath>/Volumes/TRACKER_P/Samples/fromRenoiseDropFolder/</PolyendWAVSavePath>
+  <PolyendUseSavePaths>true</PolyendUseSavePaths>
+  <pakettifyReplaceInstrument>false</pakettifyReplaceInstrument>
+  <pakettiInstrumentProperties>0.0</pakettiInstrumentProperties>
+  <pakettiPitchSliderRange>2</pakettiPitchSliderRange>
+  <pakettiREXBundlePath>./rx2</pakettiREXBundlePath>
   <SononymphAutostart>false</SononymphAutostart>
+  <pakettiShowSampleDetails>false</pakettiShowSampleDetails>
+  <pakettiShowSampleDetailsFrequencyAnalysis>true</pakettiShowSampleDetailsFrequencyAnalysis>
+  <pakettiSampleDetailsCycles>1.0</pakettiSampleDetailsCycles>
+  <pakettiSampleRangeDeviceLoaderEnabled>false</pakettiSampleRangeDeviceLoaderEnabled>
+  <pakettiLoaderDontCreateAutomationDevice>false</pakettiLoaderDontCreateAutomationDevice>
+  <pakettiWipeExplodedTrack>false</pakettiWipeExplodedTrack>
+  <pakettiAutomationFormat>2</pakettiAutomationFormat>
+  <pakettiAutomationWipeAfterSwitch>true</pakettiAutomationWipeAfterSwitch>
+  <SelectedSampleBeatsyncLines>false</SelectedSampleBeatsyncLines>
+  <pakettiLoadOrder>false</pakettiLoadOrder>
+  <pakettiDeviceLoadBehaviour>2</pakettiDeviceLoadBehaviour>
+  <pakettiOctaMEDNoteEchoDistance>2</pakettiOctaMEDNoteEchoDistance>
+  <pakettiOctaMEDNoteEchoMin>1.0</pakettiOctaMEDNoteEchoMin>
+  <pakettiRotateSampleBufferCoarse>1000</pakettiRotateSampleBufferCoarse>
+  <pakettiRotateSampleBufferFine>10</pakettiRotateSampleBufferFine>
+  <pakettiBlendValue>40</pakettiBlendValue>
   <pakettiFileMenuLocationMode>3</pakettiFileMenuLocationMode>
+  <pakettiPlayerProEffectDialogDarkMode>true</pakettiPlayerProEffectDialogDarkMode>
+  <pakettiPlayerProEffectCanvasWrite>true</pakettiPlayerProEffectCanvasWrite>
+  <pakettiPlayerProEffectCanvasSubColumn>true</pakettiPlayerProEffectCanvasSubColumn>
+  <pakettiPlayerProNoteCanvasWrite>true</pakettiPlayerProNoteCanvasWrite>
+  <pakettiPlayerProNoteCanvasPianoKeys>false</pakettiPlayerProNoteCanvasPianoKeys>
+  <pakettiPlayerProNoteCanvasSpray>false</pakettiPlayerProNoteCanvasSpray>
+  <pakettiPlayerProNoteCanvasClearSelection>true</pakettiPlayerProNoteCanvasClearSelection>
+  <pakettiPlayerProAlwaysOpen>false</pakettiPlayerProAlwaysOpen>
+  <pakettiPlayerProSmartSubColumn>true</pakettiPlayerProSmartSubColumn>
+  <pakettiPlayerProAutoHideOnFrameSwitch>true</pakettiPlayerProAutoHideOnFrameSwitch>
+  <pakettiInstrumentInfoDialogHeight>750</pakettiInstrumentInfoDialogHeight>
+  <pakettiFrameCalculatorLiveUpdate>1.0</pakettiFrameCalculatorLiveUpdate>
+  <PakettiSBxFollowEnabled>false</PakettiSBxFollowEnabled>
+  <PakettiPhraseFollowPatternPlayback>false</PakettiPhraseFollowPatternPlayback>
+  <PakettiPhraseVoiceOutputMode>track</PakettiPhraseVoiceOutputMode>
+  <PakettiPhraseVoiceMaxVoices>8</PakettiPhraseVoiceMaxVoices>
   <PakettiGroovebox8120Beatsync>
-    <Nna03>1.0</Nna03>
-    <Nna04>1.0</Nna04>
-    <Nna05>1.0</Nna05>
-    <Nna06>1.0</Nna06>
-    <Nna07>1.0</Nna07>
-    <Nna08>1.0</Nna08>
-    <Mode01>1.0</Mode01>
     <Mode02>1.0</Mode02>
     <Mode03>1.0</Mode03>
     <Mode04>1.0</Mode04>
@@ -245,39 +257,49 @@
     <Mode08>1.0</Mode08>
     <Nna01>1.0</Nna01>
     <Nna02>1.0</Nna02>
+    <Nna03>1.0</Nna03>
+    <Nna04>1.0</Nna04>
+    <Nna05>1.0</Nna05>
+    <Nna06>1.0</Nna06>
+    <Nna07>1.0</Nna07>
+    <Nna08>1.0</Nna08>
+    <Mode01>1.0</Mode01>
   </PakettiGroovebox8120Beatsync>
   <PakettiGroovebox8120>
-    <AppendTracksAndInstruments>true</AppendTracksAndInstruments>
     <Collapse>false</Collapse>
+    <AppendTracksAndInstruments>true</AppendTracksAndInstruments>
   </PakettiGroovebox8120>
   <PakettiGaterPanningIntensity>70</PakettiGaterPanningIntensity>
   <PakettiGrooveboxPlayheadColor>3</PakettiGrooveboxPlayheadColor>
   <PakettiGroovebox8120AdditionalOptions>false</PakettiGroovebox8120AdditionalOptions>
-  <pakettiMenuConfig>
-    <MasterMenusEnabled>true</MasterMenusEnabled>
-    <MasterKeybindingsEnabled>true</MasterKeybindingsEnabled>
-    <InstrumentBox>false</InstrumentBox>
-    <SampleEditor>false</SampleEditor>
-    <SampleNavigator>false</SampleNavigator>
-    <SampleKeyzone>true</SampleKeyzone>
-    <Mixer>true</Mixer>
-    <PatternEditor>true</PatternEditor>
-    <MainMenuTools>true</MainMenuTools>
-    <MainMenuView>true</MainMenuView>
-    <MainMenuFile>true</MainMenuFile>
-    <PatternMatrix>true</PatternMatrix>
-    <PatternSequencer>true</PatternSequencer>
-    <PhraseEditor>true</PhraseEditor>
-    <PakettiGadgets>true</PakettiGadgets>
-    <TrackDSPChain>true</TrackDSPChain>
-    <TrackDSPDevice>true</TrackDSPDevice>
-    <Automation>true</Automation>
-    <DiskBrowserFiles>true</DiskBrowserFiles>
-    <MasterMidiMappingsEnabled>true</MasterMidiMappingsEnabled>
-  </pakettiMenuConfig>
+  <pakettiObliqueStrategiesOnStartup>true</pakettiObliqueStrategiesOnStartup>
   <pakettiWonkify>
+    <Effect_0V_DepthMin>2</Effect_0V_DepthMin>
+    <Effect_0V_DepthMax>6</Effect_0V_DepthMax>
+    <Effect_0T_Enabled>false</Effect_0T_Enabled>
+    <Effect_0T_SpeedMin>2</Effect_0T_SpeedMin>
+    <Effect_0T_SpeedMax>8</Effect_0T_SpeedMax>
+    <Effect_0T_DepthMin>2</Effect_0T_DepthMin>
+    <Effect_0T_DepthMax>6</Effect_0T_DepthMax>
+    <Effect_0A_Enabled>false</Effect_0A_Enabled>
+    <Effect_0A_Semitones1Min>3</Effect_0A_Semitones1Min>
+    <Effect_0A_Semitones1Max>5</Effect_0A_Semitones1Max>
+    <Effect_0A_Semitones2Min>7</Effect_0A_Semitones2Min>
+    <Effect_0A_Semitones2Max>12</Effect_0A_Semitones2Max>
     <Effect_0G_Enabled>false</Effect_0G_Enabled>
     <Effect_0G_Min>1.0</Effect_0G_Min>
+    <Effect_0G_Max>16</Effect_0G_Max>
+    <Effect_0Q_Enabled>false</Effect_0Q_Enabled>
+    <Effect_0Q_Min>1.0</Effect_0Q_Min>
+    <Effect_0Q_Max>8</Effect_0Q_Max>
+    <Effect_0S_Enabled>false</Effect_0S_Enabled>
+    <Effect_0S_Min>0.0</Effect_0S_Min>
+    <Effect_0S_Max>255</Effect_0S_Max>
+    <AutomationEnabled>false</AutomationEnabled>
+    <AutomationPercentage>30</AutomationPercentage>
+    <AutomationValueVariation>15</AutomationValueVariation>
+    <AutomationTimeVariation>2</AutomationTimeVariation>
+    <CurrentPreset>0.0</CurrentPreset>
     <RandomSeedEnabled>true</RandomSeedEnabled>
     <RandomSeed>12345</RandomSeed>
     <PatternCount>1.0</PatternCount>
@@ -307,18 +329,6 @@
     <VelocityPercentage>40</VelocityPercentage>
     <VelocityVariation>20</VelocityVariation>
     <DensityEnabled>false</DensityEnabled>
-    <CurrentPreset>0.0</CurrentPreset>
-    <AutomationTimeVariation>2</AutomationTimeVariation>
-    <AutomationValueVariation>15</AutomationValueVariation>
-    <AutomationPercentage>30</AutomationPercentage>
-    <AutomationEnabled>false</AutomationEnabled>
-    <Effect_0S_Max>255</Effect_0S_Max>
-    <Effect_0S_Min>0.0</Effect_0S_Min>
-    <Effect_0S_Enabled>false</Effect_0S_Enabled>
-    <Effect_0Q_Max>8</Effect_0Q_Max>
-    <Effect_0Q_Min>1.0</Effect_0Q_Min>
-    <Effect_0Q_Enabled>false</Effect_0Q_Enabled>
-    <Effect_0G_Max>16</Effect_0G_Max>
     <DensityAddPercentage>10</DensityAddPercentage>
     <DensityRemovePercentage>10</DensityRemovePercentage>
     <GhostEnabled>false</GhostEnabled>
@@ -341,35 +351,29 @@
     <Effect_0V_Enabled>false</Effect_0V_Enabled>
     <Effect_0V_SpeedMin>2</Effect_0V_SpeedMin>
     <Effect_0V_SpeedMax>8</Effect_0V_SpeedMax>
-    <Effect_0V_DepthMin>2</Effect_0V_DepthMin>
-    <Effect_0V_DepthMax>6</Effect_0V_DepthMax>
-    <Effect_0T_Enabled>false</Effect_0T_Enabled>
-    <Effect_0T_SpeedMin>2</Effect_0T_SpeedMin>
-    <Effect_0T_SpeedMax>8</Effect_0T_SpeedMax>
-    <Effect_0T_DepthMin>2</Effect_0T_DepthMin>
-    <Effect_0T_DepthMax>6</Effect_0T_DepthMax>
-    <Effect_0A_Enabled>false</Effect_0A_Enabled>
-    <Effect_0A_Semitones1Min>3</Effect_0A_Semitones1Min>
-    <Effect_0A_Semitones1Max>5</Effect_0A_Semitones1Max>
-    <Effect_0A_Semitones2Min>7</Effect_0A_Semitones2Min>
-    <Effect_0A_Semitones2Max>12</Effect_0A_Semitones2Max>
   </pakettiWonkify>
+  <PakettiPhraseVoiceMaxColumns>12</PakettiPhraseVoiceMaxColumns>
+  <PakettiPhraseVoicePhaseLockEnabled>true</PakettiPhraseVoicePhaseLockEnabled>
+  <PakettiPhraseVoiceOperationMode>switcher</PakettiPhraseVoiceOperationMode>
   <pakettiPatternSequencer>
+    <numbering_start>2</numbering_start>
+    <select_after_clone>true</select_after_clone>
     <clone_prefix/>
     <clone_suffix> (Clone)</clone_suffix>
     <use_numbering>true</use_numbering>
     <numbering_format>%d</numbering_format>
     <naming_behavior>1.0</naming_behavior>
-    <numbering_start>2</numbering_start>
-    <select_after_clone>true</select_after_clone>
   </pakettiPatternSequencer>
+  <PakettiPhraseVoicePreserveExistingNotes>true</PakettiPhraseVoicePreserveExistingNotes>
+  <PakettiPhraseVoiceFadeOutEnabled>false</PakettiPhraseVoiceFadeOutEnabled>
+  <PakettiPhraseVoiceAdditiveMode>false</PakettiPhraseVoiceAdditiveMode>
+  <PakettiPhraseVoiceDebugEnabled>false</PakettiPhraseVoiceDebugEnabled>
+  <pakettiCaptureLastTakeSmartNoteOff>false</pakettiCaptureLastTakeSmartNoteOff>
+  <pakettiSwitcharooAutoGrab>true</pakettiSwitcharooAutoGrab>
+  <PakettiImpulseTrackerF8>1.0</PakettiImpulseTrackerF8>
+  <PakettiCaptureTrackFromInstrumentMode>0.0</PakettiCaptureTrackFromInstrumentMode>
+  <PakettiDeviceChainPath>./DeviceChains/</PakettiDeviceChainPath>
   <PakettiXMLizer>
-    <pakettiCustomLFOXMLInject10/>
-    <pakettiCustomLFOXMLInject11/>
-    <pakettiCustomLFOXMLInject12/>
-    <pakettiCustomLFOXMLInject13/>
-    <pakettiCustomLFOXMLInject14/>
-    <pakettiCustomLFOXMLInject15/>
     <pakettiCustomLFOXMLInject16/>
     <pakettiCustomLFOXMLInject1/>
     <pakettiCustomLFOXMLInject2/>
@@ -380,34 +384,32 @@
     <pakettiCustomLFOXMLInject7/>
     <pakettiCustomLFOXMLInject8/>
     <pakettiCustomLFOXMLInject9/>
+    <pakettiCustomLFOXMLInject10/>
+    <pakettiCustomLFOXMLInject11/>
+    <pakettiCustomLFOXMLInject12/>
+    <pakettiCustomLFOXMLInject13/>
+    <pakettiCustomLFOXMLInject14/>
+    <pakettiCustomLFOXMLInject15/>
   </PakettiXMLizer>
-  <UserInstruments>
-    <Slot07/>
-    <Slot08/>
-    <Slot09/>
-    <Slot10/>
-    <Path/>
-    <Slot01>/Users/esaruoho/Music/samples/xrnt//Slot01.xrni</Slot01>
-    <Slot02/>
-    <Slot03/>
-    <Slot04/>
-    <Slot05/>
-    <Slot06/>
-  </UserInstruments>
-  <UserDevices>
-    <Slot07/>
-    <Slot08/>
-    <Slot09/>
-    <Slot10/>
-    <Path>/Users/esaruoho/Music/samples/xrnt/</Path>
-    <Slot01>/Users/esaruoho/Music/samples/xrnt//Slot01.xrnt</Slot01>
-    <Slot02/>
-    <Slot03/>
-    <Slot04/>
-    <Slot05/>
-    <Slot06/>
-  </UserDevices>
+  <PakettiIRPath>/Users/esaruoho/Music/samples/~IRs/ir_for_esa/</PakettiIRPath>
   <PakettiDynamicViews/>
+  <PakettiLFOWriteDelete>true</PakettiLFOWriteDelete>
+  <PakettiEQ30ColumnGradient>false</PakettiEQ30ColumnGradient>
+  <PakettiEQ30AutomationPlaymode>2</PakettiEQ30AutomationPlaymode>
+  <PakettiEQ30Autofocus>false</PakettiEQ30Autofocus>
+  <PakettiEQ30MinimizeDevices>true</PakettiEQ30MinimizeDevices>
+  <PakettiCanvasAutomationPlaymode>1.0</PakettiCanvasAutomationPlaymode>
+  <upperFramePreference>0.0</upperFramePreference>
+  <_0G01_Loader>false</_0G01_Loader>
+  <RandomBPM>false</RandomBPM>
+  <loadPaleGreenTheme>false</loadPaleGreenTheme>
+  <PakettiStripSilenceThreshold>0.0121</PakettiStripSilenceThreshold>
+  <PakettiMoveSilenceThreshold>0.011999999999999999</PakettiMoveSilenceThreshold>
+  <renderSampleRate>88200</renderSampleRate>
+  <renderBitDepth>32</renderBitDepth>
+  <renderBypass>false</renderBypass>
+  <RenderDCOffset>false</RenderDCOffset>
+  <renderInterpolation>precise</renderInterpolation>
   <PakettiDeviceLoaders>
     <PakettiDeviceLoader type="lua_model:PakettiDeviceEntry">
       <path>Audio/Effects/Native/Splitter</path>
@@ -445,90 +447,80 @@
       <device_type>AudioUnit</device_type>
     </PakettiDeviceLoader>
   </PakettiDeviceLoaders>
-  <PakettiPluginLoaders>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/AU/aumu:SgXT:VmbA</path>
-      <name>Surge XT (AU)</name>
-    </PakettiPluginLoader>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/AU/aumu:SgXT:VmbA</path>
-      <name>Surge XT (AU) + surgemacros</name>
-    </PakettiPluginLoader>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/AU/aumu:SMHZ:UHfX</path>
-      <name>ZebraHZ (AU)</name>
-    </PakettiPluginLoader>
-  </PakettiPluginLoaders>
-  <pakettiMidiPopulator>
-    <populateSends>true</populateSends>
-    <sendDeviceType>1.0</sendDeviceType>
-    <collapsed>false</collapsed>
-    <volumeColumn>false</volumeColumn>
-    <panningColumn>true</panningColumn>
-    <delayColumn>true</delayColumn>
-    <sampleEffectsColumn>true</sampleEffectsColumn>
-    <noteColumns>3</noteColumns>
-    <effectColumns>2</effectColumns>
-    <incomingAudio>false</incomingAudio>
-  </pakettiMidiPopulator>
-  <pakettiTitler>
-    <notes_file_path>External/notes.txt</notes_file_path>
-    <textfile_path>External/wordlist.txt</textfile_path>
-    <trackTitlerDateFormat>YYYY_MM_DD</trackTitlerDateFormat>
-  </pakettiTitler>
-  <pakettiTrackInitDialog>
-    <VolumeColumnVisible>true</VolumeColumnVisible>
-    <PanningColumnVisible>true</PanningColumnVisible>
-    <DelayColumnVisible>true</DelayColumnVisible>
-    <SampleFXColumnVisible>true</SampleFXColumnVisible>
-    <NoteColumns>1.0</NoteColumns>
-    <EffectColumns>1.0</EffectColumns>
-    <SetName>true</SetName>
-    <Name>T#</Name>
-    <SendEffectColumns>1.0</SendEffectColumns>
-  </pakettiTrackInitDialog>
-  <pakettiAlwaysOpenDSPsOnTrack>false</pakettiAlwaysOpenDSPsOnTrack>
-  <pakettiPhraseInitDialog>
-    <Autoseek>false</Autoseek>
-    <PhraseLooping>true</PhraseLooping>
-    <VolumeColumnVisible>false</VolumeColumnVisible>
-    <PanningColumnVisible>false</PanningColumnVisible>
-    <InstrumentColumnVisible>false</InstrumentColumnVisible>
-    <DelayColumnVisible>false</DelayColumnVisible>
-    <SampleFXColumnVisible>false</SampleFXColumnVisible>
-    <NoteColumns>1.0</NoteColumns>
-    <EffectColumns>1.0</EffectColumns>
-    <Shuffle>0.0</Shuffle>
-    <LPB>4</LPB>
-    <Length>64</Length>
-    <SetName>false</SetName>
-    <Name>Phrase 01</Name>
-  </pakettiPhraseInitDialog>
-  <pakettiAlwaysOpenSampleFXChainDevices>false</pakettiAlwaysOpenSampleFXChainDevices>
-  <pakettiCheatSheet>
-    <pakettiCheatSheetRandomize>true</pakettiCheatSheetRandomize>
-    <pakettiCheatSheetRandomizeMin>1.0</pakettiCheatSheetRandomizeMin>
-    <pakettiCheatSheetRandomizeMax>12</pakettiCheatSheetRandomizeMax>
-    <pakettiCheatSheetFillAll>99</pakettiCheatSheetFillAll>
-    <pakettiCheatSheetRandomizeWholeTrack>false</pakettiCheatSheetRandomizeWholeTrack>
-    <pakettiCheatSheetRandomizeSwitch>false</pakettiCheatSheetRandomizeSwitch>
-    <pakettiCheatSheetRandomizeDontOverwrite>false</pakettiCheatSheetRandomizeDontOverwrite>
-    <pakettiCheatSheetOnlyModifyEffects>true</pakettiCheatSheetOnlyModifyEffects>
-    <pakettiCheatSheetOnlyModifyNotes>false</pakettiCheatSheetOnlyModifyNotes>
-  </pakettiCheatSheet>
-  <pakettiEditMode>2</pakettiEditMode>
-  <UserDefinedSampleFolders08/>
-  <pakettiKeepSequenceSorted>0.0</pakettiKeepSequenceSorted>
+  <experimentalRenderPriority>high</experimentalRenderPriority>
+  <PakettiYTDLP>
+    <PakettiYTDLPLoopMode>2</PakettiYTDLPLoopMode>
+    <PakettiYTDLPClipLength>10</PakettiYTDLPClipLength>
+    <PakettiYTDLPAmountOfVideos>1.0</PakettiYTDLPAmountOfVideos>
+    <PakettiYTDLPLoadWholeVideo>false</PakettiYTDLPLoadWholeVideo>
+    <PakettiYTDLPOutputDirectory>/Users/esaruoho/Music/samples/ytube/</PakettiYTDLPOutputDirectory>
+    <PakettiYTDLPFormatToSave>1.0</PakettiYTDLPFormatToSave>
+    <PakettiYTDLPPathToSave>&lt;No path set&gt;</PakettiYTDLPPathToSave>
+    <PakettiYTDLPNewInstrumentOrSameInstrument>true</PakettiYTDLPNewInstrumentOrSameInstrument>
+    <PakettiYTDLPYT_DLPLocation>/opt/homebrew/bin/yt-dlp</PakettiYTDLPYT_DLPLocation>
+  </PakettiYTDLP>
+  <experimentalRenderSilenceMultiplier>1.0</experimentalRenderSilenceMultiplier>
+  <experimentalRenderRemoveSilence>true</experimentalRenderRemoveSilence>
+  <pakettiLoaderInterpolation>4</pakettiLoaderInterpolation>
+  <pakettiLoaderFilterType>LP Moog</pakettiLoaderFilterType>
+  <pakettiLoaderOverSampling>true</pakettiLoaderOverSampling>
+  <pakettiLoaderOneshot>false</pakettiLoaderOneshot>
+  <pakettiLoaderAutofade>true</pakettiLoaderAutofade>
+  <pakettiLoaderAutoseek>false</pakettiLoaderAutoseek>
+  <pakettiLoaderLoopMode>1.0</pakettiLoaderLoopMode>
+  <pakettiLoaderNNA>1.0</pakettiLoaderNNA>
+  <pakettiLoaderLoopExit>false</pakettiLoaderLoopExit>
+  <pakettiLoaderMoveSilenceToEnd>false</pakettiLoaderMoveSilenceToEnd>
+  <pakettiLoaderNormalizeSamples>false</pakettiLoaderNormalizeSamples>
+  <pakettiLoaderNormalizeLargeSamples>false</pakettiLoaderNormalizeLargeSamples>
+  <pakettiStemLoaderDestructive>true</pakettiStemLoaderDestructive>
+  <pakettiStemLoaderAutoSliceOnMixedRates>true</pakettiStemLoaderAutoSliceOnMixedRates>
+  <pakettiLoadToAllTracksPosition>true</pakettiLoadToAllTracksPosition>
+  <pakettiLazySlicerShowNewestSlice>false</pakettiLazySlicerShowNewestSlice>
+  <pakettiPolyendOpenDialog>true</pakettiPolyendOpenDialog>
+  <pakettiExplodeTrackNaming>true</pakettiExplodeTrackNaming>
+  <selectionNewInstrumentSelect>true</selectionNewInstrumentSelect>
+  <selectionNewInstrumentLoop>2</selectionNewInstrumentLoop>
+  <selectionNewInstrumentInterpolation>4</selectionNewInstrumentInterpolation>
+  <selectionNewInstrumentAutofade>true</selectionNewInstrumentAutofade>
+  <selectionNewInstrumentAutoseek>false</selectionNewInstrumentAutoseek>
+  <pakettiPitchbendLoaderEnvelope>false</pakettiPitchbendLoaderEnvelope>
+  <pakettiSlideContentAutomationToo>true</pakettiSlideContentAutomationToo>
+  <pakettiUnisonDetune>18</pakettiUnisonDetune>
+  <pakettiUnisonDetuneFluctuation>false</pakettiUnisonDetuneFluctuation>
+  <pakettiUnisonDetuneHardSync>true</pakettiUnisonDetuneHardSync>
+  <pakettiUnisonDuplicateInstrument>true</pakettiUnisonDuplicateInstrument>
+  <pakettiMaxFrameSize>46800000</pakettiMaxFrameSize>
+  <PakettiHyperEditCaptureTrackColor>false</PakettiHyperEditCaptureTrackColor>
+  <PakettiHyperEditAutoFit>true</PakettiHyperEditAutoFit>
+  <PakettiHyperEditManualRows>2</PakettiHyperEditManualRows>
+  <pakettiDefaultXRNI>/Users/esaruoho/Library/Preferences/Renoise/V3.5.4/Scripts/Tools/org.lackluster.Paketti.xrnx/Presets/12st_Pitchbend.xrni</pakettiDefaultXRNI>
+  <UserDefinedSampleFolders09/>
+  <UserDefinedSampleFolders10/>
+  <pakettiDefaultDrumkitXRNI>/Users/esaruoho/Library/Preferences/Renoise/V3.5.4/Scripts/Tools/org.lackluster.Paketti.xrnx/Presets/12st_Pitchbend_Drumkit_C0.xrni</pakettiDefaultDrumkitXRNI>
+  <pakettieSpeak>
+    <word_gap>10</word_gap>
+    <capitals>73</capitals>
+    <pitch>79</pitch>
+    <speed>72</speed>
+    <language>75</language>
+    <voice>8</voice>
+    <executable>/opt/homebrew/bin/espeak-ng</executable>
+    <clear_all_samples>true</clear_all_samples>
+    <text>hi i'm doing a demo for sonfx
+</text>
+    <amplitude>5</amplitude>
+    <dont_pakettify>false</dont_pakettify>
+    <render_on_change>false</render_on_change>
+    <add_render_to_current_instrument>false</add_render_to_current_instrument>
+  </pakettieSpeak>
+  <pakettiPresetPlusPlusDeviceChain>DeviceChains/hipass_lopass_dcoffset.xrnt</pakettiPresetPlusPlusDeviceChain>
   <RandomizeSettings>
-    <pakettiRandomizeSelectedPluginPercentageUserPreference3>30</pakettiRandomizeSelectedPluginPercentageUserPreference3>
-    <pakettiRandomizeSelectedPluginPercentageUserPreference4>40</pakettiRandomizeSelectedPluginPercentageUserPreference4>
-    <pakettiRandomizeSelectedPluginPercentageUserPreference5>50</pakettiRandomizeSelectedPluginPercentageUserPreference5>
-    <pakettiRandomizeAllPluginsPercentage>50</pakettiRandomizeAllPluginsPercentage>
-    <pakettiRandomizeAllPluginsPercentageUserPreference1>10</pakettiRandomizeAllPluginsPercentageUserPreference1>
-    <pakettiRandomizeAllPluginsPercentageUserPreference2>20</pakettiRandomizeAllPluginsPercentageUserPreference2>
-    <pakettiRandomizeAllPluginsPercentageUserPreference3>30</pakettiRandomizeAllPluginsPercentageUserPreference3>
-    <pakettiRandomizeAllPluginsPercentageUserPreference4>40</pakettiRandomizeAllPluginsPercentageUserPreference4>
-    <pakettiRandomizeAllPluginsPercentageUserPreference5>50</pakettiRandomizeAllPluginsPercentageUserPreference5>
+    <pakettiRandomizeSampleFXDevicePercentageUserPreference1>10</pakettiRandomizeSampleFXDevicePercentageUserPreference1>
+    <pakettiRandomizeSampleFXDevicePercentageUserPreference2>25</pakettiRandomizeSampleFXDevicePercentageUserPreference2>
+    <pakettiRandomizeSampleFXDevicePercentageUserPreference3>50</pakettiRandomizeSampleFXDevicePercentageUserPreference3>
+    <pakettiRandomizeSampleFXDevicePercentageUserPreference4>75</pakettiRandomizeSampleFXDevicePercentageUserPreference4>
+    <pakettiRandomizeSampleFXDevicePercentageUserPreference5>100</pakettiRandomizeSampleFXDevicePercentageUserPreference5>
     <pakettiRandomizeSelectedDevicePercentage>50</pakettiRandomizeSelectedDevicePercentage>
     <pakettiRandomizeSelectedDevicePercentageUserPreference1>10</pakettiRandomizeSelectedDevicePercentageUserPreference1>
     <pakettiRandomizeSelectedDevicePercentageUserPreference2>25</pakettiRandomizeSelectedDevicePercentageUserPreference2>
@@ -544,60 +536,834 @@
     <pakettiRandomizeSelectedPluginPercentage>50</pakettiRandomizeSelectedPluginPercentage>
     <pakettiRandomizeSelectedPluginPercentageUserPreference1>10</pakettiRandomizeSelectedPluginPercentageUserPreference1>
     <pakettiRandomizeSelectedPluginPercentageUserPreference2>20</pakettiRandomizeSelectedPluginPercentageUserPreference2>
+    <pakettiRandomizeSelectedPluginPercentageUserPreference3>30</pakettiRandomizeSelectedPluginPercentageUserPreference3>
+    <pakettiRandomizeSelectedPluginPercentageUserPreference4>40</pakettiRandomizeSelectedPluginPercentageUserPreference4>
+    <pakettiRandomizeSelectedPluginPercentageUserPreference5>50</pakettiRandomizeSelectedPluginPercentageUserPreference5>
+    <pakettiRandomizeAllPluginsPercentage>50</pakettiRandomizeAllPluginsPercentage>
+    <pakettiRandomizeAllPluginsPercentageUserPreference1>10</pakettiRandomizeAllPluginsPercentageUserPreference1>
+    <pakettiRandomizeAllPluginsPercentageUserPreference2>20</pakettiRandomizeAllPluginsPercentageUserPreference2>
+    <pakettiRandomizeAllPluginsPercentageUserPreference3>30</pakettiRandomizeAllPluginsPercentageUserPreference3>
+    <pakettiRandomizeAllPluginsPercentageUserPreference4>40</pakettiRandomizeAllPluginsPercentageUserPreference4>
+    <pakettiRandomizeAllPluginsPercentageUserPreference5>50</pakettiRandomizeAllPluginsPercentageUserPreference5>
+    <pakettiRandomizeSampleFXDevicePercentage>50</pakettiRandomizeSampleFXDevicePercentage>
   </RandomizeSettings>
-  <pakettiThemeSelector>
-    <PreviousSelectedTheme>Macrohard Windows 95 (JRS)</PreviousSelectedTheme>
-    <FavoritedList>
-      <Favorited>&lt;No Theme Selected&gt;</Favorited>
-    </FavoritedList>
-    <RenoiseLaunchRandomLoad>false</RenoiseLaunchRandomLoad>
-    <RenoiseLaunchFavoritesLoad>false</RenoiseLaunchFavoritesLoad>
-  </pakettiThemeSelector>
-  <pakettiEnableGlobalGrooveOnStartup>false</pakettiEnableGlobalGrooveOnStartup>
-  <OctaMEDPickPutSlots>
-    <Slot07/>
-    <Slot08/>
-    <Slot09/>
-    <Slot10/>
-    <RandomizeEnabled>false</RandomizeEnabled>
-    <RandomizePercentage>10</RandomizePercentage>
-    <SetSelectedInstrument>false</SetSelectedInstrument>
-    <UseEditStep>true</UseEditStep>
-    <Slot01>--- .. .. .. .. ....||0A00</Slot01>
+  <pakettiAutoSamplifyMonitoring>false</pakettiAutoSamplifyMonitoring>
+  <pakettiAutoSamplifyPakettify>false</pakettiAutoSamplifyPakettify>
+  <pakettiImportHooksEnabled>true</pakettiImportHooksEnabled>
+  <pakettiImportREX>true</pakettiImportREX>
+  <pakettiImportRX2>true</pakettiImportRX2>
+  <pakettiImportIFF>true</pakettiImportIFF>
+  <pakettiImportSF2>true</pakettiImportSF2>
+  <pakettiImportITI>true</pakettiImportITI>
+  <pakettiImportOT>true</pakettiImportOT>
+  <pakettiImportWT>true</pakettiImportWT>
+  <pakettiImportSTRD>true</pakettiImportSTRD>
+  <pakettiImportPTI>true</pakettiImportPTI>
+  <pakettiImportMTP>true</pakettiImportMTP>
+  <pakettiImportMID>true</pakettiImportMID>
+  <pakettiImportTXT>true</pakettiImportTXT>
+  <pakettiImportImage>true</pakettiImportImage>
+  <pakettiImportCSV>true</pakettiImportCSV>
+  <pakettiImportEXE>true</pakettiImportEXE>
+  <pakettiQuickSampleTrackVolume>true</pakettiQuickSampleTrackVolume>
+  <pakettiMPCCyclerLastSampleFolder/>
+  <pakettiMPCCyclerLastInstrumentFolder/>
+  <pakettiMPCCyclerSampleIndex>1.0</pakettiMPCCyclerSampleIndex>
+  <pakettiMPCCyclerInstrumentIndex>1.0</pakettiMPCCyclerInstrumentIndex>
+  <pakettiMPCCyclerGlobalLock>false</pakettiMPCCyclerGlobalLock>
+  <pakettiMPCCyclerPreviewEnabled>false</pakettiMPCCyclerPreviewEnabled>
+  <pakettiGliderEnabled>false</pakettiGliderEnabled>
+  <pakettiGliderDuration>4</pakettiGliderDuration>
+  <pakettiGliderMode>live</pakettiGliderMode>
+  <PakettiClipboard>
+    <Slot05Name/>
+    <Slot06Name/>
+    <Slot07Name/>
+    <Slot08Name/>
+    <Slot09Name/>
+    <Slot10Name/>
+    <Slot01>pattern|64|7
+T1:1:1
+T2:1:1
+T3:1:1
+T4:1:1
+T5:1:1
+T6:0:1
+T7:0:1
+---
+R1@T1:N1=11,0,255,255,0,0,0
+R1@T1:E1=28,0
+R1@T2:N1=12,1,255,255,0,0,0
+R1@T2:E1=28,0
+R1@T3:N1=11,2,255,255,0,0,0
+R1@T3:E1=28,0
+R1@T4:N1=5,3,255,255,0,0,0
+R1@T4:E1=28,0
+R1@T5:N1=8,4,255,255,0,0,0
+R1@T5:E1=28,0
+R1@T6:E1=0,0
+R1@T7:E1=0,0
+R2@T1:N1=4,0,255,255,0,0,0
+R2@T1:E1=28,4
+R2@T2:N1=3,1,255,255,0,0,0
+R2@T2:E1=28,4
+R2@T3:N1=2,2,255,255,0,0,0
+R2@T3:E1=28,4
+R2@T4:N1=7,3,255,255,0,0,0
+R2@T4:E1=28,4
+R2@T5:N1=6,4,255,255,0,0,0
+R2@T5:E1=28,4
+R2@T6:E1=0,0
+R2@T7:E1=0,0
+R3@T1:N1=12,0,255,255,0,0,0
+R3@T1:E1=28,8
+R3@T2:N1=12,1,255,255,0,0,0
+R3@T2:E1=28,8
+R3@T3:N1=9,2,255,255,0,0,0
+R3@T3:E1=28,8
+R3@T4:N1=11,3,255,255,0,0,0
+R3@T4:E1=28,8
+R3@T5:N1=12,4,255,255,0,0,0
+R3@T5:E1=28,8
+R3@T6:E1=0,0
+R3@T7:E1=0,0
+R4@T1:N1=11,0,255,255,0,0,0
+R4@T1:E1=28,12
+R4@T2:N1=8,1,255,255,0,0,0
+R4@T2:E1=28,12
+R4@T3:N1=11,2,255,255,0,0,0
+R4@T3:E1=28,12
+R4@T4:N1=2,3,255,255,0,0,0
+R4@T4:E1=28,12
+R4@T5:N1=2,4,255,255,0,0,0
+R4@T5:E1=28,12
+R4@T6:E1=0,0
+R4@T7:E1=0,0
+R5@T1:N1=1,0,255,255,0,0,0
+R5@T1:E1=28,16
+R5@T2:N1=2,1,255,255,0,0,0
+R5@T2:E1=28,16
+R5@T3:N1=8,2,255,255,0,0,0
+R5@T3:E1=28,16
+R5@T4:N1=11,3,255,255,0,0,0
+R5@T4:E1=28,16
+R5@T5:N1=6,4,255,255,0,0,0
+R5@T5:E1=28,16
+R5@T6:E1=0,0
+R5@T7:E1=0,0
+R6@T1:N1=3,0,255,255,0,0,0
+R6@T1:E1=28,20
+R6@T2:N1=11,1,255,255,0,0,0
+R6@T2:E1=28,20
+R6@T3:N1=10,2,255,255,0,0,0
+R6@T3:E1=28,20
+R6@T4:N1=3,3,255,255,0,0,0
+R6@T4:E1=28,20
+R6@T5:N1=2,4,255,255,0,0,0
+R6@T5:E1=28,20
+R6@T6:E1=0,0
+R6@T7:E1=0,0
+R7@T1:N1=6,0,255,255,0,0,0
+R7@T1:E1=28,24
+R7@T2:N1=10,1,255,255,0,0,0
+R7@T2:E1=28,24
+R7@T3:N1=8,2,255,255,0,0,0
+R7@T3:E1=28,24
+R7@T4:N1=6,3,255,255,0,0,0
+R7@T4:E1=28,24
+R7@T5:N1=3,4,255,255,0,0,0
+R7@T5:E1=28,24
+R7@T6:E1=0,0
+R7@T7:E1=0,0
+R8@T1:N1=5,0,255,255,0,0,0
+R8@T1:E1=28,28
+R8@T2:N1=5,1,255,255,0,0,0
+R8@T2:E1=28,28
+R8@T3:N1=9,2,255,255,0,0,0
+R8@T3:E1=28,28
+R8@T4:N1=5,3,255,255,0,0,0
+R8@T4:E1=28,28
+R8@T5:N1=6,4,255,255,0,0,0
+R8@T5:E1=28,28
+R8@T6:E1=0,0
+R8@T7:E1=0,0
+R9@T1:N1=5,0,255,255,0,0,0
+R9@T1:E1=28,32
+R9@T2:N1=8,1,255,255,0,0,0
+R9@T2:E1=28,32
+R9@T3:N1=8,2,255,255,0,0,0
+R9@T3:E1=28,32
+R9@T4:N1=3,3,255,255,0,0,0
+R9@T4:E1=28,32
+R9@T5:N1=9,4,255,255,0,0,0
+R9@T5:E1=28,32
+R9@T6:E1=0,0
+R9@T7:E1=0,0
+R10@T1:N1=8,0,255,255,0,0,0
+R10@T1:E1=28,36
+R10@T2:N1=5,1,255,255,0,0,0
+R10@T2:E1=28,36
+R10@T3:N1=7,2,255,255,0,0,0
+R10@T3:E1=28,36
+R10@T4:N1=2,3,255,255,0,0,0
+R10@T4:E1=28,36
+R10@T5:N1=9,4,255,255,0,0,0
+R10@T5:E1=28,36
+R10@T6:E1=0,0
+R10@T7:E1=0,0
+R11@T1:N1=5,0,255,255,0,0,0
+R11@T1:E1=28,40
+R11@T2:N1=11,1,255,255,0,0,0
+R11@T2:E1=28,40
+R11@T3:N1=6,2,255,255,0,0,0
+R11@T3:E1=28,40
+R11@T4:N1=2,3,255,255,0,0,0
+R11@T4:E1=28,40
+R11@T5:N1=6,4,255,255,0,0,0
+R11@T5:E1=28,40
+R11@T6:E1=0,0
+R11@T7:E1=0,0
+R12@T1:N1=7,0,255,255,0,0,0
+R12@T1:E1=28,44
+R12@T2:N1=2,1,255,255,0,0,0
+R12@T2:E1=28,44
+R12@T3:N1=3,2,255,255,0,0,0
+R12@T3:E1=28,44
+R12@T4:N1=10,3,255,255,0,0,0
+R12@T4:E1=28,44
+R12@T5:N1=1,4,255,255,0,0,0
+R12@T5:E1=28,44
+R12@T6:E1=0,0
+R12@T7:E1=0,0
+R13@T1:N1=12,0,255,255,0,0,0
+R13@T1:E1=28,48
+R13@T2:N1=11,1,255,255,0,0,0
+R13@T2:E1=28,48
+R13@T3:N1=6,2,255,255,0,0,0
+R13@T3:E1=28,48
+R13@T4:N1=8,3,255,255,0,0,0
+R13@T4:E1=28,48
+R13@T5:N1=6,4,255,255,0,0,0
+R13@T5:E1=28,48
+R13@T6:E1=0,0
+R13@T7:E1=0,0
+R14@T1:N1=4,0,255,255,0,0,0
+R14@T1:E1=28,52
+R14@T2:N1=5,1,255,255,0,0,0
+R14@T2:E1=28,52
+R14@T3:N1=12,2,255,255,0,0,0
+R14@T3:E1=28,52
+R14@T4:N1=3,3,255,255,0,0,0
+R14@T4:E1=28,52
+R14@T5:N1=6,4,255,255,0,0,0
+R14@T5:E1=28,52
+R14@T6:E1=0,0
+R14@T7:E1=0,0
+R15@T1:N1=12,0,255,255,0,0,0
+R15@T1:E1=28,56
+R15@T2:N1=5,1,255,255,0,0,0
+R15@T2:E1=28,56
+R15@T3:N1=2,2,255,255,0,0,0
+R15@T3:E1=28,56
+R15@T4:N1=7,3,255,255,0,0,0
+R15@T4:E1=28,56
+R15@T5:N1=2,4,255,255,0,0,0
+R15@T5:E1=28,56
+R15@T6:E1=0,0
+R15@T7:E1=0,0
+R16@T1:N1=1,0,255,255,0,0,0
+R16@T1:E1=28,60
+R16@T2:N1=7,1,255,255,0,0,0
+R16@T2:E1=28,60
+R16@T3:N1=5,2,255,255,0,0,0
+R16@T3:E1=28,60
+R16@T4:N1=4,3,255,255,0,0,0
+R16@T4:E1=28,60
+R16@T5:N1=2,4,255,255,0,0,0
+R16@T5:E1=28,60
+R16@T6:E1=0,0
+R16@T7:E1=0,0
+R17@T1:N1=2,0,255,255,0,0,0
+R17@T1:E1=28,64
+R17@T2:N1=10,1,255,255,0,0,0
+R17@T2:E1=28,64
+R17@T3:N1=10,2,255,255,0,0,0
+R17@T3:E1=28,64
+R17@T4:N1=6,3,255,255,0,0,0
+R17@T4:E1=28,64
+R17@T5:N1=9,4,255,255,0,0,0
+R17@T5:E1=28,64
+R17@T6:E1=0,0
+R17@T7:E1=0,0
+R18@T1:N1=10,0,255,255,0,0,0
+R18@T1:E1=28,68
+R18@T2:N1=4,1,255,255,0,0,0
+R18@T2:E1=28,68
+R18@T3:N1=3,2,255,255,0,0,0
+R18@T3:E1=28,68
+R18@T4:N1=1,3,255,255,0,0,0
+R18@T4:E1=28,68
+R18@T5:N1=3,4,255,255,0,0,0
+R18@T5:E1=28,68
+R18@T6:E1=0,0
+R18@T7:E1=0,0
+R19@T1:N1=10,0,255,255,0,0,0
+R19@T1:E1=28,72
+R19@T2:N1=5,1,255,255,0,0,0
+R19@T2:E1=28,72
+R19@T3:N1=12,2,255,255,0,0,0
+R19@T3:E1=28,72
+R19@T4:N1=1,3,255,255,0,0,0
+R19@T4:E1=28,72
+R19@T5:N1=10,4,255,255,0,0,0
+R19@T5:E1=28,72
+R19@T6:E1=0,0
+R19@T7:E1=0,0
+R20@T1:N1=11,0,255,255,0,0,0
+R20@T1:E1=28,76
+R20@T2:N1=11,1,255,255,0,0,0
+R20@T2:E1=28,76
+R20@T3:N1=121,255,255,255,0,0,0
+R20@T3:E1=0,0
+R20@T4:N1=8,3,255,255,0,0,0
+R20@T4:E1=28,76
+R20@T5:N1=9,4,255,255,0,0,0
+R20@T5:E1=28,76
+R20@T6:E1=0,0
+R20@T7:E1=0,0
+R21@T1:N1=11,0,255,255,0,0,0
+R21@T1:E1=28,80
+R21@T2:N1=5,1,255,255,0,0,0
+R21@T2:E1=28,80
+R21@T3:N1=1,2,255,255,0,0,0
+R21@T3:E1=28,80
+R21@T4:N1=11,3,255,255,0,0,0
+R21@T4:E1=28,80
+R21@T5:N1=12,4,255,255,0,0,0
+R21@T5:E1=28,80
+R21@T6:E1=0,0
+R21@T7:E1=0,0
+R22@T1:N1=1,0,255,255,0,0,0
+R22@T1:E1=28,84
+R22@T2:N1=3,1,255,255,0,0,0
+R22@T2:E1=28,84
+R22@T3:N1=121,255,255,255,0,0,0
+R22@T3:E1=0,0
+R22@T4:N1=11,3,255,255,0,0,0
+R22@T4:E1=28,84
+R22@T5:N1=11,4,255,255,0,0,0
+R22@T5:E1=28,84
+R22@T6:E1=0,0
+R22@T7:E1=0,0
+R23@T1:N1=5,0,255,255,0,0,0
+R23@T1:E1=28,88
+R23@T2:N1=3,1,255,255,0,0,0
+R23@T2:E1=28,88
+R23@T3:N1=11,2,255,255,0,0,0
+R23@T3:E1=28,88
+R23@T4:N1=4,3,255,255,0,0,0
+R23@T4:E1=28,88
+R23@T5:N1=9,4,255,255,0,0,0
+R23@T5:E1=28,88
+R23@T6:E1=0,0
+R23@T7:E1=0,0
+R24@T1:N1=1,0,255,255,0,0,0
+R24@T1:E1=28,92
+R24@T2:N1=3,1,255,255,0,0,0
+R24@T2:E1=28,92
+R24@T3:N1=121,255,255,255,0,0,0
+R24@T3:E1=0,0
+R24@T4:N1=5,3,255,255,0,0,0
+R24@T4:E1=28,92
+R24@T5:N1=11,4,255,255,0,0,0
+R24@T5:E1=28,92
+R24@T6:E1=0,0
+R24@T7:E1=0,0
+R25@T1:N1=10,0,255,255,0,0,0
+R25@T1:E1=28,96
+R25@T2:N1=4,1,255,255,0,0,0
+R25@T2:E1=28,96
+R25@T3:N1=2,2,255,255,0,0,0
+R25@T3:E1=28,96
+R25@T4:N1=11,3,255,255,0,0,0
+R25@T4:E1=28,96
+R25@T5:N1=3,4,255,255,0,0,0
+R25@T5:E1=28,96
+R25@T6:E1=0,0
+R25@T7:E1=0,0
+R26@T1:N1=4,0,255,255,0,0,0
+R26@T1:E1=28,100
+R26@T2:N1=7,1,255,255,0,0,0
+R26@T2:E1=28,100
+R26@T3:N1=121,255,255,255,0,0,0
+R26@T3:E1=0,0
+R26@T4:N1=12,3,255,255,0,0,0
+R26@T4:E1=28,100
+R26@T5:N1=9,4,255,255,0,0,0
+R26@T5:E1=28,100
+R26@T6:E1=0,0
+R26@T7:E1=0,0
+R27@T1:N1=11,0,255,255,0,0,0
+R27@T1:E1=28,104
+R27@T2:N1=3,1,255,255,0,0,0
+R27@T2:E1=28,104
+R27@T3:N1=6,2,255,255,0,0,0
+R27@T3:E1=28,104
+R27@T4:N1=10,3,255,255,0,0,0
+R27@T4:E1=28,104
+R27@T5:N1=6,4,255,255,0,0,0
+R27@T5:E1=28,104
+R27@T6:E1=0,0
+R27@T7:E1=0,0
+R28@T1:N1=11,0,255,255,0,0,0
+R28@T1:E1=28,108
+R28@T2:N1=6,1,255,255,0,0,0
+R28@T2:E1=28,108
+R28@T3:N1=3,2,255,255,0,0,0
+R28@T3:E1=28,108
+R28@T4:N1=5,3,255,255,0,0,0
+R28@T4:E1=28,108
+R28@T5:N1=4,4,255,255,0,0,0
+R28@T5:E1=28,108
+R28@T6:E1=0,0
+R28@T7:E1=0,0
+R29@T1:N1=2,0,255,255,0,0,0
+R29@T1:E1=28,112
+R29@T2:N1=1,1,255,255,0,0,0
+R29@T2:E1=28,112
+R29@T3:N1=4,2,255,255,0,0,0
+R29@T3:E1=28,112
+R29@T4:N1=8,3,255,255,0,0,0
+R29@T4:E1=28,112
+R29@T5:N1=10,4,255,255,0,0,0
+R29@T5:E1=28,112
+R29@T6:E1=0,0
+R29@T7:E1=0,0
+R30@T1:N1=9,0,255,255,0,0,0
+R30@T1:E1=28,116
+R30@T2:N1=3,1,255,255,0,0,0
+R30@T2:E1=28,116
+R30@T3:N1=11,2,255,255,0,0,0
+R30@T3:E1=28,116
+R30@T4:N1=4,3,255,255,0,0,0
+R30@T4:E1=28,116
+R30@T5:N1=7,4,255,255,0,0,0
+R30@T5:E1=28,116
+R30@T6:E1=0,0
+R30@T7:E1=0,0
+R31@T1:N1=4,0,255,255,0,0,0
+R31@T1:E1=28,120
+R31@T2:N1=7,1,255,255,0,0,0
+R31@T2:E1=28,120
+R31@T3:N1=10,2,255,255,0,0,0
+R31@T3:E1=28,120
+R31@T4:N1=4,3,255,255,0,0,0
+R31@T4:E1=28,120
+R31@T5:N1=7,4,255,255,0,0,0
+R31@T5:E1=28,120
+R31@T6:E1=0,0
+R31@T7:E1=0,0
+R32@T1:N1=3,0,255,255,0,0,0
+R32@T1:E1=28,124
+R32@T2:N1=12,1,255,255,0,0,0
+R32@T2:E1=28,124
+R32@T3:N1=10,2,255,255,0,0,0
+R32@T3:E1=28,124
+R32@T4:N1=4,3,255,255,0,0,0
+R32@T4:E1=28,124
+R32@T5:N1=2,4,255,255,0,0,0
+R32@T5:E1=28,124
+R32@T6:E1=0,0
+R32@T7:E1=0,0
+R33@T1:N1=12,0,255,255,0,0,0
+R33@T1:E1=28,128
+R33@T2:N1=12,1,255,255,0,0,0
+R33@T2:E1=28,128
+R33@T3:N1=3,2,255,255,0,0,0
+R33@T3:E1=28,128
+R33@T4:N1=5,3,255,255,0,0,0
+R33@T4:E1=28,128
+R33@T5:N1=1,4,255,255,0,0,0
+R33@T5:E1=28,128
+R33@T6:E1=0,0
+R33@T7:E1=0,0
+R34@T1:N1=12,0,255,255,0,0,0
+R34@T1:E1=28,132
+R34@T2:N1=4,1,255,255,0,0,0
+R34@T2:E1=28,132
+R34@T3:N1=121,255,255,255,0,0,0
+R34@T3:E1=0,0
+R34@T4:N1=4,3,255,255,0,0,0
+R34@T4:E1=28,132
+R34@T5:N1=2,4,255,255,0,0,0
+R34@T5:E1=28,132
+R34@T6:E1=0,0
+R34@T7:E1=0,0
+R35@T1:N1=12,0,255,255,0,0,0
+R35@T1:E1=28,136
+R35@T2:N1=2,1,255,255,0,0,0
+R35@T2:E1=28,136
+R35@T3:N1=121,255,255,255,0,0,0
+R35@T3:E1=0,0
+R35@T4:N1=8,3,255,255,0,0,0
+R35@T4:E1=28,136
+R35@T5:N1=10,4,255,255,0,0,0
+R35@T5:E1=28,136
+R35@T6:E1=0,0
+R35@T7:E1=0,0
+R36@T1:N1=8,0,255,255,0,0,0
+R36@T1:E1=28,140
+R36@T2:N1=12,1,255,255,0,0,0
+R36@T2:E1=28,140
+R36@T3:N1=121,255,255,255,0,0,0
+R36@T3:E1=0,0
+R36@T4:N1=3,3,255,255,0,0,0
+R36@T4:E1=28,140
+R36@T5:N1=8,4,255,255,0,0,0
+R36@T5:E1=28,140
+R36@T6:E1=0,0
+R36@T7:E1=0,0
+R37@T1:N1=4,0,255,255,0,0,0
+R37@T1:E1=28,144
+R37@T2:N1=2,1,255,255,0,0,0
+R37@T2:E1=28,144
+R37@T3:N1=121,255,255,255,0,0,0
+R37@T3:E1=0,0
+R37@T4:N1=6,3,255,255,0,0,0
+R37@T4:E1=28,144
+R37@T5:N1=1,4,255,255,0,0,0
+R37@T5:E1=28,144
+R37@T6:E1=0,0
+R37@T7:E1=0,0
+R38@T1:N1=5,0,255,255,0,0,0
+R38@T1:E1=28,148
+R38@T2:N1=10,1,255,255,0,0,0
+R38@T2:E1=28,148
+R38@T3:N1=121,255,255,255,0,0,0
+R38@T3:E1=0,0
+R38@T4:N1=5,3,255,255,0,0,0
+R38@T4:E1=28,148
+R38@T5:N1=4,4,255,255,0,0,0
+R38@T5:E1=28,148
+R38@T6:E1=0,0
+R38@T7:E1=0,0
+R39@T1:N1=3,0,255,255,0,0,0
+R39@T1:E1=28,152
+R39@T2:N1=7,1,255,255,0,0,0
+R39@T2:E1=28,152
+R39@T3:N1=121,255,255,255,0,0,0
+R39@T3:E1=0,0
+R39@T4:N1=2,3,255,255,0,0,0
+R39@T4:E1=28,152
+R39@T5:N1=10,4,255,255,0,0,0
+R39@T5:E1=28,152
+R39@T6:E1=0,0
+R39@T7:E1=0,0
+R40@T1:N1=1,0,255,255,0,0,0
+R40@T1:E1=28,156
+R40@T2:N1=9,1,255,255,0,0,0
+R40@T2:E1=28,156
+R40@T3:N1=121,255,255,255,0,0,0
+R40@T3:E1=0,0
+R40@T4:N1=2,3,255,255,0,0,0
+R40@T4:E1=28,156
+R40@T5:N1=10,4,255,255,0,0,0
+R40@T5:E1=28,156
+R40@T6:E1=0,0
+R40@T7:E1=0,0
+R41@T1:N1=7,0,255,255,0,0,0
+R41@T1:E1=28,160
+R41@T2:N1=9,1,255,255,0,0,0
+R41@T2:E1=28,160
+R41@T3:N1=8,2,255,255,0,0,0
+R41@T3:E1=28,160
+R41@T4:N1=4,3,255,255,0,0,0
+R41@T4:E1=28,160
+R41@T5:N1=9,4,255,255,0,0,0
+R41@T5:E1=28,160
+R41@T6:E1=0,0
+R41@T7:E1=0,0
+R42@T1:N1=9,0,255,255,0,0,0
+R42@T1:E1=28,164
+R42@T2:N1=12,1,255,255,0,0,0
+R42@T2:E1=28,164
+R42@T3:N1=7,2,255,255,0,0,0
+R42@T3:E1=28,164
+R42@T4:N1=1,3,255,255,0,0,0
+R42@T4:E1=28,164
+R42@T5:N1=6,4,255,255,0,0,0
+R42@T5:E1=28,164
+R42@T6:E1=0,0
+R42@T7:E1=0,0
+R43@T1:N1=5,0,255,255,0,0,0
+R43@T1:E1=28,168
+R43@T2:N1=10,1,255,255,0,0,0
+R43@T2:E1=28,168
+R43@T3:N1=10,2,255,255,0,0,0
+R43@T3:E1=28,168
+R43@T4:N1=10,3,255,255,0,0,0
+R43@T4:E1=28,168
+R43@T5:N1=1,4,255,255,0,0,0
+R43@T5:E1=28,168
+R43@T6:E1=0,0
+R43@T7:E1=0,0
+R44@T1:N1=1,0,255,255,0,0,0
+R44@T1:E1=28,172
+R44@T2:N1=8,1,255,255,0,0,0
+R44@T2:E1=28,172
+R44@T3:N1=12,2,255,255,0,0,0
+R44@T3:E1=28,172
+R44@T4:N1=7,3,255,255,0,0,0
+R44@T4:E1=28,172
+R44@T5:N1=1,4,255,255,0,0,0
+R44@T5:E1=28,172
+R44@T6:E1=0,0
+R44@T7:E1=0,0
+R45@T1:N1=11,0,255,255,0,0,0
+R45@T1:E1=28,176
+R45@T2:N1=7,1,255,255,0,0,0
+R45@T2:E1=28,176
+R45@T3:N1=2,2,255,255,0,0,0
+R45@T3:E1=28,176
+R45@T4:N1=12,3,255,255,0,0,0
+R45@T4:E1=28,176
+R45@T5:N1=4,4,255,255,0,0,0
+R45@T5:E1=28,176
+R45@T6:E1=0,0
+R45@T7:E1=0,0
+R46@T1:N1=3,0,255,255,0,0,0
+R46@T1:E1=28,180
+R46@T2:N1=11,1,255,255,0,0,0
+R46@T2:E1=28,180
+R46@T3:N1=8,2,255,255,0,0,0
+R46@T3:E1=28,180
+R46@T4:N1=10,3,255,255,0,0,0
+R46@T4:E1=28,180
+R46@T5:N1=4,4,255,255,0,0,0
+R46@T5:E1=28,180
+R46@T6:E1=0,0
+R46@T7:E1=0,0
+R47@T1:N1=4,0,255,255,0,0,0
+R47@T1:E1=28,184
+R47@T2:N1=2,1,255,255,0,0,0
+R47@T2:E1=28,184
+R47@T3:N1=8,2,255,255,0,0,0
+R47@T3:E1=28,184
+R47@T4:N1=6,3,255,255,0,0,0
+R47@T4:E1=28,184
+R47@T5:N1=1,4,255,255,0,0,0
+R47@T5:E1=28,184
+R47@T6:E1=0,0
+R47@T7:E1=0,0
+R48@T1:N1=6,0,255,255,0,0,0
+R48@T1:E1=28,188
+R48@T2:N1=6,1,255,255,0,0,0
+R48@T2:E1=28,188
+R48@T3:N1=11,2,255,255,0,0,0
+R48@T3:E1=28,188
+R48@T4:N1=12,3,255,255,0,0,0
+R48@T4:E1=28,188
+R48@T5:N1=10,4,255,255,0,0,0
+R48@T5:E1=28,188
+R48@T6:E1=0,0
+R48@T7:E1=0,0
+R49@T1:N1=11,0,255,255,0,0,0
+R49@T1:E1=28,192
+R49@T2:N1=7,1,255,255,0,0,0
+R49@T2:E1=28,192
+R49@T3:N1=10,2,255,255,0,0,0
+R49@T3:E1=28,192
+R49@T4:N1=8,3,255,255,0,0,0
+R49@T4:E1=28,192
+R49@T5:N1=1,4,255,255,0,0,0
+R49@T5:E1=28,192
+R49@T6:E1=0,0
+R49@T7:E1=0,0
+R50@T1:N1=10,0,255,255,0,0,0
+R50@T1:E1=28,196
+R50@T2:N1=4,1,255,255,0,0,0
+R50@T2:E1=28,196
+R50@T3:N1=121,255,255,255,0,0,0
+R50@T3:E1=0,0
+R50@T4:N1=1,3,255,255,0,0,0
+R50@T4:E1=28,196
+R50@T5:N1=11,4,255,255,0,0,0
+R50@T5:E1=28,196
+R50@T6:E1=0,0
+R50@T7:E1=0,0
+R51@T1:N1=10,0,255,255,0,0,0
+R51@T1:E1=28,200
+R51@T2:N1=10,1,255,255,0,0,0
+R51@T2:E1=28,200
+R51@T3:N1=121,255,255,255,0,0,0
+R51@T3:E1=0,0
+R51@T4:N1=2,3,255,255,0,0,0
+R51@T4:E1=28,200
+R51@T5:N1=7,4,255,255,0,0,0
+R51@T5:E1=28,200
+R51@T6:E1=0,0
+R51@T7:E1=0,0
+R52@T1:N1=3,0,255,255,0,0,0
+R52@T1:E1=28,204
+R52@T2:N1=10,1,255,255,0,0,0
+R52@T2:E1=28,204
+R52@T3:N1=121,255,255,255,0,0,0
+R52@T3:E1=0,0
+R52@T4:N1=6,3,255,255,0,0,0
+R52@T4:E1=28,204
+R52@T5:N1=7,4,255,255,0,0,0
+R52@T5:E1=28,204
+R52@T6:E1=0,0
+R52@T7:E1=0,0
+R53@T1:N1=9,0,255,255,0,0,0
+R53@T1:E1=28,208
+R53@T2:N1=5,1,255,255,0,0,0
+R53@T2:E1=28,208
+R53@T3:N1=7,2,255,255,0,0,0
+R53@T3:E1=28,208
+R53@T4:N1=12,3,255,255,0,0,0
+R53@T4:E1=28,208
+R53@T5:N1=1,4,255,255,0,0,0
+R53@T5:E1=28,208
+R53@T6:E1=0,0
+R53@T7:E1=0,0
+R54@T1:N1=7,0,255,255,0,0,0
+R54@T1:E1=28,212
+R54@T2:N1=6,1,255,255,0,0,0
+R54@T2:E1=28,212
+R54@T3:N1=121,255,255,255,0,0,0
+R54@T3:E1=0,0
+R54@T4:N1=9,3,255,255,0,0,0
+R54@T4:E1=28,212
+R54@T5:N1=10,4,255,255,0,0,0
+R54@T5:E1=28,212
+R54@T6:E1=0,0
+R54@T7:E1=0,0
+R55@T1:N1=12,0,255,255,0,0,0
+R55@T1:E1=28,216
+R55@T2:N1=5,1,255,255,0,0,0
+R55@T2:E1=28,216
+R55@T3:N1=121,255,255,255,0,0,0
+R55@T3:E1=0,0
+R55@T4:N1=12,3,255,255,0,0,0
+R55@T4:E1=28,216
+R55@T5:N1=7,4,255,255,0,0,0
+R55@T5:E1=28,216
+R55@T6:E1=0,0
+R55@T7:E1=0,0
+R56@T1:N1=8,0,255,255,0,0,0
+R56@T1:E1=28,220
+R56@T2:N1=11,1,255,255,0,0,0
+R56@T2:E1=28,220
+R56@T3:N1=121,255,255,255,0,0,0
+R56@T3:E1=0,0
+R56@T4:N1=2,3,255,255,0,0,0
+R56@T4:E1=28,220
+R56@T5:N1=7,4,255,255,0,0,0
+R56@T5:E1=28,220
+R56@T6:E1=0,0
+R56@T7:E1=0,0
+R57@T1:N1=6,0,255,255,0,0,0
+R57@T1:E1=28,224
+R57@T2:N1=12,1,255,255,0,0,0
+R57@T2:E1=28,224
+R57@T3:N1=4,2,255,255,0,0,0
+R57@T3:E1=28,224
+R57@T4:N1=1,3,255,255,0,0,0
+R57@T4:E1=28,224
+R57@T5:N1=7,4,255,255,0,0,0
+R57@T5:E1=28,224
+R57@T6:E1=0,0
+R57@T7:E1=0,0
+R58@T1:N1=10,0,255,255,0,0,0
+R58@T1:E1=28,228
+R58@T2:N1=12,1,255,255,0,0,0
+R58@T2:E1=28,228
+R58@T3:N1=121,255,255,255,0,0,0
+R58@T3:E1=0,0
+R58@T4:N1=4,3,255,255,0,0,0
+R58@T4:E1=28,228
+R58@T5:N1=4,4,255,255,0,0,0
+R58@T5:E1=28,228
+R58@T6:E1=0,0
+R58@T7:E1=0,0
+R59@T1:N1=9,0,255,255,0,0,0
+R59@T1:E1=28,232
+R59@T2:N1=5,1,255,255,0,0,0
+R59@T2:E1=28,232
+R59@T3:N1=121,255,255,255,0,0,0
+R59@T3:E1=0,0
+R59@T4:N1=3,3,255,255,0,0,0
+R59@T4:E1=28,232
+R59@T5:N1=12,4,255,255,0,0,0
+R59@T5:E1=28,232
+R59@T6:E1=0,0
+R59@T7:E1=0,0
+R60@T1:N1=3,0,255,255,0,0,0
+R60@T1:E1=28,236
+R60@T2:N1=8,1,255,255,0,0,0
+R60@T2:E1=28,236
+R60@T3:N1=121,255,255,255,0,0,0
+R60@T3:E1=0,0
+R60@T4:N1=9,3,255,255,0,0,0
+R60@T4:E1=28,236
+R60@T5:N1=6,4,255,255,0,0,0
+R60@T5:E1=28,236
+R60@T6:E1=0,0
+R60@T7:E1=0,0
+R61@T1:N1=8,0,255,255,0,0,0
+R61@T1:E1=28,240
+R61@T2:N1=1,1,255,255,0,0,0
+R61@T2:E1=28,240
+R61@T3:N1=10,2,255,255,0,0,0
+R61@T3:E1=28,240
+R61@T4:N1=10,3,255,255,0,0,0
+R61@T4:E1=28,240
+R61@T5:N1=5,4,255,255,0,0,0
+R61@T5:E1=28,240
+R61@T6:E1=0,0
+R61@T7:E1=0,0
+R62@T1:N1=10,0,255,255,0,0,0
+R62@T1:E1=28,244
+R62@T2:N1=1,1,255,255,0,0,0
+R62@T2:E1=28,244
+R62@T3:N1=121,255,255,255,0,0,0
+R62@T3:E1=0,0
+R62@T4:N1=6,3,255,255,0,0,0
+R62@T4:E1=28,244
+R62@T5:N1=8,4,255,255,0,0,0
+R62@T5:E1=28,244
+R62@T6:E1=0,0
+R62@T7:E1=0,0
+R63@T1:N1=11,0,255,255,0,0,0
+R63@T1:E1=28,248
+R63@T2:N1=5,1,255,255,0,0,0
+R63@T2:E1=28,248
+R63@T3:N1=121,255,255,255,0,0,0
+R63@T3:E1=0,0
+R63@T4:N1=12,3,255,255,0,0,0
+R63@T4:E1=28,248
+R63@T5:N1=1,4,255,255,0,0,0
+R63@T5:E1=28,248
+R63@T6:E1=0,0
+R63@T7:E1=0,0
+R64@T1:N1=3,0,255,255,0,0,0
+R64@T1:E1=28,252
+R64@T2:N1=2,1,255,255,0,0,0
+R64@T2:E1=28,252
+R64@T3:N1=121,255,255,255,0,0,0
+R64@T3:E1=0,0
+R64@T4:N1=10,3,255,255,0,0,0
+R64@T4:E1=28,252
+R64@T5:N1=7,4,255,255,0,0,0
+R64@T5:E1=28,252
+R64@T6:E1=0,0
+R64@T7:E1=0,0</Slot01>
     <Slot02/>
     <Slot03/>
     <Slot04/>
     <Slot05/>
     <Slot06/>
-  </OctaMEDPickPutSlots>
-  <PakettiYTDLP>
-    <PakettiYTDLPPathToSave>&lt;No path set&gt;</PakettiYTDLPPathToSave>
-    <PakettiYTDLPNewInstrumentOrSameInstrument>true</PakettiYTDLPNewInstrumentOrSameInstrument>
-    <PakettiYTDLPYT_DLPLocation>/opt/homebrew/bin/yt-dlp</PakettiYTDLPYT_DLPLocation>
-    <PakettiYTDLPLoopMode>2</PakettiYTDLPLoopMode>
-    <PakettiYTDLPClipLength>10</PakettiYTDLPClipLength>
-    <PakettiYTDLPAmountOfVideos>1.0</PakettiYTDLPAmountOfVideos>
-    <PakettiYTDLPLoadWholeVideo>false</PakettiYTDLPLoadWholeVideo>
-    <PakettiYTDLPOutputDirectory>/Users/esaruoho/Music/samples/ytube/</PakettiYTDLPOutputDirectory>
-    <PakettiYTDLPFormatToSave>1.0</PakettiYTDLPFormatToSave>
-  </PakettiYTDLP>
-  <pakettiPatternStatusMonitor>true</pakettiPatternStatusMonitor>
-  <UserDefinedSampleFolders07/>
-  <pakettiAuditionOnLineChangeEnabled>false</pakettiAuditionOnLineChangeEnabled>
-  <UserDefinedSampleFolders06/>
-  <UserDefinedSampleFolders05/>
-  <UserDefinedSampleFolders04>/Users/esaruoho/Music/rMBP_2024_01_27 samples/_drums</UserDefinedSampleFolders04>
-  <UserDefinedSampleFolders03>/Users/esaruoho/Music/rMBP_2024_01_27 samples/oneshot</UserDefinedSampleFolders03>
-  <pakettiAutomaticRenameTrack>false</pakettiAutomaticRenameTrack>
-  <UserDefinedSampleFolders02>/Users/esaruoho/Music/samples</UserDefinedSampleFolders02>
-  <UserDefinedSampleFolders01>/Users/esaruoho/Music/rMBP_2024_01_27 samples</UserDefinedSampleFolders01>
-  <PakettiPlayAndLoopPatternCommands>false</PakettiPlayAndLoopPatternCommands>
-  <pakettiObliqueStrategiesOnStartup>true</pakettiObliqueStrategiesOnStartup>
-  <PakettiInstrumentTransposeCommands>false</PakettiInstrumentTransposeCommands>
-  <PakettiTriggerPatternLineCommands>false</PakettiTriggerPatternLineCommands>
-  <PakettiJumpForwardBackwardCommands>false</PakettiJumpForwardBackwardCommands>
-  <PakettiJumpRowCommands>false</PakettiJumpRowCommands>
-  <PakettiClipboard>
     <Slot07/>
     <Slot08/>
     <Slot09/>
@@ -606,651 +1372,32 @@
     <Slot02Name/>
     <Slot03Name/>
     <Slot04Name/>
-    <Slot05Name/>
-    <Slot06Name/>
-    <Slot07Name/>
-    <Slot08Name/>
-    <Slot09Name/>
-    <Slot10Name/>
-    <Slot01>pattern|64|1
-T1:8:1
----
-R1@T1:N1=48,1,255,255,0,28,0
-R1@T1:N2=121,255,255,255,0,0,0
-R1@T1:N3=121,255,255,255,0,0,0
-R1@T1:N4=121,255,255,255,0,0,0
-R1@T1:N5=121,255,255,255,0,0,0
-R1@T1:N6=121,255,255,255,0,0,0
-R1@T1:N7=121,255,255,255,0,0,0
-R1@T1:N8=121,255,255,255,0,0,0
-R1@T1:E1=0,0
-R2@T1:N1=121,255,255,255,0,0,0
-R2@T1:N2=121,255,255,255,0,0,0
-R2@T1:N3=121,255,255,255,0,0,0
-R2@T1:N4=121,255,255,255,0,0,0
-R2@T1:N5=121,255,255,255,0,0,0
-R2@T1:N6=121,255,255,255,0,0,0
-R2@T1:N7=121,255,255,255,0,0,0
-R2@T1:N8=121,255,255,255,0,0,0
-R2@T1:E1=0,0
-R3@T1:N1=121,255,255,255,0,0,0
-R3@T1:N2=48,1,127,255,0,28,16
-R3@T1:N3=121,255,255,255,0,0,0
-R3@T1:N4=121,255,255,255,0,0,0
-R3@T1:N5=121,255,255,255,0,0,0
-R3@T1:N6=121,255,255,255,0,0,0
-R3@T1:N7=121,255,255,255,0,0,0
-R3@T1:N8=121,255,255,255,0,0,0
-R3@T1:E1=0,0
-R4@T1:N1=121,255,255,255,0,0,0
-R4@T1:N2=121,255,255,255,0,0,0
-R4@T1:N3=121,255,255,255,0,0,0
-R4@T1:N4=121,255,255,255,0,0,0
-R4@T1:N5=121,255,255,255,0,0,0
-R4@T1:N6=121,255,255,255,0,0,0
-R4@T1:N7=121,255,255,255,0,0,0
-R4@T1:N8=121,255,255,255,0,0,0
-R4@T1:E1=0,0
-R5@T1:N1=121,255,255,255,0,0,0
-R5@T1:N2=121,255,255,255,0,0,0
-R5@T1:N3=48,1,127,255,0,28,75
-R5@T1:N4=121,255,255,255,0,0,0
-R5@T1:N5=121,255,255,255,0,0,0
-R5@T1:N6=121,255,255,255,0,0,0
-R5@T1:N7=121,255,255,255,0,0,0
-R5@T1:N8=121,255,255,255,0,0,0
-R5@T1:E1=0,0
-R6@T1:N1=121,255,255,255,0,0,0
-R6@T1:N2=121,255,255,255,0,0,0
-R6@T1:N3=121,255,255,255,0,0,0
-R6@T1:N4=121,255,255,255,0,0,0
-R6@T1:N5=121,255,255,255,0,0,0
-R6@T1:N6=121,255,255,255,0,0,0
-R6@T1:N7=121,255,255,255,0,0,0
-R6@T1:N8=121,255,255,255,0,0,0
-R6@T1:E1=0,0
-R7@T1:N1=121,255,255,255,0,0,0
-R7@T1:N2=121,255,255,255,0,0,0
-R7@T1:N3=121,255,255,255,0,0,0
-R7@T1:N4=48,1,127,255,0,28,115
-R7@T1:N5=121,255,255,255,0,0,0
-R7@T1:N6=121,255,255,255,0,0,0
-R7@T1:N7=121,255,255,255,0,0,0
-R7@T1:N8=121,255,255,255,0,0,0
-R7@T1:E1=0,0
-R8@T1:N1=121,255,255,255,0,0,0
-R8@T1:N2=121,255,255,255,0,0,0
-R8@T1:N3=121,255,255,255,0,0,0
-R8@T1:N4=121,255,255,255,0,0,0
-R8@T1:N5=121,255,255,255,0,0,0
-R8@T1:N6=121,255,255,255,0,0,0
-R8@T1:N7=121,255,255,255,0,0,0
-R8@T1:N8=121,255,255,255,0,0,0
-R8@T1:E1=0,0
-R9@T1:N1=121,255,255,255,0,0,0
-R9@T1:N2=121,255,255,255,0,0,0
-R9@T1:N3=121,255,255,255,0,0,0
-R9@T1:N4=121,255,255,255,0,0,0
-R9@T1:N5=48,1,127,255,0,28,112
-R9@T1:N6=121,255,255,255,0,0,0
-R9@T1:N7=121,255,255,255,0,0,0
-R9@T1:N8=121,255,255,255,0,0,0
-R9@T1:E1=0,0
-R10@T1:N1=121,255,255,255,0,0,0
-R10@T1:N2=121,255,255,255,0,0,0
-R10@T1:N3=121,255,255,255,0,0,0
-R10@T1:N4=121,255,255,255,0,0,0
-R10@T1:N5=121,255,255,255,0,0,0
-R10@T1:N6=121,255,255,255,0,0,0
-R10@T1:N7=121,255,255,255,0,0,0
-R10@T1:N8=121,255,255,255,0,0,0
-R10@T1:E1=0,0
-R11@T1:N1=121,255,255,255,0,0,0
-R11@T1:N2=121,255,255,255,0,0,0
-R11@T1:N3=121,255,255,255,0,0,0
-R11@T1:N4=121,255,255,255,0,0,0
-R11@T1:N5=121,255,255,255,0,0,0
-R11@T1:N6=48,1,127,255,0,28,173
-R11@T1:N7=121,255,255,255,0,0,0
-R11@T1:N8=121,255,255,255,0,0,0
-R11@T1:E1=0,0
-R12@T1:N1=121,255,255,255,0,0,0
-R12@T1:N2=121,255,255,255,0,0,0
-R12@T1:N3=121,255,255,255,0,0,0
-R12@T1:N4=121,255,255,255,0,0,0
-R12@T1:N5=121,255,255,255,0,0,0
-R12@T1:N6=121,255,255,255,0,0,0
-R12@T1:N7=121,255,255,255,0,0,0
-R12@T1:N8=121,255,255,255,0,0,0
-R12@T1:E1=0,0
-R13@T1:N1=121,255,255,255,0,0,0
-R13@T1:N2=121,255,255,255,0,0,0
-R13@T1:N3=121,255,255,255,0,0,0
-R13@T1:N4=121,255,255,255,0,0,0
-R13@T1:N5=121,255,255,255,0,0,0
-R13@T1:N6=121,255,255,255,0,0,0
-R13@T1:N7=48,1,127,255,0,28,168
-R13@T1:N8=121,255,255,255,0,0,0
-R13@T1:E1=0,0
-R14@T1:N1=121,255,255,255,0,0,0
-R14@T1:N2=121,255,255,255,0,0,0
-R14@T1:N3=121,255,255,255,0,0,0
-R14@T1:N4=121,255,255,255,0,0,0
-R14@T1:N5=121,255,255,255,0,0,0
-R14@T1:N6=121,255,255,255,0,0,0
-R14@T1:N7=121,255,255,255,0,0,0
-R14@T1:N8=48,1,127,255,0,28,247
-R14@T1:E1=0,0
-R15@T1:N1=121,255,255,255,0,0,0
-R15@T1:N2=121,255,255,255,0,0,0
-R15@T1:N3=121,255,255,255,0,0,0
-R15@T1:N4=121,255,255,255,0,0,0
-R15@T1:N5=121,255,255,255,0,0,0
-R15@T1:N6=121,255,255,255,0,0,0
-R15@T1:N7=121,255,255,255,0,0,0
-R15@T1:N8=48,1,127,255,0,28,247
-R15@T1:E1=0,0
-R16@T1:N1=121,255,255,255,0,0,0
-R16@T1:N2=121,255,255,255,0,0,0
-R16@T1:N3=121,255,255,255,0,0,0
-R16@T1:N4=121,255,255,255,0,0,0
-R16@T1:N5=121,255,255,255,0,0,0
-R16@T1:N6=121,255,255,255,0,0,0
-R16@T1:N7=121,255,255,255,0,0,0
-R16@T1:N8=48,1,127,255,0,28,247
-R16@T1:E1=0,0
-R17@T1:N1=48,1,255,255,0,28,0
-R17@T1:N2=121,255,255,255,0,0,0
-R17@T1:N3=121,255,255,255,0,0,0
-R17@T1:N4=121,255,255,255,0,0,0
-R17@T1:N5=121,255,255,255,0,0,0
-R17@T1:N6=121,255,255,255,0,0,0
-R17@T1:N7=121,255,255,255,0,0,0
-R17@T1:N8=121,255,255,255,0,0,0
-R17@T1:E1=0,0
-R18@T1:N1=121,255,255,255,0,0,0
-R18@T1:N2=121,255,255,255,0,0,0
-R18@T1:N3=121,255,255,255,0,0,0
-R18@T1:N4=121,255,255,255,0,0,0
-R18@T1:N5=121,255,255,255,0,0,0
-R18@T1:N6=121,255,255,255,0,0,0
-R18@T1:N7=121,255,255,255,0,0,0
-R18@T1:N8=121,255,255,255,0,0,0
-R18@T1:E1=0,0
-R19@T1:N1=121,255,255,255,0,0,0
-R19@T1:N2=48,1,127,255,0,28,16
-R19@T1:N3=121,255,255,255,0,0,0
-R19@T1:N4=121,255,255,255,0,0,0
-R19@T1:N5=121,255,255,255,0,0,0
-R19@T1:N6=121,255,255,255,0,0,0
-R19@T1:N7=121,255,255,255,0,0,0
-R19@T1:N8=121,255,255,255,0,0,0
-R19@T1:E1=0,0
-R20@T1:N1=121,255,255,255,0,0,0
-R20@T1:N2=121,255,255,255,0,0,0
-R20@T1:N3=121,255,255,255,0,0,0
-R20@T1:N4=121,255,255,255,0,0,0
-R20@T1:N5=121,255,255,255,0,0,0
-R20@T1:N6=121,255,255,255,0,0,0
-R20@T1:N7=121,255,255,255,0,0,0
-R20@T1:N8=121,255,255,255,0,0,0
-R20@T1:E1=0,0
-R21@T1:N1=121,255,255,255,0,0,0
-R21@T1:N2=121,255,255,255,0,0,0
-R21@T1:N3=48,1,127,255,0,28,75
-R21@T1:N4=121,255,255,255,0,0,0
-R21@T1:N5=121,255,255,255,0,0,0
-R21@T1:N6=121,255,255,255,0,0,0
-R21@T1:N7=121,255,255,255,0,0,0
-R21@T1:N8=121,255,255,255,0,0,0
-R21@T1:E1=0,0
-R22@T1:N1=121,255,255,255,0,0,0
-R22@T1:N2=121,255,255,255,0,0,0
-R22@T1:N3=121,255,255,255,0,0,0
-R22@T1:N4=121,255,255,255,0,0,0
-R22@T1:N5=121,255,255,255,0,0,0
-R22@T1:N6=121,255,255,255,0,0,0
-R22@T1:N7=121,255,255,255,0,0,0
-R22@T1:N8=121,255,255,255,0,0,0
-R22@T1:E1=0,0
-R23@T1:N1=121,255,255,255,0,0,0
-R23@T1:N2=121,255,255,255,0,0,0
-R23@T1:N3=121,255,255,255,0,0,0
-R23@T1:N4=48,1,127,255,0,28,115
-R23@T1:N5=121,255,255,255,0,0,0
-R23@T1:N6=121,255,255,255,0,0,0
-R23@T1:N7=121,255,255,255,0,0,0
-R23@T1:N8=121,255,255,255,0,0,0
-R23@T1:E1=0,0
-R24@T1:N1=121,255,255,255,0,0,0
-R24@T1:N2=121,255,255,255,0,0,0
-R24@T1:N3=121,255,255,255,0,0,0
-R24@T1:N4=121,255,255,255,0,0,0
-R24@T1:N5=121,255,255,255,0,0,0
-R24@T1:N6=121,255,255,255,0,0,0
-R24@T1:N7=121,255,255,255,0,0,0
-R24@T1:N8=121,255,255,255,0,0,0
-R24@T1:E1=0,0
-R25@T1:N1=121,255,255,255,0,0,0
-R25@T1:N2=121,255,255,255,0,0,0
-R25@T1:N3=121,255,255,255,0,0,0
-R25@T1:N4=121,255,255,255,0,0,0
-R25@T1:N5=48,1,127,255,0,28,112
-R25@T1:N6=121,255,255,255,0,0,0
-R25@T1:N7=121,255,255,255,0,0,0
-R25@T1:N8=121,255,255,255,0,0,0
-R25@T1:E1=0,0
-R26@T1:N1=121,255,255,255,0,0,0
-R26@T1:N2=121,255,255,255,0,0,0
-R26@T1:N3=121,255,255,255,0,0,0
-R26@T1:N4=121,255,255,255,0,0,0
-R26@T1:N5=121,255,255,255,0,0,0
-R26@T1:N6=121,255,255,255,0,0,0
-R26@T1:N7=121,255,255,255,0,0,0
-R26@T1:N8=121,255,255,255,0,0,0
-R26@T1:E1=0,0
-R27@T1:N1=121,255,255,255,0,0,0
-R27@T1:N2=121,255,255,255,0,0,0
-R27@T1:N3=121,255,255,255,0,0,0
-R27@T1:N4=121,255,255,255,0,0,0
-R27@T1:N5=121,255,255,255,0,0,0
-R27@T1:N6=48,1,127,255,0,28,173
-R27@T1:N7=121,255,255,255,0,0,0
-R27@T1:N8=121,255,255,255,0,0,0
-R27@T1:E1=0,0
-R28@T1:N1=121,255,255,255,0,0,0
-R28@T1:N2=121,255,255,255,0,0,0
-R28@T1:N3=121,255,255,255,0,0,0
-R28@T1:N4=121,255,255,255,0,0,0
-R28@T1:N5=121,255,255,255,0,0,0
-R28@T1:N6=121,255,255,255,0,0,0
-R28@T1:N7=121,255,255,255,0,0,0
-R28@T1:N8=121,255,255,255,0,0,0
-R28@T1:E1=0,0
-R29@T1:N1=121,255,255,255,0,0,0
-R29@T1:N2=121,255,255,255,0,0,0
-R29@T1:N3=121,255,255,255,0,0,0
-R29@T1:N4=121,255,255,255,0,0,0
-R29@T1:N5=121,255,255,255,0,0,0
-R29@T1:N6=121,255,255,255,0,0,0
-R29@T1:N7=48,1,127,255,0,28,168
-R29@T1:N8=121,255,255,255,0,0,0
-R29@T1:E1=0,0
-R30@T1:N1=121,255,255,255,0,0,0
-R30@T1:N2=121,255,255,255,0,0,0
-R30@T1:N3=121,255,255,255,0,0,0
-R30@T1:N4=121,255,255,255,0,0,0
-R30@T1:N5=121,255,255,255,0,0,0
-R30@T1:N6=121,255,255,255,0,0,0
-R30@T1:N7=121,255,255,255,0,0,0
-R30@T1:N8=48,1,127,255,0,28,247
-R30@T1:E1=0,0
-R31@T1:N1=121,255,255,255,0,0,0
-R31@T1:N2=121,255,255,255,0,0,0
-R31@T1:N3=121,255,255,255,0,0,0
-R31@T1:N4=121,255,255,255,0,0,0
-R31@T1:N5=121,255,255,255,0,0,0
-R31@T1:N6=121,255,255,255,0,0,0
-R31@T1:N7=121,255,255,255,0,0,0
-R31@T1:N8=48,1,127,255,0,28,247
-R31@T1:E1=0,0
-R32@T1:N1=121,255,255,255,0,0,0
-R32@T1:N2=121,255,255,255,0,0,0
-R32@T1:N3=121,255,255,255,0,0,0
-R32@T1:N4=121,255,255,255,0,0,0
-R32@T1:N5=121,255,255,255,0,0,0
-R32@T1:N6=121,255,255,255,0,0,0
-R32@T1:N7=121,255,255,255,0,0,0
-R32@T1:N8=48,1,127,255,0,28,247
-R32@T1:E1=0,0
-R33@T1:N1=48,1,255,255,0,28,0
-R33@T1:N2=121,255,255,255,0,0,0
-R33@T1:N3=121,255,255,255,0,0,0
-R33@T1:N4=121,255,255,255,0,0,0
-R33@T1:N5=121,255,255,255,0,0,0
-R33@T1:N6=121,255,255,255,0,0,0
-R33@T1:N7=121,255,255,255,0,0,0
-R33@T1:N8=121,255,255,255,0,0,0
-R33@T1:E1=0,0
-R34@T1:N1=121,255,255,255,0,0,0
-R34@T1:N2=121,255,255,255,0,0,0
-R34@T1:N3=121,255,255,255,0,0,0
-R34@T1:N4=121,255,255,255,0,0,0
-R34@T1:N5=121,255,255,255,0,0,0
-R34@T1:N6=121,255,255,255,0,0,0
-R34@T1:N7=121,255,255,255,0,0,0
-R34@T1:N8=121,255,255,255,0,0,0
-R34@T1:E1=0,0
-R35@T1:N1=121,255,255,255,0,0,0
-R35@T1:N2=48,1,127,255,0,28,16
-R35@T1:N3=121,255,255,255,0,0,0
-R35@T1:N4=121,255,255,255,0,0,0
-R35@T1:N5=121,255,255,255,0,0,0
-R35@T1:N6=121,255,255,255,0,0,0
-R35@T1:N7=121,255,255,255,0,0,0
-R35@T1:N8=121,255,255,255,0,0,0
-R35@T1:E1=0,0
-R36@T1:N1=121,255,255,255,0,0,0
-R36@T1:N2=121,255,255,255,0,0,0
-R36@T1:N3=121,255,255,255,0,0,0
-R36@T1:N4=121,255,255,255,0,0,0
-R36@T1:N5=121,255,255,255,0,0,0
-R36@T1:N6=121,255,255,255,0,0,0
-R36@T1:N7=121,255,255,255,0,0,0
-R36@T1:N8=121,255,255,255,0,0,0
-R36@T1:E1=0,0
-R37@T1:N1=121,255,255,255,0,0,0
-R37@T1:N2=121,255,255,255,0,0,0
-R37@T1:N3=48,1,127,255,0,28,75
-R37@T1:N4=121,255,255,255,0,0,0
-R37@T1:N5=121,255,255,255,0,0,0
-R37@T1:N6=121,255,255,255,0,0,0
-R37@T1:N7=121,255,255,255,0,0,0
-R37@T1:N8=121,255,255,255,0,0,0
-R37@T1:E1=0,0
-R38@T1:N1=121,255,255,255,0,0,0
-R38@T1:N2=121,255,255,255,0,0,0
-R38@T1:N3=121,255,255,255,0,0,0
-R38@T1:N4=121,255,255,255,0,0,0
-R38@T1:N5=121,255,255,255,0,0,0
-R38@T1:N6=121,255,255,255,0,0,0
-R38@T1:N7=121,255,255,255,0,0,0
-R38@T1:N8=121,255,255,255,0,0,0
-R38@T1:E1=0,0
-R39@T1:N1=121,255,255,255,0,0,0
-R39@T1:N2=121,255,255,255,0,0,0
-R39@T1:N3=121,255,255,255,0,0,0
-R39@T1:N4=48,1,127,255,0,28,115
-R39@T1:N5=121,255,255,255,0,0,0
-R39@T1:N6=121,255,255,255,0,0,0
-R39@T1:N7=121,255,255,255,0,0,0
-R39@T1:N8=121,255,255,255,0,0,0
-R39@T1:E1=0,0
-R40@T1:N1=121,255,255,255,0,0,0
-R40@T1:N2=121,255,255,255,0,0,0
-R40@T1:N3=121,255,255,255,0,0,0
-R40@T1:N4=121,255,255,255,0,0,0
-R40@T1:N5=121,255,255,255,0,0,0
-R40@T1:N6=121,255,255,255,0,0,0
-R40@T1:N7=121,255,255,255,0,0,0
-R40@T1:N8=121,255,255,255,0,0,0
-R40@T1:E1=0,0
-R41@T1:N1=121,255,255,255,0,0,0
-R41@T1:N2=121,255,255,255,0,0,0
-R41@T1:N3=121,255,255,255,0,0,0
-R41@T1:N4=121,255,255,255,0,0,0
-R41@T1:N5=48,1,127,255,0,28,112
-R41@T1:N6=121,255,255,255,0,0,0
-R41@T1:N7=121,255,255,255,0,0,0
-R41@T1:N8=121,255,255,255,0,0,0
-R41@T1:E1=0,0
-R42@T1:N1=121,255,255,255,0,0,0
-R42@T1:N2=121,255,255,255,0,0,0
-R42@T1:N3=121,255,255,255,0,0,0
-R42@T1:N4=121,255,255,255,0,0,0
-R42@T1:N5=121,255,255,255,0,0,0
-R42@T1:N6=121,255,255,255,0,0,0
-R42@T1:N7=121,255,255,255,0,0,0
-R42@T1:N8=121,255,255,255,0,0,0
-R42@T1:E1=0,0
-R43@T1:N1=121,255,255,255,0,0,0
-R43@T1:N2=121,255,255,255,0,0,0
-R43@T1:N3=121,255,255,255,0,0,0
-R43@T1:N4=121,255,255,255,0,0,0
-R43@T1:N5=121,255,255,255,0,0,0
-R43@T1:N6=48,1,127,255,0,28,173
-R43@T1:N7=121,255,255,255,0,0,0
-R43@T1:N8=121,255,255,255,0,0,0
-R43@T1:E1=0,0
-R44@T1:N1=121,255,255,255,0,0,0
-R44@T1:N2=121,255,255,255,0,0,0
-R44@T1:N3=121,255,255,255,0,0,0
-R44@T1:N4=121,255,255,255,0,0,0
-R44@T1:N5=121,255,255,255,0,0,0
-R44@T1:N6=121,255,255,255,0,0,0
-R44@T1:N7=121,255,255,255,0,0,0
-R44@T1:N8=121,255,255,255,0,0,0
-R44@T1:E1=0,0
-R45@T1:N1=121,255,255,255,0,0,0
-R45@T1:N2=121,255,255,255,0,0,0
-R45@T1:N3=121,255,255,255,0,0,0
-R45@T1:N4=121,255,255,255,0,0,0
-R45@T1:N5=121,255,255,255,0,0,0
-R45@T1:N6=121,255,255,255,0,0,0
-R45@T1:N7=48,1,127,255,0,28,168
-R45@T1:N8=121,255,255,255,0,0,0
-R45@T1:E1=0,0
-R46@T1:N1=121,255,255,255,0,0,0
-R46@T1:N2=121,255,255,255,0,0,0
-R46@T1:N3=121,255,255,255,0,0,0
-R46@T1:N4=121,255,255,255,0,0,0
-R46@T1:N5=121,255,255,255,0,0,0
-R46@T1:N6=121,255,255,255,0,0,0
-R46@T1:N7=121,255,255,255,0,0,0
-R46@T1:N8=48,1,127,255,0,28,247
-R46@T1:E1=0,0
-R47@T1:N1=121,255,255,255,0,0,0
-R47@T1:N2=121,255,255,255,0,0,0
-R47@T1:N3=121,255,255,255,0,0,0
-R47@T1:N4=121,255,255,255,0,0,0
-R47@T1:N5=121,255,255,255,0,0,0
-R47@T1:N6=121,255,255,255,0,0,0
-R47@T1:N7=121,255,255,255,0,0,0
-R47@T1:N8=48,1,127,255,0,28,247
-R47@T1:E1=0,0
-R48@T1:N1=121,255,255,255,0,0,0
-R48@T1:N2=121,255,255,255,0,0,0
-R48@T1:N3=121,255,255,255,0,0,0
-R48@T1:N4=121,255,255,255,0,0,0
-R48@T1:N5=121,255,255,255,0,0,0
-R48@T1:N6=121,255,255,255,0,0,0
-R48@T1:N7=121,255,255,255,0,0,0
-R48@T1:N8=48,1,127,255,0,28,247
-R48@T1:E1=0,0
-R49@T1:N1=48,1,255,255,0,28,0
-R49@T1:N2=121,255,255,255,0,0,0
-R49@T1:N3=121,255,255,255,0,0,0
-R49@T1:N4=121,255,255,255,0,0,0
-R49@T1:N5=121,255,255,255,0,0,0
-R49@T1:N6=121,255,255,255,0,0,0
-R49@T1:N7=121,255,255,255,0,0,0
-R49@T1:N8=121,255,255,255,0,0,0
-R49@T1:E1=0,0
-R50@T1:N1=121,255,255,255,0,0,0
-R50@T1:N2=121,255,255,255,0,0,0
-R50@T1:N3=121,255,255,255,0,0,0
-R50@T1:N4=121,255,255,255,0,0,0
-R50@T1:N5=121,255,255,255,0,0,0
-R50@T1:N6=121,255,255,255,0,0,0
-R50@T1:N7=121,255,255,255,0,0,0
-R50@T1:N8=121,255,255,255,0,0,0
-R50@T1:E1=0,0
-R51@T1:N1=121,255,255,255,0,0,0
-R51@T1:N2=48,1,127,255,0,28,16
-R51@T1:N3=121,255,255,255,0,0,0
-R51@T1:N4=121,255,255,255,0,0,0
-R51@T1:N5=121,255,255,255,0,0,0
-R51@T1:N6=121,255,255,255,0,0,0
-R51@T1:N7=121,255,255,255,0,0,0
-R51@T1:N8=121,255,255,255,0,0,0
-R51@T1:E1=0,0
-R52@T1:N1=121,255,255,255,0,0,0
-R52@T1:N2=121,255,255,255,0,0,0
-R52@T1:N3=121,255,255,255,0,0,0
-R52@T1:N4=121,255,255,255,0,0,0
-R52@T1:N5=121,255,255,255,0,0,0
-R52@T1:N6=121,255,255,255,0,0,0
-R52@T1:N7=121,255,255,255,0,0,0
-R52@T1:N8=121,255,255,255,0,0,0
-R52@T1:E1=0,0
-R53@T1:N1=121,255,255,255,0,0,0
-R53@T1:N2=121,255,255,255,0,0,0
-R53@T1:N3=48,1,127,255,0,28,75
-R53@T1:N4=121,255,255,255,0,0,0
-R53@T1:N5=121,255,255,255,0,0,0
-R53@T1:N6=121,255,255,255,0,0,0
-R53@T1:N7=121,255,255,255,0,0,0
-R53@T1:N8=121,255,255,255,0,0,0
-R53@T1:E1=0,0
-R54@T1:N1=121,255,255,255,0,0,0
-R54@T1:N2=121,255,255,255,0,0,0
-R54@T1:N3=121,255,255,255,0,0,0
-R54@T1:N4=121,255,255,255,0,0,0
-R54@T1:N5=121,255,255,255,0,0,0
-R54@T1:N6=121,255,255,255,0,0,0
-R54@T1:N7=121,255,255,255,0,0,0
-R54@T1:N8=121,255,255,255,0,0,0
-R54@T1:E1=0,0
-R55@T1:N1=121,255,255,255,0,0,0
-R55@T1:N2=121,255,255,255,0,0,0
-R55@T1:N3=121,255,255,255,0,0,0
-R55@T1:N4=48,1,127,255,0,28,115
-R55@T1:N5=121,255,255,255,0,0,0
-R55@T1:N6=121,255,255,255,0,0,0
-R55@T1:N7=121,255,255,255,0,0,0
-R55@T1:N8=121,255,255,255,0,0,0
-R55@T1:E1=0,0
-R56@T1:N1=121,255,255,255,0,0,0
-R56@T1:N2=121,255,255,255,0,0,0
-R56@T1:N3=121,255,255,255,0,0,0
-R56@T1:N4=121,255,255,255,0,0,0
-R56@T1:N5=121,255,255,255,0,0,0
-R56@T1:N6=121,255,255,255,0,0,0
-R56@T1:N7=121,255,255,255,0,0,0
-R56@T1:N8=121,255,255,255,0,0,0
-R56@T1:E1=0,0
-R57@T1:N1=121,255,255,255,0,0,0
-R57@T1:N2=121,255,255,255,0,0,0
-R57@T1:N3=121,255,255,255,0,0,0
-R57@T1:N4=121,255,255,255,0,0,0
-R57@T1:N5=48,1,127,255,0,28,112
-R57@T1:N6=121,255,255,255,0,0,0
-R57@T1:N7=121,255,255,255,0,0,0
-R57@T1:N8=121,255,255,255,0,0,0
-R57@T1:E1=0,0
-R58@T1:N1=121,255,255,255,0,0,0
-R58@T1:N2=121,255,255,255,0,0,0
-R58@T1:N3=121,255,255,255,0,0,0
-R58@T1:N4=121,255,255,255,0,0,0
-R58@T1:N5=121,255,255,255,0,0,0
-R58@T1:N6=121,255,255,255,0,0,0
-R58@T1:N7=121,255,255,255,0,0,0
-R58@T1:N8=121,255,255,255,0,0,0
-R58@T1:E1=0,0
-R59@T1:N1=121,255,255,255,0,0,0
-R59@T1:N2=121,255,255,255,0,0,0
-R59@T1:N3=121,255,255,255,0,0,0
-R59@T1:N4=121,255,255,255,0,0,0
-R59@T1:N5=121,255,255,255,0,0,0
-R59@T1:N6=48,1,127,255,0,28,173
-R59@T1:N7=121,255,255,255,0,0,0
-R59@T1:N8=121,255,255,255,0,0,0
-R59@T1:E1=0,0
-R60@T1:N1=121,255,255,255,0,0,0
-R60@T1:N2=121,255,255,255,0,0,0
-R60@T1:N3=121,255,255,255,0,0,0
-R60@T1:N4=121,255,255,255,0,0,0
-R60@T1:N5=121,255,255,255,0,0,0
-R60@T1:N6=121,255,255,255,0,0,0
-R60@T1:N7=121,255,255,255,0,0,0
-R60@T1:N8=121,255,255,255,0,0,0
-R60@T1:E1=0,0
-R61@T1:N1=121,255,255,255,0,0,0
-R61@T1:N2=121,255,255,255,0,0,0
-R61@T1:N3=121,255,255,255,0,0,0
-R61@T1:N4=121,255,255,255,0,0,0
-R61@T1:N5=121,255,255,255,0,0,0
-R61@T1:N6=121,255,255,255,0,0,0
-R61@T1:N7=48,1,127,255,0,28,168
-R61@T1:N8=121,255,255,255,0,0,0
-R61@T1:E1=0,0
-R62@T1:N1=121,255,255,255,0,0,0
-R62@T1:N2=121,255,255,255,0,0,0
-R62@T1:N3=121,255,255,255,0,0,0
-R62@T1:N4=121,255,255,255,0,0,0
-R62@T1:N5=121,255,255,255,0,0,0
-R62@T1:N6=121,255,255,255,0,0,0
-R62@T1:N7=121,255,255,255,0,0,0
-R62@T1:N8=48,1,127,255,0,28,247
-R62@T1:E1=0,0
-R63@T1:N1=121,255,255,255,0,0,0
-R63@T1:N2=121,255,255,255,0,0,0
-R63@T1:N3=121,255,255,255,0,0,0
-R63@T1:N4=121,255,255,255,0,0,0
-R63@T1:N5=121,255,255,255,0,0,0
-R63@T1:N6=121,255,255,255,0,0,0
-R63@T1:N7=121,255,255,255,0,0,0
-R63@T1:N8=48,1,127,255,0,28,247
-R63@T1:E1=0,0
-R64@T1:N1=121,255,255,255,0,0,0
-R64@T1:N2=121,255,255,255,0,0,0
-R64@T1:N3=121,255,255,255,0,0,0
-R64@T1:N4=121,255,255,255,0,0,0
-R64@T1:N5=121,255,255,255,0,0,0
-R64@T1:N6=121,255,255,255,0,0,0
-R64@T1:N7=121,255,255,255,0,0,0
-R64@T1:N8=48,1,127,255,0,28,247
-R64@T1:E1=0,0</Slot01>
-    <Slot02/>
-    <Slot03/>
-    <Slot04/>
-    <Slot05/>
-    <Slot06/>
   </PakettiClipboard>
-  <SlicePro>
-    <SliceProFallbackOnLowConfidence>true</SliceProFallbackOnLowConfidence>
-    <SliceProConfidenceThreshold>0.29999999999999999</SliceProConfidenceThreshold>
-    <SliceProBeatsyncEnabled>false</SliceProBeatsyncEnabled>
-    <SliceProBeatsyncMode>1.0</SliceProBeatsyncMode>
-    <SliceProMuteGroup>0.0</SliceProMuteGroup>
-    <SliceProNNA>1.0</SliceProNNA>
-    <SliceProLoopMode>1.0</SliceProLoopMode>
-    <SliceProAutofade>true</SliceProAutofade>
-    <SliceProLoopRelease>false</SliceProLoopRelease>
-    <SliceProOneShot>true</SliceProOneShot>
-    <SliceProRequireSampleEditor>false</SliceProRequireSampleEditor>
-    <SliceProOverrides/>
-  </SlicePro>
-  <WipeSlices>
-    <WipeSlicesNNA>1.0</WipeSlicesNNA>
-    <WipeSlicesBeatsyncGlobal>false</WipeSlicesBeatsyncGlobal>
-    <sliceCounter>1.0</sliceCounter>
-    <SliceLoopMode>true</SliceLoopMode>
-    <slicePreviousDirection>1.0</slicePreviousDirection>
-    <WipeSlicesLoopMode>2</WipeSlicesLoopMode>
-    <WipeSlicesLoopRelease>false</WipeSlicesLoopRelease>
-    <WipeSlicesBeatsyncMode>1.0</WipeSlicesBeatsyncMode>
-    <WipeSlicesOneShot>false</WipeSlicesOneShot>
-    <WipeSlicesAutoseek>false</WipeSlicesAutoseek>
-    <WipeSlicesAutofade>true</WipeSlicesAutofade>
-    <WipeSlicesMuteGroup>1.0</WipeSlicesMuteGroup>
-  </WipeSlices>
-  <UserPreferences>
-    <userPreferredDevice04>&lt;None&gt;</userPreferredDevice04>
-    <userPreferredDevice05>&lt;None&gt;</userPreferredDevice05>
-    <userPreferredDevice06>&lt;None&gt;</userPreferredDevice06>
-    <userPreferredDevice07>&lt;None&gt;</userPreferredDevice07>
-    <userPreferredDevice08>&lt;None&gt;</userPreferredDevice08>
-    <userPreferredDevice09>&lt;None&gt;</userPreferredDevice09>
-    <userPreferredDevice10>&lt;None&gt;</userPreferredDevice10>
-    <userPreferredDeviceLoad>true</userPreferredDeviceLoad>
-    <userPreferredDevice01>Audio/Effects/AU/aufx:4FwL:4FNT</userPreferredDevice01>
-    <userPreferredDevice02>Audio/Effects/AU/aumf:FQ3p:FabF</userPreferredDevice02>
-    <userPreferredDevice03>&lt;None&gt;</userPreferredDevice03>
-  </UserPreferences>
-  <selectionNewInstrumentAutoseek>false</selectionNewInstrumentAutoseek>
-  <pakettiPitchbendLoaderEnvelope>false</pakettiPitchbendLoaderEnvelope>
-  <pakettiSlideContentAutomationToo>true</pakettiSlideContentAutomationToo>
-  <pakettiUnisonDetune>18</pakettiUnisonDetune>
-  <pakettiUnisonDetuneFluctuation>false</pakettiUnisonDetuneFluctuation>
-  <pakettiUnisonDetuneHardSync>true</pakettiUnisonDetuneHardSync>
-  <pakettiUnisonDuplicateInstrument>true</pakettiUnisonDuplicateInstrument>
-  <pakettiMaxFrameSize>46800000</pakettiMaxFrameSize>
-  <PakettiHyperEditCaptureTrackColor>false</PakettiHyperEditCaptureTrackColor>
-  <PakettiHyperEditAutoFit>true</PakettiHyperEditAutoFit>
-  <PakettiHyperEditManualRows>2</PakettiHyperEditManualRows>
-  <pakettiDefaultXRNI>/Users/esaruoho/Library/Preferences/Renoise/V3.5.4/Scripts/Tools/org.lackluster.Paketti.xrnx/Presets/12st_Pitchbend.xrni</pakettiDefaultXRNI>
+  <pakettiGliderMinInterval>1.0</pakettiGliderMinInterval>
+  <pakettiGliderLegatoOnly>true</pakettiGliderLegatoOnly>
+  <pakettiGliderMultiLine>true</pakettiGliderMultiLine>
+  <pakettiGliderMidiDevice/>
+  <pakettiGliderScaleFactor>16</pakettiGliderScaleFactor>
+  <pakettiGliderDebug>false</pakettiGliderDebug>
   <ActionSelector>
+    <Index26>Menu Entry: Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Special (2)||function() ColumnCycleKeyjazzSpecial(2) end</Index26>
+    <Index27>Menu Entry: Pattern Editor:Paketti:Effect Columns:0R(LPB) Retrig On/Off||function() 
+      renoise.song().selected_effect_column_index=1
+      writeretrig() 
+        if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then return
+      else renoise.song().selected_note_column_index=1 end end</Index27>
+    <Index28>Keybinding: Pattern Editor:Paketti:Fill Effect Column with 0G01+0U00||function() writeEffectToPattern("0U00", "0G01") end</Index28>
+    <Index29>Keybinding: Global:Paketti:Paketti eSpeak Text-to-Speech Dialog...||function() pakettieSpeakDialog() end</Index29>
+    <Index30>Keybinding: Phrase Editor:Paketti:Toggle Phrase Follow Pattern Playback Hack||observe_phrase_playhead</Index30>
+    <Index31>Menu Entry: Main Menu:Paketti:Set Sync Mode to (Jack)||function() setSyncMode(renoise.Transport.SYNC_MODE_JACK)end</Index31>
+    <Index32>Menu Entry: Sample Navigator:Paketti:Process:Normalize All Instruments -12dB||function() normalize_and_reduce("all_instruments", -12) end</Index32>
+    <Index33>Keybinding: Global:Paketti:Convert Beatsync to Sample Pitch||convert_beatsync_to_pitch</Index33>
+    <Index34>Keybinding: Global:Paketti:Divide LPB by 4, return to Original||function() toggle_lpb_and_insert_commands() end</Index34>
+    <Index35>Keybinding: Sample Editor:Paketti:Set Loop Mode to 4 PingPong||function() LoopState(4) end</Index35>
+    <Index36>Menu Entry: Main Menu:Tools:Paketti:Instruments:File Formats:Import S1000 Sample...||function() importS1000Sample() end</Index36>
+    <Index37>Menu Entry: Instrument Box:Paketti:Initialize:Add 84 Sample Slots to Instrument||function() addSampleSlot(84) end</Index37>
+    <Index38>Keybinding: Global:Paketti:Enable All Sample FX on All Instruments||function() sampleFXControls("all", true) end</Index38>
+    <Index39>Menu Entry: Pattern Editor:Paketti ChordsPlus:Basic Triads - Minor (4-3)||function() chordsplus(3,4) end</Index39>
     <Index40>Menu Entry: Sample Modulation Matrix:Paketti:Modify PitchStep Steps (Random)||function() PakettiFillStepperRandom("Pitch Stepper") end</Index40>
     <Index41>Menu Entry: Main Menu:Tools:Paketti:V3.5:Show/Hide Disk Browser||function() 
 if renoise.app().window.disk_browser_is_visible then renoise.app().window.disk_browser_is_visible=false else
@@ -1290,39 +1437,96 @@ end end</Index41>
     <Index23>Keybinding: Global:Paketti:Hide All Unused Columns (All Tracks)||function() PakettiHideAllUnusedColumns() end</Index23>
     <Index24>Keybinding: Global:Paketti:Double Double BPM||function() pakettiBPMDouble() pakettiBPMDouble() end</Index24>
     <Index25>Keybinding: Pattern Editor:Navigation:Paketti Jump to Column (Next) (Note/FX)||function() cycle_column("next") end</Index25>
-    <Index26>Menu Entry: Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Special (2)||function() ColumnCycleKeyjazzSpecial(2) end</Index26>
-    <Index27>Menu Entry: Pattern Editor:Paketti:Effect Columns:0R(LPB) Retrig On/Off||function() 
-      renoise.song().selected_effect_column_index=1
-      writeretrig() 
-        if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then return
-      else renoise.song().selected_note_column_index=1 end end</Index27>
-    <Index28>Keybinding: Pattern Editor:Paketti:Fill Effect Column with 0G01+0U00||function() writeEffectToPattern("0U00", "0G01") end</Index28>
-    <Index29>Keybinding: Global:Paketti:Paketti eSpeak Text-to-Speech Dialog...||function() pakettieSpeakDialog() end</Index29>
-    <Index30>Keybinding: Phrase Editor:Paketti:Toggle Phrase Follow Pattern Playback Hack||observe_phrase_playhead</Index30>
-    <Index31>Menu Entry: Main Menu:Paketti:Set Sync Mode to (Jack)||function() setSyncMode(renoise.Transport.SYNC_MODE_JACK)end</Index31>
-    <Index32>Menu Entry: Sample Navigator:Paketti:Process:Normalize All Instruments -12dB||function() normalize_and_reduce("all_instruments", -12) end</Index32>
-    <Index33>Keybinding: Global:Paketti:Convert Beatsync to Sample Pitch||convert_beatsync_to_pitch</Index33>
-    <Index34>Keybinding: Global:Paketti:Divide LPB by 4, return to Original||function() toggle_lpb_and_insert_commands() end</Index34>
-    <Index35>Keybinding: Sample Editor:Paketti:Set Loop Mode to 4 PingPong||function() LoopState(4) end</Index35>
-    <Index36>Menu Entry: Main Menu:Tools:Paketti:Instruments:File Formats:Import S1000 Sample...||function() importS1000Sample() end</Index36>
-    <Index37>Menu Entry: Instrument Box:Paketti:Initialize:Add 84 Sample Slots to Instrument||function() addSampleSlot(84) end</Index37>
-    <Index38>Keybinding: Global:Paketti:Enable All Sample FX on All Instruments||function() sampleFXControls("all", true) end</Index38>
-    <Index39>Menu Entry: Pattern Editor:Paketti ChordsPlus:Basic Triads - Minor (4-3)||function() chordsplus(3,4) end</Index39>
   </ActionSelector>
-  <pakettiGliderDebug>false</pakettiGliderDebug>
-  <pakettiDefaultDrumkitXRNI>/Users/esaruoho/Library/Preferences/Renoise/V3.5.4/Scripts/Tools/org.lackluster.Paketti.xrnx/Presets/12st_Pitchbend_Drumkit_C0.xrni</pakettiDefaultDrumkitXRNI>
+  <OctaMEDPickPutSlots>
+    <Slot01>--- .. .. .. .. ....||0A00</Slot01>
+    <Slot02/>
+    <Slot03/>
+    <Slot04/>
+    <Slot05/>
+    <Slot06/>
+    <Slot07/>
+    <Slot08/>
+    <Slot09/>
+    <Slot10/>
+    <RandomizeEnabled>false</RandomizeEnabled>
+    <RandomizePercentage>10</RandomizePercentage>
+    <SetSelectedInstrument>false</SetSelectedInstrument>
+    <UseEditStep>true</UseEditStep>
+  </OctaMEDPickPutSlots>
+  <PakettiFuzzySampleSearchPath>/Users/esaruoho/Music/rMBP_2024_01_27 samples/_drums/Vermona DRM-1 Sampled by Akai MPC2500-The Beat Bender Samplekits/</PakettiFuzzySampleSearchPath>
+  <UserDefinedSampleFolders08/>
+  <UserDefinedSampleFolders07/>
+  <UserDefinedSampleFolders06/>
+  <UserDefinedSampleFolders05/>
+  <UserDefinedSampleFolders04>/Users/esaruoho/Music/rMBP_2024_01_27 samples/_drums</UserDefinedSampleFolders04>
+  <UserDefinedSampleFolders03>/Users/esaruoho/Music/rMBP_2024_01_27 samples/oneshot</UserDefinedSampleFolders03>
+  <UserDefinedSampleFolders02>/Users/esaruoho/Music/samples</UserDefinedSampleFolders02>
+  <pakettiParameterEditor>
+    <PreviousNext>false</PreviousNext>
+    <AB>false</AB>
+    <AutomationPlaymode>false</AutomationPlaymode>
+    <RandomizeStrength>false</RandomizeStrength>
+    <HalfSize>true</HalfSize>
+    <HalfSizeFont>true</HalfSizeFont>
+    <AutoOpen>false</AutoOpen>
+  </pakettiParameterEditor>
+  <PakettiPlayAndLoopPatternCommands>false</PakettiPlayAndLoopPatternCommands>
   <pakettiDialogClose>tab</pakettiDialogClose>
-  <pakettiPresetPlusPlusDeviceChain>DeviceChains/hipass_lopass_dcoffset.xrnt</pakettiPresetPlusPlusDeviceChain>
+  <PakettiInstrumentTransposeCommands>false</PakettiInstrumentTransposeCommands>
+  <PakettiTriggerPatternLineCommands>false</PakettiTriggerPatternLineCommands>
+  <PakettiJumpForwardBackwardCommands>false</PakettiJumpForwardBackwardCommands>
+  <PakettiJumpRowCommands>false</PakettiJumpRowCommands>
+  <AppSelection>
+    <AppSelection1>/Applications/Audacity.app</AppSelection1>
+    <AppSelection2>/Applications/Ableton Live 12 Suite.app</AppSelection2>
+    <AppSelection3>/System/Applications/Music.app</AppSelection3>
+    <AppSelection4>/Applications/Cog.app</AppSelection4>
+    <AppSelection5/>
+    <AppSelection6/>
+    <SmartFoldersApp1>/Users/esaruoho/Music/samples/LiveSmartFolder/</SmartFoldersApp1>
+    <SmartFoldersApp2>/Users/esaruoho/Music/samples/LogicSmartFolder/</SmartFoldersApp2>
+    <SmartFoldersApp3>/Users/esaruoho/Music/samples/RenoiseSmartFolder/</SmartFoldersApp3>
+  </AppSelection>
+  <pakettiCreateNewSends>
+    <SendNamingPerTrack>true</SendNamingPerTrack>
+    <Collapsed>false</Collapsed>
+  </pakettiCreateNewSends>
+  <PolyendLocalPath>/Users/esaruoho/Music/samples/PTI/</PolyendLocalPath>
+  <MinimizedPitchControlSmall>false</MinimizedPitchControlSmall>
+  <pakettiPlayerProWaveformViewer>
+    <Zoom>1.0</Zoom>
+    <Direction>1.0</Direction>
+    <HorizontalPlayhead>false</HorizontalPlayhead>
+    <VerticalPlayhead>false</VerticalPlayhead>
+    <OnlySelectedTrack>false</OnlySelectedTrack>
+    <SampleName>false</SampleName>
+    <InstrumentName>false</InstrumentName>
+    <NoteName>false</NoteName>
+  </pakettiPlayerProWaveformViewer>
   <pakettiRandomizeBPMOnNewSong>false</pakettiRandomizeBPMOnNewSong>
-  <pakettiAutoSamplifyMonitoring>false</pakettiAutoSamplifyMonitoring>
-  <pakettiAutoSamplifyPakettify>false</pakettiAutoSamplifyPakettify>
-  <pakettiImportHooksEnabled>true</pakettiImportHooksEnabled>
-  <pakettiImportREX>true</pakettiImportREX>
-  <pakettiImportRX2>true</pakettiImportRX2>
-  <pakettiImportIFF>true</pakettiImportIFF>
-  <pakettiImportSF2>true</pakettiImportSF2>
-  <pakettiImportITI>true</pakettiImportITI>
-  <pakettiImportOT>true</pakettiImportOT>
-  <pakettiImportWT>true</pakettiImportWT>
-  <pakettiImportSTRD>true</pakettiImportSTRD>
+  <pakettiMenuConfig>
+    <MasterMenusEnabled>true</MasterMenusEnabled>
+    <MasterKeybindingsEnabled>true</MasterKeybindingsEnabled>
+    <MasterMidiMappingsEnabled>true</MasterMidiMappingsEnabled>
+    <InstrumentBox>false</InstrumentBox>
+    <SampleEditor>false</SampleEditor>
+    <SampleNavigator>false</SampleNavigator>
+    <SampleKeyzone>true</SampleKeyzone>
+    <Mixer>true</Mixer>
+    <PatternEditor>true</PatternEditor>
+    <MainMenuTools>true</MainMenuTools>
+    <MainMenuView>true</MainMenuView>
+    <MainMenuFile>true</MainMenuFile>
+    <PatternMatrix>true</PatternMatrix>
+    <PatternSequencer>true</PatternSequencer>
+    <PhraseEditor>true</PhraseEditor>
+    <PakettiGadgets>true</PakettiGadgets>
+    <TrackDSPChain>true</TrackDSPChain>
+    <TrackDSPDevice>true</TrackDSPDevice>
+    <Automation>true</Automation>
+    <DiskBrowserFiles>true</DiskBrowserFiles>
+  </pakettiMenuConfig>
+  <PakettiSelectTrackSelectInstrument>true</PakettiSelectTrackSelectInstrument>
+  <pakettiMarkerExists>false</pakettiMarkerExists>
 </ScriptingToolPreferences>

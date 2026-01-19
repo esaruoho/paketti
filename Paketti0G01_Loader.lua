@@ -461,7 +461,13 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     pakettiRandomizeAllPluginsPercentageUserPreference2=20,
     pakettiRandomizeAllPluginsPercentageUserPreference3=30,
     pakettiRandomizeAllPluginsPercentageUserPreference4=40,
-    pakettiRandomizeAllPluginsPercentageUserPreference5=50
+    pakettiRandomizeAllPluginsPercentageUserPreference5=50,
+    pakettiRandomizeSampleFXDevicePercentage=50,
+    pakettiRandomizeSampleFXDevicePercentageUserPreference1=10,
+    pakettiRandomizeSampleFXDevicePercentageUserPreference2=25,
+    pakettiRandomizeSampleFXDevicePercentageUserPreference3=50,
+    pakettiRandomizeSampleFXDevicePercentageUserPreference4=75,
+    pakettiRandomizeSampleFXDevicePercentageUserPreference5=100
   },
   PakettiYTDLP = {
     PakettiYTDLPLoopMode=2,

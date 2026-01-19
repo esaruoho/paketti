@@ -20,6 +20,252 @@ local loaded_files_tracker = {}
 local last_instrument_count = 0
 
 
+-----------------------------------------------------------------------
+-- Helper Functions for Copying Instrument Data (FX Chains, Modulation, Phrases)
+-----------------------------------------------------------------------
+
+-- Copy Sample Device Chains (Sample FX) from source instrument to target instrument
+-- Returns a mapping table: source_chain_index -> target_chain_index
+function PakettiCopySampleDeviceChains(source_instrument, target_instrument)
+  if not source_instrument or not target_instrument then
+    print("DEBUG: PakettiCopySampleDeviceChains - Invalid instruments provided")
+    return {}
+  end
+  
+  local chain_mapping = {}
+  local source_chains = source_instrument.sample_device_chains
+  local target_chains_offset = #target_instrument.sample_device_chains
+  
+  print(string.format("DEBUG: Copying %d FX chains from source (target has %d existing chains)", 
+                     #source_chains, target_chains_offset))
+  
+  -- Copy each source chain
+  for source_chain_idx = 1, #source_chains do
+    local source_chain = source_chains[source_chain_idx]
+    
+    -- Create new chain in target instrument
+    local new_chain_idx = target_chains_offset + source_chain_idx
+    target_instrument:insert_sample_device_chain_at(new_chain_idx)
+    local target_chain = target_instrument.sample_device_chains[new_chain_idx]
+    
+    -- Copy chain name
+    target_chain.name = source_chain.name
+    
+    -- Copy output routing if available
+    if source_chain.output_routing then
+      -- Check if the routing is available in the target
+      local routing_available = false
+      for _, available_routing in ipairs(target_chain.available_output_routings) do
+        if available_routing == source_chain.output_routing then
+          routing_available = true
+          break
+        end
+      end
+      if routing_available then
+        target_chain.output_routing = source_chain.output_routing
+      end
+    end
+    
+    -- Copy devices (skip index 1 which is the mixer device - it's always present)
+    local source_devices = source_chain.devices
+    for device_idx = 2, #source_devices do
+      local source_device = source_devices[device_idx]
+      local device_path = source_device.device_path
+      
+      if device_path and device_path ~= "" then
+        -- Check if device is available
+        local device_available = false
+        for _, available_device in ipairs(target_chain.available_devices) do
+          if available_device == device_path then
+            device_available = true
+            break
+          end
+        end
+        
+        if device_available then
+          -- Insert the device at the end of the chain
+          local new_device_idx = #target_chain.devices + 1
+          local new_device = target_chain:insert_device_at(device_path, new_device_idx)
+          
+          if new_device then
+            -- Copy device state using active_preset_data (XML)
+            local success, err = pcall(function()
+              new_device.active_preset_data = source_device.active_preset_data
+            end)
+            
+            if not success then
+              print(string.format("DEBUG: Could not copy preset data for device '%s': %s", 
+                                 source_device.name, tostring(err)))
+              -- Fallback: copy individual parameters
+              for param_idx = 1, #source_device.parameters do
+                local source_param = source_device.parameters[param_idx]
+                local target_param = new_device.parameters[param_idx]
+                if target_param and source_param then
+                  pcall(function()
+                    target_param.value = source_param.value
+                  end)
+                end
+              end
+            end
+            
+            -- Copy display settings
+            new_device.is_active = source_device.is_active
+            new_device.is_maximized = source_device.is_maximized
+            if source_device.display_name and source_device.display_name ~= "" then
+              new_device.display_name = source_device.display_name
+            end
+            
+            print(string.format("DEBUG: Copied device '%s' to chain %d", source_device.name, new_chain_idx))
+          else
+            print(string.format("DEBUG: Failed to insert device '%s' at path '%s'", 
+                               source_device.name, device_path))
+          end
+        else
+          print(string.format("DEBUG: Device '%s' (path: %s) not available in target chain", 
+                             source_device.name, device_path))
+        end
+      end
+    end
+    
+    -- Store the mapping
+    chain_mapping[source_chain_idx] = new_chain_idx
+    print(string.format("DEBUG: Mapped source chain %d -> target chain %d ('%s')", 
+                       source_chain_idx, new_chain_idx, source_chain.name))
+  end
+  
+  return chain_mapping
+end
+
+-- Copy Sample Modulation Sets from source instrument to target instrument
+-- Returns a mapping table: source_set_index -> target_set_index
+function PakettiCopySampleModulationSets(source_instrument, target_instrument)
+  if not source_instrument or not target_instrument then
+    print("DEBUG: PakettiCopySampleModulationSets - Invalid instruments provided")
+    return {}
+  end
+  
+  local modset_mapping = {}
+  local source_modsets = source_instrument.sample_modulation_sets
+  local target_modsets_offset = #target_instrument.sample_modulation_sets
+  
+  print(string.format("DEBUG: Copying %d modulation sets from source (target has %d existing sets)", 
+                     #source_modsets, target_modsets_offset))
+  
+  -- Copy each source modulation set
+  for source_set_idx = 1, #source_modsets do
+    local source_modset = source_modsets[source_set_idx]
+    
+    -- Create new modulation set in target instrument
+    local new_set_idx = target_modsets_offset + source_set_idx
+    target_instrument:insert_sample_modulation_set_at(new_set_idx)
+    local target_modset = target_instrument.sample_modulation_sets[new_set_idx]
+    
+    -- Use copy_from to copy all modulation set contents
+    local success, err = pcall(function()
+      target_modset:copy_from(source_modset)
+    end)
+    
+    if success then
+      print(string.format("DEBUG: Copied modulation set %d -> %d ('%s')", 
+                         source_set_idx, new_set_idx, source_modset.name))
+    else
+      print(string.format("DEBUG: Error copying modulation set %d: %s", source_set_idx, tostring(err)))
+      -- Fallback: copy basic properties manually
+      target_modset.name = source_modset.name
+      if source_modset.filter_type then
+        target_modset.filter_type = source_modset.filter_type
+      end
+      if source_modset.pitch_range then
+        target_modset.pitch_range = source_modset.pitch_range
+      end
+    end
+    
+    -- Store the mapping
+    modset_mapping[source_set_idx] = new_set_idx
+  end
+  
+  return modset_mapping
+end
+
+-- Copy Phrases from source instrument to target instrument
+function PakettiCopyPhrases(source_instrument, target_instrument)
+  if not source_instrument or not target_instrument then
+    print("DEBUG: PakettiCopyPhrases - Invalid instruments provided")
+    return
+  end
+  
+  local source_phrases = source_instrument.phrases
+  
+  if #source_phrases == 0 then
+    print("DEBUG: No phrases to copy from source instrument")
+    return
+  end
+  
+  print(string.format("DEBUG: Copying %d phrases from source instrument", #source_phrases))
+  
+  -- Copy each source phrase
+  for phrase_idx = 1, #source_phrases do
+    local source_phrase = source_phrases[phrase_idx]
+    
+    -- Insert new phrase in target instrument
+    local new_phrase = target_instrument:insert_phrase_at(phrase_idx)
+    
+    if new_phrase then
+      -- Use copy_from to copy phrase contents
+      local success, err = pcall(function()
+        new_phrase:copy_from(source_phrase)
+      end)
+      
+      if success then
+        print(string.format("DEBUG: Copied phrase %d ('%s')", phrase_idx, source_phrase.name))
+      else
+        print(string.format("DEBUG: Error copying phrase %d: %s", phrase_idx, tostring(err)))
+      end
+    else
+      print(string.format("DEBUG: Failed to create phrase at index %d", phrase_idx))
+    end
+  end
+  
+  -- Copy phrase mappings if any exist
+  if #source_instrument.phrase_mappings > 0 then
+    print(string.format("DEBUG: Source has %d phrase mappings (note: mappings are auto-created with phrases)", 
+                       #source_instrument.phrase_mappings))
+  end
+  
+  -- Copy phrase playback mode
+  target_instrument.phrase_playback_mode = source_instrument.phrase_playback_mode
+  target_instrument.phrase_program = source_instrument.phrase_program
+end
+
+-- Helper function to check if source instrument has content worth copying
+function PakettiSourceHasContentToCopy(source_instrument)
+  if not source_instrument then return false end
+  
+  local has_fx_chains = #source_instrument.sample_device_chains > 0
+  local has_modulation = #source_instrument.sample_modulation_sets > 0
+  local has_phrases = #source_instrument.phrases > 0
+  
+  -- Check if any sample actually uses the FX chains or modulation
+  local uses_fx = false
+  local uses_modulation = false
+  
+  for _, sample in ipairs(source_instrument.samples) do
+    if sample.device_chain_index > 0 then
+      uses_fx = true
+    end
+    if sample.modulation_set_index > 0 then
+      uses_modulation = true
+    end
+  end
+  
+  return (has_fx_chains and uses_fx) or (has_modulation and uses_modulation) or has_phrases
+end
+
+-----------------------------------------------------------------------
+-- End of Helper Functions
+-----------------------------------------------------------------------
+
+
 -- AutoSamplify version of PakettiInjectApplyLoaderSettings (NO normalization)
 function PakettiAutoSamplifyApplyLoaderSettings(sample)
   if not sample or not preferences then return end
@@ -304,6 +550,14 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
     return
   end
   
+  -- Store source sample's FX chain and modulation set indices BEFORE creating new instrument
+  local source_device_chain_index = source_sample.device_chain_index
+  local source_modulation_set_index = source_sample.modulation_set_index
+  local source_has_content = PakettiSourceHasContentToCopy(source_instrument)
+  
+  print(string.format("DEBUG: Source sample indices - device_chain: %d, modulation_set: %d, has_content: %s",
+                     source_device_chain_index, source_modulation_set_index, tostring(source_has_content)))
+  
   -- Create new instrument after current one
   local new_instrument_index = instrument_index + 1
   song:insert_instrument_at(new_instrument_index)
@@ -321,8 +575,40 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   print(string.format("Loading default XRNI into new instrument %d", new_instrument_index))
   pakettiPreferencesDefaultInstrumentLoader()
   
-  -- Get the new instrument and clear its default sample if it exists
+  -- Get the new instrument
   local new_instrument = song.instruments[new_instrument_index]
+  
+  -- Store the number of default chains and modulation sets from the loaded XRNI
+  local default_chain_count = #new_instrument.sample_device_chains
+  local default_modset_count = #new_instrument.sample_modulation_sets
+  
+  print(string.format("DEBUG: Default XRNI has %d FX chains and %d modulation sets",
+                     default_chain_count, default_modset_count))
+  
+  -- Copy FX chains, modulation sets, and phrases from source instrument if it has content
+  local chain_mapping = {}
+  local modset_mapping = {}
+  
+  if source_has_content then
+    print("DEBUG: Source instrument has content to copy - copying FX chains, modulation sets, and phrases")
+    
+    -- Copy Sample FX Chains from source (appending after default chains)
+    if #source_instrument.sample_device_chains > 0 then
+      chain_mapping = PakettiCopySampleDeviceChains(source_instrument, new_instrument)
+    end
+    
+    -- Copy Sample Modulation Sets from source (appending after default sets)
+    if #source_instrument.sample_modulation_sets > 0 then
+      modset_mapping = PakettiCopySampleModulationSets(source_instrument, new_instrument)
+    end
+    
+    -- Copy Phrases from source
+    if #source_instrument.phrases > 0 then
+      PakettiCopyPhrases(source_instrument, new_instrument)
+    end
+  end
+  
+  -- Clear default samples if they exist
   if #new_instrument.samples > 0 then
     for i = #new_instrument.samples, 1, -1 do
       new_instrument:delete_sample_at(i)
@@ -393,14 +679,38 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   new_sample.name = sample_name
   new_instrument.name = sample_name
   
+  -- Update sample's device_chain_index and modulation_set_index to point to copied chains/sets
+  if source_device_chain_index > 0 and chain_mapping[source_device_chain_index] then
+    new_sample.device_chain_index = chain_mapping[source_device_chain_index]
+    print(string.format("DEBUG: Updated sample device_chain_index: %d -> %d",
+                       source_device_chain_index, new_sample.device_chain_index))
+  end
+  
+  if source_modulation_set_index > 0 and modset_mapping[source_modulation_set_index] then
+    new_sample.modulation_set_index = modset_mapping[source_modulation_set_index]
+    print(string.format("DEBUG: Updated sample modulation_set_index: %d -> %d",
+                       source_modulation_set_index, new_sample.modulation_set_index))
+  end
+  
   -- Apply sample-specific loader settings to the new sample
   PakettiAutoSamplifyApplyLoaderSettings(new_sample)
 
-  print(string.format("Successfully Pakettified '%s' in new instrument %d with XRNI + loader settings", 
-                     sample_name, new_instrument_index))
+  local copied_content = ""
+  if source_has_content then
+    local parts = {}
+    if #chain_mapping > 0 then table.insert(parts, string.format("%d FX chains", #chain_mapping)) end
+    if #modset_mapping > 0 then table.insert(parts, string.format("%d mod sets", #modset_mapping)) end
+    if #source_instrument.phrases > 0 then table.insert(parts, string.format("%d phrases", #source_instrument.phrases)) end
+    if #parts > 0 then
+      copied_content = " + copied " .. table.concat(parts, ", ")
+    end
+  end
+
+  print(string.format("Successfully Pakettified '%s' in new instrument %d with XRNI + loader settings%s", 
+                     sample_name, new_instrument_index, copied_content))
   
-  renoise.app():show_status(string.format("Auto-Pakettified '%s' to new instrument %d", 
-                                        sample_name, new_instrument_index))
+  renoise.app():show_status(string.format("Auto-Pakettified '%s' to new instrument %d%s", 
+                                        sample_name, new_instrument_index, copied_content))
 end
 
 -- Function to apply Paketti loader settings to the selected sample (legacy compatibility)
@@ -502,6 +812,19 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
         -- Multiple external samples in one instrument: Create one new instrument for all samples
         print(string.format("Multiple external samples (%d) in instrument %d: Creating single new instrument", new_sample_count, instr_idx))
         
+        -- Store source sample indices BEFORE creating new instrument
+        local source_indices = {}
+        for _, sample_info in ipairs(samples) do
+          local source_sample = instrument.samples[sample_info.sample_index]
+          if source_sample then
+            source_indices[sample_info.sample_index] = {
+              device_chain_index = source_sample.device_chain_index,
+              modulation_set_index = source_sample.modulation_set_index
+            }
+          end
+        end
+        local source_has_content = PakettiSourceHasContentToCopy(instrument)
+        
         -- Create new instrument after current one
         local new_instrument_index = instr_idx + 1
         song:insert_instrument_at(new_instrument_index)
@@ -519,8 +842,37 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
         print(string.format("Loading default XRNI into new instrument %d", new_instrument_index))
         pakettiPreferencesDefaultInstrumentLoader()
         
-        -- Get the new instrument and clear its default sample if it exists
+        -- Get the new instrument
         local new_instrument = song.instruments[new_instrument_index]
+        
+        -- Store the number of default chains and modulation sets from the loaded XRNI
+        local default_chain_count = #new_instrument.sample_device_chains
+        local default_modset_count = #new_instrument.sample_modulation_sets
+        
+        -- Copy FX chains, modulation sets, and phrases from source instrument if it has content
+        local chain_mapping = {}
+        local modset_mapping = {}
+        
+        if source_has_content then
+          print("DEBUG: Source instrument has content to copy - copying FX chains, modulation sets, and phrases")
+          
+          -- Copy Sample FX Chains from source (appending after default chains)
+          if #instrument.sample_device_chains > 0 then
+            chain_mapping = PakettiCopySampleDeviceChains(instrument, new_instrument)
+          end
+          
+          -- Copy Sample Modulation Sets from source (appending after default sets)
+          if #instrument.sample_modulation_sets > 0 then
+            modset_mapping = PakettiCopySampleModulationSets(instrument, new_instrument)
+          end
+          
+          -- Copy Phrases from source
+          if #instrument.phrases > 0 then
+            PakettiCopyPhrases(instrument, new_instrument)
+          end
+        end
+        
+        -- Clear default samples if they exist
         if #new_instrument.samples > 0 then
           for i = #new_instrument.samples, 1, -1 do
             new_instrument:delete_sample_at(i)
@@ -598,6 +950,22 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
               new_sample.name = source_sample.name
             end
             
+            -- Update sample's device_chain_index and modulation_set_index to point to copied chains/sets
+            local orig_indices = source_indices[sample_info.sample_index]
+            if orig_indices then
+              if orig_indices.device_chain_index > 0 and chain_mapping[orig_indices.device_chain_index] then
+                new_sample.device_chain_index = chain_mapping[orig_indices.device_chain_index]
+                print(string.format("DEBUG: Updated sample '%s' device_chain_index: %d -> %d",
+                                   new_sample.name, orig_indices.device_chain_index, new_sample.device_chain_index))
+              end
+              
+              if orig_indices.modulation_set_index > 0 and modset_mapping[orig_indices.modulation_set_index] then
+                new_sample.modulation_set_index = modset_mapping[orig_indices.modulation_set_index]
+                print(string.format("DEBUG: Updated sample '%s' modulation_set_index: %d -> %d",
+                                   new_sample.name, orig_indices.modulation_set_index, new_sample.modulation_set_index))
+              end
+            end
+            
             -- Apply sample-specific loader settings
             PakettiAutoSamplifyApplyLoaderSettings(new_sample)
           end
@@ -611,10 +979,21 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
           end
         end
         
-        print(string.format("Successfully Pakettified %d samples from instrument %d to new instrument %d", 
-                           new_sample_count, instr_idx, new_instrument_index))
-        renoise.app():show_status(string.format("Auto-Pakettified %d samples to new instrument %d", 
-                                              new_sample_count, new_instrument_index))
+        local copied_content = ""
+        if source_has_content then
+          local parts = {}
+          if #chain_mapping > 0 then table.insert(parts, string.format("%d FX chains", #chain_mapping)) end
+          if #modset_mapping > 0 then table.insert(parts, string.format("%d mod sets", #modset_mapping)) end
+          if #instrument.phrases > 0 then table.insert(parts, string.format("%d phrases", #instrument.phrases)) end
+          if #parts > 0 then
+            copied_content = " + copied " .. table.concat(parts, ", ")
+          end
+        end
+        
+        print(string.format("Successfully Pakettified %d samples from instrument %d to new instrument %d%s", 
+                           new_sample_count, instr_idx, new_instrument_index, copied_content))
+        renoise.app():show_status(string.format("Auto-Pakettified %d samples to new instrument %d%s", 
+                                              new_sample_count, new_instrument_index, copied_content))
         
       else
         -- Single external sample: Create new instrument for this sample

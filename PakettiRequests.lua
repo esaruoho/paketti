@@ -807,7 +807,7 @@ function selectedInstrumentLoadMuteTrigDrumkit()
   math.random(); math.random(); math.random()
 
   -- If no folder_path provided, prompt the user to select a folder
-  local folder_path = renoise.app():prompt_for_path("Select Folder to Randomize Drumkit Loading From")
+  local folder_path = renoise.app():prompt_for_path("Select Folder to Randomize a MuteTrig Drumkit Loading From")
   if not folder_path then
     renoise.app():show_status("No folder selected.")
     return nil
@@ -2186,6 +2186,73 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Mod G
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Mod Group (Previous)",invoke=function() selectedInstrumentPreviousModGroup() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument FX Group (Next)",invoke=function() selectedInstrumentNextFXGroup() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument FX Group (Previous)",invoke=function() selectedInstrumentPreviousFXGroup() end}
+
+-- Duplicate the selected modulation set's settings to all other modulation sets
+-- Preserves the original names of target modulation sets
+function PakettiDuplicateModulationSetToAll()
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_status("No song loaded.")
+    return
+  end
+
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+
+  local mod_sets = instrument.sample_modulation_sets
+  if #mod_sets == 0 then
+    renoise.app():show_status("No modulation sets in selected instrument.")
+    return
+  end
+
+  local source_modset = song.selected_sample_modulation_set
+  local source_index = song.selected_sample_modulation_set_index
+
+  if not source_modset or source_index < 1 then
+    renoise.app():show_status("No modulation set selected.")
+    return
+  end
+
+  if #mod_sets < 2 then
+    renoise.app():show_status("Need at least 2 modulation sets to duplicate.")
+    return
+  end
+
+  local copied_count = 0
+
+  -- Loop through all modulation sets
+  for i = 1, #mod_sets do
+    -- Skip the source modulation set
+    if i ~= source_index then
+      local target_modset = mod_sets[i]
+      -- Save the target's original name
+      local original_name = target_modset.name
+      -- Copy all settings from source to target
+      local success, err = pcall(function()
+        target_modset:copy_from(source_modset)
+      end)
+      if success then
+        -- Restore the target's original name
+        target_modset.name = original_name
+        copied_count = copied_count + 1
+      else
+        print(string.format("Error copying modulation set %d: %s", i, tostring(err)))
+      end
+    end
+  end
+
+  renoise.app():show_status(string.format("Duplicated modulation set '%s' to %d other set(s).", source_modset.name, copied_count))
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Modulation:Duplicate Selected Modulation Set to All Others",invoke=function() PakettiDuplicateModulationSetToAll() end}
+renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti:Duplicate Selected Modulation Set to All Others",invoke=function() PakettiDuplicateModulationSetToAll() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate Selected Modulation Set to All Others",invoke=function() PakettiDuplicateModulationSetToAll() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Modulation Set to All Others",invoke=function(repeated) if not repeated then PakettiDuplicateModulationSetToAll() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Duplicate Selected Modulation Set to All Others x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiDuplicateModulationSetToAll() end end}
+
 ---
 -- Function to print debug information
 function debug_print(message)

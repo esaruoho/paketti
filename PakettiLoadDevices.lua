@@ -1558,3 +1558,103 @@ renoise.tool():add_keybinding{name="Global:Paketti:Quick Load Device Dialog...",
 --renoise.tool():add_keybinding{name="Global:Paketti:Toggle All Compressor Instances", invoke=function() PakettiToggleAllDeviceInstances("Compressor") end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Quick Load Device Dialog... [Trigger]", invoke=function(message) if message:is_trigger() then pakettiQuickLoadDialog() end end}
+
+--------------------
+-- Sample FX Chain Device Randomizer - Randomize selected device across all FX chains
+--------------------
+
+-- Global function to randomize selected sample FX device across all FX chains
+function PakettiRandomizeSampleFXDeviceAcrossChains(intensity)
+  math.randomseed(os.time())
+  
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return false
+  end
+  
+  if #instrument.sample_device_chains == 0 then
+    renoise.app():show_status("No sample FX chains in this instrument")
+    return false
+  end
+  
+  local selected_device = song.selected_sample_device
+  local selected_device_index = song.selected_sample_device_index
+  
+  if not selected_device then
+    renoise.app():show_status("No sample FX device selected. Select a device in the Sample FX chain.")
+    return false
+  end
+  
+  if selected_device_index < 2 then
+    renoise.app():show_status("Cannot randomize the mixer device. Select an effect device.")
+    return false
+  end
+  
+  local device_name = selected_device.name
+  local num_chains = #instrument.sample_device_chains
+  local randomized_count = 0
+  local total_params_randomized = 0
+  
+  for chain_index = 1, num_chains do
+    local chain = instrument.sample_device_chains[chain_index]
+    if chain and #chain.devices >= selected_device_index then
+      local device = chain.devices[selected_device_index]
+      -- Match by name to ensure we're randomizing the same type of device
+      if device and device.name == device_name then
+        local param_count = #device.parameters
+        for param_index = 1, param_count do
+          local parameter = device.parameters[param_index]
+          local min = parameter.value_min
+          local max = parameter.value_max
+          local current_value = parameter.value
+          if intensity > 0 then
+            local random_value = math.random() * (max - min) + min
+            parameter.value = current_value + (random_value - current_value) * intensity / 100
+            total_params_randomized = total_params_randomized + 1
+          end
+        end
+        randomized_count = randomized_count + 1
+      end
+    end
+  end
+  
+  if randomized_count > 0 then
+    renoise.app():show_status("Randomized '" .. device_name .. "' across " .. randomized_count .. "/" .. num_chains .. " FX chains (" .. total_params_randomized .. " params) at " .. string.format("%.1f", intensity) .. "%")
+    return true
+  else
+    renoise.app():show_status("No matching devices found to randomize")
+    return false
+  end
+end
+
+-- Menu entries for Sample Navigator
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (10%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(10) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (25%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(25) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (50%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(50) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (75%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(75) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (100%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(100) end}
+
+-- Menu entries for Sample FX Mixer
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (10%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(10) end}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (25%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(25) end}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (50%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(50) end}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (75%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(75) end}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (100%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(100) end}
+
+-- Keybindings for Sample FX Chain Device Randomizer with User presets
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Sample FX Device Across Chains with User1 (%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(preferences.RandomizeSettings.pakettiRandomizeSampleFXDevicePercentageUserPreference1.value) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Sample FX Device Across Chains with User2 (%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(preferences.RandomizeSettings.pakettiRandomizeSampleFXDevicePercentageUserPreference2.value) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Sample FX Device Across Chains with User3 (%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(preferences.RandomizeSettings.pakettiRandomizeSampleFXDevicePercentageUserPreference3.value) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Sample FX Device Across Chains with User4 (%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(preferences.RandomizeSettings.pakettiRandomizeSampleFXDevicePercentageUserPreference4.value) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Sample FX Device Across Chains with User5 (%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(preferences.RandomizeSettings.pakettiRandomizeSampleFXDevicePercentageUserPreference5.value) end}
+
+-- MIDI Mapping with knob/slider control for randomization intensity
+renoise.tool():add_midi_mapping{name="Paketti:Randomize Sample FX Device Across Chains x[Knob]",invoke=function(message)
+  if message:is_abs_value() then
+    local intensity = message.int_value * 100 / 127  -- Convert 0-127 to 0-100%
+    PakettiRandomizeSampleFXDeviceAcrossChains(intensity)
+  end
+end}

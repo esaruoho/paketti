@@ -12847,9 +12847,20 @@ function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
     count, generation_type, success_count, failed_count))
 end
 
+-- Launcher function that wraps batch generation in ProcessSlicer
+-- All menu entries, keybindings, and MIDI mappings should call this
+function PakettiMetaSynthLaunchBatchGeneration(generation_type, count)
+  local function batch_generation_wrapper()
+    PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
+  end
+  local slicer = ProcessSlicer(batch_generation_wrapper)
+  slicer:start()
+end
+
 -- Dialog for batch generation with user-specified count
 PakettiMetaSynthBatchDialogVb = nil
 PakettiMetaSynthBatchDialogHandle = nil
+PakettiMetaSynthBatchExportDialogHandle = nil
 
 -- Batch export instruments to XRNI files
 -- start_idx: first instrument index to export (1-based)
@@ -12896,6 +12907,12 @@ end
 
 -- Show batch XRNI export dialog
 function PakettiMetaSynthShowBatchExportDialog()
+  -- Close existing dialog if open
+  if PakettiMetaSynthBatchExportDialogHandle and PakettiMetaSynthBatchExportDialogHandle.visible then
+    PakettiMetaSynthBatchExportDialogHandle:close()
+    PakettiMetaSynthBatchExportDialogHandle = nil
+  end
+  
   local vb = renoise.ViewBuilder()
   local song = renoise.song()
   
@@ -12923,8 +12940,14 @@ function PakettiMetaSynthShowBatchExportDialog()
     vb:row {
       vb:button {
         text = "Select Folder & Export",
-        width = 220,
+        width = 110,
         notifier = function()
+          -- Close dialog before showing blocking prompt
+          if PakettiMetaSynthBatchExportDialogHandle then
+            PakettiMetaSynthBatchExportDialogHandle:close()
+            PakettiMetaSynthBatchExportDialogHandle = nil
+          end
+          
           local folder = renoise.app():prompt_for_path("Select export folder")
           if folder and folder ~= "" then
             local start_idx = vb.views.start_idx.value
@@ -12932,11 +12955,21 @@ function PakettiMetaSynthShowBatchExportDialog()
             PakettiMetaSynthBatchExportXRNI(start_idx, count, folder)
           end
         end
+      },
+      vb:button {
+        text = "Cancel",
+        width = 110,
+        notifier = function()
+          if PakettiMetaSynthBatchExportDialogHandle then
+            PakettiMetaSynthBatchExportDialogHandle:close()
+            PakettiMetaSynthBatchExportDialogHandle = nil
+          end
+        end
       }
     }
   }
   
-  renoise.app():show_custom_dialog("MetaSynth Batch XRNI Export", dialog_content, my_keyhandler_func)
+  PakettiMetaSynthBatchExportDialogHandle = renoise.app():show_custom_dialog("MetaSynth Batch XRNI Export", dialog_content, my_keyhandler_func)
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
@@ -12975,14 +13008,7 @@ function PakettiMetaSynthShowBatchGenerationDialog()
       PakettiMetaSynthBatchDialogHandle = nil
     end
     
-    -- Wrap batch generation in ProcessSlicer for non-blocking execution
-    -- The function already has coroutine.yield() calls, so ProcessSlicer will handle the yielding
-    local function batch_generation_wrapper()
-      PakettiMetaSynthGenerateBatchInstruments(gen_type, count)
-    end
-    
-    local slicer = ProcessSlicer(batch_generation_wrapper)
-    slicer:start()
+    PakettiMetaSynthLaunchBatchGeneration(gen_type, count)
   end
   
   -- Key handler for Enter key
@@ -16853,7 +16879,11 @@ function PakettiMetaSynthShowProfileDialog()
   local profile_items = {}
   for i, profile_name in ipairs(PakettiMetaSynthModulationProfileNames) do
     local profile = PakettiMetaSynthModulationProfiles[profile_name]
-    profile_items[i] = profile.name .. " - " .. (profile.description or "")
+    if profile and profile.name then
+      profile_items[i] = profile.name .. " - " .. (profile.description or "")
+    else
+      profile_items[i] = profile_name or "Unknown Profile"
+    end
   end
   
   -- Build modulation set dropdown items
@@ -17141,21 +17171,21 @@ renoise.tool():add_menu_entry {
 renoise.tool():add_menu_entry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Instruments",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments("standard", 20)
+    PakettiMetaSynthLaunchBatchGeneration("standard", 20)
   end
 }
 
 renoise.tool():add_menu_entry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Instruments (with Sends)",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments("sends", 20)
+    PakettiMetaSynthLaunchBatchGeneration("sends", 20)
   end
 }
 
 renoise.tool():add_menu_entry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Wavetable Instruments",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments("wavetable", 20)
+    PakettiMetaSynthLaunchBatchGeneration("wavetable", 20)
   end
 }
 
@@ -17495,21 +17525,21 @@ renoise.tool():add_menu_entry {
 renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Instruments",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments("standard", 20)
+    PakettiMetaSynthLaunchBatchGeneration("standard", 20)
   end
 }
 
 renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Instruments (with Sends)",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments("sends", 20)
+    PakettiMetaSynthLaunchBatchGeneration("sends", 20)
   end
 }
 
 renoise.tool():add_menu_entry {
   name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Wavetable Instruments",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments("wavetable", 20)
+    PakettiMetaSynthLaunchBatchGeneration("wavetable", 20)
   end
 }
 
@@ -17566,21 +17596,21 @@ renoise.tool():add_keybinding {
 renoise.tool():add_keybinding {
   name = "Global:Paketti:MetaSynth Generate 20 Random Instruments",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments("standard", 20)
+    PakettiMetaSynthLaunchBatchGeneration("standard", 20)
   end
 }
 
 renoise.tool():add_keybinding {
   name = "Global:Paketti:MetaSynth Generate 20 Random Instruments (with Sends)",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments("sends", 20)
+    PakettiMetaSynthLaunchBatchGeneration("sends", 20)
   end
 }
 
 renoise.tool():add_keybinding {
   name = "Global:Paketti:MetaSynth Generate 20 Random Wavetable Instruments",
   invoke = function()
-    PakettiMetaSynthGenerateBatchInstruments("wavetable", 20)
+    PakettiMetaSynthLaunchBatchGeneration("wavetable", 20)
   end
 }
 
@@ -17680,7 +17710,7 @@ renoise.tool():add_midi_mapping {
   name = "Paketti:MetaSynth Generate 20 Random Instruments",
   invoke = function(message)
     if message:is_trigger() then
-      PakettiMetaSynthGenerateBatchInstruments("standard", 20)
+      PakettiMetaSynthLaunchBatchGeneration("standard", 20)
     end
   end
 }
@@ -17689,7 +17719,7 @@ renoise.tool():add_midi_mapping {
   name = "Paketti:MetaSynth Generate 20 Random Instruments (with Sends)",
   invoke = function(message)
     if message:is_trigger() then
-      PakettiMetaSynthGenerateBatchInstruments("sends", 20)
+      PakettiMetaSynthLaunchBatchGeneration("sends", 20)
     end
   end
 }
@@ -17698,7 +17728,7 @@ renoise.tool():add_midi_mapping {
   name = "Paketti:MetaSynth Generate 20 Random Wavetable Instruments",
   invoke = function(message)
     if message:is_trigger() then
-      PakettiMetaSynthGenerateBatchInstruments("wavetable", 20)
+      PakettiMetaSynthLaunchBatchGeneration("wavetable", 20)
     end
   end
 }

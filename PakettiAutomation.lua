@@ -17,6 +17,32 @@ local function safe_clear_range_flood_fill(envelope, from_time, to_time)
   end
 end
 
+-- Helper function to normalize automation selection range for proper end line handling
+-- When selecting to the last row of a pattern, selection_range[2] returns pattern_length + 1
+-- (e.g., selecting to row 64 returns 65.0). This function adjusts for proper point placement.
+-- Returns: start_line, loop_end (for integer iteration), effective_end_line (for final point)
+local function normalize_automation_selection(selection, pattern_length)
+  local start_line = selection[1]
+  local end_line = selection[2]
+  
+  -- For integer loops, use floor of the end line
+  local loop_end = math.floor(end_line)
+  
+  -- If the selection extends to or past the pattern boundary, adjust for visual display
+  -- The final point should be placed just before the boundary (pattern_length + 0.9999)
+  -- so it's visible at the end of the pattern
+  local effective_end_line = end_line
+  if end_line > pattern_length then
+    effective_end_line = pattern_length + 0.9999
+    -- Also clamp loop_end to pattern_length for integer iteration
+    if loop_end > pattern_length then
+      loop_end = pattern_length
+    end
+  end
+  
+  return start_line, loop_end, effective_end_line
+end
+
 -- Utility Functions
 local function set_edit_mode(value)
   local song=renoise.song()
@@ -743,29 +769,34 @@ function apply_selection_up_linear()
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
 
   if automation_parameter.name == "Volume" then
-    envelope:clear_range(start_line, end_line)
+    envelope:clear_range(start_line, original_end_line)
     -- Add points for each line to ensure complete coverage
-    for i = start_line, end_line do
-      local normalizedPosition = (i - start_line) / (end_line - start_line)
+    for i = start_line, loop_end do
+      local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
       local value = normalizedPosition * 0.715  -- Linear interpolation to unity gain
       envelope:add_point_at(i, value)
     end
+    -- Add final point at effective end position
+    envelope:add_point_at(effective_end_line, 0.715)
   else
-    envelope:clear_range(start_line, end_line)
-    for i = start_line, end_line do
-      local normalizedPosition = (i - start_line) / (end_line - start_line)
+    envelope:clear_range(start_line, original_end_line)
+    for i = start_line, loop_end do
+      local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
       local value = normalizedPosition
       envelope:add_point_at(i, value)
     end
+    -- Add final point at effective end position
+    envelope:add_point_at(effective_end_line, 1.0)
   end
 
   print("Selection Up Linear applied:")
   print("Start Line: " .. start_line .. ", Value: " .. automation_parameter.value_min)
-  print("End Line: " .. end_line .. ", Value: 1.0")
+  print("End Line: " .. effective_end_line .. ", Value: 1.0")
 end
 
 local renoise = renoise
@@ -788,29 +819,34 @@ function apply_selection_down_linear()
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
 
   if automation_parameter.name == "Volume" then
-    envelope:clear_range(start_line, end_line)
+    envelope:clear_range(start_line, original_end_line)
     -- Add points for each line to ensure complete coverage
-    for i = start_line, end_line do
-      local normalizedPosition = (i - start_line) / (end_line - start_line)
+    for i = start_line, loop_end do
+      local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
       local value = (1 - normalizedPosition) * 0.715  -- Linear interpolation from unity gain to zero
       envelope:add_point_at(i, value)
     end
+    -- Add final point at effective end position
+    envelope:add_point_at(effective_end_line, 0.0)
   else
-    envelope:clear_range(start_line, end_line)
-    for i = start_line, end_line do
-      local normalizedPosition = (i - start_line) / (end_line - start_line)
+    envelope:clear_range(start_line, original_end_line)
+    for i = start_line, loop_end do
+      local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
       local value = 1 - normalizedPosition
       envelope:add_point_at(i, value)
     end
+    -- Add final point at effective end position
+    envelope:add_point_at(effective_end_line, 0.0)
   end
 
   print("Selection Down Linear applied:")
   print("Start Line: " .. start_line .. ", Value: 1.0")
-  print("End Line: " .. end_line .. ", Value: " .. automation_parameter.value_min)
+  print("End Line: " .. effective_end_line .. ", Value: " .. automation_parameter.value_min)
 end
 
 local renoise = renoise
@@ -831,14 +867,15 @@ function apply_constant_automation_top_to_top(type)
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
 
-  envelope:clear_range(start_line, end_line)
+  envelope:clear_range(start_line, original_end_line)
   envelope:add_point_at(start_line, 1.0)
   envelope:add_point_at(start_line + 1, 1.0)  -- A tick after start
-  envelope:add_point_at(end_line - 1, 1.0)  -- Just before end
-  envelope:add_point_at(end_line, 1.0)
+  envelope:add_point_at(effective_end_line - 1, 1.0)  -- Just before end
+  envelope:add_point_at(effective_end_line, 1.0)
 end
 
 local renoise = renoise
@@ -861,14 +898,15 @@ function apply_constant_automation_bottom_to_bottom(type)
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
 
-  envelope:clear_range(start_line, end_line)
+  envelope:clear_range(start_line, original_end_line)
   envelope:add_point_at(start_line, 0.0)
   envelope:add_point_at(start_line + 1, 0.0)  -- A tick after start
-  envelope:add_point_at(end_line - 1, 0.0)  -- Just before end
-  envelope:add_point_at(end_line, 0.0)
+  envelope:add_point_at(effective_end_line - 1, 0.0)  -- Just before end
+  envelope:add_point_at(effective_end_line, 0.0)
 end
 
 
@@ -895,24 +933,25 @@ function apply_exponential_automation_curve_top_to_center(type)
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
 
-  print("Automation from line " .. start_line .. " to " .. end_line)  -- Debug for range
+  print("Automation from line " .. start_line .. " to " .. effective_end_line)  -- Debug for range
 
-  envelope:clear_range(start_line, end_line)
+  envelope:clear_range(start_line, original_end_line)
 
   local k = 6  -- Steepness factor
-  for i = start_line, end_line do
-    local normalizedPosition = (i - start_line) / (end_line - start_line)
+  for i = start_line, loop_end do
+    local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
     local value = 1.0 - 0.5 * (1 - math.exp(-k * normalizedPosition))  -- Adjusted for decay starting at 1.0
     envelope:add_point_at(i, value)
     print("Adding point at line " .. i .. " with value " .. value)  -- Debug print
   end
 
-  -- Explicitly set the last point at end_line to 0.5
-  envelope:add_point_at(end_line, 0.5)
-  print("Explicitly setting final point at line " .. end_line .. " with value 0.5")  -- Debug print for the final point
+  -- Explicitly set the last point at effective_end_line to 0.5
+  envelope:add_point_at(effective_end_line, 0.5)
+  print("Explicitly setting final point at line " .. effective_end_line .. " with value 0.5")  -- Debug print for the final point
 end
 
 
@@ -940,25 +979,26 @@ function apply_exponential_automation_curve_bottom_to_center(type)
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
 
-  print("Automation from line " .. start_line .. " to " .. end_line)  -- Debug for range
+  print("Automation from line " .. start_line .. " to " .. effective_end_line)  -- Debug for range
 
-  envelope:clear_range(start_line, end_line)
+  envelope:clear_range(start_line, original_end_line)
 
   local k = 6  -- Steepness factor
-  -- We make sure to include the last index by going up to end_line
-  for i = start_line, end_line do
-    local normalizedPosition = (i - start_line) / (end_line - start_line)
+  -- We make sure to include the last index by going up to loop_end
+  for i = start_line, loop_end do
+    local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
     local value = 0.5 * (1 - math.exp(-k * normalizedPosition))
     envelope:add_point_at(i, value)
     print("Adding point at line " .. i .. " with value " .. value)  -- Debug print
   end
   
-    -- Explicitly set the last point at end_line to 0.5
-  envelope:add_point_at(end_line, 0.5)
-  print("Explicitly setting final point at line " .. end_line .. " with value 0.5")  -- Debug print for the final point
+  -- Explicitly set the last point at effective_end_line to 0.5
+  envelope:add_point_at(effective_end_line, 0.5)
+  print("Explicitly setting final point at line " .. effective_end_line .. " with value 0.5")  -- Debug print for the final point
 
 end
 
@@ -985,17 +1025,18 @@ function apply_exponential_automation_curve_center_to_bottom(type)
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
 
-  envelope:clear_range(start_line, end_line)
+  envelope:clear_range(start_line, original_end_line)
 
   local k = 3
   local exp_k = math.exp(k)
   local denominator = exp_k - 1
 
-  for i = start_line, end_line - 1 do  -- Loop until the second last point
-    local normalizedPosition = (i - start_line) / (end_line - start_line)
+  for i = start_line, loop_end - 1 do  -- Loop until the second last point
+    local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
     local exp_value = (math.exp(k * normalizedPosition) - 1) / denominator
     local value = 0.5 - 0.5 * exp_value
 
@@ -1004,7 +1045,7 @@ function apply_exponential_automation_curve_center_to_bottom(type)
 
     envelope:add_point_at(i, value)
   end
-  envelope:add_point_at(end_line, 0.0)  -- Explicitly set the last point to 0.0
+  envelope:add_point_at(effective_end_line, 0.0)  -- Explicitly set the last point to 0.0
 end
 
 
@@ -1031,17 +1072,18 @@ function apply_exponential_automation_curve_center_to_top(type)
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
 
-  envelope:clear_range(start_line, end_line)
+  envelope:clear_range(start_line, original_end_line)
 
   local k = 3
   local exp_k = math.exp(k)
   local denominator = exp_k - 1
 
-  for i = start_line, end_line - 1 do  -- Loop until the second last point
-    local normalizedPosition = (i - start_line) / (end_line - start_line)
+  for i = start_line, loop_end - 1 do  -- Loop until the second last point
+    local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
     local exp_value = (math.exp(k * normalizedPosition) - 1) / denominator
     local value = 0.5 + 0.5 * exp_value
 
@@ -1050,7 +1092,7 @@ function apply_exponential_automation_curve_center_to_top(type)
 
     envelope:add_point_at(i, value)
   end
-  envelope:add_point_at(end_line, 1.0)  -- Explicitly set the last point to 1.0
+  envelope:add_point_at(effective_end_line, 1.0)  -- Explicitly set the last point to 1.0
 end
 
 
@@ -1080,32 +1122,34 @@ function apply_exponential_automation_curveDOWN(type)
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
 
-  print("Selection start: " .. start_line .. ", end: " .. end_line)  -- Debug for selection range
+  print("Selection start: " .. start_line .. ", end: " .. effective_end_line)  -- Debug for selection range
 
-  envelope:clear_range(start_line, end_line)
+  envelope:clear_range(start_line, original_end_line)
 
   local k = 3  -- Adjust this value to change the steepness of the curve
   if automation_parameter.name == "Volume" then
-    for i = start_line, end_line do
-      local normalizedPosition = (i - start_line) / (end_line - start_line)
+    for i = start_line, loop_end do
+      local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
       local value = get_volume_value(normalizedPosition, "exp_down")
       envelope:add_point_at(i, value)
     end
+    -- Add final point for volume
+    envelope:add_point_at(effective_end_line, 0.0)
   else
-
-  for i = start_line, end_line do
-    local normalizedPosition = (i - start_line) / (end_line - start_line)
-    local value = 1 - (math.exp(k * normalizedPosition) / math.exp(k))  -- Using exponential decay
-    envelope:add_point_at(i, value)
-    print("Adding point at line " .. i .. " with value " .. value)  -- Debug print
+    for i = start_line, loop_end do
+      local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
+      local value = 1 - (math.exp(k * normalizedPosition) / math.exp(k))  -- Using exponential decay
+      envelope:add_point_at(i, value)
+      print("Adding point at line " .. i .. " with value " .. value)  -- Debug print
+    end
+    -- Explicitly setting the last point to ensure it hits exactly 0.0
+    envelope:add_point_at(effective_end_line, 0.0)
+    print("Explicitly setting final point at line " .. effective_end_line .. " with value 0.0")  -- Debug print for the final point
   end
-end 
-  -- Explicitly setting the last point to ensure it hits exactly 0.0
-  envelope:add_point_at(end_line, 0.0)
-  print("Explicitly setting final point at line " .. end_line .. " with value 0.0")  -- Debug print for the final point
 end
 
 
@@ -1130,25 +1174,30 @@ function apply_exponential_automation_curveUP()
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
 
-  envelope:clear_range(start_line, end_line)
+  envelope:clear_range(start_line, original_end_line)
 
   local k = 3  -- Adjust this value to change the steepness of the curve
   
   if automation_parameter.name == "Volume" then
-    for i = start_line, end_line do
-      local normalizedPosition = (i - start_line) / (end_line - start_line)
+    for i = start_line, loop_end do
+      local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
       local value = get_volume_value(normalizedPosition, "exp_up")
       envelope:add_point_at(i, value)
     end
+    -- Add final point for volume
+    envelope:add_point_at(effective_end_line, 0.715)
   else
-    for i = start_line, end_line do
-      local normalizedPosition = (i - start_line) / (end_line - start_line)
+    for i = start_line, loop_end do
+      local normalizedPosition = (i - start_line) / (effective_end_line - start_line)
       local value = (math.exp(k * normalizedPosition)) / (math.exp(k))
       envelope:add_point_at(i, value)
     end
+    -- Add final point
+    envelope:add_point_at(effective_end_line, 1.0)
   end
 end
 --------
@@ -1202,24 +1251,25 @@ function apply_linear_automation_curveCenter(type)
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
   local mid_val = (automation_parameter.value_min + automation_parameter.value_max) / 2
 
-  envelope:clear_range(start_line, end_line)
+  envelope:clear_range(start_line, original_end_line)
 
   if type == "center_up_linear" then
     envelope:add_point_at(start_line, mid_val)
-    envelope:add_point_at(end_line, automation_parameter.value_max)
+    envelope:add_point_at(effective_end_line, automation_parameter.value_max)
   elseif type == "center_down_linear" then
     envelope:add_point_at(start_line, mid_val)
-    envelope:add_point_at(end_line, automation_parameter.value_min)
+    envelope:add_point_at(effective_end_line, automation_parameter.value_min)
   elseif type == "up_center_linear" then
     envelope:add_point_at(start_line, automation_parameter.value_max)
-    envelope:add_point_at(end_line, mid_val)
+    envelope:add_point_at(effective_end_line, mid_val)
   elseif type == "down_center_linear" then
     envelope:add_point_at(start_line, automation_parameter.value_min)
-    envelope:add_point_at(end_line, mid_val)
+    envelope:add_point_at(effective_end_line, mid_val)
   end
 end
 
@@ -1238,13 +1288,14 @@ function set_to_center()
   end
 
   local selection = envelope.selection_range
-  local start_line = selection[1]
-  local end_line = selection[2]
+  local pattern_length = song.selected_pattern.number_of_lines
+  local start_line, loop_end, effective_end_line = normalize_automation_selection(selection, pattern_length)
+  local original_end_line = selection[2]
   local mid_val = (automation_parameter.value_min + automation_parameter.value_max) / 2
 
-  envelope:clear_range(start_line, end_line)
+  envelope:clear_range(start_line, original_end_line)
   envelope:add_point_at(start_line, mid_val)
-  envelope:add_point_at(end_line, mid_val)
+  envelope:add_point_at(effective_end_line, mid_val)
 end
 
 function openExternalInstrumentEditor()

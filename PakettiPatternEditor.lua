@@ -10381,6 +10381,19 @@ function PakettiSelectionFollowToEndIdleNotifier()
     start_column = 1,
     end_column = last_column
   }
+  
+  -- Also select automation range if automation frame is visible
+  if renoise.app().window.lower_frame_is_visible and 
+     renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+    local automation_param = song.selected_automation_parameter
+    if automation_param then
+      local pattern_track = song.selected_pattern_track
+      local automation = pattern_track:find_automation(automation_param)
+      if automation then
+        automation.selection_range = {current_line, pattern.number_of_lines}
+      end
+    end
+  end
 end
 
 -- Attach the idle notifier
