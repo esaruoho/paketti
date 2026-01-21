@@ -9008,7 +9008,7 @@ function PakettiMetaSynthApplyProfileDefaultsToGroup(group, profile_name, archit
   -- Apply OSCILLATOR GROUP FX rules (per-group FX from Layer 4)
   group.group_master_fx_enabled = osc_group_rules.osc_group_fx_enabled ~= false
   local fx_count_range = osc_group_rules.osc_group_fx_count_range or {1, 2}
-  group.group_master_fx_count = math.random(fx_count_range[1], fx_count_range[2])
+  group.group_master_fx_count = math.max(1, math.min(5, math.random(math.max(1, fx_count_range[1]), fx_count_range[2])))
   
   -- Set FX types from tendencies
   group.group_master_fx_types = {}
@@ -14353,31 +14353,28 @@ end
 
 -- Custom key handler for dialog
 function PakettiMetaSynthKeyHandler(dialog, key)
-  -- Let my_keyhandler_func handle it first if available
-  if my_keyhandler_func then
-    local handled = my_keyhandler_func(dialog, key)
-    if handled then return end
-  end
-  
-  -- Handle our own shortcuts
+  -- Handle our shortcuts
   if key.modifiers == "" then
-    if key.name == "return" then
+    if key.name == "return" or key.name == "numpadenter" then
       -- Enter = Generate
       PakettiMetaSynthGenerateInstrument(PakettiMetaSynthCurrentArchitecture)
-      return
+      return nil  -- Consume the key
     elseif key.name == "r" then
       -- R = Randomize
       PakettiMetaSynthRandomizeArchitecture(PakettiMetaSynthCurrentArchitecture)
       PakettiMetaSynthRebuildDialog()
-      return
+      return nil  -- Consume the key
     elseif key.name == "esc" then
       -- Escape = Close
       if PakettiMetaSynthDialog and PakettiMetaSynthDialog.visible then
         PakettiMetaSynthDialog:close()
+        PakettiMetaSynthDialog = nil
       end
-      return
+      return nil  -- Consume the key
     end
   end
+  -- Pass unhandled keys to dialog
+  return key
 end
 
 -- Build oscillator row for GUI (with folder browse button, Oscillator FX controls, and modulation routing)
@@ -14438,7 +14435,7 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
         min = 1,
         max = 12,
         value = osc.sample_count,
-        width = 40,
+        width = 50,
         tooltip = "Sample count per frame",
         notifier = function(value)
           osc.sample_count = value
@@ -14452,7 +14449,7 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
         min = 1,
         max = 8,
         value = osc.unison_voices,
-        width = 40,
+        width = 50,
         tooltip = "Unison voices",
         notifier = function(value)
           osc.unison_voices = value
@@ -14466,7 +14463,7 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
         min = 1,
         max = 16,
         value = osc.frame_count,
-        width = 40,
+        width = 50,
         tooltip = "Frame count (wavetable positions)",
         notifier = function(value)
           osc.frame_count = value
@@ -14554,7 +14551,7 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
         min = 1,
         max = 5,
         value = osc_fx_count,
-        width = 35,
+        width = 50,
         tooltip = "Number of FX devices",
         notifier = function(value)
           osc.osc_fx_count = value
@@ -14682,7 +14679,7 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
         min = 0,
         max = 24,
         value = mod.pitchbend_range,
-        width = 35,
+        width = 50,
         tooltip = "Pitch Bend range (semitones)",
         notifier = function(value)
           mod.pitchbend_range = value
@@ -14756,7 +14753,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
   -- Determine initial values for Group Master FX controls (with defaults)
   local group_master_fx_enabled = group.group_master_fx_enabled or false
   local group_master_fx_mode = group.group_master_fx_mode or "random"
-  local group_master_fx_count = group.group_master_fx_count or 3
+  local group_master_fx_count = math.max(1, math.min(5, group.group_master_fx_count or 3))
   local group_master_fx_types = group.group_master_fx_types or {}
   
   -- Map mode to popup index (Random=1, Selective=2)
@@ -14765,6 +14762,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
   return vb:column {
     id = group_id,
     style = "group",
+    width = 440,
     
     -- ================================================================
     -- GROUP + MODULATION LAYER (Unified Structural Level)
@@ -14995,7 +14993,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
         min = 1,
         max = 5,
         value = group_master_fx_count,
-        width = 35,
+        width = 50,
         tooltip = "Number of FX devices",
         notifier = function(value)
           group.group_master_fx_count = value
@@ -15024,7 +15022,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           end
         end
       },
-      vb:text { text = "Cln", width = 22 },
+      vb:text { text = "Cln", width = 25 },
       vb:checkbox {
         id = group_id .. "_fx_character",
         value = (function()
@@ -15043,7 +15041,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           end
         end
       },
-      vb:text { text = "Chr", width = 22 },
+      vb:text { text = "Chr", width = 25 },
       vb:checkbox {
         id = group_id .. "_fx_movement",
         value = (function()
@@ -15062,7 +15060,10 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           end
         end
       },
-      vb:text { text = "Mov", width = 24 },
+      vb:text { text = "Mov", width = 25 }
+    },
+    vb:row {
+      vb:text { text = "", width = 50 },
       vb:checkbox {
         id = group_id .. "_fx_spatial",
         value = (function()
@@ -15081,7 +15082,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           end
         end
       },
-      vb:text { text = "Spc", width = 22 },
+      vb:text { text = "Spc", width = 25 },
       vb:checkbox {
         id = group_id .. "_fx_aggressive",
         value = (function()
@@ -15100,7 +15101,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           end
         end
       },
-      vb:text { text = "Agr", width = 22 }
+      vb:text { text = "Agr", width = 25 }
     },
     
     -- Group Frames Controls (Meta-wavetable at group level)
@@ -15120,7 +15121,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
         min = 1,
         max = 8,
         value = group.group_frame_count or 1,
-        width = 40,
+        width = 50,
         notifier = function(value)
           group.group_frame_count = value
         end
@@ -15210,7 +15211,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
         min = 0,
         max = 5,
         value = group.group_frame_fx_count or 1,
-        width = 35,
+        width = 50,
         tooltip = "Number of FX devices per group frame",
         notifier = function(value)
           group.group_frame_fx_count = value
@@ -15232,7 +15233,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           end
         end
       },
-      vb:text { text = "Stepper", width = 45 },
+      vb:text { text = "Stepper", width = 50 },
       vb:popup {
         id = group_id .. "_stepper_target",
         items = {"Volume", "Filter", "Pitch"},
@@ -15242,7 +15243,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           elseif target == "filter" then return 2
           else return 3 end
         end)(),
-        width = 55,
+        width = 70,
         notifier = function(value)
           if not group.stepper_config then
             group.stepper_config = { steps = {1.0, 0.8, 0.5, 0.3}, rate = "1/16" }
@@ -15284,7 +15285,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           end
         end
       },
-      vb:text { text = "ARP", width = 25 },
+      vb:text { text = "ARP", width = 50 },
       vb:popup {
         id = group_id .. "_arp_pattern",
         items = {"Up", "Down", "Up-Down", "Minor Up", "Minor Down", "Octave", "Fifth", "Random"},
@@ -15326,7 +15327,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
         min = 1,
         max = 4,
         value = group.arp_config and group.arp_config.octaves or 1,
-        width = 35,
+        width = 50,
         notifier = function(value)
           if not group.arp_config then
             group.arp_config = { pattern = "up", rate = "1/16", enabled = true }
@@ -15641,7 +15642,7 @@ function PakettiMetaSynthAddGroupFromProfile(profile_name)
     -- Group Master FX settings (from profile group_fx rules)
     group_master_fx_enabled = fx_rules.enabled ~= false,
     group_master_fx_mode = (#(fx_rules.tendencies or {}) > 0) and "selective" or "random",
-    group_master_fx_count = math.random((fx_rules.count_range or {1, 2})[1], (fx_rules.count_range or {1, 2})[2]),
+    group_master_fx_count = math.max(1, math.min(5, math.random(math.max(1, (fx_rules.count_range or {1, 2})[1]), (fx_rules.count_range or {1, 2})[2]))),
     group_master_fx_types = fx_rules.tendencies or {},
     -- Group Frames settings (from profile group_frame rules)
     group_frames_enabled = group_frame_rules.enabled or false,
@@ -15679,7 +15680,8 @@ function PakettiMetaSynthBuildDialogContent()
   
   -- Build oscillator groups section
   local groups_column = vb:column {
-    id = "groups_container"
+    id = "groups_container",
+    width = 445
   }
   
   for gi, group in ipairs(arch.oscillator_groups) do
@@ -15846,34 +15848,39 @@ function PakettiMetaSynthBuildDialogContent()
         groups_column
       },
       
-      -- Right column: Preview and Settings
-      vb:column {
-        width = 180,
+      -- Right panel: Preview and Settings (3 columns side by side)
+      vb:row {
         
-        -- Preview section
+        -- COLUMN 1: Preview, Crossfade, FX Randomization, Total Group FX
         vb:column {
-          style = "group",
+          width = 220,
           
-          vb:text { text = "Preview", font = "bold" },
-          vb:text { id = "preview_samples", text = "Samples: 0/12" },
-          vb:text { id = "preview_fx_chains", text = "FX Chains: 0" },
-          vb:text { id = "preview_group_morph", text = "Group Morph: Off" },
-          vb:text { id = "preview_osc_fx", text = "Osc FX: Off" },
-          vb:text { id = "preview_master_fx", text = "Master FX: Off" },
-          vb:text { id = "preview_global_frames", text = "Global Frames: Off" },
-          vb:text { id = "preview_group_scan", text = "Group Scan: Off" },
-          vb:text { id = "preview_vector", text = "Vector: Off" },
+          -- Preview section
+          vb:column {
+            style = "group",
+            width = 205,
+            
+            vb:text { text = "Preview", style = "strong", font = "bold" },
+          vb:text { id = "preview_samples", text = "Samples 0/12" },
+          vb:text { id = "preview_fx_chains", text = "FX Chains 0" },
+          vb:text { id = "preview_group_morph", text = "Group Morph Off" },
+          vb:text { id = "preview_osc_fx", text = "Osc FX Off" },
+          vb:text { id = "preview_master_fx", text = "Master FX Off" },
+          vb:text { id = "preview_global_frames", text = "Global Frames Off" },
+          vb:text { id = "preview_group_scan", text = "Group Scan Off" },
+          vb:text { id = "preview_vector", text = "Vector Off" },
           vb:text { id = "preview_warning", text = "" }
         },
         
         -- Crossfade Settings
-        vb:column {
-          style = "group",
+          vb:column {
+            style = "group",
+            width = 205,
           
-          vb:text { text = "Crossfade", font = "bold" },
+          vb:text { text = "Crossfade", style = "strong", font = "bold" },
           
           vb:row {
-            vb:text { text = "Curve:", width = 55 },
+            vb:text { text = "Curve", width = 65 },
             vb:popup {
               id = "crossfade_curve",
               items = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"},
@@ -15886,7 +15893,7 @@ function PakettiMetaSynthBuildDialogContent()
                 elseif curve == "spectral" then return 5
                 else return 6 end
               end)(),
-              width = 90,
+              width = 130,
               notifier = function(value)
                 arch.crossfade.curve_type = ({"linear", "equal_power", "s_curve", "stepped", "spectral", "vector"})[value]
               end
@@ -15894,12 +15901,12 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Ctrl:", width = 55 },
+            vb:text { text = "Ctrl", width = 65 },
             vb:popup {
               id = "crossfade_control",
               items = {"Macro", "LFO"},
               value = arch.crossfade.control_source == "macro" and 1 or 2,
-              width = 90,
+              width = 130,
               notifier = function(value)
                 arch.crossfade.control_source = value == 1 and "macro" or "lfo"
               end
@@ -15907,13 +15914,13 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Macro:", width = 55 },
+            vb:text { text = "Macro", width = 65 },
             vb:valuebox {
               id = "crossfade_macro",
               min = 1,
               max = 8,
               value = arch.crossfade.macro_index,
-              width = 50,
+              width = 55,
               notifier = function(value)
                 arch.crossfade.macro_index = value
               end
@@ -15922,13 +15929,13 @@ function PakettiMetaSynthBuildDialogContent()
           
           -- Frame LFO Rate Mode
           vb:row {
-            vb:text { text = "LFO Mode:", width = 55 },
+            vb:text { text = "LFO Mode", width = 65 },
             vb:popup {
               id = "frame_lfo_rate_mode",
               items = {"Free", "Tempo Sync", "Preset"},
               value = arch.crossfade.lfo_rate_mode == "free" and 1 or 
                      (arch.crossfade.lfo_rate_mode == "tempo_sync" and 2 or 3),
-              width = 80,
+              width = 130,
               notifier = function(value)
                 arch.crossfade.lfo_rate_mode = ({"free", "tempo_sync", "preset"})[value]
               end
@@ -15936,13 +15943,13 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Free Hz:", width = 55 },
+            vb:text { text = "Free Hz", width = 65 },
             vb:valuefield {
               id = "frame_lfo_rate_free",
               min = 0.01,
               max = 10,
               value = arch.crossfade.lfo_rate_free or 0.5,
-              width = 60,
+              width = 70,
               notifier = function(value)
                 arch.crossfade.lfo_rate_free = value
               end
@@ -15950,12 +15957,12 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Sync:", width = 55 },
+            vb:text { text = "Sync", width = 65 },
             vb:popup {
               id = "frame_lfo_rate_sync",
               items = {"1/16", "1/8", "1/4", "1/2", "1 bar", "2 bars", "4 bars"},
               value = ({["1/16"]=1, ["1/8"]=2, ["1/4"]=3, ["1/2"]=4, ["1 bar"]=5, ["2 bars"]=6, ["4 bars"]=7})[arch.crossfade.lfo_rate_sync or "1 bar"] or 5,
-              width = 80,
+              width = 130,
               notifier = function(value)
                 arch.crossfade.lfo_rate_sync = ({"1/16", "1/8", "1/4", "1/2", "1 bar", "2 bars", "4 bars"})[value]
               end
@@ -15963,13 +15970,13 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Preset:", width = 55 },
+            vb:text { text = "Preset", width = 65 },
             vb:popup {
               id = "frame_lfo_rate_preset",
               items = {"Slow", "Medium", "Fast"},
               value = arch.crossfade.lfo_rate_preset == "slow" and 1 or 
                      (arch.crossfade.lfo_rate_preset == "medium" and 2 or 3),
-              width = 80,
+              width = 130,
               notifier = function(value)
                 arch.crossfade.lfo_rate_preset = ({"slow", "medium", "fast"})[value]
               end
@@ -15980,8 +15987,9 @@ function PakettiMetaSynthBuildDialogContent()
         -- FX Randomization
         vb:column {
           style = "group",
+          width = 205,
           
-          vb:text { text = "FX Randomization", font = "bold" },
+          vb:text { text = "FX Randomization", style = "strong", font = "bold" },
           
           vb:row {
             vb:checkbox {
@@ -15995,13 +16003,13 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Amt:", width = 55 },
+            vb:text { text = "Amt", width = 65 },
             vb:slider {
               id = "fx_amount",
               min = 0,
               max = 1,
               value = arch.fx_randomization.param_randomization,
-              width = 100,
+              width = 130,
               notifier = function(value)
                 arch.fx_randomization.param_randomization = value
               end
@@ -16012,8 +16020,9 @@ function PakettiMetaSynthBuildDialogContent()
         -- Total Group FX / Stack Master FX (FX after all groups summed)
         vb:column {
           style = "group",
+          width = 205,
           
-          vb:text { text = "Total Group FX", font = "bold", tooltip = "FX applied after all groups are summed (Stack Master)" },
+          vb:text { text = "Total Group FX", style = "strong", font = "bold", tooltip = "FX applied after all groups are summed (Stack Master)" },
           
           vb:row {
             vb:checkbox {
@@ -16036,7 +16045,7 @@ function PakettiMetaSynthBuildDialogContent()
                 end
                 return 1
               end)(),
-              width = 100,
+              width = 130,
               tooltip = "FX Category for Total Group FX",
               notifier = function(value)
                 if value == 1 then
@@ -16049,7 +16058,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Mode:", width = 40 },
+            vb:text { text = "Mode", width = 65 },
             vb:popup {
               id = "stack_master_mode",
               items = {"Random", "Selective"},
@@ -16059,13 +16068,13 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.stack_master_fx_mode = value == 1 and "random" or "selective"
               end
             },
-            vb:text { text = "N:" },
+            vb:text { text = "N" },
             vb:valuebox {
               id = "stack_master_count",
               min = 1,
               max = 5,
               value = arch.stack_master_fx_count or 3,
-              width = 40,
+              width = 55,
               tooltip = "Number of FX devices",
               notifier = function(value)
                 arch.stack_master_fx_count = value
@@ -16074,12 +16083,12 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Route:", width = 40 },
+            vb:text { text = "Route", width = 65 },
             vb:popup {
               id = "master_routing_mode",
               items = {"Chain Output", "#Send Device"},
               value = (arch.master_routing_mode or "output_routing") == "send_device" and 2 or 1,
-              width = 90,
+              width = 130,
               tooltip = "Chain Output: uses output_routing property\n#Send Device: adds #Send device to each chain",
               notifier = function(value)
                 arch.master_routing_mode = value == 1 and "output_routing" or "send_device"
@@ -16088,7 +16097,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           -- FX Archetype selection
-          vb:text { text = "FX Style:", font = "italic" },
+          vb:text { text = "FX Style", font = "italic" },
           vb:row {
             vb:checkbox {
               id = "stack_fx_clean",
@@ -16146,7 +16155,9 @@ function PakettiMetaSynthBuildDialogContent()
                 end
               end
             },
-            vb:text { text = "Move", width = 35 },
+            vb:text { text = "Move", width = 35 }
+          },
+          vb:row {
             vb:checkbox {
               id = "stack_fx_spatial",
               value = (function()
@@ -16165,7 +16176,7 @@ function PakettiMetaSynthBuildDialogContent()
                 end
               end
             },
-            vb:text { text = "Space", width = 40 },
+            vb:text { text = "Space", width = 45 },
             vb:checkbox {
               id = "stack_fx_aggressive",
               value = (function()
@@ -16186,13 +16197,19 @@ function PakettiMetaSynthBuildDialogContent()
             },
             vb:text { text = "Aggro", width = 40 }
           }
-        },
+        }
+        },  -- End of COLUMN 1
         
-        -- Global FX Frames (frame scanning at output stage)
+        -- COLUMN 2: Global FX Frames, Group Scan, Vector Synthesis
         vb:column {
-          style = "group",
+          width = 220,
           
-          vb:text { text = "Global FX Frames", font = "bold" },
+          -- Global FX Frames (frame scanning at output stage)
+          vb:column {
+            style = "group",
+            width = 205,
+            
+            vb:text { text = "Global FX Frames", style = "strong", font = "bold" },
           
           vb:row {
             vb:checkbox {
@@ -16207,13 +16224,13 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Frames:", width = 40 },
+            vb:text { text = "Frames", width = 65 },
             vb:valuebox {
               id = "global_fx_frame_count",
               min = 1,
               max = 8,
               value = arch.global_fx_frame_count or 1,
-              width = 45,
+              width = 55,
               notifier = function(value)
                 arch.global_fx_frame_count = value
                 PakettiMetaSynthUpdatePreview()
@@ -16239,7 +16256,7 @@ function PakettiMetaSynthBuildDialogContent()
                 elseif speed == "medium" then return 2
                 else return 3 end
               end)(),
-              width = 60,
+              width = 80,
               notifier = function(value)
                 local speeds = {"slow", "medium", "fast"}
                 arch.global_fx_frame_morph_speed = speeds[value]
@@ -16248,7 +16265,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Curve:", width = 40 },
+            vb:text { text = "Curve", width = 65 },
             vb:popup {
               id = "global_fx_frame_curve",
               items = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"},
@@ -16261,7 +16278,7 @@ function PakettiMetaSynthBuildDialogContent()
                 elseif curve == "spectral" then return 5
                 else return 6 end
               end)(),
-              width = 85,
+              width = 130,
               notifier = function(value)
                 local curves = {"linear", "equal_power", "s_curve", "stepped", "spectral", "vector"}
                 arch.global_fx_frame_crossfade_curve = curves[value]
@@ -16277,7 +16294,7 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.global_fx_frame_fx_enabled = value
               end
             },
-            vb:text { text = "Frame FX", width = 50 },
+            vb:text { text = "Frame FX", width = 55 },
             vb:popup {
               id = "global_fx_frame_fx_category",
               items = PakettiMetaSynthFXCategoryList,
@@ -16289,7 +16306,7 @@ function PakettiMetaSynthBuildDialogContent()
                 end
                 return 1
               end)(),
-              width = 90,
+              width = 130,
               tooltip = "FX Category for Total Group Frame FX",
               notifier = function(value)
                 if value == 1 then
@@ -16299,13 +16316,13 @@ function PakettiMetaSynthBuildDialogContent()
                 end
               end
             },
-            vb:text { text = "N:" },
+            vb:text { text = "N" },
             vb:valuebox {
               id = "global_fx_frame_fx_count",
               min = 0,
               max = 3,
               value = arch.global_fx_frame_fx_count or 1,
-              width = 35,
+              width = 55,
               tooltip = "Number of FX devices per frame",
               notifier = function(value)
                 arch.global_fx_frame_fx_count = value
@@ -16314,7 +16331,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           -- Global FX Scan section
-          vb:text { text = "GFX Scan:", font = "italic" },
+          vb:text { text = "GFX Scan", style = "strong", font = "italic" },
           vb:row {
             vb:checkbox {
               id = "global_fx_scan_enabled",
@@ -16327,7 +16344,7 @@ function PakettiMetaSynthBuildDialogContent()
             vb:text { text = "Enable", width = 40 }
           },
           vb:row {
-            vb:text { text = "Curve:", width = 40 },
+            vb:text { text = "Curve", width = 65 },
             vb:popup {
               id = "global_fx_scan_curve",
               items = METASYNTH_CROSSFADE_CURVE_NAMES,
@@ -16338,19 +16355,19 @@ function PakettiMetaSynthBuildDialogContent()
                 end
                 return 2  -- Default to equal_power
               end)(),
-              width = 85,
+              width = 130,
               notifier = function(value)
                 arch.global_fx_scan_curve = METASYNTH_CROSSFADE_CURVES[value]
               end
             }
           },
           vb:row {
-            vb:text { text = "Ctrl:", width = 40 },
+            vb:text { text = "Ctrl", width = 65 },
             vb:popup {
               id = "global_fx_scan_control",
               items = {"LFO", "Macro"},
               value = arch.global_fx_scan_control_source == "macro" and 2 or 1,
-              width = 60,
+              width = 65,
               notifier = function(value)
                 arch.global_fx_scan_control_source = value == 2 and "macro" or "lfo"
               end
@@ -16364,7 +16381,7 @@ function PakettiMetaSynthBuildDialogContent()
                 elseif speed == "medium" then return 2
                 else return 3 end
               end)(),
-              width = 60,
+              width = 65,
               notifier = function(value)
                 local speeds = {"slow", "medium", "fast"}
                 arch.global_fx_scan_lfo_rate_preset = speeds[value]
@@ -16373,7 +16390,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           -- Global FX Vector section
-          vb:text { text = "GFX Vector:", font = "italic" },
+          vb:text { text = "GFX Vector", style = "strong", font = "italic" },
           vb:row {
             vb:checkbox {
               id = "global_fx_vector_enabled",
@@ -16383,51 +16400,51 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.global_fx_vector_enabled = value
               end
             },
-            vb:text { text = "Enable (4 Frames)", width = 90 }
+            vb:text { text = "Enable (4 Frames)", width = 100 }
           },
           vb:row {
-            vb:text { text = "X:", width = 15 },
+            vb:text { text = "X", width = 20 },
             vb:popup {
               id = "global_fx_vector_x_source",
               items = {"Macro", "LFO"},
               value = arch.global_fx_vector_x_source == "lfo" and 2 or 1,
-              width = 55,
+              width = 65,
               notifier = function(value)
                 arch.global_fx_vector_x_source = value == 2 and "lfo" or "macro"
               end
             },
-            vb:text { text = "Y:", width = 15 },
+            vb:text { text = "Y", width = 20 },
             vb:popup {
               id = "global_fx_vector_y_source",
               items = {"Macro", "LFO"},
               value = arch.global_fx_vector_y_source == "lfo" and 2 or 1,
-              width = 55,
+              width = 65,
               notifier = function(value)
                 arch.global_fx_vector_y_source = value == 2 and "lfo" or "macro"
               end
             }
           },
           vb:row {
-            vb:text { text = "X Rate:", width = 40 },
+            vb:text { text = "X Rate", width = 45 },
             vb:valuebox {
               id = "global_fx_vector_x_rate",
               min = 0.01,
               max = 5.0,
               value = arch.global_fx_vector_x_lfo_rate or 0.25,
-              width = 50,
+              width = 55,
               tostring = function(v) return string.format("%.2f", v) end,
               tonumber = function(s) return tonumber(s) or 0.25 end,
               notifier = function(value)
                 arch.global_fx_vector_x_lfo_rate = value
               end
             },
-            vb:text { text = "Y:", width = 15 },
+            vb:text { text = "Y", width = 20 },
             vb:valuebox {
               id = "global_fx_vector_y_rate",
               min = 0.01,
               max = 5.0,
               value = arch.global_fx_vector_y_lfo_rate or 0.15,
-              width = 50,
+              width = 55,
               tostring = function(v) return string.format("%.2f", v) end,
               tonumber = function(s) return tonumber(s) or 0.15 end,
               notifier = function(value)
@@ -16437,11 +16454,12 @@ function PakettiMetaSynthBuildDialogContent()
           }
         },
         
-        -- Inter-Group Scan (wavetable across groups)
+        -- Group Scan (wavetable across groups)
         vb:column {
           style = "group",
+          width = 205,
           
-          vb:text { text = "Group Scan", font = "bold" },
+          vb:text { text = "Group Scan", style = "strong", font = "bold" },
           
           vb:row {
             vb:checkbox {
@@ -16457,7 +16475,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Curve:", width = 40 },
+            vb:text { text = "Curve", width = 65 },
             vb:popup {
               id = "group_scan_curve",
               items = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"},
@@ -16470,7 +16488,7 @@ function PakettiMetaSynthBuildDialogContent()
                 elseif curve == "spectral" then return 5
                 else return 6 end
               end)(),
-              width = 85,
+              width = 130,
               notifier = function(value)
                 local curves = {"linear", "equal_power", "s_curve", "stepped", "spectral", "vector"}
                 arch.group_scan_curve = curves[value]
@@ -16479,12 +16497,12 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Ctrl:", width = 40 },
+            vb:text { text = "Ctrl", width = 65 },
             vb:popup {
               id = "group_scan_control",
               items = {"LFO", "Macro"},
               value = arch.group_scan_control_source == "macro" and 2 or 1,
-              width = 60,
+              width = 65,
               notifier = function(value)
                 arch.group_scan_control_source = value == 2 and "macro" or "lfo"
               end
@@ -16498,7 +16516,7 @@ function PakettiMetaSynthBuildDialogContent()
                 elseif speed == "medium" then return 2
                 else return 3 end
               end)(),
-              width = 60,
+              width = 65,
               notifier = function(value)
                 local speeds = {"slow", "medium", "fast"}
                 arch.group_scan_speed = speeds[value]
@@ -16510,9 +16528,10 @@ function PakettiMetaSynthBuildDialogContent()
         -- Vector Synthesis (4-group XY morph)
         vb:column {
           style = "group",
+          width = 205,
           
           
-          vb:text { text = "Vector Synthesis", font = "bold" },
+          vb:text { text = "Vector Synthesis", style = "strong", font = "bold" },
           
           vb:row {
             vb:checkbox {
@@ -16524,26 +16543,26 @@ function PakettiMetaSynthBuildDialogContent()
                 PakettiMetaSynthUpdatePreview()
               end
             },
-            vb:text { text = "Enable (4 Groups)", width = 90 }
+            vb:text { text = "Enable (4 Groups)", width = 100 }
           },
           
           vb:row {
-            vb:text { text = "X:", width = 15 },
+            vb:text { text = "X", width = 20 },
             vb:popup {
               id = "vector_x_source",
               items = {"Macro", "LFO"},
               value = arch.vector_x_source == "lfo" and 2 or 1,
-              width = 55,
+              width = 65,
               notifier = function(value)
                 arch.vector_x_source = value == 2 and "lfo" or "macro"
               end
             },
-            vb:text { text = "Y:", width = 15 },
+            vb:text { text = "Y", width = 20 },
             vb:popup {
               id = "vector_y_source",
               items = {"Macro", "LFO"},
               value = arch.vector_y_source == "lfo" and 2 or 1,
-              width = 55,
+              width = 65,
               notifier = function(value)
                 arch.vector_y_source = value == 2 and "lfo" or "macro"
               end
@@ -16551,24 +16570,24 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "X Macro:", width = 50 },
+            vb:text { text = "X Macro", width = 55 },
             vb:valuebox {
               id = "vector_x_macro",
               min = 1,
               max = 8,
               value = arch.vector_x_macro or 7,
-              width = 40,
+              width = 55,
               notifier = function(value)
                 arch.vector_x_macro = value
               end
             },
-            vb:text { text = "Y:", width = 15 },
+            vb:text { text = "Y", width = 20 },
             vb:valuebox {
               id = "vector_y_macro",
               min = 1,
               max = 8,
               value = arch.vector_y_macro or 8,
-              width = 40,
+              width = 55,
               notifier = function(value)
                 arch.vector_y_macro = value
               end
@@ -16591,12 +16610,12 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Preset:", width = 40 },
+            vb:text { text = "Preset", width = 65 },
             vb:popup {
               id = "vector_envelope_preset",
               items = {"Circle", "Figure-8", "Diagonal", "Square", "X Sweep", "Y Sweep", "Random"},
               value = 1,
-              width = 75,
+              width = 130,
               notifier = function(value)
                 local preset_names = {"circle", "figure8", "diagonal", "square", "x_sweep", "y_sweep", "random_walk"}
                 local preset = PakettiMetaSynthGetVectorEnvelopePreset(preset_names[value])
@@ -16616,13 +16635,13 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Duration:", width = 50 },
+            vb:text { text = "Duration", width = 55 },
             vb:valuebox {
               id = "vector_envelope_duration",
               min = 0.5,
               max = 32.0,
               value = arch.vector_envelope and arch.vector_envelope.duration or 4.0,
-              width = 50,
+              width = 55,
               notifier = function(value)
                 if arch.vector_envelope then
                   arch.vector_envelope.duration = value
@@ -16641,14 +16660,20 @@ function PakettiMetaSynthBuildDialogContent()
             },
             vb:text { text = "Loop" }
           }
-        },
+        }
+        },  -- End of COLUMN 2
         
-        -- Global Modulation (shared LFOs across groups)
+        -- COLUMN 3: Global Modulation, Final Output, Constraints, Shortcuts
         vb:column {
-          style = "group",
+          width = 220,
           
-          
-          vb:text { text = "Global Modulation", font = "bold" },
+          -- Global Modulation (shared LFOs across groups)
+          vb:column {
+            style = "group",
+            width = 205,
+            
+            
+            vb:text { text = "Global Modulation", style = "strong", font = "bold" },
           
           vb:row {
             vb:checkbox {
@@ -16665,7 +16690,7 @@ function PakettiMetaSynthBuildDialogContent()
             vb:text { text = "Enable" }
           },
           
-          vb:text { text = "LFO 1:", font = "italic" },
+          vb:text { text = "LFO 1", font = "italic" },
           vb:row {
             vb:checkbox {
               id = "global_mod_lfo1_enabled",
@@ -16682,7 +16707,7 @@ function PakettiMetaSynthBuildDialogContent()
               min = 0.01,
               max = 20.0,
               value = arch.global_modulation and arch.global_modulation.lfo1 and arch.global_modulation.lfo1.frequency or 0.5,
-              width = 50,
+              width = 55,
               tostring = function(v) return string.format("%.2f", v) end,
               tonumber = function(s) return tonumber(s) or 0.5 end,
               notifier = function(value)
@@ -16705,7 +16730,7 @@ function PakettiMetaSynthBuildDialogContent()
                 end
                 return 1
               end)(),
-              width = 65,
+              width = 80,
               notifier = function(value)
                 if arch.global_modulation and arch.global_modulation.lfo1 then
                   local shapes = {"sine", "triangle", "square", "saw"}
@@ -16715,7 +16740,7 @@ function PakettiMetaSynthBuildDialogContent()
             }
           },
           
-          vb:text { text = "LFO 2:", font = "italic" },
+          vb:text { text = "LFO 2", font = "italic" },
           vb:row {
             vb:checkbox {
               id = "global_mod_lfo2_enabled",
@@ -16732,7 +16757,7 @@ function PakettiMetaSynthBuildDialogContent()
               min = 0.01,
               max = 20.0,
               value = arch.global_modulation and arch.global_modulation.lfo2 and arch.global_modulation.lfo2.frequency or 0.25,
-              width = 50,
+              width = 55,
               tostring = function(v) return string.format("%.2f", v) end,
               tonumber = function(s) return tonumber(s) or 0.25 end,
               notifier = function(value)
@@ -16755,7 +16780,7 @@ function PakettiMetaSynthBuildDialogContent()
                 end
                 return 2
               end)(),
-              width = 65,
+              width = 80,
               notifier = function(value)
                 if arch.global_modulation and arch.global_modulation.lfo2 then
                   local shapes = {"sine", "triangle", "square", "saw"}
@@ -16766,12 +16791,12 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           vb:row {
-            vb:text { text = "Target:", width = 40 },
+            vb:text { text = "Target", width = 65 },
             vb:popup {
               id = "global_mod_lfo1_target",
               items = {"Group Gain", "Scan Gain", "Vector Gain"},
               value = 1,
-              width = 80,
+              width = 130,
               notifier = function(value)
                 if arch.global_modulation and arch.global_modulation.lfo1 then
                   local targets = {"group_gain", "scan_gain", "vector_gain"}
@@ -16785,9 +16810,10 @@ function PakettiMetaSynthBuildDialogContent()
         -- Final Output Stage (Master EQ, Limiter, Output Shaping)
         vb:column {
           style = "group",
+          width = 205,
           
           
-          vb:text { text = "Final Output", font = "bold" },
+          vb:text { text = "Final Output", style = "strong", font = "bold" },
           
           vb:row {
             vb:checkbox {
@@ -16802,7 +16828,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           -- Master EQ
-          vb:text { text = "Master EQ:", font = "italic" },
+          vb:text { text = "Master EQ", font = "italic" },
           vb:row {
             vb:checkbox {
               id = "final_output_eq_enabled",
@@ -16812,24 +16838,24 @@ function PakettiMetaSynthBuildDialogContent()
               end
             },
             vb:text { text = "EQ", width = 25 },
-            vb:text { text = "Low:", width = 25 },
+            vb:text { text = "Low", width = 30 },
             vb:valuebox {
               id = "final_output_eq_low",
               min = -12,
               max = 12,
               value = arch.final_output_master_eq_low_shelf or 0,
-              width = 40,
+              width = 55,
               notifier = function(value)
                 arch.final_output_master_eq_low_shelf = value
               end
             },
-            vb:text { text = "Hi:", width = 20 },
+            vb:text { text = "Hi", width = 20 },
             vb:valuebox {
               id = "final_output_eq_high",
               min = -12,
               max = 12,
               value = arch.final_output_master_eq_high_shelf or 0,
-              width = 40,
+              width = 55,
               notifier = function(value)
                 arch.final_output_master_eq_high_shelf = value
               end
@@ -16837,7 +16863,7 @@ function PakettiMetaSynthBuildDialogContent()
           },
           
           -- Limiter
-          vb:text { text = "Limiter:", font = "italic" },
+          vb:text { text = "Limiter", font = "italic" },
           vb:row {
             vb:checkbox {
               id = "final_output_limiter_enabled",
@@ -16847,13 +16873,13 @@ function PakettiMetaSynthBuildDialogContent()
               end
             },
             vb:text { text = "On", width = 20 },
-            vb:text { text = "Ceil:", width = 30 },
+            vb:text { text = "Ceil", width = 30 },
             vb:valuebox {
               id = "final_output_limiter_ceiling",
               min = -6.0,
               max = 0.0,
               value = arch.final_output_limiter_ceiling or -0.3,
-              width = 45,
+              width = 55,
               tostring = function(v) return string.format("%.1f", v) end,
               tonumber = function(s) return tonumber(s) or -0.3 end,
               notifier = function(value)
@@ -16872,7 +16898,7 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.final_output_saturation_enabled = value
               end
             },
-            vb:text { text = "Warmth", width = 45 },
+            vb:text { text = "Warmth", width = 50 },
             vb:checkbox {
               id = "final_output_width_enabled",
               value = arch.final_output_width_enabled or false,
@@ -16880,13 +16906,13 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.final_output_width_enabled = value
               end
             },
-            vb:text { text = "Width", width = 35 },
+            vb:text { text = "Width", width = 40 },
             vb:valuebox {
               id = "final_output_width_amount",
               min = 0.0,
               max = 2.0,
               value = arch.final_output_width_amount or 1.0,
-              width = 45,
+              width = 55,
               tostring = function(v) return string.format("%.1f", v) end,
               tonumber = function(s) return tonumber(s) or 1.0 end,
               notifier = function(value)
@@ -16905,13 +16931,13 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.spectral_morph_enabled = value
               end
             },
-            vb:text { text = "Spectral Morph Macro:", width = 110 },
+            vb:text { text = "Spectral Morph Macro", width = 120 },
             vb:valuebox {
               id = "spectral_morph_macro",
               min = 1,
               max = 8,
               value = arch.spectral_morph_macro_index or 5,
-              width = 35,
+              width = 55,
               notifier = function(value)
                 arch.spectral_morph_macro_index = value
               end
@@ -16922,13 +16948,14 @@ function PakettiMetaSynthBuildDialogContent()
         -- Constraints Section
         vb:column {
           style = "group",
-          vb:text { text = "Constraints", font = "bold" },
+          width = 205,
+          vb:text { text = "Constraints", style = "strong", font = "bold" },
           vb:row {
-            vb:text { text = "Groups:", width = 55 },
+            vb:text { text = "Groups", width = 65 },
             vb:valuebox {
               min = 1, max = 4,
               value = arch.constraints and arch.constraints.group_count_range and arch.constraints.group_count_range[1] or 1,
-              width = 40,
+              width = 55,
               notifier = function(v)
                 arch.constraints = arch.constraints or {}
                 arch.constraints.group_count_range = arch.constraints.group_count_range or {1, 2}
@@ -16939,7 +16966,7 @@ function PakettiMetaSynthBuildDialogContent()
             vb:valuebox {
               min = 1, max = 4,
               value = arch.constraints and arch.constraints.group_count_range and arch.constraints.group_count_range[2] or 2,
-              width = 40,
+              width = 55,
               notifier = function(v)
                 arch.constraints = arch.constraints or {}
                 arch.constraints.group_count_range = arch.constraints.group_count_range or {1, 2}
@@ -16948,11 +16975,11 @@ function PakettiMetaSynthBuildDialogContent()
             }
           },
           vb:row {
-            vb:text { text = "Frames:", width = 55 },
+            vb:text { text = "Frames", width = 65 },
             vb:valuebox {
               min = 1, max = 8,
               value = arch.constraints and arch.constraints.frame_count_range and arch.constraints.frame_count_range[1] or 1,
-              width = 40,
+              width = 55,
               notifier = function(v)
                 arch.constraints = arch.constraints or {}
                 arch.constraints.frame_count_range = arch.constraints.frame_count_range or {1, 4}
@@ -16963,7 +16990,7 @@ function PakettiMetaSynthBuildDialogContent()
             vb:valuebox {
               min = 1, max = 8,
               value = arch.constraints and arch.constraints.frame_count_range and arch.constraints.frame_count_range[2] or 4,
-              width = 40,
+              width = 55,
               notifier = function(v)
                 arch.constraints = arch.constraints or {}
                 arch.constraints.frame_count_range = arch.constraints.frame_count_range or {1, 4}
@@ -16972,11 +16999,11 @@ function PakettiMetaSynthBuildDialogContent()
             }
           },
           vb:row {
-            vb:text { text = "FX:", width = 55 },
+            vb:text { text = "FX", width = 65 },
             vb:valuebox {
               min = 0, max = 8,
               value = arch.constraints and arch.constraints.fx_count_range and arch.constraints.fx_count_range[1] or 0,
-              width = 40,
+              width = 55,
               notifier = function(v)
                 arch.constraints = arch.constraints or {}
                 arch.constraints.fx_count_range = arch.constraints.fx_count_range or {0, 4}
@@ -16987,7 +17014,7 @@ function PakettiMetaSynthBuildDialogContent()
             vb:valuebox {
               min = 0, max = 8,
               value = arch.constraints and arch.constraints.fx_count_range and arch.constraints.fx_count_range[2] or 4,
-              width = 40,
+              width = 55,
               notifier = function(v)
                 arch.constraints = arch.constraints or {}
                 arch.constraints.fx_count_range = arch.constraints.fx_count_range or {0, 4}
@@ -16995,7 +17022,7 @@ function PakettiMetaSynthBuildDialogContent()
               end
             }
           },
-          vb:text { text = "Features:", font = "italic" },
+          vb:text { text = "Features", font = "italic" },
           vb:row {
             vb:checkbox {
               value = arch.constraints and arch.constraints.allow_group_frames ~= false,
@@ -17004,7 +17031,7 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.constraints.allow_group_frames = v
               end
             },
-            vb:text { text = "Group Frames" },
+            vb:text { text = "Group Frames", width = 75 },
             vb:checkbox {
               value = arch.constraints and arch.constraints.allow_vector ~= false,
               notifier = function(v)
@@ -17012,7 +17039,7 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.constraints.allow_vector = v
               end
             },
-            vb:text { text = "Vector" }
+            vb:text { text = "Vector", width = 45 }
           },
           vb:row {
             vb:checkbox {
@@ -17022,7 +17049,7 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.constraints.allow_group_scan = v
               end
             },
-            vb:text { text = "Group Scan" },
+            vb:text { text = "Group Scan", width = 75 },
             vb:checkbox {
               value = arch.constraints and arch.constraints.allow_stepper ~= false,
               notifier = function(v)
@@ -17030,9 +17057,9 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.constraints.allow_stepper = v
               end
             },
-            vb:text { text = "Stepper" }
+            vb:text { text = "Stepper", width = 45 }
           },
-          vb:text { text = "FX Devices:", font = "italic" },
+          vb:text { text = "FX Devices", font = "italic" },
           vb:row {
             vb:checkbox {
               value = arch.constraints and arch.constraints.allow_reverb ~= false,
@@ -17041,7 +17068,7 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.constraints.allow_reverb = v
               end
             },
-            vb:text { text = "Reverb" },
+            vb:text { text = "Reverb", width = 45 },
             vb:checkbox {
               value = arch.constraints and arch.constraints.allow_chorus ~= false,
               notifier = function(v)
@@ -17049,7 +17076,7 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.constraints.allow_chorus = v
               end
             },
-            vb:text { text = "Chorus" },
+            vb:text { text = "Chorus", width = 45 },
             vb:checkbox {
               value = arch.constraints and arch.constraints.allow_distortion ~= false,
               notifier = function(v)
@@ -17057,7 +17084,7 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.constraints.allow_distortion = v
               end
             },
-            vb:text { text = "Dist" }
+            vb:text { text = "Dist", width = 30 }
           },
           vb:row {
             vb:checkbox {
@@ -17067,7 +17094,7 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.constraints.allow_filter = v
               end
             },
-            vb:text { text = "Filter" },
+            vb:text { text = "Filter", width = 45 },
             vb:checkbox {
               value = arch.constraints and arch.constraints.allow_eq ~= false,
               notifier = function(v)
@@ -17075,7 +17102,7 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.constraints.allow_eq = v
               end
             },
-            vb:text { text = "EQ" },
+            vb:text { text = "EQ", width = 45 },
             vb:checkbox {
               value = arch.constraints and arch.constraints.allow_maximizer ~= false,
               notifier = function(v)
@@ -17083,19 +17110,21 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.constraints.allow_maximizer = v
               end
             },
-            vb:text { text = "Max" }
+            vb:text { text = "Max", width = 30 }
           }
         },
         
-        -- Shortcuts hint
-        vb:column {
-          style = "group",
-          vb:text { text = "Shortcuts", font = "bold" },
-          vb:text { text = "Enter: Generate" },
-          vb:text { text = "R: Randomize" },
-          vb:text { text = "Esc: Close" }
-        }
-      }
+          -- Shortcuts hint
+          vb:column {
+            style = "group",
+            width = 205,
+            vb:text { text = "Shortcuts", style = "strong", font = "bold" },
+            vb:text { text = "Enter Generate" },
+            vb:text { text = "R Randomize" },
+            vb:text { text = "Esc Close" }
+          }
+        }  -- End of COLUMN 3
+      }  -- End of 3-column row
     },
     
     -- Bottom buttons

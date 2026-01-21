@@ -198,16 +198,16 @@ function PakettiAutomationCurvesInitShapes()
     sinDown = {values = calculated.sinDown, key = "h", image = "sin-down.png", label = "Sine Down"},
     
     -- Stairs
-    stairUp = {values = {{0, 0}, {0.25, 0}, {0.26, 0.25}, {0.5, 0.25}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.75}, {0.98, 0.75}, {0.99, 1}}, key = "1", image = "stair-up.png", label = "Stairs Up"},
-    stairDown = {values = {{0, 1}, {0.25, 1}, {0.26, 0.75}, {0.5, 0.75}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.25}, {0.98, 0.25}, {0.99, 0}}, key = "2", image = "stair-down.png", label = "Stairs Down"},
+    stairUp = {values = {{0, 0}, {0.25, 0}, {0.26, 0.25}, {0.5, 0.25}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.75}, {0.98, 0.75}, {0.99, 1}}, key = "z", image = "stair-up.png", label = "Stairs Up"},
+    stairDown = {values = {{0, 1}, {0.25, 1}, {0.26, 0.75}, {0.5, 0.75}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.25}, {0.98, 0.25}, {0.99, 0}}, key = "x", image = "stair-down.png", label = "Stairs Down"},
     
     -- Cosine
-    cosUp = {values = calculated.cosUp, key = "3", image = "cos-up.png", label = "Cosine Up"},
-    cosDown = {values = calculated.cosDown, key = "4", image = "cos-down.png", label = "Cosine Down"},
+    cosUp = {values = calculated.cosUp, key = "c", image = "cos-up.png", label = "Cosine Up"},
+    cosDown = {values = calculated.cosDown, key = "v", image = "cos-down.png", label = "Cosine Down"},
     
     -- On/Off constants (duty cycle 100% and 0%)
-    on = {values = {{0, 1}, {0.99, 1}}, key = "z", image = "on.png", label = "Constant On"},
-    off = {values = {{0, 0}, {0.99, 0}}, key = "x", image = "off.png", label = "Constant Off"},
+    off = {values = {{0, 0}, {0.99, 0}}, key = "1", image = "off.png", label = "Constant Off"},
+    on = {values = {{0, 1}, {0.99, 1}}, key = "0", image = "on.png", label = "Constant On"},
     
     -- Bell curve (Gaussian)
     bellUp = {values = calculated.bellUp, key = "o", image = "bell-up.png", label = "Bell Up"},
@@ -219,22 +219,25 @@ function PakettiAutomationCurvesInitShapes()
     
     -- Bounce
     bounceUp = {values = calculated.bounceUp, key = "l", image = "bounce-up.png", label = "Bounce Up"},
-    bounceDown = {values = calculated.bounceDown, key = "5", image = "bounce-down.png", label = "Bounce Down"},
+    bounceDown = {values = calculated.bounceDown, key = "b", image = "bounce-down.png", label = "Bounce Down"},
     
-    -- Pulse variations (10%, 25%, 50%, 75%, 80% duty cycle) - on zxcvbnm row
-    pulse10 = {values = {{0, 0}, {0.10, 0}, {0.11, 1}, {0.99, 1}}, key = "c", image = "pulse10.png", label = "Pulse 10%"},
-    pulse25 = {values = {{0, 0}, {0.25, 0}, {0.26, 1}, {0.99, 1}}, key = "v", image = "pulse25.png", label = "Pulse 25%"},
-    pulse50 = {values = {{0, 0}, {0.5, 0}, {0.51, 1}, {0.99, 1}}, key = "b", image = "pulse50.png", label = "Pulse 50%"},
-    pulse75 = {values = {{0, 0}, {0.75, 0}, {0.76, 1}, {0.99, 1}}, key = "n", image = "pulse75.png", label = "Pulse 75%"},
-    pulse80 = {values = {{0, 0}, {0.80, 0}, {0.81, 1}, {0.99, 1}}, key = "m", image = "pulse80.png", label = "Pulse 80%"},
+    -- Pulse variations in ascending order (10% to 90% duty cycle) - keys 2-9
+    pulse10 = {values = {{0, 0}, {0.10, 0}, {0.11, 1}, {0.99, 1}}, key = "2", image = "pulse10.png", label = "Pulse 10%"},
+    pulse25 = {values = {{0, 0}, {0.25, 0}, {0.26, 1}, {0.99, 1}}, key = "3", image = "pulse25.png", label = "Pulse 25%"},
+    pulse33 = {values = {{0, 0}, {0.33, 0}, {0.34, 1}, {0.99, 1}}, key = "4", image = "pulse33.png", label = "Pulse 33%"},
+    pulse50 = {values = {{0, 0}, {0.5, 0}, {0.51, 1}, {0.99, 1}}, key = "5", image = "pulse50.png", label = "Pulse 50%"},
+    pulse66 = {values = {{0, 0}, {0.66, 0}, {0.67, 1}, {0.99, 1}}, key = "6", image = "pulse66.png", label = "Pulse 66%"},
+    pulse75 = {values = {{0, 0}, {0.75, 0}, {0.76, 1}, {0.99, 1}}, key = "7", image = "pulse75.png", label = "Pulse 75%"},
+    pulse80 = {values = {{0, 0}, {0.80, 0}, {0.81, 1}, {0.99, 1}}, key = "8", image = "pulse80.png", label = "Pulse 80%"},
+    pulse90 = {values = {{0, 0}, {0.90, 0}, {0.91, 1}, {0.99, 1}}, key = "9", image = "pulse90.png", label = "Pulse 90%"},
     
     -- Random (generated at insert time)
-    randomSmooth = {values = nil, key = "6", image = "random-smooth.png", generator = "smooth", label = "Random Smooth"},
-    randomStep = {values = nil, key = "7", image = "random-step.png", generator = "step", label = "Random Step"},
+    randomSmooth = {values = nil, key = "n", image = "random-smooth.png", generator = "smooth", label = "Random Smooth"},
+    randomStep = {values = nil, key = "m", image = "random-step.png", generator = "step", label = "Random Step"},
     
     -- Sawtooth with overshoot
-    sawtoothUp = {values = {{0, 0}, {0.8, 1.1}, {0.85, 0.95}, {0.9, 1.02}, {0.95, 0.99}, {0.99, 1}}, key = "8", image = "sawtooth-up.png", label = "Sawtooth Up"},
-    sawtoothDown = {values = {{0, 1}, {0.8, -0.1}, {0.85, 0.05}, {0.9, -0.02}, {0.95, 0.01}, {0.99, 0}}, key = "9", image = "sawtooth-down.png", label = "Sawtooth Down"}
+    sawtoothUp = {values = {{0, 0}, {0.8, 1.1}, {0.85, 0.95}, {0.9, 1.02}, {0.95, 0.99}, {0.99, 1}}, key = "comma", image = "sawtooth-up.png", label = "Sawtooth Up"},
+    sawtoothDown = {values = {{0, 1}, {0.8, -0.1}, {0.85, 0.05}, {0.9, -0.02}, {0.95, 0.01}, {0.99, 0}}, key = "period", image = "sawtooth-down.png", label = "Sawtooth Down"}
   }
   
   -- Build reverse key map
@@ -493,8 +496,11 @@ function PakettiAutomationCurvesInsert(shape_name)
     step = end_line - start_line
     print("PakettiAutomationCurves: Using selection range from " .. start_line .. " to " .. end_line)
   else
-    start_line = current_line
-    end_line = current_line + step
+    -- No selection: write to full pattern
+    start_line = 1
+    end_line = num_lines + 1
+    step = num_lines
+    print("PakettiAutomationCurves: No selection, writing to full pattern (1 to " .. num_lines .. ")")
   end
   
   -- Get shape data
@@ -870,9 +876,13 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
           PakettiAutomationCurvesVb.views.input_divisor.value = PakettiAutomationCurvesInputDivisor
         end
         renoise.app():show_status("Repeat Count: " .. PakettiAutomationCurvesInputDivisor .. "x")
-        -- Auto-reapply if in LFO mode and a shape is selected
-        if PakettiAutomationCurvesWriteToLFO and PakettiAutomationCurvesSelectedShape then
-          PakettiAutomationCurvesWriteToLFOCustom(PakettiAutomationCurvesSelectedShape)
+        -- Auto-reapply if a shape is selected
+        if PakettiAutomationCurvesSelectedShape then
+          if PakettiAutomationCurvesWriteToLFO then
+            PakettiAutomationCurvesWriteToLFOCustom(PakettiAutomationCurvesSelectedShape)
+          else
+            PakettiAutomationCurvesInsert(PakettiAutomationCurvesSelectedShape)
+          end
         end
       end
       handled = true
@@ -885,9 +895,13 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
           PakettiAutomationCurvesVb.views.input_divisor.value = PakettiAutomationCurvesInputDivisor
         end
         renoise.app():show_status("Repeat Count: " .. PakettiAutomationCurvesInputDivisor .. "x")
-        -- Auto-reapply if in LFO mode and a shape is selected
-        if PakettiAutomationCurvesWriteToLFO and PakettiAutomationCurvesSelectedShape then
-          PakettiAutomationCurvesWriteToLFOCustom(PakettiAutomationCurvesSelectedShape)
+        -- Auto-reapply if a shape is selected
+        if PakettiAutomationCurvesSelectedShape then
+          if PakettiAutomationCurvesWriteToLFO then
+            PakettiAutomationCurvesWriteToLFOCustom(PakettiAutomationCurvesSelectedShape)
+          else
+            PakettiAutomationCurvesInsert(PakettiAutomationCurvesSelectedShape)
+          end
         end
       end
       handled = true
@@ -1101,18 +1115,19 @@ function PakettiAutomationCurvesShowDialog()
       vb:column{
         spacing = 4,
         
-        -- Row 1: 1 2 3 4 5 6 7 8 9 (number row - stairs, cosine, bounce, random, sawtooth)
+        -- Row 1: 1 2 3 4 5 6 7 8 9 0 (number row - off/pulses/on, ascending duty cycle)
         vb:row{
           spacing = 4,
-          PakettiAutomationCurvesMakeButton(vb, "stairUp"),
-          PakettiAutomationCurvesMakeButton(vb, "stairDown"),
-          PakettiAutomationCurvesMakeButton(vb, "cosUp"),
-          PakettiAutomationCurvesMakeButton(vb, "cosDown"),
-          PakettiAutomationCurvesMakeButton(vb, "bounceDown"),
-          PakettiAutomationCurvesMakeButton(vb, "randomSmooth"),
-          PakettiAutomationCurvesMakeButton(vb, "randomStep"),
-          PakettiAutomationCurvesMakeButton(vb, "sawtoothUp"),
-          PakettiAutomationCurvesMakeButton(vb, "sawtoothDown")
+          PakettiAutomationCurvesMakeButton(vb, "off"),       -- 1 (0%)
+          PakettiAutomationCurvesMakeButton(vb, "pulse10"),   -- 2 (10%)
+          PakettiAutomationCurvesMakeButton(vb, "pulse25"),   -- 3 (25%)
+          PakettiAutomationCurvesMakeButton(vb, "pulse33"),   -- 4 (33%)
+          PakettiAutomationCurvesMakeButton(vb, "pulse50"),   -- 5 (50%)
+          PakettiAutomationCurvesMakeButton(vb, "pulse66"),   -- 6 (66%)
+          PakettiAutomationCurvesMakeButton(vb, "pulse75"),   -- 7 (75%)
+          PakettiAutomationCurvesMakeButton(vb, "pulse80"),   -- 8 (80%)
+          PakettiAutomationCurvesMakeButton(vb, "pulse90"),   -- 9 (90%)
+          PakettiAutomationCurvesMakeButton(vb, "on")         -- 0 (100%)
         },
         
         -- Row 2: q w e r t y u i o p (10 shapes)
@@ -1144,16 +1159,18 @@ function PakettiAutomationCurvesShowDialog()
           PakettiAutomationCurvesMakeButton(vb, "bounceUp")
         },
         
-        -- Row 4: z x c v b n m (7 shapes - duty cycles: on/off + pulses)
+        -- Row 4: z x c v b n m , . (stairs, cosine, bounce, random, sawtooth)
         vb:row{
           spacing = 4,
-          PakettiAutomationCurvesMakeButton(vb, "on"),
-          PakettiAutomationCurvesMakeButton(vb, "off"),
-          PakettiAutomationCurvesMakeButton(vb, "pulse10"),
-          PakettiAutomationCurvesMakeButton(vb, "pulse25"),
-          PakettiAutomationCurvesMakeButton(vb, "pulse50"),
-          PakettiAutomationCurvesMakeButton(vb, "pulse75"),
-          PakettiAutomationCurvesMakeButton(vb, "pulse80")
+          PakettiAutomationCurvesMakeButton(vb, "stairUp"),      -- z
+          PakettiAutomationCurvesMakeButton(vb, "stairDown"),    -- x
+          PakettiAutomationCurvesMakeButton(vb, "cosUp"),        -- c
+          PakettiAutomationCurvesMakeButton(vb, "cosDown"),      -- v
+          PakettiAutomationCurvesMakeButton(vb, "bounceDown"),   -- b
+          PakettiAutomationCurvesMakeButton(vb, "randomSmooth"), -- n
+          PakettiAutomationCurvesMakeButton(vb, "randomStep"),   -- m
+          PakettiAutomationCurvesMakeButton(vb, "sawtoothUp"),   -- , (comma)
+          PakettiAutomationCurvesMakeButton(vb, "sawtoothDown")  -- . (period)
         }
       },
       
@@ -1296,7 +1313,7 @@ function PakettiAutomationCurvesShowDialog()
           }
         },
         
-        -- Input divisor switch
+        -- Input divisor switch (Repeat Count)
         vb:row{
           vb:switch{
             id = "input_divisor",
@@ -1305,9 +1322,14 @@ function PakettiAutomationCurvesShowDialog()
             items = {"1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x"},
             notifier = function(val)
               PakettiAutomationCurvesInputDivisor = val
-              -- Auto-reapply if in LFO mode and a shape is selected
-              if PakettiAutomationCurvesWriteToLFO and PakettiAutomationCurvesSelectedShape then
-                PakettiAutomationCurvesWriteToLFOCustom(PakettiAutomationCurvesSelectedShape)
+              renoise.app():show_status("Repeat Count: " .. val .. "x")
+              -- Auto-reapply if a shape is selected
+              if PakettiAutomationCurvesSelectedShape then
+                if PakettiAutomationCurvesWriteToLFO then
+                  PakettiAutomationCurvesWriteToLFOCustom(PakettiAutomationCurvesSelectedShape)
+                else
+                  PakettiAutomationCurvesInsert(PakettiAutomationCurvesSelectedShape)
+                end
               end
             end
           }
