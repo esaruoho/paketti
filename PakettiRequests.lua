@@ -936,10 +936,9 @@ function selectedInstrumentLoadMuteTrigDrumkit()
       dialog:close()
     end
 
-    -- Create one more sample slot for MuteTrig BEFORE distributing to FX chains
-    local mutetrig_sample_index = num_samples_to_load + 1
-    instrument:insert_sample_at(mutetrig_sample_index)
-    local mutetrig_sample = instrument.samples[mutetrig_sample_index]
+    -- Create one more sample slot (sample 121) BEFORE distributing to FX chains
+    instrument:insert_sample_at(121)
+    local mutetrig_sample = instrument.samples[121]
     
     -- Set the sample name
     mutetrig_sample.name = "MuteTrig"
@@ -966,15 +965,15 @@ function selectedInstrumentLoadMuteTrigDrumkit()
       end
     end
 
-    -- Reassign the MuteTrig sample to its own FX chain (one after the loaded samples)
-    local mutetrig_fx_chain_index = num_samples_to_load + 1
-    local mutetrig_sample = instrument.samples[mutetrig_sample_index]
+    -- The scaffolding instrument already has a MuteTrig sample at position 121
+    -- Just reassign it to FX chain 123
+    local mutetrig_sample = instrument.samples[121]
     if mutetrig_sample then
-      mutetrig_sample.device_chain_index = mutetrig_fx_chain_index
+      mutetrig_sample.device_chain_index = 123
     end
     
-    -- Configure the Tracker device in the MuteTrig FX chain via XML injection
-    local mutetrig_fx_chain = instrument.sample_device_chains[mutetrig_fx_chain_index]
+    -- Configure the Tracker device in FX chain 123 via XML injection
+    local mutetrig_fx_chain = instrument.sample_device_chains[123]
     if mutetrig_fx_chain then
       local devices = mutetrig_fx_chain.devices
       
@@ -1006,11 +1005,11 @@ function selectedInstrumentLoadMuteTrigDrumkit()
           device.active_preset_data = device_xml
           device.is_maximized = true
           
-          print("Configured Tracker device in FX chain " .. mutetrig_fx_chain_index .. " with SrcInstrument -1")
+          print("Configured Tracker device in FX chain 123 with SrcInstrument -1")
         end
       end
     else
-      print("Could not find FX chain " .. mutetrig_fx_chain_index .. " for MuteTrig sample")
+      print("Could not find FX chain 123 for MuteTrig sample")
     end
 
     -- Add the *Instr. Macros device like pitchBendDrumkitLoader does
