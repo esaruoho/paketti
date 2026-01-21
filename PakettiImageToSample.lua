@@ -230,28 +230,56 @@ end
 function PakettiImageToSampleCheckImageMagick()
   local platform = PakettiImageToSampleGetPlatform()
   
+  print("ImageMagick Check: Platform is " .. platform)
+  
   -- Try 'magick' first (ImageMagick 7+)
   local cmd_check = (platform == "windows") and "magick -version 2>nul" or "magick -version 2>/dev/null"
+  print("ImageMagick Check: Trying command: " .. cmd_check)
+  
   local handle = io.popen(cmd_check)
   if handle then
-    local result = handle:read("*l")
+    local result = handle:read("*a")  -- Read all output, not just first line
     handle:close()
+    print("ImageMagick Check: magick result = " .. tostring(result))
     if result and result:find("ImageMagick") then
       print("ImageMagick Check: Found 'magick' command (v7+)")
       return "magick"
     end
+  else
+    print("ImageMagick Check: io.popen failed for magick")
   end
   
   -- Try 'convert' (ImageMagick 6 or legacy)
   cmd_check = (platform == "windows") and "convert -version 2>nul" or "convert -version 2>/dev/null"
+  print("ImageMagick Check: Trying command: " .. cmd_check)
+  
   handle = io.popen(cmd_check)
   if handle then
-    local result = handle:read("*l")
+    local result = handle:read("*a")  -- Read all output
     handle:close()
+    print("ImageMagick Check: convert result = " .. tostring(result))
     if result and result:find("ImageMagick") then
       print("ImageMagick Check: Found 'convert' command (v6)")
       return "convert"
     end
+  else
+    print("ImageMagick Check: io.popen failed for convert")
+  end
+  
+  -- Fallback: Try os.execute which might work better in sandbox
+  print("ImageMagick Check: Trying os.execute fallback")
+  local null_redirect = (platform == "windows") and " >nul 2>nul" or " >/dev/null 2>&1"
+  
+  local exit_code = os.execute("magick -version" .. null_redirect)
+  if exit_code == 0 or exit_code == true then
+    print("ImageMagick Check: Found 'magick' via os.execute")
+    return "magick"
+  end
+  
+  exit_code = os.execute("convert -version" .. null_redirect)
+  if exit_code == 0 or exit_code == true then
+    print("ImageMagick Check: Found 'convert' via os.execute")
+    return "convert"
   end
   
   print("ImageMagick Check: Not found")
@@ -263,31 +291,48 @@ function PakettiImageToSampleConvertViaImageMagick(file_path, im_command)
   local platform = PakettiImageToSampleGetPlatform()
   local temp_path = os.tmpname() .. ".bmp"
   
-  -- Build command based on ImageMagick version
+  print("ImageMagick Converter: Input file: " .. file_path)
+  print("ImageMagick Converter: Output file: " .. temp_path)
+  
+  -- Build command - use 2>&1 to capture stderr in output for debugging
   local cmd
-  local null_redirect = (platform == "windows") and "2>nul" or "2>/dev/null"
+  local stderr_redirect = " 2>&1"
   
   if im_command == "magick" then
     -- ImageMagick 7+ syntax
-    cmd = string.format('magick "%s" -type TrueColor BMP3:"%s" %s', file_path, temp_path, null_redirect)
+    cmd = string.format('magick "%s" -type TrueColor BMP3:"%s"%s', file_path, temp_path, stderr_redirect)
   else
     -- ImageMagick 6 syntax (convert command)
-    cmd = string.format('convert "%s" -type TrueColor BMP3:"%s" %s', file_path, temp_path, null_redirect)
+    cmd = string.format('convert "%s" -type TrueColor BMP3:"%s"%s', file_path, temp_path, stderr_redirect)
   end
   
   print("ImageMagick Converter: Running: " .. cmd)
   
-  local result = os.execute(cmd)
-  local success = (result == 0 or result == true)
+  -- Use io.popen to capture output including errors
+  local handle = io.popen(cmd)
+  local output = ""
+  if handle then
+    output = handle:read("*a") or ""
+    handle:close()
+  end
   
-  if success then
-    -- Verify the file was created
-    local test_file = io.open(temp_path, "rb")
-    if test_file then
-      test_file:close()
-      print("ImageMagick Converter: Successfully converted to: " .. temp_path)
+  if output and #output > 0 then
+    print("ImageMagick Converter: Output: " .. output)
+  end
+  
+  -- Check if file was created
+  local test_file = io.open(temp_path, "rb")
+  if test_file then
+    local size = test_file:seek("end")
+    test_file:close()
+    if size and size > 0 then
+      print("ImageMagick Converter: Success! File size: " .. size .. " bytes")
       return temp_path, true  -- true = needs cleanup
+    else
+      print("ImageMagick Converter: File created but empty")
     end
+  else
+    print("ImageMagick Converter: Output file not found at: " .. temp_path)
   end
   
   print("ImageMagick Converter: Conversion failed")
