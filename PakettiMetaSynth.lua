@@ -6442,6 +6442,88 @@ for _, fx_name in ipairs(PakettiMetaSynthFXProfileNamesList) do
   end
 end
 
+-- ============================================================================
+-- FX CATEGORY AND DEVICE LISTS FOR DROPDOWNS
+-- Used for consistent FX selection at all FX-capable stages
+-- ============================================================================
+
+-- FX Categories (archetypes) for dropdown selection
+PakettiMetaSynthFXCategoryList = {
+  "Inherit Profile",  -- First item inherits from profile
+  "Clean",            -- Subtle, transparent processing
+  "Character",        -- Coloration, saturation, warmth
+  "Movement",         -- Modulation, time-based movement
+  "Spatial",          -- Reverb, delay, stereo imaging
+  "Aggressive"        -- Distortion, heavy processing
+}
+
+-- FX Devices available in Renoise (native devices)
+PakettiMetaSynthFXDeviceList = {
+  "Analog Filter",
+  "Bus Compressor",
+  "Cabinet Simulator",
+  "Chorus 2",
+  "Comb Filter",
+  "Compressor",
+  "Convolver",
+  "DC Offset",
+  "Delay",
+  "Distortion",
+  "EQ 10",
+  "EQ 5",
+  "Exciter",
+  "Filter 3",
+  "Flanger 2",
+  "Formula",
+  "Gain",
+  "Gate 2",
+  "Gapper",
+  "Line In",
+  "LofiMat 2",
+  "Maximizer",
+  "Mixer EQ",
+  "mpReverb 2",
+  "Multitap Delay",
+  "Phaser 2",
+  "Repeater",
+  "Reverb",
+  "Ringmod",
+  "Signal Follower",
+  "Stutter",
+  "Stereo Expander",
+  "Tremolo",
+  "Vibrato"
+}
+
+-- FX Devices display list with "None" option
+PakettiMetaSynthFXDeviceDisplayList = {"None"}
+for _, device in ipairs(PakettiMetaSynthFXDeviceList) do
+  table.insert(PakettiMetaSynthFXDeviceDisplayList, device)
+end
+
+-- Modulation source list for dropdown
+PakettiMetaSynthModulationSourceList = {
+  "None",
+  "Velocity",
+  "Key Tracking",
+  "Mod Wheel",
+  "Aftertouch",
+  "Pitch Bend",
+  "LFO",
+  "Random"
+}
+
+-- Modulation target list for dropdown
+PakettiMetaSynthModulationTargetList = {
+  "None",
+  "Volume",
+  "Pitch",
+  "Pan",
+  "Filter Cutoff",
+  "Filter Resonance",
+  "Detune"
+}
+
 -- Default architecture template
 function PakettiMetaSynthCreateDefaultArchitecture()
   return {
@@ -6541,6 +6623,7 @@ function PakettiMetaSynthCreateDefaultArchitecture()
         group_master_fx_mode = "random",
         group_master_fx_count = 3,
         group_master_fx_types = {},
+        group_master_fx_category = nil,  -- FX Category for group summing FX
         -- FX Archetype selection (rule-based FX by musical character)
         group_fx_archetypes = {"character"},  -- Enabled archetypes: clean, character, movement, spatial, aggressive
         
@@ -6560,6 +6643,8 @@ function PakettiMetaSynthCreateDefaultArchitecture()
         group_frame_fx_enabled = false,
         group_frame_fx_tendencies = {},
         group_frame_fx_count = 1,
+        group_frame_fx_category = nil,  -- FX Category for group frame FX
+        group_frame_fx_mode = "random", -- "random" or "selective"
         
         -- PROFILE OVERRIDE at GROUP level (nil = inherit from global_profile)
         -- When set, this group uses a different profile than the global one
@@ -6598,7 +6683,24 @@ function PakettiMetaSynthCreateDefaultArchitecture()
             -- When set, this specific oscillator uses a different profile
             profile_override = nil,
             -- DEPRECATED: modulation_profile - use profile_override instead
-            modulation_profile = nil
+            modulation_profile = nil,
+            -- Per-oscillator modulation routing (Renoise-native sources)
+            modulation_routing = {
+              velocity_to_volume = 0.5,
+              velocity_to_filter = 0.0,
+              velocity_to_pitch = 0.0,
+              keytrack_to_filter = 0.0,
+              modwheel_to_filter = 0.0,
+              modwheel_to_volume = 0.0,
+              aftertouch_to_filter = 0.0,
+              aftertouch_to_pitch = 0.0,
+              pitchbend_range = 2,
+              random_to_pitch = 0.0,
+              random_to_pan = 0.0
+            },
+            -- FX Category override for this oscillator's frame FX
+            osc_fx_category = nil,
+            osc_fx_devices = {}
           }
         }
       }
@@ -6629,6 +6731,7 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     stack_master_fx_mode = "random",
     stack_master_fx_count = 3,
     stack_master_fx_types = {},
+    stack_master_fx_category = nil,  -- FX Category for Total Group FX
     -- FX Archetype selection for Stack Master (rule-based FX by musical character)
     stack_master_fx_archetypes = {"clean", "spatial"},  -- Enabled archetypes
     -- Master routing mode: "output_routing" (chain property) or "send_device" (#Send devices)
@@ -6718,6 +6821,7 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     global_fx_frame_fx_enabled = false,
     global_fx_frame_fx_tendencies = {},
     global_fx_frame_fx_count = 1,
+    global_fx_frame_fx_category = nil,  -- FX Category for Total Group Frame FX
     
     -- ================================================================
     -- TOTAL GROUP FRAMES SCAN: Sequential wavetable-style scanning across Total Group Frames
@@ -14276,7 +14380,7 @@ function PakettiMetaSynthKeyHandler(dialog, key)
   end
 end
 
--- Build oscillator row for GUI (with folder browse button and Oscillator FX controls)
+-- Build oscillator row for GUI (with folder browse button, Oscillator FX controls, and modulation routing)
 function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
   local row_id = string.format("osc_%d_%d", group_index, osc_index)
   
@@ -14286,15 +14390,46 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
   local osc_fx_count = osc.osc_fx_count or 2
   local osc_fx_mode_index = osc_fx_mode == "selective" and 2 or 1
   
+  -- Get FX category index (1 = Inherit Profile)
+  local osc_fx_category = osc.osc_fx_category or nil
+  local fx_category_index = 1  -- Default: Inherit Profile
+  if osc_fx_category then
+    for i, cat in ipairs(PakettiMetaSynthFXCategoryList) do
+      if cat == osc_fx_category then
+        fx_category_index = i
+        break
+      end
+    end
+  end
+  
+  -- Initialize modulation_routing if not present
+  if not osc.modulation_routing then
+    osc.modulation_routing = {
+      velocity_to_volume = 0.5,
+      velocity_to_filter = 0.0,
+      velocity_to_pitch = 0.0,
+      keytrack_to_filter = 0.0,
+      modwheel_to_filter = 0.0,
+      modwheel_to_volume = 0.0,
+      aftertouch_to_filter = 0.0,
+      aftertouch_to_pitch = 0.0,
+      pitchbend_range = 2,
+      random_to_pitch = 0.0,
+      random_to_pan = 0.0
+    }
+  end
+  local mod = osc.modulation_routing
+  
   return vb:column {
     id = row_id,
+    style = "plain",
     
-    -- Main oscillator controls row
+    -- Row 1: Main oscillator controls
     vb:row {
-      
       vb:text {
         text = osc.name,
-        width = 50
+        width = 50,
+        font = "bold"
       },
       
       vb:text { text = "S:" },
@@ -14304,6 +14439,7 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
         max = 12,
         value = osc.sample_count,
         width = 40,
+        tooltip = "Sample count per frame",
         notifier = function(value)
           osc.sample_count = value
           PakettiMetaSynthUpdatePreview()
@@ -14317,6 +14453,7 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
         max = 8,
         value = osc.unison_voices,
         width = 40,
+        tooltip = "Unison voices",
         notifier = function(value)
           osc.unison_voices = value
           PakettiMetaSynthUpdatePreview()
@@ -14330,6 +14467,7 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
         max = 16,
         value = osc.frame_count,
         width = 40,
+        tooltip = "Frame count (wavetable positions)",
         notifier = function(value)
           osc.frame_count = value
           PakettiMetaSynthUpdatePreview()
@@ -14356,7 +14494,6 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
             osc.sample_folder = folder
             osc.sample_source = "folder"
             PakettiMetaSynthLastFolderPath = folder
-            -- Update the source popup
             local source_popup = vb.views[row_id .. "_source"]
             if source_popup then
               source_popup.value = 2
@@ -14375,9 +14512,9 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
       }
     },
     
-    -- Oscillator FX controls row
+    -- Row 2: Frame FX controls with Category dropdown
     vb:row {
-      vb:text { text = "", width = 50 },  -- Align with oscillator name
+      vb:text { text = "", width = 50 },
       
       vb:checkbox {
         id = row_id .. "_fx_enabled",
@@ -14387,7 +14524,21 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
           PakettiMetaSynthUpdatePreview()
         end
       },
-      vb:text { text = "Osc FX", width = 40 },
+      vb:text { text = "Frame FX", width = 48 },
+      vb:popup {
+        id = row_id .. "_fx_category",
+        items = PakettiMetaSynthFXCategoryList,
+        value = fx_category_index,
+        width = 90,
+        tooltip = "FX Category for this oscillator's frames",
+        notifier = function(value)
+          if value == 1 then
+            osc.osc_fx_category = nil
+          else
+            osc.osc_fx_category = PakettiMetaSynthFXCategoryList[value]
+          end
+        end
+      },
       vb:popup {
         id = row_id .. "_fx_mode",
         items = {"Random", "Selective"},
@@ -14397,16 +14548,175 @@ function PakettiMetaSynthBuildOscillatorRow(vb, group_index, osc_index, osc)
           osc.osc_fx_mode = value == 1 and "random" or "selective"
         end
       },
-      vb:text { text = "Count:" },
+      vb:text { text = "N:" },
       vb:valuebox {
         id = row_id .. "_fx_count",
         min = 1,
         max = 5,
         value = osc_fx_count,
-        width = 40,
+        width = 35,
+        tooltip = "Number of FX devices",
         notifier = function(value)
           osc.osc_fx_count = value
           PakettiMetaSynthUpdatePreview()
+        end
+      }
+    },
+    
+    -- Row 3: Velocity modulation routing
+    vb:row {
+      vb:text { text = "", width = 50 },
+      vb:text { text = "Vel:", width = 25, font = "italic" },
+      vb:text { text = "Vol" },
+      vb:minislider {
+        id = row_id .. "_vel_vol",
+        min = 0,
+        max = 1,
+        value = mod.velocity_to_volume,
+        width = 50,
+        tooltip = "Velocity to Volume amount",
+        notifier = function(value)
+          mod.velocity_to_volume = value
+        end
+      },
+      vb:text { text = "Flt" },
+      vb:minislider {
+        id = row_id .. "_vel_flt",
+        min = 0,
+        max = 1,
+        value = mod.velocity_to_filter,
+        width = 50,
+        tooltip = "Velocity to Filter Cutoff amount",
+        notifier = function(value)
+          mod.velocity_to_filter = value
+        end
+      },
+      vb:text { text = "Pch" },
+      vb:minislider {
+        id = row_id .. "_vel_pch",
+        min = 0,
+        max = 1,
+        value = mod.velocity_to_pitch,
+        width = 50,
+        tooltip = "Velocity to Pitch amount",
+        notifier = function(value)
+          mod.velocity_to_pitch = value
+        end
+      }
+    },
+    
+    -- Row 4: Keytrack, Modwheel, Aftertouch
+    vb:row {
+      vb:text { text = "", width = 50 },
+      vb:text { text = "Key:", width = 25, font = "italic" },
+      vb:text { text = "Flt" },
+      vb:minislider {
+        id = row_id .. "_key_flt",
+        min = 0,
+        max = 1,
+        value = mod.keytrack_to_filter,
+        width = 50,
+        tooltip = "Key Tracking to Filter Cutoff",
+        notifier = function(value)
+          mod.keytrack_to_filter = value
+        end
+      },
+      vb:text { text = "MW:", font = "italic" },
+      vb:text { text = "Flt" },
+      vb:minislider {
+        id = row_id .. "_mw_flt",
+        min = 0,
+        max = 1,
+        value = mod.modwheel_to_filter,
+        width = 40,
+        tooltip = "Mod Wheel to Filter Cutoff",
+        notifier = function(value)
+          mod.modwheel_to_filter = value
+        end
+      },
+      vb:text { text = "Vol" },
+      vb:minislider {
+        id = row_id .. "_mw_vol",
+        min = 0,
+        max = 1,
+        value = mod.modwheel_to_volume,
+        width = 40,
+        tooltip = "Mod Wheel to Volume",
+        notifier = function(value)
+          mod.modwheel_to_volume = value
+        end
+      }
+    },
+    
+    -- Row 5: Aftertouch, Pitch Bend, Random
+    vb:row {
+      vb:text { text = "", width = 50 },
+      vb:text { text = "AT:", width = 25, font = "italic" },
+      vb:text { text = "Flt" },
+      vb:minislider {
+        id = row_id .. "_at_flt",
+        min = 0,
+        max = 1,
+        value = mod.aftertouch_to_filter,
+        width = 40,
+        tooltip = "Aftertouch to Filter Cutoff",
+        notifier = function(value)
+          mod.aftertouch_to_filter = value
+        end
+      },
+      vb:text { text = "Pch" },
+      vb:minislider {
+        id = row_id .. "_at_pch",
+        min = 0,
+        max = 1,
+        value = mod.aftertouch_to_pitch,
+        width = 40,
+        tooltip = "Aftertouch to Pitch",
+        notifier = function(value)
+          mod.aftertouch_to_pitch = value
+        end
+      },
+      vb:text { text = "PB:", font = "italic" },
+      vb:valuebox {
+        id = row_id .. "_pb_range",
+        min = 0,
+        max = 24,
+        value = mod.pitchbend_range,
+        width = 35,
+        tooltip = "Pitch Bend range (semitones)",
+        notifier = function(value)
+          mod.pitchbend_range = value
+        end
+      },
+      vb:text { text = "st" }
+    },
+    
+    -- Row 6: Random modulation
+    vb:row {
+      vb:text { text = "", width = 50 },
+      vb:text { text = "Rnd:", width = 25, font = "italic" },
+      vb:text { text = "Pch" },
+      vb:minislider {
+        id = row_id .. "_rnd_pch",
+        min = 0,
+        max = 1,
+        value = mod.random_to_pitch,
+        width = 50,
+        tooltip = "Random to Pitch amount",
+        notifier = function(value)
+          mod.random_to_pitch = value
+        end
+      },
+      vb:text { text = "Pan" },
+      vb:minislider {
+        id = row_id .. "_rnd_pan",
+        min = 0,
+        max = 1,
+        value = mod.random_to_pan,
+        width = 50,
+        tooltip = "Random to Pan amount",
+        notifier = function(value)
+          mod.random_to_pan = value
         end
       }
     }
@@ -14492,6 +14802,11 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
         end
       }
     },
+    
+    -- ================================================================
+    -- OSCILLATORS SECTION (signal flow: oscillators first)
+    -- ================================================================
+    osc_rows,
     
     -- Sound Profile & Modulation Selector Row (defines articulation)
     vb:row {
@@ -14633,7 +14948,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
       }
     },
     
-    -- Group Master FX Controls
+    -- Group Summing FX Controls (FX applied after oscillators are summed in this group)
     vb:row {
       vb:checkbox {
         id = group_id .. "_master_fx_enabled",
@@ -14643,7 +14958,28 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           PakettiMetaSynthUpdatePreview()
         end
       },
-      vb:text { text = "Grp Master FX", width = 75 },
+      vb:text { text = "Group Sum FX", width = 70, tooltip = "FX applied after oscillators are summed in this group" },
+      vb:popup {
+        id = group_id .. "_master_fx_category",
+        items = PakettiMetaSynthFXCategoryList,
+        value = (function()
+          local cat = group.group_master_fx_category
+          if not cat then return 1 end
+          for i, c in ipairs(PakettiMetaSynthFXCategoryList) do
+            if c == cat then return i end
+          end
+          return 1
+        end)(),
+        width = 90,
+        tooltip = "FX Category for Group Summing FX",
+        notifier = function(value)
+          if value == 1 then
+            group.group_master_fx_category = nil
+          else
+            group.group_master_fx_category = PakettiMetaSynthFXCategoryList[value]
+          end
+        end
+      },
       vb:popup {
         id = group_id .. "_master_fx_mode",
         items = {"Random", "Selective"},
@@ -14653,27 +14989,16 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           group.group_master_fx_mode = value == 1 and "random" or "selective"
         end
       },
-      vb:text { text = "Count:" },
+      vb:text { text = "N:" },
       vb:valuebox {
         id = group_id .. "_master_fx_count",
         min = 1,
         max = 5,
         value = group_master_fx_count,
-        width = 40,
+        width = 35,
+        tooltip = "Number of FX devices",
         notifier = function(value)
           group.group_master_fx_count = value
-        end
-      },
-      -- Filtered profile dropdown: only profiles with group_fx.enabled ~= false
-      vb:popup {
-        id = group_id .. "_group_fx_profile",
-        items = PakettiMetaSynthGroupFXProfileDisplay,
-        value = PakettiMetaSynthFindProfileIndex(group.group_fx_profile_override, PakettiMetaSynthGroupFXProfileNames),
-        width = 90,
-        tooltip = "Profile for Group FX (filtered: only shows profiles with Group FX enabled)",
-        notifier = function(value)
-          group.group_fx_profile_override = PakettiMetaSynthGetProfileKey(value, PakettiMetaSynthGroupFXProfileNames)
-          PakettiMetaSynthUpdatePreview()
         end
       }
     },
@@ -14837,6 +15162,62 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
       }
     },
     
+    -- Group Frame FX Controls (FX per group frame)
+    vb:row {
+      vb:text { text = "", width = 20 },
+      vb:checkbox {
+        id = group_id .. "_gframe_fx_enabled",
+        value = group.group_frame_fx_enabled or false,
+        notifier = function(value)
+          group.group_frame_fx_enabled = value
+          PakettiMetaSynthUpdatePreview()
+        end
+      },
+      vb:text { text = "Grp Frame FX", width = 72, tooltip = "FX applied per group frame" },
+      vb:popup {
+        id = group_id .. "_gframe_fx_category",
+        items = PakettiMetaSynthFXCategoryList,
+        value = (function()
+          local cat = group.group_frame_fx_category
+          if not cat then return 1 end
+          for i, c in ipairs(PakettiMetaSynthFXCategoryList) do
+            if c == cat then return i end
+          end
+          return 1
+        end)(),
+        width = 90,
+        tooltip = "FX Category for Group Frame FX",
+        notifier = function(value)
+          if value == 1 then
+            group.group_frame_fx_category = nil
+          else
+            group.group_frame_fx_category = PakettiMetaSynthFXCategoryList[value]
+          end
+        end
+      },
+      vb:popup {
+        id = group_id .. "_gframe_fx_mode",
+        items = {"Random", "Selective"},
+        value = (group.group_frame_fx_mode == "selective") and 2 or 1,
+        width = 70,
+        notifier = function(value)
+          group.group_frame_fx_mode = value == 1 and "random" or "selective"
+        end
+      },
+      vb:text { text = "N:" },
+      vb:valuebox {
+        id = group_id .. "_gframe_fx_count",
+        min = 0,
+        max = 5,
+        value = group.group_frame_fx_count or 1,
+        width = 35,
+        tooltip = "Number of FX devices per group frame",
+        notifier = function(value)
+          group.group_frame_fx_count = value
+        end
+      }
+    },
+    
     -- Per-Group Modulation Controls (Stepper, ARP)
     vb:row {
       vb:text { text = "Modulation:", width = 60, font = "italic" },
@@ -14953,9 +15334,7 @@ function PakettiMetaSynthBuildGroupSection(vb, group_index, group)
           group.arp_config.octaves = value
         end
       }
-    },
-    
-    osc_rows
+    }
   }
 end
 
@@ -15630,11 +16009,11 @@ function PakettiMetaSynthBuildDialogContent()
           }
         },
         
-        -- Stack Master FX (global settings)
+        -- Total Group FX / Stack Master FX (FX after all groups summed)
         vb:column {
           style = "group",
           
-          vb:text { text = "Stack Master FX", font = "bold" },
+          vb:text { text = "Total Group FX", font = "bold", tooltip = "FX applied after all groups are summed (Stack Master)" },
           
           vb:row {
             vb:checkbox {
@@ -15645,7 +16024,28 @@ function PakettiMetaSynthBuildDialogContent()
                 PakettiMetaSynthUpdatePreview()
               end
             },
-            vb:text { text = "Enable" }
+            vb:text { text = "Enable", width = 45 },
+            vb:popup {
+              id = "stack_master_fx_category",
+              items = PakettiMetaSynthFXCategoryList,
+              value = (function()
+                local cat = arch.stack_master_fx_category
+                if not cat then return 1 end
+                for i, c in ipairs(PakettiMetaSynthFXCategoryList) do
+                  if c == cat then return i end
+                end
+                return 1
+              end)(),
+              width = 100,
+              tooltip = "FX Category for Total Group FX",
+              notifier = function(value)
+                if value == 1 then
+                  arch.stack_master_fx_category = nil
+                else
+                  arch.stack_master_fx_category = PakettiMetaSynthFXCategoryList[value]
+                end
+              end
+            }
           },
           
           vb:row {
@@ -15658,17 +16058,15 @@ function PakettiMetaSynthBuildDialogContent()
               notifier = function(value)
                 arch.stack_master_fx_mode = value == 1 and "random" or "selective"
               end
-            }
-          },
-          
-          vb:row {
-            vb:text { text = "Count:", width = 40 },
+            },
+            vb:text { text = "N:" },
             vb:valuebox {
               id = "stack_master_count",
               min = 1,
               max = 5,
               value = arch.stack_master_fx_count or 3,
-              width = 50,
+              width = 40,
+              tooltip = "Number of FX devices",
               notifier = function(value)
                 arch.stack_master_fx_count = value
               end
@@ -15879,13 +16277,36 @@ function PakettiMetaSynthBuildDialogContent()
                 arch.global_fx_frame_fx_enabled = value
               end
             },
-            vb:text { text = "Per-Frame FX" },
+            vb:text { text = "Frame FX", width = 50 },
+            vb:popup {
+              id = "global_fx_frame_fx_category",
+              items = PakettiMetaSynthFXCategoryList,
+              value = (function()
+                local cat = arch.global_fx_frame_fx_category
+                if not cat then return 1 end
+                for i, c in ipairs(PakettiMetaSynthFXCategoryList) do
+                  if c == cat then return i end
+                end
+                return 1
+              end)(),
+              width = 90,
+              tooltip = "FX Category for Total Group Frame FX",
+              notifier = function(value)
+                if value == 1 then
+                  arch.global_fx_frame_fx_category = nil
+                else
+                  arch.global_fx_frame_fx_category = PakettiMetaSynthFXCategoryList[value]
+                end
+              end
+            },
+            vb:text { text = "N:" },
             vb:valuebox {
               id = "global_fx_frame_fx_count",
               min = 0,
               max = 3,
               value = arch.global_fx_frame_fx_count or 1,
-              width = 40,
+              width = 35,
+              tooltip = "Number of FX devices per frame",
               notifier = function(value)
                 arch.global_fx_frame_fx_count = value
               end

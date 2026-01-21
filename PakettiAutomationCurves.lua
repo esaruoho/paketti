@@ -193,41 +193,43 @@ function PakettiAutomationCurvesInitShapes()
     sinDown = {values = calculated.sinDown, key = "h", image = "sin-down.png", label = "Sine Down"},
     
     -- Stairs
-    stairUp = {values = {{0, 0}, {0.25, 0}, {0.26, 0.25}, {0.5, 0.25}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.75}, {0.98, 0.75}, {0.99, 1}}, key = "z", image = "stair-up.png", label = "Stairs Up"},
-    stairDown = {values = {{0, 1}, {0.25, 1}, {0.26, 0.75}, {0.5, 0.75}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.25}, {0.98, 0.25}, {0.99, 0}}, key = "x", image = "stair-down.png", label = "Stairs Down"},
+    stairUp = {values = {{0, 0}, {0.25, 0}, {0.26, 0.25}, {0.5, 0.25}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.75}, {0.98, 0.75}, {0.99, 1}}, key = "1", image = "stair-up.png", label = "Stairs Up"},
+    stairDown = {values = {{0, 1}, {0.25, 1}, {0.26, 0.75}, {0.5, 0.75}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.25}, {0.98, 0.25}, {0.99, 0}}, key = "2", image = "stair-down.png", label = "Stairs Down"},
     
     -- Cosine
-    cosUp = {values = calculated.cosUp, key = "c", image = "cos-up.png", label = "Cosine Up"},
-    cosDown = {values = calculated.cosDown, key = "v", image = "cos-down.png", label = "Cosine Down"},
+    cosUp = {values = calculated.cosUp, key = "3", image = "cos-up.png", label = "Cosine Up"},
+    cosDown = {values = calculated.cosDown, key = "4", image = "cos-down.png", label = "Cosine Down"},
     
-    -- On/Off constants
-    on = {values = {{0, 1}, {0.99, 1}}, key = "b", image = "on.png", label = "Constant On"},
-    off = {values = {{0, 0}, {0.99, 0}}, key = "n", image = "off.png", label = "Constant Off"},
+    -- On/Off constants (duty cycle 100% and 0%)
+    on = {values = {{0, 1}, {0.99, 1}}, key = "z", image = "on.png", label = "Constant On"},
+    off = {values = {{0, 0}, {0.99, 0}}, key = "x", image = "off.png", label = "Constant Off"},
     
     -- Bell curve (Gaussian)
-    bellUp = {values = calculated.bellUp, key = "1", image = "bell-up.png", label = "Bell Up"},
-    bellDown = {values = calculated.bellDown, key = "2", image = "bell-down.png", label = "Bell Down"},
+    bellUp = {values = calculated.bellUp, key = "o", image = "bell-up.png", label = "Bell Up"},
+    bellDown = {values = calculated.bellDown, key = "p", image = "bell-down.png", label = "Bell Down"},
     
     -- S-Curve (Sigmoid)
-    sCurveUp = {values = calculated.sCurveUp, key = "3", image = "scurve-up.png", label = "S-Curve Up"},
-    sCurveDown = {values = calculated.sCurveDown, key = "4", image = "scurve-down.png", label = "S-Curve Down"},
+    sCurveUp = {values = calculated.sCurveUp, key = "j", image = "scurve-up.png", label = "S-Curve Up"},
+    sCurveDown = {values = calculated.sCurveDown, key = "k", image = "scurve-down.png", label = "S-Curve Down"},
     
     -- Bounce
-    bounceUp = {values = calculated.bounceUp, key = "5", image = "bounce-up.png", label = "Bounce Up"},
-    bounceDown = {values = calculated.bounceDown, key = "6", image = "bounce-down.png", label = "Bounce Down"},
+    bounceUp = {values = calculated.bounceUp, key = "l", image = "bounce-up.png", label = "Bounce Up"},
+    bounceDown = {values = calculated.bounceDown, key = "5", image = "bounce-down.png", label = "Bounce Down"},
     
-    -- Pulse variations (25%, 50%, 75% duty cycle)
-    pulse25 = {values = {{0, 0}, {0.25, 0}, {0.26, 1}, {0.99, 1}}, key = "7", image = "pulse25.png", label = "Pulse 25%"},
-    pulse50 = {values = {{0, 0}, {0.5, 0}, {0.51, 1}, {0.99, 1}}, key = nil, image = "pulse50.png", label = "Pulse 50%"},
-    pulse75 = {values = {{0, 0}, {0.75, 0}, {0.76, 1}, {0.99, 1}}, key = "8", image = "pulse75.png", label = "Pulse 75%"},
+    -- Pulse variations (10%, 25%, 50%, 75%, 80% duty cycle) - on zxcvbnm row
+    pulse10 = {values = {{0, 0}, {0.10, 0}, {0.11, 1}, {0.99, 1}}, key = "c", image = "pulse10.png", label = "Pulse 10%"},
+    pulse25 = {values = {{0, 0}, {0.25, 0}, {0.26, 1}, {0.99, 1}}, key = "v", image = "pulse25.png", label = "Pulse 25%"},
+    pulse50 = {values = {{0, 0}, {0.5, 0}, {0.51, 1}, {0.99, 1}}, key = "b", image = "pulse50.png", label = "Pulse 50%"},
+    pulse75 = {values = {{0, 0}, {0.75, 0}, {0.76, 1}, {0.99, 1}}, key = "n", image = "pulse75.png", label = "Pulse 75%"},
+    pulse80 = {values = {{0, 0}, {0.80, 0}, {0.81, 1}, {0.99, 1}}, key = "m", image = "pulse80.png", label = "Pulse 80%"},
     
     -- Random (generated at insert time)
-    randomSmooth = {values = nil, key = "9", image = "random-smooth.png", generator = "smooth", label = "Random Smooth"},
-    randomStep = {values = nil, key = "0", image = "random-step.png", generator = "step", label = "Random Step"},
+    randomSmooth = {values = nil, key = "6", image = "random-smooth.png", generator = "smooth", label = "Random Smooth"},
+    randomStep = {values = nil, key = "7", image = "random-step.png", generator = "step", label = "Random Step"},
     
     -- Sawtooth with overshoot
-    sawtoothUp = {values = {{0, 0}, {0.8, 1.1}, {0.85, 0.95}, {0.9, 1.02}, {0.95, 0.99}, {0.99, 1}}, key = nil, image = "sawtooth-up.png", label = "Sawtooth Up"},
-    sawtoothDown = {values = {{0, 1}, {0.8, -0.1}, {0.85, 0.05}, {0.9, -0.02}, {0.95, 0.01}, {0.99, 0}}, key = nil, image = "sawtooth-down.png", label = "Sawtooth Down"}
+    sawtoothUp = {values = {{0, 0}, {0.8, 1.1}, {0.85, 0.95}, {0.9, 1.02}, {0.95, 0.99}, {0.99, 1}}, key = "8", image = "sawtooth-up.png", label = "Sawtooth Up"},
+    sawtoothDown = {values = {{0, 1}, {0.8, -0.1}, {0.85, 0.05}, {0.9, -0.02}, {0.95, 0.01}, {0.99, 0}}, key = "9", image = "sawtooth-down.png", label = "Sawtooth Down"}
   }
   
   -- Build reverse key map
@@ -661,8 +663,8 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
       handled = true
     end
     
-    local num_keys = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
-    local num_vals = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+    local num_keys = {"1", "2", "3", "4", "5", "6", "7", "8", "9"}
+    local num_vals = {1, 2, 3, 4, 5, 6, 7, 8, 9}
     for idx, k in ipairs(num_keys) do
       if key.name == k then
         local new_val = num_vals[idx]
@@ -813,7 +815,7 @@ function PakettiAutomationCurvesShowDialog()
       vb:column{
         spacing = 4,
         
-        -- Row 1: Basic shapes (q w e r t y u i)
+        -- Row 1: q w e r t y u i o p (10 shapes)
         vb:row{
           spacing = 4,
           PakettiAutomationCurvesMakeButton(vb, "rampUp"),
@@ -823,10 +825,12 @@ function PakettiAutomationCurvesShowDialog()
           PakettiAutomationCurvesMakeButton(vb, "sqUp"),
           PakettiAutomationCurvesMakeButton(vb, "sqDown"),
           PakettiAutomationCurvesMakeButton(vb, "trapUp"),
-          PakettiAutomationCurvesMakeButton(vb, "trapDown")
+          PakettiAutomationCurvesMakeButton(vb, "trapDown"),
+          PakettiAutomationCurvesMakeButton(vb, "bellUp"),
+          PakettiAutomationCurvesMakeButton(vb, "bellDown")
         },
         
-        -- Row 2: More shapes (a s d f g h)
+        -- Row 2: a s d f g h j k l (9 shapes)
         vb:row{
           spacing = 4,
           PakettiAutomationCurvesMakeButton(vb, "tri"),
@@ -834,39 +838,39 @@ function PakettiAutomationCurvesShowDialog()
           PakettiAutomationCurvesMakeButton(vb, "circBl"),
           PakettiAutomationCurvesMakeButton(vb, "circBr"),
           PakettiAutomationCurvesMakeButton(vb, "sinUp"),
-          PakettiAutomationCurvesMakeButton(vb, "sinDown")
+          PakettiAutomationCurvesMakeButton(vb, "sinDown"),
+          PakettiAutomationCurvesMakeButton(vb, "sCurveUp"),
+          PakettiAutomationCurvesMakeButton(vb, "sCurveDown"),
+          PakettiAutomationCurvesMakeButton(vb, "bounceUp")
         },
         
-        -- Row 3: Additional shapes (z x c v b n)
+        -- Row 3: z x c v b n m (7 shapes - duty cycles: on/off + pulses)
+        vb:row{
+          spacing = 4,
+          PakettiAutomationCurvesMakeButton(vb, "on"),
+          PakettiAutomationCurvesMakeButton(vb, "off"),
+          PakettiAutomationCurvesMakeButton(vb, "pulse10"),
+          PakettiAutomationCurvesMakeButton(vb, "pulse25"),
+          PakettiAutomationCurvesMakeButton(vb, "pulse50"),
+          PakettiAutomationCurvesMakeButton(vb, "pulse75"),
+          PakettiAutomationCurvesMakeButton(vb, "pulse80")
+        },
+        
+        -- Row 4: 1 2 3 4 5 (5 shapes - stairs, cosine, bounce)
         vb:row{
           spacing = 4,
           PakettiAutomationCurvesMakeButton(vb, "stairUp"),
           PakettiAutomationCurvesMakeButton(vb, "stairDown"),
           PakettiAutomationCurvesMakeButton(vb, "cosUp"),
           PakettiAutomationCurvesMakeButton(vb, "cosDown"),
-          PakettiAutomationCurvesMakeButton(vb, "on"),
-          PakettiAutomationCurvesMakeButton(vb, "off")
+          PakettiAutomationCurvesMakeButton(vb, "bounceDown")
         },
         
-        -- Row 4: Extended shapes (1-8)
-        vb:row{
-          spacing = 4,
-          PakettiAutomationCurvesMakeButton(vb, "bellUp"),
-          PakettiAutomationCurvesMakeButton(vb, "bellDown"),
-          PakettiAutomationCurvesMakeButton(vb, "sCurveUp"),
-          PakettiAutomationCurvesMakeButton(vb, "sCurveDown"),
-          PakettiAutomationCurvesMakeButton(vb, "bounceUp"),
-          PakettiAutomationCurvesMakeButton(vb, "bounceDown"),
-          PakettiAutomationCurvesMakeButton(vb, "pulse25"),
-          PakettiAutomationCurvesMakeButton(vb, "pulse75")
-        },
-        
-        -- Row 5: Special shapes (9 0)
+        -- Row 5: 6 7 8 9 (4 shapes - random + sawtooth)
         vb:row{
           spacing = 4,
           PakettiAutomationCurvesMakeButton(vb, "randomSmooth"),
           PakettiAutomationCurvesMakeButton(vb, "randomStep"),
-          PakettiAutomationCurvesMakeButton(vb, "pulse50"),
           PakettiAutomationCurvesMakeButton(vb, "sawtoothUp"),
           PakettiAutomationCurvesMakeButton(vb, "sawtoothDown")
         }
@@ -1041,7 +1045,7 @@ local shape_list = {
   "tri", "vee", "circBl", "circBr", "sinUp", "sinDown",
   "stairUp", "stairDown", "cosUp", "cosDown", "on", "off",
   "bellUp", "bellDown", "sCurveUp", "sCurveDown", "bounceUp", "bounceDown",
-  "pulse25", "pulse50", "pulse75", "randomSmooth", "randomStep", "sawtoothUp", "sawtoothDown"
+  "pulse10", "pulse25", "pulse50", "pulse75", "pulse80", "randomSmooth", "randomStep", "sawtoothUp", "sawtoothDown"
 }
 
 for _, shape_name in ipairs(shape_list) do

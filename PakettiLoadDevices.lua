@@ -817,7 +817,10 @@ function pakettiQuickLoadDialog()
     local num_chains = #instrument.sample_device_chains
     local loaded_count = 0
     
-    for chain_index = 1, num_chains do
+    -- Cap at 119 chains if there are more (to skip special MuteTrig chains at 120+)
+    local max_chains = num_chains > 119 and 119 or num_chains
+    
+    for chain_index = 1, max_chains do
       local chain = instrument.sample_device_chains[chain_index]
       if chain then
         -- Determine insertion position (same logic as loadnative)
@@ -848,7 +851,11 @@ function pakettiQuickLoadDialog()
     end
     
     if loaded_count > 0 then
-      renoise.app():show_status("Loaded device to " .. loaded_count .. "/" .. num_chains .. " FX chains")
+      local status_msg = "Loaded device to " .. loaded_count .. "/" .. max_chains .. " FX chains"
+      if num_chains > 119 then
+        status_msg = status_msg .. " (skipped " .. (num_chains - 119) .. " special chains)"
+      end
+      renoise.app():show_status(status_msg)
       return true
     else
       renoise.app():show_status("Failed to load device to any FX chains")
