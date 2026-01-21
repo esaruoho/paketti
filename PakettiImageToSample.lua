@@ -1,4 +1,3 @@
-local vb = renoise.ViewBuilder()
 local DIALOG_TITLE = "Paketti Image to Sample Converter"
 
 -- Global variables for the image to sample dialog
@@ -339,6 +338,9 @@ function PakettiImageToSampleShowDialog()
   if image_to_sample_dialog and image_to_sample_dialog.visible then
     image_to_sample_dialog:close()
   end
+  
+  -- Create fresh ViewBuilder for this dialog instance
+  local vb = renoise.ViewBuilder()
   
   -- Image data should already be loaded before dialog opens
   
