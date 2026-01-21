@@ -286,6 +286,125 @@ function PakettiImageToSampleCheckImageMagick()
   return nil
 end
 
+-- Check if ImageMagick has delegate support for a specific format
+function PakettiImageToSampleCheckImageMagickDelegate(im_command, format)
+  -- format should be "JPEG", "PNG", or "GIF"
+  local cmd = im_command .. " -list format 2>&1"
+  print("ImageMagick Delegate Check: Running: " .. cmd)
+  
+  local handle = io.popen(cmd)
+  if not handle then
+    print("ImageMagick Delegate Check: Failed to run command")
+    return false
+  end
+  
+  local output = handle:read("*a") or ""
+  handle:close()
+  
+  -- Look for format with 'r' in mode column (readable)
+  -- Output format example: "  JPEG* JPEG       rw-   Joint Photographic Experts Group"
+  -- The 'r' in the third column means it can read this format
+  local format_upper = format:upper()
+  
+  -- Try multiple patterns to match the format line
+  -- Pattern 1: "JPEG* JPEG  rw-" or "JPEG  JPEG  rw-"
+  -- Pattern 2: Just look for the format name followed by mode containing 'r'
+  for line in output:gmatch("[^\r\n]+") do
+    -- Check if line starts with our format (with optional asterisk)
+    if line:match("^%s*" .. format_upper .. "[%*]?%s") then
+      -- Check if this line has 'r' in the mode (third column typically has r, w, +)
+      if line:match("%s+r[w%-]?[%+%-]?%s") then
+        print("ImageMagick Delegate Check: Found " .. format_upper .. " support: " .. line)
+        return true
+      end
+    end
+  end
+  
+  print("ImageMagick Delegate Check: No " .. format_upper .. " read support found")
+  return false
+end
+
+-- Dialog to show when ImageMagick delegate is missing
+-- Returns true if user wants to load as raw data, false/nil if cancelled
+PakettiImageToSample_delegate_dialog = nil
+PakettiImageToSample_delegate_result = nil
+
+function PakettiImageToSampleShowDelegateErrorDialog(format_name, platform)
+  PakettiImageToSample_delegate_result = nil
+  
+  local vb = renoise.ViewBuilder()
+  
+  -- Build the message
+  local message_line1 = "ImageMagick is missing " .. format_name .. " delegate support."
+  local message_line2
+  if platform == "windows" then
+    message_line2 = "Reinstall ImageMagick with all delegates enabled."
+  else
+    message_line2 = "Try: sudo apt install imagemagick libjpeg-dev libpng-dev"
+  end
+  local message_line3 = "You can still load this file as raw binary data."
+  
+  local dialog_content = vb:column{
+    margin = 10,
+    spacing = 8,
+    vb:text{text = message_line1, font = "bold"},
+    vb:text{text = message_line2},
+    vb:space{height = 4},
+    vb:text{text = message_line3},
+    vb:space{height = 8},
+    vb:horizontal_aligner{
+      mode = "center",
+      spacing = 10,
+      vb:button{
+        text = "Load as Raw Data",
+        width = 120,
+        notifier = function()
+          PakettiImageToSample_delegate_result = true
+          if PakettiImageToSample_delegate_dialog and PakettiImageToSample_delegate_dialog.visible then
+            PakettiImageToSample_delegate_dialog:close()
+          end
+          PakettiImageToSample_delegate_dialog = nil
+        end
+      },
+      vb:button{
+        text = "Cancel",
+        width = 80,
+        notifier = function()
+          PakettiImageToSample_delegate_result = false
+          if PakettiImageToSample_delegate_dialog and PakettiImageToSample_delegate_dialog.visible then
+            PakettiImageToSample_delegate_dialog:close()
+          end
+          PakettiImageToSample_delegate_dialog = nil
+        end
+      }
+    }
+  }
+  
+  local function my_keyhandler(dialog, key)
+    if key.name == "esc" then
+      PakettiImageToSample_delegate_result = false
+      dialog:close()
+      PakettiImageToSample_delegate_dialog = nil
+      return nil
+    elseif key.name == "return" then
+      PakettiImageToSample_delegate_result = true
+      dialog:close()
+      PakettiImageToSample_delegate_dialog = nil
+      return nil
+    end
+    return key
+  end
+  
+  PakettiImageToSample_delegate_dialog = renoise.app():show_custom_dialog(
+    "ImageMagick Missing Delegate", 
+    dialog_content, 
+    my_keyhandler
+  )
+  
+  -- Dialog is modal, so when we get here, user has made a choice
+  return PakettiImageToSample_delegate_result
+end
+
 -- ImageMagick converter - converts PNG/JPEG/GIF to BMP
 function PakettiImageToSampleConvertViaImageMagick(file_path, im_command)
   local platform = PakettiImageToSampleGetPlatform()
@@ -731,28 +850,51 @@ function PakettiImageToSampleConvertImageToWaveform(image_path, skip_raw_dialog)
   if (platform == "windows" or platform == "linux") and (ext == "png" or ext == "jpg" or ext == "jpeg" or ext == "gif") then
     local im_command = PakettiImageToSampleCheckImageMagick()
     if im_command then
-      print("Image Converter: Using ImageMagick conversion")
-      local bmp_path, needs_cleanup = PakettiImageToSampleConvertViaImageMagick(image_path, im_command)
-      if bmp_path then
-        current_conversion_method = "imagemagick_pixels"
-        local waveform, w, h = PakettiImageToSampleParseBMPPixels(bmp_path)
-        if needs_cleanup then
-          os.remove(bmp_path)
-          print("Image Converter: Cleaned up temp file: " .. bmp_path)
+      -- Determine the format name for delegate check
+      local format_name = ext:upper()
+      if format_name == "JPG" then format_name = "JPEG" end
+      
+      -- Check if ImageMagick has the delegate for this format
+      local has_delegate = PakettiImageToSampleCheckImageMagickDelegate(im_command, format_name)
+      
+      if has_delegate then
+        print("Image Converter: Using ImageMagick conversion")
+        local bmp_path, needs_cleanup = PakettiImageToSampleConvertViaImageMagick(image_path, im_command)
+        if bmp_path then
+          current_conversion_method = "imagemagick_pixels"
+          local waveform, w, h = PakettiImageToSampleParseBMPPixels(bmp_path)
+          if needs_cleanup then
+            os.remove(bmp_path)
+            print("Image Converter: Cleaned up temp file: " .. bmp_path)
+          end
+          if waveform and #waveform > 0 then
+            return waveform, w, h
+          end
         end
-        if waveform and #waveform > 0 then
-          return waveform, w, h
+        print("Image Converter: ImageMagick conversion failed, trying raw data")
+      else
+        -- ImageMagick found but missing delegate for this format
+        print("Image Converter: ImageMagick missing " .. format_name .. " delegate")
+        
+        -- Show dialog with helpful message and "Load as Raw Data" button
+        if not skip_raw_dialog then
+          local user_wants_raw = PakettiImageToSampleShowDelegateErrorDialog(format_name, platform)
+          if user_wants_raw then
+            print("Image Converter: User chose to load as raw data")
+            return "show_raw_dialog", 0, 0
+          else
+            print("Image Converter: User cancelled")
+            return nil, 0, 0
+          end
         end
       end
-      print("Image Converter: ImageMagick conversion failed, trying raw data")
     else
       print("Image Converter: ImageMagick not available")
-    end
-    
-    -- No ImageMagick or it failed - show raw data dialog unless skipped
-    if not skip_raw_dialog then
-      print("Image Converter: Requesting raw data dialog")
-      return "show_raw_dialog", 0, 0
+      -- No ImageMagick - show raw data dialog unless skipped
+      if not skip_raw_dialog then
+        print("Image Converter: Requesting raw data dialog")
+        return "show_raw_dialog", 0, 0
+      end
     end
   end
   

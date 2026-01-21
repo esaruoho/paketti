@@ -1169,21 +1169,38 @@ function LFOEnvelopePanPresetPlusPlus()
     return
   end
   
-  -- Original behavior: load directly on track using device chain recreation
--- === TRACK DEVICE CHAIN RECREATION ===
--- Track: Track 06
--- Total devices (excluding Track Vol/Pan): 1
--- Debug prints: false
--- PHASE 1: Load All Devices (with Placeholders) - REVERSE ORDER
--- Loading LAST device first, then second-last, etc. to maintain correct order
--- Loading device 1: *LFO (LFOEnvelopePan)
-loadnative("Audio/Effects/Native/*LFO", nil, nil, false, true)
-renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_001"
--- PHASE 2: Apply XML to ALL devices (Last to First)
--- Apply XML for device 1: *LFO
-for i, device in ipairs(renoise.song().selected_track.devices) do
-  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
-    device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
+  -- Detect if we're in Sample FX chain context
+  local in_sample_fx_chain = renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  local devices_to_search = nil
+  
+  -- Load the LFO device (loadnative handles Sample FX vs Track context automatically)
+  loadnative("Audio/Effects/Native/*LFO", nil, nil, false, true)
+  
+  -- Get the correct device chain to search based on context
+  if in_sample_fx_chain then
+    local sample_chain = renoise.song().selected_sample_device_chain
+    if sample_chain then
+      devices_to_search = sample_chain.devices
+      -- In Sample FX chain, get the selected device via index
+      local selected_idx = renoise.song().selected_sample_device_index
+      if selected_idx and selected_idx > 0 and selected_idx <= #devices_to_search then
+        devices_to_search[selected_idx].display_name = "PAKETTI_PLACEHOLDER_001"
+      end
+    end
+  else
+    devices_to_search = renoise.song().selected_track.devices
+    renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_001"
+  end
+  
+  if not devices_to_search then
+    renoise.app():show_status("No device chain found")
+    return
+  end
+  
+  -- PHASE 2: Apply XML to the device
+  for i, device in ipairs(devices_to_search) do
+    if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+      device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="LfoDevice">
     <IsMaximized>true</IsMaximized>
@@ -1244,46 +1261,44 @@ for i, device in ipairs(renoise.song().selected_track.devices) do
   </DeviceSlot>
 </FilterDevicePreset>
 ]=]
-    break
-  end
-end
--- PHASE 3: Apply Parameters to ALL devices (Last to First)
--- Apply parameters for device 1: *LFO
-for i, device in ipairs(renoise.song().selected_track.devices) do
-  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
-    device.parameters[2].value = 0
-    device.parameters[3].value = 1
-    device.parameters[4].value = 1
-    device.parameters[6].value = 0.029296876862645
-    device.parameters[7].value = 4
-    break
-  end
-end
--- PHASE 4: Apply Mixer Visibility to ALL devices (Last to First)
--- Apply mixer visibility for device 1: *LFO
-for i, device in ipairs(renoise.song().selected_track.devices) do
-  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
-    device.parameters[4].show_in_mixer = true
-    device.parameters[5].show_in_mixer = true
-    device.parameters[6].show_in_mixer = true
-    break
-  end
-end
--- PHASE 5: Apply Device Properties to ALL devices (Last to First)
--- Apply properties for device 1: *LFO
-for i, device in ipairs(renoise.song().selected_track.devices) do
-  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
-    device.display_name = "LFOEnvelopePan"
-    device.is_maximized = true
-    device.is_active = true
-    if device.external_editor_available then
-      device.external_editor_visible = true
+      break
     end
-    break
   end
-end
--- TRACK DEVICE CHAIN RECREATION COMPLETE
--- Total devices processed: 1
+  
+  -- PHASE 3: Apply Parameters
+  for i, device in ipairs(devices_to_search) do
+    if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+      device.parameters[2].value = 0
+      device.parameters[3].value = 1
+      device.parameters[4].value = 1
+      device.parameters[6].value = 0.029296876862645
+      device.parameters[7].value = 4
+      break
+    end
+  end
+  
+  -- PHASE 4: Apply Mixer Visibility
+  for i, device in ipairs(devices_to_search) do
+    if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+      device.parameters[4].show_in_mixer = true
+      device.parameters[5].show_in_mixer = true
+      device.parameters[6].show_in_mixer = true
+      break
+    end
+  end
+  
+  -- PHASE 5: Apply Device Properties
+  for i, device in ipairs(devices_to_search) do
+    if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+      device.display_name = "LFOEnvelopePan"
+      device.is_maximized = true
+      device.is_active = true
+      if device.external_editor_available then
+        device.external_editor_visible = true
+      end
+      break
+    end
+  end
 
 end
 

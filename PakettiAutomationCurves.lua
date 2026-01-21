@@ -13,6 +13,11 @@ PakettiAutomationCurvesInputDivisor = 1
 PakettiAutomationCurvesStepLength = 4
 PakettiAutomationCurvesMoveBySelection = false
 
+-- LFO Custom Waveform state
+PakettiAutomationCurvesWriteToLFO = false
+PakettiAutomationCurvesLFOEnvelopeLength = 64
+PakettiAutomationCurvesSelectedShape = nil  -- Currently selected shape name
+
 -- Shape data (initialized at load time)
 PakettiAutomationCurvesShapes = nil
 PakettiAutomationCurvesKeyMap = nil
@@ -296,12 +301,164 @@ function PakettiAutomationCurvesGenerateRandom(generator_type, num_points)
 end
 
 ------------------------------------------------------------------------
+-- Write Shape to LFO Custom Waveform
+------------------------------------------------------------------------
+function PakettiAutomationCurvesWriteToLFOCustom(shape_name)
+  local rs = renoise.song()
+  if not rs then
+    renoise.app():show_status("No song loaded")
+    return false
+  end
+  
+  local device = rs.selected_device
+  if not device then
+    renoise.app():show_status("No device selected")
+    return false
+  end
+  
+  -- Check if device is an LFO
+  if device.name ~= "*LFO" then
+    renoise.app():show_status("Selected device is not an LFO (got: " .. device.name .. ")")
+    return false
+  end
+  
+  -- Get shape data
+  local shape = PakettiAutomationCurvesShapes[shape_name]
+  if not shape then
+    renoise.app():show_status("Unknown shape: " .. tostring(shape_name))
+    return false
+  end
+  
+  -- Get or generate values
+  local shape_values
+  if shape.generator then
+    shape_values = PakettiAutomationCurvesGenerateRandom(shape.generator, PakettiAutomationCurveResolution)
+  else
+    shape_values = shape.values
+  end
+  
+  if not shape_values then
+    renoise.app():show_status("No values for shape: " .. shape_name)
+    return false
+  end
+  
+  -- Store current LFO routing parameters (so we can restore them after XML injection)
+  local stored_dest_track = device.parameters[1].value
+  local stored_dest_effect = device.parameters[2].value
+  local stored_dest_param = device.parameters[3].value
+  local stored_amplitude = device.parameters[4].value
+  local stored_offset = device.parameters[5].value
+  local stored_frequency = device.parameters[6].value
+  
+  -- Get envelope length
+  local envelope_length = PakettiAutomationCurvesLFOEnvelopeLength
+  
+  -- Convert shape values to LFO envelope points
+  -- Shape values are {x, y} where x is 0.0-0.99 and y is 0.0-1.0
+  -- LFO points are index,value,curve where index is 0 to (length-1)
+  local points_xml = {}
+  
+  -- Apply offset and attenuation to values (same as automation curve logic)
+  local offset = PakettiAutomationCurvesOffset
+  local attenuation = PakettiAutomationCurvesAttenuation
+  local divisor = PakettiAutomationCurvesInputDivisor
+  
+  -- Track which indices we've already added (to avoid duplicates)
+  local added_indices = {}
+  
+  -- Loop through repetitions (1x to 8x repeat count)
+  for slice = 0, (divisor - 1) do
+    local slice_start = slice / divisor  -- Start position of this slice (0.0 to 1.0)
+    local slice_width = 1 / divisor       -- Width of each slice
+    
+    for _, point in ipairs(shape_values) do
+      local x_pos = point[1]  -- 0.0 to 0.99
+      local y_val = point[2]  -- 0.0 to 1.0
+      
+      -- Apply offset and attenuation
+      local val = offset + ((1 - offset) * y_val) * attenuation
+      -- Clamp value to 0-1
+      val = math.max(0, math.min(1, val))
+      
+      -- Scale x position to fit within this slice
+      local scaled_x = slice_start + (x_pos * slice_width)
+      
+      -- Convert x position to envelope index
+      local index = math.floor(scaled_x * envelope_length)
+      if index >= envelope_length then
+        index = envelope_length - 1
+      end
+      
+      -- Only add if we haven't already added a point at this index
+      if not added_indices[index] then
+        added_indices[index] = true
+        table.insert(points_xml, string.format('<Point>%d,%.6f,0.0</Point>', index, val))
+      end
+    end
+  end
+  
+  local points_str = table.concat(points_xml, "\n        ")
+  
+  -- Build the LFO XML with Type=4 (Custom) and the custom envelope
+  local lfo_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="LfoDevice">
+    <IsMaximized>true</IsMaximized>
+    <Amplitude>
+      <Value>%.6f</Value>
+    </Amplitude>
+    <Offset>
+      <Value>%.6f</Value>
+    </Offset>
+    <Frequency>
+      <Value>%.6f</Value>
+    </Frequency>
+    <Type>
+      <Value>4</Value>
+    </Type>
+    <CustomEnvelope>
+      <PlayMode>Lines</PlayMode>
+      <Length>%d</Length>
+      <ValueQuantum>0.0</ValueQuantum>
+      <Polarity>Unipolar</Polarity>
+      <Points>
+        %s
+      </Points>
+    </CustomEnvelope>
+    <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
+    <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
+  </DeviceSlot>
+</FilterDevicePreset>]=], stored_amplitude, stored_offset, stored_frequency, envelope_length, points_str)
+  
+  -- Inject the XML
+  device.active_preset_data = lfo_xml
+  
+  -- Restore routing parameters (they get reset by XML injection)
+  device.parameters[1].value = stored_dest_track
+  device.parameters[2].value = stored_dest_effect
+  device.parameters[3].value = stored_dest_param
+  
+  local label = shape.label or shape_name
+  local repeat_str = divisor > 1 and (" x" .. divisor) or ""
+  renoise.app():show_status("Wrote " .. label .. repeat_str .. " to LFO Custom Waveform (" .. envelope_length .. " points)")
+  print("PakettiAutomationCurves: Wrote " .. shape_name .. " to LFO custom waveform with " .. envelope_length .. " points, repeat: " .. divisor .. "x")
+  
+  return true
+end
+
+------------------------------------------------------------------------
 -- Insert Shape into Automation
 ------------------------------------------------------------------------
 function PakettiAutomationCurvesInsert(shape_name)
   local rs = renoise.song()
   if not rs then
     renoise.app():show_status("No song loaded")
+    return
+  end
+  
+  -- If "Write to LFO" checkbox is enabled, write to LFO custom waveform instead
+  if PakettiAutomationCurvesWriteToLFO then
+    PakettiAutomationCurvesWriteToLFOCustom(shape_name)
     return
   end
   
@@ -713,6 +870,10 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
           PakettiAutomationCurvesVb.views.input_divisor.value = PakettiAutomationCurvesInputDivisor
         end
         renoise.app():show_status("Repeat Count: " .. PakettiAutomationCurvesInputDivisor .. "x")
+        -- Auto-reapply if in LFO mode and a shape is selected
+        if PakettiAutomationCurvesWriteToLFO and PakettiAutomationCurvesSelectedShape then
+          PakettiAutomationCurvesWriteToLFOCustom(PakettiAutomationCurvesSelectedShape)
+        end
       end
       handled = true
     end
@@ -724,6 +885,10 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
           PakettiAutomationCurvesVb.views.input_divisor.value = PakettiAutomationCurvesInputDivisor
         end
         renoise.app():show_status("Repeat Count: " .. PakettiAutomationCurvesInputDivisor .. "x")
+        -- Auto-reapply if in LFO mode and a shape is selected
+        if PakettiAutomationCurvesWriteToLFO and PakettiAutomationCurvesSelectedShape then
+          PakettiAutomationCurvesWriteToLFOCustom(PakettiAutomationCurvesSelectedShape)
+        end
       end
       handled = true
     end
@@ -731,12 +896,98 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
   
   -- Shape keys (only without modifiers)
   if key.modifiers == "" and PakettiAutomationCurvesKeyMap and PakettiAutomationCurvesKeyMap[key.name] then
-    PakettiAutomationCurvesInsert(PakettiAutomationCurvesKeyMap[key.name])
+    local shape_name = PakettiAutomationCurvesKeyMap[key.name]
+    -- Track the selected shape and update highlight
+    local old_shape = PakettiAutomationCurvesSelectedShape
+    PakettiAutomationCurvesSelectedShape = shape_name
+    PakettiAutomationCurvesUpdateButtonHighlight(shape_name, old_shape)
+    PakettiAutomationCurvesUpdateSelectedDisplay()
+    -- Insert/write the shape
+    PakettiAutomationCurvesInsert(shape_name)
     handled = true
   end
   
   if not handled then return key end
   return nil
+end
+
+------------------------------------------------------------------------
+-- Read LFO Envelope Length from Device XML
+------------------------------------------------------------------------
+function PakettiAutomationCurvesReadLFOEnvelopeLength(device)
+  if not device or device.name ~= "*LFO" then
+    return nil
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    return nil
+  end
+  
+  -- Parse the Length from CustomEnvelope section
+  local length = xml_data:match("<CustomEnvelope>.-<Length>(%d+)</Length>")
+  if length then
+    return tonumber(length)
+  end
+  
+  return nil
+end
+
+------------------------------------------------------------------------
+-- Get LFO Length Popup Index from Length Value
+------------------------------------------------------------------------
+function PakettiAutomationCurvesGetLFOLengthIndex(length)
+  local lengths = {64, 128, 256, 512, 1024}
+  for i, v in ipairs(lengths) do
+    if v == length then
+      return i
+    end
+  end
+  -- Find closest match
+  for i, v in ipairs(lengths) do
+    if v >= length then
+      return i
+    end
+  end
+  return 5 -- Default to 1024 if larger
+end
+
+------------------------------------------------------------------------
+-- Update Selected Shape Display
+------------------------------------------------------------------------
+function PakettiAutomationCurvesUpdateSelectedDisplay()
+  if PakettiAutomationCurvesVb and PakettiAutomationCurvesVb.views.selected_shape_text then
+    local shape = PakettiAutomationCurvesShapes[PakettiAutomationCurvesSelectedShape]
+    if shape then
+      local label = shape.label or PakettiAutomationCurvesSelectedShape
+      PakettiAutomationCurvesVb.views.selected_shape_text.text = "Selected: " .. label
+    else
+      PakettiAutomationCurvesVb.views.selected_shape_text.text = "Selected: (none)"
+    end
+  end
+end
+
+------------------------------------------------------------------------
+-- Update Button Highlight (visual selection feedback)
+------------------------------------------------------------------------
+function PakettiAutomationCurvesUpdateButtonHighlight(new_shape, old_shape)
+  if not PakettiAutomationCurvesVb then return end
+  
+  -- Reset old button to plain mode
+  if old_shape then
+    local old_btn = PakettiAutomationCurvesVb.views["shape_btn_" .. old_shape]
+    if old_btn then
+      old_btn.mode = "plain"
+    end
+  end
+  
+  -- Highlight new button with main_color mode
+  if new_shape then
+    local new_btn = PakettiAutomationCurvesVb.views["shape_btn_" .. new_shape]
+    if new_btn then
+      new_btn.mode = "main_color"
+    end
+  end
 end
 
 ------------------------------------------------------------------------
@@ -752,10 +1003,17 @@ function PakettiAutomationCurvesMakeButton(vb, shape_name)
   end
   
   return vb:bitmap{
+    id = "shape_btn_" .. shape_name,
     width = 48,
     height = 48,
     bitmap = PakettiAutomationCurvesImagePath .. shape.image,
     notifier = function()
+      -- Track the selected shape and update highlight
+      local old_shape = PakettiAutomationCurvesSelectedShape
+      PakettiAutomationCurvesSelectedShape = shape_name
+      PakettiAutomationCurvesUpdateButtonHighlight(shape_name, old_shape)
+      PakettiAutomationCurvesUpdateSelectedDisplay()
+      -- Insert/write the shape
       PakettiAutomationCurvesInsert(shape_name)
     end,
     tooltip = tooltip
@@ -801,6 +1059,34 @@ function PakettiAutomationCurvesShowDialog()
   end
   PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(edit_step, num_lines)
   
+  -- Auto-detect if selected device is an LFO (track DSP or sample FX chain)
+  local selected_lfo = nil
+  local lfo_envelope_length = nil
+  
+  -- Check track device first
+  local track_device = rs.selected_device
+  if track_device and track_device.name == "*LFO" then
+    selected_lfo = track_device
+  end
+  
+  -- Check sample FX chain device if in sample editor view
+  if not selected_lfo then
+    local sample_device = rs.selected_sample_device
+    if sample_device and sample_device.name == "*LFO" then
+      selected_lfo = sample_device
+    end
+  end
+  
+  -- If we found an LFO, auto-enable LFO mode and read its envelope length
+  if selected_lfo then
+    PakettiAutomationCurvesWriteToLFO = true
+    lfo_envelope_length = PakettiAutomationCurvesReadLFOEnvelopeLength(selected_lfo)
+    if lfo_envelope_length then
+      PakettiAutomationCurvesLFOEnvelopeLength = lfo_envelope_length
+      print("PakettiAutomationCurves: Auto-detected LFO with envelope length " .. lfo_envelope_length)
+    end
+  end
+  
   local vb = renoise.ViewBuilder()
   PakettiAutomationCurvesVb = vb
   
@@ -815,7 +1101,21 @@ function PakettiAutomationCurvesShowDialog()
       vb:column{
         spacing = 4,
         
-        -- Row 1: q w e r t y u i o p (10 shapes)
+        -- Row 1: 1 2 3 4 5 6 7 8 9 (number row - stairs, cosine, bounce, random, sawtooth)
+        vb:row{
+          spacing = 4,
+          PakettiAutomationCurvesMakeButton(vb, "stairUp"),
+          PakettiAutomationCurvesMakeButton(vb, "stairDown"),
+          PakettiAutomationCurvesMakeButton(vb, "cosUp"),
+          PakettiAutomationCurvesMakeButton(vb, "cosDown"),
+          PakettiAutomationCurvesMakeButton(vb, "bounceDown"),
+          PakettiAutomationCurvesMakeButton(vb, "randomSmooth"),
+          PakettiAutomationCurvesMakeButton(vb, "randomStep"),
+          PakettiAutomationCurvesMakeButton(vb, "sawtoothUp"),
+          PakettiAutomationCurvesMakeButton(vb, "sawtoothDown")
+        },
+        
+        -- Row 2: q w e r t y u i o p (10 shapes)
         vb:row{
           spacing = 4,
           PakettiAutomationCurvesMakeButton(vb, "rampUp"),
@@ -830,7 +1130,7 @@ function PakettiAutomationCurvesShowDialog()
           PakettiAutomationCurvesMakeButton(vb, "bellDown")
         },
         
-        -- Row 2: a s d f g h j k l (9 shapes)
+        -- Row 3: a s d f g h j k l (9 shapes)
         vb:row{
           spacing = 4,
           PakettiAutomationCurvesMakeButton(vb, "tri"),
@@ -844,7 +1144,7 @@ function PakettiAutomationCurvesShowDialog()
           PakettiAutomationCurvesMakeButton(vb, "bounceUp")
         },
         
-        -- Row 3: z x c v b n m (7 shapes - duty cycles: on/off + pulses)
+        -- Row 4: z x c v b n m (7 shapes - duty cycles: on/off + pulses)
         vb:row{
           spacing = 4,
           PakettiAutomationCurvesMakeButton(vb, "on"),
@@ -854,25 +1154,6 @@ function PakettiAutomationCurvesShowDialog()
           PakettiAutomationCurvesMakeButton(vb, "pulse50"),
           PakettiAutomationCurvesMakeButton(vb, "pulse75"),
           PakettiAutomationCurvesMakeButton(vb, "pulse80")
-        },
-        
-        -- Row 4: 1 2 3 4 5 (5 shapes - stairs, cosine, bounce)
-        vb:row{
-          spacing = 4,
-          PakettiAutomationCurvesMakeButton(vb, "stairUp"),
-          PakettiAutomationCurvesMakeButton(vb, "stairDown"),
-          PakettiAutomationCurvesMakeButton(vb, "cosUp"),
-          PakettiAutomationCurvesMakeButton(vb, "cosDown"),
-          PakettiAutomationCurvesMakeButton(vb, "bounceDown")
-        },
-        
-        -- Row 5: 6 7 8 9 (4 shapes - random + sawtooth)
-        vb:row{
-          spacing = 4,
-          PakettiAutomationCurvesMakeButton(vb, "randomSmooth"),
-          PakettiAutomationCurvesMakeButton(vb, "randomStep"),
-          PakettiAutomationCurvesMakeButton(vb, "sawtoothUp"),
-          PakettiAutomationCurvesMakeButton(vb, "sawtoothDown")
         }
       },
       
@@ -962,6 +1243,59 @@ function PakettiAutomationCurvesShowDialog()
           vb:text{text = "Move by selection"}
         },
         
+        -- Write to LFO Custom Waveform checkbox
+        vb:row{
+          vb:checkbox{
+            id = "write_to_lfo",
+            value = PakettiAutomationCurvesWriteToLFO,
+            notifier = function(value)
+              PakettiAutomationCurvesWriteToLFO = value
+              -- Update UI to show/hide LFO-specific controls
+              if PakettiAutomationCurvesVb then
+                if PakettiAutomationCurvesVb.views.lfo_length_row then
+                  PakettiAutomationCurvesVb.views.lfo_length_row.visible = value
+                end
+                if PakettiAutomationCurvesVb.views.selected_shape_row then
+                  PakettiAutomationCurvesVb.views.selected_shape_row.visible = value
+                end
+              end
+            end
+          },
+          vb:text{text = "Write to LFO Custom Waveform"}
+        },
+        
+        -- LFO envelope length selector (visible when LFO mode is enabled)
+        vb:row{
+          id = "lfo_length_row",
+          visible = PakettiAutomationCurvesWriteToLFO,
+          vb:text{text = "LFO Length:"},
+          vb:popup{
+            id = "lfo_length",
+            width = 80,
+            value = PakettiAutomationCurvesGetLFOLengthIndex(PakettiAutomationCurvesLFOEnvelopeLength),
+            items = {"64", "128", "256", "512", "1024"},
+            notifier = function(idx)
+              local lengths = {64, 128, 256, 512, 1024}
+              PakettiAutomationCurvesLFOEnvelopeLength = lengths[idx]
+              -- Auto-reapply if in LFO mode and a shape is selected
+              if PakettiAutomationCurvesWriteToLFO and PakettiAutomationCurvesSelectedShape then
+                PakettiAutomationCurvesWriteToLFOCustom(PakettiAutomationCurvesSelectedShape)
+              end
+            end
+          }
+        },
+        
+        -- Selected shape display (visible when LFO mode is enabled)
+        vb:row{
+          id = "selected_shape_row",
+          visible = PakettiAutomationCurvesWriteToLFO,
+          vb:text{
+            id = "selected_shape_text",
+            text = "Selected: (none)",
+            font = "bold"
+          }
+        },
+        
         -- Input divisor switch
         vb:row{
           vb:switch{
@@ -971,6 +1305,10 @@ function PakettiAutomationCurvesShowDialog()
             items = {"1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x"},
             notifier = function(val)
               PakettiAutomationCurvesInputDivisor = val
+              -- Auto-reapply if in LFO mode and a shape is selected
+              if PakettiAutomationCurvesWriteToLFO and PakettiAutomationCurvesSelectedShape then
+                PakettiAutomationCurvesWriteToLFOCustom(PakettiAutomationCurvesSelectedShape)
+              end
             end
           }
         },
