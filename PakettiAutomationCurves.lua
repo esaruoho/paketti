@@ -18,6 +18,15 @@ PakettiAutomationCurvesWriteToLFO = false
 PakettiAutomationCurvesLFOEnvelopeLength = 64
 PakettiAutomationCurvesSelectedShape = nil  -- Currently selected shape name
 
+-- Automation Clipboard state
+PakettiAutomationClipboard = {
+  points = {},      -- Array of {relative_time, value, scaling}
+  length = 0,       -- Original selection length in lines
+  playmode = 1,     -- Original playmode for reference
+  source_param = "" -- Source parameter name (for display)
+}
+PakettiAutomationClipboardPasteMode = "normal"  -- "normal", "stretch", "floodfill"
+
 -- Shape data (initialized at load time)
 PakettiAutomationCurvesShapes = nil
 PakettiAutomationCurvesKeyMap = nil
@@ -767,6 +776,320 @@ function PakettiAutomationCurvesQuantize(grid_size)
 end
 
 ------------------------------------------------------------------------
+-- Automation Clipboard Functions
+------------------------------------------------------------------------
+
+-- Copy automation points from current selection to clipboard
+function PakettiAutomationClipboardCopy()
+  local rs = renoise.song()
+  if not rs then
+    renoise.app():show_status("No song loaded")
+    return false
+  end
+  
+  local pattern = rs.selected_pattern
+  if not pattern then
+    renoise.app():show_status("No pattern selected")
+    return false
+  end
+  
+  local param = rs.selected_automation_parameter
+  if not param then
+    renoise.app():show_status("No automation parameter selected")
+    return false
+  end
+  
+  local track = rs.selected_pattern_track
+  local automation = track:find_automation(param)
+  
+  if not automation then
+    renoise.app():show_status("No automation envelope found for " .. param.name)
+    return false
+  end
+  
+  -- Get selection range (or use full pattern if no selection)
+  local selection = automation.selection_range
+  local start_line, end_line
+  local num_lines = pattern.number_of_lines
+  
+  if selection and selection[1] and selection[2] and selection[1] ~= selection[2] then
+    start_line = selection[1]
+    end_line = selection[2]
+  else
+    -- No selection, use full pattern
+    start_line = 1
+    end_line = num_lines + 1
+  end
+  
+  -- Filter points within selection range
+  local source_points = automation.points
+  local clipboard_points = {}
+  
+  for _, point in ipairs(source_points) do
+    if point.time >= start_line and point.time < end_line then
+      -- Store with time normalized relative to selection start (0-based)
+      local relative_time = point.time - start_line
+      table.insert(clipboard_points, {
+        relative_time = relative_time,
+        value = point.value,
+        scaling = point.scaling or 0
+      })
+    end
+  end
+  
+  if #clipboard_points == 0 then
+    renoise.app():show_status("No automation points in selection")
+    return false
+  end
+  
+  -- Store in clipboard
+  PakettiAutomationClipboard.points = clipboard_points
+  PakettiAutomationClipboard.length = end_line - start_line
+  PakettiAutomationClipboard.playmode = automation.playmode
+  PakettiAutomationClipboard.source_param = param.name
+  
+  renoise.app():show_status("Copied " .. #clipboard_points .. " points from " .. param.name .. " (" .. PakettiAutomationClipboard.length .. " lines)")
+  print("PakettiAutomationClipboard: Copied " .. #clipboard_points .. " points, length: " .. PakettiAutomationClipboard.length)
+  
+  return true
+end
+
+-- Cut automation points (copy then clear)
+function PakettiAutomationClipboardCut()
+  local rs = renoise.song()
+  if not rs then
+    renoise.app():show_status("No song loaded")
+    return false
+  end
+  
+  local pattern = rs.selected_pattern
+  if not pattern then
+    renoise.app():show_status("No pattern selected")
+    return false
+  end
+  
+  local param = rs.selected_automation_parameter
+  if not param then
+    renoise.app():show_status("No automation parameter selected")
+    return false
+  end
+  
+  local track = rs.selected_pattern_track
+  local automation = track:find_automation(param)
+  
+  if not automation then
+    renoise.app():show_status("No automation envelope found for " .. param.name)
+    return false
+  end
+  
+  -- Get selection range before copying
+  local selection = automation.selection_range
+  local start_line, end_line
+  local num_lines = pattern.number_of_lines
+  
+  if selection and selection[1] and selection[2] and selection[1] ~= selection[2] then
+    start_line = selection[1]
+    end_line = selection[2]
+  else
+    -- No selection, use full pattern
+    start_line = 1
+    end_line = num_lines + 1
+  end
+  
+  -- Copy first
+  local success = PakettiAutomationClipboardCopy()
+  if not success then
+    return false
+  end
+  
+  -- Clear the range
+  automation:clear_range(start_line, end_line)
+  
+  renoise.app():show_status("Cut " .. #PakettiAutomationClipboard.points .. " points from " .. param.name)
+  print("PakettiAutomationClipboard: Cut " .. #PakettiAutomationClipboard.points .. " points")
+  
+  return true
+end
+
+-- Paste automation points to current parameter
+function PakettiAutomationClipboardPaste()
+  local rs = renoise.song()
+  if not rs then
+    renoise.app():show_status("No song loaded")
+    return false
+  end
+  
+  -- Check clipboard
+  if not PakettiAutomationClipboard.points or #PakettiAutomationClipboard.points == 0 then
+    renoise.app():show_status("Clipboard is empty - copy automation first")
+    return false
+  end
+  
+  local pattern = rs.selected_pattern
+  if not pattern then
+    renoise.app():show_status("No pattern selected")
+    return false
+  end
+  
+  local param = rs.selected_automation_parameter
+  if not param then
+    renoise.app():show_status("No automation parameter selected")
+    return false
+  end
+  
+  -- Get or create automation envelope
+  local automation = PakettiAutomationCurvesGetAutomation()
+  if not automation then
+    return false
+  end
+  
+  -- Get target selection range
+  local selection = automation.selection_range
+  local start_line, end_line
+  local num_lines = pattern.number_of_lines
+  local use_stretch = false
+  
+  if selection and selection[1] and selection[2] and selection[1] ~= selection[2] then
+    start_line = selection[1]
+    end_line = selection[2]
+    -- If paste mode is stretch, scale to fit selection
+    if PakettiAutomationClipboardPasteMode == "stretch" then
+      use_stretch = true
+    end
+  else
+    -- No selection, paste at cursor position
+    start_line = rs.selected_line_index
+    end_line = start_line + PakettiAutomationClipboard.length
+    -- Clamp to pattern length
+    if end_line > num_lines + 1 then
+      end_line = num_lines + 1
+    end
+  end
+  
+  -- Clear target range first
+  automation:clear_range(start_line, end_line)
+  
+  -- Calculate scaling factor for stretch mode
+  local target_length = end_line - start_line
+  local source_length = PakettiAutomationClipboard.length
+  local scale = 1
+  if use_stretch and source_length > 0 then
+    scale = target_length / source_length
+  end
+  
+  -- Paste points
+  local points_added = 0
+  for _, point in ipairs(PakettiAutomationClipboard.points) do
+    local new_time
+    if use_stretch then
+      new_time = start_line + (point.relative_time * scale)
+    else
+      new_time = start_line + point.relative_time
+    end
+    
+    -- Only add if within target range
+    if new_time >= start_line and new_time < end_line then
+      automation:add_point_at(new_time, point.value, point.scaling)
+      points_added = points_added + 1
+    end
+  end
+  
+  local mode_str = use_stretch and " (stretched)" or ""
+  renoise.app():show_status("Pasted " .. points_added .. " points to " .. param.name .. mode_str)
+  print("PakettiAutomationClipboard: Pasted " .. points_added .. " points" .. mode_str)
+  
+  return true
+end
+
+-- Flood-fill: repeat clipboard pattern to fill selection or pattern
+function PakettiAutomationClipboardFloodFill()
+  local rs = renoise.song()
+  if not rs then
+    renoise.app():show_status("No song loaded")
+    return false
+  end
+  
+  -- Check clipboard
+  if not PakettiAutomationClipboard.points or #PakettiAutomationClipboard.points == 0 then
+    renoise.app():show_status("Clipboard is empty - copy automation first")
+    return false
+  end
+  
+  if PakettiAutomationClipboard.length <= 0 then
+    renoise.app():show_status("Clipboard has invalid length")
+    return false
+  end
+  
+  local pattern = rs.selected_pattern
+  if not pattern then
+    renoise.app():show_status("No pattern selected")
+    return false
+  end
+  
+  local param = rs.selected_automation_parameter
+  if not param then
+    renoise.app():show_status("No automation parameter selected")
+    return false
+  end
+  
+  -- Get or create automation envelope
+  local automation = PakettiAutomationCurvesGetAutomation()
+  if not automation then
+    return false
+  end
+  
+  -- Get target selection range (or full pattern)
+  local selection = automation.selection_range
+  local start_line, end_line
+  local num_lines = pattern.number_of_lines
+  
+  if selection and selection[1] and selection[2] and selection[1] ~= selection[2] then
+    start_line = selection[1]
+    end_line = selection[2]
+  else
+    -- No selection, use full pattern
+    start_line = 1
+    end_line = num_lines + 1
+  end
+  
+  -- Clear target range first
+  automation:clear_range(start_line, end_line)
+  
+  -- Calculate repetitions needed
+  local target_length = end_line - start_line
+  local source_length = PakettiAutomationClipboard.length
+  local repetitions = math.ceil(target_length / source_length)
+  
+  -- Tile the pattern
+  local points_added = 0
+  for rep = 0, repetitions - 1 do
+    local offset = rep * source_length
+    for _, point in ipairs(PakettiAutomationClipboard.points) do
+      local new_time = start_line + offset + point.relative_time
+      -- Only add if within target range
+      if new_time >= start_line and new_time < end_line then
+        automation:add_point_at(new_time, point.value, point.scaling)
+        points_added = points_added + 1
+      end
+    end
+  end
+  
+  renoise.app():show_status("Flood-filled " .. param.name .. " with " .. repetitions .. " repetitions (" .. points_added .. " points)")
+  print("PakettiAutomationClipboard: Flood-filled with " .. repetitions .. " reps, " .. points_added .. " points")
+  
+  return true
+end
+
+-- Paste with stretch mode (scales to fit target selection)
+function PakettiAutomationClipboardPasteStretch()
+  local old_mode = PakettiAutomationClipboardPasteMode
+  PakettiAutomationClipboardPasteMode = "stretch"
+  local result = PakettiAutomationClipboardPaste()
+  PakettiAutomationClipboardPasteMode = old_mode
+  return result
+end
+
+------------------------------------------------------------------------
 -- Key Handler for Dialog
 ------------------------------------------------------------------------
 function PakettiAutomationCurvesKeyHandler(dialog, key)
@@ -816,8 +1139,16 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
   if key.name == "f11" then rs.selected_line_index = math.ceil(num_lines * 0.50) + 1; handled = true end
   if key.name == "f12" then rs.selected_line_index = math.ceil(num_lines * 0.75) + 1; handled = true end
   
-  -- Edit step emulation with Control modifier
-  if key.modifiers == "control" then
+  -- Shift+Ctrl/Cmd+V for stretch paste (check before regular Ctrl/Cmd)
+  if key.modifiers == "shift + control" or key.modifiers == "shift + meta" then
+    if key.name == "v" then
+      PakettiAutomationClipboardPasteStretch()
+      handled = true
+    end
+  end
+  
+  -- Edit step emulation with Control/Cmd modifier (Mac and Windows support)
+  if key.modifiers == "control" or key.modifiers == "meta" then
     if key.name == "`" then
       PakettiAutomationCurvesStepLength = PakettiAutomationCurvesClampStepLength(num_lines, num_lines)
       if PakettiAutomationCurvesVb and PakettiAutomationCurvesVb.views.step_length then
@@ -862,9 +1193,15 @@ function PakettiAutomationCurvesKeyHandler(dialog, key)
       handled = true
     end
     
-    -- Undo/Redo
+    -- Undo/Redo (Ctrl/Cmd+Z and Ctrl/Cmd+Y)
     if key.name == "z" then renoise.song():undo(); handled = true end
     if key.name == "y" then renoise.song():redo(); handled = true end
+    
+    -- Clipboard shortcuts (Ctrl/Cmd+X/C/V/F)
+    if key.name == "x" then PakettiAutomationClipboardCut(); handled = true end
+    if key.name == "c" then PakettiAutomationClipboardCopy(); handled = true end
+    if key.name == "v" then PakettiAutomationClipboardPaste(); handled = true end
+    if key.name == "f" then PakettiAutomationClipboardFloodFill(); handled = true end
   end
   
   -- Input divisor control with + and - keys (without modifiers)
@@ -1351,6 +1688,27 @@ function PakettiAutomationCurvesShowDialog()
           vb:button{text = "Smooth", notifier = PakettiAutomationCurvesSmooth},
           vb:button{text = "Quantize 8", notifier = function() PakettiAutomationCurvesQuantize(0.125) end},
           vb:button{text = "Quantize 16", notifier = function() PakettiAutomationCurvesQuantize(0.0625) end}
+        },
+        
+        -- Clipboard row
+        vb:row{
+          spacing = 4,
+          vb:text{text = "Clipboard:"},
+          vb:button{text = "Cut", width = 50, notifier = PakettiAutomationClipboardCut},
+          vb:button{text = "Copy", width = 50, notifier = PakettiAutomationClipboardCopy},
+          vb:button{text = "Paste", width = 50, notifier = PakettiAutomationClipboardPaste},
+          vb:button{text = "Flood", width = 50, notifier = PakettiAutomationClipboardFloodFill},
+          vb:popup{
+            id = "paste_mode",
+            width = 80,
+            items = {"Normal", "Stretch", "Flood"},
+            value = 1,
+            notifier = function(idx)
+              local modes = {"normal", "stretch", "floodfill"}
+              PakettiAutomationClipboardPasteMode = modes[idx]
+              renoise.app():show_status("Paste mode: " .. PakettiAutomationClipboardPasteMode)
+            end
+          }
         }
       }
     }
@@ -1464,3 +1822,140 @@ renoise.tool():add_keybinding{
   invoke = function() PakettiAutomationCurvesQuantize(0.125) end
 }
 
+------------------------------------------------------------------------
+-- Automation Clipboard Menu Entries, Keybindings, and MIDI Mappings
+------------------------------------------------------------------------
+
+-- Menu Entries for Track Automation
+renoise.tool():add_menu_entry{
+  name = "Track Automation:Paketti:Automation Clipboard Cut",
+  invoke = PakettiAutomationClipboardCut
+}
+
+renoise.tool():add_menu_entry{
+  name = "Track Automation:Paketti:Automation Clipboard Copy",
+  invoke = PakettiAutomationClipboardCopy
+}
+
+renoise.tool():add_menu_entry{
+  name = "Track Automation:Paketti:Automation Clipboard Paste",
+  invoke = PakettiAutomationClipboardPaste
+}
+
+renoise.tool():add_menu_entry{
+  name = "Track Automation:Paketti:Automation Clipboard Paste (Stretch)",
+  invoke = PakettiAutomationClipboardPasteStretch
+}
+
+renoise.tool():add_menu_entry{
+  name = "Track Automation:Paketti:Automation Clipboard Flood-Fill",
+  invoke = PakettiAutomationClipboardFloodFill
+}
+
+-- Menu Entries for Track Automation List
+renoise.tool():add_menu_entry{
+  name = "Track Automation List:Paketti:Automation Clipboard Cut",
+  invoke = PakettiAutomationClipboardCut
+}
+
+renoise.tool():add_menu_entry{
+  name = "Track Automation List:Paketti:Automation Clipboard Copy",
+  invoke = PakettiAutomationClipboardCopy
+}
+
+renoise.tool():add_menu_entry{
+  name = "Track Automation List:Paketti:Automation Clipboard Paste",
+  invoke = PakettiAutomationClipboardPaste
+}
+
+renoise.tool():add_menu_entry{
+  name = "Track Automation List:Paketti:Automation Clipboard Paste (Stretch)",
+  invoke = PakettiAutomationClipboardPasteStretch
+}
+
+renoise.tool():add_menu_entry{
+  name = "Track Automation List:Paketti:Automation Clipboard Flood-Fill",
+  invoke = PakettiAutomationClipboardFloodFill
+}
+
+-- Keybindings
+renoise.tool():add_keybinding{
+  name = "Automation:Paketti:Automation Clipboard Cut",
+  invoke = function(repeated)
+    if not repeated then PakettiAutomationClipboardCut() end
+  end
+}
+
+renoise.tool():add_keybinding{
+  name = "Automation:Paketti:Automation Clipboard Copy",
+  invoke = function(repeated)
+    if not repeated then PakettiAutomationClipboardCopy() end
+  end
+}
+
+renoise.tool():add_keybinding{
+  name = "Automation:Paketti:Automation Clipboard Paste",
+  invoke = function(repeated)
+    if not repeated then PakettiAutomationClipboardPaste() end
+  end
+}
+
+renoise.tool():add_keybinding{
+  name = "Automation:Paketti:Automation Clipboard Paste (Stretch)",
+  invoke = function(repeated)
+    if not repeated then PakettiAutomationClipboardPasteStretch() end
+  end
+}
+
+renoise.tool():add_keybinding{
+  name = "Automation:Paketti:Automation Clipboard Flood-Fill",
+  invoke = function(repeated)
+    if not repeated then PakettiAutomationClipboardFloodFill() end
+  end
+}
+
+-- MIDI Mappings
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Automation Clipboard Cut x[Toggle]",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiAutomationClipboardCut()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Automation Clipboard Copy x[Toggle]",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiAutomationClipboardCopy()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Automation Clipboard Paste x[Toggle]",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiAutomationClipboardPaste()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Automation Clipboard Paste (Stretch) x[Toggle]",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiAutomationClipboardPasteStretch()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Automation Clipboard Flood-Fill x[Toggle]",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiAutomationClipboardFloodFill()
+    end
+  end
+}
