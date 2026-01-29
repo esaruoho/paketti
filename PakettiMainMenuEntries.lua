@@ -32,8 +32,9 @@ local donations = {
   {"2025-12-05", "LotuaStation", 8.81, {"Web","https://lotuastation.neocities.org/"},{"YouTube", "https://www.youtube.com/@LotuaStation"}, {"SoundCloud","https://soundcloud.com/lotuastation"}},
   {"2025-12-19", "Anonymous", 200.00},
   {"2025-12-25", "tkna | TAKAHASHI Naoki", 123.54, {"tkna", "https://tkna.work"}, {"1/a", "https://one-over-a.com"}, {"Ittteki", "https://ittteki.com"}},
-  {"2026-01-02", "Defense Mechanism", 16.33, {"website","https://defensemech.com/"},{"Bandcamp","https://defensemechanism.bandcamp.com/",},
+  {"2026-01-02", "Defense Mechanism", 16.33, {"website","https://defensemech.com/"},{"Bandcamp","https://defensemechanism.bandcamp.com/"},
 {"Bluesky","https://bsky.app/profile/defensemech.com"}},
+  {"2026-01-02", "xpinvert", 30.00},
   {"2026-01-29", "Casiino", 127.82, {"Instagram", "https://www.instagram.com/elcasiino/"}},
 
 
@@ -69,30 +70,30 @@ for i, donation in ipairs(donations) do
   local person = donation[2]
   local amount = donation[3]
   local links = {}
-  
+
   -- Collect all links starting from index 4
   for j = 4, #donation do
     if donation[j] and type(donation[j]) == "table" and #donation[j] == 2 then
       table.insert(links, donation[j])
     end
   end
-  
+
   -- Create link buttons dynamically
   local link_buttons = {}
   for _, link in ipairs(links) do
     table.insert(link_buttons, vb:button{
-      text = link[1], 
+      text = link[1],
       notifier = function() renoise.app():open_url(link[2]) end
     })
   end
-  
+
   -- Create the row
   local row_content = {
     vb:text{text = date, width = 70},
     vb:text{text = person, width = 150},
     vb:text{text = string.format("%.2f", amount) .. "€", width = 50, font = "bold"}
   }
-  
+
   -- Add link buttons if any exist
   if #link_buttons > 0 then
     table.insert(row_content, vb:horizontal_aligner{
@@ -100,25 +101,49 @@ for i, donation in ipairs(donations) do
       unpack(link_buttons)
     })
   end
-  
+
   table.insert(donation_rows, vb:row(row_content))
 end
 
--- Build donation section dynamically
-local donation_section = {
-  width="100%",
-  style = "group", 
-  margin=5,
-  vb:horizontal_aligner{mode="distribute",
-    vb:text{text="Donations:", style = "strong", font = "bold"}}
-}
+-- Dynamically calculate number of columns based on donation count
+-- ~15 items per column, minimum 2 columns, maximum 4 columns
+local items_per_column = 15
+local num_columns = math.max(2, math.min(4, math.ceil(#donation_rows / items_per_column)))
+local rows_per_column = math.ceil(#donation_rows / num_columns)
 
--- Insert donation rows one by one
-for i, row in ipairs(donation_rows) do
-  table.insert(donation_section, row)
+-- Split donations into columns
+local column_data = {}
+for col = 1, num_columns do
+  column_data[col] = {}
 end
 
--- Add final elements - 
+for i, row in ipairs(donation_rows) do
+  local col_index = math.ceil(i / rows_per_column)
+  if col_index > num_columns then col_index = num_columns end
+  table.insert(column_data[col_index], row)
+end
+
+-- Build column views
+local column_views = {}
+for col = 1, num_columns do
+  local col_content = {margin = 5}
+  for _, row in ipairs(column_data[col]) do
+    table.insert(col_content, row)
+  end
+  table.insert(column_views, vb:column(col_content))
+end
+
+-- Build donation section with dynamic columns
+local donation_section = {
+  width="100%",
+  style = "group",
+  margin=5,
+  vb:horizontal_aligner{mode="distribute",
+    vb:text{text="Donations:", style = "strong", font = "bold"}},
+  vb:row(column_views)
+}
+
+-- Add final elements -
 table.insert(donation_section, vb:space{height = 5})
 table.insert(donation_section, vb:horizontal_aligner{mode="distribute",
   vb:text{text="Total: " .. string.format("%.2f", total_amount) .. "€ (" .. yearly_text .. ")", font = "bold",style="strong"}})
