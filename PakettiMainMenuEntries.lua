@@ -34,6 +34,7 @@ local donations = {
   {"2025-12-25", "tkna | TAKAHASHI Naoki", 123.54, {"tkna", "https://tkna.work"}, {"1/a", "https://one-over-a.com"}, {"Ittteki", "https://ittteki.com"}},
   {"2026-01-02", "Defense Mechanism", 16.33, {"website","https://defensemech.com/"},{"Bandcamp","https://defensemechanism.bandcamp.com/",},
 {"Bluesky","https://bsky.app/profile/defensemech.com"}},
+  {"2026-01-29", "Casiino", 127.82, {"Instagram", "https://www.instagram.com/elcasiino/"}},
 
 
 }
