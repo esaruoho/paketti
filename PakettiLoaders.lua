@@ -103,11 +103,15 @@ function search_empty_instrument()
       end
   local plugin = proc.instruments[empty_instrument].plugin_properties.plugin_loaded
   local midi_device = proc.instruments[empty_instrument].midi_output_properties.device_name
-    if ((samples == false) and (plugin == false) and 
+    if ((samples == false) and (plugin == false) and
         (midi_device == nil or midi_device == "")) then
     return empty_instrument
     end
     end
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+    return nil
+  end
    proc:insert_instrument_at(#proc.instruments+1)
   return #proc.instruments
 end
@@ -3395,6 +3399,10 @@ local song=renoise.song()
 local current_instrument_index = song.selected_instrument_index
 
 -- Create a new instrument below the current one and select it
+if not canInsertInstrument() then
+  renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+  return
+end
 local new_instrument_index = math.min(current_instrument_index + 1, #song.instruments + 1)
 song:insert_instrument_at(new_instrument_index)
 song.selected_instrument_index = new_instrument_index
@@ -3440,6 +3448,10 @@ local song=renoise.song()
 local current_instrument_index = song.selected_instrument_index
 
 -- Create a new instrument below the current one and select it
+if not canInsertInstrument() then
+  renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+  return
+end
 local new_instrument_index = math.min(current_instrument_index + 1, #song.instruments + 1)
 song:insert_instrument_at(new_instrument_index)
 song.selected_instrument_index = new_instrument_index
@@ -3485,6 +3497,10 @@ local song=renoise.song()
 local current_instrument_index = song.selected_instrument_index
 
 -- Create a new instrument below the current one and select it
+if not canInsertInstrument() then
+  renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+  return
+end
 local new_instrument_index = math.min(current_instrument_index + 1, #song.instruments + 1)
 song:insert_instrument_at(new_instrument_index)
 song.selected_instrument_index = new_instrument_index
@@ -3561,42 +3577,42 @@ function loadNewWithCurrentSliceMarkers()
     renoise.app():show_status("No file selected, doing nothing.")
     return
   end
-  
+
   -- Create a new instrument after the original one
   local new_instrument_index = original_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
-  
+
   -- Apply Paketti default instrument configuration
   pakettiPreferencesDefaultInstrumentLoader()
-  
+
   local new_instrument = song.selected_instrument
   local filename_only = file_path:match("^.+[/\\](.+)$") or file_path
-  
+
   -- Make sure there's a sample slot
   if #new_instrument.samples == 0 then
     new_instrument:insert_sample_at(1)
   end
   song.selected_sample_index = 1
-  
+
   -- Load the sample
   local success = new_instrument.samples[1].sample_buffer:load_from(file_path)
-  
+
   if not success then
     renoise.app():show_status("Failed to load sample: " .. filename_only)
     return
   end
-  
+
   -- Set instrument and sample names
   local name_without_ext = filename_only:match("(.+)%..+$") or filename_only
   new_instrument.name = name_without_ext
   new_instrument.samples[1].name = name_without_ext
-  
+
   -- Get the newly loaded sample
   local new_sample = new_instrument.samples[1]
   local new_sample_length = new_sample.sample_buffer.number_of_frames
   local new_sample_rate = new_sample.sample_buffer.sample_rate
-  
+
   -- Calculate the sample rate ratio for scaling markers
   local rate_ratio = new_sample_rate / original_sample_rate
   
@@ -3688,42 +3704,42 @@ function loadNewWithCurrentSliceMarkersLengthMatching()
     renoise.app():show_status("No file selected, doing nothing.")
     return
   end
-  
+
   -- Create a new instrument after the original one
   local new_instrument_index = original_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
-  
+
   -- Apply Paketti default instrument configuration
   pakettiPreferencesDefaultInstrumentLoader()
-  
+
   local new_instrument = song.selected_instrument
   local filename_only = file_path:match("^.+[/\\](.+)$") or file_path
-  
+
   -- Make sure there's a sample slot
   if #new_instrument.samples == 0 then
     new_instrument:insert_sample_at(1)
   end
   song.selected_sample_index = 1
-  
+
   -- Load the sample
   local success = new_instrument.samples[1].sample_buffer:load_from(file_path)
-  
+
   if not success then
     renoise.app():show_status("Failed to load sample: " .. filename_only)
     return
   end
-  
+
   -- Set instrument and sample names
   local name_without_ext = filename_only:match("(.+)%..+$") or filename_only
   new_instrument.name = name_without_ext
   new_instrument.samples[1].name = name_without_ext
-  
+
   -- Get the newly loaded sample
   local new_sample = new_instrument.samples[1]
   local new_sample_length = new_sample.sample_buffer.number_of_frames
   local new_sample_rate = new_sample.sample_buffer.sample_rate
-  
+
   -- Calculate the actual length ratio (framecount matching)
   local length_ratio = new_sample_length / original_sample_length
   
@@ -4258,8 +4274,8 @@ end
 
 function insertRandomPlugin(au_only)
   local s = renoise.song()
-  
-  s:insert_instrument_at(s.selected_instrument_index+1)
+
+  if not safeInsertInstrumentAt(s, s.selected_instrument_index + 1) then return end
   renoise.song().selected_instrument_index = renoise.song().selected_instrument_index+1
   local random_plugin = getRandomPlugin(au_only)
   if random_plugin then

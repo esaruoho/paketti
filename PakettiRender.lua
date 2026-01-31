@@ -31,7 +31,7 @@ function pakettiCleanRenderSelection(muteOriginal, justwav, newtrack, timestretc
     local renderedInstrument = song.selected_instrument_index + 1
 
     -- Create New Instrument
-    song:insert_instrument_at(renderedInstrument)
+    if not safeInsertInstrumentAt(song, renderedInstrument) then return end
 
     -- Select New Instrument
     song.selected_instrument_index = renderedInstrument
@@ -668,7 +668,7 @@ function pakettiCleanRenderSelectionLPB()
   print("Initial selected_instrument_index: " .. song.selected_instrument_index)
 
   -- Create New Instrument
-  song:insert_instrument_at(renderedInstrument)
+  if not safeInsertInstrumentAt(song, renderedInstrument) then return end
 
   -- Select New Instrument
   song.selected_instrument_index = renderedInstrument
@@ -765,7 +765,7 @@ function CleanRenderAndSaveDoneCallback()
 
   -- Create a new instrument below the currently selected instrument
   local renderedInstrument = song.selected_instrument_index + 1
-  song:insert_instrument_at(renderedInstrument)
+  if not safeInsertInstrumentAt(song, renderedInstrument) then return end
 
   -- Select the newly created instrument
   song.selected_instrument_index = renderedInstrument
@@ -1312,7 +1312,7 @@ function PakettiSeamlessCleanRenderSelection()
   local renderedInstrument = song.selected_instrument_index + 1
 
   print("Initial selected_instrument_index: " .. song.selected_instrument_index)
-  song:insert_instrument_at(renderedInstrument)
+  if not safeInsertInstrumentAt(song, renderedInstrument) then return end
   song.selected_instrument_index = renderedInstrument
   print("selected_instrument_index after creating new instrument: " .. song.selected_instrument_index)
   
@@ -1390,7 +1390,7 @@ function pakettiRenderPatternSelection(muteOriginal, justwav, newtrack)
     local renderedInstrument = song.selected_instrument_index + 1
 
     -- Create New Instrument
-    song:insert_instrument_at(renderedInstrument)
+    if not safeInsertInstrumentAt(song, renderedInstrument) then return end
     -- Select New Instrument
     song.selected_instrument_index = renderedInstrument
 
@@ -2228,7 +2228,7 @@ function start_experimental_rendering()
     
     -- Create new instrument for result
     local target_instrument = song.selected_instrument_index + 1
-    song:insert_instrument_at(target_instrument)
+    if not safeInsertInstrumentAt(song, target_instrument) then return end
     experimental_render_context.target_instrument = target_instrument
     experimental_render_context.temp_file_path = pakettiGetTempFilePath(".wav")
     
@@ -2518,9 +2518,9 @@ function pakettiRenderMatrixSelection()
     
     -- Create New Instrument
     local target_instrument = song.selected_instrument_index + 1
-    song:insert_instrument_at(target_instrument)
+    if not safeInsertInstrumentAt(song, target_instrument) then return end
     song.selected_instrument_index = target_instrument
-    
+
     -- Create render context
     local render_context = create_matrix_render_context()
     render_context.selection_start_sequence = start_pos

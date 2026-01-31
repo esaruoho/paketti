@@ -1900,8 +1900,8 @@ function pakettiMaxAmplitudeDCOffsetKickCreator()
   -- Insert a new instrument after the currently selected one
   local selected_index = renoise.song().selected_instrument_index
   local new_instrument_index = selected_index + 1
-  
-  renoise.song():insert_instrument_at(new_instrument_index)
+
+  if not safeInsertInstrumentAt(renoise.song(), new_instrument_index) then return end
   renoise.song().selected_instrument_index = new_instrument_index
 
   -- Load the default XRNI template into the new instrument
@@ -2022,7 +2022,7 @@ function Paketti_Diagonal_Line_to_Sample()
   
   local selected_instrument_index = renoise.song().selected_instrument_index
   local new_instrument_index = math.max(1, selected_instrument_index - 1)
-  renoise.song():insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(renoise.song(), new_instrument_index) then return end
   renoise.song().selected_instrument_index = new_instrument_index
 
   local new_instrument = renoise.song().instruments[new_instrument_index]

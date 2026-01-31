@@ -227,6 +227,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiHyperEditManualRows=8,
   pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni",
   pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
+  pakettiDefaultMidiMappingPath = "",
   pakettiPresetPlusPlusDeviceChain = "DeviceChains" .. separator .. "hipass_lopass_dcoffset.xrnt",
   -- AutoSamplify Settings
   pakettiAutoSamplifyMonitoring = false,
@@ -1078,6 +1079,8 @@ end
 local dialog_content = nil
 
 function pakettiPreferences()
+  -- Initialize MIDI mapping path preference if it doesn't exist
+
   -- Initialize unison detune preferences if nil
   if preferences.pakettiUnisonDetune.value == nil then
     preferences.pakettiUnisonDetune.value = 25
@@ -1097,7 +1100,8 @@ function pakettiPreferences()
   end
 
   local pakettiDeviceChainPathDisplayId = "pakettiDeviceChainPathDisplay_" .. tostring(math.random(2, 30000))
-local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2, 30000))
+  local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2, 30000))
+  local pakettiMidiMappingPathDisplayId = "pakettiMidiMappingPathDisplay_" .. tostring(math.random(2, 30000))
 
    local coarse_value_label = vb:text{width=60,
      text = string.format("%05d", preferences.pakettiRotateSampleBufferCoarse.value)
@@ -2095,6 +2099,44 @@ vb:row{
         },
         vb:button{text="Load Random IR",width=100,notifier=function()
             PakettiRandomIR(preferences.PakettiIRPath.value)
+        end}
+    },
+    vb:text{style="strong", font="bold", text="Default MIDI Mapping File (.xrnm)"},
+    vb:row{
+        vb:textfield{
+            text = preferences.pakettiDefaultMidiMappingPath.value or "",
+            width=300,
+            id = pakettiMidiMappingPathDisplayId,
+            notifier=function(value)
+                preferences.pakettiDefaultMidiMappingPath.value = value
+                preferences:save_as("preferences.xml")
+            end
+        },
+        vb:button{
+            text="Browse",
+            width=60,
+            notifier=function()
+                local path = renoise.app():prompt_for_filename_to_read({"xrnm"}, "Select Default MIDI Mapping File")
+                if path and path ~= "" then
+                    preferences.pakettiDefaultMidiMappingPath.value = path
+                    vb.views[pakettiMidiMappingPathDisplayId].text = path
+                    preferences:save_as("preferences.xml")
+                    renoise.app():show_status("Default MIDI Mapping set to: " .. path)
+                end
+            end
+        },
+        vb:button{
+            text="Reset",
+            width=50,
+            notifier=function()
+                preferences.pakettiDefaultMidiMappingPath.value = ""
+                vb.views[pakettiMidiMappingPathDisplayId].text = ""
+                preferences:save_as("preferences.xml")
+                renoise.app():show_status("Default MIDI Mapping path cleared.")
+            end
+        },
+        vb:button{text="Load Now",width=70,notifier=function()
+            PakettiLoadDefaultMidiMappings()
         end}
     },
   vb:row{

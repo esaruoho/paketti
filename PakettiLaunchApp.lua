@@ -130,7 +130,8 @@ function saveSelectedSampleRangeToTempAndOpen(app_path)
     
     -- Create a temporary instrument and sample to hold the range
     local original_instrument_index = song.selected_instrument_index
-    local new_instrument = song:insert_instrument_at(#song.instruments + 1)
+    local new_instrument = safeInsertInstrumentAt(song, #song.instruments + 1)
+    if not new_instrument then return end
     local new_sample = new_instrument:insert_sample_at(1)
     
     -- Create new sample buffer with the selection range data

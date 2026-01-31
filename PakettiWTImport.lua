@@ -233,9 +233,9 @@ end
 
 local function import_wavetable_to_instrument(wavetable_data, instrument_name)
   local song = renoise.song()
-  
+
   -- Initialize with Paketti default instrument (like REX loader)
-  song:insert_instrument_at(song.selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
   song.selected_instrument_index = song.selected_instrument_index + 1
   
   -- Apply default settings if available

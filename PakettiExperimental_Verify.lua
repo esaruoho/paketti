@@ -3137,7 +3137,7 @@ function PakettiGroupSamplesByName()
 
   -- Helper function to create a new drumkit instrument
   local function create_drumkit_instrument(index)
-    song:insert_instrument_at(index)
+    if not safeInsertInstrumentAt(song, index) then return nil end
     song.selected_instrument_index = index
     
     -- Load the default drumkit instrument template
@@ -3823,9 +3823,9 @@ function PakettiLoadRingModInstrument()
   local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
   local song = renoise.song()
   local index = song.selected_instrument_index + 1
-  
+
   -- Insert new instrument and select it
-  song:insert_instrument_at(index)
+  if not safeInsertInstrumentAt(song, index) then return end
   song.selected_instrument_index = index
   
   -- Load the RingMod instrument template
@@ -3846,9 +3846,9 @@ function PakettiLoadRingModLegacyInstrument()
   local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
   local song = renoise.song()
   local index = song.selected_instrument_index + 1
-  
+
   -- Insert new instrument and select it
-  song:insert_instrument_at(index)
+  if not safeInsertInstrumentAt(song, index) then return end
   song.selected_instrument_index = index
   
   -- Load the RingMod Legacy instrument template

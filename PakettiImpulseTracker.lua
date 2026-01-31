@@ -3637,7 +3637,7 @@ function PakettiPatternToSampleRenderComplete(temp_path, pattern_index)
   local song = renoise.song()
   
   -- Create new instrument
-  song:insert_instrument_at(song.selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
   song.selected_instrument_index = song.selected_instrument_index + 1
   local instrument = song.selected_instrument
   

@@ -767,7 +767,7 @@ function pakettiAmigoLoadIntoSample()
     -- lookup the selected sample in the selected instrument
     pakettiAmigoDebug("Step 7: Loading into selected sample")
     -- Inject default XRNI settings before loading the sample
-    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
+    if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index+1) then return end
     renoise.song().selected_instrument_index = renoise.song().selected_instrument_index+1
     pakettiPreferencesDefaultInstrumentLoader()
     local song=renoise.song()

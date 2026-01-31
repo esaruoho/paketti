@@ -189,7 +189,7 @@ function loadIFFSample(file_path)
   end
 
   local new_idx = idx + 1
-  song:insert_instrument_at(new_idx)
+  if not safeInsertInstrumentAt(song, new_idx) then return nil end
   song.selected_instrument_index = new_idx
   local inst = song.instruments[new_idx]
   local name = filename_from_path(file_path)
@@ -330,7 +330,7 @@ function loadRandomIFF(num_samples)
           local song = renoise.song()
           local current_idx = song.selected_instrument_index
           local new_idx = current_idx + 1
-          song:insert_instrument_at(new_idx)
+          if not safeInsertInstrumentAt(song, new_idx) then return end
           song.selected_instrument_index = new_idx
 
           local inst = song.instruments[new_idx]

@@ -799,7 +799,8 @@ function selectedInstrumentSetAllSendsToOutputTrack()
   end
 end
 
--- Function to load MuteTrig drumkit with 120 samples and configure Key Trackers
+-- Function to load MuteTrig drumkit with up to 120 samples and configure Key Trackers
+-- Dynamically handles any number of loaded samples (1-120)
 function selectedInstrumentLoadMuteTrigDrumkit()
   -- Seed the random number generator with current time
   math.randomseed(os.time())
@@ -815,7 +816,7 @@ function selectedInstrumentLoadMuteTrigDrumkit()
 
   -- Get all valid audio files in the selected directory and subdirectories using global function
   local original_sample_files = PakettiGetFilesInDirectory(folder_path)
-  
+
   -- Check if there are enough files to choose from
   if #original_sample_files == 0 then
     renoise.app():show_status("No audio files found in the selected folder.")
@@ -832,7 +833,7 @@ function selectedInstrumentLoadMuteTrigDrumkit()
   local song = renoise.song()
   local instrument = song.selected_instrument
   if #instrument.samples > 0 or instrument.plugin_properties.plugin_loaded then
-    song:insert_instrument_at(song.selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     instrument = song.selected_instrument
   end
@@ -844,19 +845,31 @@ function selectedInstrumentLoadMuteTrigDrumkit()
   -- Update the instrument reference after loading the instrument
   instrument = song.selected_instrument
 
+  -- Validate scaffolding structure (must have at least 123 FX chains)
+  local num_scaffolding_chains = #instrument.sample_device_chains
+  if num_scaffolding_chains < 123 then
+    renoise.app():show_error(string.format(
+      "MuteTrig scaffolding has %d FX chains, expected 123+.\nPlease reinstall the Paketti tool or restore the scaffolding instrument.",
+      num_scaffolding_chains))
+    return nil
+  end
+
   -- Set the instrument name based on slot
   local instrument_slot_hex = string.format("%02X", song.selected_instrument_index - 1)
   instrument.name = instrument_slot_hex .. "_MuteTrigDrumkit"
-  
+
   -- Apply modulation settings using helper function
   PakettiApplyLoaderModulationSettings(instrument, "loadRandomMuteTrigSamples")
 
-  -- Limit the number of samples to load to the requested amount
+  -- Limit the number of samples to load to the requested amount (max 120)
   local num_samples_to_load = math.min(#sample_files, 120)
 
   -- Create a table to store failed loads
   local failed_loads = {}
-  
+
+  -- Track actually loaded samples
+  local actual_loaded_count = 0
+
   -- Create ProcessSlicer instance and dialog
   local slicer = nil
   local dialog = nil
@@ -868,7 +881,7 @@ function selectedInstrumentLoadMuteTrigDrumkit()
     for i = 1, num_samples_to_load do
       -- Update progress
       if dialog and dialog.visible then
-        vb.views.progress_text.text = string.format("Loading sample %d/%d...", 
+        vb.views.progress_text.text = string.format("Loading sample %d/%d...",
           i, num_samples_to_load)
       end
 
@@ -892,6 +905,7 @@ function selectedInstrumentLoadMuteTrigDrumkit()
       end)
 
       if success and error_message then
+        actual_loaded_count = actual_loaded_count + 1
         sample.name = file_name
         sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
         sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
@@ -901,23 +915,23 @@ function selectedInstrumentLoadMuteTrigDrumkit()
         sample.loop_mode = preferences.pakettiLoaderLoopMode.value
         sample.new_note_action = preferences.pakettiLoaderNNA.value
         sample.loop_release = preferences.pakettiLoaderLoopExit.value
-        
+
         renoise.app():show_status(formatDigits(3,i) .. ": Loaded sample: " .. file_name)
       else
         -- Get file info for better error reporting
-        local folder_path = selected_file:match("(.*[/\\])")
+        local err_folder_path = selected_file:match("(.*[/\\])")
         local file_size = "unknown"
         local file_handle = io.open(selected_file, "rb")
         if file_handle then
           file_size = string.format("%.2f MB", file_handle:seek("end") / 1024 / 1024)
           file_handle:close()
         end
-        
+
         -- Store failed loads with their index and error message
         table.insert(failed_loads, {
           index = i,
           file = selected_file,
-          folder = folder_path,
+          folder = err_folder_path,
           size = file_size,
           error = tostring(error_message)
         })
@@ -936,55 +950,64 @@ function selectedInstrumentLoadMuteTrigDrumkit()
       dialog:close()
     end
 
-    -- Create one more sample slot (sample 121) BEFORE distributing to FX chains
-    instrument:insert_sample_at(121)
-    local mutetrig_sample = instrument.samples[121]
-    
+    -- Check if any samples were loaded
+    if actual_loaded_count == 0 then
+      renoise.app():show_error("No samples could be loaded. Check file formats and permissions.")
+      return
+    end
+
+    -- Create MuteTrig sample AFTER all loaded samples (dynamic index)
+    local mutetrig_index = actual_loaded_count + 1
+    instrument:insert_sample_at(mutetrig_index)
+    local mutetrig_sample = instrument.samples[mutetrig_index]
+
     -- Set the sample name
     mutetrig_sample.name = "MuteTrig"
-    
+
     -- Create a 1-frame sample buffer
     local sample_buffer = mutetrig_sample.sample_buffer
     sample_buffer:create_sample_data(44100, 16, 1, 1)  -- 44.1kHz, 16-bit, mono, 1 frame
-    
-    -- Set the sample to play from C0 to B9 (notes 0-119)
-    mutetrig_sample.sample_mapping.note_range = {0, 119}
+
+    -- Set the sample to play from C0 to the highest loaded note (dynamic range)
+    local max_note = actual_loaded_count - 1  -- 0-indexed: if 20 samples loaded, range is 0-19
+    mutetrig_sample.sample_mapping.note_range = {0, max_note}
     mutetrig_sample.sample_mapping.base_note = 0  -- C0
-    
+
     -- NOW distribute all samples to separate FX chains
     selectedInstrumentDistributeToSeparateFxChains()
 
-    -- Assign note mapping: lowest sample to C-0, highest sample to B-9
-    for i = 1, num_samples_to_load do
+    -- Assign note mapping based on actual loaded samples (not expected count)
+    for i = 1, actual_loaded_count do
       local sample = instrument.samples[i]
       if sample then
-        -- Map each sample to a single note, spanning from C-0 (0) to B-9 (119)
+        -- Map each sample to a single note, spanning from C-0 (0)
         local note = i - 1  -- C-0 = 0, so sample 1 maps to note 0
         sample.sample_mapping.note_range = {note, note}
         sample.sample_mapping.base_note = note
       end
     end
 
-    -- The scaffolding instrument already has a MuteTrig sample at position 121
-    -- Just reassign it to FX chain 123
-    local mutetrig_sample = instrument.samples[121]
+    -- Reassign MuteTrig sample to FX chain 123 (always exists in scaffolding)
+    mutetrig_sample = instrument.samples[mutetrig_index]
     if mutetrig_sample then
       mutetrig_sample.device_chain_index = 123
     end
-    
+
     -- Configure the Tracker device in FX chain 123 via XML injection
     local mutetrig_fx_chain = instrument.sample_device_chains[123]
     if mutetrig_fx_chain then
       local devices = mutetrig_fx_chain.devices
-      
+      local tracker_found = false
+
       for device_index = 1, #devices do
         local device = devices[device_index]
         if device and device.name == "*Key Tracker" then
+          tracker_found = true
           -- Set display name to "TRACKER"
           device.display_name = "TRACKER"
-          
-          -- Inject XML configuration with SrcInstrument -1
-          local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+
+          -- Inject XML configuration with SrcInstrument -1 and dynamic key range
+          local device_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="KeyTrackingDevice">
     <IsMaximized>true</IsMaximized>
@@ -992,7 +1015,7 @@ function selectedInstrumentLoadMuteTrigDrumkit()
     <DestScaling>Linear</DestScaling>
     <KeyTrackingMode>Clamp</KeyTrackingMode>
     <KeyTrackingMin>0</KeyTrackingMin>
-    <KeyTrackingMax>119</KeyTrackingMax>
+    <KeyTrackingMax>%d</KeyTrackingMax>
     <DestMin>
       <Value>1.00000007e-05</Value>
     </DestMin>
@@ -1001,25 +1024,30 @@ function selectedInstrumentLoadMuteTrigDrumkit()
     </DestMax>
   </DeviceSlot>
 </FilterDevicePreset>
-]=]
+]=], max_note)
           device.active_preset_data = device_xml
           device.is_maximized = true
-          
-          print("Configured Tracker device in FX chain 123 with SrcInstrument -1")
+
+          print(string.format("Configured Tracker device in FX chain 123 with SrcInstrument -1, KeyTrackingMax=%d", max_note))
+          break
         end
       end
+
+      if not tracker_found then
+        renoise.app():show_warning("Key Tracker device not found in FX Chain 123. MuteTrig may not work correctly.")
+      end
     else
-      print("Could not find FX chain 123 for MuteTrig sample")
+      renoise.app():show_warning("FX Chain 123 not found in scaffolding. MuteTrig may not work correctly.")
     end
 
     -- Add the *Instr. Macros device like pitchBendDrumkitLoader does
-    if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
+    if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
       -- Load the *Instr. Macros device and rename it
-      if song.selected_track.type == 2 then 
-        renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") 
+      if song.selected_track.type == 2 then
+        renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.")
       else
         loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
-        
+
         -- Check if device 2 exists before accessing it
         if #song.selected_track.devices >= 2 then
           local macro_device = song.selected_track:device(2)
@@ -1027,6 +1055,19 @@ function selectedInstrumentLoadMuteTrigDrumkit()
           song.selected_track.devices[2].is_maximized = false
         end
       end
+    end
+
+    -- Show final status with actual loaded count
+    if actual_loaded_count < num_samples_to_load then
+      renoise.app():show_status(string.format(
+        "MuteTrig Drumkit loaded: %d/%d samples (notes C-0 to %s)",
+        actual_loaded_count, num_samples_to_load,
+        string.format("%s%d", ({"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"})[max_note % 12 + 1], math.floor(max_note / 12))))
+    else
+      renoise.app():show_status(string.format(
+        "MuteTrig Drumkit loaded: %d samples (notes C-0 to %s)",
+        actual_loaded_count,
+        string.format("%s%d", ({"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"})[max_note % 12 + 1], math.floor(max_note / 12))))
     end
 
     -- Show summary of failed loads if any
@@ -2613,7 +2654,7 @@ function duplicateTrackDuplicateInstrument()
   end
 
   -- Duplicate the current instrument
-  song:insert_instrument_at(instrument_index + 1)
+  if not safeInsertInstrumentAt(song, instrument_index + 1) then return end
   local new_instrument_index = instrument_index + 1
   song.instruments[new_instrument_index]:copy_from(song.instruments[instrument_index])
 
@@ -3219,7 +3260,7 @@ function PakettiIsolateSlices()
 
   -- Helper function to create a new instrument with given sample data
   local function create_new_instrument(master_sample, start_frame, end_frame, name_suffix, index, slice_sample)
-    song:insert_instrument_at(index)
+    if not safeInsertInstrumentAt(song, index) then return nil end
     song.selected_instrument_index = index
     pakettiPreferencesDefaultInstrumentLoader()
     local new_instrument = song.instruments[index]
@@ -3381,18 +3422,18 @@ function PakettiIsolateSlicesToInstrumentDirect()
 
   -- Helper function to create a new instrument
   local function create_new_instrumentWithSlices(name_suffix, index)
-    song:insert_instrument_at(index)
+    if not safeInsertInstrumentAt(song, index) then return nil end
     song.selected_instrument_index = index
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
     local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
-    
+
     renoise.app():load_instrument(defaultInstrument)
     local new_instrument = song.instruments[index]
     new_instrument.name = instrument.name .. name_suffix
-    
+
     -- Apply modulation settings using helper function
     PakettiApplyLoaderModulationSettings(new_instrument, "PakettiIsolateSlicesToInstrumentDirect")
-    
+
     return new_instrument
   end
 
@@ -3538,7 +3579,7 @@ function PakettiIsolateSlicesToInstrumentNoProcess()
 
   -- Helper: create a new instrument preloaded with default XRNI and named accordingly
   local function create_new_instrumentWithSlices(name_suffix, index)
-    song:insert_instrument_at(index)
+    if not safeInsertInstrumentAt(song, index) then return nil end
     song.selected_instrument_index = index
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
     local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
@@ -3554,10 +3595,10 @@ function PakettiIsolateSlicesToInstrumentNoProcess()
       end
     end
     new_instrument.name = instrument.name .. name_suffix
-    
+
     -- Apply modulation settings using helper function
     PakettiApplyLoaderModulationSettings(new_instrument, "create_new_instrumentWithSlices #2")
-    
+
     return new_instrument
   end
 
@@ -3676,17 +3717,17 @@ function PakettiIsolateSlicesToInstrumentProcessed(selected_instrument_index, in
   
   -- Helper function to create a new instrument
   local function create_new_instrumentWithSlices(name_suffix, index)
-    song:insert_instrument_at(index)
+    if not safeInsertInstrumentAt(song, index) then return nil end
     song.selected_instrument_index = index
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-    
+
     renoise.app():load_instrument(defaultInstrument)
     local new_instrument = song.instruments[index]
     new_instrument.name = instrument.name .. name_suffix
-    
+
     -- Apply modulation settings using helper function
     PakettiApplyLoaderModulationSettings(new_instrument, "PakettiIsolateSlicesToInstrumentProcessed")
-    
+
     return new_instrument
   end
 
@@ -3858,11 +3899,11 @@ function PakettiIsolateSelectedSampleToInstrument()
 
   -- Create new instrument
   local insert_index = selected_instrument_index + 1
-  song:insert_instrument_at(insert_index)
+  if not safeInsertInstrumentAt(song, insert_index) then return end
   song.selected_instrument_index = insert_index
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
   local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
-  
+
 
 --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
 renoise.app():load_instrument(defaultInstrument)
@@ -4652,6 +4693,10 @@ function create_instrument_from_convolver(convolver_device, track_index, device_
   local left_samples = parseb64(left_sample_data)
   local right_samples = stereo and parseb64(right_sample_data) or nil
   local selected_instrument_index = renoise.song().selected_instrument_index
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+    return
+  end
   local new_instrument = renoise.song():insert_instrument_at(selected_instrument_index + 1)
   new_instrument.name = sample_name or "Loaded Convolver IR"
   local new_sample = new_instrument:insert_sample_at(1)
@@ -6115,9 +6160,13 @@ function DuplicateMaximizeConvertAndSave(format)
   end
   
   -- Step 1: Create a New Instrument Below the Selected Instrument Index
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+    return
+  end
   local selected_instrument_index = song.selected_instrument_index
   local new_instrument = song:insert_instrument_at(selected_instrument_index + 1)
-  
+
   if new_instrument == nil then
     renoise.app():show_error("Failed to create a new instrument.")
     return

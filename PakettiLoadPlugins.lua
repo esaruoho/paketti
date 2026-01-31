@@ -274,7 +274,7 @@ end
 function loadPlugin(pluginPath, apply_ccizer_file, plugin_display_name)
   local selected_index = renoise.song().selected_instrument_index
   local currentView = renoise.app().window.active_middle_frame
-  renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
   renoise.song().selected_instrument_index = selected_index + 1
 
   if currentView == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then 

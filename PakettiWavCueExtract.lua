@@ -769,7 +769,7 @@ function PakettiWavCuePromptAndImportWithCues()
     use_existing_instrument = true
   else
     -- Create a new instrument
-    song:insert_instrument_at(current_index + 1)
+    if not safeInsertInstrumentAt(song, current_index + 1) then return end
     song.selected_instrument_index = current_index + 1
     print("PakettiWavCueExtract: Inserted new instrument at index: " .. song.selected_instrument_index)
   end

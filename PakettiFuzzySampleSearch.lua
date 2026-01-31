@@ -889,7 +889,7 @@ function PakettiFuzzySampleSearchLoadSelected()
   if file_ext == "xrni" then
     -- Load XRNI following Paketti conventions
     local song = renoise.song()
-    song:insert_instrument_at(song.selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     
     -- Apply Paketti default instrument configuration before loading XRNI
@@ -933,9 +933,9 @@ function PakettiFuzzySampleSearchLoadSelected()
   else
     -- Load regular audio files (wav, flac, aiff, mp3, etc.)
     local song = renoise.song()
-    
+
     -- Create new instrument following Paketti conventions
-    song:insert_instrument_at(song.selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     
     -- Apply Paketti default instrument configuration

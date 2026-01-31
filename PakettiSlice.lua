@@ -2355,7 +2355,7 @@ function PakettiSliceCreateRhythmicDrumChain(normalize_slices)
   
   -- Create TEMP instrument for loading samples at index+1
   local temp_instrument_index = original_instrument_index + 1
-  song:insert_instrument_at(temp_instrument_index)
+  if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
   local temp_instrument = song.instruments[temp_instrument_index]
   temp_instrument.name = "TEMP_PROCESSING"
   
@@ -2742,7 +2742,7 @@ function PakettiSliceCreateRhythmicDrumChain(normalize_slices)
     
     -- Create FINAL instrument at index+2 (temp was deleted, so now it's at index+1)
     local new_instrument_index = original_instrument_index + 1
-    song:insert_instrument_at(new_instrument_index)
+    if not safeInsertInstrumentAt(song, new_instrument_index) then return end
     song.selected_instrument_index = new_instrument_index
     
     -- Apply Paketti default XRNI template (pakettification)
@@ -2979,7 +2979,7 @@ function PakettiSliceCreateRhythmicDrumChainRandomize(normalize_slices)
   
   -- Create temporary instrument for loading samples
   local temp_instrument_index = original_instrument_index + 1
-  song:insert_instrument_at(temp_instrument_index)
+  if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
   song.selected_instrument_index = temp_instrument_index
   local temp_instrument = song.instruments[temp_instrument_index]
   temp_instrument.name = "TEMP - Loading Samples"
@@ -3368,7 +3368,7 @@ function PakettiSliceCreateRhythmicDrumChainRandomize(normalize_slices)
     
     -- Create FINAL instrument at index+1 (temp was deleted, so original is still at its original index)
     local new_instrument_index = original_instrument_index + 1
-    song:insert_instrument_at(new_instrument_index)
+    if not safeInsertInstrumentAt(song, new_instrument_index) then return end
     song.selected_instrument_index = new_instrument_index
     
     -- Apply Paketti default XRNI template (pakettification)
@@ -3582,7 +3582,7 @@ function PakettiSliceCreateRhythmicDrumChainFromXRNI(normalize_slices)
     
     -- Load XRNI into temporary instrument
     temp_instrument_index = #song.instruments + 1
-    song:insert_instrument_at(temp_instrument_index)
+    if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
     song.selected_instrument_index = temp_instrument_index
     
     local load_success, load_error = pcall(function()
@@ -3777,7 +3777,7 @@ function PakettiSliceCreateRhythmicDrumChainFromXRNI(normalize_slices)
   
   -- Create new instrument with chained sample
   local new_instrument_index = original_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   
   -- Apply Paketti default XRNI template (pakettification)

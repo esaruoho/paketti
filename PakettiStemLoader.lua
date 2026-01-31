@@ -743,7 +743,7 @@ function pakettiStemLoader_process(options)
       
       -- 2. Create new instrument
       next_instrument = song.selected_instrument_index + 1
-      song:insert_instrument_at(next_instrument)
+      if not safeInsertInstrumentAt(song, next_instrument) then return end
       song.selected_instrument_index = next_instrument
       print("Stem Loader: Created instrument at index " .. next_instrument)
     end
@@ -1140,7 +1140,7 @@ function pakettiStemLoaderForwardsReverse_process(options)
       song.selected_track_index = track_index
       
       fwd_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(fwd_instrument_index)
+      if not safeInsertInstrumentAt(song, fwd_instrument_index) then return end
       song.selected_instrument_index = fwd_instrument_index
     end
     
@@ -1203,7 +1203,7 @@ function pakettiStemLoaderForwardsReverse_process(options)
       
       -- === REVERSED INSTRUMENT (same track, new instrument) ===
       local rev_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(rev_instrument_index)
+      if not safeInsertInstrumentAt(song, rev_instrument_index) then return end
       song.selected_instrument_index = rev_instrument_index
       
       local rev_instrument = song.instruments[rev_instrument_index]

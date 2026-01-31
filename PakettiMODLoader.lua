@@ -123,9 +123,9 @@ function load_samples_from_mod()
       wf:close()
 
       -- apply Paketti defaults + insert instrument
-      
+
       local next_ins = renoise.song().selected_instrument_index + 1
-      renoise.song():insert_instrument_at(next_ins)
+      if not safeInsertInstrumentAt(renoise.song(), next_ins) then return end
       renoise.song().selected_instrument_index = next_ins
       pakettiPreferencesDefaultInstrumentLoader()
       local ins = renoise.song().selected_instrument

@@ -579,7 +579,7 @@ function PakettiM8Import()
   -- Create new instrument
   local song = renoise.song()
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local instrument = song.selected_instrument
   
@@ -693,7 +693,7 @@ function PakettiM8ImportInstrument()
   
   -- Create new instrument
   local new_instrument_index = #song.instruments + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   local new_instrument = song.instruments[new_instrument_index]
   
   -- Set instrument name
@@ -813,7 +813,7 @@ local function import_m8i_file(filename)
   -- Create new instrument using common M8 import logic
   local song = renoise.song()
   local new_instrument_index = #song.instruments + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   local new_instrument = song.instruments[new_instrument_index]
   
   -- Set instrument name

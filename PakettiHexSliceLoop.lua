@@ -542,7 +542,7 @@ function create_instrument_from_selection()
 
     -- Create new instrument
     local new_instrument_index = song.selected_instrument_index + 1
-    song:insert_instrument_at(new_instrument_index)
+    if not safeInsertInstrumentAt(song, new_instrument_index) then return end
     song.selected_instrument_index = new_instrument_index
     local new_instrument = song:instrument(new_instrument_index)
     

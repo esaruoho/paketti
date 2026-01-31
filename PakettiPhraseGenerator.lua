@@ -1125,7 +1125,8 @@ function create_new_instrument_with_current_phrase()
   if not current_phrase then
     renoise.app():show_status("No current phrase to preserve - creating empty instrument")
     -- Create new instrument and add empty phrase
-    local new_instr_index = song:insert_instrument_at(song.selected_instrument_index + 1)
+    local new_instr_index = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
+    if not new_instr_index then return false end
     song.selected_instrument_index = new_instr_index
     local new_instr = song.selected_instrument
     new_instr.name = old_instr.name .. " (Clean)"
@@ -1160,7 +1161,8 @@ function create_new_instrument_with_current_phrase()
   end
   
   -- Create new instrument after current one
-  local new_instr_index = song:insert_instrument_at(song.selected_instrument_index + 1)
+  local new_instr_index = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
+  if not new_instr_index then return false end
   song.selected_instrument_index = new_instr_index
   local new_instr = song.selected_instrument
   new_instr.name = old_instr.name .. " (Clean)"

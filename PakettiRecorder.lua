@@ -51,11 +51,15 @@ function PakettiSampleAndToSampleEditor()
   if w.sample_record_dialog_is_visible==false then
     -- Check if there's already a selected sample and create new instrument if needed
     if s.selected_sample then
+      if not canInsertInstrument() then
+        renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+        return
+      end
       local new_instrument_index=s.selected_instrument_index + 1
       s:insert_instrument_at(new_instrument_index)
       s.selected_instrument_index=new_instrument_index
     end
-    
+
     -- Start recording
     w.sample_record_dialog_is_visible=true
     t:start_stop_sample_recording()
@@ -124,6 +128,10 @@ function search_empty_instrument()
       if ((samples == false) and (plugin == false) and (midi_device == nil or midi_device == "")) then
         return empty_instrument end
       end
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+    return nil
+  end
   proc:insert_instrument_at(#proc.instruments+1)
   return #proc.instruments
 end
@@ -260,6 +268,11 @@ function recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
       (not curr_instr.plugin_properties.plugin_loaded)
 
     if not is_empty_instrument then
+      -- Check instrument limit before creating
+      if not canInsertInstrument() then
+        renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+        return
+      end
       -- Insert a new instrument at "current index + 1"
       local new_instr_idx = curr_instr_idx + 1
       if new_instr_idx > (#s.instruments + 1) then
@@ -695,6 +708,10 @@ renoise.app().window.active_middle_frame=1
   local song=renoise.song()
 renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   if not dialog_visible then
+    if not canInsertInstrument() then
+      renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+      return
+    end
     renoise.app().window.sample_record_dialog_is_visible = true
     renoise.app().window.active_middle_frame=1
 renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
@@ -974,12 +991,12 @@ function PakettiQuickSampleToNewTrackCore(mode)
     -- 3) Create a new instrument after the current instrument
     local current_instrument_index = song.selected_instrument_index
     local new_instrument_index = current_instrument_index + 1
-    
+
     if new_instrument_index > #song.instruments + 1 then
       new_instrument_index = #song.instruments + 1
     end
-    
-    song:insert_instrument_at(new_instrument_index)
+
+    if not safeInsertInstrumentAt(song, new_instrument_index) then return end
     song.selected_instrument_index = new_instrument_index
     print(string.format("  Created and selected new instrument at index %d", new_instrument_index))
     

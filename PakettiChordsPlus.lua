@@ -906,7 +906,7 @@ function DuplicateSpecificNotesToNewTrack(note_type, instrument_mode)
         original_instrument.plugin_properties.plugin_device.external_editor_visible = false
       end
     end
-    song:insert_instrument_at(instrument_index + 1)
+    if not safeInsertInstrumentAt(song, instrument_index + 1) then return end
     final_instrument_index = instrument_index + 1
     local new_instrument = song.instruments[final_instrument_index]
     new_instrument:copy_from(original_instrument)

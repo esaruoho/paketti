@@ -440,6 +440,24 @@ local selected_theme_index = nil
 -- Define valid audio file extensions globally
 PakettiValidAudioExtensions = {".wav",".mp3",".flac",".aif",".aiff",".m4a"}
 
+-- Renoise instrument limit constant
+RENOISE_MAX_INSTRUMENTS = 255
+
+-- Check if we can insert more instruments (hasn't reached the 255 limit)
+function canInsertInstrument()
+  return #renoise.song().instruments < RENOISE_MAX_INSTRUMENTS
+end
+
+-- Safe wrapper for insert_instrument_at that checks the limit first
+-- Returns the new instrument if successful, nil if at limit
+function safeInsertInstrumentAt(song, index)
+  if #song.instruments >= RENOISE_MAX_INSTRUMENTS then
+    renoise.app():show_status("Cannot insert instrument: maximum of 255 instruments reached")
+    return nil
+  end
+  return song:insert_instrument_at(index)
+end
+
 -- Global helper function to check if a file has a valid audio extension
 function PakettiIsValidAudioFile(filename)
     for _, ext in ipairs(PakettiValidAudioExtensions) do
@@ -1350,3 +1368,4 @@ pakettiRandomFeatureForDocumentation()
 _AUTO_RELOAD_DEBUG = true
 
 --dbug(renoise.song())
+-- Preferences fix: pakettiDefaultMidiMappingPath now in Document.create

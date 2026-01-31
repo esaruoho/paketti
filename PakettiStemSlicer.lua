@@ -114,7 +114,7 @@ function createExportInstrument()
     
     -- Create new export instrument at the END of the instrument list
     export_instrument_idx = #song.instruments + 1
-    song:insert_instrument_at(export_instrument_idx)
+    if not safeInsertInstrumentAt(song, export_instrument_idx) then return nil end
     local export_inst = song.instruments[export_instrument_idx]
     export_inst.name = "PakettiStemSlicer_Export_Temp"
     
@@ -819,7 +819,7 @@ function loadNonSilentSlicesIntoInstruments(folder)
 
   local function insert_header_instrument(title)
     local idx = song.selected_instrument_index + 1
-    song:insert_instrument_at(idx)
+    if not safeInsertInstrumentAt(song, idx) then return nil end
     song.selected_instrument_index = idx
     pakettiPreferencesDefaultInstrumentLoader()
     local inst = song:instrument(idx)
@@ -836,7 +836,7 @@ function loadNonSilentSlicesIntoInstruments(folder)
         insert_header_instrument(string.format("== %02d Beats of %s ==", beats, sample_base))
         for _, filepath in ipairs(beats_table[beats]) do
           local next_idx = song.selected_instrument_index + 1
-          song:insert_instrument_at(next_idx)
+          if not safeInsertInstrumentAt(song, next_idx) then return end
           song.selected_instrument_index = next_idx
           pakettiPreferencesDefaultInstrumentLoader()
           local inst = song:instrument(next_idx)
@@ -1010,7 +1010,7 @@ function makeDrumkitInstrument(file_list, title, reverse_threshold)
   -- Load default drumkit template and then fill zones by loading samples into instrument
   local song = renoise.song()
   local idx = song.selected_instrument_index + 1
-  song:insert_instrument_at(idx)
+  if not safeInsertInstrumentAt(song, idx) then return end
   song.selected_instrument_index = idx
   -- Load Paketti default drumkit template to ensure mappings/macros; keep process responsive
   pcall(function()
@@ -1087,7 +1087,7 @@ end
 function insertHeaderInstrumentForLoader(title)
   local song = renoise.song()
   local idx = song.selected_instrument_index + 1
-  song:insert_instrument_at(idx)
+  if not safeInsertInstrumentAt(song, idx) then return nil end
   song.selected_instrument_index = idx
   
   local inst = song:instrument(idx)
@@ -1103,7 +1103,7 @@ function loadFilesAsInstruments(file_list)
   table.sort(file_list)
   for _, filepath in ipairs(file_list) do
     local idx = song.selected_instrument_index + 1
-    song:insert_instrument_at(idx)
+    if not safeInsertInstrumentAt(song, idx) then return end
     song.selected_instrument_index = idx
     pakettiPreferencesDefaultInstrumentLoader()
     local inst = song:instrument(idx)
@@ -1131,7 +1131,7 @@ function startQuickLoadProcess(tasks)
       elseif t.kind == "file" then
         local song = renoise.song()
         local idx = song.selected_instrument_index + 1
-        song:insert_instrument_at(idx)
+        if not safeInsertInstrumentAt(song, idx) then return end
         song.selected_instrument_index = idx
         pakettiPreferencesDefaultInstrumentLoader()
         local inst = song:instrument(idx)
@@ -1668,7 +1668,7 @@ local function processFileWithNativeSlicing(file_path, beat_lengths_to_process, 
     
     -- 1. Create temporary instrument and load audio
     local source_inst_idx = #song.instruments + 1
-    song:insert_instrument_at(source_inst_idx)
+    if not safeInsertInstrumentAt(song, source_inst_idx) then return end
     song.selected_instrument_index = source_inst_idx
     local source_inst = song.instruments[source_inst_idx]
     source_inst.name = stem_name .. " (Source - will be deleted)"
@@ -1742,7 +1742,7 @@ local function processFileWithNativeSlicing(file_path, beat_lengths_to_process, 
             else
                 -- Create new drumkit instrument at selected position + 1
                 local drumkit_idx = song.selected_instrument_index + 1
-                song:insert_instrument_at(drumkit_idx)
+                if not safeInsertInstrumentAt(song, drumkit_idx) then return end
                 song.selected_instrument_index = drumkit_idx
                 
                 -- Load the drumkit template for proper key mappings
@@ -1956,7 +1956,7 @@ local function exportSliceDirectToInstrument(buffer, start_frame, end_frame, ste
         if direct_grouping_mode == 1 then
             -- Per-sample: One instrument per slice
             local inst_idx = #song.instruments + 1
-            song:insert_instrument_at(inst_idx)
+            if not safeInsertInstrumentAt(song, inst_idx) then return end
             song.selected_instrument_index = inst_idx
             target_inst = song.instruments[inst_idx]
             target_inst.name = slice_name
@@ -1975,7 +1975,7 @@ local function exportSliceDirectToInstrument(buffer, start_frame, end_frame, ste
                 print(string.format("DIRECT MODE (Per-stem): Adding sample %d to %s", sample_idx, stem_name))
             else
                 local inst_idx = #song.instruments + 1
-                song:insert_instrument_at(inst_idx)
+                if not safeInsertInstrumentAt(song, inst_idx) then return end
                 song.selected_instrument_index = inst_idx
                 target_inst = song.instruments[inst_idx]
                 target_inst.name = stem_name .. " (Slices)"
@@ -1997,7 +1997,7 @@ local function exportSliceDirectToInstrument(buffer, start_frame, end_frame, ste
                 print(string.format("DIRECT MODE (Per-beat): Adding sample %d to %d-beat instrument", sample_idx, beat_length))
             else
                 local inst_idx = #song.instruments + 1
-                song:insert_instrument_at(inst_idx)
+                if not safeInsertInstrumentAt(song, inst_idx) then return end
                 song.selected_instrument_index = inst_idx
                 target_inst = song.instruments[inst_idx]
                 target_inst.name = string.format("StemSlicer %d-beat", beat_length)
@@ -2019,7 +2019,7 @@ local function exportSliceDirectToInstrument(buffer, start_frame, end_frame, ste
             elseif direct_mode_combined_sample_count >= 120 then
                 -- Create new instrument when limit reached
                 local inst_idx = #song.instruments + 1
-                song:insert_instrument_at(inst_idx)
+                if not safeInsertInstrumentAt(song, inst_idx) then return end
                 song.selected_instrument_index = inst_idx
                 target_inst = song.instruments[inst_idx]
                 target_inst.name = "StemSlicer Combined (overflow)"
@@ -2031,7 +2031,7 @@ local function exportSliceDirectToInstrument(buffer, start_frame, end_frame, ste
                 print(string.format("DIRECT MODE (Combined): Created overflow instrument %d", inst_idx))
             else
                 local inst_idx = #song.instruments + 1
-                song:insert_instrument_at(inst_idx)
+                if not safeInsertInstrumentAt(song, inst_idx) then return end
                 song.selected_instrument_index = inst_idx
                 target_inst = song.instruments[inst_idx]
                 target_inst.name = "StemSlicer Combined"
@@ -2141,7 +2141,7 @@ local function processSingleFile(file_path, output_folder)
     -- CRASH FIX: Always create fresh instrument for each file (no reuse to avoid UI conflicts)
     local original_inst_count = #song.instruments
     new_inst_idx = original_inst_count + 1
-    song:insert_instrument_at(new_inst_idx)
+    if not safeInsertInstrumentAt(song, new_inst_idx) then return end
     song.selected_instrument_index = new_inst_idx
     new_inst = song.instruments[new_inst_idx]
     new_inst.name = clean_name

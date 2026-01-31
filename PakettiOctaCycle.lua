@@ -254,7 +254,7 @@ function generate_octacycle(source_sample, params)
     
     -- Create temporary instrument for conversion
     local temp_instrument_index = song.selected_instrument_index + 1
-    song:insert_instrument_at(temp_instrument_index)
+    if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
     song.selected_instrument_index = temp_instrument_index
     local temp_instrument = song.selected_instrument
     
@@ -345,7 +345,7 @@ function generate_octacycle(source_sample, params)
   
   -- Create new instrument for OctaCycle
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local octacycle_instrument = song.selected_instrument
   

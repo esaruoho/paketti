@@ -2616,10 +2616,10 @@ function PCMWriterLoadAKWFToWaveData(file_path, target_wave_data, target_size)
   print("DEBUG: Target size: " .. target_size)
   
   local song = renoise.song()
-  
+
   -- Create a temporary instrument to load the AKWF sample
   local temp_inst_index = #song.instruments + 1
-  song:insert_instrument_at(temp_inst_index)
+  if not safeInsertInstrumentAt(song, temp_inst_index) then return nil end
   local temp_inst = song:instrument(temp_inst_index)
   
   -- Load the AKWF file
@@ -3499,10 +3499,10 @@ function PCMWriterExportMorphToInstrument()
   
   local song = renoise.song()
   local inst = song.selected_instrument
-  
+
   -- Check if instrument has samples or plugins, if so create new instrument
   if #inst.samples > 0 or inst.plugin_properties.plugin_loaded then
-    song:insert_instrument_at(song.selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     inst = song.selected_instrument
     -- Apply Paketti default instrument configuration
@@ -3517,7 +3517,7 @@ function PCMWriterExportMorphToInstrument()
       inst = song.selected_instrument
     end
   end
-  
+
   -- Generate 127 morph steps
   local morph_waves = PCMWriterGenerateMorphSequence(wave_data_a, wave_data_b, 127)
   
@@ -3881,14 +3881,14 @@ function PCMWriterExportWavetableToSample()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       print("DEBUG: Switched away from sample editor to prevent state conflicts")
     end
-    
+
     -- Create new instrument and switch to it
-    song:insert_instrument_at(song.selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     inst = song.selected_instrument
-    
+
     print("DEBUG: Created new instrument at index:", song.selected_instrument_index)
-    
+
     -- Apply Paketti default instrument configuration
     pakettiPreferencesDefaultInstrumentLoader()
   else
@@ -5253,15 +5253,15 @@ function PCMWriterCreate12RandomInstrument()
   -- Preserve the current selection position
   local saved_selected_index = selected_sample_index
   local saved_current_wave_edit = current_wave_edit
-  
+
   -- Create new instrument first
   local song = renoise.song()
-  song:insert_instrument_at(song.selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
   song.selected_instrument_index = song.selected_instrument_index + 1
   -- Apply Paketti default instrument configuration
   pakettiPreferencesDefaultInstrumentLoader()
   local inst = song.selected_instrument
-  
+
   -- Create a base entropy pool for this batch to ensure diversity
   local base_entropy = os.time() * 1000 + math.floor(os.clock() * 1000000)
   
@@ -5393,14 +5393,14 @@ function PCMWriterCreate12ChebyshevInstrument()
   
   -- Preserve the current selection position
   local saved_selected_index = selected_sample_index
-  
+
   -- Create new instrument first
   local song = renoise.song()
-  song:insert_instrument_at(song.selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
   song.selected_instrument_index = song.selected_instrument_index + 1
   -- Apply Paketti default instrument configuration
   pakettiPreferencesDefaultInstrumentLoader()
-  
+
   -- Base waveforms to apply Chebyshev polynomials to
   local base_waveforms = {"sine", "triangle", "saw", "square"}
   
@@ -5587,10 +5587,10 @@ function PCMWriterExportToSample()
   -- OR if instrument is completely empty, apply paketti defaults
   if #inst.samples > 0 or inst.plugin_properties.plugin_loaded then
     print("DEBUG: Creating new instrument")
-    song:insert_instrument_at(song.selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     inst = song.selected_instrument
-    
+
     -- Apply Paketti default instrument configuration
     print("DEBUG: Applying pakettiPreferencesDefaultInstrumentLoader")
     if pakettiPreferencesDefaultInstrumentLoader then
@@ -5719,16 +5719,16 @@ end
 function PCMWriterExportWaveAToSample()
   -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
   local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
-  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false
   then preferences.pakettiAutoSamplifyPakettify.value = false
   end
-  
+
   local song = renoise.song()
   local inst = song.selected_instrument
-  
+
   -- Check if instrument has samples or plugins, if so create new instrument
   if #inst.samples > 0 or inst.plugin_properties.plugin_loaded then
-    song:insert_instrument_at(song.selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     inst = song.selected_instrument
     -- Apply Paketti default instrument configuration
@@ -5737,7 +5737,7 @@ function PCMWriterExportWaveAToSample()
       inst = song.selected_instrument
     end
   end
-  
+
   -- Always create a new sample slot for our PCM data
   local sample_slot = #inst.samples + 1
   inst:insert_sample_at(sample_slot)
@@ -5809,16 +5809,16 @@ end
 function PCMWriterExportWaveBToSample()
   -- Store current AutoSamplify Pakettify state and temporarily disable it to preserve loop settings
   local AutoSamplifyPakettifyState = preferences.pakettiAutoSamplifyPakettify.value
-  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false 
+  if preferences.pakettiAutoSamplifyPakettify.value == true or preferences.pakettiAutoSamplifyPakettify.value == false
   then preferences.pakettiAutoSamplifyPakettify.value = false
   end
-  
+
   local song = renoise.song()
   local inst = song.selected_instrument
-  
+
   -- Check if instrument has samples or plugins, if so create new instrument
   if #inst.samples > 0 or inst.plugin_properties.plugin_loaded then
-    song:insert_instrument_at(song.selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     inst = song.selected_instrument
     -- Apply Paketti default instrument configuration
@@ -5827,7 +5827,7 @@ function PCMWriterExportWaveBToSample()
       inst = song.selected_instrument
     end
   end
-  
+
   -- Always create a new sample slot for our PCM data
   local sample_slot = #inst.samples + 1
   inst:insert_sample_at(sample_slot)
@@ -5928,10 +5928,10 @@ function PCMWriterExportWaveAAndBToSample(skip_devices)
   end
   
   -- Always create a new instrument for A&B export
-  song:insert_instrument_at(song.selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
   song.selected_instrument_index = song.selected_instrument_index + 1
   inst = song.selected_instrument
-  
+
   -- Load the pre-configured 12st_WT.xrni instrument
   local preset_path = "Presets" .. separator .. "12st_WT.xrni"
   

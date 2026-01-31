@@ -742,7 +742,7 @@ function import_sf2(file_path)
       
       -- If no empty slot found and we haven't hit the limit, create new slot
       if not empty_slot_found and #song.instruments < max_instruments then
-        song:insert_instrument_at(song.selected_instrument_index + 1)
+        if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return true end
         song.selected_instrument_index = song.selected_instrument_index + 1
       elseif not empty_slot_found then
         -- We've hit the limit and found no empty slots
@@ -1220,6 +1220,343 @@ end
 function import_sf2_multitimbral(filepath)
   renoise.app():show_error("Multitimbral import not implemented.")
   return false
+end
+
+--------------------------------------------------------------------------------
+-- SF2 Sample Extractor - Extract each sample as a separate instrument
+--------------------------------------------------------------------------------
+
+-- Helper function to extract sample data from SF2 file
+-- Returns table of sample values (mono) or table of {left, right} (stereo)
+local function PakettiSF2ExtractSampleData(data, smpl_data_start, hdr, linked_hdr)
+  local frames = hdr.s_end - hdr.s_start
+  if frames <= 0 then return nil end
+
+  local sample_data = {}
+  local is_stereo = (linked_hdr ~= nil)
+
+  if is_stereo then
+    -- Extract stereo: left from hdr, right from linked_hdr
+    local left_frames = hdr.s_end - hdr.s_start
+    local right_frames = linked_hdr.s_end - linked_hdr.s_start
+    local num_frames = math.min(left_frames, right_frames)
+
+    for f_i = 1, num_frames do
+      local left_offset = smpl_data_start + ((hdr.s_start + f_i - 1) * 2)
+      local right_offset = smpl_data_start + ((linked_hdr.s_start + f_i - 1) * 2)
+
+      if left_offset + 1 <= #data and right_offset + 1 <= #data then
+        local left_val = PakettiSF2ReadS16LE(data, left_offset)
+        local right_val = PakettiSF2ReadS16LE(data, right_offset)
+        sample_data[#sample_data + 1] = { left = left_val / 32768.0, right = right_val / 32768.0 }
+      end
+    end
+  else
+    -- Extract mono
+    for f_i = hdr.s_start + 1, hdr.s_end do
+      local offset = smpl_data_start + (f_i - 1) * 2
+      if offset + 1 <= #data then
+        local raw_val = PakettiSF2ReadS16LE(data, offset)
+        sample_data[#sample_data + 1] = raw_val / 32768.0
+      end
+    end
+  end
+
+  return sample_data, is_stereo
+end
+
+-- Core extraction function used by both chromatic and original pitch modes
+local function PakettiSF2ExtractSamplesCore(file_path, chromatic_mode)
+  local slicer = nil
+
+  local function process_extraction()
+    local dialog, vb = nil, nil
+    local mode_name = chromatic_mode and "Chromatic" or "Original Pitch"
+    dialog, vb = slicer:create_dialog("SF2 Sample Extractor (" .. mode_name .. ")")
+
+    -- Get SF2 filename for instrument naming
+    local sf2_name = file_path:match("([^/\\]+)%.sf2$") or file_path:match("([^/\\]+)%.SF2$") or "SF2"
+
+    print("SF2 Sample Extractor: " .. file_path .. " (Mode: " .. mode_name .. ")")
+
+    local f = io.open(file_path, "rb")
+    if not f then
+      renoise.app():show_error("Could not open SF2 file: " .. file_path)
+      return false
+    end
+    local data = f:read("*all")
+    f:close()
+
+    if data:sub(1, 4) ~= "RIFF" then
+      renoise.app():show_error("Invalid SF2 file (missing RIFF header).")
+      return false
+    end
+
+    local smpl_pos = data:find("smpl", 1, true)
+    if not smpl_pos then
+      renoise.app():show_error("SF2 file missing 'smpl' chunk.")
+      return false
+    end
+    local smpl_data_start = smpl_pos + 8
+
+    -- Read sample headers
+    if vb then vb.views.progress_text.text = "Reading sample headers..." end
+    coroutine.yield()
+
+    local headers = PakettiSF2ReadSampleHeaders(data)
+    if not headers or #headers == 0 then
+      renoise.app():show_error("No sample headers found in SF2.")
+      return false
+    end
+
+    print(string.format("Found %d sample headers", #headers))
+
+    -- Build stereo pair mapping (link left channels to right channels)
+    local stereo_pairs = {}  -- stereo_pairs[left_index] = right_header
+    local skip_indices = {}  -- indices to skip (right channels)
+
+    for i, hdr in ipairs(headers) do
+      -- sample_type: 1=mono, 2=right, 4=left, 8=linked
+      -- sample_link points to the linked sample index (0-based in SF2)
+      if hdr.sample_type == 4 or (hdr.sample_type == 1 and hdr.sample_link ~= 0) then
+        -- This is a left channel with a linked right channel
+        local right_idx = hdr.sample_link + 1  -- Convert to 1-based
+        if right_idx <= #headers then
+          local right_hdr = headers[right_idx]
+          if right_hdr.sample_type == 2 or right_hdr.sample_type == 8 then
+            stereo_pairs[i] = right_hdr
+            skip_indices[right_idx] = true
+            print(string.format("Stereo pair: %s (L) + %s (R)", hdr.name, right_hdr.name))
+          end
+        end
+      elseif hdr.sample_type == 2 or hdr.sample_type == 8 then
+        -- This is a right channel - will be processed with its left pair
+        -- Check if already paired
+        if not skip_indices[i] then
+          -- Orphaned right channel - skip it
+          skip_indices[i] = true
+          print(string.format("Skipping orphaned right channel: %s", hdr.name))
+        end
+      end
+    end
+
+    -- Count samples to extract
+    local samples_to_extract = 0
+    for i = 1, #headers do
+      if not skip_indices[i] then
+        samples_to_extract = samples_to_extract + 1
+      end
+    end
+
+    print(string.format("Extracting %d samples (%d stereo pairs detected)",
+      samples_to_extract, #stereo_pairs))
+
+    local song = renoise.song()
+    local scaffolding_path = "Presets" .. package.config:sub(1,1) .. "12st_Pitchbend.xrni"
+    local extracted_count = 0
+    local max_instruments = 255
+    local start_index = song.selected_instrument_index
+
+    -- Helper function to process a single sample (uses early return for skip logic)
+    local function process_single_sample(i, hdr)
+      -- Skip right channels (already paired) and samples with no data
+      if skip_indices[i] then
+        return nil  -- Skip, no count change
+      end
+
+      local frames = hdr.s_end - hdr.s_start
+      if frames <= 0 then
+        print(string.format("Skipping sample %s (no frames)", hdr.name))
+        return nil  -- Skip, no count change
+      end
+
+      -- Check for stereo pair
+      local linked_hdr = stereo_pairs[i]
+      local is_stereo = (linked_hdr ~= nil)
+
+      -- Extract sample data
+      local sample_data, _ = PakettiSF2ExtractSampleData(data, smpl_data_start, hdr, linked_hdr)
+      if not sample_data or #sample_data == 0 then
+        print(string.format("Skipping sample %s (extraction failed)", hdr.name))
+        return nil  -- Skip, no count change
+      end
+
+      -- Create new instrument
+      local insert_index = song.selected_instrument_index + 1
+      if not safeInsertInstrumentAt(song, insert_index) then
+        return false  -- Error, stop processing
+      end
+      song.selected_instrument_index = insert_index
+
+      -- Load scaffolding
+      renoise.app():load_instrument(scaffolding_path)
+      local instrument = song.selected_instrument
+
+      -- Set instrument name: SF2name_samplename
+      instrument.name = sf2_name .. "_" .. hdr.name
+
+      -- Get or create sample slot
+      local sample = instrument.samples[1]
+      if not sample then
+        instrument:insert_sample_at(1)
+        sample = instrument.samples[1]
+      end
+
+      -- Create sample buffer
+      local channels = is_stereo and 2 or 1
+      local success, err = pcall(function()
+        sample.sample_buffer:create_sample_data(hdr.sample_rate, 16, channels, #sample_data)
+      end)
+
+      if not success then
+        print(string.format("Error creating buffer for %s: %s", hdr.name, tostring(err)))
+        return nil  -- Skip this sample but continue
+      end
+
+      -- Fill sample buffer
+      local buf = sample.sample_buffer
+      buf:prepare_sample_data_changes()
+
+      if is_stereo then
+        for f_i = 1, #sample_data do
+          buf:set_sample_data(1, f_i, sample_data[f_i].left)
+          buf:set_sample_data(2, f_i, sample_data[f_i].right)
+          if f_i % 50000 == 0 then coroutine.yield() end
+        end
+      else
+        for f_i = 1, #sample_data do
+          buf:set_sample_data(1, f_i, sample_data[f_i])
+          if f_i % 50000 == 0 then coroutine.yield() end
+        end
+      end
+
+      buf:finalize_sample_data_changes()
+
+      -- Set sample name
+      sample.name = hdr.name
+
+      -- Set base note and fine tune
+      local base_note = hdr.orig_pitch or 60
+      base_note = math.min(119, math.max(0, base_note))
+      sample.sample_mapping.base_note = base_note
+
+      if hdr.pitch_corr and hdr.pitch_corr ~= 0 then
+        sample.fine_tune = PakettiSF2Clamp(hdr.pitch_corr, -127, 127)
+      end
+
+      -- Set loop points (following SF2 loop data)
+      local loop_start_rel = hdr.loop_start - hdr.s_start
+      local loop_end_rel = hdr.loop_end - hdr.s_start
+
+      if loop_end_rel > loop_start_rel and loop_start_rel >= 0 and loop_end_rel <= #sample_data then
+        sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+        sample.loop_start = math.max(1, loop_start_rel + 1)
+        sample.loop_end = math.min(#sample_data, loop_end_rel)
+        print(string.format("  Loop: %d-%d", sample.loop_start, sample.loop_end))
+      else
+        sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+      end
+
+      -- Set note mapping based on mode
+      if chromatic_mode then
+        -- Chromatic: full range 0-119
+        sample.sample_mapping.note_range = {0, 119}
+      else
+        -- Original pitch: map to single note
+        sample.sample_mapping.note_range = {base_note, base_note}
+      end
+
+      print(string.format("Extracted: %s (%s, %d frames, %s, base=%d, range=%d-%d)",
+        hdr.name,
+        is_stereo and "stereo" or "mono",
+        #sample_data,
+        chromatic_mode and "chromatic" or "original pitch",
+        base_note,
+        sample.sample_mapping.note_range[1],
+        sample.sample_mapping.note_range[2]))
+
+      return true  -- Success
+    end
+
+    -- Process each sample header
+    for i, hdr in ipairs(headers) do
+      if slicer:was_cancelled() then
+        if dialog and dialog.visible then dialog:close() end
+        return false
+      end
+
+      -- Check instrument limit
+      if #song.instruments >= max_instruments then
+        if dialog and dialog.visible then dialog:close() end
+        renoise.app():show_status(string.format(
+          "SF2 Extractor: Reached instrument limit (%d). Extracted %d samples.",
+          max_instruments, extracted_count))
+        return true
+      end
+
+      -- Update progress display
+      if vb and not skip_indices[i] then
+        extracted_count = extracted_count + 1
+        vb.views.progress_text.text = string.format(
+          "Extracting sample %d/%d: %s",
+          extracted_count, samples_to_extract, hdr.name)
+      end
+      coroutine.yield()
+
+      -- Process this sample
+      local result = process_single_sample(i, hdr)
+      if result == false then
+        -- Fatal error, stop
+        if dialog and dialog.visible then dialog:close() end
+        return false
+      elseif result == nil then
+        -- Sample was skipped, adjust count if we incremented it
+        if vb and not skip_indices[i] then
+          extracted_count = extracted_count - 1
+        end
+      end
+      -- result == true means success, continue
+
+      coroutine.yield()
+    end
+
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+
+    renoise.app():show_status(string.format(
+      "SF2 Sample Extractor complete: %d samples extracted as separate instruments (%s mode).",
+      extracted_count, mode_name))
+
+    return true
+  end
+
+  slicer = ProcessSlicer(process_extraction)
+  slicer:start()
+end
+
+-- Public function: Extract SF2 samples with chromatic mapping (0-119 range)
+function PakettiSF2ExtractSamplesChromatic(file_path)
+  if not file_path then
+    file_path = renoise.app():prompt_for_filename_to_read({"sf2"}, "Select SF2 to Extract Samples (Chromatic)")
+    if not file_path then
+      renoise.app():show_status("No SF2 file selected.")
+      return
+    end
+  end
+  PakettiSF2ExtractSamplesCore(file_path, true)
+end
+
+-- Public function: Extract SF2 samples with original pitch mapping (single note)
+function PakettiSF2ExtractSamplesOriginalPitch(file_path)
+  if not file_path then
+    file_path = renoise.app():prompt_for_filename_to_read({"sf2"}, "Select SF2 to Extract Samples (Original Pitch)")
+    if not file_path then
+      renoise.app():show_status("No SF2 file selected.")
+      return
+    end
+  end
+  PakettiSF2ExtractSamplesCore(file_path, false)
 end
 
 -- NOTE: File import hook registration moved to PakettiImport.lua for centralized management

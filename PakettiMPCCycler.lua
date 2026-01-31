@@ -351,7 +351,7 @@ local function create_preview_instrument()
   
   -- Create at the end
   local new_index = #song.instruments + 1
-  song:insert_instrument_at(new_index)
+  if not safeInsertInstrumentAt(song, new_index) then return nil end
   song.instruments[new_index].name = "[MPC Preview]"
   
   preview_instrument_index = new_index

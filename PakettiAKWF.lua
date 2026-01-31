@@ -43,7 +43,7 @@ function load_random_akwf_sample(amount)
 
   -- Ensure there are enough .wav files to choose from
   if #wav_files > 0 then
-    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
     renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
     pakettiPreferencesDefaultInstrumentLoader()
     local instrument = renoise.song().selected_instrument

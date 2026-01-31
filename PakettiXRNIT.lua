@@ -142,7 +142,7 @@ local function load_instrument_from_slot(slot_number)
   end
 
   local success, err = pcall(function()
-renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
+if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index+1) then return end
 renoise.song().selected_instrument_index=renoise.song().selected_instrument_index+1
     renoise.app():load_instrument(file_path)
   end)
@@ -202,7 +202,7 @@ local function load_both_from_slot(slot_number)
 
   -- Load XRNI
   local success_xrni, err_xrni = pcall(function()
-    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
+    if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index+1) then return end
     renoise.song().selected_instrument_index=renoise.song().selected_instrument_index+1
     renoise.app():load_instrument(xrni_path)
   end)

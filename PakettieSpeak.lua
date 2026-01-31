@@ -1343,7 +1343,8 @@ function PakettieSpeakCreateSample(custom_text)
 
       else
         
-        instrument = song:insert_instrument_at(song.selected_instrument_index + 1)
+        instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
+        if not instrument then return end
         song.selected_instrument_index = song.selected_instrument_index + 1
         if not eSpeak.dont_pakettify.value then 
           pakettiPreferencesDefaultInstrumentLoader() 

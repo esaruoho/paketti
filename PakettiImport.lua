@@ -63,7 +63,7 @@ function pakettiLoadExeAsSample(file_path)
 
   -- now load raw as before
   local name = file_path:match("([^\\/]+)$") or "Sample"
-  renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
   renoise.song().selected_instrument_index =
     renoise.song().selected_instrument_index + 1
   pakettiPreferencesDefaultInstrumentLoader()
@@ -169,7 +169,7 @@ function pakettiMultiFileRawLoader()
 
         -- Create new instrument for this file
         local name = file_path:match("([^\\/]+)$") or "Sample"
-        renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+        if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
         renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
         
         -- Apply default instrument loader settings

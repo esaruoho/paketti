@@ -195,7 +195,7 @@ function rx2_loadsample(filename)
     use_existing_instrument = true
   else
     -- Create a new instrument as before
-    renoise.song():insert_instrument_at(current_index + 1)
+    if not safeInsertInstrumentAt(renoise.song(), current_index + 1) then return false end
     renoise.song().selected_instrument_index = current_index + 1
     print("Inserted new instrument at index:", renoise.song().selected_instrument_index)
   end

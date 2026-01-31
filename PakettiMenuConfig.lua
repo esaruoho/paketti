@@ -656,6 +656,10 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Place Sample to End at
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Insert New Instrument", invoke = PakettiInsertNewInstrument}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Delete Current Instrument", invoke = PakettiDeleteCurrentInstrument}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Instruments:Insert New Instrument", invoke = PakettiInsertNewInstrument}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Instruments:Delete Current Instrument", invoke = PakettiDeleteCurrentInstrument}
 renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Instruments:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
@@ -841,7 +845,10 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Batch Convert SF
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Xperimental/WIP:Metric Modulation:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Paketti MIDI Mappings (Dynamic)...",invoke = function() pakettiMIDIMappingsDialog() end}
-
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Load Default MIDI Mappings",invoke = PakettiLoadDefaultMidiMappings}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Save MIDI Mappings...",invoke = PakettiSaveMidiMappings}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Clear All MIDI Mappings",invoke = PakettiClearMidiMappings}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Clear & Reload Default MIDI Mappings",invoke = PakettiReloadDefaultMidiMappings}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti KeyBindings...",invoke=function() pakettiKeyBindingsDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Explode Notes to New Tracks (Whole Song)",invoke=function() explode_notes_to_tracks_whole_song() end}
@@ -2477,6 +2484,10 @@ renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Import .SF2 
   invoke=function()
     local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
     if f and f ~= "" then import_sf2(f) end end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Extract .SF2 Samples (Chromatic)",
+  invoke=function() PakettiSF2ExtractSamplesChromatic() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Extract .SF2 Samples (Original Pitch)",
+  invoke=function() PakettiSF2ExtractSamplesOriginalPitch() end}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Convert IFF to WAV...",invoke = convertIFFToWAV}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Convert WAV to IFF...",invoke = convertWAVToIFF}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
@@ -2660,14 +2671,12 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File For
     if f and f ~= "" then import_sf2(f) end
   end
 }
---[[
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import .SF2 (Multitimbral)",
-  invoke=function()
-    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import (multitimbral)")
-    if f and f ~= "" then import_sf2_multitimbral(f) end
-  end
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Extract .SF2 Samples (Chromatic)",
+  invoke=function() PakettiSF2ExtractSamplesChromatic() end
 }
-]]--
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Extract .SF2 Samples (Original Pitch)",
+  invoke=function() PakettiSF2ExtractSamplesOriginalPitch() end
+}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Reset All Steppers",invoke = ResetAllSteppers}
@@ -3461,6 +3470,10 @@ renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Import/Export:Imp
   invoke=function()
     local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
     if f and f ~= "" then import_sf2(f) end end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Import/Export:Extract .SF2 Samples (Chromatic)",
+  invoke=function() PakettiSF2ExtractSamplesChromatic() end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Import/Export:Extract .SF2 Samples (Original Pitch)",
+  invoke=function() PakettiSF2ExtractSamplesOriginalPitch() end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:Import/Export:Import .REX (ReCycle v1.0 Legacy Format)",invoke=function() 
     local filename = renoise.app():prompt_for_filename_to_read({"*.REX"}, "ReCycle .REX Import tool")
     if filename then rex_loadsample(filename) end end}

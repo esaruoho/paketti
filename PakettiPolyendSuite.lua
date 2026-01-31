@@ -291,7 +291,7 @@ print (selected_sample_filenames[1] or "No filename")
     rprint(selected_sample_filenames)
     for index, filename in ipairs(selected_sample_filenames) do
       local next_instrument = renoise.song().selected_instrument_index + 1
-      renoise.song():insert_instrument_at(next_instrument)
+      if not safeInsertInstrumentAt(renoise.song(), next_instrument) then return end
       renoise.song().selected_instrument_index = next_instrument
 
       pakettiPreferencesDefaultInstrumentLoader()
@@ -750,7 +750,7 @@ function rx2_to_pti_convert_original(rx2_filename_override)
 
   -- Do NOT overwrite an existing instrument:
   local current_index = renoise.song().selected_instrument_index
-  renoise.song():insert_instrument_at(current_index + 1)
+  if not safeInsertInstrumentAt(renoise.song(), current_index + 1) then return end
   renoise.song().selected_instrument_index = current_index + 1
   print("-- Inserted new instrument at index:", renoise.song().selected_instrument_index)
 
@@ -2686,10 +2686,10 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
   -- STEP 1: CREATE NEW INSTRUMENT AND COPY ONLY THE SAMPLES WE NEED (super fast!)
   local original_index = song.selected_instrument_index
   local new_instrument_index = original_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
-  
+
   -- Copy all settings from source instrument
   local instrument_type = current_selected_slice ~= nil and "Melodic Slice Combo of" or "Stereo Drumkit Combo of"
   drumkit_instrument.name = instrument_type .. " " .. source_instrument.name
@@ -3091,10 +3091,10 @@ function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_sa
   -- STEP 1: CREATE NEW INSTRUMENT AND COPY ONLY THE SAMPLES WE NEED (super fast!)
   local original_index = song.selected_instrument_index
   local new_instrument_index = original_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
-  
+
   -- Copy all settings from source instrument
   drumkit_instrument.name = "Mono Drumkit Combo of " .. source_instrument.name
   

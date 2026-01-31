@@ -28,6 +28,13 @@ function DuplicateInstrumentAndSelectNewInstrument_Wrong()
     coroutine.yield()
     if slicer and slicer:was_cancelled() then return end
 
+    -- Check instrument limit before inserting
+    if not canInsertInstrument() then
+      renoise.app():show_status("Cannot duplicate: maximum of 255 instruments reached")
+      if dialog and dialog.visible then dialog:close() end
+      return
+    end
+
     rs:insert_instrument_at(i + 1)
 
     if dialog and dialog.visible and vb and vb.views and vb.views.progress_text then
@@ -223,28 +230,34 @@ end
 function DuplicateInstrumentAndSelectNewInstrument()
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
-  
+
   local rs = renoise.song()
   if rs == nil or rs.selected_instrument == nil then
     renoise.app():show_status("No instrument selected to duplicate.")
     return
   end
+
+  -- Check instrument limit before duplicating
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot duplicate: maximum of 255 instruments reached")
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+
   local i = rs.selected_instrument_index
   if renoise.app().window.active_middle_frame == 3 then
     rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
     rs.selected_instrument_index = i + 1
     renoise.app().window.active_middle_frame = 3
+  elseif renoise.app().window.active_middle_frame == 9 then
+    rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
+    rs.selected_instrument_index = i + 1
+    renoise.app().window.active_middle_frame = 9
   else
-    if renoise.app().window.active_middle_frame == 9 then
-      rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
-      rs.selected_instrument_index = i + 1
-      renoise.app().window.active_middle_frame = 9
-    else
-      rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
-      rs.selected_instrument_index = i + 1
-    end
+    rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
+    rs.selected_instrument_index = i + 1
   end
-  
+
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
@@ -258,15 +271,22 @@ renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Sele
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument (Wrong)(3rd)",invoke=function() DuplicateInstrumentAndSelectNewInstrument_Wrong() end}
 
 function duplicateSelectInstrumentToLastInstrument()
-local rs=renoise.song()
-local n_instruments = #rs.instruments
-local src_inst_i = rs.selected_instrument_index
-local src_inst = rs:instrument(src_inst_i)
+  local rs = renoise.song()
 
-rs:insert_instrument_at(n_instruments)
-rs.selected_instrument_index = n_instruments
+  -- Check instrument limit before duplicating
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot duplicate: maximum of 255 instruments reached")
+    return
+  end
 
-rs.selected_instrument:copy_from(src_inst)
+  local n_instruments = #rs.instruments
+  local src_inst_i = rs.selected_instrument_index
+  local src_inst = rs:instrument(src_inst_i)
+
+  rs:insert_instrument_at(n_instruments)
+  rs.selected_instrument_index = n_instruments
+
+  rs.selected_instrument:copy_from(src_inst)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select Last Instrument",invoke=function() duplicateSelectInstrumentToLastInstrument() end}
@@ -648,10 +668,9 @@ end
 -- Helper function to ensure the required number of instruments exist, with a max limit of 255 (FE)
 local function ensure_instruments_count(count)
   local song=renoise.song()
-  local max_instruments = 255  -- Allow creation up to 255 instruments (FE in hex)
 
-  while #song.instruments < count and #song.instruments <= max_instruments do
-    song:insert_instrument_at(#song.instruments + 1)
+  while #song.instruments < count do
+    if not safeInsertInstrumentAt(song, #song.instruments + 1) then return end
   end
 end
 
@@ -713,12 +732,19 @@ end
 
 function PakettiInsertNewInstrument()
   local rs = renoise.song()
+
+  -- Check instrument limit before attempting to insert
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot insert instrument: maximum of 255 instruments reached")
+    return
+  end
+
   local current_index = rs.selected_instrument_index
   local new_index = current_index + 1
-  
+
   rs:insert_instrument_at(new_index)
   rs.selected_instrument_index = new_index
-  
+
   renoise.app():show_status("New instrument inserted at index " .. tostring(new_index))
 end
 

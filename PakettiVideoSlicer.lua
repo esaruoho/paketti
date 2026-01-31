@@ -504,7 +504,7 @@ function PakettiVideoSlicerLoadVideoAudio(video_path)
   end
   
   if not use_existing then
-    song:insert_instrument_at(current_index + 1)
+    if not safeInsertInstrumentAt(song, current_index + 1) then return end
     song.selected_instrument_index = current_index + 1
   end
   

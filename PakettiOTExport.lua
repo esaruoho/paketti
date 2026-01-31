@@ -1006,7 +1006,7 @@ function ot_import_filehook(filename)
     -- Create new instrument for the OT import
     local song = renoise.song()
     local current_index = song.selected_instrument_index
-    song:insert_instrument_at(current_index + 1)
+    if not safeInsertInstrumentAt(song, current_index + 1) then return end
     song.selected_instrument_index = current_index + 1
     
     -- Load default Paketti instrument configuration if available
@@ -1465,7 +1465,7 @@ function PakettiOTDrumkitSmart_Worker(source_instrument, num_samples)
   
   -- Create new instrument for the drumkit
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
   drumkit_instrument.name = "OT Drumkit of " .. source_instrument.name
@@ -1488,7 +1488,7 @@ function PakettiOTDrumkitSmart_Worker(source_instrument, num_samples)
       
       -- Create temporary instrument to hold processed sample
       local temp_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(temp_instrument_index)
+      if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
       song.selected_instrument_index = temp_instrument_index
       local temp_instrument = song.selected_instrument
       
@@ -1665,7 +1665,7 @@ function PakettiOTDrumkitMono_Worker(source_instrument, num_samples)
   
   -- Create new instrument for the drumkit
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
   drumkit_instrument.name = "OT Mono Drumkit of " .. source_instrument.name
@@ -1691,7 +1691,7 @@ function PakettiOTDrumkitMono_Worker(source_instrument, num_samples)
       
       -- Create temporary instrument to hold processed sample
       local temp_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(temp_instrument_index)
+      if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
       song.selected_instrument_index = temp_instrument_index
       local temp_instrument = song.selected_instrument
       
@@ -1964,7 +1964,7 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, 
   
   -- Create new instrument for the drumkit
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
   drumkit_instrument.name = "OT Drumkit of " .. source_instrument.name
@@ -1988,7 +1988,7 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, 
       
       -- Create temporary instrument to hold processed sample
       local temp_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(temp_instrument_index)
+      if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
       song.selected_instrument_index = temp_instrument_index
       local temp_instrument = song.selected_instrument
       
@@ -2198,7 +2198,7 @@ function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples, d
   
   -- Create new instrument for the drumkit
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
   drumkit_instrument.name = "OT Mono Drumkit of " .. source_instrument.name
@@ -2225,7 +2225,7 @@ function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples, d
       
       -- Create temporary instrument to hold processed sample
       local temp_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(temp_instrument_index)
+      if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
       song.selected_instrument_index = temp_instrument_index
       local temp_instrument = song.selected_instrument
       
@@ -2493,7 +2493,7 @@ function PakettiOTDrumkitSmart_Legacy()
   
   -- Create new instrument for the drumkit
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
   
@@ -2534,7 +2534,7 @@ function PakettiOTDrumkitSmart_Legacy()
       
       -- Create temporary instrument to hold processed sample
       local temp_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(temp_instrument_index)
+      if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
       song.selected_instrument_index = temp_instrument_index
       local temp_instrument = song.selected_instrument
       
@@ -2863,7 +2863,7 @@ function PakettiOTDrumkitMono_Legacy()
   
   -- Create new instrument for the drumkit
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
   
@@ -2890,7 +2890,7 @@ function PakettiOTDrumkitMono_Legacy()
       
       -- Create temporary instrument to hold processed sample
       local temp_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(temp_instrument_index)
+      if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
       song.selected_instrument_index = temp_instrument_index
       local temp_instrument = song.selected_instrument
       
@@ -3462,7 +3462,7 @@ function PakettiOTDrumkitPlayToEnd_Worker(source_instrument, num_samples, dialog
   
   -- Create new instrument for the drumkit
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
   drumkit_instrument.name = "OT PlayToEnd Drumkit of " .. source_instrument.name
@@ -3485,7 +3485,7 @@ function PakettiOTDrumkitPlayToEnd_Worker(source_instrument, num_samples, dialog
       
       -- Create temporary instrument to hold processed sample
       local temp_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(temp_instrument_index)
+      if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
       song.selected_instrument_index = temp_instrument_index
       local temp_instrument = song.selected_instrument
       

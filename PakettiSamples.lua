@@ -412,7 +412,7 @@ function pitchBendDrumkitLoader()
   local current_instrument = song:instrument(current_instrument_index)
 
   if #current_instrument.samples > 0 or current_instrument.plugin_properties.plugin_loaded then
-    song:insert_instrument_at(current_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, current_instrument_index + 1) then return end
     song.selected_instrument_index = current_instrument_index + 1
   end
 
@@ -423,7 +423,7 @@ function pitchBendDrumkitLoader()
   -- Load the preset instrument
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
   local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
-  
+
 
 --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
 renoise.app():load_instrument(defaultInstrument)
@@ -560,7 +560,7 @@ function loadRandomDrumkitSamples(num_samples, folder_path, create_automation_de
     local song=renoise.song()
     local instrument = song.selected_instrument
     if #instrument.samples > 0 or instrument.plugin_properties.plugin_loaded then
-        song:insert_instrument_at(song.selected_instrument_index + 1)
+        if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
         song.selected_instrument_index = song.selected_instrument_index + 1
         instrument = song.selected_instrument
     end
@@ -745,15 +745,15 @@ if renoise.song().selected_sample ~= nil then
 
   -- Insert a new instrument right below the current instrument
   local new_instrument_index = selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   print("Inserted new instrument at index " .. new_instrument_index)
 
   -- Load the 12st_Pitchbend instrument into the new instrument slot
-  
+
   pakettiPreferencesDefaultInstrumentLoader()
 
-  
+
   print("Loaded Default XRNI instrument into the new instrument slot.")
 
   local new_instrument = song:instrument(new_instrument_index)
@@ -934,17 +934,17 @@ function create_new_instrument_from_selection_with_slices()
   else
     print("No slice markers in original instrument")
   end
-  
+
   -- Insert a new instrument right below the current instrument
   local new_instrument_index = selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   print("Inserted new instrument at index " .. new_instrument_index)
-  
+
   -- Load the default instrument template
   pakettiPreferencesDefaultInstrumentLoader()
   print("Loaded Default XRNI instrument into the new instrument slot.")
-  
+
   local new_instrument = song:instrument(new_instrument_index)
   new_instrument.name = "Pitchbend Instrument"
   new_instrument.macros_visible = true
@@ -1245,9 +1245,14 @@ function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normal
     end
     
     coroutine.yield()
-    
+
+    -- Check instrument limit before inserting
     local next_instrument = renoise.song().selected_instrument_index + 1
-    renoise.song():insert_instrument_at(next_instrument)
+    if not safeInsertInstrumentAt(renoise.song(), next_instrument) then
+      PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+      preferences.pakettiSampleRangeDeviceLoaderEnabled.value = SampleRangeLoaderState
+      break
+    end
     renoise.song().selected_instrument_index = next_instrument
 
     pakettiPreferencesDefaultInstrumentLoader()
@@ -2438,8 +2443,11 @@ function PakettiDuplicateAndReverseInstrument()
     return
   end
 
-  song:insert_instrument_at(current_index + 1)
-  
+  if not safeInsertInstrumentAt(song, current_index + 1) then
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+
   song.selected_instrument_index = current_index + 1
   pakettiPreferencesDefaultInstrumentLoader()
 
@@ -2781,6 +2789,11 @@ function pakettiSaveSampleRange(format)
     return
   end
 
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+    return
+  end
+
   local new_instrument = song:insert_instrument_at(#song.instruments + 1)
   local new_sample = new_instrument:insert_sample_at(1)
 
@@ -2843,6 +2856,11 @@ function pakettiMinimizeToLoopEnd()
   
   if loop_end >= sample_buffer.number_of_frames then
     renoise.app():show_status("Nothing to minimize")
+    return
+  end
+
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
     return
   end
 
@@ -2926,12 +2944,16 @@ function PakettiTrimByHalfSampleDirect(sample)
     loop_start = sample.loop_start,
     loop_end = sample.loop_end
   }
-  
+
   -- Create temporary instrument and sample
   local song = renoise.song()
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+    return
+  end
   local temp_instrument = song:insert_instrument_at(song.selected_instrument_index + 1)
   local temp_sample = temp_instrument:insert_sample_at(1)
-  
+
   -- Create new sample data with half the frames
   temp_sample.sample_buffer:create_sample_data(
     sample_buffer.sample_rate,
@@ -3044,12 +3066,16 @@ function PakettiTrimByHalfSampleCoroutine(sample, sample_index, total_samples)
     loop_start = sample.loop_start,
     loop_end = sample.loop_end
   }
-  
+
   -- Create temporary instrument and sample
   local song = renoise.song()
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+    return
+  end
   local temp_instrument = song:insert_instrument_at(song.selected_instrument_index + 1)
   local temp_sample = temp_instrument:insert_sample_at(1)
-  
+
   -- Create new sample data with half the frames
   temp_sample.sample_buffer:create_sample_data(
     sample_buffer.sample_rate,
@@ -3945,7 +3971,7 @@ function PakettiInjectDefaultXRNI()
   else
     -- CREATE NEW INSTRUMENT MODE (original behavior)
     local new_instrument_index = selected_instrument_index + 1
-    song:insert_instrument_at(new_instrument_index)
+    if not safeInsertInstrumentAt(song, new_instrument_index) then return end
     song.selected_instrument_index = new_instrument_index
     local new_instrument = song.selected_instrument
 
@@ -4378,7 +4404,7 @@ function loadRandomSample(num_samples)
         local file_name = selected_file:match("([^/\\]+)%.%w+$")
 
         -- Insert a new instrument and set it as selected
-        renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+        if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
         renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
         pakettiPreferencesDefaultInstrumentLoader()  -- Assuming this is a custom function you have defined
 
@@ -4392,7 +4418,7 @@ function loadRandomSample(num_samples)
         -- Set both the sample name and instrument name to the file name
         sample.name = file_name
         instrument.name = file_name
-        
+
         renoise.app():show_status("Loaded file into new instrument: " .. selected_file)
     end
 end
@@ -4417,10 +4443,10 @@ local function loadRandomSamplesIntoSingleInstrument(num_samples)
         return nil
     end
 
-    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
-        renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
-    
-    pakettiPreferencesDefaultInstrumentLoader()  
+    if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return nil end
+    renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
+
+    pakettiPreferencesDefaultInstrumentLoader()
 
     -- Get the selected instrument to load all samples into
     local instrument = renoise.song().selected_instrument
@@ -4478,7 +4504,7 @@ local function loadRandomSamplesIntoSingleInstrument(num_samples, folder_path)
     end
 
     -- Insert a new instrument and set it up
-    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return nil end
     renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
 
     -- Run the Paketti default instrument setup function
@@ -4539,10 +4565,13 @@ local function loadRandomSample(num_samples, folder_path)
     local selected_file = wav_files[random_index]
     local file_name = selected_file:match("([^/\\]+)%.%w+$")
 
-    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then
+      renoise.app():show_status("Cannot create more instruments: maximum of 255 instruments reached (loaded " .. (i-1) .. " of " .. num_samples .. ")")
+      break
+    end
     renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
 
-    pakettiPreferencesDefaultInstrumentLoader() 
+    pakettiPreferencesDefaultInstrumentLoader()
 
     local instrument = renoise.song().selected_instrument
     instrument:delete_sample_at(1)
@@ -5509,7 +5538,7 @@ function PakettiRandomIR(ir_path)
 
   -- Create temporary instrument
   local temp_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(temp_instrument_index)
+  if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
   local temp_instrument = song.instruments[temp_instrument_index]
   temp_instrument.name = "IR Loader Temp: " .. file_name
   local temp_sample = temp_instrument:insert_sample_at(1)
@@ -6334,12 +6363,12 @@ function duplicateTrackAndInstrumentCore(copy_dsp, copy_automation, jump_to_edit
       original_instrument.plugin_properties.plugin_device.external_editor_visible = false
     end
   end
-  
+
   -- Insert and copy the instrument
-  song:insert_instrument_at(instrument_index + 1)
+  if not safeInsertInstrumentAt(song, instrument_index + 1) then return end
   local new_instrument = song.instruments[instrument_index + 1]
   new_instrument:copy_from(original_instrument)
-  
+
   -- Copy phrases if they exist
   if #original_instrument.phrases > 0 then
     local existing_phrases = #new_instrument.phrases
@@ -7041,21 +7070,21 @@ function loadRandomSampleToPattern(folder_path)
   local random_index = math.random(1, #wav_files)
   local selected_file = wav_files[random_index]
   local file_name = selected_file:match("([^/\\]+)%.%w+$")
-  
+
   -- Create new instrument and load the sample
-  song:insert_instrument_at(song.selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
   song.selected_instrument_index = song.selected_instrument_index + 1
-  
+
   pakettiPreferencesDefaultInstrumentLoader()
-  
+
   local instrument = song.selected_instrument
   instrument:delete_sample_at(1)  -- Clear default sample slot
-  
+
   local sample = instrument:insert_sample_at(1)
   sample.sample_buffer:load_from(selected_file)
   sample.name = file_name
   instrument.name = file_name
-  
+
   -- Get current pattern position
   local current_track_index = song.selected_track_index
   local current_line_index = song.selected_line_index
@@ -7286,13 +7315,13 @@ function PakettiBatchWaveToXRNI(load_into_renoise)
     local failed_count = 0
     local xrni_files = {}
     local temp_index = nil
-    
+
     -- Step 1: CONVERT all wave files to XRNI with Paketti treatment
     -- Create one temporary instrument slot for conversion
-    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
     temp_index = renoise.song().selected_instrument_index + 1
     renoise.song().selected_instrument_index = temp_index
-    
+
     for i, file_path in ipairs(files) do
       -- Check if process was cancelled
       if process_slicer and process_slicer:was_cancelled() then
@@ -7394,28 +7423,37 @@ function PakettiBatchWaveToXRNI(load_into_renoise)
         if progress_dialog and progress_dialog.visible and progress_vb then
           progress_vb.views.progress_text.text = string.format("Loading %d/%d: %s", i, #xrni_files, xrni_info.name)
         end
-        
+
+        -- Check instrument limit before loading
+        if not canInsertInstrument() then
+          renoise.app():show_status("Cannot load more instruments: maximum of 255 instruments reached (loaded " .. (i-1) .. " of " .. #xrni_files .. ")")
+          if progress_dialog and progress_dialog.visible then
+            progress_dialog:close()
+          end
+          break
+        end
+
         local success, error_msg = pcall(function()
           -- Create new instrument slot for each XRNI
           local new_index = renoise.song().selected_instrument_index + 1
-          renoise.song():insert_instrument_at(new_index)
+          if not safeInsertInstrumentAt(renoise.song(), new_index) then return end
           renoise.song().selected_instrument_index = new_index
-          
+
           -- Load the XRNI file
           renoise.app():load_instrument(xrni_info.path)
         end)
-        
+
         if not success then
           print("Failed to load " .. xrni_info.name .. ": " .. tostring(error_msg))
         end
-        
+
         -- Yield control periodically for UI responsiveness
         if i % 2 == 0 then
           coroutine.yield()
         end
       end
     end
-    
+
     -- Clean up: remove the temporary instrument slot
     if temp_index then
       renoise.song():delete_instrument_at(temp_index)
@@ -7603,30 +7641,37 @@ function PakettiBatchXRNILoader()
   local failed_files = {}
   
   renoise.app():show_status("PakettiBatchXRNILoader: Loading " .. tostring(#xrni_files) .. " XRNI files...")
-  
+
   -- Load each XRNI file
   for i, file_info in ipairs(xrni_files) do
     local success_load, err = pcall(function()
       -- Create new instrument after current selected instrument
-      song:insert_instrument_at(song.selected_instrument_index + 1)
+      if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then
+        error("Cannot load more instruments: maximum of 255 instruments reached")
+      end
       song.selected_instrument_index = song.selected_instrument_index + 1
-      
+
       -- Load the XRNI file
       renoise.app():load_instrument(file_info.full_path)
-      
+
       -- Set instrument name to filename without extension
       local instrument_name = file_info.filename:match("(.+)%.xrni$") or file_info.filename
       song.selected_instrument.name = instrument_name
     end)
-    
+
     if success_load then
       loaded_count = loaded_count + 1
     else
       failed_count = failed_count + 1
       table.insert(failed_files, file_info.filename .. " (" .. tostring(err) .. ")")
+      -- If we hit the instrument limit, stop trying
+      if tostring(err):match("maximum of 255 instruments reached") then
+        renoise.app():show_status("Cannot load more instruments: maximum of 255 instruments reached (loaded " .. (i-1) .. " of " .. #xrni_files .. ")")
+        break
+      end
     end
   end
-  
+
   -- Report results
   local status_msg = string.format("PakettiBatchXRNILoader: Loaded %d/%d XRNI files", loaded_count, #xrni_files)
   if failed_count > 0 then

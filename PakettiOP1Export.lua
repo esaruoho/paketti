@@ -547,10 +547,10 @@ function PakettiOP1Import()
   -- Create new instrument
   local song = renoise.song()
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local instrument = song.selected_instrument
-  
+
   -- Set instrument name
   local base_name = filename:match("([^/\\]+)$"):gsub("%.aif[f]?$", "")
   instrument.name = metadata and "OP-1 " .. base_name or base_name
@@ -610,10 +610,10 @@ local function import_op1_aif_file(filename)
     -- Create new instrument
     local song = renoise.song()
     local new_instrument_index = song.selected_instrument_index + 1
-    song:insert_instrument_at(new_instrument_index)
+    if not safeInsertInstrumentAt(song, new_instrument_index) then return end
     song.selected_instrument_index = new_instrument_index
     local instrument = song.selected_instrument
-    
+
     -- Set instrument name
     local base_name = filename:match("([^/\\]+)$"):gsub("%.aif[f]?$", "")
     instrument.name = "OP-1 " .. base_name

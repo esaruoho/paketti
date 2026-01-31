@@ -7470,7 +7470,7 @@ function PakettiRenderPatternToPhrase(options)
   
   -- Create new instrument for rendered sample
   local new_inst_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_inst_index)
+  if not safeInsertInstrumentAt(song, new_inst_index) then return end
   song.selected_instrument_index = new_inst_index
   PakettiRenderPhraseContext.target_instrument = new_inst_index
   
@@ -7760,10 +7760,10 @@ function PakettiRenderPhraseToSample(options)
   
   -- Create new instrument
   local new_inst_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_inst_index)
+  if not safeInsertInstrumentAt(song, new_inst_index) then return end
   song.selected_instrument_index = new_inst_index
   PakettiRenderPhraseContext.target_instrument = new_inst_index
-  
+
   PakettiRenderPhraseContext.temp_file_path = pakettiGetTempFilePath(".wav")
   
   local render_options = {

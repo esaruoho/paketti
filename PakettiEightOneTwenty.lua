@@ -294,7 +294,7 @@ function ensure_instruments_exist()
   local instrument_count = #renoise.song().instruments
   if instrument_count < 8 then
     for i = instrument_count + 1, 8 do
-      renoise.song():insert_instrument_at(i)
+      if not safeInsertInstrumentAt(renoise.song(), i) then return end
       renoise.song().instruments[i].name = ""  -- Set empty name instead of "Instrument " .. i
     end
   end
@@ -2903,11 +2903,11 @@ local randomize_all_yxx_button = vb:button{
     
     -- Ensure we have at least 8 instruments
     while #song.instruments < 8 do
-      song:insert_instrument_at(#song.instruments + 1)
+      if not safeInsertInstrumentAt(song, #song.instruments + 1) then return false end
     end
-    
+
     -- Insert end marker instrument after the first 8 instruments (position 9)
-    song:insert_instrument_at(9)
+    if not safeInsertInstrumentAt(song, 9) then return false end
     song.instruments[9].name = "=== Groovebox 8120 Ends ==="
     
     renoise.app():show_status("Created Groovebox end marker")
@@ -3673,10 +3673,10 @@ function pakettiEightSlotsByOneTwentyDialog()
       if #song.instruments < insert_index - 1 then
         -- Ensure there are at least 8 instruments first
         while #song.instruments < 8 do
-          song:insert_instrument_at(#song.instruments + 1)
+          if not safeInsertInstrumentAt(song, #song.instruments + 1) then return end
         end
       end
-      song:insert_instrument_at(insert_index)
+      if not safeInsertInstrumentAt(song, insert_index) then return end
       song.instruments[insert_index].name = marker_name
     end
   end

@@ -229,7 +229,7 @@ function PakettiCreateUnisonSamples()
     end
     
     -- Duplicate the entire instrument using copy_from
-    song:insert_instrument_at(new_instrument_index)
+    if not safeInsertInstrumentAt(song, new_instrument_index) then return end
     new_instrument = song.instruments[new_instrument_index]
     new_instrument:copy_from(instrument)
     
@@ -245,7 +245,7 @@ function PakettiCreateUnisonSamples()
     print("DEBUG: Duplicated pakettified instrument using copy_from at index:", new_instrument_index)
   else
     -- Create new instrument for non-pakettified instruments or when preference is disabled
-    song:insert_instrument_at(new_instrument_index)
+    if not safeInsertInstrumentAt(song, new_instrument_index) then return end
     song.selected_instrument_index = new_instrument_index
     new_instrument = renoise.song().selected_instrument
     print("DEBUG: Created new instrument at index:", new_instrument_index, "(will be pakettified)")

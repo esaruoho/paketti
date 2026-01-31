@@ -57,7 +57,7 @@ function PakettiSampleRangePrepareNewInstrument()
   
   -- Create instrument under current instrument
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   
   -- Load the default XRNI instrument

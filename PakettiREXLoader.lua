@@ -33,7 +33,7 @@ function rex_loadsample(filename)
   local header_len = 256  -- Length of each header in frames
   
   -- Initialize with Paketti default instrument
-  renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
+  if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index+1) then return false end
   renoise.song().selected_instrument_index = renoise.song().selected_instrument_index+1
 
   pakettiPreferencesDefaultInstrumentLoader()

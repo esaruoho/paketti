@@ -308,7 +308,7 @@ function importMPC2000Sample(file_path)
   local song = renoise.song()
   local current_idx = song.selected_instrument_index
   local new_idx = current_idx + 1
-  song:insert_instrument_at(new_idx)
+  if not safeInsertInstrumentAt(song, new_idx) then return end
   song.selected_instrument_index = new_idx
   
   local instrument = song.instruments[new_idx]

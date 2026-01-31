@@ -560,7 +560,7 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   
   -- Create new instrument after current one
   local new_instrument_index = instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   
   -- Track the newly created instrument to prevent loops
@@ -827,7 +827,7 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
         
         -- Create new instrument after current one
         local new_instrument_index = instr_idx + 1
-        song:insert_instrument_at(new_instrument_index)
+        if not safeInsertInstrumentAt(song, new_instrument_index) then return end
         song.selected_instrument_index = new_instrument_index
         
         -- Track the newly created instrument to prevent loops

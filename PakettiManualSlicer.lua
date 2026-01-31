@@ -123,7 +123,8 @@ function paketti_manual_slicer_slices_worker(instrument, sample)
   print("New sample will be: " .. new_total_frames .. " frames (" .. target_slice_count .. " x " .. longest_slice_frames .. ")")
   
   -- Create new instrument
-  local new_instrument = song:insert_instrument_at(song.selected_instrument_index + 1)
+  local new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
+  if not new_instrument then return end
   local new_sample = new_instrument:insert_sample_at(1)
   
   -- Create new sample buffer
@@ -315,7 +316,7 @@ function paketti_manual_slicer_samples_worker(source_instrument, num_samples, di
   
   -- STEP 2: CREATE NEW INSTRUMENT WITH OPTIMIZED PROCESSING
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local new_instrument = song.selected_instrument
   new_instrument.name = string.format("%s (%d) Sample Padded", source_instrument.name, target_slice_count)
@@ -362,7 +363,7 @@ function paketti_manual_slicer_samples_worker(source_instrument, num_samples, di
           
           -- Create temp instrument for conversion
           local temp_instrument_index = song.selected_instrument_index + 1
-          song:insert_instrument_at(temp_instrument_index)
+          if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
           song.selected_instrument_index = temp_instrument_index
           local temp_instrument = song.selected_instrument
           
@@ -558,7 +559,8 @@ function paketti_manual_slicer_shortest_slices_worker(instrument, sample)
   print("New sample will be: " .. new_total_frames .. " frames (" .. target_slice_count .. " x " .. shortest_slice_frames .. ")")
   
   -- Create new instrument
-  local new_instrument = song:insert_instrument_at(song.selected_instrument_index + 1)
+  local new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
+  if not new_instrument then return end
   local new_sample = new_instrument:insert_sample_at(1)
   
   -- Create new sample buffer
@@ -765,7 +767,7 @@ function paketti_manual_slicer_shortest_samples_worker(source_instrument, num_sa
   
   -- STEP 2: CREATE NEW INSTRUMENT WITH OPTIMIZED PROCESSING
   local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
+  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
   song.selected_instrument_index = new_instrument_index
   local new_instrument = song.selected_instrument
   new_instrument.name = string.format("%s (%d) Shortest Sample", source_instrument.name, target_slice_count)
@@ -813,7 +815,7 @@ function paketti_manual_slicer_shortest_samples_worker(source_instrument, num_sa
           
           -- Create temp instrument for conversion
           local temp_instrument_index = song.selected_instrument_index + 1
-          song:insert_instrument_at(temp_instrument_index)
+          if not safeInsertInstrumentAt(song, temp_instrument_index) then return end
           song.selected_instrument_index = temp_instrument_index
           local temp_instrument = song.selected_instrument
           

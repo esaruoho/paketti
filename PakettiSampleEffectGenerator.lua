@@ -2019,7 +2019,7 @@ function PakettiSampleEffectGeneratorCreateAndLoadSample(sample_data, sample_rat
   
   if needs_new_instrument then
     -- Insert new instrument for generated sample
-    song:insert_instrument_at(song.selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     print("SAMPLE_GENERATOR: Created new instrument for generated sample")
   end

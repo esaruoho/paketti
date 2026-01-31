@@ -388,7 +388,7 @@ local function auto_load_all_instruments(project_root)
         
             -- Ensure we have enough instrument slots
             while #song.instruments < renoise_instrument_index do
-                song:insert_instrument_at(#song.instruments + 1)
+                if not safeInsertInstrumentAt(song, #song.instruments + 1) then return end
             end
             
             -- Select the target instrument slot

@@ -43,7 +43,7 @@ function PakettiMelodicSliceLoadSamples_Worker(files_to_load, dialog, vb)
   local current_instrument = song:instrument(current_instrument_index)
 
   if #current_instrument.samples > 0 or current_instrument.plugin_properties.plugin_loaded then
-    song:insert_instrument_at(current_instrument_index + 1)
+    if not safeInsertInstrumentAt(song, current_instrument_index + 1) then return end
     song.selected_instrument_index = current_instrument_index + 1
   end
 

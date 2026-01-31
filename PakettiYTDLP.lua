@@ -1366,7 +1366,7 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
 
   if create_new_instrument then
     selected_instrument_index = selected_instrument_index + 1
-    song:insert_instrument_at(selected_instrument_index)
+    if not safeInsertInstrumentAt(song, selected_instrument_index) then return end
     song.selected_instrument_index = selected_instrument_index
     pakettiPreferencesDefaultInstrumentLoader()
     PakettiYTDLPLogMessage("Created new instrument at index: " .. selected_instrument_index)

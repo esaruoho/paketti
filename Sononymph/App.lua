@@ -532,7 +532,7 @@ function App:do_transfer()
     renoise.song().selected_sample_index = #renoise.song().selected_instrument.samples
   elseif self.preferences.SononymphAutotransfercreatenew.value then
     TRACE("Taking CREATE NEW INSTRUMENT path...")
-    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
+    if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index+1) then return end
     renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
     created_new_instrument = true
     
@@ -1100,7 +1100,7 @@ function App:load_selected_sample_from_sononym(show_prompt)
     -- Load directly into Renoise - create new instrument
     local success, err = pcall(function()
       -- Create a new instrument using the correct API
-      rns:insert_instrument_at(rns.selected_instrument_index + 1)
+      if not safeInsertInstrumentAt(rns, rns.selected_instrument_index + 1) then return end
       rns.selected_instrument_index = rns.selected_instrument_index + 1
       
       -- Inject Paketti default XRNI instrument

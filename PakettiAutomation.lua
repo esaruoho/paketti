@@ -711,7 +711,7 @@ function initialize_doofer_monitoring()
 PakettiAutomationDoofer = true
 
   if renoise.song().instruments[1].name~="Used for Paketti Automation" then
-    renoise.song():insert_instrument_at(1)
+    if not safeInsertInstrumentAt(renoise.song(), 1) then return end
     renoise.song().instruments[1].name="Used for Paketti Automation"
   end
   if renoise.song().tracks[renoise.song().sequencer_track_count+1].devices[2] ~= nil and  renoise.song().tracks[renoise.song().sequencer_track_count+1].devices[3] ~= nil then 

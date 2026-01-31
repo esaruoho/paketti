@@ -1366,7 +1366,8 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
   end
   
   -- Duplicate the instrument
-  local new_instrument = song:insert_instrument_at(song.selected_instrument_index + 1)
+  local new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
+  if not new_instrument then return end
   new_instrument:copy_from(instrument)
   new_instrument.name = instrument.name .. " (Phrase)"
   

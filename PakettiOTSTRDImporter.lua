@@ -498,7 +498,7 @@ local function import_patterns_to_renoise_enhanced(patterns, project_info)
   end
   
   while #song.instruments <= max_instrument do
-    song:insert_instrument_at(#song.instruments + 1)
+    if not safeInsertInstrumentAt(song, #song.instruments + 1) then return end
     local new_inst = song:instrument(#song.instruments)
     new_inst.name = string.format("OT Instrument %02d", #song.instruments - 1)
   end

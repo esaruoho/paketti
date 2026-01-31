@@ -389,7 +389,7 @@ local function MidiInitChannelTrackInstrument(track_index)
   end
 
   -- Create a new instrument
-  renoise.song():insert_instrument_at(track_index)
+  if not safeInsertInstrumentAt(renoise.song(), track_index) then return end
   local new_instrument = renoise.song():instrument(track_index)
   local instrument_name = "TR" .. string.format("%02d", midi_in_channel)
   if midi_in_device ~= "<None>" and midi_in_device ~= "No MIDI Input Devices - do not select this" then

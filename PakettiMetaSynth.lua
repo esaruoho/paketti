@@ -11737,7 +11737,12 @@ function PakettiMetaSynthGenerateWavetableInstrument(architecture)
   
   -- Create new instrument
   local song = renoise.song()
-  song:insert_instrument_at(song.selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then
+    if AutoSamplifyMonitoringState then
+      PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    end
+    return nil
+  end
   local instrument = song.instruments[song.selected_instrument_index + 1]
   instrument.name = architecture.name or "MetaSynth Wavetable"
   song.selected_instrument_index = song.selected_instrument_index + 1
@@ -12854,9 +12859,12 @@ function PakettiMetaSynthGenerateBatchInstruments(generation_type, count)
         
         -- Insert new instrument after current
         print(string.format("[PakettiMetaSynth Batch] Creating instrument slot at index %d", insert_index))
-        song:insert_instrument_at(insert_index)
+        if not safeInsertInstrumentAt(song, insert_index) then
+          print("[PakettiMetaSynth Batch] Cannot create more instruments: maximum of 255 instruments reached")
+          break
+        end
         song.selected_instrument_index = insert_index
-        
+
         -- Verify instrument was created
         local instrument = song.selected_instrument
         if not instrument then

@@ -459,7 +459,8 @@ function PakettiKeyzoneDistributorApplyFilenameMapping(file_info_list)
     
     -- Create a new instrument after the current selected instrument
     local new_instrument_index = starting_instrument_index + instruments_created + 1
-    local new_instrument = song:insert_instrument_at(new_instrument_index)
+    local new_instrument = safeInsertInstrumentAt(song, new_instrument_index)
+    if not new_instrument then return end
     song.selected_instrument_index = new_instrument_index
     instruments_created = instruments_created + 1
     

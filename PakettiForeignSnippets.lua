@@ -2260,9 +2260,9 @@ function pakettiUIowaImporter()
   end
   
   local song = renoise.song()
-  
+
   -- Create new instrument for UIOWA samples
-  song:insert_instrument_at(song.selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
   song.selected_instrument_index = song.selected_instrument_index + 1
   
   -- Initialize with Paketti default instrument configuration
@@ -3353,7 +3353,7 @@ function PakettiBatchSFZToXRNI(load_into_renoise)
     
     -- Step 1: CONVERT all SFZ files to XRNI with Paketti treatment
     -- Create one temporary instrument slot for conversion
-    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+    if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
     local temp_index = renoise.song().selected_instrument_index + 1
     renoise.song().selected_instrument_index = temp_index
     
@@ -3399,9 +3399,9 @@ function PakettiBatchSFZToXRNI(load_into_renoise)
         local success, error_msg = pcall(function()
           -- Create new instrument slot for each XRNI
           local new_index = renoise.song().selected_instrument_index + 1
-          renoise.song():insert_instrument_at(new_index)
+          if not safeInsertInstrumentAt(renoise.song(), new_index) then return end
           renoise.song().selected_instrument_index = new_index
-          
+
           -- Load the XRNI file
           renoise.app():load_instrument(xrni_info.path)
         end)

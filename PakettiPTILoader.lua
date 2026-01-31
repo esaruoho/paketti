@@ -104,7 +104,7 @@ function pti_loadsample_Worker(filepath, dialog, vb)
     #pcm_data, expected_mono_bytes, expected_stereo_bytes, is_stereo and "Stereo" or "Mono"))
 
   -- Insert a new instrument and setup with Paketti defaults
-  renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
   renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
 
   pakettiPreferencesDefaultInstrumentLoader()
@@ -743,7 +743,7 @@ function mti_loadsample(filepath)
   
   -- Create new instrument and load the WAV file
   local song = renoise.song()
-  song:insert_instrument_at(song.selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
   song.selected_instrument_index = song.selected_instrument_index + 1
   
   -- Apply Paketti defaults first
@@ -1861,7 +1861,7 @@ function PakettiExportSubfoldersAsMelodicSlices()
         
         if #audio_files == 1 then
           -- Single file: create simple instrument mapped C-0 to B-9
-          renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+          if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
           renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
           
           pakettiPreferencesDefaultInstrumentLoader()
@@ -1893,7 +1893,7 @@ function PakettiExportSubfoldersAsMelodicSlices()
           
         else
           -- Multiple files: create melodic slice setup
-          renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+          if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
           renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
           
           pakettiPreferencesDefaultInstrumentLoader()
@@ -1998,7 +1998,7 @@ function PakettiExportSubfoldersAsDrumSlices()
         
         if #audio_files == 1 then
           -- Single file: create simple instrument mapped C-0 to B-9
-          renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+          if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
           renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
           
           pakettiPreferencesDefaultInstrumentLoader()
@@ -2030,7 +2030,7 @@ function PakettiExportSubfoldersAsDrumSlices()
           
         else
           -- Multiple files: create drum slice setup using sample chaining
-          renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+          if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return end
           renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
           
           pakettiPreferencesDefaultInstrumentLoader()
@@ -2051,7 +2051,7 @@ function PakettiExportSubfoldersAsDrumSlices()
             if i <= 48 then
               -- Create temporary instrument to load and analyze file
               local temp_inst_idx = #renoise.song().instruments + 1
-              renoise.song():insert_instrument_at(temp_inst_idx)
+              if not safeInsertInstrumentAt(renoise.song(), temp_inst_idx) then return end
               local temp_sample = renoise.song().instruments[temp_inst_idx].samples[1]
               
               local success_load = pcall(function()

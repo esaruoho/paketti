@@ -143,7 +143,7 @@ function iti_loadinstrument(filename)
   end
   
   -- Create new instrument
-  renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+  if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then return false end
   renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
   
   -- Apply Paketti default settings
