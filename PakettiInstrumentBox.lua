@@ -768,6 +768,39 @@ renoise.tool():add_keybinding{name="Global:Paketti:Insert New Instrument (2nd)",
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Current Instrument", invoke=function() PakettiDeleteCurrentInstrument() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Current Instrument (2nd)", invoke=function() PakettiDeleteCurrentInstrument() end}
 
+function PakettiSelectNextInstrument()
+  local song = renoise.song()
+  local current = song.selected_instrument_index
+  local total = #song.instruments
+
+  if current < total then
+    song.selected_instrument_index = current + 1
+  elseif total < 255 then
+    song:insert_instrument_at(total + 1)
+    song.selected_instrument_index = total + 1
+    renoise.app():show_status("Created & selected new instrument " .. tostring(total + 1))
+  else
+    renoise.app():show_status("Maximum instruments (255) reached")
+  end
+end
+
+function PakettiSelectPreviousInstrument()
+  local song = renoise.song()
+  local current = song.selected_instrument_index
+  local total = #song.instruments
+
+  if current > 1 then
+    song.selected_instrument_index = current - 1
+  else
+    song.selected_instrument_index = total
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Select Next Instrument", invoke=function() PakettiSelectNextInstrument() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Select Next Instrument (2nd)", invoke=function() PakettiSelectNextInstrument() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Select Previous Instrument", invoke=function() PakettiSelectPreviousInstrument() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Select Previous Instrument (2nd)", invoke=function() PakettiSelectPreviousInstrument() end}
+
 function PakettiLoadPlaidZapXRNI()
   renoise.app():load_instrument("Gifts/plaidzap.xrni")
 end

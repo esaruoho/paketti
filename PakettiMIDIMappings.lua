@@ -2570,4 +2570,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Clear All MIDI Mappings",invoke=fu
 renoise.tool():add_midi_mapping{name="Paketti:Clear & Reload Default MIDI Mappings",invoke=function(message) if message:is_trigger() then PakettiReloadDefaultMidiMappings() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Insert New Instrument",invoke=function(message) if message:is_trigger() then PakettiInsertNewInstrument() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Delete Current Instrument",invoke=function(message) if message:is_trigger() then PakettiDeleteCurrentInstrument() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Select Next Instrument",invoke=function(message) if message:is_trigger() then PakettiSelectNextInstrument() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Select Previous Instrument",invoke=function(message) if message:is_trigger() then PakettiSelectPreviousInstrument() end end}
 

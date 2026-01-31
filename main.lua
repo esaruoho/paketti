@@ -1368,4 +1368,4 @@ pakettiRandomFeatureForDocumentation()
 _AUTO_RELOAD_DEBUG = true
 
 --dbug(renoise.song())
--- Preferences fix: pakettiDefaultMidiMappingPath now in Document.create
+-- Added: PakettiSelectNextInstrument, PakettiSelectPreviousInstrument

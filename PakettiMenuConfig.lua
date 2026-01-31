@@ -658,8 +658,12 @@ renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Instruments:Pakett
 renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Insert New Instrument", invoke = PakettiInsertNewInstrument}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Delete Current Instrument", invoke = PakettiDeleteCurrentInstrument}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Select Next Instrument", invoke = PakettiSelectNextInstrument}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Select Previous Instrument", invoke = PakettiSelectPreviousInstrument}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Instruments:Insert New Instrument", invoke = PakettiInsertNewInstrument}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Instruments:Delete Current Instrument", invoke = PakettiDeleteCurrentInstrument}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Instruments:Select Next Instrument", invoke = PakettiSelectNextInstrument}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Instruments:Select Previous Instrument", invoke = PakettiSelectPreviousInstrument}
 renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Instruments:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
