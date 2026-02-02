@@ -1,5 +1,6 @@
 local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
 
+
 -- Global variable to control timed_require debug output (default: disabled)
 PakettiTimedRequireDebug = false
 
