@@ -62,11 +62,21 @@ function PakettiAutomateLastTouchedGetPref(key, default_value)
     end
     return default_value
   end)
-  
+
   if success then
     return result
   end
   return default_value
+end
+
+--------------------------------------------------------------------------------
+-- Helper: Get device name safely (handles both AudioDevice and InstrumentPluginDevice)
+--------------------------------------------------------------------------------
+
+local function get_device_name(device)
+  if not device then return "unknown" end
+  -- AudioDevice has display_name, InstrumentPluginDevice only has name
+  return device.display_name or device.name or "unknown"
 end
 
 --------------------------------------------------------------------------------
@@ -398,7 +408,7 @@ function PakettiAutomateLastTouchedOnPersistentParameterTouched(param, device, t
   global_last_touched_track_index = track_index
   global_last_touched_is_instrument = is_plugin_instrument
   
-  local device_name = device and device.display_name or "unknown"
+  local device_name = get_device_name(device)
   print("AUTOMATE_LAST_TOUCHED: Stored last touched: " .. param.name .. " on device: " .. device_name)
   renoise.app():show_status("Last touched: " .. param.name .. " - press shortcut to automate")
 end
@@ -410,9 +420,9 @@ end
 -- Add observers to a single device
 function PakettiAutomateLastTouchedAddDeviceObservers(device, track_index, is_plugin_instrument, observer_table, callback)
   if not device then return 0 end
-  
+
   local param_count = 0
-  local device_name = device.display_name or "unknown"
+  local device_name = get_device_name(device)
   
   for i = 1, #device.parameters do
     local param = device.parameters[i]

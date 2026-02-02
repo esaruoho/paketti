@@ -59,7 +59,9 @@ local function pakettiAutoDiskBrowserNewDocumentHandler()
 end
 
 -- Add notification for new document/song loads
-renoise.tool().app_new_document_observable:add_notifier(pakettiAutoDiskBrowserNewDocumentHandler)
+if not renoise.tool().app_new_document_observable:has_notifier(pakettiAutoDiskBrowserNewDocumentHandler) then
+  renoise.tool().app_new_document_observable:add_notifier(pakettiAutoDiskBrowserNewDocumentHandler)
+end
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Auto Control Disk Browser on Song Load",invoke = pakettiAutoHideDiskBrowserToggle}
 
@@ -4059,17 +4061,26 @@ function PakettiCaptureTrackInitialize()
   end
 end
 
--- Set up notifiers for cache invalidation
+-- Named handler functions for proper notifier management
+local function PakettiCaptureTrackNewDocumentHandler()
+  PakettiCaptureTrackInitialize()
+end
+
+local function PakettiCaptureTrackIdleHandler()
+  PakettiCaptureTrackIdleCheck()
+end
+
+-- Set up notifiers for cache invalidation (with guards to prevent duplicates)
 function PakettiCaptureTrackSetupNotifiers()
   -- Invalidate cache when patterns change
-  renoise.tool().app_new_document_observable:add_notifier(function()
-    PakettiCaptureTrackInitialize()
-  end)
-  
+  if not renoise.tool().app_new_document_observable:has_notifier(PakettiCaptureTrackNewDocumentHandler) then
+    renoise.tool().app_new_document_observable:add_notifier(PakettiCaptureTrackNewDocumentHandler)
+  end
+
   -- Add idle observer for auto-capture
-  renoise.tool().app_idle_observable:add_notifier(function()
-    PakettiCaptureTrackIdleCheck()
-  end)
+  if not renoise.tool().app_idle_observable:has_notifier(PakettiCaptureTrackIdleHandler) then
+    renoise.tool().app_idle_observable:add_notifier(PakettiCaptureTrackIdleHandler)
+  end
 end
 
 -- Set up notifiers

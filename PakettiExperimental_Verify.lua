@@ -390,12 +390,17 @@ else
   end
 end
 
--- Initialize monitoring when a document becomes available
-renoise.tool().app_new_document_observable:add_notifier(function()
+-- Named handler function for proper notifier management
+local function PakettiSBxNewDocumentHandler()
   if monitoring_enabled then
     InitSBx()
   end
-end)
+end
+
+-- Initialize monitoring when a document becomes available (with guard)
+if not renoise.tool().app_new_document_observable:has_notifier(PakettiSBxNewDocumentHandler) then
+  renoise.tool().app_new_document_observable:add_notifier(PakettiSBxNewDocumentHandler)
+end
 
 function crossfade_loop(crossfade_length)
   -- Temporarily disable AutoSamplify monitoring to prevent interference

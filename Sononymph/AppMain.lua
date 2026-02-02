@@ -187,11 +187,17 @@ function register_tool_menu()
     invoke = function() SononymphStart(true) end}
 end
 
-register_tool_menu()    
+register_tool_menu()
 ---------------------------------------------------------------------------------------------------
 -- notifications
 ---------------------------------------------------------------------------------------------------
-renoise.tool().app_new_document_observable:add_notifier(function()
+-- Named handler function for proper notifier management
+local function SononymphNewDocumentHandler()
   TRACE("main app_new_document_observable fired...")
-  SononymphStart(preferences.SononymphAutostart.value) end) 
+  SononymphStart(preferences.SononymphAutostart.value)
+end
+
+if not renoise.tool().app_new_document_observable:has_notifier(SononymphNewDocumentHandler) then
+  renoise.tool().app_new_document_observable:add_notifier(SononymphNewDocumentHandler)
+end 
   

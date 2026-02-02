@@ -1079,6 +1079,9 @@ end
 local dialog_content = nil
 
 function pakettiPreferences()
+  print("[Paketti Preferences] Opening Paketti Preferences dialog")
+  print("[Paketti Preferences] Current pakettiDefaultXRNI.value: " .. tostring(preferences.pakettiDefaultXRNI.value))
+  print("[Paketti Preferences] Current pakettiDefaultDrumkitXRNI.value: " .. tostring(preferences.pakettiDefaultDrumkitXRNI.value))
   -- Initialize MIDI mapping path preference if it doesn't exist
 
   -- Initialize unison detune preferences if nil
@@ -1818,13 +1821,18 @@ vb:row{
                 },
                 vb:column{max_frame_size_value_label}
             },
-            vb:row{vb:text{text="Default XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
+            vb:row{vb:text{text="Default XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultXRNIDisplayId,active=false},vb:button{text="Browse",width=100,notifier=function()
+              print("[Paketti Preferences] Browse XRNI clicked, current value: " .. tostring(preferences.pakettiDefaultXRNI.value))
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default XRNI Selector Dialog")
               if filePath and filePath~="" then
+                print("[Paketti Preferences] Selected XRNI path: " .. filePath)
                 preferences.pakettiDefaultXRNI.value=filePath
+                print("[Paketti Preferences] Set pakettiDefaultXRNI.value to: " .. preferences.pakettiDefaultXRNI.value)
                 vb.views[pakettiDefaultXRNIDisplayId].text=filePath:match("[^/\\]+$")
+                print("[Paketti Preferences] Updated display to filename: " .. vb.views[pakettiDefaultXRNIDisplayId].text)
                 -- Save preferences immediately
                 preferences:save_as("preferences.xml")
+                print("[Paketti Preferences] Saved preferences.xml")
               else
                 renoise.app():show_status("No XRNI Instrument was selected")
               end
@@ -1847,14 +1855,18 @@ vb:row{
               -- Save preferences immediately
               preferences:save_as("preferences.xml")
             end}},
-            vb:row{vb:text{text="Default Drumkit XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultDrumkitXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultDrumkitXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultDrumkitXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
+            vb:row{vb:text{text="Default Drumkit XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultDrumkitXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultDrumkitXRNIDisplayId,active=false},vb:button{text="Browse",width=100,notifier=function()
+              print("[Paketti Preferences] Browse Drumkit XRNI clicked, current value: " .. tostring(preferences.pakettiDefaultDrumkitXRNI.value))
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default Drumkit XRNI Selector Dialog")
               if filePath and filePath~="" then
+                print("[Paketti Preferences] Selected Drumkit XRNI path: " .. filePath)
                 preferences.pakettiDefaultDrumkitXRNI.value=filePath
+                print("[Paketti Preferences] Set pakettiDefaultDrumkitXRNI.value to: " .. preferences.pakettiDefaultDrumkitXRNI.value)
                 vb.views[pakettiDefaultDrumkitXRNIDisplayId].text=filePath:match("[^/\\]+$")
-                
+                print("[Paketti Preferences] Updated display to filename: " .. vb.views[pakettiDefaultDrumkitXRNIDisplayId].text)
                 -- Save preferences immediately
                 preferences:save_as("preferences.xml")
+                print("[Paketti Preferences] Saved preferences.xml")
               else
                 renoise.app():show_status("No XRNI Drumkit Instrument was selected")
               end
@@ -3601,25 +3613,69 @@ function safe_initialize()
 end
 
 function load_Pakettipreferences()
-    if io.exists("preferences.xml") then 
+    print("[Paketti] load_Pakettipreferences() called")
+    if io.exists("preferences.xml") then
         preferences:load_from("preferences.xml")
+        print("[Paketti] Loaded preferences.xml")
+        print("[Paketti] pakettiDefaultXRNI from file: " .. tostring(preferences.pakettiDefaultXRNI.value))
+        print("[Paketti] pakettiDefaultDrumkitXRNI from file: " .. tostring(preferences.pakettiDefaultDrumkitXRNI.value))
         local bundle_path = renoise.tool().bundle_path
-        
-        -- Always ensure full paths for XRNI files
-        if not preferences.pakettiDefaultXRNI.value:match("^" .. bundle_path) then
-            -- If it's a relative path or just filename, reconstruct the full path
-            local filename = preferences.pakettiDefaultXRNI.value:match("[^/\\]+$") or "12st_Pitchbend.xrni"
-            preferences.pakettiDefaultXRNI.value = bundle_path .. "Presets/" .. filename
+
+        -- Helper to check if file exists
+        local function file_exists(path)
+            local f = io.open(path, "r")
+            if f then f:close() return true end
+            return false
         end
-        
-        if not preferences.pakettiDefaultDrumkitXRNI.value:match("^" .. bundle_path) then
-            -- If it's a relative path or just filename, reconstruct the full path
-            local filename = preferences.pakettiDefaultDrumkitXRNI.value:match("[^/\\]+$") or "12st_Pitchbend_Drumkit_C0.xrni"
-            preferences.pakettiDefaultDrumkitXRNI.value = bundle_path .. "Presets/" .. filename
+
+        -- For pakettiDefaultXRNI: only fix if file doesn't exist
+        -- This allows external paths (outside bundle) to be preserved
+        local xrni_path = preferences.pakettiDefaultXRNI.value
+        print("[Paketti] Checking if XRNI exists: " .. tostring(xrni_path))
+        if not file_exists(xrni_path) then
+            print("[Paketti] XRNI file does NOT exist, attempting to fix path")
+            -- File doesn't exist - try to find it in Presets
+            local filename = xrni_path:match("[^/\\]+$") or "12st_Pitchbend.xrni"
+            local preset_path = bundle_path .. "Presets/" .. filename
+            print("[Paketti] Trying preset path: " .. preset_path)
+            if file_exists(preset_path) then
+                preferences.pakettiDefaultXRNI.value = preset_path
+                print("[Paketti] Found in Presets, set to: " .. preset_path)
+            else
+                -- Ultimate fallback to default
+                preferences.pakettiDefaultXRNI.value = bundle_path .. "Presets/12st_Pitchbend.xrni"
+                print("[Paketti] Fallback to default: " .. preferences.pakettiDefaultXRNI.value)
+            end
+        else
+            print("[Paketti] XRNI file exists, keeping path: " .. xrni_path)
         end
-        
-        -- Save the corrected paths immediately
+
+        -- Same logic for pakettiDefaultDrumkitXRNI
+        local drumkit_path = preferences.pakettiDefaultDrumkitXRNI.value
+        print("[Paketti] Checking if Drumkit XRNI exists: " .. tostring(drumkit_path))
+        if not file_exists(drumkit_path) then
+            print("[Paketti] Drumkit XRNI file does NOT exist, attempting to fix path")
+            local filename = drumkit_path:match("[^/\\]+$") or "12st_Pitchbend_Drumkit_C0.xrni"
+            local preset_path = bundle_path .. "Presets/" .. filename
+            print("[Paketti] Trying preset path: " .. preset_path)
+            if file_exists(preset_path) then
+                preferences.pakettiDefaultDrumkitXRNI.value = preset_path
+                print("[Paketti] Found in Presets, set to: " .. preset_path)
+            else
+                preferences.pakettiDefaultDrumkitXRNI.value = bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+                print("[Paketti] Fallback to default: " .. preferences.pakettiDefaultDrumkitXRNI.value)
+            end
+        else
+            print("[Paketti] Drumkit XRNI file exists, keeping path: " .. drumkit_path)
+        end
+
+        -- Save the corrected paths only if changes were made
         preferences:save_as("preferences.xml")
+        print("[Paketti] Saved preferences.xml")
+        print("[Paketti] Final pakettiDefaultXRNI: " .. tostring(preferences.pakettiDefaultXRNI.value))
+        print("[Paketti] Final pakettiDefaultDrumkitXRNI: " .. tostring(preferences.pakettiDefaultDrumkitXRNI.value))
+    else
+        print("[Paketti] preferences.xml does not exist")
     end
 end
 

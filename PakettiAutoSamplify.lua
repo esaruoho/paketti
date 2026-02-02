@@ -1286,8 +1286,8 @@ function PakettiStopNewSampleMonitoring()
   print("Paketti new sample monitoring stopped")
 end
 
--- Add notifiers for app events
-renoise.tool().app_new_document_observable:add_notifier(function()
+-- Named handler functions for proper notifier management
+local function PakettiAutoSamplifyNewDocumentHandler()
   -- Check preference before starting monitoring
   if preferences and preferences.pakettiAutoSamplifyMonitoring and preferences.pakettiAutoSamplifyMonitoring.value then
     monitoring_enabled = true
@@ -1295,11 +1295,20 @@ renoise.tool().app_new_document_observable:add_notifier(function()
   else
     monitoring_enabled = false
   end
-end)
+end
 
-renoise.tool().app_release_document_observable:add_notifier(function()
+local function PakettiAutoSamplifyReleaseDocumentHandler()
   PakettiStopNewSampleMonitoring()
-end)
+end
+
+-- Add notifiers for app events (with guards to prevent duplicates)
+if not renoise.tool().app_new_document_observable:has_notifier(PakettiAutoSamplifyNewDocumentHandler) then
+  renoise.tool().app_new_document_observable:add_notifier(PakettiAutoSamplifyNewDocumentHandler)
+end
+
+if not renoise.tool().app_release_document_observable:has_notifier(PakettiAutoSamplifyReleaseDocumentHandler) then
+  renoise.tool().app_release_document_observable:add_notifier(PakettiAutoSamplifyReleaseDocumentHandler)
+end
 
 -- Initialize monitoring when tool loads (only if preference is enabled and song is available)
 local song_available, song = pcall(function() return renoise.song() end)

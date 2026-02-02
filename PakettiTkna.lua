@@ -974,9 +974,17 @@ for i = 1, 32 do
 end
 --------
 
-function tknaContinueCurrentSequenceFromCurrentLine()
-  local song=renoise.song()
+-- Guard to prevent multiple simultaneous invocations
+local tknaContinueCurrentSequenceRunning = false
 
+function tknaContinueCurrentSequenceFromCurrentLine()
+  -- Prevent re-entry while already running
+  if tknaContinueCurrentSequenceRunning then
+    return
+  end
+  tknaContinueCurrentSequenceRunning = true
+
+  local song=renoise.song()
   local storedSequence = song.selected_sequence_index
   local step = 1
 
@@ -991,6 +999,7 @@ function tknaContinueCurrentSequenceFromCurrentLine()
     elseif step == 3 then
       renoise.song().transport.follow_player = false
       renoise.tool().app_idle_observable:remove_notifier(processStep)
+      tknaContinueCurrentSequenceRunning = false  -- Reset guard
     end
   end
 

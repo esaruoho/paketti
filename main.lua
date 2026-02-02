@@ -18,16 +18,19 @@ lowerAutomation=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
 upperScopes=renoise.ApplicationWindow.UPPER_FRAME_TRACK_SCOPES
 upperSpectrum=renoise.ApplicationWindow.UPPER_FRAME_MASTER_SPECTRUM
 ----------------------------------------------------------------------------------------------------------------------------------------
-function vertsep()
-vb:text{text="|", font="bold", style="strong", width=8}
+-- Helper function to create a vertical separator in ViewBuilder dialogs
+-- Must be passed a ViewBuilder instance and returns the text view element
+function vertsep(vb)
+  return vb:text{text="|", font="bold", style="strong", width=8}
 end
 
---from http://lua-users.org/lists/lua-l/2004-09/msg00054.html 
+-- Convert decimal to hexadecimal string
+-- Original from http://lua-users.org/lists/lua-l/2004-09/msg00054.html
 function DEC_HEX(IN)
   local B,K,OUT,I,D=16,"0123456789ABCDEF","",0
   while IN>0 do
       I=I+1
-      IN,D=math.floor(IN/B),math.mod(IN,B)+1
+      IN,D=math.floor(IN/B),(IN % B)+1
       OUT=string.sub(K,D,D)..OUT
   end
   return OUT
@@ -185,13 +188,12 @@ PakettiCurveDescriptions = {
     doubleValley = "Double Valley (two valleys)"
 }
 
---
 local init_time = os.clock()
 -- Function to check if an instrument uses effects or has an empty FX chain and adjust name accordingly
 function align_instrument_names()
   local song=renoise.song()
   
-  for i, instrument in ipairs(song.instruments) do
+  for _, instrument in ipairs(song.instruments) do
     local name = instrument.name
     
     -- Check if the instrument uses effects in the instrument editor or has an empty FX chain
@@ -317,25 +319,28 @@ function selection_in_pattern_pro()
 end
 
 function timed_require(module_name)
-    local start_time = os.clock()
-    
-    -- Count lines in the file
-    local line_count = 0
     local file_path = renoise.tool().bundle_path .. separator .. module_name .. ".lua"
-    local file = io.open(file_path, "r")
-    if file then
-        for _ in file:lines() do
-            line_count = line_count + 1
-        end
-        file:close()
-    end
-    
-    -- Load the module from local file and time it
-    dofile(file_path)
-    local elapsed = (os.clock() - start_time) * 1000 -- convert to milliseconds
-    
+
     if PakettiTimedRequireDebug then
+        local start_time = os.clock()
+
+        -- Count lines in the file (only when debug is enabled)
+        local line_count = 0
+        local file = io.open(file_path, "r")
+        if file then
+            for _ in file:lines() do
+                line_count = line_count + 1
+            end
+            file:close()
+        end
+
+        -- Load the module from local file and time it
+        dofile(file_path)
+        local elapsed = (os.clock() - start_time) * 1000 -- convert to milliseconds
         print(string.format("%s, %d lines, %.2f ms", module_name, line_count, elapsed))
+    else
+        -- Fast path: just load the module, no timing or line counting
+        dofile(file_path)
     end
 end
 
@@ -713,136 +718,116 @@ function pakettiIsNewSong()
   return is_new
 end
 
-function startup()  
+-- =============================================================================
+-- PakettiOnNewDocument: SINGLE consolidated handler for app_new_document_observable
+-- Replaces the previous 3 separate handlers: startup_(), startup(), handleNewDocument()
+-- =============================================================================
+function PakettiOnNewDocument()
+  local song = renoise.song()
+  local transport = song.transport
+
+  -- 1. BPM randomization for NEW songs only (not loaded songs)
+  if preferences.pakettiRandomizeBPMOnNewSong.value and pakettiIsNewSong() then
+    math.randomseed(os.time())
+    local random_bpm = pakettiGenerateBellCurveBPM()
+    transport.bpm = random_bpm
+    renoise.app():show_status(string.format("Paketti: Randomized BPM to %d (new song created)", random_bpm))
+  end
+
+  -- 2. Set instrument active tab to 1 (Samples tab)
+  -- TODO: Make this a preference (pakettiSetInstrumentActiveTabOnStartup) to allow user control
+  -- song.instruments[song.selected_instrument_index].active_tab = 1
+
+  -- 3. Auto-open DSP external editors if preference enabled
   if preferences.pakettiAlwaysOpenDSPsOnTrack.value then
     PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
   end
-  
+
+  -- 4. Auto-open Sample FX chain devices if preference enabled
   if preferences.pakettiAlwaysOpenSampleFXChainDevices.value then
     PakettiInitializeSampleFXChainAutoOpen()
   end
 
-  if preferences.pakettiEditMode.value == 2 and renoise.song().transport.edit_mode then 
-    for i = 1,#renoise.song().tracks do
-      renoise.song().tracks[i].color_blend=0 
+  -- 5. Reset track color blends for edit mode preference
+  if preferences.pakettiEditMode.value == 2 and transport.edit_mode then
+    for i = 1, #song.tracks do
+      song.tracks[i].color_blend = 0
     end
---renoise.song().selected_track.color_blend = preferences.pakettiBlendValue.value
-
   end
-   local s=renoise.song()
-   local t=s.transport
-      -- Apply Keep Sequence Sorted preference
-      if preferences.pakettiKeepSequenceSorted.value == 1 then
-        s.sequencer.keep_sequence_sorted = false
-        print("Paketti: Keep Sequence Sorted set to false on startup")
-      elseif preferences.pakettiKeepSequenceSorted.value == 2 then
-        s.sequencer.keep_sequence_sorted = true
-        print("Paketti: Keep Sequence Sorted set to true on startup")
-      end
-      -- Mode 0 (Do Nothing) - don't modify the setting
-      
-      if preferences.pakettiEnableGlobalGrooveOnStartup.value then
-        t.groove_enabled=true
-      end
-      
-      -- Load marker position from preferences
-      if type(PakettiLoadMarkerFromPreferences) == "function" then
-        PakettiLoadMarkerFromPreferences()
-      end
-      
-      -- Initialize Pattern Status Monitor from preference
-      PakettiPatternStatusMonitorEnabled = preferences.pakettiPatternStatusMonitor.value
-      if PakettiPatternStatusMonitorEnabled then
-        enable_pattern_status_monitor()
-      end
-      
-      -- Initialize Audition on Line Change from preference (API 6.2+ only)
-      if renoise.API_VERSION >= 6.2 and preferences.pakettiAuditionOnLineChangeEnabled then
-        PakettiAuditionOnLineChangeEnabled = preferences.pakettiAuditionOnLineChangeEnabled.value
-        if PakettiAuditionOnLineChangeEnabled then
-          PakettiToggleAuditionCurrentLineOnRowChange()
-        end
-      end
 
-      
-      -- Initialize PlayerPro Always Open Dialog system
-      -- Only initialize if we're in Pattern Editor to prevent unwanted dialog openings
-      if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
-        pakettiPlayerProInitializeAlwaysOpen()
-      else
-        -- Initialize without opening dialogs if not in Pattern Editor
-        pakettiPlayerProStartMiddleFrameObserver()
-      end
+  -- 6. Apply Keep Sequence Sorted preference
+  if preferences.pakettiKeepSequenceSorted.value == 1 then
+    song.sequencer.keep_sequence_sorted = false
+    print("Paketti: Keep Sequence Sorted set to false on startup")
+  elseif preferences.pakettiKeepSequenceSorted.value == 2 then
+    song.sequencer.keep_sequence_sorted = true
+    print("Paketti: Keep Sequence Sorted set to true on startup")
+  end
+  -- Mode 0 (Do Nothing) - don't modify the setting
 
-      -- Initialize Automatic Rename Track system
-      if preferences.pakettiAutomaticRenameTrack.value then
-        pakettiStartAutomaticRenameTrack()
-      end
-      
-      if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then 
-      pakettiThemeSelectorPickRandomThemeFromAll()
-      else if preferences.pakettiThemeSelector.RenoiseLaunchFavoritesLoad.value then
+  -- 7. Enable global groove if preference enabled
+  if preferences.pakettiEnableGlobalGrooveOnStartup.value then
+    transport.groove_enabled = true
+  end
+
+  -- 8. Load marker position from preferences
+  -- TODO: Consider making this preference-gated (pakettiLoadMarkerOnStartup)
+  if type(PakettiLoadMarkerFromPreferences) == "function" then
+    PakettiLoadMarkerFromPreferences()
+  end
+
+  -- 9. Initialize Pattern Status Monitor from preference
+  PakettiPatternStatusMonitorEnabled = preferences.pakettiPatternStatusMonitor.value
+  if PakettiPatternStatusMonitorEnabled then
+    enable_pattern_status_monitor()
+  end
+
+  -- 10. Initialize Audition on Line Change from preference (API 6.2+ only)
+  if renoise.API_VERSION >= 6.2 and preferences.pakettiAuditionOnLineChangeEnabled then
+    PakettiAuditionOnLineChangeEnabled = preferences.pakettiAuditionOnLineChangeEnabled.value
+    if PakettiAuditionOnLineChangeEnabled then
+      PakettiToggleAuditionCurrentLineOnRowChange()
+    end
+  end
+
+  -- 11. Initialize PlayerPro Always Open Dialog system (only if preference enabled)
+  if preferences.pakettiPlayerProAlwaysOpen and preferences.pakettiPlayerProAlwaysOpen.value then
+    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+      pakettiPlayerProInitializeAlwaysOpen()
+    else
+      pakettiPlayerProStartMiddleFrameObserver()
+    end
+  end
+
+  -- 12. Initialize Automatic Rename Track system
+  if preferences.pakettiAutomaticRenameTrack.value then
+    pakettiStartAutomaticRenameTrack()
+  end
+
+  -- 13. Load random/favorite theme if preference enabled
+  if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then
+    pakettiThemeSelectorPickRandomThemeFromAll()
+  elseif preferences.pakettiThemeSelector.RenoiseLaunchFavoritesLoad.value then
     pakettiThemeSelectorRenoiseStartFavorites()
   end
-  end
-       if preferences.pakettiObliqueStrategiesOnStartup.value then
-         shuffle_oblique_strategies()
-       end
- if PakettiAutomationDoofer==true then
- 
-  local masterTrack=renoise.song().sequencer_track_count+1
-  monitor_doofer2_macros(renoise.song().tracks[masterTrack].devices[3])
-  monitor_doofer1_macros(renoise.song().tracks[masterTrack].devices[2])
-else end
-end
 
-function startup_()
-  local s=renoise.song()
---   renoise.app().window:select_preset(1)
-   
-   renoise.song().instruments[s.selected_instrument_index].active_tab=1
-    if renoise.app().window.active_middle_frame==0 and s.selected_sample.sample_buffer_observable:has_notifier(sample_loaded_change_to_sample_editor) then 
-    s.selected_sample.sample_buffer_observable:remove_notifier(sample_loaded_change_to_sample_editor)
-    else
-  --s.selected_sample.sample_buffer_observable:add_notifier(sample_loaded_change_to_sample_editor)
-
-    return
-    end
-end
-
-  function sample_loaded_change_to_sample_editor()
---    renoise.app().window.active_middle_frame=4
+  -- 14. Show oblique strategies if preference enabled
+  if preferences.pakettiObliqueStrategiesOnStartup.value then
+    shuffle_oblique_strategies()
   end
 
-if not renoise.tool().app_new_document_observable:has_notifier(startup_) 
-   then renoise.tool().app_new_document_observable:add_notifier(startup_)
-   else renoise.tool().app_new_document_observable:remove_notifier(startup_)
-end
-
-
--- Function to handle BPM randomization on new documents
--- This is called by app_new_document_observable for both new and loaded songs
-function handleNewDocument()
-  -- Only randomize BPM for fresh new songs, not loaded songs
-  -- Uses pakettiIsNewSong() to distinguish between File->New vs File->Load
-  if preferences.pakettiRandomizeBPMOnNewSong.value and pakettiIsNewSong() then
-    math.randomseed(os.time())  -- Seed randomizer
-    local random_bpm = pakettiGenerateBellCurveBPM()
-    renoise.song().transport.bpm = random_bpm
-    renoise.app():show_status(string.format("Paketti: Randomized BPM to %d (new song created)", random_bpm))
+  -- 15. Monitor Doofer macros (if enabled)
+  if PakettiAutomationDoofer == true then
+    local masterTrack = song.sequencer_track_count + 1
+    monitor_doofer2_macros(song.tracks[masterTrack].devices[3])
+    monitor_doofer1_macros(song.tracks[masterTrack].devices[2])
   end
 end
 
-
-
-if not renoise.tool().app_new_document_observable:has_notifier(startup)   
-  then renoise.tool().app_new_document_observable:add_notifier(startup)
-  else renoise.tool().app_new_document_observable:remove_notifier(startup) end
-
--- Add BPM randomization handler to new document observable
-if not renoise.tool().app_new_document_observable:has_notifier(handleNewDocument)   
-  then renoise.tool().app_new_document_observable:add_notifier(handleNewDocument)
-  else renoise.tool().app_new_document_observable:remove_notifier(handleNewDocument) end  
+-- Register the SINGLE consolidated handler (no else branch that removes!)
+if not renoise.tool().app_new_document_observable:has_notifier(PakettiOnNewDocument) then
+  renoise.tool().app_new_document_observable:add_notifier(PakettiOnNewDocument)
+end  
 
 -- Function to toggle global groove on startup preference
 function pakettiToggleGlobalGrooveOnStartup()
@@ -1157,9 +1142,10 @@ timed_require("PakettiPTILoader")
 timed_require("PakettiPolyendSuite")
 timed_require("PakettiPolyendSliceSwitcher")
 timed_require("PakettiPolyendMelodicSliceExport")
-local PolyendYes = true
-PolyendYes = true
-if PolyendYes then
+-- TODO: PakettiPolyendPatternData is disabled by default until ready for use
+-- Set to true to enable Polyend pattern data export functionality
+local PakettiPolyendPatternDataEnabled = true
+if PakettiPolyendPatternDataEnabled then
   timed_require("PakettiPolyendPatternData")
 end
 
@@ -1362,9 +1348,16 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Random Feature for Documentation", invoke=pakettiRandomFeatureForDocumentation}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Random Feature for Documentation", invoke=pakettiRandomFeatureForDocumentation}
 
--- Run the random feature picker automatically at startup
-pakettiRandomFeatureForDocumentation()
+-- Auto-run random feature picker at startup (for development/documentation purposes)
+-- GitHub Actions changes this to false during release builds.
+_PAKETTI_RANDOM_FEATURE_ON_STARTUP = true
+if _PAKETTI_RANDOM_FEATURE_ON_STARTUP then
+  pakettiRandomFeatureForDocumentation()
+end
 
+-- Auto-reload debug: Set to true during development to auto-reload tool when files change.
+-- GitHub Actions changes this to false during release builds.
+-- WARNING: When true, any file save triggers full tool reload which re-executes all notifiers.
 _AUTO_RELOAD_DEBUG = true
 
 --dbug(renoise.song())

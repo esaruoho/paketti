@@ -1,5 +1,8 @@
 class "AppUI"
 
+-- Class-level flag to prevent duplicate global notifier registrations
+AppUI._global_notifiers_registered = false
+
 AppUI.LABEL_W = 85
 AppUI.INPUT_W = 350
 AppUI.BUTTON_W = 130
@@ -64,12 +67,23 @@ function AppUI:__init(...)
     self.update_requested = true
   end)
   
-  -- initialize
-  renoise.tool().app_idle_observable:add_notifier(self,self.on_idle)  
-  renoise.tool().app_new_document_observable:add_notifier(function()
-    self:attach_to_song()
-  end)
-  
+  -- initialize (with guard to prevent duplicate global notifier registrations)
+  if not AppUI._global_notifiers_registered then
+    renoise.tool().app_idle_observable:add_notifier(self, self.on_idle)
+    -- Store reference for new document handler
+    AppUI._instance_for_notifier = self
+    AppUI._new_document_handler = function()
+      if AppUI._instance_for_notifier then
+        AppUI._instance_for_notifier:attach_to_song()
+      end
+    end
+    renoise.tool().app_new_document_observable:add_notifier(AppUI._new_document_handler)
+    AppUI._global_notifiers_registered = true
+  else
+    -- Update the instance reference if a new instance is created
+    AppUI._instance_for_notifier = self
+  end
+
   self:attach_to_song()
   
   -- Initialize toggle state

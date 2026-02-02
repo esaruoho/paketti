@@ -891,7 +891,9 @@ function initialize_auto_input_tuning()
 end
 
 -- Initialize on tool startup
-renoise.tool().app_new_document_observable:add_notifier(initialize_auto_input_tuning)
+if not renoise.tool().app_new_document_observable:has_notifier(initialize_auto_input_tuning) then
+  renoise.tool().app_new_document_observable:add_notifier(initialize_auto_input_tuning)
+end
 
 -- Safe initialization - only initialize if song is available
 local function safe_initialize()

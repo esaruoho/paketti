@@ -2898,4 +2898,6 @@ pcall(function()
 end)
 
 -- Handle new document to reinstall global observer if needed
-renoise.tool().app_new_document_observable:add_notifier(PakettiCanvasExperimentsHandleNewDocument)
+if not renoise.tool().app_new_document_observable:has_notifier(PakettiCanvasExperimentsHandleNewDocument) then
+  renoise.tool().app_new_document_observable:add_notifier(PakettiCanvasExperimentsHandleNewDocument)
+end

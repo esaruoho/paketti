@@ -770,7 +770,9 @@ local function handle_new_document()
   end
 end
 
-renoise.tool().app_new_document_observable:add_notifier(handle_new_document)
+if not renoise.tool().app_new_document_observable:has_notifier(handle_new_document) then
+  renoise.tool().app_new_document_observable:add_notifier(handle_new_document)
+end
 
 -- Ensure menu entries are created only after renoise.song() is initialized (initial load)
 if not renoise.tool().app_idle_observable:has_notifier(handle_idle_notifier) then

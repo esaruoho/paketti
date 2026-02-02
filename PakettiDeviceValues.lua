@@ -480,21 +480,31 @@ end
 
 safe_initial_setup()
 
-renoise.tool().app_new_document_observable:add_notifier(function()
+-- Named handler functions for proper notifier management
+local function PakettiDeviceValuesNewDocumentHandler()
   if renoise.song() then
     s = renoise.song()
     devices = {}
     device_identities = {}
     setup_observables()
   end
-end)
+end
 
-renoise.tool().app_release_document_observable:add_notifier(function()
+local function PakettiDeviceValuesReleaseDocumentHandler()
   devices = {}
   device_identities = {}
   s = nil
   d = nil
-end)
+end
+
+-- Add notifiers with guards to prevent duplicates
+if not renoise.tool().app_new_document_observable:has_notifier(PakettiDeviceValuesNewDocumentHandler) then
+  renoise.tool().app_new_document_observable:add_notifier(PakettiDeviceValuesNewDocumentHandler)
+end
+
+if not renoise.tool().app_release_document_observable:has_notifier(PakettiDeviceValuesReleaseDocumentHandler) then
+  renoise.tool().app_release_document_observable:add_notifier(PakettiDeviceValuesReleaseDocumentHandler)
+end
 
 -- Helper function to remember current parameter name
 function remember_current_parameter()

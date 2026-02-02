@@ -2218,12 +2218,19 @@ function pakettiEditModeSignalerTrackIndexNotifier()
   end
 end
 
--- Add notifiers for edit mode change and initial track selection
-renoise.tool().app_new_document_observable:add_notifier(function()
+-- Named handler function for proper notifier management
+local function pakettiEditModeSignalerNewDocumentHandler()
   local song=renoise.song()
-  song.transport.edit_mode_observable:add_notifier(pakettiEditModeSignalerEditModeNotifier)
+  if not song.transport.edit_mode_observable:has_notifier(pakettiEditModeSignalerEditModeNotifier) then
+    song.transport.edit_mode_observable:add_notifier(pakettiEditModeSignalerEditModeNotifier)
+  end
   pakettiEditModeSignalerEditModeNotifier() -- Call once to ensure the state is consistent
-end)
+end
+
+-- Add notifiers for edit mode change and initial track selection (with guard)
+if not renoise.tool().app_new_document_observable:has_notifier(pakettiEditModeSignalerNewDocumentHandler) then
+  renoise.tool().app_new_document_observable:add_notifier(pakettiEditModeSignalerNewDocumentHandler)
+end
 
 -- Keybinding and MIDI mapping
 function recordTint()
@@ -4753,7 +4760,9 @@ function attach_to_song()
 end
 
 -- Observe when a new song is loaded
-renoise.tool().app_new_document_observable:add_notifier(attach_to_song)
+if not renoise.tool().app_new_document_observable:has_notifier(attach_to_song) then
+  renoise.tool().app_new_document_observable:add_notifier(attach_to_song)
+end
 
 
 -- Toggle functions for both column types

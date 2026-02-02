@@ -1871,7 +1871,7 @@ function update_octave_from_selected_note_column()
   end
 end
 
--- Function to add notifiers
+-- Function to add notifiers (with guards to prevent duplicates)
 function add_notifiers()
   -- Check if renoise.song() is not nil
   if not renoise.song() then
@@ -1880,11 +1880,17 @@ function add_notifiers()
 
   -- Add notifiers to trigger the function when the selected track or pattern changes
   local song=renoise.song()
-  song.selected_track_index_observable:add_notifier(update_octave_from_selected_note_column)
-  song.selected_pattern_observable:add_notifier(update_octave_from_selected_note_column)
+  if not song.selected_track_index_observable:has_notifier(update_octave_from_selected_note_column) then
+    song.selected_track_index_observable:add_notifier(update_octave_from_selected_note_column)
+  end
+  if not song.selected_pattern_observable:has_notifier(update_octave_from_selected_note_column) then
+    song.selected_pattern_observable:add_notifier(update_octave_from_selected_note_column)
+  end
 
   -- Periodic check for changes in the selected line index
-  renoise.tool().app_idle_observable:add_notifier(update_octave_from_selected_note_column)
+  if not renoise.tool().app_idle_observable:has_notifier(update_octave_from_selected_note_column) then
+    renoise.tool().app_idle_observable:add_notifier(update_octave_from_selected_note_column)
+  end
 end
 
 -- Function to remove notifiers
