@@ -147,6 +147,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiFrameCalculatorLiveUpdate=1, -- 1=Off, 2=Song to Line, 3=Pattern to Line, 4=Both
   PakettiSBxFollowEnabled=true,
   PakettiPhraseFollowPatternPlayback=false,
+  pakettiFollowPagePattern=false,
   
   -- PhraseVoice Orchestration Preferences
   PakettiPhraseVoiceOutputMode="track",      -- "track" or "column"
@@ -1215,6 +1216,23 @@ function pakettiPreferences()
                   local mode_names = {"Do Nothing", "False", "True"}
                   renoise.app():show_status("Keep Sequence Sorted: " .. mode_names[value])
                 end}
+            },
+            vb:row{
+              vb:text{text="Follow Page Pattern",width=150,tooltip="When playing, switch selected sequence to the currently playing pattern without following rows"},
+              vb:switch{
+                items={"Off","On"},
+                value=preferences.pakettiFollowPagePattern.value and 2 or 1,
+                width=100,
+                tooltip="When playing, switch selected sequence to the currently playing pattern without following rows",
+                notifier=function(value)
+                  local enabled = (value == 2)
+                  preferences.pakettiFollowPagePattern.value = enabled
+                  preferences:save_as("preferences.xml")
+                  if type(PakettiFollowPagePatternSetEnabled) == "function" then
+                    PakettiFollowPagePatternSetEnabled(enabled)
+                  end
+                end
+              }
             },
             vb:row{
               vb:text{text="0G01 Loader",width=150,tooltip="Upon loading a Sample, inserts a C-4 and -G01 to New Track, Sample plays until end of length and triggers again."},
@@ -3752,5 +3770,3 @@ safe_initialize()
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Preferences...",invoke=pakettiPreferences}
-
-

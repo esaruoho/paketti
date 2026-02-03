@@ -783,7 +783,12 @@ function PakettiOnNewDocument()
     enable_pattern_status_monitor()
   end
 
-  -- 10. Initialize Audition on Line Change from preference (API 6.2+ only)
+  -- 10. Initialize Follow Page Pattern from preference
+  if type(PakettiFollowPagePatternOnNewDocument) == "function" then
+    PakettiFollowPagePatternOnNewDocument()
+  end
+
+  -- 11. Initialize Audition on Line Change from preference (API 6.2+ only)
   if renoise.API_VERSION >= 6.2 and preferences.pakettiAuditionOnLineChangeEnabled then
     PakettiAuditionOnLineChangeEnabled = preferences.pakettiAuditionOnLineChangeEnabled.value
     if PakettiAuditionOnLineChangeEnabled then
@@ -791,7 +796,7 @@ function PakettiOnNewDocument()
     end
   end
 
-  -- 11. Initialize PlayerPro Always Open Dialog system (only if preference enabled)
+  -- 12. Initialize PlayerPro Always Open Dialog system (only if preference enabled)
   if preferences.pakettiPlayerProAlwaysOpen and preferences.pakettiPlayerProAlwaysOpen.value then
     if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
       pakettiPlayerProInitializeAlwaysOpen()
@@ -800,24 +805,24 @@ function PakettiOnNewDocument()
     end
   end
 
-  -- 12. Initialize Automatic Rename Track system
+  -- 13. Initialize Automatic Rename Track system
   if preferences.pakettiAutomaticRenameTrack.value then
     pakettiStartAutomaticRenameTrack()
   end
 
-  -- 13. Load random/favorite theme if preference enabled
+  -- 14. Load random/favorite theme if preference enabled
   if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then
     pakettiThemeSelectorPickRandomThemeFromAll()
   elseif preferences.pakettiThemeSelector.RenoiseLaunchFavoritesLoad.value then
     pakettiThemeSelectorRenoiseStartFavorites()
   end
 
-  -- 14. Show oblique strategies if preference enabled
+  -- 15. Show oblique strategies if preference enabled
   if preferences.pakettiObliqueStrategiesOnStartup.value then
     shuffle_oblique_strategies()
   end
 
-  -- 15. Monitor Doofer macros (if enabled)
+  -- 16. Monitor Doofer macros (if enabled)
   if PakettiAutomationDoofer == true then
     local masterTrack = song.sequencer_track_count + 1
     monitor_doofer2_macros(song.tracks[masterTrack].devices[3])
@@ -1013,6 +1018,7 @@ timed_require("PakettiSandbox")
 timed_require("PakettiTupletGenerator")
 timed_require("PakettiLoadPlugins")
 timed_require("PakettiPatternSequencer")
+timed_require("PakettiFollowPagePattern")
 timed_require("PakettiPatternNameLoop")
 timed_require("PakettiWonkify")
 timed_require("PakettiPatternMatrix")

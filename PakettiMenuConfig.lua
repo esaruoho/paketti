@@ -2729,6 +2729,7 @@ end
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sample Selection Info Toggle",invoke=toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Pattern Status Monitor Toggle",invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Follow Page Pattern Toggle",invoke=function() PakettiToggleFollowPagePattern() end,selected=function() return preferences.pakettiFollowPagePattern.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:PlayerPro Auto-Open Smart Dialog Toggle",invoke=function() pakettiPlayerProToggleAlwaysOpen() end,selected=function() return preferences.pakettiPlayerProAlwaysOpen.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sononym Auto-Transfer Toggle",invoke=function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,selected=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:SBx Pattern Loop Follow Toggle",invoke=function() PakettiToggleSBxFollow() end,selected=function() return preferences.PakettiSBxFollowEnabled.value end}
