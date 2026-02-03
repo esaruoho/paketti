@@ -170,8 +170,10 @@ function start_rendering(render_context)
             end
         end
     else
-        -- Start a timer to monitor rendering progress
-        renoise.tool():add_timer(monitor_rendering, 500)
+        -- Start a timer to monitor rendering progress (check if timer already exists)
+        if not renoise.tool():has_timer(monitor_rendering) then
+          renoise.tool():add_timer(monitor_rendering, 500)
+        end
     end
 end
 
@@ -509,8 +511,10 @@ end
   if not success then
       print("Rendering failed: " .. error_message)
   else
-      -- Start a timer to monitor rendering progress
-      renoise.tool():add_timer(monitor_renderingLPB, 500)
+      -- Start a timer to monitor rendering progress (check if timer already exists)
+      if not renoise.tool():has_timer(monitor_renderingLPB) then
+        renoise.tool():add_timer(monitor_renderingLPB, 500)
+      end
   end
 end
 
@@ -744,11 +748,13 @@ function CleanRenderAndSaveStart(format)
   if not success then
       print("Rendering failed: " .. error_message)
   else
-      -- Start a timer to monitor rendering progress
-      renoise.tool():add_timer(CleanRenderAndSaveMonitor, 500)
+      -- Start a timer to monitor rendering progress (check if timer already exists)
+      if not renoise.tool():has_timer(CleanRenderAndSaveMonitor) then
+        renoise.tool():add_timer(CleanRenderAndSaveMonitor, 500)
+      end
       end
   end
-  
+
 -- Callback function that gets called when rendering is complete
 function CleanRenderAndSaveDoneCallback()
   -- Temporarily disable AutoSamplify monitoring to prevent interference
@@ -914,8 +920,10 @@ function CleanRenderAndSaveMP3Start(render_type)
   if not success then
       print("MP3 Rendering failed: " .. error_message)
   else
-      -- Start a timer to monitor rendering progress
-      renoise.tool():add_timer(CleanRenderAndSaveMP3Monitor, 500)
+      -- Start a timer to monitor rendering progress (check if timer already exists)
+      if not renoise.tool():has_timer(CleanRenderAndSaveMP3Monitor) then
+        renoise.tool():add_timer(CleanRenderAndSaveMP3Monitor, 500)
+      end
   end
 end
 
@@ -1215,8 +1223,10 @@ end
   if not success then
       print("Rendering failed: " .. error_message)
   else
-      -- Start a timer to monitor rendering progress
-      renoise.tool():add_timer(PakettiSeamlessMonitorRendering, 500)
+      -- Start a timer to monitor rendering progress (check if timer already exists)
+      if not renoise.tool():has_timer(PakettiSeamlessMonitorRendering) then
+        renoise.tool():add_timer(PakettiSeamlessMonitorRendering, 500)
+      end
   end
 end
 
@@ -1510,8 +1520,10 @@ function start_selection_rendering(render_context, track_index)
             selected_track:delete_device_at(dc_offset_position)
         end
     else
-        -- Start a timer to monitor rendering progress
-        renoise.tool():add_timer(monitor_selection_rendering, 500)
+        -- Start a timer to monitor rendering progress (check if timer already exists)
+        if not renoise.tool():has_timer(monitor_selection_rendering) then
+          renoise.tool():add_timer(monitor_selection_rendering, 500)
+        end
     end
 end
 
@@ -2260,7 +2272,10 @@ function start_experimental_rendering()
         print("Experimental rendering failed: " .. error_message)
         cleanup_experimental_render()
     else
-        renoise.tool():add_timer(monitor_experimental_rendering, 500)
+        -- Check if timer already exists to prevent duplicates
+        if not renoise.tool():has_timer(monitor_experimental_rendering) then
+          renoise.tool():add_timer(monitor_experimental_rendering, 500)
+        end
     end
 end
 
@@ -2647,8 +2662,10 @@ function start_matrix_rendering(render_context)
             master_track:delete_device_at(dc_offset_position)
         end
     else
-        -- Start a timer to monitor rendering progress
-        renoise.tool():add_timer(monitor_matrix_rendering, 500)
+        -- Start a timer to monitor rendering progress (check if timer already exists)
+        if not renoise.tool():has_timer(monitor_matrix_rendering) then
+          renoise.tool():add_timer(monitor_matrix_rendering, 500)
+        end
     end
 end
 

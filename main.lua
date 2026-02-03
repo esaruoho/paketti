@@ -1025,9 +1025,14 @@ timed_require("PakettiHoldToFill")
 timed_require("PakettiFuzzySearchUtil")
 timed_require("PakettiFuzzySampleSearch")
 timed_require("PakettiKeyBindings")
-timed_require("PakettiPhraseEditor")
-timed_require("PakettiPhraseWorkflow")
-timed_require("PakettiPhraseTransportRecording")
+
+-- Phrase-related modules require API 6.2+ (Renoise 3.5.4+)
+if renoise.API_VERSION >= 6.2 then
+  timed_require("PakettiPhraseEditor")
+  timed_require("PakettiPhraseWorkflow")
+  timed_require("PakettiPhraseTransportRecording")
+end
+
 timed_require("PakettiControls")
 timed_require("PakettiWavetabler")
 timed_require("PakettiAKWF")
@@ -1100,7 +1105,6 @@ timed_require("PakettiMergeInstruments")
 timed_require("PakettiGlobalGrooveToDelayValues")
 timed_require("PakettiAmigoInspect")
 timed_require("PakettiRePitch")
-timed_require("PakettiPhraseGenerator")
 timed_require("PakettiXMLizer")
 timed_require("PakettiDeviceValues")
 timed_require("PakettiCommandWheel")
@@ -1168,6 +1172,7 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiMultitapExperiment")
   timed_require("PakettiPlayerProWaveformViewer")
   timed_require("PakettiAutomationStack")
+  timed_require("PakettiPhraseGenerator")  -- Enhanced headless phrase generator uses phrase.script (6.2+)
 else
   -- Fallback stub for PCMWriter functions on older API versions
   -- Always returns false so AutoSamplify works normally on non-6.2

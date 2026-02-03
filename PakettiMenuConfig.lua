@@ -569,8 +569,12 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
-renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+
+-- Phrase-related menu entries require API 6.2+
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+  renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
@@ -2728,7 +2732,10 @@ renoise.tool():add_menu_entry{name="Main Menu:Options:Pattern Status Monitor Tog
 renoise.tool():add_menu_entry{name="Main Menu:Options:PlayerPro Auto-Open Smart Dialog Toggle",invoke=function() pakettiPlayerProToggleAlwaysOpen() end,selected=function() return preferences.pakettiPlayerProAlwaysOpen.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sononym Auto-Transfer Toggle",invoke=function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,selected=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:SBx Pattern Loop Follow Toggle",invoke=function() PakettiToggleSBxFollow() end,selected=function() return preferences.PakettiSBxFollowEnabled.value end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Phrase Follow Pattern Playback Hack Toggle",invoke=function() PakettiTogglePhraseFollowPatternPlayback() end,selected=function() return preferences.PakettiPhraseFollowPatternPlayback.value end}
+-- Phrase Follow Pattern Playback Hack requires API 6.2+
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="Main Menu:Options:Phrase Follow Pattern Playback Hack Toggle",invoke=function() PakettiTogglePhraseFollowPatternPlayback() end,selected=function() return preferences.PakettiPhraseFollowPatternPlayback.value end}
+end
 renoise.tool():add_menu_entry{name="Main Menu:Options:Automatic Rename Track Toggle",invoke=function() pakettiToggleAutomaticRenameTrack() end,selected=function() return preferences.pakettiAutomaticRenameTrack.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Select Track Selects Instrument Toggle",invoke=function() pakettiToggleSelectTrackSelectInstrument() end,selected=function() return preferences.PakettiSelectTrackSelectInstrument.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-Zero-Crossing Selection Range in Sample Editor",invoke=function() preferences.ZeroCrossings.AutoSnapSelection.value = not preferences.ZeroCrossings.AutoSnapSelection.value renoise.app():show_status("Auto-Zero-Crossing Selection Range: " .. (preferences.ZeroCrossings.AutoSnapSelection.value and "ON" or "OFF")) end,selected=function() return preferences.ZeroCrossings.AutoSnapSelection.value end}
@@ -3285,7 +3292,10 @@ renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Load XRNI & Disable Phra
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
-renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti:Phrase Follow Pattern Playback Hack",invoke=function() observe_phrase_playhead() end}
+-- Phrase Follow Pattern Playback Hack requires API 6.2+
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti:Phrase Follow Pattern Playback Hack",invoke=function() observe_phrase_playhead() end}
+end
 end
 
 --- Paketti Gadgets Config

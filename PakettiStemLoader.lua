@@ -629,8 +629,10 @@ function pakettiStemLoader(normalize, skip_preset, slice_mode)
   -- Start the process
   stem_loader_progress.slicer:start()
   
-  -- Update progress text periodically
-  renoise.tool():add_timer(pakettiStemLoader_update_progress, 100)
+  -- Update progress text periodically (check if timer already exists to prevent duplicates)
+  if not renoise.tool():has_timer(pakettiStemLoader_update_progress) then
+    renoise.tool():add_timer(pakettiStemLoader_update_progress, 100)
+  end
 end
 
 function pakettiStemLoader_update_progress()
@@ -1055,8 +1057,10 @@ function pakettiStemLoaderForwardsReverse(normalize)
   -- Start the process
   stem_fwdrev_loader_progress.slicer:start()
   
-  -- Update progress text periodically
-  renoise.tool():add_timer(pakettiStemLoaderForwardsReverse_update_progress, 100)
+  -- Update progress text periodically (check if timer already exists to prevent duplicates)
+  if not renoise.tool():has_timer(pakettiStemLoaderForwardsReverse_update_progress) then
+    renoise.tool():add_timer(pakettiStemLoaderForwardsReverse_update_progress, 100)
+  end
 end
 
 function pakettiStemLoaderForwardsReverse_update_progress()

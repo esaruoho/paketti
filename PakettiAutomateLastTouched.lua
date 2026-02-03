@@ -76,7 +76,17 @@ end
 local function get_device_name(device)
   if not device then return "unknown" end
   -- AudioDevice has display_name, InstrumentPluginDevice only has name
-  return device.display_name or device.name or "unknown"
+  -- Use pcall since accessing non-existent property on Renoise objects throws an error
+  local success, display_name = pcall(function() return device.display_name end)
+  if success and display_name then
+    return display_name
+  end
+  -- Fall back to name (exists on both AudioDevice and InstrumentPluginDevice)
+  local success2, name = pcall(function() return device.name end)
+  if success2 and name then
+    return name
+  end
+  return "unknown"
 end
 
 --------------------------------------------------------------------------------

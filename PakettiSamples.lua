@@ -1182,8 +1182,10 @@ function pitchBendMultipleSampleLoader(normalize)
   -- Start the process
   pitchbend_loader_progress.slicer:start()
   
-  -- Update progress text periodically
-  renoise.tool():add_timer(pitchBendMultipleSampleLoader_update_progress, 100)
+  -- Update progress text periodically (check if timer already exists to prevent duplicates)
+  if not renoise.tool():has_timer(pitchBendMultipleSampleLoader_update_progress) then
+    renoise.tool():add_timer(pitchBendMultipleSampleLoader_update_progress, 100)
+  end
 end
 
 function pitchBendMultipleSampleLoader_update_progress()
