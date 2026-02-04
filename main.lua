@@ -1066,6 +1066,7 @@ timed_require("PakettiMidi")
 timed_require("PakettiDynamicViews")
 
 timed_require("PakettiExperimental_Verify")
+timed_require("PakettiExperimental_BlockLoopFollow")
 timed_require("PakettiFill")
 timed_require("PakettiLoaders")
 timed_require("PakettiPatternEditor")

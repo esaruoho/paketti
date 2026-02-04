@@ -6125,7 +6125,7 @@ end
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Duplicate Sample Range, Mute Original",invoke = duplicate_sample_range_and_mute_original}
 ------
 -- Define the function for randomizing pitch and finetune with custom ranges
-local function randomize_sample_pitch_and_finetune(random_range_pitch, random_range_finetune)
+function randomize_sample_pitch_and_finetune(random_range_pitch, random_range_finetune)
   trueRandomSeed()
 
   local sample=renoise.song().selected_sample
@@ -8637,7 +8637,7 @@ local function generate_timestamp()
 end
 
 -- Main function to handle saving logic
-local function save_with_new_timestamp()
+function save_with_new_timestamp()
   local timestamp=generate_timestamp()
 
   -- Prompt for folder every time
@@ -11460,10 +11460,57 @@ end
 
 -- Global dialog reference for Switch Note Instrument toggle behavior
 local dialog = nil
+local vb = nil  -- ViewBuilder reference needed to access .views
+local current_pattern_with_notifier = nil  -- Track which pattern has our line notifier
+
+-- Line notifier callback - filters for current track and refreshes dialog
+local function line_notifier_callback(pos)
+  local song = renoise.song()
+  -- Only refresh if the change was on the currently selected track
+  if pos.track == song.selected_track_index then
+    show_dialog()
+  end
+end
+
+-- Helper function to update line notifier for current pattern
+local function update_lines_notifier()
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+
+  -- Remove old notifier if exists on a different pattern
+  if current_pattern_with_notifier and current_pattern_with_notifier ~= pattern then
+    if current_pattern_with_notifier:has_line_notifier(line_notifier_callback) then
+      current_pattern_with_notifier:remove_line_notifier(line_notifier_callback)
+    end
+  end
+
+  -- Add notifier to current pattern if not already there
+  if not pattern:has_line_notifier(line_notifier_callback) then
+    pattern:add_line_notifier(line_notifier_callback)
+  end
+  current_pattern_with_notifier = pattern
+end
+
+-- Helper function to clean up line notifier
+local function remove_lines_notifier()
+  if current_pattern_with_notifier and current_pattern_with_notifier:has_line_notifier(line_notifier_callback) then
+    current_pattern_with_notifier:remove_line_notifier(line_notifier_callback)
+  end
+  current_pattern_with_notifier = nil
+end
 
 function pakettiSwitchNoteInstrumentDialog()
   -- Check if dialog is already open and close it
   if dialog and dialog.visible then
+    local song = renoise.song()
+    -- Clean up all notifiers when closing via toggle
+    if song.selected_track_index_observable:has_notifier(show_dialog) then
+      song.selected_track_index_observable:remove_notifier(show_dialog)
+    end
+    if song.selected_pattern_index_observable:has_notifier(show_dialog) then
+      song.selected_pattern_index_observable:remove_notifier(show_dialog)
+    end
+    remove_lines_notifier()
     dialog:close()
     dialog = nil
     return
@@ -11495,19 +11542,21 @@ function pakettiSwitchNoteInstrumentDialog()
   function show_dialog()
     if dialog and dialog.visible then
       -- Store current scope before closing
-      current_scope = dialog.views.scope_switch.value
+      current_scope = vb.views.scope_switch.value
       dialog:close()
     end
 
-    local vb = renoise.ViewBuilder()
+    vb = renoise.ViewBuilder()
     local unique_notes = get_unique_notes()
-    local content = vb:column{     
+    -- Clamp track index to sequencer tracks only (popup doesn't include send/master/group)
+    local popup_track_value = math.min(song.selected_track_index, song.sequencer_track_count)
+    local content = vb:column{
       vb:row{
         vb:text{text="Track",width=40},
         vb:popup{
           width=250,
           items = track_options,
-          value = song.selected_track_index,
+          value = popup_track_value,
           notifier=function(new_index)
             song.selected_track_index = new_index
             show_dialog()
@@ -11564,6 +11613,9 @@ function pakettiSwitchNoteInstrumentDialog()
     
     dialog = renoise.app():show_custom_dialog("Switch Note Instrument Dialog",content,NoteToInstrumentKeyhandler)
     renoise.app().window.active_middle_frame = patternEditor
+
+    -- Update lines notifier to track current pattern/track (in case track/pattern changed)
+    update_lines_notifier()
   end
 
   -- Remove any existing notifiers first
@@ -11578,7 +11630,8 @@ function pakettiSwitchNoteInstrumentDialog()
   song.selected_track_index_observable:add_notifier(show_dialog)
   song.selected_pattern_index_observable:add_notifier(show_dialog)
 
-
+  -- Add lines notifier for current pattern/track (updates when notes change)
+  update_lines_notifier()
 
   -- Show initial dialog
   show_dialog()
@@ -11600,6 +11653,8 @@ function NoteToInstrumentKeyhandler(dialog_ref,key)
     if song.selected_pattern_index_observable:has_notifier(show_dialog) then
       song.selected_pattern_index_observable:remove_notifier(show_dialog)
     end
+    -- Clean up lines notifier
+    remove_lines_notifier()
     dialog_ref:close()
     dialog = nil
     return nil

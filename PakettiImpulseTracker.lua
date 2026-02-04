@@ -1916,7 +1916,6 @@ function homehome()
   local song_pos = s.transport.edit_pos
   local selcol = s.selected_note_column_index
   s.transport.follow_player = false
-  s.transport.loop_block_enabled = false
 
   -- Check if we're in the phrase editor and have API 6.2+
   if w.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then

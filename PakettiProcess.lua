@@ -3728,7 +3728,7 @@ Cross‐fade Loop + Explicit Edge Fades (1‐sample‐fixed end)
 
 ----------------------------------------------------------------------------]]--
 
-local function crossfade_loop_edges_fixed_end()
+function crossfade_loop_edges_fixed_end()
   local song  = renoise.song()
   local instr = song.selected_instrument
   local idx   = song.selected_sample_index

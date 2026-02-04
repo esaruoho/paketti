@@ -729,7 +729,7 @@ local function EnsureDiskBrowserVisible()
 end
 
 -- Define the category cycler function
-local function DiskBrowserCategoryCycler()
+function DiskBrowserCategoryCycler()
   EnsureDiskBrowserVisible()
   local current_category = renoise.app().window.disk_browser_category
   local next_category = current_category + 1
@@ -738,7 +738,7 @@ local function DiskBrowserCategoryCycler()
 end
 
 -- Define the function to set a specific category
-local function SetDiskBrowserCategory(category)
+function SetDiskBrowserCategory(category)
   EnsureDiskBrowserVisible()
   if category >= 1 and category <= 4 then renoise.app().window.disk_browser_category = category
   else renoise.app():show_warning("Invalid category. Must be between 1 and 4.") end

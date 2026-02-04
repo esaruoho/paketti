@@ -272,28 +272,60 @@ end
 -- New: Set loop block to current playback position
 function PakettiSetLoopBlockToPlaybackPosition()
   local song = renoise.song()
-  
+
   if not song then
     renoise.app():show_warning("No song available")
     return
   end
-  
+
   local transport = song.transport
   local playpos = transport.playback_pos
-  
+
   if not playpos then
     renoise.app():show_warning("No playback position available")
     return
   end
-  
+
   -- Enable loop block if not already enabled
   if not transport.loop_block_enabled then
     transport.loop_block_enabled = true
   end
-  
-  -- Set loop block start to current playback position
-  transport.loop_block_start_pos = playpos
-  
+
+  -- Move block loop to contain the playback position
+  -- loop_block_start_pos is READ-ONLY, so we must use move functions
+  local pattern_index = song.sequencer:pattern(playpos.sequence)
+  local pattern = song.patterns[pattern_index]
+  local pattern_length = pattern.number_of_lines
+  local block_coeff = transport.loop_block_range_coeff
+  local block_size = math.floor(pattern_length / block_coeff)
+  if block_size < 1 then block_size = 1 end
+
+  -- Calculate target block index for playback position
+  local target_block_index = math.floor((playpos.line - 1) / block_size)
+
+  -- Handle sequence change by toggling block loop
+  local block_start_pos = transport.loop_block_start_pos
+  if playpos.sequence ~= block_start_pos.sequence then
+    transport.loop_block_enabled = false
+    transport.loop_block_enabled = true
+    block_start_pos = transport.loop_block_start_pos
+  end
+
+  -- Calculate current block index
+  local current_block_index = math.floor((block_start_pos.line - 1) / block_size)
+
+  -- Move to target block
+  local moves_needed = target_block_index - current_block_index
+  if moves_needed > 0 then
+    for _ = 1, moves_needed do
+      transport:loop_block_move_forwards()
+    end
+  elseif moves_needed < 0 then
+    for _ = 1, math.abs(moves_needed) do
+      transport:loop_block_move_backwards()
+    end
+  end
+
   renoise.app():show_status(string.format("Set loop block to sequence %d, line %d", playpos.sequence, playpos.line))
   print(string.format("-- Paketti Loop Block: Set loop block to sequence %d, line %d", playpos.sequence, playpos.line))
 end

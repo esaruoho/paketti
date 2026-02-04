@@ -6597,7 +6597,7 @@ local function canWriteToEffectColumn()
 end
 
 -- Helper function to write effect to pattern
-local function writeEffectToPattern(effect_string, first_row_effect)
+function writeEffectToPattern(effect_string, first_row_effect)
   if not canWriteToEffectColumn() then return end
   
   local song=renoise.song()
@@ -7519,7 +7519,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Value Interpo
   Handles copying/incrementing/decrementing effect from the line above.
   @param operation: "copy", "inc", or "dec"
 ----------------------------------------------------------------------------]]--
-local function handle_above_effect_command(operation)
+function handle_above_effect_command(operation)
   local song = renoise.song()
   local pat = song.selected_pattern
   local track_idx = song.selected_track_index
