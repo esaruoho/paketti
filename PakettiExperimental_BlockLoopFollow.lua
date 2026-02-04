@@ -10,6 +10,11 @@
 
 local block_loop_follow_enabled = false
 
+-- Global function to check if Block Loop Follow is enabled (for use by other modules)
+function PakettiBlockLoopFollowIsEnabled()
+  return block_loop_follow_enabled
+end
+
 --------------------------------------------------------------------------------
 -- HELPER FUNCTIONS
 --------------------------------------------------------------------------------

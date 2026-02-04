@@ -163,6 +163,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiCaptureLastTakeSmartNoteOff=true,
   pakettiSwitcharooAutoGrab=true,
   PakettiImpulseTrackerF8=1,
+  PakettiImpulseTrackerBlockLoopOff=3, -- 1=Always turn off, 2=Only when Block Loop Follow disabled, 3=Never turn off
   PakettiCaptureTrackFromInstrumentMode=0, -- 0=Disabled, 1=Pattern Editor, 2=Not Pattern Editor, 3=All Frames
   PakettiSelectTrackSelectInstrument=false,  -- When switching tracks, automatically select the instrument used in that track
   PakettiDeviceChainPath = "." .. separator .. "DeviceChains" .. separator,
@@ -1552,6 +1553,21 @@ vb:row{
                 tooltip="F8 (Stop Playback) behavior",
                 notifier=function(value)
                   preferences.PakettiImpulseTrackerF8.value = value
+                end
+              }
+            },
+            vb:row{
+              vb:text{text="IT Block Loop Off",width=150,tooltip="Controls whether Impulse Tracker keys (F5-F8, Home*2, End*2) turn off Block Loop"},
+              vb:popup{
+                items={"Always Turn Off","Only When Follow Disabled","Never Turn Off"},
+                value=preferences.PakettiImpulseTrackerBlockLoopOff.value,
+                width=180,
+                tooltip="Controls whether Impulse Tracker keys (F5-F8, Home*2, End*2) turn off Block Loop.\nNever Turn Off is recommended when using Block Loop Follow feature.",
+                notifier=function(value)
+                  preferences.PakettiImpulseTrackerBlockLoopOff.value = value
+                  preferences:save_as("preferences.xml")
+                  local mode_names = {"Always Turn Off", "Only When Follow Disabled", "Never Turn Off"}
+                  renoise.app():show_status("IT Block Loop Off: " .. mode_names[value])
                 end
               }
             },

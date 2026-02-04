@@ -1,4 +1,23 @@
 ----------------------------------------------------------------------------------------------------------------
+-- Helper function to conditionally turn off block loop based on preference
+-- Preference values: 1=Always turn off, 2=Only when Block Loop Follow disabled, 3=Never turn off
+local function pakettiMaybeDisableBlockLoop(transport)
+  local pref_value = preferences.PakettiImpulseTrackerBlockLoopOff.value
+
+  if pref_value == 1 then
+    -- Always turn off
+    transport.loop_block_enabled = false
+  elseif pref_value == 2 then
+    -- Only turn off when Block Loop Follow is NOT enabled
+    local follow_enabled = type(PakettiBlockLoopFollowIsEnabled) == "function" and PakettiBlockLoopFollowIsEnabled()
+    if not follow_enabled then
+      transport.loop_block_enabled = false
+    end
+  end
+  -- pref_value == 3: Never turn off - do nothing
+end
+
+----------------------------------------------------------------------------------------------------------------
 -- F2
 function F2()
 local w=renoise.app().window
@@ -220,7 +239,7 @@ local start_time = os.clock()
 t.follow_player=true
 t.edit_mode=false
 t.metronome_enabled=false
-t.loop_block_enabled=false
+pakettiMaybeDisableBlockLoop(t)
 t.loop_pattern = false
 t:start_at(startpos)
 
@@ -275,7 +294,7 @@ while (os.clock() - start_time < 0.03) do
 end
 
 -- Don't change follow_player, edit_mode, or metronome_enabled
-t.loop_block_enabled=false
+pakettiMaybeDisableBlockLoop(t)
 t.loop_pattern = true
 t:start_at(startpos)
 
@@ -393,7 +412,7 @@ local monitoring_enabled = true
  -- Stop and reset transport settings
  t:panic()
  t.loop_pattern = false
- t.loop_block_enabled = false
+ pakettiMaybeDisableBlockLoop(t)
  t.edit_mode = true
  
  -- Create SongPos and use start_at for precise positioning
@@ -477,7 +496,7 @@ function ImpulseTrackerStop()
     t.follow_player = false
     t:panic()
     t.loop_pattern = false
-    t.loop_block_enabled = false
+    pakettiMaybeDisableBlockLoop(t)
     ResetAllSteppers()
     return
   end
@@ -1916,6 +1935,7 @@ function homehome()
   local song_pos = s.transport.edit_pos
   local selcol = s.selected_note_column_index
   s.transport.follow_player = false
+  pakettiMaybeDisableBlockLoop(s.transport)
 
   -- Check if we're in the phrase editor and have API 6.2+
   if w.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
@@ -2027,9 +2047,9 @@ function endend()
   local w = renoise.app().window
   local song_pos = s.transport.edit_pos
 
-  -- Disable follow player and loop block
+  -- Disable follow player and conditionally disable loop block based on preference
   s.transport.follow_player = false
-  s.transport.loop_block_enabled = false
+  pakettiMaybeDisableBlockLoop(s.transport)
 
   -- Check if we're in the phrase editor and have API 6.2+
   if w.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
