@@ -1373,5 +1373,10 @@ end
 -- WARNING: When true, any file save triggers full tool reload which re-executes all notifiers.
 _AUTO_RELOAD_DEBUG = true
 
+-- Initialize Block Loop Follow based on preference
+if preferences.PakettiBlockLoopFollowEnabled.value and type(PakettiBlockLoopFollowEnable) == "function" then
+  PakettiBlockLoopFollowEnable()
+end
+
 --dbug(renoise.song())
 -- Added: PakettiSelectNextInstrument, PakettiSelectPreviousInstrument

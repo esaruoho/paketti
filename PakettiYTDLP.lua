@@ -712,21 +712,7 @@ end
 
 -- Function to check if a directory exists
 function PakettiYTDLPDirectoryExists(path)
-  -- Use 'os.rename' as a way to check existence
-  local ok, err = os.rename(path, path)
-  if not ok then
-    return false
-  end
-  -- Additional check to ensure it's a directory
-  -- Attempt to list its contents
-  local handle = io.popen('test -d "' .. path .. '" && echo "yes" || echo "no"')
-  if not handle then
-    return false
-  end
-  local result = handle:read("*a")
-  handle:close()
-  result = result:gsub("%s+", "")
-  return result == "yes"
+  return io.exists(path) and os.filetype(path) == "directory"
 end
 
 -- Function to create a directory if it doesn't exist

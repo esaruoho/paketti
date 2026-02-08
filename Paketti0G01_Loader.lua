@@ -164,6 +164,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiSwitcharooAutoGrab=true,
   PakettiImpulseTrackerF8=1,
   PakettiImpulseTrackerBlockLoopOff=3, -- 1=Always turn off, 2=Only when Block Loop Follow disabled, 3=Never turn off
+  PakettiBlockLoopFollowEnabled=false, -- Block Loop Follows Edit Cursor feature
   PakettiCaptureTrackFromInstrumentMode=0, -- 0=Disabled, 1=Pattern Editor, 2=Not Pattern Editor, 3=All Frames
   PakettiSelectTrackSelectInstrument=false,  -- When switching tracks, automatically select the instrument used in that track
   PakettiDeviceChainPath = "." .. separator .. "DeviceChains" .. separator,

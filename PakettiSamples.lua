@@ -6632,19 +6632,19 @@ renoise.tool():add_keybinding{name="Global:Paketti:Fill Empty Sample Slots (Rand
 -- Function to sanitize and validate folder path
 function sanitizeFolderPath(path)
   if not path then return nil end
-  
+
   -- Don't modify the original path - keep native separators
   local sanitized = path
-  
+
   -- Remove any trailing slashes/backslashes
   sanitized = sanitized:gsub("[/\\]*$", "")
-  
-  -- Check if the path exists using the original path format
-  if not os.rename(sanitized, sanitized) then
-    print("-- Paketti Debug: Path does not exist:", sanitized)
+
+  -- Check if the path exists and is a directory
+  if not io.exists(sanitized) or os.filetype(sanitized) ~= "directory" then
+    print("-- Paketti Debug: Path does not exist or is not a directory:", sanitized)
     return nil
   end
-  
+
   print("-- Paketti Debug: Sanitized path:", sanitized)
   return sanitized
 end

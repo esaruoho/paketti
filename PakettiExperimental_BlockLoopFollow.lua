@@ -158,8 +158,21 @@ local function block_loop_follow_idle_handler()
   end
 end
 
+-- Global function to enable Block Loop Follow (called from main.lua on startup)
+function PakettiBlockLoopFollowEnable()
+  if block_loop_follow_enabled then return end -- Already enabled
+  block_loop_follow_enabled = true
+  if not renoise.tool().app_idle_observable:has_notifier(block_loop_follow_idle_handler) then
+    renoise.tool().app_idle_observable:add_notifier(block_loop_follow_idle_handler)
+  end
+end
+
 local function toggle_block_loop_follow_auto()
   block_loop_follow_enabled = not block_loop_follow_enabled
+
+  -- Save preference
+  preferences.PakettiBlockLoopFollowEnabled.value = block_loop_follow_enabled
+  preferences:save_as("preferences.xml")
 
   if block_loop_follow_enabled then
     -- Add idle notifier if not already added
@@ -193,8 +206,7 @@ local function snap_block_loop_to_cursor()
   move_block_loop_to_cursor()
 
   local cursor_line = song.selected_line_index
-  local block_start = transport.loop_block_start_pos.line
-  renoise.app():show_status(("Paketti: Block loop snapped to cursor (line %d, block starts at %d)"):format(cursor_line, block_start))
+  renoise.app():show_status(("Paketti: Block loop snapped to cursor (line %d)"):format(cursor_line))
 end
 
 -- Toggle block loop and snap: if off, turn on and snap. If on, just snap.
@@ -216,13 +228,16 @@ local function toggle_and_snap_block_loop()
 end
 
 --------------------------------------------------------------------------------
--- CLEANUP ON TOOL UNLOAD
+-- INITIALIZATION ON TOOL LOAD
 --------------------------------------------------------------------------------
 
 renoise.tool().tool_finished_loading_observable:add_notifier(function()
-  -- Ensure idle notifier is removed if it was somehow left behind
-  if renoise.tool().app_idle_observable:has_notifier(block_loop_follow_idle_handler) then
-    if not block_loop_follow_enabled then
+  -- Read preference and enable Block Loop Follow if it was set to on
+  if preferences.PakettiBlockLoopFollowEnabled.value then
+    PakettiBlockLoopFollowEnable()
+  else
+    -- Ensure idle notifier is removed if it was somehow left behind
+    if renoise.tool().app_idle_observable:has_notifier(block_loop_follow_idle_handler) then
       renoise.tool().app_idle_observable:remove_notifier(block_loop_follow_idle_handler)
     end
   end
