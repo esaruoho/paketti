@@ -6639,10 +6639,23 @@ function sanitizeFolderPath(path)
   -- Remove any trailing slashes/backslashes
   sanitized = sanitized:gsub("[/\\]*$", "")
 
-  -- Check if the path exists and is a directory
-  if not io.exists(sanitized) or os.filetype(sanitized) ~= "directory" then
-    print("-- Paketti Debug: Path does not exist or is not a directory:", sanitized)
+  -- Restore trailing backslash for Windows drive roots (E: -> E:\)
+  if sanitized:match("^%a:$") then
+    sanitized = sanitized .. "\\"
+  end
+
+  -- Check if the path exists
+  if not io.exists(sanitized) then
+    print("-- Paketti Debug: Path does not exist:", sanitized)
     return nil
+  end
+
+  -- Check if it's a directory (os.filetype may not exist in all Renoise versions)
+  if os.filetype then
+    if os.filetype(sanitized) ~= "directory" then
+      print("-- Paketti Debug: Path is not a directory:", sanitized)
+      return nil
+    end
   end
 
   print("-- Paketti Debug: Sanitized path:", sanitized)

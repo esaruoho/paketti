@@ -712,7 +712,9 @@ end
 
 -- Function to check if a directory exists
 function PakettiYTDLPDirectoryExists(path)
-  return io.exists(path) and os.filetype(path) == "directory"
+  if not io.exists(path) then return false end
+  if os.filetype then return os.filetype(path) == "directory" end
+  return true
 end
 
 -- Function to create a directory if it doesn't exist
