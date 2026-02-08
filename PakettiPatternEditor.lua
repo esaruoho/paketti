@@ -10093,11 +10093,40 @@ function PakettiAdvanceCursorForward(steps)
   local pattern_lines = song.selected_pattern.number_of_lines
   local current_line = song.selected_line_index
   local new_line = current_line + steps
-  -- Wrap around if exceeds pattern length
+  local wrapped = song.transport.wrapped_pattern_edit
+
   if new_line > pattern_lines then
-    new_line = ((new_line - 1) % pattern_lines) + 1
+    if wrapped then
+      -- Wrap around within the same pattern
+      new_line = ((new_line - 1) % pattern_lines) + 1
+      song.selected_line_index = new_line
+    else
+      -- Move to next pattern sequence(s)
+      local seq_count = #song.sequencer.pattern_sequence
+      local seq_index = song.selected_sequence_index
+      local overflow = new_line - pattern_lines
+      while overflow > 0 do
+        if seq_index < seq_count then
+          seq_index = seq_index + 1
+        else
+          -- Already on last pattern, stay at last line
+          song.selected_line_index = pattern_lines
+          renoise.app():show_status("Cursor at end of song")
+          return
+        end
+        local next_pattern_lines = song.patterns[song.sequencer.pattern_sequence[seq_index]].number_of_lines
+        if overflow <= next_pattern_lines then
+          song.selected_sequence_index = seq_index
+          song.selected_line_index = overflow
+          overflow = 0
+        else
+          overflow = overflow - next_pattern_lines
+        end
+      end
+    end
+  else
+    song.selected_line_index = new_line
   end
-  song.selected_line_index = new_line
   renoise.app():show_status("Cursor advanced " .. steps .. " step(s) forward")
 end
 
@@ -10106,11 +10135,41 @@ function PakettiAdvanceCursorBackward(steps)
   local pattern_lines = song.selected_pattern.number_of_lines
   local current_line = song.selected_line_index
   local new_line = current_line - steps
-  -- Wrap around if goes below 1
-  while new_line < 1 do
-    new_line = new_line + pattern_lines
+  local wrapped = song.transport.wrapped_pattern_edit
+
+  if new_line < 1 then
+    if wrapped then
+      -- Wrap around within the same pattern
+      while new_line < 1 do
+        new_line = new_line + pattern_lines
+      end
+      song.selected_line_index = new_line
+    else
+      -- Move to previous pattern sequence(s)
+      local seq_index = song.selected_sequence_index
+      local underflow = 1 - new_line  -- how many lines we need to go back from line 1
+      while underflow > 0 do
+        if seq_index > 1 then
+          seq_index = seq_index - 1
+        else
+          -- Already on first pattern, stay at line 1
+          song.selected_line_index = 1
+          renoise.app():show_status("Cursor at start of song")
+          return
+        end
+        local prev_pattern_lines = song.patterns[song.sequencer.pattern_sequence[seq_index]].number_of_lines
+        if underflow <= prev_pattern_lines then
+          song.selected_sequence_index = seq_index
+          song.selected_line_index = prev_pattern_lines - underflow + 1
+          underflow = 0
+        else
+          underflow = underflow - prev_pattern_lines
+        end
+      end
+    end
+  else
+    song.selected_line_index = new_line
   end
-  song.selected_line_index = new_line
   renoise.app():show_status("Cursor advanced " .. steps .. " step(s) backward")
 end
 
