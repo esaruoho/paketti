@@ -165,8 +165,55 @@ renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern 
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate Pattern Below & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
 
+---------------------------------------------------------------------------
+-- Clone Sequence Without Automation (#691)
+---------------------------------------------------------------------------
+function PakettiCloneSequenceWithoutAutomation()
+  local song = renoise.song()
+  local current_pattern_index = song.selected_pattern_index
+  local current_sequence_index = song.selected_sequence_index
 
+  song:describe_undo("Clone Sequence Without Automation")
 
+  -- Insert a new pattern below current sequence
+  local new_sequence_index = current_sequence_index + 1
+  local new_pattern_index = song.sequencer:insert_new_pattern_at(new_sequence_index)
+
+  -- Match pattern length
+  song.patterns[new_pattern_index].number_of_lines = song.patterns[current_pattern_index].number_of_lines
+
+  -- Copy the full pattern (including automation)
+  song.patterns[new_pattern_index]:copy_from(song.patterns[current_pattern_index])
+
+  -- Name the new pattern
+  local original_name = song.patterns[current_pattern_index].name
+  if original_name == "" then
+    original_name = "Pattern " .. tostring(current_pattern_index)
+  end
+  song.patterns[new_pattern_index].name = original_name .. " (no automation)"
+
+  -- Now clear all automation from the new pattern
+  for track_index = 1, #song.tracks do
+    local new_track = song.patterns[new_pattern_index].tracks[track_index]
+    -- Collect automation parameters to delete (can't delete while iterating)
+    local params_to_delete = {}
+    for _, automation in ipairs(new_track.automation) do
+      table.insert(params_to_delete, automation.dest_parameter)
+    end
+    for _, param in ipairs(params_to_delete) do
+      new_track:delete_automation(param)
+    end
+  end
+
+  -- Select the new sequence
+  song.selected_sequence_index = new_sequence_index
+  renoise.app():show_status("Cloned sequence without automation")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Clone Sequence Without Automation", invoke=function() PakettiCloneSequenceWithoutAutomation() end}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Clone Sequence Without Automation", invoke=function() PakettiCloneSequenceWithoutAutomation() end}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Clone Sequence Without Automation", invoke=function() PakettiCloneSequenceWithoutAutomation() end}
+renoise.tool():add_midi_mapping{name="Paketti:Clone Sequence Without Automation", invoke=function(message) if message:is_trigger() then PakettiCloneSequenceWithoutAutomation() end end}
 
 
 -- Duplicate Pattern (no clearing), standalone function to reuse in menus/shortcuts

@@ -65,6 +65,263 @@ end
 renoise.song().selected_note_column_index = 1
 end
 
+---------------------------------------------------------------------------
+-- Note Off on all columns within Group (#758)
+---------------------------------------------------------------------------
+function PakettiNoteOffAllColumnsInGroup()
+  local song = renoise.song()
+  local selected_track = song.selected_track
+  local selected_track_index = song.selected_track_index
+  local current_line = song.selected_line_index
+  local pattern = song.selected_pattern
+  local group_parent = selected_track.group_parent
+
+  if not group_parent then
+    renoise.app():show_status("Selected track is not part of any group")
+    return
+  end
+
+  song:describe_undo("Note Off All Columns in Group")
+  local count = 0
+  for i = 1, #song.tracks do
+    local track = song.tracks[i]
+    if track.group_parent and track.group_parent.name == group_parent.name then
+      local pattern_track = pattern:track(i)
+      local line = pattern_track:line(current_line)
+      for col_idx = 1, track.visible_note_columns do
+        line.note_columns[col_idx].note_value = 120 -- NOTE_OFF
+        count = count + 1
+      end
+    end
+  end
+  renoise.app():show_status("Note Off written to " .. count .. " columns in group '" .. group_parent.name .. "'")
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Off All Columns in Group", invoke=function() PakettiNoteOffAllColumnsInGroup() end}
+renoise.tool():add_midi_mapping{name="Paketti:Note Off All Columns in Group", invoke=function(message) if message:is_trigger() then PakettiNoteOffAllColumnsInGroup() end end}
+
+---------------------------------------------------------------------------
+-- Mute the note playing on the note column you're on (#765)
+-- Scans upward to find the last played note, writes OFF at cursor.
+---------------------------------------------------------------------------
+function PakettiMutePlayingNote()
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local col_index = song.selected_note_column_index
+  local current_line = song.selected_line_index
+  local pattern_track = pattern:track(track_index)
+
+  if col_index == 0 then
+    renoise.app():show_status("No note column selected")
+    return
+  end
+
+  -- Check if current line already has a note (nothing to mute above)
+  local current_note = pattern_track:line(current_line).note_columns[col_index]
+  if current_note.note_value ~= 121 and current_note.note_value ~= 120 then
+    renoise.app():show_status("Current line already has a note")
+    return
+  end
+
+  -- Scan upward to find the last playing note
+  local found_note = false
+  for line = current_line - 1, 1, -1 do
+    local note_col = pattern_track:line(line).note_columns[col_index]
+    if note_col.note_value == 120 then
+      -- Found a note-off before finding a note, nothing is playing
+      renoise.app():show_status("No note is currently playing on this column")
+      return
+    elseif note_col.note_value ~= 121 then
+      -- Found a note that's playing
+      found_note = true
+      break
+    end
+  end
+
+  if not found_note then
+    renoise.app():show_status("No note found above cursor in this column")
+    return
+  end
+
+  song:describe_undo("Mute Playing Note")
+  current_note.note_value = 120 -- NOTE_OFF
+  renoise.app():show_status("Note Off inserted at line " .. current_line)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Mute Playing Note (Insert Note Off)", invoke=function() PakettiMutePlayingNote() end}
+renoise.tool():add_midi_mapping{name="Paketti:Mute Playing Note (Insert Note Off)", invoke=function(message) if message:is_trigger() then PakettiMutePlayingNote() end end}
+
+---------------------------------------------------------------------------
+-- BPM Switcher: Write ZTxx to Master Track Effect Column (#525)
+---------------------------------------------------------------------------
+function PakettiBPMSwitcherWrite(bpm)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local current_line = song.selected_line_index
+
+  -- Clamp BPM to valid ZT range (32-255)
+  if bpm < 32 or bpm > 255 then
+    renoise.app():show_status("BPM must be between 32 and 255 for ZTxx command")
+    return
+  end
+
+  -- Find master track index
+  local master_track_index = nil
+  for i = 1, #song.tracks do
+    if song.tracks[i].type == renoise.Track.TRACK_TYPE_MASTER then
+      master_track_index = i
+      break
+    end
+  end
+  if not master_track_index then
+    renoise.app():show_status("Master track not found")
+    return
+  end
+
+  song:describe_undo("Write BPM to Master Track")
+  -- Ensure at least 1 effect column is visible
+  if song.tracks[master_track_index].visible_effect_columns < 1 then
+    song.tracks[master_track_index].visible_effect_columns = 1
+  end
+
+  local effect_col = pattern:track(master_track_index):line(current_line).effect_columns[1]
+  effect_col.number_string = "ZT"
+  effect_col.amount_value = bpm
+  renoise.app():show_status("BPM " .. bpm .. " written as ZT" .. string.format("%02X", bpm) .. " at line " .. current_line)
+end
+
+function PakettiBPMSwitcherDialog()
+  local vb = renoise.ViewBuilder()
+  local bpm_id = "bpm_field_" .. tostring(math.random(2, 30000))
+  local current_bpm = math.floor(renoise.song().transport.bpm)
+
+  local content = vb:column{
+    margin = 10, spacing = 5,
+    vb:text{text = "Enter BPM to write as ZTxx on Master Track:"},
+    vb:valuebox{id = bpm_id, min = 32, max = 255, value = math.min(255, current_bpm)},
+    vb:row{spacing = 5,
+      vb:button{text = "Write", pressed = function()
+        PakettiBPMSwitcherWrite(vb.views[bpm_id].value)
+      end},
+      vb:button{text = "Write & Close", pressed = function()
+        PakettiBPMSwitcherWrite(vb.views[bpm_id].value)
+        if paketti_bpm_switcher_dialog and paketti_bpm_switcher_dialog.visible then
+          paketti_bpm_switcher_dialog:close()
+        end
+        paketti_bpm_switcher_dialog = nil
+      end},
+    }
+  }
+
+  if paketti_bpm_switcher_dialog and paketti_bpm_switcher_dialog.visible then
+    paketti_bpm_switcher_dialog:close()
+  end
+  paketti_bpm_switcher_dialog = renoise.app():show_custom_dialog("BPM Switcher", content)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:BPM Switcher Dialog...", invoke=function() PakettiBPMSwitcherDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:BPM Switcher Dialog", invoke=function(message) if message:is_trigger() then PakettiBPMSwitcherDialog() end end}
+
+---------------------------------------------------------------------------
+-- Mute/Solo via L00 effect commands (#734)
+-- Writes Lxx commands in effect columns for pattern-level muting/soloing.
+---------------------------------------------------------------------------
+function PakettiWriteTrackMuteL00()
+  local song = renoise.song()
+  local track = song.selected_track
+  local track_index = song.selected_track_index
+  local pattern = song.selected_pattern
+  local current_line = song.selected_line_index
+
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Only works on sequencer tracks")
+    return
+  end
+
+  song:describe_undo("Write L00 Track Mute")
+  if track.visible_effect_columns < 1 then
+    track.visible_effect_columns = 1
+  end
+  local effect_col = pattern:track(track_index):line(current_line).effect_columns[1]
+  effect_col.number_string = "0L"
+  effect_col.amount_string = "00"
+  renoise.app():show_status("Track mute (0L00) written at line " .. current_line)
+end
+
+function PakettiWriteTrackUnmuteL80()
+  local song = renoise.song()
+  local track = song.selected_track
+  local track_index = song.selected_track_index
+  local pattern = song.selected_pattern
+  local current_line = song.selected_line_index
+
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Only works on sequencer tracks")
+    return
+  end
+
+  song:describe_undo("Write L80 Track Unmute")
+  if track.visible_effect_columns < 1 then
+    track.visible_effect_columns = 1
+  end
+  local effect_col = pattern:track(track_index):line(current_line).effect_columns[1]
+  effect_col.number_string = "0L"
+  effect_col.amount_string = "80"
+  renoise.app():show_status("Track unmute (0L80) written at line " .. current_line)
+end
+
+function PakettiWriteTrackSoloL00()
+  local song = renoise.song()
+  local selected_track_index = song.selected_track_index
+  local pattern = song.selected_pattern
+  local current_line = song.selected_line_index
+
+  song:describe_undo("Write L00 Solo (Mute All Others)")
+  for i = 1, #song.tracks do
+    local track = song.tracks[i]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER and i ~= selected_track_index then
+      if track.visible_effect_columns < 1 then
+        track.visible_effect_columns = 1
+      end
+      local effect_col = pattern:track(i):line(current_line).effect_columns[1]
+      effect_col.number_string = "0L"
+      effect_col.amount_string = "00"
+    end
+  end
+  renoise.app():show_status("Solo via 0L00 written on all other tracks at line " .. current_line)
+end
+
+function PakettiWriteTrackUnsoloL80()
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local current_line = song.selected_line_index
+
+  song:describe_undo("Write L80 Unsolo (Unmute All)")
+  for i = 1, #song.tracks do
+    local track = song.tracks[i]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      if track.visible_effect_columns < 1 then
+        track.visible_effect_columns = 1
+      end
+      local effect_col = pattern:track(i):line(current_line).effect_columns[1]
+      effect_col.number_string = "0L"
+      effect_col.amount_string = "80"
+    end
+  end
+  renoise.app():show_status("Unsolo via 0L80 written on all tracks at line " .. current_line)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Track Mute (0L00)", invoke=function() PakettiWriteTrackMuteL00() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Track Unmute (0L80)", invoke=function() PakettiWriteTrackUnmuteL80() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Track Solo via 0L00 (Mute All Others)", invoke=function() PakettiWriteTrackSoloL00() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Track Unsolo via 0L80 (Unmute All)", invoke=function() PakettiWriteTrackUnsoloL80() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Write Track Mute (0L00)", invoke=function(message) if message:is_trigger() then PakettiWriteTrackMuteL00() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Track Unmute (0L80)", invoke=function(message) if message:is_trigger() then PakettiWriteTrackUnmuteL80() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Track Solo via 0L00", invoke=function(message) if message:is_trigger() then PakettiWriteTrackSoloL00() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Track Unsolo via 0L80", invoke=function(message) if message:is_trigger() then PakettiWriteTrackUnsoloL80() end end}
+
 ---------------
 function PakettiPatternEditorApplyF8FollowPreference()
   local t = renoise.song().transport

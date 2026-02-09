@@ -2795,11 +2795,11 @@ function tknaSectionLoopPrevious()
   renoise.app():show_status("Section Loop: section " .. prev_idx .. " (seq " .. s .. "-" .. e .. ")")
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Section Loop (Next)", invoke=function() tknaSectionLoopNext() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Section Loop (Previous)", invoke=function() tknaSectionLoopPrevious() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Move Section Loop (Next)", invoke=function() tknaSectionLoopNext() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Move Section Loop (Previous)", invoke=function() tknaSectionLoopPrevious() end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Section Loop (Next)", invoke=function(message) if message:is_trigger() then tknaSectionLoopNext() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Section Loop (Previous)", invoke=function(message) if message:is_trigger() then tknaSectionLoopPrevious() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Move Section Loop (Next)", invoke=function(message) if message:is_trigger() then tknaSectionLoopNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Move Section Loop (Previous)", invoke=function(message) if message:is_trigger() then tknaSectionLoopPrevious() end end}
 
 -- Create keybindings and MIDI mappings for Select, Trigger, Schedule, and Add to Schedule for Sections by Position 01 to 32
 for i = 1, 32 do

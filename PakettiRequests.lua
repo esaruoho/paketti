@@ -164,16 +164,61 @@ function selectedSampleMod(number)
   instrument.samples[renoise.song().selected_sample_index].modulation_set_index = number
 end
 
+---------------------------------------------------------------------------
+-- Wipe Drumkit Sample FX Assignments (#726)
+-- Resets all samples' device_chain_index to 0 (no FX chain) and clears
+-- all devices from all sample FX chains (except the mandatory mixer).
+---------------------------------------------------------------------------
+function PakettiWipeDrumkitSampleFXAssignments()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+
+  if #instrument.samples == 0 then
+    renoise.app():show_status("No samples in instrument")
+    return
+  end
+
+  song:describe_undo("Wipe Drumkit Sample FX Assignments")
+
+  -- Reset all sample FX chain assignments to 0 (none)
+  local reset_count = 0
+  for i = 1, #instrument.samples do
+    if instrument.samples[i].device_chain_index ~= 0 then
+      instrument.samples[i].device_chain_index = 0
+      reset_count = reset_count + 1
+    end
+  end
+
+  -- Clear all devices from all FX chains (device 1 is mixer, can't delete)
+  local chain_count = 0
+  for chain_idx = 1, #instrument.sample_device_chains do
+    local chain = instrument.sample_device_chains[chain_idx]
+    while #chain.devices > 1 do
+      chain:delete_device_at(#chain.devices)
+    end
+    chain_count = chain_count + 1
+  end
+
+  renoise.app():show_status("Wiped FX assignments from " .. reset_count .. " sample(s), cleared " .. chain_count .. " FX chain(s)")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe Drumkit Sample FX Assignments", invoke=function() PakettiWipeDrumkitSampleFXAssignments() end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe Drumkit Sample FX Assignments", invoke=function(message) if message:is_trigger() then PakettiWipeDrumkitSampleFXAssignments() end end}
+
 -- Function to assign an FX chain to the selected sample based on a given index
 function selectedSampleFX(number)
   local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
-  
+
   -- Check if there are any FX chains
   if not instrument or #instrument.sample_device_chains == 0 then
     print("No FX chains available or no instrument selected.")
     return
   end
-  
+
   -- Get the number of available FX chains
   local num_fx_sets = #instrument.sample_device_chains
   
@@ -8850,6 +8895,74 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert Note Column Subcolumns",invoke=function() invert_content("notecolumns") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert Effect Column Subcolumns",invoke=function() invert_content("effectcolumns") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert All Subcolumns",invoke=function() invert_content("all") end}
+
+---------------------------------------------------------------------------
+-- Invert specific subcolumns only (#693)
+---------------------------------------------------------------------------
+function invert_content_subcolumn(subcolumn)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local selection = song.selection_in_pattern
+  local start_line, end_line, start_track, end_track, start_column, end_column
+
+  if selection then
+    start_line = selection.start_line
+    end_line = selection.end_line
+    start_track = selection.start_track
+    end_track = selection.end_track
+    start_column = selection.start_column
+    end_column = selection.end_column
+  else
+    start_line = 1
+    end_line = pattern.number_of_lines
+    start_track = song.selected_track_index
+    end_track = start_track
+    start_column = 1
+    end_column = song:track(start_track).visible_note_columns
+  end
+
+  song:describe_undo("Invert " .. subcolumn .. " subcolumn")
+  for line_index = start_line, end_line do
+    for track_index = start_track, end_track do
+      local track = pattern:track(track_index)
+      local track_vis = song:track(track_index)
+      local note_columns_visible = track_vis.visible_note_columns
+      local current_start = (selection and track_index == start_track) and start_column or 1
+      local current_end = (selection and track_index == end_track) and end_column or note_columns_visible
+      for col = current_start, math.min(current_end, note_columns_visible) do
+        local note_col = track:line(line_index).note_columns[col]
+        if subcolumn == "volume" then
+          if note_col.volume_value >= 0 and note_col.volume_value <= 0x80 then
+            note_col.volume_value = 0x80 - note_col.volume_value
+          end
+        elseif subcolumn == "panning" then
+          if note_col.panning_value >= 0 and note_col.panning_value <= 0x80 then
+            note_col.panning_value = 0x80 - note_col.panning_value
+          end
+        elseif subcolumn == "delay" then
+          if note_col.delay_value > 0 then
+            note_col.delay_value = 0xFF - note_col.delay_value
+          end
+        elseif subcolumn == "samplefx" then
+          if note_col.effect_amount_value > 0 then
+            note_col.effect_amount_value = 0xFF - note_col.effect_amount_value
+          end
+        end
+      end
+    end
+  end
+  renoise.app():show_status("Inverted " .. subcolumn .. " values in selected range")
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert Volume Only", invoke=function() invert_content_subcolumn("volume") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert Panning Only", invoke=function() invert_content_subcolumn("panning") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert Delay Only", invoke=function() invert_content_subcolumn("delay") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert Sample FX Only", invoke=function() invert_content_subcolumn("samplefx") end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Invert Volume Only", invoke=function(message) if message:is_trigger() then invert_content_subcolumn("volume") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Invert Panning Only", invoke=function(message) if message:is_trigger() then invert_content_subcolumn("panning") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Invert Delay Only", invoke=function(message) if message:is_trigger() then invert_content_subcolumn("delay") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Invert Sample FX Only", invoke=function(message) if message:is_trigger() then invert_content_subcolumn("samplefx") end end}
 ---
 function wipe_random_notes_with_note_offs()
   local song=renoise.song()

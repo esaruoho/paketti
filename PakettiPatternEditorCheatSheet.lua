@@ -3362,3 +3362,523 @@ end)
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
+
+---------------------------------------------------------------------------
+-- Step Sequencer FX Randomizer (Issue #375)
+-- A step-sequencer-style dialog where you check which steps receive
+-- randomized FX command values, with quick-select helpers and looping.
+---------------------------------------------------------------------------
+local step_randomizer_dialog = nil
+
+-- Build the popup items list from the effects table
+local function build_fx_popup_items()
+  local items = {}
+  for i, eff in ipairs(effects) do
+    items[i] = eff[1] .. " " .. eff[2] .. " - " .. eff[3]
+  end
+  return items
+end
+
+function pakettiStepSequencerFXRandomizerDialog()
+  if step_randomizer_dialog and step_randomizer_dialog.visible then
+    step_randomizer_dialog:close()
+    step_randomizer_dialog = nil
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  local MAX_STEPS = 64
+  local step_count = 16
+  local step_checkboxes = {}
+  local step_checkbox_ids = {}
+  local step_label_ids = {}
+  local fx_popup_items = build_fx_popup_items()
+
+  -- Generate dynamic IDs
+  local popup_id = "step_rnd_popup_" .. tostring(math.random(2, 30000))
+  local min_slider_id = "step_rnd_min_" .. tostring(math.random(2, 30000))
+  local max_slider_id = "step_rnd_max_" .. tostring(math.random(2, 30000))
+  local min_label_id = "step_rnd_min_lbl_" .. tostring(math.random(2, 30000))
+  local max_label_id = "step_rnd_max_lbl_" .. tostring(math.random(2, 30000))
+  local step_count_id = "step_rnd_count_" .. tostring(math.random(2, 30000))
+  local switch_id = "step_rnd_switch_" .. tostring(math.random(2, 30000))
+  local dont_overwrite_id = "step_rnd_dont_ow_" .. tostring(math.random(2, 30000))
+  local whole_track_id = "step_rnd_whole_" .. tostring(math.random(2, 30000))
+  local steps_row_id = "step_rnd_row_" .. tostring(math.random(2, 30000))
+
+  -- Build step checkbox state (all start unchecked)
+  local step_states = {}
+  for i = 1, MAX_STEPS do
+    step_states[i] = false
+  end
+
+  -- Create step checkboxes and labels
+  for i = 1, MAX_STEPS do
+    step_checkbox_ids[i] = "step_cb_" .. i .. "_" .. tostring(math.random(2, 30000))
+    step_label_ids[i] = "step_lb_" .. i .. "_" .. tostring(math.random(2, 30000))
+  end
+
+  -- Helper to update step visibility based on step_count
+  local function update_step_visibility()
+    for i = 1, MAX_STEPS do
+      vb.views[step_checkbox_ids[i]].visible = (i <= step_count)
+      vb.views[step_label_ids[i]].visible = (i <= step_count)
+    end
+    vb.views[step_count_id].text = string.format("%02d", step_count)
+  end
+
+  -- Helper: set all steps
+  local function set_all_steps(value)
+    for i = 1, step_count do
+      step_states[i] = value
+      vb.views[step_checkbox_ids[i]].value = value
+    end
+  end
+
+  -- Helper: set every Nth step
+  local function set_every_nth(n)
+    for i = 1, step_count do
+      local val = ((i - 1) % n == 0)
+      step_states[i] = val
+      vb.views[step_checkbox_ids[i]].value = val
+    end
+  end
+
+  -- Helper: shift steps left
+  local function shift_left()
+    local first = step_states[1]
+    for i = 1, step_count - 1 do
+      step_states[i] = step_states[i + 1]
+    end
+    step_states[step_count] = first
+    for i = 1, step_count do
+      vb.views[step_checkbox_ids[i]].value = step_states[i]
+    end
+  end
+
+  -- Helper: shift steps right
+  local function shift_right()
+    local last = step_states[step_count]
+    for i = step_count, 2, -1 do
+      step_states[i] = step_states[i - 1]
+    end
+    step_states[1] = last
+    for i = 1, step_count do
+      vb.views[step_checkbox_ids[i]].value = step_states[i]
+    end
+  end
+
+  -- Build step columns (label + checkbox per step)
+  local step_columns = {}
+  for i = 1, MAX_STEPS do
+    local idx = i
+    step_columns[i] = vb:column{
+      vb:text{
+        id = step_label_ids[i],
+        text = string.format("%02d", i),
+        font = "mono",
+        align = "center",
+        width = 22,
+        visible = (i <= step_count)
+      },
+      vb:checkbox{
+        id = step_checkbox_ids[i],
+        value = false,
+        visible = (i <= step_count),
+        notifier = function(value)
+          step_states[idx] = value
+        end
+      }
+    }
+  end
+
+  -- FX command dropdown
+  local fx_row = vb:row{
+    vb:text{text = "FX Command:", font = "bold", width = 80},
+    vb:popup{
+      id = popup_id,
+      items = fx_popup_items,
+      value = 1,
+      width = 400
+    }
+  }
+
+  -- Steps row (scrollable via step count)
+  local steps_container = vb:row{id = steps_row_id}
+  for i = 1, MAX_STEPS do
+    steps_container:add_child(step_columns[i])
+  end
+
+  -- Step count controls
+  local step_count_row = vb:row{
+    vb:text{text = "Steps:", font = "bold"},
+    vb:button{text = "<", width = 20, pressed = function()
+      if step_count > 1 then
+        step_count = step_count - 1
+        update_step_visibility()
+      end
+    end},
+    vb:button{text = ">", width = 20, pressed = function()
+      if step_count < MAX_STEPS then
+        step_count = step_count + 1
+        update_step_visibility()
+      end
+    end},
+    vb:text{id = step_count_id, text = string.format("%02d", step_count), font = "mono", width = 24},
+    vb:button{text = "8", width = 24, pressed = function()
+      step_count = 8; update_step_visibility()
+    end},
+    vb:button{text = "12", width = 24, pressed = function()
+      step_count = 12; update_step_visibility()
+    end},
+    vb:button{text = "16", width = 24, pressed = function()
+      step_count = 16; update_step_visibility()
+    end},
+    vb:button{text = "24", width = 24, pressed = function()
+      step_count = 24; update_step_visibility()
+    end},
+    vb:button{text = "32", width = 24, pressed = function()
+      step_count = 32; update_step_visibility()
+    end},
+    vb:button{text = "48", width = 24, pressed = function()
+      step_count = 48; update_step_visibility()
+    end},
+    vb:button{text = "64", width = 24, pressed = function()
+      step_count = 64; update_step_visibility()
+    end},
+    vb:button{text = "=Pat", width = 36, pressed = function()
+      local song = renoise.song()
+      if song then
+        step_count = math.min(song.selected_pattern.number_of_lines, MAX_STEPS)
+        update_step_visibility()
+      end
+    end}
+  }
+
+  -- Quick select buttons
+  local quick_select_row = vb:row{
+    vb:button{text = "None", width = 50, pressed = function() set_all_steps(false) end},
+    vb:button{text = "All", width = 50, pressed = function() set_all_steps(true) end},
+    vb:button{text = "Every 2nd", width = 65, pressed = function() set_every_nth(2) end},
+    vb:button{text = "Every 3rd", width = 65, pressed = function() set_every_nth(3) end},
+    vb:button{text = "Every 4th", width = 65, pressed = function() set_every_nth(4) end},
+    vb:button{text = "Every 8th", width = 65, pressed = function() set_every_nth(8) end},
+    vb:button{text = "<<", width = 28, pressed = function() shift_left() end},
+    vb:button{text = ">>", width = 28, pressed = function() shift_right() end}
+  }
+
+  -- Min/Max sliders
+  local min_val = 0x00
+  local max_val = 0xFF
+
+  local min_row = vb:row{
+    vb:text{text = "Min", font = "bold", width = 30},
+    vb:button{text = "<", width = 20, pressed = function()
+      local v = vb.views[min_slider_id].value
+      if v > 0 then vb.views[min_slider_id].value = v - 1 end
+    end},
+    vb:button{text = ">", width = 20, pressed = function()
+      local v = vb.views[min_slider_id].value
+      if v < 255 then vb.views[min_slider_id].value = v + 1 end
+    end},
+    vb:slider{
+      id = min_slider_id,
+      min = 0, max = 255,
+      value = min_val,
+      width = 300,
+      notifier = function(value)
+        min_val = math.floor(value)
+        vb.views[min_label_id].text = string.format("%02X", min_val)
+      end
+    },
+    vb:text{id = min_label_id, text = string.format("%02X", min_val), font = "mono", width = 30}
+  }
+
+  local max_row = vb:row{
+    vb:text{text = "Max", font = "bold", width = 30},
+    vb:button{text = "<", width = 20, pressed = function()
+      local v = vb.views[max_slider_id].value
+      if v > 0 then vb.views[max_slider_id].value = v - 1 end
+    end},
+    vb:button{text = ">", width = 20, pressed = function()
+      local v = vb.views[max_slider_id].value
+      if v < 255 then vb.views[max_slider_id].value = v + 1 end
+    end},
+    vb:slider{
+      id = max_slider_id,
+      min = 0, max = 255,
+      value = max_val,
+      width = 300,
+      notifier = function(value)
+        max_val = math.floor(value)
+        vb.views[max_label_id].text = string.format("%02X", max_val)
+      end
+    },
+    vb:text{id = max_label_id, text = string.format("%02X", max_val), font = "mono", width = 30}
+  }
+
+  -- Option checkboxes
+  local options_row = vb:column{
+    vb:row{
+      vb:checkbox{id = whole_track_id, value = false},
+      vb:text{text = "Randomize whole track if nothing is selected"}
+    },
+    vb:row{
+      vb:checkbox{id = switch_id, value = false},
+      vb:text{text = "Randomize Min/Max Only (switch between two values)"}
+    },
+    vb:row{
+      vb:checkbox{id = dont_overwrite_id, value = false},
+      vb:text{text = "Don't Overwrite Existing Data"}
+    }
+  }
+
+  -- Action buttons
+  local function do_randomize_and_print()
+    trueRandomSeed()
+    local song = renoise.song()
+    if not song then return end
+
+    local selected_fx_index = vb.views[popup_id].value
+    local effect_command = effects[selected_fx_index][1]
+    local switch_mode = vb.views[switch_id].value
+    local dont_overwrite = vb.views[dont_overwrite_id].value
+    local whole_track = vb.views[whole_track_id].value
+    local actual_min = math.min(min_val, max_val)
+    local actual_max = math.max(min_val, max_val)
+
+    -- Generate random value
+    local function random_value()
+      if switch_mode then
+        return math.random() < 0.5 and actual_min or actual_max
+      else
+        return math.random(actual_min, actual_max)
+      end
+    end
+
+    -- Collect which steps are checked
+    local checked = {}
+    local checked_count = 0
+    for i = 1, step_count do
+      if step_states[i] then
+        checked[i] = true
+        checked_count = checked_count + 1
+      end
+    end
+
+    if checked_count == 0 then
+      renoise.app():show_status("No steps checked - nothing to write.")
+      return
+    end
+
+    local is_phrase_mode = is_phrase_editor_active() and has_valid_phrase()
+
+    song:describe_undo("Paketti Step Sequencer FX Randomizer")
+
+    if is_phrase_mode then
+      local phrase = song.selected_phrase
+      if not phrase then
+        renoise.app():show_status("No phrase selected.")
+        return
+      end
+      local num_lines = phrase.number_of_lines
+      local effect_col_idx = song.selected_phrase_effect_column_index
+      if effect_col_idx < 1 then effect_col_idx = 1 end
+      if effect_col_idx > phrase.visible_effect_columns then
+        phrase.visible_effect_columns = effect_col_idx
+      end
+
+      for line_idx = 1, num_lines do
+        local step_pos = ((line_idx - 1) % step_count) + 1
+        if checked[step_pos] then
+          local line = phrase:line(line_idx)
+          local ec = line:effect_column(effect_col_idx)
+          if ec then
+            if dont_overwrite and not ec.is_empty then
+              -- skip
+            else
+              ec.number_string = effect_command
+              ec.amount_string = string.format("%02X", random_value())
+            end
+          end
+        end
+      end
+    else
+      -- Pattern editor mode
+      local selection = song.selection_in_pattern
+      if selection then
+        -- Apply to selection
+        local pattern = song:pattern(song.selected_pattern_index)
+        for t = selection.start_track, selection.end_track do
+          local track = song:track(t)
+          local pattern_track = pattern:track(t)
+          local note_cols = track.visible_note_columns
+          local effect_cols = track.visible_effect_columns
+          local total_cols = note_cols + effect_cols
+
+          local start_col = (t == selection.start_track) and selection.start_column or 1
+          local end_col = (t == selection.end_track) and selection.end_column or total_cols
+
+          for line_idx = selection.start_line, selection.end_line do
+            local step_pos = ((line_idx - 1) % step_count) + 1
+            if checked[step_pos] then
+              local line = pattern_track:line(line_idx)
+              for col = start_col, end_col do
+                local column_index = col - note_cols
+                if column_index > 0 and column_index <= effect_cols then
+                  local ec = line:effect_column(column_index)
+                  if ec then
+                    if dont_overwrite and not ec.is_empty then
+                      -- skip
+                    else
+                      ec.number_string = effect_command
+                      ec.amount_string = string.format("%02X", random_value())
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      elseif whole_track then
+        -- Apply to whole track across all patterns
+        local track_index = song.selected_track_index
+        local track = song:track(track_index)
+        local effect_col_idx = song.selected_effect_column_index
+        if effect_col_idx < 1 then effect_col_idx = 1 end
+        if effect_col_idx > track.visible_effect_columns then
+          track.visible_effect_columns = effect_col_idx
+        end
+
+        for pat_idx = 1, #song.patterns do
+          local pattern = song:pattern(pat_idx)
+          local pattern_track = pattern:track(track_index)
+          local num_lines = pattern.number_of_lines
+          for line_idx = 1, num_lines do
+            local step_pos = ((line_idx - 1) % step_count) + 1
+            if checked[step_pos] then
+              local line = pattern_track:line(line_idx)
+              local ec = line:effect_column(effect_col_idx)
+              if ec then
+                if dont_overwrite and not ec.is_empty then
+                  -- skip
+                else
+                  ec.number_string = effect_command
+                  ec.amount_string = string.format("%02X", random_value())
+                end
+              end
+            end
+          end
+        end
+      else
+        -- Apply to current pattern, current track
+        local pattern = song:pattern(song.selected_pattern_index)
+        local track_index = song.selected_track_index
+        local track = song:track(track_index)
+        local pattern_track = pattern:track(track_index)
+        local num_lines = pattern.number_of_lines
+        local effect_col_idx = song.selected_effect_column_index
+        if effect_col_idx < 1 then effect_col_idx = 1 end
+        if effect_col_idx > track.visible_effect_columns then
+          track.visible_effect_columns = effect_col_idx
+        end
+
+        for line_idx = 1, num_lines do
+          local step_pos = ((line_idx - 1) % step_count) + 1
+          if checked[step_pos] then
+            local line = pattern_track:line(line_idx)
+            local ec = line:effect_column(effect_col_idx)
+            if ec then
+              if dont_overwrite and not ec.is_empty then
+                -- skip
+              else
+                ec.number_string = effect_command
+                ec.amount_string = string.format("%02X", random_value())
+              end
+            end
+          end
+        end
+      end
+    end
+
+    renoise.app():show_status("Step Sequencer FX Randomizer: " .. effect_command .. " written to " .. checked_count .. " of " .. step_count .. " steps.")
+    restore_middle_frame(is_phrase_mode)
+  end
+
+  -- Clear FX column function
+  local function do_clear_fx_column()
+    local song = renoise.song()
+    if not song then return end
+
+    local is_phrase_mode_now = is_phrase_editor_active() and has_valid_phrase()
+    song:describe_undo("Paketti Step Sequencer FX Clear")
+
+    if is_phrase_mode_now then
+      local phrase = song.selected_phrase
+      if not phrase then return end
+      local effect_col_idx = song.selected_phrase_effect_column_index
+      if effect_col_idx < 1 then effect_col_idx = 1 end
+      for line_idx = 1, phrase.number_of_lines do
+        local step_pos = ((line_idx - 1) % step_count) + 1
+        if step_states[step_pos] then
+          local ec = phrase:line(line_idx):effect_column(effect_col_idx)
+          if ec then ec:clear() end
+        end
+      end
+    else
+      local pattern = song:pattern(song.selected_pattern_index)
+      local track_index = song.selected_track_index
+      local pattern_track = pattern:track(track_index)
+      local num_lines = pattern.number_of_lines
+      local effect_col_idx = song.selected_effect_column_index
+      if effect_col_idx < 1 then effect_col_idx = 1 end
+      for line_idx = 1, num_lines do
+        local step_pos = ((line_idx - 1) % step_count) + 1
+        if step_states[step_pos] then
+          local ec = pattern_track:line(line_idx):effect_column(effect_col_idx)
+          if ec then ec:clear() end
+        end
+      end
+    end
+    renoise.app():show_status("Cleared FX on checked steps.")
+    restore_middle_frame(is_phrase_mode_now)
+  end
+
+  local action_row = vb:row{
+    vb:button{text = "Clear Checked", width = 90, pressed = function() do_clear_fx_column() end},
+    vb:button{text = "Randomize Values + Print", width = 160, color = {0xD0, 0x60, 0x00},
+      pressed = function() do_randomize_and_print() end},
+    vb:button{text = "Clear FX Column", width = 100, pressed = function()
+      Cheatsheetclear_effect_columns()
+    end}
+  }
+
+  -- Assemble dialog
+  local dialog_content = vb:column{
+    margin = 6,
+    spacing = 4,
+    fx_row,
+    vb:space{height = 4},
+    steps_container,
+    vb:row{
+      quick_select_row,
+      vb:space{width = 10},
+      step_count_row
+    },
+    vb:space{height = 4},
+    action_row,
+    vb:space{height = 4},
+    min_row,
+    max_row,
+    vb:space{height = 4},
+    options_row
+  }
+
+  step_randomizer_dialog = renoise.app():show_custom_dialog(
+    "Paketti Step Sequencer FX Randomizer", dialog_content)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Step Sequencer FX Randomizer Dialog...",invoke=pakettiStepSequencerFXRandomizerDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Step Sequencer FX Randomizer...",invoke=pakettiStepSequencerFXRandomizerDialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Step Sequencer FX Randomizer...",invoke=pakettiStepSequencerFXRandomizerDialog}
+renoise.tool():add_midi_mapping{name="Paketti:Pattern Editor:Step Sequencer FX Randomizer",invoke=function(message) if message:is_trigger() then pakettiStepSequencerFXRandomizerDialog() end end}
