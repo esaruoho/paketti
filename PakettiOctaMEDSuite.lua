@@ -790,224 +790,282 @@ end
 
 -------
 function pakettiOctaMEDNoteEchoDialog()
-  -- Check if dialog is already open and close it
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
     return
   end
-  
+
   local vb = renoise.ViewBuilder()
-  
-  -- Get selection info
   local selection = renoise.song().selection_in_pattern
-  local selection_text="No selection"
+  local selection_text = "No selection"
   local selection_length = 0
-  
+
   if selection then
     selection_length = selection.end_line - selection.start_line + 1
-    selection_text = string.format("Selection: %d...%d (length: %d)", 
+    selection_text = string.format("Selection: %d...%d (length: %d)",
       selection.start_line, selection.end_line, selection_length)
-    -- Set distance to match selection length
     preferences.pakettiOctaMEDNoteEchoDistance.value = selection_length
   end
-  
+
+  local echo_instrument_id = "echo_instr_" .. tostring(math.random(2, 30000))
+
   local dialog_content = vb:column{
-  --  margin=10,
-  --  spacing=5,
-    
-    vb:text{text=selection_text,width=70 },
-    
+    vb:text{text = selection_text, width = 200},
+
     vb:row{
-      vb:text{text="Distance",width=70 },
+      vb:text{text = "Distance", width = 100},
       vb:valuebox{
-        min = 1,
-        max = 16,
+        min = 1, max = 16,
         value = preferences.pakettiOctaMEDNoteEchoDistance.value,
-        notifier=function(value)
+        notifier = function(value)
           preferences.pakettiOctaMEDNoteEchoDistance.value = value
+          preferences:save_as("preferences.xml")
         end
       }
-    },    
+    },
     vb:row{
-      vb:text{text="Min Volume",width=70 },
+      vb:text{text = "Min Volume", width = 100},
       vb:valuebox{
-        min = 1,
-        max = 64,
+        min = 1, max = 64,
         value = preferences.pakettiOctaMEDNoteEchoMin.value,
-        notifier=function(value)
+        notifier = function(value)
           preferences.pakettiOctaMEDNoteEchoMin.value = value
+          preferences:save_as("preferences.xml")
+        end
+      }
+    },
+    vb:row{
+      vb:text{text = "Echo Target", width = 100},
+      vb:popup{
+        items = {"Same Column", "Next Note Column", "Next Track"},
+        value = preferences.pakettiOctaMEDNoteEchoMode.value,
+        notifier = function(value)
+          preferences.pakettiOctaMEDNoteEchoMode.value = value
+          preferences:save_as("preferences.xml")
+        end
+      }
+    },
+    vb:row{
+      vb:text{text = "Echo Instrument", width = 100},
+      vb:valuebox{
+        id = echo_instrument_id,
+        min = 0, max = 254,
+        value = preferences.pakettiOctaMEDNoteEchoInstrument.value,
+        tostring = function(value)
+          if value == 0 then return "Same" end
+          return string.format("%02X", value - 1)
+        end,
+        tonumber = function(str)
+          if str == "Same" or str == "same" then return 0 end
+          return tonumber(str, 16) and (tonumber(str, 16) + 1) or 0
+        end,
+        notifier = function(value)
+          preferences.pakettiOctaMEDNoteEchoInstrument.value = value
+          preferences:save_as("preferences.xml")
+        end
+      },
+      vb:button{
+        text = "Current",
+        notifier = function()
+          local idx = renoise.song().selected_instrument_index
+          vb.views[echo_instrument_id].value = idx
+          preferences.pakettiOctaMEDNoteEchoInstrument.value = idx
+          preferences:save_as("preferences.xml")
         end
       }
     },
 
     vb:button{
-      text="Apply",
-      width=100,
-      notifier=function()
+      text = "Apply", width = 200,
+      notifier = function()
         local distance = preferences.pakettiOctaMEDNoteEchoDistance.value
-        
-        -- Check if distance is valid for selection
         if selection and distance < selection_length then
           renoise.app():show_status(string.format(
-            "Echo distance (%d) must be at least the selection length (%d)", 
+            "Echo distance (%d) must be at least the selection length (%d)",
             distance, selection_length))
           return
         end
-        
         CreateNoteEcho(
           preferences.pakettiOctaMEDNoteEchoDistance.value,
-          preferences.pakettiOctaMEDNoteEchoMin.value
+          preferences.pakettiOctaMEDNoteEchoMin.value,
+          preferences.pakettiOctaMEDNoteEchoMode.value,
+          preferences.pakettiOctaMEDNoteEchoInstrument.value
         )
-        
-        -- Return focus to pattern editor
         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end
-    },    
-      vb:button{
-        text="Close",
-        width=100,
-        notifier=function()
-          dialog:close()
-          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-        end
-      }
-    
+    },
+    vb:button{
+      text = "Close", width = 200,
+      notifier = function()
+        dialog:close()
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      end
+    }
   }
-  
+
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
     function(value) dialog = value end
   )
-  dialog = renoise.app():show_custom_dialog("OctaMED Note Echo",dialog_content,keyhandler)
-  
-  -- Return focus to pattern editor immediately after showing dialog
+  dialog = renoise.app():show_custom_dialog("OctaMED Note Echo", dialog_content, keyhandler)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 
-function CreateNoteEcho(distance, min_volume)
-  local song=renoise.song()
+-- mode: 1=Same Column, 2=Next Note Column, 3=Next Track
+-- echo_instrument: 0=Same Instrument, 1+=Use instrument index (1-based)
+function CreateNoteEcho(distance, min_volume, mode, echo_instrument)
+  local song = renoise.song()
   local pattern = song.selected_pattern
-  local track = song.selected_track
   local track_idx = song.selected_track_index
-  local selection = renoise.song().selection_in_pattern
-  
-  -- Handle selection vs single note differently
+  local selection = song.selection_in_pattern
+
+  -- Default mode and instrument if not provided (backwards compat)
+  mode = mode or 1
+  echo_instrument = echo_instrument or 0
+
+  song:describe_undo("OctaMED Note Echo")
+
+  -- Determine the target track and column for echoes
+  local function get_echo_target(source_track_idx, source_col_idx)
+    local target_track_idx = source_track_idx
+    local target_col_idx = source_col_idx
+
+    if mode == 2 then
+      -- Next Note Column
+      local max_cols = song:track(source_track_idx).visible_note_columns
+      target_col_idx = source_col_idx + 1
+      if target_col_idx > max_cols then
+        -- Auto-expand if possible (max 12)
+        if max_cols < 12 then
+          song:track(source_track_idx).visible_note_columns = max_cols + 1
+          target_col_idx = max_cols + 1
+        else
+          target_col_idx = max_cols -- cap at max
+        end
+      end
+    elseif mode == 3 then
+      -- Next Track
+      target_track_idx = source_track_idx + 1
+      if target_track_idx > #song.tracks then
+        target_track_idx = source_track_idx -- no next track, stay on same
+      elseif song:track(target_track_idx).type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+        target_track_idx = source_track_idx -- skip non-sequencer tracks
+      end
+    end
+
+    return target_track_idx, target_col_idx
+  end
+
+  -- Get the instrument value to use for echoes
+  local function get_echo_instrument_value(source_instrument_value)
+    if echo_instrument == 0 then
+      return source_instrument_value
+    else
+      return echo_instrument - 1 -- convert 1-based pref to 0-based instrument index
+    end
+  end
+
   if selection then
-    -- Get the selection range
     local start_line = selection.start_line
     local end_line = selection.end_line
     local selection_length = end_line - start_line + 1
-    local current_volume_factor = 1.0 -- Start at full volume
+    local current_volume_factor = 1.0
     local pattern_length = pattern.number_of_lines
-    
-    -- Keep track of where we're copying to
     local target_start = start_line + distance
-    
-    while target_start + selection_length <= pattern_length do
-      -- Calculate next volume factor (1/2, 1/4, 1/8, etc.)
+    local source_track = song:track(track_idx)
+
+    while target_start + selection_length - 1 <= pattern_length do
       current_volume_factor = current_volume_factor / 2
-      
-      -- Stop if we've reached minimum volume
-      if current_volume_factor * 0x40 < min_volume then
-        break
-      end
-      
-      -- Copy the selection with reduced volume
+      if current_volume_factor * 0x40 < min_volume then break end
+
       for offset = 0, selection_length - 1 do
-        local source_line = pattern.tracks[track_idx].lines[start_line + offset]
-        local target_line = pattern.tracks[track_idx].lines[target_start + offset]
-        
-        -- Copy each note column in the selection
-        for col_idx = 1, track.visible_note_columns do
-          local source_note = source_line.note_columns[col_idx]
-          local target_note = target_line.note_columns[col_idx]
-          
-          -- Only copy if source has a note and target is empty
-          if not source_note.is_empty and 
-             target_note.is_empty and 
-             target_note.note_string == "---" and
-             target_note.instrument_string == ".." and
-             target_note.volume_string == ".." then
-            
-            -- Copy note and instrument
-            target_note.note_value = source_note.note_value
-            target_note.instrument_value = source_note.instrument_value
-            
-            -- Calculate new volume
-            local new_volume
-            if source_note.volume_value == 255 then -- If no volume set
-              new_volume = math.floor(0x7F * current_volume_factor)
-            else
-              new_volume = math.floor(source_note.volume_value * current_volume_factor)
+        local source_line = pattern:track(track_idx):line(start_line + offset)
+
+        for col_idx = 1, source_track.visible_note_columns do
+          local source_note = source_line:note_column(col_idx)
+
+          if not source_note.is_empty and source_note.note_value < 120 then
+            local t_track_idx, t_col_idx = get_echo_target(track_idx, col_idx)
+            local target_line_idx = target_start + offset
+
+            if target_line_idx <= pattern_length then
+              local target_note = pattern:track(t_track_idx):line(target_line_idx):note_column(t_col_idx)
+
+              if target_note.is_empty then
+                target_note.note_value = source_note.note_value
+                target_note.instrument_value = get_echo_instrument_value(source_note.instrument_value)
+
+                local new_volume
+                if source_note.volume_value == 255 then
+                  new_volume = math.floor(0x7F * current_volume_factor)
+                else
+                  new_volume = math.floor(source_note.volume_value * current_volume_factor)
+                end
+                target_note.volume_value = math.max(1, new_volume)
+              end
             end
-            target_note.volume_value = math.max(1, new_volume)
           end
         end
       end
-      
-      -- Move to next echo position
+
       target_start = target_start + distance
     end
-    
+
+    local mode_names = {"Same Column", "Next Note Column", "Next Track"}
     renoise.app():show_status(string.format(
-      "Created selection echo (Distance: %d, Min: %02X)", 
-      distance, min_volume
+      "Created selection echo (Distance: %d, Min: %02X, Target: %s)",
+      distance, min_volume, mode_names[mode] or "Same Column"
     ))
-    
+
   else
-    -- Original single-note echo code
+    -- Single-note echo
     local start_line = song.selected_line_index
-    local source_line = pattern.tracks[track_idx].lines[start_line]
-    local source_note_col = source_line.note_columns[song.selected_note_column_index]
-    
-    -- Check if there's a note to echo
-    if source_note_col.is_empty or source_note_col.note_value == 120 then
+    local col_idx = song.selected_note_column_index
+    if col_idx == 0 then col_idx = 1 end
+    local source_note_col = pattern:track(track_idx):line(start_line):note_column(col_idx)
+
+    if source_note_col.is_empty or source_note_col.note_value >= 120 then
       renoise.app():show_status("No note to echo!")
       return
     end
-    
-    -- Get initial volume
+
     local current_volume = source_note_col.volume_value
     if current_volume == 255 then
       current_volume = 0x40
     else
       current_volume = math.floor(current_volume / 2)
     end
-    
+
     local line_idx = start_line + distance
-    
-    while line_idx < pattern.number_of_lines do
+
+    while line_idx <= pattern.number_of_lines do
       current_volume = math.floor(current_volume / 2)
-      
-      if current_volume < min_volume then
-        break
-      end
-      
-      local target_line = pattern.tracks[track_idx].lines[line_idx]
-      local target_note_col = target_line.note_columns[song.selected_note_column_index]
-      
-      if target_note_col.is_empty and 
-         target_note_col.note_string == "---" and
-         target_note_col.instrument_string == ".." and
-         target_note_col.volume_string == ".." then
+      if current_volume < min_volume then break end
+
+      local t_track_idx, t_col_idx = get_echo_target(track_idx, col_idx)
+      local target_note_col = pattern:track(t_track_idx):line(line_idx):note_column(t_col_idx)
+
+      if target_note_col.is_empty then
         target_note_col.note_value = source_note_col.note_value
-        target_note_col.instrument_value = source_note_col.instrument_value
-        target_note_col.volume_value = current_volume * 2
+        target_note_col.instrument_value = get_echo_instrument_value(source_note_col.instrument_value)
+        target_note_col.volume_value = math.max(1, current_volume * 2)
       end
-      
+
       line_idx = line_idx + distance
     end
-    
+
+    local mode_names = {"Same Column", "Next Note Column", "Next Track"}
     renoise.app():show_status(string.format(
-      "Created note echo (Distance: %d, Min: %02X)", 
-      distance, min_volume
+      "Created note echo (Distance: %d, Min: %02X, Target: %s)",
+      distance, min_volume, mode_names[mode] or "Same Column"
     ))
   end
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Echo Dialog...",invoke = pakettiOctaMEDNoteEchoDialog}
+renoise.tool():add_midi_mapping{name="Paketti:OctaMED Note Echo Dialog",invoke=function(message) if message:is_trigger() then pakettiOctaMEDNoteEchoDialog() end end}
 
 ---------
 

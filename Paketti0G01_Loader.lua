@@ -123,6 +123,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiDeviceLoadBehaviour = 3, -- 1=Open External Editor, 2=Open Selected Parameter Dialog, 3=Do Nothing
   pakettiOctaMEDNoteEchoDistance=2,
   pakettiOctaMEDNoteEchoMin=1,
+  pakettiOctaMEDNoteEchoMode=1, -- 1=Same Column, 2=Next Note Column, 3=Next Track
+  pakettiOctaMEDNoteEchoInstrument=0, -- 0=Same Instrument, 1+=Use that instrument index
   pakettiRotateSampleBufferCoarse=1000,
   pakettiRotateSampleBufferFine=10,
   pakettiBlendValue = 40,

@@ -8244,6 +8244,115 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Sample FX)",invoke=function() samplefx_interpolation() end}
 renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Sample FX)",invoke=function(message) if message:is_trigger() then samplefx_interpolation() end  end}
 
+-- Effect column interpolation (track effect columns, not sample effect columns)
+function effect_column_interpolation()
+  local song = renoise.song()
+  local changes_made = false
+
+  local selection = song.selection_in_pattern
+  if not selection then
+    renoise.app():show_error("No selection in pattern!")
+    return
+  end
+
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  if start_line == end_line then
+    renoise.app():show_error("The selection must span at least two lines.")
+    return
+  end
+
+  local pattern_index = song.selected_pattern_index
+  local pattern = song:pattern(pattern_index)
+
+  for track_index = selection.start_track, selection.end_track do
+    local track = pattern:track(track_index)
+    local visible_fx = song:track(track_index).visible_effect_columns
+
+    for fx_col = 1, visible_fx do
+      local start_col = track:line(start_line):effect_column(fx_col)
+      local end_col = track:line(end_line):effect_column(fx_col)
+
+      if not start_col.is_empty and not end_col.is_empty then
+        local start_num = start_col.number_value
+        local end_num = end_col.number_value
+        local start_amt = start_col.amount_value
+        local end_amt = end_col.amount_value
+
+        -- Only interpolate amount if effect numbers match
+        if start_num == end_num and start_num ~= 0 then
+          local amt_diff = end_amt - start_amt
+          if amt_diff ~= 0 then
+            changes_made = true
+            local steps = end_line - start_line
+            local step_size = amt_diff / steps
+
+            for i = 1, steps - 1 do
+              local line_index = start_line + i
+              local col = track:line(line_index):effect_column(fx_col)
+              local interpolated_amt = math.floor(start_amt + (i * step_size))
+              interpolated_amt = math.max(0, math.min(0xFF, interpolated_amt))
+              col.number_value = start_num
+              col.amount_value = interpolated_amt
+            end
+          end
+        end
+      end
+    end
+  end
+
+  if not changes_made then
+    renoise.app():show_status("No effect column values to interpolate in the selection.")
+  else
+    renoise.app():show_status("Effect column values interpolated successfully!")
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Effect Column)",invoke=function() effect_column_interpolation() end}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Effect Column)",invoke=function(message) if message:is_trigger() then effect_column_interpolation() end end}
+
+-- Unified interpolation: auto-detect subcolumn and call appropriate function
+-- Sub column types: 1=Note, 2=Instrument, 3=Volume, 4=Panning, 5=Delay,
+-- 6=Sample Effect Number, 7=Sample Effect Amount, 8=Effect Number, 9=Effect Amount
+function interpolate_current_subcolumn()
+  local song = renoise.song()
+  local sub_col = song.selected_sub_column_type
+
+  if sub_col == 3 then
+    -- Volume
+    if not song:track(song.selected_track_index).volume_column_visible then
+      song:track(song.selected_track_index).volume_column_visible = true
+    end
+    volume_interpolation()
+  elseif sub_col == 4 then
+    -- Panning
+    if not song:track(song.selected_track_index).panning_column_visible then
+      song:track(song.selected_track_index).panning_column_visible = true
+    end
+    panning_interpolation()
+  elseif sub_col == 5 then
+    -- Delay
+    if not song:track(song.selected_track_index).delay_column_visible then
+      song:track(song.selected_track_index).delay_column_visible = true
+    end
+    delay_interpolation()
+  elseif sub_col == 6 or sub_col == 7 then
+    -- Sample Effect Number or Amount
+    if not song:track(song.selected_track_index).sample_effects_column_visible then
+      song:track(song.selected_track_index).sample_effects_column_visible = true
+    end
+    samplefx_interpolation()
+  elseif sub_col == 8 or sub_col == 9 then
+    -- Effect Number or Amount
+    effect_column_interpolation()
+  else
+    renoise.app():show_status("Interpolation: Move cursor to Volume, Panning, Delay, Sample FX, or Effect column.")
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Current Subcolumn Values",invoke=function() interpolate_current_subcolumn() end}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Current Subcolumn Values",invoke=function(message) if message:is_trigger() then interpolate_current_subcolumn() end end}
+
 -- Show the GUI dialog
 function pakettiVolDelayPanSliderDialog()
   if dialog and dialog.visible then

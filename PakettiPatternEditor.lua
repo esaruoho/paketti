@@ -679,7 +679,304 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Right
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Right Before",invoke=function() CleverNoteOff("RightBefore") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Half Before",invoke=function() CleverNoteOff("HalfBefore") end}
 
+-- Wipe all existing Note Offs in the track, then replace with Clever Note Offs
+function CleverNoteOffWipeAndReplace(mode)
+  local s = renoise.song()
+  local pattern = s:pattern(s.selected_pattern_index)
+  local track = pattern:track(s.selected_track_index)
+  local note_columns = s:track(s.selected_track_index).visible_note_columns
 
+  s:describe_undo("Clever Note Off Wipe & Replace (" .. mode .. ")")
+
+  -- First pass: wipe all existing Note Offs
+  for line_index = 1, pattern.number_of_lines do
+    for col = 1, note_columns do
+      local note = track:line(line_index):note_column(col)
+      if note.note_value == 120 then -- 120 = OFF
+        note:clear()
+      end
+    end
+  end
+
+  -- Second pass: apply Clever Note Off
+  CleverNoteOff(mode)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Wipe & Replace (Right After)",invoke=function() CleverNoteOffWipeAndReplace("RightAfter") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Wipe & Replace (Right Before)",invoke=function() CleverNoteOffWipeAndReplace("RightBefore") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Wipe & Replace (Half Before)",invoke=function() CleverNoteOffWipeAndReplace("HalfBefore") end}
+
+-- Adjust delay value on Note Offs only (+/- amount)
+function CleverNoteOffAdjustDelay(amount)
+  local s = renoise.song()
+  local pattern = s:pattern(s.selected_pattern_index)
+  local track = pattern:track(s.selected_track_index)
+  local note_columns = s:track(s.selected_track_index).visible_note_columns
+
+  s:describe_undo("Clever Note Off Adjust Delay (" .. (amount > 0 and "+" or "") .. amount .. ")")
+
+  -- Make delay column visible if not already
+  if not s:track(s.selected_track_index).delay_column_visible then
+    s:track(s.selected_track_index).delay_column_visible = true
+  end
+
+  local adjusted_count = 0
+  for line_index = 1, pattern.number_of_lines do
+    for col = 1, note_columns do
+      local note = track:line(line_index):note_column(col)
+      if note.note_value == 120 then -- OFF
+        local new_delay = note.delay_value + amount
+        new_delay = math.max(0, math.min(0xFF, new_delay))
+        note.delay_value = new_delay
+        adjusted_count = adjusted_count + 1
+      end
+    end
+  end
+
+  renoise.app():show_status("Adjusted delay on " .. adjusted_count .. " Note Offs by " .. (amount > 0 and "+" or "") .. amount)
+end
+
+-- Reset delay of all Note Offs to 0
+function CleverNoteOffResetDelay()
+  local s = renoise.song()
+  local pattern = s:pattern(s.selected_pattern_index)
+  local track = pattern:track(s.selected_track_index)
+  local note_columns = s:track(s.selected_track_index).visible_note_columns
+
+  s:describe_undo("Clever Note Off Reset Delay")
+
+  local reset_count = 0
+  for line_index = 1, pattern.number_of_lines do
+    for col = 1, note_columns do
+      local note = track:line(line_index):note_column(col)
+      if note.note_value == 120 then -- OFF
+        note.delay_value = 0
+        reset_count = reset_count + 1
+      end
+    end
+  end
+
+  renoise.app():show_status("Reset delay on " .. reset_count .. " Note Offs")
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Delay +1",invoke=function() CleverNoteOffAdjustDelay(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Delay -1",invoke=function() CleverNoteOffAdjustDelay(-1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Delay +10",invoke=function() CleverNoteOffAdjustDelay(10) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Delay -10",invoke=function() CleverNoteOffAdjustDelay(-10) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Reset Delay",invoke=function() CleverNoteOffResetDelay() end}
+renoise.tool():add_midi_mapping{name="Paketti:Clever Note Off Delay +1",invoke=function(message) if message:is_trigger() then CleverNoteOffAdjustDelay(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clever Note Off Delay -1",invoke=function(message) if message:is_trigger() then CleverNoteOffAdjustDelay(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clever Note Off Delay +10",invoke=function(message) if message:is_trigger() then CleverNoteOffAdjustDelay(10) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clever Note Off Delay -10",invoke=function(message) if message:is_trigger() then CleverNoteOffAdjustDelay(-10) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clever Note Off Reset Delay",invoke=function(message) if message:is_trigger() then CleverNoteOffResetDelay() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clever Note Off Wipe & Replace (Right After)",invoke=function(message) if message:is_trigger() then CleverNoteOffWipeAndReplace("RightAfter") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clever Note Off Wipe & Replace (Right Before)",invoke=function(message) if message:is_trigger() then CleverNoteOffWipeAndReplace("RightBefore") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clever Note Off Wipe & Replace (Half Before)",invoke=function(message) if message:is_trigger() then CleverNoteOffWipeAndReplace("HalfBefore") end end}
+
+-- Fill effect column between notes: copies the effect command from each note's row
+-- down through all empty effect column rows until the next note
+function PakettiFillEffectColumnBetweenNotes()
+  local s = renoise.song()
+  local pattern = s:pattern(s.selected_pattern_index)
+  local track_index = s.selected_track_index
+  local track = pattern:track(track_index)
+  local note_columns = s:track(track_index).visible_note_columns
+  local effect_columns = s:track(track_index).visible_effect_columns
+
+  if effect_columns == 0 then
+    renoise.app():show_status("No visible effect columns to fill.")
+    return
+  end
+
+  s:describe_undo("Fill Effect Column Between Notes")
+
+  -- For each note column, find note positions and fill effect columns between them
+  for col = 1, note_columns do
+    -- Collect positions of lines that have notes (not OFF, not empty)
+    local note_positions = {}
+    for line_index = 1, pattern.number_of_lines do
+      local note = track:line(line_index):note_column(col)
+      if note.note_value < 120 and note.note_value ~= 121 then
+        table.insert(note_positions, line_index)
+      end
+    end
+
+    -- For each note, fill effect columns down until the next note
+    for i = 1, #note_positions do
+      local current_line = note_positions[i]
+      local next_line = note_positions[i + 1] or (pattern.number_of_lines + 1)
+
+      -- Get the effect values from the note's row
+      for fx_col = 1, effect_columns do
+        local source_fx = track:line(current_line):effect_column(fx_col)
+        if not source_fx.is_empty then
+          local fx_num = source_fx.number_value
+          local fx_amt = source_fx.amount_value
+
+          -- Fill downward from the line after the note until the line before the next note
+          for fill_line = current_line + 1, next_line - 1 do
+            if fill_line <= pattern.number_of_lines then
+              local target_fx = track:line(fill_line):effect_column(fx_col)
+              if target_fx.is_empty then
+                target_fx.number_value = fx_num
+                target_fx.amount_value = fx_amt
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  renoise.app():show_status("Effect columns filled between notes.")
+end
+
+-- Fill sample effects column between notes (in note columns)
+function PakettiFillSampleEffectsBetweenNotes()
+  local s = renoise.song()
+  local pattern = s:pattern(s.selected_pattern_index)
+  local track_index = s.selected_track_index
+  local track = pattern:track(track_index)
+  local note_columns = s:track(track_index).visible_note_columns
+
+  if not s:track(track_index).sample_effects_column_visible then
+    renoise.app():show_status("Sample effects column is not visible.")
+    return
+  end
+
+  s:describe_undo("Fill Sample Effects Between Notes")
+
+  for col = 1, note_columns do
+    local note_positions = {}
+    for line_index = 1, pattern.number_of_lines do
+      local note = track:line(line_index):note_column(col)
+      if note.note_value < 120 and note.note_value ~= 121 then
+        table.insert(note_positions, line_index)
+      end
+    end
+
+    for i = 1, #note_positions do
+      local current_line = note_positions[i]
+      local next_line = note_positions[i + 1] or (pattern.number_of_lines + 1)
+
+      local source_note = track:line(current_line):note_column(col)
+      if source_note.effect_number_value ~= 0 then
+        local fx_num = source_note.effect_number_value
+        local fx_amt = source_note.effect_amount_value
+
+        for fill_line = current_line + 1, next_line - 1 do
+          if fill_line <= pattern.number_of_lines then
+            local target_note = track:line(fill_line):note_column(col)
+            if target_note.effect_number_string == ".." then
+              target_note.effect_number_value = fx_num
+              target_note.effect_amount_value = fx_amt
+            end
+          end
+        end
+      end
+    end
+  end
+
+  renoise.app():show_status("Sample effects filled between notes.")
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column Between Notes",invoke=function() PakettiFillEffectColumnBetweenNotes() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Sample Effects Between Notes",invoke=function() PakettiFillSampleEffectsBetweenNotes() end}
+renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column Between Notes",invoke=function(message) if message:is_trigger() then PakettiFillEffectColumnBetweenNotes() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Fill Sample Effects Between Notes",invoke=function(message) if message:is_trigger() then PakettiFillSampleEffectsBetweenNotes() end end}
+
+-- Play Next Note Line: scan forward from cursor, find next line with a note, jump and play
+function PakettiPlayNextNoteLine()
+  local s = renoise.song()
+  local pattern = s.selected_pattern
+  local track_index = s.selected_track_index
+  local pattern_track = pattern:track(track_index)
+  local note_columns = s:track(track_index).visible_note_columns
+  local current_line = s.selected_line_index
+  local total_lines = pattern.number_of_lines
+
+  -- Scan forward from current position
+  for line_index = current_line + 1, total_lines do
+    for col = 1, note_columns do
+      local note = pattern_track:line(line_index):note_column(col)
+      if note.note_value < 120 and note.note_value ~= 121 then
+        -- Found a note, jump to it
+        s.selected_line_index = line_index
+        -- Trigger playback of this line
+        if renoise.API_VERSION >= 6.2 then
+          s:trigger_pattern_line(line_index)
+        end
+        renoise.app():show_status("Playing line " .. line_index)
+        return
+      end
+    end
+  end
+
+  -- Wrap around: search from line 1 to current_line
+  for line_index = 1, current_line do
+    for col = 1, note_columns do
+      local note = pattern_track:line(line_index):note_column(col)
+      if note.note_value < 120 and note.note_value ~= 121 then
+        s.selected_line_index = line_index
+        if renoise.API_VERSION >= 6.2 then
+          s:trigger_pattern_line(line_index)
+        end
+        renoise.app():show_status("Playing line " .. line_index .. " (wrapped)")
+        return
+      end
+    end
+  end
+
+  renoise.app():show_status("No notes found in this track.")
+end
+
+-- Play Previous Note Line: scan backward from cursor
+function PakettiPlayPreviousNoteLine()
+  local s = renoise.song()
+  local pattern = s.selected_pattern
+  local track_index = s.selected_track_index
+  local pattern_track = pattern:track(track_index)
+  local note_columns = s:track(track_index).visible_note_columns
+  local current_line = s.selected_line_index
+  local total_lines = pattern.number_of_lines
+
+  -- Scan backward from current position
+  for line_index = current_line - 1, 1, -1 do
+    for col = 1, note_columns do
+      local note = pattern_track:line(line_index):note_column(col)
+      if note.note_value < 120 and note.note_value ~= 121 then
+        s.selected_line_index = line_index
+        if renoise.API_VERSION >= 6.2 then
+          s:trigger_pattern_line(line_index)
+        end
+        renoise.app():show_status("Playing line " .. line_index)
+        return
+      end
+    end
+  end
+
+  -- Wrap around: search from end to current_line
+  for line_index = total_lines, current_line, -1 do
+    for col = 1, note_columns do
+      local note = pattern_track:line(line_index):note_column(col)
+      if note.note_value < 120 and note.note_value ~= 121 then
+        s.selected_line_index = line_index
+        if renoise.API_VERSION >= 6.2 then
+          s:trigger_pattern_line(line_index)
+        end
+        renoise.app():show_status("Playing line " .. line_index .. " (wrapped)")
+        return
+      end
+    end
+  end
+
+  renoise.app():show_status("No notes found in this track.")
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Play Next Note Line",invoke=function() PakettiPlayNextNoteLine() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Play Previous Note Line",invoke=function() PakettiPlayPreviousNoteLine() end}
+renoise.tool():add_midi_mapping{name="Paketti:Play Next Note Line",invoke=function(message) if message:is_trigger() then PakettiPlayNextNoteLine() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Play Previous Note Line",invoke=function(message) if message:is_trigger() then PakettiPlayPreviousNoteLine() end end}
 
 
 
