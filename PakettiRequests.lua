@@ -2450,6 +2450,169 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Buffer Selectio
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Buffer Selection Double",invoke=double_selection_range}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Selection Halve",invoke=halve_selection_range}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Selection Double",invoke=double_selection_range}
+
+---------------------------------------------------------------------------
+-- Shift Selection Left/Right
+-- Moves the selection range left or right by the selection's own length.
+-- Walk through the sample in equal-sized chunks.
+---------------------------------------------------------------------------
+function shift_selection_left()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  if not sample then renoise.app():show_status("No sample selected") return end
+  local buf = sample.sample_buffer
+  if not buf or not buf.has_sample_data then renoise.app():show_status("No sample data") return end
+
+  local sel = buf.selection_range
+  if not sel or #sel ~= 2 or sel[1] == sel[2] then
+    renoise.app():show_status("No selection") return
+  end
+
+  local length = sel[2] - sel[1]
+  local new_start = sel[1] - length
+  local new_end = sel[2] - length
+
+  if new_start < 1 then
+    new_start = 1
+    new_end = 1 + length
+  end
+
+  buf.selection_range = {new_start, new_end}
+  renoise.app():show_status("Selection shifted left: " .. new_start .. "-" .. new_end)
+end
+
+function shift_selection_right()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  if not sample then renoise.app():show_status("No sample selected") return end
+  local buf = sample.sample_buffer
+  if not buf or not buf.has_sample_data then renoise.app():show_status("No sample data") return end
+
+  local sel = buf.selection_range
+  if not sel or #sel ~= 2 or sel[1] == sel[2] then
+    renoise.app():show_status("No selection") return
+  end
+
+  local length = sel[2] - sel[1]
+  local total = buf.number_of_frames
+  local new_start = sel[1] + length
+  local new_end = sel[2] + length
+
+  if new_end > total then
+    new_end = total
+    new_start = total - length
+    if new_start < 1 then new_start = 1 end
+  end
+
+  buf.selection_range = {new_start, new_end}
+  renoise.app():show_status("Selection shifted right: " .. new_start .. "-" .. new_end)
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Buffer Selection Shift Left",invoke=shift_selection_left}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Buffer Selection Shift Right",invoke=shift_selection_right}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Selection Shift Left",invoke=function(message) if message:is_trigger() then shift_selection_left() end end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Selection Shift Right",invoke=function(message) if message:is_trigger() then shift_selection_right() end end}
+
+---------------------------------------------------------------------------
+-- Rotate Audio
+-- Rotates audio data within the selection: moves the second half to the
+-- front and the first half to the back. Like a circular shift.
+---------------------------------------------------------------------------
+function rotate_audio_in_selection()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  if not sample then renoise.app():show_status("No sample selected") return end
+  local buf = sample.sample_buffer
+  if not buf or not buf.has_sample_data then renoise.app():show_status("No sample data") return end
+
+  local sel = buf.selection_range
+  if not sel or #sel ~= 2 or sel[1] >= sel[2] then
+    renoise.app():show_status("No valid selection to rotate") return
+  end
+
+  local sel_start = sel[1]
+  local sel_end = sel[2]
+  local sel_length = sel_end - sel_start
+  local midpoint = math.floor(sel_length / 2)
+  local channels = buf.number_of_channels
+
+  -- Read all sample data in the selection
+  local data = {}
+  for ch = 1, channels do
+    data[ch] = {}
+    for f = 0, sel_length - 1 do
+      data[ch][f] = buf:sample_data(ch, sel_start + f)
+    end
+  end
+
+  -- Write rotated: second half first, then first half
+  buf:prepare_sample_data_changes()
+  for ch = 1, channels do
+    for f = 0, sel_length - 1 do
+      local src_idx = (f + midpoint) % sel_length
+      buf:set_sample_data(ch, sel_start + f, data[ch][src_idx])
+    end
+  end
+  buf:finalize_sample_data_changes()
+
+  renoise.app():show_status("Audio rotated in selection (" .. sel_start .. "-" .. sel_end .. ")")
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Audio in Selection",invoke=rotate_audio_in_selection}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Rotate Audio in Selection",invoke=function(message) if message:is_trigger() then rotate_audio_in_selection() end end}
+
+---------------------------------------------------------------------------
+-- Select Musical Lengths (1 bar, 2 bars, 4 bars)
+-- Calculates frames-per-bar from BPM and sample rate, then sets selection
+-- from the current selection start (or from frame 1) to N bars.
+---------------------------------------------------------------------------
+local function select_bars(num_bars)
+  local song = renoise.song()
+  local sample = song.selected_sample
+  if not sample then renoise.app():show_status("No sample selected") return end
+  local buf = sample.sample_buffer
+  if not buf or not buf.has_sample_data then renoise.app():show_status("No sample data") return end
+
+  local bpm = song.transport.bpm
+  local sample_rate = buf.sample_rate
+  local total = buf.number_of_frames
+
+  -- Frames per beat = sample_rate * 60 / bpm
+  -- Frames per bar = frames_per_beat * 4 (assuming 4/4 time)
+  local frames_per_beat = math.floor(sample_rate * 60 / bpm)
+  local frames_per_bar = frames_per_beat * 4
+  local target_frames = frames_per_bar * num_bars
+
+  -- Start from current selection start, or from 1
+  local sel = buf.selection_range
+  local start_pos = 1
+  if sel and #sel == 2 and sel[1] > 0 then
+    start_pos = sel[1]
+  end
+
+  local end_pos = start_pos + target_frames
+  if end_pos > total then
+    end_pos = total
+  end
+
+  buf.selection_range = {start_pos, end_pos}
+  renoise.app():show_status("Selected " .. num_bars .. " bar(s): " .. start_pos .. "-" .. end_pos .. " (" .. target_frames .. " frames at " .. bpm .. " BPM)")
+end
+
+function select_1_bar() select_bars(1) end
+function select_2_bars() select_bars(2) end
+function select_4_bars() select_bars(4) end
+function select_8_bars() select_bars(8) end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select 1 Bar",invoke=select_1_bar}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select 2 Bars",invoke=select_2_bars}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select 4 Bars",invoke=select_4_bars}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select 8 Bars",invoke=select_8_bars}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Select 1 Bar",invoke=function(message) if message:is_trigger() then select_1_bar() end end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Select 2 Bars",invoke=function(message) if message:is_trigger() then select_2_bars() end end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Select 4 Bars",invoke=function(message) if message:is_trigger() then select_4_bars() end end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Select 8 Bars",invoke=function(message) if message:is_trigger() then select_8_bars() end end}
+
 -----------
 -- Function to adjust the delay, panning, or volume column within the selected area in the pattern editor
 function adjust_column(column_type, adjustment)
