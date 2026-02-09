@@ -1508,125 +1508,509 @@ renoise.tool():add_keybinding{name="Global:Paketti:Contract Section Loop (Remove
 renoise.tool():add_midi_mapping{name="Paketti:Contract Section Loop (Remove Last Section)", invoke=function(message) if message:is_trigger() then contractSectionLoopFromEnd() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Contract Section Loop (Remove First Section)", invoke=function(message) if message:is_trigger() then contractSectionLoopFromStart() end end}
 
--- Function to expand the sequence selection step-by-step
-function tknaSequenceSelectionPlusOne()
-  local song=renoise.song()
+---------------------------------------------------------------------------
+-- Shared helper for checking valid selection/loop ranges
+---------------------------------------------------------------------------
+local function _is_valid_selection(sel)
+  return sel and #sel == 2 and sel[1] > 0 and sel[2] > 0
+end
+
+---------------------------------------------------------------------------
+-- Section Sequence Selection (Next/Previous) (#578)
+-- Direction-aware section-level selection. Each Next/Previous adds/removes
+-- an entire section to/from the sequencer selection range.
+-- Cursor moves to the start of newly added or remaining boundary.
+---------------------------------------------------------------------------
+local _section_sel_anchor_section = nil -- section index where we started
+local _section_sel_after_clear = false
+
+local function _get_all_sections()
+  local song = renoise.song()
   local sequencer = song.sequencer
-  local current_sequence_index = song.selected_sequence_index
-  local selection_range = sequencer.selection_range
-  local total_sequences = #sequencer.pattern_sequence
-
-  -- If no selection range exists or if it is {0, 0}, select the current sequence
-  if not selection_range or #selection_range ~= 2 or 
-      (selection_range[1] == 0 and selection_range[2] == 0) then
-    sequencer.selection_range = {current_sequence_index, current_sequence_index}
-  else
-    local start_index = selection_range[1]
-    local end_index = selection_range[2]
-
-    -- If the end index is less than the total number of sequences
-    if end_index < total_sequences then
-      -- Extend the selection range by including the next sequence
-      sequencer.selection_range = {start_index, end_index + 1}
-    else
-      -- No more sequences to add to the selection
-      renoise.app():show_status("No more sequences left to add to the selection.")
+  local total = #sequencer.pattern_sequence
+  local sections = {}
+  for i = 1, total do
+    if sequencer:sequence_is_start_of_section(i) then
+      table.insert(sections, i)
     end
+  end
+  return sections, total
+end
+
+local function _get_section_seq_range(sections, section_idx, total_sequences)
+  local section_start = sections[section_idx]
+  local section_end = (section_idx < #sections) and (sections[section_idx + 1] - 1) or total_sequences
+  return section_start, section_end
+end
+
+local function _find_section_for_seq(sections, seq_idx)
+  for i = #sections, 1, -1 do
+    if seq_idx >= sections[i] then
+      return i
+    end
+  end
+  return 1
+end
+
+function tknaSectionSequenceSelectionNext()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local sel = sequencer.selection_range
+  local sections, total = _get_all_sections()
+
+  if #sections == 0 then
+    renoise.app():show_status("No sections defined")
+    return
+  end
+
+  if not _is_valid_selection(sel) then
+    -- No selection: select entire current section
+    local cur_sec = _find_section_for_seq(sections, song.selected_sequence_index)
+    local s, e = _get_section_seq_range(sections, cur_sec, total)
+    _section_sel_anchor_section = cur_sec
+    _section_sel_after_clear = false
+    sequencer.selection_range = {s, e}
+    renoise.app():show_status("Section Selection: section " .. cur_sec .. " (seq " .. s .. "-" .. e .. ")")
+    return
+  end
+
+  if _section_sel_anchor_section == nil then
+    local cur_sec = _find_section_for_seq(sections, song.selected_sequence_index)
+    local s, e = _get_section_seq_range(sections, cur_sec, total)
+    _section_sel_anchor_section = cur_sec
+    _section_sel_after_clear = false
+    sequencer.selection_range = {s, e}
+    renoise.app():show_status("Section Selection: section " .. cur_sec .. " (seq " .. s .. "-" .. e .. ")")
+    return
+  end
+
+  _section_sel_after_clear = false
+
+  local sel_start_sec = _find_section_for_seq(sections, sel[1])
+  local sel_end_sec = _find_section_for_seq(sections, sel[2])
+  local anchor_s, anchor_e = _get_section_seq_range(sections, _section_sel_anchor_section, total)
+
+  if sel[1] == anchor_s then
+    -- Expanded forward from anchor section: expand to next section
+    local next_sec = sel_end_sec + 1
+    if next_sec <= #sections then
+      local _, new_end = _get_section_seq_range(sections, next_sec, total)
+      sequencer.selection_range = {sel[1], new_end}
+      song.selected_sequence_index = sections[next_sec]
+      renoise.app():show_status("Section Selection: sections " .. _section_sel_anchor_section .. "-" .. next_sec .. " (seq " .. sel[1] .. "-" .. new_end .. ")")
+    else
+      renoise.app():show_status("At last section, cannot expand further.")
+    end
+  elseif sel[2] == anchor_e then
+    -- Expanded backward from anchor section: contract from start
+    if sel_start_sec < _section_sel_anchor_section then
+      local new_start_sec = sel_start_sec + 1
+      local new_start, _ = _get_section_seq_range(sections, new_start_sec, total)
+      sequencer.selection_range = {new_start, sel[2]}
+      song.selected_sequence_index = new_start
+      renoise.app():show_status("Section Selection: sections " .. new_start_sec .. "-" .. _section_sel_anchor_section .. " (seq " .. new_start .. "-" .. sel[2] .. ")")
+    end
+  else
+    -- Doesn't match: reset
+    local cur_sec = _find_section_for_seq(sections, song.selected_sequence_index)
+    local s, e = _get_section_seq_range(sections, cur_sec, total)
+    _section_sel_anchor_section = cur_sec
+    sequencer.selection_range = {s, e}
+    renoise.app():show_status("Section Selection: section " .. cur_sec .. " (seq " .. s .. "-" .. e .. ")")
   end
 end
 
--- Function to reduce the sequence selection step-by-step
-function tknaSequenceSelectionMinusOne()
-  local song=renoise.song()
+function tknaSectionSequenceSelectionPrevious()
+  local song = renoise.song()
   local sequencer = song.sequencer
-  local current_sequence_index = song.selected_sequence_index
-  local selection_range = sequencer.selection_range
+  local sel = sequencer.selection_range
+  local sections, total = _get_all_sections()
 
-  -- If no selection range exists or if it is {0, 0}, select the current sequence
-  if not selection_range or #selection_range ~= 2 or 
-      (selection_range[1] == 0 and selection_range[2] == 0) then
-    sequencer.selection_range = {current_sequence_index, current_sequence_index}
-  else
-    local start_index = selection_range[1]
-    local end_index = selection_range[2]
+  if #sections == 0 then
+    renoise.app():show_status("No sections defined")
+    return
+  end
 
-    -- If the start index is greater than 1
-    if start_index > 1 then
-      -- Reduce the selection range by excluding the first sequence
-      sequencer.selection_range = {start_index - 1, end_index}
-    else
-      -- No more sequences to remove from the selection
-      renoise.app():show_status("No more sequences left to add to the selection.")
+  if not _is_valid_selection(sel) then
+    if _section_sel_after_clear and _section_sel_anchor_section then
+      -- After clearing: re-select anchor section
+      local s, e = _get_section_seq_range(sections, _section_sel_anchor_section, total)
+      sequencer.selection_range = {s, e}
+      renoise.app():show_status("Section Selection: section " .. _section_sel_anchor_section .. " (seq " .. s .. "-" .. e .. ")")
+      return
     end
+    -- No selection: select current section
+    local cur_sec = _find_section_for_seq(sections, song.selected_sequence_index)
+    local s, e = _get_section_seq_range(sections, cur_sec, total)
+    _section_sel_anchor_section = cur_sec
+    _section_sel_after_clear = false
+    sequencer.selection_range = {s, e}
+    renoise.app():show_status("Section Selection: section " .. cur_sec .. " (seq " .. s .. "-" .. e .. ")")
+    return
+  end
+
+  if _section_sel_anchor_section == nil then
+    local cur_sec = _find_section_for_seq(sections, song.selected_sequence_index)
+    local s, e = _get_section_seq_range(sections, cur_sec, total)
+    _section_sel_anchor_section = cur_sec
+    _section_sel_after_clear = false
+    sequencer.selection_range = {s, e}
+    renoise.app():show_status("Section Selection: section " .. cur_sec .. " (seq " .. s .. "-" .. e .. ")")
+    return
+  end
+
+  local sel_start_sec = _find_section_for_seq(sections, sel[1])
+  local sel_end_sec = _find_section_for_seq(sections, sel[2])
+  local anchor_s, anchor_e = _get_section_seq_range(sections, _section_sel_anchor_section, total)
+
+  -- Check if single section
+  if sel_start_sec == sel_end_sec then
+    if _section_sel_after_clear then
+      -- After clear+re-select: expand backward
+      local prev_sec = _section_sel_anchor_section - 1
+      if prev_sec >= 1 then
+        local new_start, _ = _get_section_seq_range(sections, prev_sec, total)
+        sequencer.selection_range = {new_start, sel[2]}
+        song.selected_sequence_index = new_start
+        _section_sel_after_clear = false
+        -- Anchor moves to end section for backward tracking
+        _section_sel_anchor_section = sel_end_sec
+        renoise.app():show_status("Section Selection: sections " .. prev_sec .. "-" .. sel_end_sec .. " (seq " .. new_start .. "-" .. sel[2] .. ")")
+      else
+        renoise.app():show_status("At first section, cannot expand further.")
+      end
+    else
+      -- Single section: clear
+      sequencer.selection_range = {}
+      _section_sel_after_clear = true
+      renoise.app():show_status("Section Selection cleared")
+    end
+  elseif sel[1] == anchor_s then
+    -- Expanded forward from anchor section: contract by removing last section
+    local new_end_sec = sel_end_sec - 1
+    local _, new_end = _get_section_seq_range(sections, new_end_sec, total)
+    sequencer.selection_range = {sel[1], new_end}
+    song.selected_sequence_index = sel[1]
+    _section_sel_after_clear = false
+    renoise.app():show_status("Section Selection: sections " .. _section_sel_anchor_section .. "-" .. new_end_sec .. " (seq " .. sel[1] .. "-" .. new_end .. ")")
+  elseif sel[2] == anchor_e then
+    -- Expanded backward from anchor: expand start further
+    local prev_sec = sel_start_sec - 1
+    if prev_sec >= 1 then
+      local new_start, _ = _get_section_seq_range(sections, prev_sec, total)
+      sequencer.selection_range = {new_start, sel[2]}
+      song.selected_sequence_index = new_start
+      _section_sel_after_clear = false
+      renoise.app():show_status("Section Selection: sections " .. prev_sec .. "-" .. _section_sel_anchor_section .. " (seq " .. new_start .. "-" .. sel[2] .. ")")
+    else
+      renoise.app():show_status("At first section, cannot expand further.")
+    end
+  else
+    -- Doesn't match: reset to current section
+    local cur_sec = _find_section_for_seq(sections, song.selected_sequence_index)
+    local s, e = _get_section_seq_range(sections, cur_sec, total)
+    _section_sel_anchor_section = cur_sec
+    _section_sel_after_clear = false
+    sequencer.selection_range = {s, e}
+    renoise.app():show_status("Section Selection: section " .. cur_sec .. " (seq " .. s .. "-" .. e .. ")")
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Sequence Selection (Next)",invoke=tknaSequenceSelectionPlusOne}
-renoise.tool():add_keybinding{name="Global:Paketti:Sequence Selection (Previous)",invoke=tknaSequenceSelectionMinusOne}
+renoise.tool():add_keybinding{name="Global:Paketti:Section Sequence Selection (Next)", invoke=function() tknaSectionSequenceSelectionNext() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Section Sequence Selection (Previous)", invoke=function() tknaSectionSequenceSelectionPrevious() end}
+renoise.tool():add_midi_mapping{name="Paketti:Section Sequence Selection (Next)", invoke=function(message) if message:is_trigger() then tknaSectionSequenceSelectionNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Section Sequence Selection (Previous)", invoke=function(message) if message:is_trigger() then tknaSectionSequenceSelectionPrevious() end end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Sequence Selection (Next)",invoke=tknaSequenceSelectionPlusOne}
-renoise.tool():add_midi_mapping{name="Paketti:Sequence Selection (Previous)",invoke=tknaSequenceSelectionMinusOne}
+---------------------------------------------------------------------------
+-- Sequence Selection (Next/Previous) (#576)
+-- Direction-aware: Next expands forward, Previous contracts then expands backward.
+-- Cursor follows the expanding/contracting edge.
+-- State: anchor tracks starting position, after_clear enables backward expansion.
+---------------------------------------------------------------------------
+local _seq_sel_anchor = nil
+local _seq_sel_after_clear = false
 
--- Function to expand the loop selection to the next sequence
+function tknaSequenceSelectionNext()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local total = #sequencer.pattern_sequence
+  local sel = sequencer.selection_range
+
+  if not _is_valid_selection(sel) then
+    -- No selection: select current sequence, set anchor
+    _seq_sel_anchor = song.selected_sequence_index
+    _seq_sel_after_clear = false
+    sequencer.selection_range = {_seq_sel_anchor, _seq_sel_anchor}
+    renoise.app():show_status("Sequence Selection: " .. _seq_sel_anchor)
+    return
+  end
+
+  -- If no tracked anchor, set it to cursor and reset to cursor position
+  if _seq_sel_anchor == nil then
+    _seq_sel_anchor = song.selected_sequence_index
+    _seq_sel_after_clear = false
+    sequencer.selection_range = {_seq_sel_anchor, _seq_sel_anchor}
+    renoise.app():show_status("Sequence Selection: " .. _seq_sel_anchor)
+    return
+  end
+
+  _seq_sel_after_clear = false
+
+  if sel[1] == sel[2] then
+    -- Single position: expand forward
+    if sel[2] < total then
+      sequencer.selection_range = {sel[1], sel[2] + 1}
+      song.selected_sequence_index = sel[2] + 1
+      renoise.app():show_status("Sequence Selection: " .. sel[1] .. "-" .. (sel[2] + 1))
+    else
+      renoise.app():show_status("At end of song, cannot expand further.")
+    end
+  elseif sel[1] == _seq_sel_anchor then
+    -- Expanded forward from anchor: expand end further
+    if sel[2] < total then
+      sequencer.selection_range = {sel[1], sel[2] + 1}
+      song.selected_sequence_index = sel[2] + 1
+      renoise.app():show_status("Sequence Selection: " .. sel[1] .. "-" .. (sel[2] + 1))
+    else
+      renoise.app():show_status("At end of song, cannot expand further.")
+    end
+  elseif sel[2] == _seq_sel_anchor then
+    -- Expanded backward from anchor: contract from start
+    if sel[1] < sel[2] then
+      sequencer.selection_range = {sel[1] + 1, sel[2]}
+      song.selected_sequence_index = sel[1] + 1
+      renoise.app():show_status("Sequence Selection: " .. (sel[1] + 1) .. "-" .. sel[2])
+    end
+  else
+    -- Selection doesn't match tracked anchor: reset
+    _seq_sel_anchor = song.selected_sequence_index
+    sequencer.selection_range = {_seq_sel_anchor, _seq_sel_anchor}
+    renoise.app():show_status("Sequence Selection: " .. _seq_sel_anchor)
+  end
+end
+
+function tknaSequenceSelectionPrevious()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local total = #sequencer.pattern_sequence
+  local sel = sequencer.selection_range
+
+  if not _is_valid_selection(sel) then
+    if _seq_sel_after_clear and _seq_sel_anchor then
+      -- After clearing: re-select anchor position
+      sequencer.selection_range = {_seq_sel_anchor, _seq_sel_anchor}
+      renoise.app():show_status("Sequence Selection: " .. _seq_sel_anchor)
+      return
+    end
+    -- No selection, no special state: select current
+    _seq_sel_anchor = song.selected_sequence_index
+    _seq_sel_after_clear = false
+    sequencer.selection_range = {_seq_sel_anchor, _seq_sel_anchor}
+    renoise.app():show_status("Sequence Selection: " .. _seq_sel_anchor)
+    return
+  end
+
+  -- If no tracked anchor, set it to cursor and reset to cursor position
+  if _seq_sel_anchor == nil then
+    _seq_sel_anchor = song.selected_sequence_index
+    _seq_sel_after_clear = false
+    sequencer.selection_range = {_seq_sel_anchor, _seq_sel_anchor}
+    renoise.app():show_status("Sequence Selection: " .. _seq_sel_anchor)
+    return
+  end
+
+  if sel[1] == sel[2] then
+    -- Single position selected
+    if _seq_sel_after_clear then
+      -- After clear+re-select: expand backward
+      if sel[1] > 1 then
+        sequencer.selection_range = {sel[1] - 1, sel[2]}
+        song.selected_sequence_index = sel[1] - 1
+        _seq_sel_after_clear = false
+        -- Now anchor is at sel[2] (the end) for backward expansion
+        _seq_sel_anchor = sel[2]
+        renoise.app():show_status("Sequence Selection: " .. (sel[1] - 1) .. "-" .. sel[2])
+      else
+        renoise.app():show_status("At start of song, cannot expand further.")
+      end
+    else
+      -- Clear selection
+      sequencer.selection_range = {}
+      _seq_sel_after_clear = true
+      renoise.app():show_status("Sequence Selection cleared")
+    end
+  elseif sel[1] == _seq_sel_anchor then
+    -- Expanded forward from anchor: contract from end
+    sequencer.selection_range = {sel[1], sel[2] - 1}
+    song.selected_sequence_index = sel[2] - 1
+    _seq_sel_after_clear = false
+    renoise.app():show_status("Sequence Selection: " .. sel[1] .. "-" .. (sel[2] - 1))
+  elseif sel[2] == _seq_sel_anchor then
+    -- Expanded backward from anchor: expand start further
+    if sel[1] > 1 then
+      sequencer.selection_range = {sel[1] - 1, sel[2]}
+      song.selected_sequence_index = sel[1] - 1
+      _seq_sel_after_clear = false
+      renoise.app():show_status("Sequence Selection: " .. (sel[1] - 1) .. "-" .. sel[2])
+    else
+      renoise.app():show_status("At start of song, cannot expand further.")
+    end
+  else
+    -- Selection doesn't match tracked anchor: reset to cursor
+    _seq_sel_anchor = song.selected_sequence_index
+    sequencer.selection_range = {_seq_sel_anchor, _seq_sel_anchor}
+    _seq_sel_after_clear = false
+    renoise.app():show_status("Sequence Selection: " .. _seq_sel_anchor)
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Sequence Selection (Next)",invoke=tknaSequenceSelectionNext}
+renoise.tool():add_keybinding{name="Global:Paketti:Sequence Selection (Previous)",invoke=tknaSequenceSelectionPrevious}
+renoise.tool():add_midi_mapping{name="Paketti:Sequence Selection (Next)",invoke=function(message) if message:is_trigger() then tknaSequenceSelectionNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Sequence Selection (Previous)",invoke=function(message) if message:is_trigger() then tknaSequenceSelectionPrevious() end end}
+
+---------------------------------------------------------------------------
+-- Sequence Loop Selection (Next/Previous) (#575)
+-- Direction-aware: Next expands loop forward, Previous contracts then expands backward.
+-- Cursor follows the expanding/contracting edge.
+-- Same pattern as Sequence Selection but for loop_sequence_range.
+---------------------------------------------------------------------------
+local _seq_loop_anchor = nil
+local _seq_loop_after_clear = false
+
+local function _is_valid_loop(lr)
+  return lr and #lr == 2 and lr[1] > 0 and lr[2] > 0
+end
+
 function tknaSequenceLoopSelectionNext()
-  local song=renoise.song()
+  local song = renoise.song()
   local transport = song.transport
-  local sequencer = song.sequencer
-  local total_sequences = #sequencer.pattern_sequence
-  local loop_range = transport.loop_sequence_range
-  local current_sequence_index = song.selected_sequence_index
+  local total = #song.sequencer.pattern_sequence
+  local lr = transport.loop_sequence_range
 
-  -- If no loop range or an invalid loop range exists, select the current sequence
-  if not loop_range or #loop_range ~= 2 or (loop_range[1] == 0 and loop_range[2] == 0) then
-    transport.loop_sequence_range = {current_sequence_index, current_sequence_index}
-  else
-    local loop_start = loop_range[1]
-    local loop_end = loop_range[2]
+  if not _is_valid_loop(lr) then
+    _seq_loop_anchor = song.selected_sequence_index
+    _seq_loop_after_clear = false
+    transport.loop_sequence_range = {_seq_loop_anchor, _seq_loop_anchor}
+    renoise.app():show_status("Sequence Loop: " .. _seq_loop_anchor)
+    return
+  end
 
-    -- If the loop end is less than the total number of sequences
-    if loop_end < total_sequences then
-      -- Extend the loop range by including the next sequence
-      transport.loop_sequence_range = {loop_start, loop_end + 1}
+  if _seq_loop_anchor == nil then
+    _seq_loop_anchor = song.selected_sequence_index
+    _seq_loop_after_clear = false
+    transport.loop_sequence_range = {_seq_loop_anchor, _seq_loop_anchor}
+    renoise.app():show_status("Sequence Loop: " .. _seq_loop_anchor)
+    return
+  end
+
+  _seq_loop_after_clear = false
+
+  if lr[1] == lr[2] then
+    -- Single position: expand forward
+    if lr[2] < total then
+      transport.loop_sequence_range = {lr[1], lr[2] + 1}
+      song.selected_sequence_index = lr[2] + 1
+      renoise.app():show_status("Sequence Loop: " .. lr[1] .. "-" .. (lr[2] + 1))
     else
-      -- No more sequences to add to the loop
-      renoise.app():show_status("No more to add, at end of song")
+      renoise.app():show_status("At end of song, cannot expand further.")
     end
+  elseif lr[1] == _seq_loop_anchor then
+    -- Expanded forward: expand end further
+    if lr[2] < total then
+      transport.loop_sequence_range = {lr[1], lr[2] + 1}
+      song.selected_sequence_index = lr[2] + 1
+      renoise.app():show_status("Sequence Loop: " .. lr[1] .. "-" .. (lr[2] + 1))
+    else
+      renoise.app():show_status("At end of song, cannot expand further.")
+    end
+  elseif lr[2] == _seq_loop_anchor then
+    -- Expanded backward: contract from start
+    if lr[1] < lr[2] then
+      transport.loop_sequence_range = {lr[1] + 1, lr[2]}
+      song.selected_sequence_index = lr[1] + 1
+      renoise.app():show_status("Sequence Loop: " .. (lr[1] + 1) .. "-" .. lr[2])
+    end
+  else
+    _seq_loop_anchor = song.selected_sequence_index
+    transport.loop_sequence_range = {_seq_loop_anchor, _seq_loop_anchor}
+    renoise.app():show_status("Sequence Loop: " .. _seq_loop_anchor)
   end
 end
 
--- Function to expand the loop selection to the previous sequence
 function tknaSequenceLoopSelectionPrevious()
-  local song=renoise.song()
+  local song = renoise.song()
   local transport = song.transport
-  local sequencer = song.sequencer
-  local total_sequences = #sequencer.pattern_sequence
-  local loop_range = transport.loop_sequence_range
-  local current_sequence_index = song.selected_sequence_index
+  local total = #song.sequencer.pattern_sequence
+  local lr = transport.loop_sequence_range
 
-  -- If no loop range or an invalid loop range exists, select the current sequence
-  if not loop_range or #loop_range ~= 2 or (loop_range[1] == 0 and loop_range[2] == 0) then
-    transport.loop_sequence_range = {current_sequence_index, current_sequence_index}
-  else
-    local loop_start = loop_range[1]
-    local loop_end = loop_range[2]
-
-    -- If the loop start is greater than 1
-    if loop_start > 1 then
-      -- Extend the loop range by including the previous sequence
-      transport.loop_sequence_range = {loop_start - 1, loop_end}
-    else
-      -- No more sequences to add to the loop
-      renoise.app():show_status("No more to add, at beginning of song")
+  if not _is_valid_loop(lr) then
+    if _seq_loop_after_clear and _seq_loop_anchor then
+      transport.loop_sequence_range = {_seq_loop_anchor, _seq_loop_anchor}
+      renoise.app():show_status("Sequence Loop: " .. _seq_loop_anchor)
+      return
     end
+    _seq_loop_anchor = song.selected_sequence_index
+    _seq_loop_after_clear = false
+    transport.loop_sequence_range = {_seq_loop_anchor, _seq_loop_anchor}
+    renoise.app():show_status("Sequence Loop: " .. _seq_loop_anchor)
+    return
+  end
+
+  if _seq_loop_anchor == nil then
+    _seq_loop_anchor = song.selected_sequence_index
+    _seq_loop_after_clear = false
+    transport.loop_sequence_range = {_seq_loop_anchor, _seq_loop_anchor}
+    renoise.app():show_status("Sequence Loop: " .. _seq_loop_anchor)
+    return
+  end
+
+  if lr[1] == lr[2] then
+    if _seq_loop_after_clear then
+      -- After clear+re-select: expand backward
+      if lr[1] > 1 then
+        transport.loop_sequence_range = {lr[1] - 1, lr[2]}
+        song.selected_sequence_index = lr[1] - 1
+        _seq_loop_after_clear = false
+        _seq_loop_anchor = lr[2]
+        renoise.app():show_status("Sequence Loop: " .. (lr[1] - 1) .. "-" .. lr[2])
+      else
+        renoise.app():show_status("At start of song, cannot expand further.")
+      end
+    else
+      -- Clear loop
+      transport.loop_sequence_range = {}
+      _seq_loop_after_clear = true
+      renoise.app():show_status("Sequence Loop cleared")
+    end
+  elseif lr[1] == _seq_loop_anchor then
+    -- Expanded forward: contract from end
+    transport.loop_sequence_range = {lr[1], lr[2] - 1}
+    song.selected_sequence_index = lr[2] - 1
+    _seq_loop_after_clear = false
+    renoise.app():show_status("Sequence Loop: " .. lr[1] .. "-" .. (lr[2] - 1))
+  elseif lr[2] == _seq_loop_anchor then
+    -- Expanded backward: expand start further
+    if lr[1] > 1 then
+      transport.loop_sequence_range = {lr[1] - 1, lr[2]}
+      song.selected_sequence_index = lr[1] - 1
+      _seq_loop_after_clear = false
+      renoise.app():show_status("Sequence Loop: " .. (lr[1] - 1) .. "-" .. lr[2])
+    else
+      renoise.app():show_status("At start of song, cannot expand further.")
+    end
+  else
+    _seq_loop_anchor = song.selected_sequence_index
+    transport.loop_sequence_range = {_seq_loop_anchor, _seq_loop_anchor}
+    _seq_loop_after_clear = false
+    renoise.app():show_status("Sequence Loop: " .. _seq_loop_anchor)
   end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Sequence Loop Selection (Next)",invoke=tknaSequenceLoopSelectionNext}
 renoise.tool():add_keybinding{name="Global:Paketti:Sequence Loop Selection (Previous)",invoke=tknaSequenceLoopSelectionPrevious}
-
-
-renoise.tool():add_midi_mapping{name="Paketti:Sequence Loop Selection (Next)",invoke=tknaSequenceLoopSelectionNext}
-renoise.tool():add_midi_mapping{name="Paketti:Sequence Loop Selection (Previous)",invoke=tknaSequenceLoopSelectionPrevious}
+renoise.tool():add_midi_mapping{name="Paketti:Sequence Loop Selection (Next)",invoke=function(message) if message:is_trigger() then tknaSequenceLoopSelectionNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Sequence Loop Selection (Previous)",invoke=function(message) if message:is_trigger() then tknaSequenceLoopSelectionPrevious() end end}
 -- Function to add a loop to the current section content and schedule the section to play from the first sequence
 function tknaAddLoopAndScheduleSection()
   local song=renoise.song()
@@ -1835,6 +2219,35 @@ function tknaSelectAddScheduleLoopSection(number)
   end
 end
 
+-- Function to select, add ENTIRE section to schedule, and loop (#574)
+-- Unlike tknaSelectAddScheduleLoopSection which only schedules the first pattern,
+-- this schedules ALL sequences in the section for complete section playback.
+function tknaSelectAddEntireSectionScheduleLoopSection(number)
+  local song = renoise.song()
+  local transport = song.transport
+  local occurrences = findAllOccurrences(number)
+
+  if #occurrences > 0 then
+    local current_index = song.selected_sequence_index
+    local next_section_start = findNextOccurrence(occurrences, current_index)
+    local next_section_end = findSectionEnd(next_section_start)
+
+    -- Select and loop the section
+    song.selected_sequence_index = next_section_start
+    transport.loop_sequence_range = {next_section_start, next_section_end}
+
+    -- Schedule ALL sequences in the section (not just the first)
+    transport:set_scheduled_sequence(next_section_start)
+    for i = next_section_start + 1, next_section_end do
+      transport:add_scheduled_sequence(i)
+    end
+
+    renoise.app():show_status("Entire section '" .. string.format("%02d", number) .. "' added to schedule and looped (seq " .. next_section_start .. "-" .. next_section_end .. ").")
+  else
+    renoise.app():show_status("No section found starting with '" .. string.format("%02d", number) .. "'")
+  end
+end
+
 -- Create keybindings and MIDI mappings for Select, Trigger, Schedule, and Add to Schedule for Sections 00 to 64
 for i = 0, 64 do
   local section_id = string.format("%02d", i)
@@ -1845,9 +2258,12 @@ for i = 0, 64 do
   renoise.tool():add_midi_mapping{name="Paketti:Select&Schedule&Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectScheduleLoopSection(i) end end}
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
   renoise.tool():add_midi_mapping{name="Paketti:Select&Add to Schedule&Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectAddScheduleLoopSection(i) end end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Select, Add Entire Section to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddEntireSectionScheduleLoopSection(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select&Add Entire Section to Schedule&Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectAddEntireSectionScheduleLoopSection(i) end end}
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Trigger and Loop:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Schedule and Loop:Select, Schedule and Loop Section " .. section_id,invoke=function() tknaSelectScheduleLoopSection(i) end}
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add to Schedule and Loop:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
+  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add Entire Section to Schedule and Loop:Select, Add Entire Section to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddEntireSectionScheduleLoopSection(i) end}
 end
 -----
 -- Slice mode settings
