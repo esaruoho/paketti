@@ -10096,7 +10096,7 @@ function PakettiAdvanceCursorForward(steps)
   local wrapped = song.transport.wrapped_pattern_edit
 
   if new_line > pattern_lines then
-    if wrapped then
+    if not wrapped then
       -- Wrap around within the same pattern
       new_line = ((new_line - 1) % pattern_lines) + 1
       song.selected_line_index = new_line
@@ -10138,7 +10138,7 @@ function PakettiAdvanceCursorBackward(steps)
   local wrapped = song.transport.wrapped_pattern_edit
 
   if new_line < 1 then
-    if wrapped then
+    if not wrapped then
       -- Wrap around within the same pattern
       while new_line < 1 do
         new_line = new_line + pattern_lines
