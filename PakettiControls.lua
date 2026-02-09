@@ -394,6 +394,36 @@ function MetronomeOff()
 if renoise.song().transport.metronome_enabled then renoise.song().transport.metronome_enabled = false else renoise.song().transport.metronome_enabled=true end end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Metronome On/Off",invoke=function() MetronomeOff() end}
+
+---------
+-- Metronome Precount: Toggle / Enable / Disable (#900, #901)
+function PakettiToggleMetronomePrecount()
+  local t = renoise.song().transport
+  t.metronome_precount_enabled = not t.metronome_precount_enabled
+  if t.metronome_precount_enabled then
+    renoise.app():show_status("Metronome Precount: Enabled")
+  else
+    renoise.app():show_status("Metronome Precount: Disabled")
+  end
+end
+
+function PakettiEnableMetronomePrecount()
+  renoise.song().transport.metronome_precount_enabled = true
+  renoise.app():show_status("Metronome Precount: Enabled")
+end
+
+function PakettiDisableMetronomePrecount()
+  renoise.song().transport.metronome_precount_enabled = false
+  renoise.app():show_status("Metronome Precount: Disabled")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Metronome Precount", invoke=function() PakettiToggleMetronomePrecount() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Enable Metronome Precount", invoke=function() PakettiEnableMetronomePrecount() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Disable Metronome Precount", invoke=function() PakettiDisableMetronomePrecount() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Metronome Precount", invoke=function(message) if message:is_trigger() then PakettiToggleMetronomePrecount() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Enable Metronome Precount", invoke=function(message) if message:is_trigger() then PakettiEnableMetronomePrecount() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Disable Metronome Precount", invoke=function(message) if message:is_trigger() then PakettiDisableMetronomePrecount() end end}
 ---------
 renoise.tool():add_keybinding{name="Global:Paketti:Song Details (Filename, BPM, LPB)",invoke=function() 
 local filename = nil
@@ -669,6 +699,74 @@ renoise.tool():add_keybinding{name="Global:Paketti:Decrease EditStep by 8",invok
 for i=0,64 do
   renoise.tool():add_keybinding{name="Global:Paketti:Set EditStep to " .. formatDigits(2,i),
     invoke=function() PakettiSetEditStep(i) end}
+end
+
+---------------------------------------------------------------------------
+-- Linked EditStep & Quantization (#885)
+-- When linked, setting EditStep also sets Quantization to the same value.
+-- Quantization max is 32; for EditStep values 33-64, Quantization stays at 32.
+-- EditStep 0 disables quantization.
+---------------------------------------------------------------------------
+function PakettiSetEditStepAndQuantization(value)
+  local t = renoise.song().transport
+  t.edit_step = value
+  if value >= 1 and value <= 32 then
+    t.record_quantize_lines = value
+    t.record_quantize_enabled = true
+  elseif value > 32 then
+    t.record_quantize_lines = 32
+    t.record_quantize_enabled = true
+  else
+    t.record_quantize_enabled = false
+  end
+  local q_str = value >= 1 and tostring(math.min(value, 32)) or "Off"
+  renoise.app():show_status("EditStep: " .. value .. ", Quantize: " .. q_str)
+end
+
+function PakettiAdjustEditStepAndQuantization(delta)
+  local t = renoise.song().transport
+  local new_value = math.max(0, math.min(64, t.edit_step + delta))
+  PakettiSetEditStepAndQuantization(new_value)
+end
+
+function PakettiEditStepAndQuantizationPowerOfTwoAbove()
+  local current = renoise.song().transport.edit_step
+  local powers = {1, 2, 4, 8, 16, 32, 64}
+  for _, p in ipairs(powers) do
+    if p > current then
+      PakettiSetEditStepAndQuantization(p)
+      return
+    end
+  end
+  renoise.app():show_status("Already at maximum power of two (64)")
+end
+
+function PakettiEditStepAndQuantizationPowerOfTwoBelow()
+  local current = renoise.song().transport.edit_step
+  local powers = {64, 32, 16, 8, 4, 2, 1, 0}
+  for _, p in ipairs(powers) do
+    if p < current then
+      PakettiSetEditStepAndQuantization(p)
+      return
+    end
+  end
+  renoise.app():show_status("Already at minimum (0)")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Increase EditStep & Quantization by 1", invoke=function() PakettiAdjustEditStepAndQuantization(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Decrease EditStep & Quantization by 1", invoke=function() PakettiAdjustEditStepAndQuantization(-1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:EditStep & Quantization Power of Two Above", invoke=function() PakettiEditStepAndQuantizationPowerOfTwoAbove() end}
+renoise.tool():add_keybinding{name="Global:Paketti:EditStep & Quantization Power of Two Below", invoke=function() PakettiEditStepAndQuantizationPowerOfTwoBelow() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Increase EditStep & Quantization by 1", invoke=function(message) if message:is_trigger() then PakettiAdjustEditStepAndQuantization(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Decrease EditStep & Quantization by 1", invoke=function(message) if message:is_trigger() then PakettiAdjustEditStepAndQuantization(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:EditStep & Quantization Power of Two Above", invoke=function(message) if message:is_trigger() then PakettiEditStepAndQuantizationPowerOfTwoAbove() end end}
+renoise.tool():add_midi_mapping{name="Paketti:EditStep & Quantization Power of Two Below", invoke=function(message) if message:is_trigger() then PakettiEditStepAndQuantizationPowerOfTwoBelow() end end}
+
+for i = 0, 32 do
+  local step_label = formatDigits(2, i)
+  renoise.tool():add_keybinding{name="Global:Paketti:Set EditStep & Quantization to " .. step_label, invoke=function() PakettiSetEditStepAndQuantization(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Set EditStep & Quantization to " .. step_label, invoke=function(message) if message:is_trigger() then PakettiSetEditStepAndQuantization(i) end end}
 end
 
 ----

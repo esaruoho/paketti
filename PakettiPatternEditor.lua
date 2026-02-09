@@ -10240,6 +10240,77 @@ for i = 1, 32 do
 end
 
 ---------------------------------------------------------------------------
+-- Dynamic Quick Jumps: Fractions of Pattern (#680)
+-- Jump to 1/8, 2/8, 3/8 ... 8/8 of the current pattern length.
+-- Also provides configurable fraction counts (2, 4, 8, 16).
+---------------------------------------------------------------------------
+local paketti_previous_cursor_position = nil
+
+function PakettiSaveCursorPosition()
+  local song = renoise.song()
+  paketti_previous_cursor_position = {
+    sequence = song.selected_sequence_index,
+    line = song.selected_line_index
+  }
+end
+
+function PakettiJumpToPatternFraction(fraction, total_fractions)
+  local song = renoise.song()
+  PakettiSaveCursorPosition()
+  local pattern_lines = song.selected_pattern.number_of_lines
+  local target_line
+  if fraction >= total_fractions then
+    target_line = pattern_lines
+  else
+    target_line = math.floor((fraction - 1) * pattern_lines / total_fractions) + 1
+  end
+  target_line = math.max(1, math.min(target_line, pattern_lines))
+  song.selected_line_index = target_line
+  renoise.app():show_status("Jumped to fraction " .. fraction .. "/" .. total_fractions .. " (line " .. target_line .. "/" .. pattern_lines .. ")")
+end
+
+-- Generate keybindings for fractions: /2, /4, /8, /16
+for _, total in ipairs({2, 4, 8, 16}) do
+  for frac = 1, total do
+    local frac_label = string.format("%02d", frac)
+    local name_suffix = frac_label .. "/" .. string.format("%02d", total)
+    renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Jump to Pattern Fraction " .. name_suffix, invoke=function() PakettiJumpToPatternFraction(frac, total) end}
+    renoise.tool():add_midi_mapping{name="Paketti:Jump to Pattern Fraction " .. name_suffix, invoke=function(message) if message:is_trigger() then PakettiJumpToPatternFraction(frac, total) end end}
+  end
+end
+
+---------------------------------------------------------------------------
+-- Jump Back to Previous Position (#683)
+-- After jumping (fraction jumps or any navigation), jump back to where
+-- you were. Works as a toggle: jump back, then jump forward again.
+---------------------------------------------------------------------------
+function PakettiJumpToPreviousPosition()
+  if not paketti_previous_cursor_position then
+    renoise.app():show_status("No previous position stored")
+    return
+  end
+  local song = renoise.song()
+  local current = {
+    sequence = song.selected_sequence_index,
+    line = song.selected_line_index
+  }
+  -- Jump to previous
+  song.selected_sequence_index = paketti_previous_cursor_position.sequence
+  song.selected_line_index = paketti_previous_cursor_position.line
+  -- Store current as new previous (toggle behavior)
+  paketti_previous_cursor_position = current
+  renoise.app():show_status("Jumped back to sequence " .. song.selected_sequence_index .. ", line " .. song.selected_line_index)
+end
+
+-- Manual save position keybinding (for non-fraction jumps)
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Save Cursor Position", invoke=function() PakettiSaveCursorPosition() renoise.app():show_status("Cursor position saved") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Jump to Previous Position", invoke=function() PakettiJumpToPreviousPosition() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Jump to Previous Position", invoke=function() PakettiJumpToPreviousPosition() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Save Cursor Position", invoke=function(message) if message:is_trigger() then PakettiSaveCursorPosition() renoise.app():show_status("Cursor position saved") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Jump to Previous Position", invoke=function(message) if message:is_trigger() then PakettiJumpToPreviousPosition() end end}
+
+---------------------------------------------------------------------------
 -- Selection Follow Start - Dynamic selection from anchor to cursor
 ---------------------------------------------------------------------------
 -- When enabled, saves current cursor position as anchor and continuously

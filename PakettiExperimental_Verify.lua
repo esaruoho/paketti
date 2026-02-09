@@ -3089,6 +3089,91 @@ for i = 1, 16 do
   renoise.tool():add_midi_mapping{name="Paketti:Unmute Track " .. track_num_str, invoke=function(message) if message:is_trigger() then unmuteTrack(i) end end}
 end
 
+---------------------------------------------------------------------------
+-- Toggle Mute/Unmute All Tracks (#899)
+---------------------------------------------------------------------------
+function PakettiToggleMuteUnmuteAllTracks()
+  local song = renoise.song()
+  local any_active = false
+  for i = 1, #song.tracks do
+    local t = song.tracks[i]
+    if t.type == renoise.Track.TRACK_TYPE_SEQUENCER or t.type == renoise.Track.TRACK_TYPE_GROUP then
+      if t.mute_state == renoise.Track.MUTE_STATE_ACTIVE then
+        any_active = true
+        break
+      end
+    end
+  end
+  song:describe_undo("Toggle Mute/Unmute All Tracks")
+  if any_active then
+    for i = 1, #song.tracks do
+      local t = song.tracks[i]
+      if t.type == renoise.Track.TRACK_TYPE_SEQUENCER or t.type == renoise.Track.TRACK_TYPE_GROUP then
+        t:mute()
+      end
+    end
+    renoise.app():show_status("All tracks muted")
+  else
+    for i = 1, #song.tracks do
+      local t = song.tracks[i]
+      if t.type == renoise.Track.TRACK_TYPE_SEQUENCER or t.type == renoise.Track.TRACK_TYPE_GROUP then
+        t:unmute()
+      end
+    end
+    renoise.app():show_status("All tracks unmuted")
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Mute/Unmute All Tracks", invoke=function() PakettiToggleMuteUnmuteAllTracks() end}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Mute/Unmute All Tracks", invoke=function(message) if message:is_trigger() then PakettiToggleMuteUnmuteAllTracks() end end}
+
+---------------------------------------------------------------------------
+-- Toggle Mute/Unmute Unmuted Tracks with Memory (#898)
+---------------------------------------------------------------------------
+local paketti_remembered_unmuted_tracks = {}
+
+function PakettiToggleMuteUnmuteRememberedTracks()
+  local song = renoise.song()
+  local all_muted = true
+  for i = 1, #song.tracks do
+    local t = song.tracks[i]
+    if t.type == renoise.Track.TRACK_TYPE_SEQUENCER or t.type == renoise.Track.TRACK_TYPE_GROUP then
+      if t.mute_state == renoise.Track.MUTE_STATE_ACTIVE then
+        all_muted = false
+        break
+      end
+    end
+  end
+
+  song:describe_undo("Toggle Mute/Unmute Remembered Tracks")
+  if all_muted and #paketti_remembered_unmuted_tracks > 0 then
+    -- Restore remembered unmuted tracks
+    for _, track_index in ipairs(paketti_remembered_unmuted_tracks) do
+      if track_index <= #song.tracks then
+        song.tracks[track_index]:unmute()
+      end
+    end
+    renoise.app():show_status("Restored " .. #paketti_remembered_unmuted_tracks .. " unmuted track(s)")
+    paketti_remembered_unmuted_tracks = {}
+  else
+    -- Remember currently unmuted tracks, then mute all
+    paketti_remembered_unmuted_tracks = {}
+    for i = 1, #song.tracks do
+      local t = song.tracks[i]
+      if t.type == renoise.Track.TRACK_TYPE_SEQUENCER or t.type == renoise.Track.TRACK_TYPE_GROUP then
+        if t.mute_state == renoise.Track.MUTE_STATE_ACTIVE then
+          table.insert(paketti_remembered_unmuted_tracks, i)
+        end
+        t:mute()
+      end
+    end
+    renoise.app():show_status("Muted all tracks (remembered " .. #paketti_remembered_unmuted_tracks .. " unmuted)")
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Mute/Unmute Remembered Tracks", invoke=function() PakettiToggleMuteUnmuteRememberedTracks() end}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Mute/Unmute Remembered Tracks", invoke=function(message) if message:is_trigger() then PakettiToggleMuteUnmuteRememberedTracks() end end}
+
 -- Group Samples by Name to New Instruments Feature
 function PakettiGroupSamplesByName()
   local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix

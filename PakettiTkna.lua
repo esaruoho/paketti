@@ -2671,6 +2671,136 @@ function tknaSelectAddScheduleLoopSectionByPosition(section_number)
   tknaSelectLoopSectionByPosition(section_number, "add_schedule")
 end
 
+---------------------------------------------------------------------------
+-- Section Loop Next/Previous (#577)
+-- Moves the entire loop range to the next or previous section.
+---------------------------------------------------------------------------
+function tknaSectionLoopNext()
+  local song = renoise.song()
+  local transport = song.transport
+  local sequencer = song.sequencer
+  local total_sequences = #sequencer.pattern_sequence
+  local loop_range = transport.loop_sequence_range
+
+  -- Find all section start positions
+  local sections = {}
+  for i = 1, total_sequences do
+    if sequencer:sequence_is_start_of_section(i) then
+      table.insert(sections, i)
+    end
+  end
+
+  if #sections == 0 then
+    renoise.app():show_status("No sections defined")
+    return
+  end
+
+  -- Helper: get section start and end for a given section index
+  local function get_section_range(section_idx)
+    local section_start = sections[section_idx]
+    local section_end = (section_idx < #sections) and (sections[section_idx + 1] - 1) or total_sequences
+    return section_start, section_end
+  end
+
+  -- Helper: find which section index a given sequence belongs to
+  local function find_section_for_sequence(seq_idx)
+    for i = #sections, 1, -1 do
+      if seq_idx >= sections[i] then
+        return i
+      end
+    end
+    return 1
+  end
+
+  -- If no loop range, loop the current section
+  if not loop_range or #loop_range ~= 2 or (loop_range[1] == 0 and loop_range[2] == 0) then
+    local current_section = find_section_for_sequence(song.selected_sequence_index)
+    local s, e = get_section_range(current_section)
+    transport.loop_sequence_range = {s, e}
+    renoise.app():show_status("Section Loop: section " .. current_section .. " (seq " .. s .. "-" .. e .. ")")
+    return
+  end
+
+  -- Find which section the current loop start belongs to
+  local current_section_idx = find_section_for_sequence(loop_range[1])
+
+  -- Move to next section
+  local next_idx = current_section_idx + 1
+  if next_idx > #sections then
+    renoise.app():show_status("Already at last section")
+    return
+  end
+
+  local s, e = get_section_range(next_idx)
+  transport.loop_sequence_range = {s, e}
+  renoise.app():show_status("Section Loop: section " .. next_idx .. " (seq " .. s .. "-" .. e .. ")")
+end
+
+function tknaSectionLoopPrevious()
+  local song = renoise.song()
+  local transport = song.transport
+  local sequencer = song.sequencer
+  local total_sequences = #sequencer.pattern_sequence
+  local loop_range = transport.loop_sequence_range
+
+  -- Find all section start positions
+  local sections = {}
+  for i = 1, total_sequences do
+    if sequencer:sequence_is_start_of_section(i) then
+      table.insert(sections, i)
+    end
+  end
+
+  if #sections == 0 then
+    renoise.app():show_status("No sections defined")
+    return
+  end
+
+  local function get_section_range(section_idx)
+    local section_start = sections[section_idx]
+    local section_end = (section_idx < #sections) and (sections[section_idx + 1] - 1) or total_sequences
+    return section_start, section_end
+  end
+
+  local function find_section_for_sequence(seq_idx)
+    for i = #sections, 1, -1 do
+      if seq_idx >= sections[i] then
+        return i
+      end
+    end
+    return 1
+  end
+
+  -- If no loop range, loop the current section
+  if not loop_range or #loop_range ~= 2 or (loop_range[1] == 0 and loop_range[2] == 0) then
+    local current_section = find_section_for_sequence(song.selected_sequence_index)
+    local s, e = get_section_range(current_section)
+    transport.loop_sequence_range = {s, e}
+    renoise.app():show_status("Section Loop: section " .. current_section .. " (seq " .. s .. "-" .. e .. ")")
+    return
+  end
+
+  -- Find which section the current loop start belongs to
+  local current_section_idx = find_section_for_sequence(loop_range[1])
+
+  -- Move to previous section
+  local prev_idx = current_section_idx - 1
+  if prev_idx < 1 then
+    renoise.app():show_status("Already at first section")
+    return
+  end
+
+  local s, e = get_section_range(prev_idx)
+  transport.loop_sequence_range = {s, e}
+  renoise.app():show_status("Section Loop: section " .. prev_idx .. " (seq " .. s .. "-" .. e .. ")")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Section Loop (Next)", invoke=function() tknaSectionLoopNext() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Section Loop (Previous)", invoke=function() tknaSectionLoopPrevious() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Section Loop (Next)", invoke=function(message) if message:is_trigger() then tknaSectionLoopNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Section Loop (Previous)", invoke=function(message) if message:is_trigger() then tknaSectionLoopPrevious() end end}
+
 -- Create keybindings and MIDI mappings for Select, Trigger, Schedule, and Add to Schedule for Sections by Position 01 to 32
 for i = 1, 32 do
   local section_id = string.format("%02d", i)
