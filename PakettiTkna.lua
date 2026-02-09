@@ -1385,7 +1385,128 @@ renoise.tool():add_keybinding{name="Global:Paketti:Section Loop (Previous)",invo
 renoise.tool():add_midi_mapping{name="Paketti:Section Loop (Next)",invoke=expandSectionLoopNext}
 renoise.tool():add_midi_mapping{name="Paketti:Section Loop (Previous)",invoke=expandSectionLoopPrevious}
 
+---------------------------------------------------------------------------
+-- Contract Section Loop (#577 subtraction)
+-- Remove sections from the loop range. "Contract from End" removes the
+-- last section, "Contract from Start" removes the first section.
+-- If only one section remains and you contract, the loop is cleared.
+---------------------------------------------------------------------------
+function contractSectionLoopFromEnd()
+  local song = renoise.song()
+  local transport = song.transport
+  local sequencer = song.sequencer
+  local total_sequences = #sequencer.pattern_sequence
+  local loop_range = transport.loop_sequence_range
 
+  if not loop_range or #loop_range ~= 2 or (loop_range[1] == 0 and loop_range[2] == 0) then
+    renoise.app():show_status("No section loop active to contract.")
+    return
+  end
+
+  local sections = {}
+  for i = 1, total_sequences do
+    if sequencer:sequence_is_start_of_section(i) then
+      table.insert(sections, i)
+    end
+  end
+
+  if #sections == 0 then
+    renoise.app():show_status("No sections defined")
+    return
+  end
+
+  local function find_section_for_sequence(seq_idx)
+    for i = #sections, 1, -1 do
+      if seq_idx >= sections[i] then
+        return i
+      end
+    end
+    return 1
+  end
+
+  local function get_section_range(section_idx)
+    local section_start = sections[section_idx]
+    local section_end = (section_idx < #sections) and (sections[section_idx + 1] - 1) or total_sequences
+    return section_start, section_end
+  end
+
+  local start_section = find_section_for_sequence(loop_range[1])
+  local end_section = find_section_for_sequence(loop_range[2])
+
+  if start_section == end_section then
+    -- Only one section in loop, clear the loop
+    transport.loop_sequence_range = {}
+    renoise.app():show_status("Section loop cleared")
+    return
+  end
+
+  -- Remove last section from loop
+  local new_end_section = end_section - 1
+  local _, new_end = get_section_range(new_end_section)
+  transport.loop_sequence_range = {loop_range[1], new_end}
+  renoise.app():show_status("Section Loop contracted: removed last section (now sections " .. start_section .. "-" .. new_end_section .. ")")
+end
+
+function contractSectionLoopFromStart()
+  local song = renoise.song()
+  local transport = song.transport
+  local sequencer = song.sequencer
+  local total_sequences = #sequencer.pattern_sequence
+  local loop_range = transport.loop_sequence_range
+
+  if not loop_range or #loop_range ~= 2 or (loop_range[1] == 0 and loop_range[2] == 0) then
+    renoise.app():show_status("No section loop active to contract.")
+    return
+  end
+
+  local sections = {}
+  for i = 1, total_sequences do
+    if sequencer:sequence_is_start_of_section(i) then
+      table.insert(sections, i)
+    end
+  end
+
+  if #sections == 0 then
+    renoise.app():show_status("No sections defined")
+    return
+  end
+
+  local function find_section_for_sequence(seq_idx)
+    for i = #sections, 1, -1 do
+      if seq_idx >= sections[i] then
+        return i
+      end
+    end
+    return 1
+  end
+
+  local function get_section_range(section_idx)
+    local section_start = sections[section_idx]
+    local section_end = (section_idx < #sections) and (sections[section_idx + 1] - 1) or total_sequences
+    return section_start, section_end
+  end
+
+  local start_section = find_section_for_sequence(loop_range[1])
+  local end_section = find_section_for_sequence(loop_range[2])
+
+  if start_section == end_section then
+    -- Only one section in loop, clear the loop
+    transport.loop_sequence_range = {}
+    renoise.app():show_status("Section loop cleared")
+    return
+  end
+
+  -- Remove first section from loop
+  local new_start_section = start_section + 1
+  local new_start, _ = get_section_range(new_start_section)
+  transport.loop_sequence_range = {new_start, loop_range[2]}
+  renoise.app():show_status("Section Loop contracted: removed first section (now sections " .. new_start_section .. "-" .. end_section .. ")")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Contract Section Loop (Remove Last Section)", invoke=function() contractSectionLoopFromEnd() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Contract Section Loop (Remove First Section)", invoke=function() contractSectionLoopFromStart() end}
+renoise.tool():add_midi_mapping{name="Paketti:Contract Section Loop (Remove Last Section)", invoke=function(message) if message:is_trigger() then contractSectionLoopFromEnd() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Contract Section Loop (Remove First Section)", invoke=function(message) if message:is_trigger() then contractSectionLoopFromStart() end end}
 
 -- Function to expand the sequence selection step-by-step
 function tknaSequenceSelectionPlusOne()

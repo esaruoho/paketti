@@ -8353,6 +8353,305 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Current Subcolumn Values",invoke=function() interpolate_current_subcolumn() end}
 renoise.tool():add_midi_mapping{name="Paketti:Interpolate Current Subcolumn Values",invoke=function(message) if message:is_trigger() then interpolate_current_subcolumn() end end}
 
+---------------------------------------------------------------------------
+-- Exponential Interpolation (#531)
+-- Same as linear interpolation but uses t^2 curve (slow start, fast end)
+---------------------------------------------------------------------------
+
+function volume_interpolation_exponential()
+  local song = renoise.song()
+  local changes_made = false
+  local selection_data = selection_in_pattern_pro()
+  if not selection_data then
+    renoise.app():show_error("No selection in pattern!")
+    return
+  end
+  local pattern = song:pattern(song.selected_pattern_index)
+  local selection = song.selection_in_pattern
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  if start_line == end_line then
+    renoise.app():show_error("The selection must span at least two lines.")
+    return
+  end
+  for _, track_info in ipairs(selection_data) do
+    local track_index = track_info.track_index
+    local track = pattern:track(track_index)
+    if song:track(track_index).volume_column_visible then
+      for _, note_column_index in ipairs(track_info.note_columns) do
+        local start_note = track:line(start_line):note_column(note_column_index)
+        local end_note = track:line(end_line):note_column(note_column_index)
+        local start_vol_empty = start_note.volume_string == ".."
+        local end_vol_empty = end_note.volume_string == ".."
+        local start_vol = start_vol_empty and 0x50 or start_note.volume_value
+        local end_vol = end_vol_empty and 0x50 or end_note.volume_value
+        if not end_note.is_empty then
+          local vol_diff = end_vol - start_vol
+          if vol_diff ~= 0 then
+            changes_made = true
+            local steps = end_line - start_line
+            for i = 1, steps - 1 do
+              local t = i / steps
+              local interpolated_vol = math.floor(start_vol + vol_diff * (t * t))
+              interpolated_vol = math.max(0, math.min(0x80, interpolated_vol))
+              track:line(start_line + i):note_column(note_column_index).volume_value = interpolated_vol
+            end
+          end
+        end
+      end
+    end
+  end
+  if not changes_made then
+    renoise.app():show_status("No volume values to interpolate (exponential) in the selection.")
+  end
+end
+
+function panning_interpolation_exponential()
+  local song = renoise.song()
+  local changes_made = false
+  local selection_data = selection_in_pattern_pro()
+  if not selection_data then
+    renoise.app():show_error("No selection in pattern!")
+    return
+  end
+  local pattern = song:pattern(song.selected_pattern_index)
+  local selection = song.selection_in_pattern
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  if start_line == end_line then
+    renoise.app():show_error("The selection must span at least two lines.")
+    return
+  end
+  for _, track_info in ipairs(selection_data) do
+    local track_index = track_info.track_index
+    local track = pattern:track(track_index)
+    if song:track(track_index).panning_column_visible then
+      for _, note_column_index in ipairs(track_info.note_columns) do
+        local start_note = track:line(start_line):note_column(note_column_index)
+        local end_note = track:line(end_line):note_column(note_column_index)
+        local start_pan_empty = start_note.panning_string == ".."
+        local end_pan_empty = end_note.panning_string == ".."
+        local start_pan = start_pan_empty and 0x40 or start_note.panning_value
+        local end_pan = end_pan_empty and 0x40 or end_note.panning_value
+        if not end_note.is_empty then
+          local pan_diff = end_pan - start_pan
+          if pan_diff ~= 0 then
+            changes_made = true
+            local steps = end_line - start_line
+            for i = 1, steps - 1 do
+              local t = i / steps
+              local interpolated_pan = math.floor(start_pan + pan_diff * (t * t))
+              interpolated_pan = math.max(0, math.min(0x80, interpolated_pan))
+              track:line(start_line + i):note_column(note_column_index).panning_value = interpolated_pan
+            end
+          end
+        end
+      end
+    end
+  end
+  if not changes_made then
+    renoise.app():show_status("No panning values to interpolate (exponential) in the selection.")
+  end
+end
+
+function delay_interpolation_exponential()
+  local song = renoise.song()
+  local changes_made = false
+  local selection_data = selection_in_pattern_pro()
+  if not selection_data then
+    renoise.app():show_error("No selection in pattern!")
+    return
+  end
+  local pattern = song:pattern(song.selected_pattern_index)
+  local selection = song.selection_in_pattern
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  if start_line == end_line then
+    renoise.app():show_error("The selection must span at least two lines.")
+    return
+  end
+  for _, track_info in ipairs(selection_data) do
+    local track_index = track_info.track_index
+    local track = pattern:track(track_index)
+    if song:track(track_index).delay_column_visible then
+      for _, note_column_index in ipairs(track_info.note_columns) do
+        local start_note = track:line(start_line):note_column(note_column_index)
+        local end_note = track:line(end_line):note_column(note_column_index)
+        local start_delay_empty = start_note.delay_string == ".."
+        local start_delay = start_delay_empty and 0 or start_note.delay_value
+        local end_delay = end_note.delay_string == ".." and 0 or end_note.delay_value
+        if not end_note.is_empty then
+          local delay_diff = end_delay - start_delay
+          if delay_diff ~= 0 then
+            changes_made = true
+            local steps = end_line - start_line
+            for i = 1, steps - 1 do
+              local t = i / steps
+              local interpolated_delay = math.floor(start_delay + delay_diff * (t * t))
+              interpolated_delay = math.max(0, math.min(0xFF, interpolated_delay))
+              track:line(start_line + i):note_column(note_column_index).delay_value = interpolated_delay
+            end
+          end
+        end
+      end
+    end
+  end
+  if not changes_made then
+    renoise.app():show_status("No delay values to interpolate (exponential) in the selection.")
+  end
+end
+
+function samplefx_interpolation_exponential()
+  local song = renoise.song()
+  local changes_made = false
+  local selection_data = selection_in_pattern_pro()
+  if not selection_data then
+    renoise.app():show_error("No selection in pattern!")
+    return
+  end
+  local pattern = song:pattern(song.selected_pattern_index)
+  local selection = song.selection_in_pattern
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  if start_line == end_line then
+    renoise.app():show_error("The selection must span at least two lines.")
+    return
+  end
+  for _, track_info in ipairs(selection_data) do
+    local track_index = track_info.track_index
+    local track = pattern:track(track_index)
+    if song:track(track_index).sample_effects_column_visible then
+      for _, note_column_index in ipairs(track_info.note_columns) do
+        local start_note = track:line(start_line):note_column(note_column_index)
+        local end_note = track:line(end_line):note_column(note_column_index)
+        local start_empty = start_note.effect_number_string == ".."
+        local end_empty = end_note.effect_number_string == ".."
+        if not end_empty and not end_note.is_empty then
+          local start_effect_num = start_note.effect_number_value
+          local end_effect_num = end_note.effect_number_value
+          local start_effect_amt = start_note.effect_amount_value
+          local end_effect_amt = end_note.effect_amount_value
+          if start_effect_num == end_effect_num or start_empty then
+            local effect_num = end_effect_num
+            local amt_diff = end_effect_amt - (start_empty and 0 or start_effect_amt)
+            if amt_diff ~= 0 then
+              changes_made = true
+              local steps = end_line - start_line
+              local actual_start = start_empty and 0 or start_effect_amt
+              for i = 1, steps - 1 do
+                local t = i / steps
+                local interpolated_amt = math.floor(actual_start + amt_diff * (t * t))
+                interpolated_amt = math.max(0, math.min(0xFF, interpolated_amt))
+                local note_column = track:line(start_line + i):note_column(note_column_index)
+                note_column.effect_number_value = effect_num
+                note_column.effect_amount_value = interpolated_amt
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  if not changes_made then
+    renoise.app():show_status("No sample effects to interpolate (exponential) in the selection.")
+  end
+end
+
+function effect_column_interpolation_exponential()
+  local song = renoise.song()
+  local changes_made = false
+  local selection = song.selection_in_pattern
+  if not selection then
+    renoise.app():show_error("No selection in pattern!")
+    return
+  end
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  if start_line == end_line then
+    renoise.app():show_error("The selection must span at least two lines.")
+    return
+  end
+  local pattern = song:pattern(song.selected_pattern_index)
+  for track_index = selection.start_track, selection.end_track do
+    local track = pattern:track(track_index)
+    local visible_fx = song:track(track_index).visible_effect_columns
+    for fx_col = 1, visible_fx do
+      local start_col = track:line(start_line):effect_column(fx_col)
+      local end_col = track:line(end_line):effect_column(fx_col)
+      if not start_col.is_empty and not end_col.is_empty then
+        local start_num = start_col.number_value
+        local end_num = end_col.number_value
+        local start_amt = start_col.amount_value
+        local end_amt = end_col.amount_value
+        if start_num == end_num and start_num ~= 0 then
+          local amt_diff = end_amt - start_amt
+          if amt_diff ~= 0 then
+            changes_made = true
+            local steps = end_line - start_line
+            for i = 1, steps - 1 do
+              local t = i / steps
+              local interpolated_amt = math.floor(start_amt + amt_diff * (t * t))
+              interpolated_amt = math.max(0, math.min(0xFF, interpolated_amt))
+              local col = track:line(start_line + i):effect_column(fx_col)
+              col.number_value = start_num
+              col.amount_value = interpolated_amt
+            end
+          end
+        end
+      end
+    end
+  end
+  if not changes_made then
+    renoise.app():show_status("No effect column values to interpolate (exponential) in the selection.")
+  else
+    renoise.app():show_status("Effect column values interpolated (exponential) successfully!")
+  end
+end
+
+function interpolate_current_subcolumn_exponential()
+  local song = renoise.song()
+  local sub_col = song.selected_sub_column_type
+  if sub_col == 3 then
+    if not song:track(song.selected_track_index).volume_column_visible then
+      song:track(song.selected_track_index).volume_column_visible = true
+    end
+    volume_interpolation_exponential()
+  elseif sub_col == 4 then
+    if not song:track(song.selected_track_index).panning_column_visible then
+      song:track(song.selected_track_index).panning_column_visible = true
+    end
+    panning_interpolation_exponential()
+  elseif sub_col == 5 then
+    if not song:track(song.selected_track_index).delay_column_visible then
+      song:track(song.selected_track_index).delay_column_visible = true
+    end
+    delay_interpolation_exponential()
+  elseif sub_col == 6 or sub_col == 7 then
+    if not song:track(song.selected_track_index).sample_effects_column_visible then
+      song:track(song.selected_track_index).sample_effects_column_visible = true
+    end
+    samplefx_interpolation_exponential()
+  elseif sub_col == 8 or sub_col == 9 then
+    effect_column_interpolation_exponential()
+  else
+    renoise.app():show_status("Exponential Interpolation: Move cursor to Volume, Panning, Delay, Sample FX, or Effect column.")
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values Exponential (Volume)",invoke=function() volume_interpolation_exponential() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values Exponential (Panning)",invoke=function() panning_interpolation_exponential() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values Exponential (Delay)",invoke=function() delay_interpolation_exponential() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values Exponential (Sample FX)",invoke=function() samplefx_interpolation_exponential() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values Exponential (Effect Column)",invoke=function() effect_column_interpolation_exponential() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Current Subcolumn Values Exponential",invoke=function() interpolate_current_subcolumn_exponential() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values Exponential (Volume)",invoke=function(message) if message:is_trigger() then volume_interpolation_exponential() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values Exponential (Panning)",invoke=function(message) if message:is_trigger() then panning_interpolation_exponential() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values Exponential (Delay)",invoke=function(message) if message:is_trigger() then delay_interpolation_exponential() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values Exponential (Sample FX)",invoke=function(message) if message:is_trigger() then samplefx_interpolation_exponential() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values Exponential (Effect Column)",invoke=function(message) if message:is_trigger() then effect_column_interpolation_exponential() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Current Subcolumn Values Exponential",invoke=function(message) if message:is_trigger() then interpolate_current_subcolumn_exponential() end end}
+
 -- Show the GUI dialog
 function pakettiVolDelayPanSliderDialog()
   if dialog and dialog.visible then

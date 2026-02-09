@@ -5066,47 +5066,97 @@ renoise.tool():add_midi_mapping{name="Paketti:Hide Current and Select Previous C
 function cloneAndExpandPatternToLPBDouble()
   local rs = renoise.song()
   local current_pattern_length = rs.selected_pattern.number_of_lines
-  
-  -- Check if pattern length is 257 or more
-  if current_pattern_length >= 257 then
-      renoise.app():show_status("Cannot expand: Pattern length would exceed maximum")
-      return
+
+  if current_pattern_length * 2 <= 512 then
+    -- Normal expand: fits within 512 lines
+    write_bpm()
+    local original_length = current_pattern_length
+    clonePTN()
+    local new_length = original_length * 2
+    rs.selected_pattern.number_of_lines = new_length
+    local number = rs.transport.lpb * 2
+    if number == 1 then number = 2 end
+    if number > 128 then
+        number = 128
+        rs.transport.lpb = number
+        write_bpm()
+        Deselect_All()
+        MarkTrackMarkPattern()
+        MarkTrackMarkPattern()
+        ExpandSelection()
+        Deselect_All()
+        return
+    end
+    rs.transport.lpb = number
+    write_bpm()
+    Deselect_All()
+    MarkTrackMarkPattern()
+    MarkTrackMarkPattern()
+    ExpandSelection()
+    Deselect_All()
+  else
+    -- Split and expand: pattern too large for single expand (#757)
+    write_bpm()
+    local half = math.floor(current_pattern_length / 2)
+    local second_count = current_pattern_length - half
+    local original_seq = rs.selected_sequence_index
+    local original_name = rs.selected_pattern.name
+    local num_tracks = #rs.tracks
+
+    -- Clone the pattern first (preserves original for other sequence references)
+    clonePTN()
+    local first_pattern = rs.selected_pattern
+
+    -- Create second half pattern at next sequence position
+    local new_pat_idx = rs.sequencer:insert_new_pattern_at(original_seq + 1)
+    local second_pattern = rs:pattern(new_pat_idx)
+    second_pattern.number_of_lines = math.min(512, second_count * 2)
+
+    -- Copy second half content expanded (every other line)
+    for track_idx = 1, num_tracks do
+      local src_track = first_pattern:track(track_idx)
+      local dst_track = second_pattern:track(track_idx)
+      for line_idx = 1, second_count do
+        local dst_line_idx = (line_idx - 1) * 2 + 1
+        if dst_line_idx <= second_pattern.number_of_lines then
+          dst_track:line(dst_line_idx):copy_from(src_track:line(half + line_idx))
+        end
+      end
+    end
+    second_pattern.name = (original_name ~= "" and original_name or "Pattern") .. " (2/2)"
+
+    -- Modify first pattern: clear second half, resize, expand in place
+    for track_idx = 1, num_tracks do
+      local pt = first_pattern:track(track_idx)
+      for line_idx = half + 1, current_pattern_length do
+        pt:line(line_idx):clear()
+      end
+    end
+    first_pattern.number_of_lines = math.min(512, half * 2)
+
+    -- Expand first half in place (working backwards to avoid overwriting)
+    for track_idx = 1, num_tracks do
+      local pt = first_pattern:track(track_idx)
+      for line_idx = half, 1, -1 do
+        local dst_line_idx = (line_idx - 1) * 2 + 1
+        if dst_line_idx ~= line_idx then
+          pt:line(dst_line_idx):copy_from(pt:line(line_idx))
+          pt:line(line_idx):clear()
+        end
+      end
+    end
+    first_pattern.name = (original_name ~= "" and original_name or "Pattern") .. " (1/2)"
+
+    -- Double LPB
+    local number = rs.transport.lpb * 2
+    if number < 2 then number = 2 end
+    if number > 128 then number = 128 end
+    rs.transport.lpb = number
+    write_bpm()
+
+    rs.selected_sequence_index = original_seq
+    renoise.app():show_status("Pattern split into 2 and expanded (LPB*2): " .. first_pattern.number_of_lines .. " + " .. second_pattern.number_of_lines .. " lines")
   end
-  
-  write_bpm()
-  
-  -- Store current pattern length before cloning
-  local original_length = current_pattern_length
-  
-  -- Clone the pattern
-  clonePTN()
-  
-  -- Set the new pattern length
-  local new_length = original_length * 2
-  rs.selected_pattern.number_of_lines = new_length
-  
-  -- Double the LPB
-  local number = rs.transport.lpb * 2
-  if number == 1 then number = 2 end
-  if number > 128 then 
-      number = 128 
-      rs.transport.lpb = number
-      write_bpm()
-      Deselect_All()
-      MarkTrackMarkPattern()
-      MarkTrackMarkPattern()
-      ExpandSelection()
-      Deselect_All()
-      return 
-  end
-  
-  rs.transport.lpb = number
-  write_bpm()
-  Deselect_All()
-  MarkTrackMarkPattern()
-  MarkTrackMarkPattern()
-  ExpandSelection()
-  Deselect_All()
 end
 
 
@@ -5883,7 +5933,10 @@ function nudge_with_delay(direction)
   for _, track_info in ipairs(selection) do
     local track = song.tracks[track_info.track_index]
 
-    -- Do not modify delay column visibility
+    -- Make delay column visible for selected tracks (#793)
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      track.delay_column_visible = true
+    end
     -- Validate the boundaries
     local lines = pattern.tracks[track_info.track_index].lines
     local adjusted_start_line = math.max(1, math.min(start_line, #lines))
@@ -11134,3 +11187,222 @@ end
 -- Keybinding
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Selection Follow to End",invoke=function() PakettiSelectionFollowToEndToggle() end}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Selection Follow to End",invoke=function(message) if message:is_trigger() then PakettiSelectionFollowToEndToggle() end end}
+
+---------------------------------------------------------------------------
+-- Jump to Pattern Position Dialog (#681)
+-- Dialog with offset input to jump +/- lines within the current pattern.
+---------------------------------------------------------------------------
+local paketti_jump_dialog = nil
+
+function PakettiJumpToPatternPositionDialog()
+  if paketti_jump_dialog and paketti_jump_dialog.visible then
+    paketti_jump_dialog:close()
+    paketti_jump_dialog = nil
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  local offset_id = "jump_offset_" .. tostring(math.random(2, 30000))
+  local current_id = "jump_current_" .. tostring(math.random(2, 30000))
+
+  local song = renoise.song()
+
+  local function do_jump()
+    local s = renoise.song()
+    local offset = vb.views[offset_id].value
+    local current_line = s.selected_line_index
+    local pattern_lines = s.selected_pattern.number_of_lines
+    local target = current_line + offset
+    target = math.max(1, math.min(target, pattern_lines))
+    PakettiSaveCursorPosition()
+    s.selected_line_index = target
+    vb.views[current_id].text = "Current: " .. target .. " / " .. pattern_lines
+    renoise.app():show_status("Jumped to line " .. target)
+  end
+
+  local content = vb:column{
+    margin = 6,
+    spacing = 4,
+    vb:text{id = current_id, text = "Current: " .. song.selected_line_index .. " / " .. song.selected_pattern.number_of_lines, font = "bold"},
+    vb:row{
+      spacing = 4,
+      vb:text{text = "Offset:"},
+      vb:valuebox{id = offset_id, min = -512, max = 512, value = 0, width = 80},
+      vb:button{text = "Jump", pressed = do_jump, width = 60},
+    },
+    vb:row{
+      spacing = 2,
+      vb:button{text = "-64", width = 40, pressed = function() vb.views[offset_id].value = -64 do_jump() end},
+      vb:button{text = "-32", width = 40, pressed = function() vb.views[offset_id].value = -32 do_jump() end},
+      vb:button{text = "-16", width = 40, pressed = function() vb.views[offset_id].value = -16 do_jump() end},
+      vb:button{text = "+16", width = 40, pressed = function() vb.views[offset_id].value = 16 do_jump() end},
+      vb:button{text = "+32", width = 40, pressed = function() vb.views[offset_id].value = 32 do_jump() end},
+      vb:button{text = "+64", width = 40, pressed = function() vb.views[offset_id].value = 64 do_jump() end},
+    },
+    vb:row{
+      spacing = 2,
+      vb:button{text = "Go to 1", width = 60, pressed = function()
+        local s = renoise.song()
+        PakettiSaveCursorPosition()
+        s.selected_line_index = 1
+        vb.views[current_id].text = "Current: 1 / " .. s.selected_pattern.number_of_lines
+      end},
+      vb:button{text = "Go to End", width = 70, pressed = function()
+        local s = renoise.song()
+        PakettiSaveCursorPosition()
+        local last = s.selected_pattern.number_of_lines
+        s.selected_line_index = last
+        vb.views[current_id].text = "Current: " .. last .. " / " .. last
+      end},
+      vb:button{text = "Go to Middle", width = 80, pressed = function()
+        local s = renoise.song()
+        PakettiSaveCursorPosition()
+        local mid = math.floor(s.selected_pattern.number_of_lines / 2) + 1
+        s.selected_line_index = mid
+        vb.views[current_id].text = "Current: " .. mid .. " / " .. s.selected_pattern.number_of_lines
+      end},
+    },
+  }
+
+  paketti_jump_dialog = renoise.app():show_custom_dialog("Jump to Pattern Position", content)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Jump to Pattern Position Dialog...", invoke=function() PakettiJumpToPatternPositionDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Jump to Pattern Position Dialog", invoke=function(message) if message:is_trigger() then PakettiJumpToPatternPositionDialog() end end}
+
+---------------------------------------------------------------------------
+-- Remove Unused Note Columns (#690)
+-- Scans all patterns in the sequence and reduces visible_note_columns
+-- to match the highest actually-used note column per track.
+---------------------------------------------------------------------------
+function PakettiRemoveUnusedNoteColumns()
+  local song = renoise.song()
+  song:describe_undo("Remove Unused Note Columns")
+  local total_hidden = 0
+
+  for track_idx = 1, #song.tracks do
+    local track = song.tracks[track_idx]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      local max_used_column = 1
+      for seq_idx = 1, #song.sequencer.pattern_sequence do
+        local pat_idx = song.sequencer.pattern_sequence[seq_idx]
+        local pattern = song:pattern(pat_idx)
+        local pattern_track = pattern:track(track_idx)
+        for line_idx = 1, pattern.number_of_lines do
+          local line = pattern_track:line(line_idx)
+          for col_idx = 1, track.visible_note_columns do
+            if not line:note_column(col_idx).is_empty then
+              if col_idx > max_used_column then
+                max_used_column = col_idx
+              end
+            end
+          end
+        end
+      end
+      if max_used_column < track.visible_note_columns then
+        local hidden = track.visible_note_columns - max_used_column
+        total_hidden = total_hidden + hidden
+        track.visible_note_columns = max_used_column
+      end
+    end
+  end
+  renoise.app():show_status("Removed " .. total_hidden .. " unused note column(s) across all tracks")
+end
+
+---------------------------------------------------------------------------
+-- Remove Unused Effect Columns (#690)
+-- Same as above but for effect columns.
+---------------------------------------------------------------------------
+function PakettiRemoveUnusedEffectColumns()
+  local song = renoise.song()
+  song:describe_undo("Remove Unused Effect Columns")
+  local total_hidden = 0
+
+  for track_idx = 1, #song.tracks do
+    local track = song.tracks[track_idx]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER or
+       track.type == renoise.Track.TRACK_TYPE_MASTER or
+       track.type == renoise.Track.TRACK_TYPE_SEND then
+      local max_used_column = 0
+      for seq_idx = 1, #song.sequencer.pattern_sequence do
+        local pat_idx = song.sequencer.pattern_sequence[seq_idx]
+        local pattern = song:pattern(pat_idx)
+        local pattern_track = pattern:track(track_idx)
+        for line_idx = 1, pattern.number_of_lines do
+          local line = pattern_track:line(line_idx)
+          for col_idx = 1, track.visible_effect_columns do
+            if not line:effect_column(col_idx).is_empty then
+              if col_idx > max_used_column then
+                max_used_column = col_idx
+              end
+            end
+          end
+        end
+      end
+      if max_used_column < track.visible_effect_columns then
+        local hidden = track.visible_effect_columns - max_used_column
+        total_hidden = total_hidden + hidden
+        track.visible_effect_columns = max_used_column
+      end
+    end
+  end
+  renoise.app():show_status("Removed " .. total_hidden .. " unused effect column(s) across all tracks")
+end
+
+---------------------------------------------------------------------------
+-- Remove Unused Note and Effect Columns combined (#690)
+---------------------------------------------------------------------------
+function PakettiRemoveUnusedColumns()
+  PakettiRemoveUnusedNoteColumns()
+  PakettiRemoveUnusedEffectColumns()
+end
+
+---------------------------------------------------------------------------
+-- Clear Unreferenced Patterns (#690)
+-- Clears content of patterns not referenced by any sequence entry.
+---------------------------------------------------------------------------
+function PakettiClearUnreferencedPatterns()
+  local song = renoise.song()
+  song:describe_undo("Clear Unreferenced Patterns")
+  local used = {}
+  for _, pat_idx in ipairs(song.sequencer.pattern_sequence) do
+    used[pat_idx] = true
+  end
+  local cleared = 0
+  for pat_idx = 1, #song.patterns do
+    if not used[pat_idx] then
+      local pattern = song:pattern(pat_idx)
+      local is_empty = true
+      for track_idx = 1, #song.tracks do
+        local pt = pattern:track(track_idx)
+        for line_idx = 1, pattern.number_of_lines do
+          if not pt:line(line_idx).is_empty then
+            is_empty = false
+            break
+          end
+        end
+        if not is_empty then break end
+      end
+      if not is_empty then
+        pattern:clear()
+        cleared = cleared + 1
+      end
+    end
+  end
+  renoise.app():show_status("Cleared " .. cleared .. " unreferenced pattern(s)")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Remove Unused Note Columns", invoke=function() PakettiRemoveUnusedNoteColumns() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Remove Unused Effect Columns", invoke=function() PakettiRemoveUnusedEffectColumns() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Remove Unused Columns (Note + Effect)", invoke=function() PakettiRemoveUnusedColumns() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Clear Unreferenced Patterns", invoke=function() PakettiClearUnreferencedPatterns() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Remove Unused Note Columns", invoke=function(message) if message:is_trigger() then PakettiRemoveUnusedNoteColumns() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Remove Unused Effect Columns", invoke=function(message) if message:is_trigger() then PakettiRemoveUnusedEffectColumns() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Remove Unused Columns (Note + Effect)", invoke=function(message) if message:is_trigger() then PakettiRemoveUnusedColumns() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clear Unreferenced Patterns", invoke=function(message) if message:is_trigger() then PakettiClearUnreferencedPatterns() end end}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Note Columns", invoke=function() PakettiRemoveUnusedNoteColumns() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Effect Columns", invoke=function() PakettiRemoveUnusedEffectColumns() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Columns (Note + Effect)", invoke=function() PakettiRemoveUnusedColumns() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Clear Unreferenced Patterns", invoke=function() PakettiClearUnreferencedPatterns() end}

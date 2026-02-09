@@ -709,18 +709,17 @@ end
 ---------------------------------------------------------------------------
 function PakettiSetEditStepAndQuantization(value)
   local t = renoise.song().transport
+  local was_quantize_enabled = t.record_quantize_enabled
   t.edit_step = value
   if value >= 1 and value <= 32 then
     t.record_quantize_lines = value
-    t.record_quantize_enabled = true
   elseif value > 32 then
     t.record_quantize_lines = 32
-    t.record_quantize_enabled = true
-  else
-    t.record_quantize_enabled = false
   end
+  t.record_quantize_enabled = was_quantize_enabled
   local q_str = value >= 1 and tostring(math.min(value, 32)) or "Off"
-  renoise.app():show_status("EditStep: " .. value .. ", Quantize: " .. q_str)
+  local enabled_str = was_quantize_enabled and " (On)" or " (Off)"
+  renoise.app():show_status("EditStep: " .. value .. ", Quantize: " .. q_str .. enabled_str)
 end
 
 function PakettiAdjustEditStepAndQuantization(delta)
