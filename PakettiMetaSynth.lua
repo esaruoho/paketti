@@ -8236,12 +8236,6 @@ function PakettiMetaSynthApplyModulationProfile(mod_set, profile_name)
       release = profile.pitch_ahdsr.release
     }
     local pitch_env = PakettiMetaSynthAddAHDSRToModSet(mod_set, renoise.SampleModulationDevice.TARGET_PITCH, pitch_params)
-    -- Set envelope amount if specified
-    if pitch_env and profile.pitch_ahdsr.amount then
-      if pitch_env.amplitude then
-        pitch_env.amplitude.value = math.abs(profile.pitch_ahdsr.amount)
-      end
-    end
   end
   
   -- Add Velocity device for volume if velocity_volume is significant

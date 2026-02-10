@@ -1,4 +1,3 @@
--- Initialize ViewBuilder
 local vb = renoise.ViewBuilder()
 local dialog = nil  -- Initialize dialog as nil
 
@@ -236,6 +235,9 @@ function pakettiDeviceChainDialog()
   slot_path_views_xrni = {}
   folder_path_view = nil
 
+  -- Dynamic ID for folder path textfield (avoids "already registered" on reopen)
+  local folder_path_id = "folder_path_textfield_" .. tostring(math.random(2, 30000))
+
   local slots_rows_xrnt = {}
   local slots_rows_xrni = {}
   local slots_rows_both = {}
@@ -308,7 +310,7 @@ function pakettiDeviceChainDialog()
     vb:row{
       vb:text{text="User Save Folder",width=100},
       vb:textfield {
-        id = "folder_path_textfield",
+        id = folder_path_id,
         text = preferences.UserDevices.Path.value ~= "" and preferences.UserDevices.Path.value or "<Not Set, Please Set>",
         width=900,  -- Increased width as per requirement
         notifier=function(text)
@@ -343,7 +345,7 @@ function pakettiDeviceChainDialog()
   dialog = renoise.app():show_custom_dialog("Paketti Device Chain & Instrument Dialog", content, keyhandler)
   
   -- Assign the folder path textfield reference after dialog creation
-  folder_path_view = vb.views["folder_path_textfield"]
+  folder_path_view = vb.views[folder_path_id]
 end
 
 -- Function to add menu entries and key bindings grouped by functionality
