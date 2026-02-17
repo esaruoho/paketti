@@ -959,3 +959,199 @@ end
 --------------------------------------------------------------------------------
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Batch Convert RX2 to OT (WAV+.ot)...",invoke=PakettiBatchRX2ToOT}
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert RX2 to Octatrack (WAV+.ot)",invoke=PakettiBatchRX2ToOT}
+
+--------------------------------------------------------------------------------
+-- Batch RX2 to XRNI Converter
+-- Converts a folder of RX2 files into individual Renoise XRNI instrument files.
+-- Each RX2 is decoded to WAV, loaded into a temporary instrument with slice
+-- markers, saved as <basename>.xrni in the chosen output folder, then the
+-- temporary instrument is cleaned up so subsequent files start fresh.
+--------------------------------------------------------------------------------
+function PakettiBatchRX2ToXRNI()
+  print("=== Batch RX2 to XRNI Converter ===")
+
+  -- Prompt for input folder containing RX2 files
+  local input_folder = renoise.app():prompt_for_path("Select Folder Containing RX2 Files")
+  if not input_folder or input_folder == "" then
+    renoise.app():show_status("Batch RX2->XRNI: Cancelled – no input folder selected")
+    return
+  end
+  print("Input folder: " .. input_folder)
+
+  -- Collect RX2 files (reuse the local helper defined above)
+  local rx2_files = getRX2Files(input_folder)
+  if #rx2_files == 0 then
+    renoise.app():show_error("No RX2 files found in the selected folder.")
+    return
+  end
+  print("Found " .. #rx2_files .. " RX2 files")
+
+  -- Prompt for output folder
+  local output_folder = renoise.app():prompt_for_path("Select Output Folder for XRNI Files")
+  if not output_folder or output_folder == "" then
+    renoise.app():show_status("Batch RX2->XRNI: Cancelled – no output folder selected")
+    return
+  end
+  print("Output folder: " .. output_folder)
+
+  -- Set up OS-specific decoder paths
+  local setup_success, rex_decoder_path, sdk_path = setup_os_specific_paths()
+  if not setup_success then
+    renoise.app():show_error("Failed to set up RX2 decoder. Check console for details.")
+    return
+  end
+
+  -- Determine temp folder
+  local TEMP_FOLDER = "/tmp"
+  local os_name = os.platform()
+  if os_name == "MACINTOSH" then
+    TEMP_FOLDER = os.getenv("TMPDIR") or "/tmp"
+  elseif os_name == "WINDOWS" then
+    TEMP_FOLDER = os.getenv("TEMP") or "C:\\Temp"
+  end
+
+  local success_count = 0
+  local fail_count    = 0
+
+  for i, rx2_path in ipairs(rx2_files) do
+    -- Derive base name (strip path + extension)
+    local rx2_filename = rx2_path:match("[^/\\]+$") or "unknown"
+    local base_name    = rx2_filename:gsub("%.rx2$", ""):gsub("%.RX2$", "")
+
+    print(string.format("\n--- Processing %d/%d: %s ---", i, #rx2_files, rx2_filename))
+    renoise.app():show_status(string.format(
+      "Batch RX2->XRNI: Processing %d/%d: %s", i, #rx2_files, rx2_filename))
+
+    -- Unique temp file names to avoid collisions
+    local timestamp = tostring(os.time()) .. "_" .. tostring(i)
+    local temp_wav = TEMP_FOLDER .. separator .. base_name .. "_" .. timestamp .. ".wav"
+    local temp_txt = TEMP_FOLDER .. separator .. base_name .. "_" .. timestamp .. "_slices.txt"
+
+    -- Run the external decoder
+    local cmd
+    if os_name == "LINUX" then
+      cmd = string.format("wine %q %q %q %q %q 2>&1",
+        rex_decoder_path, rx2_path, temp_wav, temp_txt, sdk_path)
+    else
+      cmd = string.format("%s %q %q %q %q 2>&1",
+        rex_decoder_path, rx2_path, temp_wav, temp_txt, sdk_path)
+    end
+    print("Running decoder: " .. cmd)
+    local decode_result = os.execute(cmd)
+
+    -- Check that the WAV was produced
+    local wav_check = io.open(temp_wav, "rb")
+    if not wav_check then
+      print("ERROR: Decoder did not produce WAV for: " .. rx2_filename)
+      fail_count = fail_count + 1
+      pcall(function() os.remove(temp_wav) end)
+      pcall(function() os.remove(temp_txt) end)
+    else
+      wav_check:close()
+
+      -- Insert a fresh instrument at the end of the song
+      local song = renoise.song()
+      local new_idx = #song.instruments + 1
+      if not safeInsertInstrumentAt(song, new_idx) then
+        print("ERROR: Could not insert instrument for: " .. rx2_filename)
+        fail_count = fail_count + 1
+        pcall(function() os.remove(temp_wav) end)
+        pcall(function() os.remove(temp_txt) end)
+      else
+        song.selected_instrument_index = new_idx
+        local instrument = song.selected_instrument
+        instrument.name  = base_name
+
+        -- Ensure the instrument has at least one sample slot
+        if #instrument.samples == 0 then
+          instrument:insert_sample_at(1)
+        end
+        song.selected_sample_index = 1
+        local smp = song.selected_sample
+        smp.name = base_name
+
+        -- Load the decoded WAV into the sample buffer
+        local load_ok = pcall(function()
+          smp.sample_buffer:load_from(temp_wav)
+        end)
+
+        if not load_ok or not smp.sample_buffer.has_sample_data then
+          print("ERROR: Could not load WAV into instrument for: " .. rx2_filename)
+          fail_count = fail_count + 1
+          -- Remove the instrument we just created
+          song:delete_instrument_at(new_idx)
+        else
+          -- Insert slice markers from the text file
+          local slice_ok, marker_count, was_truncated =
+            load_slice_markers(temp_txt)
+          if slice_ok then
+            print(string.format("Loaded %d slice markers for: %s",
+              marker_count or 0, rx2_filename))
+          else
+            print("Warning: Could not load slice markers for: " .. rx2_filename)
+          end
+
+          -- Apply name suffix if markers were capped at 255
+          if was_truncated then
+            instrument.name = base_name .. " (255 slices)"
+            smp.name        = base_name .. " (255 slices)"
+          end
+
+          -- Save the instrument as XRNI
+          local xrni_path = output_folder .. separator .. base_name .. ".xrni"
+          local save_ok, save_err = pcall(function()
+            renoise.app():save_instrument(xrni_path)
+          end)
+
+          if not save_ok then
+            print("ERROR: Could not save XRNI for " .. rx2_filename
+              .. ": " .. tostring(save_err))
+            fail_count = fail_count + 1
+          else
+            print("SUCCESS: Saved " .. xrni_path)
+            success_count = success_count + 1
+          end
+
+          -- Remove the temporary instrument to keep the song tidy
+          song:delete_instrument_at(new_idx)
+        end
+
+        -- Clean up temp files
+        pcall(function() os.remove(temp_wav) end)
+        pcall(function() os.remove(temp_txt) end)
+      end
+    end
+  end
+
+  -- Final report
+  local status_msg = string.format(
+    "Batch RX2->XRNI Complete: %d succeeded, %d failed out of %d files",
+    success_count, fail_count, #rx2_files)
+  print("\n=== " .. status_msg .. " ===")
+  renoise.app():show_status(status_msg)
+
+  if fail_count > 0 then
+    renoise.app():show_warning(string.format(
+      "Batch RX2 to XRNI conversion completed.\n\n"
+      .. "Successfully converted: %d files\n"
+      .. "Failed: %d files\n\n"
+      .. "Check the scripting console for details.",
+      success_count, fail_count))
+  else
+    renoise.app():show_message(string.format(
+      "Batch RX2 to XRNI conversion completed successfully!\n\n"
+      .. "Converted %d RX2 files to XRNI format.\n\n"
+      .. "Output folder: %s",
+      success_count, output_folder))
+  end
+end
+
+--------------------------------------------------------------------------------
+-- Menu entry and keybinding for Batch RX2 to XRNI
+--------------------------------------------------------------------------------
+renoise.tool():add_menu_entry{
+  name   = "Sample Editor:Paketti:Batch Convert RX2 to XRNI...",
+  invoke = PakettiBatchRX2ToXRNI}
+renoise.tool():add_keybinding{
+  name   = "Global:Paketti:Batch Convert RX2 to XRNI",
+  invoke = PakettiBatchRX2ToXRNI}
