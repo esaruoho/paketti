@@ -2485,9 +2485,10 @@ renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Load .MOD as S
 renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Import .REX",invoke=function() 
   local filename = renoise.app():prompt_for_filename_to_read({"*.REX"}, "ReCycle .REX Import tool")
   if filename then rex_loadsample(filename) end end}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Import .RX2",invoke=function() 
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Import .RX2",invoke=function()
   local filename = renoise.app():prompt_for_filename_to_read({"*.RX2","*.rx2"}, "ReCycle .RX2 Import tool")
   if filename then rx2_loadsample(filename) end end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Batch Convert RX2 to XRNI...",invoke=PakettiBatchRX2ToXRNI}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Import .SF2 (Single XRNI per Preset)",
   invoke=function()
     local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
