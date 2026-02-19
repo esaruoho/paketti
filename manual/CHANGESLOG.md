@@ -182,6 +182,12 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-19 - Fix: Phrase Follow notifier no longer crashes when no phrase is selected
+
+The `phrase_follow_notifier` (which syncs the Phrase Editor display during playback) would crash with a nil-access error whenever the selected instrument had no phrases — or when playback started before any phrase had been selected. The notifier fires on every idle tick during playback, so this caused the notifier to permanently disable itself mid-session. Fixed by adding a nil-guard: if `song.selected_phrase` is nil the notifier now exits cleanly instead of erroring out.
+
+---
+
 ### 2024-06-16 - Improvement: Effect Column CheatSheet Dialog now either outputs to selected_row if no selection, or to the selection.
 
 ---
