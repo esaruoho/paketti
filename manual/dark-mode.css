@@ -1,0 +1,228 @@
+/* Base styling for dark mode */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    padding: clamp(1em, 5vw, 2em);
+    margin: 0 !important;
+    text-align: left;
+    line-height: 1.3em;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
+@media(min-width:1000px){
+    body > * {
+        max-width: 1000px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
+
+/* Table styling for dark theme */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #1e1e1e; /* Dark background for table */
+    color: #ffffff;            /* White text for readability */
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #444444; /* Dark gray borders for separation */
+}
+
+th {
+    background-color: #2a2a2a; /* Slightly darker background for header cells */
+    color: #bb86fc;            /* Light purple for header text */
+    font-weight: bold;
+}
+
+td {
+    background-color: #1e1e1e; /* Same dark background for data cells */
+}
+
+/* Optional: Alternate row colors */
+tr:nth-child(even) td {
+    background-color: #2a2a2a; /* Slightly lighter dark for alternate rows */
+}
+
+/* Link styling */
+a {
+    color: #bb86fc;
+    text-decoration: none;
+}
+a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+/* Horizontal rule styling */
+hr {
+    margin-bottom: 2em;
+    margin-top: 2.7em;
+    border-style: dashed;
+    border-width: 1px;
+    border-top: none;
+    border-color: #bb86fc;
+}
+
+/* List styling */
+ol, ul {
+    margin: 1em 0;
+    padding-left: 2em;
+    list-style-position: outside;
+}
+
+li {
+    margin-bottom: 0.2em;
+    padding-left: 0.5em;
+}
+
+@media(min-width:600px){
+    ol, ul {
+        margin: 2em auto;
+        padding-left: 2.5em;
+    }
+}
+
+/* Image styling */
+img {
+    max-width: 90%;
+    display: block;
+    padding-block: 1em;
+}
+
+/* Paragraph styling */
+p {
+    max-width: 100%;
+    margin: 0.5em auto;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Heading spacing */
+h1, h2, h3, h4, h5, h6 {
+    padding-top: 0.5em;
+    margin: 0;
+    word-wrap: break-word;
+    scroll-margin-top: 1em;
+}
+
+h1 {
+    padding-bottom: 0.5em;
+}
+
+/* Make headings with IDs look linkable */
+h1[id]:hover,
+h2[id]:hover,
+h3[id]:hover,
+h4[id]:hover,
+h5[id]:hover,
+h6[id]:hover {
+    cursor: pointer;
+}
+
+@media(min-width:600px){
+    h1 {
+        padding-top: 1.3em;
+        padding-bottom: 1em;
+    }
+    
+    h2 {
+        padding-top: 1.1em;
+    }
+    
+    h3 {
+        padding-top: 0.9em;
+    }
+    
+    h4 {
+        padding-top: 0.7em;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* Mobile link styling */
+@media(max-width:600px){
+    a {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        max-width: 100%;
+    }
+}
+
+/* MAIN MENU */
+p:first-of-type a {
+    display: inline;
+}
+
+/* ============================
+   CODE BLOCK & INLINE-CODE
+   ============================ */
+
+/* 1) Generic <pre> and <code> */
+pre, code {
+    background-color: #1e1e1e !important;
+    color: #f0f0f0            !important;
+    font-family: Menlo, Consolas, monospace;
+}
+
+/* 2) Block code (displayed) */
+pre {
+    border-radius: 4px;
+    padding: 0.75em;
+    overflow-x: auto;
+    margin: 1em 0;
+}
+
+/* 3) Inline code */
+code:not(pre code) {
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+}
+
+/* 4) Jekyll/Liquid “highlight” -->
+div.highlight, div.highlight pre,
+.highlight pre, .highlight code {
+    background-color: #1e1e1e !important;
+    color: #f0f0f0            !important;
+}
+
+/* 5) PrismJS */
+pre[class*="language-"],
+code[class*="language-"] {
+    background-color: #1e1e1e !important;
+    color: #f0f0f0            !important;
+}
+
+/* 6) Highlight.js */
+.hljs {
+    background-color: #1e1e1e !important;
+    color: #f0f0f0            !important;
+}
+.hljs-comment,
+.hljs-quote {
+    color: #6a9955           !important;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+    color: #c586c0           !important;
+}
+.hljs-function .hljs-title,
+.hljs-class .hljs-title {
+    color: #dcdcaa           !important;
+}
+/* (add more .hljs-… overrides if your highlighter theme is still too bright) */

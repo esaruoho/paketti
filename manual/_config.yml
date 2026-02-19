@@ -1,0 +1,74 @@
+title: "Paketti - Renoise Tracker Convergence Project"
+description: "Paketti provides thousands of shortcuts, thousands of menu entries, thousands of MIDI mappings, and hundreds of dialogs for Renoise. Features from legendary trackers including C64 trackers, OctaMED, Impulse Tracker, OpenMPT, and PlayerPro."
+url: "https://esaruoho.github.io"
+baseurl: "/paketti-manual"
+
+# GitHub Pages settings
+remote_theme: null
+theme: null
+
+# Markdown settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+
+# Plugin settings
+plugins:
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-default-layout
+  - jekyll-titles-from-headings
+
+# Relative links settings
+relative_links:
+  enabled: true
+  collections: true
+
+# Front matter defaults
+defaults:
+  -
+    scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"
+
+# File inclusion/exclusion
+include:
+  - "*.md"
+  - "*.html"
+  - "*.css"
+  - "*.js"
+  - "*.png"
+  - "*.jpg"
+  - "*.jpeg"
+  - "*.gif"
+  - "*.svg"
+  - "attachments/"
+  - "Screenshots/"
+  - "AutomationAssets/"
+
+exclude:
+  - "*.gem"
+  - "*.gemspec"
+  - "Gemfile"
+  - "Gemfile.lock"
+  - "node_modules"
+  - "vendor/bundle/"
+  - "vendor/cache/"
+  - "vendor/gems/"
+  - "vendor/ruby/"
+  - ".DS_Store"
+  - ".gitignore"
+  - ".git/"
+  - ".github/"
+  - ".obsidian/"
+
+# Repository settings
+repository: "esaruoho/paketti-manual"
+github:
+  repository_name: "paketti-manual"
+  owner_name: "esaruoho" 

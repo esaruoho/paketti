@@ -43,6 +43,7 @@ jobs:
             "preferences.xml" \
             "preferencesDynamicView.xml" \
             "definitions/*" \
+            "manual/*" \
             ".dsp_cache" \
             "action_selector_settings.txt" \
             "free_keybindings_20250302_160606.txt" \
