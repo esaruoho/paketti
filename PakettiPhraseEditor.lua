@@ -296,6 +296,7 @@ local function phrase_follow_notifier()
   if song.transport.playing then
     local pattern_pos = song.selected_line_index  -- This is already 1-based from Renoise
     local pattern_length = song.selected_pattern.number_of_lines
+    if not song.selected_phrase then return end
     local phrase_length = song.selected_phrase.number_of_lines
     
     -- Detect wrap from end to start of pattern
