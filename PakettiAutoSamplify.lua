@@ -891,9 +891,9 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
             new_instrument:insert_sample_at(sample_idx)
             local new_sample = new_instrument.samples[sample_idx]
             
-            -- Check if source sample is a slice alias - cannot use copy_from on slice alias samples
-            if source_sample.is_slice_alias then
-              print(string.format("DEBUG: Source sample '%s' is a slice alias, copying properties and buffer manually", source_sample.name))
+            -- Check if source sample is a slice alias or has slice markers - cannot use copy_from on either
+            if source_sample.is_slice_alias or #source_sample.slice_markers > 0 then
+              print(string.format("DEBUG: Source sample '%s' is a slice alias or has slice markers, copying properties and buffer manually", source_sample.name))
               -- Copy sample properties manually
               new_sample.panning = source_sample.panning
               new_sample.volume = source_sample.volume
@@ -937,7 +937,14 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
                   if source_sample.loop_end <= source_buffer.number_of_frames then
                     new_sample.loop_end = source_sample.loop_end
                   end
-                  print(string.format("DEBUG: Successfully copied alias sample buffer (%d frames, %d channels)", 
+                  -- Copy slice markers if any
+                  if #source_sample.slice_markers > 0 then
+                    for _, marker in ipairs(source_sample.slice_markers) do
+                      new_sample:insert_slice_marker(marker)
+                    end
+                    print(string.format("DEBUG: Copied %d slice markers", #source_sample.slice_markers))
+                  end
+                  print(string.format("DEBUG: Successfully copied alias sample buffer (%d frames, %d channels)",
                                      source_buffer.number_of_frames, source_buffer.number_of_channels))
                 else
                   print(string.format("ERROR: Failed to create sample buffer for alias sample '%s'", source_sample.name))
