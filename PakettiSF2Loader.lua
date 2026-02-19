@@ -1561,6 +1561,577 @@ end
 
 -- NOTE: File import hook registration moved to PakettiImport.lua for centralized management
 
+--------------------------------------------------------------------------------
+-- Batch SF2 → XRNI Converter
+-- Converts a folder of SF2 files into individual XRNI instrument files,
+-- one XRNI per SF2 preset.  Each preset is built into a temporary Renoise
+-- instrument, saved as <sf2name>_<preset_name>.xrni in the chosen output
+-- folder, then the temporary instrument is cleaned up.
+--------------------------------------------------------------------------------
 
+-- Collect .sf2 files from a folder (non-recursive, case-insensitive)
+local function getSF2Files(dir)
+  local files   = {}
+  local command
+  if package.config:sub(1, 1) == "\\" then  -- Windows
+    command = string.format('dir "%s" /b /s', dir:gsub('"', '\\"'))
+  else  -- macOS / Linux
+    command = string.format(
+      "find '%s' -type f \\( -name '*.sf2' -o -name '*.SF2' \\)",
+      dir:gsub("'", "'\\''"))
+  end
+  local handle = io.popen(command)
+  if handle then
+    for line in handle:lines() do
+      if line:lower():match("%.sf2$") then
+        table.insert(files, line)
+      end
+    end
+    handle:close()
+  end
+  table.sort(files)
+  return files
+end
 
+-- Replace characters that are unsafe in filenames
+local function sf2_sanitize_name(s)
+  return (s:gsub('[/\\:*?"<>|%%]', "_"):gsub("%s+", "_"))
+end
 
+-- Build all samples for one SF2 preset mapping into an already-inserted
+-- Renoise instrument r_inst.  Mirrors the sample-building inner loop of
+-- import_sf2() and uses coroutine.yield() for UI responsiveness.
+-- Returns true on success.
+local function sf2_build_preset(r_inst, map, smpl_data_start, data, is_drumkit)
+  local is_first_overwritten = false
+
+  for _, smp_entry in ipairs(map.samples) do
+    local hdr              = smp_entry.header
+    local zone_params      = smp_entry.zone_params      or {}
+    local inst_zone_params = smp_entry.inst_zone_params or {}
+    local frames           = hdr.s_end - hdr.s_start
+
+    if frames > 0 then
+      -- ── Determine stereo ──────────────────────────────────────────────
+      local is_stereo = false
+      if hdr.sample_link ~= 0 then
+        if hdr.sample_type == 0 or hdr.sample_type == 1 then
+          is_stereo = true
+        end
+      end
+
+      -- ── Extract raw PCM ──────────────────────────────────────────────
+      local sample_data = {}
+      if is_stereo then
+        for f_i = hdr.s_start + 1, hdr.s_end do
+          local offset = smpl_data_start + (f_i - 1) * 4
+          if offset + 3 <= #data then
+            sample_data[#sample_data + 1] = {
+              left  = PakettiSF2ReadS16LE(data, offset)     / 32768.0,
+              right = PakettiSF2ReadS16LE(data, offset + 2) / 32768.0,
+            }
+          end
+          if f_i % 100000 == 0 then coroutine.yield() end
+        end
+      else
+        for f_i = hdr.s_start + 1, hdr.s_end do
+          local offset = smpl_data_start + (f_i - 1) * 2
+          if offset + 1 <= #data then
+            sample_data[#sample_data + 1] =
+              PakettiSF2ReadS16LE(data, offset) / 32768.0
+          end
+          if f_i % 100000 == 0 then coroutine.yield() end
+        end
+      end
+
+      if #sample_data > 0 then
+        -- ── Choose / create sample slot ───────────────────────────────
+        local sample_slot
+        if not is_drumkit then
+          if not is_first_overwritten and #r_inst.samples > 0 then
+            sample_slot          = 1
+            is_first_overwritten = true
+          else
+            sample_slot = #r_inst.samples + 1
+            r_inst:insert_sample_at(sample_slot)
+          end
+        else
+          sample_slot = #r_inst.samples + 1
+          r_inst:insert_sample_at(sample_slot)
+        end
+
+        local reno_smp = r_inst.samples[sample_slot]
+        local buf_ok, buf_err = pcall(function()
+          if is_stereo then
+            reno_smp.sample_buffer:create_sample_data(hdr.sample_rate, 16, 2, #sample_data)
+          else
+            reno_smp.sample_buffer:create_sample_data(hdr.sample_rate, 16, 1, #sample_data)
+          end
+        end)
+
+        if not buf_ok then
+          print("ERROR creating sample buffer for " .. hdr.name .. ": " .. buf_err)
+        else
+          -- ── Fill buffer ─────────────────────────────────────────────
+          local buf = reno_smp.sample_buffer
+          buf:prepare_sample_data_changes()
+          if is_stereo then
+            for f_i = 1, #sample_data do
+              buf:set_sample_data(1, f_i, sample_data[f_i].left)
+              buf:set_sample_data(2, f_i, sample_data[f_i].right)
+              if f_i % 100000 == 0 then coroutine.yield() end
+            end
+          else
+            for f_i = 1, #sample_data do
+              buf:set_sample_data(1, f_i, sample_data[f_i])
+              if f_i % 100000 == 0 then coroutine.yield() end
+            end
+          end
+          buf:finalize_sample_data_changes()
+          reno_smp.name = hdr.name
+
+          -- ── Tuning ──────────────────────────────────────────────────
+          local coarse_tune = 0
+          local fine_tune   = 0
+          local raw_coarse  = inst_zone_params[51] or zone_params[51]
+          local raw_fine    = inst_zone_params[52] or zone_params[52]
+          if raw_coarse then
+            coarse_tune = (raw_coarse >= 32768) and (raw_coarse - 65536) or raw_coarse
+          end
+          if raw_fine then
+            fine_tune = (raw_fine >= 32768) and (raw_fine - 65536) or raw_fine
+          end
+          if hdr.pitch_corr and hdr.pitch_corr ~= 0 then
+            fine_tune = fine_tune + hdr.pitch_corr
+          end
+          reno_smp.transpose = PakettiSF2Clamp(coarse_tune, -120, 120)
+          reno_smp.fine_tune = PakettiSF2Clamp(fine_tune,   -100, 100)
+
+          -- ── Panning ─────────────────────────────────────────────────
+          local raw_pan = inst_zone_params[17] or zone_params[17]
+                          or map.fallback_params[17]
+          if raw_pan then
+            local pan_val    = PakettiSF2ToSigned(raw_pan)
+            reno_smp.panning = 0.5 + (pan_val / 120) * 0.5
+          else
+            reno_smp.panning = 0.5
+          end
+
+          -- ── Loop ────────────────────────────────────────────────────
+          if not is_drumkit then
+            local loop_start_rel = hdr.loop_start - hdr.s_start + 1
+            local loop_end_rel   = hdr.loop_end   - hdr.s_start
+            local sample_mode    = inst_zone_params[54] or zone_params[54]
+            if sample_mode == 1 then
+              if loop_start_rel <= 0            then loop_start_rel = 1            end
+              if loop_end_rel > #sample_data    then loop_end_rel   = #sample_data end
+              if loop_end_rel > loop_start_rel then
+                reno_smp.loop_mode  = renoise.Sample.LOOP_MODE_FORWARD
+                reno_smp.loop_start = loop_start_rel
+                reno_smp.loop_end   = loop_end_rel
+              else
+                reno_smp.loop_mode  = renoise.Sample.LOOP_MODE_OFF
+              end
+            elseif sample_mode == 3 then
+              if loop_start_rel <= 0            then loop_start_rel = 1            end
+              if loop_end_rel > #sample_data    then loop_end_rel   = #sample_data end
+              if loop_end_rel > loop_start_rel then
+                reno_smp.loop_mode  = renoise.Sample.LOOP_MODE_PING_PONG
+                reno_smp.loop_start = loop_start_rel
+                reno_smp.loop_end   = loop_end_rel
+              else
+                reno_smp.loop_mode  = renoise.Sample.LOOP_MODE_OFF
+              end
+            else
+              reno_smp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+            end
+          end
+
+          -- ── Key / velocity range ─────────────────────────────────────
+          local base_note     = hdr.orig_pitch or 60
+          local override_root = inst_zone_params[58] or zone_params[58]
+          if override_root then base_note = override_root end
+          base_note = math.min(108, math.max(0, base_note))
+          reno_smp.sample_mapping.base_note = base_note
+
+          local kr_src = inst_zone_params[43] or zone_params[43]
+          if kr_src then
+            local kl = PakettiSF2ClampNote(kr_src % 256)
+            local kh = PakettiSF2ClampNote(math.floor(kr_src / 256) % 256)
+            reno_smp.sample_mapping.note_range = { kl, kh }
+          elseif map.key_range then
+            local kl = PakettiSF2ClampNote(map.key_range.low)
+            local kh = PakettiSF2ClampNote(map.key_range.high)
+            reno_smp.sample_mapping.note_range = { kl, kh }
+          else
+            if is_drumkit then
+              local cb = PakettiSF2ClampNote(base_note)
+              reno_smp.sample_mapping.note_range = { cb, cb }
+            else
+              reno_smp.sample_mapping.note_range = { 0, 119 }
+            end
+          end
+
+          local vr_raw = inst_zone_params[44] or zone_params[44]
+          if vr_raw then
+            local vl = PakettiSF2Clamp(vr_raw % 256,                  1, 127)
+            local vh = PakettiSF2Clamp(math.floor(vr_raw / 256) % 256, 1, 127)
+            reno_smp.sample_mapping.velocity_range = { vl, vh }
+          else
+            reno_smp.sample_mapping.velocity_range = { 1, 127 }
+          end
+
+          -- ── Volume envelope (AHDSR) ──────────────────────────────────
+          local va     = inst_zone_params[34] or zone_params[34]
+          local vh_env = inst_zone_params[35] or zone_params[35]
+          local vd     = inst_zone_params[36] or zone_params[36]
+          local vs     = inst_zone_params[37] or zone_params[37]
+          local vr_env = inst_zone_params[38] or zone_params[38]
+          if va or vh_env or vd or vs or vr_env then
+            local ahdsr = PakettiSF2SetupVolumeAhdsrDevice(r_inst, sample_slot)
+            if ahdsr then
+              local function apply_time(param_idx, tc_val)
+                if tc_val then
+                  local secs = PakettiSF2TimecentToSeconds(tc_val)
+                  local pval = secs and PakettiSF2MapEnvelopeTime(secs)
+                  if pval then ahdsr.parameters[param_idx].value = pval end
+                end
+              end
+              apply_time(2, va)
+              apply_time(3, vh_env)
+              apply_time(4, vd)
+              if vs then
+                local sl = PakettiSF2SustainCbToLevel(vs)
+                if sl then ahdsr.parameters[5].value = sl end
+              end
+              apply_time(6, vr_env)
+            end
+          end
+
+          -- ── Remove 2-frame placeholder left by scaffold ──────────────
+          if not is_drumkit and is_first_overwritten then
+            for pi = 1, #r_inst.samples do
+              local s = r_inst.samples[pi]
+              if s and s.name == "Placeholder sample"
+                  and s.sample_buffer.number_of_frames == 2 then
+                r_inst:delete_sample_at(pi)
+                break
+              end
+            end
+          end
+        end  -- buf_ok
+      end  -- #sample_data > 0
+    end  -- frames > 0
+
+    coroutine.yield()
+  end  -- for each sample in mapping
+
+  -- ── Drumkit: remap each sample to its own discrete note ──────────────
+  if is_drumkit then
+    if #r_inst.samples > 1 then
+      r_inst:delete_sample_at(1)  -- remove scaffold placeholder
+    end
+    for i_s = 1, #r_inst.samples do
+      local s    = r_inst.samples[i_s]
+      local note = PakettiSF2ClampNote(i_s - 1)
+      s.sample_mapping.note_range = { note, note }
+      s.sample_mapping.base_note  = note
+    end
+  end
+
+  return true
+end
+
+-- ProcessSlicer worker – runs entirely inside the coroutine
+function PakettiBatchSF2ToXRNI_Worker(sf2_files, output_folder, dialog, vb)
+  local sep          = package.config:sub(1, 1)
+  local total_saved  = 0
+  local total_failed = 0
+
+  for i, sf2_path in ipairs(sf2_files) do
+    -- Yield between every SF2 file so Renoise stays responsive
+    coroutine.yield()
+
+    local sf2_filename = sf2_path:match("[^/\\]+$") or "unknown"
+    local sf2_name     = sf2_filename:gsub("%.sf2$", ""):gsub("%.SF2$", "")
+
+    print(string.format("\n=== File %d/%d: %s ===", i, #sf2_files, sf2_filename))
+
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = string.format(
+        "File %d/%d: %s – reading…", i, #sf2_files, sf2_filename)
+    end
+    renoise.app():show_status(string.format(
+      "Batch SF2->XRNI: %d/%d – %s", i, #sf2_files, sf2_filename))
+
+    -- ── Open and validate SF2 ─────────────────────────────────────────
+    local f = io.open(sf2_path, "rb")
+    if not f then
+      print("ERROR: Cannot open: " .. sf2_path)
+      total_failed = total_failed + 1
+    else
+      local data = f:read("*all")
+      f:close()
+
+      if data:sub(1, 4) ~= "RIFF" then
+        print("ERROR: Not a valid SF2 (missing RIFF): " .. sf2_path)
+        total_failed = total_failed + 1
+      else
+        local smpl_pos = data:find("smpl", 1, true)
+        if not smpl_pos then
+          print("ERROR: No smpl chunk: " .. sf2_path)
+          total_failed = total_failed + 1
+        else
+          local smpl_data_start = smpl_pos + 8
+          coroutine.yield()
+
+          -- ── Parse SF2 structure ───────────────────────────────────
+          if dialog and dialog.visible then
+            vb.views.progress_text.text = string.format(
+              "File %d/%d: %s – reading headers…", i, #sf2_files, sf2_filename)
+          end
+          local headers = PakettiSF2ReadSampleHeaders(data)
+          if not headers or #headers == 0 then
+            print("ERROR: No sample headers: " .. sf2_path)
+            total_failed = total_failed + 1
+          else
+            coroutine.yield()
+            if dialog and dialog.visible then
+              vb.views.progress_text.text = string.format(
+                "File %d/%d: %s – reading instruments…", i, #sf2_files, sf2_filename)
+            end
+            local instruments_zones = PakettiSF2ReadInstruments(data, nil)
+            coroutine.yield()
+
+            if dialog and dialog.visible then
+              vb.views.progress_text.text = string.format(
+                "File %d/%d: %s – reading presets…", i, #sf2_files, sf2_filename)
+            end
+            local presets = PakettiSF2ReadPresets(data, nil)
+            if not presets or #presets == 0 then
+              print("ERROR: No presets: " .. sf2_path)
+              total_failed = total_failed + 1
+            else
+              -- ── Build preset→sample mappings (same as import_sf2) ──
+              local mappings = {}
+              for _, preset in ipairs(presets) do
+                local combined_samples = {}
+                for _, zone in ipairs(preset.zones) do
+                  local assigned = {}
+                  local zp       = zone.params or {}
+
+                  if zp[41] then
+                    local inst_idx  = zp[41] + 1
+                    local inst_info = instruments_zones[inst_idx]
+                    if inst_info and inst_info.zones then
+                      for _, izone in ipairs(inst_info.zones) do
+                        if izone.sample_id then
+                          local hdr = headers[izone.sample_id + 1]
+                          if hdr then
+                            assigned[#assigned + 1] = {
+                              header           = hdr,
+                              zone_params      = zp,
+                              inst_zone_params = izone.params,
+                            }
+                          end
+                        end
+                      end
+                    end
+                  end
+
+                  -- Fallback: key-range
+                  if #assigned == 0 and zone.key_range then
+                    for _, hdr in ipairs(headers) do
+                      if hdr.orig_pitch >= zone.key_range.low
+                          and hdr.orig_pitch <= zone.key_range.high then
+                        assigned[#assigned + 1] = { header = hdr, zone_params = zp }
+                      end
+                    end
+                  end
+
+                  -- Fallback: substring match
+                  if #assigned == 0 then
+                    for _, hdr in ipairs(headers) do
+                      if hdr.name:lower():find(preset.name:lower(), 1, true) then
+                        assigned[#assigned + 1] = { header = hdr, zone_params = zp }
+                      end
+                    end
+                  end
+
+                  for _, se in ipairs(assigned) do
+                    combined_samples[#combined_samples + 1] = se
+                  end
+                end
+
+                if #combined_samples > 0 then
+                  mappings[#mappings + 1] = {
+                    preset_name     = preset.name,
+                    bank            = preset.bank,
+                    preset_num      = preset.preset,
+                    samples         = combined_samples,
+                    fallback_params = (preset.zones[#preset.zones]
+                                       and preset.zones[#preset.zones].params) or {},
+                    key_range       = preset.zones[#preset.zones]
+                                       and preset.zones[#preset.zones].key_range,
+                  }
+                end
+                coroutine.yield()
+              end  -- for each preset
+
+              -- ── Convert each mapping to an XRNI ─────────────────────
+              local song        = renoise.song()
+              local file_saved  = 0
+              local file_failed = 0
+
+              for map_idx, map in ipairs(mappings) do
+                coroutine.yield()
+
+                local is_drumkit   = (map.bank == 128)
+                local preset_file  = is_drumkit
+                  and (renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+                  or  "Presets/12st_Pitchbend.xrni"
+
+                local safe_preset  = sf2_sanitize_name(map.preset_name)
+                local xrni_name    = sf2_sanitize_name(sf2_name) .. "_" .. safe_preset
+                local xrni_path    = output_folder .. sep .. xrni_name .. ".xrni"
+
+                if dialog and dialog.visible then
+                  vb.views.progress_text.text = string.format(
+                    "File %d/%d, preset %d/%d: %s",
+                    i, #sf2_files, map_idx, #mappings, map.preset_name)
+                end
+                renoise.app():show_status(string.format(
+                  "Batch SF2->XRNI: %s – preset %d/%d: %s",
+                  sf2_filename, map_idx, #mappings, map.preset_name))
+
+                -- Insert scaffold instrument at end of song
+                local new_idx = #song.instruments + 1
+                if not safeInsertInstrumentAt(song, new_idx) then
+                  print("ERROR: Cannot insert instrument for: " .. map.preset_name)
+                  file_failed = file_failed + 1
+                else
+                  song.selected_instrument_index = new_idx
+                  renoise.app():load_instrument(preset_file)
+                  local r_inst = song.selected_instrument
+                  if not r_inst then
+                    print("ERROR: Failed to load scaffold for: " .. map.preset_name)
+                    song:delete_instrument_at(new_idx)
+                    file_failed = file_failed + 1
+                  else
+                    r_inst.name = string.format(
+                      "%s (Bank %d, Preset %d)",
+                      map.preset_name, map.bank, map.preset_num)
+
+                    -- Build all samples into the instrument
+                    local build_ok = pcall(sf2_build_preset,
+                      r_inst, map, smpl_data_start, data, is_drumkit)
+
+                    if not build_ok then
+                      print("ERROR: Build failed for preset: " .. map.preset_name)
+                      song:delete_instrument_at(new_idx)
+                      file_failed = file_failed + 1
+                    else
+                      -- Save as XRNI, then always clean up
+                      local save_ok, save_err = pcall(function()
+                        renoise.app():save_instrument(xrni_path)
+                      end)
+                      song:delete_instrument_at(new_idx)  -- clean up regardless
+
+                      if not save_ok then
+                        print("ERROR: Could not save " .. xrni_path
+                          .. ": " .. tostring(save_err))
+                        file_failed = file_failed + 1
+                      else
+                        print("SUCCESS: " .. xrni_path)
+                        file_saved = file_saved + 1
+                      end
+                    end
+                  end
+                end
+              end  -- for each mapping
+
+              total_saved  = total_saved  + file_saved
+              total_failed = total_failed + file_failed
+              print(string.format("  → %s: %d presets saved, %d failed",
+                sf2_filename, file_saved, file_failed))
+            end  -- presets ok
+          end  -- headers ok
+        end  -- smpl chunk ok
+      end  -- RIFF ok
+    end  -- file open ok
+  end  -- for each SF2 file
+
+  -- ── Close progress dialog ──────────────────────────────────────────────
+  if dialog and dialog.visible then dialog:close() end
+
+  -- ── Final report ──────────────────────────────────────────────────────
+  local status_msg = string.format(
+    "Batch SF2->XRNI Complete: %d XRNIs saved, %d failed, from %d SF2 files",
+    total_saved, total_failed, #sf2_files)
+  print("\n=== " .. status_msg .. " ===")
+  renoise.app():show_status(status_msg)
+
+  if total_failed > 0 then
+    renoise.app():show_warning(string.format(
+      "Batch SF2 to XRNI conversion completed.\n\n"
+      .. "Successfully saved: %d XRNI files\n"
+      .. "Failed: %d\n\n"
+      .. "Check the scripting console for details.",
+      total_saved, total_failed))
+  else
+    renoise.app():show_message(string.format(
+      "Batch SF2 to XRNI conversion completed successfully!\n\n"
+      .. "Saved %d XRNI files to:\n%s",
+      total_saved, output_folder))
+  end
+end
+
+-- Main entry point
+function PakettiBatchSF2ToXRNI()
+  print("=== Batch SF2 to XRNI Converter ===")
+
+  local input_folder = renoise.app():prompt_for_path(
+    "Select Folder Containing SF2 Files")
+  if not input_folder or input_folder == "" then
+    renoise.app():show_status("Batch SF2->XRNI: Cancelled – no input folder selected")
+    return
+  end
+  print("Input folder: " .. input_folder)
+
+  local sf2_files = getSF2Files(input_folder)
+  if #sf2_files == 0 then
+    renoise.app():show_error("No SF2 files found in the selected folder.")
+    return
+  end
+  print("Found " .. #sf2_files .. " SF2 files")
+
+  local output_folder = renoise.app():prompt_for_path(
+    "Select Output Folder for XRNI Files")
+  if not output_folder or output_folder == "" then
+    renoise.app():show_status("Batch SF2->XRNI: Cancelled – no output folder selected")
+    return
+  end
+  print("Output folder: " .. output_folder)
+
+  -- Launch via ProcessSlicer so Renoise stays responsive between files
+  local dialog, vb
+  local process_slicer = ProcessSlicer(function()
+    PakettiBatchSF2ToXRNI_Worker(sf2_files, output_folder, dialog, vb)
+  end)
+
+  dialog, vb = process_slicer:create_dialog("Batch SF2 → XRNI")
+  process_slicer:start()
+end
+
+--------------------------------------------------------------------------------
+-- Menu entry and keybinding for Batch SF2 → XRNI
+--------------------------------------------------------------------------------
+renoise.tool():add_menu_entry{
+  name   = "Sample Editor:Paketti:Batch Convert SF2 to XRNI (Per Preset)...",
+  invoke = PakettiBatchSF2ToXRNI}
+renoise.tool():add_menu_entry{
+  name   = "Main Menu:File:Paketti Export..:Batch Convert SF2 to XRNI (Per Preset)...",
+  invoke = PakettiBatchSF2ToXRNI}
+renoise.tool():add_keybinding{
+  name   = "Global:Paketti:Batch Convert SF2 to XRNI",
+  invoke = PakettiBatchSF2ToXRNI}
