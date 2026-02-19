@@ -11510,6 +11510,9 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 - Menu: `Main Menu:File:Paketti Import:Batch Convert RX2 to XRNI...`
 
 ---
+### 2026-02-19 - Fix: Auto-Samplify now correctly handles sliced samples. Previously, running Auto-Samplify on an instrument containing a sample with slice markers would crash with "copy_from is not allowed for sliced samples". The fix detects both slice alias sub-samples and parent samples that own slice markers, routes them through a manual buffer copy instead, and preserves all slice marker positions in the destination sample.
+- File: `PakettiAutoSamplify.lua`
+
 ### 2026-02-19 - Improvement: Batch Convert SF2 to XRNI (Per Preset) is now also accessible from **Main Menu → File → Paketti Export..** in addition to the Sample Editor context menu, making it easier to find without having to be in the Sample Editor first.
 - Menu: `Sample Editor:Paketti:Batch Convert SF2 to XRNI (Per Preset)...`
 - Menu: `Main Menu:File:Paketti Export..:Batch Convert SF2 to XRNI (Per Preset)...`
