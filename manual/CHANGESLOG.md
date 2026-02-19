@@ -161,6 +161,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+---
+
+## You Made This Possible
+
+Every entry above represents real development time — design, testing, debugging, refinement.
+
+Paketti's continued development is sustained by **18 supporters** who believe in open-source music tools.
+
+- **[Patreon](http://patreon.com/esaruoho)** — Monthly support from €3.50 (keeps development moving)
+- **[GitHub Sponsors](https://github.com/sponsors/esaruoho)** — Sponsor through GitHub
+- **[Gumroad](https://lackluster.gumroad.com/l/paketti)** — One-time purchase
+- **[Ko-Fi](https://ko-fi.com/esaruoho)** — One-time or monthly
+- **[Buy Me a Coffee](https://buymeacoffee.com/esaruoho)** — One-time or monthly
+- **[PayPal](http://paypal.me/esaruoho)** — Direct donation
+- **[Report issues on GitHub](https://github.com/esaruoho/paketti/issues)** — Bug reports and feature requests
+- **[Join the Discord](https://discord.gg/xNT6eH7W)** — Community discussion and feedback
+
+Thank you for using Paketti. — Esa
+
+---
+
 ### 2024-06-16 - Improvement: Effect Column CheatSheet Dialog now either outputs to selected_row if no selection, or to the selection.
 
 ---
@@ -1286,6 +1307,7 @@ this fetches a random line from the official Oblique Strategies list and shows i
 ![](attachments/2024-08-01_Screenshot_2024-08-02_at_0.57.32.png)
 
 
+---
 ### 2024-08-02 - esaruoho
 
 Feature: Paketti Dater & Titler - (Save Song As replacement)
@@ -5092,6 +5114,7 @@ i've now made two flavors, one that jumps around like that and one that doesn't
 ![](attachments/2024-11-09_Screenshot_2024-11-09_at_23.42.35.png)
 
 
+---
 ### 2024-11-10 - esaruoho
 
 Improvement: I've probably fixed the Paketti PitchBend Drumkit Loader which is instrumental for Paketti Groovebox 8120 to work, so, that it will work directly from first install onwards. It was a path issue. Waiting for feedback from 7 people on whether it works. 🤞
@@ -6823,6 +6846,7 @@ Feature: Bypass/Enable all Sample FX Chain Devices in all Instrument in Song
 ![](Screenshots/bypass_enable_all_samplefx_devices.png)
 ![](Screenshots/bypass_enable_all_samplefx_devices_shortcuts.png)
 
+---
 ### 2025-02-12 - esaruoho
 
 Feature: Match EditStep to Notes
@@ -7998,6 +8022,7 @@ Improvement: Toggling **Fill All** off should now clear the notes that have been
 Improvement: Duplicate and Reverse Instrument will no longer attempt to duplicate and reverse an instrument with no sample. And "Placeholder sample" is cleanly removed.
 
 ----
+---
 ### 2025-04-07 - esaruoho
 Feature: Added taktik's Process Slicer script so that large tasks that make the script time out, can be split.
 
@@ -8149,37 +8174,46 @@ Improvement: Midi Mappings for `Change Selected Sample Volume` and `Delay Column
 ### 2025-04-14 - Improvement: Conversion to 8-bit 16-bit 24-bit of selected sample or all samples in selected Instrument. (bit rate / bit depth)
 
 ----
+---
 ### 2025-04-16 - Feature: .RX2 ReCycle Import.
 This will let you drag in a .RX2 format file into Windows or macOS Renoise. Linux is not supported due to ReCycle SDK not being available for Linux, yet (I have requested it).
 Unfortunately the addition of **rex2decoder_mac**, **rex2decoder_win.exe**, **REX Shared Library.bundle**, **REX Shared Library.dll**, **REX Shared Library.lib** adds a total of 16.5mb to the size of the tool, meaning that I can no longer ship to the Renoise Tool forum due to it's size limitations.
 There are certain .RX2 files that still refuse to render, possibly due to volume issues in the .RX2 settings, but please get in touch if you have a .RX2 that should work but doesn't, mail it to me via Discord or send via wetransfer to my email. Thanks!
 
 ----
+---
 ### 2025-04-16 - Improvement: .RX2 import now works with Linux, using WINE.
 
 ----
+---
 ### 2025-04-16 - Improvement: Normalize will now tell in the Status Bar "Found Peak value of 0.999969 or higher, doing nothing." If there is a Peak in the sample. It will no longer say "Normalized Selection" - because obviously, the normalization process was cancelled.
 
 ----
+---
 ### 2025-04-16 - Feature: Select First Instrument Box Slot - this will select the first Instrument Index, and show the name of the Instrument in the Status Bar:
 ![](Screenshots/select_first_instrument_box_slot.png)
 
 ----
+---
 ### 2025-04-16 - Feature: Cycle through All Track Columns, or Selected Track Columns - Midi Mappings for Absolute or Relative Midi controls.
 ![](Screenshots/midi_cycle_through_available_columns.png)
 
 ----
+---
 ### 2025-04-16 - Improvement: the Impulse Tracker Speed & BPM counter now gives accurate results, and has a button for changing the current BPM to the counted BPM.
 ![](Screenshots/speed_bpm_writer.png)
 
 ----
+---
 ### 2025-04-16 - Improvement: .SF2 import now correctly detects the keyrange, the finetuning and the coarse tuning (transpose) of the samples. This means that multi-sample instruments that are an octave each, for instance, work properly.
 
 ----
+---
 ### 2025-04-17 - Feature: Set Pattern Length Dialog
 ![](gif/patternsetlengthdialog.gif)
 
 ----
+---
 ### 2025-04-17 - Feature: Increase current Pattern length by +8 (Shortcut)
 Feature: Decrease current Pattern length by -8 (Shortcut)
 Feature: Increase current Pattern length by +LPB (Shortcut)
@@ -8187,38 +8221,47 @@ Feature: Decrease current Pattern length by -LPB (Shortcut)
 ![](Screenshots/patternlength_increase_decrease_and_lpb.png)
 
 ----
+---
 ### 2025-04-17 - Improvement: Player Pro Transpose Selection or Note Column +1/-1/+12/-12 Shortcuts
 ![](Screenshots/playerpro_transpose_selection_or_note_column.png)
 
 ----
+---
 ### 2025-04-17 - Feature: Paketti Keyzone Distributor - this allows for distributing the samples in the instrument by a specific amount of keys, and the basenote can be set to original, lowest note, middle note, highest note. There's also quick set buttons.
 
 ![](gif/keyzonedistributor_v2.gif)
 ![](Screenshots/keyzone_distributor_dialog_update.png)
 
 ----
+---
 ### 2025-04-18 - Feature: Set selection forward loop by Hex Offset, 10, 20, 40, 80
 This will set a selection loop for each of the samples, or each of the slices, in the selected instrument, by 10, 20, 40 or 80 (or any user-input number.)
 ![](Screenshots/selection_by_hex.png)
 
 
 ----
+---
 ### 2025-04-18 - Improvement: Volume/Delay/Pan Slider dialog can now be closed with the same shortcut as it is opened with
 Improvement: Volume/Delay Pan Slider dialog will now say "Volume" "Panning" or "Delay" in capital first letters instead of lowercase.
 
 ----
+---
 ### 2025-04-19 - Improvement: GitHub Releases will from now on also include the timestamp (yyyy-mm-dd_hh-mm-ss) in the filename for an easier life.
 
 ----
+---
 ### 2025-04-19 - Improvement: eSpeak normalize + yt-dlp normalize will now correctly call the correct function instead of erroring out.
 
 ----
+---
 ### 2025-04-19 - Improvement: .SF2 import will now no longer error out if Basenote tries to become 122, capped to 108 instead.
 
 ----
+---
 ### 2025-04-19 - Improvement: eSpeak + yt-dlp finding executables should work better now on Linux.
 
 ----
+---
 ### 2025-04-20 - Improvement: eSpeak + yt-dlp will no longer error out when overwriting current instrument with a new sample and normalizing.
 Improvement: eSpeak will correctly rename the instrument + sample after successful eSpeak render.
 
@@ -8226,6 +8269,7 @@ Improvement: eSpeak will correctly rename the instrument + sample after successf
 ### 2025-04-20 - Improvement: Paketti Manual now has darkmode codeblocks so no longer white-on-white.
 
 ----
+---
 ### 2025-04-21 - Improvement: Working on YT-DLP to add more Process Slicing. Also Search textfield will now trigger a search by pressing Enter. Also made the Dialog shorter so it does not take up too much screen height on smaller screens (looking at you, Ubuntu VM running in UTM)
 
 ---
@@ -8686,6 +8730,7 @@ So if you Pakettify an instrument, it will no longer create a new instrument.
 
 
 ----
+---
 ### 2025-06-02 - Feature: Hide all Unused Columns
 This hides  Volume, Panning, Delay, Sample FX, Effect Columns and unused Note Columns.
 
@@ -9092,6 +9137,7 @@ This will let you load multiple files as "EXE load", so Raw load.
 ### 2025-07-07 - Feature: Instrument MetaInfo Dialog + Status
 This lets you query the instrument for more details:
 ![](Screenshots/instrumentmetainfo.png)
+---
 ### 2025-07-07 - Feature: Reset Basenote to Lowest Note in Range
 
 ---
@@ -9106,6 +9152,7 @@ Sononymph - modified and rewritten with additional features and improvements.
 ### 2025-07-09 - Improvement: Sononymph moved within "Paketti Gadgets" - Sononymph subfolder moved to Tools:Paketti:Samples:Sononymph
 
 ------
+---
 ### 2025-07-09 - Improvement: Load Splitter added as a static shortcut
 
 ---
@@ -9118,10 +9165,12 @@ Here's what it looks like currently.
 ![](Screenshots/enhanced_phrase_generator.png)
 
 -------
+---
 ### 2025-07-10 - Feature: Midi Input Octave Control
 Shortcuts, Midi Mappings and Menu Entries.
 
 ----
+---
 ### 2025-07-10 - Improvement: Steppers Dialog look
 ![](Screenshots/pakettisteppersdialogupdate.png)
 I've also improved this so that this beams directly to the Enhanced Phrase Generator
@@ -9134,10 +9183,12 @@ When hitting the Instrument transpose buttons, the C-4 + 0G01 is printed to the 
 
 
 ----
+---
 ### 2025-07-10 - Improvement: Add Maximizer to Master shortcut
 
 
 -----
+---
 ### 2025-07-10 - Feature: Paketti Pattern Effect Cheatsheet Minimize Dialog
 ![](gif/cheatsheetminimize.gif)
 
@@ -9159,12 +9210,15 @@ Now shows a Status Bar message to inform the user what happened. There's also a 
 ### 2025-07-12- Improvement: Pakettify Instrument can now handle multiple samples in the original instrument.
 
 ------
+---
 ### 2025-07-12 - Improvement: Added `Ableton11Dark` theme to Theme Selector
 
 ------
+---
 ### 2025-07-12 - Improvement: Enhanced Phrase Generator - Wrote protection against certain user-reported bugs so that it'd be even more stable
 
 -----
+---
 ### 2025-07-13 - Improvement: Commented away the danoise-snippet "Open Disk Browser always" setting since it clashed with the Paketti Disk Browser "Always show/hide" function
 
 ---
@@ -9173,11 +9227,13 @@ This will read the currently selected device's parameters and display them on a 
 ![](Screenshots/deviceparameter.png)
 
 ----
+---
 ### 2025-07-14 - Experimental Feature: Paketti Single Cycle Waveform Writer
 There's a dropdown menu with multiple waveforms - there's a randomizer for creating random waveforms, you can have Wave A and Wave B and crossfade between them, there's a Hex Editor there so you can input the code in yourself. You can save a .CSV and load a .CSV - you can drag in a .CSV into Renoise and it'll get loaded. There's a "Create 12 random instrument" -> meaning, an instrument will pop up with 12 randomized waveforms pre-loaded, and Pakettified. There's the usual simplistic Sample Tools, Invert, Normalize, Fade In, Fade Out, Reverse, Scale 150% Scale 50%. You can pick up the waveform on your current Selected Sample - or have a Live Pickup Mode - which means, whichever Selected Sample you pick, the minute you draw, it is beamed back to the Sample. And a few other things. Any ideas welcome.
 ![](Screenshots/pcmwriter.png)
 
 ----
+---
 ### 2025-07-14 -  Improvement: Paketti Single Cycle Waveform Writer will now remember if Hide Hex checkbox is checked
 ![](Screenshots/cyclewaveformwriter.png)
 ![](gif/pcm_scwriter.gif)
@@ -9207,6 +9263,7 @@ There's a dropdown menu with multiple waveforms - there's a randomizer for creat
 ### 2025-07-16 - Improvement: Added `Unknown Pleasures (tkna).xrnc` to the Paketti Theme Selector
 
 ----
+---
 ### 2025-07-16 - Feature: Humanize shortcut + Dialog
 ![](Screenshots/humanizedialog.png)
 (Closes https://github.com/esaruoho/paketti/issues/311)
@@ -9247,6 +9304,7 @@ yes. you can now script within Notepad and run it.
 ![](Screenshots/run_notepad.png)
 
 -----
+---
 ### 2025-07-19 - Feature: "Hipass (Preset++)" This loads up a Digital Filter, with Cutoff set to 0, and Filter set to Hipass. There's a shortcut + menu entry or few to do it. and Mixer parameter Cutoff is exposed
 ![](Screenshots/presetplusplushipass.png)
 
@@ -9336,9 +9394,11 @@ This will detect that you're in a new fully empty song, and randomize the BPM ac
 ### 2025-07-25 - Dialog of Dialogs updated with previously missing dialogs
 
 ------
+---
 ### 2025-07-25 - Plumbing: Nested Shortcut generation should now be faster 
 
 -----
+---
 ### 2025-07-25 - Add Mono + Hard Left / Hard Right to Selected Track or Master
 Closes https://github.com/esaruoho/paketti/issues/881
 
@@ -9601,6 +9661,7 @@ So now with V3.5 Canvas flavor - and I've added SubColumn improvements too - mea
 ### 2025-08-06 - Improvement: Slices to Pattern was hardcoded to start from `C#0` -> Now it detects the actual slicemarker correctly.
 
 ----
+---
 ### 2025-08-06 - Improvement: Dialog of Dialogs now has Fuzzy Search, cursor keys for opening dialogs (and enter)
 ![](Screenshots/dialog_of_dialogs_newlook.png)
 
@@ -9661,9 +9722,11 @@ So now with V3.5 Canvas flavor - and I've added SubColumn improvements too - mea
 ![](Screenshots/playerpro_efcolumn2.png)![](Screenshots/playerpro_efcolumn1.png)
 
 ------
+---
 ### 2025-08-07 - Improvement: Isolate Slices to New Instrument now uses Process Slicer so it doesn't time out on large amounts of slices.
 
 ------
+---
 ### 2025-08-08 - Improvement: Added "Duplicate Pattern Above & Clear Muted Tracks" & "Duplicate Pattern Below & Clear Muted Tracks" as shortcuts to Pattern Sequencer & Pattern Matrix.
 
 ---
@@ -9708,6 +9771,7 @@ Default Pink Auto, Easily Embarrassed type, Neosponge, realp`
 ---
 ### 2025-08-10 - Improvement: Groovebox8120 now has an addon for being able to enable disable Beatsync, configure Beatsync values and mode and NNA mode, and set NNA and Beatsync globally.
 ![](Screenshots/groovebox8120_advparam.png)---
+---
 ### 2025-08-10 - Improvement: Groovebox8120 now has a "Initialize EQ30" which adds an EQ30 to every single Groovebox track.
 ![](Screenshots/8120_initeq30.png)
 
@@ -9740,6 +9804,7 @@ Default Pink Auto, Easily Embarrassed type, Neosponge, realp`
 ### 2025-08-12 - Improvement: Groovebox8120: Focus on row added, Steppers dialog added, EQ30 tweaks, size optimizations
 
 ----
+---
 ### 2025-08-13 - Improvement: Groovebox8120: Added Random StepCount Global button, and added 1-16 buttons for Global StepCount, including odd numbers.
 
 ---
@@ -9752,6 +9817,7 @@ Default Pink Auto, Easily Embarrassed type, Neosponge, realp`
 ### 2025-08-13 - Plumbing: Isolated the Paketti Canvas Font to a separate file for better re-usability, added additional characters `äöå!"?#%/()=§` and glyphs for shift, control, option, command, cursor updown left right.
 
 ----
+---
 ### 2025-08-14 - Improvement: Hardcoded ValhallaDelay / ValhallaShimmer / ValhallaVintageVerb now boot up in Mixer 0% mode, to evade clicks and pops on initialize.
 
 ---
@@ -9897,6 +9963,7 @@ This feature will import the samples, loop-points and keymappings, for now. More
 ![](Screenshots/pakettigater_explanation_optim.png)
 
 -------
+---
 ### 2025-08-22 - Improvement: Experimental Render Sample (with TrackFX) will now correctly render the original non-sliced sample, and then recalculate + reapply the Slice markers, and all the Slice settings to each Slice, per Slice.
 
 ---
@@ -9928,6 +9995,7 @@ This feature will import the samples, loop-points and keymappings, for now. More
 ### 2025-08-22 - Improvement: Groovebox 8120: SequentialRandomLoadAll, SequentialRandomLoad, Sequential Load buttons now all set the User Preference settings for Autofade, Oversample, Interpolation, Autoseek, etc at the end of loading all the (max 960) samples.
 
 ----
+---
 ### 2025-08-23 - Feature: Interpolate BPM Current to Next Pattern - this will create a slow interpolation ramp of BPM changes to slowly move from the current Pattern BPM to the next Pattern's BPM on the current Pattern.
 
 ---
@@ -10127,6 +10195,7 @@ Changing tracks will update the Dialog to that track's settings.
 Sample Editor will now show the Sample Offset you're modifying. Added +1 -1 Octave control for Sample Offset mode.
 
 -----
+---
 ### 2025-09-04 - Improvement: Paketti Sample Offset / Slice Step Sequencer
 When opening the dialog with a non-sliced sample, default to Sample Offset. When opening the dialog with a sliced sample, default to Slice mode.
 
@@ -10307,6 +10376,7 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 
 
 ----
+---
 ### 2025-09-28 - Improvement: Added "Distribute All Samples to Separate FX Chains" + MOD Chains + FX/MOD Chains to Sample Navigator for better discoverability.
 
 ---
@@ -10337,6 +10407,7 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 ### 2025-10-01 - Feature: "Rename Current Track by Selected Instrument"
 
 ----
+---
 ### 2025-10-01 - Improvement: "Rename Tracks by Played Samples" now available as Global shortcut, and optimized to be faster.
 
 ---
@@ -10415,6 +10486,7 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 ### 2025-10-10 - Improvement: Macro01-08 Midi Mapping Write version that now detects if you want to write only to the Effect Columns instead of Automation.
 
 -----
+---
 ### 2025-10-12 - Improvement: Paketti Single Cycle Waveform Writer will no longer choke up when being used while Auto Pakettify is set to On - will instead correctly set the loopmode, etc.
 
 ---
@@ -10609,6 +10681,7 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 
 
 -------
+---
 ### 2025-11-07 - Improvement: Pakettify Instrument with no loop ranges set, will no longer result in errors.
 
 ---
@@ -10640,6 +10713,7 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 ### 2025-11-10 - Feature: Start/Stop Playback (Continue) & Start/Stop Playback (First Row) for Phrase Editor, Pattern Editor and Global.
 ![](Screenshots/start_stop_playback_everywhere.png)
 
+---
 ### 2025-11-10 - Improvement: Impulse Tracker F6 Play Pattern has been optimized to run faster without feeling sluggish.
 
 ---
@@ -10846,6 +10920,7 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 ### 2025-12-15 - Feature: Pattern Name Loop - this triggers Sequence Selection Loops using the `[` and `]` format, so if you want to loop `[]` single pattern, that's what gets looped, if you have a multiple bunch of patterns, start with `[`  in the name and finish with `]` in the name somewhere else.
 
 -----
+---
 ### 2025-12-17 - Improvement: Fixed a few free-running observables that might result in Renoise slowing down during Paketti usage - this should improve performance measurably. Also the groundwork for being able to disable any menu entry, or keybinding or midimappings, has been laid down.
 
 ---
@@ -11011,12 +11086,14 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 ### 2026-01-08 - Improvement: Updated Dialog of Dialogs with newly created dialogs such as Stem Slice Randomizer, Mixer Parameter Exposer, Clipboard, Automation Curve Fill, SlicePro Config, SliceSafely, MPC Cycler, Slab'o'Patterns, Paketti Toggler, Wonkify Quick / Advanced, Phrase Grid / Phrase Grid Performance..
 
 ----
+---
 ### 2026-01-08 - Improvement: When using LFO Writer to write to Automation, the automated parameter is automatically exposed on the Mixer view.
 
 ---
 ### 2026-01-08 - Feature: Added "Make Automated Parameters Visible on Mixer"
 
 ----
+---
 ### 2026-01-08 - Improvement: Paketti Clipboard now has "Inverse cut" - pick a track with selection, and cut all the other tracks to "Off" for every step. Then paste the inverted cut back in.
 
 ---
@@ -11111,6 +11188,7 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 ### 2026-01-31 - Improvement: Tweaked MuteTrig so it doesn't mess up with less-than-120 samples being loaded.
 
 ----
+---
 ### 2026-01-31 - Feature: SF2 Sample Extract, added to 
   - Main Menu:File:Paketti Import:Extract .SF2 Samples (Chromatic)
   - Main Menu:File:Paketti Import:Extract .SF2 Samples (Original Pitch)
@@ -11357,49 +11435,58 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 - MIDI Mapping: `Paketti:Clear Unreferenced Patterns`
 - Menu: `Main Menu:Tools:Paketti:Pattern Editor:Clear Unreferenced Patterns`
 
+---
 ### 2026-02-09 - Feature: Contract Section Loop (Remove Last Section). Shrinks the current section loop by removing the last section from the loop range. If only one section remains, clears the loop entirely. The subtraction counterpart to expanding the section loop.
 - Keybinding: `Global:Paketti:Contract Section Loop (Remove Last Section)`
 - MIDI Mapping: `Paketti:Contract Section Loop (Remove Last Section)`
 - Menu: `Main Menu:Tools:Paketti:Pattern Sequencer:Contract Section Loop (Remove Last Section)`
 
+---
 ### 2026-02-09 - Feature: Contract Section Loop (Remove First Section). Shrinks the current section loop by removing the first section from the loop range. If only one section remains, clears the loop entirely. The subtraction counterpart to expanding the section loop.
 - Keybinding: `Global:Paketti:Contract Section Loop (Remove First Section)`
 - MIDI Mapping: `Paketti:Contract Section Loop (Remove First Section)`
 - Menu: `Main Menu:Tools:Paketti:Pattern Sequencer:Contract Section Loop (Remove First Section)`
 
+---
 ### 2026-02-09 - Improvement: Direction-Aware Sequence Selection (Next/Previous). Rewrote Sequence Selection to be direction-aware. Next expands the selection forward one sequence at a time, Previous contracts from the end. At a single position, Previous clears, then re-selects, then expands backward. Cursor follows the expanding/contracting edge. Tracks anchor point and direction so contracting always undoes the last expansion.
 - Keybinding: `Global:Paketti:Sequence Selection (Next)`
 - Keybinding: `Global:Paketti:Sequence Selection (Previous)`
 - MIDI Mapping: `Paketti:Sequence Selection (Next)`
 - MIDI Mapping: `Paketti:Sequence Selection (Previous)`
 
+---
 ### 2026-02-09 - Improvement: Direction-Aware Sequence Loop Selection (Next/Previous). Rewrote Sequence Loop Selection with the same direction-aware behavior as Sequence Selection but for the loop range. Next expands loop forward, Previous contracts from end, clears at single, re-selects, then expands backward. Cursor follows the edge.
 - Keybinding: `Global:Paketti:Sequence Loop Selection (Next)`
 - Keybinding: `Global:Paketti:Sequence Loop Selection (Previous)`
 - MIDI Mapping: `Paketti:Sequence Loop Selection (Next)`
 - MIDI Mapping: `Paketti:Sequence Loop Selection (Previous)`
 
+---
 ### 2026-02-09 - Feature: Section Sequence Selection (Next/Previous). Direction-aware section-level selection. Each press adds or removes an entire section from the sequencer selection range. First press selects entire current section. Next expands to include next section. Previous contracts by removing the last section, clears at single, re-selects, then expands backward. Cursor moves to the boundary.
 - Keybinding: `Global:Paketti:Section Sequence Selection (Next)`
 - Keybinding: `Global:Paketti:Section Sequence Selection (Previous)`
 - MIDI Mapping: `Paketti:Section Sequence Selection (Next)`
 - MIDI Mapping: `Paketti:Section Sequence Selection (Previous)`
 
+---
 ### 2026-02-09 - Feature: Schedule Entire Section. New variant of "Select, Add to Schedule and Loop" that schedules ALL sequences in a section, not just the first pattern. Useful for completing playback of an entire section before switching to the next. Available for sections 00-64.
 - Keybinding: `Global:Paketti:Select, Add Entire Section to Schedule and Loop Section XX`
 - MIDI Mapping: `Paketti:Select&Add Entire Section to Schedule&Loop Section XX`
 - Menu: `Pattern Sequencer:Paketti:Sequences/Sections:Select, Add Entire Section to Schedule and Loop:Select, Add Entire Section to Schedule and Loop Section XX`
 
+---
 ### 2026-02-09 - Feature: Shift Selection Left/Right in Sample Editor. Moves the current sample buffer selection left or right by exactly its own length. Useful for stepping through a sample in fixed-size chunks, e.g. selecting one bar then shifting to the next bar.
 - Keybinding: `Sample Editor:Paketti:Sample Buffer Selection Shift Left`
 - Keybinding: `Sample Editor:Paketti:Sample Buffer Selection Shift Right`
 - MIDI Mapping: `Sample Editor:Paketti:Sample Buffer Selection Shift Left`
 - MIDI Mapping: `Sample Editor:Paketti:Sample Buffer Selection Shift Right`
 
+---
 ### 2026-02-09 - Feature: Rotate Audio in Selection. Rotates the audio data within the current sample buffer selection by its midpoint — the second half becomes the first half and vice versa. Operates on all channels. Useful for creating variations or shifting rhythmic content within a selection.
 - Keybinding: `Sample Editor:Paketti:Rotate Audio in Selection`
 - MIDI Mapping: `Sample Editor:Paketti:Rotate Audio in Selection`
 
+---
 ### 2026-02-09 - Feature: Select Bars in Sample Editor (1/2/4/8 Bars). Selects a musical-length portion of the sample based on the current song BPM and sample rate. Calculates the exact number of frames for the requested number of bars and sets the selection starting from the current selection start (or frame 1). Available in 1, 2, 4, and 8 bar variants.
 - Keybinding: `Sample Editor:Paketti:Select 1 Bar`
 - Keybinding: `Sample Editor:Paketti:Select 2 Bars`
@@ -11410,42 +11497,20 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 - MIDI Mapping: `Sample Editor:Paketti:Select 4 Bars`
 - MIDI Mapping: `Sample Editor:Paketti:Select 8 Bars`
 
+---
 ### 2026-02-10 - Fix: MetaSynth Quick Apply Profile Crash on Pitch AHDSR. Fixed a crash when applying MetaSynth profiles that include pitch AHDSR envelopes. The code was trying to set an `amplitude` property that doesn't exist on AHDSR devices (it only exists on LFO devices). AHDSR envelope shape is fully defined by its Attack/Hold/Duration/Sustain/Release parameters.
 
+---
 ### 2026-02-10 - Fix: Device Chain & Instrument Dialog Crash on Reopen. Fixed a crash when reopening the Device Chain & Instrument dialog. The ViewBuilder was created once at module level and reused across dialog opens, causing a "view ID already registered" error on the second open. ViewBuilder is now recreated fresh each time the dialog opens.
 
+---
 ### 2026-02-17 - Feature: Batch Convert RX2 to XRNI. Select a folder of RX2 loop files and an output folder — Paketti converts each RX2 into a fully slice-marked Renoise instrument (.xrni), one file per RX2. Uses the bundled rex2decoder binary to extract WAV audio and slice marker positions, loads each into a fresh instrument slot, applies up to 255 slice markers, saves the XRNI, then removes the temporary instrument and cleans up temp files. Reports success/fail counts at the end. Fully protected against missing decoder, missing output, empty folders, failed WAV loads, and save errors — failed files are skipped and logged to the console without aborting the batch.
 - Keybinding: `Global:Paketti:Batch Convert RX2 to XRNI`
 - Menu: `Sample Editor:Paketti:Batch Convert RX2 to XRNI...`
 - Menu: `Main Menu:File:Paketti Import:Batch Convert RX2 to XRNI...`
 
+---
 ### 2026-02-19 - Improvement: Batch Convert SF2 to XRNI (Per Preset) is now also accessible from **Main Menu → File → Paketti Export..** in addition to the Sample Editor context menu, making it easier to find without having to be in the Sample Editor first.
 - Menu: `Sample Editor:Paketti:Batch Convert SF2 to XRNI (Per Preset)...`
 - Menu: `Main Menu:File:Paketti Export..:Batch Convert SF2 to XRNI (Per Preset)...`
 
----
-
-## You Made This Possible
-
-Every entry above represents real development time — design, testing, debugging, refinement.
-
-Paketti's continued development is sustained by **18 supporters** who believe in open-source music tools.
-
-### Support Paketti
-
-- **[Patreon](http://patreon.com/esaruoho)** — Monthly support from €3.50 (keeps development moving)
-- **[GitHub Sponsors](https://github.com/sponsors/esaruoho)** — Sponsor through GitHub
-- **[Gumroad](https://lackluster.gumroad.com/l/paketti)** — One-time purchase
-- **[Ko-Fi](https://ko-fi.com/esaruoho)** — One-time or monthly
-- **[Buy Me a Coffee](https://buymeacoffee.com/esaruoho)** — One-time or monthly
-- **[PayPal](http://paypal.me/esaruoho)** — Direct donation
-
-### Other Ways to Help
-
-- **[Report issues on GitHub](https://github.com/esaruoho/paketti/issues)** — Bug reports and feature requests
-- **[Join the Discord](https://discord.gg/xNT6eH7W)** — Community discussion and feedback
-- **Share Paketti** — Tell other Renoise users
-
-Thank you for using Paketti.
-
-— Esa
