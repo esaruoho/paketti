@@ -678,9 +678,13 @@ if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Replicate",invoke=function() ShrinkSelectionReplicatePhrase() end}
 end
 
--- Initialize phrase follow at startup if preference is enabled
-if renoise.API_VERSION >= 6.2 and phrase_follow_enabled then
-  enable_phrase_follow()
+-- Initialize phrase follow when a song becomes available (deferred - never call at boot time)
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool().app_new_document_observable:add_notifier(function()
+    if phrase_follow_enabled then
+      enable_phrase_follow()
+    end
+  end)
 end
 
 ---------------------------------------------------------------------------------------------------------
