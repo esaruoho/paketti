@@ -978,7 +978,7 @@ function PakettiBatchRX2ToXRNI()
   end
   print("Input folder: " .. input_folder)
 
-  -- Collect RX2 files (reuse the local helper defined above)
+  -- Collect RX2 files
   local rx2_files = getRX2Files(input_folder)
   if #rx2_files == 0 then
     renoise.app():show_error("No RX2 files found in the selected folder.")
@@ -1010,15 +1010,41 @@ function PakettiBatchRX2ToXRNI()
     TEMP_FOLDER = os.getenv("TEMP") or "C:\\Temp"
   end
 
+  -- Launch via ProcessSlicer so Renoise stays responsive between files
+  local dialog, vb
+  local process_slicer = ProcessSlicer(function()
+    PakettiBatchRX2ToXRNI_Worker(
+      rx2_files, output_folder, rex_decoder_path, sdk_path,
+      os_name, TEMP_FOLDER, dialog, vb)
+  end)
+
+  dialog, vb = process_slicer:create_dialog("Batch RX2 → XRNI")
+  process_slicer:start()
+end
+
+--- ProcessSlicer worker for Batch RX2 → XRNI conversion
+function PakettiBatchRX2ToXRNI_Worker(
+    rx2_files, output_folder, rex_decoder_path, sdk_path,
+    os_name, TEMP_FOLDER, dialog, vb)
+
   local success_count = 0
   local fail_count    = 0
 
   for i, rx2_path in ipairs(rx2_files) do
+    -- Yield between every file so Renoise can breathe
+    coroutine.yield()
+
     -- Derive base name (strip path + extension)
     local rx2_filename = rx2_path:match("[^/\\]+$") or "unknown"
     local base_name    = rx2_filename:gsub("%.rx2$", ""):gsub("%.RX2$", "")
 
     print(string.format("\n--- Processing %d/%d: %s ---", i, #rx2_files, rx2_filename))
+
+    -- Update progress dialog and status bar
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = string.format(
+        "Processing %d/%d: %s", i, #rx2_files, rx2_filename)
+    end
     renoise.app():show_status(string.format(
       "Batch RX2->XRNI: Processing %d/%d: %s", i, #rx2_files, rx2_filename))
 
@@ -1037,7 +1063,7 @@ function PakettiBatchRX2ToXRNI()
         rex_decoder_path, rx2_path, temp_wav, temp_txt, sdk_path)
     end
     print("Running decoder: " .. cmd)
-    local decode_result = os.execute(cmd)
+    os.execute(cmd)
 
     -- Check that the WAV was produced
     local wav_check = io.open(temp_wav, "rb")
@@ -1078,7 +1104,6 @@ function PakettiBatchRX2ToXRNI()
         if not load_ok or not smp.sample_buffer.has_sample_data then
           print("ERROR: Could not load WAV into instrument for: " .. rx2_filename)
           fail_count = fail_count + 1
-          -- Remove the instrument we just created
           song:delete_instrument_at(new_idx)
         else
           -- Insert slice markers from the text file
@@ -1121,6 +1146,11 @@ function PakettiBatchRX2ToXRNI()
         pcall(function() os.remove(temp_txt) end)
       end
     end
+  end
+
+  -- Close the progress dialog
+  if dialog and dialog.visible then
+    dialog:close()
   end
 
   -- Final report
