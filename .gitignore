@@ -1,9 +1,9 @@
 # Documentation generated for AI assistants
 Docs/
-.DS_Store
-.github/.DS_Store
-AKWF/.DS_Store
-Research/.DS_Store
+
+# macOS metadata
+**/.DS_Store
+
 Research/TrackerFilesDocs
 
 # Cursor IDE rules (local AI context)
@@ -14,3 +14,4 @@ manual/_todo/
 manual/_paketti-skill/
 manual/_forum/
 manual/.obsidian/
+manual/.claude/
