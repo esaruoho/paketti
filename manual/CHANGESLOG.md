@@ -11523,3 +11523,7 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 - Menu: `Sample Editor:Paketti:Batch Convert SF2 to XRNI (Per Preset)...`
 - Menu: `Main Menu:File:Paketti Export..:Batch Convert SF2 to XRNI (Per Preset)...`
 
+---
+### 2026-02-19 - Fix: Phrase Follow Pattern Playback crashed Renoise on boot when the preference was saved as enabled. The feature's initialization code was executing at file-load time, where `renoise.song()` returns `nil`. Fixed by deferring the call through `app_new_document_observable` so it only runs after a song is fully loaded and ready.
+- File: `Paketti35.lua`
+
