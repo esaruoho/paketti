@@ -182,6 +182,14 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-21 - Improvement: "Write Current BPM&LPB to Master Column" keybinding now discoverable by exact name
+
+When a user searched **Preferences → Keys** for `Write Current BPM&LPB to Master Column` — the exact wording shown in the menu entry — nothing came up. The existing keybindings used a shorter internal name (`Write BPM/LPB to Master`) that didn't match what users had read in the menu.
+
+Three new keybindings now exist under **Global**, **Pattern Editor**, and **Mixer** scopes — all named `Write Current BPM&LPB to Master Column` — matching the menu entry word-for-word. The original `Write BPM/LPB to Master` keybindings remain untouched alongside them.
+
+---
+
 ### 2026-02-19 - Fix: Phrase Follow notifier no longer crashes when no phrase is selected
 
 The `phrase_follow_notifier` (which syncs the Phrase Editor display during playback) would crash with a nil-access error whenever the selected instrument had no phrases — or when playback started before any phrase had been selected. The notifier fires on every idle tick during playback, so this caused the notifier to permanently disable itself mid-session. Fixed by adding a nil-guard: if `song.selected_phrase` is nil the notifier now exits cleanly instead of erroring out.
