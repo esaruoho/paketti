@@ -263,6 +263,7 @@ end
 
 function PakettiAutomateLastTouchedCreateForParameter(param, device, track_index, is_plugin_instrument)
   local song = renoise.song()
+  song:describe_undo("Paketti: Create Automation for Last Touched Parameter")
   if not song then
     renoise.app():show_status("No song available")
     return false
@@ -353,6 +354,7 @@ end
 
 function PakettiAutomateLastTouchedWriteContinuousPoint(param, track_index)
   local song = renoise.song()
+  song:describe_undo("Paketti: Write Continuous Automation Point")
   if not song or not song.transport.edit_mode then return end
   
   local current_pattern = song.selected_pattern_index

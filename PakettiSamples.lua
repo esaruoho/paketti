@@ -6448,9 +6448,7 @@ function duplicateTrackAndInstrumentCore(copy_dsp, copy_automation, jump_to_edit
     if copy_automation then
       for _, automation in ipairs(source_track.automation) do
         local new_automation = dest_track:create_automation(automation.dest_parameter)
-        for _, point in ipairs(automation.points) do
-          new_automation:add_point_at(point.time, point.value)
-        end
+        new_automation:copy_from(automation)
       end
     end
   end

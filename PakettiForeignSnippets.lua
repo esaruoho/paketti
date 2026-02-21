@@ -3544,16 +3544,8 @@ function PakettiPatternAliasCopyAutomation(source_pattern, source_track, dest_pa
       dest_automation = dest_pt:create_automation(param)
     end
     
-    -- Clear existing points in destination
-    dest_automation:clear()
-    
-    -- Copy all points from source to destination
-    for _, point in ipairs(automation.points) do
-      dest_automation:add_point_at(point.time, point.value)
-    end
-    
-    -- Copy playback properties (length is read-only, set by pattern length)
-    dest_automation.playmode = automation.playmode
+    -- Copy all points, playmode, and scaling from source to destination
+    dest_automation:copy_from(automation)
     
     automation_copied = automation_copied + 1
   end

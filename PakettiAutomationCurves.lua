@@ -177,76 +177,80 @@ function PakettiAutomationCurvesInitShapes()
   local calculated = PakettiAutomationCurvesCalculateShapes()
   local trapezoid = PakettiAutomationCurvesCalculateTrapezoid()
   
+  local CURVES = renoise.PatternTrackAutomation.PLAYMODE_CURVES
+  local LINES = renoise.PatternTrackAutomation.PLAYMODE_LINES
+  local POINTS = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+
   PakettiAutomationCurvesShapes = {
     -- Ramps (linear)
-    rampUp = {values = {{0, 0}, {0.99, 1}}, key = "q", image = "ramp-up.png", label = "Ramp Up"},
-    rampDown = {values = {{0, 1}, {0.99, 0}}, key = "w", image = "ramp-down.png", label = "Ramp Down"},
-    
-    -- Circle quadrants
-    circTl = {values = calculated.circTl, key = "e", image = "circ-tl.png", label = "Curve TL"},
-    circTr = {values = calculated.circTr, key = "r", image = "circ-tr.png", label = "Curve TR"},
-    
-    -- Squares
-    sqUp = {values = {{0, 0}, {0.5, 0}, {0.51, 1}, {0.99, 1}}, key = "t", image = "sq-up.png", label = "Square Up"},
-    sqDown = {values = {{0, 1}, {0.5, 1}, {0.51, 0}, {0.99, 0}}, key = "y", image = "sq-down.png", label = "Square Down"},
-    
-    -- Trapezoids
-    trapUp = {values = trapezoid.trapUp, key = "u", image = "trap-up.png", label = "Trapezoid Up"},
-    trapDown = {values = trapezoid.trapDown, key = "i", image = "trap-down.png", label = "Trapezoid Down"},
-    
-    -- Triangle/Vee
-    tri = {values = {{0, 0}, {0.5, 1}, {0.99, 0}}, key = "a", image = "tri.png", label = "Triangle"},
-    vee = {values = {{0, 1}, {0.5, 0}, {0.99, 1}}, key = "s", image = "vee.png", label = "Vee"},
-    
-    -- Circle quadrants (bottom)
-    circBl = {values = calculated.circBl, key = "d", image = "circ-bl.png", label = "Curve BL"},
-    circBr = {values = calculated.circBr, key = "f", image = "circ-br.png", label = "Curve BR"},
-    
-    -- Sine
-    sinUp = {values = calculated.sinUp, key = "g", image = "sin-up.png", label = "Sine Up"},
-    sinDown = {values = calculated.sinDown, key = "h", image = "sin-down.png", label = "Sine Down"},
-    
-    -- Stairs
-    stairUp = {values = {{0, 0}, {0.25, 0}, {0.26, 0.25}, {0.5, 0.25}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.75}, {0.98, 0.75}, {0.99, 1}}, key = "z", image = "stair-up.png", label = "Stairs Up"},
-    stairDown = {values = {{0, 1}, {0.25, 1}, {0.26, 0.75}, {0.5, 0.75}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.25}, {0.98, 0.25}, {0.99, 0}}, key = "x", image = "stair-down.png", label = "Stairs Down"},
-    
-    -- Cosine
-    cosUp = {values = calculated.cosUp, key = "c", image = "cos-up.png", label = "Cosine Up"},
-    cosDown = {values = calculated.cosDown, key = "v", image = "cos-down.png", label = "Cosine Down"},
-    
-    -- On/Off constants (duty cycle 100% and 0%)
-    off = {values = {{0, 0}, {0.99, 0}}, key = "1", image = "off.png", label = "Constant Off"},
-    on = {values = {{0, 1}, {0.99, 1}}, key = "0", image = "on.png", label = "Constant On"},
-    
-    -- Bell curve (Gaussian)
-    bellUp = {values = calculated.bellUp, key = "o", image = "bell-up.png", label = "Bell Up"},
-    bellDown = {values = calculated.bellDown, key = "p", image = "bell-down.png", label = "Bell Down"},
-    
-    -- S-Curve (Sigmoid)
-    sCurveUp = {values = calculated.sCurveUp, key = "j", image = "scurve-up.png", label = "S-Curve Up"},
-    sCurveDown = {values = calculated.sCurveDown, key = "k", image = "scurve-down.png", label = "S-Curve Down"},
-    
-    -- Bounce
-    bounceUp = {values = calculated.bounceUp, key = "l", image = "bounce-up.png", label = "Bounce Up"},
-    bounceDown = {values = calculated.bounceDown, key = "b", image = "bounce-down.png", label = "Bounce Down"},
-    
-    -- Pulse variations in ascending order (10% to 90% duty cycle) - keys 2-9
-    pulse10 = {values = {{0, 0}, {0.10, 0}, {0.11, 1}, {0.99, 1}}, key = "2", image = "pulse10.png", label = "Pulse 10%"},
-    pulse25 = {values = {{0, 0}, {0.25, 0}, {0.26, 1}, {0.99, 1}}, key = "3", image = "pulse25.png", label = "Pulse 25%"},
-    pulse33 = {values = {{0, 0}, {0.33, 0}, {0.34, 1}, {0.99, 1}}, key = "4", image = "pulse33.png", label = "Pulse 33%"},
-    pulse50 = {values = {{0, 0}, {0.5, 0}, {0.51, 1}, {0.99, 1}}, key = "5", image = "pulse50.png", label = "Pulse 50%"},
-    pulse66 = {values = {{0, 0}, {0.66, 0}, {0.67, 1}, {0.99, 1}}, key = "6", image = "pulse66.png", label = "Pulse 66%"},
-    pulse75 = {values = {{0, 0}, {0.75, 0}, {0.76, 1}, {0.99, 1}}, key = "7", image = "pulse75.png", label = "Pulse 75%"},
-    pulse80 = {values = {{0, 0}, {0.80, 0}, {0.81, 1}, {0.99, 1}}, key = "8", image = "pulse80.png", label = "Pulse 80%"},
-    pulse90 = {values = {{0, 0}, {0.90, 0}, {0.91, 1}, {0.99, 1}}, key = "9", image = "pulse90.png", label = "Pulse 90%"},
-    
+    rampUp = {values = {{0, 0}, {0.99, 1}}, key = "q", image = "ramp-up.png", label = "Ramp Up", playmode = LINES},
+    rampDown = {values = {{0, 1}, {0.99, 0}}, key = "w", image = "ramp-down.png", label = "Ramp Down", playmode = LINES},
+
+    -- Circle quadrants (cubic curves for smooth arcs)
+    circTl = {values = calculated.circTl, key = "e", image = "circ-tl.png", label = "Curve TL", playmode = CURVES},
+    circTr = {values = calculated.circTr, key = "r", image = "circ-tr.png", label = "Curve TR", playmode = CURVES},
+
+    -- Squares (step/hold for sharp transitions)
+    sqUp = {values = {{0, 0}, {0.5, 0}, {0.51, 1}, {0.99, 1}}, key = "t", image = "sq-up.png", label = "Square Up", playmode = POINTS},
+    sqDown = {values = {{0, 1}, {0.5, 1}, {0.51, 0}, {0.99, 0}}, key = "y", image = "sq-down.png", label = "Square Down", playmode = POINTS},
+
+    -- Trapezoids (linear interpolation)
+    trapUp = {values = trapezoid.trapUp, key = "u", image = "trap-up.png", label = "Trapezoid Up", playmode = LINES},
+    trapDown = {values = trapezoid.trapDown, key = "i", image = "trap-down.png", label = "Trapezoid Down", playmode = LINES},
+
+    -- Triangle/Vee (linear interpolation)
+    tri = {values = {{0, 0}, {0.5, 1}, {0.99, 0}}, key = "a", image = "tri.png", label = "Triangle", playmode = LINES},
+    vee = {values = {{0, 1}, {0.5, 0}, {0.99, 1}}, key = "s", image = "vee.png", label = "Vee", playmode = LINES},
+
+    -- Circle quadrants (bottom, cubic curves)
+    circBl = {values = calculated.circBl, key = "d", image = "circ-bl.png", label = "Curve BL", playmode = CURVES},
+    circBr = {values = calculated.circBr, key = "f", image = "circ-br.png", label = "Curve BR", playmode = CURVES},
+
+    -- Sine (cubic curves for smooth interpolation)
+    sinUp = {values = calculated.sinUp, key = "g", image = "sin-up.png", label = "Sine Up", playmode = CURVES},
+    sinDown = {values = calculated.sinDown, key = "h", image = "sin-down.png", label = "Sine Down", playmode = CURVES},
+
+    -- Stairs (step/hold for sharp transitions)
+    stairUp = {values = {{0, 0}, {0.25, 0}, {0.26, 0.25}, {0.5, 0.25}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.75}, {0.98, 0.75}, {0.99, 1}}, key = "z", image = "stair-up.png", label = "Stairs Up", playmode = POINTS},
+    stairDown = {values = {{0, 1}, {0.25, 1}, {0.26, 0.75}, {0.5, 0.75}, {0.51, 0.5}, {0.75, 0.5}, {0.76, 0.25}, {0.98, 0.25}, {0.99, 0}}, key = "x", image = "stair-down.png", label = "Stairs Down", playmode = POINTS},
+
+    -- Cosine (cubic curves for smooth interpolation)
+    cosUp = {values = calculated.cosUp, key = "c", image = "cos-up.png", label = "Cosine Up", playmode = CURVES},
+    cosDown = {values = calculated.cosDown, key = "v", image = "cos-down.png", label = "Cosine Down", playmode = CURVES},
+
+    -- On/Off constants (step/hold)
+    off = {values = {{0, 0}, {0.99, 0}}, key = "1", image = "off.png", label = "Constant Off", playmode = POINTS},
+    on = {values = {{0, 1}, {0.99, 1}}, key = "0", image = "on.png", label = "Constant On", playmode = POINTS},
+
+    -- Bell curve (cubic curves for smooth Gaussian shape)
+    bellUp = {values = calculated.bellUp, key = "o", image = "bell-up.png", label = "Bell Up", playmode = CURVES},
+    bellDown = {values = calculated.bellDown, key = "p", image = "bell-down.png", label = "Bell Down", playmode = CURVES},
+
+    -- S-Curve (cubic curves for smooth sigmoid)
+    sCurveUp = {values = calculated.sCurveUp, key = "j", image = "scurve-up.png", label = "S-Curve Up", playmode = CURVES},
+    sCurveDown = {values = calculated.sCurveDown, key = "k", image = "scurve-down.png", label = "S-Curve Down", playmode = CURVES},
+
+    -- Bounce (cubic curves for smooth decay)
+    bounceUp = {values = calculated.bounceUp, key = "l", image = "bounce-up.png", label = "Bounce Up", playmode = CURVES},
+    bounceDown = {values = calculated.bounceDown, key = "b", image = "bounce-down.png", label = "Bounce Down", playmode = CURVES},
+
+    -- Pulse variations (step/hold for sharp transitions) - keys 2-9
+    pulse10 = {values = {{0, 0}, {0.10, 0}, {0.11, 1}, {0.99, 1}}, key = "2", image = "pulse10.png", label = "Pulse 10%", playmode = POINTS},
+    pulse25 = {values = {{0, 0}, {0.25, 0}, {0.26, 1}, {0.99, 1}}, key = "3", image = "pulse25.png", label = "Pulse 25%", playmode = POINTS},
+    pulse33 = {values = {{0, 0}, {0.33, 0}, {0.34, 1}, {0.99, 1}}, key = "4", image = "pulse33.png", label = "Pulse 33%", playmode = POINTS},
+    pulse50 = {values = {{0, 0}, {0.5, 0}, {0.51, 1}, {0.99, 1}}, key = "5", image = "pulse50.png", label = "Pulse 50%", playmode = POINTS},
+    pulse66 = {values = {{0, 0}, {0.66, 0}, {0.67, 1}, {0.99, 1}}, key = "6", image = "pulse66.png", label = "Pulse 66%", playmode = POINTS},
+    pulse75 = {values = {{0, 0}, {0.75, 0}, {0.76, 1}, {0.99, 1}}, key = "7", image = "pulse75.png", label = "Pulse 75%", playmode = POINTS},
+    pulse80 = {values = {{0, 0}, {0.80, 0}, {0.81, 1}, {0.99, 1}}, key = "8", image = "pulse80.png", label = "Pulse 80%", playmode = POINTS},
+    pulse90 = {values = {{0, 0}, {0.90, 0}, {0.91, 1}, {0.99, 1}}, key = "9", image = "pulse90.png", label = "Pulse 90%", playmode = POINTS},
+
     -- Random (generated at insert time)
-    randomSmooth = {values = nil, key = "n", image = "random-smooth.png", generator = "smooth", label = "Random Smooth"},
-    randomStep = {values = nil, key = "m", image = "random-step.png", generator = "step", label = "Random Step"},
-    
-    -- Sawtooth with overshoot
-    sawtoothUp = {values = {{0, 0}, {0.8, 1.1}, {0.85, 0.95}, {0.9, 1.02}, {0.95, 0.99}, {0.99, 1}}, key = "comma", image = "sawtooth-up.png", label = "Sawtooth Up"},
-    sawtoothDown = {values = {{0, 1}, {0.8, -0.1}, {0.85, 0.05}, {0.9, -0.02}, {0.95, 0.01}, {0.99, 0}}, key = "period", image = "sawtooth-down.png", label = "Sawtooth Down"}
+    randomSmooth = {values = nil, key = "n", image = "random-smooth.png", generator = "smooth", label = "Random Smooth", playmode = CURVES},
+    randomStep = {values = nil, key = "m", image = "random-step.png", generator = "step", label = "Random Step", playmode = POINTS},
+
+    -- Sawtooth with overshoot (cubic curves for smooth oscillation)
+    sawtoothUp = {values = {{0, 0}, {0.8, 1.1}, {0.85, 0.95}, {0.9, 1.02}, {0.95, 0.99}, {0.99, 1}}, key = "comma", image = "sawtooth-up.png", label = "Sawtooth Up", playmode = CURVES},
+    sawtoothDown = {values = {{0, 1}, {0.8, -0.1}, {0.85, 0.05}, {0.9, -0.02}, {0.95, 0.01}, {0.99, 0}}, key = "period", image = "sawtooth-down.png", label = "Sawtooth Down", playmode = CURVES}
   }
   
   -- Build reverse key map
@@ -463,6 +467,7 @@ end
 ------------------------------------------------------------------------
 function PakettiAutomationCurvesInsert(shape_name)
   local rs = renoise.song()
+  rs:describe_undo("Paketti: Insert Automation Curve")
   if not rs then
     renoise.app():show_status("No song loaded")
     return
@@ -544,11 +549,16 @@ function PakettiAutomationCurvesInsert(shape_name)
   end
   automation.points = new_points
   
+  -- Set playmode from shape definition (CURVES for smooth shapes, LINES for linear, POINTS for step)
+  if shape.playmode then
+    automation.playmode = shape.playmode
+  end
+
   -- Insert shape points with offset and attenuation
   local offset = PakettiAutomationCurvesOffset
   local attenuation = PakettiAutomationCurvesAttenuation
   local divisor = PakettiAutomationCurvesInputDivisor
-  
+
   for slice = 0, (divisor - 1) do
     local start = slice / divisor * step
     for _, point in ipairs(shape_values) do
@@ -556,7 +566,7 @@ function PakettiAutomationCurvesInsert(shape_name)
       local val = offset + ((1 - offset) * point[2]) * attenuation
       -- Clamp value to 0-1
       val = math.max(0, math.min(1, val))
-      automation:add_point_at(time, val)
+      automation:add_point_at(time, val, point[3] or 0.0)
     end
   end
   
@@ -621,6 +631,7 @@ end
 
 function PakettiAutomationCurvesFadeIn()
   local rs = renoise.song()
+  rs:describe_undo("Paketti: Automation Fade In")
   if not rs or not rs.selected_pattern then
     renoise.app():show_status("No pattern selected")
     return
@@ -638,6 +649,7 @@ end
 
 function PakettiAutomationCurvesFadeOut()
   local rs = renoise.song()
+  rs:describe_undo("Paketti: Automation Fade Out")
   if not rs or not rs.selected_pattern then
     renoise.app():show_status("No pattern selected")
     return
@@ -654,6 +666,7 @@ function PakettiAutomationCurvesFadeOut()
 end
 
 function PakettiAutomationCurvesZeroOdd()
+  renoise.song():describe_undo("Paketti: Zero Odd Automation Points")
   PakettiAutomationCurvesProcessPoints(function(index, point)
     if index % 2 == 1 then point.value = 0 end
     return point
@@ -662,6 +675,7 @@ function PakettiAutomationCurvesZeroOdd()
 end
 
 function PakettiAutomationCurvesZeroEven()
+  renoise.song():describe_undo("Paketti: Zero Even Automation Points")
   PakettiAutomationCurvesProcessPoints(function(index, point)
     if index % 2 == 0 then point.value = 0 end
     return point
@@ -670,6 +684,7 @@ function PakettiAutomationCurvesZeroEven()
 end
 
 function PakettiAutomationCurvesMaxOdd()
+  renoise.song():describe_undo("Paketti: Max Odd Automation Points")
   PakettiAutomationCurvesProcessPoints(function(index, point)
     if index % 2 == 1 then point.value = 1 end
     return point
@@ -678,6 +693,7 @@ function PakettiAutomationCurvesMaxOdd()
 end
 
 function PakettiAutomationCurvesMaxEven()
+  renoise.song():describe_undo("Paketti: Max Even Automation Points")
   PakettiAutomationCurvesProcessPoints(function(index, point)
     if index % 2 == 0 then point.value = 1 end
     return point
@@ -687,6 +703,7 @@ end
 
 -- Randomize existing points (selection-aware)
 function PakettiAutomationCurvesRandomize(amount)
+  renoise.song():describe_undo("Paketti: Randomize Automation Points")
   amount = amount or 0.2
   local automation = PakettiAutomationCurvesGetAutomation()
   if not automation then
@@ -738,6 +755,7 @@ end
 
 -- Smooth existing points
 function PakettiAutomationCurvesSmooth()
+  renoise.song():describe_undo("Paketti: Smooth Automation Points")
   local automation = PakettiAutomationCurvesGetAutomation()
   if not automation or #automation.points < 3 then
     return
@@ -767,6 +785,7 @@ end
 
 -- Quantize to grid
 function PakettiAutomationCurvesQuantize(grid_size)
+  renoise.song():describe_undo("Paketti: Quantize Automation Points")
   grid_size = grid_size or 0.125  -- Default to 8 steps
   PakettiAutomationCurvesProcessPoints(function(index, point)
     point.value = math.floor(point.value / grid_size + 0.5) * grid_size
@@ -857,6 +876,7 @@ end
 -- Cut automation points (copy then clear)
 function PakettiAutomationClipboardCut()
   local rs = renoise.song()
+  rs:describe_undo("Paketti: Cut Automation Clipboard")
   if not rs then
     renoise.app():show_status("No song loaded")
     return false
@@ -914,6 +934,7 @@ end
 -- Paste automation points to current parameter
 function PakettiAutomationClipboardPaste()
   local rs = renoise.song()
+  rs:describe_undo("Paketti: Paste Automation Clipboard")
   if not rs then
     renoise.app():show_status("No song loaded")
     return false
@@ -1004,6 +1025,7 @@ end
 -- Flood-fill: repeat clipboard pattern to fill selection or pattern
 function PakettiAutomationClipboardFloodFill()
   local rs = renoise.song()
+  rs:describe_undo("Paketti: Flood Fill Automation Clipboard")
   if not rs then
     renoise.app():show_status("No song loaded")
     return false

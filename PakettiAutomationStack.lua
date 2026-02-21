@@ -1566,6 +1566,7 @@ function PakettiAutomationStack_CopySelectedEnvelope()
 end
 
 function PakettiAutomationStack_PasteIntoSelectedEnvelope()
+  renoise.song():describe_undo("Paketti: Paste Into Automation Stack Envelope")
   if not PakettiAutomationStack_copy_buffer or not PakettiAutomationStack_copy_buffer.points then
     renoise.app():show_status("Automation Stack: Copy buffer is empty")
     return
@@ -1624,6 +1625,7 @@ end
 -- Create bridge points at pattern boundaries when drawing crosses them
 -- This ensures curve continuity across patterns
 function PakettiAutomationStack_WriteBridgePoints(automation_index, start_line, end_line, start_value, end_value, remove)
+  renoise.song():describe_undo("Paketti: Write Automation Bridge Points")
   if not PakettiAutomationStack_stacker_mode or #PakettiAutomationStack_stacker_patterns <= 1 then
     return -- No bridging needed in single pattern mode
   end
@@ -1699,6 +1701,7 @@ end
 
 -- Write or remove point for a lane
 function PakettiAutomationStack_WritePoint(automation_index, line, value, remove)
+  renoise.song():describe_undo("Paketti: Write Automation Stack Point")
   local song, patt, ptrack = PakettiAutomationStack_GetSongPatternTrack(); if not song or not patt or not ptrack then return end
   local entry = PakettiAutomationStack_automations[automation_index]; if not entry then return end
   

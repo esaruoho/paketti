@@ -2816,9 +2816,7 @@ function setToSelectedInstrument_DuplicateTrack()
 
     for _, automation in ipairs(old_pattern_track.automation) do
       local new_automation = new_pattern_track:create_automation(automation.dest_parameter)
-      for _, point in ipairs(automation.points) do
-        new_automation:add_point_at(point.time, point.value)
-      end
+      new_automation:copy_from(automation)
     end
   end
 
@@ -2957,9 +2955,7 @@ function duplicateTrackDuplicateInstrument()
 
     for _, automation in ipairs(old_pattern_track.automation) do
       local new_automation = new_pattern_track:create_automation(automation.dest_parameter)
-      for _, point in ipairs(automation.points) do
-        new_automation:add_point_at(point.time, point.value)
-      end
+      new_automation:copy_from(automation)
     end
   end
 
@@ -3244,9 +3240,7 @@ function create_identical_track()
       -- Copy automation data
       for _, automation in ipairs(source_track.automation) do
         local new_automation = dest_track:create_automation(automation.dest_parameter)
-        for _, point in ipairs(automation.points) do
-          new_automation:add_point_at(point.time, point.value)
-        end
+        new_automation:copy_from(automation)
       end
     end
     

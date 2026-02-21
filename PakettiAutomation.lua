@@ -756,6 +756,7 @@ local tool = renoise.tool()
 
 function apply_selection_up_linear()
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Linear Ramp Up")
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -806,6 +807,7 @@ local tool = renoise.tool()
 
 function apply_selection_down_linear()
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Linear Ramp Down")
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -854,6 +856,7 @@ local tool = renoise.tool()
 
 function apply_constant_automation_top_to_top(type)
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Constant Top")
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -885,6 +888,7 @@ local tool = renoise.tool()
 
 function apply_constant_automation_bottom_to_bottom(type)
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Constant Bottom")
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -919,6 +923,7 @@ local tool = renoise.tool()
 
 function apply_exponential_automation_curve_top_to_center(type)
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Exponential Curve Top to Center")
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -966,6 +971,7 @@ local tool = renoise.tool()
 
 function apply_exponential_automation_curve_bottom_to_center(type)
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Exponential Curve Bottom to Center")
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -1012,6 +1018,7 @@ local tool = renoise.tool()
 
 function apply_exponential_automation_curve_center_to_bottom(type)
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Exponential Curve Center to Bottom")
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -1059,6 +1066,7 @@ local tool = renoise.tool()
 
 function apply_exponential_automation_curve_center_to_top(type)
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Exponential Curve Center to Top")
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -1109,6 +1117,7 @@ local tool = renoise.tool()
 
 function apply_exponential_automation_curveDOWN(type)
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Exponential Curve Down")
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -1160,6 +1169,7 @@ local tool = renoise.tool()
 
 function apply_exponential_automation_curveUP()
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Exponential Curve Up")
   local automation_parameter = song.selected_automation_parameter
   
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -1238,6 +1248,7 @@ end
 
 function apply_linear_automation_curveCenter(type)
   local song=renoise.song()
+  song:describe_undo("Paketti: Apply Linear Curve Center")
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -1275,6 +1286,7 @@ end
 
 function set_to_center()
   local song=renoise.song()
+  song:describe_undo("Paketti: Set Automation to Center")
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -1668,8 +1680,9 @@ end
 function randomize_envelope()
   -- Initialize random seed for true randomness
   math.randomseed(os.time())
-  
+
   local song=renoise.song()
+  song:describe_undo("Paketti: Randomize Automation Envelope")
   local automation_parameter = song.selected_automation_parameter
   
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -1723,6 +1736,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Randomize Automation Envelope",inv
 ---
 function randomize_device_envelopes(start_param)
   local song=renoise.song()
+  song:describe_undo("Paketti: Randomize Device Envelopes")
   local selected_device = song.selected_track.devices[song.selected_device_index]
 
   if not selected_device then
@@ -2070,6 +2084,7 @@ end
 -----------------
 function PakettiAutomationSelectionFloodFill()
   local song=renoise.song()
+  song:describe_undo("Paketti: Automation Selection Flood Fill")
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2186,6 +2201,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Flood Fill Automation Selection",i
 ------
 function PakettiAutomationReplicateAtCursor()
   local song=renoise.song()
+  song:describe_undo("Paketti: Replicate Automation at Cursor")
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2297,6 +2313,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Replicate at Cursor for Automation
 ------
 function SetAutomationRangeValue(value)
   local song=renoise.song()
+  song:describe_undo("Paketti: Set Automation Range Value")
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2357,6 +2374,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Set Automation Range to Min (0.0)"
 -------
 function FlipAutomationHorizontal()
   local song=renoise.song()
+  song:describe_undo("Paketti: Flip Automation Horizontal")
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2429,6 +2447,7 @@ local center_based_parameters = {
 
 function ScaleAutomation(scale_factor)
   local song=renoise.song()
+  song:describe_undo("Paketti: Scale Automation")
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2552,6 +2571,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Dynamic Scale Automation",
 
 function FlipAutomationVertical()
   local song=renoise.song()
+  song:describe_undo("Paketti: Flip Automation Vertical")
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2607,6 +2627,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Flip Automation Selection Vertical
 
 function add_automation_points_for_notes()
   local song=renoise.song()
+  song:describe_undo("Paketti: Add Automation Points for Notes")
 
   -- Ensure there's a selected track and automation parameter
   local track = song.selected_track
@@ -3310,6 +3331,7 @@ end
 -------
 function read_fx_to_automation(move)
   local song=renoise.song()
+  song:describe_undo("Paketti: Read FX to Automation")
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
   local track = song.tracks[track_index]
@@ -3473,6 +3495,7 @@ end
 ----------
 function write_automation_to_fx(move)
   local song = renoise.song()
+  song:describe_undo("Paketti: Write Automation to FX")
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
   local track = song.tracks[track_index]
@@ -3679,6 +3702,7 @@ end
 ----------
 function snapshot_all_devices_to_automation()
   local song=renoise.song()
+  song:describe_undo("Paketti: Snapshot All Devices to Automation")
   local pattern = song.selected_pattern
   local track = song.selected_track
   local track_index = song.selected_track_index
@@ -3733,6 +3757,7 @@ end
 
 function snapshot_selected_device_to_automation()
   local song=renoise.song()
+  song:describe_undo("Paketti: Snapshot Selected Device to Automation")
   local pattern = song.selected_pattern
   local track = song.selected_track
   local track_index = song.selected_track_index
@@ -4236,8 +4261,9 @@ end
 function PakettiAutomationCurveFillApply()
     local vb = PakettiAutomationCurveFillVb
     if not vb then return end
-    
+
     local song = renoise.song()
+    song:describe_undo("Paketti: Apply Automation Curve Fill")
     local track_index = song.selected_track_index
     local pattern_index = song.selected_pattern_index
     local pattern = song.selected_pattern
