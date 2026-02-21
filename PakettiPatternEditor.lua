@@ -1399,6 +1399,9 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Renoise Random BPM & 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write BPM/LPB to Master",invoke=function() write_bpm() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Write BPM/LPB to Master",invoke=function() write_bpm() end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Write BPM/LPB to Master",invoke=function() write_bpm() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Write Current BPM&LPB to Master Column",invoke=function() write_bpm() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Current BPM&LPB to Master Column",invoke=function() write_bpm() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Write Current BPM&LPB to Master Column",invoke=function() write_bpm() end}
 
 
 function playat75()
