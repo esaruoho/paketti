@@ -1,0 +1,40 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "Lua.runtime.version": "Lua 5.1",
+  "Lua.diagnostics.globals": [
+    "renoise",
+    "osc",
+    "socket",
+    "midi",
+    "io",
+    "os",
+    "table",
+    "string",
+    "math",
+    "pairs",
+    "ipairs",
+    "type",
+    "tostring",
+    "tonumber",
+    "print",
+    "error",
+    "assert",
+    "pcall",
+    "xpcall",
+    "select",
+    "unpack",
+    "rawget",
+    "rawset",
+    "setmetatable",
+    "getmetatable",
+    "require",
+    "dofile",
+    "loadfile",
+    "load",
+    "collectgarbage"
+  ],
+  "Lua.diagnostics.disable": [
+    "undefined-global"
+  ],
+  "Lua.workspace.checkThirdParty": false
+}
