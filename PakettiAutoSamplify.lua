@@ -19,6 +19,13 @@ local files_being_loaded = {}
 local loaded_files_tracker = {}
 local last_instrument_count = 0
 
+-- Re-entrancy guard: prevents the monitoring timer from triggering a second
+-- processing pass while AutoSamplify is already creating/copying instruments.
+-- Also used as a "processing" flag so PakettiCheckForNewSamplesComprehensive
+-- skips mid-batch: timer fires every 100 ms and instrument creation can take
+-- longer than that if pakettiPreferencesDefaultInstrumentLoader is slow.
+local autosamplify_processing = false
+
 
 -----------------------------------------------------------------------
 -- Helper Functions for Copying Instrument Data (FX Chains, Modulation, Phrases)
@@ -356,7 +363,10 @@ function PakettiGetAllInstrumentStates()
       sample_states[j] = {
         exists = true,
         has_data = has_data,
-        name = sample.name
+        name = sample.name,
+        -- Snapshot is_slice_alias so PakettiFindNewlyLoadedSamples can filter
+        -- alias samples without needing a live song reference.
+        is_slice_alias = sample.is_slice_alias
       }
     end
     
@@ -394,7 +404,9 @@ function PakettiFindNewlyLoadedSamples(current_states, previous_states)
       if not is_autosamplify_created then
         for j = 1, current_instr.sample_count do
           local sample = current_instr.sample_states[j]
-          if sample and sample.has_data then
+          -- Skip slice alias samples: they are auto-created by Renoise from the
+          -- parent sample's slice markers and must never be processed separately.
+          if sample and sample.has_data and not sample.is_slice_alias then
             -- Create a unique key based on sample name only (not instrument position)
             local sample_key = sample.name
             
@@ -420,7 +432,9 @@ function PakettiFindNewlyLoadedSamples(current_states, previous_states)
         local current_sample = current_instr.sample_states[j]
         local previous_sample = previous_instr.sample_states[j]
         
-        if current_sample and current_sample.has_data then
+        -- Skip slice alias samples: auto-created by Renoise from slice markers on
+        -- the parent sample; processing them separately causes duplicates.
+        if current_sample and current_sample.has_data and not current_sample.is_slice_alias then
           local is_new = false
           
           if not previous_sample then
@@ -558,13 +572,16 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   print(string.format("DEBUG: Source sample indices - device_chain: %d, modulation_set: %d, has_content: %s",
                      source_device_chain_index, source_modulation_set_index, tostring(source_has_content)))
   
-  -- Create new instrument after current one
-  local new_instrument_index = instrument_index + 1
-  if not safeInsertInstrumentAt(song, new_instrument_index) then return end
-  song.selected_instrument_index = new_instrument_index
-  
-  -- Track the newly created instrument to prevent loops
-  table.insert(recently_created_samples, {
+  -- Create new instrument after current one.
+  -- Wrapped in pcall so any mid-creation Renoise API error becomes a logged
+  -- warning rather than a hard crash that leaves monitoring permanently broken.
+  local _create_ok, _create_err = pcall(function()
+    local new_instrument_index = instrument_index + 1
+    if not safeInsertInstrumentAt(song, new_instrument_index) then return end
+    song.selected_instrument_index = new_instrument_index
+
+    -- Track the newly created instrument to prevent loops
+    table.insert(recently_created_samples, {
     instrument_index = new_instrument_index,
     sample_index = 1, -- New instruments typically have sample in slot 1
     created_by_autosamplify = true
@@ -709,8 +726,13 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   print(string.format("Successfully Pakettified '%s' in new instrument %d with XRNI + loader settings%s", 
                      sample_name, new_instrument_index, copied_content))
   
-  renoise.app():show_status(string.format("Auto-Pakettified '%s' to new instrument %d%s", 
-                                        sample_name, new_instrument_index, copied_content))
+    renoise.app():show_status(string.format("Auto-Pakettified '%s' to new instrument %d%s",
+                                          sample_name, new_instrument_index, copied_content))
+  end)  -- end pcall (instrument creation)
+  if not _create_ok then
+    print("ERROR: PakettiApplyLoaderSettingsToSample: instrument creation failed: " .. tostring(_create_err))
+    renoise.app():show_status("AutoSamplify: instrument creation error - see Renoise log")
+  end
 end
 
 -- Function to apply Paketti loader settings to the selected sample (legacy compatibility)
@@ -729,8 +751,22 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
   if PakettiDontRunAutomaticSampleLoader then return end
   
   if #new_samples == 0 then return end
-  
-  print(string.format("Processing %d newly loaded samples", #new_samples))
+
+  -- Re-entrancy guard: if AutoSamplify is already creating instruments, skip this
+  -- call. The monitoring timer fires every 100 ms and instrument creation can take
+  -- longer (pakettiPreferencesDefaultInstrumentLoader is blocking), so a second
+  -- invocation can arrive while the first is still running.
+  if autosamplify_processing then
+    print("DEBUG: AutoSamplify re-entrancy detected - skipping nested invocation")
+    return
+  end
+  autosamplify_processing = true
+
+  -- Wrap entire batch in pcall so any mid-batch Renoise API error:
+  --   (a) produces a clear log message rather than a silent crash, and
+  --   (b) always resets the re-entrancy flag so future timer ticks run normally.
+  local _processing_ok, _processing_err = pcall(function()
+    print(string.format("Processing %d newly loaded samples", #new_samples))
   
   -- Check AutoSamplify Pakettify preference
   local should_pakettify = true
@@ -751,8 +787,15 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
     table.insert(samples_by_instrument[instr_idx], sample_info)
   end
   
-  -- Process each instrument's new samples
-  for instr_idx, samples in pairs(samples_by_instrument) do
+  -- Process each instrument's new samples.
+  -- Iterate in DESCENDING index order so that when we insert a new instrument
+  -- at instr_idx + 1, the shift only affects higher indices that have already
+  -- been processed -- lower indices remain stable for subsequent iterations.
+  local _sorted_instr_indices = {}
+  for _idx in pairs(samples_by_instrument) do table.insert(_sorted_instr_indices, _idx) end
+  table.sort(_sorted_instr_indices, function(a, b) return a > b end)
+  for _, instr_idx in ipairs(_sorted_instr_indices) do
+    local samples = samples_by_instrument[instr_idx]
     local instrument = song.instruments[instr_idx]
     if instrument then
       local is_pakettified = PakettiIsInstrumentPakettified(instrument)
@@ -1058,12 +1101,23 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
       end
     end
   end
+  end)  -- end pcall (batch processing)
+  if not _processing_ok then
+    print("ERROR: PakettiApplyLoaderSettingsToNewSamples: " .. tostring(_processing_err))
+    renoise.app():show_status("AutoSamplify: processing error - see Renoise log")
+  end
+  autosamplify_processing = false
 end
 
 -- Function to check for new samples across all instruments
 function PakettiCheckForNewSamplesComprehensive()
   if not monitoring_enabled then return end
-  
+
+  -- Skip if AutoSamplify is currently creating instruments. The timer fires every
+  -- 100 ms and instrument creation is a blocking operation, so re-entrant calls
+  -- would observe a partially-constructed instrument list and misdetect new samples.
+  if autosamplify_processing then return end
+
   -- Check if we should skip automatic processing (e.g., when CTRL-O Pattern to Sample is handling it)
   if PakettiDontRunAutomaticSampleLoader then return end
   
@@ -1121,9 +1175,11 @@ function PakettiCheckForNewSamplesComprehensive()
     PakettiApplyLoaderSettingsToNewSamples(new_samples)
   end
 
--- Clean up old tracking entries (keep only last 10 to prevent memory leaks)
-if #recently_created_samples > 10 then
-  local keep_count = 10
+-- Clean up old tracking entries (keep only last 50 to prevent memory leaks).
+-- 50 is large enough to cover any realistic rapid-fire batch import session
+-- (e.g. dragging 40 samples at once) without the list going stale mid-batch.
+if #recently_created_samples > 50 then
+  local keep_count = 50
   local new_tracking = {}
   for i = #recently_created_samples - keep_count + 1, #recently_created_samples do
     table.insert(new_tracking, recently_created_samples[i])
