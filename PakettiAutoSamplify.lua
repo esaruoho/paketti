@@ -391,10 +391,18 @@ function PakettiFindNewlyLoadedSamples(current_states, previous_states)
     local previous_instr = previous_states[i]
     
     if not previous_instr then
-      -- New instrument - check if it was created by AutoSamplify
+      -- New instrument - check if it was created by AutoSamplify.
+      -- Match by BOTH index and name: after a previous insertion shifts all
+      -- indices by 1, the index stored in recently_created_samples can be stale,
+      -- but the instrument_name we recorded at creation time remains correct.
       local is_autosamplify_created = false
       for _, created_sample in ipairs(recently_created_samples) do
         if created_sample.instrument_index == i then
+          is_autosamplify_created = true
+          break
+        end
+        if created_sample.instrument_name and created_sample.instrument_name ~= ""
+           and current_instr.name == created_sample.instrument_name then
           is_autosamplify_created = true
           break
         end
@@ -580,28 +588,37 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
     if not safeInsertInstrumentAt(song, new_instrument_index) then return end
     song.selected_instrument_index = new_instrument_index
 
-    -- Track the newly created instrument to prevent loops
+    -- Track the newly created instrument to prevent loops.
+    -- Store instrument_name (= sample_name) in addition to the index so the guard
+    -- in PakettiFindNewlyLoadedSamples can still identify this instrument even
+    -- after subsequent instrument insertions shift all indices by 1.
     table.insert(recently_created_samples, {
-    instrument_index = new_instrument_index,
-    sample_index = 1, -- New instruments typically have sample in slot 1
-    created_by_autosamplify = true
-  })
-  print(string.format("DEBUG: Tracked new instrument %d as AutoSamplify-created", new_instrument_index))
+      instrument_index = new_instrument_index,
+      instrument_name  = sample_name,
+      sample_index     = 1,
+      created_by_autosamplify = true,
+    })
+    print(string.format("DEBUG: Tracked new instrument %d ('%s') as AutoSamplify-created", new_instrument_index, sample_name))
   
   -- Apply the default XRNI settings to the new instrument
   print(string.format("Loading default XRNI into new instrument %d", new_instrument_index))
   pakettiPreferencesDefaultInstrumentLoader()
-  
-  -- Get the new instrument
+
+  -- Verify the new instrument is still accessible.
+  -- pakettiPreferencesDefaultInstrumentLoader() can silently fail if no default XRNI
+  -- is configured, or can change selected_instrument_index in unexpected ways.
   local new_instrument = song.instruments[new_instrument_index]
-  
+  if not new_instrument then
+    print(string.format("ERROR: Expected instrument at index %d after loading XRNI, but got nil - aborting", new_instrument_index))
+    return
+  end
+
   -- Store the number of default chains and modulation sets from the loaded XRNI
   local default_chain_count = #new_instrument.sample_device_chains
   local default_modset_count = #new_instrument.sample_modulation_sets
-  
   print(string.format("DEBUG: Default XRNI has %d FX chains and %d modulation sets",
                      default_chain_count, default_modset_count))
-  
+
   -- Copy FX chains, modulation sets, and phrases from source instrument if it has content
   local chain_mapping = {}
   local modset_mapping = {}
@@ -873,24 +890,32 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
         if not safeInsertInstrumentAt(song, new_instrument_index) then return end
         song.selected_instrument_index = new_instrument_index
         
-        -- Track the newly created instrument to prevent loops
+        -- Track the newly created instrument to prevent loops.
+        -- Store instrument_name alongside the index so we can still recognise this
+        -- instrument even if a later insertion shifts all indices by 1.
+        local _first_sample_name = (#samples > 0) and samples[1].sample_name or ""
         table.insert(recently_created_samples, {
           instrument_index = new_instrument_index,
-          sample_index = 1,
-          created_by_autosamplify = true
+          instrument_name  = _first_sample_name,
+          sample_index     = 1,
+          created_by_autosamplify = true,
         })
-        print(string.format("DEBUG: Tracked new instrument %d as AutoSamplify-created", new_instrument_index))
+        print(string.format("DEBUG: Tracked new instrument %d ('%s') as AutoSamplify-created", new_instrument_index, _first_sample_name))
         
         -- Apply the default XRNI settings to the new instrument
         print(string.format("Loading default XRNI into new instrument %d", new_instrument_index))
         pakettiPreferencesDefaultInstrumentLoader()
-        
-        -- Get the new instrument
+
+        -- Verify the new instrument is still accessible after loading the XRNI.
         local new_instrument = song.instruments[new_instrument_index]
-        
-        -- Store the number of default chains and modulation sets from the loaded XRNI
-        local default_chain_count = #new_instrument.sample_device_chains
-        local default_modset_count = #new_instrument.sample_modulation_sets
+        if not new_instrument then
+          print(string.format("ERROR: Expected instrument at index %d after XRNI load, got nil - aborting batch", new_instrument_index))
+          return
+        end
+
+        -- Log default chains/modsets loaded from XRNI (informational only)
+        print(string.format("DEBUG: Default XRNI has %d FX chains and %d modulation sets",
+                           #new_instrument.sample_device_chains, #new_instrument.sample_modulation_sets))
         
         -- Copy FX chains, modulation sets, and phrases from source instrument if it has content
         local chain_mapping = {}
@@ -1156,23 +1181,24 @@ function PakettiCheckForNewSamplesComprehensive()
                          sample_info.instrument_index, sample_info.sample_index, sample_info.sample_name))
     end
     
-    -- Check if any of the new samples are already marked as processed
-    local has_processed_samples = false
+    -- Filter out samples already marked as processed.
+    -- Previous approach: if ANY sample was in the tracker, reset the ENTIRE tracker.
+    -- Problem: that wipe briefly left ALL samples unguarded, risking re-processing.
+    -- New approach: remove only the already-processed samples from the work list and
+    -- leave the tracker intact. Samples not yet processed will proceed normally.
+    local unprocessed_samples = {}
     for _, sample_info in ipairs(new_samples) do
       if loaded_files_tracker[sample_info.sample_name] then
-        has_processed_samples = true
-        break
+        print(string.format("DEBUG: Skipping already-processed sample '%s' (still in tracker)", sample_info.sample_name))
+      else
+        table.insert(unprocessed_samples, sample_info)
       end
     end
-    
-    -- If we have new samples but they're all marked as processed, reset tracking
-    if has_processed_samples then
-      loaded_files_tracker = {}
-      print("DEBUG: Found new samples that were previously processed, resetting file tracking")
+
+    -- Apply settings to unprocessed samples only
+    if #unprocessed_samples > 0 then
+      PakettiApplyLoaderSettingsToNewSamples(unprocessed_samples)
     end
-    
-    -- Apply settings to all newly loaded samples
-    PakettiApplyLoaderSettingsToNewSamples(new_samples)
   end
 
 -- Clean up old tracking entries (keep only last 50 to prevent memory leaks).
