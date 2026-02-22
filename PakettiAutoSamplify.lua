@@ -872,109 +872,156 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
           end
         end
         
+        -- Clear any slice markers from the default XRNI samples BEFORE deletion.
+        -- Renoise forbids delete_sample_at on an instrument that has sliced samples
+        -- (i.e. any sample with slice_markers), so we must clear those markers first.
+        for si = 1, #new_instrument.samples do
+          local s = new_instrument.samples[si]
+          if s and #s.slice_markers > 0 then
+            local markers_snapshot = {}
+            for _, m in ipairs(s.slice_markers) do table.insert(markers_snapshot, m) end
+            for _, m in ipairs(markers_snapshot) do s:delete_slice_marker(m) end
+            print(string.format("DEBUG: Cleared %d slice markers from default-XRNI sample %d before deletion", #markers_snapshot, si))
+          end
+        end
         -- Clear default samples if they exist
         if #new_instrument.samples > 0 then
           for i = #new_instrument.samples, 1, -1 do
             new_instrument:delete_sample_at(i)
           end
         end
-        
-        -- Copy all new samples to the new instrument
-        for sample_idx, sample_info in ipairs(samples) do
+
+        -- Copy all new samples to the new instrument.
+        --
+        -- IMPORTANT: slice markers must NOT be inserted during this loop.
+        -- As soon as any sample in new_instrument acquires slice markers, Renoise
+        -- locks the sample list and subsequent insert_sample_at calls crash with:
+        --   "can not modify sample list of sliced samples. modify 'slice_markers' instead."
+        --
+        -- Strategy:
+        --   1. Skip slice alias samples (is_slice_alias=true). They are auto-created
+        --      by Renoise when slice markers are applied to their parent sample.
+        --   2. Copy parent samples (including those with slice markers) manually,
+        --      but DEFER slice marker insertion until after all samples are inserted.
+        --   3. Apply deferred slice markers in a second pass below.
+        local slice_marker_jobs = {}  -- {dest_idx=n, markers={...}}
+        local dest_idx = 0
+        for _, sample_info in ipairs(samples) do
           local source_sample = instrument.samples[sample_info.sample_index]
           if source_sample then
-            -- Mark as processed before copying
-            loaded_files_tracker[source_sample.name] = true
-            print(string.format("DEBUG: Marking sample '%s' as processed (multiple samples)", source_sample.name))
-            
-            -- Insert new sample slot
-            new_instrument:insert_sample_at(sample_idx)
-            local new_sample = new_instrument.samples[sample_idx]
-            
-            -- Check if source sample is a slice alias or has slice markers - cannot use copy_from on either
-            if source_sample.is_slice_alias or #source_sample.slice_markers > 0 then
-              print(string.format("DEBUG: Source sample '%s' is a slice alias or has slice markers, copying properties and buffer manually", source_sample.name))
-              -- Copy sample properties manually
-              new_sample.panning = source_sample.panning
-              new_sample.volume = source_sample.volume
-              new_sample.transpose = source_sample.transpose
-              new_sample.fine_tune = source_sample.fine_tune
-              new_sample.beat_sync_enabled = source_sample.beat_sync_enabled
-              new_sample.beat_sync_lines = source_sample.beat_sync_lines
-              new_sample.beat_sync_mode = source_sample.beat_sync_mode
-              new_sample.interpolation_mode = source_sample.interpolation_mode
-              new_sample.oversample_enabled = source_sample.oversample_enabled
-              new_sample.new_note_action = source_sample.new_note_action
-              new_sample.oneshot = source_sample.oneshot
-              new_sample.mute_group = source_sample.mute_group
-              new_sample.autoseek = source_sample.autoseek
-              new_sample.autofade = source_sample.autofade
-              new_sample.loop_mode = source_sample.loop_mode
-              new_sample.loop_release = source_sample.loop_release
-              
-              -- Copy buffer data manually from alias sample
-              local source_buffer = source_sample.sample_buffer
-              local dest_buffer = new_sample.sample_buffer
-              if source_buffer.has_sample_data then
-                local success = dest_buffer:create_sample_data(
-                  source_buffer.sample_rate,
-                  source_buffer.bit_depth,
-                  source_buffer.number_of_channels,
-                  source_buffer.number_of_frames
-                )
-                if success then
-                  dest_buffer:prepare_sample_data_changes()
-                  for ch = 1, source_buffer.number_of_channels do
-                    for fr = 1, source_buffer.number_of_frames do
-                      dest_buffer:set_sample_data(ch, fr, source_buffer:sample_data(ch, fr))
+            -- Skip slice aliases: auto-recreated by Renoise via slice markers on the parent.
+            if source_sample.is_slice_alias then
+              print(string.format("DEBUG: Skipping slice alias '%s' (auto-recreated via slice markers)", source_sample.name))
+            else
+              -- Mark as processed before copying
+              loaded_files_tracker[source_sample.name] = true
+              print(string.format("DEBUG: Marking sample '%s' as processed (multiple samples)", source_sample.name))
+
+              dest_idx = dest_idx + 1
+
+              -- Insert new sample slot
+              new_instrument:insert_sample_at(dest_idx)
+              local new_sample = new_instrument.samples[dest_idx]
+
+              -- Samples with slice markers cannot use copy_from (it would copy the markers
+              -- and immediately lock the sample list). Copy buffer + properties manually instead.
+              if #source_sample.slice_markers > 0 then
+                print(string.format("DEBUG: Source sample '%s' has slice markers - manual copy, markers deferred", source_sample.name))
+                -- Copy sample properties manually
+                new_sample.panning = source_sample.panning
+                new_sample.volume = source_sample.volume
+                new_sample.transpose = source_sample.transpose
+                new_sample.fine_tune = source_sample.fine_tune
+                new_sample.beat_sync_enabled = source_sample.beat_sync_enabled
+                new_sample.beat_sync_lines = source_sample.beat_sync_lines
+                new_sample.beat_sync_mode = source_sample.beat_sync_mode
+                new_sample.interpolation_mode = source_sample.interpolation_mode
+                new_sample.oversample_enabled = source_sample.oversample_enabled
+                new_sample.new_note_action = source_sample.new_note_action
+                new_sample.oneshot = source_sample.oneshot
+                new_sample.mute_group = source_sample.mute_group
+                new_sample.autoseek = source_sample.autoseek
+                new_sample.autofade = source_sample.autofade
+                new_sample.loop_mode = source_sample.loop_mode
+                new_sample.loop_release = source_sample.loop_release
+
+                -- Copy buffer data manually
+                local source_buffer = source_sample.sample_buffer
+                local dest_buffer = new_sample.sample_buffer
+                if source_buffer.has_sample_data then
+                  local success = dest_buffer:create_sample_data(
+                    source_buffer.sample_rate,
+                    source_buffer.bit_depth,
+                    source_buffer.number_of_channels,
+                    source_buffer.number_of_frames
+                  )
+                  if success then
+                    dest_buffer:prepare_sample_data_changes()
+                    for ch = 1, source_buffer.number_of_channels do
+                      for fr = 1, source_buffer.number_of_frames do
+                        dest_buffer:set_sample_data(ch, fr, source_buffer:sample_data(ch, fr))
+                      end
                     end
-                  end
-                  dest_buffer:finalize_sample_data_changes()
-                  -- Copy loop points after buffer is created
-                  if source_sample.loop_start <= source_buffer.number_of_frames then
-                    new_sample.loop_start = source_sample.loop_start
-                  end
-                  if source_sample.loop_end <= source_buffer.number_of_frames then
-                    new_sample.loop_end = source_sample.loop_end
-                  end
-                  -- Copy slice markers if any
-                  if #source_sample.slice_markers > 0 then
+                    dest_buffer:finalize_sample_data_changes()
+                    -- Copy loop points after buffer is created
+                    if source_sample.loop_start <= source_buffer.number_of_frames then
+                      new_sample.loop_start = source_sample.loop_start
+                    end
+                    if source_sample.loop_end <= source_buffer.number_of_frames then
+                      new_sample.loop_end = source_sample.loop_end
+                    end
+                    -- Defer slice markers - inserting them now would lock the sample list
+                    local deferred_markers = {}
                     for _, marker in ipairs(source_sample.slice_markers) do
-                      new_sample:insert_slice_marker(marker)
+                      table.insert(deferred_markers, marker)
                     end
-                    print(string.format("DEBUG: Copied %d slice markers", #source_sample.slice_markers))
+                    table.insert(slice_marker_jobs, {dest_idx = dest_idx, markers = deferred_markers})
+                    print(string.format("DEBUG: Deferred %d slice markers for dest sample %d", #deferred_markers, dest_idx))
+                    print(string.format("DEBUG: Successfully copied sample buffer (%d frames, %d channels)",
+                                       source_buffer.number_of_frames, source_buffer.number_of_channels))
+                  else
+                    print(string.format("ERROR: Failed to create sample buffer for '%s'", source_sample.name))
                   end
-                  print(string.format("DEBUG: Successfully copied alias sample buffer (%d frames, %d channels)",
-                                     source_buffer.number_of_frames, source_buffer.number_of_channels))
-                else
-                  print(string.format("ERROR: Failed to create sample buffer for alias sample '%s'", source_sample.name))
+                end
+                new_sample.name = source_sample.name
+              else
+                -- Normal copy for samples without slice markers
+                new_sample:copy_from(source_sample)
+                new_sample.name = source_sample.name
+              end
+
+              -- Update sample's device_chain_index and modulation_set_index to point to copied chains/sets
+              local orig_indices = source_indices[sample_info.sample_index]
+              if orig_indices then
+                if orig_indices.device_chain_index > 0 and chain_mapping[orig_indices.device_chain_index] then
+                  new_sample.device_chain_index = chain_mapping[orig_indices.device_chain_index]
+                  print(string.format("DEBUG: Updated sample '%s' device_chain_index: %d -> %d",
+                                     new_sample.name, orig_indices.device_chain_index, new_sample.device_chain_index))
+                end
+
+                if orig_indices.modulation_set_index > 0 and modset_mapping[orig_indices.modulation_set_index] then
+                  new_sample.modulation_set_index = modset_mapping[orig_indices.modulation_set_index]
+                  print(string.format("DEBUG: Updated sample '%s' modulation_set_index: %d -> %d",
+                                     new_sample.name, orig_indices.modulation_set_index, new_sample.modulation_set_index))
                 end
               end
-              new_sample.name = source_sample.name
-            else
-              -- Normal copy for non-alias samples
-              new_sample:copy_from(source_sample)
-              new_sample.name = source_sample.name
+
+              -- Apply sample-specific loader settings
+              PakettiAutoSamplifyApplyLoaderSettings(new_sample)
+            end  -- not is_slice_alias
+          end
+        end
+
+        -- Second pass: apply deferred slice markers now that all samples are inserted.
+        -- Adding slice markers to a sample locks the instrument's sample list, so this
+        -- MUST happen after all insert_sample_at calls are complete.
+        for _, job in ipairs(slice_marker_jobs) do
+          local new_sample = new_instrument.samples[job.dest_idx]
+          if new_sample then
+            for _, marker in ipairs(job.markers) do
+              new_sample:insert_slice_marker(marker)
             end
-            
-            -- Update sample's device_chain_index and modulation_set_index to point to copied chains/sets
-            local orig_indices = source_indices[sample_info.sample_index]
-            if orig_indices then
-              if orig_indices.device_chain_index > 0 and chain_mapping[orig_indices.device_chain_index] then
-                new_sample.device_chain_index = chain_mapping[orig_indices.device_chain_index]
-                print(string.format("DEBUG: Updated sample '%s' device_chain_index: %d -> %d",
-                                   new_sample.name, orig_indices.device_chain_index, new_sample.device_chain_index))
-              end
-              
-              if orig_indices.modulation_set_index > 0 and modset_mapping[orig_indices.modulation_set_index] then
-                new_sample.modulation_set_index = modset_mapping[orig_indices.modulation_set_index]
-                print(string.format("DEBUG: Updated sample '%s' modulation_set_index: %d -> %d",
-                                   new_sample.name, orig_indices.modulation_set_index, new_sample.modulation_set_index))
-              end
-            end
-            
-            -- Apply sample-specific loader settings
-            PakettiAutoSamplifyApplyLoaderSettings(new_sample)
+            print(string.format("DEBUG: Applied %d deferred slice markers to dest sample %d", #job.markers, job.dest_idx))
           end
         end
         
