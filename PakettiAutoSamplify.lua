@@ -26,6 +26,30 @@ local last_instrument_count = 0
 -- longer than that if pakettiPreferencesDefaultInstrumentLoader is slow.
 local autosamplify_processing = false
 
+-- Debug flag: set to true during development to enable verbose logging.
+-- Leave false in production to avoid flooding the Renoise scripting terminal
+-- with hundreds of DEBUG lines every 100 ms.
+local DEBUG_AUTOSAMPLIFY = false
+local function dbg(...)
+  if DEBUG_AUTOSAMPLIFY then print(...) end
+end
+
+-- Ordered key list for loaded_files_tracker so we can rotate (evict oldest)
+-- rather than wipe the entire table when it grows beyond MAX_TRACKER_SIZE.
+-- A full wipe creates a re-processing window: the next timer tick sees all
+-- previously-processed samples as "new" again.
+local loaded_files_tracker_order = {}
+local MAX_TRACKER_SIZE = 200
+
+-- Helper: record a file as processed using its name|framecount dedup key.
+-- Maintains loaded_files_tracker_order for ordered eviction.
+local function track_file(key)
+  if not loaded_files_tracker[key] then
+    loaded_files_tracker[key] = true
+    table.insert(loaded_files_tracker_order, key)
+  end
+end
+
 
 -----------------------------------------------------------------------
 -- Helper Functions for Copying Instrument Data (FX Chains, Modulation, Phrases)
@@ -35,7 +59,7 @@ local autosamplify_processing = false
 -- Returns a mapping table: source_chain_index -> target_chain_index
 function PakettiCopySampleDeviceChains(source_instrument, target_instrument)
   if not source_instrument or not target_instrument then
-    print("DEBUG: PakettiCopySampleDeviceChains - Invalid instruments provided")
+    dbg("DEBUG: PakettiCopySampleDeviceChains - Invalid instruments provided")
     return {}
   end
   
@@ -43,7 +67,7 @@ function PakettiCopySampleDeviceChains(source_instrument, target_instrument)
   local source_chains = source_instrument.sample_device_chains
   local target_chains_offset = #target_instrument.sample_device_chains
   
-  print(string.format("DEBUG: Copying %d FX chains from source (target has %d existing chains)", 
+  dbg(string.format("DEBUG: Copying %d FX chains from source (target has %d existing chains)", 
                      #source_chains, target_chains_offset))
   
   -- Copy each source chain
@@ -101,7 +125,7 @@ function PakettiCopySampleDeviceChains(source_instrument, target_instrument)
             end)
             
             if not success then
-              print(string.format("DEBUG: Could not copy preset data for device '%s': %s", 
+              dbg(string.format("DEBUG: Could not copy preset data for device '%s': %s", 
                                  source_device.name, tostring(err)))
               -- Fallback: copy individual parameters
               for param_idx = 1, #source_device.parameters do
@@ -122,13 +146,13 @@ function PakettiCopySampleDeviceChains(source_instrument, target_instrument)
               new_device.display_name = source_device.display_name
             end
             
-            print(string.format("DEBUG: Copied device '%s' to chain %d", source_device.name, new_chain_idx))
+            dbg(string.format("DEBUG: Copied device '%s' to chain %d", source_device.name, new_chain_idx))
           else
-            print(string.format("DEBUG: Failed to insert device '%s' at path '%s'", 
+            dbg(string.format("DEBUG: Failed to insert device '%s' at path '%s'", 
                                source_device.name, device_path))
           end
         else
-          print(string.format("DEBUG: Device '%s' (path: %s) not available in target chain", 
+          dbg(string.format("DEBUG: Device '%s' (path: %s) not available in target chain", 
                              source_device.name, device_path))
         end
       end
@@ -136,7 +160,7 @@ function PakettiCopySampleDeviceChains(source_instrument, target_instrument)
     
     -- Store the mapping
     chain_mapping[source_chain_idx] = new_chain_idx
-    print(string.format("DEBUG: Mapped source chain %d -> target chain %d ('%s')", 
+    dbg(string.format("DEBUG: Mapped source chain %d -> target chain %d ('%s')", 
                        source_chain_idx, new_chain_idx, source_chain.name))
   end
   
@@ -147,7 +171,7 @@ end
 -- Returns a mapping table: source_set_index -> target_set_index
 function PakettiCopySampleModulationSets(source_instrument, target_instrument)
   if not source_instrument or not target_instrument then
-    print("DEBUG: PakettiCopySampleModulationSets - Invalid instruments provided")
+    dbg("DEBUG: PakettiCopySampleModulationSets - Invalid instruments provided")
     return {}
   end
   
@@ -155,7 +179,7 @@ function PakettiCopySampleModulationSets(source_instrument, target_instrument)
   local source_modsets = source_instrument.sample_modulation_sets
   local target_modsets_offset = #target_instrument.sample_modulation_sets
   
-  print(string.format("DEBUG: Copying %d modulation sets from source (target has %d existing sets)", 
+  dbg(string.format("DEBUG: Copying %d modulation sets from source (target has %d existing sets)", 
                      #source_modsets, target_modsets_offset))
   
   -- Copy each source modulation set
@@ -173,10 +197,10 @@ function PakettiCopySampleModulationSets(source_instrument, target_instrument)
     end)
     
     if success then
-      print(string.format("DEBUG: Copied modulation set %d -> %d ('%s')", 
+      dbg(string.format("DEBUG: Copied modulation set %d -> %d ('%s')", 
                          source_set_idx, new_set_idx, source_modset.name))
     else
-      print(string.format("DEBUG: Error copying modulation set %d: %s", source_set_idx, tostring(err)))
+      dbg(string.format("DEBUG: Error copying modulation set %d: %s", source_set_idx, tostring(err)))
       -- Fallback: copy basic properties manually
       target_modset.name = source_modset.name
       if source_modset.filter_type then
@@ -197,18 +221,18 @@ end
 -- Copy Phrases from source instrument to target instrument
 function PakettiCopyPhrases(source_instrument, target_instrument)
   if not source_instrument or not target_instrument then
-    print("DEBUG: PakettiCopyPhrases - Invalid instruments provided")
+    dbg("DEBUG: PakettiCopyPhrases - Invalid instruments provided")
     return
   end
   
   local source_phrases = source_instrument.phrases
   
   if #source_phrases == 0 then
-    print("DEBUG: No phrases to copy from source instrument")
+    dbg("DEBUG: No phrases to copy from source instrument")
     return
   end
   
-  print(string.format("DEBUG: Copying %d phrases from source instrument", #source_phrases))
+  dbg(string.format("DEBUG: Copying %d phrases from source instrument", #source_phrases))
   
   -- Copy each source phrase
   for phrase_idx = 1, #source_phrases do
@@ -224,18 +248,18 @@ function PakettiCopyPhrases(source_instrument, target_instrument)
       end)
       
       if success then
-        print(string.format("DEBUG: Copied phrase %d ('%s')", phrase_idx, source_phrase.name))
+        dbg(string.format("DEBUG: Copied phrase %d ('%s')", phrase_idx, source_phrase.name))
       else
-        print(string.format("DEBUG: Error copying phrase %d: %s", phrase_idx, tostring(err)))
+        dbg(string.format("DEBUG: Error copying phrase %d: %s", phrase_idx, tostring(err)))
       end
     else
-      print(string.format("DEBUG: Failed to create phrase at index %d", phrase_idx))
+      dbg(string.format("DEBUG: Failed to create phrase at index %d", phrase_idx))
     end
   end
   
   -- Copy phrase mappings if any exist
   if #source_instrument.phrase_mappings > 0 then
-    print(string.format("DEBUG: Source has %d phrase mappings (note: mappings are auto-created with phrases)", 
+    dbg(string.format("DEBUG: Source has %d phrase mappings (note: mappings are auto-created with phrases)", 
                        #source_instrument.phrase_mappings))
   end
   
@@ -277,11 +301,11 @@ end
 function PakettiAutoSamplifyApplyLoaderSettings(sample)
   if not sample or not preferences then return end
   
-  print(string.format("DEBUG: PakettiAutoSamplifyApplyLoaderSettings called for '%s'", sample.name))
+  dbg(string.format("DEBUG: PakettiAutoSamplifyApplyLoaderSettings called for '%s'", sample.name))
   
   -- Check if PCM Writer is currently creating samples - if so, skip AutoSamplify processing
   if PCMWriterIsCreatingSamples and PCMWriterIsCreatingSamples() then
-    print(string.format("DEBUG: Skipping AutoSamplify processing for '%s' - PCM Writer is creating samples", sample.name))
+    dbg(string.format("DEBUG: Skipping AutoSamplify processing for '%s' - PCM Writer is creating samples", sample.name))
     return
   end
   
@@ -300,7 +324,7 @@ function PakettiAutoSamplifyApplyLoaderSettings(sample)
     sample.loop_mode = preferences.pakettiLoaderLoopMode.value
     sample.new_note_action = preferences.pakettiLoaderNNA.value
   else
-    print(string.format("DEBUG: Preserving loop_mode and NNA for PCM Writer sample '%s'", sample.name))
+    dbg(string.format("DEBUG: Preserving loop_mode and NNA for PCM Writer sample '%s'", sample.name))
   end
   
   sample.loop_release = preferences.pakettiLoaderLoopExit.value
@@ -431,14 +455,14 @@ function PakettiFindNewlyLoadedSamples(current_states, previous_states)
                 sample_name = sample.name,
                 dedup_key = sample_key
               })
-              print(string.format("DEBUG: Found new sample: %s in instrument %d, slot %d", sample.name, i, j))
+              dbg(string.format("DEBUG: Found new sample: %s in instrument %d, slot %d", sample.name, i, j))
             else
-              print(string.format("DEBUG: Skipping already processed sample: %s (already processed elsewhere)", sample.name))
+              dbg(string.format("DEBUG: Skipping already processed sample: %s (already processed elsewhere)", sample.name))
             end
           end
         end
       else
-        print(string.format("DEBUG: Skipping new instrument %d - created by AutoSamplify", i))
+        dbg(string.format("DEBUG: Skipping new instrument %d - created by AutoSamplify", i))
       end
     else
       -- Existing instrument - check for new samples
@@ -482,12 +506,12 @@ function PakettiFindNewlyLoadedSamples(current_states, previous_states)
                   sample_name = current_sample.name,
                   dedup_key = sample_key
                 })
-                print(string.format("DEBUG: Found new sample: %s in instrument %d, slot %d", current_sample.name, i, j))
+                dbg(string.format("DEBUG: Found new sample: %s in instrument %d, slot %d", current_sample.name, i, j))
               else
-                print(string.format("DEBUG: Skipping already processed sample: %s (already processed elsewhere)", current_sample.name))
+                dbg(string.format("DEBUG: Skipping already processed sample: %s (already processed elsewhere)", current_sample.name))
               end
             else
-              print(string.format("DEBUG: Skipping sample %d in instrument %d - created by AutoSamplify", j, i))
+              dbg(string.format("DEBUG: Skipping sample %d in instrument %d - created by AutoSamplify", j, i))
             end
           end
         end
@@ -506,8 +530,12 @@ function PakettiIsInstrumentPakettified(instrument)
     return true
   end
   
-  -- Check for Volume AHDSR device using helper function
-  if find_volume_ahdsr_device(instrument) then
+  -- Check for Volume AHDSR device using helper function (defined in another
+  -- module; guard against nil in case load order changes or it is renamed).
+  local _ahdsr_ok, _has_ahdsr = pcall(function()
+    return find_volume_ahdsr_device and find_volume_ahdsr_device(instrument)
+  end)
+  if _ahdsr_ok and _has_ahdsr then
     return true
   end
   
@@ -547,6 +575,18 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   
   -- Store sample data before processing
   local sample_name = source_sample.name
+
+  -- Deduplication pre-check: if the 100 ms timer path already processed this
+  -- exact sample (same name + frame count), the legacy observable path must not
+  -- process it a second time.  This is the primary guard against double-processing:
+  -- the timer finishes, clears autosamplify_processing, THEN the observable fires.
+  local _pre_fc = source_sample.sample_buffer.number_of_frames
+  local _pre_key = sample_name .. "|" .. tostring(_pre_fc)
+  if loaded_files_tracker[_pre_key] then
+    dbg("DEBUG: PakettiApplyLoaderSettingsToSample: '%s' already processed by timer path - skipping", sample_name)
+    return
+  end
+
   local is_pakettified = PakettiIsInstrumentPakettified(source_instrument)
   local has_other_samples = #source_instrument.samples > 1 or (sample_index > 1)
   
@@ -556,8 +596,8 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   local _fc = (source_sample.sample_buffer and source_sample.sample_buffer.has_sample_data)
               and source_sample.sample_buffer.number_of_frames or 0
   local _tracker_key = sample_name .. "|" .. tostring(_fc)
-  loaded_files_tracker[_tracker_key] = true
-  print(string.format("DEBUG: Marking sample '%s' (frames: %d) as processed", sample_name, _fc))
+  track_file(_tracker_key)
+  dbg("DEBUG: Marking sample '%s' (frames: %d) as processed", sample_name, _fc)
   
   print(string.format("Processing sample '%s' from instrument %d, slot %d (pakettified: %s, has_other_samples: %s)", 
                      sample_name, instrument_index, sample_index, 
@@ -590,7 +630,7 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   local source_modulation_set_index = source_sample.modulation_set_index
   local source_has_content = PakettiSourceHasContentToCopy(source_instrument)
   
-  print(string.format("DEBUG: Source sample indices - device_chain: %d, modulation_set: %d, has_content: %s",
+  dbg(string.format("DEBUG: Source sample indices - device_chain: %d, modulation_set: %d, has_content: %s",
                      source_device_chain_index, source_modulation_set_index, tostring(source_has_content)))
   
   -- Create new instrument after current one.
@@ -625,7 +665,7 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
       sample_index     = 1,
       created_by_autosamplify = true,
     })
-    print(string.format("DEBUG: Tracked new instrument %d ('%s') as AutoSamplify-created", new_instrument_index, sample_name))
+    dbg(string.format("DEBUG: Tracked new instrument %d ('%s') as AutoSamplify-created", new_instrument_index, sample_name))
   
   -- Apply the default XRNI settings to the new instrument
   print(string.format("Loading default XRNI into new instrument %d", new_instrument_index))
@@ -643,7 +683,7 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   -- Store the number of default chains and modulation sets from the loaded XRNI
   local default_chain_count = #new_instrument.sample_device_chains
   local default_modset_count = #new_instrument.sample_modulation_sets
-  print(string.format("DEBUG: Default XRNI has %d FX chains and %d modulation sets",
+  dbg(string.format("DEBUG: Default XRNI has %d FX chains and %d modulation sets",
                      default_chain_count, default_modset_count))
 
   -- Copy FX chains, modulation sets, and phrases from source instrument if it has content
@@ -651,7 +691,7 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   local modset_mapping = {}
   
   if source_has_content then
-    print("DEBUG: Source instrument has content to copy - copying FX chains, modulation sets, and phrases")
+    dbg("DEBUG: Source instrument has content to copy - copying FX chains, modulation sets, and phrases")
     
     -- Copy Sample FX Chains from source (appending after default chains)
     if #source_instrument.sample_device_chains > 0 then
@@ -679,7 +719,7 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
       local _snap = {}
       for _, _m in ipairs(_s.slice_markers) do table.insert(_snap, _m) end
       for _, _m in ipairs(_snap) do _s:delete_slice_marker(_m) end
-      print(string.format("DEBUG: Cleared %d slice markers from default-XRNI sample %d before deletion", #_snap, _si))
+      dbg(string.format("DEBUG: Cleared %d slice markers from default-XRNI sample %d before deletion", #_snap, _si))
     end
   end
   -- Clear default samples if they exist
@@ -696,7 +736,7 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   
   -- Check if source sample is a slice alias - cannot use copy_from on slice alias samples
   if source_sample.is_slice_alias then
-    print(string.format("DEBUG: Source sample '%s' is a slice alias, copying properties and buffer manually", sample_name))
+    dbg(string.format("DEBUG: Source sample '%s' is a slice alias, copying properties and buffer manually", sample_name))
     -- Copy sample properties manually
     new_sample.panning = source_sample.panning
     new_sample.volume = source_sample.volume
@@ -726,6 +766,15 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
         source_buffer.number_of_frames
       )
       if success then
+        -- Frame-by-frame copy is slow for large samples.
+        -- A 30-second stereo 44.1kHz sample requires ~2.6 million individual
+        -- Renoise API calls. Show a status message so the user knows Renoise is
+        -- working and hasn't frozen.
+        if source_buffer.number_of_frames > 44100 then
+          renoise.app():show_status(string.format(
+            "AutoSamplify: copying '%s' (%d frames) — please wait...",
+            sample_name, source_buffer.number_of_frames))
+        end
         dest_buffer:prepare_sample_data_changes()
         for ch = 1, source_buffer.number_of_channels do
           for fr = 1, source_buffer.number_of_frames do
@@ -740,8 +789,8 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
         if source_sample.loop_end <= source_buffer.number_of_frames then
           new_sample.loop_end = source_sample.loop_end
         end
-        print(string.format("DEBUG: Successfully copied alias sample buffer (%d frames, %d channels)", 
-                           source_buffer.number_of_frames, source_buffer.number_of_channels))
+        dbg("DEBUG: Successfully copied alias sample buffer (%d frames, %d channels)",
+            source_buffer.number_of_frames, source_buffer.number_of_channels)
       else
         print(string.format("ERROR: Failed to create sample buffer for alias sample '%s'", sample_name))
       end
@@ -756,13 +805,13 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   -- Update sample's device_chain_index and modulation_set_index to point to copied chains/sets
   if source_device_chain_index > 0 and chain_mapping[source_device_chain_index] then
     new_sample.device_chain_index = chain_mapping[source_device_chain_index]
-    print(string.format("DEBUG: Updated sample device_chain_index: %d -> %d",
+    dbg(string.format("DEBUG: Updated sample device_chain_index: %d -> %d",
                        source_device_chain_index, new_sample.device_chain_index))
   end
   
   if source_modulation_set_index > 0 and modset_mapping[source_modulation_set_index] then
     new_sample.modulation_set_index = modset_mapping[source_modulation_set_index]
-    print(string.format("DEBUG: Updated sample modulation_set_index: %d -> %d",
+    dbg(string.format("DEBUG: Updated sample modulation_set_index: %d -> %d",
                        source_modulation_set_index, new_sample.modulation_set_index))
   end
   
@@ -795,7 +844,7 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
       if _cs and _created_at_index <= #_cs.instruments then
         pcall(function()
           _cs:delete_instrument_at(_created_at_index)
-          print(string.format("DEBUG: Cleaned up orphaned instrument at index %d after pcall failure", _created_at_index))
+          dbg(string.format("DEBUG: Cleaned up orphaned instrument at index %d after pcall failure", _created_at_index))
         end)
       end
     end
@@ -808,7 +857,7 @@ function PakettiApplyLoaderSettingsToSelectedSample()
   -- Set the re-entrancy flag so a concurrent 100 ms monitoring tick does not
   -- treat the partially-created instrument as a new unprocessed sample.
   if autosamplify_processing then
-    print("DEBUG: PakettiApplyLoaderSettingsToSelectedSample skipped - already processing")
+    dbg("DEBUG: PakettiApplyLoaderSettingsToSelectedSample skipped - already processing")
     return
   end
   autosamplify_processing = true
@@ -839,7 +888,7 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
   -- longer (pakettiPreferencesDefaultInstrumentLoader is blocking), so a second
   -- invocation can arrive while the first is still running.
   if autosamplify_processing then
-    print("DEBUG: AutoSamplify re-entrancy detected - skipping nested invocation")
+    dbg("DEBUG: AutoSamplify re-entrancy detected - skipping nested invocation")
     return
   end
   autosamplify_processing = true
@@ -918,8 +967,8 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
             -- Mark as processed before applying settings (name|frames key)
             local _fc = (sample.sample_buffer and sample.sample_buffer.has_sample_data)
                         and sample.sample_buffer.number_of_frames or 0
-            loaded_files_tracker[sample.name .. "|" .. tostring(_fc)] = true
-            print(string.format("DEBUG: Marking sample '%s' as processed (Pakettify OFF)", sample.name))
+            track_file(sample.name .. "|" .. tostring(_fc))
+            dbg(string.format("DEBUG: Marking sample '%s' as processed (Pakettify OFF)", sample.name))
             PakettiAutoSamplifyApplyLoaderSettings(sample)
           end
         end
@@ -934,8 +983,8 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
             -- Mark as processed before applying settings (name|frames key)
             local _fc = (sample.sample_buffer and sample.sample_buffer.has_sample_data)
                         and sample.sample_buffer.number_of_frames or 0
-            loaded_files_tracker[sample.name .. "|" .. tostring(_fc)] = true
-            print(string.format("DEBUG: Marking sample '%s' as processed (already pakettified)", sample.name))
+            track_file(sample.name .. "|" .. tostring(_fc))
+            dbg(string.format("DEBUG: Marking sample '%s' as processed (already pakettified)", sample.name))
             PakettiAutoSamplifyApplyLoaderSettings(sample)
           end
         end
@@ -983,7 +1032,7 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
           sample_index     = 1,
           created_by_autosamplify = true,
         })
-        print(string.format("DEBUG: Tracked new instrument %d ('%s') as AutoSamplify-created", new_instrument_index, _first_sample_name))
+        dbg(string.format("DEBUG: Tracked new instrument %d ('%s') as AutoSamplify-created", new_instrument_index, _first_sample_name))
         
         -- Apply the default XRNI settings to the new instrument
         print(string.format("Loading default XRNI into new instrument %d", new_instrument_index))
@@ -997,7 +1046,7 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
         end
 
         -- Log default chains/modsets loaded from XRNI (informational only)
-        print(string.format("DEBUG: Default XRNI has %d FX chains and %d modulation sets",
+        dbg(string.format("DEBUG: Default XRNI has %d FX chains and %d modulation sets",
                            #new_instrument.sample_device_chains, #new_instrument.sample_modulation_sets))
         
         -- Copy FX chains, modulation sets, and phrases from source instrument if it has content
@@ -1005,7 +1054,7 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
         local modset_mapping = {}
         
         if source_has_content then
-          print("DEBUG: Source instrument has content to copy - copying FX chains, modulation sets, and phrases")
+          dbg("DEBUG: Source instrument has content to copy - copying FX chains, modulation sets, and phrases")
           
           -- Copy Sample FX Chains from source (appending after default chains)
           if #instrument.sample_device_chains > 0 then
@@ -1032,7 +1081,7 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
             local markers_snapshot = {}
             for _, m in ipairs(s.slice_markers) do table.insert(markers_snapshot, m) end
             for _, m in ipairs(markers_snapshot) do s:delete_slice_marker(m) end
-            print(string.format("DEBUG: Cleared %d slice markers from default-XRNI sample %d before deletion", #markers_snapshot, si))
+            dbg(string.format("DEBUG: Cleared %d slice markers from default-XRNI sample %d before deletion", #markers_snapshot, si))
           end
         end
         -- Clear default samples if they exist
@@ -1062,13 +1111,13 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
           if source_sample then
             -- Skip slice aliases: auto-recreated by Renoise via slice markers on the parent.
             if source_sample.is_slice_alias then
-              print(string.format("DEBUG: Skipping slice alias '%s' (auto-recreated via slice markers)", source_sample.name))
+              dbg(string.format("DEBUG: Skipping slice alias '%s' (auto-recreated via slice markers)", source_sample.name))
             else
               -- Mark as processed before copying (name|frames key)
               local _fc = (source_sample.sample_buffer and source_sample.sample_buffer.has_sample_data)
                           and source_sample.sample_buffer.number_of_frames or 0
-              loaded_files_tracker[source_sample.name .. "|" .. tostring(_fc)] = true
-              print(string.format("DEBUG: Marking sample '%s' as processed (multiple samples)", source_sample.name))
+              track_file(source_sample.name .. "|" .. tostring(_fc))
+              dbg("DEBUG: Marking sample '%s' as processed (multiple samples)", source_sample.name)
 
               dest_idx = dest_idx + 1
 
@@ -1079,7 +1128,7 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
               -- Samples with slice markers cannot use copy_from (it would copy the markers
               -- and immediately lock the sample list). Copy buffer + properties manually instead.
               if #source_sample.slice_markers > 0 then
-                print(string.format("DEBUG: Source sample '%s' has slice markers - manual copy, markers deferred", source_sample.name))
+                dbg(string.format("DEBUG: Source sample '%s' has slice markers - manual copy, markers deferred", source_sample.name))
                 -- Copy sample properties manually
                 new_sample.panning = source_sample.panning
                 new_sample.volume = source_sample.volume
@@ -1109,6 +1158,15 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
                     source_buffer.number_of_frames
                   )
                   if success then
+                    -- Frame-by-frame copy is slow for large samples.
+                    -- A 30-second stereo 44.1kHz sample requires ~2.6 million individual
+                    -- Renoise API calls. Show a status message so the user knows Renoise
+                    -- is working and hasn't frozen.
+                    if source_buffer.number_of_frames > 44100 then
+                      renoise.app():show_status(string.format(
+                        "AutoSamplify: copying '%s' (%d frames) — please wait...",
+                        source_sample.name, source_buffer.number_of_frames))
+                    end
                     dest_buffer:prepare_sample_data_changes()
                     for ch = 1, source_buffer.number_of_channels do
                       for fr = 1, source_buffer.number_of_frames do
@@ -1129,8 +1187,8 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
                       table.insert(deferred_markers, marker)
                     end
                     table.insert(slice_marker_jobs, {dest_idx = dest_idx, markers = deferred_markers})
-                    print(string.format("DEBUG: Deferred %d slice markers for dest sample %d", #deferred_markers, dest_idx))
-                    print(string.format("DEBUG: Successfully copied sample buffer (%d frames, %d channels)",
+                    dbg(string.format("DEBUG: Deferred %d slice markers for dest sample %d", #deferred_markers, dest_idx))
+                    dbg(string.format("DEBUG: Successfully copied sample buffer (%d frames, %d channels)",
                                        source_buffer.number_of_frames, source_buffer.number_of_channels))
                   else
                     print(string.format("ERROR: Failed to create sample buffer for '%s'", source_sample.name))
@@ -1148,13 +1206,13 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
               if orig_indices then
                 if orig_indices.device_chain_index > 0 and chain_mapping[orig_indices.device_chain_index] then
                   new_sample.device_chain_index = chain_mapping[orig_indices.device_chain_index]
-                  print(string.format("DEBUG: Updated sample '%s' device_chain_index: %d -> %d",
+                  dbg(string.format("DEBUG: Updated sample '%s' device_chain_index: %d -> %d",
                                      new_sample.name, orig_indices.device_chain_index, new_sample.device_chain_index))
                 end
 
                 if orig_indices.modulation_set_index > 0 and modset_mapping[orig_indices.modulation_set_index] then
                   new_sample.modulation_set_index = modset_mapping[orig_indices.modulation_set_index]
-                  print(string.format("DEBUG: Updated sample '%s' modulation_set_index: %d -> %d",
+                  dbg(string.format("DEBUG: Updated sample '%s' modulation_set_index: %d -> %d",
                                      new_sample.name, orig_indices.modulation_set_index, new_sample.modulation_set_index))
                 end
               end
@@ -1174,7 +1232,7 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
             for _, marker in ipairs(job.markers) do
               new_sample:insert_slice_marker(marker)
             end
-            print(string.format("DEBUG: Applied %d deferred slice markers to dest sample %d", #job.markers, job.dest_idx))
+            dbg(string.format("DEBUG: Applied %d deferred slice markers to dest sample %d", #job.markers, job.dest_idx))
           end
         end
         
@@ -1225,7 +1283,7 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
           if _oi <= #_cs.instruments then
             pcall(function()
               _cs:delete_instrument_at(_oi)
-              print(string.format("DEBUG: Cleaned up orphaned batch instrument at index %d", _oi))
+              dbg(string.format("DEBUG: Cleaned up orphaned batch instrument at index %d", _oi))
             end)
           end
         end
@@ -1254,15 +1312,11 @@ function PakettiCheckForNewSamplesComprehensive()
   local song = renoise.song()
   if not song then return end
   
-  -- Check if the song was cleared (instrument count dropped significantly)
-  local current_instrument_count = #song.instruments
-  if current_instrument_count < last_instrument_count - 5 then
-    -- Song was likely cleared, reset file tracking
-    loaded_files_tracker = {}
-    recently_created_samples = {}
-    print("DEBUG: Song appears to have been cleared, resetting file tracking")
-  end
-  last_instrument_count = current_instrument_count
+  -- Update instrument count for reference (heuristic "song cleared" detection
+  -- removed: app_new_document_observable handles clearing tracking state reliably
+  -- on actual song load; the instrument-drop heuristic had both false-positive and
+  -- false-negative failure modes that caused missed or duplicate processing).
+  last_instrument_count = #song.instruments
   
   -- Get current state of all instruments
   local current_states = PakettiGetAllInstrumentStates()
@@ -1277,9 +1331,9 @@ function PakettiCheckForNewSamplesComprehensive()
   local new_samples = PakettiFindNewlyLoadedSamples(current_states, previous_instrument_states)
   
   if #new_samples > 0 then
-    print(string.format("COMPREHENSIVE CHECK: Found %d newly loaded samples", #new_samples))
+    dbg(string.format("COMPREHENSIVE CHECK: Found %d newly loaded samples", #new_samples))
     for _, sample_info in ipairs(new_samples) do
-      print(string.format("  - Instrument %d, Sample %d: '%s'", 
+      dbg(string.format("  - Instrument %d, Sample %d: '%s'",
                          sample_info.instrument_index, sample_info.sample_index, sample_info.sample_name))
     end
     
@@ -1294,7 +1348,7 @@ function PakettiCheckForNewSamplesComprehensive()
       -- sample_name for entries created before this hardening was in place.
       local _lookup_key = sample_info.dedup_key or sample_info.sample_name
       if loaded_files_tracker[_lookup_key] then
-        print(string.format("DEBUG: Skipping already-processed sample '%s' (still in tracker)", sample_info.sample_name))
+        dbg(string.format("DEBUG: Skipping already-processed sample '%s' (still in tracker)", sample_info.sample_name))
       else
         table.insert(unprocessed_samples, sample_info)
       end
@@ -1306,7 +1360,7 @@ function PakettiCheckForNewSamplesComprehensive()
     -- tick will detect them as still-new and process the next batch.
     local BATCH_CAP = 20
     if #unprocessed_samples > BATCH_CAP then
-      print(string.format("DEBUG: Batch capped at %d (detected %d new samples); remainder will be processed on next timer tick",
+      dbg(string.format("DEBUG: Batch capped at %d (detected %d new samples); remainder will be processed on next timer tick",
                          BATCH_CAP, #unprocessed_samples))
       local capped = {}
       for k = 1, BATCH_CAP do
@@ -1331,19 +1385,29 @@ if #recently_created_samples > 50 then
     table.insert(new_tracking, recently_created_samples[i])
   end
   recently_created_samples = new_tracking
-  print(string.format("DEBUG: Cleaned up AutoSamplify tracking list, kept %d entries", #recently_created_samples))
+  dbg(string.format("DEBUG: Cleaned up AutoSamplify tracking list, kept %d entries", #recently_created_samples))
 end
 
--- Clean up old file tracking entries (keep only last 50 to prevent memory leaks)
+-- Rotate the file tracker: evict the oldest entries rather than wiping the
+-- entire table.  A full wipe creates a re-processing window: if 55 samples
+-- are imported at once, the first 50 are marked, the 51st tick clears the
+-- table, and the next tick sees samples 1-20 as "new again" and reprocesses
+-- them (creating duplicate instruments).  Rotation avoids this by removing
+-- only the entries that are genuinely stale.
 local file_tracker_count = 0
 for _ in pairs(loaded_files_tracker) do
   file_tracker_count = file_tracker_count + 1
 end
 
-if file_tracker_count > 50 then
-  -- Clear the tracker periodically to prevent memory leaks
-  loaded_files_tracker = {}
-  print("DEBUG: Cleared file tracking to prevent memory leaks")
+if file_tracker_count > MAX_TRACKER_SIZE then
+  local evict_count = file_tracker_count - MAX_TRACKER_SIZE
+  for _ = 1, evict_count do
+    local oldest_key = table.remove(loaded_files_tracker_order, 1)
+    if oldest_key then
+      loaded_files_tracker[oldest_key] = nil
+    end
+  end
+  dbg("DEBUG: Rotated file tracker: evicted %d entries, %d remain", evict_count, MAX_TRACKER_SIZE)
 end
 
 -- Update previous states
@@ -1385,15 +1449,26 @@ function PakettiCheckForNewSamples()
     previous_selected_sample_state = current_state
     return
   end
-  
+
+  -- Fast-exit: if the currently selected slot has audio data AND the previously
+  -- selected slot also had audio data, no new sample was loaded.  The user is
+  -- either still on the same slot (nothing changed) or navigating between existing
+  -- samples.  Either way AutoSamplify has nothing to do here — the 100 ms timer
+  -- covers any actual new loads.  This prevents unnecessary state comparison work
+  -- on every sample click / instrument navigation.
+  if current_state.has_data and previous_selected_sample_state.has_data then
+    previous_selected_sample_state = current_state
+    return
+  end
+
   -- Only show debug info when state actually changes
   if state_changed then
-    print(string.format("STATE CHANGE: Instr %d, Slot %d", 
+    dbg(string.format("STATE CHANGE: Instr %d, Slot %d", 
                        current_state.instrument_index, current_state.sample_index))
-    print(string.format("  Previous: exists=%s, has_data=%s", 
+    dbg(string.format("  Previous: exists=%s, has_data=%s", 
                        tostring(previous_selected_sample_state.exists), 
                        tostring(previous_selected_sample_state.has_data)))
-    print(string.format("  Current:  exists=%s, has_data=%s", 
+    dbg(string.format("  Current: exists=%s, has_data=%s", 
                        tostring(current_state.exists), 
                        tostring(current_state.has_data)))
   end
@@ -1409,7 +1484,7 @@ function PakettiCheckForNewSamples()
     
     if same_slot and (was_nonexistent or was_empty) then
       should_apply = true
-      print(string.format("TRIGGER: Detected new sample in slot %d of instrument %d (was %s, now has data)", 
+      dbg(string.format("TRIGGER: Detected new sample in slot %d of instrument %d (was %s, now has data)", 
                          current_state.sample_index, current_state.instrument_index,
                          was_nonexistent and "nonexistent" or "empty"))
     end
@@ -1547,6 +1622,16 @@ end
 
 -- Named handler functions for proper notifier management
 local function PakettiAutoSamplifyNewDocumentHandler()
+  -- Explicitly reset the re-entrancy flag in case it was left set by an
+  -- in-flight processing pass interrupted by the document change.
+  autosamplify_processing = false
+
+  -- Clear per-session tracking so samples in the new song are not falsely
+  -- skipped by stale entries from the previous session.
+  recently_created_samples = {}
+  loaded_files_tracker = {}
+  loaded_files_tracker_order = {}
+
   -- Check preference before starting monitoring
   if preferences and preferences.pakettiAutoSamplifyMonitoring and preferences.pakettiAutoSamplifyMonitoring.value then
     monitoring_enabled = true
@@ -1557,6 +1642,9 @@ local function PakettiAutoSamplifyNewDocumentHandler()
 end
 
 local function PakettiAutoSamplifyReleaseDocumentHandler()
+  -- Explicitly reset the re-entrancy flag so the next document load starts
+  -- clean, even if a processing pass was active when this document closed.
+  autosamplify_processing = false
   PakettiStopNewSampleMonitoring()
 end
 
