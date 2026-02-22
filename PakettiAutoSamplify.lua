@@ -366,7 +366,11 @@ function PakettiGetAllInstrumentStates()
         name = sample.name,
         -- Snapshot is_slice_alias so PakettiFindNewlyLoadedSamples can filter
         -- alias samples without needing a live song reference.
-        is_slice_alias = sample.is_slice_alias
+        is_slice_alias = sample.is_slice_alias,
+        -- Frame count for richer deduplication: two files both named "Kick.wav"
+        -- from different folders are distinguished by their length in frames,
+        -- preventing false-positive deduplication of genuinely different samples.
+        frame_count = has_data and sample.sample_buffer.number_of_frames or 0
       }
     end
     
@@ -415,15 +419,17 @@ function PakettiFindNewlyLoadedSamples(current_states, previous_states)
           -- Skip slice alias samples: they are auto-created by Renoise from the
           -- parent sample's slice markers and must never be processed separately.
           if sample and sample.has_data and not sample.is_slice_alias then
-            -- Create a unique key based on sample name only (not instrument position)
-            local sample_key = sample.name
-            
+            -- Richer dedup key: name + frame count so two "Kick.wav" files from
+            -- different folders are not falsely collapsed into one tracker entry.
+            local sample_key = sample.name .. "|" .. tostring(sample.frame_count or 0)
+
             -- Only process if we haven't seen this exact sample before
             if not loaded_files_tracker[sample_key] then
               table.insert(new_samples, {
                 instrument_index = i,
                 sample_index = j,
-                sample_name = sample.name
+                sample_name = sample.name,
+                dedup_key = sample_key
               })
               print(string.format("DEBUG: Found new sample: %s in instrument %d, slot %d", sample.name, i, j))
             else
@@ -464,15 +470,17 @@ function PakettiFindNewlyLoadedSamples(current_states, previous_states)
             end
             
             if not is_autosamplify_created then
-              -- Create a unique key based on sample name only (not instrument position)
-              local sample_key = current_sample.name
-              
+              -- Richer dedup key: name + frame count so two "Kick.wav" files from
+              -- different folders are not falsely collapsed into one tracker entry.
+              local sample_key = current_sample.name .. "|" .. tostring(current_sample.frame_count or 0)
+
               -- Only process if we haven't seen this exact sample before
               if not loaded_files_tracker[sample_key] then
                 table.insert(new_samples, {
                   instrument_index = i,
                   sample_index = j,
-                  sample_name = current_sample.name
+                  sample_name = current_sample.name,
+                  dedup_key = sample_key
                 })
                 print(string.format("DEBUG: Found new sample: %s in instrument %d, slot %d", current_sample.name, i, j))
               else
@@ -542,9 +550,14 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   local is_pakettified = PakettiIsInstrumentPakettified(source_instrument)
   local has_other_samples = #source_instrument.samples > 1 or (sample_index > 1)
   
-  -- Mark this sample as processed BEFORE doing any work
-  loaded_files_tracker[sample_name] = true
-  print(string.format("DEBUG: Marking sample '%s' as processed", sample_name))
+  -- Mark this sample as processed BEFORE doing any work.
+  -- Use name + frame_count as key to distinguish two "Kick.wav" files from
+  -- different folders that happen to share the same filename.
+  local _fc = (source_sample.sample_buffer and source_sample.sample_buffer.has_sample_data)
+              and source_sample.sample_buffer.number_of_frames or 0
+  local _tracker_key = sample_name .. "|" .. tostring(_fc)
+  loaded_files_tracker[_tracker_key] = true
+  print(string.format("DEBUG: Marking sample '%s' (frames: %d) as processed", sample_name, _fc))
   
   print(string.format("Processing sample '%s' from instrument %d, slot %d (pakettified: %s, has_other_samples: %s)", 
                      sample_name, instrument_index, sample_index, 
@@ -754,10 +767,24 @@ end
 
 -- Function to apply Paketti loader settings to the selected sample (legacy compatibility)
 function PakettiApplyLoaderSettingsToSelectedSample()
-  local current_state = PakettiGetSelectedSampleState()
-  if current_state.exists and current_state.has_data then
-    PakettiApplyLoaderSettingsToSample(current_state.instrument_index, current_state.sample_index)
+  -- Set the re-entrancy flag so a concurrent 100 ms monitoring tick does not
+  -- treat the partially-created instrument as a new unprocessed sample.
+  if autosamplify_processing then
+    print("DEBUG: PakettiApplyLoaderSettingsToSelectedSample skipped - already processing")
+    return
   end
+  autosamplify_processing = true
+  local _ok, _err = pcall(function()
+    local current_state = PakettiGetSelectedSampleState()
+    if current_state.exists and current_state.has_data then
+      PakettiApplyLoaderSettingsToSample(current_state.instrument_index, current_state.sample_index)
+    end
+  end)
+  if not _ok then
+    print("ERROR: PakettiApplyLoaderSettingsToSelectedSample: " .. tostring(_err))
+    renoise.app():show_status("AutoSamplify: error applying settings - see Renoise log")
+  end
+  autosamplify_processing = false
 end
 
 -- Function to apply settings to multiple newly loaded samples
@@ -846,8 +873,10 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
         for _, sample_info in ipairs(samples) do
           local sample = instrument.samples[sample_info.sample_index]
           if sample then
-            -- Mark as processed before applying settings
-            loaded_files_tracker[sample.name] = true
+            -- Mark as processed before applying settings (name|frames key)
+            local _fc = (sample.sample_buffer and sample.sample_buffer.has_sample_data)
+                        and sample.sample_buffer.number_of_frames or 0
+            loaded_files_tracker[sample.name .. "|" .. tostring(_fc)] = true
             print(string.format("DEBUG: Marking sample '%s' as processed (Pakettify OFF)", sample.name))
             PakettiAutoSamplifyApplyLoaderSettings(sample)
           end
@@ -860,8 +889,10 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
         for _, sample_info in ipairs(samples) do
           local sample = instrument.samples[sample_info.sample_index]
           if sample then
-            -- Mark as processed before applying settings
-            loaded_files_tracker[sample.name] = true
+            -- Mark as processed before applying settings (name|frames key)
+            local _fc = (sample.sample_buffer and sample.sample_buffer.has_sample_data)
+                        and sample.sample_buffer.number_of_frames or 0
+            loaded_files_tracker[sample.name .. "|" .. tostring(_fc)] = true
             print(string.format("DEBUG: Marking sample '%s' as processed (already pakettified)", sample.name))
             PakettiAutoSamplifyApplyLoaderSettings(sample)
           end
@@ -981,8 +1012,10 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
             if source_sample.is_slice_alias then
               print(string.format("DEBUG: Skipping slice alias '%s' (auto-recreated via slice markers)", source_sample.name))
             else
-              -- Mark as processed before copying
-              loaded_files_tracker[source_sample.name] = true
+              -- Mark as processed before copying (name|frames key)
+              local _fc = (source_sample.sample_buffer and source_sample.sample_buffer.has_sample_data)
+                          and source_sample.sample_buffer.number_of_frames or 0
+              loaded_files_tracker[source_sample.name .. "|" .. tostring(_fc)] = true
               print(string.format("DEBUG: Marking sample '%s' as processed (multiple samples)", source_sample.name))
 
               dest_idx = dest_idx + 1
@@ -1188,11 +1221,29 @@ function PakettiCheckForNewSamplesComprehensive()
     -- leave the tracker intact. Samples not yet processed will proceed normally.
     local unprocessed_samples = {}
     for _, sample_info in ipairs(new_samples) do
-      if loaded_files_tracker[sample_info.sample_name] then
+      -- Use the richer dedup_key (name|frames) when available; fall back to
+      -- sample_name for entries created before this hardening was in place.
+      local _lookup_key = sample_info.dedup_key or sample_info.sample_name
+      if loaded_files_tracker[_lookup_key] then
         print(string.format("DEBUG: Skipping already-processed sample '%s' (still in tracker)", sample_info.sample_name))
       else
         table.insert(unprocessed_samples, sample_info)
       end
+    end
+
+    -- Cap batch size to prevent a very large drag-and-drop import (50+ samples)
+    -- from blocking Renoise for multiple seconds in a single timer tick.
+    -- Any samples beyond the cap are left untracked, so the next 100 ms timer
+    -- tick will detect them as still-new and process the next batch.
+    local BATCH_CAP = 20
+    if #unprocessed_samples > BATCH_CAP then
+      print(string.format("DEBUG: Batch capped at %d (detected %d new samples); remainder will be processed on next timer tick",
+                         BATCH_CAP, #unprocessed_samples))
+      local capped = {}
+      for k = 1, BATCH_CAP do
+        table.insert(capped, unprocessed_samples[k])
+      end
+      unprocessed_samples = capped
     end
 
     -- Apply settings to unprocessed samples only
