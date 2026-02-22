@@ -596,9 +596,23 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   -- Create new instrument after current one.
   -- Wrapped in pcall so any mid-creation Renoise API error becomes a logged
   -- warning rather than a hard crash that leaves monitoring permanently broken.
+  -- _instrument_was_created / _created_at_index: if the pcall body fails after
+  -- safeInsertInstrumentAt has already inserted a new slot, we delete it here so
+  -- it does not remain as an empty, half-populated orphan in the instrument list.
+  local _instrument_was_created = false
+  local _created_at_index = nil
   local _create_ok, _create_err = pcall(function()
     local new_instrument_index = instrument_index + 1
     if not safeInsertInstrumentAt(song, new_instrument_index) then return end
+    _instrument_was_created = true
+    _created_at_index = new_instrument_index
+    -- Index drift correction: inserting at new_instrument_index shifts every
+    -- previously tracked instrument that sits at or above that index up by 1.
+    for _, _tracked in ipairs(recently_created_samples) do
+      if _tracked.instrument_index >= new_instrument_index then
+        _tracked.instrument_index = _tracked.instrument_index + 1
+      end
+    end
     song.selected_instrument_index = new_instrument_index
 
     -- Track the newly created instrument to prevent loops.
@@ -655,13 +669,26 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
     end
   end
   
+  -- Clear any slice markers from the default XRNI samples BEFORE deletion.
+  -- Renoise forbids delete_sample_at on an instrument that has sliced samples
+  -- (any sample with slice_markers), so we must clear those markers first.
+  -- (The batch path already does this; this brings the single-sample path in sync.)
+  for _si = 1, #new_instrument.samples do
+    local _s = new_instrument.samples[_si]
+    if _s and #_s.slice_markers > 0 then
+      local _snap = {}
+      for _, _m in ipairs(_s.slice_markers) do table.insert(_snap, _m) end
+      for _, _m in ipairs(_snap) do _s:delete_slice_marker(_m) end
+      print(string.format("DEBUG: Cleared %d slice markers from default-XRNI sample %d before deletion", #_snap, _si))
+    end
+  end
   -- Clear default samples if they exist
   if #new_instrument.samples > 0 then
     for i = #new_instrument.samples, 1, -1 do
       new_instrument:delete_sample_at(i)
     end
   end
-  
+
   -- Insert new sample slot and copy the sample data
   new_instrument:insert_sample_at(1)
   song.selected_sample_index = 1
@@ -761,6 +788,17 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
   end)  -- end pcall (instrument creation)
   if not _create_ok then
     print("ERROR: PakettiApplyLoaderSettingsToSample: instrument creation failed: " .. tostring(_create_err))
+    -- Attempt to delete the partially-created instrument so it does not remain as
+    -- an orphaned, half-populated slot in the instrument list.
+    if _instrument_was_created and _created_at_index then
+      local _cs = renoise.song()
+      if _cs and _created_at_index <= #_cs.instruments then
+        pcall(function()
+          _cs:delete_instrument_at(_created_at_index)
+          print(string.format("DEBUG: Cleaned up orphaned instrument at index %d after pcall failure", _created_at_index))
+        end)
+      end
+    end
     renoise.app():show_status("AutoSamplify: instrument creation error - see Renoise log")
   end
 end
@@ -805,6 +843,10 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
     return
   end
   autosamplify_processing = true
+
+  -- Track all instruments created during this batch so any that were fully or
+  -- partially created before a pcall failure can be deleted (orphan prevention).
+  local _batch_created_indices = {}
 
   -- Wrap entire batch in pcall so any mid-batch Renoise API error:
   --   (a) produces a clear log message rather than a silent crash, and
@@ -919,8 +961,18 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
         -- Create new instrument after current one
         local new_instrument_index = instr_idx + 1
         if not safeInsertInstrumentAt(song, new_instrument_index) then return end
+        -- Index drift correction: inserting at new_instrument_index shifts every
+        -- previously tracked instrument that sits at or above that index up by 1.
+        for _, _tracked in ipairs(recently_created_samples) do
+          if _tracked.instrument_index >= new_instrument_index then
+            _tracked.instrument_index = _tracked.instrument_index + 1
+          end
+        end
+        -- Orphan tracking: record index so we can delete it if the outer pcall fails
+        -- after this point but before the instrument is fully populated.
+        table.insert(_batch_created_indices, new_instrument_index)
         song.selected_instrument_index = new_instrument_index
-        
+
         -- Track the newly created instrument to prevent loops.
         -- Store instrument_name alongside the index so we can still recognise this
         -- instrument even if a later insertion shifts all indices by 1.
@@ -1162,6 +1214,23 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
   end)  -- end pcall (batch processing)
   if not _processing_ok then
     print("ERROR: PakettiApplyLoaderSettingsToNewSamples: " .. tostring(_processing_err))
+    -- Delete any instruments that were created before the failure so they do not
+    -- remain as orphaned, half-populated slots. Delete in reverse index order so
+    -- each deletion does not invalidate indices of earlier ones.
+    if #_batch_created_indices > 0 then
+      local _cs = renoise.song()
+      if _cs then
+        table.sort(_batch_created_indices, function(a, b) return a > b end)
+        for _, _oi in ipairs(_batch_created_indices) do
+          if _oi <= #_cs.instruments then
+            pcall(function()
+              _cs:delete_instrument_at(_oi)
+              print(string.format("DEBUG: Cleaned up orphaned batch instrument at index %d", _oi))
+            end)
+          end
+        end
+      end
+    end
     renoise.app():show_status("AutoSamplify: processing error - see Renoise log")
   end
   autosamplify_processing = false
@@ -1284,7 +1353,10 @@ end
 -- Function to check for new samples in the currently selected sample slot (legacy)
 function PakettiCheckForNewSamples()
   if not monitoring_enabled then return end
-  
+  -- Re-entrancy guard: this function is also triggered via song observables
+  -- (selected_instrument_index, selected_sample). Guard it the same way as the
+  -- comprehensive checker so mid-batch observable fires do not double-process.
+  if autosamplify_processing then return end
   -- Check if we should skip automatic processing (e.g., when CTRL-O Pattern to Sample is handling it)
   if PakettiDontRunAutomaticSampleLoader then return end
   
