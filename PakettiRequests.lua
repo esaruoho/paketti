@@ -4366,6 +4366,7 @@ function randomize_notes_in_selection()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Roll the Dice on Notes",invoke=function() randomize_notes_in_selection() end}
+renoise.tool():add_midi_mapping{name="Paketti:Roll the Dice on Notes",invoke=function(message) if message:is_trigger() then randomize_notes_in_selection() end end}
 -------
 --[[
 local MIN_SHIFT = -12
@@ -10411,6 +10412,7 @@ function randomize_note_off_positions()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Randomize Positions of Note-Offs",invoke=function() randomize_note_off_positions() end}
+renoise.tool():add_midi_mapping{name="Paketti:Randomize Positions of Note-Offs",invoke=function(message) if message:is_trigger() then randomize_note_off_positions() end end}
 --------
 function pakettiFloodFillFromCurrentRow()
   local song=renoise.song()
