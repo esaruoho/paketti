@@ -129,6 +129,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiRotateSampleBufferFine=10,
   pakettiBlendValue = 40,
   pakettiDialogClose="esc",
+  pakettiShowShortcutHints = true,
   pakettiObliqueStrategiesOnStartup = true,
   pakettiPlayerProEffectDialogDarkMode = false,
   pakettiPlayerProEffectCanvasWrite = false,

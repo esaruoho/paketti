@@ -953,16 +953,22 @@ end
 timed_require("rx")
 timed_require("base64float")
 timed_require("Paketti0G01_Loader")
+timed_require("PakettiShortcutHints")
 
 -- ============================================================================
--- CONDITIONAL REGISTRATION WRAPPERS
--- These wrap the original registration functions to check master toggles
--- Must be set up AFTER Paketti0G01_Loader (preferences) but BEFORE other modules
+-- TOOL PROXY - Replaces renoise.tool() with a proxy that intercepts:
+--   1. add_menu_entry: appends shortcut hints from PakettiShortcutHintsTable
+--   2. add_keybinding: conditional registration via master toggle
+--   3. add_midi_mapping: conditional registration via master toggle
+-- We MUST replace renoise.tool itself (not assign methods on its return value)
+-- because renoise.tool() returns a new wrapper object on every call.
+-- Must be set up AFTER PakettiShortcutHints and Paketti0G01_Loader,
+-- but BEFORE any other modules that register menu entries/keybindings.
 -- ============================================================================
 
--- Store original functions
-local original_add_keybinding = renoise.tool().add_keybinding
-local original_add_midi_mapping = renoise.tool().add_midi_mapping
+local original_renoise_tool = renoise.tool
+local real_tool = original_renoise_tool()
+local tool_proxy = nil
 
 -- Global counters for what actually gets registered
 PakettiActualRegistrations = {
@@ -972,10 +978,27 @@ PakettiActualRegistrations = {
   midi_mappings_skipped = 0
 }
 
--- Wrapped add_keybinding that checks master toggle
-function PakettiWrappedAddKeybinding(tool, args)
+-- Intercepted: add_menu_entry with shortcut hints
+local function proxy_add_menu_entry(proxy_self, args)
+  if args and args.name and PakettiShortcutHintsTable then
+    local name = args.name
+    local prefix = ""
+    if name:sub(1, 2) == "--" then
+      prefix = "--"
+      name = name:sub(3)
+    end
+    local hint = PakettiGetMenuShortcutHint(name)
+    if hint ~= "" then
+      args.name = prefix .. name .. hint
+    end
+  end
+  return real_tool:add_menu_entry(args)
+end
+
+-- Intercepted: add_keybinding with conditional registration
+local function proxy_add_keybinding(proxy_self, args)
   if PakettiShouldRegisterKeybindings and PakettiShouldRegisterKeybindings() then
-    original_add_keybinding(tool, args)
+    real_tool:add_keybinding(args)
     PakettiActualRegistrations.keybindings = PakettiActualRegistrations.keybindings + 1
     return true
   else
@@ -984,10 +1007,10 @@ function PakettiWrappedAddKeybinding(tool, args)
   end
 end
 
--- Wrapped add_midi_mapping that checks master toggle  
-function PakettiWrappedAddMidiMapping(tool, args)
+-- Intercepted: add_midi_mapping with conditional registration
+local function proxy_add_midi_mapping(proxy_self, args)
   if PakettiShouldRegisterMidiMappings and PakettiShouldRegisterMidiMappings() then
-    original_add_midi_mapping(tool, args)
+    real_tool:add_midi_mapping(args)
     PakettiActualRegistrations.midi_mappings = PakettiActualRegistrations.midi_mappings + 1
     return true
   else
@@ -996,15 +1019,44 @@ function PakettiWrappedAddMidiMapping(tool, args)
   end
 end
 
--- Replace the methods on the tool object
--- Note: This only affects calls made AFTER this point
-renoise.tool().add_keybinding = function(self, args)
-  return PakettiWrappedAddKeybinding(self, args)
+-- Build the proxy table with metatable
+tool_proxy = setmetatable({}, {
+  __index = function(self, key)
+    -- Return intercepted methods
+    if key == "add_menu_entry" then return proxy_add_menu_entry end
+    if key == "add_keybinding" then return proxy_add_keybinding end
+    if key == "add_midi_mapping" then return proxy_add_midi_mapping end
+    -- For everything else, delegate to the real tool
+    local val = real_tool[key]
+    if type(val) == "function" then
+      return function(proxy_self, ...)
+        return real_tool[key](real_tool, ...)
+      end
+    end
+    return val
+  end,
+  __newindex = function(self, key, value)
+    real_tool[key] = value
+  end
+})
+
+-- Replace renoise.tool with our proxy function
+renoise.tool = function()
+  return tool_proxy
 end
 
-renoise.tool().add_midi_mapping = function(self, args)
-  return PakettiWrappedAddMidiMapping(self, args)
+-- Keep backward compatibility for any code referencing these globals
+function PakettiWrappedAddKeybinding(tool, args)
+  return proxy_add_keybinding(tool, args)
 end
+
+function PakettiWrappedAddMidiMapping(tool, args)
+  return proxy_add_midi_mapping(tool, args)
+end
+
+local _hint_count = 0
+for _ in pairs(PakettiShortcutHintsTable) do _hint_count = _hint_count + 1 end
+print("PakettiShortcutHints: renoise.tool() proxy installed, hint table has " .. _hint_count .. " entries")
 
 -- ============================================================================
 
