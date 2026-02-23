@@ -1693,9 +1693,13 @@ end
 
     -- Insert new slice markers
     local tw = s.selected_sample.sample_buffer.number_of_frames / changer
-    s.instruments[currInst].samples[currSamp]:insert_slice_marker(1)
+    local last_inserted = 0
     for i = 1, changer - 1 do
-        s.instruments[currInst].samples[currSamp]:insert_slice_marker(tw * i)
+        local pos = math.max(1, math.floor(tw * i))
+        if pos > last_inserted then
+            s.instruments[currInst].samples[currSamp]:insert_slice_marker(pos)
+            last_inserted = pos
+        end
     end
 
 -- Apply settings to all samples created by the slicing

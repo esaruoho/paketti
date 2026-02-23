@@ -1143,8 +1143,9 @@ local function flood_fill_pattern_from_clipboard(slot_index)
   -- If so, we'll preserve existing notes when pasting
   local preserve_notes = clipboard_has_only_effects(data)
   
-  -- Use content length for cycling (ignores empty trailing rows)
-  local clipboard_rows = find_content_length(data)
+  -- Use full clipboard size for cycling so empty lines are respected,
+  -- matching the behaviour of native "Paste Continuously"
+  local clipboard_rows = #data.rows
   local start_line, end_line
   local use_selection_pro = false
   local selection_pro = nil
@@ -1768,8 +1769,9 @@ local function flood_fill_phrase_from_clipboard(slot_index)
     return false
   end
   
-  -- Use content length for cycling (ignores empty trailing rows)
-  local clipboard_rows = find_content_length(data)
+  -- Use full clipboard size for cycling so empty lines are respected,
+  -- matching the behaviour of native "Paste Continuously"
+  local clipboard_rows = #data.rows
   local start_line, end_line
   local start_col, end_col
   local has_selection = false
