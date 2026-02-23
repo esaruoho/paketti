@@ -182,6 +182,12 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-23 - Fix: MetaSynth no longer crashes on Renoise v3.4 with "BinStream incompatible version" error
+
+The MetaSynth instrument generator hardcoded `doc_version="14"` in its LFO and #Send device XML presets — a format only Renoise v3.5.4 understands. When a v3.4 user ran `PakettiMetaSynthGenerateInstrument`, Renoise rejected the XML at `active_preset_data` assignment with `'[BinStream]' was saved with an incompatible, more recent version of Renoise`. Fixed by reading the `doc_version` from the freshly inserted device's own `active_preset_data` before generating the replacement XML, so the format always matches the running Renoise version. Both `PakettiMetaSynthCreateCrossfadeLFO` and `PakettiMetaSynthAddSendDevice` are now version-safe.
+
+---
+
 ### 2026-02-23 - Improvement: Added MIDI mappings for note position randomization
 
 Added MIDI mappings for "Roll the Dice on Notes" (`Paketti:Roll the Dice on Notes`) and "Randomize Positions of Note-Offs" (`Paketti:Randomize Positions of Note-Offs`). Note position randomization now has 1 menu entry (`Pattern Editor → Paketti → Note Columns → Roll the Dice on Notes in Selection`), 2 keyboard shortcuts (`Global:Paketti:Roll the Dice on Notes`, `Pattern Editor:Paketti:Randomize Positions of Note-Offs`), and 2 MIDI mappings.
