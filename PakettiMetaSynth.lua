@@ -25,6 +25,16 @@ PakettiMetaSynthLastFolderPath = nil
 METASYNTH_CROSSFADE_CURVES = {"linear", "equal_power", "s_curve", "stepped", "spectral", "vector"}
 METASYNTH_CROSSFADE_CURVE_NAMES = {"Linear", "Equal Power", "S-Curve", "Stepped", "Spectral", "Vector"}
 
+-- Helper: extract doc_version from a device's active_preset_data XML
+-- Returns the version string the running Renoise uses, so generated XML always matches
+local function get_device_doc_version(device)
+  if device and device.active_preset_data then
+    local ver = device.active_preset_data:match('doc_version="(%d+)"')
+    if ver then return ver end
+  end
+  return "14" -- fallback
+end
+
 -- Helper function to get random crossfade curve
 function PakettiMetaSynthGetRandomCrossfadeCurve()
   return METASYNTH_CROSSFADE_CURVES[math.random(1, #METASYNTH_CROSSFADE_CURVES)]
@@ -7205,10 +7215,13 @@ function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name
     
     -- Use provided frequency or default
     local freq_value = lfo_frequency or 0.9375
-    
+
+    -- Get doc_version from the freshly inserted device so XML matches running Renoise version
+    local doc_ver = get_device_doc_version(device)
+
     -- XML for custom envelope only (routing done via parameters after)
     local lfo_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
-<FilterDevicePreset doc_version="14">
+<FilterDevicePreset doc_version="%s">
   <DeviceSlot type="LfoDevice">
     <IsMaximized>true</IsMaximized>
     <Amplitude>
@@ -7235,7 +7248,7 @@ function PakettiMetaSynthCreateCrossfadeLFO(chain, envelope_points, display_name
     <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
     <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
   </DeviceSlot>
-</FilterDevicePreset>]=], freq_value, #envelope_points, table.concat(points_xml, "\n        "))
+</FilterDevicePreset>]=], doc_ver, freq_value, #envelope_points, table.concat(points_xml, "\n        "))
     
     device.active_preset_data = lfo_xml
     
@@ -9459,10 +9472,13 @@ function PakettiMetaSynthAddSendDevice(chain, dest_chain_index, display_name)
   if send_device then
     -- Convert 1-based chain index to 0-based Receiver index
     local receiver_index = dest_chain_index - 1
-    
+
+    -- Get doc_version from the freshly inserted device so XML matches running Renoise version
+    local doc_ver = get_device_doc_version(send_device)
+
     -- Apply Send device configuration via XML
     local send_xml = string.format([=[<?xml version="1.0" encoding="UTF-8"?>
-<FilterDevicePreset doc_version="14">
+<FilterDevicePreset doc_version="%s">
   <DeviceSlot type="SendDevice">
     <IsMaximized>true</IsMaximized>
     <SendAmount>
@@ -9478,7 +9494,7 @@ function PakettiMetaSynthAddSendDevice(chain, dest_chain_index, display_name)
     <SmoothParameterChanges>true</SmoothParameterChanges>
     <ApplyPostVolume>true</ApplyPostVolume>
   </DeviceSlot>
-</FilterDevicePreset>]=], receiver_index)
+</FilterDevicePreset>]=], doc_ver, receiver_index)
     
     send_device.active_preset_data = send_xml
     send_device.display_name = display_name or "#Send"
