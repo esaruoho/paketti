@@ -11535,3 +11535,14 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 ### 2026-02-19 - Fix: Phrase Follow Pattern Playback crashed Renoise on boot when the preference was saved as enabled. The feature's initialization code was executing at file-load time, where `renoise.song()` returns `nil`. Fixed by deferring the call through `app_new_document_observable` so it only runs after a song is fully loaded and ready.
 - File: `Paketti35.lua`
 
+
+---
+### 2026-02-23 - Fixed: Bug identified during triage — see thread for details
+
+The fix is committed. Here's a summary:
+
+---
+
+**Bug:** `std::logic_error: 'invalid slice sample_position index '0'. valid values are (1 to 3).'`
+
+**Root cause:** In `PakettiSamples.lua`, `slicerough()` calculates slice marker positions as `tw * i` where `tw = number_of_frames / changer`. When the sa
