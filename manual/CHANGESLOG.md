@@ -182,9 +182,9 @@ Thank you for using Paketti. — Esa
 
 ---
 
-### 2026-02-23 - Fix: MetaSynth no longer crashes on Renoise v3.4 with "BinStream incompatible version" error
+### 2026-02-23 - Fix: MetaSynth instrument generator no longer crashes on Renoise v3.4
 
-The MetaSynth instrument generator hardcoded `doc_version="14"` in its LFO and #Send device XML presets — a format only Renoise v3.5.4 understands. When a v3.4 user ran `PakettiMetaSynthGenerateInstrument`, Renoise rejected the XML at `active_preset_data` assignment with `'[BinStream]' was saved with an incompatible, more recent version of Renoise`. Fixed by reading the `doc_version` from the freshly inserted device's own `active_preset_data` before generating the replacement XML, so the format always matches the running Renoise version. Both `PakettiMetaSynthCreateCrossfadeLFO` and `PakettiMetaSynthAddSendDevice` are now version-safe.
+Running the MetaSynth instrument generator on Renoise v3.4 would crash with `'[BinStream]' was saved with an incompatible, more recent version of Renoise`. The generated LFO and Send devices were being built in a format only Renoise v3.5.4 understands. Paketti now detects which version of Renoise you're running and generates devices in the matching format, so MetaSynth works on both v3.4 and v3.5.4.
 
 ---
 
