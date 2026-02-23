@@ -182,6 +182,12 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-23 - Improvement: Added MIDI mappings for note position randomization
+
+Added MIDI mappings for "Roll the Dice on Notes" (`Paketti:Roll the Dice on Notes`) and "Randomize Positions of Note-Offs" (`Paketti:Randomize Positions of Note-Offs`). Note position randomization now has 1 menu entry (`Pattern Editor → Paketti → Note Columns → Roll the Dice on Notes in Selection`), 2 keyboard shortcuts (`Global:Paketti:Roll the Dice on Notes`, `Pattern Editor:Paketti:Randomize Positions of Note-Offs`), and 2 MIDI mappings.
+
+---
+
 ### 2026-02-23 - Fix: Slicerough no longer crashes with "invalid slice sample_position index '0'" on short samples
 
 `slicerough` — the fast rough-slicer that divides a sample into N equal parts — would crash Renoise with a C++ `std::logic_error` ("invalid slice sample_position index '0'") when the target sample was very short relative to the requested slice count. The bug had two causes working together: an unconditional `insert_slice_marker(1)` call *before* the loop, followed by the loop itself computing a frame position of `0` (via `math.floor(tw * i)` rounding down) and attempting to insert a second marker at or before position 1. Renoise rejects any slice marker at a frame index that has already been used, which surfaces as the misleading index-0 error.
