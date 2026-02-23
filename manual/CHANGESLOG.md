@@ -182,6 +182,14 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-23 - Fix: Slicerough no longer crashes with "invalid slice sample_position index '0'" on short samples
+
+`slicerough` — the fast rough-slicer that divides a sample into N equal parts — would crash Renoise with a C++ `std::logic_error` ("invalid slice sample_position index '0'") when the target sample was very short relative to the requested slice count. The bug had two causes working together: an unconditional `insert_slice_marker(1)` call *before* the loop, followed by the loop itself computing a frame position of `0` (via `math.floor(tw * i)` rounding down) and attempting to insert a second marker at or before position 1. Renoise rejects any slice marker at a frame index that has already been used, which surfaces as the misleading index-0 error.
+
+Fixed by removing the standalone pre-loop `insert_slice_marker(1)` call (the sample start is implicit; Renoise does not need an explicit marker there) and adding a `last_inserted` guard inside the loop so that any computed position equal to or less than the previous one is silently skipped. All positions are also clamped to a minimum of 1. This makes slicerough safe for very short samples and for large slice counts.
+
+---
+
 ### 2026-02-21 - Improvement: "Write Current BPM&LPB to Master Column" keybinding now discoverable by exact name
 
 When a user searched **Preferences → Keys** for `Write Current BPM&LPB to Master Column` — the exact wording shown in the menu entry — nothing came up. The existing keybindings used a shorter internal name (`Write BPM/LPB to Master`) that didn't match what users had read in the menu.
