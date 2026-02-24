@@ -182,6 +182,12 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-24 - Fix: Shortcut hints now actually appear in menu entries
+
+Paketti's shortcut hint system — which appends keyboard shortcuts like `[Opt+K]` to menu entry names — was silently broken because `renoise.tool()` returns a new wrapper object on every call, so monkey-patching methods on it had no effect. Replaced the broken approach with a `renoise.tool` proxy that intercepts `add_menu_entry`, `add_keybinding`, and `add_midi_mapping` at the source. The proxy also handles conditional keybinding/midi registration via master toggles. Shortcut hints now display correctly in all Paketti menu entries. A new module `PakettiShortcutHints.lua` parses `KeyBindings.xml` and the tool's `autocomplete_cache.txt` to match menu entries to their keybindings by both function identity and display name.
+
+---
+
 ### 2026-02-24 - Feature: MIDI drum pattern to Renoise phrase import
 
 Paketti now includes a pure Lua MIDI file parser that converts Ableton/GM MIDI drum clips into Renoise instrument phrases. Drop a .mid file onto an instrument via the file import hook, or use the batch import dialog to convert an entire folder of MIDI clips into phrases at once. Features include configurable LPB (4/6/8/12/16/24), optional delay column for sub-line timing precision, automatic polyphony detection (up to 12 note columns), volume/velocity preservation, and automatic instrument overflow when the 126 phrase limit is reached. Supports MIDI Format 0 and Format 1 files.
