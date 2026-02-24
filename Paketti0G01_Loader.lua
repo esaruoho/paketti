@@ -820,6 +820,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiMixerParameterExposer = {
     MaxRowsPerColumn = 25  -- Max parameters per column before splitting (10-50)
   },
+  -- MIDI Import Settings
+  pakettiMidiImportLPB = 8,
+  pakettiMidiImportUseDelay = true,
   -- Automate Last Touched Parameter Settings
   pakettiAutomateLastTouched = {
     AutoOpenExternalEditor = true, -- Auto-open VST/AU external editor when watching starts

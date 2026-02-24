@@ -182,6 +182,16 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-24 - Feature: MIDI drum pattern to Renoise phrase import
+
+Paketti now includes a pure Lua MIDI file parser that converts Ableton/GM MIDI drum clips into Renoise instrument phrases. Drop a .mid file onto an instrument via the file import hook, or use the batch import dialog to convert an entire folder of MIDI clips into phrases at once. Features include configurable LPB (4/6/8/12/16/24), optional delay column for sub-line timing precision, automatic polyphony detection (up to 12 note columns), volume/velocity preservation, and automatic instrument overflow when the 126 phrase limit is reached. Supports MIDI Format 0 and Format 1 files.
+
+Single file import: menu entry `Main Menu:Tools:Paketti:Instruments:MIDI Drum Pattern to Phrase (Import)...`, keyboard shortcut `Global:Paketti:MIDI Drum Pattern to Phrase (Import)...`, MIDI mapping `Paketti:MIDI Drum Pattern to Phrase (Import)... x[Button]`, plus drag-and-drop via the .mid file import hook.
+
+Batch folder import: menu entry `Main Menu:Tools:Paketti:Instruments:MIDI Folder Batch Import to Phrases...`, keyboard shortcut `Global:Paketti:MIDI Folder Batch Import to Phrases...`, MIDI mapping `Paketti:MIDI Folder Batch Import to Phrases... x[Button]`.
+
+---
+
 ### 2026-02-23 - Fix: MetaSynth instrument generator no longer crashes on Renoise v3.4
 
 Running the MetaSynth instrument generator on Renoise v3.4 would crash with `'[BinStream]' was saved with an incompatible, more recent version of Renoise`. The generated LFO and Send devices were being built in a format only Renoise v3.5.4 understands. Paketti now detects which version of Renoise you're running and generates devices in the matching format, so MetaSynth works on both v3.4 and v3.5.4.

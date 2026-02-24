@@ -3705,12 +3705,8 @@ renoise.tool():add_midi_mapping{name="Paketti:Cycle Through Selected Track Colum
 renoise.tool():add_midi_mapping{name="Paketti:Cycle Through All Track Columns (Absolute) x[Knob]",invoke=function(message) pakettiColumnCount(message, "all") end}
 renoise.tool():add_midi_mapping{name="Paketti:Cycle Through All Track Columns (Relative) x[Knob]",invoke=function(message) pakettiColumnCount(message, "all") end}
 
-function dudeMidi(file_path)
-  renoise.app():show_status("Dude Midi")
-  print("YOO")
-end
-
--- NOTE: MIDI file import hook registration moved to PakettiImport.lua for centralized management
+-- NOTE: dudeMidi() is now defined in PakettiMidiImport.lua with full MIDI parsing
+-- NOTE: MIDI file import hook registration is in PakettiImport.lua for centralized management
 
 -----------------------------------------------------------------------
 -- MIDI Automation Envelope Cycling
