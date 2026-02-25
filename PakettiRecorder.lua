@@ -862,6 +862,38 @@ function start_stop_sample_and_loop_oh_my()
   renoise.tool():add_keybinding{name="Global:Paketti:Display Sample Recorder with #Line Input",invoke=function() SampleRecorderOn() end}
 
 --------------------------------------------------------------------------------------------------------------------
+-- Sample Recorder with #Line Input and Track Scopes waveform view
+-- Press 1: add #Line Input to track (if not present), show Track Scopes in upper frame, open sample recorder
+-- Press 2: hide sample recorder, remove #Line Input
+--------------------------------------------------------------------------------------------------------------------
+function SampleRecorderWithTrackScopes()
+  local w = renoise.app().window
+  local track = renoise.song().selected_track
+  if not w.sample_record_dialog_is_visible then
+    -- Show Track Scopes so user can see live waveform while recording
+    w.upper_frame_is_visible = true
+    w.active_upper_frame = renoise.ApplicationWindow.UPPER_FRAME_TRACK_SCOPES
+    -- Add #Line Input if track doesn't already have one at slot 2
+    local has_lineinput = (#track.devices >= 2 and track.devices[2].device_path == "Audio/Effects/Native/#Line Input")
+    if not has_lineinput then
+      loadnative("Audio/Effects/Native/#Line Input")
+    end
+    w.sample_record_dialog_is_visible = true
+    renoise.app():show_status("Sample Recorder + Track Scopes: recording with live waveform view")
+  else
+    w.sample_record_dialog_is_visible = false
+    if #track.devices >= 2 and track.devices[2].name == "#Line Input" then
+      track:delete_device_at(2)
+    end
+    renoise.app():show_status("Sample Recorder + Track Scopes: stopped, #Line Input removed")
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Display Sample Recorder with #Line Input and Track Scopes",invoke=function() SampleRecorderWithTrackScopes() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Recording:Display Sample Recorder with #Line Input and Track Scopes",invoke=function() SampleRecorderWithTrackScopes() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Display Sample Recorder with #Line Input and Track Scopes",invoke=function() SampleRecorderWithTrackScopes() end}
+
+--------------------------------------------------------------------------------------------------------------------
 -- Quick Sample to New Track & Instrument Toggle
 -- Three modalities:
 --   1. Default: Doesn't touch pattern sync setting

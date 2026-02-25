@@ -182,6 +182,16 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-25 - Feature: Sample Recorder with #Line Input and Track Scopes (live waveform view while recording)
+
+New `SampleRecorderWithTrackScopes()` function in `PakettiRecorder.lua`. First press: adds `#Line Input` device to the selected track (if not already present), switches the upper frame to **Track Scopes** so you can see the live input waveform, and opens the Sample Recorder dialog. Second press: closes the recorder and removes the `#Line Input` device. Gives a visual waveform monitor during recording without needing a third-party VST oscilloscope.
+
+- **Keybinding:** `Global:Paketti:Display Sample Recorder with #Line Input and Track Scopes`
+- **Menu:** `Main Menu:Tools:Paketti:Recording:Display Sample Recorder with #Line Input and Track Scopes`
+- **Menu:** `Sample Editor:Paketti:Display Sample Recorder with #Line Input and Track Scopes`
+
+---
+
 ### 2026-02-25 - Random BPM Min/Max preferences
 
 All random BPM functions now use a configurable Min/Max range instead of a hardcoded list of `{80, 100, 115, 123, 128, 132, 135, 138, 160}`. Two new preferences (`RandomBPMMin` default 60, `RandomBPMMax` default 180) with valueboxes in the Paketti Preferences dialog (range 32-999, with cross-validation so min can't exceed max). Affects `randombpm()`, `randomBPMMaster()`, `randomBPMFromList()`, `randomBPM()`, and the bell curve BPM generator used by "New Song BPM Randomizer". Values persist across sessions.
