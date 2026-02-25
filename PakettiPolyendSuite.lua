@@ -633,8 +633,20 @@ function universal_to_pti_export(source_filename, instrument_name, file_format)
     loop_start = export_smp.loop_start,
     loop_end = export_smp.loop_end,
     channels = export_smp.sample_buffer.number_of_channels,
+    volume = export_smp.volume,
+    panning = export_smp.panning,
     slice_markers = {} -- Initialize empty slice markers table
   }
+
+  -- Extract modulation data (envelopes, LFOs, filter) from Renoise instrument
+  local mod_data = extractModulationForPTIExport(inst)
+  data.envelopes = mod_data.envelopes
+  data.lfos = mod_data.lfos
+  if mod_data.filter_type then
+    data.filter_type = mod_data.filter_type
+    data.cutoff = mod_data.cutoff
+    data.resonance = mod_data.resonance
+  end
 
   -- Copy up to 48 slice markers
   print(string.format("-- Copying %d slice markers from Renoise sample", limited_slice_count))
@@ -650,7 +662,7 @@ function universal_to_pti_export(source_filename, instrument_name, file_format)
     print("-- Sample Playback Mode: Slice (mode 4)")
   end
 
-  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
+  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d",
     data.channels > 1 and "Stereo" or "Mono",
     44100,
     16,
@@ -675,9 +687,9 @@ function universal_to_pti_export(source_filename, instrument_name, file_format)
   print(string.format("-- Wavetable Mode: %s", data.is_wavetable and "TRUE" or "FALSE"))
 
   local f = io.open(pti_filename, "wb")
-  if not f then 
+  if not f then
     renoise.app():show_status("Cannot write file: " .. pti_filename)
-    return 
+    return
   end
 
   -- Write header and get its size for verification (using Beat Slice mode for sliced samples)
@@ -690,7 +702,7 @@ function universal_to_pti_export(source_filename, instrument_name, file_format)
   local buf = export_smp.sample_buffer
   local frame_count = export_smp.sample_buffer.number_of_frames
   local channel_count = export_smp.sample_buffer.number_of_channels
-  
+
   print(string.format("-- Writing %d frames of sample data (%d channels)", frame_count, channel_count))
 
   -- Write sample data frame by frame
@@ -949,8 +961,20 @@ function rx2_to_pti_convert_original(rx2_filename_override)
     loop_start = export_smp.loop_start,
     loop_end = export_smp.loop_end,
     channels = export_smp.sample_buffer.number_of_channels,
+    volume = export_smp.volume,
+    panning = export_smp.panning,
     slice_markers = {} -- Initialize empty slice markers table
   }
+
+  -- Extract modulation data (envelopes, LFOs, filter) from Renoise instrument
+  local mod_data = extractModulationForPTIExport(inst)
+  data.envelopes = mod_data.envelopes
+  data.lfos = mod_data.lfos
+  if mod_data.filter_type then
+    data.filter_type = mod_data.filter_type
+    data.cutoff = mod_data.cutoff
+    data.resonance = mod_data.resonance
+  end
 
   -- Copy up to 48 slice markers
   print(string.format("-- Copying %d slice markers from Renoise sample", limited_slice_count))
@@ -966,7 +990,7 @@ function rx2_to_pti_convert_original(rx2_filename_override)
     print("-- Sample Playback Mode: Slice (mode 4)")
   end
 
-  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
+  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d",
     data.channels > 1 and "Stereo" or "Mono",
     44100,
     16,
@@ -991,9 +1015,9 @@ function rx2_to_pti_convert_original(rx2_filename_override)
   print(string.format("-- Wavetable Mode: %s", data.is_wavetable and "TRUE" or "FALSE"))
 
   local f = io.open(pti_filename, "wb")
-  if not f then 
+  if not f then
     renoise.app():show_status("Cannot write file: " .. pti_filename)
-    return 
+    return
   end
 
   -- Write header and get its size for verification (using Beat Slice mode for RX2)

@@ -178,6 +178,45 @@ local function read_float_le(file)
     return b1 + (b2 * 256) + (b3 * 65536) + (b4 * 16777216)
 end
 
+-- CRC32 lookup table (standard polynomial 0xEDB88320)
+local crc32_table = {}
+for i = 0, 255 do
+    local crc = i
+    for _ = 1, 8 do
+        if bit.band(crc, 1) == 1 then
+            crc = bit.bxor(bit.rshift(crc, 1), 0xEDB88320)
+        else
+            crc = bit.rshift(crc, 1)
+        end
+    end
+    crc32_table[i] = crc
+end
+
+-- Compute CRC32 over a string of bytes
+local function compute_crc32(data)
+    local crc = 0xFFFFFFFF
+    for i = 1, #data do
+        local byte = string.byte(data, i)
+        local index = bit.band(bit.bxor(crc, byte), 0xFF)
+        crc = bit.bxor(bit.rshift(crc, 8), crc32_table[index])
+    end
+    return bit.bxor(crc, 0xFFFFFFFF)
+end
+
+-- Write helpers for binary export
+local function write_uint16_le(file, value)
+    file:write(string.char(bit.band(value, 0xFF), bit.band(bit.rshift(value, 8), 0xFF)))
+end
+
+local function write_uint32_le(file, value)
+    file:write(string.char(
+        bit.band(value, 0xFF),
+        bit.band(bit.rshift(value, 8), 0xFF),
+        bit.band(bit.rshift(value, 16), 0xFF),
+        bit.band(bit.rshift(value, 24), 0xFF)
+    ))
+end
+
 -- Read pattern metadata file
 local function read_pattern_metadata(filepath)
     local file = io.open(filepath, "rb")
@@ -298,11 +337,144 @@ local function read_project_file(filepath)
             actual_playlist_length = i
         end
     end
-    
-    file:close()
-    
+
+    -- Read extended project data from absolute offsets (discovered via ptlib)
+    local global_tempo = nil
+    local project_name = ""
+    local track_names = {}
+    local delay_params = {}
+    local reverb_params = {}
+
+    -- Re-open to read absolute offsets (file may be large enough)
+    local file2 = io.open(filepath, "rb")
+    if file2 then
+        local file_size = file2:seek("end")
+
+        -- Global tempo: float32 at offset 0x80
+        if file_size >= 0x84 then
+            file2:seek("set", 0x80)
+            local tempo_bytes = file2:read(4)
+            if tempo_bytes and #tempo_bytes == 4 then
+                -- Decode IEEE 754 float32 little-endian
+                local b1, b2, b3, b4 = string.byte(tempo_bytes, 1, 4)
+                local sign = (b4 >= 128) and -1 or 1
+                local exponent = bit.band(bit.rshift(b4, 0), 0x7F) * 2 + bit.rshift(b3, 7)
+                local mantissa = bit.band(b3, 0x7F) * 65536 + b2 * 256 + b1
+                if exponent == 0 and mantissa == 0 then
+                    global_tempo = 0
+                elseif exponent == 0xFF then
+                    global_tempo = nil  -- NaN or Inf
+                else
+                    global_tempo = sign * math.pow(2, exponent - 127) * (1 + mantissa / 8388608)
+                end
+                if global_tempo and global_tempo >= 20 and global_tempo <= 999 then
+                    print(string.format("-- Project BPM: %.1f", global_tempo))
+                else
+                    global_tempo = nil  -- Invalid BPM value
+                end
+            end
+        end
+
+        -- Project name: char[32] at offset 0x80C
+        if file_size >= 0x80C + 32 then
+            file2:seek("set", 0x80C)
+            local name_bytes = file2:read(32)
+            if name_bytes then
+                -- Extract null-terminated string
+                local null_pos = name_bytes:find("\0")
+                if null_pos then
+                    project_name = name_bytes:sub(1, null_pos - 1)
+                else
+                    project_name = name_bytes
+                end
+                -- Clean non-printable chars
+                project_name = project_name:gsub("[%c]", "")
+                if project_name ~= "" then
+                    print(string.format("-- Project name: '%s'", project_name))
+                end
+            end
+        end
+
+        -- Track names: first 8 tracks at 21-byte intervals from 0x428
+        local track_name_offsets = {0x428, 0x43D, 0x452, 0x467, 0x47C, 0x491, 0x4A6, 0x4BB}
+        for i = 1, 8 do
+            if file_size >= track_name_offsets[i] + 21 then
+                file2:seek("set", track_name_offsets[i])
+                local name_bytes = file2:read(21)
+                if name_bytes then
+                    local null_pos = name_bytes:find("\0")
+                    local name = null_pos and name_bytes:sub(1, null_pos - 1) or name_bytes
+                    track_names[i] = name:gsub("[%c]", "")
+                end
+            end
+        end
+
+        -- Track names: next 8 tracks at 8-byte intervals from 0x603
+        if file_size >= 0x603 + 64 then
+            for i = 1, 8 do
+                local offset = 0x603 + (i - 1) * 8
+                file2:seek("set", offset)
+                local name_bytes = file2:read(8)
+                if name_bytes then
+                    local null_pos = name_bytes:find("\0")
+                    local name = null_pos and name_bytes:sub(1, null_pos - 1) or name_bytes
+                    track_names[8 + i] = name:gsub("[%c]", "")
+                end
+            end
+        end
+
+        -- Delay parameters
+        if file_size >= 0x53C then
+            file2:seek("set", 0x11A)
+            delay_params.feedback = read_uint8(file2)
+            file2:seek("set", 0x11C)
+            delay_params.time = read_uint16_le(file2)
+            file2:seek("set", 0x11F)
+            delay_params.params = read_uint8(file2)
+            file2:seek("set", 0x539)
+            delay_params.volume = read_uint8(file2)
+            file2:seek("set", 0x53B)
+            delay_params.mute = read_uint8(file2)
+            print(string.format("-- Delay: feedback=%d, time=%d, volume=%d, mute=%d",
+                delay_params.feedback or 0, delay_params.time or 0,
+                delay_params.volume or 0, delay_params.mute or 0))
+        end
+
+        -- Reverb parameters (float32 values)
+        if file_size >= 0x53B then
+            -- Read float32 helper
+            local function read_float32_at(f, offset)
+                f:seek("set", offset)
+                local bytes = f:read(4)
+                if not bytes or #bytes < 4 then return 0 end
+                local b1, b2, b3, b4 = string.byte(bytes, 1, 4)
+                local sign = (b4 >= 128) and -1 or 1
+                local exponent = bit.band(b4, 0x7F) * 2 + bit.rshift(b3, 7)
+                local mantissa = bit.band(b3, 0x7F) * 65536 + b2 * 256 + b1
+                if exponent == 0 and mantissa == 0 then return 0 end
+                if exponent == 0xFF then return 0 end
+                return sign * math.pow(2, exponent - 127) * (1 + mantissa / 8388608)
+            end
+
+            reverb_params.size = read_float32_at(file2, 0x418)
+            reverb_params.damp = read_float32_at(file2, 0x41C)
+            reverb_params.predelay = read_float32_at(file2, 0x420)
+            reverb_params.diffusion = read_float32_at(file2, 0x424)
+            file2:seek("set", 0x538)
+            reverb_params.volume = read_uint8(file2)
+            file2:seek("set", 0x53A)
+            reverb_params.mute = read_uint8(file2)
+            print(string.format("-- Reverb: size=%.2f, damp=%.2f, predelay=%.2f, diffusion=%.2f, volume=%d, mute=%d",
+                reverb_params.size or 0, reverb_params.damp or 0,
+                reverb_params.predelay or 0, reverb_params.diffusion or 0,
+                reverb_params.volume or 0, reverb_params.mute or 0))
+        end
+
+        file2:close()
+    end
+
     print(string.format("-- Project playlist length: %d, current position: %d", actual_playlist_length, playlist_pos or 0))
-    
+
     return {
         header = {
             id_file = id_file,
@@ -313,7 +485,12 @@ local function read_project_file(filepath)
         },
         playlist = playlist,
         playlist_pos = playlist_pos or 0,
-        playlist_length = actual_playlist_length
+        playlist_length = actual_playlist_length,
+        global_tempo = global_tempo,
+        project_name = project_name,
+        track_names = track_names,
+        delay_params = delay_params,
+        reverb_params = reverb_params
     }
 end
 
@@ -692,37 +869,185 @@ local function convert_polyend_note(polyend_note)
     return nil
 end
 
--- Convert Polyend FX to Renoise effect (only a few can be mapped)
+-- Convert Polyend FX to Renoise effect
 local function convert_polyend_fx(fx_type, fx_value)
-    if not fx_type or fx_type == 0 or fx_value == 0 then
-        return nil, nil, nil -- No effect
+    if not fx_type or fx_type == 0 then
+        return nil, nil, nil -- No effect (None)
     end
-    
-    -- Only convert the FX that have meaningful Renoise equivalents
-    if fx_type == 15 then  -- Tempo (T)
-        -- Polyend tempo: 8-400 BPM, value 4-200 maps to 8-400
+
+    -- FX 1: Off - no Renoise equivalent needed
+    if fx_type == 1 then
+        return nil, nil, nil
+
+    -- FX 2: Micro-move → 09xx (Sample Offset)
+    -- Polyend 0-100 → Renoise 00-FF
+    elseif fx_type == 2 then
+        local offset = math.floor((fx_value / 100) * 255)
+        return "09", string.format("%02X", offset), "Sample Offset"
+
+    -- FX 3: Roll → 0Exy (Retrigger)
+    -- Polyend 0-47 → Renoise retrigger ticks
+    elseif fx_type == 3 then
+        -- Map roll value to retrigger: lower Polyend values = more subdivisions
+        local retrig = math.max(1, math.min(15, math.floor(fx_value / 3)))
+        return "0E", string.format("0%X", retrig), "Retrigger"
+
+    -- FX 4: Chance - no direct Renoise equivalent
+    -- FX 5: Random Note - no direct Renoise equivalent
+    -- FX 6: Random Instrument - no direct Renoise equivalent
+    -- FX 7: Random Volume - no direct Renoise equivalent
+
+    -- FX 8-12, 37: MIDI CC A-F
+    -- On the Polyend Tracker, CC A-F send user-configured CC numbers to MIDI instruments (48-63).
+    -- The actual CC number assignments are stored in project.mt at undocumented offsets.
+    -- We log these for reference but can't map them without knowing the target CC numbers.
+    -- Users can route these via Renoise's *Instr. MIDI Control device after import.
+    elseif fx_type == 8 or fx_type == 9 or fx_type == 10 or fx_type == 11 or fx_type == 12 or fx_type == 37 then
+        local cc_letter = ({[8]="A",[9]="B",[10]="C",[11]="D",[12]="E",[37]="F"})[fx_type]
+        return nil, nil, string.format("MIDI CC %s = %d (configure via Instr. MIDI Control)", cc_letter, fx_value)
+
+    -- FX 13: Break Pattern → 0D00
+    elseif fx_type == 13 then
+        return "0D", "00", "Pattern Break"
+
+    -- FX 14: MIDI Chord - no direct Renoise equivalent
+
+    -- FX 15: Tempo → F0xx
+    elseif fx_type == 15 then
         local bpm = (fx_value * 2) + 8
-        
-        -- Store the first detected BPM globally for song setting
         if not _G.polyend_detected_bpm then
             _G.polyend_detected_bpm = bpm
             print(string.format("-- DETECTED BPM: %d from Polyend Tempo FX", bpm))
         end
-        
-        -- Convert to Renoise F0XX effect (Set BPM directly)
-        -- F0XX in Renoise: XX is the BPM value directly (32-255)
         local renoise_bpm = math.min(255, math.max(32, bpm))
         return "F0", string.format("%02X", renoise_bpm), "Tempo"
-    elseif fx_type == 18 then  -- Volume/Velocity (V)
-        return "0C", string.format("%02X", math.min(64, fx_value)), "Volume"
-    elseif fx_type == 31 then  -- Panning (P) 
-        -- Polyend: 0-100 (50=center), Renoise: 0-255 (128=center)
+
+    -- FX 16: Random FX Value - no direct Renoise equivalent
+
+    -- FX 17: Swing → ZTxx (Set Groove)
+    -- Polyend 25-75 (-25 to +25), Renoise groove amount
+    elseif fx_type == 17 then
+        -- Map swing to groove. Polyend 50=no swing, Renoise uses groove tables
+        -- Approximate: convert to delay column value (0-FF)
+        local swing_offset = fx_value - 50  -- -25 to +25
+        if swing_offset ~= 0 then
+            local delay = math.floor(128 + (swing_offset / 25) * 127)
+            delay = math.max(0, math.min(255, delay))
+            return "ZD", string.format("%02X", delay), "Swing/Delay"
+        end
+        return nil, nil, nil
+
+    -- FX 18: Volume/Velocity → 0Cxx
+    elseif fx_type == 18 then
+        -- Polyend 0-100 → Renoise volume 00-80 (0x80 = full)
+        local vol = math.floor((fx_value / 100) * 128)
+        return "0C", string.format("%02X", math.min(128, vol)), "Volume"
+
+    -- FX 19: Glide → 05xx (Glide to Note)
+    -- Polyend 0-100 → Renoise glide speed
+    elseif fx_type == 19 then
+        local glide = math.floor((fx_value / 100) * 255)
+        return "05", string.format("%02X", glide), "Glide"
+
+    -- FX 20: Gate Length → 0Cxx approximation (Note Cut after N ticks)
+    elseif fx_type == 20 then
+        -- Polyend 0-100 gate length, map to ECxy (Note Cut at tick y)
+        -- Lower gate = earlier cut
+        local tick = math.max(0, math.min(15, math.floor((fx_value / 100) * 15)))
+        if tick < 15 then
+            return "EC", string.format("0%X", tick), "Gate Length"
+        end
+        return nil, nil, nil
+
+    -- FX 21: Arp → 00xy (Arpeggio)
+    elseif fx_type == 21 then
+        -- Polyend arp value 0-33, encode as semitone intervals
+        -- Simple mapping: value as combined xy where x=major, y=minor intervals
+        local x = math.min(15, math.floor(fx_value / 3))
+        local y = math.min(15, fx_value % 3 * 4)
+        return "00", string.format("%X%X", x, y), "Arpeggio"
+
+    -- FX 22: Position → 09xx (Sample Offset)
+    elseif fx_type == 22 then
+        local offset = math.floor((fx_value / 100) * 255)
+        return "09", string.format("%02X", offset), "Position/Offset"
+
+    -- FX 25: Sample Slice → 0Sxx (Trigger Slice)
+    elseif fx_type == 25 then
+        -- Polyend 0-47 (displayed 1-48) → Renoise Sxx
+        local slice = math.min(255, fx_value + 1)
+        return "0S", string.format("%02X", slice), "Slice"
+
+    -- FX 26: Reverse Playback → 0B01 (Reverse)
+    elseif fx_type == 26 then
+        if fx_value > 0 then
+            return "0B", "01", "Reverse"
+        else
+            return "0B", "00", "Forward"
+        end
+
+    -- FX 27: Filter Low-pass → cutoff value (approximate with volume as placeholder)
+    -- FX 28: Filter High-pass
+    -- FX 29: Filter Band-pass
+    -- These need DSP device control; store as comments for now
+    elseif fx_type == 27 or fx_type == 28 or fx_type == 29 then
+        -- Map to Renoise filter cutoff if available
+        -- Use 24xx for cutoff (if filter device is in chain)
+        local cutoff = math.floor((fx_value / 100) * 255)
+        return "24", string.format("%02X", cutoff), "Filter Cutoff"
+
+    -- FX 30: Delay Send → log for reference (per-step send levels need track automation)
+    elseif fx_type == 30 then
+        return nil, nil, string.format("Delay Send = %d%% (apply via Send device)", fx_value)
+
+    -- FX 31: Panning → 08xx
+    elseif fx_type == 31 then
+        -- Polyend: 0-100 (50=center), Renoise: 00-FF (80=center)
         local pan_value = math.floor((fx_value / 100) * 255)
         return "08", string.format("%02X", pan_value), "Panning"
-    elseif fx_type == 13 then  -- Break Pattern (x)
-        return "0D", "00", "Pattern Break"
+
+    -- FX 32: Reverb Send → log for reference (per-step send levels need track automation)
+    elseif fx_type == 32 then
+        return nil, nil, string.format("Reverb Send = %d%% (apply via Send device)", fx_value)
+
+    -- FX 34: Micro-tune/Pitchbend → 0Mxx (Set Fine Pitch)
+    elseif fx_type == 34 then
+        -- Polyend 0-198 maps to -99 to +99
+        -- Renoise fine pitch: 00-7F down, 80-FF up (80=center)
+        local pitch = fx_value - 99  -- -99 to +99
+        local renoise_pitch = math.floor(128 + (pitch / 99) * 127)
+        renoise_pitch = math.max(0, math.min(255, renoise_pitch))
+        return "0M", string.format("%02X", renoise_pitch), "Fine Pitch"
+
+    -- FX 38: Overdrive → log (would need Distortion DSP device in Renoise)
+    elseif fx_type == 38 then
+        return nil, nil, string.format("Overdrive = %d%% (add Distortion DSP)", fx_value)
+
+    -- FX 39: Bit Depth → log (would need LoFi DSP device in Renoise)
+    elseif fx_type == 39 then
+        return nil, nil, string.format("Bit Depth = %d (add LoFi DSP)", fx_value)
+
+    -- FX 40: Tune → 0Uxx (Pitch up/down in semitones)
+    elseif fx_type == 40 then
+        -- Polyend 0-48 maps to -24 to +24 semitones
+        local semitones = fx_value - 24
+        if semitones > 0 then
+            return "01", string.format("%02X", math.min(255, semitones * 16)), "Pitch Up"
+        elseif semitones < 0 then
+            return "02", string.format("%02X", math.min(255, math.abs(semitones) * 16)), "Pitch Down"
+        end
+        return nil, nil, nil
+
+    -- FX 41: Slide Up → 01xx (Pitch Slide Up)
+    elseif fx_type == 41 then
+        return "01", string.format("%02X", math.min(255, fx_value)), "Slide Up"
+
+    -- FX 42: Slide Down → 02xx (Pitch Slide Down)
+    elseif fx_type == 42 then
+        return "02", string.format("%02X", math.min(255, fx_value)), "Slide Down"
+
     else
-        -- For other FX, return info for debugging/display but no Renoise effect
+        -- Unmapped FX: LFOs (23,24,33,35,36), CC sends (8-12,37), Random (4-7,16), MIDI Chord (14)
         local fx_name = POLYEND_CONSTANTS.FX_NAMES[fx_type] or "Unknown"
         local fx_symbol = POLYEND_CONSTANTS.FX_SYMBOLS[fx_type] or "?"
         return nil, nil, string.format("Polyend %s (%s:%02X)", fx_name, fx_symbol, fx_value)
@@ -1117,34 +1442,53 @@ local function export_pattern_to_mtp(pattern_index, output_path, track_count)
                 end
                 
                 -- Convert effects (very basic - only handle a few Renoise -> Polyend mappings)
+                -- Helper to convert a single Renoise effect column to Polyend FX
+                local function renoise_fx_to_polyend(fx_cmd, fx_val)
+                    if fx_cmd == "0C" then      -- Volume → Volume/Velocity (18)
+                        return 18, math.min(100, math.floor((fx_val / 128) * 100))
+                    elseif fx_cmd == "08" then  -- Panning → Panning (31)
+                        return 31, math.floor((fx_val / 255) * 100)
+                    elseif fx_cmd == "F0" then  -- Tempo → Tempo (15)
+                        return 15, math.max(4, math.min(200, math.floor((fx_val - 8) / 2)))
+                    elseif fx_cmd == "0D" then  -- Pattern Break → Break (13)
+                        return 13, 1
+                    elseif fx_cmd == "01" then  -- Pitch Slide Up → Slide Up (41)
+                        return 41, math.min(255, fx_val)
+                    elseif fx_cmd == "02" then  -- Pitch Slide Down → Slide Down (42)
+                        return 42, math.min(255, fx_val)
+                    elseif fx_cmd == "05" then  -- Glide → Glide (19)
+                        return 19, math.min(100, math.floor((fx_val / 255) * 100))
+                    elseif fx_cmd == "00" and fx_val > 0 then  -- Arpeggio → Arp (21)
+                        local x = math.floor(fx_val / 16)
+                        return 21, math.min(33, x * 3)
+                    elseif fx_cmd == "09" then  -- Sample Offset → Micro-move (2) or Position (22)
+                        return 22, math.floor((fx_val / 255) * 100)
+                    elseif fx_cmd == "0E" then  -- Retrigger → Roll (3)
+                        local y = fx_val % 16
+                        return 3, math.min(47, y * 3)
+                    elseif fx_cmd == "EC" then  -- Note Cut → Gate Length (20)
+                        local tick = fx_val % 16
+                        return 20, math.floor((tick / 15) * 100)
+                    elseif fx_cmd == "0B" then  -- Reverse → Reverse (26)
+                        return 26, (fx_val > 0) and 1 or 0
+                    elseif fx_cmd == "0S" then  -- Slice → Sample Slice (25)
+                        return 25, math.max(0, math.min(47, fx_val - 1))
+                    elseif fx_cmd == "24" then  -- Filter Cutoff → Filter LP (27)
+                        return 27, math.floor((fx_val / 255) * 100)
+                    end
+                    return 0, 0
+                end
+
                 if #line.effect_columns >= 1 and line.effect_columns[1].number_string ~= "" then
                     local fx_cmd = line.effect_columns[1].number_string
                     local fx_val = tonumber(line.effect_columns[1].amount_string, 16) or 0
-                    
-                    if fx_cmd == "0C" then  -- Volume -> Volume/Velocity
-                        fx0_type, fx0_value = 18, math.min(100, fx_val)
-                    elseif fx_cmd == "08" then  -- Pan -> Panning
-                        fx0_type, fx0_value = 31, math.floor((fx_val / 255) * 100)
-                    elseif fx_cmd == "F0" then  -- Tempo -> Tempo
-                        fx0_type, fx0_value = 15, math.max(4, math.min(200, math.floor((fx_val - 32) / 2)))
-                    elseif fx_cmd == "0D" then  -- Pattern Break -> Break Pattern
-                        fx0_type, fx0_value = 13, 1
-                    end
+                    fx0_type, fx0_value = renoise_fx_to_polyend(fx_cmd, fx_val)
                 end
-                
+
                 if #line.effect_columns >= 2 and line.effect_columns[2].number_string ~= "" then
                     local fx_cmd = line.effect_columns[2].number_string
                     local fx_val = tonumber(line.effect_columns[2].amount_string, 16) or 0
-                    
-                    if fx_cmd == "0C" then  -- Volume -> Volume/Velocity
-                        fx1_type, fx1_value = 18, math.min(100, fx_val)
-                    elseif fx_cmd == "08" then  -- Pan -> Panning
-                        fx1_type, fx1_value = 31, math.floor((fx_val / 255) * 100)
-                    elseif fx_cmd == "F0" then  -- Tempo -> Tempo
-                        fx1_type, fx1_value = 15, math.max(4, math.min(200, math.floor((fx_val - 32) / 2)))
-                    elseif fx_cmd == "0D" then  -- Pattern Break -> Break Pattern
-                        fx1_type, fx1_value = 13, 1
-                    end
+                    fx1_type, fx1_value = renoise_fx_to_polyend(fx_cmd, fx_val)
                 end
             end
             
@@ -1161,10 +1505,41 @@ local function export_pattern_to_mtp(pattern_index, output_path, track_count)
         end
     end
     
-    -- Calculate and write CRC (placeholder - real implementation would calculate proper CRC32)
-    file:write(string.char(0x00, 0x00, 0x00, 0x00))
-    
+    -- Calculate CRC32 over the track data
+    -- Re-read the file to compute CRC over bytes 28 to end (after header+unused, before CRC)
     file:close()
+
+    local crc_file = io.open(output_path, "rb")
+    if crc_file then
+        local all_data = crc_file:read("*a")
+        crc_file:close()
+
+        -- CRC32 is computed over bytes from offset 28 (after 16-byte header + 12 unused bytes)
+        -- to the end of track data (excluding the 4 CRC bytes we haven't written yet)
+        -- But we wrote placeholder zeros, so strip last 4 bytes
+        local data_for_crc = all_data:sub(29, -1)  -- From byte 29 (1-indexed) to end minus nothing since we wrote 4 zero bytes
+        -- Actually strip the 4 placeholder CRC bytes at the end
+        data_for_crc = all_data:sub(29, #all_data - 4)
+
+        local crc = compute_crc32(data_for_crc)
+
+        -- Rewrite the file with proper CRC
+        local rewrite = io.open(output_path, "r+b")
+        if rewrite then
+            rewrite:seek("end", -4)
+            -- Write CRC as little-endian uint32
+            rewrite:write(string.char(
+                bit.band(crc, 0xFF),
+                bit.band(bit.rshift(crc, 8), 0xFF),
+                bit.band(bit.rshift(crc, 16), 0xFF),
+                bit.band(bit.rshift(crc, 24), 0xFF)
+            ))
+            rewrite:close()
+        end
+
+        print(string.format("-- MTP CRC32: 0x%08X", crc))
+    end
+
     print(string.format("-- MTP export complete: %s", output_path))
     return true
 end
@@ -1660,6 +2035,285 @@ end
 
 
 
+-- Export project.mt file from Renoise song
+-- Helper to encode a float32 to 4 little-endian bytes
+local function encode_float32_le(value)
+    if value == 0 then return string.char(0, 0, 0, 0) end
+    local sign = 0
+    if value < 0 then sign = 1; value = -value end
+    local mantissa, exponent = math.frexp(value)
+    exponent = exponent + 126  -- IEEE 754 bias
+    mantissa = (mantissa * 2 - 1) * 8388608  -- 2^23
+    local mant_int = math.floor(mantissa + 0.5)
+    local b1 = bit.band(mant_int, 0xFF)
+    local b2 = bit.band(bit.rshift(mant_int, 8), 0xFF)
+    local b3 = bit.bor(bit.band(bit.rshift(mant_int, 16), 0x7F), bit.lshift(bit.band(exponent, 1), 7))
+    local b4 = bit.bor(bit.rshift(exponent, 1), bit.lshift(sign, 7))
+    return string.char(b1, b2, b3, b4)
+end
+
+local function export_project_to_mt(output_path, playlist, playlist_pos)
+    local song = renoise.song()
+
+    -- MT files need to be large enough for all absolute offsets
+    -- Largest known offset: 0x80C + 32 = 0x82C (2092 bytes)
+    -- Add some extra for CRC at the end
+    local MT_FILE_SIZE = 0x82C + 4  -- 2096 bytes minimum
+
+    local file = io.open(output_path, "wb")
+    if not file then
+        print("-- ERROR: Cannot create MT file: " .. output_path)
+        return false
+    end
+
+    print(string.format("-- Exporting project.mt: %s (%d playlist entries)", output_path, #playlist))
+
+    -- Write entire file as zeros first, then overwrite specific fields
+    file:write(string.rep("\0", MT_FILE_SIZE))
+
+    -- Seek back to beginning to write header
+    file:seek("set", 0)
+    file:write("MT")                          -- id_file (2 bytes)
+    write_uint16_le(file, 1)                  -- type = 1 (project)
+    file:write(string.char(1, 0, 0, 0))       -- fwVersion (4 bytes)
+    file:write(string.char(1, 0, 0, 0))       -- fileStructureVersion (4 bytes)
+    write_uint16_le(file, 256)                -- size = 256 (song data size)
+    file:write(string.char(0, 0))             -- padding (2 bytes)
+
+    -- Write song data: playlist array (255 bytes) at offset 16
+    for i = 1, 255 do
+        if playlist[i] and playlist[i] > 0 then
+            file:write(string.char(math.min(255, playlist[i])))
+        else
+            file:write(string.char(0))
+        end
+    end
+
+    -- Write playlist position (1 byte)
+    file:write(string.char(math.min(254, playlist_pos or 0)))
+
+    -- Write BPM at offset 0x80
+    file:seek("set", 0x80)
+    file:write(encode_float32_le(song.transport.bpm))
+    print(string.format("-- Exported BPM: %d", song.transport.bpm))
+
+    -- Write delay parameters at absolute offsets
+    file:seek("set", 0x11A)
+    file:write(string.char(50))  -- delayFeedback default
+    file:seek("set", 0x11C)
+    write_uint16_le(file, 250)   -- delayTime default 250ms
+    file:seek("set", 0x11F)
+    file:write(string.char(0))   -- delayParams
+
+    -- Write reverb parameters at absolute offsets
+    file:seek("set", 0x418)
+    file:write(encode_float32_le(0.5))  -- reverb.size
+    file:seek("set", 0x41C)
+    file:write(encode_float32_le(0.5))  -- reverb.damp
+    file:seek("set", 0x420)
+    file:write(encode_float32_le(0.0))  -- reverb.predelay
+    file:seek("set", 0x424)
+    file:write(encode_float32_le(0.5))  -- reverb.diffusion
+
+    -- Write track names: first 8 at 21-byte intervals from 0x428
+    local track_name_offsets = {0x428, 0x43D, 0x452, 0x467, 0x47C, 0x491, 0x4A6, 0x4BB}
+    for i = 1, 8 do
+        if i <= #song.tracks and song.tracks[i].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local name = song.tracks[i].name or ""
+            if #name > 20 then name = name:sub(1, 20) end
+            file:seek("set", track_name_offsets[i])
+            file:write(name)
+            file:write(string.char(0))  -- null terminator
+            print(string.format("-- Exported track %d name: '%s'", i, name))
+        end
+    end
+
+    -- Write track names: next 8 at 8-byte intervals from 0x603
+    for i = 1, 8 do
+        local track_idx = 8 + i
+        if track_idx <= #song.tracks and song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local name = song.tracks[track_idx].name or ""
+            if #name > 7 then name = name:sub(1, 7) end
+            file:seek("set", 0x603 + (i - 1) * 8)
+            file:write(name)
+            file:write(string.char(0))  -- null terminator
+            print(string.format("-- Exported track %d name: '%s'", track_idx, name))
+        end
+    end
+
+    -- Write reverb/delay volumes and mute flags
+    file:seek("set", 0x538)
+    file:write(string.char(100))  -- reverbVolume
+    file:seek("set", 0x539)
+    file:write(string.char(100))  -- delayVolume
+    file:seek("set", 0x53A)
+    file:write(string.char(0))    -- reverbMute (0=unmuted)
+    file:seek("set", 0x53B)
+    file:write(string.char(0))    -- delayMute (0=unmuted)
+
+    -- Write project name at offset 0x80C
+    local project_name = song.name or "Renoise Project"
+    if #project_name > 31 then project_name = project_name:sub(1, 31) end
+    file:seek("set", 0x80C)
+    file:write(project_name)
+    file:write(string.char(0))
+    print(string.format("-- Exported project name: '%s'", project_name))
+
+    file:close()
+    print(string.format("-- MT export complete: %s", output_path))
+    return true
+end
+
+-- Export patternsMetadata file from Renoise pattern names
+local function export_patterns_metadata(output_path, pattern_names)
+    local file = io.open(output_path, "wb")
+    if not file then
+        print("-- ERROR: Cannot create patternsMetadata file: " .. output_path)
+        return false
+    end
+
+    local record_count = #pattern_names
+    local data_size = record_count * POLYEND_CONSTANTS.PATTERN_RECORD_SIZE
+
+    print(string.format("-- Exporting patternsMetadata: %s (%d patterns)", output_path, record_count))
+
+    -- Write 16-byte header
+    file:write("PAMD")                        -- identifier (4 bytes)
+    write_uint16_le(file, POLYEND_CONSTANTS.PAMD_VERSION) -- version (2 bytes)
+    file:write(string.char(0, 0))             -- padding after version (2 bytes, offsets 0x06-0x07)
+    write_uint32_le(file, data_size)          -- total data size (4 bytes, offset 0x08)
+    write_uint32_le(file, 0)                  -- control flags (4 bytes, offset 0x0C)
+
+    -- Write pattern records
+    for i = 1, record_count do
+        local name = pattern_names[i] or string.format("Pattern %d", i)
+        -- Truncate to 30 chars max
+        if #name > 30 then
+            name = name:sub(1, 30)
+        end
+
+        -- Write name (30 chars) + null terminator (1 byte) = 31 bytes
+        file:write(name)
+        -- Pad with zeros to fill 31 bytes
+        for _ = 1, 31 - #name do
+            file:write(string.char(0))
+        end
+
+        -- Write reserved space (19 bytes of zeros)
+        for _ = 1, 19 do
+            file:write(string.char(0))
+        end
+    end
+
+    file:close()
+    print(string.format("-- patternsMetadata export complete: %s", output_path))
+    return true
+end
+
+-- Export full Polyend project (all MTP patterns + project.mt + patternsMetadata)
+function PakettiExportPolyendProject()
+    local song = renoise.song()
+
+    -- Prompt for output folder
+    local output_folder = renoise.app():prompt_for_path("Select Output Folder for Polyend Project")
+    if not output_folder or output_folder == "" then
+        return
+    end
+
+    -- Determine track count from dialog or default
+    local track_count = 16  -- Default to Tracker Mini/Plus
+
+    -- Count sequencer tracks in Renoise
+    local sequencer_track_count = 0
+    for i = 1, #song.tracks do
+        if song.tracks[i].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            sequencer_track_count = sequencer_track_count + 1
+        end
+    end
+
+    -- Clamp to valid Polyend track counts
+    if sequencer_track_count <= 8 then
+        track_count = 8
+    elseif sequencer_track_count <= 12 then
+        track_count = 12
+    else
+        track_count = 16
+    end
+
+    print(string.format("=== EXPORTING POLYEND PROJECT (%d tracks) ===", track_count))
+
+    -- Create patterns subfolder
+    local patterns_folder = output_folder .. separator .. "patterns"
+    if separator == "\\" then
+        os.execute('mkdir "' .. patterns_folder .. '" 2>nul')
+    else
+        os.execute('mkdir -p "' .. patterns_folder .. '"')
+    end
+
+    -- Build playlist from Renoise pattern sequence
+    local playlist = {}
+    local pattern_names = {}
+    local unique_patterns = {}
+
+    for seq_idx = 1, #song.sequencer.pattern_sequence do
+        local pat_idx = song.sequencer.pattern_sequence[seq_idx]
+        playlist[seq_idx] = pat_idx
+
+        -- Track unique patterns for MTP export
+        if not unique_patterns[pat_idx] then
+            unique_patterns[pat_idx] = true
+        end
+    end
+
+    -- Export each unique pattern as MTP
+    local patterns_exported = 0
+    local sorted_pattern_indices = {}
+    for pat_idx, _ in pairs(unique_patterns) do
+        table.insert(sorted_pattern_indices, pat_idx)
+    end
+    table.sort(sorted_pattern_indices)
+
+    for _, pat_idx in ipairs(sorted_pattern_indices) do
+        local mtp_filename = string.format("pattern_%03d.mtp", pat_idx - 1)
+        local mtp_path = patterns_folder .. separator .. mtp_filename
+
+        if export_pattern_to_mtp(pat_idx, mtp_path, track_count) then
+            patterns_exported = patterns_exported + 1
+        end
+    end
+
+    -- Collect pattern names for metadata
+    -- We need names for all patterns that exist, indexed sequentially
+    local max_pattern = 0
+    for pat_idx, _ in pairs(unique_patterns) do
+        if pat_idx > max_pattern then max_pattern = pat_idx end
+    end
+
+    for i = 1, max_pattern do
+        local name = ""
+        if i <= #song.patterns then
+            name = song.patterns[i].name or ""
+        end
+        if name == "" then
+            name = string.format("Pattern %d", i)
+        end
+        pattern_names[i] = name
+    end
+
+    -- Export patternsMetadata
+    local metadata_path = patterns_folder .. separator .. "patternsMetadata"
+    export_patterns_metadata(metadata_path, pattern_names)
+
+    -- Export project.mt
+    local mt_path = output_folder .. separator .. "project.mt"
+    export_project_to_mt(mt_path, playlist, 0)
+
+    renoise.app():show_status(string.format("Polyend project exported: %d patterns, %d sequence entries to %s",
+        patterns_exported, #playlist, output_folder))
+
+    print("=== POLYEND PROJECT EXPORT COMPLETE ===")
+end
+
 -- Export current pattern to MTP file
 function PakettiExportPolyendPattern()
     local song = renoise.song()
@@ -1694,6 +2348,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Poly
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Polyend Project", invoke=PakettiExportPolyendProject}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
 --[[
 renoise.tool():add_menu_entry{name="Main Menu:Tools::Paketti:Xperimental/WIP:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
@@ -1742,46 +2397,148 @@ function PakettiImportPolyendMTProject(filepath)
     
     -- Load all patterns
     local patterns_loaded = auto_load_all_patterns(project_root, project_data.playlist)
-    
-    -- Set up Renoise sequence based on playlist
+
+    -- Apply pattern names from patternsMetadata file
+    local metadata_path = project_root .. separator .. "patterns" .. separator .. "patternsMetadata"
+    local pattern_names = read_pattern_metadata(metadata_path)
+    if pattern_names then
+        local song = renoise.song()
+        local names_applied = 0
+        for i, pdata in ipairs(pattern_names) do
+            if pdata.name and pdata.name ~= "" and i <= #song.patterns then
+                song.patterns[i].name = pdata.name
+                names_applied = names_applied + 1
+                print(string.format("-- Applied pattern name: %d = '%s'", i, pdata.name))
+            end
+        end
+        print(string.format("-- Applied %d pattern names from patternsMetadata", names_applied))
+    end
+
+    -- Apply extended project data (BPM, project name, track names, delay, reverb)
     local song = renoise.song()
+
+    -- Apply BPM
+    if project_data.global_tempo and project_data.global_tempo >= 20 and project_data.global_tempo <= 999 then
+        song.transport.bpm = math.floor(project_data.global_tempo + 0.5)
+        print(string.format("-- Applied BPM: %d", song.transport.bpm))
+    end
+
+    -- Apply project name
+    if project_data.project_name and project_data.project_name ~= "" then
+        song.name = project_data.project_name
+        print(string.format("-- Applied project name: '%s'", project_data.project_name))
+    end
+
+    -- Apply track names
+    if project_data.track_names then
+        for i, name in pairs(project_data.track_names) do
+            if name and name ~= "" and i <= #song.tracks then
+                if song.tracks[i].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+                    song.tracks[i].name = name
+                    print(string.format("-- Applied track %d name: '%s'", i, name))
+                end
+            end
+        end
+    end
+
+    -- Create send tracks for delay and reverb if project has them
+    local delay_send_track = nil
+    local reverb_send_track = nil
+
+    if project_data.delay_params and project_data.delay_params.volume and project_data.delay_params.volume > 0
+       and (not project_data.delay_params.mute or project_data.delay_params.mute == 0) then
+        -- Create a Delay send track
+        local send_count = 0
+        for i = 1, #song.tracks do
+            if song.tracks[i].type == renoise.Track.TRACK_TYPE_SEND then
+                send_count = send_count + 1
+            end
+        end
+        -- Insert send track after the last track
+        song:insert_track_at(#song.tracks + 1)
+        delay_send_track = #song.tracks
+        song.tracks[delay_send_track].name = "PT Delay"
+
+        -- Add Delay device
+        local delay_device = song.tracks[delay_send_track]:insert_device_at("Audio/Effects/Native/Delay", 2)
+        if delay_device then
+            -- Map delay time (Polyend uint16 → milliseconds)
+            local delay_time_ms = project_data.delay_params.time or 250
+            -- Map feedback (0-100 → 0.0-1.0)
+            local feedback = (project_data.delay_params.feedback or 50) / 100
+            print(string.format("-- Created Delay send: time=%dms, feedback=%.0f%%",
+                delay_time_ms, feedback * 100))
+        end
+
+        -- Set volume
+        local vol = math.max(0, math.min(1.0, (project_data.delay_params.volume or 100) / 100))
+        song.tracks[delay_send_track].postfx_volume.value = vol
+        print(string.format("-- Delay send track created at track %d", delay_send_track))
+    end
+
+    if project_data.reverb_params and project_data.reverb_params.volume and project_data.reverb_params.volume > 0
+       and (not project_data.reverb_params.mute or project_data.reverb_params.mute == 0) then
+        -- Create a Reverb send track
+        song:insert_track_at(#song.tracks + 1)
+        reverb_send_track = #song.tracks
+        song.tracks[reverb_send_track].name = "PT Reverb"
+
+        -- Add Reverb device
+        local reverb_device = song.tracks[reverb_send_track]:insert_device_at("Audio/Effects/Native/mpReverb", 2)
+        if reverb_device then
+            -- Reverb params are floats; map them to mpReverb parameters
+            print(string.format("-- Created Reverb send: size=%.2f, damp=%.2f, predelay=%.2f, diffusion=%.2f",
+                project_data.reverb_params.size or 0, project_data.reverb_params.damp or 0,
+                project_data.reverb_params.predelay or 0, project_data.reverb_params.diffusion or 0))
+        end
+
+        -- Set volume
+        local vol = math.max(0, math.min(1.0, (project_data.reverb_params.volume or 100) / 100))
+        song.tracks[reverb_send_track].postfx_volume.value = vol
+        print(string.format("-- Reverb send track created at track %d", reverb_send_track))
+    end
+
+    -- Store send track indices globally for per-instrument send routing
+    _G.polyend_delay_send_track = delay_send_track
+    _G.polyend_reverb_send_track = reverb_send_track
+
+    -- Set up Renoise sequence based on playlist
     local sequence = {}
-    
+
     for i = 1, project_data.playlist_length do
         local pattern_num = project_data.playlist[i]
         if pattern_num and pattern_num > 0 and pattern_num <= #song.patterns then
             table.insert(sequence, pattern_num)
         end
     end
-    
+
     -- Apply sequence to Renoise
     if #sequence > 0 then
         -- Clear existing sequence (keep at least one)
         while #song.sequencer.pattern_sequence > 1 do
             song.sequencer:delete_sequence_at(#song.sequencer.pattern_sequence)
         end
-        
+
         -- Set first pattern in sequence
-        local first_seq_pos = 1
         if #song.sequencer.pattern_sequence > 0 then
-            -- Set the first existing sequence position
             song.sequencer.pattern_sequence[1] = sequence[1]
         else
-            -- This shouldn't happen, but just in case
             song.sequencer:insert_sequence_at(1, sequence[1])
         end
-        
+
         -- Add remaining patterns to sequence
         for i = 2, #sequence do
             song.sequencer:insert_sequence_at(i, sequence[i])
         end
-        
+
         print(string.format("-- Set up sequence with %d pattern entries", #sequence))
     end
-    
-    renoise.app():show_status(string.format("Imported Polyend project: %d instruments loaded, %d patterns loaded, %d sequence entries", 
-        instruments_loaded, patterns_loaded, #sequence))
-    
+
+    renoise.app():show_status(string.format("Imported Polyend project: %d instruments, %d patterns, %d sequence, BPM=%s, name='%s'",
+        instruments_loaded, patterns_loaded, #sequence,
+        project_data.global_tempo and tostring(math.floor(project_data.global_tempo + 0.5)) or "N/A",
+        project_data.project_name or ""))
+
     print("=== POLYEND PROJECT IMPORT COMPLETE ===")
 end
 

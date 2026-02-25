@@ -21,6 +21,24 @@ local function read_uint32_le(data, offset)
          string.byte(data, offset + 4) * 16777216
 end
 
+-- Encode IEEE 754 float32 as 4 little-endian bytes
+local function encode_float32_le(value)
+  if value == 0 then return string.char(0, 0, 0, 0) end
+  local sign = 0
+  if value < 0 then sign = 1; value = -value end
+  local mantissa, exponent = math.frexp(value)
+  exponent = exponent + 126
+  if exponent <= 0 then return string.char(0, 0, 0, 0) end
+  if exponent >= 255 then return string.char(0, 0, 128, 127) end
+  mantissa = (mantissa * 2 - 1) * 8388608  -- 2^23
+  local m = math.floor(mantissa + 0.5)
+  local b1 = m % 256
+  local b2 = math.floor(m / 256) % 256
+  local b3 = math.floor(m / 65536) % 128 + (exponent % 2) * 128
+  local b4 = math.floor(exponent / 2) + sign * 128
+  return string.char(b1, b2, b3, b4)
+end
+
 function PakettiPTIDetectAndPrintSliceNotes(playback_mode, slice_count, slice_frames, instrument_name)
   -- Only process for Slice (4) or Beat Slice (5) modes
   if not (playback_mode == 4 or playback_mode == 5) or slice_count == 0 then
@@ -612,6 +630,319 @@ function pti_loadsample_Worker(filepath, dialog, vb)
   smp.new_note_action = preferences.pakettiLoaderNNA.value
   -- smp.loop_release = preferences.pakettiLoaderLoopExit.value
 
+  -- Apply PTI instrument parameters: tune, finetune, volume, panning, filter
+  local instrument = renoise.song().selected_instrument
+
+  -- Tune (-24 to +24 semitones) - stored at header offset 256 (Lua offset 257) as signed int8
+  local tune_raw = string.byte(header, 257)
+  if tune_raw then
+    local tune = tune_raw > 127 and (tune_raw - 256) or tune_raw
+    if tune ~= 0 then
+      smp.transpose = math.max(-120, math.min(120, tune))
+      print(string.format("-- PTI tune: %d semitones → sample transpose = %d", tune, smp.transpose))
+    end
+  end
+
+  -- Fine tune (-100 to +100) - stored at header offset 257 (Lua offset 258) as signed int8
+  local finetune_raw = string.byte(header, 258)
+  if finetune_raw then
+    local finetune = finetune_raw > 127 and (finetune_raw - 256) or finetune_raw
+    if finetune ~= 0 then
+      smp.fine_tune = math.max(-127, math.min(127, finetune))
+      print(string.format("-- PTI fine tune: %d → sample fine_tune = %d", finetune, smp.fine_tune))
+    end
+  end
+
+  -- Volume (0-100, logarithmic) - already read at line 138 as 'volume'
+  if volume and volume > 0 and volume < 100 then
+    -- Map Polyend 0-100 to Renoise 0.0-1.0 (linear approximation)
+    local vol_float = volume / 100
+    smp.volume = math.max(0, math.min(4.0, vol_float))
+    print(string.format("-- PTI volume: %d → sample volume = %.3f", volume, smp.volume))
+  end
+
+  -- Panning (0-100, 50=center) - already read at line 139 as 'panning'
+  if panning and panning ~= 50 then
+    -- Map Polyend 0-100 to Renoise 0.0-1.0 (0.5=center)
+    local pan_float = panning / 100
+    smp.panning = math.max(0, math.min(1.0, pan_float))
+    print(string.format("-- PTI panning: %d → sample panning = %.3f", panning, smp.panning))
+  end
+
+  -- Filter settings - read from header
+  local filter_type_raw = string.byte(header, 255)   -- offset 254
+  local filter_enable = string.byte(header, 256)       -- offset 255
+  local cutoff_bytes = header:sub(247, 250)             -- offset 246-249 (float)
+  local resonance_bytes = header:sub(251, 254)          -- offset 250-253 (float)
+
+  if filter_enable and filter_enable == 1 and instrument.sample_modulation_sets and #instrument.sample_modulation_sets > 0 then
+    local mod_set = instrument.sample_modulation_sets[1]
+    if mod_set and mod_set.filter_type then
+      -- Map Polyend filter type to Renoise filter type
+      if filter_type_raw == 0 then
+        mod_set.filter_type = "LP Clean"
+      elseif filter_type_raw == 1 then
+        mod_set.filter_type = "HP Clean"
+      elseif filter_type_raw == 2 then
+        mod_set.filter_type = "BP Clean"
+      end
+
+      -- Apply cutoff (float 0.0-1.0) to modulation set's cutoff input
+      local function read_float32_filter(bytes)
+        local b1, b2, b3, b4 = string.byte(bytes, 1, 4)
+        if not b1 then return 0 end
+        local sign = (b4 >= 128) and -1 or 1
+        local exponent = (b4 % 128) * 2 + math.floor(b3 / 128)
+        local mantissa = (b3 % 128) * 65536 + b2 * 256 + b1
+        if exponent == 0 and mantissa == 0 then return 0 end
+        if exponent == 0xFF then return 0 end
+        return sign * math.pow(2, exponent - 127) * (1 + mantissa / 8388608)
+      end
+
+      local cutoff_val = read_float32_filter(cutoff_bytes)
+      local resonance_val = read_float32_filter(resonance_bytes)
+
+      if mod_set.cutoff_input then
+        mod_set.cutoff_input.value = math.max(0, math.min(1.0, cutoff_val))
+      end
+      -- Polyend resonance 0.0-4.3, Renoise 0.0-1.0 — normalize
+      if mod_set.resonance_input then
+        mod_set.resonance_input.value = math.max(0, math.min(1.0, resonance_val / 4.3))
+      end
+
+      print(string.format("-- PTI filter: type=%d, enable=%d, cutoff=%.3f, resonance=%.3f → Renoise filter applied",
+        filter_type_raw or 0, filter_enable, cutoff_val, resonance_val))
+    end
+  end
+
+  -- Import 6 envelopes and 6 LFOs from PTI header
+  -- Envelope offsets: 6 x 20 bytes starting at Lua offset 79 (byte offset 78)
+  -- Automation mapping: [1]=Volume, [2]=Panning, [3]=Cutoff, [4]=WavetablePos, [5]=GranularPos, [6]=Finetune
+  if instrument.sample_modulation_sets and #instrument.sample_modulation_sets > 0 then
+    local mod_set = instrument.sample_modulation_sets[1]
+    local env_names = {"Volume", "Panning", "Cutoff", "WavetablePos", "GranularPos", "Finetune"}
+
+    for env_idx = 0, 5 do
+      local base = 79 + (env_idx * 20)  -- Lua 1-indexed offset for each 20-byte envelope
+      if #header >= base + 19 then
+        -- Read envelope fields (IEEE 754 float for amount and sustain)
+        local function read_float32_from_header(offset)
+          local b1, b2, b3, b4 = string.byte(header, offset, offset + 3)
+          if not b1 then return 0 end
+          local sign = (b4 >= 128) and -1 or 1
+          local exponent = (b4 % 128) * 2 + math.floor(b3 / 128)
+          local mantissa = (b3 % 128) * 65536 + b2 * 256 + b1
+          if exponent == 0 and mantissa == 0 then return 0 end
+          if exponent == 0xFF then return 0 end
+          return sign * math.pow(2, exponent - 127) * (1 + mantissa / 8388608)
+        end
+
+        local env_amount = read_float32_from_header(base)
+        local env_delay = string.byte(header, base + 4) + string.byte(header, base + 5) * 256
+        local env_attack = string.byte(header, base + 6) + string.byte(header, base + 7) * 256
+        -- hold at base+8 (2 bytes) - stored but not exposed
+        local env_decay = string.byte(header, base + 10) + string.byte(header, base + 11) * 256
+        local env_sustain = read_float32_from_header(base + 12)
+        local env_release = string.byte(header, base + 16) + string.byte(header, base + 17) * 256
+        local env_is_lfo = string.byte(header, base + 18)   -- 0=envelope, 1=LFO mode
+        local env_enabled = string.byte(header, base + 19)
+
+        if env_enabled and env_enabled == 1 then
+          -- Map Polyend envelope index to Renoise modulation target
+          -- [0]=Volume, [1]=Panning, [2]=Cutoff, [3]=WavetablePos, [4]=GranularPos, [5]=Finetune
+          local target_map = {
+            [0] = renoise.SampleModulationDevice.TARGET_VOLUME,
+            [1] = renoise.SampleModulationDevice.TARGET_PANNING,
+            [2] = renoise.SampleModulationDevice.TARGET_CUTOFF,
+            [5] = renoise.SampleModulationDevice.TARGET_PITCH,
+          }
+
+          local target = target_map[env_idx]
+          if target then
+            -- Convert Polyend ms values to Renoise 0-1 range (max ~20 seconds = 20000ms)
+            local max_ms = 20000
+            local r_attack = math.min(1.0, env_attack / max_ms)
+            local r_hold = 0  -- Polyend hold not commonly used, read from base+8 if needed
+            local env_hold = string.byte(header, base + 8) + string.byte(header, base + 9) * 256
+            r_hold = math.min(1.0, env_hold / max_ms)
+            local r_decay = math.min(1.0, env_decay / max_ms)
+            local r_sustain = math.max(0, math.min(1.0, env_sustain))
+            local r_release = math.min(1.0, env_release / max_ms)
+
+            -- Insert AHDSR device targeting this parameter
+            local device_index = #mod_set.devices + 1
+            local ok, ahdsr = pcall(function()
+              return mod_set:insert_device_at("Ahdsr", target, device_index)
+            end)
+            if ok and ahdsr then
+              if ahdsr.attack then ahdsr.attack.value = r_attack end
+              if ahdsr.hold then ahdsr.hold.value = r_hold end
+              if ahdsr.decay then ahdsr.decay.value = r_decay end
+              if ahdsr.sustain then ahdsr.sustain.value = r_sustain end
+              if ahdsr.release then ahdsr.release.value = r_release end
+              print(string.format("-- PTI %s Envelope applied: A=%.3f H=%.3f D=%.3f S=%.3f R=%.3f (from %d/%d/%d/%.2f/%dms)",
+                env_names[env_idx + 1], r_attack, r_hold, r_decay, r_sustain, r_release,
+                env_attack, env_hold, env_decay, env_sustain, env_release))
+            else
+              print(string.format("-- PTI %s Envelope: could not insert AHDSR device", env_names[env_idx + 1]))
+            end
+          else
+            -- WavetablePos (3) and GranularPos (4) have no direct Renoise target
+            print(string.format("-- PTI %s Envelope: amount=%.2f, A=%d D=%d S=%.2f R=%d (no Renoise target)",
+              env_names[env_idx + 1], env_amount, env_attack, env_decay, env_sustain, env_release))
+          end
+        end
+      end
+    end
+
+    -- Read 6 LFOs: 6 x 8 bytes starting at Lua offset 199 (byte offset 198)
+    -- Automation mapping: [0]=Volume, [1]=Panning, [2]=Cutoff, [3]=WavetablePos, [4]=GranularPos, [5]=Finetune
+    local lfo_shape_names = {"RevSaw", "Saw", "Triangle", "Square", "Random"}
+    -- Map Polyend LFO shapes to Renoise LFO modes
+    -- Polyend: 0=RevSaw, 1=Saw, 2=Triangle, 3=Square, 4=Random
+    -- Renoise: 1=SIN, 2=SAW, 3=PULSE, 4=RANDOM (no reverse saw or triangle)
+    local lfo_shape_to_renoise = {
+      [0] = 2,  -- RevSaw → SAW (closest match)
+      [1] = 2,  -- Saw → SAW
+      [2] = 1,  -- Triangle → SIN (closest match)
+      [3] = 3,  -- Square → PULSE
+      [4] = 4,  -- Random → RANDOM
+    }
+    -- Polyend LFO speed table: step-based speeds mapped to Renoise 0-1 frequency range
+    -- Speed 0 = 128 steps (very slow) → 0.02, Speed 28 = 1/64 step (very fast) → 1.0
+    local lfo_speed_to_frequency = {}
+    for spd = 0, 28 do
+      lfo_speed_to_frequency[spd] = math.min(1.0, (spd + 1) / 29)
+    end
+
+    local lfo_target_map = {
+      [0] = renoise.SampleModulationDevice.TARGET_VOLUME,
+      [1] = renoise.SampleModulationDevice.TARGET_PANNING,
+      [2] = renoise.SampleModulationDevice.TARGET_CUTOFF,
+      [5] = renoise.SampleModulationDevice.TARGET_PITCH,
+    }
+
+    for lfo_idx = 0, 5 do
+      local base = 199 + (lfo_idx * 8)
+      if #header >= base + 7 then
+        local lfo_shape = string.byte(header, base)
+        local lfo_speed = string.byte(header, base + 1)
+        -- 2 padding bytes at base+2, base+3
+        local function read_float32_from_header_lfo(offset)
+          local b1, b2, b3, b4 = string.byte(header, offset, offset + 3)
+          if not b1 then return 0 end
+          local sign = (b4 >= 128) and -1 or 1
+          local exponent = (b4 % 128) * 2 + math.floor(b3 / 128)
+          local mantissa = (b3 % 128) * 65536 + b2 * 256 + b1
+          if exponent == 0 and mantissa == 0 then return 0 end
+          if exponent == 0xFF then return 0 end
+          return sign * math.pow(2, exponent - 127) * (1 + mantissa / 8388608)
+        end
+        local lfo_amount = read_float32_from_header_lfo(base + 4)
+
+        if lfo_amount > 0 then
+          local shape_name = lfo_shape_names[lfo_shape + 1] or "Unknown"
+          local target = lfo_target_map[lfo_idx]
+
+          if target then
+            local r_mode = lfo_shape_to_renoise[lfo_shape] or 1
+            local r_freq = lfo_speed_to_frequency[lfo_speed] or 0.5
+            local r_amount = math.max(0, math.min(1.0, lfo_amount))
+
+            local device_index = #mod_set.devices + 1
+            local ok, lfo_dev = pcall(function()
+              return mod_set:insert_device_at("Lfo", target, device_index)
+            end)
+            if ok and lfo_dev then
+              lfo_dev.mode = r_mode
+              if lfo_dev.frequency then lfo_dev.frequency.value = r_freq end
+              if lfo_dev.amplitude then lfo_dev.amplitude.value = r_amount end
+              print(string.format("-- PTI %s LFO applied: shape=%s→mode=%d, speed=%d→freq=%.2f, amount=%.2f",
+                env_names[lfo_idx + 1], shape_name, r_mode, lfo_speed, r_freq, r_amount))
+            else
+              print(string.format("-- PTI %s LFO: could not insert LFO device", env_names[lfo_idx + 1]))
+            end
+          else
+            print(string.format("-- PTI %s LFO: shape=%s, speed=%d, amount=%.2f (no Renoise target)",
+              env_names[lfo_idx + 1], shape_name, lfo_speed, lfo_amount))
+          end
+        end
+      end
+    end
+  end
+
+  -- Import delay and reverb send levels from PTI header
+  -- delaySend at Lua offset 265 (byte 264), reverbSend at Lua offset 371 (byte 370)
+  local delay_send_raw = string.byte(header, 265)
+  local reverb_send_raw = string.byte(header, 371)
+  local overdrive_raw = string.byte(header, 372)
+
+  -- Apply delay send: route to PT Delay send track if it exists
+  if delay_send_raw and delay_send_raw > 0 then
+    local song = renoise.song()
+    local delay_track_idx = _G.polyend_delay_send_track
+    if delay_track_idx and delay_track_idx <= #song.tracks then
+      -- Insert a #Send device on the instrument's track to route to the delay send track
+      local inst_idx = song.selected_instrument_index
+      -- Find which track this instrument plays on (use current track as best guess)
+      local track = song.selected_track
+      if track and track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local send_device = track:insert_device_at("Audio/Effects/Native/#Send", #track.devices + 1)
+        if send_device then
+          -- Set send amount (Polyend 0-100 → Renoise 0.0-1.0)
+          send_device.parameters[1].value = delay_send_raw / 100  -- Amount
+          send_device.parameters[3].value = 1  -- Mute source = off (keep dry)
+          -- Set destination to the delay send track
+          send_device.parameters[4].value = (delay_track_idx - #song.tracks) -- send track index offset
+          print(string.format("-- PTI delay send: %d%% → #Send device routing to PT Delay", delay_send_raw))
+        end
+      end
+    else
+      print(string.format("-- PTI delay send: %d%% (no PT Delay send track found, logged only)", delay_send_raw))
+    end
+  end
+
+  -- Apply reverb send: route to PT Reverb send track if it exists
+  if reverb_send_raw and reverb_send_raw > 0 then
+    local song = renoise.song()
+    local reverb_track_idx = _G.polyend_reverb_send_track
+    if reverb_track_idx and reverb_track_idx <= #song.tracks then
+      local track = song.selected_track
+      if track and track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local send_device = track:insert_device_at("Audio/Effects/Native/#Send", #track.devices + 1)
+        if send_device then
+          send_device.parameters[1].value = reverb_send_raw / 100
+          send_device.parameters[3].value = 1  -- Mute source = off
+          send_device.parameters[4].value = (reverb_track_idx - #song.tracks)
+          print(string.format("-- PTI reverb send: %d%% → #Send device routing to PT Reverb", reverb_send_raw))
+        end
+      end
+    else
+      print(string.format("-- PTI reverb send: %d%% (no PT Reverb send track found, logged only)", reverb_send_raw))
+    end
+  end
+
+  -- Apply overdrive: add Distortion device to instrument's track if value > 0
+  if overdrive_raw and overdrive_raw > 0 then
+    local song = renoise.song()
+    local track = song.selected_track
+    if track and track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      local dist_device = track:insert_device_at("Audio/Effects/Native/Distortion", #track.devices + 1)
+      if dist_device then
+        -- Map Polyend overdrive 0-100 to Renoise drive parameter
+        for _, param in ipairs(dist_device.parameters) do
+          if param.name == "Drive" then
+            param.value = math.min(1.0, overdrive_raw / 100)
+            break
+          end
+        end
+        print(string.format("-- PTI overdrive: %d%% → Distortion device added", overdrive_raw))
+      end
+    else
+      print(string.format("-- PTI overdrive: %d%% (logged only, not on sequencer track)", overdrive_raw))
+    end
+  end
+
   local total_slices = #renoise.song().selected_instrument.samples[1].slice_markers
   
   -- Close dialog
@@ -956,6 +1287,64 @@ end
 -- Build a 392-byte header according to .pti spec (GLOBAL)
 -- inst: instrument data table
 -- beat_slice_mode: optional boolean, if true uses Beat Slice (5) instead of Slice (4)
+-- Extract modulation data from Renoise instrument for PTI export
+-- Returns envelopes table, lfos table, and filter info
+function extractModulationForPTIExport(renoise_instrument)
+  local result = { envelopes = {}, lfos = {} }
+  if not renoise_instrument or not renoise_instrument.sample_modulation_sets then return result end
+  if #renoise_instrument.sample_modulation_sets == 0 then return result end
+
+  local mod_set = renoise_instrument.sample_modulation_sets[1]
+  -- Renoise target→Polyend envelope index mapping
+  local target_to_env_idx = {
+    [renoise.SampleModulationDevice.TARGET_VOLUME] = 0,
+    [renoise.SampleModulationDevice.TARGET_PANNING] = 1,
+    [renoise.SampleModulationDevice.TARGET_CUTOFF] = 2,
+    [renoise.SampleModulationDevice.TARGET_PITCH] = 5,
+  }
+
+  for _, device in ipairs(mod_set.devices) do
+    local target = device.target
+    local env_idx = target_to_env_idx[target]
+    if env_idx then
+      -- Check if it's an AHDSR device (has attack, hold, decay, sustain, release)
+      if device.attack and device.sustain and device.release then
+        result.envelopes[env_idx] = {
+          enabled = device.is_active,
+          amount = 1.0,
+          delay = 0,
+          attack = device.attack.value,
+          hold = device.hold and device.hold.value or 0,
+          decay = device.decay and device.decay.value or 0,
+          sustain = device.sustain.value,
+          release = device.release.value,
+        }
+      end
+      -- Check if it's an LFO device (has mode, frequency, amplitude)
+      if device.mode and device.frequency then
+        result.lfos[env_idx] = {
+          mode = device.mode,
+          frequency = device.frequency.value,
+          amount = device.amplitude and device.amplitude.value or 0,
+        }
+      end
+    end
+  end
+
+  -- Extract filter info
+  if mod_set.filter_type and mod_set.filter_type ~= "None" then
+    local ft = mod_set.filter_type
+    if ft:find("LP") then result.filter_type = 0
+    elseif ft:find("HP") then result.filter_type = 1
+    elseif ft:find("BP") or ft:find("Band") then result.filter_type = 2
+    end
+    if mod_set.cutoff_input then result.cutoff = mod_set.cutoff_input.value end
+    if mod_set.resonance_input then result.resonance = mod_set.resonance_input.value * 4.3 end
+  end
+
+  return result
+end
+
 function buildPTIHeader(inst, beat_slice_mode)
   local header = string.rep("\0", 392) -- Start with 392 zero bytes
   local pos = 1
@@ -1139,13 +1528,21 @@ function buildPTIHeader(inst, beat_slice_mode)
     print("-- buildPTIHeader: Wrote slice count = 0 (loop mode)")
   end
   
-  -- Write volume (offset 272) - 50 for working files  
-  write_at(273, string.char(50))
-  print("-- buildPTIHeader: Writing volume = 50 (working file standard) at offset 272")
-  
-  -- Write panning (offset 276) - 50 = center (0), 0-100 maps to -50/+50
-  write_at(277, string.char(50))
-  print("-- buildPTIHeader: Writing panning = 50 (center) at offset 276")
+  -- Write volume (offset 272) - map from Renoise 0.0-4.0 to Polyend 0-100
+  local export_volume = 50  -- default
+  if inst.volume then
+    export_volume = math.max(0, math.min(100, math.floor(inst.volume * 100)))
+  end
+  write_at(273, string.char(export_volume))
+  print(string.format("-- buildPTIHeader: Writing volume = %d at offset 272", export_volume))
+
+  -- Write panning (offset 276) - map from Renoise 0.0-1.0 to Polyend 0-100 (50=center)
+  local export_panning = 50  -- default center
+  if inst.panning then
+    export_panning = math.max(0, math.min(100, math.floor(inst.panning * 100)))
+  end
+  write_at(277, string.char(export_panning))
+  print(string.format("-- buildPTIHeader: Writing panning = %d at offset 276", export_panning))
   
   -- Write active slice (offset 377) - which slice is selected
   if has_slices then
@@ -1174,7 +1571,81 @@ function buildPTIHeader(inst, beat_slice_mode)
   -- Bit depth (offset 386) - 16 for working files
   write_at(387, string.char(16))
   print("-- buildPTIHeader: Writing bit depth = 16 at offset 386")
-  
+
+  -- Write envelopes (6 × 20 bytes starting at Lua offset 79, byte offset 78)
+  -- Envelope mapping: [0]=Volume, [1]=Panning, [2]=Cutoff, [3]=WavetablePos, [4]=GranularPos, [5]=Finetune
+  if inst.envelopes then
+    for env_idx = 0, 5 do
+      local env = inst.envelopes[env_idx]
+      if env and env.enabled then
+        local base = 79 + (env_idx * 20)
+        local max_ms = 20000
+        write_at(base, encode_float32_le(env.amount or 1.0))       -- amount float32
+        local delay_ms = math.floor((env.delay or 0) * max_ms)
+        write_at(base + 4, string.char(delay_ms % 256, math.floor(delay_ms / 256) % 256))
+        local attack_ms = math.floor((env.attack or 0) * max_ms)
+        write_at(base + 6, string.char(attack_ms % 256, math.floor(attack_ms / 256) % 256))
+        local hold_ms = math.floor((env.hold or 0) * max_ms)
+        write_at(base + 8, string.char(hold_ms % 256, math.floor(hold_ms / 256) % 256))
+        local decay_ms = math.floor((env.decay or 0) * max_ms)
+        write_at(base + 10, string.char(decay_ms % 256, math.floor(decay_ms / 256) % 256))
+        write_at(base + 12, encode_float32_le(env.sustain or 1.0))  -- sustain float32
+        local release_ms = math.floor((env.release or 0) * max_ms)
+        write_at(base + 16, string.char(release_ms % 256, math.floor(release_ms / 256) % 256))
+        write_at(base + 18, string.char(0))   -- isLFO = 0
+        write_at(base + 19, string.char(1))   -- enabled = 1
+        print(string.format("-- buildPTIHeader: Envelope[%d] written: A=%dms D=%dms S=%.2f R=%dms",
+          env_idx, attack_ms, decay_ms, env.sustain or 1.0, release_ms))
+      end
+    end
+  end
+
+  -- Write LFOs (6 × 8 bytes starting at Lua offset 199, byte offset 198)
+  if inst.lfos then
+    -- Reverse map Renoise LFO modes to Polyend shapes
+    -- Renoise: 1=SIN, 2=SAW, 3=PULSE, 4=RANDOM
+    -- Polyend: 0=RevSaw, 1=Saw, 2=Triangle, 3=Square, 4=Random
+    local renoise_to_polyend_shape = { [1] = 2, [2] = 1, [3] = 3, [4] = 4 }
+    for lfo_idx = 0, 5 do
+      local lfo = inst.lfos[lfo_idx]
+      if lfo and lfo.amount and lfo.amount > 0 then
+        local base = 199 + (lfo_idx * 8)
+        local pt_shape = renoise_to_polyend_shape[lfo.mode or 1] or 2
+        local pt_speed = math.max(0, math.min(28, math.floor((lfo.frequency or 0.5) * 29) - 1))
+        write_at(base, string.char(pt_shape))
+        write_at(base + 1, string.char(pt_speed))
+        write_at(base + 2, string.char(0, 0))  -- padding
+        write_at(base + 4, encode_float32_le(lfo.amount))
+        print(string.format("-- buildPTIHeader: LFO[%d] written: shape=%d, speed=%d, amount=%.2f",
+          lfo_idx, pt_shape, pt_speed, lfo.amount))
+      end
+    end
+  end
+
+  -- Write filter settings (cutoff at offset 247, resonance at 251, type at 255, enable at 256)
+  if inst.filter_type then
+    write_at(255, string.char(inst.filter_type))  -- 0=LP, 1=HP, 2=BP
+    write_at(256, string.char(1))                  -- filter enabled
+    write_at(247, encode_float32_le(inst.cutoff or 1.0))
+    write_at(251, encode_float32_le(inst.resonance or 0))
+    print(string.format("-- buildPTIHeader: Filter type=%d, cutoff=%.3f, resonance=%.3f",
+      inst.filter_type, inst.cutoff or 1.0, inst.resonance or 0))
+  end
+
+  -- Write send levels (delaySend at 265, reverbSend at 371, overdrive at 372)
+  if inst.delay_send then
+    write_at(265, string.char(math.max(0, math.min(100, inst.delay_send))))
+    print(string.format("-- buildPTIHeader: Delay send = %d%%", inst.delay_send))
+  end
+  if inst.reverb_send then
+    write_at(371, string.char(math.max(0, math.min(100, inst.reverb_send))))
+    print(string.format("-- buildPTIHeader: Reverb send = %d%%", inst.reverb_send))
+  end
+  if inst.overdrive then
+    write_at(372, string.char(math.max(0, math.min(100, inst.overdrive))))
+    print(string.format("-- buildPTIHeader: Overdrive = %d%%", inst.overdrive))
+  end
+
   return header
 end
 
@@ -1351,8 +1822,20 @@ function pti_savesample_to_path(filepath)
     loop_start = smp.loop_start,
     loop_end = smp.loop_end,
     channels = smp.sample_buffer.number_of_channels,
+    volume = smp.volume,
+    panning = smp.panning,
     slice_markers = {} -- Initialize empty slice markers table
   }
+
+  -- Extract modulation data (envelopes, LFOs, filter) from Renoise instrument
+  local mod_data = extractModulationForPTIExport(inst)
+  data.envelopes = mod_data.envelopes
+  data.lfos = mod_data.lfos
+  if mod_data.filter_type then
+    data.filter_type = mod_data.filter_type
+    data.cutoff = mod_data.cutoff
+    data.resonance = mod_data.resonance
+  end
 
   -- Copy up to 48 slice markers
   print(string.format("-- Copying %d slice markers from Renoise sample", limited_slice_count))
@@ -1368,7 +1851,7 @@ function pti_savesample_to_path(filepath)
     print("-- Sample Playback Mode: Slice (mode 4)")
   end
 
-  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames", 
+  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames",
     data.channels > 1 and "Stereo" or "Mono",
     44100,
     16,
@@ -1393,12 +1876,12 @@ function pti_savesample_to_path(filepath)
   print("-- PTI Format: Full velocity range (0-127), full key range (0-119) as per specification")
 
   local f = io.open(filepath, "wb")
-  if not f then 
+  if not f then
     renoise.app():show_error("Cannot write file: " .. filepath)
     return false
   end
 
-  -- Write header and get its size for verification  
+  -- Write header and get its size for verification
   -- Determine if this should be Beat Slice mode (5) or Slice mode (4)
   local use_beat_slice_mode = not paketti_melodic_slice_mode -- Beat Slice for regular saves, Slice for melodic exports
   local header = buildPTIHeader(data, use_beat_slice_mode)
@@ -1722,8 +2205,20 @@ function pti_savesample_Worker(dialog, vb)
     loop_start = smp.loop_start,
     loop_end = smp.loop_end,
     channels = smp.sample_buffer.number_of_channels,
+    volume = smp.volume,
+    panning = smp.panning,
     slice_markers = {} -- Initialize empty slice markers table
   }
+
+  -- Extract modulation data (envelopes, LFOs, filter) from Renoise instrument
+  local mod_data = extractModulationForPTIExport(renoise.song().selected_instrument)
+  data.envelopes = mod_data.envelopes
+  data.lfos = mod_data.lfos
+  if mod_data.filter_type then
+    data.filter_type = mod_data.filter_type
+    data.cutoff = mod_data.cutoff
+    data.resonance = mod_data.resonance
+  end
 
   -- Copy up to 48 slice markers
   print(string.format("-- Copying %d slice markers from Renoise sample", limited_slice_count))
@@ -1739,7 +2234,7 @@ function pti_savesample_Worker(dialog, vb)
     print("-- Sample Playback Mode: Slice (mode 4)")
   end
 
-  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames", 
+  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames",
     data.channels > 1 and "Stereo" or "Mono",
     44100,
     16,
@@ -1764,9 +2259,9 @@ function pti_savesample_Worker(dialog, vb)
   print("-- PTI Format: Full velocity range (0-127), full key range (0-119) as per specification")
 
   local f = io.open(filename, "wb")
-  if not f then 
+  if not f then
     renoise.app():show_error("Cannot write file: "..filename)
-    return 
+    return
   end
 
   -- Write header and get its size for verification
