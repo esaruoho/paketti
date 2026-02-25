@@ -182,6 +182,12 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-25 - Random BPM Min/Max preferences
+
+All random BPM functions now use a configurable Min/Max range instead of a hardcoded list of `{80, 100, 115, 123, 128, 132, 135, 138, 160}`. Two new preferences (`RandomBPMMin` default 60, `RandomBPMMax` default 180) with valueboxes in the Paketti Preferences dialog (range 32-999, with cross-validation so min can't exceed max). Affects `randombpm()`, `randomBPMMaster()`, `randomBPMFromList()`, `randomBPM()`, and the bell curve BPM generator used by "New Song BPM Randomizer". Values persist across sessions.
+
+---
+
 ### 2026-02-24 - Fix: Shortcut hints now actually appear in menu entries
 
 Paketti's shortcut hint system — which appends keyboard shortcuts like `[Opt+K]` to menu entry names — was silently broken because `renoise.tool()` returns a new wrapper object on every call, so monkey-patching methods on it had no effect. Replaced the broken approach with a `renoise.tool` proxy that intercepts `add_menu_entry`, `add_keybinding`, and `add_midi_mapping` at the source. The proxy also handles conditional keybinding/midi registration via master toggles. Shortcut hints now display correctly in all Paketti menu entries. A new module `PakettiShortcutHints.lua` parses `KeyBindings.xml` and the tool's `autocomplete_cache.txt` to match menu entries to their keybindings by both function identity and display name.

@@ -211,29 +211,24 @@ end
 
 ----------
 function randomBPM()
-  local bpmList = {80, 100, 115, 123, 128, 132, 135, 138, 160}
+  local bpm_min = renoise.tool().preferences.RandomBPMMin.value
+  local bpm_max = renoise.tool().preferences.RandomBPMMax.value
   local currentBPM = renoise.song().transport.bpm
-  local newBpmList = {}
-  for _, bpm in ipairs(bpmList) do
-      if bpm ~= currentBPM then
-          table.insert(newBpmList, bpm)
-      end
+
+  -- Generate a random BPM that differs from current
+  local newBPM = math.random(bpm_min, bpm_max)
+  if bpm_min ~= bpm_max then
+    while newBPM == currentBPM do
+      newBPM = math.random(bpm_min, bpm_max)
+    end
   end
 
-  if #newBpmList > 0 then
-      local selectedBPM = newBpmList[math.random(#newBpmList)]
-      renoise.song().transport.bpm = selectedBPM
-      print("Random BPM set to: " .. selectedBPM) -- Debug output to the console
-  else
-      print("No alternative BPM available to switch to.")
-  end
+  renoise.song().transport.bpm = newBPM
+  print("Random BPM set to: " .. newBPM)
 
-  -- Optional: write the BPM to a file or apply other logic
-  if renoise.tool().preferences.RandomBPM and renoise.tool().preferences.RandomBPM.value then
-      write_bpm() -- Ensure this function is defined elsewhere in your tool
-      print("BPM written to file or handled additionally.")
+  if renoise.tool().preferences.RandomBPM.value then
+    write_bpm()
   end
-
 end  
 
 --renoise.song().transport.bpm=math.random(60,180) end}

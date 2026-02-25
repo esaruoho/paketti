@@ -185,6 +185,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   upperFramePreference=0,
   _0G01_Loader=false,
   RandomBPM=false,
+  RandomBPMMin=60,
+  RandomBPMMax=180,
   loadPaleGreenTheme=false,
   PakettiStripSilenceThreshold=0.0121,
   PakettiMoveSilenceThreshold=0.0121,
@@ -1200,10 +1202,10 @@ function pakettiPreferences()
                 notifier=function(value) preferences.pakettiEnableGlobalGrooveOnStartup.value=value end
               },
               vb:space{width=checkbox_spacing},
-              vb:text{text="New Song BPM Randomizer",width=200,tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)"},
+              vb:text{text="New Song BPM Randomizer",width=200,tooltip="Randomly set BPM (bell curve, using Random BPM Min/Max range) for new songs (not loaded from file)"},
               vb:checkbox{
                 value=preferences.pakettiRandomizeBPMOnNewSong.value,
-                tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)",
+                tooltip="Randomly set BPM (bell curve, using Random BPM Min/Max range) for new songs (not loaded from file)",
                 notifier=function(value) preferences.pakettiRandomizeBPMOnNewSong.value=value end
               }
             },
@@ -1253,13 +1255,37 @@ function pakettiPreferences()
                 end
               },
               vb:space{width=checkbox_spacing},
-              vb:text{text="Random BPM",width=200,tooltip="Write BPM to file when using random BPM functions (Random BPM from List: 80, 100, 115, 123, 128, 132, 135, 138, 160)"},
+              vb:text{text="Random BPM",width=200,tooltip="Write BPM/LPB to Master when using random BPM functions (range set by Min/Max below)"},
               vb:checkbox{
                 value=preferences.RandomBPM.value,
-                tooltip="Write BPM to file when using random BPM functions (Random BPM from List: 80, 100, 115, 123, 128, 132, 135, 138, 160)",
+                tooltip="Write BPM/LPB to Master when using random BPM functions (range set by Min/Max below)",
                 notifier=function(value) preferences.RandomBPM.value=value end
               },
---              vb:space{width=checkbox_spacing},
+              vb:space{width=checkbox_spacing},
+              vb:text{text="Min",tooltip="Minimum BPM for random BPM functions (32-999)"},
+              vb:valuebox{
+                min=32,max=999,
+                value=preferences.RandomBPMMin.value,
+                tooltip="Minimum BPM for random BPM functions",
+                notifier=function(value)
+                  if value > preferences.RandomBPMMax.value then
+                    value = preferences.RandomBPMMax.value
+                  end
+                  preferences.RandomBPMMin.value=value
+                end
+              },
+              vb:text{text="Max",tooltip="Maximum BPM for random BPM functions (32-999)"},
+              vb:valuebox{
+                min=32,max=999,
+                value=preferences.RandomBPMMax.value,
+                tooltip="Maximum BPM for random BPM functions",
+                notifier=function(value)
+                  if value < preferences.RandomBPMMin.value then
+                    value = preferences.RandomBPMMin.value
+                  end
+                  preferences.RandomBPMMax.value=value
+                end
+              },
             },
             
               vb:row{

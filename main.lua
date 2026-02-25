@@ -625,30 +625,33 @@ end
 
 --local PakettiAutomationDoofer=false
 
--- Function to generate bell curve BPM around 120 (range 60-220, step 5)
+-- Function to generate bell curve BPM using RandomBPMMin/Max preferences (step 5)
 function pakettiGenerateBellCurveBPM()
+  local bpm_min = renoise.tool().preferences.RandomBPMMin.value
+  local bpm_max = renoise.tool().preferences.RandomBPMMax.value
+
   -- Generate 6 random numbers and average them for bell curve approximation
   local sum = 0
   for i = 1, 6 do
     sum = sum + math.random()
   end
   local normalized = sum / 6  -- Now we have a value roughly 0-1 with bell curve distribution
-  
-  -- Map to BPM range 60-220 with center at 120
-  local range = 220 - 60  -- 160
-  local center = 120
-  local half_range = range / 2  -- 80
-  
+
+  -- Map to BPM range with center at midpoint
+  local range = bpm_max - bpm_min
+  local center = bpm_min + range / 2
+  local half_range = range / 2
+
   -- Convert normalized (0-1) to (-1 to 1) centered distribution
   local centered = (normalized - 0.5) * 2
-  
+
   -- Apply to center point with scaling
   local bpm = center + (centered * half_range)
-  
+
   -- Clamp to valid range and round to nearest 5
-  bpm = math.max(60, math.min(220, bpm))
+  bpm = math.max(bpm_min, math.min(bpm_max, bpm))
   bpm = math.floor(bpm / 5 + 0.5) * 5
-  
+
   return bpm
 end
 

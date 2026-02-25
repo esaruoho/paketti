@@ -1368,29 +1368,22 @@ function write_bpm()
 end
 
 function randombpm()
-local prefix=nil
-local randombpm = {80, 100, 115, 123, 128, 132, 135, 138, 160}
- math.randomseed(os.time())
-  for i = 1, 9 do
-      prefix = math.random(1, #randombpm)
-      prefix = randombpm[prefix]
-      print(prefix)
+  local bpm_min = renoise.tool().preferences.RandomBPMMin.value
+  local bpm_max = renoise.tool().preferences.RandomBPMMax.value
+  local newBPM = math.random(bpm_min, bpm_max)
+  renoise.song().transport.bpm = newBPM
+  if renoise.tool().preferences.RandomBPM.value then
+    write_bpm()
   end
- renoise.song().transport.bpm=prefix
-    if renoise.tool().preferences.RandomBPM.value then
-        write_bpm()
-    end
 end
 
 function randomBPMMaster()
-  local randombpm = {80, 100, 115, 123, 128, 132, 135, 138, 160}
-  math.randomseed(os.time())
-  local prefix = randombpm[math.random(#randombpm)]
-  renoise.song().transport.bpm = prefix
-
-  if renoise.tool().preferences.RandomBPM.value then 
-
-      write_bpm()
+  local bpm_min = renoise.tool().preferences.RandomBPMMin.value
+  local bpm_max = renoise.tool().preferences.RandomBPMMax.value
+  local newBPM = math.random(bpm_min, bpm_max)
+  renoise.song().transport.bpm = newBPM
+  if renoise.tool().preferences.RandomBPM.value then
+    write_bpm()
   end
 end
 
@@ -1422,35 +1415,25 @@ renoise.tool():add_keybinding{name="Global:Paketti:Play at 100% Speed (Song BPM)
 
 
 function randomBPMFromList()
-        -- Define a list of possible BPM values
-        local bpmList = {80, 100, 115, 123, 128, 132, 135, 138, 160}
-        
-        -- Get the current BPM
-        local currentBPM = renoise.song().transport.bpm
-        
-        -- Filter the list to exclude the current BPM
-        local newBpmList = {}
-        for _, bpm in ipairs(bpmList) do
-            if bpm ~= currentBPM then
-                table.insert(newBpmList, bpm)
-            end
-        end
+  local bpm_min = renoise.tool().preferences.RandomBPMMin.value
+  local bpm_max = renoise.tool().preferences.RandomBPMMax.value
+  local currentBPM = renoise.song().transport.bpm
 
-        -- Select a random BPM from the filtered list
-        if #newBpmList > 0 then
-            local selectedBPM = newBpmList[math.random(#newBpmList)]
-            renoise.song().transport.bpm = selectedBPM
-            print("Random BPM set to: " .. selectedBPM) -- Debug output to the console
-        else
-            print("No alternative BPM available to switch to.")
-        end
-
-        -- Optional: write the BPM to a file or apply other logic
-        if renoise.tool().preferences.RandomBPM and renoise.tool().preferences.RandomBPM.value then
-            write_bpm() -- Ensure this function is defined elsewhere in your tool
-            print("BPM written to file or handled additionally.")
-        end
+  -- Generate a random BPM that differs from current
+  local newBPM = math.random(bpm_min, bpm_max)
+  if bpm_min ~= bpm_max then
+    while newBPM == currentBPM do
+      newBPM = math.random(bpm_min, bpm_max)
     end
+  end
+
+  renoise.song().transport.bpm = newBPM
+  print("Random BPM set to: " .. newBPM)
+
+  if renoise.tool().preferences.RandomBPM.value then
+    write_bpm()
+  end
+end
   
 renoise.tool():add_keybinding{name="Global:Paketti:Random BPM from List",invoke=function() randomBPMFromList() end}
 -------------------------
