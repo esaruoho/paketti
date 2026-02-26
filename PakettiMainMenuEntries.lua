@@ -456,7 +456,8 @@ local function create_button_list()
   table.insert(buttons, {"Slab'o'Patterns", "PakettiSlabOPatternsToggle"})
   table.insert(buttons, {"Paketti Toggler", "PakettiTogglerDialog"})
   table.insert(buttons, {"Canvas Font Preview", "PakettiCanvasFontPreviewInit"})
-  
+  table.insert(buttons, {"Plugin Slots Configuration", "pakettiPluginSlotsDialog"})
+
   return buttons
 end
 
