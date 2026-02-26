@@ -12,6 +12,42 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-02-26 - Feature: Pattern Merge — concatenate patterns into new combined patterns
+
+Four ways to merge patterns end-to-end into a new combined pattern, with automation time-shifted correctly:
+
+**Merge with Next** — combines the current pattern with the one immediately after it in the sequence, inserts the merged result after both source slots.
+
+**Merge with Previous** — combines the pattern before the current one with the current pattern, inserts the merged result after the current slot.
+
+**Merge Selected** — merges all patterns within the current Pattern Sequencer selection range into a single new pattern, inserted after the selection end.
+
+**Merge All → Monster** — concatenates every pattern in the entire sequence into one large pattern (capped at Renoise's 512-line maximum), appended at the end.
+
+Source patterns are never modified. Automation envelope points from later patterns have their `time` values offset by the accumulated line count so they land in the correct position. Merged patterns are named automatically (`PatternA+PatternB+...`).
+
+**Menu entries** (Pattern Sequencer and Pattern Matrix, ×4 each):
+- `Pattern Sequencer:Paketti:Merge Current with Next Pattern`
+- `Pattern Sequencer:Paketti:Merge Current with Previous Pattern`
+- `Pattern Sequencer:Paketti:Merge Selected Patterns`
+- `Pattern Sequencer:Paketti:Merge All Patterns to Monster`
+- `Pattern Matrix:Paketti:Merge Current with Next Pattern`
+- `Pattern Matrix:Paketti:Merge Current with Previous Pattern`
+- `Pattern Matrix:Paketti:Merge Selected Patterns`
+- `Pattern Matrix:Paketti:Merge All Patterns to Monster`
+
+**Keybindings** (Pattern Sequencer and Global, ×4 each):
+- `Pattern Sequencer:Paketti:Merge Current with Next Pattern`
+- `Pattern Sequencer:Paketti:Merge Current with Previous Pattern`
+- `Pattern Sequencer:Paketti:Merge Selected Patterns`
+- `Pattern Sequencer:Paketti:Merge All Patterns to Monster`
+- `Global:Paketti:Merge Current with Next Pattern`
+- `Global:Paketti:Merge Current with Previous Pattern`
+- `Global:Paketti:Merge Selected Patterns`
+- `Global:Paketti:Merge All Patterns to Monster`
+
+---
+
 ### 2026-02-26 - Feature: Plugin Slots — 5 configurable instrument-plugin show/hide slots
 
 Like the existing XO plug-in shortcut, but fully user-configurable: assign any VST, VST3, AU, LADSPA, or DSSI instrument plugin to one of 5 named slots, then use a keybinding (or menu entry) to load it / show its external editor / hide it — exactly the same add→show→hide cycle as the hardcoded XO shortcut.
