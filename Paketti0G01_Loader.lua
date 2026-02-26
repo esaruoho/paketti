@@ -833,6 +833,19 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     DeviceScope = 1,              -- 1=Selected Device (lowest perf), 2=All Track Devices (medium), 3=All Song Devices (highest)
     TimerDuration = 3             -- Timer duration in seconds for Timer Mode (1-10 seconds)
   },
+  -- Plugin Slots: 5 configurable instrument-plugin show/hide slots (like XO but user-defined)
+  PluginSlots = {
+    Slot01     = renoise.Document.ObservableString(""),  -- plugin path for loading
+    Slot01Name = renoise.Document.ObservableString(""),  -- display name for matching (e.g. "AU: XLN Audio: XO")
+    Slot02     = renoise.Document.ObservableString(""),
+    Slot02Name = renoise.Document.ObservableString(""),
+    Slot03     = renoise.Document.ObservableString(""),
+    Slot03Name = renoise.Document.ObservableString(""),
+    Slot04     = renoise.Document.ObservableString(""),
+    Slot04Name = renoise.Document.ObservableString(""),
+    Slot05     = renoise.Document.ObservableString(""),
+    Slot05Name = renoise.Document.ObservableString(""),
+  },
 }
 
 renoise.tool().preferences = preferences
@@ -876,6 +889,8 @@ PakettiPlayerProWaveformViewer = renoise.tool().preferences.pakettiPlayerProWave
 PakettiMixerParameterExposer = renoise.tool().preferences.pakettiMixerParameterExposer
 -- Add Automate Last Touched preferences accessor
 PakettiAutomateLastTouched = renoise.tool().preferences.pakettiAutomateLastTouched
+-- Add Plugin Slots preferences accessor
+PakettiPluginSlots = renoise.tool().preferences.PluginSlots
 
       -- Define available keys for dialog closing
       local dialog_close_keys = {"tab", "esc", "space", "return", "q", "donteverclose"}

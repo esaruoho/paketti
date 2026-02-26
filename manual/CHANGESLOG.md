@@ -12,6 +12,28 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-02-26 - Feature: Plugin Slots — 5 configurable instrument-plugin show/hide slots
+
+Like the existing XO plug-in shortcut, but fully user-configurable: assign any VST, VST3, AU, LADSPA, or DSSI instrument plugin to one of 5 named slots, then use a keybinding (or menu entry) to load it / show its external editor / hide it — exactly the same add→show→hide cycle as the hardcoded XO shortcut.
+
+**Configuration dialog**
+- `Main Menu:Tools:Paketti:Plugins/Devices:Plugin Slots:Configure Plugin Slots...`
+- `Instrument Box:Paketti:Plugins/Devices:Plugin Slots:Configure Plugin Slots...`
+- Keybinding: `Global:Paketti:Plugin Slots:Configure Plugin Slots`
+
+The dialog shows all available instrument plugins grouped by type (AU → VST3 → VST → LADSPA → DSSI), sorted alphabetically within each group. Selecting a plugin stores both its load path and its display name in `preferences.xml` for instant recall across sessions.
+
+**Per-slot toggle** (×5, replace `N` with 1–5)
+- Menu: `Main Menu:Tools:Paketti:Plugins/Devices:Plugin Slots:Toggle Slot N`
+- Menu: `Instrument Box:Paketti:Plugins/Devices:Plugin Slots:Toggle Slot N`
+- Keybinding: `Global:Paketti:Plugin Slots:Toggle Slot N Show/Hide`
+- MIDI mapping: `Paketti:Plugin Slots:Toggle Slot N Show/Hide`
+
+Toggle behaviour per slot:
+1. Plugin already loaded in any instrument → toggle `external_editor_visible` (show ↔ hide)
+2. Plugin not yet loaded → `loadPlugin()` inserts a new instrument and shows the editor
+3. Slot not configured → status bar message prompts user to open the configure dialog
+
 - **22 issues addressed in a single session** — Pattern fractions, clever note-offs, interpolation, FX fills, and more
 - **Step Sequencer FX Randomizer** — Full dialog with step checkboxes, FX command dropdown, min/max sliders
 - **Linked EditStep & Quantization** — Set both simultaneously with direct values, +/- increment, power-of-two jumps
