@@ -206,7 +206,7 @@ renoise.tool():add_menu_entry {
   invoke = function() pakettiPluginSlotsDialog() end,
 }
 renoise.tool():add_keybinding {
-  name   = "Global:Paketti:Plugin Slots:Configure Plugin Slots",
+  name   = "Global:Paketti:Plugin Slots Configure Plugin Slots",
   invoke = function() pakettiPluginSlotsDialog() end,
 }
 
@@ -224,7 +224,7 @@ for i = 1, 5 do
     invoke = function() pakettiPluginSlotToggle(slot) end,
   }
   renoise.tool():add_keybinding {
-    name   = string.format("Global:Paketti:Plugin Slots:Toggle Slot %d Show/Hide", slot),
+    name   = string.format("Global:Paketti:Plugin Slots Toggle Slot %d Show/Hide", slot),
     invoke = function() pakettiPluginSlotToggle(slot) end,
   }
   renoise.tool():add_midi_mapping {
