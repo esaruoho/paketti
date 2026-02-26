@@ -204,6 +204,12 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-26 - Improvement: Plugin Slots Configuration added to Dialog of Dialogs
+
+The Plugin Slots Configuration dialog is now registered in Paketti's Dialog of Dialogs (the central hub for launching all Paketti dialogs). Search for "plugin slots" or "slot" to open it alongside all other Paketti dialogs.
+
+- Keybinding: `Global:Paketti:Dialog of Dialogs` (existing), then filter for "slot"
+
 ### 2026-02-26 - Feature: Pattern Merge / Concatenation (4 modalities)
 
 Four new functions that concatenate patterns end-to-end into a single new pattern of combined length (capped at Renoise's 512-line maximum). All source patterns are left intact; the merged result is inserted as a new sequence slot and navigated to automatically. Automation envelope points from the second pattern onward are time-shifted so they land in the correct position inside the merged pattern.
