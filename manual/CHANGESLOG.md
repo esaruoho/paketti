@@ -182,6 +182,27 @@ Thank you for using Paketti. — Esa
 
 ---
 
+### 2026-02-26 - Feature: Pattern Merge / Concatenation (4 modalities)
+
+Four new functions that concatenate patterns end-to-end into a single new pattern of combined length (capped at Renoise's 512-line maximum). All source patterns are left intact; the merged result is inserted as a new sequence slot and navigated to automatically. Automation envelope points from the second pattern onward are time-shifted so they land in the correct position inside the merged pattern.
+
+- **Merge Current Pattern with Next** — takes the current slot and the one immediately after it, produces `A+B`
+- **Merge Current Pattern with Previous** — takes the slot before and the current slot, produces `prev+current`
+- **Merge Selected Patterns** — select any consecutive range in the Pattern Sequencer, then invoke to concatenate all of them in order
+- **Merge All Patterns to Monster Pattern** — concatenates every pattern in the sequence into one giant pattern, appended at the end; shows a truncation warning if the total exceeds 512 lines
+
+Menu entries added under:
+- `Pattern Sequencer:Paketti:Merge Current Pattern with Next`
+- `Pattern Sequencer:Paketti:Merge Current Pattern with Previous`
+- `Pattern Sequencer:Paketti:Merge Selected Patterns`
+- `Pattern Sequencer:Paketti:Merge All Patterns to Monster Pattern`
+- `Pattern Matrix:Paketti:Merge Current Pattern with Next`
+- `Pattern Matrix:Paketti:Merge Current Pattern with Previous`
+- `Pattern Matrix:Paketti:Merge Selected Patterns`
+- `Pattern Matrix:Paketti:Merge All Patterns to Monster Pattern`
+
+Keybindings added under `Pattern Sequencer:Paketti:` and `Global:Paketti:` for all four operations.
+
 ### 2026-02-25 - Feature: Sample Recorder with #Line Input and Track Scopes (live waveform view while recording)
 
 New `SampleRecorderWithTrackScopes()` function in `PakettiRecorder.lua`. First press: adds `#Line Input` device to the selected track (if not already present), switches the upper frame to **Track Scopes** so you can see the live input waveform, and opens the Sample Recorder dialog. Second press: closes the recorder and removes the `#Line Input` device. Gives a visual waveform monitor during recording without needing a third-party VST oscilloscope.

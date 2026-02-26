@@ -915,3 +915,233 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delete All Sequences 
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
+
+---------
+-- Pattern Merge / Concatenation
+-- Creates a new pattern of length A+B by pasting A then B after it.
+-- All 4 modalities: with next, with previous, selected range, all (monster).
+---------
+
+-- Helper: copy track lines and automation from src_pattern into dst_pattern,
+-- applying dst_line_offset so that src line 1 lands at dst line (dst_line_offset+1).
+local function pakettiMergeCopyTrackData(src_pattern, dst_pattern, track_index, dst_line_offset)
+  local src_track = src_pattern.tracks[track_index]
+  local dst_track = dst_pattern.tracks[track_index]
+  local dst_lines  = dst_pattern.number_of_lines
+
+  -- Copy note/effect columns line by line
+  for src_line = 1, src_pattern.number_of_lines do
+    local dst_line = src_line + dst_line_offset
+    if dst_line > dst_lines then break end
+    dst_track:line(dst_line):copy_from(src_track:line(src_line))
+  end
+
+  -- Copy automation, shifting point times by dst_line_offset
+  for _, src_auto in ipairs(src_track.automation) do
+    local param    = src_auto.dest_parameter
+    local dst_auto = dst_track:find_automation(param)
+    if not dst_auto then
+      dst_auto = dst_track:create_automation(param)
+    end
+    dst_auto.playmode = src_auto.playmode
+    if dst_line_offset == 0 then
+      -- First chunk: direct copy overwrites any pre-existing empty state cleanly
+      dst_auto:copy_from(src_auto)
+    else
+      -- Subsequent chunks: shift each point's time and append
+      for _, pt in ipairs(src_auto.points) do
+        local new_time = pt.time + dst_line_offset
+        if new_time <= dst_lines then
+          dst_auto:add_point_at(new_time, pt.value, pt.scaling)
+        end
+      end
+    end
+  end
+end
+
+-- Core engine: merge a list of pattern indices (by pattern pool index, not sequence position)
+-- into a brand-new pattern inserted at new_seq_position in the sequencer.
+-- Returns the new pattern's pool index, or nil on failure.
+local function pakettiMergePatterns(pattern_indices, new_seq_position)
+  local song      = renoise.song()
+  local sequencer = song.sequencer
+  local MAX_LINES = renoise.Pattern.MAX_NUMBER_OF_LINES
+
+  if #pattern_indices < 2 then
+    renoise.app():show_status("Need at least 2 patterns to merge")
+    return nil
+  end
+
+  -- Sum up total lines
+  local total_lines = 0
+  for _, pidx in ipairs(pattern_indices) do
+    total_lines = total_lines + song.patterns[pidx].number_of_lines
+  end
+
+  local truncated = false
+  if total_lines > MAX_LINES then
+    truncated  = true
+    total_lines = MAX_LINES
+  end
+
+  -- Insert brand-new empty pattern at the chosen sequence position
+  local new_pattern_index = sequencer:insert_new_pattern_at(new_seq_position)
+  local new_pattern       = song.patterns[new_pattern_index]
+  new_pattern.number_of_lines = total_lines
+
+  -- Copy each source pattern's content into the merged pattern
+  local line_offset = 0
+  for _, pidx in ipairs(pattern_indices) do
+    if line_offset >= total_lines then break end
+    local src_pattern = song.patterns[pidx]
+    for track_index = 1, #song.tracks do
+      pakettiMergeCopyTrackData(src_pattern, new_pattern, track_index, line_offset)
+    end
+    line_offset = line_offset + src_pattern.number_of_lines
+    if line_offset > total_lines then line_offset = total_lines end
+  end
+
+  -- Build a combined name from the source pattern names
+  local name_parts = {}
+  for _, pidx in ipairs(pattern_indices) do
+    local n = song.patterns[pidx].name
+    if n ~= "" then table.insert(name_parts, n) end
+  end
+  new_pattern.name = (#name_parts > 0) and table.concat(name_parts, "+") or "Merged"
+
+  if truncated then
+    renoise.app():show_status(string.format(
+      "Merged %d patterns → %d lines (TRUNCATED at %d line maximum)",
+      #pattern_indices, total_lines, MAX_LINES))
+  else
+    renoise.app():show_status(string.format(
+      "Merged %d patterns → %d lines", #pattern_indices, total_lines))
+  end
+
+  return new_pattern_index
+end
+
+-- Merge current pattern with the NEXT pattern in the sequence.
+-- Result is inserted after both source patterns; source patterns are kept intact.
+function PakettiMergeWithNext()
+  local song      = renoise.song()
+  local sequencer = song.sequencer
+  local seq       = sequencer.pattern_sequence
+  local cur_seq   = song.selected_sequence_index
+
+  if cur_seq >= #seq then
+    renoise.app():show_status("No next pattern to merge with")
+    return
+  end
+
+  local pat_a      = seq[cur_seq]
+  local pat_b      = seq[cur_seq + 1]
+  local insert_pos = cur_seq + 2   -- after both source slots
+
+  local new_idx = pakettiMergePatterns({pat_a, pat_b}, insert_pos)
+  if new_idx then
+    song.selected_sequence_index = insert_pos
+  end
+end
+
+-- Merge current pattern with the PREVIOUS pattern in the sequence.
+-- Order is [previous, current]; result inserted after the current slot.
+function PakettiMergeWithPrevious()
+  local song      = renoise.song()
+  local sequencer = song.sequencer
+  local seq       = sequencer.pattern_sequence
+  local cur_seq   = song.selected_sequence_index
+
+  if cur_seq <= 1 then
+    renoise.app():show_status("No previous pattern to merge with")
+    return
+  end
+
+  local pat_a      = seq[cur_seq - 1]
+  local pat_b      = seq[cur_seq]
+  local insert_pos = cur_seq + 1   -- after the current slot
+
+  local new_idx = pakettiMergePatterns({pat_a, pat_b}, insert_pos)
+  if new_idx then
+    song.selected_sequence_index = insert_pos
+  end
+end
+
+-- Merge the currently selected range of patterns in the Pattern Sequencer.
+-- Select 2+ consecutive slots, then invoke; result is inserted after the selection.
+function PakettiMergeSelected()
+  local song      = renoise.song()
+  local sequencer = song.sequencer
+  local selection = sequencer.selection_range
+
+  if not selection or #selection ~= 2 then
+    renoise.app():show_status("Select a range of patterns in the sequencer first")
+    return
+  end
+
+  local sel_start = selection[1]
+  local sel_end   = selection[2]
+
+  if sel_start >= sel_end then
+    renoise.app():show_status("Select at least 2 patterns to merge")
+    return
+  end
+
+  local pattern_indices = {}
+  for i = sel_start, sel_end do
+    table.insert(pattern_indices, sequencer.pattern_sequence[i])
+  end
+
+  local insert_pos = sel_end + 1
+  local new_idx = pakettiMergePatterns(pattern_indices, insert_pos)
+  if new_idx then
+    song.selected_sequence_index = insert_pos
+  end
+end
+
+-- Merge ALL patterns in the sequence into one single "monster" pattern.
+-- Inserted at the very end of the sequence; all source patterns are kept intact.
+-- Warns if total length exceeds the 512-line Renoise maximum.
+function PakettiMergeAllToMonster()
+  local song      = renoise.song()
+  local sequencer = song.sequencer
+  local seq       = sequencer.pattern_sequence
+
+  if #seq < 2 then
+    renoise.app():show_status("Need at least 2 patterns in the sequence to create a monster pattern")
+    return
+  end
+
+  local pattern_indices = {}
+  for i = 1, #seq do
+    table.insert(pattern_indices, seq[i])
+  end
+
+  local insert_pos = #seq + 1   -- append at end
+  local new_idx = pakettiMergePatterns(pattern_indices, insert_pos)
+  if new_idx then
+    song.selected_sequence_index = insert_pos
+  end
+end
+
+-- Keybindings
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Merge Current Pattern with Next",     invoke=PakettiMergeWithNext}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Merge Current Pattern with Previous", invoke=PakettiMergeWithPrevious}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Merge Selected Patterns",             invoke=PakettiMergeSelected}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Merge All Patterns to Monster Pattern",invoke=PakettiMergeAllToMonster}
+renoise.tool():add_keybinding{name="Global:Paketti:Merge Current Pattern with Next",                invoke=PakettiMergeWithNext}
+renoise.tool():add_keybinding{name="Global:Paketti:Merge Current Pattern with Previous",            invoke=PakettiMergeWithPrevious}
+renoise.tool():add_keybinding{name="Global:Paketti:Merge Selected Patterns",                        invoke=PakettiMergeSelected}
+renoise.tool():add_keybinding{name="Global:Paketti:Merge All Patterns to Monster Pattern",          invoke=PakettiMergeAllToMonster}
+
+-- Menu entries – Pattern Sequencer context
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Merge Current Pattern with Next",     invoke=PakettiMergeWithNext}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Merge Current Pattern with Previous", invoke=PakettiMergeWithPrevious}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Merge Selected Patterns",             invoke=PakettiMergeSelected}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Merge All Patterns to Monster Pattern",invoke=PakettiMergeAllToMonster}
+
+-- Menu entries – Pattern Matrix context
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Merge Current Pattern with Next",        invoke=PakettiMergeWithNext}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Merge Current Pattern with Previous",    invoke=PakettiMergeWithPrevious}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Merge Selected Patterns",                invoke=PakettiMergeSelected}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Merge All Patterns to Monster Pattern",  invoke=PakettiMergeAllToMonster}
