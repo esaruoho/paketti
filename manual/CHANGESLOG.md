@@ -12,6 +12,24 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-02-28 - Feature: Batch Phrase Preset Save/Load (.xrnz)
+
+**Save All Phrases as Presets** — exports every phrase in the selected instrument as individual `.xrnz` preset files to a chosen folder. Files are named `01_PhraseName.xrnz`, `02_PhraseName.xrnz`, etc. for easy browsing and auditioning.
+
+**Load All Phrase Presets from Folder** — imports all `.xrnz` files from a chosen folder into the selected instrument as phrases. Files are loaded in alphabetical order. Respects Renoise's 126-phrase limit and warns if the folder contains more presets than available slots.
+
+Designed for workflows involving large phrase collections — batch-import 200+ MIDI files as phrases, save them all as presets in one click, then load them back into any instrument later.
+
+**Menu entries** (Main Menu → Tools → Paketti → Instruments):
+- `Save All Phrases as Presets (.xrnz)...`
+- `Load All Phrase Presets from Folder (.xrnz)...`
+
+**Keybindings** (Global → Paketti):
+- `Save All Phrases as Presets (.xrnz)...`
+- `Load All Phrase Presets from Folder (.xrnz)...`
+
+**MIDI mappings** available for both functions.
+
 ### 2026-02-26 - Feature: Pattern Merge — concatenate patterns into new combined patterns
 
 Four ways to merge patterns end-to-end into a new combined pattern, with automation time-shifted correctly:

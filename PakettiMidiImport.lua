@@ -724,6 +724,188 @@ local function show_midi_import_dialog()
 end
 
 ----------------------------------------------------------------------
+-- FILENAME SANITIZATION HELPER
+----------------------------------------------------------------------
+
+local function sanitize_filename(name)
+  -- Replace characters invalid on Windows/macOS/Linux: / \ : * ? " < > |
+  return name:gsub('[/\\:*?"<>|]', "_")
+end
+
+----------------------------------------------------------------------
+-- SAVE ALL PHRASES AS PRESETS (.xrnz)
+----------------------------------------------------------------------
+
+local function save_all_phrases_as_presets()
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_warning("No song loaded.")
+    return
+  end
+
+  local instrument = song.selected_instrument
+  local phrases = instrument.phrases
+
+  if #phrases == 0 then
+    renoise.app():show_warning("Selected instrument has no phrases to save.")
+    return
+  end
+
+  local folder = renoise.app():prompt_for_path("Select destination folder for phrase presets")
+  if not folder or folder == "" then return end
+
+  -- Remove trailing slash
+  folder = folder:gsub("[/\\]$", "")
+
+  local saved = 0
+  local errors_list = {}
+
+  for i = 1, #phrases do
+    song.selected_phrase_index = i
+
+    -- Build filename: XX_PhraseName.xrnz
+    local phrase_name = phrases[i].name
+    if not phrase_name or phrase_name == "" then
+      phrase_name = string.format("Phrase_%02d", i)
+    end
+    phrase_name = sanitize_filename(phrase_name)
+
+    local filename = string.format("%02d_%s.xrnz", i, phrase_name)
+    local full_path = folder .. "/" .. filename
+
+    local ok, err = pcall(function()
+      renoise.app():save_instrument_phrase(full_path)
+    end)
+
+    if ok then
+      saved = saved + 1
+      renoise.app():show_status(string.format(
+        "Saving phrases... %d/%d: %s", saved, #phrases, filename))
+    else
+      table.insert(errors_list, string.format("%s: %s", filename, tostring(err)))
+    end
+  end
+
+  if #errors_list > 0 then
+    local error_msg = string.format("Saved %d of %d phrases to:\n%s\n\nErrors:\n", saved, #phrases, folder)
+    for i = 1, math.min(#errors_list, 10) do
+      error_msg = error_msg .. "- " .. errors_list[i] .. "\n"
+    end
+    if #errors_list > 10 then
+      error_msg = error_msg .. string.format("... and %d more", #errors_list - 10)
+    end
+    renoise.app():show_warning(error_msg)
+  else
+    renoise.app():show_status(string.format(
+      "Saved all %d phrases as presets to: %s", saved, folder))
+  end
+end
+
+----------------------------------------------------------------------
+-- LOAD ALL PHRASE PRESETS FROM FOLDER (.xrnz)
+----------------------------------------------------------------------
+
+local function load_all_phrase_presets_from_folder()
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_warning("No song loaded.")
+    return
+  end
+
+  local folder = renoise.app():prompt_for_path("Select folder containing phrase presets (.xrnz)")
+  if not folder or folder == "" then return end
+
+  -- Remove trailing slash
+  folder = folder:gsub("[/\\]$", "")
+
+  -- Scan for .xrnz files
+  local files = {}
+  local ok, all_names = pcall(os.filenames, folder)
+  if not ok or not all_names then
+    renoise.app():show_warning("Could not read folder: " .. folder)
+    return
+  end
+
+  for _, name in ipairs(all_names) do
+    if name:lower():match("%.xrnz$") then
+      table.insert(files, name)
+    end
+  end
+
+  if #files == 0 then
+    renoise.app():show_warning("No .xrnz phrase preset files found in:\n" .. folder)
+    return
+  end
+
+  -- Sort alphabetically
+  table.sort(files, function(a, b) return a:lower() < b:lower() end)
+
+  -- Check capacity
+  local instrument = song.selected_instrument
+  local existing = #instrument.phrases
+  local available = 126 - existing
+
+  if available <= 0 then
+    renoise.app():show_warning("Selected instrument already has 126 phrases (maximum). Cannot load more.")
+    return
+  end
+
+  if #files > available then
+    renoise.app():show_warning(string.format(
+      "Found %d .xrnz files but only %d phrase slots available (126 max, %d existing).\nWill load first %d files.",
+      #files, available, existing, available))
+    -- Truncate to available slots
+    local trimmed = {}
+    for i = 1, available do
+      trimmed[i] = files[i]
+    end
+    files = trimmed
+  end
+
+  song:describe_undo("Load Phrase Presets from Folder")
+
+  local loaded = 0
+  local errors_list = {}
+
+  for _, name in ipairs(files) do
+    local full_path = folder .. "/" .. name
+
+    local load_ok, err = pcall(function()
+      renoise.app():load_instrument_phrase(full_path)
+    end)
+
+    if load_ok then
+      loaded = loaded + 1
+      renoise.app():show_status(string.format(
+        "Loading phrase presets... %d/%d: %s", loaded, #files, name))
+    else
+      table.insert(errors_list, string.format("%s: %s", name, tostring(err)))
+    end
+  end
+
+  -- Select last loaded phrase and switch to phrase editor
+  if loaded > 0 then
+    instrument = song.selected_instrument
+    song.selected_phrase_index = #instrument.phrases
+    renoise.app().window.active_middle_frame = 3
+  end
+
+  if #errors_list > 0 then
+    local error_msg = string.format("Loaded %d of %d phrase presets from:\n%s\n\nErrors:\n", loaded, #files, folder)
+    for i = 1, math.min(#errors_list, 10) do
+      error_msg = error_msg .. "- " .. errors_list[i] .. "\n"
+    end
+    if #errors_list > 10 then
+      error_msg = error_msg .. string.format("... and %d more", #errors_list - 10)
+    end
+    renoise.app():show_warning(error_msg)
+  else
+    renoise.app():show_status(string.format(
+      "Loaded %d phrase presets from: %s", loaded, folder))
+  end
+end
+
+----------------------------------------------------------------------
 -- REGISTRATION
 ----------------------------------------------------------------------
 
@@ -778,6 +960,44 @@ renoise.tool():add_midi_mapping{
   invoke = function(message)
     if message:is_trigger() then
       show_midi_import_dialog()
+    end
+  end
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Instruments:Save All Phrases as Presets (.xrnz)...",
+  invoke = function() save_all_phrases_as_presets() end
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Instruments:Load All Phrase Presets from Folder (.xrnz)...",
+  invoke = function() load_all_phrase_presets_from_folder() end
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Save All Phrases as Presets (.xrnz)...",
+  invoke = function() save_all_phrases_as_presets() end
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Load All Phrase Presets from Folder (.xrnz)...",
+  invoke = function() load_all_phrase_presets_from_folder() end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Save All Phrases as Presets (.xrnz)... x[Button]",
+  invoke = function(message)
+    if message:is_trigger() then
+      save_all_phrases_as_presets()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Load All Phrase Presets from Folder (.xrnz)... x[Button]",
+  invoke = function(message)
+    if message:is_trigger() then
+      load_all_phrase_presets_from_folder()
     end
   end
 }
