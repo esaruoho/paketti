@@ -2601,7 +2601,69 @@ function PakettiReplaceMidiMappingsFromFile()
   end
 end
 
+-- Load bundled Paketti MIDI Mappings from the tool's KeyBindings folder
+function PakettiLoadBundledMidiMappings()
+  local bundle_path = renoise.tool().bundle_path
+  local mappings_folder = bundle_path .. "KeyBindings" .. (os.platform() == "WINDOWS" and "\\" or "/")
+
+  -- Scan for .xrnm files in KeyBindings folder
+  local files = {}
+  local ok, all_names = pcall(os.filenames, mappings_folder)
+  if not ok or not all_names then
+    renoise.app():show_warning("Could not read KeyBindings folder:\n" .. mappings_folder)
+    return false
+  end
+
+  for _, name in ipairs(all_names) do
+    if name:lower():match("%.xrnm$") then
+      table.insert(files, name)
+    end
+  end
+
+  if #files == 0 then
+    renoise.app():show_warning("No .xrnm files found in Paketti's KeyBindings folder.")
+    return false
+  end
+
+  if #files == 1 then
+    -- Single file, load directly (merge)
+    local path = mappings_folder .. files[1]
+    local success, error_msg = renoise.song():load_midi_mappings(path)
+    if success then
+      renoise.app():show_status("Loaded Paketti MIDI Mappings: " .. files[1])
+      return true
+    else
+      renoise.app():show_error("Failed to load Paketti MIDI Mappings:\n" .. (error_msg or "Unknown error"))
+      return false
+    end
+  end
+
+  -- Multiple files: let user pick
+  table.sort(files, function(a, b) return a:lower() < b:lower() end)
+  local choice = renoise.app():show_prompt("Load Paketti MIDI Mappings",
+    "Select a bundled MIDI mapping preset to load (merge):", files)
+
+  if not choice or choice == "" then return false end
+
+  -- Find the selected file
+  for _, name in ipairs(files) do
+    if name == choice then
+      local path = mappings_folder .. name
+      local success, error_msg = renoise.song():load_midi_mappings(path)
+      if success then
+        renoise.app():show_status("Loaded Paketti MIDI Mappings: " .. name)
+        return true
+      else
+        renoise.app():show_error("Failed to load Paketti MIDI Mappings:\n" .. (error_msg or "Unknown error"))
+        return false
+      end
+    end
+  end
+  return false
+end
+
 -- Menu Entries
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load Paketti MIDI Mappings",invoke=PakettiLoadBundledMidiMappings}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Save MIDI Mappings (.xrnm)...",invoke=PakettiSaveMidiMappings}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load MIDI Mappings from File (Merge)...",invoke=PakettiLoadMidiMappingsFromFile}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load MIDI Mappings from File (Replace All)...",invoke=PakettiReplaceMidiMappingsFromFile}
@@ -2610,6 +2672,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Clear 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Clear All MIDI Mappings",invoke=PakettiClearMidiMappings}
 
 -- Keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Load Paketti MIDI Mappings",invoke=PakettiLoadBundledMidiMappings}
 renoise.tool():add_keybinding{name="Global:Paketti:Save MIDI Mappings (.xrnm)...",invoke=PakettiSaveMidiMappings}
 renoise.tool():add_keybinding{name="Global:Paketti:Load MIDI Mappings from File (Merge)...",invoke=PakettiLoadMidiMappingsFromFile}
 renoise.tool():add_keybinding{name="Global:Paketti:Load MIDI Mappings from File (Replace All)...",invoke=PakettiReplaceMidiMappingsFromFile}
@@ -2621,6 +2684,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Clear All MIDI Mappings",invo
 renoise.tool():add_midi_mapping{name="Paketti:Save MIDI Mappings (.xrnm)... x[Button]",invoke=function(message) if message:is_trigger() then PakettiSaveMidiMappings() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Load MIDI Mappings from File (Merge)... x[Button]",invoke=function(message) if message:is_trigger() then PakettiLoadMidiMappingsFromFile() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Load MIDI Mappings from File (Replace All)... x[Button]",invoke=function(message) if message:is_trigger() then PakettiReplaceMidiMappingsFromFile() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Load Paketti MIDI Mappings x[Button]",invoke=function(message) if message:is_trigger() then PakettiLoadBundledMidiMappings() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Load Default MIDI Mappings x[Button]",invoke=function(message) if message:is_trigger() then PakettiLoadDefaultMidiMappings() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Clear & Reload Default MIDI Mappings x[Button]",invoke=function(message) if message:is_trigger() then PakettiReloadDefaultMidiMappings() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Clear All MIDI Mappings x[Button]",invoke=function(message) if message:is_trigger() then PakettiClearMidiMappings() end end}

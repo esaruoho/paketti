@@ -26,9 +26,12 @@ Full MIDI mapping file management — save your controller setup, load it into a
 
 **Clear & Reload Default MIDI Mappings** — clears all mappings, then loads the configured default (replace behavior).
 
+**Load Paketti MIDI Mappings** — loads the bundled MIDI mapping presets shipped with Paketti (from the `KeyBindings/` folder). If multiple `.xrnm` files are bundled, presents a picker dialog.
+
 **Clear All MIDI Mappings** — removes every MIDI mapping from the song.
 
 **Menu entries** (Main Menu → Tools → Paketti → MIDI Mappings):
+- `Load Paketti MIDI Mappings`
 - `Save MIDI Mappings (.xrnm)...`
 - `Load MIDI Mappings from File (Merge)...`
 - `Load MIDI Mappings from File (Replace All)...`
@@ -37,6 +40,7 @@ Full MIDI mapping file management — save your controller setup, load it into a
 - `Clear All MIDI Mappings`
 
 **Keybindings** (Global → Paketti):
+- `Load Paketti MIDI Mappings`
 - `Save MIDI Mappings (.xrnm)...`
 - `Load MIDI Mappings from File (Merge)...`
 - `Load MIDI Mappings from File (Replace All)...`
@@ -44,7 +48,7 @@ Full MIDI mapping file management — save your controller setup, load it into a
 - `Clear & Reload Default MIDI Mappings`
 - `Clear All MIDI Mappings`
 
-**MIDI mappings** available for all six functions.
+**MIDI mappings** available for all seven functions.
 
 ### 2026-02-28 - Feature: Batch Phrase Preset Save/Load (.xrnz)
 
