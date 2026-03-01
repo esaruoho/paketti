@@ -2557,17 +2557,73 @@ function PakettiReloadDefaultMidiMappings()
   end
 end
 
+-- Load MIDI mappings from a user-selected file (merge with existing)
+function PakettiLoadMidiMappingsFromFile()
+  local path = renoise.app():prompt_for_filename_to_read({"xrnm"}, "Load MIDI Mappings (Merge)")
+  if not path or path == "" then return false end
+
+  if not io.exists(path) then
+    renoise.app():show_error("MIDI mapping file not found:\n" .. path)
+    return false
+  end
+
+  local success, error_msg = renoise.song():load_midi_mappings(path)
+  if success then
+    local filename = path:match("([^/\\]+)$") or path
+    renoise.app():show_status("Merged MIDI mappings from: " .. filename)
+    return true
+  else
+    renoise.app():show_error("Failed to load MIDI mappings:\n" .. (error_msg or "Unknown error"))
+    return false
+  end
+end
+
+-- Load MIDI mappings from a user-selected file (replace: clear first, then load)
+function PakettiReplaceMidiMappingsFromFile()
+  local path = renoise.app():prompt_for_filename_to_read({"xrnm"}, "Load MIDI Mappings (Replace All)")
+  if not path or path == "" then return false end
+
+  if not io.exists(path) then
+    renoise.app():show_error("MIDI mapping file not found:\n" .. path)
+    return false
+  end
+
+  renoise.song():clear_midi_mappings()
+
+  local success, error_msg = renoise.song():load_midi_mappings(path)
+  if success then
+    local filename = path:match("([^/\\]+)$") or path
+    renoise.app():show_status("Replaced all MIDI mappings with: " .. filename)
+    return true
+  else
+    renoise.app():show_error("Cleared mappings but failed to load:\n" .. (error_msg or "Unknown error"))
+    return false
+  end
+end
+
+-- Menu Entries
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Save MIDI Mappings (.xrnm)...",invoke=PakettiSaveMidiMappings}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load MIDI Mappings from File (Merge)...",invoke=PakettiLoadMidiMappingsFromFile}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load MIDI Mappings from File (Replace All)...",invoke=PakettiReplaceMidiMappingsFromFile}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load Default MIDI Mappings",invoke=PakettiLoadDefaultMidiMappings}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Clear & Reload Default MIDI Mappings",invoke=PakettiReloadDefaultMidiMappings}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Clear All MIDI Mappings",invoke=PakettiClearMidiMappings}
+
 -- Keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Save MIDI Mappings (.xrnm)...",invoke=PakettiSaveMidiMappings}
+renoise.tool():add_keybinding{name="Global:Paketti:Load MIDI Mappings from File (Merge)...",invoke=PakettiLoadMidiMappingsFromFile}
+renoise.tool():add_keybinding{name="Global:Paketti:Load MIDI Mappings from File (Replace All)...",invoke=PakettiReplaceMidiMappingsFromFile}
 renoise.tool():add_keybinding{name="Global:Paketti:Load Default MIDI Mappings",invoke=PakettiLoadDefaultMidiMappings}
-renoise.tool():add_keybinding{name="Global:Paketti:Save MIDI Mappings...",invoke=PakettiSaveMidiMappings}
-renoise.tool():add_keybinding{name="Global:Paketti:Clear All MIDI Mappings",invoke=PakettiClearMidiMappings}
 renoise.tool():add_keybinding{name="Global:Paketti:Clear & Reload Default MIDI Mappings",invoke=PakettiReloadDefaultMidiMappings}
+renoise.tool():add_keybinding{name="Global:Paketti:Clear All MIDI Mappings",invoke=PakettiClearMidiMappings}
 
 -- MIDI Mappings
-renoise.tool():add_midi_mapping{name="Paketti:Load Default MIDI Mappings",invoke=function(message) if message:is_trigger() then PakettiLoadDefaultMidiMappings() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Save MIDI Mappings...",invoke=function(message) if message:is_trigger() then PakettiSaveMidiMappings() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Clear All MIDI Mappings",invoke=function(message) if message:is_trigger() then PakettiClearMidiMappings() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Clear & Reload Default MIDI Mappings",invoke=function(message) if message:is_trigger() then PakettiReloadDefaultMidiMappings() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Save MIDI Mappings (.xrnm)... x[Button]",invoke=function(message) if message:is_trigger() then PakettiSaveMidiMappings() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Load MIDI Mappings from File (Merge)... x[Button]",invoke=function(message) if message:is_trigger() then PakettiLoadMidiMappingsFromFile() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Load MIDI Mappings from File (Replace All)... x[Button]",invoke=function(message) if message:is_trigger() then PakettiReplaceMidiMappingsFromFile() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Load Default MIDI Mappings x[Button]",invoke=function(message) if message:is_trigger() then PakettiLoadDefaultMidiMappings() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clear & Reload Default MIDI Mappings x[Button]",invoke=function(message) if message:is_trigger() then PakettiReloadDefaultMidiMappings() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clear All MIDI Mappings x[Button]",invoke=function(message) if message:is_trigger() then PakettiClearMidiMappings() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Insert New Instrument",invoke=function(message) if message:is_trigger() then PakettiInsertNewInstrument() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Delete Current Instrument",invoke=function(message) if message:is_trigger() then PakettiDeleteCurrentInstrument() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Select Next Instrument",invoke=function(message) if message:is_trigger() then PakettiSelectNextInstrument() end end}

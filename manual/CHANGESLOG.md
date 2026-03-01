@@ -12,6 +12,40 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-01 - Feature: MIDI Mappings Save/Load/Merge/Replace/Clear (.xrnm)
+
+Full MIDI mapping file management — save your controller setup, load it into another song, merge mappings from multiple files, or do a clean replace. Ideal for switching between different MIDI controllers or sharing setups between projects.
+
+**Save MIDI Mappings** — exports all current song MIDI mappings to an `.xrnm` file via file picker.
+
+**Load MIDI Mappings from File (Merge)** — loads an `.xrnm` file and merges it with your existing mappings. Existing bindings stay, new ones are added.
+
+**Load MIDI Mappings from File (Replace All)** — clears all existing mappings first, then loads from the selected `.xrnm` file. Clean slate.
+
+**Load Default MIDI Mappings** — loads the `.xrnm` file configured in Paketti Preferences (merge behavior).
+
+**Clear & Reload Default MIDI Mappings** — clears all mappings, then loads the configured default (replace behavior).
+
+**Clear All MIDI Mappings** — removes every MIDI mapping from the song.
+
+**Menu entries** (Main Menu → Tools → Paketti → MIDI Mappings):
+- `Save MIDI Mappings (.xrnm)...`
+- `Load MIDI Mappings from File (Merge)...`
+- `Load MIDI Mappings from File (Replace All)...`
+- `Load Default MIDI Mappings`
+- `Clear & Reload Default MIDI Mappings`
+- `Clear All MIDI Mappings`
+
+**Keybindings** (Global → Paketti):
+- `Save MIDI Mappings (.xrnm)...`
+- `Load MIDI Mappings from File (Merge)...`
+- `Load MIDI Mappings from File (Replace All)...`
+- `Load Default MIDI Mappings`
+- `Clear & Reload Default MIDI Mappings`
+- `Clear All MIDI Mappings`
+
+**MIDI mappings** available for all six functions.
+
 ### 2026-02-28 - Feature: Batch Phrase Preset Save/Load (.xrnz)
 
 **Save All Phrases as Presets** — exports every phrase in the selected instrument as individual `.xrnz` preset files to a chosen folder. Files are named `01_PhraseName.xrnz`, `02_PhraseName.xrnz`, etc. for easy browsing and auditioning.
