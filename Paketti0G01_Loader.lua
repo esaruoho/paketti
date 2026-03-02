@@ -1266,7 +1266,8 @@ function pakettiPreferences()
                 tooltip="Upon loading a Sample, inserts a C-4 and -G01 to New Track, Sample plays until end of length and triggers again.",
                 notifier=function(value)
                   preferences._0G01_Loader.value=value
-                  update_0G01_loader_menu_entries()
+                  manage_sample_count_observer(value)
+                  preferences:save_as("preferences.xml")
                 end
               },
               vb:space{width=checkbox_spacing},

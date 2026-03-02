@@ -16,6 +16,10 @@ What supporters funded this month:
 
 New consolidated "Slice Tools" dialog accessible from `Main Menu > Tools > Paketti > Slice Tools > Slice Tools Dialog...` and `Sample Editor > Paketti > Slice Tools`. Brings together all slice-related operations into a single discoverable hub with 11 grouped sections: Equal Slicing, Zero-Crossing Slicing, Advanced Slicing launchers, All Slices Loop Mode, Slices to Pattern, Slices to Phrase, Slice Marker Management, DrumChain/Conversion, Beatsync, Specialized Tools, and Oldschool Gap Fill. Existing individual menus and keybindings remain unchanged — this adds a central access point. Available via keybinding (`Global:Paketti:Slice Tools Dialog`) and MIDI mapping.
 
+### 2026-03-02 - Fix: 0G01 Loader checkbox crash in Paketti Toggler
+
+Fixed a crash when toggling the "0G01 Loader" checkbox in the Paketti Toggler dialog. The checkbox notifier was calling a non-existent function `update_0G01_loader_menu_entries()`. Replaced with the correct `manage_sample_count_observer()` call so the observer is properly attached/detached when toggling.
+
 ### 2026-03-02 - Improvement: Consolidated duplicate Replicate Into Selection
 
 "Replicate Into Selection" and "Replicate Above Into Selection Only" were two separate implementations doing the exact same thing — taking whatever is above your selection and tiling it downward into the selected rows. Removed the duplicate code (~240 lines) and unified both shortcuts to use the same single implementation. Both keybinding names still work, no workflow changes needed.
