@@ -6,7 +6,7 @@
 
 **The comprehensive, all-in-one documentation for Paketti - Renoise Enhancement Suite**
 
-**Last Updated:** 2026-01-09
+**Last Updated:** 2026-03-02
 
 > *Thousands of shortcuts. Hundreds of dialogs. Daily updates. All free.*
 > **[Support the development on Patreon →](http://patreon.com/esaruoho)**
@@ -29,9 +29,10 @@
 11. [Column Visibility](#column-visibility)
 12. [Pattern Matrix](#pattern-matrix)
 13. [Device & Plugin Loaders](#device--plugin-loaders)
-14. [Phrase Editor](#phrase-editor)
-15. [Automation Features](#automation-features)
-16. [Pattern Editor Advanced](#pattern-editor-advanced)
+14. [Batch Phrase Preset Save/Load](#batch-phrase-preset-saveload-new---feb-2026) *(NEW - Feb 2026)*
+15. [Phrase Editor](#phrase-editor)
+16. [Automation Features](#automation-features)
+17. [Pattern Editor Advanced](#pattern-editor-advanced)
 
 ### Sample Management
 17. [Sample Loading & Management](#sample-loading--management)
@@ -69,10 +70,11 @@
 ### Pattern Sequencer
 41. [Pattern Sequencer & Section Management](#pattern-sequencer--section-management)
 42. [Pattern Name Loop](#pattern-name-loop-new---dec-2025) *(NEW - Dec 2025)*
-43. [Pattern Sequencer](#pattern-sequencer)
-44. [Slab'o'Patterns (Time Signature Generator)](#slabopatterns-time-signature-generator)
-45. [Pattern Sequencer Utilities](#pattern-sequencer-utilities)
-46. [Pattern/Phrase Length Control](#patternphrase-length-control)
+43. [Pattern Merge / Concatenation](#pattern-merge--concatenation-new---feb-2026) *(NEW - Feb 2026)*
+44. [Pattern Sequencer](#pattern-sequencer)
+45. [Slab'o'Patterns (Time Signature Generator)](#slabopatterns-time-signature-generator)
+46. [Pattern Sequencer Utilities](#pattern-sequencer-utilities)
+47. [Pattern/Phrase Length Control](#patternphrase-length-control)
 
 ### Generative & Creative Tools
 46. [Generative Tools](#generative-tools)
@@ -110,7 +112,8 @@
 
 ### Device & Plugin Management
 69. [Plugin Loader](#plugin-loader)
-70. [Device Chain Presets](#device-chain-presets)
+70. [Plugin Slots](#plugin-slots-new---feb-2026) *(NEW - Feb 2026)*
+71. [Device Chain Presets](#device-chain-presets)
 71. [Quick Load Device Dialog](#quick-load-device-dialog)
 72. [Device Parameter Control (Parama Param)](#device-parameter-control-parama-param)
 73. [Canvas Parameter Editor](#canvas-parameter-editor) *(NEW - Jan 2026)*
@@ -160,8 +163,9 @@
 
 ### MIDI & Keybindings
 100. [MIDI Mapping Utilities](#midi-mapping-utilities)
-101. [Control Mixer Shown Parameters](#control-mixer-shown-parameters-new---dec-2025) *(NEW - Dec 2025)*
-102. [KeyBindings Management](#keybindings-management)
+101. [MIDI Mappings File Management](#midi-mappings-file-management-new---mar-2026) *(NEW - Mar 2026)*
+102. [Control Mixer Shown Parameters](#control-mixer-shown-parameters-new---dec-2025) *(NEW - Dec 2025)*
+103. [KeyBindings Management](#keybindings-management)
 
 ### External Integration
 102. [Sononymph Integration](#sononymph-integration)
@@ -265,6 +269,9 @@ Comprehensive delay calculator showing millisecond delay times for musical note 
 - **Double Double BPM** - Multiplies BPM by 4
 - **Multiply BPM & Halve LPB** - Double BPM, halve LPB (same speed, double resolution)
 - **Halve BPM & Multiply LPB** - Half BPM, double LPB (same speed, half resolution)
+
+### Random BPM Min/Max Preferences (NEW - Feb 2026)
+All random BPM functions now use a configurable Min/Max range instead of a hardcoded list. Two preferences (`RandomBPMMin` default 60, `RandomBPMMax` default 180) with valueboxes in the Paketti Preferences dialog (range 32–999, with cross-validation so min can't exceed max). Affects all random BPM functions including `randombpm()`, `randomBPMMaster()`, and the bell curve BPM generator. Values persist across sessions.
 
 ---
 
@@ -383,6 +390,15 @@ Toggle Sample Recorder + automatically manage #Line Input device:
 - **First press:** Opens recorder + adds #Line Input (if not present)
 - **Second press:** Closes recorder + removes #Line Input
 - **Smart detection:** Only removes #Line Input if it's in device slot 2
+
+### Display Sample Recorder with #Line Input and Track Scopes (NEW - Feb 2026)
+**Keybinding:** `Global:Paketti:Display Sample Recorder with #Line Input and Track Scopes` ⌨️
+
+**Menu:**
+- `Main Menu:Tools:Paketti:Recording:Display Sample Recorder with #Line Input and Track Scopes` 📋
+- `Sample Editor:Paketti:Display Sample Recorder with #Line Input and Track Scopes` 📋
+
+Enhanced version that also switches the upper frame to **Track Scopes** so you can see the live input waveform while recording. First press: adds `#Line Input` device, opens Track Scopes + Sample Recorder. Second press: closes recorder, removes `#Line Input` device. Gives a visual waveform monitor during recording without needing a third-party VST oscilloscope.
 
 ### Recordammajic9000
 **Shortcut:** `Global:Paketti:Recordammajic9000` ⌨️
@@ -538,6 +554,16 @@ Collection of Paketti's workflow control shortcuts for editing, playback, naviga
 - Rewind Playback by 4 steps
 - Toggle Metronome
 
+### Follow Page Pattern Toggle (NEW - Feb 2026)
+**Keybinding:** `Global:Paketti:Follow Page Pattern Toggle` ⌨️
+
+Allows you to "be on the same page" as the song playback — the Pattern Editor scrolls to show the currently playing page, but doesn't follow line-by-line. Different from Follow Pattern which tracks every line.
+
+### Block Loop Follows Edit Cursor (NEW - Feb 2026)
+**Keybinding:** `Global:Paketti:Block Loop Follows Edit Cursor Toggle` ⌨️
+
+Toggles a mode where the block loop range automatically follows the edit cursor position. When enabled, the loop range updates as you move through the pattern.
+
 ## Transpose Operations
 - Transpose Selection/Track (Octave Up/Down, +1/-1)
 - Transpose Note Column (Octave Up/Down, +1/-1)
@@ -557,6 +583,60 @@ Collection of Paketti's workflow control shortcuts for editing, playback, naviga
 - Save Song
 - Fullscreen
 - Song Details (Filename, BPM, LPB)
+
+## Metronome Precount (NEW - Feb 2026)
+
+### Toggle Metronome Precount
+**Keybinding:** `Global:Paketti:Toggle Metronome Precount` ⌨️
+
+**MIDI Mapping:** `Paketti:Toggle Metronome Precount` 🎹
+
+Toggles Renoise's metronome precount on or off. Status bar shows the new state.
+
+### Enable/Disable Metronome Precount
+**Keybindings:**
+- `Global:Paketti:Enable Metronome Precount` ⌨️
+- `Global:Paketti:Disable Metronome Precount` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:Enable Metronome Precount` 🎹
+- `Paketti:Disable Metronome Precount` 🎹
+
+Dedicated on/off shortcuts for metronome precount — no toggle ambiguity. Useful when you need to guarantee the state rather than toggling.
+
+## Track Mute/Unmute Controls (NEW - Feb 2026)
+
+### Toggle Mute/Unmute All Tracks
+**Keybinding:** `Global:Paketti:Toggle Mute/Unmute All Tracks` ⌨️
+
+**MIDI Mapping:** `Paketti:Toggle Mute/Unmute All Tracks` 🎹
+
+Mutes all sequencer tracks. If any tracks are already muted, unmutes all instead. Quick way to silence or restore an entire arrangement.
+
+### Toggle Mute/Unmute Remembered Tracks (Smart Mute)
+**Keybinding:** `Global:Paketti:Toggle Mute/Unmute Remembered Tracks` ⌨️
+
+**MIDI Mapping:** `Paketti:Toggle Mute/Unmute Remembered Tracks` 🎹
+
+Smart mute with memory — remembers which tracks were unmuted before muting all. On second press, restores only the previously unmuted tracks instead of blindly unmuting everything. Perfect for "mute all → listen → restore exact mix" workflows.
+
+## Linked EditStep & Quantization Controls (NEW - Feb 2026)
+
+Sets both EditStep and Record Quantization simultaneously. Includes direct value setting (0–32), ±1 increment, and power-of-two jumps (1, 2, 4, 8, 16, 32).
+
+**Keybindings:**
+- `Global:Paketti:EditStep & Quantization +1` ⌨️
+- `Global:Paketti:EditStep & Quantization -1` ⌨️
+- `Global:Paketti:EditStep & Quantization Set 0` through `Set 32` ⌨️
+- `Global:Paketti:EditStep & Quantization Power of 2 Up` ⌨️
+- `Global:Paketti:EditStep & Quantization Power of 2 Down` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:EditStep & Quantization +1` 🎹
+- `Paketti:EditStep & Quantization -1` 🎹
+- `Paketti:EditStep & Quantization [Knob]` 🎹
+
+Status bar feedback shows both values: `EditStep: 8, Quantize: 8 (On)` or `(Off)`. Changing values preserves the current quantize-enabled state — no more accidentally toggling quantize on/off.
 
 ---
 
@@ -1100,6 +1180,13 @@ Creates echo/delay patterns from current note. Configurable:
 - Volume decay
 - Transpose per echo
 
+**Feb 2026 Update — Three Echo Target Modes:**
+- **Same Column** (original) — echoes stay in the current note column
+- **Next Note Column** — echoes go to subsequent note columns, auto-expanding visible columns as needed
+- **Next Track** — echoes go to the next track(s) in the pattern
+
+**Echo Instrument option:** Use a different instrument for echoes (e.g., a 100% wet reverb version of the original). All settings persist in preferences across sessions.
+
 ### Track Mute (01-64)
 
 **Shortcuts:**
@@ -1226,6 +1313,13 @@ Alternative behavior with different selection logic. Named "Wrong" because it be
 
 ### Duplicate and Select Last Instrument
 Creates duplicate but selects the last instrument in the list.
+
+### Select Next/Previous Instrument with Wrapping (NEW - Feb 2026)
+**Keybindings:**
+- `Global:Paketti:Select Next Instrument` ⌨️
+- `Global:Paketti:Select Previous Instrument` ⌨️
+
+Wrapping instrument selection — Previous wraps from the first instrument to the last, and Next wraps from the last to the first. Additionally, when using Next Instrument at the last instrument, it automatically creates new empty instruments and selects them, so you never hit a dead end when building up a project.
 
 ## Quick Instrument Selection
 
@@ -1393,6 +1487,48 @@ Legacy devices (version 1.0 of effects): Chorus, Comb Filter, Distortion, Filter
 - Device Bypass/Enable Operations
 - Favorited Devices Control
 - Parameter Exposure in Mixer
+
+---
+
+# Batch Phrase Preset Save/Load (NEW - Feb 2026)
+
+**Source:** `PakettiPhraseEditor.lua` | **Features:** 2
+
+Batch save and load phrase presets as `.xrnz` files. Designed for workflows involving large phrase collections — batch-import 200+ MIDI files as phrases, save them all as presets in one click, then load them back into any instrument later.
+
+## Save All Phrases as Presets (.xrnz)
+
+**Keybinding:** `Global:Paketti:Save All Phrases as Presets (.xrnz)...` ⌨️
+**Menu Entry:** `Main Menu:Tools:Paketti:Instruments:Save All Phrases as Presets (.xrnz)...` 📋
+**MIDI Mapping:** `Paketti:Save All Phrases as Presets (.xrnz)...` 🎹
+
+Exports every phrase in the selected instrument as individual `.xrnz` preset files to a chosen folder. Files are named `01_PhraseName.xrnz`, `02_PhraseName.xrnz`, etc. for easy browsing and auditioning.
+
+## Load All Phrase Presets from Folder (.xrnz)
+
+**Keybinding:** `Global:Paketti:Load All Phrase Presets from Folder (.xrnz)...` ⌨️
+**Menu Entry:** `Main Menu:Tools:Paketti:Instruments:Load All Phrase Presets from Folder (.xrnz)...` 📋
+**MIDI Mapping:** `Paketti:Load All Phrase Presets from Folder (.xrnz)...` 🎹
+
+Imports all `.xrnz` files from a chosen folder into the selected instrument as phrases. Files are loaded in alphabetical order. Respects Renoise's 126-phrase limit and warns if the folder contains more presets than available slots.
+
+**Use Cases**
+
+**Phrase Library Management:**
+```
+1. Build phrases in one instrument
+2. Save All Phrases as Presets → folder of .xrnz files
+3. Load into different instrument later
+4. Share phrase collections with others
+```
+
+**MIDI-to-Phrase Pipeline:**
+```
+1. Batch import MIDI drum clips as phrases
+2. Save all 200+ phrases as .xrnz presets
+3. Load subset into new instrument
+4. Audition by browsing the folder
+```
 
 ---
 
@@ -3354,6 +3490,13 @@ Quickly adjust the velocity/volume of notes entered via computer keyboard. Range
 
 Rapid BPM changes in larger increments than the default ±1. Useful for finding the right tempo range quickly.
 
+### BPM Switcher (NEW - Feb 2026)
+**Keybinding:** `Pattern Editor:Paketti:BPM Switcher Dialog...` ⌨️
+
+**Menu Entry:** `Pattern Editor:Paketti:Pattern:BPM Switcher...` 📋
+
+Opens a dialog to write a ZTxx (Set Tempo) command on the Master Track at the current cursor line. Quick way to insert BPM changes into patterns without manually typing effect commands.
+
 ---
 
 ## Pattern Organization
@@ -3505,6 +3648,11 @@ Applies the same FX chain index to ALL samples in the currently selected instrum
 3. Perfect for extending loops without copy/paste
 
 **Example:** 16-row drum loop → Fill 128 = 8 repetitions
+
+### Split and Expand Pattern for >256 Rows (NEW - Feb 2026)
+**Keybinding:** `Global:Paketti:Split and Expand Pattern` ⌨️
+
+When expanding a pattern that would exceed 512 lines (pattern has >256 rows), the function splits into two patterns instead of refusing. First half and second half are each expanded into separate patterns, named "(1/2)" and "(2/2)". LPB is doubled. Example: a 512-line pattern becomes two 512-line expanded patterns. Patterns ≤256 rows expand normally into a single pattern.
 
 ---
 
@@ -3667,6 +3815,23 @@ Inverts the order of subcolumn values (mathematical inversion).
 - **Delay timing** - Create delay ramps
 - **Filter sweeps** - Using Sample FX column
 
+### Exponential Interpolation (NEW - Feb 2026)
+**Shortcuts:**
+- `Pattern Editor:Paketti:Exponential Interpolate Column Values (Volume)` ⌨️
+- `Pattern Editor:Paketti:Exponential Interpolate Column Values (Panning)` ⌨️
+- `Pattern Editor:Paketti:Exponential Interpolate Column Values (Delay)` ⌨️
+- `Pattern Editor:Paketti:Exponential Interpolate Column Values (Sample FX)` ⌨️
+- `Pattern Editor:Paketti:Exponential Interpolate Effect Column` ⌨️
+
+Uses a t² curve (slow start, fast end) instead of linear interpolation. Complements the existing linear interpolation for more natural-sounding fades. Works on Volume, Panning, Delay, Sample FX, and Effect Columns.
+
+### Interpolate Current Subcolumn (Auto-Detect) (NEW - Feb 2026)
+**Shortcuts:**
+- `Pattern Editor:Paketti:Interpolate Current Subcolumn (Linear)` ⌨️
+- `Pattern Editor:Paketti:Interpolate Current Subcolumn (Exponential)` ⌨️
+
+One-key interpolation that auto-detects which subcolumn the cursor is on (Volume, Panning, Delay, Sample FX, or Effect Column) and runs the appropriate interpolation on the selection. No need to remember separate shortcuts for each column type.
+
 ---
 
 ## Humanization
@@ -3743,6 +3908,35 @@ Opens comprehensive humanization dialog with:
 - **Clean project** - Remove unwanted effects
 - **Start arrangement** - Clear effects before mastering
 
+### Fill Effect Column Between Notes (NEW - Feb 2026)
+**Shortcuts:**
+- `Pattern Editor:Paketti:Fill Effect Column Between Notes` ⌨️
+- `Pattern Editor:Paketti:Fill Sample FX Column Between Notes` ⌨️
+
+Scans the pattern for note positions and copies each note's effect column command downward through all empty rows until the next note. Only fills empty rows — existing commands are preserved. The Sample FX variant does the same for sample effect columns.
+
+**Use Cases:**
+- **Sustain filter sweeps** — Set a filter command on a note and have it apply to all rows until the next note
+- **Persistent effects** — Apply an effect that carries through gaps between notes
+- **Quick effect painting** — Set a command once and propagate automatically
+
+### Mute/Solo via 0Lxx Track Volume Commands (NEW - Feb 2026)
+**Keybindings:**
+- `Pattern Editor:Paketti:Write 0L00 Mute on All Tracks` ⌨️
+- `Pattern Editor:Paketti:Write 0L80 Unmute on All Tracks` ⌨️
+- `Pattern Editor:Paketti:Write 0L00 Solo Current Track` ⌨️
+
+Writes 0Lxx effect commands into the pattern for pattern-level muting and soloing. `0L00` = mute (volume to 0), `0L80` = unmute (volume to ~50%). Solo writes `0L00` on all other tracks while keeping the current track audible. Unlike track mute buttons, these commands are embedded in the pattern data and play back identically every time.
+
+### Invert Specific Subcolumns Only (NEW - Feb 2026)
+**Shortcuts:**
+- `Pattern Editor:Paketti:Invert Selection (Volume Only)` ⌨️
+- `Pattern Editor:Paketti:Invert Selection (Panning Only)` ⌨️
+- `Pattern Editor:Paketti:Invert Selection (Delay Only)` ⌨️
+- `Pattern Editor:Paketti:Invert Selection (Sample FX Only)` ⌨️
+
+Inverts only the specified subcolumn within a selection, instead of inverting everything at once. For example, invert just the volume values while leaving panning, delay, and sample FX untouched.
+
 ---
 
 ## Note Operations
@@ -3791,6 +3985,50 @@ Opens comprehensive humanization dialog with:
 
 Move cursor by EditStep amount (like pressing Enter, but backwards too).
 
+### Note Off on All Columns in Group (NEW - Feb 2026)
+**Keybinding:** `Pattern Editor:Paketti:Note Off on All Columns in Group` ⌨️
+
+Writes Note Off (OFF) on the current line across all note columns for all tracks within the selected group. Useful for silencing an entire group at once — e.g., cutting all drum tracks simultaneously at a specific pattern position.
+
+### Mute Playing Note (NEW - Feb 2026)
+**Keybinding:** `Pattern Editor:Paketti:Mute Playing Note` ⌨️
+
+At the current cursor position, writes a Note Off to silence whatever note is currently ringing in that column. Quick way to cut a sustained note without navigating to its origin.
+
+### Clever Note Off - Wipe & Replace (NEW - Feb 2026)
+**Keybindings:**
+- `Pattern Editor:Paketti:Clever Note Off - Wipe & Right After` ⌨️
+- `Pattern Editor:Paketti:Clever Note Off - Wipe & Right Before` ⌨️
+- `Pattern Editor:Paketti:Clever Note Off - Wipe & Half Before` ⌨️
+
+Wipes ALL existing Note Offs in the track, then applies Clever Note Off with the chosen placement mode:
+- **Right After** — Note Off on the line immediately after each note
+- **Right Before** — Note Off on the line immediately before the next note
+- **Half Before** — Note Off at the halfway point between consecutive notes
+
+Clean slate approach to note-off placement — ensures consistent behavior regardless of what was there before.
+
+### Clever Note Off - Delay Adjustment (NEW - Feb 2026)
+**Keybindings:**
+- `Pattern Editor:Paketti:Clever Note Off - Delay +1` ⌨️
+- `Pattern Editor:Paketti:Clever Note Off - Delay -1` ⌨️
+- `Pattern Editor:Paketti:Clever Note Off - Delay +10` ⌨️
+- `Pattern Editor:Paketti:Clever Note Off - Delay -10` ⌨️
+
+Adjusts the delay value on ALL Note Offs in the track by a specified amount. Auto-enables the delay column if not visible. Fine-tune exactly when note-offs trigger for tighter or looser gating effects.
+
+### Clever Note Off - Reset Delay (NEW - Feb 2026)
+**Keybinding:** `Pattern Editor:Paketti:Clever Note Off - Reset Delay` ⌨️
+
+Resets the delay value to 0 on ALL Note Offs in the track. Quick cleanup after delay-based note-off timing experiments.
+
+### Play Next/Previous Note Line (NEW - Feb 2026)
+**Keybindings:**
+- `Pattern Editor:Paketti:Play Next Note Line` ⌨️
+- `Pattern Editor:Paketti:Play Previous Note Line` ⌨️
+
+Scans forward (or backward) from the current cursor position to find the next line containing a note, jumps the cursor there, and triggers playback of that line. Wraps around the pattern. Perfect for auditioning notes in sequence without stepping through empty rows.
+
 ---
 
 ## Navigation & Playback
@@ -3820,6 +4058,30 @@ Move cursor by EditStep amount (like pressing Enter, but backwards too).
 - `Global:Paketti:Jump Backward Within Pattern by Random` ⌨️
 
 Random cursor jumping within current pattern (without playing).
+
+---
+
+### Dynamic Quick Jumps / Pattern Fractions (NEW - Feb 2026)
+**Keybindings:**
+- `Pattern Editor:Paketti:Jump to 1/2` ⌨️
+- `Pattern Editor:Paketti:Jump to 1/4` ⌨️
+- `Pattern Editor:Paketti:Jump to 1/8` ⌨️
+- `Pattern Editor:Paketti:Jump to 1/16` ⌨️
+- `Pattern Editor:Paketti:Jump to 1/3` ⌨️
+- `Pattern Editor:Paketti:Jump to 2/3` ⌨️
+- `Pattern Editor:Paketti:Jump to 3/4` ⌨️
+
+Jump cursor to fractional positions within a pattern (1/2, 1/4, 1/8, 1/16 etc). Automatically saves the cursor position before jumping so you can return to where you were. Adapts to the current pattern length — 1/4 of a 64-line pattern = line 16, 1/4 of a 128-line pattern = line 32.
+
+### Jump Back to Previous Position (NEW - Feb 2026)
+**Keybinding:** `Pattern Editor:Paketti:Jump Back to Previous Position` ⌨️
+
+After jumping anywhere (fraction jumps, navigation), jump back to where you were. Works as a toggle: jump back, then jump forward again to the previous destination. Remembers both sequence position and line number.
+
+### Jump to Pattern Position Dialog (NEW - Feb 2026)
+**Keybinding:** `Pattern Editor:Paketti:Jump to Pattern Position Dialog...` ⌨️
+
+Dialog with offset valuebox (-512 to +512) to jump forward or backward within the current pattern. Includes quick jump buttons (-64, -32, -16, +16, +32, +64), Go to Start/End/Middle. Saves cursor position for Jump Back feature.
 
 ---
 
@@ -3950,6 +4212,8 @@ Clears any active sequence selection.
 
 Step-by-step sequence selection expansion. If no selection exists, selects the current sequence. Then expands the selection range one sequence at a time.
 
+**Feb 2026 Update — Direction-Aware:** Rewritten to be direction-aware. Next expands the selection forward one sequence at a time, Previous contracts from the end. At a single position, Previous clears, then re-selects, then expands backward. Cursor follows the expanding/contracting edge. Tracks anchor point and direction so contracting always undoes the last expansion.
+
 ---
 
 ### Sequence Selection to Loop
@@ -3999,6 +4263,8 @@ Creates a loop range from the current loop position (or creates a new one) to th
 **Menu:** `Pattern Sequencer:Paketti:Sequences/Sections:Sequence Loop Selection (Previous)` 📋
 
 Incrementally expand the loop range by adding one more sequence in either direction. If no loop exists, starts with the current sequence.
+
+**Feb 2026 Update — Direction-Aware:** Rewritten with the same direction-aware behavior as Sequence Selection but for the loop range. Next expands loop forward, Previous contracts from end, clears at single, re-selects, then expands backward. Cursor follows the edge.
 
 ---
 
@@ -4088,6 +4354,55 @@ Disables the sequence loop, setting the loop range to {0, 0}.
 **Menu:** `Pattern Sequencer:Paketti:Sequences/Sections:Section Loop (Previous)` 📋
 
 If no loop exists, creates a loop for the current section. If a loop exists, extends it to include the next/previous section. Great for building up section combinations during live performance.
+
+### Move Section Loop (Next/Previous) (NEW - Feb 2026)
+**Keybindings:**
+- `Global:Paketti:Move Section Loop (Next)` ⌨️
+- `Global:Paketti:Move Section Loop (Previous)` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:Move Section Loop (Next)` 🎹
+- `Paketti:Move Section Loop (Previous)` 🎹
+
+Moves the entire loop range to the next or previous section in the pattern sequencer. Different from Section Loop (Next/Previous) which *expands* the loop range — this *relocates* it, keeping the same loop width but shifting to an adjacent section.
+
+### Contract Section Loop (NEW - Feb 2026)
+**Keybindings:**
+- `Global:Paketti:Contract Section Loop (Remove Last Section)` ⌨️
+- `Global:Paketti:Contract Section Loop (Remove First Section)` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:Contract Section Loop (Remove Last Section)` 🎹
+- `Paketti:Contract Section Loop (Remove First Section)` 🎹
+
+Shrinks the current section loop by removing one section from either end:
+- **Remove Last Section** — removes the last section from the loop range
+- **Remove First Section** — removes the first section from the loop range
+
+If only one section remains, clears the loop entirely. The subtraction counterpart to the existing Section Loop expansion shortcuts.
+
+### Section Sequence Selection (Next/Previous) (NEW - Feb 2026)
+**Keybindings:**
+- `Global:Paketti:Section Sequence Selection (Next)` ⌨️
+- `Global:Paketti:Section Sequence Selection (Previous)` ⌨️
+
+Direction-aware section-level selection. Each press adds or removes an entire section from the sequencer selection range. First press selects the entire current section. Next expands to include the next section. Previous contracts by removing the last section, clears at single, re-selects, then expands backward. Cursor moves to the boundary.
+
+### Schedule Entire Section (NEW - Feb 2026)
+**Keybindings:** (00-64 available)
+- `Global:Paketti:Schedule Entire Section 00` through `64` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:Schedule Entire Section 00` through `64` 🎹
+
+New variant of "Select, Add to Schedule and Loop" that schedules ALL sequences in a section, not just the first pattern. Useful for completing playback of an entire multi-pattern section before switching to the next.
+
+### Clone Sequence Without Automation (NEW - Feb 2026)
+**Keybinding:** `Global:Paketti:Clone Sequence Without Automation` ⌨️
+
+**Menu Entry:** `Pattern Sequencer:Paketti:Sequences/Sections:Clone Sequence Without Automation` 📋
+
+Clones the current sequence/pattern but strips all automation data from the clone. The new pattern keeps all note data, effect commands, and track content but starts with a clean automation slate. Useful when you want to reuse note data but create new automation from scratch.
 
 ---
 
@@ -5141,6 +5456,29 @@ Analyzes single-cycle waveform and automatically sets correct transpose.
 **Menu:** `Sample Editor Ruler:Frequency to Note Analysis` 📋
 
 Shows detected frequency, nearest MIDI note, cents deviation.
+
+## Sample Editor Selection & Manipulation (NEW - Feb 2026)
+
+### Shift Selection Left/Right in Sample Editor
+**Keybindings:**
+- `Sample Editor:Paketti:Shift Selection Left` ⌨️
+- `Sample Editor:Paketti:Shift Selection Right` ⌨️
+
+Moves the current sample buffer selection left or right by exactly its own length. Useful for stepping through a sample in fixed-size chunks, e.g., selecting one bar then shifting to the next bar. The selection size stays the same — only the position changes.
+
+### Rotate Audio in Selection
+**Keybinding:** `Sample Editor:Paketti:Rotate Audio in Selection` ⌨️
+
+Rotates the audio data within the current sample buffer selection by its midpoint — the second half becomes the first half and vice versa. Operates on all channels. Useful for creating variations or shifting rhythmic content within a selection without affecting the rest of the sample.
+
+### Select Bars in Sample Editor (1/2/4/8 Bars)
+**Keybindings:**
+- `Sample Editor:Paketti:Select 1 Bar` ⌨️
+- `Sample Editor:Paketti:Select 2 Bars` ⌨️
+- `Sample Editor:Paketti:Select 4 Bars` ⌨️
+- `Sample Editor:Paketti:Select 8 Bars` ⌨️
+
+Selects a musical-length portion of the sample based on the current song BPM and sample rate. Calculates the exact number of frames for the requested number of bars and sets the selection starting from the current selection start (or frame 1). Combine with Shift Selection Left/Right to step through bar-by-bar.
 
 
 # Slicing Features
@@ -7163,6 +7501,68 @@ Pattern list saved to `slab_o_patterns.txt` in tool bundle path. Configuration p
 
 ---
 
+# Pattern Merge / Concatenation (NEW - Feb 2026)
+
+**Source:** `PakettiPatternSequencer.lua` | **Features:** 4
+
+Four ways to merge patterns end-to-end into a new combined pattern. Source patterns are never modified. Automation envelope points from later patterns are time-shifted so they land in the correct position. Merged patterns are named automatically (`PatternA+PatternB+...`). Capped at Renoise's 512-line maximum.
+
+## Merge Current with Next Pattern
+
+**Keybinding:** `Pattern Sequencer:Paketti:Merge Current with Next Pattern` ⌨️
+**Keybinding:** `Global:Paketti:Merge Current with Next Pattern` ⌨️
+**Menu Entry:** `Pattern Sequencer:Paketti:Merge Current with Next Pattern` 📋
+**Menu Entry:** `Pattern Matrix:Paketti:Merge Current with Next Pattern` 📋
+
+Combines the current pattern with the one immediately after it in the sequence. Inserts the merged result after both source slots.
+
+## Merge Current with Previous Pattern
+
+**Keybinding:** `Pattern Sequencer:Paketti:Merge Current with Previous Pattern` ⌨️
+**Keybinding:** `Global:Paketti:Merge Current with Previous Pattern` ⌨️
+**Menu Entry:** `Pattern Sequencer:Paketti:Merge Current with Previous Pattern` 📋
+**Menu Entry:** `Pattern Matrix:Paketti:Merge Current with Previous Pattern` 📋
+
+Combines the pattern before the current one with the current pattern. Inserts the merged result after the current slot.
+
+## Merge Selected Patterns
+
+**Keybinding:** `Pattern Sequencer:Paketti:Merge Selected Patterns` ⌨️
+**Keybinding:** `Global:Paketti:Merge Selected Patterns` ⌨️
+**Menu Entry:** `Pattern Sequencer:Paketti:Merge Selected Patterns` 📋
+**Menu Entry:** `Pattern Matrix:Paketti:Merge Selected Patterns` 📋
+
+Merges all patterns within the current Pattern Sequencer selection range into a single new pattern. Inserted after the selection end.
+
+## Merge All Patterns to Monster
+
+**Keybinding:** `Pattern Sequencer:Paketti:Merge All Patterns to Monster` ⌨️
+**Keybinding:** `Global:Paketti:Merge All Patterns to Monster` ⌨️
+**Menu Entry:** `Pattern Sequencer:Paketti:Merge All Patterns to Monster` 📋
+**Menu Entry:** `Pattern Matrix:Paketti:Merge All Patterns to Monster` 📋
+
+Concatenates every pattern in the entire sequence into one large pattern (capped at 512 lines). Appended at the end. Shows a truncation warning if the total exceeds 512 lines.
+
+**Use Cases**
+
+**Arrangement Consolidation:**
+```
+1. Build song with short patterns (verse, chorus, bridge)
+2. Select verse patterns in sequencer
+3. Merge Selected → single verse pattern
+4. Repeat for chorus, bridge
+5. Clean, consolidated arrangement
+```
+
+**Bounce to Single Pattern:**
+```
+1. Merge All → Monster
+2. One pattern with everything
+3. Useful for exporting or live performance
+```
+
+---
+
 # Pattern Sequencer Utilities
 
 **Source:** `PakettiPatternSequencer.lua` | **Features:** 34
@@ -8233,6 +8633,16 @@ Batch converts a folder of RX2 files to Octatrack-compatible WAV + .ot files.
 - Convert legacy ReCycle sample packs to Octatrack format
 - Batch prepare sliced loops for Elektron hardware
 - Migrate REX library to modern hardware sampler format
+
+### Batch Convert RX2 to XRNI (NEW - Feb 2026)
+
+**Keybinding:** `Global:Paketti:Batch Convert RX2 to XRNI` ⌨️
+
+**Menu:**
+- `Sample Editor:Paketti:Batch Convert RX2 to XRNI...` 📋
+- `Main Menu:File:Paketti Import:Batch Convert RX2 to XRNI...` 📋
+
+Select a folder of RX2 loop files and an output folder — Paketti converts each RX2 into a fully slice-marked Renoise instrument (.xrni), one file per RX2. Uses the bundled rex2decoder binary to extract WAV audio and slice marker positions, loads each into a fresh instrument slot, applies up to 255 slice markers, saves the XRNI, then removes the temporary instrument. Reports success/fail counts at the end. Failed files are skipped and logged to the console without aborting the batch.
 
 ---
 
@@ -9768,6 +10178,24 @@ Fills selection densely with randomized effect commands.
 - Random modulation textures
 - Experimental rhythmic variations
 - Chaotic glitch effects
+
+### Step Sequencer FX Randomizer (NEW - Feb 2026)
+**Keybinding:** `Pattern Editor:Paketti:Step Sequencer FX Randomizer Dialog...` ⌨️
+
+**Menu Entry:** `Pattern Editor:Paketti:Pattern:Step Sequencer FX Randomizer...` 📋
+
+Full dialog with up to 64 step checkboxes, FX command dropdown, min/max value sliders, quick-select buttons (None, All, Every 2nd/3rd/4th/8th), shift buttons, step count presets, and options. Randomizes effect values on checked steps and writes them to the pattern.
+
+**Dialog Features:**
+- **Step checkboxes** — up to 64 steps, each individually toggleable
+- **FX command dropdown** — select which effect command to randomize (volume, panning, retrig, etc.)
+- **Min/Max sliders** — constrain random values to a desired range
+- **Quick-select buttons** — None, All, Every 2nd, 3rd, 4th, 8th step
+- **Shift buttons** — Shift the step pattern left/right
+- **Step count presets** — 8, 16, 32, 64 steps
+- **Apply** — writes the randomized values to the pattern
+
+Replaces the simpler keybinding-only randomizers with a visual, interactive step sequencer approach. Perfect for designing controlled-chaos glitch patterns.
 
 ## Track Solo/Mute Systems
 
@@ -13025,8 +13453,30 @@ Import samples from classic Amiga ProTracker .MOD files (4-channel tracker modul
 
 ### .MID (MIDI File)
 **Extensions:** `.mid`
-**Category:** Instrument  
+**Category:** Instrument
 **Import:** Drag .mid file → converts MIDI to Renoise instrument/pattern
+
+**Feb 2026 Update — MIDI Drum Pattern to Phrase Import:**
+Paketti now includes a pure Lua MIDI file parser that converts Ableton/GM MIDI drum clips into Renoise instrument phrases. Drop a .mid file onto an instrument via the file import hook, or use the batch import dialog to convert an entire folder of MIDI clips into phrases at once.
+
+**Features:**
+- Configurable LPB (4/6/8/12/16/24)
+- Optional delay column for sub-line timing precision
+- Automatic polyphony detection (up to 12 note columns)
+- Volume/velocity preservation
+- Automatic instrument overflow when 126 phrase limit is reached
+- Supports MIDI Format 0 and Format 1 files
+
+**Single file import:**
+- **Menu:** `Main Menu:Tools:Paketti:Instruments:MIDI Drum Pattern to Phrase (Import)...` 📋
+- **Keybinding:** `Global:Paketti:MIDI Drum Pattern to Phrase (Import)...` ⌨️
+- **MIDI Mapping:** `Paketti:MIDI Drum Pattern to Phrase (Import)...` 🎹
+- Plus drag-and-drop via the .mid file import hook
+
+**Batch folder import:**
+- **Menu:** `Main Menu:Tools:Paketti:Instruments:MIDI Folder Batch Import to Phrases...` 📋
+- **Keybinding:** `Global:Paketti:MIDI Folder Batch Import to Phrases...` ⌨️
+- **MIDI Mapping:** `Paketti:MIDI Folder Batch Import to Phrases...` 🎹
 
 ## Project/Song Formats
 
@@ -13310,6 +13760,43 @@ Stricter cleanup - deletes tracks with no notes AND no DSP devices.
 - Maximum cleanup
 - Reset project to minimal tracks
 - Prepare template
+
+## Remove Unused Columns (NEW - Feb 2026)
+
+### Remove Unused Note Columns
+**Keybinding:** `Global:Paketti:Remove Unused Note Columns` ⌨️
+
+**Menu Entry:** `Pattern Editor:Paketti:Pattern:Remove Unused Note Columns` 📋
+
+Scans ALL patterns in the sequence, finds the highest actually-used note column per track, and reduces `visible_note_columns` to match (minimum 1). Cleans up tracks with excess empty columns that accumulate during editing.
+
+### Remove Unused Effect Columns
+**Keybinding:** `Global:Paketti:Remove Unused Effect Columns` ⌨️
+
+**Menu Entry:** `Pattern Editor:Paketti:Pattern:Remove Unused Effect Columns` 📋
+
+Same as above but for effect columns. Works on sequencer tracks, master track, and send tracks.
+
+### Remove Unused Columns (Note + Effect)
+**Keybinding:** `Global:Paketti:Remove Unused Columns` ⌨️
+
+**Menu Entry:** `Pattern Editor:Paketti:Pattern:Remove Unused Columns (Note + Effect)` 📋
+
+Runs both unused note column and unused effect column removal at once. One shortcut to clean up all excess columns across the entire song.
+
+## Clear Unreferenced Patterns (NEW - Feb 2026)
+
+**Keybinding:** `Global:Paketti:Clear Unreferenced Patterns` ⌨️
+
+**Menu Entry:** `Pattern Editor:Paketti:Pattern:Clear Unreferenced Patterns` 📋
+
+Clears content of patterns not referenced by any sequence entry. Frees up pattern data without removing pattern slots — the patterns remain as empty slots that can be reused. Safer than deleting patterns, which would shift sequence references.
+
+## Wipe Drumkit Sample FX Assignments (NEW - Feb 2026)
+
+**Keybinding:** `Global:Paketti:Wipe Drumkit Sample FX Assignments` ⌨️
+
+Resets all sample effect column assignments across all samples in the current drumkit instrument. Quick cleanup shortcut when sample FX assignments have gotten messy from experimentation.
 
 ---
 
@@ -14378,6 +14865,96 @@ Rebuilds MIDI mapping cache from source files.
 
 ---
 
+# MIDI Mappings File Management (NEW - Mar 2026)
+
+**Source:** `PakettiMIDIMappings.lua` | **Features:** 7
+
+Full MIDI mapping file management — save your controller setup to an `.xrnm` file, load it into any song, merge mappings from multiple files, or do a clean replace. Switch between different MIDI controllers or share setups between projects.
+
+## Save MIDI Mappings
+
+**Keybinding:** `Global:Paketti:Save MIDI Mappings (.xrnm)...` ⌨️
+**Menu Entry:** `Main Menu:Tools:Paketti:MIDI Mappings:Save MIDI Mappings (.xrnm)...` 📋
+**MIDI Mapping:** `Paketti:Save MIDI Mappings (.xrnm)...` 🎹
+
+Exports all current song MIDI mappings to an `.xrnm` file via file picker.
+
+## Load MIDI Mappings from File (Merge)
+
+**Keybinding:** `Global:Paketti:Load MIDI Mappings from File (Merge)...` ⌨️
+**Menu Entry:** `Main Menu:Tools:Paketti:MIDI Mappings:Load MIDI Mappings from File (Merge)...` 📋
+**MIDI Mapping:** `Paketti:Load MIDI Mappings from File (Merge)...` 🎹
+
+Loads an `.xrnm` file and merges it with your existing mappings. Existing bindings stay, new ones are added.
+
+## Load MIDI Mappings from File (Replace All)
+
+**Keybinding:** `Global:Paketti:Load MIDI Mappings from File (Replace All)...` ⌨️
+**Menu Entry:** `Main Menu:Tools:Paketti:MIDI Mappings:Load MIDI Mappings from File (Replace All)...` 📋
+**MIDI Mapping:** `Paketti:Load MIDI Mappings from File (Replace All)...` 🎹
+
+Clears all existing mappings first, then loads from the selected `.xrnm` file. Clean slate.
+
+## Load Default MIDI Mappings
+
+**Keybinding:** `Global:Paketti:Load Default MIDI Mappings` ⌨️
+**Menu Entry:** `Main Menu:Tools:Paketti:MIDI Mappings:Load Default MIDI Mappings` 📋
+**MIDI Mapping:** `Paketti:Load Default MIDI Mappings` 🎹
+
+Loads the `.xrnm` file configured in Paketti Preferences (merge behavior).
+
+## Clear & Reload Default MIDI Mappings
+
+**Keybinding:** `Global:Paketti:Clear & Reload Default MIDI Mappings` ⌨️
+**Menu Entry:** `Main Menu:Tools:Paketti:MIDI Mappings:Clear & Reload Default MIDI Mappings` 📋
+**MIDI Mapping:** `Paketti:Clear & Reload Default MIDI Mappings` 🎹
+
+Clears all mappings, then loads the configured default (replace behavior).
+
+## Load Paketti MIDI Mappings
+
+**Keybinding:** `Global:Paketti:Load Paketti MIDI Mappings` ⌨️
+**Menu Entry:** `Main Menu:Tools:Paketti:MIDI Mappings:Load Paketti MIDI Mappings` 📋
+**MIDI Mapping:** `Paketti:Load Paketti MIDI Mappings` 🎹
+
+Loads the bundled MIDI mapping presets shipped with Paketti (from the `KeyBindings/` folder). If multiple `.xrnm` files are bundled, presents a picker dialog.
+
+## Clear All MIDI Mappings
+
+**Keybinding:** `Global:Paketti:Clear All MIDI Mappings` ⌨️
+**Menu Entry:** `Main Menu:Tools:Paketti:MIDI Mappings:Clear All MIDI Mappings` 📋
+**MIDI Mapping:** `Paketti:Clear All MIDI Mappings` 🎹
+
+Removes every MIDI mapping from the song.
+
+**Use Cases**
+
+**Switching Controllers:**
+```
+1. Set up Digitakt MIDI mappings
+2. Save as "Digitakt.xrnm"
+3. Set up LaunchControl mappings
+4. Save as "LaunchControl.xrnm"
+5. Load whichever you need per session
+```
+
+**Sharing Setups:**
+```
+1. Save your mapping setup as .xrnm
+2. Share the file on the Paketti Discord
+3. Others load it with Merge or Replace
+```
+
+**Default Controller Setup:**
+```
+1. Configure your preferred mappings
+2. Save as .xrnm
+3. Set path in Paketti Preferences
+4. "Load Default MIDI Mappings" restores it in any song
+```
+
+---
+
 # Control Mixer Shown Parameters (NEW - Dec 2025)
 
 **Source:** `PakettiMidi.lua` | **Features:** 32
@@ -15288,6 +15865,53 @@ Dynamic plugin loading system - creates keybindings for all installed VST/AU plu
 2. Load instruments on-the-fly
 3. No mouse/menu diving
 4. Fast workflow
+```
+
+---
+
+# Plugin Slots (NEW - Feb 2026)
+
+**Source:** `PakettiLoadPlugins.lua` | **Features:** 7
+
+Five configurable instrument-plugin show/hide slots. Assign any VST, VST3, AU, LADSPA, or DSSI instrument plugin to a slot, then use a keybinding or menu entry to load it, show its external editor, or hide it. Same add-show-hide cycle as the hardcoded XO shortcut, but fully user-configurable.
+
+## Configure Plugin Slots
+
+**Keybinding:** `Global:Paketti:Configure Plugin Slots` ⌨️
+**Menu Entry:** `Main Menu:Tools:Paketti:Plugins/Devices:Plugin Slots:Configure Plugin Slots...` 📋
+**Menu Entry:** `Instrument Box:Paketti:Plugins/Devices:Plugin Slots:Configure Plugin Slots...` 📋
+
+Opens a dialog showing all available instrument plugins grouped by type (AU, VST3, VST, LADSPA, DSSI), sorted alphabetically within each group. Selecting a plugin stores both its load path and display name in `preferences.xml` for instant recall across sessions.
+
+Also registered in Dialog of Dialogs — search for "plugin slots" or "slot" to open it.
+
+## Toggle Slot 1-5
+
+**Keybinding:** `Global:Paketti:Plugin Slots Toggle Slot N Show/Hide` ⌨️ (where N = 1-5)
+**Menu Entry:** `Main Menu:Tools:Paketti:Plugins/Devices:Plugin Slots:Toggle Slot N` 📋
+**Menu Entry:** `Instrument Box:Paketti:Plugins/Devices:Plugin Slots:Toggle Slot N` 📋
+**MIDI Mapping:** `Paketti:Plugin Slots:Toggle Slot N Show/Hide` 🎹
+
+**Toggle behavior per slot:**
+1. **Plugin already loaded** in any instrument → toggle `external_editor_visible` (show/hide)
+2. **Plugin not yet loaded** → inserts a new instrument, loads the plugin, and shows the editor
+3. **Slot not configured** → status bar message prompts user to open the configure dialog
+
+**Use Cases**
+
+**Live Performance:**
+```
+1. Assign your 5 go-to synths to slots
+2. One key to load and open any of them
+3. Press again to hide the editor
+4. Press again to show it
+```
+
+**Studio Template:**
+```
+1. Configure slots once
+2. Settings persist in preferences.xml
+3. Available in every project
 ```
 
 ---
