@@ -16,9 +16,9 @@ What supporters funded this month:
 
 "Replicate Into Selection" and "Replicate Above Into Selection Only" were two separate implementations doing the exact same thing — taking whatever is above your selection and tiling it downward into the selected rows. Removed the duplicate code (~240 lines) and unified both shortcuts to use the same single implementation. Both keybinding names still work, no workflow changes needed.
 
-### 2026-03-02 - Fix: Autocomplete crash when selecting disabled AKAI commands
+### 2026-03-02 - Fix: Autocomplete crash when selecting certain commands
 
-Fixed a crash in the Autocomplete dialog that occurred when selecting commands whose backing functions are not loaded (e.g. AKAI import/export). The autocomplete cache could contain entries from modules not present in `manifest.xml`. When the global function lookup tried `_G[name]`, Renoise's strict global checking threw an error instead of returning nil. Changed to `rawget(_G, name)` to safely handle missing globals without crashing.
+Fixed a crash in the Autocomplete dialog that could happen when clicking on certain command suggestions (e.g. AKAI-related entries). Instead of crashing, those entries now safely show "Failed to execute" so the dialog stays usable.
 
 ### 2026-03-01 - Feature: MIDI Mappings Save/Load/Merge/Replace/Clear (.xrnm)
 
