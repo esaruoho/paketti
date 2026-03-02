@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-02 - Fix: Autocomplete crash when selecting disabled AKAI commands
+
+Fixed a crash in the Autocomplete dialog that occurred when selecting commands whose backing functions are not loaded (e.g. AKAI import/export). The autocomplete cache could contain entries from modules not present in `manifest.xml`. When the global function lookup tried `_G[name]`, Renoise's strict global checking threw an error instead of returning nil. Changed to `rawget(_G, name)` to safely handle missing globals without crashing.
+
 ### 2026-03-01 - Feature: MIDI Mappings Save/Load/Merge/Replace/Clear (.xrnm)
 
 Full MIDI mapping file management — save your controller setup, load it into another song, merge mappings from multiple files, or do a clean replace. Ideal for switching between different MIDI controllers or sharing setups between projects.

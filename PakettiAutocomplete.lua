@@ -2597,10 +2597,11 @@ local function execute_command(command)
     -- Only try global lookup for simple function names (no parentheses)
     if not command.invoke:match("[%(%)']") then
       print("CHECKING: Simple function name: " .. command.invoke)
-      if _G[command.invoke] then
-        if type(_G[command.invoke]) == "function" then
+      local global_fn = rawget(_G, command.invoke)
+      if global_fn then
+        if type(global_fn) == "function" then
           print("Found global function: " .. command.invoke)
-          local exec_ok, exec_err = pcall(_G[command.invoke])
+          local exec_ok, exec_err = pcall(global_fn)
           if exec_ok then
             success = true
             print("EXECUTION SUCCESSFUL!")
@@ -2609,7 +2610,7 @@ local function execute_command(command)
             print("Execution failed: " .. error_msg)
           end
         else
-          print("Global " .. command.invoke .. " exists but is not a function (type: " .. type(_G[command.invoke]) .. ")")
+          print("Global " .. command.invoke .. " exists but is not a function (type: " .. type(global_fn) .. ")")
         end
       else
         print("Global function " .. command.invoke .. " not found")
