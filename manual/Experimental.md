@@ -32,7 +32,9 @@
 14. [Batch Phrase Preset Save/Load](#batch-phrase-preset-saveload-new---feb-2026) *(NEW - Feb 2026)*
 15. [Phrase Editor](#phrase-editor)
 16. [Automation Features](#automation-features)
-17. [Pattern Editor Advanced](#pattern-editor-advanced)
+17. [Enhanced Automation Curves Dialog](#enhanced-automation-curves-dialog-new---jan-2026) *(NEW - Jan 2026)*
+18. [Automation Clipboard](#automation-clipboard-new---jan-2026) *(NEW - Jan 2026)*
+19. [Pattern Editor Advanced](#pattern-editor-advanced)
 
 ### Sample Management
 17. [Sample Loading & Management](#sample-loading--management)
@@ -82,6 +84,7 @@
 48. [Paketti Wonkify](#paketti-wonkify)
 49. [Tuplet Generator](#tuplet-generator)
 50. [Unison Generator](#unison-generator)
+51. [MetaSynth — Instrument Architecture Generator](#metasynth--instrument-architecture-generator-new---jan-2026) *(NEW - Jan 2026)*
 51. [Paketti Gater](#paketti-gater)
 52. [Hotelsinus Step Sequencer](#hotelsinus-step-sequencer)
 53. [Paketti 8120 Groovebox](#paketti-8120-groovebox)
@@ -580,7 +583,7 @@ Toggles a mode where the block loop range automatically follows the edit cursor 
 - KeybOctave Up/Down
 
 ## Utility Functions
-- Save Song
+- Save Song *(also available as MIDI Mapping — Jan 2026)*
 - Fullscreen
 - Song Details (Filename, BPM, LPB)
 
@@ -840,13 +843,14 @@ Jumps to next/previous sequence. Enables follow player if disabled. When playing
 
 Changes all instrument numbers in selection to currently selected instrument. Only affects lines with notes.
 
-#### ALT-L - Mark Track/Mark Pattern
+#### ALT-L - Mark Track/Mark Pattern (Progressive - Jan 2026 Update)
 **Shortcut:** `Pattern Editor:Selection:Impulse Tracker ALT-L Mark Track/Mark Pattern` ⌨️
 
-**Smart Marking:**
-1. **First press:** Selects entire track (line 1 to end)
-2. **Second press:** Selects entire pattern (all tracks)
-3. Also updates automation selection if automation frame visible
+**Progressive Smart Marking (3 levels):**
+1. **First press:** Selects current Note or Effect Column
+2. **Second press:** Selects entire track (line 1 to end)
+3. **Third press:** Selects entire pattern (all tracks)
+4. Also updates automation selection if automation frame visible
 
 #### SHIFT-ALT-L - Mark Note Column/Mark Pattern
 **Shortcut:** `Pattern Editor:Selection:Impulse Tracker SHIFT-ALT-L Mark Note Column/Mark Pattern` ⌨️
@@ -1380,6 +1384,15 @@ All-in-one operation: Renders, loads into new instrument, immediately opens save
 ## Pattern Matrix Rendering
 Select multiple patterns in Pattern Matrix view, then render them all into a new instrument with samples.
 
+**Menu Entries:**
+- `Pattern Matrix:Paketti:Render Pattern Matrix Selection to New Instrument` 📋
+- `Pattern Sequencer:Paketti:Render Pattern Matrix Selection to New Instrument` 📋 *(Jan 2026 — added to Pattern Sequencer)*
+- `Main Menu:Tools:Paketti:Render Pattern Matrix Selection to New Instrument` 📋
+
+**Keybindings:**
+- `Pattern Matrix:Paketti:Render Pattern Matrix Selection to New Instrument` ⌨️
+- `Global:Paketti:Render Pattern Matrix Selection to New Instrument` ⌨️
+
 ## Experimental Features
 - Experimental Sample FX Render
 - Test Peak Detection
@@ -1638,6 +1651,81 @@ Record Device Snapshot to Automation.
 
 ---
 
+## Enhanced Automation Curves Dialog (NEW - Jan 2026)
+
+**Source:** `PakettiAutomationCurves.lua`
+
+A comprehensive automation drawing tool that lets you draw curves directly into automation envelopes with looping, fill modes, and a multiplier for repeating patterns.
+
+**Menu Entries:**
+- `Main Menu:Tools:Paketti Gadgets:Enhanced Automation (Curves)...` 📋
+- `Track Automation:Paketti Gadgets:Enhanced Automation (Curves)...` 📋
+
+**Keybindings:**
+- `Global:Paketti:Enhanced Automation (Curves) Dialog` ⌨️
+- `Global:Paketti:Automation Curve Insert Sine` ⌨️ (and other shapes: Cosine, Triangle, Sawtooth, Square, etc.)
+- `Global:Paketti:Automation Curves Fade In` / `Fade Out` ⌨️
+- `Global:Paketti:Automation Curves Zero Odd` / `Zero Even` / `Max Odd` / `Max Even` ⌨️
+- `Global:Paketti:Automation Curves Randomize` / `Smooth` / `Quantize` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:Enhanced Automation (Curves) Dialog` 🎹
+
+**Features:**
+- **Curve shapes** — Sine, cosine, triangle, sawtooth, square, exponential, logarithmic, and more
+- **Loop / Fill modes** — Draw a shape once, or fill the entire selection/pattern with repeated copies
+- **Multiplier control (1x–8x)** — Use +/- keys to cycle between 1x and 8x repetitions of the drawn shape
+- **Fade In / Fade Out** — Apply linear fades across the selection
+- **Odd/Even operations** — Zero or max every other point for rhythmic automation patterns
+- **Randomize, Smooth, Quantize** — Post-processing operations on drawn envelopes
+
+### LFO Custom Waveform Writer (Jan 2026)
+
+Integrated into the Enhanced Automation Curves dialog. When the "Write to LFO Custom Waveform" checkbox is enabled, the selected shape is written to the selected LFO device's custom waveform instead of the automation envelope. The +/- multiplier (1x–8x) applies here too, so you can draw multi-cycle custom LFO shapes directly from the keyboard.
+
+---
+
+## Automation Clipboard (NEW - Jan 2026)
+
+**Source:** `PakettiAutomationCurves.lua`
+
+Copy, cut, and paste entire automation envelopes between parameters. Integrated into the Enhanced Automation Curves dialog (cmd-x/cmd-c/cmd-v) and also available as standalone operations.
+
+**Menu Entries:**
+- `Track Automation:Paketti:Automation Clipboard Cut` 📋
+- `Track Automation:Paketti:Automation Clipboard Copy` 📋
+- `Track Automation:Paketti:Automation Clipboard Paste` 📋
+- `Track Automation:Paketti:Automation Clipboard Paste (Stretch)` 📋
+- `Track Automation:Paketti:Automation Clipboard Flood-Fill` 📋
+- `Track Automation List:Paketti:Automation Clipboard Cut` 📋
+- `Track Automation List:Paketti:Automation Clipboard Copy` 📋
+- `Track Automation List:Paketti:Automation Clipboard Paste` 📋
+- `Track Automation List:Paketti:Automation Clipboard Paste (Stretch)` 📋
+- `Track Automation List:Paketti:Automation Clipboard Flood-Fill` 📋
+
+**Keybindings:**
+- `Automation:Paketti:Automation Clipboard Cut` ⌨️
+- `Automation:Paketti:Automation Clipboard Copy` ⌨️
+- `Automation:Paketti:Automation Clipboard Paste` ⌨️
+- `Automation:Paketti:Automation Clipboard Paste (Stretch)` ⌨️
+- `Automation:Paketti:Automation Clipboard Flood-Fill` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:Automation Clipboard Cut x[Toggle]` 🎹
+- `Paketti:Automation Clipboard Copy x[Toggle]` 🎹
+- `Paketti:Automation Clipboard Paste x[Toggle]` 🎹
+- `Paketti:Automation Clipboard Paste (Stretch) x[Toggle]` 🎹
+- `Paketti:Automation Clipboard Flood-Fill x[Toggle]` 🎹
+
+**Operations:**
+- **Cut** — Copies the automation envelope to clipboard and clears it
+- **Copy** — Copies the automation envelope to clipboard
+- **Paste** — Pastes the clipboard contents to the current automation parameter
+- **Paste (Stretch)** — Pastes and stretches/compresses to fit the current selection length
+- **Flood-Fill** — Tiles the clipboard pattern across the entire envelope
+
+---
+
 # Pattern Editor Advanced
 
 Comprehensive guide to Paketti's advanced Pattern Editor features - **373 keyboard shortcuts!**
@@ -1689,6 +1777,20 @@ dBlue-style pattern doubling and halving operations.
 
 ## BPM Controls
 Various BPM adjustment shortcuts.
+
+### Write Current BPM/LPB to Master Track (Jan 2026)
+Writes the current song BPM and LPB values as effect commands into the Master Track's effect column at the current cursor position.
+
+**Menu Entries:**
+- `Pattern Editor:Paketti:BPM&LPB:Write Current BPM&LPB to Master Column` 📋
+- `Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Write Current BPM&LPB to Master Column` 📋
+- `Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Renoise Random BPM & Write BPM/LPB to Master` 📋
+
+**Keybindings:**
+- `Pattern Editor:Paketti:Write Current BPM&LPB to Master Column` ⌨️
+- `Global:Paketti:Write Current BPM&LPB to Master Column` ⌨️
+- `Mixer:Paketti:Write Current BPM&LPB to Master Column` ⌨️
+- `Pattern Editor:Paketti:Renoise Random BPM & Write BPM/LPB to Master` ⌨️
 
 ## Column Navigation
 Smart column navigation and selection features.
@@ -2369,10 +2471,10 @@ Comprehensive stem loading system that imports multiple audio files (stems) into
 - Load multiple audio files, each into its own instrument on its own track
 - Automatic track naming based on filename
 - C-4 triggers with 0G01 glide command written to patterns
-- Automatic BPM detection from:
+- Automatic BPM detection from (enhanced Jan 2026):
   - WAV file ACID chunk header
   - Folder name patterns (e.g., "146BPM", "BPM_120", "song_90bpm")
-  - Filename patterns
+  - Filename patterns (fallback — if BPM not found in folder name or WAV header, checks the filename itself)
 - Pattern sequence creation based on sample length
 - `*Instr. Macros` device added to each track
 
@@ -3653,6 +3755,25 @@ Applies the same FX chain index to ALL samples in the currently selected instrum
 **Keybinding:** `Global:Paketti:Split and Expand Pattern` ⌨️
 
 When expanding a pattern that would exceed 512 lines (pattern has >256 rows), the function splits into two patterns instead of refusing. First half and second half are each expanded into separate patterns, named "(1/2)" and "(2/2)". LPB is doubled. Example: a 512-line pattern becomes two 512-line expanded patterns. Patterns ≤256 rows expand normally into a single pattern.
+
+---
+
+## Replicate Above Into Selection Only (NEW - Jan 2026)
+
+**Source:** `PakettiPatternEditor.lua`
+
+Replicates the content above the selection into the selection only — a targeted flood-fill that copies the row(s) above the selection start and tiles them downward through the selected area, without affecting anything outside the selection.
+
+**Menu Entries:**
+- `Pattern Editor:Paketti:Replicate:Replicate Above Into Selection Only` 📋
+- `Phrase Editor:Paketti:Replicate Above Into Selection Only` 📋
+
+**Keybindings:**
+- `Pattern Editor:Paketti:Replicate Above Into Selection Only` ⌨️
+- `Phrase Editor:Paketti:Replicate Above Into Selection Only` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:Replicate Above Into Selection Only` 🎹
 
 ---
 
@@ -5981,6 +6102,50 @@ Same as Randomize DrumChain but normalizes each slice independently.
 - Chunked processing for performance
 - 10-frame fadeout prevents clicks
 
+## SlicePro (NEW - Jan 2026)
+
+**Source:** `PakettiSlicePro.lua`
+
+Configurable slice processor with multiple slice modes integrated into a single dialog. The SlicePro Config dialog includes Wipe&Slice, Curve Slice, Oldschool Slice, and Slice to Pattern features as one-click operations.
+
+**Menu Entries:**
+- `Sample Editor:Paketti..:SlicePro:SlicePro Apply` 📋
+- `Sample Editor:Paketti..:SlicePro:SlicePro Config...` 📋
+- `Sample Editor:Paketti..:SlicePro:SlicePro Silent Apply` 📋
+- `Instrument Box:Paketti..:SlicePro:SlicePro Apply` 📋
+- `Instrument Box:Paketti..:SlicePro:SlicePro Config...` 📋
+- `Instrument Box:Paketti..:SlicePro:SlicePro Silent Apply` 📋
+- `Sample Editor:Paketti..:SlicePro:Create Beat-Synced Phrases` 📋
+- `Sample Editor:Paketti..:SlicePro:Create Uniform Phrases` 📋
+
+**Keybindings:**
+- `Sample Editor:Paketti:SlicePro Apply` ⌨️
+- `Sample Editor:Paketti:SlicePro Config...` ⌨️
+- `Sample Editor:Paketti:SlicePro Silent Apply` ⌨️
+- `Global:Paketti:SlicePro Apply` ⌨️
+- `Global:Paketti:SlicePro Config...` ⌨️
+- `Global:Paketti:SlicePro Silent Apply` ⌨️
+- `Sample Editor:Paketti:SlicePro Create Beat-Synced Phrases` ⌨️
+- `Sample Editor:Paketti:SlicePro Create Uniform Phrases` ⌨️
+- `Global:Paketti:SlicePro Create Beat-Synced Phrases` ⌨️
+- `Global:Paketti:SlicePro Create Uniform Phrases` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:SlicePro Apply` 🎹
+- `Paketti:SlicePro Config` 🎹
+- `Paketti:SlicePro Silent Apply` 🎹
+- `Paketti:SlicePro Create Beat-Synced Phrases` 🎹
+- `Paketti:SlicePro Create Uniform Phrases` 🎹
+
+**Modes:**
+- **Apply** — Executes the configured slice operation
+- **Silent Apply** — Same as Apply but without showing the dialog
+- **Config** — Opens the configuration dialog with all options
+- **Create Beat-Synced Phrases** — Generates phrases from slices with beat-synced timing
+- **Create Uniform Phrases** — Generates phrases from slices with uniform spacing
+
+---
+
 ## Auto-Slice & Kit Creation
 
 ### Custom Auto-Slice Kit
@@ -6152,6 +6317,87 @@ Optimized settings: Beatsync enabled (Percussion), Forward loop, Mute group 1, A
 **Shortcut:** `Sample Editor:Paketti:Slice Drumkit (Texture)` ⌨️
 
 Optimized settings: Beatsync enabled (Texture), Forward loop, Mute group 1, Autoseek on.
+
+## MuteTrig Drumkit Loader (NEW - Jan 2026)
+
+**Source:** `PakettiRequests.lua`
+
+Loads up to 120 samples into an instrument, assigns each sample to its own Sample FX Chain, and configures mono-trigger (mute group) behavior so samples cut each other off — like a real drumkit where opening the hi-hat cuts the closed hi-hat. Includes a Randomize mode that shuffles sample assignment.
+
+**Menu Entries:**
+- `Sample Navigator:Paketti:Paketti Drumkit Loader MuteTrig (Randomize)` 📋
+
+**Keybindings:**
+- `Global:Paketti:Paketti Drumkit Loader MuteTrig (Randomize)` ⌨️
+- `Sample Editor:Paketti:Paketti Drumkit Loader MuteTrig (Randomize)` ⌨️
+
+Handles instruments with fewer than 120 samples gracefully without corrupting the instrument's FX chain structure.
+
+---
+
+## Modulation Set Duplication (NEW - Jan 2026)
+
+**Source:** `PakettiRequests.lua`
+
+Duplicates the selected modulation set's Volume, Pitch, Panning, Cutoff, Resonance, and Distortion settings to all other modulation sets in the instrument.
+
+**Menu Entries:**
+- `Main Menu:Tools:Paketti:Instruments:Modulation:Duplicate Selected Modulation Set to All Others` 📋
+- `Sample Modulation Matrix:Paketti:Duplicate Selected Modulation Set to All Others` 📋
+- `Sample Navigator:Paketti:Duplicate Selected Modulation Set to All Others` 📋
+
+**Keybindings:**
+- `Global:Paketti:Duplicate Selected Modulation Set to All Others` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:Duplicate Selected Modulation Set to All Others x[Toggle]` 🎹
+
+---
+
+## Sample FX Chain Device Randomize (NEW - Jan 2026)
+
+**Source:** `PakettiLoadDevices.lua`
+
+Randomizes the selected device's parameters across all Sample FX Chains in the instrument. Pick a percentage (10%, 25%, 50%, 75%, 100%) — the randomization applies that amount of variation to the same device in every chain.
+
+**Menu Entries:**
+- `Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (10%)` 📋
+- `Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (25%)` 📋
+- `Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (50%)` 📋
+- `Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (75%)` 📋
+- `Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (100%)` 📋
+- `Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (10%)` 📋
+- `Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (25%)` 📋
+- `Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (50%)` 📋
+- `Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (75%)` 📋
+- `Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (100%)` 📋
+
+**Keybindings:**
+- `Global:Paketti:Randomize Sample FX Device Across Chains with User1 (%)` ⌨️
+- `Global:Paketti:Randomize Sample FX Device Across Chains with User2 (%)` ⌨️
+- `Global:Paketti:Randomize Sample FX Device Across Chains with User3 (%)` ⌨️
+- `Global:Paketti:Randomize Sample FX Device Across Chains with User4 (%)` ⌨️
+- `Global:Paketti:Randomize Sample FX Device Across Chains with User5 (%)` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:Randomize Sample FX Device Across Chains x[Knob]` 🎹
+
+---
+
+## Switch Note Instrument Dialog (NEW - Jan 2026)
+
+**Source:** `PakettiRequests.lua`
+
+Dialog for switching which instrument is assigned to notes in the pattern. Reads the pattern, shows the note-instrument assignments, and lets you remap them. Updates dynamically as you change selections.
+
+**Menu Entries:**
+- `Pattern Editor:Paketti:Switch Note Instrument Dialog...` 📋
+- `Main Menu:Tools:Paketti:Switch Note Instrument Dialog...` 📋
+
+**Keybindings:**
+- `Pattern Editor:Paketti:Switch Note Instrument Dialog...` ⌨️
+
+---
 
 ## Instrument-Level Operations
 
@@ -8994,6 +9240,33 @@ SoundFont 2.0 bank loader with preset and sample extraction.
 - Sample generators
 - Modulator support (basic)
 
+### SF2 Sample Extract (NEW - Jan 2026)
+
+Extract individual samples from an SF2 SoundFont file, bypassing the preset/instrument layer entirely. Two modes:
+
+**Chromatic** — Loads every sample from the SF2 and maps them chromatically across the keyboard (one sample per note).
+
+**Original Pitch** — Loads every sample at its original pitch as defined in the SF2 header.
+
+**Menu Entries:**
+- `Main Menu:File:Paketti Import:Extract .SF2 Samples (Chromatic)` 📋
+- `Main Menu:File:Paketti Import:Extract .SF2 Samples (Original Pitch)` 📋
+- `Main Menu:Tools:Paketti:Instruments:File Formats:Extract .SF2 Samples (Chromatic)` 📋
+- `Main Menu:Tools:Paketti:Instruments:File Formats:Extract .SF2 Samples (Original Pitch)` 📋
+- `Disk Browser Files:Paketti:Import/Export:Extract .SF2 Samples (Chromatic)` 📋
+- `Disk Browser Files:Paketti:Import/Export:Extract .SF2 Samples (Original Pitch)` 📋
+
+### Batch Convert SF2 to XRNI (NEW - Jan 2026)
+
+Batch-converts an entire folder of SF2 SoundFont files into Renoise XRNI instrument files (one XRNI per SF2 preset).
+
+**Menu Entries:**
+- `Sample Editor:Paketti:Batch Convert SF2 to XRNI (Per Preset)...` 📋
+- `Main Menu:File:Paketti Export..:Batch Convert SF2 to XRNI (Per Preset)...` 📋
+
+**Keybindings:**
+- `Global:Paketti:Batch Convert SF2 to XRNI` ⌨️
+
 ---
 
 ## Octatrack OctaCycle Generator
@@ -11140,6 +11413,12 @@ Pre-configured CCizer setups for common devices (Filter, Delay, Reverb, etc.).
 - Reverb Size + Damping
 - EQ Band Controls
 - Compressor Threshold + Ratio
+
+### Jan 2026 CCizer Additions
+New CCizer device profiles added:
+- **Yamaha TG-33**
+- **Elektron Machinedrum MK2**
+- **Waldorf Blofeld**
 
 ## Create MIDI Control from Text File
 
@@ -14293,7 +14572,11 @@ Opens dialog showing all devices and parameters on current track with checkbox t
 **Bulk Operations:**
 - **Show All:** Makes all parameters visible in mixer
 - **Hide All:** Hides all parameters from mixer
-- **Make Automated Visible:** Shows only parameters with automation
+- **Make Automated Visible:** Shows only parameters with automation *(Jan 2026)*
+
+**Auto-Expose Integration (Jan 2026):**
+- When using the LFO Writer to write to Automation, the automated parameter is automatically exposed on the Mixer view
+- The Parameter Editor's "Auto-Expose Automated Parameter on Mixer" checkbox controls this behavior — when Automation Sync is on and you draw automation, those parameters are automatically shown in the mixer
 
 ### Humanize Feature
 
@@ -17849,6 +18132,144 @@ If `pakettiUnisonDuplicateInstrument` is enabled AND instrument is pakettified:
 
 ---
 
+# MetaSynth — Instrument Architecture Generator (NEW - Jan 2026)
+
+**Source:** `PakettiMetaSynth.lua` (18,295 lines)
+
+Procedural instrument generator that constructs full synthesizer architectures inside Renoise's sampler — oscillators, FX chains, modulation routing, envelopes, filters — from scratch, every time different. Born from a collaboration with Paketti supporter Casiino.
+
+## Architecture
+
+MetaSynth builds instruments with an **8-layer architecture**:
+
+1. **Oscillator Cores** — Base waveform selection from AKWF families
+2. **Oscillator Frames** — Spectral variation of individual oscillators
+3. **Oscillator Modulation** — Polyphonic modulation per oscillator (independent layer)
+4. **Oscillator Groups** — Summing, organization, group FX, wavetable/vector control
+5. **Group Frames** — Meta-wavetable at group level (default off)
+6. **Total Group FX** — FX applied after all groups are summed (Stack Master FX)
+7. **Total Group Frames / Vector Layer** — Frame morphing at total summed groups level
+8. **Global FX** — Final instrument polish and mix translation
+
+Any layer can override its profile independently — mix a bass envelope with a pad's filter and a lead's modulation for hybrid sounds.
+
+## Profiles
+
+**180 profiles across 18 categories (A–R):**
+
+| Category | Count | Examples |
+|----------|-------|---------|
+| A: Keys & Piano | 25 | Spectral sine, FM, cinematic, toy piano, vintage synth |
+| B: Mallets/Bells | 14 | Sine, FM, gamelan, music box, glassy |
+| C: Pads | 17 | Analog saw/square, warm, dark, evolving, cinematic, choir |
+| D: Drones/Atmospheres | 10 | Static harmonic, evolving, industrial, dark ambient |
+| E: Leads — Saw | 10 | Mono, supersaw, trance, EDM festival |
+| F: Leads — Square/Pulse | 8 | PWM, retro game, chiptune |
+| G: Leads — Sine/Triangle | 6 | Soft expressive, whistle, minimal |
+| H: Leads — Complex/Aggressive | 7 | Acid, neuro, dubstep, distorted |
+| I: Vocal/Formant | 7 | Vowel pad, choir, talking, whisper |
+| J: Basses — Sub/Clean | 7 | Sub sine, 808, analog sub |
+| K: Basses — Saw/Square | 8 | Reese, acid, techno, house |
+| L: Basses — Complex/Modern | 9 | Wobble, growl, neuro, drill, trap |
+| M: Plucks | 7 | Soft, hard, digital, FM, bell |
+| N: Arps/Sequenced | 7 | Synth, poly, mono, gated, pulsing |
+| O: Synth Strings | 8 | Saw, ensemble, cinematic, vintage machine |
+| P: Synth Brass | 7 | Stab, funk, cinematic, hybrid |
+| Q: FX/Sound Design | 8 | Riser, downlifter, impact, sweep, glitch |
+| R: Meta/Experimental | 7 | Vector, wavetable, frame morph, self-modulating, impossible |
+
+Each profile defines envelope shapes (AHDSR), filter behavior, modulation routing, and FX character.
+
+## AKWF Waveform Families
+
+The generator draws from Adventure Kid Waveforms organized into 16 families: basic, saw, square, triangle, sine, organ, piano, strings, flute, brass, distorted, chiptune, complex, harmonic, voice, noise, and pulse.
+
+## Crossfade Curves
+
+6 crossfade curve types applied at every morphing level: **linear**, **equal power**, **S-curve**, **stepped**, **spectral**, **vector**.
+
+## FX Archetypes
+
+5 named FX character presets that group Renoise devices by musical purpose:
+- **Clean** — Transparent, minimal processing
+- **Character** — Saturation, color, warmth
+- **Movement** — Modulation, phasing, chorus
+- **Spatial** — Reverb, delay, stereo width
+- **Aggressive** — Distortion, compression, grit
+
+## Batch Generation
+
+Generate multiple instruments at once with unique seeds:
+
+**Menu Entries:**
+- `Main Menu:Tools:Paketti:MetaSynth:Open Architecture Designer...` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Generate Random Instrument` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Generate Random Instrument (with Sends)` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Generate Random Instrument (Wavetable)` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Generate Batch Instruments...` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Instruments` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Instruments (with Sends)` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Wavetable Instruments` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Modulation Profile...` 📋
+- All of the above also in `Instrument Box:Paketti:MetaSynth:...` 📋
+- `Sample Editor:Paketti:MetaSynth:Open Architecture Designer...` 📋
+- `Sample FX Mixer:Paketti:MetaSynth:Open Architecture Designer...` 📋
+
+**Quick Apply Profiles (49 menu entries):**
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Neutral:Flat` / `None` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Tight` / `Sustain` / `Filter` / `Wide` / `Dynamic` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pluck:Short` / `Natural` / `Percussive` / `Soft` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Expressive` / `Smooth` / `Classic` / `Wide` / `Glide` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pad:Slow` / `Evolving` / `Ensemble` / `Formant` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Keys:Dynamic` / `Sustain` / `Velocity` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Arp:Tight` / `Gated` / `Rhythmic` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:FX:Envelope` / `Percussive` / `Sustain` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Orchestral:Strings` / `Brass` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bell` 📋
+- `Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Default` / `Pluck` / `Bass` / `Pad` / `Lead` / `Organ` / `Keys` / `Percussive` 📋
+
+**Keybindings:**
+- `Global:Paketti:MetaSynth Open Architecture Designer` ⌨️
+- `Global:Paketti:MetaSynth Generate Random Instrument` ⌨️
+- `Global:Paketti:MetaSynth Generate Random Instrument (with Sends)` ⌨️
+- `Global:Paketti:MetaSynth Generate Batch Instruments Dialog` ⌨️
+- `Global:Paketti:MetaSynth Generate 20 Random Instruments` ⌨️
+- `Global:Paketti:MetaSynth Generate 20 Random Instruments (with Sends)` ⌨️
+- `Global:Paketti:MetaSynth Generate 20 Random Wavetable Instruments` ⌨️
+- `Global:Paketti:MetaSynth Apply Modulation Profile Dialog` ⌨️
+- `Global:Paketti:MetaSynth Apply Profile Bass Tight` ⌨️
+- `Global:Paketti:MetaSynth Apply Profile Pluck Short` ⌨️
+- `Global:Paketti:MetaSynth Apply Profile Lead Expressive` ⌨️
+- `Global:Paketti:MetaSynth Apply Profile Pad Slow` ⌨️
+- `Global:Paketti:MetaSynth Apply Profile Keys Dynamic` ⌨️
+- `Global:Paketti:MetaSynth Apply Profile Arp Tight` ⌨️
+- `Global:Paketti:MetaSynth Apply Profile FX Envelope` ⌨️
+- `Global:Paketti:MetaSynth Apply Profile Neutral Flat` ⌨️
+
+**MIDI Mappings:**
+- `Paketti:MetaSynth Generate Random Instrument` 🎹
+- `Paketti:MetaSynth Generate Random Instrument (with Sends)` 🎹
+- `Paketti:MetaSynth Generate Batch Instruments Dialog` 🎹
+- `Paketti:MetaSynth Generate 20 Random Instruments` 🎹
+- `Paketti:MetaSynth Generate 20 Random Instruments (with Sends)` 🎹
+- `Paketti:MetaSynth Generate 20 Random Wavetable Instruments` 🎹
+- `Paketti:MetaSynth Open Architecture Designer` 🎹
+- `Paketti:MetaSynth Apply Modulation Profile Dialog` 🎹
+- `Paketti:MetaSynth Apply Profile Bass Tight` 🎹
+- `Paketti:MetaSynth Apply Profile Pluck Short` 🎹
+- `Paketti:MetaSynth Apply Profile Lead Expressive` 🎹
+- `Paketti:MetaSynth Apply Profile Pad Slow` 🎹
+- `Paketti:MetaSynth Apply Profile Keys Dynamic` 🎹
+- `Paketti:MetaSynth Apply Profile Arp Tight` 🎹
+- `Paketti:MetaSynth Apply Profile FX Envelope` 🎹
+- `Paketti:MetaSynth Apply Profile Neutral Flat` 🎹
+
+## Process Slicing
+
+For batch generation of 50 or 200 instruments, MetaSynth uses Renoise's ProcessSlicer to avoid the tool becoming unresponsive. Each instrument gets a unique random seed.
+
+---
+
 # Paketti 8120 Groovebox
 
 **Source:** `PakettiEightOneTwenty.lua` | **Features:** ~150+
@@ -19512,6 +19933,9 @@ Advanced 16/32-step gater with 4 independent gating engines - Volume, Retrig, Pl
 - Reads all 4 gater types simultaneously
 - Updates retrig speed from track
 - Perfect for quickly copying patterns between tracks
+
+### Automatic Parameter Grab (Jan 2026 Improvement)
+Auto-grabs parameters and quickly moves you to the Automation Frame Layer. When a device parameter is selected, it automatically grabs that parameter for editing and switches the view to the Automation Frame Layer for immediate editing.
 
 ## Keybindings
 
