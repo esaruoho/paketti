@@ -1270,6 +1270,8 @@ timed_require("PakettiMidiImport")
 
 timed_require("PakettiSliceToolsDialog")
 
+timed_require("PakettiNoteSplit")
+
 -- PakettiImport MUST be loaded after all other modules so their loader functions are available
 -- This centralizes all file import hook registrations with preference checks
 timed_require("PakettiImport")
