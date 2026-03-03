@@ -12,9 +12,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-03-03 - Improvement: Columnizer now supports pattern selection
+### 2026-03-03 - Improvement: Columnizer now works on selections
 
-The Columnizer +1/+10/-1/-10 functions for Delay, Panning, Volume, Effect Number, and Effect Amount now operate on all rows in the active pattern selection when one exists. When no selection is active, they fall back to the original cursor-only behavior. Both `columns()` and `columnspart2()` were updated. Also fixed an inconsistency where "Columnizer Increase Effect Number (+1)" used a different code path (`columns()`) than the other three Effect Number keybindings (`columnspart2()`); all four now consistently use `columnspart2()`.
+The Columnizer +1/+10/-1/-10 shortcuts for Delay, Panning, Volume, Effect Number, and Effect Amount now support pattern editor selections. When a selection is active, the change is applied to every row in the selection — across multiple tracks if the selection spans them. When no selection is active, behavior is unchanged (cursor row only). Includes proper undo support (`describe_undo`) and a status bar message showing how many rows were modified (e.g. "Columnizer: Delay +10 applied to 32 rows"). Per-track bounds checking ensures column indices are valid even when a selection spans tracks with different column configurations. Works with all existing keybindings (`Pattern Editor:Paketti:Columnizer Increase/Decrease Delay/Panning/Volume/Effect Number/Effect Amount`) and MIDI mappings.
 
 ### 2026-03-03 - Feature: Split Note into N Equal Pieces
 
