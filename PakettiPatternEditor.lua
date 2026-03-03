@@ -2444,28 +2444,35 @@ function columns(chg, thing)
   local thing_names = {[1] = "Delay", [2] = "Panning", [3] = "Volume", [4] = "Effect Number", [5] = "Effect Amount"}
 
   if sel then
-    -- Selection exists: apply to all lines in the selection range across all selected tracks
+    -- Selection exists: use selection_in_pattern_pro to get proper column info
+    local selection_data = selection_in_pattern_pro()
+    if not selection_data then
+      renoise.app():show_status("Columnizer: Could not read selection data.")
+      return
+    end
+
     song:describe_undo("Columnizer Selection")
     local count = 0
+    local pattern = song.selected_pattern
 
-    for track_idx = sel.start_track, sel.end_track do
-      local track = song.tracks[track_idx]
-      local pattern_track = song.selected_pattern:track(track_idx)
+    for _, track_info in ipairs(selection_data) do
+      local track = song.tracks[track_info.track_index]
+      local pattern_track = pattern:track(track_info.track_index)
 
       for line_idx = sel.start_line, sel.end_line do
         local line = pattern_track:line(line_idx)
 
         if thing == 1 then -- delay
-          if snci > 0 and snci <= track.visible_note_columns then
-            track.delay_column_visible = true
-            local nc = line:note_column(snci)
+          track.delay_column_visible = true
+          for _, col_idx in ipairs(track_info.note_columns) do
+            local nc = line:note_column(col_idx)
             nc.delay_value = math.max(0, math.min(255, nc.delay_value + chg))
             count = count + 1
           end
         elseif thing == 2 then -- panning
-          if snci > 0 and snci <= track.visible_note_columns then
-            track.panning_column_visible = true
-            local nc = line:note_column(snci)
+          track.panning_column_visible = true
+          for _, col_idx in ipairs(track_info.note_columns) do
+            local nc = line:note_column(col_idx)
             local pan = nc.panning_value
             if pan == renoise.PatternLine.EMPTY_PANNING then pan = 0x40 end
             pan = pan + chg
@@ -2475,23 +2482,21 @@ function columns(chg, thing)
             count = count + 1
           end
         elseif thing == 3 then -- volume
-          if snci > 0 and snci <= track.visible_note_columns then
-            track.volume_column_visible = true
-            local nc = line:note_column(snci)
+          track.volume_column_visible = true
+          for _, col_idx in ipairs(track_info.note_columns) do
+            local nc = line:note_column(col_idx)
             nc.volume_value = math.max(0, math.min(128, nc.volume_value + chg))
             count = count + 1
           end
         elseif thing == 4 then -- effect number
-          local eci = (seci > 0) and seci or 1
-          if eci <= track.visible_effect_columns then
-            local ec = line:effect_column(eci)
+          for _, col_idx in ipairs(track_info.effect_columns) do
+            local ec = line:effect_column(col_idx)
             ec.number_value = math.max(0, math.min(255, ec.number_value + chg))
             count = count + 1
           end
         elseif thing == 5 then -- effect amount
-          local eci = (seci > 0) and seci or 1
-          if eci <= track.visible_effect_columns then
-            local ec = line:effect_column(eci)
+          for _, col_idx in ipairs(track_info.effect_columns) do
+            local ec = line:effect_column(col_idx)
             ec.amount_value = math.max(0, math.min(255, ec.amount_value + chg))
             count = count + 1
           end
@@ -2499,7 +2504,7 @@ function columns(chg, thing)
       end
     end
 
-    renoise.app():show_status(string.format("Columnizer: %s %+d applied to %d rows", thing_names[thing] or "?", chg, count))
+    renoise.app():show_status(string.format("Columnizer: %s %+d applied to %d cells", thing_names[thing] or "?", chg, count))
   else
     -- No selection: original cursor-only behavior
     if thing == 1 then -- delay
@@ -2596,31 +2601,37 @@ function columnspart2(chg, thing)
   local sel = song.selection_in_pattern
 
   if sel then
-    -- Selection exists: apply to all lines in the selection range across all selected tracks
+    -- Selection exists: use selection_in_pattern_pro to get proper column info
+    local selection_data = selection_in_pattern_pro()
+    if not selection_data then
+      renoise.app():show_status("Columnizer: Could not read selection data.")
+      return
+    end
+
     song:describe_undo("Columnizer Selection")
     local count = 0
+    local pattern = song.selected_pattern
 
-    for track_idx = sel.start_track, sel.end_track do
-      local track = song.tracks[track_idx]
-      if effect_column_index <= track.visible_effect_columns then
-        local pattern_track = song.selected_pattern:track(track_idx)
-        for line_idx = sel.start_line, sel.end_line do
-          local line = pattern_track:line(line_idx)
-          local ec = line:effect_column(effect_column_index)
-          if ec then
-            if thing == 4 then
-              ec.number_value = math.max(0, math.min(255, ec.number_value + chg))
-              count = count + 1
-            elseif thing == 5 then
-              ec.amount_value = math.max(0, math.min(255, ec.amount_value + chg))
-              count = count + 1
-            end
+    for _, track_info in ipairs(selection_data) do
+      local pattern_track = pattern:track(track_info.track_index)
+
+      for line_idx = sel.start_line, sel.end_line do
+        local line = pattern_track:line(line_idx)
+
+        for _, col_idx in ipairs(track_info.effect_columns) do
+          local ec = line:effect_column(col_idx)
+          if thing == 4 then
+            ec.number_value = math.max(0, math.min(255, ec.number_value + chg))
+            count = count + 1
+          elseif thing == 5 then
+            ec.amount_value = math.max(0, math.min(255, ec.amount_value + chg))
+            count = count + 1
           end
         end
       end
     end
 
-    renoise.app():show_status(string.format("Columnizer: %s %+d applied to %d rows", thing_names[thing] or "?", chg, count))
+    renoise.app():show_status(string.format("Columnizer: %s %+d applied to %d cells", thing_names[thing] or "?", chg, count))
   else
     -- No selection: original cursor-only behavior
     local currTrak = song.selected_track_index

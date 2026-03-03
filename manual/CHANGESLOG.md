@@ -12,9 +12,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-03-03 - Improvement: Columnizer now works on selections
+### 2026-03-03 - Improvement: Columnizer now works on selections via selection_in_pattern_pro
 
-The Columnizer +1/+10/-1/-10 shortcuts for Delay, Panning, Volume, Effect Number, and Effect Amount now support pattern editor selections. When a selection is active, the change is applied to every row in the selection — across multiple tracks if the selection spans them. When no selection is active, behavior is unchanged (cursor row only). Includes proper undo support (`describe_undo`) and a status bar message showing how many rows were modified (e.g. "Columnizer: Delay +10 applied to 32 rows"). Per-track bounds checking ensures column indices are valid even when a selection spans tracks with different column configurations. Works with all existing keybindings (`Pattern Editor:Paketti:Columnizer Increase/Decrease Delay/Panning/Volume/Effect Number/Effect Amount`) and MIDI mappings.
+The Columnizer +1/+10/-1/-10 shortcuts for Delay, Panning, Volume, Effect Number, and Effect Amount now support pattern editor selections using `selection_in_pattern_pro()`. When a selection is active, the change is applied to every selected note column (for delay/panning/volume) or every selected effect column (for effect number/amount) across all selected lines and tracks. The selection-aware logic properly identifies which columns are note columns vs effect columns, even when a selection spans multiple tracks with different column configurations. When no selection is active, behavior is unchanged (cursor row only). Includes proper undo support (`describe_undo`) and a status bar message showing how many cells were modified (e.g. "Columnizer: Delay +10 applied to 32 cells"). Works with all existing keybindings (`Pattern Editor:Paketti:Columnizer Increase/Decrease Delay/Panning/Volume/Effect Number/Effect Amount`) and MIDI mappings.
 
 ### 2026-03-03 - Feature: Split Note into N Equal Pieces
 
