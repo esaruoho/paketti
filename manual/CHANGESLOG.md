@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-03 - Improvement: Columnizer now supports pattern selection
+
+The Columnizer +1/+10/-1/-10 functions for Delay, Panning, Volume, Effect Number, and Effect Amount now operate on all rows in the active pattern selection when one exists. When no selection is active, they fall back to the original cursor-only behavior. Both `columns()` and `columnspart2()` were updated. Also fixed an inconsistency where "Columnizer Increase Effect Number (+1)" used a different code path (`columns()`) than the other three Effect Number keybindings (`columnspart2()`); all four now consistently use `columnspart2()`.
+
 ### 2026-03-03 - Feature: Split Note into N Equal Pieces
 
 Split any note into perfectly even subdivisions with calculated delay values — triplets, quintuplets, septuplets, or any number up to 128. Select a range of lines containing a note, choose how many pieces, and each piece is placed at the mathematically correct position using the delay column for sub-line precision.

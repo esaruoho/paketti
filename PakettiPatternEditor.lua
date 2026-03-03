@@ -2435,57 +2435,87 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Select Effect Column 
 -----------------
 
 -- Columnizer, +1 / -1 / +10 / -10 on current_row, display needed column
-function columns(chg,thing)
-  local song=renoise.song()
-local s=renoise.song()
-local snci=song.selected_note_column_index
-local seci=song.selected_effect_column_index
-local sst=s.selected_track
-local columns={}
+function columns(chg, thing)
+  local s = renoise.song()
+  local snci = s.selected_note_column_index
+  local seci = s.selected_effect_column_index
+  local sst = s.selected_track
+  local sel = s.selection_in_pattern
 
-if ( snci > 0 ) then 
-columns[1] = s.selected_note_column.delay_value
-columns[2] = s.selected_note_column.panning_value
-columns[3] = s.selected_note_column.volume_value
-elseif ( seci > 0 ) then
-columns[4] = s.selected_effect_column.number_value
-columns[5] = s.selected_effect_column.amount_value
-end
+  if sel then
+    -- Selection exists: apply to all lines in the selection range
+    local pattern_track = s.selected_pattern:track(s.selected_track_index)
 
- local nc = s.selected_note_column
- local nci = s.selected_note_column_index
- local currPatt = s.selected_pattern_index
- local currTrak = s.selected_track_index
- local currLine = s.selected_line_index
- 
-if thing == 1 then --if delay columning
-        sst.delay_column_visible=true
-        nc.delay_value = math.max(0, math.min(255, columns[thing] + chg))
-elseif thing == 2 then --if panning
-        local center_out_of_bounds=false
-        changepan(chg, center_out_of_bounds)
-elseif thing == 3 then --if volume columning
-        sst.volume_column_visible=true
-        nc.volume_value = math.max(0, math.min(128, columns[thing] + chg))
-elseif thing == 4 then --if effect number columning
-        s.selected_line.effect_columns[seci].number_value = math.max(0, math.min(255, columns[thing] + chg)) 
-elseif thing == 5 then --if effect amount columning
-        -- renoise.song().tracks[currTrak].sample_effects_column_visible=true
-        s.selected_line.effect_columns[seci].amount_value = math.max(0, math.min(255, columns[thing] + chg)) 
-else
--- default, shows panning, delay, volume columns.
-        sst.delay_column_visible=true
-        sst.panning_column_visible=true
-        sst.volume_column_visible=true
-end
- --nc.delay_value=(d+chg)
- --if nc.delay_value == 0 and chg < 0 then
-  --move_up(chg)
- --elseif nc.delay_value == 255 and chg > 0 then
-  --move_down(chg)
- --else
- -- nc.delay_value
---end
+    for line_idx = sel.start_line, sel.end_line do
+      local line = pattern_track:line(line_idx)
+
+      if thing == 1 then -- delay
+        sst.delay_column_visible = true
+        if snci > 0 then
+          local nc = line:note_column(snci)
+          nc.delay_value = math.max(0, math.min(255, nc.delay_value + chg))
+        end
+      elseif thing == 2 then -- panning
+        sst.panning_column_visible = true
+        if snci > 0 then
+          local nc = line:note_column(snci)
+          local pan = nc.panning_value
+          if pan == renoise.PatternLine.EMPTY_PANNING then pan = 0x40 end
+          pan = pan + chg
+          pan = math.min(0x80, math.max(0x00, pan))
+          if pan == 0x40 then pan = renoise.PatternLine.EMPTY_PANNING end
+          nc.panning_value = pan
+        end
+      elseif thing == 3 then -- volume
+        sst.volume_column_visible = true
+        if snci > 0 then
+          local nc = line:note_column(snci)
+          nc.volume_value = math.max(0, math.min(128, nc.volume_value + chg))
+        end
+      elseif thing == 4 then -- effect number
+        if seci > 0 then
+          local ec = line.effect_columns[seci]
+          ec.number_value = math.max(0, math.min(255, ec.number_value + chg))
+        end
+      elseif thing == 5 then -- effect amount
+        if seci > 0 then
+          local ec = line.effect_columns[seci]
+          ec.amount_value = math.max(0, math.min(255, ec.amount_value + chg))
+        end
+      end
+    end
+  else
+    -- No selection: original cursor-only behavior
+    if thing == 1 then -- delay
+      sst.delay_column_visible = true
+      if snci > 0 then
+        local nc = s.selected_note_column
+        nc.delay_value = math.max(0, math.min(255, nc.delay_value + chg))
+      end
+    elseif thing == 2 then -- panning
+      local center_out_of_bounds = false
+      changepan(chg, center_out_of_bounds)
+    elseif thing == 3 then -- volume
+      sst.volume_column_visible = true
+      if snci > 0 then
+        local nc = s.selected_note_column
+        nc.volume_value = math.max(0, math.min(128, nc.volume_value + chg))
+      end
+    elseif thing == 4 then -- effect number
+      if seci > 0 then
+        s.selected_line.effect_columns[seci].number_value = math.max(0, math.min(255, s.selected_line.effect_columns[seci].number_value + chg))
+      end
+    elseif thing == 5 then -- effect amount
+      if seci > 0 then
+        s.selected_line.effect_columns[seci].amount_value = math.max(0, math.min(255, s.selected_line.effect_columns[seci].amount_value + chg))
+      end
+    else
+      -- default: show panning, delay, volume columns
+      sst.delay_column_visible = true
+      sst.panning_column_visible = true
+      sst.volume_column_visible = true
+    end
+  end
 end
 
 ----------
@@ -2536,46 +2566,55 @@ if pan==0x40 then
 nc.panning_value = pan 
 end
 
-function columnspart2(chg,thing)
-    local song=renoise.song()
-local effect_column_index
-    -- Handle nil for selected_effect_column_index, default to 1
+function columnspart2(chg, thing)
+  local song = renoise.song()
+  local effect_column_index
 
-if renoise.song().selected_effect_column_index == nil or renoise.song().selected_effect_column_index == 0 then
-effect_column_index = 1
-else 
-effect_column_index = song.selected_effect_column_index
-end
+  if song.selected_effect_column_index == nil or song.selected_effect_column_index == 0 then
+    effect_column_index = 1
+  else
+    effect_column_index = song.selected_effect_column_index
+  end
 
-    local currPatt = song.selected_pattern_index
-    local currTrak = song.selected_track_index
-    local currLine = song.selected_line_index
-    local track = song.patterns[currPatt].tracks[currTrak]
-    
-    -- Ensure the effect column exists
-    if effect_column_index > renoise.song().tracks[currTrak].visible_effect_columns then
-        renoise.app():show_status("Effect column index out of range")
+  local currTrak = song.selected_track_index
+
+  -- Ensure the effect column exists
+  if effect_column_index > song.tracks[currTrak].visible_effect_columns then
+    renoise.app():show_status("Effect column index out of range")
     return
   end
 
+  local sel = song.selection_in_pattern
+  local currPatt = song.selected_pattern_index
+  local track = song.patterns[currPatt].tracks[currTrak]
+
+  if sel then
+    -- Selection exists: apply to all lines in the selection range
+    for line_idx = sel.start_line, sel.end_line do
+      local effect_column = track.lines[line_idx].effect_columns[effect_column_index]
+      if effect_column then
+        if thing == 4 then
+          effect_column.number_value = math.max(0, math.min(255, effect_column.number_value + chg))
+        elseif thing == 5 then
+          effect_column.amount_value = math.max(0, math.min(255, effect_column.amount_value + chg))
+        end
+      end
+    end
+  else
+    -- No selection: original cursor-only behavior
+    local currLine = song.selected_line_index
     local effect_column = track.lines[currLine].effect_columns[effect_column_index]
     if not effect_column then
-        renoise.app():show_status("No effect column available at index " .. tostring(effect_column_index))
-    return
-  end
-
-    -- Fetch the current values for the selected effect column
-    local columns = {
-        [4] = effect_column.number_value,
-        [5] = effect_column.amount_value
-    }
-
-    -- Adjust the values based on the `thing` parameter
-    if thing == 4 then
-        effect_column.number_value = math.max(0, math.min(255, columns[thing] + chg))
-    elseif thing == 5 then
-        effect_column.amount_value = math.max(0, math.min(255, columns[thing] + chg))
+      renoise.app():show_status("No effect column available at index " .. tostring(effect_column_index))
+      return
     end
+
+    if thing == 4 then
+      effect_column.number_value = math.max(0, math.min(255, effect_column.number_value + chg))
+    elseif thing == 5 then
+      effect_column.amount_value = math.max(0, math.min(255, effect_column.amount_value + chg))
+    end
+  end
 end
 
 function PakettiNoteOffDelayModify(delay_change)
@@ -2638,7 +2677,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase V
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase Volume (+10)",invoke=function() columns(10,3) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Decrease Volume (-1)",invoke=function() columns(-1,3) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Decrease Volume (-10)",invoke=function() columns(-10,3) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase Effect Number (+1)",invoke=function() columns(1,4) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase Effect Number (+1)",invoke=function() columnspart2(1,4) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Increase Effect Number (+10)",invoke=function() columnspart2(10,4) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Decrease Effect Number (-1)",invoke=function() columnspart2(-1,4) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Decrease Effect Number (-10)",invoke=function() columnspart2(-10,4) end}
