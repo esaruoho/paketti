@@ -12,6 +12,22 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-03 - Feature: Split Note into N Equal Pieces
+
+Split any note into perfectly even subdivisions with calculated delay values — triplets, quintuplets, septuplets, or any number up to 128. Select a range of lines containing a note, choose how many pieces, and each piece is placed at the mathematically correct position using the delay column for sub-line precision.
+
+**Dialog** with a real-time slider — drag it and watch the pattern update live. Also includes a valuebox for precise input and quick-split buttons for 2 through 8.
+
+**No-selection mode** — if nothing is selected, Paketti auto-detects the note length by scanning forward for the next note or NOTE_OFF.
+
+Preserves original note properties (note value, instrument, volume, panning). Writes a NOTE_OFF at the end of the range. Full undo support.
+
+**Keybindings** (Pattern Editor → Paketti):
+- `Split Note into N Equal Pieces...` (dialog)
+- `Split Note into 02 Equal Pieces` through `Split Note into 08 Equal Pieces`
+
+**MIDI mappings** available for all nine functions.
+
 ### 2026-03-02 - Feature: Slice Tools Dialog
 
 New consolidated "Slice Tools" dialog accessible from `Main Menu > Tools > Paketti > Slice Tools > Slice Tools Dialog...` and `Sample Editor > Paketti > Slice Tools`. Brings together all slice-related operations into a single discoverable hub with 11 grouped sections: Equal Slicing, Zero-Crossing Slicing, Advanced Slicing launchers, All Slices Loop Mode, Slices to Pattern, Slices to Phrase, Slice Marker Management, DrumChain/Conversion, Beatsync, Specialized Tools, and Oldschool Gap Fill. Existing individual menus and keybindings remain unchanged — this adds a central access point. Available via keybinding (`Global:Paketti:Slice Tools Dialog`) and MIDI mapping.
