@@ -12,6 +12,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-05 - Improvement: Slice Tools Dialog collapsible sections
+
+The Slice Tools Dialog now has collapsible sections. Each of the 11 sections (Equal Slicing, Zero-Crossing Slicing, Advanced Slicing, All Slices Loop Mode, Slices to Pattern, Slices to Phrase, Slice Marker Management, DrumChain / Conversion, Beatsync, Specialized Tools, Oldschool Gap Fill) has a checkbox that shows/hides its contents. Section visibility is saved to preferences and persists across sessions, so you can hide the sections you rarely use and keep only what you need visible.
+
+### 2026-03-05 - Fix: Slice Step Sequencer valuebox crash with Two Octaves / Octave Up/Down
+
+Fixed a crash in the Slice Effect Step Sequencer when using Two Octaves or Octave Up/Down presets on instruments with fewer slices than the transpose pattern requires. The transpose offsets (+-12, +-24) could push slice note values outside the valuebox's valid range, causing `std::logic_error: invalid value for valuebox`. Values are now clamped to the instrument's actual slice range. Also added defensive clamping in `PakettiSliceStepRefreshSliceUI` to prevent similar issues during UI refresh.
+
 ### 2026-03-05 - Feature: Microtonal Tunings System
 
 Comprehensive microtonal tuning system for Renoise instruments using the native `trigger_options.tuning` API. Apply any of 23 built-in tuning presets to instruments with a single click — no multi-sample workarounds needed.
