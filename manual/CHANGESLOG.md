@@ -12,6 +12,46 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-05 - Feature: Microtonal Tunings System
+
+Comprehensive microtonal tuning system for Renoise instruments using the native `trigger_options.tuning` API. Apply any of 23 built-in tuning presets to instruments with a single click — no multi-sample workarounds needed.
+
+**Tuning Presets:**
+- **Golden Pythagorean (13-note)** — phi-stacked scale from the golden ratio, inspired by DavidQuantumGravity's golden tones theory
+- **36-EDO** — 36 equal divisions, bridge between standard 12-TET and golden Pythagorean approximation
+- **Solfeggio** — 9 sacred frequencies (174–963 Hz) as pitch ratios
+- **Colundi** — Aleksi Perälä / Ovuca's frequency system
+- **Pythagorean (pure fifths)**, **Just Intonation (5-limit)**, **Werckmeister III (1691)**, **Kirnberger III (1779)**, **Quarter-Comma Meantone**
+- **N-EDO series**: 5, 7, 10, 15, 17, 19, 22, 24 (quarter-tone), 31, 36, 41, 48, 53, 72 equal divisions
+- **Reset to 12-TET** — clear custom tuning
+
+**Dialog** shows scale degrees with ratios and cent values. Apply to selected instrument or all instruments at once. Load Scala (.scl) files. Export any preset as Scala file for sharing.
+
+**Wavetable Generators:**
+- **Golden Shimmer Wavetable** — 12 positions with phi-detuned golden partials creating a shimmering/beating effect
+- **Golden Beating Wavetable** — 12 positions morphing from unison to golden sixth interval
+
+**PCMWriter Golden Waveforms** (5 new waveform types in Single Cycle Waveform Writer):
+- `golden_sine` — fundamental + partials at phi-ratio frequencies
+- `golden_additive` — additive synthesis with phi-spaced partials (controllable via shape)
+- `golden_fm` — FM synthesis with modulator at phi × carrier frequency
+- `golden_ring` — ring modulation at golden ratio (bell-like timbres)
+- `solfeggio_chord` — layered solfeggio frequency ratios
+
+**Menu Entries** (Main Menu → Tools → Paketti → Microtonal Tunings):
+- `Microtonal Tunings Dialog...`
+- `Apply Golden Pythagorean (13-note)`, `Apply 36-EDO`, `Apply Solfeggio`, `Apply Colundi`
+- `Apply Just Intonation (5-limit)`, `Apply Pythagorean (pure fifths)`, `Reset to 12-TET`
+- `Generate Golden Shimmer Wavetable`, `Generate Golden Beating Wavetable`
+
+Same entries available in Instrument Box context menu.
+
+**Keybindings** (Global → Paketti):
+- `Microtonal Tunings Dialog`, `Apply Golden Pythagorean Tuning`, `Apply 36-EDO Tuning`
+- `Apply Solfeggio Tuning`, `Apply Colundi Tuning`, `Reset Instrument to 12-TET`
+
+**MIDI Mappings**: `Paketti:Microtonal Tunings:Apply Golden Pythagorean`, `Apply 36-EDO`, `Apply Solfeggio`, `Apply Colundi`, `Reset to 12-TET`
+
 ### 2026-03-05 - Fix: Slice Step Sequencer valuebox crash with Two Octaves / Octave Up/Down
 
 Fixed a crash in the Slice Effect Step Sequencer when using Two Octaves or Octave Up/Down presets on instruments with fewer slices than the transpose pattern requires. The transpose offsets (±12, ±24) could push slice note values outside the valuebox's valid range, causing `std::logic_error: invalid value for valuebox`. Values are now clamped to the instrument's actual slice range. Also added defensive clamping in `PakettiSliceStepRefreshSliceUI` to prevent similar issues during UI refresh.

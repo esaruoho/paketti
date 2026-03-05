@@ -1750,7 +1750,66 @@ function PCMWriterGenerateWaveform(type, target_data, size)
       variator_state = variator_state + variation
       variator_state = math.max(-1, math.min(1, variator_state))
       value = variator_state
-    
+
+    elseif type == "golden_sine" then
+      -- Golden sine: fundamental + partials at phi-ratio frequencies
+      -- Creates shimmering, ethereal tones based on the golden ratio
+      local phi = (1 + math.sqrt(5)) / 2
+      local t = phase * math.pi * 2
+      value = math.sin(t) * 0.5
+      value = value + math.sin(t * phi) * 0.25
+      value = value + math.sin(t * phi * phi) * 0.125
+      value = value + math.sin(t * phi * phi * phi) * 0.0625
+      -- Normalize to -1..1
+      value = value / 0.9375
+
+    elseif type == "golden_additive" then
+      -- Golden additive: additive synthesis with phi-spaced partials (1, phi, phi^2, phi^3...)
+      -- Number of partials controlled by shape_asymmetry (2 to 12)
+      local phi = (1 + math.sqrt(5)) / 2
+      local t = phase * math.pi * 2
+      local num_partials = math.floor(shape_asymmetry * 5 + 7) -- 2 to 12
+      local sum = 0
+      local amp_sum = 0
+      for p = 0, num_partials - 1 do
+        local freq = phi ^ p
+        local amp = 1 / (p + 1)
+        sum = sum + math.sin(t * freq) * amp
+        amp_sum = amp_sum + amp
+      end
+      value = sum / amp_sum
+
+    elseif type == "golden_fm" then
+      -- Phi-FM: FM synthesis where modulator frequency = phi * carrier
+      -- shape_asymmetry controls modulation depth
+      local phi = (1 + math.sqrt(5)) / 2
+      local t = phase * math.pi * 2
+      local mod_depth = shape_asymmetry * 3 + 1 -- 1 to 4
+      value = math.sin(t + mod_depth * math.sin(t * phi))
+
+    elseif type == "golden_ring" then
+      -- Golden ring modulation: carrier * modulator at phi ratio
+      -- Creates metallic, bell-like timbres from irrational frequency relationships
+      local phi = (1 + math.sqrt(5)) / 2
+      local t = phase * math.pi * 2
+      local carrier = math.sin(t)
+      local modulator = math.sin(t * phi)
+      -- Mix ring mod with clean signal based on shape_asymmetry
+      local mix = shape_asymmetry * 0.5 + 0.5 -- 0 to 1
+      value = carrier * (1 - mix) + carrier * modulator * mix
+
+    elseif type == "solfeggio_chord" then
+      -- Solfeggio chord: layers 3 solfeggio frequency ratios
+      -- 396/174, 528/174, 741/174 reduced to one octave
+      local t = phase * math.pi * 2
+      local r1 = 396 / 174  -- ≈ 2.276 → reduced: 1.138
+      local r2 = 528 / 174  -- ≈ 3.034 → reduced: 1.517
+      local r3 = 741 / 174  -- ≈ 4.259 → reduced: 1.065
+      while r1 >= 2.0 do r1 = r1 / 2.0 end
+      while r2 >= 2.0 do r2 = r2 / 2.0 end
+      while r3 >= 2.0 do r3 = r3 / 2.0 end
+      value = (math.sin(t) + math.sin(t * r1) + math.sin(t * r2) + math.sin(t * r3)) / 4
+
     else
       -- Default to sine
       value = math.sin(phase * math.pi * 2)
@@ -8062,7 +8121,8 @@ function PCMWriterShowPcmDialog()
                          "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
                          "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
                          "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
-                         "arccosine", "arcsine", "tangent", "variator"}
+                         "arccosine", "arcsine", "tangent", "variator",
+                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord"}
           current_waveform_type = types[new_value]
           PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
           selected_sample_index = -1
@@ -8087,7 +8147,8 @@ function PCMWriterShowPcmDialog()
                "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
                "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
                "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
-               "arccosine", "arcsine", "tangent", "variator"},
+               "arccosine", "arcsine", "tangent", "variator",
+                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord"},
       value = 1,
       width=150,
       id = "waveform_popup",
@@ -8105,7 +8166,8 @@ function PCMWriterShowPcmDialog()
                        "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
                        "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
                        "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
-                       "arccosine", "arcsine", "tangent", "variator"}
+                       "arccosine", "arcsine", "tangent", "variator",
+                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord"}
         current_waveform_type = types[idx]  -- Track current waveform type
         PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
         selected_sample_index = -1
@@ -8140,7 +8202,8 @@ function PCMWriterShowPcmDialog()
                          "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
                          "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
                          "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
-                         "arccosine", "arcsine", "tangent", "variator"}
+                         "arccosine", "arcsine", "tangent", "variator",
+                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord"}
           current_waveform_type = types[new_value]
           PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
           selected_sample_index = -1
