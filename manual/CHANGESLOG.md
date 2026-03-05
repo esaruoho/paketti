@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-05 - Fix: Slice Step Sequencer valuebox crash with Two Octaves / Octave Up/Down
+
+Fixed a crash in the Slice Effect Step Sequencer when using Two Octaves or Octave Up/Down presets on instruments with fewer slices than the transpose pattern requires. The transpose offsets (±12, ±24) could push slice note values outside the valuebox's valid range, causing `std::logic_error: invalid value for valuebox`. Values are now clamped to the instrument's actual slice range. Also added defensive clamping in `PakettiSliceStepRefreshSliceUI` to prevent similar issues during UI refresh.
+
 ### 2026-03-03 - Improvement: Columnizer now works on selections via selection_in_pattern_pro
 
 The Columnizer +1/+10/-1/-10 shortcuts for Delay, Panning, Volume, Effect Number, and Effect Amount now support pattern editor selections using `selection_in_pattern_pro()`. When a selection is active, the change is applied to every selected note column (for delay/panning/volume) or every selected effect column (for effect number/amount) across all selected lines and tracks. The selection-aware logic properly identifies which columns are note columns vs effect columns, even when a selection spans multiple tracks with different column configurations. When no selection is active, behavior is unchanged (cursor row only). Includes proper undo support (`describe_undo`) and a status bar message showing how many cells were modified (e.g. "Columnizer: Delay +10 applied to 32 cells"). Works with all existing keybindings (`Pattern Editor:Paketti:Columnizer Increase/Decrease Delay/Panning/Volume/Effect Number/Effect Amount`) and MIDI mappings.

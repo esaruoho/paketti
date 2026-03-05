@@ -1240,9 +1240,11 @@ function PakettiSliceStepRefreshSliceUI()
   
   for row = 1, NUM_ROWS do
     if rows[row] and rows[row].mode == ROW_MODES.SLICE and rows[row].slice_note then
-      -- Update slice note valuebox if it exists
+      -- Update slice note valuebox if it exists, clamped to valid range
       if slice_note_valueboxes[row] then
-        slice_note_valueboxes[row].value = rows[row].slice_note
+        local vb_min = slice_note_valueboxes[row].min
+        local vb_max = slice_note_valueboxes[row].max
+        slice_note_valueboxes[row].value = math.max(vb_min, math.min(vb_max, rows[row].slice_note))
         print("DEBUG: Refreshed slice valuebox for row " .. row .. " to " .. rows[row].slice_note)
       end
       
@@ -2466,13 +2468,13 @@ function PakettiSliceStepTwoOctaves()
     
     -- Two octaves pattern: 0 +12 +24 +12 0 -12 -24 -12 (8 steps for 8 rows)
     local transpose_pattern = {0, 12, 24, 12, 0, -12, -24, -12}
-    
+
     -- Set all rows based on transpose pattern
     for row = 1, NUM_ROWS do
       if slice_info and slice_info.slice_count > 0 then
-        -- SLICE MODE: Set slice notes based on transpose pattern
+        -- SLICE MODE: Set slice notes based on transpose pattern, clamped to valid range
         rows[row].mode = ROW_MODES.SLICE
-        rows[row].slice_note = base_note + transpose_pattern[row]
+        rows[row].slice_note = math.max(slice_info.min_note, math.min(slice_info.max_note, base_note + transpose_pattern[row]))
         rows[row].enabled = true
         
         -- Update UI
@@ -2685,13 +2687,13 @@ function PakettiSliceStepOctaveUpDown()
     
     -- Octave up/down pattern: 0 +12 0 -12 0 +12 0 -12 (repeating across 8 rows)
     local transpose_pattern = {0, 12, 0, -12, 0, 12, 0, -12}
-    
+
     -- Set all rows based on transpose pattern
     for row = 1, NUM_ROWS do
       if slice_info and slice_info.slice_count > 0 then
-        -- SLICE MODE: Set slice notes based on transpose pattern
+        -- SLICE MODE: Set slice notes based on transpose pattern, clamped to valid range
         rows[row].mode = ROW_MODES.SLICE
-        rows[row].slice_note = base_note + transpose_pattern[row]
+        rows[row].slice_note = math.max(slice_info.min_note, math.min(slice_info.max_note, base_note + transpose_pattern[row]))
         rows[row].enabled = true
         
         -- Update UI
