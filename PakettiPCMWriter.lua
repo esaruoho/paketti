@@ -1810,6 +1810,57 @@ function PCMWriterGenerateWaveform(type, target_data, size)
       while r3 >= 2.0 do r3 = r3 / 2.0 end
       value = (math.sin(t) + math.sin(t * r1) + math.sin(t * r2) + math.sin(t * r3)) / 4
 
+    elseif type == "pi_harmonic" then
+      -- Pi-harmonic: partials at pi, pi^2, pi^3...
+      local t = phase * math.pi * 2
+      local num_p = math.floor(shape_asymmetry * 4 + 4) -- 4 to 8
+      local sum, amp_sum = 0, 0
+      for p = 0, num_p - 1 do
+        local amp = 1 / (p + 1)
+        sum = sum + math.sin(t * (math.pi ^ p)) * amp
+        amp_sum = amp_sum + amp
+      end
+      value = sum / amp_sum
+
+    elseif type == "e_harmonic" then
+      -- Euler's e-harmonic: partials at e, e^2, e^3...
+      local e_val = math.exp(1)
+      local t = phase * math.pi * 2
+      local num_p = math.floor(shape_asymmetry * 4 + 4)
+      local sum, amp_sum = 0, 0
+      for p = 0, num_p - 1 do
+        local amp = 1 / (p + 1)
+        sum = sum + math.sin(t * (e_val ^ p)) * amp
+        amp_sum = amp_sum + amp
+      end
+      value = sum / amp_sum
+
+    elseif type == "silver_ratio" then
+      -- Silver ratio (1+sqrt(2))-harmonic
+      local silver = 1 + math.sqrt(2)
+      local t = phase * math.pi * 2
+      local num_p = math.floor(shape_asymmetry * 4 + 4)
+      local sum, amp_sum = 0, 0
+      for p = 0, num_p - 1 do
+        local amp = 1 / (p + 1)
+        sum = sum + math.sin(t * (silver ^ p)) * amp
+        amp_sum = amp_sum + amp
+      end
+      value = sum / amp_sum
+
+    elseif type == "sqrt2_tritone" then
+      -- Sqrt(2)-harmonic (the tritone ratio as harmonic generator)
+      local root2 = math.sqrt(2)
+      local t = phase * math.pi * 2
+      local num_p = math.floor(shape_asymmetry * 4 + 4)
+      local sum, amp_sum = 0, 0
+      for p = 0, num_p - 1 do
+        local amp = 1 / (p + 1)
+        sum = sum + math.sin(t * (root2 ^ p)) * amp
+        amp_sum = amp_sum + amp
+      end
+      value = sum / amp_sum
+
     else
       -- Default to sine
       value = math.sin(phase * math.pi * 2)
@@ -8122,7 +8173,8 @@ function PCMWriterShowPcmDialog()
                          "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
                          "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
                          "arccosine", "arcsine", "tangent", "variator",
-                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord"}
+                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord",
+                         "pi_harmonic", "e_harmonic", "silver_ratio", "sqrt2_tritone"}
           current_waveform_type = types[new_value]
           PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
           selected_sample_index = -1
@@ -8148,7 +8200,8 @@ function PCMWriterShowPcmDialog()
                "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
                "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
                "arccosine", "arcsine", "tangent", "variator",
-                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord"},
+                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord",
+                         "pi_harmonic", "e_harmonic", "silver_ratio", "sqrt2_tritone"},
       value = 1,
       width=150,
       id = "waveform_popup",
@@ -8167,7 +8220,8 @@ function PCMWriterShowPcmDialog()
                        "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
                        "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
                        "arccosine", "arcsine", "tangent", "variator",
-                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord"}
+                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord",
+                         "pi_harmonic", "e_harmonic", "silver_ratio", "sqrt2_tritone"}
         current_waveform_type = types[idx]  -- Track current waveform type
         PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
         selected_sample_index = -1
@@ -8203,7 +8257,8 @@ function PCMWriterShowPcmDialog()
                          "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
                          "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
                          "arccosine", "arcsine", "tangent", "variator",
-                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord"}
+                         "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord",
+                         "pi_harmonic", "e_harmonic", "silver_ratio", "sqrt2_tritone"}
           current_waveform_type = types[new_value]
           PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
           selected_sample_index = -1

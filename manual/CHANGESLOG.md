@@ -12,6 +12,37 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-05 - Feature: Microtonal Tunings System — Full Expansion
+
+Major expansion of the Microtonal Tunings system with new instrument generators, wavetable generators, composition tools, and sacred geometry waveforms.
+
+**New Tuning Presets (4 sacred geometry tunings added):**
+- Pi-Harmonic, Euler (e)-Harmonic, Silver Ratio, Sqrt(2)-Harmonic (Tritone)
+
+**New Wavetable Generators:**
+- `Spectral Morph JI-to-Golden` — 12 positions morphing from Just Intonation triad to Golden triad
+- `Tuning History Wavetable` — 12 positions representing the history of tuning: Pythagorean, Werckmeister, Meantone, Just, Kirnberger, 12-TET, 24-TET, through to Golden
+- `Sacred Geometry Wavetable` — 12 positions each using a different irrational constant (phi, pi, e, sqrt(2), silver ratio, sqrt(3), sqrt(5), phi^2, ln(2), phi/pi, e/phi, pi*phi)
+
+**New Instrument Generators:**
+- `Golden Drone Pad` — 7 drones with golden-ratio partials and slow amplitude modulation, 4 seconds each, with Golden Pythagorean tuning auto-applied
+- `Golden Binaural Beats` — 12 stereo samples (C3–G4) where left/right channels differ by golden-ratio Hz, creating theta-wave binaural beating for meditation
+- `Full Colundi (128 frequencies)` — all 128 Colundi sequence frequencies across the audible spectrum, with Colundi tuning applied
+
+**New Composition Tools:**
+- `Golden Chord Library` — dialog with 6 golden-ratio chord types (Golden Major, Minor, Power, Sixth, Sus, Stacked 3rds), insert at cursor or all on successive lines
+- `Golden Ratio Tempo/Rhythm` — dialog showing BPM * phi and BPM / phi, golden pattern lengths (64/phi=40, 128/phi=79), write golden-ratio delay values to pattern
+- `Golden Arpeggio Phrases` — generates 6 phrase presets (Triad Up/Down, Scale Up/Down, Penta, Shimmer) using golden scale degrees
+- `Tuning Comparison A/B` — duplicates selected instrument, lets you apply different tunings to each copy and switch between them
+
+**New PCMWriter Waveforms (4 sacred geometry types):**
+- `pi_harmonic` — partials at pi, pi^2, pi^3...
+- `e_harmonic` — partials at e, e^2, e^3...
+- `silver_ratio` — partials at silver ratio powers
+- `sqrt2_tritone` — partials at sqrt(2) powers (tritone as harmonic generator)
+
+All new features available via Main Menu, Instrument Box context menu, keybindings, and MIDI mappings. Everything accessible from the unified Microtonal Tunings Dialog.
+
 ### 2026-03-05 - Improvement: Slice Tools Dialog collapsible sections
 
 The Slice Tools Dialog now has collapsible sections. Each of the 11 sections (Equal Slicing, Zero-Crossing Slicing, Advanced Slicing, All Slices Loop Mode, Slices to Pattern, Slices to Phrase, Slice Marker Management, DrumChain / Conversion, Beatsync, Specialized Tools, Oldschool Gap Fill) has a checkbox that shows/hides its contents. Section visibility is saved to preferences and persists across sessions, so you can hide the sections you rarely use and keep only what you need visible.
