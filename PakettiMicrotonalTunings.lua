@@ -291,7 +291,7 @@ local function prepare_instrument(name)
   local song = renoise.song()
   local instr_index = song.selected_instrument_index
   local instr = song.instruments[instr_index]
-  if instr.name == "" and #instr.samples <= 1 and (not instr.samples[1].sample_buffer.has_sample_data) then
+  if instr.name == "" and #instr.samples <= 1 and (#instr.samples == 0 or not instr.samples[1].sample_buffer.has_sample_data) then
     while #instr.samples > 1 do
       instr:delete_sample_at(#instr.samples)
     end
