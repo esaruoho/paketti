@@ -74,6 +74,14 @@
 
 > "got to be one of the most (if not the most) organized set of tools ive ever seen for Renoise."
 
+## The Design Philosophy (Esa's Own Words)
+
+> "Paketti is about saving clicks."
+
+> "How should a music app work so I can just get idea-to-result as fast as possible?"
+
+> "Any idea on any DAW — within Renoise limits, if it makes sense, if it enhances workflow, if described to me, I can take and script. The idea being contributed is important — it might kick out a new idea."
+
 ## The Prophecy
 
 > "your toolset is a game changer. Not the first to say I'm sure and won't be the last."
