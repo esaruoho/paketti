@@ -4,7 +4,20 @@
 -- tuning comparison A/B, golden ratio tempo/rhythm, hardware export helpers
 
 local microtonal_dialog = nil
+local golden_chord_dialog = nil
+local golden_tempo_dialog = nil
+local tuning_ab_dialog = nil
 local PHI = (1 + math.sqrt(5)) / 2
+
+-- Shared key handler: close on configured close key, return focus to middle frame
+local function microtonal_key_handler(dialog, key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.modifiers == "" and key.name == closer then
+    dialog:close()
+    return nil
+  end
+  return key
+end
 
 -- ========================================
 -- TUNING GENERATORS
@@ -915,7 +928,8 @@ local function tuning_comparison_ab()
     },
   }
 
-  renoise.app():show_custom_dialog("Tuning Comparison A/B", content)
+  tuning_ab_dialog = renoise.app():show_custom_dialog("Tuning Comparison A/B", content, microtonal_key_handler)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 -- ========================================
@@ -1040,7 +1054,8 @@ local function show_golden_chord_dialog()
     },
   }
 
-  renoise.app():show_custom_dialog("Paketti Golden Chord Library", content)
+  golden_chord_dialog = renoise.app():show_custom_dialog("Paketti Golden Chord Library", content, microtonal_key_handler)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 -- ========================================
@@ -1147,7 +1162,8 @@ local function apply_golden_tempo_relationship()
     },
   }
 
-  renoise.app():show_custom_dialog("Paketti Golden Ratio Tempo/Rhythm", content)
+  golden_tempo_dialog = renoise.app():show_custom_dialog("Paketti Golden Ratio Tempo/Rhythm", content, microtonal_key_handler)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 -- ========================================
@@ -1400,7 +1416,8 @@ local function show_microtonal_tuning_dialog()
     },
   }
 
-  microtonal_dialog = renoise.app():show_custom_dialog("Paketti Microtonal Tunings", content)
+  microtonal_dialog = renoise.app():show_custom_dialog("Paketti Microtonal Tunings", content, microtonal_key_handler)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 -- ========================================
