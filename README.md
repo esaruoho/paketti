@@ -1,16 +1,40 @@
 # Paketti - a suite of macros, scripts, workflow improvements for Renoise.
 
+8,000+ keyboard shortcuts. 150+ dialogs. 1,000+ MIDI mappings. Import/export for dozens of formats. Built by a tracker musician since 2011.
+
+> "This is by far the most thought out tool ever. Why is this not natively implemented?"
+
+> "I genuinely think that I can't use Renoise without Paketti anymore"
+
+> "When you only have 45 minutes to make music, anything that shaves a minute or two is like an eternity."
+
+> "your toolset is a game changer. Not the first to say I'm sure and won't be the last."
+
+[Read more feedback →](FEEDBACK.md)
+
+## Support Paketti
+
+Paketti is free and open source. If it's become part of your workflow, here's how to keep development going:
+
+- **Patreon** (recurring): https://patreon.com/esaruoho
+- **Gumroad** (one-time): https://esaruoho.gumroad.com/l/paketti
+- **Ko-Fi**: https://ko-fi.com/esaruoho
+- **GitHub Sponsors**: https://github.com/sponsors/esaruoho
+- **1-on-1 calls** (workflow evaluation, feature walkthrough): message me on Discord
+
+Full transparency on what support means: https://lackluster.org/support
+
 ## Manual
-http://esaruoho.github.io/paketti-manual/
+https://esaruoho.github.io/paketti-manual/
 
 ## Releases
 https://github.com/esaruoho/paketti/releases
 
 ## Discord
-Discord for discussion about issues, requests and seeing current updates is at: https://discord.gg/Qex7k5j4wG
+Discussion, feature requests, and current updates: https://discord.gg/Qex7k5j4wG
 
 ## Renoise Forum
-The thread for Paketti is at https://forum.renoise.com/t/new-tool-3-1-3-4-paketti-a-suite-of-scripts-for-automation-sample-editor-midi-pattern-editor-phrase-editor-mixer/35848/ (note, this is severely outdated, Discord is faster)
+https://forum.renoise.com/t/new-tool-3-1-3-4-paketti-a-suite-of-scripts-for-automation-sample-editor-midi-pattern-editor-phrase-editor-mixer/35848/ (note, this is severely outdated, Discord is faster)
 
 ## License
 This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
