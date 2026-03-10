@@ -69,6 +69,7 @@ jobs:
         with:
           tag_name: ${{ env.TAG_NAME }}
           release_name: Release ${{ env.TAG_NAME }}
+          body: "Support Paketti development: https://github.com/sponsors/esaruoho"
           draft: false
           prerelease: false
 
