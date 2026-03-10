@@ -12,6 +12,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-10 - Fix: writeNotesMethod and writeNotesMethodEditStep crash when cursor is on effect column
+
+Fixed a crash (`std::logic_error: invalid note_column index '0'`) in `writeNotesMethod` and `writeNotesMethodEditStep` when the cursor was on an effect column instead of a note column. `song.selected_note_column_index` returns `0` in that case, and passing `0` to `note_column()` is invalid (valid range is 1–12). Both functions now check for this and show a status message ("Please select a note column first.") instead of crashing.
+
+**Affected keybindings** (Pattern Editor → Paketti):
+- `Write Notes Ascending`
+- `Write Notes Descending`
+- `Write Notes Random`
+- `Write Notes EditStep Ascending`
+- `Write Notes EditStep Descending`
+- `Write Notes EditStep Random`
+
 ### 2026-03-05 - Feature: Microtonal Tunings System — Full Expansion
 
 Major expansion of the Microtonal Tunings system with new instrument generators, wavetable generators, composition tools, and sacred geometry waveforms.

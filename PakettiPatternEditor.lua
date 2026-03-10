@@ -8607,7 +8607,12 @@ function writeNotesMethod(method)
   local instrument = song.selected_instrument
   local current_line = song.selected_line_index
   local selected_note_column = song.selected_note_column_index
-  
+
+  if selected_note_column == 0 then
+    renoise.app():show_status("Please select a note column first.")
+    return
+  end
+
   if not instrument or not instrument.sample_mappings[1] then
     renoise.app():show_status("No sample mappings found for this instrument")
     return
@@ -8727,12 +8732,17 @@ function writeNotesMethodEditStep(method)
   local current_line = song.selected_line_index
   local selected_note_column = song.selected_note_column_index
   local edit_step = song.transport.edit_step
-  
+
+  if selected_note_column == 0 then
+    renoise.app():show_status("Please select a note column first.")
+    return
+  end
+
   -- If edit_step is 0, treat it as 1 (write to every row)
   if edit_step == 0 then
     edit_step = 1
   end
-  
+
   if not instrument or not instrument.sample_mappings[1] then
     renoise.app():show_status("No sample mappings found for this instrument")
     return
