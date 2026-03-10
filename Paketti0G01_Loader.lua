@@ -215,6 +215,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiStemLoaderAutoSliceOnMixedRates=true,  -- Auto-switch to slice mode when mixed sample rates detected
   pakettiLoadToAllTracksPosition=true,  -- false = First (position 2), true = Last (end of chain)
   pakettiLazySlicerShowNewestSlice=false,  -- false = Show Original Sample, true = Show Newest Slice
+  pakettiLazySlicerSnapGrid=1,  -- 1=Off, 2=1/4, 3=1/8, 4=1/16, 5=1/32, 6=1/64
   pakettiPolyendOpenDialog=true,
   pakettiExplodeTrackNaming=true,  -- Enable note+instrument naming for exploded tracks (e.g. "C-4 MyInstrument")
   selectionNewInstrumentSelect=false,
@@ -1841,8 +1842,16 @@ vb:row{
               vb:text{text="Sample View",width=150,tooltip="Show Original: keeps viewing the original sample while slicing. Show Newest Slice: automatically switches to newest created slice."},
               vb:popup{items={"Show Original","Show Newest Slice"},value=preferences.pakettiLazySlicerShowNewestSlice.value and 2 or 1,width=100,
                 tooltip="Show Original: keeps viewing the original sample while slicing. Show Newest Slice: automatically switches to newest created slice.",
-                notifier=function(value) 
-                  preferences.pakettiLazySlicerShowNewestSlice.value=(value==2) 
+                notifier=function(value)
+                  preferences.pakettiLazySlicerShowNewestSlice.value=(value==2)
+                  preferences:save_as("preferences.xml")
+                end},
+              vb:space{width=10},
+              vb:text{text="Snap Grid",width=70,tooltip="Snap slice markers to the nearest musical grid position based on song BPM."},
+              vb:popup{items={"Off","1/4","1/8","1/16","1/32","1/64"},value=preferences.pakettiLazySlicerSnapGrid.value,width=60,
+                tooltip="Off: place markers at exact playback position. 1/4 to 1/64: snap markers to nearest musical grid based on BPM.",
+                notifier=function(value)
+                  preferences.pakettiLazySlicerSnapGrid.value=value
                   preferences:save_as("preferences.xml")
                 end}
             },

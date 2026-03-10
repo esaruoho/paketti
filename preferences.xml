@@ -2020,6 +2020,7 @@ R64@T11:E1=0,0</Slot01>
   <pakettiStemLoaderAutoSliceOnMixedRates>true</pakettiStemLoaderAutoSliceOnMixedRates>
   <pakettiLoadToAllTracksPosition>true</pakettiLoadToAllTracksPosition>
   <pakettiLazySlicerShowNewestSlice>false</pakettiLazySlicerShowNewestSlice>
+  <pakettiLazySlicerSnapGrid>1</pakettiLazySlicerSnapGrid>
   <pakettiPolyendOpenDialog>true</pakettiPolyendOpenDialog>
   <pakettiExplodeTrackNaming>true</pakettiExplodeTrackNaming>
   <selectionNewInstrumentSelect>true</selectionNewInstrumentSelect>

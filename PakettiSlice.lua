@@ -2090,6 +2090,61 @@ function pakettiRealtimeSliceToggle()
   end
 end
 
+-- Snap a frame position to the nearest musical grid position
+-- snap_mode: 1=Off, 2=1/4, 3=1/8, 4=1/16, 5=1/32, 6=1/64
+-- Returns the snapped frame position, or the original if snap is off
+function pakettiRealtimeSliceSnapToGrid(frame_position, total_frames)
+  local snap_mode = 1
+  if preferences and preferences.pakettiLazySlicerSnapGrid then
+    snap_mode = preferences.pakettiLazySlicerSnapGrid.value
+  end
+  if snap_mode <= 1 then
+    return frame_position  -- snap off
+  end
+
+  -- Divisor per beat: 1/4=1, 1/8=2, 1/16=4, 1/32=8, 1/64=16
+  local beat_divisors = {1, 1, 2, 4, 8, 16}
+  local divisor = beat_divisors[snap_mode] or 1
+
+  local song = renoise.song()
+  local bpm = song.transport.bpm
+  local lpb = song.transport.lpb
+  local sample_rate = realtime_slice_state.sample_rate
+  local frames_per_beat
+
+  if realtime_slice_state.beat_sync_enabled then
+    -- Beat-synced: sample spans beat_sync_lines pattern lines
+    -- One beat = LPB lines, so sample has (beat_sync_lines / LPB) beats
+    local beats_in_sample = realtime_slice_state.beat_sync_lines / lpb
+    if beats_in_sample > 0 then
+      frames_per_beat = total_frames / beats_in_sample
+    else
+      frames_per_beat = total_frames
+    end
+  else
+    -- Non-beat-synced: use song BPM and sample rate for musical grid
+    local seconds_per_beat = 60.0 / bpm
+    frames_per_beat = seconds_per_beat * sample_rate
+  end
+
+  local frames_per_grid = frames_per_beat / divisor
+  if frames_per_grid < 1 then frames_per_grid = 1 end
+
+  -- Snap to nearest grid position
+  local snapped = math.floor(frame_position / frames_per_grid + 0.5) * frames_per_grid
+  snapped = math.floor(snapped)
+
+  -- Clamp to valid range
+  if snapped < 1 then snapped = 1 end
+  if snapped >= total_frames then snapped = total_frames - 1 end
+
+  local snap_names = {"Off", "1/4", "1/8", "1/16", "1/32", "1/64"}
+  print(string.format("Snap %s: frame %d -> %d (grid=%.1f frames, %.1f frames/beat)",
+    snap_names[snap_mode] or "?", frame_position, snapped, frames_per_grid, frames_per_beat))
+
+  return snapped
+end
+
 -- Insert slice marker at current playback position
 function pakettiRealtimeSliceInsertMarker()
   -- Auto-start monitoring if not active
@@ -2134,8 +2189,9 @@ function pakettiRealtimeSliceInsertMarker()
     return
   end
   
-  local frame_position = absolute_frame_position
-  
+  -- Apply snap-to-grid if enabled
+  local frame_position = pakettiRealtimeSliceSnapToGrid(absolute_frame_position, total_frames)
+
   -- Check if marker already exists very close to this position (within 100 frames)
   local marker_exists = false
   for i = 1, #sample.slice_markers do
@@ -2157,8 +2213,18 @@ function pakettiRealtimeSliceInsertMarker()
     print(string.format("Inserted slice marker #%d at frame %d (%.3f seconds into playback)", 
       marker_count, frame_position, elapsed_time))
     
-    renoise.app():show_status(string.format("Slice marker #%d inserted at frame %d", 
-      marker_count, frame_position))
+    local snap_mode = 1
+    if preferences and preferences.pakettiLazySlicerSnapGrid then
+      snap_mode = preferences.pakettiLazySlicerSnapGrid.value
+    end
+    local snap_names = {"Off", "1/4", "1/8", "1/16", "1/32", "1/64"}
+    if snap_mode > 1 then
+      renoise.app():show_status(string.format("Slice marker #%d inserted at frame %d (snapped to %s)",
+        marker_count, frame_position, snap_names[snap_mode] or "?"))
+    else
+      renoise.app():show_status(string.format("Slice marker #%d inserted at frame %d",
+        marker_count, frame_position))
+    end
     
     -- Update the selection to start from the new slice position
     sample.sample_buffer.selection_start = frame_position
