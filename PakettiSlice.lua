@@ -2095,8 +2095,8 @@ end
 -- Returns the snapped frame position, or the original if snap is off
 function pakettiRealtimeSliceSnapToGrid(frame_position, total_frames)
   local snap_mode = 1
-  if preferences and preferences.pakettiLazySlicerSnapGrid then
-    snap_mode = preferences.pakettiLazySlicerSnapGrid.value
+  if preferences and preferences.pakettiRealtimeSliceSnapGrid then
+    snap_mode = preferences.pakettiRealtimeSliceSnapGrid.value
   end
   if snap_mode <= 1 then
     return frame_position  -- snap off
@@ -2214,8 +2214,8 @@ function pakettiRealtimeSliceInsertMarker()
       marker_count, frame_position, elapsed_time))
     
     local snap_mode = 1
-    if preferences and preferences.pakettiLazySlicerSnapGrid then
-      snap_mode = preferences.pakettiLazySlicerSnapGrid.value
+    if preferences and preferences.pakettiRealtimeSliceSnapGrid then
+      snap_mode = preferences.pakettiRealtimeSliceSnapGrid.value
     end
     local snap_names = {"Off", "1/4", "1/8", "1/16", "1/32", "1/64"}
     if snap_mode > 1 then
@@ -2261,7 +2261,7 @@ function pakettiRealtimeSliceInsertMarker()
     print("Adjusted timer: frame " .. frame_position .. " = " .. seconds_elapsed .. " seconds elapsed")
     
     -- Switch to newest slice sample if preference is enabled (otherwise stay on original)
-    if preferences and preferences.pakettiLazySlicerShowNewestSlice and preferences.pakettiLazySlicerShowNewestSlice.value then
+    if preferences and preferences.pakettiRealtimeSliceShowNewestSlice and preferences.pakettiRealtimeSliceShowNewestSlice.value then
       -- The newest slice is at index marker_count + 1 (index 1 is original sample)
       local newest_slice_index = marker_count + 1
       if newest_slice_index <= #instrument.samples then

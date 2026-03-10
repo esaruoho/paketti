@@ -21564,7 +21564,7 @@ Opens the comprehensive Paketti Preferences dialog with all settings organized i
 - New Note Action (NNA) Mode (Cut/Note-Off/Continue)
 - Loop Mode (Off/Forward/Backward/PingPong)
 - FilterType (22 filter types)
-- LazySlicer (show original/newest slice)
+- Real-Time Slice (show original/newest slice)
 - Drumkit Loader (move beginning silence, normalize samples, normalize large samples)
 - Maximum Sample Frame Size (5MB-100MB)
 - Default XRNI files (standard + drumkit)

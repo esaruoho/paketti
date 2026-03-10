@@ -12,11 +12,11 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-03-10 - Feature: LazySlicer Snap Grid — Snap slice markers to musical grid positions
+### 2026-03-10 - Feature: Real-Time Slice Snap Grid — Snap slice markers to musical grid positions
 
-Added a Snap Grid option to the LazySlicer (Real-Time Slice) feature. When enabled, slice markers are automatically snapped to the nearest musical grid position (1/4, 1/8, 1/16, 1/32, or 1/64 note) based on the song BPM and sample rate. Works with both beat-synced and non-beat-synced samples.
+Added a Snap Grid option to the Real-Time Slice feature. When enabled, slice markers are automatically snapped to the nearest musical grid position (1/4, 1/8, 1/16, 1/32, or 1/64 note) based on the song BPM and sample rate. Works with both beat-synced and non-beat-synced samples.
 
-**New preference:** `Paketti Preferences` → `LazySlicer (Real-Time Slice)` → `Snap Grid` popup (Off, 1/4, 1/8, 1/16, 1/32, 1/64). Default: Off (existing behavior preserved).
+**New preference:** `Paketti Preferences` → `Real-Time Slice` → `Snap Grid` popup (Off, 1/4, 1/8, 1/16, 1/32, 1/64). Default: Off (existing behavior preserved).
 
 The snap calculation uses the song's current BPM to determine grid frame positions. For beat-synced samples, it uses the beat_sync_lines and LPB to compute the correct musical grid within the sample's stretched duration.
 
