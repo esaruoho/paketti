@@ -289,6 +289,17 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiSliceToolsShowBeatsync = true,
   pakettiSliceToolsShowSpecialized = true,
   pakettiSliceToolsShowGapFill = true,
+  -- Dynamic Macro Toolbar slot assignments
+  PakettiDMTSlot01 = "",
+  PakettiDMTSlot02 = "",
+  PakettiDMTSlot03 = "",
+  PakettiDMTSlot04 = "",
+  PakettiDMTSlot05 = "",
+  PakettiDMTSlot06 = "",
+  PakettiDMTSlot07 = "",
+  PakettiDMTSlot08 = "",
+  PakettiDMTSlot09 = "",
+  PakettiDMTSlot10 = "",
   ActionSelector = {
  Index01="",
  Index02="",

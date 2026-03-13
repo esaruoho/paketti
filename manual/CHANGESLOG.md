@@ -12,6 +12,26 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-13 - Feature: Dynamic Macro Toolbar — Configurable 10-button quick-action toolbar
+
+Added a new Dynamic Macro Toolbar: a 2×5 grid of configurable buttons, each assignable to any Paketti action (170+ dialogs, 3000+ menu entries, keybindings). Toggle Edit Mode to reveal per-slot popup selectors for assigning actions. Supports named preset save/load/delete (stored in `DynamicMacroToolbar_Presets/` directory). All 10 slots are individually MIDI-mappable.
+
+**New menu entries:**
+- `Main Menu:Tools:Paketti Gadgets:Dynamic Macro Toolbar...`
+- `Pattern Editor:Paketti Gadgets:Dynamic Macro Toolbar...`
+- `Mixer:Paketti Gadgets:Dynamic Macro Toolbar...`
+- `Sample Editor:Paketti Gadgets:Dynamic Macro Toolbar...`
+
+**New keybinding:**
+- `Global:Paketti:Dynamic Macro Toolbar Toggle`
+
+**New MIDI mappings:**
+- `Paketti:Dynamic Macro Toolbar:Trigger Slot 01` through `Trigger Slot 10`
+
+**New preferences:** `PakettiDMTSlot01` through `PakettiDMTSlot10` — store the assigned action for each toolbar slot.
+
+Also added to the Dialog of Dialogs list as "Dynamic Macro Toolbar".
+
 ### 2026-03-10 - Feature: Real-Time Slice Snap Grid — Snap slice markers to musical grid positions
 
 Added a Snap Grid option to the Real-Time Slice feature. When enabled, slice markers are automatically snapped to the nearest musical grid position (1/4, 1/8, 1/16, 1/32, or 1/64 note) based on the song BPM and sample rate. Works with both beat-synced and non-beat-synced samples.
