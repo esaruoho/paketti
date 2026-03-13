@@ -3063,13 +3063,24 @@ function createSinewaveSample(sample_rate, frequency, duration)
     sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
     sample.loop_start = 1
     sample.loop_end = buffer.number_of_frames
-    
+
+    -- Apply Paketti loader settings
+    if preferences then
+      sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+      sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+      sample.autofade = preferences.pakettiLoaderAutofade.value
+      sample.autoseek = preferences.pakettiLoaderAutoseek.value
+      sample.new_note_action = preferences.pakettiLoaderNNA.value
+      sample.oneshot = preferences.pakettiLoaderOneshot.value
+      sample.loop_release = preferences.pakettiLoaderLoopExit.value
+    end
+
     -- Set instrument name
     instrument.name = "sinewave[" .. frequency .. "hz][" .. buffer.number_of_frames .. " frames]"
-    
+
     -- Go to sample editor
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-    
+
     print("Created sine wave sample: " .. sample.name)
     print("Sample properties:")
     print("- Index: " .. sample_index)
@@ -3079,7 +3090,7 @@ function createSinewaveSample(sample_rate, frequency, duration)
     print("- Length: " .. buffer.number_of_frames .. " frames")
     print("- Loop: " .. sample.loop_start .. " to " .. sample.loop_end)
     print("- Duration: " .. string.format("%.4f", buffer.number_of_frames / buffer.sample_rate) .. " seconds")
-    
+
     renoise.app():show_status("Created sine wave sample: " .. sample.name)
   else
     renoise.app():show_status("Error: Could not create sample data")
@@ -3190,13 +3201,24 @@ function createAmplitudeModulatedSinewaveSample(sample_rate, frequency, modulati
     sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
     sample.loop_start = 1
     sample.loop_end = buffer.number_of_frames
-    
+
+    -- Apply Paketti loader settings
+    if preferences then
+      sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+      sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+      sample.autofade = preferences.pakettiLoaderAutofade.value
+      sample.autoseek = preferences.pakettiLoaderAutoseek.value
+      sample.new_note_action = preferences.pakettiLoaderNNA.value
+      sample.oneshot = preferences.pakettiLoaderOneshot.value
+      sample.loop_release = preferences.pakettiLoaderLoopExit.value
+    end
+
     -- Set instrument name
     instrument.name = "am_sinewave[" .. frequency .. "hz][mod " .. modulation_multiplier .. "x][amp " .. (modulation_amplitude or 30) .. "%][" .. buffer.number_of_frames .. " frames]"
-    
+
     -- Go to sample editor
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-    
+
     print("Created amplitude modulated sine wave sample: " .. sample.name)
     renoise.app():show_status("Created AM sine wave sample: " .. sample.name)
   else

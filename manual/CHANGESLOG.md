@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-13 - Fix: Sine Wave and AM Sine Wave generators now apply Paketti Loader settings
+
+The Sine Wave Generator and AM Sine Wave Generator were not applying any Paketti Loader preferences to the generated samples. This meant interpolation mode (e.g. Sinc), oversample, autofade, NNA, autoseek, oneshot, and loop release were all left at Renoise defaults instead of using the user's configured Paketti Loader settings. Both `createSinewaveSample()` and `createAmplitudeModulatedSinewaveSample()` in `PakettiExperimental_Verify.lua` now apply all Paketti Loader preferences after sample creation.
+
 ### 2026-03-13 - Fix: Fuzzy Sample Search now actually loads SF2, RX2, PTI, ITI, IFF, 8SVX, 16SV, SND files
 
 Previously, selecting SF2, RX2, PTI, ITI, or IFF files in Fuzzy Sample Search only showed a status message saying "Use the menu loader" — the existing Paketti loaders were not wired up. Now all formats load immediately when selected:
