@@ -67,16 +67,10 @@ function pakettiEQ10XYDialog()
   local eq10_device = renoise.song().selected_track.devices[eq10_index]
   
   -- Create single row of XY pads
-  local content = vb:column{
-    margin=5,
-    --spacing=5
-  }
+  local content = vb:column{}
   
   -- Create the single row for all XY pads
-  local row_content = vb:row{
-    margin=5,
-   -- spacing=10
-  }
+  local row_content = vb:row{}
   
   -- Add all 10 bands
   for band_idx = 1, 10 do
@@ -96,7 +90,6 @@ function pakettiEQ10XYDialog()
     local y_value = normalize_gain(gain_param.value)
     
     local band_group = vb:column{
-      margin=2,
       vb:text{text=string.format("Band %d", band_idx) },
       vb:xypad{
         id = string.format("xy_band_%d", band_idx),
@@ -349,7 +342,6 @@ end
 function showSBX_dialog()
   if dialog and dialog.visible then dialog:close() return end
   local content = vb:column{
-    margin=10,
     vb:text{text="Trigger SBX Loop Handler" },
     vb:button{
       text="Enable Monitoring",
@@ -3239,7 +3231,6 @@ function createCustomSinewave()
   }
   
   local dialog_content = vb:column{
-    margin = 10,
     vb:row{
       vb:text{text = "Enter frequency in Hz (1-20000):"}
     },
@@ -3295,7 +3286,6 @@ function createCustomAmplitudeModulatedSinewave()
   }
   
   local dialog_content = vb:column{
-    margin = 10,
     vb:row{
       vb:text{text = "Enter base frequency in Hz (1-20000):"}
     },
