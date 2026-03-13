@@ -12,9 +12,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-03-13 - Improvement: Remove margins and spacings from PakettiExperimental_Verify dialogs
+### 2026-03-13 - Improvement: Tighter dialog layouts
 
-Removed all `margin` and `spacing` properties from the EQ10 XY Pad dialog, SBx Pattern Loop Follow dialog, Sine Wave Generator dialog, and AM Sine Wave Generator dialog in `PakettiExperimental_Verify.lua`. Dialogs now use Renoise's default compact layout with no extra padding.
+Removed unnecessary padding from four dialogs so they take up less screen space:
+
+- **EQ10 XY Pad** — the 10-band graphical EQ controller
+- **SBx Pattern Loop Follow** — the SBx loop monitoring toggle
+- **Sine Wave Generator** — custom-frequency sine wave creator
+- **AM Sine Wave Generator** — amplitude-modulated sine wave creator
+
+All four now use Renoise's default compact layout with no extra margins.
 
 ### 2026-03-13 - Fix: Sine Wave and AM Sine Wave generators now apply Paketti Loader settings
 
