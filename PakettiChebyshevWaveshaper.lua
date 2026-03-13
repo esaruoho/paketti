@@ -21,6 +21,7 @@ local preview_enabled = false
 local backup_sample_data = nil
 local backup_sample_properties = nil
 local backup_range = nil  -- {start_frame, end_frame}
+local active_chebyshev_slicer = nil  -- Track active ProcessSlicer to prevent concurrent preview races
 
 -- ==== Magnet Shaper parameters (global) =====================================
 local shaper_mode = "cheby"   -- "cheby" or "magnet"
@@ -1880,13 +1881,20 @@ local function apply_chebyshev_waveshaping_process(sample, dialog, vb)
     end
   end
 
-  buffer:finalize_sample_data_changes()
-  
+  -- Safety: pcall finalize in case a concurrent preview already consumed our prepare
+  local ok, err = pcall(function() buffer:finalize_sample_data_changes() end)
+  if not ok then
+    renoise.app():show_status("Chebyshev: preview interrupted (safe to ignore)")
+  end
+
   -- Close progress dialog
   if dialog and dialog.visible then
     dialog:close()
   end
-  
+
+  -- Clear slicer reference on completion
+  active_chebyshev_slicer = nil
+
   return true
 end
 
@@ -1894,14 +1902,27 @@ end
 local function apply_chebyshev_waveshaping(sample)
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
-  
+
+  -- Stop any previous slicer to prevent concurrent prepare/finalize races
+  if active_chebyshev_slicer and active_chebyshev_slicer:running() then
+    active_chebyshev_slicer:stop()
+    -- Safety: try to finalize any outstanding prepare from the old slicer
+    local buf = sample and sample.sample_buffer
+    if buf and buf.has_sample_data then
+      pcall(function() buf:finalize_sample_data_changes() end)
+    end
+  end
+
   -- Create progress dialog first
   local slicer = ProcessSlicer(apply_chebyshev_waveshaping_process)
   local prog_dialog, prog_vb = slicer:create_dialog("Applying Chebyshev Waveshaper")
-  
+
   -- Update the process function args to include sample, dialog, and vb
   slicer.__process_func_args = {sample, prog_dialog, prog_vb}
-  
+
+  -- Track the active slicer so we can stop it if a new preview starts
+  active_chebyshev_slicer = slicer
+
   -- Start processing
   slicer:start()
   
@@ -2002,6 +2023,15 @@ end
 
 -- Apply final processing
 local function apply_processing()
+  -- Stop any active preview slicer before applying
+  if active_chebyshev_slicer and active_chebyshev_slicer:running() then
+    active_chebyshev_slicer:stop()
+    local s = renoise.song().selected_sample
+    if s and s.sample_buffer and s.sample_buffer.has_sample_data then
+      pcall(function() s.sample_buffer:finalize_sample_data_changes() end)
+    end
+    active_chebyshev_slicer = nil
+  end
   if preview_enabled then
     -- Disable preview mode first
     preview_enabled = false
@@ -2033,6 +2063,15 @@ end
 
 -- Reset to original sample
 local function reset_sample()
+  -- Stop any active slicer before restoring
+  if active_chebyshev_slicer and active_chebyshev_slicer:running() then
+    active_chebyshev_slicer:stop()
+    local s = renoise.song().selected_sample
+    if s and s.sample_buffer and s.sample_buffer.has_sample_data then
+      pcall(function() s.sample_buffer:finalize_sample_data_changes() end)
+    end
+    active_chebyshev_slicer = nil
+  end
   if backup_sample_data then
     restore_sample_range()
     preview_enabled = false
@@ -2049,6 +2088,14 @@ local function toggle_preview()
   end
   
   if preview_enabled then
+    -- Stop any active slicer before restoring
+    if active_chebyshev_slicer and active_chebyshev_slicer:running() then
+      active_chebyshev_slicer:stop()
+      if sample.sample_buffer and sample.sample_buffer.has_sample_data then
+        pcall(function() sample.sample_buffer:finalize_sample_data_changes() end)
+      end
+      active_chebyshev_slicer = nil
+    end
     -- Disable preview
     preview_enabled = false
     restore_sample_range()

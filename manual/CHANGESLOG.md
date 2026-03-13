@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-13 - Fix: Chebyshev Waveshaper crash when dragging sliders during auto-preview
+
+Fixed a race condition in the Chebyshev Waveshaper where rapidly dragging sliders with auto-preview enabled would crash with `finalize_sample_buffer_changes called without prepare_sample_data_changes`. The root cause was concurrent `ProcessSlicer` coroutines: each slider drag started a new async processing coroutine without stopping the previous one, causing their `prepare`/`finalize` buffer locks to interleave and corrupt each other. The fix tracks the active slicer in a module-level variable and explicitly stops it (with safe cleanup of any outstanding buffer prepare) before starting a new preview cycle. All code paths that restore sample data (reset, toggle preview off, apply) now also stop any in-flight slicer first.
+
 ### 2026-03-13 - Fix: Dynamic Macro Toolbar crash — removed non-existent API calls
 
 Fixed the Dynamic Macro Toolbar crashing on open with `unknown property or function 'menu_entries'`. The Renoise API does not expose `renoise.tool().menu_entries` or `renoise.tool().keybindings` for enumeration — those properties don't exist. Rewrote the action list builder to use the existing `create_button_list()` function (now made global) which provides 170+ Paketti dialog actions. Also fixed `create_button_list` being `local` in PakettiMainMenuEntries.lua so it's accessible from other modules.
