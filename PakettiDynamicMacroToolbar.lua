@@ -23,6 +23,7 @@ local PRESET_DIR = renoise.tool().bundle_path .. "DynamicMacroToolbar_Presets" .
 
 ------------------------------------------------------------------------
 -- Action Registry: Build a combined list of all callable actions
+-- Uses create_button_list() from PakettiMainMenuEntries.lua (global function)
 ------------------------------------------------------------------------
 local function build_action_list()
   if actions_built then return end
@@ -30,49 +31,16 @@ local function build_action_list()
   all_action_names = {}
   all_action_map = {}
 
-  -- 1) Dialog entries from create_button_list (if available as global)
-  local cbl = rawget(_G, "create_button_list")
-  if type(cbl) == "function" then
-    local ok, buttons = pcall(cbl)
+  -- Get dialog entries from the global create_button_list function
+  if type(create_button_list) == "function" then
+    local ok, buttons = pcall(create_button_list)
     if ok and buttons then
       for _, entry in ipairs(buttons) do
         local display = entry[1]
         local func_ref = entry[2]
         if display and func_ref then
-          local key = "[Dialog] " .. display
-          all_action_map[key] = {type = "dialog", func_name = func_ref, display = display}
-          table.insert(all_action_names, key)
-        end
-      end
-    end
-  end
-
-  -- 2) Menu entries registered by the tool
-  local menu_entries = renoise.tool().menu_entries
-  if menu_entries then
-    for _, entry in ipairs(menu_entries) do
-      local name = entry.name
-      if name and name:find("Paketti") then
-        local short = name:gsub("^Main Menu:Tools:", ""):gsub("^Main Menu:File:", ""):gsub("^Main Menu:", "")
-        local key = "[Menu] " .. short
-        if not all_action_map[key] then
-          all_action_map[key] = {type = "menu", menu_name = name, display = short}
-          table.insert(all_action_names, key)
-        end
-      end
-    end
-  end
-
-  -- 3) Keybinding entries registered by the tool
-  local keybindings = renoise.tool().keybindings
-  if keybindings then
-    for _, entry in ipairs(keybindings) do
-      local name = entry.name
-      if name and name:find("Paketti") then
-        local key = "[Key] " .. name
-        if not all_action_map[key] then
-          all_action_map[key] = {type = "keybinding", kb_name = name, display = name}
-          table.insert(all_action_names, key)
+          all_action_map[display] = {type = "dialog", func_name = func_ref, display = display}
+          table.insert(all_action_names, display)
         end
       end
     end
@@ -97,46 +65,18 @@ local function execute_action(action_key)
     return
   end
 
-  if entry.type == "dialog" then
-    local func_ref = entry.func_name
-    if type(func_ref) == "function" then
-      local ok, err = pcall(func_ref)
+  local func_ref = entry.func_name
+  if type(func_ref) == "function" then
+    local ok, err = pcall(func_ref)
+    if not ok then renoise.app():show_status("Error: " .. tostring(err)) end
+  elseif type(func_ref) == "string" then
+    local fn = _G[func_ref]
+    if type(fn) == "function" then
+      local ok, err = pcall(fn)
       if not ok then renoise.app():show_status("Error: " .. tostring(err)) end
-    elseif type(func_ref) == "string" then
-      local fn = _G[func_ref]
-      if type(fn) == "function" then
-        local ok, err = pcall(fn)
-        if not ok then renoise.app():show_status("Error: " .. tostring(err)) end
-      else
-        renoise.app():show_status("Function not found: " .. func_ref)
-      end
+    else
+      renoise.app():show_status("Function not found: " .. func_ref)
     end
-  elseif entry.type == "menu" then
-    -- Invoke via menu entry
-    local menu_entries = renoise.tool().menu_entries
-    if menu_entries then
-      for _, me in ipairs(menu_entries) do
-        if me.name == entry.menu_name then
-          local ok, err = pcall(me.invoke)
-          if not ok then renoise.app():show_status("Error: " .. tostring(err)) end
-          return
-        end
-      end
-    end
-    renoise.app():show_status("Menu entry not found: " .. entry.menu_name)
-  elseif entry.type == "keybinding" then
-    -- Invoke keybinding
-    local keybindings = renoise.tool().keybindings
-    if keybindings then
-      for _, kb in ipairs(keybindings) do
-        if kb.name == entry.kb_name then
-          local ok, err = pcall(kb.invoke, false)
-          if not ok then renoise.app():show_status("Error: " .. tostring(err)) end
-          return
-        end
-      end
-    end
-    renoise.app():show_status("Keybinding not found: " .. entry.kb_name)
   end
 end
 
@@ -264,13 +204,11 @@ local function get_slot_display(slot_index)
   if not val or val == "" then
     return "Slot " .. slot_index .. " (empty)"
   end
-  -- Strip prefix for display
-  local display = val:gsub("^%[Dialog%] ", ""):gsub("^%[Menu%] ", ""):gsub("^%[Key%] ", "")
   -- Truncate if too long
-  if #display > 18 then
-    display = display:sub(1, 16) .. ".."
+  if #val > 18 then
+    return val:sub(1, 16) .. ".."
   end
-  return display
+  return val
 end
 
 ------------------------------------------------------------------------

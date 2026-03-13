@@ -12,9 +12,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-13 - Fix: Dynamic Macro Toolbar crash — removed non-existent API calls
+
+Fixed the Dynamic Macro Toolbar crashing on open with `unknown property or function 'menu_entries'`. The Renoise API does not expose `renoise.tool().menu_entries` or `renoise.tool().keybindings` for enumeration — those properties don't exist. Rewrote the action list builder to use the existing `create_button_list()` function (now made global) which provides 170+ Paketti dialog actions. Also fixed `create_button_list` being `local` in PakettiMainMenuEntries.lua so it's accessible from other modules.
+
 ### 2026-03-13 - Feature: Dynamic Macro Toolbar — Configurable 10-button quick-action toolbar
 
-Added a new Dynamic Macro Toolbar: a 2×5 grid of configurable buttons, each assignable to any Paketti action (170+ dialogs, 3000+ menu entries, keybindings). Toggle Edit Mode to reveal per-slot popup selectors for assigning actions. Supports named preset save/load/delete (stored in `DynamicMacroToolbar_Presets/` directory). All 10 slots are individually MIDI-mappable.
+Added a new Dynamic Macro Toolbar: a 2×5 grid of configurable buttons, each assignable to any Paketti dialog action (170+ dialogs from the Dialog of Dialogs list). Toggle Edit Mode to reveal per-slot popup selectors for assigning actions. Supports named preset save/load/delete (stored in `DynamicMacroToolbar_Presets/` directory). All 10 slots are individually MIDI-mappable.
 
 **New menu entries:**
 - `Main Menu:Tools:Paketti Gadgets:Dynamic Macro Toolbar...`

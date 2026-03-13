@@ -270,7 +270,7 @@ local vb=renoise.ViewBuilder()
 local dialog_of_dialogs=nil
 
 -- Function to create the button list dynamically based on API version
-local function create_button_list()
+function create_button_list()
   local buttons = {
     {"About Paketti/Donations", "pakettiAboutDonations"},
     {"Paketti Preferences", "pakettiPreferences"},
