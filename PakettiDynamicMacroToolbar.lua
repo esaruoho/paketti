@@ -30,9 +30,10 @@ local function build_action_list()
   all_action_names = {}
   all_action_map = {}
 
-  -- 1) Dialog entries from create_button_list (if available)
-  if type(create_button_list) == "function" then
-    local ok, buttons = pcall(create_button_list)
+  -- 1) Dialog entries from create_button_list (if available as global)
+  local cbl = rawget(_G, "create_button_list")
+  if type(cbl) == "function" then
+    local ok, buttons = pcall(cbl)
     if ok and buttons then
       for _, entry in ipairs(buttons) do
         local display = entry[1]
