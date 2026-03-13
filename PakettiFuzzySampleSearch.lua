@@ -32,8 +32,8 @@ local file_buttons = {}
 
 -- Supported file extensions
 local supported_extensions = {
-  "wav", "flac", "aiff", "aif", "mp3", "m4a", "mp4", 
-  "xrni", "sf2", "rex", "rx2", "pti", "iti", "iff"
+  "wav", "flac", "aiff", "aif", "ogg", "mp3", "m4a", "mp4",
+  "xrni", "sf2", "rex", "rx2", "pti", "iti", "iff", "8svx", "16sv", "snd"
 }
 
 -- Cache system variables
@@ -909,27 +909,53 @@ function PakettiFuzzySampleSearchLoadSelected()
     
     renoise.app():show_status("Loaded XRNI: " .. file.name)
   elseif file_ext == "sf2" then
-    -- Load SF2 files - show message for now (loader functions need integration)
-    renoise.app():show_status("SF2 files: Use Paketti SF2 Loader from menu for now")
-  elseif file_ext == "rex" then
-    -- Load REX files using rex_loadsample function
-    if rex_loadsample then
-      rex_loadsample(file_path)
+    -- Load SF2 files using Paketti SF2 Loader
+    if import_sf2 then
+      import_sf2(file_path)
+      renoise.app():show_status("Loaded SF2: " .. file.name)
     else
-      renoise.app():show_status("REX loader not available")
+      renoise.app():show_status("SF2 loader not available")
     end
-  elseif file_ext == "rx2" then
-    -- Load RX2 files - show message for now (loader functions need integration)  
-    renoise.app():show_status("RX2 files: Use Paketti RX2 Loader from menu for now")
+  elseif file_ext == "rex" or file_ext == "rx2" then
+    -- Load REX/RX2 files using rx2_loadsample function
+    if rx2_loadsample then
+      rx2_loadsample(file_path)
+      renoise.app():show_status("Loaded " .. file_ext:upper() .. ": " .. file.name)
+    else
+      renoise.app():show_status(file_ext:upper() .. " loader not available")
+    end
   elseif file_ext == "pti" then
-    -- Load PTI files - show message for now (loader functions need integration)
-    renoise.app():show_status("PTI files: Use Paketti PTI Loader from menu for now")
+    -- Load PTI files using Paketti PTI Loader
+    if pti_loadsample then
+      pti_loadsample(file_path)
+      renoise.app():show_status("Loaded PTI: " .. file.name)
+    else
+      renoise.app():show_status("PTI loader not available")
+    end
   elseif file_ext == "iti" then
-    -- Load ITI files - show message for now (loader functions need integration)
-    renoise.app():show_status("ITI files: Use Paketti ITI Loader from menu for now")
-  elseif file_ext == "iff" then
-    -- Load IFF files - show message for now (loader functions need integration)
-    renoise.app():show_status("IFF files: Use Paketti IFF Loader from menu for now")
+    -- Load ITI files using Paketti ITI Loader
+    if iti_loadinstrument then
+      iti_loadinstrument(file_path)
+      renoise.app():show_status("Loaded ITI: " .. file.name)
+    else
+      renoise.app():show_status("ITI loader not available")
+    end
+  elseif file_ext == "iff" or file_ext == "8svx" or file_ext == "16sv" then
+    -- Load IFF/8SVX/16SV files using Paketti IFF Loader
+    if loadIFFSample then
+      loadIFFSample(file_path)
+      renoise.app():show_status("Loaded IFF: " .. file.name)
+    else
+      renoise.app():show_status("IFF loader not available")
+    end
+  elseif file_ext == "snd" then
+    -- Load MPC2000 SND files using Paketti MPC2000 Loader
+    if importMPC2000Sample then
+      importMPC2000Sample(file_path)
+      renoise.app():show_status("Loaded SND: " .. file.name)
+    else
+      renoise.app():show_status("MPC2000 SND loader not available")
+    end
   else
     -- Load regular audio files (wav, flac, aiff, mp3, etc.)
     local song = renoise.song()

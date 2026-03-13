@@ -12,6 +12,19 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-13 - Fix: Fuzzy Sample Search now actually loads SF2, RX2, PTI, ITI, IFF, 8SVX, 16SV, SND files
+
+Previously, selecting SF2, RX2, PTI, ITI, or IFF files in Fuzzy Sample Search only showed a status message saying "Use the menu loader" — the existing Paketti loaders were not wired up. Now all formats load immediately when selected:
+
+- **SF2** → calls `import_sf2()` (PakettiSF2Loader.lua)
+- **REX/RX2** → calls `rx2_loadsample()` (PakettiRX2Loader.lua) — REX and RX2 now share the same loader
+- **PTI** → calls `pti_loadsample()` (PakettiPTILoader.lua)
+- **ITI** → calls `iti_loadinstrument()` (PakettiITIImport.lua)
+- **IFF/8SVX/16SV** → calls `loadIFFSample()` (PakettiIFFLoader.lua)
+- **SND** → calls `importMPC2000Sample()` (PakettiAkaiMPC2000.lua)
+
+Also added 4 new file extensions to the scan list: `ogg`, `8svx`, `16sv`, `snd`. Total supported formats: 18 (up from 14).
+
 ### 2026-03-13 - Fix: Chebyshev Waveshaper crash when dragging sliders during auto-preview
 
 Fixed a race condition in the Chebyshev Waveshaper where rapidly dragging sliders with auto-preview enabled would crash with `finalize_sample_buffer_changes called without prepare_sample_data_changes`. The root cause was concurrent `ProcessSlicer` coroutines: each slider drag started a new async processing coroutine without stopping the previous one, causing their `prepare`/`finalize` buffer locks to interleave and corrupt each other. The fix tracks the active slicer in a module-level variable and explicitly stops it (with safe cleanup of any outstanding buffer prepare) before starting a new preview cycle. All code paths that restore sample data (reset, toggle preview off, apply) now also stop any in-flight slicer first.
