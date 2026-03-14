@@ -12,6 +12,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-15 - Feature: Selection to Phrase
+
+Added a dedicated **Selection to Phrase** feature that grabs whatever you've selected in the Pattern Editor and turns it into a new phrase on the selected instrument. Select a region, fire the shortcut, and you've got a phrase — complete with the same number of note columns, effect columns, volume/panning/delay sub-column visibility, and your current LPB. The phrase is set to loop by default and named with the source pattern and line range for easy identification.
+
+Also fixed the existing **Pattern to Phrase** function: instrument column values are now correctly cleared when copying to a phrase (previously, the song instrument index was copied raw into the phrase's sample-index column, which could cause wrong samples to play). Both functions now support undo.
+
+- **Keybinding:** `Pattern Editor:Paketti:Selection to Phrase`
+- **Menu:** `Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Selection to Phrase`
+- **Right-click menu:** `Pattern Editor:Paketti:PhraseGrid:Selection to Phrase`
+- **MIDI mapping:** `Paketti:Selection to Phrase [Trigger]`
+- **Improved:** `Global:Paketti:Pattern to Phrase` — now also fixes instrument column, adds undo, copies sub-column visibility
+
 ### 2026-03-13 - Improvement: Tighter dialog layouts
 
 Removed unnecessary padding from four dialogs so they take up less screen space:

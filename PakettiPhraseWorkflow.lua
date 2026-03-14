@@ -3868,97 +3868,250 @@ end
 --------------------------------------------------------------------------------
 
 -- Extract pattern content to new phrase
+-- If there is a selection in the pattern editor, only the selected lines are copied.
+-- Otherwise, the entire pattern is copied.
 function PakettiPatternToPhrase()
   local song = renoise.song()
   if not song then return end
-  
+
   local pattern = song.selected_pattern
   local track_index = song.selected_track_index
   local pattern_track = pattern:track(track_index)
   local track = song.tracks[track_index]
   local instrument = song.selected_instrument
-  
+
+  if track.type == renoise.Track.TRACK_TYPE_MASTER or track.type == renoise.Track.TRACK_TYPE_SEND then
+    renoise.app():show_status("Paketti: Cannot create phrase from Master or Send track.")
+    return
+  end
+
   -- Check for selection
   local start_line, end_line
+  local from_selection = false
   local selection = song.selection_in_pattern
   if selection then
     start_line = selection.start_line
     end_line = selection.end_line
+    from_selection = true
   else
     start_line = 1
     end_line = pattern.number_of_lines
   end
-  
+
   local phrase_length = end_line - start_line + 1
-  
-  -- Create new phrase
+
   local phrase_count = #instrument.phrases
   local new_phrase_index = phrase_count + 1
+
+  if new_phrase_index > 126 then
+    renoise.app():show_status("Paketti: Instrument already has maximum number of phrases (126).")
+    return
+  end
+
+  song:describe_undo("Pattern to Phrase")
+
+  -- Create new phrase
   instrument:insert_phrase_at(new_phrase_index)
   song.selected_phrase_index = new_phrase_index
-  
+
   local phrase = song.selected_phrase
   phrase.number_of_lines = phrase_length
   phrase.lpb = song.transport.lpb
-  phrase.name = string.format("From Pattern %d", song.selected_pattern_index)
-  
-  -- Ensure enough columns
-  if phrase.visible_note_columns < track.visible_note_columns then
-    phrase.visible_note_columns = track.visible_note_columns
+  phrase.looping = true
+
+  if from_selection then
+    phrase.name = string.format("Sel P%02d L%d-%d", song.selected_pattern_index, start_line, end_line)
+  else
+    phrase.name = string.format("From Pattern %d", song.selected_pattern_index)
   end
-  if phrase.visible_effect_columns < track.visible_effect_columns then
-    phrase.visible_effect_columns = track.visible_effect_columns
-  end
-  
+
+  -- Match column counts
+  phrase.visible_note_columns = track.visible_note_columns
+  phrase.visible_effect_columns = track.visible_effect_columns
+
+  -- Match sub-column visibility
+  phrase.volume_column_visible = track.volume_column_visible
+  phrase.panning_column_visible = track.panning_column_visible
+  phrase.delay_column_visible = track.delay_column_visible
+  phrase.sample_effects_column_visible = track.sample_effects_column_visible
+
   -- Copy pattern content to phrase
+  local notes_copied = 0
   for i = 1, phrase_length do
     local pattern_line_index = start_line + i - 1
     local pattern_line = pattern_track:line(pattern_line_index)
     local phrase_line = phrase:line(i)
-    
+
     -- Copy note columns
     for col_index = 1, track.visible_note_columns do
       local src_col = pattern_line:note_column(col_index)
       local dst_col = phrase_line:note_column(col_index)
-      
+
       if not src_col.is_empty then
         dst_col.note_value = src_col.note_value
-        dst_col.instrument_value = src_col.instrument_value
+        -- In phrases, instrument_value = sample index within the instrument.
+        -- In the pattern, instrument_value = song instrument index.
+        -- Clear it so Renoise uses keyzone mapping to pick the correct sample.
+        dst_col.instrument_value = 255
         dst_col.volume_value = src_col.volume_value
         dst_col.panning_value = src_col.panning_value
         dst_col.delay_value = src_col.delay_value
         dst_col.effect_number_value = src_col.effect_number_value
         dst_col.effect_amount_value = src_col.effect_amount_value
+
+        if src_col.note_value < 120 then
+          notes_copied = notes_copied + 1
+        end
       end
     end
-    
+
     -- Copy effect columns
     for col_index = 1, track.visible_effect_columns do
       local src_col = pattern_line:effect_column(col_index)
       local dst_col = phrase_line:effect_column(col_index)
-      
+
       if not src_col.is_empty then
         dst_col.number_value = src_col.number_value
         dst_col.amount_value = src_col.amount_value
       end
     end
   end
-  
-  renoise.app():show_status(string.format("Created phrase %02d from pattern (%d lines)", new_phrase_index, phrase_length))
+
+  renoise.app():show_status(string.format(
+    "Paketti: Created Phrase %02d from %s (%d lines, %d notes)",
+    new_phrase_index,
+    from_selection and "selection" or "pattern",
+    phrase_length, notes_copied))
 end
 
 -- Extract single track to phrase
 function PakettiPatternToPhraseTrack(track_index)
   local song = renoise.song()
   if not song then return end
-  
+
   track_index = track_index or song.selected_track_index
   local prev_track = song.selected_track_index
   song.selected_track_index = track_index
-  
+
   PakettiPatternToPhrase()
-  
+
   song.selected_track_index = prev_track
+end
+
+--------------------------------------------------------------------------------
+-- 10b. SELECTION TO PHRASE
+--------------------------------------------------------------------------------
+
+-- Create a new phrase from the current pattern editor selection.
+-- Requires an active selection in the pattern editor.
+-- Copies note data, effect columns, and sub-column visibility.
+-- Instrument values are cleared in the phrase (phrases use sample indices,
+-- not song instrument indices, so raw copying would be incorrect).
+function PakettiSelectionToPhrase()
+  local song = renoise.song()
+  if not song then return end
+
+  local selection = song.selection_in_pattern
+  if not selection then
+    renoise.app():show_status("Paketti: No selection in Pattern Editor. Select some notes first.")
+    return
+  end
+
+  local track_index = song.selected_track_index
+  local track = song.tracks[track_index]
+
+  if track.type == renoise.Track.TRACK_TYPE_MASTER or track.type == renoise.Track.TRACK_TYPE_SEND then
+    renoise.app():show_status("Paketti: Cannot create phrase from Master or Send track.")
+    return
+  end
+
+  local pattern = song.selected_pattern
+  local pattern_track = pattern:track(track_index)
+  local instrument = song.selected_instrument
+
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  local phrase_length = end_line - start_line + 1
+
+  if phrase_length < 1 then
+    renoise.app():show_status("Paketti: Selection is empty.")
+    return
+  end
+
+  local phrase_count = #instrument.phrases
+  local new_phrase_index = phrase_count + 1
+
+  if new_phrase_index > 126 then
+    renoise.app():show_status("Paketti: Instrument already has maximum number of phrases (126).")
+    return
+  end
+
+  song:describe_undo("Selection to Phrase")
+
+  instrument:insert_phrase_at(new_phrase_index)
+  song.selected_phrase_index = new_phrase_index
+
+  local phrase = song.selected_phrase
+  phrase.number_of_lines = phrase_length
+  phrase.lpb = song.transport.lpb
+  phrase.looping = true
+  phrase.name = string.format("Sel P%02d L%d-%d", song.selected_pattern_index, start_line, end_line)
+
+  -- Match column counts
+  phrase.visible_note_columns = track.visible_note_columns
+  phrase.visible_effect_columns = track.visible_effect_columns
+
+  -- Match sub-column visibility
+  phrase.volume_column_visible = track.volume_column_visible
+  phrase.panning_column_visible = track.panning_column_visible
+  phrase.delay_column_visible = track.delay_column_visible
+  phrase.sample_effects_column_visible = track.sample_effects_column_visible
+
+  -- Copy selection content to phrase
+  local notes_copied = 0
+  for i = 1, phrase_length do
+    local pattern_line_index = start_line + i - 1
+    local pattern_line = pattern_track:line(pattern_line_index)
+    local phrase_line = phrase:line(i)
+
+    -- Copy note columns
+    for col_index = 1, track.visible_note_columns do
+      local src_col = pattern_line:note_column(col_index)
+      local dst_col = phrase_line:note_column(col_index)
+
+      if not src_col.is_empty then
+        dst_col.note_value = src_col.note_value
+        -- In phrases, instrument_value = sample index within the instrument.
+        -- In the pattern, instrument_value = song instrument index.
+        -- Clear it so Renoise uses keyzone mapping to pick the correct sample.
+        dst_col.instrument_value = 255
+        dst_col.volume_value = src_col.volume_value
+        dst_col.panning_value = src_col.panning_value
+        dst_col.delay_value = src_col.delay_value
+        dst_col.effect_number_value = src_col.effect_number_value
+        dst_col.effect_amount_value = src_col.effect_amount_value
+
+        if src_col.note_value < 120 then
+          notes_copied = notes_copied + 1
+        end
+      end
+    end
+
+    -- Copy effect columns
+    for col_index = 1, track.visible_effect_columns do
+      local src_col = pattern_line:effect_column(col_index)
+      local dst_col = phrase_line:effect_column(col_index)
+
+      if not src_col.is_empty then
+        dst_col.number_value = src_col.number_value
+        dst_col.amount_value = src_col.amount_value
+      end
+    end
+  end
+
+  renoise.app():show_status(string.format(
+    "Paketti: Created Phrase %02d from selection (%d lines, %d notes)",
+    new_phrase_index, phrase_length, notes_copied))
 end
 
 --------------------------------------------------------------------------------
@@ -5715,6 +5868,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Phrase Auto-Fill Pattern", in
 renoise.tool():add_keybinding{name="Global:Paketti:Phrase Auto-Fill With Variation", invoke=PakettiPhraseAutoFillWithVariation}
 renoise.tool():add_keybinding{name="Global:Paketti:Phrase to Pattern", invoke=function() PakettiPhraseToPattern() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Pattern to Phrase", invoke=PakettiPatternToPhrase}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Selection to Phrase", invoke=PakettiSelectionToPhrase}
 
 -- Templates
 renoise.tool():add_keybinding{name="Global:Paketti:Phrase Template From Slices", invoke=PakettiPhraseTemplateFromSlices}
@@ -7406,6 +7560,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Auto-Fill with Variations", invoke=PakettiPhraseAutoFillWithVariation}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Convert Phrase to Pattern", invoke=function() PakettiPhraseToPattern() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Convert Pattern to Phrase", invoke=PakettiPatternToPhrase}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Selection to Phrase", invoke=PakettiSelectionToPhrase}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Show Quick Flicks Dialog", invoke=PakettiQuickFlicksShowDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Volume Ramp Up", invoke=function() PakettiQuickFlickVolumeRampUp() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Volume Ramp Down", invoke=function() PakettiQuickFlickVolumeRampDown() end}
@@ -8388,6 +8543,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Full Render Stack Workflow", 
 renoise.tool():add_keybinding{name="Global:Paketti:Render Current PhraseGrid State", invoke=function() PakettiPhraseGridRenderCurrentState() end}
 
 -- MIDI mappings for render integration
+renoise.tool():add_midi_mapping{name="Paketti:Selection to Phrase [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSelectionToPhrase() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Render Pattern to Phrases [Trigger]", invoke=function(message) if message:is_trigger() then PakettiRenderPatternToPhrase() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Render Phrase to Sample [Trigger]", invoke=function(message) if message:is_trigger() then PakettiRenderPhraseToSample() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Slices to Phrase Bank [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSlicesToPhraseBank() end end}
@@ -8411,6 +8567,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Stacker
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:PhraseGrid Render:Render Current State", invoke=function() PakettiPhraseGridRenderCurrentState() end}
 
 -- Pattern Editor context menu for render integration
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:PhraseGrid:Selection to Phrase", invoke=PakettiSelectionToPhrase}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:PhraseGrid:Render to Phrases", invoke=function() PakettiRenderPatternToPhrase() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:PhraseGrid:Render (8 slices)", invoke=function() PakettiRenderPatternToPhrase({slice_count = 8}) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:PhraseGrid:Full Stack Workflow", invoke=function() PakettiFullRenderStackWorkflow() end}
