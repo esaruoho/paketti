@@ -468,6 +468,19 @@ for slot = 1, NUM_SLOTS do
 end
 
 ------------------------------------------------------------------------
+-- Keybindings: trigger individual slots
+------------------------------------------------------------------------
+for slot = 1, NUM_SLOTS do
+  renoise.tool():add_keybinding{
+    name = "Global:Paketti:Dynamic Macro Toolbar Trigger Slot " .. string.format("%02d", slot),
+    invoke = function()
+      build_action_list()
+      execute_action(get_slot_value(slot))
+    end
+  }
+end
+
+------------------------------------------------------------------------
 -- Menu entries, keybindings
 ------------------------------------------------------------------------
 renoise.tool():add_keybinding{

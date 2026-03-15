@@ -12,6 +12,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-15 - Feature: Dynamic Macro Toolbar Slot Keybindings
+
+Added 10 keyboard shortcuts for triggering Dynamic Macro Toolbar slots directly, without opening the dialog. Each keybinding calls the same logic as the existing MIDI mappings — build the action list and execute the action assigned to that slot.
+
+- **Keybindings:** `Global:Paketti:Dynamic Macro Toolbar Trigger Slot 01` through `Slot 10`
+
 ### 2026-03-15 - Feature: Replace Selection with Phrase
 
 Added **Replace Selection with Phrase** — select a region in the Pattern Editor and instantly convert it into a phrase while replacing the original notes with a single phrase trigger. The selection is copied into a new phrase on the current instrument (with matching note/effect columns, sub-column visibility, and LPB), then the selected rows are cleared and a `C-4` note with a `Zxx` phrase-trigger command is written at the first line. Phrase playback mode is automatically set to Selective so the Zxx command works immediately. The new phrase is selected in the UI so you can edit it right away.
