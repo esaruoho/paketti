@@ -12,6 +12,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-15 - Feature: Replace Selection with Phrase
+
+Added **Replace Selection with Phrase** — select a region in the Pattern Editor and instantly convert it into a phrase while replacing the original notes with a single phrase trigger. The selection is copied into a new phrase on the current instrument (with matching note/effect columns, sub-column visibility, and LPB), then the selected rows are cleared and a `C-4` note with a `Zxx` phrase-trigger command is written at the first line. Phrase playback mode is automatically set to Selective so the Zxx command works immediately. The new phrase is selected in the UI so you can edit it right away.
+
+- **Keybinding:** `Pattern Editor:Paketti:Replace Selection with Phrase`
+- **Keybinding:** `Global:Paketti:Replace Selection with Phrase`
+- **Menu:** `Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Replace Selection with Phrase`
+- **Right-click menu:** `Pattern Editor:Paketti:PhraseGrid:Replace Selection with Phrase`
+- **MIDI mapping:** `Paketti:Replace Selection with Phrase [Trigger]`
+
 ### 2026-03-15 - Feature: Selection to Phrase
 
 Added a dedicated **Selection to Phrase** feature that grabs whatever you've selected in the Pattern Editor and turns it into a new phrase on the selected instrument. Select a region, fire the shortcut, and you've got a phrase — complete with the same number of note columns, effect columns, volume/panning/delay sub-column visibility, and your current LPB. The phrase is set to loop by default and named with the source pattern and line range for easy identification.
