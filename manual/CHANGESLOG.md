@@ -12,6 +12,24 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-16 - Feature: Clean Render Matrix In Place
+
+Added **Clean Render Matrix In Place** — the Pattern Matrix equivalent of Clean Render In Place. Select slots in the Pattern Matrix, trigger the function, and it will:
+
+1. **Render only the selected tracks** (solos them during render, so only their audio is captured)
+2. **Apply +12dB headroom compensation** to match Renoise's native rendering behavior
+3. **Clear all notes** across all selected tracks and all patterns in the sequence range
+4. **Place a C-4** with the rendered instrument at line 1 of the first sequence position on the primary track
+5. **Delete unused instruments** — any instruments that were only used in the rendered area and are now unused song-wide are automatically removed
+6. **Auto-adjust instrument indices** so the C-4 always points to the correct instrument after deletions shift indices
+
+Works with single or multiple tracks. The instrument is named to show the sequence range and track names (e.g. "Clean Matrix Render S01-S04 (Bass+Pad+Lead)").
+
+- **Keybinding:** `Pattern Matrix:Paketti:Clean Render Matrix In Place`
+- **Keybinding:** `Global:Paketti:Clean Render Matrix In Place`
+- **Menu:** `Pattern Matrix:Paketti:Clean Render Matrix In Place`
+- **MIDI mapping:** `Paketti:Clean Render Matrix In Place`
+
 ### 2026-03-16 - Fix: Clean Render In Place headroom compensation and multitrack support
 
 Fixed two issues with **Clean Render In Place**:

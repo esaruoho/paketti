@@ -3058,3 +3058,436 @@ end
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
 
+-------------------------------------------------------------------------------------
+-- Clean Render Matrix In Place
+-- Like regular matrix render, but clears original notes, places C-4 at line 1 of
+-- the first sequence position on the primary track, applies +12dB headroom
+-- compensation, and deletes instruments that are now unused.
+-------------------------------------------------------------------------------------
+
+-- Collect all instrument indices used across all selected patterns and tracks
+local function collect_instruments_in_matrix_selection(song, selected_tracks, start_seq, end_seq)
+  local instruments_used = {}
+  local sequencer = song.sequencer
+
+  for track_idx, _ in pairs(selected_tracks) do
+    if song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      for seq_idx = start_seq, end_seq do
+        local pattern_index = sequencer.pattern_sequence[seq_idx]
+        local pattern = song.patterns[pattern_index]
+        if pattern then
+          local pattern_track = pattern:track(track_idx)
+          for line_idx = 1, pattern.number_of_lines do
+            local line = pattern_track:line(line_idx)
+            if not line.is_empty then
+              for _, note_col in ipairs(line.note_columns) do
+                if not note_col.is_empty and note_col.instrument_value < 255 then
+                  instruments_used[note_col.instrument_value + 1] = true
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  return instruments_used
+end
+
+-- Monitor function for clean matrix rendering (separate from regular matrix monitor)
+function monitor_clean_matrix_rendering()
+  if renoise.song().rendering then
+    local progress = renoise.song().rendering_progress
+    print("Clean matrix rendering in progress: " .. (progress * 100) .. "% complete")
+  else
+    if renoise.tool():has_timer(monitor_clean_matrix_rendering) then
+      renoise.tool():remove_timer(monitor_clean_matrix_rendering)
+    end
+    print("Clean matrix rendering not in progress or already completed.")
+  end
+end
+
+-- Post-render callback: load sample, clear notes, place C-4, delete unused instruments
+function clean_render_matrix_in_place_callback(render_context)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+
+  local song = renoise.song()
+
+  -- Remove the monitoring timer
+  if renoise.tool():has_timer(monitor_clean_matrix_rendering) then
+    renoise.tool():remove_timer(monitor_clean_matrix_rendering)
+  end
+
+  -- Handle DC Offset removal
+  if render_context.dc_offset_position > 0 then
+    local master_track = song:track(song.sequencer_track_count + 1)
+    if master_track.devices[render_context.dc_offset_position] and
+       master_track.devices[render_context.dc_offset_position].display_name == "Render DC Offset" then
+      master_track:delete_device_at(render_context.dc_offset_position)
+    end
+  end
+
+  -- Restore solo and mute states
+  for i = 1, song.sequencer_track_count do
+    if song.tracks[i] then
+      song.tracks[i].solo_state = false
+      song.tracks[i].mute_state = renoise.Track.MUTE_STATE_ACTIVE
+    end
+  end
+
+  local send_track_start = song.sequencer_track_count + 2
+  for i = send_track_start, send_track_start + song.send_track_count - 1 do
+    if song.tracks[i] then
+      song.tracks[i].solo_state = false
+      song.tracks[i].mute_state = renoise.Track.MUTE_STATE_ACTIVE
+    end
+  end
+
+  for i = 1, render_context.num_tracks_before do
+    if track_states[i] then
+      song.tracks[i].solo_state = track_states[i].solo_state
+      song.tracks[i].mute_state = track_states[i].mute_state
+    end
+  end
+
+  -- Load rendered sample into new instrument with +12dB headroom compensation
+  local target_instrument = render_context.target_instrument
+  pakettiPreferencesDefaultInstrumentLoader()
+
+  local new_instrument = song:instrument(target_instrument)
+  new_instrument.samples[1].sample_buffer:load_from(render_context.temp_file_path)
+  os.remove(render_context.temp_file_path)
+
+  song.selected_instrument_index = target_instrument
+
+  -- Build instrument name from track names
+  local selected_tracks = render_context.selected_tracks or {}
+  local track_names = {}
+  local sorted_tracks = {}
+  for tidx, _ in pairs(selected_tracks) do
+    table.insert(sorted_tracks, tidx)
+  end
+  table.sort(sorted_tracks)
+  for _, tidx in ipairs(sorted_tracks) do
+    if song.tracks[tidx] then
+      table.insert(track_names, song.tracks[tidx].name)
+    end
+  end
+
+  local selection_name
+  if #track_names > 1 then
+    selection_name = string.format("Clean Matrix Render S%02d-S%02d (%s)",
+      render_context.selection_start_sequence, render_context.selection_end_sequence,
+      table.concat(track_names, "+"))
+  elseif #track_names == 1 then
+    selection_name = string.format("%s (Clean Matrix Render S%02d-S%02d)",
+      track_names[1], render_context.selection_start_sequence, render_context.selection_end_sequence)
+  else
+    selection_name = string.format("Clean Matrix Render S%02d-S%02d",
+      render_context.selection_start_sequence, render_context.selection_end_sequence)
+  end
+
+  new_instrument.name = selection_name
+  new_instrument.samples[1].name = selection_name
+  new_instrument.samples[1].autofade = true
+  new_instrument.samples[1].volume = math.db2lin(12)  -- +12dB headroom compensation
+
+  -- Clear all notes in the selection area across ALL selected tracks and ALL patterns in range
+  local sequencer = song.sequencer
+  local primary_track = render_context.primary_track
+  for seq_idx = render_context.selection_start_sequence, render_context.selection_end_sequence do
+    local pattern_index = sequencer.pattern_sequence[seq_idx]
+    local pattern = song.patterns[pattern_index]
+    if pattern then
+      for track_idx, _ in pairs(selected_tracks) do
+        if song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          local pt = pattern:track(track_idx)
+          for line_idx = 1, pattern.number_of_lines do
+            pt:line(line_idx):clear()
+          end
+        end
+      end
+    end
+  end
+
+  -- Place C-4 with the rendered instrument at line 1 of the first sequence position on the primary track
+  local first_pattern_index = sequencer.pattern_sequence[render_context.selection_start_sequence]
+  local first_pattern = song.patterns[first_pattern_index]
+  if first_pattern then
+    local first_line = first_pattern:track(primary_track):line(1)
+    local note_col = first_line:note_column(1)
+    note_col.note_value = 48  -- C-4
+    note_col.instrument_value = target_instrument - 1  -- 0-based
+  end
+
+  -- Find which instruments from the selection are now unused in the entire song
+  local used_instruments = findUsedInstruments()
+  local to_delete = {}
+
+  for instr_idx, _ in pairs(render_context.selection_instruments) do
+    if not used_instruments[instr_idx] then
+      local instr = song.instruments[instr_idx]
+      if instr and #instr.samples > 0 and #song.instruments > 1 then
+        table.insert(to_delete, instr_idx)
+      end
+    end
+  end
+
+  local deleted_count = 0
+  if #to_delete > 0 then
+    -- Sort descending for safe deletion (avoids reindexing issues)
+    table.sort(to_delete, function(a, b) return a > b end)
+
+    -- Count how many deletions are below the rendered instrument's index
+    local shift = 0
+    for _, idx in ipairs(to_delete) do
+      if idx < target_instrument then
+        shift = shift + 1
+      end
+    end
+
+    -- Delete unused instruments
+    for _, idx in ipairs(to_delete) do
+      if #song.instruments > 1 then
+        song:delete_instrument_at(idx)
+        deleted_count = deleted_count + 1
+      end
+    end
+
+    -- Calculate the new instrument index after deletions shifted everything
+    local new_instrument_index = target_instrument - shift
+
+    -- Update the C-4 note with the corrected instrument index
+    if first_pattern then
+      local first_line = first_pattern:track(primary_track):line(1)
+      local note_col = first_line:note_column(1)
+      note_col.instrument_value = new_instrument_index - 1  -- 0-based
+    end
+
+    -- Select the rendered instrument at its new location
+    song.selected_instrument_index = new_instrument_index
+  end
+
+  if deleted_count > 0 then
+    renoise.app():show_status(string.format(
+      "Paketti Clean Render Matrix In Place: %s (deleted %d unused instrument%s)",
+      selection_name, deleted_count, deleted_count == 1 and "" or "s"))
+  else
+    renoise.app():show_status("Paketti Clean Render Matrix In Place: " .. selection_name)
+  end
+
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+end
+
+-- Start the rendering process — solo only selected tracks so only their audio is captured
+function start_clean_matrix_rendering(render_context)
+  local song = renoise.song()
+  local render_priority = "high"
+  local dc_offset_added = false
+  local dc_offset_position = 0
+
+  -- Check if ANY track has Line Input
+  for _, track in ipairs(song.tracks) do
+    for _, device in ipairs(track.devices) do
+      if device.name == "#Line Input" then
+        render_priority = "realtime"
+        break
+      end
+    end
+    if render_priority == "realtime" then break end
+  end
+
+  -- Add DC Offset if enabled in preferences (to master track)
+  if preferences.RenderDCOffset.value then
+    local master_track = song:track(song.sequencer_track_count + 1)
+
+    for i, device in ipairs(master_track.devices) do
+      if device.display_name == "Render DC Offset" then
+        dc_offset_position = i
+        break
+      end
+    end
+
+    if dc_offset_position == 0 then
+      local original_track_index = song.selected_track_index
+      song.selected_track_index = song.sequencer_track_count + 1
+      loadnative("Audio/Effects/Native/DC Offset", "Render DC Offset")
+      song.selected_track_index = original_track_index
+
+      for i, device in ipairs(master_track.devices) do
+        if device.display_name == "Render DC Offset" then
+          dc_offset_position = i
+          device.parameters[2].value = 1
+          dc_offset_added = true
+          break
+        end
+      end
+    end
+  end
+
+  render_context.dc_offset_added = dc_offset_added
+  render_context.dc_offset_position = dc_offset_position
+
+  -- Calculate start and end positions
+  local start_sequence = render_context.selection_start_sequence
+  local end_sequence = render_context.selection_end_sequence
+  local end_pattern_index = song.sequencer.pattern_sequence[end_sequence]
+  local end_pattern_lines = song.patterns[end_pattern_index].number_of_lines
+
+  local render_options = {
+    sample_rate = preferences.renderSampleRate.value,
+    bit_depth = preferences.renderBitDepth.value,
+    interpolation = preferences.renderInterpolation.value,
+    priority = render_priority,
+    start_pos = renoise.SongPos(start_sequence, 1),
+    end_pos = renoise.SongPos(end_sequence, end_pattern_lines),
+  }
+
+  -- Save current solo and mute states
+  track_states = {}
+  render_context.num_tracks_before = #song.tracks
+  for i, track in ipairs(song.tracks) do
+    track_states[i] = {
+      solo_state = track.solo_state,
+      mute_state = track.mute_state
+    }
+  end
+
+  -- Unsolo all tracks first
+  for i, track in ipairs(song.tracks) do
+    track.solo_state = false
+  end
+
+  -- Solo ONLY the selected tracks (so only their audio is rendered)
+  for track_idx, _ in pairs(render_context.selected_tracks) do
+    if song.tracks[track_idx] then
+      song.tracks[track_idx].solo_state = true
+    end
+  end
+
+  render_context.temp_file_path = pakettiGetTempFilePath(".wav")
+
+  -- Start rendering
+  local success, error_message = song:render(render_options, render_context.temp_file_path,
+    function() clean_render_matrix_in_place_callback(render_context) end)
+
+  if not success then
+    print("Clean matrix rendering failed: " .. error_message)
+    if dc_offset_added and dc_offset_position > 0 then
+      local master_track = song:track(song.sequencer_track_count + 1)
+      master_track:delete_device_at(dc_offset_position)
+    end
+  else
+    if not renoise.tool():has_timer(monitor_clean_matrix_rendering) then
+      renoise.tool():add_timer(monitor_clean_matrix_rendering, 500)
+    end
+  end
+end
+
+-- Entry point: read matrix selection, collect instruments, create context, start render
+function pakettiCleanRenderMatrixInPlace()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+
+  -- Read Pattern Matrix selection
+  local min_seq = nil
+  local max_seq = nil
+  local has_selection = false
+  local selected_tracks = {}
+
+  for track_idx = 1, #song.tracks do
+    local track_has_selection = false
+    for seq_idx = 1, #sequencer.pattern_sequence do
+      if sequencer:track_sequence_slot_is_selected(track_idx, seq_idx) then
+        has_selection = true
+        track_has_selection = true
+        if not min_seq or seq_idx < min_seq then min_seq = seq_idx end
+        if not max_seq or seq_idx > max_seq then max_seq = seq_idx end
+      end
+    end
+    if track_has_selection then
+      selected_tracks[track_idx] = true
+    end
+  end
+
+  if not has_selection or not min_seq or not max_seq then
+    renoise.app():show_status("Paketti Clean Render Matrix In Place: No Pattern Matrix selection. Please select slots in the Pattern Matrix first.")
+    return
+  end
+
+  -- Filter to only sequencer tracks (reject group tracks)
+  local sequencer_tracks = {}
+  local primary_track = nil
+  for track_idx, _ in pairs(selected_tracks) do
+    if song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      sequencer_tracks[track_idx] = true
+      if not primary_track or track_idx < primary_track then
+        primary_track = track_idx
+      end
+    end
+  end
+
+  local has_sequencer_tracks = false
+  for _, _ in pairs(sequencer_tracks) do
+    has_sequencer_tracks = true
+    break
+  end
+
+  if not has_sequencer_tracks then
+    renoise.app():show_status("Paketti Clean Render Matrix In Place: No sequencer tracks in selection.")
+    return
+  end
+
+  -- Collect instruments used in the selection BEFORE creating the new instrument
+  local selection_instruments = collect_instruments_in_matrix_selection(
+    song, sequencer_tracks, min_seq, max_seq)
+
+  -- Check if any instruments were found
+  local has_instruments = false
+  for _, _ in pairs(selection_instruments) do
+    has_instruments = true
+    break
+  end
+
+  if not has_instruments then
+    renoise.app():show_status("Paketti Clean Render Matrix In Place: No instruments found in selection.")
+    return
+  end
+
+  -- Create new instrument (inserting shifts indices >= insertion point up by 1)
+  local target_instrument = song.selected_instrument_index + 1
+  if not safeInsertInstrumentAt(song, target_instrument) then return end
+
+  -- Adjust selection_instruments for the index shift caused by insertion
+  local adjusted_instruments = {}
+  for instr_idx, v in pairs(selection_instruments) do
+    if instr_idx >= target_instrument then
+      adjusted_instruments[instr_idx + 1] = v
+    else
+      adjusted_instruments[instr_idx] = v
+    end
+  end
+
+  song.selected_instrument_index = target_instrument
+
+  -- Create render context
+  local render_context = create_matrix_render_context()
+  render_context.selection_start_sequence = min_seq
+  render_context.selection_end_sequence = max_seq
+  render_context.selected_tracks = sequencer_tracks
+  render_context.primary_track = primary_track
+  render_context.target_instrument = target_instrument
+  render_context.selection_instruments = adjusted_instruments
+
+  -- Start rendering
+  start_clean_matrix_rendering(render_context)
+end
+
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Clean Render Matrix In Place",invoke=function() pakettiCleanRenderMatrixInPlace() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Clean Render Matrix In Place",invoke=function() pakettiCleanRenderMatrixInPlace() end}
+renoise.tool():add_midi_mapping{name="Paketti:Clean Render Matrix In Place",invoke=function(message) if message:is_trigger() then pakettiCleanRenderMatrixInPlace() end end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Clean Render Matrix In Place",invoke=function() pakettiCleanRenderMatrixInPlace() end}
+
