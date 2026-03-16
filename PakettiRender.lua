@@ -1499,11 +1499,18 @@ function start_selection_rendering(render_context, track_index)
         }
     end
 
-    -- Solo the selected track and unsolo others
+    -- Solo the rendering track(s) and unsolo others
     for i, track in ipairs(song.tracks) do
         track.solo_state = false
     end
-    song.tracks[track_index].solo_state = true
+    -- Solo all selected tracks for multitrack rendering support
+    if render_context.all_render_tracks and #render_context.all_render_tracks > 1 then
+        for _, tidx in ipairs(render_context.all_render_tracks) do
+            song.tracks[tidx].solo_state = true
+        end
+    else
+        song.tracks[track_index].solo_state = true
+    end
 
     -- Update render context values
     render_context.source_track = track_index
@@ -1798,21 +1805,35 @@ function clean_render_in_place_callback(render_context)
   song.selected_instrument_index = renderedInstrument
 
   -- Name the instrument
-  local selection_name = string.format("%s (Clean Render L%d-L%d)",
-    renderName, render_context.selection_start_line, render_context.selection_end_line)
+  local selection_name
+  if render_context.all_render_tracks and #render_context.all_render_tracks > 1 then
+    local track_names = {}
+    for _, tidx in ipairs(render_context.all_render_tracks) do
+      table.insert(track_names, song.tracks[tidx].name)
+    end
+    selection_name = string.format("Clean Render L%d-L%d (%s)",
+      render_context.selection_start_line, render_context.selection_end_line, table.concat(track_names, "+"))
+  else
+    selection_name = string.format("%s (Clean Render L%d-L%d)",
+      renderName, render_context.selection_start_line, render_context.selection_end_line)
+  end
   new_instrument.name = selection_name
   new_instrument.samples[1].name = selection_name
   new_instrument.samples[1].autofade = true
+  new_instrument.samples[1].volume = math.db2lin(12)  -- +12dB headroom compensation (matches Renoise native "Render Selection To Sample" behavior)
 
-  -- Clear all notes in the selection area on the rendered track
+  -- Clear all notes in the selection area on ALL rendered tracks
   local pattern = song.patterns[song.selected_pattern_index]
-  local pattern_track = pattern:track(renderTrack)
-  for line_idx = render_context.selection_start_line, render_context.selection_end_line do
-    pattern_track:line(line_idx):clear()
+  local all_tracks = render_context.all_render_tracks or {renderTrack}
+  for _, track_idx in ipairs(all_tracks) do
+    local pt = pattern:track(track_idx)
+    for line_idx = render_context.selection_start_line, render_context.selection_end_line do
+      pt:line(line_idx):clear()
+    end
   end
 
-  -- Place C-4 with the rendered instrument at the start of the selection
-  local first_line = pattern_track:line(render_context.selection_start_line)
+  -- Place C-4 with the rendered instrument at the start of the selection (on primary track)
+  local first_line = pattern:track(renderTrack):line(render_context.selection_start_line)
   local note_col = first_line:note_column(1)
   note_col.note_value = 48  -- C-4
   note_col.instrument_value = renderedInstrument - 1  -- 0-based
@@ -1895,17 +1916,34 @@ function pakettiCleanRenderInPlace()
     return
   end
 
-  local renderTrack = selection.start_track
+  -- Collect all sequencer tracks in the selection (reject group tracks)
+  local all_render_tracks = {}
+  for track_idx = selection.start_track, selection.end_track do
+    local track_type = song:track(track_idx).type
+    if track_type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      table.insert(all_render_tracks, track_idx)
+    elseif track_type == renoise.Track.TRACK_TYPE_GROUP then
+      renoise.app():show_status("Paketti Clean Render In Place: Group tracks not supported. Use sequencer tracks.")
+      return
+    end
+  end
 
-  -- Only support sequencer tracks (not group tracks)
-  if song:track(renderTrack).type == renoise.Track.TRACK_TYPE_GROUP then
-    renoise.app():show_status("Paketti Clean Render In Place: Group tracks not supported. Use a sequencer track or group your tracks first.")
+  if #all_render_tracks == 0 then
+    renoise.app():show_status("Paketti Clean Render In Place: No sequencer tracks in selection.")
     return
   end
 
-  -- Collect instruments used in the selection BEFORE creating the new instrument
-  local selection_instruments = collect_instruments_in_selection(
-    song, renderTrack, selection.start_line, selection.end_line)
+  local renderTrack = all_render_tracks[1]  -- Primary track for C-4 placement
+
+  -- Collect instruments used in the selection BEFORE creating the new instrument (from ALL selected tracks)
+  local selection_instruments = {}
+  for _, track_idx in ipairs(all_render_tracks) do
+    local track_instruments = collect_instruments_in_selection(
+      song, track_idx, selection.start_line, selection.end_line)
+    for instr_idx, v in pairs(track_instruments) do
+      selection_instruments[instr_idx] = v
+    end
+  end
 
   -- Check if any instruments were found
   local has_instruments = false
@@ -1941,6 +1979,7 @@ function pakettiCleanRenderInPlace()
   render_context.selection_end_line = selection.end_line
   render_context.selection_instruments = adjusted_instruments
   render_context.done_callback = clean_render_in_place_callback
+  render_context.all_render_tracks = all_render_tracks  -- Store all tracks for multitrack support
 
   -- Start rendering (group tracks already rejected above)
   start_selection_rendering(render_context, renderTrack)

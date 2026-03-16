@@ -12,6 +12,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-16 - Fix: Clean Render In Place headroom compensation and multitrack support
+
+Fixed two issues with **Clean Render In Place**:
+
+**+12dB headroom compensation:** The rendered sample now has its volume set to +12dB (`math.db2lin(12)`) to match Renoise's native "Render Selection To Sample" behavior. Previously the rendered sample sounded quieter because no headroom compensation was applied.
+
+**Multitrack rendering:** Selecting across multiple tracks now renders ALL selected tracks together (by soloing all of them during render), clears notes on ALL selected tracks, and places the C-4 on the first track. Previously only the first track was rendered and the others were left intact. Instruments are now collected from all selected tracks for the unused-instrument cleanup. The instrument name includes all rendered track names when multitrack (e.g. "Clean Render L1-L16 (Track 01+Track 02+Track 03)").
+
+- **Keybinding:** `Pattern Editor:Paketti:Clean Render In Place`
+- **Menu:** `Pattern Editor:Paketti:Clean Render:Clean Render In Place`
+- **MIDI mapping:** `Paketti:Clean Render In Place`
+
 ### 2026-03-16 - Feature: Clean Render In Place
 
 Added **Clean Render In Place** — a one-keybind workflow that renders the selected pattern area, clears the original notes, places a C-4 note with the rendered instrument at the start of the selection, and automatically deletes any instruments that were only used in that selection and are now unused anywhere in the song. This replaces the manual process of: render selection → Ctrl+X → delete unused instruments → fix instrument references.
