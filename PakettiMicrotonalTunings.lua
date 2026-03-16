@@ -257,6 +257,94 @@ local function generate_sqrt2_harmonic()
   return result, "Sqrt(2)-Harmonic (Tritone)"
 end
 
+local function generate_phi_9_lange()
+  local PHI = (1 + math.sqrt(5)) / 2
+  local ratios = {}
+  for n = 1, 9 do
+    local r = PHI ^ (n / 9)
+    while r >= 2.0 do r = r / 2.0 end
+    while r < 1.0 do r = r * 2.0 end
+    ratios[#ratios + 1] = r
+  end
+  table.sort(ratios)
+  local result = {}
+  for i, r in ipairs(ratios) do
+    if r > 1.0001 and (i == 1 or math.abs(r - ratios[i-1]) > 0.001) then
+      result[#result + 1] = r
+    end
+  end
+  if #result == 0 or math.abs(result[#result] - 2.0) > 0.001 then
+    result[#result + 1] = 2.0
+  end
+  return result, "Phi-9 (Lange)"
+end
+
+local function generate_phi_7_lange()
+  local PHI = (1 + math.sqrt(5)) / 2
+  local ratios = {}
+  for n = 1, 7 do
+    local r = PHI ^ (n / 7)
+    while r >= 2.0 do r = r / 2.0 end
+    while r < 1.0 do r = r * 2.0 end
+    ratios[#ratios + 1] = r
+  end
+  table.sort(ratios)
+  local result = {}
+  for i, r in ipairs(ratios) do
+    if r > 1.0001 and (i == 1 or math.abs(r - ratios[i-1]) > 0.001) then
+      result[#result + 1] = r
+    end
+  end
+  if #result == 0 or math.abs(result[#result] - 2.0) > 0.001 then
+    result[#result + 1] = 2.0
+  end
+  return result, "Phi-7 (Lange)"
+end
+
+local function generate_lange_phi_36()
+  local PHI = (1 + math.sqrt(5)) / 2
+  local ratios = {}
+  for n = 1, 36 do
+    local r = PHI ^ (n / 25)
+    while r >= 2.0 do r = r / 2.0 end
+    while r < 1.0 do r = r * 2.0 end
+    ratios[#ratios + 1] = r
+  end
+  table.sort(ratios)
+  local result = {}
+  for i, r in ipairs(ratios) do
+    if r > 1.0001 and (i == 1 or math.abs(r - ratios[i-1]) > 0.001) then
+      result[#result + 1] = r
+    end
+  end
+  if #result == 0 or math.abs(result[#result] - 2.0) > 0.001 then
+    result[#result + 1] = 2.0
+  end
+  return result, "Lange 36-note Phi Scale"
+end
+
+local function generate_phi_power_series()
+  local PHI = (1 + math.sqrt(5)) / 2
+  local ratios = {}
+  for n = -4, 4 do
+    local r = PHI ^ n
+    while r >= 2.0 do r = r / 2.0 end
+    while r < 1.0 do r = r * 2.0 end
+    ratios[#ratios + 1] = r
+  end
+  table.sort(ratios)
+  local result = {}
+  for i, r in ipairs(ratios) do
+    if r > 1.0001 and (i == 1 or math.abs(r - ratios[i-1]) > 0.001) then
+      result[#result + 1] = r
+    end
+  end
+  if #result == 0 or math.abs(result[#result] - 2.0) > 0.001 then
+    result[#result + 1] = 2.0
+  end
+  return result, "Phi Power Series"
+end
+
 -- ========================================
 -- TUNING PRESET TABLE
 -- ========================================
@@ -289,6 +377,10 @@ local tuning_presets = {
   {name = "48-EDO", generator = function() return generate_n_edo(48) end},
   {name = "53-EDO", generator = function() return generate_n_edo(53) end},
   {name = "72-EDO", generator = function() return generate_n_edo(72) end},
+  {name = "Phi-9 (Lange)", generator = generate_phi_9_lange},
+  {name = "Phi-7 (Lange)", generator = generate_phi_7_lange},
+  {name = "Lange 36-note Phi Scale", generator = generate_lange_phi_36},
+  {name = "Phi Power Series", generator = generate_phi_power_series},
 }
 
 -- ========================================
@@ -1457,6 +1549,26 @@ end
 local function reset_to_12tet()
   apply_tuning_to_instrument(1)
 end
+local function apply_phi_9_lange()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Phi-9 (Lange)" then apply_tuning_to_instrument(i) return end
+  end
+end
+local function apply_phi_7_lange()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Phi-7 (Lange)" then apply_tuning_to_instrument(i) return end
+  end
+end
+local function apply_lange_phi_36()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Lange 36-note Phi Scale" then apply_tuning_to_instrument(i) return end
+  end
+end
+local function apply_phi_power_series()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Phi Power Series" then apply_tuning_to_instrument(i) return end
+  end
+end
 
 -- ========================================
 -- MENU ENTRIES
@@ -1471,6 +1583,10 @@ for _, base in ipairs(menus) do
   renoise.tool():add_menu_entry{name = base..":Apply Colundi", invoke = apply_colundi}
   renoise.tool():add_menu_entry{name = base..":Apply Just Intonation (5-limit)", invoke = apply_just_intonation}
   renoise.tool():add_menu_entry{name = base..":Apply Pythagorean (pure fifths)", invoke = apply_pythagorean}
+  renoise.tool():add_menu_entry{name = base..":Apply Phi-9 (Lange)", invoke = apply_phi_9_lange}
+  renoise.tool():add_menu_entry{name = base..":Apply Phi-7 (Lange)", invoke = apply_phi_7_lange}
+  renoise.tool():add_menu_entry{name = base..":Apply Lange 36-note Phi Scale", invoke = apply_lange_phi_36}
+  renoise.tool():add_menu_entry{name = base..":Apply Phi Power Series", invoke = apply_phi_power_series}
   renoise.tool():add_menu_entry{name = base..":Reset to 12-TET", invoke = reset_to_12tet}
   renoise.tool():add_menu_entry{name = base..":Generate Golden Shimmer Wavetable", invoke = generate_shimmering_wavetable}
   renoise.tool():add_menu_entry{name = base..":Generate Golden Beating Wavetable", invoke = generate_golden_beating_wavetable}
@@ -1502,6 +1618,10 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Generate Golden Arpeggio Ph
 renoise.tool():add_keybinding{name = "Global:Paketti:Tuning Comparison AB", invoke = tuning_comparison_ab}
 renoise.tool():add_keybinding{name = "Global:Paketti:Generate Golden Drone Pad", invoke = generate_golden_drone}
 renoise.tool():add_keybinding{name = "Global:Paketti:Generate Golden Binaural Beats", invoke = generate_binaural_instrument}
+renoise.tool():add_keybinding{name = "Global:Paketti:Apply Phi-9 Lange Tuning", invoke = apply_phi_9_lange}
+renoise.tool():add_keybinding{name = "Global:Paketti:Apply Phi-7 Lange Tuning", invoke = apply_phi_7_lange}
+renoise.tool():add_keybinding{name = "Global:Paketti:Apply Lange 36-note Phi Tuning", invoke = apply_lange_phi_36}
+renoise.tool():add_keybinding{name = "Global:Paketti:Apply Phi Power Series Tuning", invoke = apply_phi_power_series}
 
 -- ========================================
 -- MIDI MAPPINGS
@@ -1515,3 +1635,7 @@ renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Reset to 12-T
 renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Generate Golden Drone", invoke = function(m) if m:is_trigger() then generate_golden_drone() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Generate Binaural Beats", invoke = function(m) if m:is_trigger() then generate_binaural_instrument() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Golden Arpeggio Phrases", invoke = function(m) if m:is_trigger() then generate_golden_arpeggio_phrases() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply Phi-9 Lange", invoke = function(m) if m:is_trigger() then apply_phi_9_lange() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply Phi-7 Lange", invoke = function(m) if m:is_trigger() then apply_phi_7_lange() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply Lange 36-note Phi", invoke = function(m) if m:is_trigger() then apply_lange_phi_36() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply Phi Power Series", invoke = function(m) if m:is_trigger() then apply_phi_power_series() end end}
