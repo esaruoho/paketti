@@ -12,6 +12,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-16 - Feature: Clean Render In Place
+
+Added **Clean Render In Place** — a one-keybind workflow that renders the selected pattern area, clears the original notes, places a C-4 note with the rendered instrument at the start of the selection, and automatically deletes any instruments that were only used in that selection and are now unused anywhere in the song. This replaces the manual process of: render selection → Ctrl+X → delete unused instruments → fix instrument references.
+
+The render uses the same engine and preferences as the existing Render Pattern Selection (sample rate, bit depth, interpolation, DC Offset). After rendering, instrument indices are automatically adjusted so the C-4 note always points to the correct rendered instrument even after unused instruments are deleted and indices shift.
+
+- **Keybinding:** `Pattern Editor:Paketti:Clean Render In Place`
+- **Menu:** `Pattern Editor:Paketti:Clean Render:Clean Render In Place`
+- **MIDI mapping:** `Paketti:Clean Render In Place`
+
 ### 2026-03-15 - Feature: Dynamic Macro Toolbar Slot Keybindings
 
 Added 10 keyboard shortcuts for triggering Dynamic Macro Toolbar slots directly, without opening the dialog. Each keybinding calls the same logic as the existing MIDI mappings — build the action list and execute the action assigned to that slot.

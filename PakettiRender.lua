@@ -1511,8 +1511,9 @@ function start_selection_rendering(render_context, track_index)
     render_context.target_instrument = song.selected_instrument_index
     render_context.temp_file_path = pakettiGetTempFilePath(".wav")
 
-    -- Start rendering
-    local success, error_message = song:render(render_options, render_context.temp_file_path, function() selection_rendering_done_callback(render_context) end)
+    -- Start rendering (use custom callback if provided, otherwise default)
+    local callback_fn = render_context.done_callback or selection_rendering_done_callback
+    local success, error_message = song:render(render_options, render_context.temp_file_path, function() callback_fn(render_context) end)
     if not success then
         print("Selection rendering failed: " .. error_message)
         -- Remove DC Offset if it was added
@@ -1709,6 +1710,245 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Render P
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection (Mute Original)",invoke=function() pakettiRenderPatternSelection(true, false, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection (New Track)",invoke=function() pakettiRenderPatternSelection(false, false, true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection (Mute + New Track)",invoke=function() pakettiRenderPatternSelection(true, false, true) end}
+
+--------
+-- Clean Render In Place
+-- Renders the selection, clears the original notes, places C-4 with rendered instrument,
+-- and deletes instruments that were only used in that selection.
+--------
+
+-- Collect all unique instrument indices used in a pattern selection area
+local function collect_instruments_in_selection(song, track_idx, start_line, end_line)
+  local instruments_used = {}
+  local pattern = song.patterns[song.selected_pattern_index]
+  if not pattern then return instruments_used end
+
+  if song.tracks[track_idx].type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    return instruments_used
+  end
+
+  local pattern_track = pattern:track(track_idx)
+  for line_idx = start_line, end_line do
+    local line = pattern_track:line(line_idx)
+    if not line.is_empty then
+      for _, note_col in ipairs(line.note_columns) do
+        if not note_col.is_empty and note_col.instrument_value < 255 then
+          instruments_used[note_col.instrument_value + 1] = true
+        end
+      end
+    end
+  end
+
+  return instruments_used
+end
+
+function clean_render_in_place_callback(render_context)
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+
+  local song = renoise.song()
+  local renderTrack = render_context.source_track
+
+  -- Handle DC Offset removal
+  if render_context.dc_offset_position > 0 then
+    local track = song:track(render_context.dc_offset_track_index)
+    if track and track.devices[render_context.dc_offset_position] and
+       track.devices[render_context.dc_offset_position].display_name == "Render DC Offset" then
+      track:delete_device_at(render_context.dc_offset_position)
+    end
+  end
+
+  -- Remove the monitoring timer
+  if renoise.tool():has_timer(monitor_selection_rendering) then
+    renoise.tool():remove_timer(monitor_selection_rendering)
+  end
+
+  -- Restore solo and mute states
+  for i = 1, song.sequencer_track_count do
+    if song.tracks[i] then
+      song.tracks[i].solo_state = false
+      song.tracks[i].mute_state = renoise.Track.MUTE_STATE_ACTIVE
+    end
+  end
+
+  local send_track_start = song.sequencer_track_count + 2
+  for i = send_track_start, send_track_start + song.send_track_count - 1 do
+    if song.tracks[i] then
+      song.tracks[i].solo_state = false
+      song.tracks[i].mute_state = renoise.Track.MUTE_STATE_ACTIVE
+    end
+  end
+
+  for i = 1, render_context.num_tracks_before do
+    if track_states[i] then
+      song.tracks[i].solo_state = track_states[i].solo_state
+      song.tracks[i].mute_state = track_states[i].mute_state
+    end
+  end
+
+  -- Load rendered sample into new instrument
+  local renderedInstrument = render_context.target_instrument
+  local renderName = song.tracks[renderTrack].name
+
+  pakettiPreferencesDefaultInstrumentLoader()
+  local new_instrument = song:instrument(song.selected_instrument_index)
+  new_instrument.samples[1].sample_buffer:load_from(render_context.temp_file_path)
+  os.remove(render_context.temp_file_path)
+
+  song.selected_instrument_index = renderedInstrument
+
+  -- Name the instrument
+  local selection_name = string.format("%s (Clean Render L%d-L%d)",
+    renderName, render_context.selection_start_line, render_context.selection_end_line)
+  new_instrument.name = selection_name
+  new_instrument.samples[1].name = selection_name
+  new_instrument.samples[1].autofade = true
+
+  -- Clear all notes in the selection area on the rendered track
+  local pattern = song.patterns[song.selected_pattern_index]
+  local pattern_track = pattern:track(renderTrack)
+  for line_idx = render_context.selection_start_line, render_context.selection_end_line do
+    pattern_track:line(line_idx):clear()
+  end
+
+  -- Place C-4 with the rendered instrument at the start of the selection
+  local first_line = pattern_track:line(render_context.selection_start_line)
+  local note_col = first_line:note_column(1)
+  note_col.note_value = 48  -- C-4
+  note_col.instrument_value = renderedInstrument - 1  -- 0-based
+
+  -- Find which instruments from the selection are now unused in the entire song
+  local used_instruments = findUsedInstruments()
+  local to_delete = {}
+
+  for instr_idx, _ in pairs(render_context.selection_instruments) do
+    if not used_instruments[instr_idx] then
+      local instr = song.instruments[instr_idx]
+      if instr and #instr.samples > 0 and #song.instruments > 1 then
+        table.insert(to_delete, instr_idx)
+      end
+    end
+  end
+
+  local deleted_count = 0
+  if #to_delete > 0 then
+    -- Sort descending for safe deletion (avoids reindexing issues)
+    table.sort(to_delete, function(a, b) return a > b end)
+
+    -- Count how many deletions are below the rendered instrument's index
+    local shift = 0
+    for _, idx in ipairs(to_delete) do
+      if idx < renderedInstrument then
+        shift = shift + 1
+      end
+    end
+
+    -- Delete unused instruments
+    for _, idx in ipairs(to_delete) do
+      if #song.instruments > 1 then
+        song:delete_instrument_at(idx)
+        deleted_count = deleted_count + 1
+      end
+    end
+
+    -- Calculate the new instrument index after deletions shifted everything
+    local new_instrument_index = renderedInstrument - shift
+
+    -- Update the C-4 note with the corrected instrument index
+    first_line = pattern:track(renderTrack):line(render_context.selection_start_line)
+    note_col = first_line:note_column(1)
+    note_col.instrument_value = new_instrument_index - 1  -- 0-based
+
+    -- Select the rendered instrument at its new location
+    song.selected_instrument_index = new_instrument_index
+  end
+
+  if deleted_count > 0 then
+    renoise.app():show_status(string.format(
+      "Paketti Clean Render In Place: %s (deleted %d unused instrument%s)",
+      selection_name, deleted_count, deleted_count == 1 and "" or "s"))
+  else
+    renoise.app():show_status("Paketti Clean Render In Place: " .. selection_name)
+  end
+
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+end
+
+function pakettiCleanRenderInPlace()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+
+  -- Validate selection
+  if not selection then
+    renoise.app():show_status("Paketti Clean Render In Place: No pattern selection. Please select some pattern data first.")
+    return
+  end
+
+  if not selection.start_line or not selection.end_line or selection.start_line >= selection.end_line then
+    renoise.app():show_status("Paketti Clean Render In Place: Invalid selection. Please select a range of lines.")
+    return
+  end
+
+  if not selection.start_track or selection.start_track < 1 then
+    renoise.app():show_status("Paketti Clean Render In Place: Invalid track selection.")
+    return
+  end
+
+  local renderTrack = selection.start_track
+
+  -- Only support sequencer tracks (not group tracks)
+  if song:track(renderTrack).type == renoise.Track.TRACK_TYPE_GROUP then
+    renoise.app():show_status("Paketti Clean Render In Place: Group tracks not supported. Use a sequencer track or group your tracks first.")
+    return
+  end
+
+  -- Collect instruments used in the selection BEFORE creating the new instrument
+  local selection_instruments = collect_instruments_in_selection(
+    song, renderTrack, selection.start_line, selection.end_line)
+
+  -- Check if any instruments were found
+  local has_instruments = false
+  for _, _ in pairs(selection_instruments) do
+    has_instruments = true
+    break
+  end
+
+  if not has_instruments then
+    renoise.app():show_status("Paketti Clean Render In Place: No instruments found in selection.")
+    return
+  end
+
+  -- Create new instrument (inserting shifts indices >= insertion point up by 1)
+  local renderedInstrument = song.selected_instrument_index + 1
+  if not safeInsertInstrumentAt(song, renderedInstrument) then return end
+
+  -- Adjust selection_instruments for the index shift caused by insertion
+  local adjusted_instruments = {}
+  for instr_idx, v in pairs(selection_instruments) do
+    if instr_idx >= renderedInstrument then
+      adjusted_instruments[instr_idx + 1] = v
+    else
+      adjusted_instruments[instr_idx] = v
+    end
+  end
+
+  song.selected_instrument_index = renderedInstrument
+
+  -- Create render context
+  local render_context = create_selection_render_context(false, false, false)
+  render_context.selection_start_line = selection.start_line
+  render_context.selection_end_line = selection.end_line
+  render_context.selection_instruments = adjusted_instruments
+  render_context.done_callback = clean_render_in_place_callback
+
+  -- Start rendering (group tracks already rejected above)
+  start_selection_rendering(render_context, renderTrack)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render In Place",invoke=function() pakettiCleanRenderInPlace() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Clean Render In Place",invoke=function() pakettiCleanRenderInPlace() end}
+renoise.tool():add_midi_mapping{name="Paketti:Clean Render In Place",invoke=function(message) if message:is_trigger() then pakettiCleanRenderInPlace() end end}
 
 --------
 -- BPM Calculation Helper
