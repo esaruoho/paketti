@@ -1832,6 +1832,18 @@ function clean_render_in_place_callback(render_context)
     end
   end
 
+  -- Strip DSP devices from all rendered tracks if destructive mode
+  local dsp_stripped_count = 0
+  if render_context.strip_dsp then
+    for _, track_idx in ipairs(all_tracks) do
+      local track = song:track(track_idx)
+      for d = #track.devices, 2, -1 do
+        track:delete_device_at(d)
+        dsp_stripped_count = dsp_stripped_count + 1
+      end
+    end
+  end
+
   -- Place C-4 with the rendered instrument at the start of the selection (on primary track)
   local first_line = pattern:track(renderTrack):line(render_context.selection_start_line)
   local note_col = first_line:note_column(1)
@@ -1884,19 +1896,25 @@ function clean_render_in_place_callback(render_context)
     song.selected_instrument_index = new_instrument_index
   end
 
+  local prefix = render_context.strip_dsp and "Paketti Destructive Clean Render In Place" or "Paketti Clean Render In Place"
+  local extras = {}
   if deleted_count > 0 then
-    renoise.app():show_status(string.format(
-      "Paketti Clean Render In Place: %s (deleted %d unused instrument%s)",
-      selection_name, deleted_count, deleted_count == 1 and "" or "s"))
+    table.insert(extras, string.format("deleted %d unused instrument%s", deleted_count, deleted_count == 1 and "" or "s"))
+  end
+  if dsp_stripped_count > 0 then
+    table.insert(extras, string.format("stripped %d DSP device%s", dsp_stripped_count, dsp_stripped_count == 1 and "" or "s"))
+  end
+  if #extras > 0 then
+    renoise.app():show_status(string.format("%s: %s (%s)", prefix, selection_name, table.concat(extras, ", ")))
   else
-    renoise.app():show_status("Paketti Clean Render In Place: " .. selection_name)
+    renoise.app():show_status(prefix .. ": " .. selection_name)
   end
 
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
-function pakettiCleanRenderInPlace()
+function pakettiCleanRenderInPlace(strip_dsp)
   local song = renoise.song()
   local selection = song.selection_in_pattern
 
@@ -1980,14 +1998,23 @@ function pakettiCleanRenderInPlace()
   render_context.selection_instruments = adjusted_instruments
   render_context.done_callback = clean_render_in_place_callback
   render_context.all_render_tracks = all_render_tracks  -- Store all tracks for multitrack support
+  render_context.strip_dsp = strip_dsp or false
 
   -- Start rendering (group tracks already rejected above)
   start_selection_rendering(render_context, renderTrack)
 end
 
+function pakettiDestructiveCleanRenderInPlace()
+  pakettiCleanRenderInPlace(true)
+end
+
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render In Place",invoke=function() pakettiCleanRenderInPlace() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Clean Render In Place",invoke=function() pakettiCleanRenderInPlace() end}
 renoise.tool():add_midi_mapping{name="Paketti:Clean Render In Place",invoke=function(message) if message:is_trigger() then pakettiCleanRenderInPlace() end end}
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Destructive Clean Render In Place",invoke=function() pakettiDestructiveCleanRenderInPlace() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Destructive Clean Render In Place",invoke=function() pakettiDestructiveCleanRenderInPlace() end}
+renoise.tool():add_midi_mapping{name="Paketti:Destructive Clean Render In Place",invoke=function(message) if message:is_trigger() then pakettiDestructiveCleanRenderInPlace() end end}
 
 --------
 -- BPM Calculation Helper
@@ -3212,6 +3239,20 @@ function clean_render_matrix_in_place_callback(render_context)
     end
   end
 
+  -- Strip DSP devices from all rendered tracks if destructive mode
+  local dsp_stripped_count = 0
+  if render_context.strip_dsp then
+    for track_idx, _ in pairs(selected_tracks) do
+      if song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local track = song:track(track_idx)
+        for d = #track.devices, 2, -1 do
+          track:delete_device_at(d)
+          dsp_stripped_count = dsp_stripped_count + 1
+        end
+      end
+    end
+  end
+
   -- Place C-4 with the rendered instrument at line 1 of the first sequence position on the primary track
   local first_pattern_index = sequencer.pattern_sequence[render_context.selection_start_sequence]
   local first_pattern = song.patterns[first_pattern_index]
@@ -3270,12 +3311,18 @@ function clean_render_matrix_in_place_callback(render_context)
     song.selected_instrument_index = new_instrument_index
   end
 
+  local prefix = render_context.strip_dsp and "Paketti Destructive Clean Render Matrix In Place" or "Paketti Clean Render Matrix In Place"
+  local extras = {}
   if deleted_count > 0 then
-    renoise.app():show_status(string.format(
-      "Paketti Clean Render Matrix In Place: %s (deleted %d unused instrument%s)",
-      selection_name, deleted_count, deleted_count == 1 and "" or "s"))
+    table.insert(extras, string.format("deleted %d unused instrument%s", deleted_count, deleted_count == 1 and "" or "s"))
+  end
+  if dsp_stripped_count > 0 then
+    table.insert(extras, string.format("stripped %d DSP device%s", dsp_stripped_count, dsp_stripped_count == 1 and "" or "s"))
+  end
+  if #extras > 0 then
+    renoise.app():show_status(string.format("%s: %s (%s)", prefix, selection_name, table.concat(extras, ", ")))
   else
-    renoise.app():show_status("Paketti Clean Render Matrix In Place: " .. selection_name)
+    renoise.app():show_status(prefix .. ": " .. selection_name)
   end
 
   -- Restore AutoSamplify monitoring state
@@ -3388,7 +3435,7 @@ function start_clean_matrix_rendering(render_context)
 end
 
 -- Entry point: read matrix selection, collect instruments, create context, start render
-function pakettiCleanRenderMatrixInPlace()
+function pakettiCleanRenderMatrixInPlace(strip_dsp)
   local song = renoise.song()
   local sequencer = song.sequencer
 
@@ -3481,13 +3528,23 @@ function pakettiCleanRenderMatrixInPlace()
   render_context.primary_track = primary_track
   render_context.target_instrument = target_instrument
   render_context.selection_instruments = adjusted_instruments
+  render_context.strip_dsp = strip_dsp or false
 
   -- Start rendering
   start_clean_matrix_rendering(render_context)
+end
+
+function pakettiDestructiveCleanRenderMatrixInPlace()
+  pakettiCleanRenderMatrixInPlace(true)
 end
 
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Clean Render Matrix In Place",invoke=function() pakettiCleanRenderMatrixInPlace() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render Matrix In Place",invoke=function() pakettiCleanRenderMatrixInPlace() end}
 renoise.tool():add_midi_mapping{name="Paketti:Clean Render Matrix In Place",invoke=function(message) if message:is_trigger() then pakettiCleanRenderMatrixInPlace() end end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Clean Render Matrix In Place",invoke=function() pakettiCleanRenderMatrixInPlace() end}
+
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Destructive Clean Render Matrix In Place",invoke=function() pakettiDestructiveCleanRenderMatrixInPlace() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Destructive Clean Render Matrix In Place",invoke=function() pakettiDestructiveCleanRenderMatrixInPlace() end}
+renoise.tool():add_midi_mapping{name="Paketti:Destructive Clean Render Matrix In Place",invoke=function(message) if message:is_trigger() then pakettiDestructiveCleanRenderMatrixInPlace() end end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Destructive Clean Render Matrix In Place",invoke=function() pakettiDestructiveCleanRenderMatrixInPlace() end}
 

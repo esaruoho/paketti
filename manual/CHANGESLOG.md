@@ -12,6 +12,25 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-16 - Feature: Destructive Clean Render In Place (Pattern Editor + Pattern Matrix)
+
+Added **Destructive Clean Render In Place** — a variant of Clean Render In Place that also **strips all DSP devices** from the rendered tracks after rendering. Once the audio is bounced with all effects baked in, the original DSP chains are no longer needed, so this removes them automatically.
+
+Available for both the Pattern Editor and the Pattern Matrix:
+
+**Pattern Editor:**
+- **Keybinding:** `Pattern Editor:Paketti:Destructive Clean Render In Place`
+- **Menu:** `Pattern Editor → Paketti → Clean Render → Destructive Clean Render In Place`
+- **MIDI mapping:** `Paketti:Destructive Clean Render In Place`
+
+**Pattern Matrix:**
+- **Keybinding:** `Pattern Matrix:Paketti:Destructive Clean Render Matrix In Place`
+- **Keybinding:** `Global:Paketti:Destructive Clean Render Matrix In Place`
+- **Menu:** `Pattern Matrix → Paketti → Destructive Clean Render Matrix In Place`
+- **MIDI mapping:** `Paketti:Destructive Clean Render Matrix In Place`
+
+The status bar reports exactly what was cleaned up, e.g. "deleted 3 unused instruments, stripped 7 DSP devices".
+
 ### 2026-03-16 - Feature: Clean Render Matrix In Place
 
 Added **Clean Render Matrix In Place** — the Pattern Matrix equivalent of Clean Render In Place. Select slots in the Pattern Matrix, trigger the function, and it will:
