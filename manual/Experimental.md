@@ -5543,6 +5543,14 @@ Cycle: Off → Forward → Backward → PingPong → Off
 
 Trims the sample to end at the loop end point.
 
+### Trim Selected Sample to Selection and Normalize
+**Shortcut:** `Global:Paketti:Trim Selected Sample to Selection and Normalize` ⌨️
+**Menu:** `Main Menu → Tools → Paketti → Samples → Trim Selected Sample to Selection and Normalize` 📋
+**Menu:** `Sample Editor → Paketti → Process → Trim Selected Sample to Selection and Normalize` 📋
+**MIDI:** `Paketti:Trim Selected Sample to Selection and Normalize` 🎹
+
+Combines two common sample editing steps into one action: first trims the selected sample to the current selection range in the Sample Editor, then immediately normalizes the trimmed result to 0 dB. Highlight the part you want to keep, fire the command, and you've got a cleanly trimmed, full-volume sample ready to use.
+
 ## Sample Duplication
 
 ### Duplicate and Reverse Instrument
