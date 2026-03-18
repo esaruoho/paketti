@@ -2613,6 +2613,26 @@ function pakettiTrimSelectedSampleToSelection()
   end
 end
 
+-- Trim selected sample to selection, then normalize
+function pakettiTrimSelectedSampleToSelectionAndNormalize()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  local sample_idx = song.selected_sample_index
+
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+
+  local success, message = pakettiTrimSample(instr, sample_idx, "selection")
+  if success then
+    renoise.app():show_status("Trimmed sample to selection, now normalizing...")
+    normalize_selected_sample_ultra_fast()
+  else
+    renoise.app():show_status(string.format("Trim failed: %s", message))
+  end
+end
+
 -- Trim all samples in instrument to their loop points
 function pakettiTrimAllSamplesToLoop()
   local song = renoise.song()
@@ -2880,8 +2900,13 @@ renoise.tool():add_keybinding{
 }
 
 renoise.tool():add_keybinding{
-  name = "Global:Paketti:Trim Selected Sample to Selection", 
+  name = "Global:Paketti:Trim Selected Sample to Selection",
   invoke = pakettiTrimSelectedSampleToSelection
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Trim Selected Sample to Selection and Normalize",
+  invoke = pakettiTrimSelectedSampleToSelectionAndNormalize
 }
 
 renoise.tool():add_keybinding{
@@ -2909,6 +2934,15 @@ renoise.tool():add_midi_mapping{
     if message:is_trigger() then 
       pakettiTrimSelectedSampleToLoop() 
     end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Trim Selected Sample to Selection and Normalize",
+  invoke = function(message)
+    if message:is_trigger() then
+      pakettiTrimSelectedSampleToSelectionAndNormalize()
+    end
   end
 }
 

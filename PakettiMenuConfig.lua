@@ -713,9 +713,11 @@ renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Instruments:Reset Ba
 
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Loop Points",invoke = pakettiTrimSelectedSampleToLoop}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Selection",invoke = pakettiTrimSelectedSampleToSelection}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Selection and Normalize",invoke = pakettiTrimSelectedSampleToSelectionAndNormalize}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim All Samples to Loop Points",invoke = pakettiTrimAllSamplesToLoop}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim Selected Sample to Loop Points",invoke = pakettiTrimSelectedSampleToLoop}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim Selected Sample to Selection",invoke = pakettiTrimSelectedSampleToSelection}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim Selected Sample to Selection and Normalize",invoke = pakettiTrimSelectedSampleToSelectionAndNormalize}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim All Samples to Loop Points",invoke = pakettiTrimAllSamplesToLoop}
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Renamer:Rename with Note Names (Melodic)",

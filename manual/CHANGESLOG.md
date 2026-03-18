@@ -12,6 +12,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-18 - Feature: Trim Selected Sample to Selection and Normalize
+
+Added **Trim Selected Sample to Selection and Normalize** — a combined operation that first trims the selected sample to the current selection range in the Sample Editor, then immediately normalizes the trimmed result. This is a common two-step workflow now available as a single action.
+
+- **Keybinding:** `Global:Paketti:Trim Selected Sample to Selection and Normalize`
+- **Menu:** `Main Menu → Tools → Paketti → Samples → Trim Selected Sample to Selection and Normalize`
+- **Menu:** `Sample Editor → Paketti → Process → Trim Selected Sample to Selection and Normalize`
+- **MIDI mapping:** `Paketti:Trim Selected Sample to Selection and Normalize`
+
 ### 2026-03-16 - Feature: Destructive Clean Render In Place (Pattern Editor + Pattern Matrix)
 
 Added **Destructive Clean Render In Place** — a variant of Clean Render In Place that also **strips all DSP devices** from the rendered tracks after rendering. Once the audio is bounced with all effects baked in, the original DSP chains are no longer needed, so this removes them automatically.
