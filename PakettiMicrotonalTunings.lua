@@ -7,7 +7,11 @@ local microtonal_dialog = nil
 local golden_chord_dialog = nil
 local golden_tempo_dialog = nil
 local tuning_ab_dialog = nil
+local phi_sum_product_dialog = nil
+local phi_interval_circle_dialog = nil
+local phi_note_display_dialog = nil
 local PHI = (1 + math.sqrt(5)) / 2
+local LANGE_REF_HZ = 304.295 -- Christian Lange's Phi Music System reference frequency
 
 -- Shared key handler: close on configured close key, return focus to middle frame
 local function microtonal_key_handler(dialog, key)
@@ -345,6 +349,78 @@ local function generate_phi_power_series()
   return result, "Phi Power Series"
 end
 
+-- Lange 10-TET Decagono: 10 equal divisions of the octave (2^(n/10))
+local function generate_10_tet_decagono()
+  local ratios = {}
+  for step = 1, 10 do
+    ratios[#ratios + 1] = 2 ^ (step / 10)
+  end
+  return ratios, "10-TET Decagono (Lange)"
+end
+
+-- Lange Phi 7/10 Hybrid: mean of 2^(n/10) and Phi^(n/7) for each step
+-- This bridges the decimal octave division with the phi-based division
+local function generate_phi_7_10_hybrid()
+  local ratios = {}
+  for n = 1, 10 do
+    local tet_val = 2 ^ (n / 10)
+    local phi_val = PHI ^ (n / 7)
+    -- Reduce phi_val to within one octave above 1.0
+    while phi_val >= 2.0 do phi_val = phi_val / 2.0 end
+    while phi_val < 1.0 do phi_val = phi_val * 2.0 end
+    local hybrid = (tet_val + phi_val) / 2
+    ratios[#ratios + 1] = hybrid
+  end
+  table.sort(ratios)
+  local result = {}
+  for i, r in ipairs(ratios) do
+    if r > 1.0001 and (i == 1 or math.abs(r - ratios[i-1]) > 0.001) then
+      result[#result + 1] = r
+    end
+  end
+  if #result == 0 or math.abs(result[#result] - 2.0) > 0.001 then
+    result[#result + 1] = 2.0
+  end
+  return result, "Phi 7/10 Hybrid (Lange)"
+end
+
+-- Lange Phi Music System: full 18-note scale derived from the Intonation sheet
+-- Uses the "sistema" column values from Christian Lange's spreadsheet
+-- Reference: 304.295 Hz (Lange's phi-derived reference pitch)
+local function generate_lange_phi_music_system()
+  -- These are the exact "sistema" ratios from Lange's Intonation sheet
+  -- representing one octave of the Phi Music System (A0 to A1)
+  -- Each ratio is relative to the fundamental (sistema value at A0 = 0.09016994...)
+  -- Normalized to octave ratios (1.0 to 2.0) by dividing each by the base
+  local sistema_raw = {
+    0.09016994374947557,  -- A
+    0.09726535583354479,  -- A#
+    0.10332556124590123,  -- B
+    0.11145618000168439,  -- C
+    0.11803398874989592,  -- C#
+    -- D is missing in phi system
+    0.1273220037500358,   -- D#
+    0.13525491562421335,  -- E
+    0.14589803375031718,  -- F
+    0.1573786516665279,   -- F#
+    0.16718427000252659,  -- G
+    -- G# is missing in phi system
+    0.18033988749895113,  -- A (octave)
+  }
+  local base = sistema_raw[1]
+  local ratios = {}
+  for i = 2, #sistema_raw do
+    local r = sistema_raw[i] / base
+    if r > 1.0001 and r <= 2.001 then
+      ratios[#ratios + 1] = r
+    end
+  end
+  if #ratios == 0 or math.abs(ratios[#ratios] - 2.0) > 0.001 then
+    ratios[#ratios + 1] = 2.0
+  end
+  return ratios, "Lange Phi Music System (304.295 Hz)"
+end
+
 -- ========================================
 -- TUNING PRESET TABLE
 -- ========================================
@@ -381,6 +457,9 @@ local tuning_presets = {
   {name = "Phi-7 (Lange)", generator = generate_phi_7_lange},
   {name = "Lange 36-note Phi Scale", generator = generate_lange_phi_36},
   {name = "Phi Power Series", generator = generate_phi_power_series},
+  {name = "10-TET Decagono (Lange)", generator = generate_10_tet_decagono},
+  {name = "Phi 7/10 Hybrid (Lange)", generator = generate_phi_7_10_hybrid},
+  {name = "Lange Phi Music System (304.295 Hz)", generator = generate_lange_phi_music_system},
 }
 
 -- ========================================
@@ -945,6 +1024,613 @@ local function generate_sacred_geometry_wavetable()
 end
 
 -- ========================================
+-- LANGE PHI HARMONIC STRINGS WAVETABLE
+-- From Christian Lange's "Phi Music System 7/10" spreadsheet
+-- 18 harmonic "strings" based on ratios of 9
+-- ========================================
+
+local function generate_phi_harmonic_strings_wavetable()
+  local song = renoise.song()
+  if not song then return end
+  local wave_size = 2048
+  local sample_rate = 44100
+
+  song:describe_undo("Generate Phi Harmonic Strings Wavetable")
+  local instr = prepare_instrument("Phi Harmonic Strings (Lange)")
+
+  -- The 18 harmonic string ratios from Lange's spreadsheet (columns H-Y at key 0)
+  -- These represent the overtone series positions of a vibrating string
+  -- divided by 9-based ratios: 1/9, 1/6, 2/9, 1/4, 1/3, 4/9, 1/2, 2/3, 3/4,
+  -- 4/3, 3/2, 2, 9/4, 3, 4, 9/2, 6, 9
+  local string_ratios = {
+    1/9,   -- String 1: subharmonic ninth
+    1/6,   -- String 2: subharmonic sixth
+    2/9,   -- String 3: subharmonic
+    1/4,   -- String 4: two octaves below
+    1/3,   -- String 5: subharmonic third
+    4/9,   -- String 6
+    1/2,   -- String 7: one octave below
+    2/3,   -- String 8: subharmonic fifth
+    3/4,   -- String 9: subharmonic fourth
+    4/3,   -- String 10: perfect fourth above
+    3/2,   -- String 11: perfect fifth above
+    2,     -- String 12: one octave above
+    9/4,   -- String 13
+    3,     -- String 14: octave + fifth
+    4,     -- String 15: two octaves above
+    9/2,   -- String 16
+    6,     -- String 17: two octaves + fifth
+    9,     -- String 18: three octaves + second
+  }
+
+  -- Generate 12 wavetable positions, progressively adding more string partials
+  local num_positions = 12
+  for pos = 1, num_positions do
+    if pos > #instr.samples then instr:insert_sample_at(pos) end
+    local sample = instr.samples[pos]
+
+    -- Each position adds more harmonic strings
+    -- Position 1: strings 7-11 (core: 1/2, 2/3, 3/4, 4/3, 3/2)
+    -- Position 12: all 18 strings
+    local start_idx = math.max(1, 7 - math.floor((pos - 1) * 6 / 11))
+    local end_idx = math.min(18, 11 + math.floor((pos - 1) * 7 / 11))
+
+    local partials = {}
+    local amps = {}
+    for i = start_idx, end_idx do
+      partials[#partials + 1] = string_ratios[i]
+      -- Amplitude falls off for extreme harmonics, strongest near fundamental
+      local distance = math.abs(i - 9) -- 9 is near the fundamental region
+      amps[#amps + 1] = 1 / (1 + distance * 0.3)
+    end
+
+    write_additive_buffer(sample.sample_buffer, wave_size, sample_rate, partials, amps)
+    sample.name = string.format("Strings %02d (%d-%d)", pos, start_idx, end_idx)
+    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    sample.loop_start = 1
+    sample.loop_end = wave_size
+    sample.interpolation_mode = renoise.Sample.INTERPOLATE_SINC
+  end
+
+  if #instr.samples > num_positions and not instr.samples[1].sample_buffer.has_sample_data then
+    instr:delete_sample_at(1)
+  end
+  renoise.app():show_status("Generated Phi Harmonic Strings: 12 positions, 18 string ratios (Lange)")
+end
+
+-- ========================================
+-- PHI SUM/PRODUCT CHORD BUILDER
+-- Interactive chord builder using Lange's phi sum/product matrices
+-- Select two phi scale degrees → see their sum and product frequencies
+-- ========================================
+
+-- The phi scale degrees (sistema values) normalized to one octave
+local phi_scale_degrees = {
+  {ratio = 1.0,                              name = "A (root)"},
+  {ratio = 0.09726535583354479 / 0.09016994374947557, name = "A#"},
+  {ratio = 0.10332556124590123 / 0.09016994374947557, name = "B"},
+  {ratio = 0.11145618000168439 / 0.09016994374947557, name = "C"},
+  {ratio = 0.11803398874989592 / 0.09016994374947557, name = "C#"},
+  {ratio = 0.1273220037500358  / 0.09016994374947557, name = "D#"},
+  {ratio = 0.13525491562421335 / 0.09016994374947557, name = "E"},
+  {ratio = 0.14589803375031718 / 0.09016994374947557, name = "F"},
+  {ratio = 0.1573786516665279  / 0.09016994374947557, name = "F#"},
+  {ratio = 0.16718427000252659 / 0.09016994374947557, name = "G"},
+  {ratio = 0.18033988749895113 / 0.09016994374947557, name = "A (oct)"},
+}
+
+local function show_phi_sum_product_dialog()
+  if phi_sum_product_dialog and phi_sum_product_dialog.visible then
+    phi_sum_product_dialog:close()
+  end
+
+  local vb = renoise.ViewBuilder()
+
+  local degree_names = {}
+  for _, d in ipairs(phi_scale_degrees) do
+    degree_names[#degree_names + 1] = string.format("%s (%.4f)", d.name, d.ratio)
+  end
+
+  local function update_info()
+    local idx_a = vb.views.phi_degree_a.value
+    local idx_b = vb.views.phi_degree_b.value
+    local a = phi_scale_degrees[idx_a]
+    local b = phi_scale_degrees[idx_b]
+
+    local sum_ratio = a.ratio + b.ratio
+    local prod_ratio = a.ratio * b.ratio
+
+    -- Reduce to octave
+    local sum_oct = sum_ratio
+    while sum_oct >= 2.0 do sum_oct = sum_oct / 2.0 end
+    while sum_oct < 1.0 do sum_oct = sum_oct * 2.0 end
+
+    local prod_oct = prod_ratio
+    while prod_oct >= 2.0 do prod_oct = prod_oct / 2.0 end
+    while prod_oct < 1.0 do prod_oct = prod_oct * 2.0 end
+
+    local sum_cents = 1200 * math.log(sum_oct) / math.log(2)
+    local prod_cents = 1200 * math.log(prod_oct) / math.log(2)
+
+    -- Calculate actual Hz at Lange's reference
+    local freq_a = LANGE_REF_HZ * a.ratio
+    local freq_b = LANGE_REF_HZ * b.ratio
+    local freq_sum = LANGE_REF_HZ * sum_ratio
+    local freq_prod = LANGE_REF_HZ * prod_ratio
+
+    -- Check if sum equals a nice value
+    local sum_nice = ""
+    if math.abs(sum_ratio - 2.0) < 0.0001 then sum_nice = " = EXACT OCTAVE (2.000)"
+    elseif math.abs(sum_ratio - 1.0) < 0.0001 then sum_nice = " = UNISON"
+    elseif math.abs(sum_ratio - math.floor(sum_ratio + 0.5)) < 0.0001 then
+      sum_nice = string.format(" = INTEGER (%d)", math.floor(sum_ratio + 0.5))
+    end
+
+    local lines = {
+      "PHI SUM / PRODUCT CHORD BUILDER",
+      string.format("Reference: %.3f Hz (Lange Phi Music System)", LANGE_REF_HZ),
+      "",
+      string.format("Degree A: %s = %.6f  (%.2f Hz)", a.name, a.ratio, freq_a),
+      string.format("Degree B: %s = %.6f  (%.2f Hz)", b.name, b.ratio, freq_b),
+      "",
+      "--- SUM (A + B) ---",
+      string.format("  Raw:     %.6f%s", sum_ratio, sum_nice),
+      string.format("  Octave:  %.6f  (%.2f cents)", sum_oct, sum_cents),
+      string.format("  Hz:      %.3f Hz", freq_sum),
+      "",
+      "--- PRODUCT (A x B) ---",
+      string.format("  Raw:     %.6f", prod_ratio),
+      string.format("  Octave:  %.6f  (%.2f cents)", prod_oct, prod_cents),
+      string.format("  Hz:      %.3f Hz", freq_prod),
+      "",
+      "--- PHI IDENTITY CHECK ---",
+      string.format("  A + B = %.6f", sum_ratio),
+      string.format("  Phi property: 0.381966... + 1.618034... = 2.000000"),
+    }
+    vb.views.phi_sp_info.text = table.concat(lines, "\n")
+  end
+
+  local content = vb:column{
+    margin = 10,
+    spacing = 5,
+    vb:text{text = "Phi Sum/Product Chord Builder (Lange)", style = "strong", font = "bold"},
+    vb:row{
+      spacing = 5,
+      vb:text{text = "Degree A:", width = 60},
+      vb:popup{id = "phi_degree_a", items = degree_names, value = 1, width = 220,
+        notifier = function() update_info() end},
+    },
+    vb:row{
+      spacing = 5,
+      vb:text{text = "Degree B:", width = 60},
+      vb:popup{id = "phi_degree_b", items = degree_names, value = 5, width = 220,
+        notifier = function() update_info() end},
+    },
+    vb:multiline_textfield{
+      id = "phi_sp_info",
+      text = "",
+      width = 500,
+      height = 300,
+      font = "mono",
+    },
+    vb:row{
+      spacing = 5,
+      vb:button{text = "Insert Sum as Note", width = 140,
+        notifier = function()
+          local song = renoise.song()
+          if not song then return end
+          local idx_a = vb.views.phi_degree_a.value
+          local idx_b = vb.views.phi_degree_b.value
+          local sum_ratio = phi_scale_degrees[idx_a].ratio + phi_scale_degrees[idx_b].ratio
+          while sum_ratio >= 2.0 do sum_ratio = sum_ratio / 2.0 end
+          while sum_ratio < 1.0 do sum_ratio = sum_ratio * 2.0 end
+          local cents = 1200 * math.log(sum_ratio) / math.log(2)
+          local semitones = math.floor(cents / 100 + 0.5)
+          local note = 48 + semitones -- C-4 base
+          note = math.max(0, math.min(119, note))
+          song:describe_undo("Insert Phi Sum Note")
+          local line = song.selected_line
+          if line then
+            line.note_columns[1].note_value = note
+            line.note_columns[1].instrument_value = song.selected_instrument_index - 1
+          end
+          renoise.app():show_status(string.format("Inserted sum note: %d (%.1f cents)", note, cents))
+        end},
+      vb:button{text = "Insert Product as Note", width = 150,
+        notifier = function()
+          local song = renoise.song()
+          if not song then return end
+          local idx_a = vb.views.phi_degree_a.value
+          local idx_b = vb.views.phi_degree_b.value
+          local prod_ratio = phi_scale_degrees[idx_a].ratio * phi_scale_degrees[idx_b].ratio
+          while prod_ratio >= 2.0 do prod_ratio = prod_ratio / 2.0 end
+          while prod_ratio < 1.0 do prod_ratio = prod_ratio * 2.0 end
+          local cents = 1200 * math.log(prod_ratio) / math.log(2)
+          local semitones = math.floor(cents / 100 + 0.5)
+          local note = 48 + semitones
+          note = math.max(0, math.min(119, note))
+          song:describe_undo("Insert Phi Product Note")
+          local line = song.selected_line
+          if line then
+            line.note_columns[1].note_value = note
+            line.note_columns[1].instrument_value = song.selected_instrument_index - 1
+          end
+          renoise.app():show_status(string.format("Inserted product note: %d (%.1f cents)", note, cents))
+        end},
+    },
+  }
+
+  phi_sum_product_dialog = renoise.app():show_custom_dialog("Phi Sum/Product (Lange)", content, microtonal_key_handler)
+  update_info()
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- ========================================
+-- CANVAS: PHI INTERVAL CIRCLE VISUALIZATION
+-- Shows tuning relationships as a circle diagram
+-- Each note of the current tuning is plotted on a circle
+-- ========================================
+
+local function show_phi_interval_circle()
+  if phi_interval_circle_dialog and phi_interval_circle_dialog.visible then
+    phi_interval_circle_dialog:close()
+  end
+
+  local vb = renoise.ViewBuilder()
+  local canvas_size = 500
+  local cx = canvas_size / 2
+  local cy = canvas_size / 2
+  local radius = 200
+  local inner_radius = 150
+
+  -- Current tuning state for drawing
+  local current_preset_idx = 1
+  local compare_preset_idx = 1
+  local show_comparison = false
+
+  local function get_tuning_ratios(idx)
+    local preset = tuning_presets[idx]
+    if not preset or preset.is_reset then return {} end
+    local ratios = preset.generator()
+    return ratios
+  end
+
+  local function ratio_to_angle(r)
+    -- Map cents (0-1200) to angle (0 to 2*pi), starting at top (12 o'clock)
+    local cents = 1200 * math.log(r) / math.log(2)
+    return (cents / 1200) * math.pi * 2 - math.pi / 2
+  end
+
+  local popup_items = {}
+  for _, preset in ipairs(tuning_presets) do
+    popup_items[#popup_items + 1] = preset.name
+  end
+
+  local function render_circle(ctx)
+    -- Background
+    ctx.fill_color = {30, 30, 40, 255}
+    ctx:rect(0, 0, canvas_size, canvas_size)
+
+    -- Draw 12-TET reference circle and lines
+    ctx.stroke_color = {60, 60, 80, 255}
+    ctx.line_width = 1
+    for i = 0, 11 do
+      local angle = (i / 12) * math.pi * 2 - math.pi / 2
+      local x1 = cx + math.cos(angle) * (radius + 20)
+      local y1 = cy + math.sin(angle) * (radius + 20)
+      local x2 = cx + math.cos(angle) * (radius - 20)
+      local y2 = cy + math.sin(angle) * (radius - 20)
+      ctx:begin_path()
+      ctx:move_to(x1, y1)
+      ctx:line_to(x2, y2)
+      ctx:stroke()
+    end
+
+    -- Draw outer circle
+    ctx.stroke_color = {80, 80, 120, 255}
+    ctx.line_width = 2
+    local segments = 120
+    ctx:begin_path()
+    for i = 0, segments do
+      local angle = (i / segments) * math.pi * 2
+      local x = cx + math.cos(angle) * radius
+      local y = cy + math.sin(angle) * radius
+      if i == 0 then ctx:move_to(x, y) else ctx:line_to(x, y) end
+    end
+    ctx:stroke()
+
+    -- Draw comparison tuning (if enabled)
+    if show_comparison then
+      local comp_ratios = get_tuning_ratios(compare_preset_idx)
+      if #comp_ratios > 0 then
+        ctx.stroke_color = {200, 200, 100, 180}
+        ctx.line_width = 1
+        -- Draw comparison notes as smaller dots on inner circle
+        for _, r in ipairs(comp_ratios) do
+          local angle = ratio_to_angle(r)
+          local x = cx + math.cos(angle) * inner_radius
+          local y = cy + math.sin(angle) * inner_radius
+          ctx.fill_color = {200, 200, 100, 180}
+          ctx:rect(x - 3, y - 3, 6, 6)
+        end
+        -- Connect comparison notes
+        ctx:begin_path()
+        local first_angle = ratio_to_angle(comp_ratios[1])
+        ctx:move_to(cx + math.cos(first_angle) * inner_radius, cy + math.sin(first_angle) * inner_radius)
+        for _, r in ipairs(comp_ratios) do
+          local angle = ratio_to_angle(r)
+          ctx:line_to(cx + math.cos(angle) * inner_radius, cy + math.sin(angle) * inner_radius)
+        end
+        ctx:stroke()
+      end
+    end
+
+    -- Draw current tuning
+    local ratios = get_tuning_ratios(current_preset_idx)
+    if #ratios > 0 then
+      -- Draw interval lines connecting all notes to root
+      ctx.stroke_color = {100, 150, 200, 80}
+      ctx.line_width = 1
+      for _, r in ipairs(ratios) do
+        local angle = ratio_to_angle(r)
+        local x = cx + math.cos(angle) * radius
+        local y = cy + math.sin(angle) * radius
+        ctx:begin_path()
+        ctx:move_to(cx, cy)
+        ctx:line_to(x, y)
+        ctx:stroke()
+      end
+
+      -- Draw polygon connecting all notes
+      ctx.stroke_color = {150, 100, 200, 255}
+      ctx.line_width = 2
+      ctx:begin_path()
+      -- Start at root (top, 12 o'clock = 0 cents)
+      ctx:move_to(cx, cy - radius)
+      for _, r in ipairs(ratios) do
+        local angle = ratio_to_angle(r)
+        ctx:line_to(cx + math.cos(angle) * radius, cy + math.sin(angle) * radius)
+      end
+      ctx:stroke()
+
+      -- Draw note dots
+      -- Root dot
+      ctx.fill_color = {100, 200, 100, 255}
+      ctx:rect(cx - 5, cy - radius - 5, 10, 10)
+
+      -- Scale degree dots
+      for i, r in ipairs(ratios) do
+        local angle = ratio_to_angle(r)
+        local x = cx + math.cos(angle) * radius
+        local y = cy + math.sin(angle) * radius
+
+        -- Color based on interval quality
+        local cents = 1200 * math.log(r) / math.log(2)
+        if math.abs(cents - 702) < 20 then
+          ctx.fill_color = {100, 200, 100, 255} -- Green for ~fifth
+        elseif math.abs(cents - 386) < 20 or math.abs(cents - 316) < 20 then
+          ctx.fill_color = {200, 150, 100, 255} -- Orange for ~thirds
+        elseif math.abs(cents - 1200) < 5 then
+          ctx.fill_color = {100, 200, 100, 255} -- Green for octave
+        else
+          ctx.fill_color = {150, 100, 200, 255} -- Purple for others
+        end
+
+        ctx:rect(x - 4, y - 4, 8, 8)
+      end
+    end
+
+    -- Draw center reference
+    ctx.fill_color = {200, 200, 200, 100}
+    ctx:rect(cx - 2, cy - 2, 4, 4)
+  end
+
+  local content = vb:column{
+    margin = 10,
+    spacing = 5,
+    vb:text{text = "Phi Interval Circle", style = "strong", font = "bold"},
+    vb:row{
+      spacing = 5,
+      vb:text{text = "Tuning:", width = 55},
+      vb:popup{id = "circle_preset", items = popup_items, value = 2, width = 250,
+        notifier = function(idx)
+          current_preset_idx = idx
+          vb.views.interval_canvas:invalidate()
+        end},
+    },
+    vb:row{
+      spacing = 5,
+      vb:checkbox{id = "circle_compare", value = false,
+        notifier = function(v)
+          show_comparison = v
+          vb.views.interval_canvas:invalidate()
+        end},
+      vb:text{text = "Compare with:", width = 80},
+      vb:popup{id = "circle_compare_preset", items = popup_items, value = 1, width = 210,
+        notifier = function(idx)
+          compare_preset_idx = idx
+          if show_comparison then vb.views.interval_canvas:invalidate() end
+        end},
+    },
+    vb:canvas{
+      id = "interval_canvas",
+      width = canvas_size,
+      height = canvas_size,
+      mode = "plain",
+      render = render_circle,
+    },
+    vb:text{
+      text = "Purple = current tuning on outer circle | Yellow = comparison on inner circle\n" ..
+             "Green dots = root/fifth/octave | Orange dots = thirds | Purple dots = other degrees\n" ..
+             "Gray lines = 12-TET reference positions",
+      font = "mono",
+    },
+    vb:row{
+      spacing = 5,
+      vb:button{text = "Apply to Instrument", width = 140,
+        notifier = function()
+          apply_tuning_to_instrument(current_preset_idx)
+        end},
+      vb:button{text = "Export as Scala...", width = 120,
+        notifier = function()
+          export_tuning_as_scala(current_preset_idx)
+        end},
+    },
+  }
+
+  phi_interval_circle_dialog = renoise.app():show_custom_dialog("Phi Interval Circle", content, microtonal_key_handler)
+  current_preset_idx = 2 -- Start with Golden Pythagorean
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- ========================================
+-- TUNING-AWARE NOTE DISPLAY
+-- Shows the current note in terms of the active phi tuning
+-- Displays scale degree, cents, Hz, and nearest phi note name
+-- ========================================
+
+local function show_phi_note_display()
+  if phi_note_display_dialog and phi_note_display_dialog.visible then
+    phi_note_display_dialog:close()
+  end
+
+  local vb = renoise.ViewBuilder()
+
+  -- Standard note names for reference
+  local std_notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+
+  -- Phi Music System note names (from Lange's Intonation sheet)
+  local phi_note_names = {"A", "A#", "B", "C", "C#", "(D)", "D#", "E", "F", "F#", "G", "(G#)"}
+  local phi_sistema = {
+    0.09016994374947557, 0.09726535583354479, 0.10332556124590123,
+    0.11145618000168439, 0.11803398874989592, nil,
+    0.1273220037500358, 0.13525491562421335, 0.14589803375031718,
+    0.1573786516665279, 0.16718427000252659, nil,
+  }
+
+  local function get_note_info()
+    local song = renoise.song()
+    if not song then return "No song loaded" end
+
+    local line = song.selected_line
+    if not line then return "No line selected" end
+
+    local col_idx = song.selected_note_column_index
+    if col_idx < 1 then return "Select a note column" end
+
+    local col = line.note_columns[col_idx]
+    if not col or col.note_value > 119 then return "No note at cursor" end
+
+    local note_val = col.note_value
+    local octave = math.floor(note_val / 12)
+    local semitone = note_val % 12
+    local std_name = std_notes[semitone + 1] .. octave
+
+    -- Calculate frequency in standard 12-TET (A4 = 440 Hz)
+    local freq_12tet = 440 * 2 ^ ((note_val - 57) / 12)
+
+    -- Calculate in Lange's system (A4 = based on 304.295 Hz reference)
+    -- In Lange's system, D#4/E4 area is 304.295 Hz
+    local freq_lange = LANGE_REF_HZ * 2 ^ ((note_val - 51) / 12) -- rough mapping, D#4 = note 51
+
+    -- Check current instrument tuning
+    local instr = song.selected_instrument
+    local tuning_name = "12-TET (Standard)"
+    local tuning_ratios = {}
+    if instr and instr.trigger_options then
+      local tname = instr.trigger_options.tuning_name
+      if tname and tname ~= "" then tuning_name = tname end
+      tuning_ratios = instr.trigger_options.tuning or {}
+    end
+
+    -- Find nearest phi scale degree
+    local cents_from_root = (note_val % 12) * 100
+    local nearest_phi = "N/A"
+    local nearest_phi_cents = 999
+    for i, sist in ipairs(phi_sistema) do
+      if sist then
+        local ratio = sist / phi_sistema[1]
+        local phi_cents = 1200 * math.log(ratio) / math.log(2)
+        phi_cents = phi_cents % 1200
+        local diff = math.abs(cents_from_root - phi_cents)
+        if diff > 600 then diff = 1200 - diff end
+        if diff < nearest_phi_cents then
+          nearest_phi_cents = diff
+          nearest_phi = phi_note_names[i]
+        end
+      end
+    end
+
+    local lines = {
+      "TUNING-AWARE NOTE DISPLAY",
+      "",
+      string.format("Standard:  %s (MIDI %d)", std_name, note_val),
+      string.format("12-TET Hz: %.3f Hz", freq_12tet),
+      "",
+      string.format("Current tuning: %s", tuning_name),
+      string.format("Tuning degrees: %d notes/octave", #tuning_ratios > 0 and #tuning_ratios or 12),
+      "",
+      "--- Phi Music System ---",
+      string.format("Nearest Phi note: %s", nearest_phi),
+      string.format("Deviation: %.1f cents", nearest_phi_cents),
+      string.format("Lange ref Hz:     %.3f Hz (at 304.295 ref)", freq_lange),
+      "",
+      "--- Scale Degree Info ---",
+    }
+
+    -- If tuning is applied, show the degree info
+    if #tuning_ratios > 0 then
+      local degree_in_scale = semitone % (#tuning_ratios)
+      if degree_in_scale > 0 and degree_in_scale <= #tuning_ratios then
+        local r = tuning_ratios[degree_in_scale]
+        local cents = 1200 * math.log(r) / math.log(2)
+        lines[#lines + 1] = string.format("Scale degree: %d of %d", degree_in_scale, #tuning_ratios)
+        lines[#lines + 1] = string.format("Ratio: %.6f", r)
+        lines[#lines + 1] = string.format("Cents from root: %.2f", cents)
+      end
+    else
+      lines[#lines + 1] = string.format("Semitone: %d of 12", semitone)
+      lines[#lines + 1] = string.format("Cents from C: %d", semitone * 100)
+    end
+
+    return table.concat(lines, "\n")
+  end
+
+  local content = vb:column{
+    margin = 10,
+    spacing = 5,
+    vb:text{text = "Phi Tuning-Aware Note Display", style = "strong", font = "bold"},
+    vb:multiline_textfield{
+      id = "phi_note_info",
+      text = get_note_info(),
+      width = 420,
+      height = 320,
+      font = "mono",
+    },
+    vb:row{
+      spacing = 5,
+      vb:button{text = "Refresh", width = 80,
+        notifier = function()
+          vb.views.phi_note_info.text = get_note_info()
+        end},
+      vb:button{text = "Apply Lange Phi Music System", width = 200,
+        notifier = function()
+          for i, preset in ipairs(tuning_presets) do
+            if preset.name == "Lange Phi Music System (304.295 Hz)" then
+              apply_tuning_to_instrument(i)
+              vb.views.phi_note_info.text = get_note_info()
+              return
+            end
+          end
+        end},
+    },
+  }
+
+  phi_note_display_dialog = renoise.app():show_custom_dialog("Phi Note Display", content, microtonal_key_handler)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- ========================================
 -- TUNING COMPARISON A/B
 -- ========================================
 
@@ -1482,6 +2168,11 @@ local function show_microtonal_tuning_dialog()
       vb:button{text = "Sacred Geometry", width = 100, tooltip = "12 irrational generators",
         notifier = generate_sacred_geometry_wavetable},
     },
+    vb:row{
+      spacing = 5,
+      vb:button{text = "Phi Harmonic Strings (Lange)", width = 190, tooltip = "12-pos wavetable with 18 harmonic strings from Lange's 9-series",
+        notifier = generate_phi_harmonic_strings_wavetable},
+    },
 
     vb:text{text = "Instrument Generators", style = "strong"},
     vb:row{
@@ -1505,6 +2196,17 @@ local function show_microtonal_tuning_dialog()
         notifier = generate_golden_arpeggio_phrases},
       vb:button{text = "Compare A/B...", width = 100, tooltip = "Duplicate instrument and compare two tunings",
         notifier = tuning_comparison_ab},
+    },
+
+    vb:text{text = "Lange Phi Music System Tools", style = "strong"},
+    vb:row{
+      spacing = 5,
+      vb:button{text = "Sum/Product Chords...", width = 150, tooltip = "Interactive phi sum/product chord builder (Lange)",
+        notifier = show_phi_sum_product_dialog},
+      vb:button{text = "Interval Circle...", width = 110, tooltip = "Canvas visualization of tuning intervals",
+        notifier = show_phi_interval_circle},
+      vb:button{text = "Note Display...", width = 100, tooltip = "Tuning-aware note info with phi degree mapping",
+        notifier = show_phi_note_display},
     },
   }
 
@@ -1569,6 +2271,21 @@ local function apply_phi_power_series()
     if preset.name == "Phi Power Series" then apply_tuning_to_instrument(i) return end
   end
 end
+local function apply_10_tet_decagono()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "10-TET Decagono (Lange)" then apply_tuning_to_instrument(i) return end
+  end
+end
+local function apply_phi_7_10_hybrid()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Phi 7/10 Hybrid (Lange)" then apply_tuning_to_instrument(i) return end
+  end
+end
+local function apply_lange_phi_music_system()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Lange Phi Music System (304.295 Hz)" then apply_tuning_to_instrument(i) return end
+  end
+end
 
 -- ========================================
 -- MENU ENTRIES
@@ -1587,12 +2304,16 @@ for _, base in ipairs(menus) do
   renoise.tool():add_menu_entry{name = base..":Apply Phi-7 (Lange)", invoke = apply_phi_7_lange}
   renoise.tool():add_menu_entry{name = base..":Apply Lange 36-note Phi Scale", invoke = apply_lange_phi_36}
   renoise.tool():add_menu_entry{name = base..":Apply Phi Power Series", invoke = apply_phi_power_series}
+  renoise.tool():add_menu_entry{name = base..":Apply 10-TET Decagono (Lange)", invoke = apply_10_tet_decagono}
+  renoise.tool():add_menu_entry{name = base..":Apply Phi 7/10 Hybrid (Lange)", invoke = apply_phi_7_10_hybrid}
+  renoise.tool():add_menu_entry{name = base..":Apply Lange Phi Music System (304.295 Hz)", invoke = apply_lange_phi_music_system}
   renoise.tool():add_menu_entry{name = base..":Reset to 12-TET", invoke = reset_to_12tet}
   renoise.tool():add_menu_entry{name = base..":Generate Golden Shimmer Wavetable", invoke = generate_shimmering_wavetable}
   renoise.tool():add_menu_entry{name = base..":Generate Golden Beating Wavetable", invoke = generate_golden_beating_wavetable}
   renoise.tool():add_menu_entry{name = base..":Generate Spectral Morph Wavetable", invoke = generate_spectral_morph_wavetable}
   renoise.tool():add_menu_entry{name = base..":Generate Tuning History Wavetable", invoke = generate_tuning_history_wavetable}
   renoise.tool():add_menu_entry{name = base..":Generate Sacred Geometry Wavetable", invoke = generate_sacred_geometry_wavetable}
+  renoise.tool():add_menu_entry{name = base..":Generate Phi Harmonic Strings Wavetable (Lange)", invoke = generate_phi_harmonic_strings_wavetable}
   renoise.tool():add_menu_entry{name = base..":Generate Golden Drone Pad", invoke = generate_golden_drone}
   renoise.tool():add_menu_entry{name = base..":Generate Golden Binaural Beats", invoke = generate_binaural_instrument}
   renoise.tool():add_menu_entry{name = base..":Generate Full Colundi (128 freq)", invoke = generate_colundi_full_instrument}
@@ -1600,6 +2321,9 @@ for _, base in ipairs(menus) do
   renoise.tool():add_menu_entry{name = base..":Golden Ratio Tempo/Rhythm...", invoke = apply_golden_tempo_relationship}
   renoise.tool():add_menu_entry{name = base..":Generate Golden Arpeggio Phrases", invoke = generate_golden_arpeggio_phrases}
   renoise.tool():add_menu_entry{name = base..":Tuning Comparison A/B...", invoke = tuning_comparison_ab}
+  renoise.tool():add_menu_entry{name = base..":Phi Sum/Product Chord Builder (Lange)...", invoke = show_phi_sum_product_dialog}
+  renoise.tool():add_menu_entry{name = base..":Phi Interval Circle...", invoke = show_phi_interval_circle}
+  renoise.tool():add_menu_entry{name = base..":Phi Tuning-Aware Note Display...", invoke = show_phi_note_display}
 end
 
 -- ========================================
@@ -1622,6 +2346,13 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Apply Phi-9 Lange Tuning", 
 renoise.tool():add_keybinding{name = "Global:Paketti:Apply Phi-7 Lange Tuning", invoke = apply_phi_7_lange}
 renoise.tool():add_keybinding{name = "Global:Paketti:Apply Lange 36-note Phi Tuning", invoke = apply_lange_phi_36}
 renoise.tool():add_keybinding{name = "Global:Paketti:Apply Phi Power Series Tuning", invoke = apply_phi_power_series}
+renoise.tool():add_keybinding{name = "Global:Paketti:Apply 10-TET Decagono Lange Tuning", invoke = apply_10_tet_decagono}
+renoise.tool():add_keybinding{name = "Global:Paketti:Apply Phi 7/10 Hybrid Lange Tuning", invoke = apply_phi_7_10_hybrid}
+renoise.tool():add_keybinding{name = "Global:Paketti:Apply Lange Phi Music System Tuning", invoke = apply_lange_phi_music_system}
+renoise.tool():add_keybinding{name = "Global:Paketti:Phi Harmonic Strings Wavetable Lange", invoke = generate_phi_harmonic_strings_wavetable}
+renoise.tool():add_keybinding{name = "Global:Paketti:Phi Sum Product Chord Builder Lange", invoke = show_phi_sum_product_dialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Phi Interval Circle Visualization", invoke = show_phi_interval_circle}
+renoise.tool():add_keybinding{name = "Global:Paketti:Phi Tuning-Aware Note Display", invoke = show_phi_note_display}
 
 -- ========================================
 -- MIDI MAPPINGS
@@ -1638,4 +2369,8 @@ renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Golden Arpegg
 renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply Phi-9 Lange", invoke = function(m) if m:is_trigger() then apply_phi_9_lange() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply Phi-7 Lange", invoke = function(m) if m:is_trigger() then apply_phi_7_lange() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply Lange 36-note Phi", invoke = function(m) if m:is_trigger() then apply_lange_phi_36() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply 10-TET Decagono Lange", invoke = function(m) if m:is_trigger() then apply_10_tet_decagono() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply Phi 7/10 Hybrid Lange", invoke = function(m) if m:is_trigger() then apply_phi_7_10_hybrid() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply Lange Phi Music System", invoke = function(m) if m:is_trigger() then apply_lange_phi_music_system() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Phi Harmonic Strings Wavetable", invoke = function(m) if m:is_trigger() then generate_phi_harmonic_strings_wavetable() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Microtonal Tunings:Apply Phi Power Series", invoke = function(m) if m:is_trigger() then apply_phi_power_series() end end}

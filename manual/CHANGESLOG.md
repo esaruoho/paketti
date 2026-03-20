@@ -12,6 +12,47 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-20 - Feature: Lange Phi Music System Extended Integration
+
+Added extensive new features from Christian Lange's "Phi Music System 7/10" spreadsheet — a system bridging 10 equal divisions of the octave with Phi^(n/7) tuning, developed over many years of research rooted in Viktor Schauberger's mathematical principles.
+
+**3 New Tuning Presets:**
+- **10-TET Decagono (Lange)** — 10 equal divisions of the octave (2^(n/10)), the decimal octave division
+- **Phi 7/10 Hybrid (Lange)** — Mean of 10-TET and Phi^(n/7) for each step, bridging both systems
+- **Lange Phi Music System (304.295 Hz)** — Complete 10-note phi scale derived from Lange's Intonation sheet with his phi-derived reference frequency
+
+**New Wavetable Generator:**
+- **Phi Harmonic Strings (Lange)** — 12-position wavetable using 18 harmonic "string" ratios from Lange's 9-series (1/9, 1/6, 2/9, 1/4, 1/3, 4/9, 1/2, 2/3, 3/4, 4/3, 3/2, 2, 9/4, 3, 4, 9/2, 6, 9), progressively adding more string partials per position
+
+**3 New Tool Dialogs:**
+- **Phi Sum/Product Chord Builder (Lange)** — Interactive tool using Lange's phi sum/product matrices. Select two phi scale degrees, see their sum and product frequencies with Hz values at the 304.295 Hz reference. Demonstrates Lange's key insight that phi powers sum to exact values (e.g. 0.381966... + 1.618034... = 2.000000)
+- **Phi Interval Circle** — Canvas visualization showing any tuning preset as notes plotted on a circle (0-1200 cents). Supports A/B comparison of two tunings on outer/inner circles. Color-coded: green for fifths/octaves, orange for thirds, purple for other degrees
+- **Phi Tuning-Aware Note Display** — Shows the current cursor note in terms of the active phi tuning: standard name, Hz, nearest Lange phi note name, scale degree, cents deviation, and Lange reference Hz
+
+**Menus (per location: Main Menu + Instrument Box):**
+- `Microtonal Tunings → Apply 10-TET Decagono (Lange)`
+- `Microtonal Tunings → Apply Phi 7/10 Hybrid (Lange)`
+- `Microtonal Tunings → Apply Lange Phi Music System (304.295 Hz)`
+- `Microtonal Tunings → Generate Phi Harmonic Strings Wavetable (Lange)`
+- `Microtonal Tunings → Phi Sum/Product Chord Builder (Lange)...`
+- `Microtonal Tunings → Phi Interval Circle...`
+- `Microtonal Tunings → Phi Tuning-Aware Note Display...`
+
+**Keybindings:**
+- `Global:Paketti:Apply 10-TET Decagono Lange Tuning`
+- `Global:Paketti:Apply Phi 7/10 Hybrid Lange Tuning`
+- `Global:Paketti:Apply Lange Phi Music System Tuning`
+- `Global:Paketti:Phi Harmonic Strings Wavetable Lange`
+- `Global:Paketti:Phi Sum Product Chord Builder Lange`
+- `Global:Paketti:Phi Interval Circle Visualization`
+- `Global:Paketti:Phi Tuning-Aware Note Display`
+
+**MIDI Mappings:**
+- `Paketti:Microtonal Tunings:Apply 10-TET Decagono Lange`
+- `Paketti:Microtonal Tunings:Apply Phi 7/10 Hybrid Lange`
+- `Paketti:Microtonal Tunings:Apply Lange Phi Music System`
+- `Paketti:Microtonal Tunings:Phi Harmonic Strings Wavetable`
+
 ### 2026-03-18 - Feature: Trim Selected Sample to Selection and Normalize
 
 Added **Trim Selected Sample to Selection and Normalize** — a combined operation that first trims the selected sample to the current selection range in the Sample Editor, then immediately normalizes the trimmed result. This is a common two-step workflow now available as a single action.
