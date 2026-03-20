@@ -535,6 +535,15 @@ Also, every Paketti instrument comes in pre-baked with Pitchbend support - so yo
 
 ## Sample Editor
 
+### Trim Selected Sample to Selection and Normalize
+
+Highlight a region in the Sample Editor, trigger this command, and Paketti will trim the sample down to just the selected range and then normalize it to 0 dB — all in one step. No more trimming first, then normalizing separately.
+
+- **Menu:** `Main Menu → Tools → Paketti → Samples → Trim Selected Sample to Selection and Normalize`
+- **Menu:** `Sample Editor → Paketti → Process → Trim Selected Sample to Selection and Normalize`
+- **Keybinding:** `Global:Paketti:Trim Selected Sample to Selection and Normalize`
+- **MIDI mapping:** `Paketti:Trim Selected Sample to Selection and Normalize`
+
 ## Sample Mappings
 
 ## Sample Navigator
