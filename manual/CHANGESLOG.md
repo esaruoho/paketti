@@ -12,6 +12,20 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-21 - Fix: Backwards compatibility gates for Canvas features (Phase 1)
+
+Fixed backwards compatibility for Renoise versions older than 3.5 (API < 6.2). Canvas-based features now properly check the API version before executing, preventing crashes on Renoise 3.2–3.4.x.
+
+**PakettiChebyshevWaveshaper.lua:**
+- Keybinding registrations (`Global:Paketti:Show Chebyshev Polynomial Waveshaper`, `Sample Editor:Paketti:Show Chebyshev Polynomial Waveshaper`) are now wrapped in `if renoise.API_VERSION >= 6.2` — they will no longer appear on older Renoise versions
+- Added API version guard inside `show_chebyshev_waveshaper()` as a defensive fallback
+
+**PakettiForeignSnippets.lua:**
+- Added API version guard inside `pakettiSampleVisualizerDialog()` (canvas sample visualizer — currently commented-out registrations, but now safe if re-enabled)
+
+**PakettiPlayerProSuite.lua:**
+- Audited and confirmed: all canvas entry points were already properly gated with `if renoise.API_VERSION >= 6.2` checks — no changes needed
+
 ### 2026-03-20 - Feature: Lange Phi Music System Extended Integration
 
 Added extensive new features from Christian Lange's "Phi Music System 7/10" spreadsheet — a system bridging 10 equal divisions of the octave with Phi^(n/7) tuning, developed over many years of research rooted in Viktor Schauberger's mathematical principles.

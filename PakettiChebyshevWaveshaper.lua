@@ -2185,6 +2185,11 @@ end
 
 -- Show Chebyshev Waveshaper dialog
 function show_chebyshev_waveshaper()
+  if renoise.API_VERSION < 6.2 then
+    renoise.app():show_warning("Chebyshev Waveshaper requires Renoise 3.5 or newer.")
+    return
+  end
+
   local sample = renoise.song().selected_sample
   if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
     renoise.app():show_error("No valid sample selected")
@@ -3032,5 +3037,7 @@ function show_chebyshev_waveshaper()
   update_canvas_displays()
 end
 
-renoise.tool():add_keybinding{name = "Global:Paketti:Show Chebyshev Polynomial Waveshaper",invoke = show_chebyshev_waveshaper}
-renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Show Chebyshev Polynomial Waveshaper",invoke = show_chebyshev_waveshaper} 
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_keybinding{name = "Global:Paketti:Show Chebyshev Polynomial Waveshaper",invoke = show_chebyshev_waveshaper}
+  renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Show Chebyshev Polynomial Waveshaper",invoke = show_chebyshev_waveshaper}
+end

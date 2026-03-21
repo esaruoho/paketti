@@ -943,14 +943,19 @@ end
 
 -- Main sample visualizer dialog
 function pakettiSampleVisualizerDialog()
-  if sample_viz_dialog and sample_viz_dialog.visible then 
+  if renoise.API_VERSION < 6.2 then
+    renoise.app():show_warning("Sample Visualizer (Canvas) requires Renoise 3.5 or newer.")
+    return
+  end
+
+  if sample_viz_dialog and sample_viz_dialog.visible then
     cleanup_sample_viz_observables()
     sample_viz_dialog:close()
     sample_viz_dialog = nil
     sample_viz_vb = nil
-    return 
+    return
   end
-  
+
   local song = renoise.song()
   local sample = song.selected_sample
   
