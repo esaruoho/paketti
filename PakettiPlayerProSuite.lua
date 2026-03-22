@@ -1011,14 +1011,16 @@ function pakettiPlayerProTranspose(steps, range, playback)
         selected_track.solo_state = true
         
         -- Trigger the line (only the soloed track will play)
-        song:trigger_pattern_line(selected_line_index)
-        
+        if renoise.API_VERSION >= 6.2 then
+          song:trigger_pattern_line(selected_line_index)
+        end
+
         -- Restore the original solo state
         selected_track.solo_state = was_soloed
       end
     end
   end
-  
+
   -- Experimental playback: play transposed notes if transport is playing
   if experimentalPlay and song.transport.playing and #transposed_notes > 0 then
     pakettiPlayerProPlayTransposedNotes(transposed_notes)
@@ -1158,7 +1160,7 @@ function pakettiPlayerProTransposeAllInstruments(steps, range, playback)
   if playback then
     if song.transport.playing then
       renoise.app():show_status("Transpose & Play Line will only work if Playback is stopped, doing nothing.")
-    else
+    elseif renoise.API_VERSION >= 6.2 then
       song:trigger_pattern_line(song.selected_line_index)
     end
   end
@@ -1275,7 +1277,7 @@ function pakettiPlayerProScanner()
     end
     
     -- Play line if it has notes
-    if has_notes then
+    if has_notes and renoise.API_VERSION >= 6.2 then
       selected_track.solo_state = true
       song:trigger_pattern_line(current_line)
       selected_track.solo_state = was_soloed

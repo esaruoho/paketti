@@ -12,6 +12,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-22 - Fix: Backwards compatibility Phase 2b — remaining API 6.2 guards
+
+Two remaining unguarded API 6.2 features found and fixed during comprehensive audit:
+
+- **PakettiMicrotonalTunings.lua** — `show_phi_interval_circle()` used `vb:canvas` (API 6.2 only) without a version gate. Now shows a warning and returns early on Renoise < 3.5. Menu entry, keybinding, and button in tuning dialog are safe (the function handles the guard internally).
+- **PakettiPlayerProSuite.lua** — 3 calls to `song:trigger_pattern_line()` (API 6.2 only) were unguarded: in `pakettiPlayerProTranspose` (playback mode), `pakettiPlayerProTransposeAllInstruments` (playback mode), and `scan_next_line` (Scanner). All now wrapped in `if renoise.API_VERSION >= 6.2`. On older Renoise, transpose still works but line preview is silently skipped; scanner skips note preview.
+
 ### 2026-03-22 - Fix: Backwards compatibility Phase 2 — API 6.1 to 6.0 gating (Renoise 3.2 support)
 
 Comprehensive audit and fix for API 6.1+ features used in unconditionally-loaded modules, ensuring Paketti works on Renoise 3.2 (API 6.0) without crashes.
