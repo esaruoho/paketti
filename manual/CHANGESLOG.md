@@ -12,6 +12,20 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-22 - Fix: Dialog of Dialogs — hide 3.5-only features on older Renoise, fix crash on missing globals
+
+14 Dialog of Dialogs entries that reference functions from API 6.2-only modules (Canvas, Phrases, EQ30, HyperEdit, etc.) are now properly gated behind `if renoise.API_VERSION >= 6.2`. On Renoise 3.2–3.4, these dialogs are completely invisible instead of appearing as non-functional buttons that crash with "variable 'X' is not declared".
+
+**Entries moved into the API 6.2 gate:**
+- Paketti PCM Writer (also fixed: function name corrected from `PCMWriterDialog` → `PCMWriterShowPcmDialog`)
+- Paketti HyperEdit, EQ Dialog, Unused Note EQ, Unused Note EQ64
+- Automation Stack, Sample Effect Generator, Image to Sample
+- Multitap, PlayerPro Canvas Main, Equation Calculator, Canvas Font Preview
+- Phrase Grid, Phrase Grid Performance
+
+**Defensive fix in `execute_dod_selection()`:**
+- Changed `_G[func]` to `rawget(_G, func)` to bypass Renoise's strict global access metatable. If a dialog function is somehow missing (e.g. module not loaded), this now shows a friendly warning instead of crashing with a Lua error.
+
 ### 2026-03-22 - Fix: Backwards compatibility Phase 2b — remaining API 6.2 guards
 
 Two remaining unguarded API 6.2 features found and fixed during comprehensive audit:
