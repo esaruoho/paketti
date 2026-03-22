@@ -1294,9 +1294,8 @@ function PakettiImageToSampleShowDialog()
         }
       },
       
-    -- Waveform display section  
-    vb:column {
-      
+    -- Waveform display section (Canvas requires API 6.2+)
+    (renoise.API_VERSION >= 6.2 and vb:column {
       vb:canvas {
         id = "waveform_canvas",
         width = WAVEFORM_CANVAS_WIDTH,
@@ -1304,7 +1303,13 @@ function PakettiImageToSampleShowDialog()
         mode = "plain",
         render = PakettiImageToSampleRenderWaveform
       }
-    },
+    } or vb:column {
+      vb:text {
+        text = "Waveform preview requires Renoise 3.5+",
+        width = WAVEFORM_CANVAS_WIDTH,
+        align = "center"
+      }
+    }),
     
     -- Control buttons
     vb:horizontal_aligner {
@@ -1351,8 +1356,10 @@ function PakettiImageToSampleShowDialog()
   -- Create and show dialog
   image_to_sample_dialog = renoise.app():show_custom_dialog(DIALOG_TITLE, dialog_content, my_keyhandler_func)
   
-  -- Store canvas reference for updates
-  waveform_canvas_view = vb.views.waveform_canvas
+  -- Store canvas reference for updates (only exists on API 6.2+)
+  if renoise.API_VERSION >= 6.2 then
+    waveform_canvas_view = vb.views.waveform_canvas
+  end
   
   -- Ensure Renoise gets keyboard focus
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame

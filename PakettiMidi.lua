@@ -2666,17 +2666,26 @@ end
 -- Define target devices and their respective parameters
 local target_devices = {
   {path="Audio/Effects/Native/Compressor", params={"Threshold", "Ratio", "Release", "Makeup"}},
-  {path="Audio/Effects/Native/Comb Filter 2", params={"Note", "Transpose", "Feedback", "Dry/Wet"}},
-  {path="Audio/Effects/Native/RingMod 2", params={"Note", "Transpose", "Dry/Wet"}},
-  {path="Audio/Effects/Native/mpReverb 2", params={"Duration", "Color", "Wet Mix", "Width"}},
-  {path="Audio/Effects/Native/Phaser 2", params={"Floor", "Ceiling", "Rate", "Feedback", "Depth", "Stages"}},
-  {path="Audio/Effects/Native/LofiMat 2", params={"Bit Crunch", "Rate", "Noise", "Wet Mix","Dry Mix"}},
   {path="Audio/Effects/Native/Delay", params={"L Delay", "R Delay", "L Feedb.", "R Feedb.", "Send", "L Sync Time", "R Sync Time"}},
   {path="Audio/Effects/Native/Analog Filter", params={"Type", "Cutoff", "Resonance", "Drive", "Inertia"}},
   {path="Audio/Effects/Native/*XY Pad", params={"X-Axis", "Y-Axis"}},
   {path="Audio/Effects/Native/Doofer", params={1,2,3,4,5,6,7,8}}, -- Doofer uses parameter indices instead of names
   {path="Audio/Effects/Native/EQ 10", params={}} -- EQ 10 now explicitly handled
 }
+
+-- v2 devices are API 6.1 (Renoise 3.3) only — add MIDI mappings conditionally
+if renoise.API_VERSION >= 6.1 then
+  local v2_target_devices = {
+    {path="Audio/Effects/Native/Comb Filter 2", params={"Note", "Transpose", "Feedback", "Dry/Wet"}},
+    {path="Audio/Effects/Native/RingMod 2", params={"Note", "Transpose", "Dry/Wet"}},
+    {path="Audio/Effects/Native/mpReverb 2", params={"Duration", "Color", "Wet Mix", "Width"}},
+    {path="Audio/Effects/Native/Phaser 2", params={"Floor", "Ceiling", "Rate", "Feedback", "Depth", "Stages"}},
+    {path="Audio/Effects/Native/LofiMat 2", params={"Bit Crunch", "Rate", "Noise", "Wet Mix","Dry Mix"}},
+  }
+  for _, dev in ipairs(v2_target_devices) do
+    table.insert(target_devices, dev)
+  end
+end
 
 
 -- Function to map MIDI value to parameter range

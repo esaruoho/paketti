@@ -1247,11 +1247,14 @@ if PakettiPolyendPatternDataEnabled then
   timed_require("PakettiPolyendPatternData")
 end
 
+-- These modules work on all API versions but gate canvas elements internally
+timed_require("PakettiImageToSample")
+timed_require("PakettiSliceEffectStepSequencer")
+
 if renoise.API_VERSION >= 6.2 then
   timed_require("Paketti35")
   timed_require("PakettiArpeggiator")
   timed_require("PakettiPCMWriter")
-  timed_require("PakettiImageToSample")
   --timed_require("PakettiZyklusMPS1")
   timed_require("PakettiCanvasFont")
   timed_require("PakettiCanvasFontPreview")
@@ -1259,7 +1262,6 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiSampleEffectGenerator")
   timed_require("PakettiNotepadRun")
   timed_require("PakettiEQ30")
-  timed_require("PakettiSliceEffectStepSequencer")
   timed_require("PakettiHyperEdit")
   timed_require("PakettiEquationCalculator")
   timed_require("PakettiMultitapExperiment")

@@ -12,6 +12,47 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-22 - Fix: v2 DSP device gating (API 6.1) and canvas internal gating for broader backwards compatibility
+
+All "v2" DSP devices (Chorus 2, Comb Filter 2, Digital Filter, Distortion 2, Flanger 2, Gate 2, LofiMat 2, mpReverb 2, Phaser 2, RingMod 2) — introduced in Renoise 3.3 (API 6.1) — are now fully gated so Renoise 3.2 users never see keybindings, menu entries, or MIDI mappings for devices that don't exist in their version.
+
+**PakettiLoaders.lua:**
+- All v2 device keybindings (`Global:Track Devices:Load Renoise Chorus 2`, etc.) moved into `if renoise.API_VERSION >= 6.1` block
+- `nativeDevices` table split: base table has v1 devices only; v2 devices added conditionally on API >= 6.1
+
+**PakettiMidi.lua:**
+- v2 device entries (Comb Filter 2, RingMod 2, mpReverb 2, Phaser 2, LofiMat 2) moved from base `target_devices` table into conditional API >= 6.1 block — their MIDI mappings are only registered on Renoise 3.3+
+
+**PakettiControls.lua:**
+- v2 device entries removed from base `target_devices` table and added conditionally on API >= 6.1 — device enable/disable/toggle keybindings for v2 devices only appear on 3.3+
+
+**PakettiPresetPlusPlus.lua:**
+- `HipassPlusPlus()` now checks API version and shows a warning + returns early on Renoise < 3.3 (Digital Filter not available)
+
+**PakettiMetaSynth.lua (comprehensive v1 fallbacks):**
+- FX archetype definitions use ternary expressions: e.g. `"Lofimat 2"` → `(API >= 6.1) and "Lofimat 2" or "LofiMat"`
+- `constraint_map` now maps both v1 and v2 device names to constraint toggles
+- FX tendency presets (spatial, lofi, cinematic) use ternary for mpReverb 2 and Lofimat 2
+- `PakettiMetaSynthFXDeviceList` split: base list + conditional v2 or v1 equivalents
+- `PakettiMetaSynthSafeFXDevices` full v1/v2 conditional block
+- `PakettiMetaSynthHeavyFXDevices` uses ternary for mpReverb 2 → mpReverb
+- `PakettiMetaSynthSelectableFXTypes` uses `_v2` variable for all device references
+- Default architecture `device_pool` uses ternary for Chorus 2 → Chorus
+
+**PakettiImageToSample.lua:**
+- Canvas waveform preview gated with `if renoise.API_VERSION >= 6.2`; shows "Waveform preview requires Renoise 3.5+" text on older versions
+- Module moved out of the API >= 6.2 conditional require block in main.lua (now loads on all versions)
+
+**PakettiSliceEffectStepSequencer.lua:**
+- Velocity canvas editor section wrapped in `if renoise.API_VERSION >= 6.2` block
+- Module moved out of the API >= 6.2 conditional require block in main.lua (now loads on all versions)
+
+**PakettiMenuConfig.lua:**
+- Removed API >= 6.2 gates from Slice Step Sequencer and Image to Sample menu entries (since those modules now gate canvas elements internally)
+
+**main.lua:**
+- PakettiImageToSample and PakettiSliceEffectStepSequencer moved to unconditional loading (they handle canvas gating internally)
+
 ### 2026-03-22 - Fix: Dialog of Dialogs — hide 3.5-only features on older Renoise, fix crash on missing globals
 
 14 Dialog of Dialogs entries that reference functions from API 6.2-only modules (Canvas, Phrases, EQ30, HyperEdit, etc.) are now properly gated behind `if renoise.API_VERSION >= 6.2`. On Renoise 3.2–3.4, these dialogs are completely invisible instead of appearing as non-functional buttons that crash with "variable 'X' is not declared".

@@ -1100,14 +1100,20 @@ function loadLFOEnvelopePanIntoContainer(device)
 end
 
 function HipassPlusPlus()
+  -- Digital Filter is API 6.1 (Renoise 3.3) only
+  if renoise.API_VERSION < 6.1 then
+    renoise.app():show_warning("Hipass (Preset++) requires Renoise 3.3+ (Digital Filter device)")
+    return
+  end
+
   local selected_device = renoise.song().selected_device
-  
+
   -- Check if we have a selected device that is a container
   if selected_device and isContainerDevice(selected_device) then
     loadHipassIntoContainer(selected_device)
     return
   end
-  
+
   -- Original behavior: load directly on track
   -- 1. Load Device (with Line Input protection)
   loadnative("Audio/Effects/Native/Digital Filter", nil, nil, nil, true)

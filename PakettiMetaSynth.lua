@@ -62,7 +62,7 @@ METASYNTH_FX_ARCHETYPES = {
     devices = {
       { name = "Analog Filter", enabled = true, weight = 1.0 },
       { name = "Distortion", enabled = true, weight = 0.8 },
-      { name = "Lofimat 2", enabled = true, weight = 0.6 },
+      { name = (renoise.API_VERSION >= 6.1) and "Lofimat 2" or "LofiMat", enabled = true, weight = 0.6 },
       { name = "Cabinet Simulator", enabled = true, weight = 0.7 }
     },
     weight = 1.0
@@ -84,7 +84,7 @@ METASYNTH_FX_ARCHETYPES = {
     description = "Depth and space",
     devices = {
       { name = "Reverb", enabled = true, weight = 1.0 },
-      { name = "mpReverb 2", enabled = true, weight = 0.8 },
+      { name = (renoise.API_VERSION >= 6.1) and "mpReverb 2" or "mpReverb", enabled = true, weight = 0.8 },
       { name = "Convolver", enabled = true, weight = 0.5 },
       { name = "Stereo Expander", enabled = true, weight = 0.7 }
     },
@@ -124,11 +124,16 @@ function PakettiMetaSynthGetFXFromArchetypes(enabled_archetypes, count, architec
   -- Build a map of constraint device toggles
   local constraint_map = {
     ["Reverb"] = constraints.allow_reverb,
+    ["mpReverb"] = constraints.allow_reverb,
     ["mpReverb 2"] = constraints.allow_reverb,
     ["Chorus"] = constraints.allow_chorus,
+    ["Chorus 2"] = constraints.allow_chorus,
     ["Phaser"] = constraints.allow_phaser,
+    ["Phaser 2"] = constraints.allow_phaser,
     ["Flanger"] = constraints.allow_flanger,
+    ["Flanger 2"] = constraints.allow_flanger,
     ["Distortion"] = constraints.allow_distortion,
+    ["Distortion 2"] = constraints.allow_distortion,
     ["Analog Filter"] = constraints.allow_filter,
     ["Digital Filter"] = constraints.allow_filter,
     ["EQ 10"] = constraints.allow_eq,
@@ -136,7 +141,9 @@ function PakettiMetaSynthGetFXFromArchetypes(enabled_archetypes, count, architec
     ["Maximizer"] = constraints.allow_maximizer,
     ["Convolver"] = constraints.allow_convolver,
     ["Cabinet Simulator"] = constraints.allow_cabinet,
+    ["LofiMat"] = constraints.allow_lofimat,
     ["Lofimat 2"] = constraints.allow_lofimat,
+    ["LofiMat 2"] = constraints.allow_lofimat,
     ["Exciter"] = constraints.allow_exciter,
     ["Stereo Expander"] = constraints.allow_stereo_expander,
     ["Tremolo"] = constraints.allow_tremolo,
@@ -602,13 +609,13 @@ METASYNTH_FX_TENDENCY_PRESETS = {
   warm = { frame = {"Analog Filter"}, group = {}, global = {"EQ 10"} },
   saturated = { frame = {"Distortion"}, group = {}, global = {"EQ 10", "Compressor"} },
   heavily_saturated = { frame = {"Distortion", "Cabinet Simulator"}, group = {"Exciter"}, global = {"EQ 10", "Compressor"} },
-  spatial = { frame = {}, group = {}, global = {"Reverb", "mpReverb 2"} },
+  spatial = { frame = {}, group = {}, global = {"Reverb", (renoise.API_VERSION >= 6.1) and "mpReverb 2" or "mpReverb"} },
   spatial_delay = { frame = {}, group = {}, global = {"Delay", "Reverb"} },
   movement = { frame = {"Chorus", "Flanger"}, group = {}, global = {} },
   phaser = { frame = {"Phaser"}, group = {}, global = {} },
-  lofi = { frame = {"Lofimat 2"}, group = {}, global = {} },
+  lofi = { frame = {(renoise.API_VERSION >= 6.1) and "Lofimat 2" or "LofiMat"}, group = {}, global = {} },
   aggressive = { frame = {"Distortion", "Analog Filter"}, group = {"Exciter"}, global = {"Compressor"} },
-  cinematic = { frame = {}, group = {"Stereo Expander"}, global = {"Reverb", "mpReverb 2", "EQ 10"} },
+  cinematic = { frame = {}, group = {"Stereo Expander"}, global = {"Reverb", (renoise.API_VERSION >= 6.1) and "mpReverb 2" or "mpReverb", "EQ 10"} },
   vintage = { frame = {"Analog Filter", "Chorus"}, group = {}, global = {"Compressor", "EQ 10"} },
 }
 
@@ -6468,11 +6475,11 @@ PakettiMetaSynthFXCategoryList = {
 }
 
 -- FX Devices available in Renoise (native devices)
+-- Base list uses devices available on all supported versions (API 6.0+)
 PakettiMetaSynthFXDeviceList = {
   "Analog Filter",
   "Bus Compressor",
   "Cabinet Simulator",
-  "Chorus 2",
   "Comb Filter",
   "Compressor",
   "Convolver",
@@ -6483,18 +6490,13 @@ PakettiMetaSynthFXDeviceList = {
   "EQ 5",
   "Exciter",
   "Filter 3",
-  "Flanger 2",
   "Formula",
   "Gain",
-  "Gate 2",
   "Gapper",
   "Line In",
-  "LofiMat 2",
   "Maximizer",
   "Mixer EQ",
-  "mpReverb 2",
   "Multitap Delay",
-  "Phaser 2",
   "Repeater",
   "Reverb",
   "Ringmod",
@@ -6504,6 +6506,20 @@ PakettiMetaSynthFXDeviceList = {
   "Tremolo",
   "Vibrato"
 }
+
+-- v2 devices are API 6.1 (Renoise 3.3) only
+if renoise.API_VERSION >= 6.1 then
+  local v2_fx = {"Chorus 2", "Digital Filter", "Distortion 2", "Flanger 2", "Gate 2", "LofiMat 2", "mpReverb 2", "Phaser 2", "RingMod 2"}
+  for _, dev in ipairs(v2_fx) do
+    table.insert(PakettiMetaSynthFXDeviceList, dev)
+  end
+else
+  -- v1 equivalents for older Renoise
+  local v1_fx = {"Chorus", "Flanger", "Gate", "LofiMat", "mpReverb", "Phaser", "RingMod"}
+  for _, dev in ipairs(v1_fx) do
+    table.insert(PakettiMetaSynthFXDeviceList, dev)
+  end
+end
 
 -- FX Devices display list with "None" option
 PakettiMetaSynthFXDeviceDisplayList = {"None"}
@@ -6727,7 +6743,7 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     },
     fx_randomization = {
       enabled = false,
-      device_pool = {"Analog Filter", "Chorus 2"},
+      device_pool = {"Analog Filter", (renoise.API_VERSION >= 6.1) and "Chorus 2" or "Chorus"},
       param_randomization = 0.3
     },
     modulation = {
@@ -7018,26 +7034,43 @@ end
 -- ============================================================================
 
 -- Available native devices for FX randomization (safe, CPU-friendly choices)
-PakettiMetaSynthSafeFXDevices = {
-  "Analog Filter",
-  "Chorus 2",
-  "Comb Filter 2",
-  "Delay",
-  "Digital Filter",
-  "Distortion 2",
-  "EQ 5",
-  "Flanger 2",
-  "Gainer",
-  "LofiMat 2",
-  "Phaser 2",
-  "RingMod 2",
-  "Stereo Expander"
-}
+if renoise.API_VERSION >= 6.1 then
+  PakettiMetaSynthSafeFXDevices = {
+    "Analog Filter",
+    "Chorus 2",
+    "Comb Filter 2",
+    "Delay",
+    "Digital Filter",
+    "Distortion 2",
+    "EQ 5",
+    "Flanger 2",
+    "Gainer",
+    "LofiMat 2",
+    "Phaser 2",
+    "RingMod 2",
+    "Stereo Expander"
+  }
+else
+  PakettiMetaSynthSafeFXDevices = {
+    "Analog Filter",
+    "Chorus",
+    "Comb Filter",
+    "Delay",
+    "Distortion",
+    "EQ 5",
+    "Flanger",
+    "Gainer",
+    "LofiMat",
+    "Phaser",
+    "RingMod",
+    "Stereo Expander"
+  }
+end
 
 -- Heavy devices (excluded by default for CPU-aware mode)
 PakettiMetaSynthHeavyFXDevices = {
   "Convolver",
-  "mpReverb 2",
+  (renoise.API_VERSION >= 6.1) and "mpReverb 2" or "mpReverb",
   "Reverb",
   "Cabinet Simulator"
 }
@@ -7305,20 +7338,22 @@ function PakettiMetaSynthBuildRandomFXChain(chain, device_pool, device_count, ra
 end
 
 -- Selectable FX types for Group Master and Stack Master (glue-appropriate FX)
+-- Use v2 device names on API 6.1+ (Renoise 3.3+), v1 fallbacks on older
+local _v2 = renoise.API_VERSION >= 6.1
 PakettiMetaSynthSelectableFXTypes = {
   { name = "Filter", device = "Analog Filter" },
   { name = "Analog Filter", device = "Analog Filter" },  -- Profile name mapping
-  { name = "Digital Filter", device = "Digital Filter" },
+  { name = "Digital Filter", device = _v2 and "Digital Filter" or "Analog Filter" },
   { name = "EQ", device = "EQ 5" },
-  { name = "Saturation", device = "Distortion 2" },
-  { name = "Distortion", device = "Distortion 2" },  -- Profile name mapping
-  { name = "LoFi", device = "LofiMat 2" },
-  { name = "Chorus", device = "Chorus 2" },
-  { name = "Phaser", device = "Phaser 2" },
-  { name = "Flanger", device = "Flanger 2" },
-  { name = "Comb Filter", device = "Comb Filter 2" },
+  { name = "Saturation", device = _v2 and "Distortion 2" or "Distortion" },
+  { name = "Distortion", device = _v2 and "Distortion 2" or "Distortion" },  -- Profile name mapping
+  { name = "LoFi", device = _v2 and "LofiMat 2" or "LofiMat" },
+  { name = "Chorus", device = _v2 and "Chorus 2" or "Chorus" },
+  { name = "Phaser", device = _v2 and "Phaser 2" or "Phaser" },
+  { name = "Flanger", device = _v2 and "Flanger 2" or "Flanger" },
+  { name = "Comb Filter", device = _v2 and "Comb Filter 2" or "Comb Filter" },
   { name = "Delay", device = "Delay" },
-  { name = "Ring Mod", device = "RingMod 2" },
+  { name = "Ring Mod", device = _v2 and "RingMod 2" or "RingMod" },
   { name = "Stereo Expander", device = "Stereo Expander" },
   { name = "Exciter", device = "Exciter" }  -- Profile name mapping (if device exists, otherwise will fail gracefully)
 }

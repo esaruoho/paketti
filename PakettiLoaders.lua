@@ -642,8 +642,11 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Cabinet Si
 invoke=function() loadnative("Audio/Effects/Native/Cabinet Simulator") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Chorus",
 invoke=function() loadnative("Audio/Effects/Native/Chorus") end}
+-- API 6.1+ (Renoise 3.3+) devices: Chorus 2, Comb Filter 2, Digital Filter,
+-- Distortion 2, Flanger 2, Gate 2, LofiMat 2, mpReverb 2, Phaser 2, RingMod 2
+if renoise.API_VERSION >= 6.1 then
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Chorus 2 as Vowel Filter",
-invoke=function() loadnative("Audio/Effects/Native/Chorus 2") 
+invoke=function() loadnative("Audio/Effects/Native/Chorus 2")
   renoise.song().selected_device.parameters[1].value=0.01
   renoise.song().selected_device.parameters[2].value=0
   renoise.song().selected_device.parameters[6].value=0
@@ -660,6 +663,24 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Chorus 2",
 invoke=function() loadnative("Audio/Effects/Native/Chorus 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Comb Filter 2",
 invoke=function() loadnative("Audio/Effects/Native/Comb Filter 2") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Digital Filter",
+invoke=function() loadnative("Audio/Effects/Native/Digital Filter") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Distortion 2",
+invoke=function() loadnative("Audio/Effects/Native/Distortion 2") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Flanger 2",
+invoke=function() loadnative("Audio/Effects/Native/Flanger 2") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Gate 2",
+invoke=function() loadnative("Audio/Effects/Native/Gate 2") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise LofiMat 2",
+invoke=function() loadnative("Audio/Effects/Native/LofiMat 2") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise mpReverb 2",
+invoke=function() loadnative("Audio/Effects/Native/mpReverb 2") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Phaser 2",
+invoke=function() loadnative("Audio/Effects/Native/Phaser 2") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise RingMod 2",
+invoke=function() loadnative("Audio/Effects/Native/RingMod 2") end}
+end -- API >= 6.1 (v2 device keybindings)
+
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Compressor",
 invoke=function() loadnative("Audio/Effects/Native/Compressor") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Convolver",
@@ -668,10 +689,6 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise DC Offset"
 invoke=function() loadnative("Audio/Effects/Native/DC Offset") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Delay",
 invoke=function() loadnative("Audio/Effects/Native/Delay") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Digital Filter",
-invoke=function() loadnative("Audio/Effects/Native/Digital Filter") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Distortion 2",
-invoke=function() loadnative("Audio/Effects/Native/Distortion 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Doofer",
 invoke=function() loadnative("Audio/Effects/Native/Doofer") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise EQ 5",
@@ -680,14 +697,8 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise EQ 10",
 invoke=function() loadnative("Audio/Effects/Native/EQ 10") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Exciter",
 invoke=function() loadnative("Audio/Effects/Native/Exciter") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Flanger 2",
-invoke=function() loadnative("Audio/Effects/Native/Flanger 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Gainer",
 invoke=function() loadnative("Audio/Effects/Native/Gainer","Gainer") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Gate 2",
-invoke=function() loadnative("Audio/Effects/Native/Gate 2") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise LofiMat 2",
-invoke=function() loadnative("Audio/Effects/Native/LofiMat 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Maximizer",
 invoke=function() loadnative("Audio/Effects/Native/Maximizer") end}
 
@@ -736,12 +747,8 @@ renoise.tool():add_midi_mapping{name="Paketti:Load Renoise Maximizer to Master T
 invoke=function(message) if message:is_trigger() then loadMasterMaximizer() end end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Mixer EQ",
 invoke=function() loadnative("Audio/Effects/Native/Mixer EQ") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise mpReverb 2",
-invoke=function() loadnative("Audio/Effects/Native/mpReverb 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Multitap",
 invoke=function() loadnative("Audio/Effects/Native/Multitap") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Phaser 2",
-invoke=function() loadnative("Audio/Effects/Native/Phaser 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Repeater",
 invoke=function() loadnative("Audio/Effects/Native/Repeater") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Repeater Hold Off",
@@ -760,8 +767,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Reverb",
 invoke=function() loadnative("Audio/Effects/Native/Reverb") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise RingMod 2",
-invoke=function() loadnative("Audio/Effects/Native/RingMod 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Stereo Expander",
 invoke=function() loadnative("Audio/Effects/Native/Stereo Expander") end}
 ------- #
@@ -1340,15 +1345,26 @@ end end}
 
 
 nativeDevices = {
-  "Analog Filter", "Bus Compressor", "Cabinet Simulator", "Chorus", "Chorus 2",
-  "Comb Filter 2", "Compressor", "Convolver", "DC Offset", "Delay", "Digital Filter",
-  "Distortion 2", "Doofer", "EQ 5", "EQ 10", "Exciter", "Flanger 2", "Gainer",
-  "Gate 2", "LofiMat 2", "Maximizer", "Mixer EQ", "mpReverb 2", "Multitap",
-  "Phaser 2", "Repeater", "Reverb", "RingMod 2", "Stereo Expander", "#Line Input",
+  "Analog Filter", "Bus Compressor", "Cabinet Simulator", "Chorus",
+  "Compressor", "Convolver", "DC Offset", "Delay",
+  "Doofer", "EQ 5", "EQ 10", "Exciter", "Gainer",
+  "Maximizer", "Mixer EQ", "Multitap",
+  "Repeater", "Reverb", "Stereo Expander", "#Line Input",
   "#Multiband Send", "#ReWire Input", "#Send", "*Formula", "*Hydra", "*Instr. Automation",
   "*Instr. Macros", "*Instr. MIDI Control", "*Key Tracker", "*LFO", "*Meta Mixer",
   "*Signal Follower", "*Velocity Tracker", "*XY Pad"
 }
+
+-- v2 devices are API 6.1 (Renoise 3.3) only — add them conditionally
+if renoise.API_VERSION >= 6.1 then
+  local v2_devices = {
+    "Chorus 2", "Comb Filter 2", "Digital Filter", "Distortion 2",
+    "Flanger 2", "Gate 2", "LofiMat 2", "mpReverb 2", "Phaser 2", "RingMod 2"
+  }
+  for _, dev in ipairs(v2_devices) do
+    table.insert(nativeDevices, dev)
+  end
+end
 
 -- Notepad and Splitter are API 6.2 (Renoise 3.5) only — add them conditionally
 if renoise.API_VERSION >= 6.2 then

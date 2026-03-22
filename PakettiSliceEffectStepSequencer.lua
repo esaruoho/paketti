@@ -4667,64 +4667,55 @@ vb:valuebox{
 
   })
   
-  -- Create velocity canvas expandable section (moved to bottom)
-  velocity_canvas_toggle_button = vb:button{
-    text = velocity_canvas_expanded and "▾" or "▴", -- Set initial state from preference
-    width = 22,
-    notifier = function()
-      velocity_canvas_expanded = not velocity_canvas_expanded
-      -- Update the preference when user toggles
-      preferences.pakettiSliceStepSeqShowVelocity.value = velocity_canvas_expanded
-      PakettiSliceStepUpdateVelocityCanvasVisibility()
-    end
-  }
-  
-  -- Create the canvas directly and store reference
-  velocity_canvas = vb:canvas{
-    width = PakettiSliceStepCalculateVelocityCanvasWidth(),  -- Calculate width to match step buttons
-    height = velocity_canvas_height,
-    mode = "plain",
-    render = PakettiSliceStepDrawVelocityCanvas,
-    mouse_handler = PakettiSliceStepHandleVelocityCanvasMouse,
-    mouse_events = {"down", "up", "move", "exit"}
-  }
-  
-  velocity_canvas_content_column = vb:column{
-    
-    style = "group",
-    --margin = 6,
-    visible = velocity_canvas_expanded, -- Use preference for initial state
-    
-    vb:row{
-      vb:text{text=" ",width=20},
-      velocity_canvas  -- Use the stored canvas reference
+  -- Velocity canvas expandable section (Canvas requires API 6.2+)
+  if renoise.API_VERSION >= 6.2 then
+    velocity_canvas_toggle_button = vb:button{
+      text = velocity_canvas_expanded and "▾" or "▴", -- Set initial state from preference
+      width = 22,
+      notifier = function()
+        velocity_canvas_expanded = not velocity_canvas_expanded
+        -- Update the preference when user toggles
+        preferences.pakettiSliceStepSeqShowVelocity.value = velocity_canvas_expanded
+        PakettiSliceStepUpdateVelocityCanvasVisibility()
+      end
     }
-    
---    vb:row{
---      vb:text{
---        text = "Instructions: Draws velocity bars only where steps are active. Drawing in empty areas creates new steps with that velocity.",
---        width = PakettiSliceStepCalculateVelocityCanvasWidth() - 20,  -- Match calculated canvas width
---        style = "normal"
---      }
---    }
-  }
 
-  -- Add expandable velocity section to dialog
-  content:add_child(vb:row{
-    velocity_canvas_toggle_button,
-    vb:text{
-      text = "Show Velocity Editor Canvas",
-      style = "strong",
-      font = "bold",
-      width = 300
+    -- Create the canvas directly and store reference
+    velocity_canvas = vb:canvas{
+      width = PakettiSliceStepCalculateVelocityCanvasWidth(),  -- Calculate width to match step buttons
+      height = velocity_canvas_height,
+      mode = "plain",
+      render = PakettiSliceStepDrawVelocityCanvas,
+      mouse_handler = PakettiSliceStepHandleVelocityCanvasMouse,
+      mouse_events = {"down", "up", "move", "exit"}
     }
-  })
-  
-  -- Add the collapsible velocity content
-  content:add_child(velocity_canvas_content_column)
-  
-  -- Initialize velocity section visibility
-  PakettiSliceStepUpdateVelocityCanvasVisibility()
+
+    velocity_canvas_content_column = vb:column{
+      style = "group",
+      visible = velocity_canvas_expanded, -- Use preference for initial state
+      vb:row{
+        vb:text{text=" ",width=20},
+        velocity_canvas  -- Use the stored canvas reference
+      }
+    }
+
+    -- Add expandable velocity section to dialog
+    content:add_child(vb:row{
+      velocity_canvas_toggle_button,
+      vb:text{
+        text = "Show Velocity Editor Canvas",
+        style = "strong",
+        font = "bold",
+        width = 300
+      }
+    })
+
+    -- Add the collapsible velocity content
+    content:add_child(velocity_canvas_content_column)
+
+    -- Initialize velocity section visibility
+    PakettiSliceStepUpdateVelocityCanvasVisibility()
+  end
   
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,

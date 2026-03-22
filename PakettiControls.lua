@@ -960,52 +960,61 @@ end
 local target_devices = {
   "Audio/Effects/Native/Delay",                -- [1]
   "Audio/Effects/Native/Multitap",            -- [2]
-  "Audio/Effects/Native/mpReverb 2",          -- [3]
-  "Audio/Effects/Native/Reverb",              -- [4]
-  "Audio/Effects/Native/Convolver",           -- [5]
-  "Audio/Effects/Native/Bus Compressor",      -- [6]
-  "Audio/Effects/Native/Compressor",          -- [7]
-  "Audio/Effects/Native/Gate 2",              -- [8]
-  "Audio/Effects/Native/Maximizer",           -- [9]
-  "Audio/Effects/Native/Analog Filter",       -- [10]
-  "Audio/Effects/Native/Digital Filter",      -- [11]
-  "Audio/Effects/Native/Comb Filter 2",       -- [12]
-  "Audio/Effects/Native/EQ 5",                -- [13]
-  "Audio/Effects/Native/EQ 10",               -- [14]
-  "Audio/Effects/Native/Mixer EQ",            -- [15]
-  "Audio/Effects/Native/Chorus 2",            -- [16]
-  "Audio/Effects/Native/Flanger 2",           -- [17]
-  "Audio/Effects/Native/Phaser 2",            -- [18]
-  "Audio/Effects/Native/RingMod 2",           -- [19]
-  "Audio/Effects/Native/LofiMat 2",           -- [20]
-  "Audio/Effects/Native/Distortion 2",        -- [21]
-  "Audio/Effects/Native/Cabinet Simulator",    -- [22]
-  "Audio/Effects/Native/Exciter",             -- [23]
-  "Audio/Effects/Native/Stereo Expander",     -- [24]
-  "Audio/Effects/Native/DC Offset",           -- [25]
-  "Audio/Effects/Native/Gainer",              -- [26]
-  "Audio/Effects/Native/Repeater",            -- [27]
-  "Audio/Effects/Native/Doofer",              -- [28]
-  "Audio/Effects/Native/#Line Input",         -- [29]
-  "Audio/Effects/Native/#Send",               -- [30]
-  "Audio/Effects/Native/#Multiband Send",     -- [31]
-  "Audio/Effects/Native/#Sidechain",          -- [32]
-  "Audio/Effects/Native/*Instr. Macros",      -- [33]
-  "Audio/Effects/Native/*Instr. Automation",  -- [34]
-  "Audio/Effects/Native/*Instr. MIDI Control",-- [35]
-  "Audio/Effects/Native/*Hydra",              -- [36]
-  "Audio/Effects/Native/*Meta Mixer",         -- [37]
-  "Audio/Effects/Native/*Formula",            -- [38]
-  "Audio/Effects/Native/*XY Pad",             -- [39]
-  "Audio/Effects/Native/*LFO",                -- [40]
-  "Audio/Effects/Native/*Key Tracker",        -- [41]
-  "Audio/Effects/Native/*Velocity Tracker",   -- [42]
-  "Audio/Effects/Native/*Signal Follower"     -- [43]
+  "Audio/Effects/Native/Reverb",              -- [3]
+  "Audio/Effects/Native/Convolver",           -- [4]
+  "Audio/Effects/Native/Bus Compressor",      -- [5]
+  "Audio/Effects/Native/Compressor",          -- [6]
+  "Audio/Effects/Native/Maximizer",           -- [7]
+  "Audio/Effects/Native/Analog Filter",       -- [8]
+  "Audio/Effects/Native/EQ 5",                -- [9]
+  "Audio/Effects/Native/EQ 10",               -- [10]
+  "Audio/Effects/Native/Mixer EQ",            -- [11]
+  "Audio/Effects/Native/Cabinet Simulator",    -- [12]
+  "Audio/Effects/Native/Exciter",             -- [13]
+  "Audio/Effects/Native/Stereo Expander",     -- [14]
+  "Audio/Effects/Native/DC Offset",           -- [15]
+  "Audio/Effects/Native/Gainer",              -- [16]
+  "Audio/Effects/Native/Repeater",            -- [17]
+  "Audio/Effects/Native/Doofer",              -- [18]
+  "Audio/Effects/Native/#Line Input",         -- [19]
+  "Audio/Effects/Native/#Send",               -- [20]
+  "Audio/Effects/Native/#Multiband Send",     -- [21]
+  "Audio/Effects/Native/#Sidechain",          -- [22]
+  "Audio/Effects/Native/*Instr. Macros",      -- [23]
+  "Audio/Effects/Native/*Instr. Automation",  -- [24]
+  "Audio/Effects/Native/*Instr. MIDI Control",-- [25]
+  "Audio/Effects/Native/*Hydra",              -- [26]
+  "Audio/Effects/Native/*Meta Mixer",         -- [27]
+  "Audio/Effects/Native/*Formula",            -- [28]
+  "Audio/Effects/Native/*XY Pad",             -- [29]
+  "Audio/Effects/Native/*LFO",                -- [30]
+  "Audio/Effects/Native/*Key Tracker",        -- [31]
+  "Audio/Effects/Native/*Velocity Tracker",   -- [32]
+  "Audio/Effects/Native/*Signal Follower"     -- [33]
 }
 
--- Check Renoise API version and add Notepad device if supported
+-- v2 devices are API 6.1 (Renoise 3.3) only
+if renoise.API_VERSION >= 6.1 then
+  local v2_devices = {
+    "Audio/Effects/Native/mpReverb 2",
+    "Audio/Effects/Native/Gate 2",
+    "Audio/Effects/Native/Digital Filter",
+    "Audio/Effects/Native/Comb Filter 2",
+    "Audio/Effects/Native/Chorus 2",
+    "Audio/Effects/Native/Flanger 2",
+    "Audio/Effects/Native/Phaser 2",
+    "Audio/Effects/Native/RingMod 2",
+    "Audio/Effects/Native/LofiMat 2",
+    "Audio/Effects/Native/Distortion 2",
+  }
+  for _, dev in ipairs(v2_devices) do
+    table.insert(target_devices, dev)
+  end
+end
+
+-- Notepad is API 6.2 (Renoise 3.5) only
 if renoise.API_VERSION >= 6.2 then
-  table.insert(target_devices, "Audio/Effects/Native/Notepad")  -- [44]
+  table.insert(target_devices, "Audio/Effects/Native/Notepad")
 end
 
 -- Function to find and control a device
