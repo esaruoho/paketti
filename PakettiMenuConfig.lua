@@ -53,11 +53,13 @@ renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Paketti Gadgets:Paketti S
 renoise.tool():add_menu_entry{ name = "Pattern Sequencer:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
 renoise.tool():add_menu_entry{ name = "Pattern Matrix:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
 renoise.tool():add_menu_entry{ name = "--Pattern Editor:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
+  renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
+  renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
+  renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
+  renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
+end
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}

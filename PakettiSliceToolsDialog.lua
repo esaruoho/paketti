@@ -204,7 +204,9 @@ function PakettiSliceToolsDialog()
 
     -- Section 10: Specialized Tools (launchers)
     collapsible_section(vb, "pakettiSliceToolsShowSpecialized", "Specialized Tools", function(col)
-      col:add_child(vb:button{text="Slice Step Sequencer...", width=fw, notifier=function() PakettiSliceStepCreateDialog() end})
+      if renoise.API_VERSION >= 6.2 then
+        col:add_child(vb:button{text="Slice Step Sequencer...", width=fw, notifier=function() PakettiSliceStepCreateDialog() end})
+      end
       col:add_child(vb:row{
         vb:button{text="Manual Slicer (Longest)", width=bw, notifier=function() paketti_manual_slicer() end},
         vb:button{text="Manual Slicer (Shortest)", width=bw, notifier=function() paketti_manual_slicer_shortest() end},

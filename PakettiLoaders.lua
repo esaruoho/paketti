@@ -468,11 +468,11 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
           if open_external and device.external_editor_available then
             device.external_editor_visible = true
           end
-          if open_param_editor then
+          if open_param_editor and renoise.API_VERSION >= 6.2 then
             PakettiCanvasExperimentsInit()
           end
         end
-        
+
         -- Show status message for successful load
         local instrument_name = s.selected_instrument.name
         local chain_name = chain.name
@@ -617,7 +617,7 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
         if open_external and device.external_editor_available then
           device.external_editor_visible = true
         end
-        if open_param_editor then
+        if open_param_editor and renoise.API_VERSION >= 6.2 then
           PakettiCanvasExperimentsInit()
         end
       end
@@ -977,7 +977,7 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
         if open_external and inserted_device.external_editor_available then
           inserted_device.external_editor_visible = true
         end
-        if open_param_editor then
+        if open_param_editor and renoise.API_VERSION >= 6.2 then
           PakettiCanvasExperimentsInit()
         end
       end
@@ -1137,7 +1137,7 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
       if open_external and inserted_device.external_editor_available then
         inserted_device.external_editor_visible = true
       end
-      if open_param_editor then
+      if open_param_editor and renoise.API_VERSION >= 6.2 then
         PakettiCanvasExperimentsInit()
       end
     end

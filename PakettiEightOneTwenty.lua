@@ -2424,22 +2424,27 @@ end
       reverse_sample(row_elements)
     end
   }
-  local eq30_button = vb:button{
-    text="EQ30",
-    notifier=function()
-      PakettiEightOneTwentyHighlightRow(row_index)
-      -- Ensure the correct track and instrument are selected for EQ30 to operate
-      local ti = track_indices and row_elements.track_popup and row_elements.track_popup.value and track_indices[row_elements.track_popup.value]
-      if ti then renoise.song().selected_track_index = ti end
-      local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
-      if ii then renoise.song().selected_instrument_index = ii end
-      if type(PakettiEQ30ShowAndFollow) == "function" then
-        PakettiEQ30ShowAndFollow()
-      else
-        PakettiEQ30LoadAndShowToggle()
+  local eq30_button
+  if renoise.API_VERSION >= 6.2 then
+    eq30_button = vb:button{
+      text="EQ30",
+      notifier=function()
+        PakettiEightOneTwentyHighlightRow(row_index)
+        -- Ensure the correct track and instrument are selected for EQ30 to operate
+        local ti = track_indices and row_elements.track_popup and row_elements.track_popup.value and track_indices[row_elements.track_popup.value]
+        if ti then renoise.song().selected_track_index = ti end
+        local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
+        if ii then renoise.song().selected_instrument_index = ii end
+        if type(PakettiEQ30ShowAndFollow) == "function" then
+          PakettiEQ30ShowAndFollow()
+        else
+          PakettiEQ30LoadAndShowToggle()
+        end
       end
-    end
-  }
+    }
+  else
+    eq30_button = vb:space{width=0,height=0}
+  end
   local steppers_button = vb:button{
     text="Steppers",
     notifier=function()
@@ -2484,20 +2489,25 @@ end
     end)(row_index)
   }
 
-  local hyper_edit_button = vb:button{ text="HyperEdit", notifier=(function(idx)
-    return function()
-      PakettiEightOneTwentyHighlightRow(row_index)
-      local ti = track_indices and row_elements.track_popup and row_elements.track_popup.value and track_indices[row_elements.track_popup.value]
-      if ti then renoise.song().selected_track_index = ti end
-      local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
-      if ii then renoise.song().selected_instrument_index = ii end
-      if type(PakettiHyperEditLoadAndShow) == "function" then
-        PakettiHyperEditLoadAndShow()
-      else
-        PakettiHyperEditInit()
+  local hyper_edit_button
+  if renoise.API_VERSION >= 6.2 then
+    hyper_edit_button = vb:button{ text="HyperEdit", notifier=(function(idx)
+      return function()
+        PakettiEightOneTwentyHighlightRow(row_index)
+        local ti = track_indices and row_elements.track_popup and row_elements.track_popup.value and track_indices[row_elements.track_popup.value]
+        if ti then renoise.song().selected_track_index = ti end
+        local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
+        if ii then renoise.song().selected_instrument_index = ii end
+        if type(PakettiHyperEditLoadAndShow) == "function" then
+          PakettiHyperEditLoadAndShow()
+        else
+          PakettiHyperEditInit()
+        end
       end
-    end
-  end)(row_index)}
+    end)(row_index)}
+  else
+    hyper_edit_button = vb:space{width=0,height=0}
+  end
 
   -- Define the Row Column Layout
   local solo_checkbox = vb:checkbox{value=false,width=30,notifier=function(value)
@@ -2688,7 +2698,7 @@ end
       vb:button{text="Automation", notifier = row_elements.show_automation},
       --      vb:button{text="Macros", notifier=row_elements.show_macros},
       reverse_button, eq30_button, steppers_button, gater_button, record_button, hyper_edit_button,
-    
+
   },
     },
   }
@@ -3718,35 +3728,37 @@ function pakettiEightSlotsByOneTwentyDialog()
   end
 
   local global_controls, global_groove_controls, global_buttons, global_step_buttons = create_global_controls()
-  -- Add 'Initialize EQ30' to the top control row
-  local init_eq30_button = vb:button{
-    text = "Initialize EQ30",
-    notifier = function()
-      local song = renoise.song()
-      if not song then
-        renoise.app():show_status("No song available")
-        return
-      end
-      local initialized_count = 0
-      local skipped_count = 0
-      local max_tracks = math.min(8, #song.tracks)
-      for i = 1, max_tracks do
-        local trk = song:track(i)
-        if trk and trk.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-          -- Detect existing EQ30 setup: 4 EQ10 devices named "EQ30 Device *"
-          local eq30_named_count = 0
-          for di = 1, #trk.devices do
-            local dev = trk.devices[di]
-            if dev and dev.device_path == "Audio/Effects/Native/EQ 10" then
-              local dn = tostring(dev.display_name or "")
-              if string.sub(dn, 1, 11) == "EQ30 Device" then
-                eq30_named_count = eq30_named_count + 1
+  -- Add 'Initialize EQ30' to the top control row (6.2+ only — PakettiEQ30 uses Canvas)
+  local init_eq30_button
+  if renoise.API_VERSION >= 6.2 then
+    init_eq30_button = vb:button{
+      text = "Initialize EQ30",
+      notifier = function()
+        local song = renoise.song()
+        if not song then
+          renoise.app():show_status("No song available")
+          return
+        end
+        local initialized_count = 0
+        local skipped_count = 0
+        local max_tracks = math.min(8, #song.tracks)
+        for i = 1, max_tracks do
+          local trk = song:track(i)
+          if trk and trk.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            -- Detect existing EQ30 setup: 4 EQ10 devices named "EQ30 Device *"
+            local eq30_named_count = 0
+            for di = 1, #trk.devices do
+              local dev = trk.devices[di]
+              if dev and dev.device_path == "Audio/Effects/Native/EQ 10" then
+                local dn = tostring(dev.display_name or "")
+                if string.sub(dn, 1, 11) == "EQ30 Device" then
+                  eq30_named_count = eq30_named_count + 1
+                end
               end
             end
-          end
-          if eq30_named_count >= 4 then
-            print(string.format("EQ30 already present on track %d ('%s') - skipping init", i, trk.name))
-            skipped_count = skipped_count + 1
+            if eq30_named_count >= 4 then
+              print(string.format("EQ30 already present on track %d ('%s') - skipping init", i, trk.name))
+              skipped_count = skipped_count + 1
           else
             song.selected_track_index = i
             if type(apply_eq30_to_track) == "function" then
@@ -3769,7 +3781,10 @@ function pakettiEightSlotsByOneTwentyDialog()
       end
       renoise.app():show_status(string.format("EQ30: initialized %d track(s), skipped %d existing", initialized_count, skipped_count))
     end
-  }
+    }
+  else
+    init_eq30_button = vb:space{width=0,height=0}
+  end
   -- Global Pitch Rotary (top-right)
   local global_pitch_rotary = vb:rotary{
     min = -120,
