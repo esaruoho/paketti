@@ -12,6 +12,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-22 - Fix: Gate v2 device chain preset loading behind API 6.1
+
+Device chain preset files (.xrdp/.xrnt) that contain v2 DSP devices are now properly gated on Renoise 3.2.
+
+**PakettiDeviceChains.lua:**
+- ClippyClip keybinding (`Global:Paketti:Load Device Chain ClippyClip`) now gated behind `if renoise.API_VERSION >= 6.1` — ClippyClip.xrdp contains Distortion2Device
+- All 3 Low - High Cut (NPC1) keybindings (steep/halfsteep/flat) gated behind `if renoise.API_VERSION >= 6.1` — these .xrdp files contain DigitalFilterDevice
+- Random device chain loader (`PakettiRandomDeviceChain`) now filters out 7 known v2-only preset files on API < 6.1 (ClippyClip variants, hipass_lopass_dcoffset, Low - High Cut variants)
+- Random device chain loader now pcall-wrapped for graceful error handling if a chain fails to load
+
 ### 2026-03-22 - Fix: v2 DSP device gating (API 6.1) and canvas internal gating for broader backwards compatibility
 
 All "v2" DSP devices (Chorus 2, Comb Filter 2, Digital Filter, Distortion 2, Flanger 2, Gate 2, LofiMat 2, mpReverb 2, Phaser 2, RingMod 2) — introduced in Renoise 3.3 (API 6.1) — are now fully gated so Renoise 3.2 users never see keybindings, menu entries, or MIDI mappings for devices that don't exist in their version.
