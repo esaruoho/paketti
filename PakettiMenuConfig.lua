@@ -1211,7 +1211,9 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Slice to Patt
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Steppers:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
+end
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Select Random Instrument (Sample,Plugin,MIDI)",invoke=function() pakettiSelectRandomInstrument() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Transpose Dialog...",invoke=function() PakettiInstrumentTransposeDialog() end}
@@ -1237,7 +1239,9 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AK
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (128,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(128, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (256,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(256, true) end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
+end
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Phrases:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Phrases:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
@@ -2064,7 +2068,9 @@ if preferences.pakettiMenuConfig.PatternEditor then
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
   
-  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Create Phrase",invoke=function() createPhrase() end}
+  if renoise.API_VERSION >= 6.2 then
+    renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Create Phrase",invoke=function() createPhrase() end}
+  end
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Create Identical Track",invoke=create_identical_track}
 
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Switch to Automation",invoke=function() showAutomation() end}
@@ -2526,7 +2532,9 @@ renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Octatrack Impo
 
 -- Main Menu File:Paketti Import other conversions
 renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Convert REX/RX2/ITI to PTI",invoke=universal_to_pti_convert}
-renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Image to Sample Converter...", invoke = function() PakettiImageToSampleStart() end}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Image to Sample Converter...", invoke = function() PakettiImageToSampleStart() end}
+end
 --[[renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Import .SF2 (Multitimbral)",
   invoke=function()
     local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import (multitimbral)")
@@ -2799,9 +2807,11 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Visib
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Apply Phrase Init Settings to Current Phrase",invoke=function() pakettiPhraseSettingsApplyPhraseSettings() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+  renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
+end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Double LPB",invoke=function() PakettiLPBDouble() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Halve LPB",invoke=function() PakettiLPBHalve() end}
@@ -3278,8 +3288,10 @@ if preferences.pakettiMenuConfig.PhraseEditor then
   debugPrint("Phrase Editor Menus Are Enabled")
 renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Apply Phrase Init Settings to Current Phrase",invoke=function() pakettiPhraseSettingsApplyPhraseSettings() end}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
+  renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+end
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
@@ -3291,15 +3303,15 @@ renoise.tool():add_menu_entry{name="--Phrase Mappings:Paketti:Load XRNI & Wipe P
 renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 
--- Phrase Grid
-renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
-renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
-renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
-renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
-renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
--- Phrase Follow Pattern Playback Hack requires API 6.2+
+-- Phrase Grid (entire context is 6.2-only)
 if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
+  renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
+  renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
+  renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
+  renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
+  renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+  -- Phrase Follow Pattern Playback Hack
   renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti:Phrase Follow Pattern Playback Hack",invoke=function() observe_phrase_playhead() end}
 end
 end

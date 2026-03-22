@@ -28,12 +28,16 @@ function RecordFollowToggle()
         -- Playing but not following - enable everything
         t.follow_player = true
         t.edit_mode = true
-        enable_phrase_follow()
+        if renoise.API_VERSION >= 6.2 and type(enable_phrase_follow) == "function" then
+          enable_phrase_follow()
+        end
       else
         -- Playing and following - disable everything
         t.follow_player = false
         t.edit_mode = false
-        disable_phrase_follow()
+        if renoise.API_VERSION >= 6.2 and type(disable_phrase_follow) == "function" then
+          disable_phrase_follow()
+        end
       end
     end
     return
