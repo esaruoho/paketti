@@ -55,6 +55,35 @@ function trueRandomSeed()
   math.random(); math.random(); math.random()
 end
 
+-- Backwards compatibility helpers for API 6.0 (Renoise 3.2) support.
+-- `short_name` was added in API 6.1 (Renoise 3.3). On older versions we
+-- fall back to `display_name` or `name`, which always exist.
+
+-- Safe accessor for AudioDevice.short_name (device instances on a track)
+function pakettiSafeDeviceShortName(device)
+  if renoise.API_VERSION >= 6.1 and device.short_name then
+    return device.short_name
+  elseif device.display_name and device.display_name ~= "" then
+    return device.display_name
+  else
+    return device.name or "Unknown"
+  end
+end
+
+-- Safe accessor for AudioDeviceInfo / PluginInfo .short_name (info structs
+-- from available_device_infos / available_plugin_infos)
+function pakettiSafeInfoShortName(info)
+  if renoise.API_VERSION >= 6.1 and info.short_name then
+    return info.short_name
+  elseif info.name and info.name ~= "" then
+    return info.name
+  elseif info.path then
+    return info.path:match("([^/\\]+)$") or "Unknown"
+  else
+    return "Unknown"
+  end
+end
+
 -- Global helper function to get proper temporary file path - fixes os.tmpname() issues
 function pakettiGetTempFilePath(extension)
     extension = extension or ".tmp"

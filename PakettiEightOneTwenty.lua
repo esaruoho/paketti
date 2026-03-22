@@ -668,7 +668,7 @@ function PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param
   -- List all devices on the new track for debugging
   print("8120 AUTOMATION DEBUG: *** SEARCHING DEVICES ON TRACK " .. new_track_index .. " ***")
   for di, device in ipairs(new_track.devices) do
-    print("  [" .. di .. "] NAME: '" .. (device.name or "nil") .. "' DISPLAY: '" .. (device.display_name or "nil") .. "' PATH: '" .. (device.device_path or "nil") .. "' SHORT: '" .. (device.short_name or "nil") .. "'")
+    print("  [" .. di .. "] NAME: '" .. (device.name or "nil") .. "' DISPLAY: '" .. (device.display_name or "nil") .. "' PATH: '" .. (device.device_path or "nil") .. "' SHORT: '" .. pakettiSafeDeviceShortName(device) .. "'")
   end
   print("8120 AUTOMATION DEBUG: Total devices found: " .. #new_track.devices)
   

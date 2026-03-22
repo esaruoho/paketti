@@ -12,6 +12,31 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-22 - Fix: Backwards compatibility Phase 2 — API 6.1 to 6.0 gating (Renoise 3.2 support)
+
+Comprehensive audit and fix for API 6.1+ features used in unconditionally-loaded modules, ensuring Paketti works on Renoise 3.2 (API 6.0) without crashes.
+
+**main.lua — New global helper functions:**
+- Added `pakettiSafeDeviceShortName(device)` — safe accessor for `AudioDevice.short_name` (added in API 6.1). Falls back to `display_name` or `name` on older Renoise versions.
+- Added `pakettiSafeInfoShortName(info)` — safe accessor for `AudioDeviceInfo`/`PluginInfo` `.short_name`. Falls back to `name` or extracts from path on older versions.
+
+**PakettiExperimental_BlockLoopFollow.lua — CRITICAL fix:**
+- `tool_finished_loading_observable` (API 6.1 only) now gated with `if renoise.API_VERSION >= 6.1`. Falls back to `app_new_document_observable` on older versions. This previously prevented the entire tool from loading on Renoise 3.2.
+
+**All `.short_name` accesses replaced across 8 files:**
+- **PakettiDeviceValues.lua** — `get_device_name()` helper now uses `pakettiSafeDeviceShortName()`
+- **PakettiEightOneTwenty.lua** — Debug print in automation migration now uses safe accessor
+- **PakettiAmigoInspect.lua** — 3 locations: plugin detection and debug output now safe
+- **PakettiLoadDevices.lua** — 5 locations: device list builder for all plugin types (VST/VST3/AU/LADSPA/DSSI)
+- **PakettiMidiPopulator.lua** — 3 locations: plugin dropdown builder, plugin matching, randomizer
+- **PakettiLoadPlugins.lua** — Plugin info short_name access in plugin list builder
+- **PakettiLoaders.lua** — Device info lister, plus defensive `tostring()` on `favorite_name`/`is_bridged`/`is_favorite`
+- **PakettiRequests.lua** — 4 API-level accesses: `FinderShower2()` device matching, `FinderShowerByPath()` error messages, User Preferences load/save debug output, User Preferences dialog device grouping
+
+**PakettiLoaders.lua — Device list fixes:**
+- Removed "Notepad" from the always-loaded `nativeDevices` table (it's API 6.2 only)
+- Added conditional `table.insert` for "Notepad" and "Splitter" behind `if renoise.API_VERSION >= 6.2`, so their menu entries only appear on Renoise 3.5+
+
 ### 2026-03-21 - Fix: Backwards compatibility gates for Canvas features (Phase 1)
 
 Fixed backwards compatibility for Renoise versions older than 3.5 (API < 6.2). Canvas-based features now properly check the API version before executing, preventing crashes on Renoise 3.2–3.4.x.

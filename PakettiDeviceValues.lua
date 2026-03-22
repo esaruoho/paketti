@@ -39,7 +39,7 @@ function get_device_name(device)
   if device.display_name and device.display_name ~= "" and device.display_name ~= device.name then
     return device.display_name
   else
-    return device.short_name
+    return pakettiSafeDeviceShortName(device)
   end
 end
 

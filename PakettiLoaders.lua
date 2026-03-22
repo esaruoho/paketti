@@ -1342,13 +1342,19 @@ end end}
 nativeDevices = {
   "Analog Filter", "Bus Compressor", "Cabinet Simulator", "Chorus", "Chorus 2",
   "Comb Filter 2", "Compressor", "Convolver", "DC Offset", "Delay", "Digital Filter",
-  "Distortion 2", "Doofer", "EQ 5", "EQ 10", "Exciter", "Flanger 2", "Gainer", 
-  "Gate 2", "LofiMat 2", "Maximizer", "Mixer EQ", "mpReverb 2", "Multitap", "Notepad",
+  "Distortion 2", "Doofer", "EQ 5", "EQ 10", "Exciter", "Flanger 2", "Gainer",
+  "Gate 2", "LofiMat 2", "Maximizer", "Mixer EQ", "mpReverb 2", "Multitap",
   "Phaser 2", "Repeater", "Reverb", "RingMod 2", "Stereo Expander", "#Line Input",
   "#Multiband Send", "#ReWire Input", "#Send", "*Formula", "*Hydra", "*Instr. Automation",
   "*Instr. Macros", "*Instr. MIDI Control", "*Key Tracker", "*LFO", "*Meta Mixer",
   "*Signal Follower", "*Velocity Tracker", "*XY Pad"
 }
+
+-- Notepad and Splitter are API 6.2 (Renoise 3.5) only — add them conditionally
+if renoise.API_VERSION >= 6.2 then
+  table.insert(nativeDevices, "Notepad")
+  table.insert(nativeDevices, "Splitter")
+end
 
 nativeDeprecatedDevices = {
   "Chorus", "Comb Filter", "Distortion", "Filter", "Filter 2", "Filter 3", 
@@ -3298,10 +3304,10 @@ local dialog
     device_infos_text = device_infos_text .. "Device Info " .. index .. ":\n"
     device_infos_text = device_infos_text .. "Name: " .. info.name .. "\n"
     device_infos_text = device_infos_text .. 'Path: "' .. info.path .. '"\n'
-    device_infos_text = device_infos_text .. "Short Name: " .. info.short_name .. "\n"
-    device_infos_text = device_infos_text .. "Is Favorite: " .. tostring(info.is_favorite) .. "\n"
-    device_infos_text = device_infos_text .. "Favorite Name: " .. info.favorite_name .. "\n"
-    device_infos_text = device_infos_text .. "Is Bridged: " .. tostring(info.is_bridged) .. "\n"
+    device_infos_text = device_infos_text .. "Short Name: " .. pakettiSafeInfoShortName(info) .. "\n"
+    device_infos_text = device_infos_text .. "Is Favorite: " .. tostring(info.is_favorite or false) .. "\n"
+    device_infos_text = device_infos_text .. "Favorite Name: " .. tostring(info.favorite_name or "") .. "\n"
+    device_infos_text = device_infos_text .. "Is Bridged: " .. tostring(info.is_bridged or false) .. "\n"
     device_infos_text = device_infos_text .. "\n"
   end
 

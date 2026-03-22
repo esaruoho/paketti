@@ -605,7 +605,7 @@ local function updatePluginList()
   for i, plugin_path in ipairs(available_plugins) do
     local plugin_info = available_plugin_infos[i]
     if plugin_info then
-      local short_name = plugin_info.short_name or "Unknown"
+      local short_name = pakettiSafeInfoShortName(plugin_info)
 
       -- Normalize the path for comparison (replace backslashes with forward slashes)
       local normalized_path = plugin_path:gsub("\\", "/")

@@ -6731,7 +6731,7 @@ end
 
 function FinderShower2(plugin)
 for i=2,#renoise.song().tracks[renoise.song().sequencer_track_count+1].devices do
-if renoise.song().tracks[renoise.song().sequencer_track_count+1].devices[i].short_name == plugin
+if pakettiSafeDeviceShortName(renoise.song().tracks[renoise.song().sequencer_track_count+1].devices[i]) == plugin
 then 
 if renoise.song().tracks[renoise.song().sequencer_track_count+1].devices[i].external_editor_visible then
 renoise.song().tracks[renoise.song().sequencer_track_count+1].devices[i].external_editor_visible = false
@@ -6833,21 +6833,22 @@ function FinderShowerByPath(device_path, location)
       local formatted_short_name = "<Unknown Device>"
       for _, device_info in ipairs(renoise.song().selected_track.available_device_infos) do
         if device_info.path == device_path then
+          local sname = pakettiSafeInfoShortName(device_info)
           -- Format the device short_name with its type prefix
           if device_info.path:find("/AU/") then
-            formatted_short_name = "AU: " .. device_info.short_name
+            formatted_short_name = "AU: " .. sname
           elseif device_info.path:find("/VST3/") then
-            formatted_short_name = "VST3: " .. device_info.short_name
+            formatted_short_name = "VST3: " .. sname
           elseif device_info.path:find("/VST/") then
-            formatted_short_name = "VST: " .. device_info.short_name
+            formatted_short_name = "VST: " .. sname
           elseif device_info.path:find("/Native/") then
-            formatted_short_name = "Native: " .. device_info.short_name
+            formatted_short_name = "Native: " .. sname
           elseif device_info.path:find("/LADSPA/") then
-            formatted_short_name = "LADSPA: " .. device_info.short_name
+            formatted_short_name = "LADSPA: " .. sname
           elseif device_info.path:find("/DSSI/") then
-            formatted_short_name = "DSSI: " .. device_info.short_name
+            formatted_short_name = "DSSI: " .. sname
           else
-            formatted_short_name = device_info.short_name  -- Default to just the short_name
+            formatted_short_name = sname
           end
           break
         end
@@ -6875,20 +6876,21 @@ function PakettiUserPreferencesLoadPreferences()
       local device_name = "<None>"
       for _, device_info in ipairs(renoise.song().selected_track.available_device_infos) do
         if device_info.path == device_pref then
-          device_name = device_info.short_name
+          local sname = pakettiSafeInfoShortName(device_info)
+          device_name = sname
           -- Add formatting if necessary (like AU, VST, etc.)
           if device_info.path:find("/AU/") then
-            device_name = "AU: " .. device_info.short_name
+            device_name = "AU: " .. sname
           elseif device_info.path:find("/VST3/") then
-            device_name = "VST3: " .. device_info.short_name
+            device_name = "VST3: " .. sname
           elseif device_info.path:find("/VST/") then
-            device_name = "VST: " .. device_info.short_name
+            device_name = "VST: " .. sname
           elseif device_info.path:find("/Native/") then
-            device_name = "Native: " .. device_info.short_name
+            device_name = "Native: " .. sname
           elseif device_info.path:find("/LADSPA/") then
-            device_name = "LADSPA: " .. device_info.short_name
+            device_name = "LADSPA: " .. sname
           elseif device_info.path:find("/DSSI/") then
-            device_name = "DSSI: " .. device_info.short_name
+            device_name = "DSSI: " .. sname
           end
           break
         end
@@ -6980,7 +6982,7 @@ function pakettiUserPreferencesShowerDialog()
   }
 
   for _, device_info in ipairs(renoise.song().selected_track.available_device_infos) do
-    local formatted_device = { short_name = device_info.short_name, path = device_info.path }
+    local formatted_device = { short_name = pakettiSafeInfoShortName(device_info), path = device_info.path }
 
     -- Categorize the device based on its type and add the formatted device to the respective table
     if device_info.path:find("/AU/") then

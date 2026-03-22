@@ -702,12 +702,13 @@ function pakettiAmigoIsAvailable()
   local device = inst.plugin_properties.plugin_device
   
   -- Debug output to help diagnose any issues
+  local device_sname = pakettiSafeDeviceShortName(device)
   print("Found plugin device:")
-  print("  Short name: " .. tostring(device.short_name))
+  print("  Short name: " .. tostring(device_sname))
   print("  Name: " .. tostring(device.name))
-  
+
   -- Most reliable check: short_name should be "Amigo" for both AU and VST3
-  if device.short_name ~= "Amigo" then
+  if device_sname ~= "Amigo" then
     renoise.app():show_status("There is no Amigo available in the current Instrument, doing nothing.")
     return false
   end
@@ -905,7 +906,7 @@ function pakettiAmigoOpenSamplePath()
     
     print("\nDevice info:")
     print("  Name:", device.name)
-    print("  Short name:", device.short_name)
+    print("  Short name:", pakettiSafeDeviceShortName(device))
     
     -- Get the raw plist data
     print("\nGetting raw plist data...")

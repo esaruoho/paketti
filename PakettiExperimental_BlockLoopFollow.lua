@@ -231,8 +231,10 @@ end
 -- INITIALIZATION ON TOOL LOAD
 --------------------------------------------------------------------------------
 
-renoise.tool().tool_finished_loading_observable:add_notifier(function()
-  -- Read preference and enable Block Loop Follow if it was set to on
+-- tool_finished_loading_observable was added in API 6.1 (Renoise 3.3).
+-- On older versions fall back to app_new_document_observable which fires
+-- when a song is ready (slightly later, but achieves the same goal).
+local function block_loop_follow_init()
   if preferences.PakettiBlockLoopFollowEnabled.value then
     PakettiBlockLoopFollowEnable()
   else
@@ -241,7 +243,13 @@ renoise.tool().tool_finished_loading_observable:add_notifier(function()
       renoise.tool().app_idle_observable:remove_notifier(block_loop_follow_idle_handler)
     end
   end
-end)
+end
+
+if renoise.API_VERSION >= 6.1 then
+  renoise.tool().tool_finished_loading_observable:add_notifier(block_loop_follow_init)
+else
+  renoise.tool().app_new_document_observable:add_notifier(block_loop_follow_init)
+end
 
 --------------------------------------------------------------------------------
 -- MENU ENTRIES

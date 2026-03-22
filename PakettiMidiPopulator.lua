@@ -223,12 +223,13 @@ local function initialize_variables()
   plugin_dropdown_items = {"<None>"}
   available_plugins = renoise.song().selected_instrument.plugin_properties.available_plugin_infos
   for _, plugin_info in ipairs(available_plugins) do
+    local sname = pakettiSafeInfoShortName(plugin_info)
     if plugin_info.path:find("/AU/") then
-      table.insert(plugin_dropdown_items, "AU: " .. plugin_info.short_name)
+      table.insert(plugin_dropdown_items, "AU: " .. sname)
     elseif plugin_info.path:find("/VST/") then
-      table.insert(plugin_dropdown_items, "VST: " .. plugin_info.short_name)
+      table.insert(plugin_dropdown_items, "VST: " .. sname)
     elseif plugin_info.path:find("/VST3/") then
-      table.insert(plugin_dropdown_items, "VST3: " .. plugin_info.short_name)
+      table.insert(plugin_dropdown_items, "VST3: " .. sname)
     end
   end
 
@@ -442,7 +443,7 @@ local function MidiInitChannelTrackInstrument(track_index)
   if plugin and plugin ~= "<None>" then
     local plugin_path
     for _, plugin_info in ipairs(available_plugins) do
-      if plugin_info.short_name == plugin:sub(5) then
+      if pakettiSafeInfoShortName(plugin_info) == plugin:sub(5) then
         plugin_path = plugin_info.path
         break
       end
@@ -610,7 +611,7 @@ local function randomize_plugin_selection(plugin_type)
   local plugins = {}
   for _, plugin_info in ipairs(available_plugins) do
     if plugin_info.path:find(plugin_type) then
-      table.insert(plugins, plugin_info.short_name)
+      table.insert(plugins, pakettiSafeInfoShortName(plugin_info))
     end
   end
 

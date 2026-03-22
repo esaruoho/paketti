@@ -308,7 +308,7 @@ function updateDeviceList()
 
   local pluginReadableNames = {}
   for i, plugin_info in ipairs(available_device_infos) do
-    pluginReadableNames[available_devices[i]] = plugin_info.short_name
+    pluginReadableNames[available_devices[i]] = pakettiSafeInfoShortName(plugin_info)
   end
 
   local device_list_content
@@ -654,25 +654,26 @@ function pakettiQuickLoadDialog()
     local device_name
     local normalized_path = device_path:gsub("\\", "/")
     
+    local info_sname = pakettiSafeInfoShortName(available_device_infos[i])
     if device_path:find("Native/") then
       device_name = "Native: " .. normalized_path:match("([^/]+)$")
       table.insert(native_devices, {name=device_name, path=normalized_path})
     elseif device_path:find("VST3") then
-      device_name = "VST3: " .. (available_device_infos[i].short_name or normalized_path:match("([^/]+)$"))
+      device_name = "VST3: " .. info_sname
       table.insert(vst3_devices, {name=device_name, path=normalized_path})
     elseif device_path:find("VST") and not device_path:find("VST3") then
-      device_name = "VST: " .. (available_device_infos[i].short_name or normalized_path:match("([^/]+)$"))
+      device_name = "VST: " .. info_sname
       table.insert(vst_devices, {name=device_name, path=normalized_path})
     elseif device_path:find("AU") then
-      device_name = "AU: " .. (available_device_infos[i].short_name or normalized_path:match("([^/]+)$"))
+      device_name = "AU: " .. info_sname
       table.insert(au_devices, {name=device_name, path=normalized_path})
     elseif device_path:find("LADSPA") then
-      local short_name = (available_device_infos[i].short_name or normalized_path:match("([^/]+)$")):match("([^:]+)$")
-      device_name = "LADSPA: " .. short_name
+      local sname = info_sname:match("([^:]+)$") or info_sname
+      device_name = "LADSPA: " .. sname
       table.insert(ladspa_devices, {name=device_name, path=normalized_path})
     elseif device_path:find("DSSI") then
-      local short_name = (available_device_infos[i].short_name or normalized_path:match("([^/]+)$")):match("([^:]+)$")
-      device_name = "DSSI: " .. short_name
+      local sname = info_sname:match("([^:]+)$") or info_sname
+      device_name = "DSSI: " .. sname
       table.insert(dssi_devices, {name=device_name, path=normalized_path})
     end
   end
