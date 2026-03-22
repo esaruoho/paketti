@@ -420,16 +420,14 @@ if should_register_hook("pakettiImportTXT") then
   end
 end
 
--- Image Import Hook (.png, .bmp, .jpg, .jpeg, .gif) - API 6.2+ only
-if renoise.API_VERSION >= 6.2 then
-  if should_register_hook("pakettiImportImage") then
-    if not renoise.tool():has_file_import_hook("sample", {"png", "bmp", "jpg", "jpeg", "gif"}) then
-      renoise.tool():add_file_import_hook({
-        category = "sample",
-        extensions = {"png", "bmp", "jpg", "jpeg", "gif"},
-        invoke = PakettiImageToSampleImportHook
-      })
-    end
+-- Image Import Hook (.png, .bmp, .jpg, .jpeg, .gif)
+if should_register_hook("pakettiImportImage") then
+  if not renoise.tool():has_file_import_hook("sample", {"png", "bmp", "jpg", "jpeg", "gif"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"png", "bmp", "jpg", "jpeg", "gif"},
+      invoke = PakettiImageToSampleImportHook
+    })
   end
 end
 

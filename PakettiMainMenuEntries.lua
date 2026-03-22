@@ -357,13 +357,16 @@ function create_button_list()
     {"Paketti Sample Adjust", "show_paketti_sample_adjust_dialog"},
   }
   
+  -- These dialogs work on all API versions (canvas elements gated internally)
+  table.insert(buttons, {"Sample Offset / Slice Step Sequencer", "PakettiSliceStepCreateDialog"})
+  table.insert(buttons, {"Image to Sample", "PakettiImageToSampleStart"})
+
   -- Add API 6.2+ specific dialogs only if supported
   if renoise.API_VERSION >= 6.2 then
     table.insert(buttons, {"V3.5 GUI Demo", "pakettiGUIDemo"})
     table.insert(buttons, {"Paketti Enhanced Phrase Generator", "pakettiPhraseGeneratorDialog"})
     table.insert(buttons, {"Chebyshev Polynomial Waveshaper", "show_chebyshev_waveshaper"})
     table.insert(buttons, {"Paketti Device Parameter Editor", "PakettiCanvasExperimentsInit"})
-    table.insert(buttons, {"Sample Offset / Slice Step Sequencer", "PakettiSliceStepCreateDialog"})
     table.insert(buttons, {"Paketti PCM Writer", "PCMWriterShowPcmDialog"})
     table.insert(buttons, {"Paketti HyperEdit", "PakettiHyperEditInit"})
     table.insert(buttons, {"EQ Dialog", "create_eq_dialog"})
@@ -371,7 +374,6 @@ function create_button_list()
     table.insert(buttons, {"Unused Note EQ64", "create_unused_note_eq64_dialog"})
     table.insert(buttons, {"Automation Stack", "PakettiAutomationStackShowDialog"})
     table.insert(buttons, {"Sample Effect Generator", "PakettiSampleEffectGeneratorCreateDialog"})
-    table.insert(buttons, {"Image to Sample", "PakettiImageToSampleShowDialog"})
     table.insert(buttons, {"Multitap", "PakettiMultitap_create_dialog"})
     table.insert(buttons, {"PlayerPro Canvas Main", "pakettiPlayerProShowCanvasMainDialog"})
     table.insert(buttons, {"Phrase Grid", "PakettiPhraseGridShowDialog"})
