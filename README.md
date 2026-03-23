@@ -17,7 +17,7 @@
 Paketti is free and open source. If it's become part of your workflow, here's how to keep development going:
 
 - **Patreon** (recurring): https://patreon.com/esaruoho
-- **Gumroad** (one-time): https://esaruoho.gumroad.com/l/paketti
+- **Gumroad** (one-time): https://lackluster.gumroad.com/l/paketti
 - **Ko-Fi**: https://ko-fi.com/esaruoho
 - **Buy Me a Coffee**: https://buymeacoffee.com/esaruoho
 - **GitHub Sponsors**: https://github.com/sponsors/esaruoho
