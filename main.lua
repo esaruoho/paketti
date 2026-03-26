@@ -84,6 +84,56 @@ function pakettiSafeInfoShortName(info)
   end
 end
 
+-- Backwards compatibility helpers for API 5 (Renoise 3.1.x) support.
+-- `beat_sync_mode` was added in API 6 (Renoise 3.2). On older versions
+-- we silently skip beat_sync_mode operations.
+
+-- Safe copy of beat_sync_mode from one sample to another
+function pakettiSafeCopyBeatSyncMode(dst_sample, src_sample)
+  if renoise.API_VERSION >= 6 then
+    dst_sample.beat_sync_mode = src_sample.beat_sync_mode
+  end
+end
+
+-- Safe setter for beat_sync_mode
+function pakettiSafeSetBeatSyncMode(sample, mode)
+  if renoise.API_VERSION >= 6 then
+    sample.beat_sync_mode = mode
+  end
+end
+
+-- Safe getter for beat_sync_mode (returns nil on API < 6)
+function pakettiSafeGetBeatSyncMode(sample)
+  if renoise.API_VERSION >= 6 then
+    return sample.beat_sync_mode
+  end
+  return nil
+end
+
+-- Automation point `.scaling` was added in API 6 (Renoise 3.2). On older
+-- versions we return 0 (no curve tension). Works for both Renoise userdata
+-- automation points and plain Lua tables with a `scaling` field.
+function pakettiSafeGetScaling(point)
+  if type(point) == "table" then
+    return point.scaling or 0
+  end
+  -- Renoise userdata automation point
+  if renoise.API_VERSION >= 6 then
+    return point.scaling or 0
+  end
+  return 0
+end
+
+-- Safe wrapper for automation:add_point_at() — on API 5 only passes
+-- (time, value) since the scaling parameter doesn't exist.
+function pakettiSafeAddPointAt(automation, time, value, scaling)
+  if renoise.API_VERSION >= 6 then
+    automation:add_point_at(time, value, scaling or 0)
+  else
+    automation:add_point_at(time, value)
+  end
+end
+
 -- Global helper function to get proper temporary file path - fixes os.tmpname() issues
 function pakettiGetTempFilePath(extension)
     extension = extension or ".tmp"

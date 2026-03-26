@@ -839,7 +839,7 @@ end
 -- Function to double LFO envelope resolution by duplicating each point
 function pakettiDoubleLFOResolution()
   local device = renoise.song().selected_device
-  
+
   -- Check if LFO device is selected
   if not device or not is_lfo_device(device) then
     renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
@@ -886,7 +886,7 @@ function pakettiDoubleLFOResolution()
       if step_num < current_length then
         point_count = point_count + 1
         table.insert(points, point)
-        print(string.format("Included point %d: step=%d, value=%g, scaling=%g", point_count, point.step, point.value, point.scaling))
+        print(string.format("Included point %d: step=%d, value=%g, scaling=%g", point_count, point.step, point.value, pakettiSafeGetScaling(point)))
       else
         print(string.format("Skipped point beyond length: step=%d (length=%d)", step_num, current_length))
       end
@@ -895,13 +895,13 @@ function pakettiDoubleLFOResolution()
     end
   end
   print("=== END Extracting Points ===")
-  
+
   if point_count == 0 then
     renoise.app():show_status("PakettiXMLizer: No envelope points found in LFO")
     print("PakettiXMLizer: Error - No envelope points found")
     return
   end
-  
+
   -- Check if doubling would exceed limits
   local new_point_count = point_count * 2
   if new_point_count > 1024 then
@@ -931,16 +931,16 @@ function pakettiDoubleLFOResolution()
     local dup1 = {
       step = new_step_1,
       value = point.value,
-      scaling = point.scaling
+      scaling = pakettiSafeGetScaling(point)
     }
     table.insert(doubled_points, dup1)
     print(string.format("Added duplicate 1 of point at step %d: new_step=%d, value=%g", point.step, dup1.step, dup1.value))
-    
+
     -- Add second duplicate
     local dup2 = {
       step = new_step_2,
       value = point.value,
-      scaling = point.scaling
+      scaling = pakettiSafeGetScaling(point)
     }
     table.insert(doubled_points, dup2)
     print(string.format("Added duplicate 2 of point at step %d: new_step=%d, value=%g", point.step, dup2.step, dup2.value))
@@ -951,8 +951,8 @@ function pakettiDoubleLFOResolution()
   print("=== DEBUG: Building New XML Points ===")
   local new_points_xml = ""
   for i, point in ipairs(doubled_points) do
-    local point_xml = string.format("        <Point>%d,%g,%g</Point>\n", 
-      point.step, point.value, point.scaling)
+    local point_xml = string.format("        <Point>%d,%g,%g</Point>\n",
+      point.step, point.value, pakettiSafeGetScaling(point))
     new_points_xml = new_points_xml .. point_xml
     print(string.format("Point %d XML: %s", i, point_xml:gsub("\n", "")))
   end
@@ -1031,7 +1031,7 @@ function pakettiHalveLFOResolution()
       if step_num < current_length then
         point_count = point_count + 1
         table.insert(points, point)
-        print(string.format("Included point %d: step=%d, value=%g, scaling=%g", point_count, point.step, point.value, point.scaling))
+        print(string.format("Included point %d: step=%d, value=%g, scaling=%g", point_count, point.step, point.value, pakettiSafeGetScaling(point)))
       else
         print(string.format("Skipped point beyond length: step=%d (length=%d)", step_num, current_length))
       end
@@ -1040,13 +1040,13 @@ function pakettiHalveLFOResolution()
     end
   end
   print("=== END Extracting Points ===")
-  
+
   if point_count == 0 then
     renoise.app():show_status("PakettiXMLizer: No envelope points found in LFO")
     print("PakettiXMLizer: Error - No envelope points found")
     return
   end
-  
+
   if point_count < 2 then
     renoise.app():show_status("PakettiXMLizer: Need at least 2 points to halve resolution")
     print("PakettiXMLizer: Error - Need at least 2 points to halve")
@@ -1065,7 +1065,7 @@ function pakettiHalveLFOResolution()
       local halved_point = {
         step = point.step / 2,  -- Halve the step position
         value = point.value,
-        scaling = point.scaling
+        scaling = pakettiSafeGetScaling(point)
       }
       table.insert(halved_points, halved_point)
       print(string.format("Kept point at original step %d → new step %d, value=%g", point.step, halved_point.step, halved_point.value))
@@ -1087,8 +1087,8 @@ function pakettiHalveLFOResolution()
   print("=== DEBUG: Building New XML Points ===")
   local new_points_xml = ""
   for i, point in ipairs(halved_points) do
-    local point_xml = string.format("        <Point>%d,%g,%g</Point>\n", 
-      point.step, point.value, point.scaling)
+    local point_xml = string.format("        <Point>%d,%g,%g</Point>\n",
+      point.step, point.value, pakettiSafeGetScaling(point))
     new_points_xml = new_points_xml .. point_xml
     print(string.format("Point %d XML: %s", i, point_xml:gsub("\n", "")))
   end
@@ -1470,7 +1470,7 @@ function pakettiScaleLFOEnvelope(scale_factor)
   -- Rebuild points XML
   local new_points_xml = ""
   for _, point in ipairs(points) do
-    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, pakettiSafeGetScaling(point))
   end
   
   -- Replace points in XML
@@ -1519,14 +1519,14 @@ function pakettiFlipLFOEnvelope()
     table.insert(flipped_points, {
       step = points[i].step,
       value = points[#points - i + 1].value,
-      scaling = points[i].scaling
+      scaling = pakettiSafeGetScaling(points[i])
     })
   end
   
   -- Rebuild points XML
   local new_points_xml = ""
   for _, point in ipairs(flipped_points) do
-    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, pakettiSafeGetScaling(point))
   end
   
   -- Replace points in XML
@@ -1572,7 +1572,7 @@ function pakettiInvertLFOEnvelope()
   -- Rebuild points XML
   local new_points_xml = ""
   for _, point in ipairs(points) do
-    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, pakettiSafeGetScaling(point))
   end
   
   -- Replace points in XML
@@ -1660,7 +1660,7 @@ function pakettiSlapbackLFOEnvelope()
   -- Rebuild points XML
   local new_points_xml = ""
   for _, point in ipairs(slapback_points) do
-    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, pakettiSafeGetScaling(point))
   end
   
   print("=== SLAPBACK DEBUG END ===")
@@ -1709,7 +1709,7 @@ function pakettiCenterLFOEnvelope()
   -- Rebuild points XML
   local new_points_xml = ""
   for _, point in ipairs(points) do
-    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, pakettiSafeGetScaling(point))
   end
   
   -- Replace points in XML
@@ -1755,7 +1755,7 @@ function pakettiMinLFOEnvelope()
   -- Rebuild points XML
   local new_points_xml = ""
   for _, point in ipairs(points) do
-    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, pakettiSafeGetScaling(point))
   end
   
   -- Replace points in XML
@@ -1801,7 +1801,7 @@ function pakettiMaxLFOEnvelope()
   -- Rebuild points XML
   local new_points_xml = ""
   for _, point in ipairs(points) do
-    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, pakettiSafeGetScaling(point))
   end
   
   -- Replace points in XML
@@ -1850,7 +1850,7 @@ function pakettiRandomizeLFOEnvelope()
   -- Rebuild points XML
   local new_points_xml = ""
   for _, point in ipairs(points) do
-    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, pakettiSafeGetScaling(point))
   end
   
   -- Replace points in XML
@@ -1903,7 +1903,7 @@ function pakettiHumanizeLFOEnvelope()
   -- Rebuild points XML
   local new_points_xml = ""
   for _, point in ipairs(points) do
-    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, pakettiSafeGetScaling(point))
   end
   
   -- Replace points in XML
@@ -1992,7 +1992,7 @@ function pakettiWriteCurveToLFOEnvelope(curveType, numPoints, startValue, endVal
   -- Build points XML
   local new_points_xml = ""
   for _, point in ipairs(points) do
-    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, pakettiSafeGetScaling(point))
   end
   
   -- Get existing XML or create new one

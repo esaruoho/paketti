@@ -1383,17 +1383,17 @@ function PakettiFillStepperMirror(deviceName)
   -- Read current points and mirror all values
   local current_points = {}
   for i = 1, #device.points do
-    print(string.format("Original point %d: time=%s, value=%s, scaling=%s", 
-          i, tostring(device.points[i].time), tostring(device.points[i].value), tostring(device.points[i].scaling)))
+    print(string.format("Original point %d: time=%s, value=%s, scaling=%s",
+          i, tostring(device.points[i].time), tostring(device.points[i].value), tostring(pakettiSafeGetScaling(device.points[i]))))
     table.insert(current_points, {
       time = device.points[i].time,
       value = device.points[i].value,
-      scaling = device.points[i].scaling
+      scaling = pakettiSafeGetScaling(device.points[i])
     })
   end
-  
+
   print("Copied points count:", #current_points)
-  
+
   -- Clear and rebuild with mirrored values
   device:clear_points()
   local points_data = {}
@@ -1401,12 +1401,12 @@ function PakettiFillStepperMirror(deviceName)
   for i = 1, #current_points do
     local mirrored_value = 1.0 - current_points[i].value
     local new_point = {
-      scaling = current_points[i].scaling,
+      scaling = pakettiSafeGetScaling(current_points[i]),
       time = current_points[i].time,
       value = mirrored_value
     }
-    print(string.format("Mirror point %d: time=%s, value=%s (was %s), scaling=%s", 
-          i, tostring(new_point.time), tostring(new_point.value), tostring(current_points[i].value), tostring(new_point.scaling)))
+    print(string.format("Mirror point %d: time=%s, value=%s (was %s), scaling=%s",
+          i, tostring(new_point.time), tostring(new_point.value), tostring(current_points[i].value), tostring(pakettiSafeGetScaling(new_point))))
     
     -- Validate time before adding
     if new_point.time and new_point.time >= 1 and new_point.time <= device.length then
@@ -1448,17 +1448,17 @@ function PakettiFillStepperFlip(deviceName)
   -- Read current points and flip their order
   local current_points = {}
   for i = 1, #device.points do
-    print(string.format("Original point %d: time=%s, value=%s, scaling=%s", 
-          i, tostring(device.points[i].time), tostring(device.points[i].value), tostring(device.points[i].scaling)))
+    print(string.format("Original point %d: time=%s, value=%s, scaling=%s",
+          i, tostring(device.points[i].time), tostring(device.points[i].value), tostring(pakettiSafeGetScaling(device.points[i]))))
     table.insert(current_points, {
       time = device.points[i].time,
       value = device.points[i].value,
-      scaling = device.points[i].scaling
+      scaling = pakettiSafeGetScaling(device.points[i])
     })
   end
-  
+
   print("Copied points count:", #current_points)
-  
+
   -- Clear and rebuild with flipped values
   device:clear_points()
   local points_data = {}
@@ -1467,13 +1467,13 @@ function PakettiFillStepperFlip(deviceName)
     -- Keep time sequential, but use values in reverse order
     local flipped_value = current_points[#current_points - i + 1].value
     local new_point = {
-      scaling = current_points[i].scaling,
+      scaling = pakettiSafeGetScaling(current_points[i]),
       time = current_points[i].time,
       value = flipped_value
     }
-    print(string.format("Flip point %d: time=%s, value=%s (was point %d value %s), scaling=%s", 
-          i, tostring(new_point.time), tostring(new_point.value), 
-          #current_points - i + 1, tostring(current_points[#current_points - i + 1].value), tostring(new_point.scaling)))
+    print(string.format("Flip point %d: time=%s, value=%s (was point %d value %s), scaling=%s",
+          i, tostring(new_point.time), tostring(new_point.value),
+          #current_points - i + 1, tostring(current_points[#current_points - i + 1].value), tostring(pakettiSafeGetScaling(new_point))))
     
     -- Validate time before adding
     if new_point.time and new_point.time >= 1 and new_point.time <= device.length then
@@ -1521,11 +1521,11 @@ function PakettiFillStepperHumanize(deviceName)
       table.insert(existing_points, {
         time = point.time,
         value = point.value,
-        scaling = point.scaling
+        scaling = pakettiSafeGetScaling(point)
       })
     end
   end
-  
+
   if #existing_points == 0 then
     renoise.app():show_status(string.format("No valid points to humanize in %s.", deviceName))
     return
@@ -1541,7 +1541,7 @@ function PakettiFillStepperHumanize(deviceName)
     local humanized_value = math.max(0, math.min(1, original_value + variation))
     
     table.insert(points_data, {
-      scaling = point.scaling,
+      scaling = pakettiSafeGetScaling(point),
       time = point.time,  -- Preserve original time position
       value = humanized_value
     })
@@ -1718,11 +1718,11 @@ function PakettiSmoothStepperValues(deviceName)
       table.insert(existing_points, {
         time = point.time,
         value = point.value,
-        scaling = point.scaling
+        scaling = pakettiSafeGetScaling(point)
       })
     end
   end
-  
+
   if #existing_points == 0 then
     renoise.app():show_status(string.format("No valid points to smooth in %s.", deviceName))
     return
@@ -1745,7 +1745,7 @@ function PakettiSmoothStepperValues(deviceName)
     local smoothed_value = (prev_value + current_value + next_value) / 3
     
     table.insert(points_data, {
-      scaling = point.scaling,
+      scaling = pakettiSafeGetScaling(point),
       time = point.time,  -- Preserve original time position
       value = math.max(0, math.min(1, smoothed_value))
     })
@@ -1785,11 +1785,11 @@ function PakettiScaleStepperValues(deviceName, scale_factor)
       table.insert(existing_points, {
         time = point.time,
         value = point.value,
-        scaling = point.scaling
+        scaling = pakettiSafeGetScaling(point)
       })
     end
   end
-  
+
   if #existing_points == 0 then
     renoise.app():show_status(string.format("No valid points to scale in %s.", deviceName))
     return
@@ -1806,7 +1806,7 @@ function PakettiScaleStepperValues(deviceName, scale_factor)
     scaled_value = math.max(0, math.min(1, scaled_value))
     
     table.insert(points_data, {
-      scaling = point.scaling,
+      scaling = pakettiSafeGetScaling(point),
       time = point.time,  -- Already validated as valid
       value = scaled_value
     })
@@ -1942,10 +1942,10 @@ function PakettiOffsetStepperValues(deviceName, offset_amount)
     table.insert(existing_points, {
       time = point.time,
       value = point.value,
-      scaling = point.scaling
+      scaling = pakettiSafeGetScaling(point)
     })
   end
-  
+
   -- Clear and recreate with offset values - only valid time positions
   device:clear_points()
   local points_data = {}
@@ -1955,7 +1955,7 @@ function PakettiOffsetStepperValues(deviceName, offset_amount)
     local offset_value = math.max(0, math.min(1, original_value + offset_amount))
     
     table.insert(points_data, {
-      scaling = point.scaling,
+      scaling = pakettiSafeGetScaling(point),
       time = point.time,  -- Already validated as valid
       value = offset_value
     })
@@ -2000,7 +2000,7 @@ function PakettiCopyStepperData()
     table.insert(copied_stepper_data, {
       time = point.time,
       value = point.value,
-      scaling = point.scaling
+      scaling = pakettiSafeGetScaling(point)
     })
   end
   
@@ -2050,7 +2050,7 @@ function PakettiPasteStepperData()
     local copied_point = copied_stepper_data[i]
     if copied_point then
       table.insert(points_data, {
-        scaling = copied_point.scaling,
+        scaling = pakettiSafeGetScaling(copied_point),
         time = i,  -- Use sequential time values starting from 1
         value = copied_point.value
       })

@@ -3041,7 +3041,7 @@ function convert_all_samples_to_mono(mode)
           fine_tune = sample.fine_tune,
           beat_sync_enabled = sample.beat_sync_enabled,
           beat_sync_lines = sample.beat_sync_lines,
-          beat_sync_mode = sample.beat_sync_mode,
+          beat_sync_mode = pakettiSafeGetBeatSyncMode(sample),
           oneshot = sample.oneshot,
           loop_release = sample.loop_release,
           loop_mode = sample.loop_mode,
@@ -3104,7 +3104,7 @@ function convert_all_samples_to_mono(mode)
         new_sample.fine_tune = properties.fine_tune
         new_sample.beat_sync_enabled = properties.beat_sync_enabled
         new_sample.beat_sync_lines = properties.beat_sync_lines
-        new_sample.beat_sync_mode = properties.beat_sync_mode
+        pakettiSafeSetBeatSyncMode(new_sample, properties.beat_sync_mode)
         new_sample.oneshot = properties.oneshot
         new_sample.loop_release = properties.loop_release
         new_sample.loop_mode = properties.loop_mode
@@ -3228,8 +3228,8 @@ function convert_bit_depth(target_bits)
             -- Beat sync properties
             beat_sync_enabled = sample.beat_sync_enabled,
             beat_sync_lines = sample.beat_sync_lines,
-            beat_sync_mode = sample.beat_sync_mode,
-            
+            beat_sync_mode = pakettiSafeGetBeatSyncMode(sample),
+
             -- Loop and playback properties
             oneshot = sample.oneshot,
             loop_release = sample.loop_release,
@@ -3347,8 +3347,8 @@ function convert_bit_depth(target_bits)
         
         new_sample.beat_sync_enabled = properties.beat_sync_enabled
         new_sample.beat_sync_lines = properties.beat_sync_lines
-        new_sample.beat_sync_mode = properties.beat_sync_mode
-        
+        pakettiSafeSetBeatSyncMode(new_sample, properties.beat_sync_mode)
+
         new_sample.oneshot = properties.oneshot
         new_sample.loop_release = properties.loop_release
         new_sample.loop_mode = properties.loop_mode
@@ -3477,7 +3477,7 @@ function convert_all_samples_to_bit_depth(target_bits)
                     fine_tune = sample.fine_tune,
                     beat_sync_enabled = sample.beat_sync_enabled,
                     beat_sync_lines = sample.beat_sync_lines,
-                    beat_sync_mode = sample.beat_sync_mode,
+                    beat_sync_mode = pakettiSafeGetBeatSyncMode(sample),
                     oneshot = sample.oneshot,
                     loop_release = sample.loop_release,
                     loop_mode = sample.loop_mode,
@@ -3591,7 +3591,7 @@ function convert_all_samples_to_bit_depth(target_bits)
                 new_sample.fine_tune = properties.fine_tune
                 new_sample.beat_sync_enabled = properties.beat_sync_enabled
                 new_sample.beat_sync_lines = properties.beat_sync_lines
-                new_sample.beat_sync_mode = properties.beat_sync_mode
+                pakettiSafeSetBeatSyncMode(new_sample, properties.beat_sync_mode)
                 new_sample.oneshot = properties.oneshot
                 new_sample.loop_release = properties.loop_release
                 new_sample.loop_mode = properties.loop_mode
@@ -3913,7 +3913,7 @@ function PakettiSampleTruncater(multiplier)
     fine_tune = sample.fine_tune,
     beat_sync_enabled = sample.beat_sync_enabled,
     beat_sync_lines = sample.beat_sync_lines,
-    beat_sync_mode = sample.beat_sync_mode,
+    beat_sync_mode = pakettiSafeGetBeatSyncMode(sample),
     oneshot = sample.oneshot,
     loop_release = sample.loop_release,
     loop_mode = sample.loop_mode,
@@ -4040,7 +4040,7 @@ function PakettiSampleTruncater(multiplier)
     new_sample.fine_tune = properties.fine_tune
     new_sample.beat_sync_enabled = properties.beat_sync_enabled
     new_sample.beat_sync_lines = properties.beat_sync_lines
-    new_sample.beat_sync_mode = properties.beat_sync_mode
+    pakettiSafeSetBeatSyncMode(new_sample, properties.beat_sync_mode)
     new_sample.oneshot = properties.oneshot
     new_sample.loop_release = properties.loop_release
     new_sample.loop_mode = properties.loop_mode

@@ -159,7 +159,7 @@ function WipeSliceAndWrite()
           if beat_sync_mode < 1 or beat_sync_mode > 3 then
               sample.beat_sync_enabled = false  -- Disable beat sync for invalid mode
           else
-              sample.beat_sync_mode = beat_sync_mode
+              pakettiSafeSetBeatSyncMode(sample, beat_sync_mode)
 
               -- Only set beat_sync_lines if beatsynclines is valid
               if beatsync_lines / slice_count < 1 then 
@@ -1083,8 +1083,8 @@ function pakettiBPMBasedSlice(sample_bpm, beats_per_slice)
             if beat_sync_mode < 1 or beat_sync_mode > 3 then
                 sample_obj.beat_sync_enabled = false  -- Disable beat sync for invalid mode
             else
-                sample_obj.beat_sync_mode = beat_sync_mode
-                
+                pakettiSafeSetBeatSyncMode(sample_obj, beat_sync_mode)
+
                 -- Calculate beat sync lines for this slice
                 local slice_beatsync_lines = beatsync_lines / num_slices
                 if slice_beatsync_lines < 1 then 
@@ -1949,7 +1949,7 @@ function pakettiRealtimeSliceStart()
   realtime_slice_state.sample_index = song.selected_sample_index
   realtime_slice_state.sample_rate = sample.sample_buffer.sample_rate
   realtime_slice_state.beat_sync_enabled = sample.beat_sync_enabled
-  realtime_slice_state.beat_sync_mode = sample.beat_sync_mode
+  realtime_slice_state.beat_sync_mode = pakettiSafeGetBeatSyncMode(sample)
   realtime_slice_state.beat_sync_lines = sample.beat_sync_lines or 1
   
   -- Always play at C-4 (note 48) for normal pitched playback

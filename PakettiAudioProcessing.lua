@@ -240,7 +240,7 @@ local function copy_sample_settings(from_sample, to_sample)
   to_sample.fine_tune = from_sample.fine_tune
   to_sample.beat_sync_enabled = from_sample.beat_sync_enabled
   to_sample.beat_sync_lines = from_sample.beat_sync_lines
-  to_sample.beat_sync_mode = from_sample.beat_sync_mode
+  pakettiSafeCopyBeatSyncMode(to_sample, from_sample)
   to_sample.oneshot = from_sample.oneshot
   to_sample.loop_release = from_sample.loop_release
   to_sample.loop_mode = from_sample.loop_mode
@@ -1297,7 +1297,7 @@ function PakettiStripSilenceCoroutine()
   new_sample.fine_tune = sample.fine_tune
   new_sample.beat_sync_enabled = sample.beat_sync_enabled
   new_sample.beat_sync_lines = sample.beat_sync_lines
-  new_sample.beat_sync_mode = sample.beat_sync_mode
+  pakettiSafeCopyBeatSyncMode(new_sample, sample)
   new_sample.oneshot = sample.oneshot
   new_sample.loop_release = sample.loop_release
   new_sample.loop_mode = sample.loop_mode

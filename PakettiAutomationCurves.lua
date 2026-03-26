@@ -851,7 +851,7 @@ function PakettiAutomationClipboardCopy()
       table.insert(clipboard_points, {
         relative_time = relative_time,
         value = point.value,
-        scaling = point.scaling or 0
+        scaling = pakettiSafeGetScaling(point)
       })
     end
   end
@@ -1010,11 +1010,11 @@ function PakettiAutomationClipboardPaste()
     
     -- Only add if within target range
     if new_time >= start_line and new_time < end_line then
-      automation:add_point_at(new_time, point.value, point.scaling)
+      pakettiSafeAddPointAt(automation, new_time, point.value, pakettiSafeGetScaling(point))
       points_added = points_added + 1
     end
   end
-  
+
   local mode_str = use_stretch and " (stretched)" or ""
   renoise.app():show_status("Pasted " .. points_added .. " points to " .. param.name .. mode_str)
   print("PakettiAutomationClipboard: Pasted " .. points_added .. " points" .. mode_str)
@@ -1090,12 +1090,12 @@ function PakettiAutomationClipboardFloodFill()
       local new_time = start_line + offset + point.relative_time
       -- Only add if within target range
       if new_time >= start_line and new_time < end_line then
-        automation:add_point_at(new_time, point.value, point.scaling)
+        pakettiSafeAddPointAt(automation, new_time, point.value, pakettiSafeGetScaling(point))
         points_added = points_added + 1
       end
     end
   end
-  
+
   renoise.app():show_status("Flood-filled " .. param.name .. " with " .. repetitions .. " repetitions (" .. points_added .. " points)")
   print("PakettiAutomationClipboard: Flood-filled with " .. repetitions .. " reps, " .. points_added .. " points")
   

@@ -7,16 +7,59 @@ on:
       - master
 
 jobs:
-  package-and-release:
+  # ── Job 1: Create a shared release (tag + GitHub release) ──────────
+  create-release:
     runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.gen.outputs.tag_name }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      # 1. Checkout the repository (no submodules)
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
           submodules: false
 
-      # 2. Fail if any .lua file contains forbidden tokens
+      - name: Generate Tag Name
+        id: gen
+        run: |
+          TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
+          echo "tag_name=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Create and Push Tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag "${{ steps.gen.outputs.tag_name }}"
+          git push origin "${{ steps.gen.outputs.tag_name }}"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.gen.outputs.tag_name }}
+          release_name: Release ${{ steps.gen.outputs.tag_name }}
+          body: |
+            **Renoise 3.2 – 3.5+** → download the standard .xrnx
+            **Renoise 3.1.x** → download the API5 .xrnx
+
+            Support Paketti development: https://github.com/sponsors/esaruoho
+          draft: false
+          prerelease: false
+
+  # ── Job 2: Standard package (API 6 – Renoise 3.2+) ────────────────
+  package-api6:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: false
+
       - name: Check Lua for forbidden tokens
         run: |
           if grep -R -n -E 'goto continue|::continue::' --include '*.lua' .; then
@@ -24,18 +67,13 @@ jobs:
             exit 1
           fi
 
-      # 3. Remove the definitions folder if present
       - name: Remove definitions folder
         run: rm -rf org.lackluster.Paketti.xrnx/definitions
 
-      # 4. Generate a timestamp-based tag and filename
-      - name: Generate Tag and Filename
+      - name: Set filename
         run: |
-          TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
-          echo "TAG_NAME=$TIMESTAMP" >> $GITHUB_ENV
-          echo "FILENAME=org.lackluster.Paketti_V3.54_${TIMESTAMP}.xrnx" >> $GITHUB_ENV
+          echo "FILENAME=org.lackluster.Paketti_V3.54_${{ needs.create-release.outputs.tag_name }}.xrnx" >> $GITHUB_ENV
 
-      # 5. Zip the package using the dynamic filename
       - name: Zip XRNX Package
         run: |
           zip -r "${{ env.FILENAME }}" . \
@@ -50,36 +88,75 @@ jobs:
             "paketti.sublime-workspace" \
             "paketti.sublime-project"
 
-      # 6. Create and push the Git tag
-      - name: Create and Push Tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag "$TAG_NAME"
-          git push origin "$TAG_NAME"
-
-      # 7. Create a GitHub release for that tag
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.TAG_NAME }}
-          release_name: Release ${{ env.TAG_NAME }}
-          body: "Support Paketti development: https://github.com/sponsors/esaruoho"
-          draft: false
-          prerelease: false
-
-      # 8. Upload the dynamically named .xrnx asset
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ env.FILENAME }}
+          asset_name: ${{ env.FILENAME }}
+          asset_content_type: application/octet-stream
+
+  # ── Job 3: Legacy package (API 5 – Renoise 3.1.x) ─────────────────
+  package-api5:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: false
+
+      # Comment out modules that require platform binaries or API 6+ boot-time calls
+      - name: Comment out incompatible modules
+        run: |
+          sed -i '/require\s*["'\'']PakettieSpeak["'\'']/s/^/-- /' main.lua
+          sed -i '/require\s*["'\'']PakettiBeatDetect["'\'']/s/^/-- /' main.lua
+
+      # Comment out function that references API 6+ features at load time
+      - name: Comment out loadPaleGreenTheme function
+        run: |
+          sed -i '/function update_loadPaleGreenTheme_preferences()/,/^end/s/^/-- /' Paketti0G01_Loader.lua
+
+      # Remove style attributes (style="strong", style="disabled", etc.)
+      # These don't exist on API 5 and cause errors
+      - name: Remove style attributes from .lua files
+        run: |
+          find . -type f -name "*.lua" -exec sed -i 's/style\s*=\s*"[^"]*"//g' {} +
+
+      # Change manifest API version from 6 to 5
+      - name: Set API version to 5
+        run: |
+          sed -i 's/<ApiVersion>6<\/ApiVersion>/<ApiVersion>5<\/ApiVersion>/g' manifest.xml
+
+      - name: Set filename
+        run: |
+          echo "FILENAME=org.lackluster.Paketti_V3.54_API5_${{ needs.create-release.outputs.tag_name }}.xrnx" >> $GITHUB_ENV
+
+      - name: Zip XRNX Package (API 5)
+        run: |
+          zip -r "${{ env.FILENAME }}" . \
+            -x "*.git*" "*.github*" \
+            "preferences.xml" \
+            "preferencesDynamicView.xml" \
+            "preferences_deviceLoaders.xml" \
+            "preferences_midigen.xml" \
+            "preferences_pluginLoaders.xml" \
+            "definitions/*" \
+            "manual/*" \
+            ".dsp_cache" \
+            "action_selector_settings.txt" \
+            "free_keybindings_20250302_160606.txt" \
+            "paketti.sublime-workspace" \
+            "paketti.sublime-project"
+
+      - name: Upload Release Asset (API 5)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: ${{ env.FILENAME }}
           asset_name: ${{ env.FILENAME }}
           asset_content_type: application/octet-stream

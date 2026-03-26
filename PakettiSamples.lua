@@ -1017,7 +1017,7 @@ function create_new_instrument_from_selection_with_slices()
           dst_slice_sample.panning = src_slice_sample.panning
           dst_slice_sample.beat_sync_enabled = src_slice_sample.beat_sync_enabled
           dst_slice_sample.beat_sync_lines = src_slice_sample.beat_sync_lines
-          dst_slice_sample.beat_sync_mode = src_slice_sample.beat_sync_mode
+          pakettiSafeCopyBeatSyncMode(dst_slice_sample, src_slice_sample)
           dst_slice_sample.autoseek = src_slice_sample.autoseek
           dst_slice_sample.autofade = src_slice_sample.autofade
           dst_slice_sample.loop_mode = src_slice_sample.loop_mode
@@ -1718,7 +1718,7 @@ for i, sample in ipairs(s.instruments[currInst].samples) do
         if beat_sync_mode < 1 or beat_sync_mode > 3 then
             sample.beat_sync_enabled = false  -- Disable beat sync for invalid mode
         else
-            sample.beat_sync_mode = beat_sync_mode
+            pakettiSafeSetBeatSyncMode(sample, beat_sync_mode)
 
             -- Only set beat_sync_lines if beatsynclines is valid
             if beatsynclines / changer < 1 then 
@@ -2339,7 +2339,7 @@ function CopySampleSettings(from_sample, to_sample)
   to_sample.fine_tune = from_sample.fine_tune
   to_sample.beat_sync_enabled = from_sample.beat_sync_enabled
   to_sample.beat_sync_lines = from_sample.beat_sync_lines
-  to_sample.beat_sync_mode = from_sample.beat_sync_mode
+  pakettiSafeCopyBeatSyncMode(to_sample, from_sample)
   to_sample.oneshot = from_sample.oneshot
   to_sample.loop_release = from_sample.loop_release
 
@@ -2393,7 +2393,7 @@ function CopySliceSettings(from_sample, to_sample)
   to_sample.fine_tune = from_sample.fine_tune
   to_sample.beat_sync_enabled = from_sample.beat_sync_enabled
   to_sample.beat_sync_lines = from_sample.beat_sync_lines
-  to_sample.beat_sync_mode = from_sample.beat_sync_mode
+  pakettiSafeCopyBeatSyncMode(to_sample, from_sample)
   to_sample.oneshot = from_sample.oneshot
   to_sample.loop_release = from_sample.loop_release
   to_sample.loop_mode = from_sample.loop_mode
@@ -2937,7 +2937,7 @@ function PakettiTrimByHalfSampleDirect(sample)
     fine_tune = sample.fine_tune,
     beat_sync_enabled = sample.beat_sync_enabled,
     beat_sync_lines = sample.beat_sync_lines,
-    beat_sync_mode = sample.beat_sync_mode,
+    beat_sync_mode = pakettiSafeGetBeatSyncMode(sample),
     loop_mode = sample.loop_mode,
     loop_release = sample.loop_release,
     oneshot = sample.oneshot,
@@ -2994,7 +2994,7 @@ function PakettiTrimByHalfSampleDirect(sample)
   sample.fine_tune = original_settings.fine_tune
   sample.beat_sync_enabled = original_settings.beat_sync_enabled
   sample.beat_sync_lines = original_settings.beat_sync_lines
-  sample.beat_sync_mode = original_settings.beat_sync_mode
+  pakettiSafeSetBeatSyncMode(sample, original_settings.beat_sync_mode)
   sample.oneshot = original_settings.oneshot
   sample.loop_release = original_settings.loop_release
   sample.mute_group = original_settings.mute_group
@@ -3059,7 +3059,7 @@ function PakettiTrimByHalfSampleCoroutine(sample, sample_index, total_samples)
     fine_tune = sample.fine_tune,
     beat_sync_enabled = sample.beat_sync_enabled,
     beat_sync_lines = sample.beat_sync_lines,
-    beat_sync_mode = sample.beat_sync_mode,
+    beat_sync_mode = pakettiSafeGetBeatSyncMode(sample),
     loop_mode = sample.loop_mode,
     loop_release = sample.loop_release,
     oneshot = sample.oneshot,
@@ -3140,7 +3140,7 @@ function PakettiTrimByHalfSampleCoroutine(sample, sample_index, total_samples)
   sample.fine_tune = original_settings.fine_tune
   sample.beat_sync_enabled = original_settings.beat_sync_enabled
   sample.beat_sync_lines = original_settings.beat_sync_lines
-  sample.beat_sync_mode = original_settings.beat_sync_mode
+  pakettiSafeSetBeatSyncMode(sample, original_settings.beat_sync_mode)
   sample.oneshot = original_settings.oneshot
   sample.loop_release = original_settings.loop_release
   sample.mute_group = original_settings.mute_group
@@ -3812,7 +3812,7 @@ function PakettiInjectDefaultXRNI()
       sample_data.panning = from_sample.panning
       sample_data.beat_sync_enabled = from_sample.beat_sync_enabled
       sample_data.beat_sync_lines = from_sample.beat_sync_lines
-      sample_data.beat_sync_mode = from_sample.beat_sync_mode
+      sample_data.beat_sync_mode = pakettiSafeGetBeatSyncMode(from_sample)
       sample_data.autoseek = from_sample.autoseek
       sample_data.autofade = from_sample.autofade
       sample_data.loop_mode = from_sample.loop_mode
@@ -3891,7 +3891,7 @@ function PakettiInjectDefaultXRNI()
       to_sample.panning = sample_data.panning
       to_sample.beat_sync_enabled = sample_data.beat_sync_enabled
       to_sample.beat_sync_lines = sample_data.beat_sync_lines
-      to_sample.beat_sync_mode = sample_data.beat_sync_mode
+      pakettiSafeSetBeatSyncMode(to_sample, sample_data.beat_sync_mode)
       to_sample.autoseek = sample_data.autoseek
       to_sample.autofade = sample_data.autofade
       to_sample.loop_mode = sample_data.loop_mode
@@ -4050,7 +4050,7 @@ function PakettiInjectDefaultXRNI()
         to_sample.panning = from_sample.panning
         to_sample.beat_sync_enabled = from_sample.beat_sync_enabled
         to_sample.beat_sync_lines = from_sample.beat_sync_lines
-        to_sample.beat_sync_mode = from_sample.beat_sync_mode
+        pakettiSafeCopyBeatSyncMode(to_sample, from_sample)
         to_sample.autoseek = from_sample.autoseek
         to_sample.autofade = from_sample.autofade
         to_sample.loop_mode = from_sample.loop_mode
@@ -4089,7 +4089,7 @@ function PakettiInjectDefaultXRNI()
             to_slice.panning = from_slice.panning
             to_slice.beat_sync_enabled = from_slice.beat_sync_enabled
             to_slice.beat_sync_lines = from_slice.beat_sync_lines
-            to_slice.beat_sync_mode = from_slice.beat_sync_mode
+            pakettiSafeCopyBeatSyncMode(to_slice, from_slice)
             to_slice.autoseek = from_slice.autoseek
             to_slice.autofade = from_slice.autofade
             to_slice.loop_mode = from_slice.loop_mode

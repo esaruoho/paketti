@@ -3958,7 +3958,7 @@ function pakettiEightSlotsByOneTwentyDialog()
         renoise.song().selected_instrument_index = inst_idx
         renoise.song().selected_sample_index = smp_idx
         -- Map UI value 1..3 directly to API beat_sync_mode
-        smp.beat_sync_mode = val
+        pakettiSafeSetBeatSyncMode(smp, val)
       end
     }
     local col = vb:column{style="body", vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, popup}}
@@ -3973,9 +3973,9 @@ function pakettiEightSlotsByOneTwentyDialog()
         if inst then
           local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
           local smp = smp_idx and inst.samples[smp_idx] or nil
-          if smp and smp.beat_sync_mode_observable then
+          if smp and renoise.API_VERSION >= 6 and smp.beat_sync_mode_observable then
             local function on_mode_change()
-              local v = smp.beat_sync_mode or 1
+              local v = pakettiSafeGetBeatSyncMode(smp) or 1
               if v < 1 or v > 3 then v = 1 end
               popup.value = v
             end
@@ -4010,7 +4010,7 @@ function pakettiEightSlotsByOneTwentyDialog()
             local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
             local smp = smp_idx and inst.samples[smp_idx] or nil
             if smp then
-              smp.beat_sync_mode = val
+              pakettiSafeSetBeatSyncMode(smp, val)
               smp.beat_sync_enabled = true
               if not smp.beat_sync_lines or smp.beat_sync_lines <= 0 then
                 local default_lines = (beatsync_valueboxes and beatsync_valueboxes[i] and beatsync_valueboxes[i].value) or 64

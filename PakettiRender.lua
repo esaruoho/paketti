@@ -2198,7 +2198,7 @@ function pakettiCopySliceSettings(source_instrument, target_instrument)
             -- Copy beat sync settings (ALL of them)
             target_slice.beat_sync_enabled = source_slice.beat_sync_enabled
             target_slice.beat_sync_lines = source_slice.beat_sync_lines
-            target_slice.beat_sync_mode = source_slice.beat_sync_mode
+            pakettiSafeCopyBeatSyncMode(target_slice, source_slice)
             
             -- Copy playback settings (ALL of them)
             target_slice.interpolation_mode = source_slice.interpolation_mode
@@ -2259,7 +2259,7 @@ function pakettiCopyBaseSampleSettings(source_sample, target_sample)
     -- Copy beat sync settings (ALL of them)
     target_sample.beat_sync_enabled = source_sample.beat_sync_enabled
     target_sample.beat_sync_lines = source_sample.beat_sync_lines
-    target_sample.beat_sync_mode = source_sample.beat_sync_mode
+    pakettiSafeCopyBeatSyncMode(target_sample, source_sample)
     
     -- Copy playback settings (ALL of them)
     target_sample.interpolation_mode = source_sample.interpolation_mode

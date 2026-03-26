@@ -401,7 +401,7 @@ function App:copy_sample_settings(source_sample, target_sample)
   target_sample.panning = source_sample.panning
   target_sample.beat_sync_enabled = source_sample.beat_sync_enabled
   target_sample.beat_sync_lines = source_sample.beat_sync_lines
-  target_sample.beat_sync_mode = source_sample.beat_sync_mode
+  pakettiSafeCopyBeatSyncMode(target_sample, source_sample)
   target_sample.new_note_action = source_sample.new_note_action
   target_sample.oneshot = source_sample.oneshot
   target_sample.mute_group = source_sample.mute_group
@@ -429,7 +429,7 @@ function App:copy_slice_settings(source_slice, target_slice)
   target_slice.panning = source_slice.panning
   target_slice.beat_sync_enabled = source_slice.beat_sync_enabled
   target_slice.beat_sync_lines = source_slice.beat_sync_lines
-  target_slice.beat_sync_mode = source_slice.beat_sync_mode
+  pakettiSafeCopyBeatSyncMode(target_slice, source_slice)
   target_slice.new_note_action = source_slice.new_note_action
   target_slice.oneshot = source_slice.oneshot
   target_slice.mute_group = source_slice.mute_group

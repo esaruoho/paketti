@@ -744,7 +744,7 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
     new_sample.fine_tune = source_sample.fine_tune
     new_sample.beat_sync_enabled = source_sample.beat_sync_enabled
     new_sample.beat_sync_lines = source_sample.beat_sync_lines
-    new_sample.beat_sync_mode = source_sample.beat_sync_mode
+    pakettiSafeCopyBeatSyncMode(new_sample, source_sample)
     new_sample.interpolation_mode = source_sample.interpolation_mode
     new_sample.oversample_enabled = source_sample.oversample_enabled
     new_sample.new_note_action = source_sample.new_note_action
@@ -1136,7 +1136,7 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
                 new_sample.fine_tune = source_sample.fine_tune
                 new_sample.beat_sync_enabled = source_sample.beat_sync_enabled
                 new_sample.beat_sync_lines = source_sample.beat_sync_lines
-                new_sample.beat_sync_mode = source_sample.beat_sync_mode
+                pakettiSafeCopyBeatSyncMode(new_sample, source_sample)
                 new_sample.interpolation_mode = source_sample.interpolation_mode
                 new_sample.oversample_enabled = source_sample.oversample_enabled
                 new_sample.new_note_action = source_sample.new_note_action

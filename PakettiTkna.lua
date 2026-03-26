@@ -441,7 +441,7 @@ if not renoise.song().selected_sample then
   renoise.app():show_status("No sample selected, doing nothing.")
   return 
 end
-renoise.song().selected_sample.beat_sync_mode = number
+pakettiSafeSetBeatSyncMode(renoise.song().selected_sample, number)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 1 (Repitch)",invoke=function() selectedSampleBeatsync(1) end}
@@ -454,15 +454,15 @@ if not renoise.song().selected_sample then
   return 
 end
 
-if renoise.song().selected_sample.beat_sync_enabled and renoise.song().selected_sample.beat_sync_mode ~= number then
-renoise.song().selected_sample.beat_sync_mode = number
+if renoise.song().selected_sample.beat_sync_enabled and pakettiSafeGetBeatSyncMode(renoise.song().selected_sample) ~= number then
+pakettiSafeSetBeatSyncMode(renoise.song().selected_sample, number)
 return end
-renoise.song().selected_sample.beat_sync_mode = number
+pakettiSafeSetBeatSyncMode(renoise.song().selected_sample, number)
 
 
 if renoise.song().selected_sample.beat_sync_enabled == false then
 renoise.song().selected_sample.beat_sync_enabled = true
-renoise.song().selected_sample.beat_sync_mode = number
+pakettiSafeSetBeatSyncMode(renoise.song().selected_sample, number)
 else 
 renoise.song().selected_sample.beat_sync_enabled = false
 end

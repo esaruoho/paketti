@@ -729,7 +729,7 @@ renoise.song().selected_instrument_index=renoise.song().selected_instrument_inde
 --    sample.mute_group = 1
   sample.interpolation_mode=preferences.pakettiLoaderInterpolation.value
     sample.beat_sync_enabled = false
-    sample.beat_sync_mode = 2
+    pakettiSafeSetBeatSyncMode(sample, 2)
     renoise.song().selected_instrument.sample_modulation_sets[1].filter_type=preferences.pakettiLoaderFilterType.value
       if preferences.pakettiPitchbendLoaderEnvelope.value then 
         PakettiApplyLoaderModulationSettings(renoise.song().selected_instrument, "PakettiRecorder")

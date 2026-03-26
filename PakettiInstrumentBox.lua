@@ -87,7 +87,7 @@ function DuplicateInstrumentAndSelectNewInstrument_Wrong()
         dst_smp.panning = src_smp.panning
         dst_smp.beat_sync_enabled = src_smp.beat_sync_enabled
         dst_smp.beat_sync_lines = src_smp.beat_sync_lines
-        dst_smp.beat_sync_mode = src_smp.beat_sync_mode
+        pakettiSafeCopyBeatSyncMode(dst_smp, src_smp)
         dst_smp.autoseek = src_smp.autoseek
         dst_smp.autofade = src_smp.autofade
         dst_smp.loop_mode = src_smp.loop_mode

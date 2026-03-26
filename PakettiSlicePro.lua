@@ -695,7 +695,7 @@ function SliceProApply(silent)
     root_sample.beat_sync_enabled = beatsync_enabled
     if beatsync_enabled then
       root_sample.beat_sync_lines = sync_lines
-      root_sample.beat_sync_mode = preferences.SlicePro.SliceProBeatsyncMode.value
+      pakettiSafeSetBeatSyncMode(root_sample, preferences.SlicePro.SliceProBeatsyncMode.value)
     end
     
     if not silent then
@@ -729,7 +729,7 @@ function SliceProApply(silent)
         sample.beat_sync_enabled = beatsync_enabled
         if beatsync_enabled then
           sample.beat_sync_lines = sync_lines
-          sample.beat_sync_mode = preferences.SlicePro.SliceProBeatsyncMode.value
+          pakettiSafeSetBeatSyncMode(sample, preferences.SlicePro.SliceProBeatsyncMode.value)
         end
         
         -- Apply other preferences

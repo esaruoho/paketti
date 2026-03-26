@@ -12,6 +12,34 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-26 - Feature: Renoise 3.1.x (API 5) backwards compatibility + unified CI releases
+
+Paketti now supports Renoise 3.1.x through runtime API gating and a consolidated CI workflow that produces two .xrnx files per release.
+
+**Runtime gating (code changes across 19 files):**
+
+`beat_sync_mode` (API 6 / Renoise 3.2+ only) — 73 direct property accesses replaced with safe helpers across 13 unconditionally-loaded modules:
+- `pakettiSafeCopyBeatSyncMode(dst, src)` — copies beat_sync_mode between samples (no-op on API 5)
+- `pakettiSafeSetBeatSyncMode(sample, mode)` — sets beat_sync_mode (no-op on API 5)
+- `pakettiSafeGetBeatSyncMode(sample)` — reads beat_sync_mode (returns nil on API 5)
+- Files changed: PakettiProcess, PakettiSamples, PakettiRequests, PakettiSlice, PakettiTkna, PakettiEightOneTwenty, PakettiSlicePro, PakettiOTExport, PakettiInstrumentBox, PakettiAudioProcessing, PakettiRender, PakettiAutoSamplify, PakettiRecorder, Sononymph/App
+
+Automation point `.scaling` (API 6 / Renoise 3.2+ only) — 40 property accesses replaced across 4 files:
+- `pakettiSafeGetScaling(point)` — returns point.scaling on API 6+, 0 on API 5
+- `pakettiSafeAddPointAt(automation, time, value, scaling)` — wraps add_point_at with/without scaling arg
+- Files changed: PakettiAutomationCurves, PakettiXMLizer, PakettiSteppers, PakettiPatternSequencer
+
+`key_handler_options` (API 6 / Renoise 3.2+ only) — gated in PakettiOpenMPTLinearKeyboardLayer.lua with fallback to 3-arg show_custom_dialog on API 5
+
+`beat_sync_mode_observable` — gated behind `renoise.API_VERSION >= 6` in PakettiEightOneTwenty.lua
+
+**CI workflow consolidation (.github/workflows/main.yml):**
+- Merged api5.yml into main.yml as a parallel job — deleted standalone api5.yml
+- Single push to master now produces ONE release with TWO .xrnx assets:
+  - `org.lackluster.Paketti_V3.54_TIMESTAMP.xrnx` — API 6, Renoise 3.2+
+  - `org.lackluster.Paketti_V3.54_API5_TIMESTAMP.xrnx` — API 5, Renoise 3.1.x
+- API 5 job still applies build-time transformations: strips style attributes, comments out eSpeak/BeatDetect modules, changes manifest to API 5
+
 ### 2026-03-22 - Fix: Gate v2 device chain preset loading behind API 6.1
 
 Device chain preset files (.xrdp/.xrnt) that contain v2 DSP devices are now properly gated on Renoise 3.2.

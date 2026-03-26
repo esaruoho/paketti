@@ -1041,12 +1041,17 @@ function PakettiOpenMPTLinearKeyboardLayerDialog()
   end
   
   -- Enable key release events so we can properly detect when keys are let go
-  local key_handler_options = {
-    send_key_repeat = true,   -- We want key repeat events for held keys
-    send_key_release = true   -- We NEED key release events to stop notes!
-  }
-  
-  PakettiLinearKeyboard_dialog = renoise.app():show_custom_dialog("Paketti PlayerPro/OpenMPT Linear Keyboard Layer", content, OpenMPTKeyhandler, key_handler_options)
+  -- key_handler_options was added in API 6 (Renoise 3.2). On API 5 we fall back
+  -- to the 3-arg show_custom_dialog (no key release detection — notes may stick).
+  if renoise.API_VERSION >= 6 then
+    local key_handler_options = {
+      send_key_repeat = true,   -- We want key repeat events for held keys
+      send_key_release = true   -- We NEED key release events to stop notes!
+    }
+    PakettiLinearKeyboard_dialog = renoise.app():show_custom_dialog("Paketti PlayerPro/OpenMPT Linear Keyboard Layer", content, OpenMPTKeyhandler, key_handler_options)
+  else
+    PakettiLinearKeyboard_dialog = renoise.app():show_custom_dialog("Paketti PlayerPro/OpenMPT Linear Keyboard Layer", content, OpenMPTKeyhandler)
+  end
   
   -- Set up transport octave notifier
   if renoise.song().transport.octave_observable:has_notifier(PakettiLinearKeyboard_TransportOctaveChanged) then

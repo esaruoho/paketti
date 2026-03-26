@@ -3510,7 +3510,7 @@ function PakettiIsolateSlices()
       new_sample.loop_mode = slice_sample.loop_mode
       new_sample.loop_start = slice_sample.loop_start
       new_sample.loop_end = slice_sample.loop_end
-      new_sample.beat_sync_mode = slice_sample.beat_sync_mode
+      pakettiSafeCopyBeatSyncMode(new_sample, slice_sample)
       new_sample.beat_sync_lines = slice_sample.beat_sync_lines
       new_sample.fine_tune = slice_sample.fine_tune
       new_sample.volume = slice_sample.volume
@@ -3526,7 +3526,7 @@ function PakettiIsolateSlices()
       new_sample.loop_mode = master_sample.loop_mode
       new_sample.loop_start = master_sample.loop_start
       new_sample.loop_end = master_sample.loop_end
-      new_sample.beat_sync_mode = master_sample.beat_sync_mode
+      pakettiSafeCopyBeatSyncMode(new_sample, master_sample)
       new_sample.beat_sync_lines = master_sample.beat_sync_lines
       new_sample.fine_tune = master_sample.fine_tune
       new_sample.volume = master_sample.volume
@@ -3688,7 +3688,7 @@ function PakettiIsolateSlicesToInstrumentDirect()
       new_sample.loop_mode = slice_sample.loop_mode
       new_sample.loop_start = slice_sample.loop_start
       new_sample.loop_end = slice_sample.loop_end
-      new_sample.beat_sync_mode = slice_sample.beat_sync_mode
+      pakettiSafeCopyBeatSyncMode(new_sample, slice_sample)
       new_sample.beat_sync_enabled = slice_sample.beat_sync_enabled
       new_sample.beat_sync_lines = slice_sample.beat_sync_lines
       new_sample.fine_tune = slice_sample.fine_tune
@@ -3710,7 +3710,7 @@ function PakettiIsolateSlicesToInstrumentDirect()
       new_sample.loop_mode = master_sample.loop_mode
       new_sample.loop_start = master_sample.loop_start
       new_sample.loop_end = master_sample.loop_end
-      new_sample.beat_sync_mode = master_sample.beat_sync_mode
+      pakettiSafeCopyBeatSyncMode(new_sample, master_sample)
       new_sample.beat_sync_enabled = master_sample.beat_sync_enabled
       new_sample.beat_sync_lines = master_sample.beat_sync_lines
       new_sample.fine_tune = master_sample.fine_tune
@@ -3843,7 +3843,7 @@ function PakettiIsolateSlicesToInstrumentNoProcess()
       new_sample.loop_mode = slice_sample.loop_mode
       new_sample.loop_start = slice_sample.loop_start
       new_sample.loop_end = slice_sample.loop_end
-      new_sample.beat_sync_mode = slice_sample.beat_sync_mode
+      pakettiSafeCopyBeatSyncMode(new_sample, slice_sample)
       new_sample.beat_sync_enabled = slice_sample.beat_sync_enabled
       new_sample.beat_sync_lines = slice_sample.beat_sync_lines
       new_sample.fine_tune = slice_sample.fine_tune
@@ -3864,7 +3864,7 @@ function PakettiIsolateSlicesToInstrumentNoProcess()
       new_sample.loop_mode = master_sample.loop_mode
       new_sample.loop_start = master_sample.loop_start
       new_sample.loop_end = master_sample.loop_end
-      new_sample.beat_sync_mode = master_sample.beat_sync_mode
+      pakettiSafeCopyBeatSyncMode(new_sample, master_sample)
       new_sample.beat_sync_enabled = master_sample.beat_sync_enabled
       new_sample.beat_sync_lines = master_sample.beat_sync_lines
       new_sample.fine_tune = master_sample.fine_tune
@@ -3981,7 +3981,7 @@ function PakettiIsolateSlicesToInstrumentProcessed(selected_instrument_index, in
       new_sample.loop_mode = slice_sample.loop_mode
       new_sample.loop_start = slice_sample.loop_start
       new_sample.loop_end = slice_sample.loop_end
-      new_sample.beat_sync_mode = slice_sample.beat_sync_mode
+      pakettiSafeCopyBeatSyncMode(new_sample, slice_sample)
       new_sample.beat_sync_enabled = slice_sample.beat_sync_enabled
       new_sample.beat_sync_lines = slice_sample.beat_sync_lines
       new_sample.fine_tune = slice_sample.fine_tune
@@ -4003,7 +4003,7 @@ function PakettiIsolateSlicesToInstrumentProcessed(selected_instrument_index, in
       new_sample.loop_mode = master_sample.loop_mode
       new_sample.loop_start = master_sample.loop_start
       new_sample.loop_end = master_sample.loop_end
-      new_sample.beat_sync_mode = master_sample.beat_sync_mode
+      pakettiSafeCopyBeatSyncMode(new_sample, master_sample)
       new_sample.beat_sync_enabled = master_sample.beat_sync_enabled
       new_sample.beat_sync_lines = master_sample.beat_sync_lines
       new_sample.fine_tune = master_sample.fine_tune
@@ -4149,7 +4149,7 @@ renoise.app():load_instrument(defaultInstrument)
   new_sample.fine_tune = sample.fine_tune
   new_sample.beat_sync_enabled = sample.beat_sync_enabled
   new_sample.beat_sync_lines = sample.beat_sync_lines
-  new_sample.beat_sync_mode = sample.beat_sync_mode
+  pakettiSafeCopyBeatSyncMode(new_sample, sample)
   new_sample.oneshot = sample.oneshot
   new_sample.loop_release = sample.loop_release
   new_sample.loop_mode = sample.loop_mode
@@ -6264,7 +6264,7 @@ local function DuplicateSampleRangeMuteOriginalCopySampleSettings(from_sample, t
   to_sample.fine_tune = from_sample.fine_tune
   to_sample.beat_sync_enabled = from_sample.beat_sync_enabled
   to_sample.beat_sync_lines = from_sample.beat_sync_lines
-  to_sample.beat_sync_mode = from_sample.beat_sync_mode
+  pakettiSafeCopyBeatSyncMode(to_sample, from_sample)
   to_sample.oneshot = from_sample.oneshot
   to_sample.loop_release = from_sample.loop_release
   to_sample.loop_mode = from_sample.loop_mode
@@ -7169,9 +7169,9 @@ return
 end
 
 if Mode == "Percussion" then
-renoise.song().selected_sample.beat_sync_mode=2
+pakettiSafeSetBeatSyncMode(renoise.song().selected_sample, 2)
 else if Mode == "Texture" then
-renoise.song().selected_sample.beat_sync_mode=3
+pakettiSafeSetBeatSyncMode(renoise.song().selected_sample, 3)
 end
 end
 print("HEEY")

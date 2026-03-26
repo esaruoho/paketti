@@ -952,7 +952,7 @@ local function pakettiMergeCopyTrackData(src_pattern, dst_pattern, track_index, 
       for _, pt in ipairs(src_auto.points) do
         local new_time = pt.time + dst_line_offset
         if new_time <= dst_lines then
-          dst_auto:add_point_at(new_time, pt.value, pt.scaling)
+          pakettiSafeAddPointAt(dst_auto, new_time, pt.value, pakettiSafeGetScaling(pt))
         end
       end
     end
