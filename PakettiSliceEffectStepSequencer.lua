@@ -1067,9 +1067,9 @@ function PakettiSliceStepUpdateRowStyles(selected_row_index)
     if rc then
       -- Available row styles: plain | border | group | panel | body
       if row == selected_row_index then
-        rc.style = "group" -- SELECTED: subtle outline
+        pakettiSetViewStyle(rc, "group") -- SELECTED: subtle outline
       else
-        rc.style = "body"   -- NOT-SELECTED: light background
+        pakettiSetViewStyle(rc, "body") -- NOT-SELECTED: light background
       end
     end
   end

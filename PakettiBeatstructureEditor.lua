@@ -168,7 +168,7 @@ function pakettiBeatStructureEditorDialog()
       "Pattern Length: %d%s",
       current_bpm, lpb, pattern_length, warning
     )
-    vb.views.preview_text.style = "strong"
+    pakettiSetViewStyle(vb.views.preview_text, "strong")
     renoise.app().window.active_middle_frame = 1
   end
   

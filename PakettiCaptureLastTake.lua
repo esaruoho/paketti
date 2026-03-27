@@ -764,13 +764,13 @@ function PakettiCapture_UpdateUI()
         txt.text = table.concat(seq, " ")
         -- Make selected audition slot bold
         if PakettiCapture_selected_audition_slot == i then
-          txt.style = "strong"
+          pakettiSetViewStyle(txt, "strong")
         else
-          txt.style = "normal"
+          pakettiSetViewStyle(txt, "normal")
         end
       else
         txt.text = ""
-        txt.style = "normal"
+        pakettiSetViewStyle(txt, "normal")
       end
     end
   end

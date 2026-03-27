@@ -1208,12 +1208,12 @@ function PakettiFuzzySampleSearchUpdateStatusInPlace()
     vb.views.file_count.text = status_text
     
     -- ALWAYS apply bold styling to status text
-    vb.views.file_count.style = "strong"
+    pakettiSetViewStyle(vb.views.file_count, "strong")
     vb.views.file_count.font = "bold"
   end
   if dialog and vb and vb.views.search_display then
     vb.views.search_display.text = search_query == "" and "(type to search)" or search_query
-    vb.views.search_display.style = search_query == "" and "disabled" or "normal"
+    pakettiSetViewStyle(vb.views.search_display, search_query == "" and "disabled" or "normal")
   end
   if dialog and vb and vb.views.pagination_text then
     local max_pages = cached_pagination_info.max_pages

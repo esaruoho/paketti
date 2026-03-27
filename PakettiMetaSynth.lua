@@ -15404,7 +15404,7 @@ function PakettiMetaSynthUpdatePreview()
   local sample_text = vb.views["preview_samples"]
   if sample_text then
     sample_text.text = string.format("Samples: %d/12", validation.total_samples)
-    sample_text.style = validation.total_samples > 12 and "disabled" or "normal"
+    pakettiSetViewStyle(sample_text, validation.total_samples > 12 and "disabled" or "normal")
   end
   
   -- Update FX chains display
@@ -15527,13 +15527,13 @@ function PakettiMetaSynthUpdatePreview()
   if warning_text then
     if #validation.errors > 0 then
       warning_text.text = validation.errors[1]
-      warning_text.style = "disabled"
+      pakettiSetViewStyle(warning_text, "disabled")
     elseif #validation.warnings > 0 then
       warning_text.text = validation.warnings[1]
-      warning_text.style = "normal"
+      pakettiSetViewStyle(warning_text, "normal")
     else
       warning_text.text = "Ready to generate"
-      warning_text.style = "normal"
+      pakettiSetViewStyle(warning_text, "normal")
     end
   end
 end

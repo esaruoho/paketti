@@ -854,17 +854,17 @@ function PakettiEightOneTwentyHighlightRow(row_index)
     if rc then
       -- Available row styles: plain | border | group | panel | body
       if i == row_index then
-        rc.style = "group" -- SELECTED: subtle outline
+        pakettiSetViewStyle(rc, "group") -- SELECTED: subtle outline
       else
-        rc.style = "body"   -- NOT-SELECTED: light background
+        pakettiSetViewStyle(rc, "body") -- NOT-SELECTED: light background
       end
     end
       -- Mirror highlight to advanced beatsync/NNA columns
       if beatsync_adv_columns and beatsync_adv_columns[i] then
         if i == row_index then
-          beatsync_adv_columns[i].style = "group"
+          pakettiSetViewStyle(beatsync_adv_columns[i], "group")
         else
-          beatsync_adv_columns[i].style = "body"
+          pakettiSetViewStyle(beatsync_adv_columns[i], "body")
         end
       end
   end
@@ -5225,7 +5225,7 @@ function loadSequentialDrumkitSamples()
         status_labels[instrument_index].text = string.format("Part %d/8: Loading sample %03d/%03d: %s", 
           instrument_index, i, num_samples_to_load, display_name)
         status_labels[instrument_index].font = "bold"
-        status_labels[instrument_index].style = "strong"
+        pakettiSetViewStyle(status_labels[instrument_index], "strong")
       end
       
       if i % 5 == 0 then
@@ -5262,7 +5262,7 @@ function loadSequentialDrumkitSamples()
         local folder_name = getFilename(folders[j])
         status_labels[j].text = string.format("Part %d/8: Queued - Random from %s", j, folder_name)
         status_labels[j].font = "bold"
-        status_labels[j].style = "strong"
+        pakettiSetViewStyle(status_labels[j], "strong")
       end
       
       local success, error = processInstrument(i, folders[i])
@@ -5549,7 +5549,7 @@ function loadSequentialRandomLoadAll()
         status_labels[instrument_index].text = string.format("Part %d/8: Loading sample %03d/%03d: %s",
           instrument_index, i, num_samples_to_load, display_name)
         status_labels[instrument_index].font = "bold"
-        status_labels[instrument_index].style = "strong"
+        pakettiSetViewStyle(status_labels[instrument_index], "strong")
       end
 
       if i % 5 == 0 then
@@ -5582,7 +5582,7 @@ function loadSequentialRandomLoadAll()
         local folder_name = getFilename(folders[j])
         status_labels[j].text = string.format("Part %d/8: Queued - Random from %s", j, folder_name)
         status_labels[j].font = "bold"
-        status_labels[j].style = "strong"
+        pakettiSetViewStyle(status_labels[j], "strong")
       end
 
       local success, error = processInstrument(i, folders[i])

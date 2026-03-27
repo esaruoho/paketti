@@ -73,10 +73,10 @@ local function create_valuebox(i, column, hex_text, value_labels, label_map, pos
       
       for _, label in ipairs(value_labels) do 
         if label.text ~= hex_value then
-          label.style="normal"
+          pakettiSetViewStyle(label, "normal")
         end
       end
-      number_label.style="strong"
+      pakettiSetViewStyle(number_label, "strong")
       return hex_value
     end,
     tonumber=function(str)
@@ -86,10 +86,10 @@ local function create_valuebox(i, column, hex_text, value_labels, label_map, pos
       local hex_value=string.format("%X",val)
       for _, label in ipairs(value_labels) do 
         if label.text ~= hex_value then
-          label.style="normal"
+          pakettiSetViewStyle(label, "normal")
         end
       end
-      label_map[id_prefix .. "_label_" .. hex_value].style = "strong"
+      pakettiSetViewStyle(label_map[id_prefix .. "_label_" .. hex_value], "strong")
       update_combined_value() -- Call the update function here too
     end
   }
@@ -108,11 +108,11 @@ end
 
 -- Ensure that all text styles are "normal" at the start
 for _, label in ipairs(value_labels2) do
-  label.style = "normal"
+  pakettiSetViewStyle(label, "normal")
 end
 
 for _, label in ipairs(value_labels3) do
-  label.style = "normal"
+  pakettiSetViewStyle(label, "normal")
 end
 
 local separator = vb:space{width=50}

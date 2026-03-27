@@ -863,13 +863,13 @@ function PakettiSwitcharoo_UpdateUI()
         local seq = PakettiSwitcharoo_sequences[i]
         PakettiSwitcharoo_original_texts[i].text = table.concat(seq, " ")
         if PakettiSwitcharoo_selected_slot == i then
-          PakettiSwitcharoo_original_texts[i].style = "strong"
+          pakettiSetViewStyle(PakettiSwitcharoo_original_texts[i], "strong")
         else
-          PakettiSwitcharoo_original_texts[i].style = "normal"
+          pakettiSetViewStyle(PakettiSwitcharoo_original_texts[i], "normal")
         end
       else
         PakettiSwitcharoo_original_texts[i].text = ""
-        PakettiSwitcharoo_original_texts[i].style = "normal"
+        pakettiSetViewStyle(PakettiSwitcharoo_original_texts[i], "normal")
       end
     end
     
@@ -879,13 +879,13 @@ function PakettiSwitcharoo_UpdateUI()
         local seq = PakettiSwitcharoo_transformed_sequences[i]
         PakettiSwitcharoo_resultant_texts[i].text = table.concat(seq, " ")
         if PakettiSwitcharoo_selected_slot == i then
-          PakettiSwitcharoo_resultant_texts[i].style = "strong"
+          pakettiSetViewStyle(PakettiSwitcharoo_resultant_texts[i], "strong")
         else
-          PakettiSwitcharoo_resultant_texts[i].style = "normal"
+          pakettiSetViewStyle(PakettiSwitcharoo_resultant_texts[i], "normal")
         end
       else
         PakettiSwitcharoo_resultant_texts[i].text = ""
-        PakettiSwitcharoo_resultant_texts[i].style = "normal"
+        pakettiSetViewStyle(PakettiSwitcharoo_resultant_texts[i], "normal")
       end
     end
     

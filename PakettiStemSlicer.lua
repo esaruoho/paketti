@@ -246,7 +246,7 @@ function returnToOriginalDialogWithCompletion()
                 completion_text = completion_text .. string.format("\nOUTPUT: %s", last_output_folder or "Unknown")
             end
             vb.views.folder_display.text = completion_text
-            vb.views.folder_display.style = "strong" -- Make it prominent
+            pakettiSetViewStyle(vb.views.folder_display, "strong") -- Make it prominent
         end
         
         -- Update status message based on mode

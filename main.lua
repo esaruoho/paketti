@@ -134,6 +134,17 @@ function pakettiSafeAddPointAt(automation, time, value, scaling)
   end
 end
 
+-- Safe setter for ViewBuilder view `.style` property.
+-- The `style` property on views (e.g. "strong", "disabled", "group", "body")
+-- does not exist on API 5 (Renoise 3.1.x). This helper is a no-op on API < 6.
+-- Use this for ALL runtime `.style = "..."` assignments so the API5 build's sed
+-- (which strips style from ViewBuilder constructors) doesn't create syntax errors.
+function pakettiSetViewStyle(view, style_value)
+  if renoise.API_VERSION >= 6 then
+    view.style = style_value
+  end
+end
+
 -- Global helper function to get proper temporary file path - fixes os.tmpname() issues
 function pakettiGetTempFilePath(extension)
     extension = extension or ".tmp"

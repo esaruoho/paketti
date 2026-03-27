@@ -119,16 +119,44 @@ jobs:
         run: |
           sed -i '/function update_loadPaleGreenTheme_preferences()/,/^end/s/^/-- /' Paketti0G01_Loader.lua
 
-      # Remove style attributes (style="strong", style="disabled", etc.)
-      # These don't exist on API 5 and cause errors
-      - name: Remove style attributes from .lua files
+      # Remove style attributes from ViewBuilder constructors (API 5 doesn't support style).
+      # Runtime .style assignments are already safe — they use pakettiSetViewStyle() helper
+      # which is a no-op on API < 6, so the sed doesn't need to touch them.
+      - name: Remove style attributes from ViewBuilder constructors
         run: |
-          find . -type f -name "*.lua" -exec sed -i 's/style\s*=\s*"[^"]*"//g' {} +
+          # Step 1: Delete whole lines that are ONLY a style attribute (double-quoted)
+          find . -type f -name "*.lua" -exec sed -i '/^\s*style\s*=\s*"[^"]*"\s*,\?\s*$/d' {} +
+          # Step 2: Remove inline style with leading comma: {text="x", style="strong"}
+          find . -type f -name "*.lua" -exec sed -i 's/,\s*style\s*=\s*"[^"]*"//g' {} +
+          # Step 3: Remove inline style with trailing comma: {style="strong", text="x"}
+          find . -type f -name "*.lua" -exec sed -i 's/style\s*=\s*"[^"]*"\s*,\s*//g' {} +
+          # Step 4: Same three passes for single-quoted values (e.g. style='panel')
+          find . -type f -name "*.lua" -exec sed -i "/^\s*style\s*=\s*'[^']*'\s*,\?\s*$/d" {} +
+          find . -type f -name "*.lua" -exec sed -i "s/,\s*style\s*=\s*'[^']*'//g" {} +
+          find . -type f -name "*.lua" -exec sed -i "s/style\s*=\s*'[^']*'\s*,\s*//g" {} +
 
       # Change manifest API version from 6 to 5
       - name: Set API version to 5
         run: |
           sed -i 's/<ApiVersion>6<\/ApiVersion>/<ApiVersion>5<\/ApiVersion>/g' manifest.xml
+
+      # Verify no syntax errors were introduced by the sed transformations
+      - name: Syntax check all Lua files
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lua5.1 > /dev/null 2>&1
+          errors=0
+          while IFS= read -r -d '' f; do
+            if ! luac5.1 -p "$f" 2>/dev/null; then
+              echo "::error file=$f::Syntax error in $f"
+              luac5.1 -p "$f" 2>&1 || true
+              errors=$((errors + 1))
+            fi
+          done < <(find . -name "*.lua" -not -path "./.git/*" -print0)
+          if [ $errors -gt 0 ]; then
+            echo "::error::$errors Lua file(s) have syntax errors after API5 transformations"
+            exit 1
+          fi
+          echo "All Lua files pass syntax check"
 
       - name: Set filename
         run: |
