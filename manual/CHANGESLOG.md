@@ -12,6 +12,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-27 - Feature: Dump Phrase to Pattern at Cursor
+
+New feature that is the inverse of "Replace Selection with Phrase" — push the selected phrase's content into the pattern at the current edit cursor position. Designed for quickly accessing breakbeat pattern libraries stored as instrument phrases without the usual copy/paste workflow.
+
+Unlike the existing "Convert Phrase to Pattern" (which always writes at line 1 and overlays onto existing data), "Dump Phrase to Pattern at Cursor" clears the destination lines first for a clean overwrite, writes at whatever line your cursor is on, expands pattern length / columns / sub-column visibility as needed, and stamps the correct instrument value on every note.
+
+- **Keybindings:** `Global:Paketti:Dump Phrase to Pattern at Cursor`, `Pattern Editor:Paketti:Dump Phrase to Pattern at Cursor`
+- **Menu entries:** `Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Dump Phrase to Pattern at Cursor`, `Pattern Editor:Paketti:PhraseGrid:Dump Phrase to Pattern at Cursor`, `Phrase Editor:Paketti:PhraseGrid:Dump to Pattern at Cursor`
+- **MIDI mapping:** `Paketti:Dump Phrase to Pattern at Cursor [Trigger]`
+
 ### 2026-03-26 - Feature: Renoise 3.1.x (API 5) backwards compatibility + unified CI releases
 
 Paketti now supports Renoise 3.1.x through runtime API gating and a consolidated CI workflow that produces two .xrnx files per release.

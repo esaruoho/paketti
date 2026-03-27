@@ -3863,6 +3863,113 @@ function PakettiPhraseToPatternAll()
   renoise.app():show_status(string.format("Converted %d phrases to patterns", #instrument.phrases))
 end
 
+-- Dump selected phrase into the pattern at the current edit-cursor position.
+-- This is the inverse of "Replace Selection with Phrase":
+--   • Clears the destination area first (clean overwrite, not overlay)
+--   • Writes at edit_pos.line instead of always line 1
+--   • Expands pattern length, columns and sub-column visibility as needed
+--   • Stamps the correct instrument_value on every note
+function PakettiDumpPhraseToPattern()
+  local song = renoise.song()
+  if not song then return end
+
+  local instrument = song.selected_instrument
+  local instrument_index = song.selected_instrument_index
+  local phrase_index = song.selected_phrase_index
+
+  if #instrument.phrases == 0 or phrase_index < 1 or phrase_index > #instrument.phrases then
+    renoise.app():show_status("Paketti: No phrase selected — select a phrase first.")
+    return
+  end
+
+  local phrase = instrument.phrases[phrase_index]
+
+  local track_index = song.selected_track_index
+  local track = song.tracks[track_index]
+
+  if track.type == renoise.Track.TRACK_TYPE_MASTER or track.type == renoise.Track.TRACK_TYPE_SEND then
+    renoise.app():show_status("Paketti: Cannot dump phrase to Master or Send track.")
+    return
+  end
+
+  local pattern = song.selected_pattern
+  local pattern_track = pattern:track(track_index)
+  local start_line = song.transport.edit_pos.line
+
+  -- Ensure pattern is long enough to hold the phrase from the start line
+  local needed_lines = start_line + phrase.number_of_lines - 1
+  if pattern.number_of_lines < needed_lines then
+    pattern.number_of_lines = math.min(needed_lines, 512)
+  end
+  -- Recalculate in case we clamped to 512
+  local write_length = math.min(phrase.number_of_lines, pattern.number_of_lines - start_line + 1)
+
+  song:describe_undo("Dump Phrase to Pattern")
+
+  -- Expand visible note/effect columns if phrase needs more
+  if track.visible_note_columns < phrase.visible_note_columns then
+    track.visible_note_columns = phrase.visible_note_columns
+  end
+  if track.visible_effect_columns < phrase.visible_effect_columns then
+    track.visible_effect_columns = phrase.visible_effect_columns
+  end
+
+  -- Match sub-column visibility (only turn on, never turn off)
+  if phrase.volume_column_visible then track.volume_column_visible = true end
+  if phrase.panning_column_visible then track.panning_column_visible = true end
+  if phrase.delay_column_visible then track.delay_column_visible = true end
+  if phrase.sample_effects_column_visible then track.sample_effects_column_visible = true end
+
+  -- 1. Clear the destination lines first (clean overwrite)
+  for i = 1, write_length do
+    local dest_line_index = start_line + i - 1
+    pattern_track:line(dest_line_index):clear()
+  end
+
+  -- 2. Copy phrase content to pattern
+  local notes_copied = 0
+  for i = 1, write_length do
+    local phrase_line = phrase:line(i)
+    local dest_line_index = start_line + i - 1
+    local pattern_line = pattern_track:line(dest_line_index)
+
+    -- Copy note columns
+    for col_index = 1, phrase.visible_note_columns do
+      local src_col = phrase_line:note_column(col_index)
+      local dst_col = pattern_line:note_column(col_index)
+
+      if not src_col.is_empty then
+        dst_col.note_value = src_col.note_value
+        dst_col.instrument_value = instrument_index - 1
+        dst_col.volume_value = src_col.volume_value
+        dst_col.panning_value = src_col.panning_value
+        dst_col.delay_value = src_col.delay_value
+        dst_col.effect_number_value = src_col.effect_number_value
+        dst_col.effect_amount_value = src_col.effect_amount_value
+
+        if src_col.note_value < 120 then
+          notes_copied = notes_copied + 1
+        end
+      end
+    end
+
+    -- Copy effect columns
+    for col_index = 1, phrase.visible_effect_columns do
+      local src_col = phrase_line:effect_column(col_index)
+      local dst_col = pattern_line:effect_column(col_index)
+
+      if not src_col.is_empty then
+        dst_col.number_value = src_col.number_value
+        dst_col.amount_value = src_col.amount_value
+      end
+    end
+  end
+
+  renoise.app():show_status(string.format(
+    "Paketti: Dumped Phrase %02d to pattern at line %d (%d lines, %d notes)",
+    phrase_index, start_line, write_length, notes_copied))
+end
+
 --------------------------------------------------------------------------------
 -- 10. PATTERN INTEGRATION: Pattern to Phrase
 --------------------------------------------------------------------------------
@@ -5999,6 +6106,8 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Phrase Auto-Fill Pattern", invoke=function() PakettiPhraseAutoFillPattern() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Phrase Auto-Fill With Variation", invoke=PakettiPhraseAutoFillWithVariation}
 renoise.tool():add_keybinding{name="Global:Paketti:Phrase to Pattern", invoke=function() PakettiPhraseToPattern() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Dump Phrase to Pattern at Cursor", invoke=PakettiDumpPhraseToPattern}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Dump Phrase to Pattern at Cursor", invoke=PakettiDumpPhraseToPattern}
 renoise.tool():add_keybinding{name="Global:Paketti:Pattern to Phrase", invoke=PakettiPatternToPhrase}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Selection to Phrase", invoke=PakettiSelectionToPhrase}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replace Selection with Phrase", invoke=PakettiReplaceSelectionWithPhrase}
@@ -7693,6 +7802,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Templat
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Auto-Fill Pattern with Phrase", invoke=function() PakettiPhraseAutoFillPattern() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Auto-Fill with Variations", invoke=PakettiPhraseAutoFillWithVariation}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Convert Phrase to Pattern", invoke=function() PakettiPhraseToPattern() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Dump Phrase to Pattern at Cursor", invoke=PakettiDumpPhraseToPattern}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Convert Pattern to Phrase", invoke=PakettiPatternToPhrase}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Selection to Phrase", invoke=PakettiSelectionToPhrase}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Replace Selection with Phrase", invoke=PakettiReplaceSelectionWithPhrase}
@@ -7715,6 +7825,7 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Recall PhraseGrid Sta
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:PhraseGrid:Show Dialog", invoke=PakettiPhraseGridShowDialog}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:PhraseGrid:Auto-Fill Pattern", invoke=function() PakettiPhraseAutoFillPattern() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:PhraseGrid:Convert to Pattern", invoke=function() PakettiPhraseToPattern() end}
+renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:PhraseGrid:Dump to Pattern at Cursor", invoke=PakettiDumpPhraseToPattern}
 
 --------------------------------------------------------------------------------
 -- 18. RENDER + PHRASEGRID INTEGRATION
@@ -8680,6 +8791,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Render Current PhraseGrid Sta
 -- MIDI mappings for render integration
 renoise.tool():add_midi_mapping{name="Paketti:Selection to Phrase [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSelectionToPhrase() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Replace Selection with Phrase [Trigger]", invoke=function(message) if message:is_trigger() then PakettiReplaceSelectionWithPhrase() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Dump Phrase to Pattern at Cursor [Trigger]", invoke=function(message) if message:is_trigger() then PakettiDumpPhraseToPattern() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Render Pattern to Phrases [Trigger]", invoke=function(message) if message:is_trigger() then PakettiRenderPatternToPhrase() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Render Phrase to Sample [Trigger]", invoke=function(message) if message:is_trigger() then PakettiRenderPhraseToSample() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Slices to Phrase Bank [Trigger]", invoke=function(message) if message:is_trigger() then PakettiSlicesToPhraseBank() end end}
@@ -8705,6 +8817,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:PhraseGrid:PhraseG
 -- Pattern Editor context menu for render integration
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:PhraseGrid:Selection to Phrase", invoke=PakettiSelectionToPhrase}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:PhraseGrid:Replace Selection with Phrase", invoke=PakettiReplaceSelectionWithPhrase}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:PhraseGrid:Dump Phrase to Pattern at Cursor", invoke=PakettiDumpPhraseToPattern}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:PhraseGrid:Render to Phrases", invoke=function() PakettiRenderPatternToPhrase() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:PhraseGrid:Render (8 slices)", invoke=function() PakettiRenderPatternToPhrase({slice_count = 8}) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:PhraseGrid:Full Stack Workflow", invoke=function() PakettiFullRenderStackWorkflow() end}
