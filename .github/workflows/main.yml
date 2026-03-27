@@ -44,7 +44,7 @@ jobs:
           release_name: Release ${{ steps.gen.outputs.tag_name }}
           body: |
             **Renoise 3.2 – 3.5+** → download the standard .xrnx
-            **Renoise 3.1.x** → download the API5 .xrnx
+            **Renoise 3.1.x** → download the Renoise3.1 .xrnx
 
             Support Paketti development: https://github.com/sponsors/esaruoho
           draft: false
@@ -132,7 +132,7 @@ jobs:
 
       - name: Set filename
         run: |
-          echo "FILENAME=org.lackluster.Paketti_V3.54_API5_${{ needs.create-release.outputs.tag_name }}.xrnx" >> $GITHUB_ENV
+          echo "FILENAME=org.lackluster.Paketti_V3.54_Renoise3.1_${{ needs.create-release.outputs.tag_name }}.xrnx" >> $GITHUB_ENV
 
       - name: Zip XRNX Package (API 5)
         run: |
