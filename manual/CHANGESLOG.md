@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-27 - Documentation: Version Compatibility section added to manual
+
+Added a new **Version Compatibility** section to the manual explaining which Renoise versions Paketti supports and what features are available on each. Every release now ships two builds: one for Renoise 3.2+ and one legacy build for Renoise 3.1.x. Both are available on the [Releases page](https://github.com/esaruoho/paketti/releases). Features gracefully scale up with your Renoise version — buttons, menus, keybindings, and MIDI mappings for unsupported features are automatically hidden.
+
 ### 2026-03-27 - Feature: Dump Phrase to Pattern at Cursor
 
 New feature that is the inverse of "Replace Selection with Phrase" — push the selected phrase's content into the pattern at the current edit cursor position. Designed for quickly accessing breakbeat pattern libraries stored as instrument phrases without the usual copy/paste workflow.

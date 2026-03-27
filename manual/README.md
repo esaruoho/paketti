@@ -1,16 +1,17 @@
 | **[Support on Patreon](http://patreon.com/esaruoho)** | [GitHub](https://github.com/esaruoho/paketti) | [Discord](https://discord.gg/xNT6eH7W) | [Changeslog](CHANGESLOG.html) | [Experimental](Experimental.html) 
 
- 1. [Paketti](#paketti) 
+ 1. [Paketti](#paketti)
  2. [Where](#where)
  3. [Support](#support)
  4. [Roadmap](#roadmap)
- 5. [GettingStarted](#gettingstarted)
- 6. [ManualOrganization](#manualorganization)
- 7. [Automation](#automation)
- 8. [SampleManagement](#samplemanagement)
- 9. [RewriteSoon](#rewritesoon)
- 10. [Changeslog](CHANGESLOG.html)
- 11. [Experimental](Experimental.html)
+ 5. [VersionCompatibility](#versioncompatibility)
+ 6. [GettingStarted](#gettingstarted)
+ 7. [ManualOrganization](#manualorganization)
+ 8. [Automation](#automation)
+ 9. [SampleManagement](#samplemanagement)
+ 10. [RewriteSoon](#rewritesoon)
+ 11. [Changeslog](CHANGESLOG.html)
+ 12. [Experimental](Experimental.html)
 
 # Paketti
 
@@ -151,6 +152,35 @@ It feels like I'll be here for multiple years, studying Prior Art - talking to p
 Be seeing you.
 
 Yours, Esa Ruoho.
+
+# VersionCompatibility
+
+Paketti works on Renoise 3.2 and newer. Features scale up with your Renoise version — you'll never see buttons or menus for things your version can't do.
+
+Paketti ships two builds with every release, both available on the [Releases page](https://github.com/esaruoho/paketti/releases):
+
+- **`Paketti_V3.54_TIMESTAMP.xrnx`** — for Renoise 3.2, 3.3, 3.4, and 3.5
+- **`Paketti_V3.54_Renoise3.1_TIMESTAMP.xrnx`** — for Renoise 3.1.x
+
+Download the one that matches your Renoise version.
+
+**Renoise 3.5.0+ — Full Experience**
+
+Everything. All 90+ modules including Canvas visual editors (Device Parameter Editor with live automation sync, 30-band drawable EQ, Chebyshev Waveshaper, HyperEdit, PCM Writer, Waveform Viewer, Equation Calculator), Phrase Generator/Grid/Transport Recording, note preview while editing, and all DSP devices including Notepad and Splitter.
+
+**Renoise 3.3.0-3.4.x — Full Toolkit, No Canvas**
+
+All pattern editor tools, sample slicing, every import/export format (Polyend Tracker projects, RX2, SF2, IFF), MIDI controller support (AKAI, Digitakt, Polyend), automation curves, themes, CCizer, MetaSynth/eSpeak/yt-dlp integration, Image to Sample Converter, Slice Step Sequencer, and all "v2" DSP devices (Chorus 2, Digital Filter, mpReverb 2, etc.). Canvas visual editors and Phrase tools require 3.5.
+
+**Renoise 3.2.0 — Full Toolkit, No Canvas, No v2 Devices**
+
+Same as above minus the "v2" DSP devices (Chorus 2, Digital Filter, Distortion 2, Flanger 2, Gate 2, LofiMat 2, mpReverb 2, Phaser 2, RingMod 2, Comb Filter 2). The original v1 versions are used as fallbacks.
+
+**Renoise 3.1.x — Legacy Build**
+
+The Renoise 3.1 build includes all core Paketti features — pattern editor tools, shortcuts, sample slicing, Polyend/AKAI/Digitakt import and export, MIDI controller support, automation curves, theme management, and hundreds of workflow enhancements. Features that require newer Renoise versions (Canvas visual editors, v2 DSP devices, Phrase tools) are automatically hidden.
+
+**Renoise 3.0.x and older — Not Supported**
 
 # GettingStarted
 
