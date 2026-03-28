@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-28 - Fix: Last 4 bypass entries in PakettiAutomation.lua now respect Menu Configuration
+
+Four `Track Automation:Paketti:Automation Curves:Selection Center->Up/Down (Linear)` and `Selection Up/Down->Center (Linear)` menu entries in PakettiAutomation.lua were still using a direct `tool:add_menu_entry` call instead of `PakettiAddMenuEntry`, bypassing the Menu Configuration preference system entirely. Fixed to use `PakettiAddMenuEntry` so they respect the "Automation Menus" toggle.
+
 ### 2026-03-28 - Fix: Menu Configuration per-context toggles now actually work
 
 The **Paketti Menu Configuration** dialog lets you uncheck entire menu contexts (e.g. Main Menu:Tools, Disk Browser, DSP Device, Sample Editor, etc.) to reduce clutter. Previously, unchecking a context, restarting Renoise, and reopening showed the checkbox still unchecked — but the menus were still there.

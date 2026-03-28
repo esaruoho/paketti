@@ -1226,7 +1226,7 @@ local menu_entries = {
 
 
 
-for _, entry in ipairs(menu_entries) do tool:add_menu_entry({name=entry[1],invoke=function() apply_linear_automation_curveCenter(entry[2]) end})
+for _, entry in ipairs(menu_entries) do PakettiAddMenuEntry({name=entry[1],invoke=function() apply_linear_automation_curveCenter(entry[2]) end})
 end
 
 -- Create the linear automation functions
