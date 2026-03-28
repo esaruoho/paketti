@@ -595,10 +595,10 @@ function PakettiCreateMIDIControlFromTextFile()
 
    --[[
    -- Menu entries for the new function
-   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
-   renoise.tool():add_menu_entry{name="DSP Device:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
-   renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
-   renoise.tool():add_menu_entry{name="Mixer:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   PakettiAddMenuEntry{name="DSP Device:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   PakettiAddMenuEntry{name="Mixer:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
    renoise.tool():add_keybinding{name="Global:Paketti:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
 ]]--
 -- Function to apply CCizer mappings to the currently selected device (or create new one if needed)
@@ -936,9 +936,9 @@ local function create_ccizer_menu_entries()
         local display_name = file.display_name -- Already has .txt removed
         local filename = file.name -- Full filename with .txt
         
-        renoise.tool():add_menu_entry{name = "DSP Device:Paketti:CCizer:Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
-        renoise.tool():add_menu_entry{name = "Sample FX Mixer:Paketti:CCizer:Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
-        renoise.tool():add_menu_entry{name = "Mixer:Paketti:CCizer:Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
+        PakettiAddMenuEntry{name = "DSP Device:Paketti:CCizer:Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
+        PakettiAddMenuEntry{name = "Sample FX Mixer:Paketti:CCizer:Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
+        PakettiAddMenuEntry{name = "Mixer:Paketti:CCizer:Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
         renoise.tool():add_keybinding{name = "Global:Paketti:CCizer Load " .. display_name, invoke = function() load_ccizer_file_to_selected_device(filename) end}
     end
 end
@@ -960,13 +960,13 @@ local function load_ccizer_file_browse_to_selected_device()
     end
 end
 
-renoise.tool():add_menu_entry{name = "DSP Device:Paketti:CCizer:Open CCizer Dialog", invoke = PakettiCCizerLoaderToSelectedDevice}
-renoise.tool():add_menu_entry{name = "Sample FX Mixer:Paketti:CCizer:Open CCizer Dialog", invoke = PakettiCCizerLoaderToSelectedDevice}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti:CCizer:Open CCizer Dialog", invoke = PakettiCCizerLoaderToSelectedDevice}
+PakettiAddMenuEntry{name = "DSP Device:Paketti:CCizer:Open CCizer Dialog", invoke = PakettiCCizerLoaderToSelectedDevice}
+PakettiAddMenuEntry{name = "Sample FX Mixer:Paketti:CCizer:Open CCizer Dialog", invoke = PakettiCCizerLoaderToSelectedDevice}
+PakettiAddMenuEntry{name = "Mixer:Paketti:CCizer:Open CCizer Dialog", invoke = PakettiCCizerLoaderToSelectedDevice}
 
-renoise.tool():add_menu_entry{name = "DSP Device:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
-renoise.tool():add_menu_entry{name = "Sample FX Mixer:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
+PakettiAddMenuEntry{name = "DSP Device:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
+PakettiAddMenuEntry{name = "Sample FX Mixer:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
+PakettiAddMenuEntry{name = "Mixer:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
 
 -- COMPREHENSIVE RECURSIVE RENOISE API EXPLORER
 -- This explores EVERY SINGLE subobject, property, method in the entire Renoise API
@@ -1111,7 +1111,7 @@ function paketti_debug_dump_complete_renoise_api()
 end
 
 -- Add debug menu entry
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Debug:Dump Complete Renoise API", invoke = paketti_debug_dump_complete_renoise_api}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:!Preferences:Debug:Dump Complete Renoise API", invoke = paketti_debug_dump_complete_renoise_api}
 
 
 

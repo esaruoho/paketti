@@ -508,7 +508,7 @@ function whichSubcolumn()
 end
 
 -- Add menu entry and keybinding for whichSubcolumn function
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?", invoke=whichSubcolumn}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?", invoke=whichSubcolumn}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Which Sub-Column?", invoke=whichSubcolumn}
 
 -- Function to toggle timed_require debug output
@@ -519,7 +519,7 @@ function pakettiToggleTimedRequireDebug()
 end
 
 -- Add menu entry and keybinding for timed_require debug toggle
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
 
 
@@ -1516,7 +1516,7 @@ function pakettiRandomFeatureForDocumentation()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Random Feature for Documentation", invoke=pakettiRandomFeatureForDocumentation}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Random Feature for Documentation", invoke=pakettiRandomFeatureForDocumentation}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Random Feature for Documentation", invoke=pakettiRandomFeatureForDocumentation}
 
 -- Auto-run random feature picker at startup (for development/documentation purposes)
 -- GitHub Actions changes this to false during release builds.

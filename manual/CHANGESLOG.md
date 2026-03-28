@@ -12,6 +12,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-28 - Fix: Menu Configuration per-context toggles now actually work
+
+The **Paketti Menu Configuration** dialog lets you uncheck entire menu contexts (e.g. Main Menu:Tools, Disk Browser, DSP Device, Sample Editor, etc.) to reduce clutter. Previously, unchecking a context, restarting Renoise, and reopening showed the checkbox still unchecked — but the menus were still there. This was a confirmed bug: roughly 529 menu entries in PakettiMenuConfig.lua and ~500 more entries across 88 other Paketti modules were registered unconditionally at boot, ignoring the per-context preferences entirely.
+
+**What changed:**
+
+- **PakettiMenuConfig.lua**: All 529 previously unconditional `add_menu_entry` calls (covering Main Menu:Tools, Main Menu:File, Sample Editor, DSP Device, DSP Chain, Pattern Editor, Pattern Matrix, Mixer, Instrument Box, Phrase Editor, Automation, Disk Browser, and more) are now wrapped in `if preferences.pakettiMenuConfig.<context> then … end` blocks matching the correct preference key.
+- **Paketti0G01_Loader.lua**: The `PakettiAddMenuEntry` helper function was enhanced with a new `PakettiMenuContextPrefKey()` mapper that auto-detects the menu context from the entry name and checks the corresponding per-context preference before registration. This means all entries registered via `PakettiAddMenuEntry` now respect both the master toggle and the per-context toggle.
+- **88 other Paketti*.lua files + main.lua + legacy_v2_8_tools.lua**: All ~500 raw `renoise.tool():add_menu_entry` calls were replaced with `PakettiAddMenuEntry` so they go through the preference-checking pipeline.
+
+After this fix, unchecking a context in Menu Configuration and restarting Renoise will correctly suppress all menu entries in that context.
+
 ### 2026-03-28 - Improvement: Menu Configuration and Toggler dialogs now clearly state restart is required
 
 Both the **Paketti Menu Configuration** and **Paketti Toggler** dialogs now display a prominent bold notice: *"Note: Changes will only take effect after Renoise has been restarted."* Previously, the Menu Configuration dialog had no notice at all, and the Toggler dialog had only a dim italic note that was easy to miss. This makes it clear that toggling checkboxes saves your preference but menus/keybindings/MIDI mappings are only registered at tool load time.

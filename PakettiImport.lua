@@ -230,9 +230,9 @@ function pakettiMultiFileRawLoader()
   end
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Multi-File Raw Loader (8-bit)", invoke = pakettiMultiFileRawLoader}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Load:Multi-File Raw Loader (8-bit)", invoke = pakettiMultiFileRawLoader}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Load:Multi-File Raw Loader (8-bit)", invoke = pakettiMultiFileRawLoader}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Multi-File Raw Loader (8-bit)", invoke = pakettiMultiFileRawLoader}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Load:Multi-File Raw Loader (8-bit)", invoke = pakettiMultiFileRawLoader}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Load:Multi-File Raw Loader (8-bit)", invoke = pakettiMultiFileRawLoader}
 renoise.tool():add_keybinding{name = "Global:Paketti:Multi-File Raw Loader (8-bit)", invoke = pakettiMultiFileRawLoader}
 renoise.tool():add_midi_mapping{name = "Paketti:Multi-File Raw Loader (8-bit)", invoke = function(message) if message:is_trigger() then pakettiMultiFileRawLoader() end end}
 

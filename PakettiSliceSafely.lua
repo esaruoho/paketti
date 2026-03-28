@@ -213,25 +213,25 @@ end
 -- Menu Entries
 --------------------------------------------------------------------------------
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely Dialog...", invoke=SliceSafelyDialog}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:SliceSafely:SliceSafely (002)", invoke=function() SliceSafelyWipeAndSlice(2) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (004)", invoke=function() SliceSafelyWipeAndSlice(4) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (008)", invoke=function() SliceSafelyWipeAndSlice(8) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (016)", invoke=function() SliceSafelyWipeAndSlice(16) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (032)", invoke=function() SliceSafelyWipeAndSlice(32) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (064)", invoke=function() SliceSafelyWipeAndSlice(64) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (128)", invoke=function() SliceSafelyWipeAndSlice(128) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (256)", invoke=function() SliceSafelyWipeAndSlice(256) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely Dialog...", invoke=SliceSafelyDialog}
+PakettiAddMenuEntry{name="--Sample Editor:Paketti..:SliceSafely:SliceSafely (002)", invoke=function() SliceSafelyWipeAndSlice(2) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (004)", invoke=function() SliceSafelyWipeAndSlice(4) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (008)", invoke=function() SliceSafelyWipeAndSlice(8) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (016)", invoke=function() SliceSafelyWipeAndSlice(16) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (032)", invoke=function() SliceSafelyWipeAndSlice(32) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (064)", invoke=function() SliceSafelyWipeAndSlice(64) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (128)", invoke=function() SliceSafelyWipeAndSlice(128) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:SliceSafely:SliceSafely (256)", invoke=function() SliceSafelyWipeAndSlice(256) end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely Dialog...", invoke=SliceSafelyDialog}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:SliceSafely:SliceSafely (002)", invoke=function() SliceSafelyWipeAndSlice(2) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (004)", invoke=function() SliceSafelyWipeAndSlice(4) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (008)", invoke=function() SliceSafelyWipeAndSlice(8) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (016)", invoke=function() SliceSafelyWipeAndSlice(16) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (032)", invoke=function() SliceSafelyWipeAndSlice(32) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (064)", invoke=function() SliceSafelyWipeAndSlice(64) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (128)", invoke=function() SliceSafelyWipeAndSlice(128) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (256)", invoke=function() SliceSafelyWipeAndSlice(256) end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely Dialog...", invoke=SliceSafelyDialog}
+PakettiAddMenuEntry{name="--Instrument Box:Paketti..:SliceSafely:SliceSafely (002)", invoke=function() SliceSafelyWipeAndSlice(2) end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (004)", invoke=function() SliceSafelyWipeAndSlice(4) end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (008)", invoke=function() SliceSafelyWipeAndSlice(8) end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (016)", invoke=function() SliceSafelyWipeAndSlice(16) end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (032)", invoke=function() SliceSafelyWipeAndSlice(32) end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (064)", invoke=function() SliceSafelyWipeAndSlice(64) end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (128)", invoke=function() SliceSafelyWipeAndSlice(128) end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti..:SliceSafely:SliceSafely (256)", invoke=function() SliceSafelyWipeAndSlice(256) end}
 
 --------------------------------------------------------------------------------
 -- Keybindings

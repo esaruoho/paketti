@@ -107,7 +107,7 @@ return pattern {
   renoise.app():show_status("pattrns script with speed + voicing + reverse: " .. phrase.name)
 end
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Pattern Editor:Paketti:Convert Track to pattrns (Pulse Divider + FX)",
   invoke = paketti_convert_track_to_pattrns_script_accurate
 }

@@ -957,7 +957,7 @@ end
 --------------------------------------------------------------------------------
 -- Keybindings for Batch RX2 to OT (Menu entries in PakettiMenuConfig.lua)
 --------------------------------------------------------------------------------
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Batch Convert RX2 to OT (WAV+.ot)...",invoke=PakettiBatchRX2ToOT}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Batch Convert RX2 to OT (WAV+.ot)...",invoke=PakettiBatchRX2ToOT}
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert RX2 to Octatrack (WAV+.ot)",invoke=PakettiBatchRX2ToOT}
 
 --------------------------------------------------------------------------------
@@ -1179,7 +1179,7 @@ end
 --------------------------------------------------------------------------------
 -- Menu entry and keybinding for Batch RX2 to XRNI
 --------------------------------------------------------------------------------
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name   = "Sample Editor:Paketti:Batch Convert RX2 to XRNI...",
   invoke = PakettiBatchRX2ToXRNI}
 renoise.tool():add_keybinding{

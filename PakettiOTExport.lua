@@ -1148,21 +1148,21 @@ end
 -- NOTE: File import hook registration moved to PakettiImport.lua for centralized management
 
 -- Add consolidated Octatrack menu entries
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Export (.WAV+.ot)",invoke=function() PakettiOTExport() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Export (.ot only)",invoke=function() PakettiOTExportOtOnly() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Import (.ot)",invoke=function() PakettiOTImport() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Debug (.ot)",invoke=function() PakettiOTDebugDialog() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Octatrack:Generate Drumkit (Smart Mono/Stereo)",invoke=function() PakettiOTDrumkitSmart() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Generate Drumkit (Force Mono)",invoke=function() PakettiOTDrumkitMono() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Octatrack:Set Loop to Slice",invoke=function() PakettiOTSetLoopToSlice() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Export (.WAV+.ot)",invoke=function() PakettiOTExport() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Export (.ot only)",invoke=function() PakettiOTExportOtOnly() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Import (.ot)",invoke=function() PakettiOTImport() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Debug (.ot)",invoke=function() PakettiOTDebugDialog() end}
+PakettiAddMenuEntry{name="--Sample Editor:Paketti:Octatrack:Generate Drumkit (Smart Mono/Stereo)",invoke=function() PakettiOTDrumkitSmart() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Generate Drumkit (Force Mono)",invoke=function() PakettiOTDrumkitMono() end}
+PakettiAddMenuEntry{name="--Sample Editor:Paketti:Octatrack:Set Loop to Slice",invoke=function() PakettiOTSetLoopToSlice() end}
 
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Export to Octatrack (.WAV+.OT)",invoke=function() PakettiOTExport() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Export to Octatrack (.ot only)",invoke=function() PakettiOTExportOtOnly() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Import Octatrack (.ot)",invoke=function() PakettiOTImport() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Debug Octatrack (.ot)",invoke=function() PakettiOTDebugDialog() end}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Octatrack:Generate .ot Drumkit (Smart Mono/Stereo)",invoke=function() PakettiOTDrumkitSmart() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Generate .ot Drumkit (Force Mono)",invoke=function() PakettiOTDrumkitMono() end}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Octatrack:Set .ot Loop to Slice",invoke=function() PakettiOTSetLoopToSlice() end}
+PakettiAddMenuEntry{name="Sample Mappings:Paketti:Octatrack:Export to Octatrack (.WAV+.OT)",invoke=function() PakettiOTExport() end}
+PakettiAddMenuEntry{name="Sample Mappings:Paketti:Octatrack:Export to Octatrack (.ot only)",invoke=function() PakettiOTExportOtOnly() end}
+PakettiAddMenuEntry{name="Sample Mappings:Paketti:Octatrack:Import Octatrack (.ot)",invoke=function() PakettiOTImport() end}
+PakettiAddMenuEntry{name="Sample Mappings:Paketti:Octatrack:Debug Octatrack (.ot)",invoke=function() PakettiOTDebugDialog() end}
+PakettiAddMenuEntry{name="--Sample Mappings:Paketti:Octatrack:Generate .ot Drumkit (Smart Mono/Stereo)",invoke=function() PakettiOTDrumkitSmart() end}
+PakettiAddMenuEntry{name="Sample Mappings:Paketti:Octatrack:Generate .ot Drumkit (Force Mono)",invoke=function() PakettiOTDrumkitMono() end}
+PakettiAddMenuEntry{name="--Sample Mappings:Paketti:Octatrack:Set .ot Loop to Slice",invoke=function() PakettiOTSetLoopToSlice() end}
 
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Export to Octatrack (.WAV+.ot)",invoke=function() PakettiOTExport() end}
@@ -3854,7 +3854,7 @@ end
 
 
 -- Add menu entries
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Generate .ot Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
+PakettiAddMenuEntry{name="Sample Mappings:Paketti:Octatrack:Generate .ot Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Octatrack Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
 

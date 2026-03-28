@@ -263,9 +263,9 @@ function PakettiDuplicatePattern()
 end
 
 -- Menu entry, keybindings, and MIDI mapping for Duplicate Pattern
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
@@ -493,13 +493,13 @@ function PakettiSwapTrackDataBetweenPatterns(pattern_a, pattern_b, track_index)
 end
 
 -- Menu entries for Swap Pattern Slot functions
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
 
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
 
 -- Keybindings for Swap Pattern Slot functions
 renoise.tool():add_keybinding{name="Global:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
@@ -742,9 +742,9 @@ function PakettiSwapCompletePatternData(pattern_a, pattern_b)
 end
 
 -- Menu entries for Swap Two Pattern Slots function
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Swap Two Pattern Slots",invoke=PakettiSwapTwoPatternSlots}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Swap Two Pattern Slots",invoke=PakettiSwapTwoPatternSlots}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Swap Two Pattern Slots",invoke=PakettiSwapTwoPatternSlots}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Swap Two Pattern Slots",invoke=PakettiSwapTwoPatternSlots}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Swap Two Pattern Slots",invoke=PakettiSwapTwoPatternSlots}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Swap Two Pattern Slots",invoke=PakettiSwapTwoPatternSlots}
 
 -- Keybindings for Swap Two Pattern Slots function
 renoise.tool():add_keybinding{name="Global:Paketti:Swap Two Pattern Slots",invoke=PakettiSwapTwoPatternSlots}
@@ -781,9 +781,9 @@ function PakettiResizeAllPatternsToCurrentLength()
 end
 
 -- Menu entries for Resize All Patterns function
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}
 
 -- Keybindings for Resize All Patterns function
 renoise.tool():add_keybinding{name="Global:Paketti:Resize All Patterns to Current Length",invoke=PakettiResizeAllPatternsToCurrentLength}

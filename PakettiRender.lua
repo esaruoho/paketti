@@ -1713,10 +1713,10 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Render Pattern Select
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Render Pattern Selection (Mute + New Track)",invoke=function() pakettiRenderPatternSelection(true, false, true) end}
 
 -- Menu entries for selection-based rendering
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection",invoke=function() pakettiRenderPatternSelection(false, false, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection (Mute Original)",invoke=function() pakettiRenderPatternSelection(true, false, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection (New Track)",invoke=function() pakettiRenderPatternSelection(false, false, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection (Mute + New Track)",invoke=function() pakettiRenderPatternSelection(true, false, true) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection",invoke=function() pakettiRenderPatternSelection(false, false, false) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection (Mute Original)",invoke=function() pakettiRenderPatternSelection(true, false, false) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection (New Track)",invoke=function() pakettiRenderPatternSelection(false, false, true) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Clean Render:Render Pattern Selection (Mute + New Track)",invoke=function() pakettiRenderPatternSelection(true, false, true) end}
 
 --------
 -- Clean Render In Place
@@ -2009,11 +2009,11 @@ function pakettiDestructiveCleanRenderInPlace()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render In Place",invoke=function() pakettiCleanRenderInPlace() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Clean Render In Place",invoke=function() pakettiCleanRenderInPlace() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Clean Render:Clean Render In Place",invoke=function() pakettiCleanRenderInPlace() end}
 renoise.tool():add_midi_mapping{name="Paketti:Clean Render In Place",invoke=function(message) if message:is_trigger() then pakettiCleanRenderInPlace() end end}
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Destructive Clean Render In Place",invoke=function() pakettiDestructiveCleanRenderInPlace() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Destructive Clean Render In Place",invoke=function() pakettiDestructiveCleanRenderInPlace() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Clean Render:Destructive Clean Render In Place",invoke=function() pakettiDestructiveCleanRenderInPlace() end}
 renoise.tool():add_midi_mapping{name="Paketti:Destructive Clean Render In Place",invoke=function(message) if message:is_trigger() then pakettiDestructiveCleanRenderInPlace() end end}
 
 --------
@@ -3541,10 +3541,10 @@ end
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Clean Render Matrix In Place",invoke=function() pakettiCleanRenderMatrixInPlace() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render Matrix In Place",invoke=function() pakettiCleanRenderMatrixInPlace() end}
 renoise.tool():add_midi_mapping{name="Paketti:Clean Render Matrix In Place",invoke=function(message) if message:is_trigger() then pakettiCleanRenderMatrixInPlace() end end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Clean Render Matrix In Place",invoke=function() pakettiCleanRenderMatrixInPlace() end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Clean Render Matrix In Place",invoke=function() pakettiCleanRenderMatrixInPlace() end}
 
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Destructive Clean Render Matrix In Place",invoke=function() pakettiDestructiveCleanRenderMatrixInPlace() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Destructive Clean Render Matrix In Place",invoke=function() pakettiDestructiveCleanRenderMatrixInPlace() end}
 renoise.tool():add_midi_mapping{name="Paketti:Destructive Clean Render Matrix In Place",invoke=function(message) if message:is_trigger() then pakettiDestructiveCleanRenderMatrixInPlace() end end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Destructive Clean Render Matrix In Place",invoke=function() pakettiDestructiveCleanRenderMatrixInPlace() end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Destructive Clean Render Matrix In Place",invoke=function() pakettiDestructiveCleanRenderMatrixInPlace() end}
 

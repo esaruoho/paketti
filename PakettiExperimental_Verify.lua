@@ -2589,7 +2589,7 @@ end
 
 for cck=1,12 do 
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz " .. formatDigits(2,cck),invoke=function() displayNoteColumn(cck) startcolumncycling(cck) end} 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz " .. formatDigits(2,cck),invoke=function() displayNoteColumn(cck) startcolumncycling(cck) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz " .. formatDigits(2,cck),invoke=function() displayNoteColumn(cck) startcolumncycling(cck) end}
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Start/Stop Column Cycling",invoke=function() startcolumncycling() end}
@@ -2605,7 +2605,7 @@ end
 
 for ccks=3,12 do
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (2)",invoke=function() ColumnCycleKeyjazzSpecial(2) end}
 
@@ -3350,18 +3350,18 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Generate Pure Sinewave Cust
 renoise.tool():add_keybinding{name = "Global:Paketti:Generate AM Sinewave 440Hz (20x mod)", invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Generate AM Sinewave 1000Hz (20x mod)", invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Generate AM Sinewave Custom", invoke = createCustomAmplitudeModulatedSinewave}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:Pure Sinewave 440Hz",invoke = function() createSinewaveSample(44100, 440, nil) end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:Pure Sinewave 1000Hz",invoke = function() createSinewaveSample(44100, 1000, nil) end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:Pure Sinewave Custom Frequency",invoke = createCustomSinewave}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:Pure Sinewave 440Hz",invoke = function() createSinewaveSample(44100, 440, nil) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:Pure Sinewave 1000Hz",invoke = function() createSinewaveSample(44100, 1000, nil) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:Pure Sinewave Custom Frequency",invoke = createCustomSinewave}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Generate:Pure Sinewave 440Hz",invoke = function() createSinewaveSample(44100, 440, nil) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Generate:Pure Sinewave 1000Hz",invoke = function() createSinewaveSample(44100, 1000, nil) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Generate:Pure Sinewave Custom Frequency",invoke = createCustomSinewave}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Generate:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Generate:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Generate:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Generate:Pure Sinewave 440Hz",invoke = function() createSinewaveSample(44100, 440, nil) end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Generate:Pure Sinewave 1000Hz",invoke = function() createSinewaveSample(44100, 1000, nil) end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Generate:Pure Sinewave Custom Frequency",invoke = createCustomSinewave}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Generate:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Generate:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Generate:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}
 --------
 -- Play Current Line in Phrase (CORRECTED)
 function PakettiPlayCurrentLineInPhrase()
@@ -3426,7 +3426,7 @@ function PakettiPlayCurrentLineInPhrase()
   renoise.app():show_status("Played phrase line " .. current_line)
 end
 
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
+PakettiAddMenuEntry{name="Phrase Editor:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 renoise.tool():add_keybinding{name="Global:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 renoise.tool():add_midi_mapping{name="Paketti:Play Current Line in Phrase [Trigger]", invoke = function(message) if message:is_trigger() then PakettiPlayCurrentLineInPhrase() end end}
@@ -3563,8 +3563,8 @@ function PakettiLoadRingModLegacyInstrument()
   end
 end
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Instruments:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Instruments:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
 renoise.tool():add_midi_mapping{name="Paketti:Load RingMod Instrument [Trigger]", invoke = function(message) if message:is_trigger() then PakettiLoadRingModInstrument() end end}

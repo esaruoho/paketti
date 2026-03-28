@@ -145,7 +145,7 @@ selphra.number_of_lines=preferences.pakettiPhraseInitDialog.Length.value
 end
 
 
---renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Create Paketti Phrase",invoke=function() createPhrase() end}
+--PakettiAddMenuEntry{name="--Sample Editor:Paketti:Create Paketti Phrase",invoke=function() createPhrase() end}
 
 --------
 function phraseEditorVisible()
@@ -2893,8 +2893,8 @@ end
 if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Order Notes Current Phrase",invoke=function() PakettiPhraseEditorOrderNotesCurrentPhrase() end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Order Notes All Phrases",invoke=function() PakettiPhraseEditorOrderNotesAllPhrases() end}
-  renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Order Notes:Order Notes Current Phrase",invoke=function() PakettiPhraseEditorOrderNotesCurrentPhrase() end}
-  renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Order Notes:Order Notes All Phrases",invoke=function() PakettiPhraseEditorOrderNotesAllPhrases() end}
+  PakettiAddMenuEntry{name="Phrase Editor:Paketti:Order Notes:Order Notes Current Phrase",invoke=function() PakettiPhraseEditorOrderNotesCurrentPhrase() end}
+  PakettiAddMenuEntry{name="Phrase Editor:Paketti:Order Notes:Order Notes All Phrases",invoke=function() PakettiPhraseEditorOrderNotesAllPhrases() end}
 end
 
 --------------------------------------------------------------------------
@@ -3054,12 +3054,12 @@ renoise.tool():add_keybinding{
   invoke=function() PakettiSelectPreviousPhrase() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name="Main Menu:Tools:Paketti..:Phrases:Select Next Phrase",
   invoke=function() PakettiSelectNextPhrase() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name="Main Menu:Tools:Paketti..:Phrases:Select Previous Phrase",
   invoke=function() PakettiSelectPreviousPhrase() end
 }
@@ -3075,12 +3075,12 @@ renoise.tool():add_keybinding{
   invoke=function() PakettiSelectPreviousPhraseEditor() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name="Main Menu:Tools:Paketti..:Phrases:Select Next Phrase (Phrase Editor)",
   invoke=function() PakettiSelectNextPhraseEditor() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name="Main Menu:Tools:Paketti..:Phrases:Select Previous Phrase (Phrase Editor)",
   invoke=function() PakettiSelectPreviousPhraseEditor() end
 }
@@ -3105,7 +3105,7 @@ for i = 1, 16 do
     invoke=function() PakettiSelectPhrase(i) end
   }
   
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name=string.format("Main Menu:Tools:Paketti..:Phrases:Select Phrase:Select Phrase %02d", i),
     invoke=function() PakettiSelectPhrase(i) end
   }
@@ -3118,7 +3118,7 @@ for i = 1, 16 do
     invoke=function() PakettiSelectPhraseEditor(i) end
   }
   
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name=string.format("Main Menu:Tools:Paketti..:Phrases:Select Phrase (Phrase Editor):Select Phrase %02d (Phrase Editor)", i),
     invoke=function() PakettiSelectPhraseEditor(i) end
   }

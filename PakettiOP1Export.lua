@@ -449,9 +449,9 @@ function PakettiOP1ExportSample()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Export Drum Kit", invoke = PakettiOP1ExportDrumKit}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Export Tape", invoke = PakettiOP1ExportTape}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Export Sample", invoke = PakettiOP1ExportSample}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Export Drum Kit", invoke = PakettiOP1ExportDrumKit}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Export Tape", invoke = PakettiOP1ExportTape}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Export Sample", invoke = PakettiOP1ExportSample}
 
 renoise.tool():add_keybinding{name = "Global:Paketti:OP-1 Export Drum Kit", invoke = PakettiOP1ExportDrumKit}
 renoise.tool():add_keybinding{name = "Global:Paketti:OP-1 Export Tape", invoke = PakettiOP1ExportTape}
@@ -648,9 +648,9 @@ local function import_op1_aif_file(filename)
 end
 ]]--
 -- Add import menu entries
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Import Sample", invoke = PakettiOP1Import}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Xperimental/WIP:OP-1:Import Sample", invoke = PakettiOP1Import}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti:Xperimental/WIP:OP-1:Import Sample", invoke = PakettiOP1Import}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Import Sample", invoke = PakettiOP1Import}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Xperimental/WIP:OP-1:Import Sample", invoke = PakettiOP1Import}
+PakettiAddMenuEntry{name = "Sample Mappings:Paketti:Xperimental/WIP:OP-1:Import Sample", invoke = PakettiOP1Import}
 
 -- Add import keybinding
 renoise.tool():add_keybinding{name = "Global:Paketti:OP-1 Import Sample", invoke = PakettiOP1Import}

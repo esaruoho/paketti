@@ -1478,5 +1478,5 @@ if renoise.API_VERSION >= 6.2 then
   
   renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords - Progression Player...", invoke = PakettiChords_Toggle}
   renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords - Progression Player", invoke = PakettiChords_Toggle}
-  renoise.tool():add_menu_entry{name = "Main Menu:Tools:Chords - Progression Player...", invoke = PakettiChords_Toggle}
+  PakettiAddMenuEntry{name = "Main Menu:Tools:Chords - Progression Player...", invoke = PakettiChords_Toggle}
 end

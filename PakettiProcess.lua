@@ -1684,7 +1684,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Reverse Selected Sample or Slice",
 
 renoise.tool():add_keybinding{name="Global:Paketti:Reverse All Samples in Selected Instrument",invoke=ReverseAllSamplesInSelectedInstrument}
 renoise.tool():add_midi_mapping{name="Paketti:Reverse All Samples in Selected Instrument",invoke=function(message) if message:is_trigger() then ReverseAllSamplesInSelectedInstrument() end end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Reverse All Samples in Selected Instrument",invoke=ReverseAllSamplesInSelectedInstrument}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Process:Reverse All Samples in Selected Instrument",invoke=ReverseAllSamplesInSelectedInstrument}
 --------
 -- Version with callback support for automated workflows
 function normalize_selected_sample_by_slices_with_callback(completion_callback)
@@ -3870,7 +3870,7 @@ function paketti_build_sample_variants()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
 renoise.tool():add_midi_mapping{name="Paketti:Build Sample Variants", invoke=function(message) if message:is_trigger() then paketti_build_sample_variants() end end}
 
 --------

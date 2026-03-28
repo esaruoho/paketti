@@ -743,13 +743,13 @@ function PakettiOctaCycleExport()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Octatrack:Generate OctaCycle...",invoke=function() PakettiOctaCycle() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Quick OctaCycle (C, Oct 1-7)",invoke=function() PakettiOctaCycleQuick() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Export OctaCycle to Octatrack",invoke=function() PakettiOctaCycleExport() end}
+PakettiAddMenuEntry{name="--Sample Editor:Paketti:Octatrack:Generate OctaCycle...",invoke=function() PakettiOctaCycle() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Quick OctaCycle (C, Oct 1-7)",invoke=function() PakettiOctaCycleQuick() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Export OctaCycle to Octatrack",invoke=function() PakettiOctaCycleExport() end}
 
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Octatrack:Generate OctaCycle...",invoke=function() PakettiOctaCycle() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Quick OctaCycle (C, Oct 1-7)",invoke=function() PakettiOctaCycleQuick() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Export OctaCycle to Octatrack",invoke=function() PakettiOctaCycleExport() end}
+PakettiAddMenuEntry{name="--Sample Mappings:Paketti:Octatrack:Generate OctaCycle...",invoke=function() PakettiOctaCycle() end}
+PakettiAddMenuEntry{name="Sample Mappings:Paketti:Octatrack:Quick OctaCycle (C, Oct 1-7)",invoke=function() PakettiOctaCycleQuick() end}
+PakettiAddMenuEntry{name="Sample Mappings:Paketti:Octatrack:Export OctaCycle to Octatrack",invoke=function() PakettiOctaCycleExport() end}
 
 
 -- Keybindings

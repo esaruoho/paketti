@@ -559,4 +559,4 @@ function PakettiEquationCalculator()
 end
 
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Volume Delay Pan Equation Calculator...",invoke = PakettiEquationCalculator}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti Gadgets:Volume Delay Pan Equation Calculator...",invoke = PakettiEquationCalculator}
+PakettiAddMenuEntry{name = "Pattern Editor:Paketti Gadgets:Volume Delay Pan Equation Calculator...",invoke = PakettiEquationCalculator}

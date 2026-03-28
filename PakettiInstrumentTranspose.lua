@@ -126,7 +126,7 @@ if preferences.PakettiInstrumentTransposeCommands.value then
       local menu_name = category.prefix .. ":Paketti:Transpose:Relative " .. formatted_value
       local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose (" .. sign .. value .. ")"
       
-      renoise.tool():add_menu_entry{
+      PakettiAddMenuEntry{
         name = menu_name,
         invoke = function() PakettiInstrumentTransposeRelative(value) end
       }
@@ -186,7 +186,7 @@ if preferences.PakettiInstrumentTransposeCommands.value then
         local menu_name = category.prefix .. ":Paketti:Transpose:Relative " .. formatted_value
         local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose (" .. value .. ")"
         
-        renoise.tool():add_menu_entry{
+        PakettiAddMenuEntry{
           name = menu_name,
           invoke = function() PakettiInstrumentTransposeRelative(value) end
         }
@@ -205,7 +205,7 @@ if preferences.PakettiInstrumentTransposeCommands.value then
         local menu_name = category.prefix .. ":Paketti:Transpose:Relative " .. formatted_value
         local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose (+" .. value .. ")"
         
-        renoise.tool():add_menu_entry{
+        PakettiAddMenuEntry{
           name = menu_name,
           invoke = function() PakettiInstrumentTransposeRelative(value) end
         }
@@ -245,7 +245,7 @@ if preferences.PakettiInstrumentTransposeCommands.value then
       local menu_name = category.prefix .. ":Paketti:Transpose:Absolute " .. formatted_value
       local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose to " .. sign .. value
       
-      renoise.tool():add_menu_entry{
+      PakettiAddMenuEntry{
         name = menu_name,
         invoke = function() PakettiInstrumentTransposeAbsolute(value) end
       }
@@ -276,7 +276,7 @@ if preferences.PakettiInstrumentTransposeCommands.value then
     local menu_name = "--" .. category.prefix .. ":Paketti:Transpose:Reset to +000"
     local keybinding_name = category.prefix .. ":Paketti:Set Selected Instrument Transpose to 0 (Reset)"
     
-    renoise.tool():add_menu_entry{
+    PakettiAddMenuEntry{
       name = menu_name,
       invoke = function() PakettiInstrumentTransposeAbsolute(0) end
     }

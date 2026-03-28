@@ -802,22 +802,22 @@ function PakettiWavCuePromptAndImportWithCues()
 end
 
 -- Add menu entries and keybindings
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Editor:Paketti:Load:Load WAV with CUE Markers...",
   invoke = PakettiWavCuePromptAndImportWithCues
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:File:Load WAV with CUE Markers...",
   invoke = PakettiWavCuePromptAndImportWithCues
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Navigator:Paketti:Load WAV with CUE Markers...",
   invoke = PakettiWavCuePromptAndImportWithCues
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:!Sample Editor:Load WAV with CUE Markers...",
   invoke = PakettiWavCuePromptAndImportWithCues
 }
@@ -833,42 +833,42 @@ renoise.tool():add_keybinding{
 }
 
 -- Export menu entries
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:File:Export WAV with CUE File...",
   invoke = PakettiWavCueExportSampleWithCueFile
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:File:Export WAV with Embedded CUE Headers...",
   invoke = PakettiWavCueExportSampleWithCueHeader
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Editor:Paketti:Export:Export WAV with CUE File...",
   invoke = PakettiWavCueExportSampleWithCueFile
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Editor:Paketti:Export:Export WAV with Embedded CUE Headers...",
   invoke = PakettiWavCueExportSampleWithCueHeader
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Navigator:Paketti:Export WAV with CUE File...",
   invoke = PakettiWavCueExportSampleWithCueFile
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Navigator:Paketti:Export WAV with Embedded CUE Headers...",
   invoke = PakettiWavCueExportSampleWithCueHeader
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:!Sample Editor:Export WAV with CUE File...",
   invoke = PakettiWavCueExportSampleWithCueFile
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:!Sample Editor:Export WAV with Embedded CUE Headers...",
   invoke = PakettiWavCueExportSampleWithCueHeader
 }
@@ -1282,6 +1282,6 @@ end
 --------------------------------------------------------------------------------
 -- Keybindings for Batch OT to WAV+CUE (Menu entries in PakettiMenuConfig.lua)
 --------------------------------------------------------------------------------
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Batch Convert .ot to CUE Files...",invoke=PakettiBatchOTToWavCue}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Batch Convert .ot to CUE Files...",invoke=PakettiBatchOTToWavCue}
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert .ot to CUE Files",invoke=PakettiBatchOTToWavCue}
 

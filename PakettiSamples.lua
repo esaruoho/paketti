@@ -279,7 +279,7 @@ end
 
 for i = 1, 11 do
   renoise.tool():add_keybinding{name=string.format("Sample Editor:Paketti:Set Sample Zoom " .. formatDigits(2,i) .. "x"),invoke=function() setSampleZoom(i) end}
-  renoise.tool():add_menu_entry{name=string.format("Sample Editor:Paketti:Set Sample Zoom:Zoom " .. formatDigits(2,i) .. "x"),invoke=function() setSampleZoom(i) end}
+  PakettiAddMenuEntry{name=string.format("Sample Editor:Paketti:Set Sample Zoom:Zoom " .. formatDigits(2,i) .. "x"),invoke=function() setSampleZoom(i) end}
 end
 ---------
 function setSampleZoomFromMidi(midi_value)
@@ -2673,12 +2673,12 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Flip Sample Buffer Sel
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
 renoise.tool():add_midi_mapping{name="Paketti:Flip Sample Buffer Selection Back [Trigger]",invoke=function(message) if message:is_trigger() then pakettiSampleBufferFlipSelection(-1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Flip Sample Buffer Selection Forward [Trigger]",invoke=function(message) if message:is_trigger() then pakettiSampleBufferFlipSelection(1) end end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Selection:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Selection:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
-renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Selection:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Selection:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
+PakettiAddMenuEntry{name="--Sample Editor Ruler:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
+PakettiAddMenuEntry{name="Sample Editor Ruler:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
 
 function pakettiDetectAndSelectSilenceInZoom()
   local song=renoise.song()
@@ -2772,9 +2772,9 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
 renoise.tool():add_midi_mapping{name="Paketti:Detect and Select Silence in Zoom [Trigger]",invoke=function(message) if message:is_trigger() then pakettiDetectAndSelectSilenceInZoom() end end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
-renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
+PakettiAddMenuEntry{name="--Sample Editor Ruler:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
 
 -------
 function pakettiSaveSampleRange(format)
@@ -3308,8 +3308,8 @@ end
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Trim by Half (Selected Sample)",invoke=function() PakettiTrimByHalfSelectedSample() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Trim by Half (All Samples in Instrument)",invoke=function() PakettiTrimByHalfAllSamples() end}
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Trim by Half (Selected Sample)",invoke=function() PakettiTrimByHalfSelectedSample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Trim by Half (All Samples in Instrument)",invoke=function() PakettiTrimByHalfAllSamples() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Process:Trim by Half (Selected Sample)",invoke=function() PakettiTrimByHalfSelectedSample() end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Process:Trim by Half (All Samples in Instrument)",invoke=function() PakettiTrimByHalfAllSamples() end}
 
 
 --------
@@ -4810,7 +4810,7 @@ local function createFolderActions(folderNum)
   local folderName = string.format("Folder %02d", folderNum)
   
   -- Open Folder
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Open Folder", folderName), invoke=function() 
+  PakettiAddMenuEntry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Open Folder", folderName), invoke=function() 
     local folderPath = getFolderPath(folderNum)
     if folderPath and folderPath ~= "" then
       renoise.app():open_path(folderPath)
@@ -4820,7 +4820,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random Drumkit
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random Drumkit", folderName), invoke=function()
+  PakettiAddMenuEntry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random Drumkit", folderName), invoke=function()
     local folderPath = getFolderPath(folderNum)
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random Drumkit from " .. folderPath)
@@ -4831,7 +4831,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random 01
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 01", folderName), invoke=function()
+  PakettiAddMenuEntry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 01", folderName), invoke=function()
     local folderPath = getFolderPath(folderNum)
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 01 sample from " .. folderPath)
@@ -4842,7 +4842,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random 01 to Pattern
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 01 Sample to Pattern", folderName), invoke=function()
+  PakettiAddMenuEntry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 01 Sample to Pattern", folderName), invoke=function()
     local folderPath = getFolderPath(folderNum)
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 01 sample to pattern from " .. folderPath)
@@ -4853,7 +4853,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random 12
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 12", folderName), invoke=function()
+  PakettiAddMenuEntry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 12", folderName), invoke=function()
     local folderPath = getFolderPath(folderNum)
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 12 samples from " .. folderPath)
@@ -4864,7 +4864,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random 32
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 32", folderName), invoke=function()
+  PakettiAddMenuEntry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 32", folderName), invoke=function()
     local folderPath = getFolderPath(folderNum)
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 32 instruments from " .. folderPath)
@@ -7183,8 +7183,8 @@ function isolate_slices_play_all_together()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Slice:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
 
 
 
@@ -7832,8 +7832,8 @@ function PakettiSamplesDestructiveRepeatRange()
 end
 
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Destructive Repeat Sample Range", invoke = PakettiSamplesDestructiveRepeatRange}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Destructive Repeat Sample Range", invoke = PakettiSamplesDestructiveRepeatRange}
-renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Destructive Repeat Sample Range", invoke = PakettiSamplesDestructiveRepeatRange}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Destructive Repeat Sample Range", invoke = PakettiSamplesDestructiveRepeatRange}
+PakettiAddMenuEntry{name = "--Sample Editor Ruler:Destructive Repeat Sample Range", invoke = PakettiSamplesDestructiveRepeatRange}
 
 -- Append Selection to End: Pastes the selected sample range to the end of the sample
 function PakettiSamplesAppendSelectionToEnd()
@@ -7929,8 +7929,8 @@ function PakettiSamplesAppendSelectionToEnd()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Append Selection to End", invoke = PakettiSamplesAppendSelectionToEnd}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Append Selection to End", invoke = PakettiSamplesAppendSelectionToEnd}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Append Selection to End", invoke = PakettiSamplesAppendSelectionToEnd}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Append Selection to End", invoke = PakettiSamplesAppendSelectionToEnd}
+PakettiAddMenuEntry{name="Sample Editor Ruler:Append Selection to End", invoke = PakettiSamplesAppendSelectionToEnd}
 renoise.tool():add_midi_mapping{name="Paketti:Append Selection to End", invoke = PakettiSamplesAppendSelectionToEnd}
 
 -- Insert Selection After Selection: Inserts the selection right after itself, pushing content forward
@@ -8205,13 +8205,13 @@ function PakettiSamplesFrequencyToNoteAnalysis()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
+PakettiAddMenuEntry{name="Sample Editor Ruler:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
 renoise.tool():add_midi_mapping{name="Paketti:Insert Selection After Selection", invoke = PakettiSamplesInsertSelectionAfterSelection}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
+PakettiAddMenuEntry{name="Sample Editor Ruler:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
 renoise.tool():add_keybinding{name="Global:Paketti:Detect and Correct Single-Cycle Pitch",invoke = PakettiSamplesDetectAndCorrectPitch}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Frequency to Note Analysis",invoke = PakettiSamplesFrequencyToNoteAnalysis}
+PakettiAddMenuEntry{name="Sample Editor Ruler:Frequency to Note Analysis",invoke = PakettiSamplesFrequencyToNoteAnalysis}
 renoise.tool():add_keybinding{name="Global:Paketti:Frequency to Note Analysis",invoke = PakettiSamplesFrequencyToNoteAnalysis}
 
 -- Select N bars based on current BPM (DRY principle)
@@ -8260,15 +8260,15 @@ function PakettiSamplesSelectBars(num_bars)
 end
 
 -- Menu entries and keybindings
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Select Bars (BPM):Select 1 Bar", invoke = function() PakettiSamplesSelectBars(1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Select Bars (BPM):Select 2 Bars", invoke = function() PakettiSamplesSelectBars(2) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Select Bars (BPM):Select 4 Bars", invoke = function() PakettiSamplesSelectBars(4) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Select Bars (BPM):Select 8 Bars", invoke = function() PakettiSamplesSelectBars(8) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Select Bars (BPM):Select 1 Bar", invoke = function() PakettiSamplesSelectBars(1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Select Bars (BPM):Select 2 Bars", invoke = function() PakettiSamplesSelectBars(2) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Select Bars (BPM):Select 4 Bars", invoke = function() PakettiSamplesSelectBars(4) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Select Bars (BPM):Select 8 Bars", invoke = function() PakettiSamplesSelectBars(8) end}
 
-renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Select 1 Bar (Based on BPM)", invoke = function() PakettiSamplesSelectBars(1) end}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Select 2 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(2) end}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Select 4 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(4) end}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Select 8 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(8) end}
+PakettiAddMenuEntry{name="--Sample Editor Ruler:Select 1 Bar (Based on BPM)", invoke = function() PakettiSamplesSelectBars(1) end}
+PakettiAddMenuEntry{name="Sample Editor Ruler:Select 2 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(2) end}
+PakettiAddMenuEntry{name="Sample Editor Ruler:Select 4 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(4) end}
+PakettiAddMenuEntry{name="Sample Editor Ruler:Select 8 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(8) end}
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select 1 Bar (Based on BPM)", invoke = function() PakettiSamplesSelectBars(1) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select 2 Bars (Based on BPM)", invoke = function() PakettiSamplesSelectBars(2) end}

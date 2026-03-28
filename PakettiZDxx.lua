@@ -305,7 +305,7 @@ function show_zdxx_dialog()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:ZDxx Pattern Delay Dialog...", invoke = show_zdxx_dialog}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Pattern Editor:ZDxx Pattern Delay Dialog...", invoke = show_zdxx_dialog}
 
 -- Keybindings
 renoise.tool():add_keybinding{name = "Global:Paketti:ZDxx Pattern Delay Dialog", invoke = show_zdxx_dialog}

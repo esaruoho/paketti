@@ -234,8 +234,8 @@ function PakettiSliceToolsDialog()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Slice Tools:Slice Tools Dialog...", invoke=function() PakettiSliceToolsDialog() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice Tools:Slice Tools Dialog...", invoke=function() PakettiSliceToolsDialog() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Slice Tools:Slice Tools Dialog...", invoke=function() PakettiSliceToolsDialog() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Slice Tools:Slice Tools Dialog...", invoke=function() PakettiSliceToolsDialog() end}
 
 -- Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Slice Tools Dialog", invoke=function() PakettiSliceToolsDialog() end}

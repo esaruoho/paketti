@@ -2711,7 +2711,7 @@ renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Selected Device Pa
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Duplicate to Next Pattern",invoke = PakettiCanvasExperimentsDuplicateToNextPattern}
 renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Snapshot to Next Pattern",invoke = PakettiCanvasExperimentsSnapshotToNextPattern}
 
-renoise.tool():add_menu_entry {name = "Mixer:Paketti Gadgets:Selected Device Parameter Editor...", invoke = PakettiCanvasExperimentsInit}
+PakettiAddMenuEntry {name = "Mixer:Paketti Gadgets:Selected Device Parameter Editor...", invoke = PakettiCanvasExperimentsInit}
 
 --------------------------------------------------------------------------------
 -- PHRASEGRID INTEGRATION: Device Parameter Snapshots

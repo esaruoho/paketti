@@ -2297,37 +2297,37 @@ end
 
 local menus = {"Main Menu:Tools:Paketti:Microtonal Tunings", "Instrument Box:Paketti:Microtonal Tunings"}
 for _, base in ipairs(menus) do
-  renoise.tool():add_menu_entry{name = base..":Microtonal Tunings Dialog...", invoke = show_microtonal_tuning_dialog}
-  renoise.tool():add_menu_entry{name = base..":Apply Golden Pythagorean (13-note)", invoke = apply_golden_pythagorean}
-  renoise.tool():add_menu_entry{name = base..":Apply 36-EDO", invoke = apply_36_edo}
-  renoise.tool():add_menu_entry{name = base..":Apply Solfeggio", invoke = apply_solfeggio}
-  renoise.tool():add_menu_entry{name = base..":Apply Colundi", invoke = apply_colundi}
-  renoise.tool():add_menu_entry{name = base..":Apply Just Intonation (5-limit)", invoke = apply_just_intonation}
-  renoise.tool():add_menu_entry{name = base..":Apply Pythagorean (pure fifths)", invoke = apply_pythagorean}
-  renoise.tool():add_menu_entry{name = base..":Apply Phi-9 (Lange)", invoke = apply_phi_9_lange}
-  renoise.tool():add_menu_entry{name = base..":Apply Phi-7 (Lange)", invoke = apply_phi_7_lange}
-  renoise.tool():add_menu_entry{name = base..":Apply Lange 36-note Phi Scale", invoke = apply_lange_phi_36}
-  renoise.tool():add_menu_entry{name = base..":Apply Phi Power Series", invoke = apply_phi_power_series}
-  renoise.tool():add_menu_entry{name = base..":Apply 10-TET Decagono (Lange)", invoke = apply_10_tet_decagono}
-  renoise.tool():add_menu_entry{name = base..":Apply Phi 7/10 Hybrid (Lange)", invoke = apply_phi_7_10_hybrid}
-  renoise.tool():add_menu_entry{name = base..":Apply Lange Phi Music System (304.295 Hz)", invoke = apply_lange_phi_music_system}
-  renoise.tool():add_menu_entry{name = base..":Reset to 12-TET", invoke = reset_to_12tet}
-  renoise.tool():add_menu_entry{name = base..":Generate Golden Shimmer Wavetable", invoke = generate_shimmering_wavetable}
-  renoise.tool():add_menu_entry{name = base..":Generate Golden Beating Wavetable", invoke = generate_golden_beating_wavetable}
-  renoise.tool():add_menu_entry{name = base..":Generate Spectral Morph Wavetable", invoke = generate_spectral_morph_wavetable}
-  renoise.tool():add_menu_entry{name = base..":Generate Tuning History Wavetable", invoke = generate_tuning_history_wavetable}
-  renoise.tool():add_menu_entry{name = base..":Generate Sacred Geometry Wavetable", invoke = generate_sacred_geometry_wavetable}
-  renoise.tool():add_menu_entry{name = base..":Generate Phi Harmonic Strings Wavetable (Lange)", invoke = generate_phi_harmonic_strings_wavetable}
-  renoise.tool():add_menu_entry{name = base..":Generate Golden Drone Pad", invoke = generate_golden_drone}
-  renoise.tool():add_menu_entry{name = base..":Generate Golden Binaural Beats", invoke = generate_binaural_instrument}
-  renoise.tool():add_menu_entry{name = base..":Generate Full Colundi (128 freq)", invoke = generate_colundi_full_instrument}
-  renoise.tool():add_menu_entry{name = base..":Golden Chord Library...", invoke = show_golden_chord_dialog}
-  renoise.tool():add_menu_entry{name = base..":Golden Ratio Tempo/Rhythm...", invoke = apply_golden_tempo_relationship}
-  renoise.tool():add_menu_entry{name = base..":Generate Golden Arpeggio Phrases", invoke = generate_golden_arpeggio_phrases}
-  renoise.tool():add_menu_entry{name = base..":Tuning Comparison A/B...", invoke = tuning_comparison_ab}
-  renoise.tool():add_menu_entry{name = base..":Phi Sum/Product Chord Builder (Lange)...", invoke = show_phi_sum_product_dialog}
-  renoise.tool():add_menu_entry{name = base..":Phi Interval Circle...", invoke = show_phi_interval_circle}
-  renoise.tool():add_menu_entry{name = base..":Phi Tuning-Aware Note Display...", invoke = show_phi_note_display}
+  PakettiAddMenuEntry{name = base..":Microtonal Tunings Dialog...", invoke = show_microtonal_tuning_dialog}
+  PakettiAddMenuEntry{name = base..":Apply Golden Pythagorean (13-note)", invoke = apply_golden_pythagorean}
+  PakettiAddMenuEntry{name = base..":Apply 36-EDO", invoke = apply_36_edo}
+  PakettiAddMenuEntry{name = base..":Apply Solfeggio", invoke = apply_solfeggio}
+  PakettiAddMenuEntry{name = base..":Apply Colundi", invoke = apply_colundi}
+  PakettiAddMenuEntry{name = base..":Apply Just Intonation (5-limit)", invoke = apply_just_intonation}
+  PakettiAddMenuEntry{name = base..":Apply Pythagorean (pure fifths)", invoke = apply_pythagorean}
+  PakettiAddMenuEntry{name = base..":Apply Phi-9 (Lange)", invoke = apply_phi_9_lange}
+  PakettiAddMenuEntry{name = base..":Apply Phi-7 (Lange)", invoke = apply_phi_7_lange}
+  PakettiAddMenuEntry{name = base..":Apply Lange 36-note Phi Scale", invoke = apply_lange_phi_36}
+  PakettiAddMenuEntry{name = base..":Apply Phi Power Series", invoke = apply_phi_power_series}
+  PakettiAddMenuEntry{name = base..":Apply 10-TET Decagono (Lange)", invoke = apply_10_tet_decagono}
+  PakettiAddMenuEntry{name = base..":Apply Phi 7/10 Hybrid (Lange)", invoke = apply_phi_7_10_hybrid}
+  PakettiAddMenuEntry{name = base..":Apply Lange Phi Music System (304.295 Hz)", invoke = apply_lange_phi_music_system}
+  PakettiAddMenuEntry{name = base..":Reset to 12-TET", invoke = reset_to_12tet}
+  PakettiAddMenuEntry{name = base..":Generate Golden Shimmer Wavetable", invoke = generate_shimmering_wavetable}
+  PakettiAddMenuEntry{name = base..":Generate Golden Beating Wavetable", invoke = generate_golden_beating_wavetable}
+  PakettiAddMenuEntry{name = base..":Generate Spectral Morph Wavetable", invoke = generate_spectral_morph_wavetable}
+  PakettiAddMenuEntry{name = base..":Generate Tuning History Wavetable", invoke = generate_tuning_history_wavetable}
+  PakettiAddMenuEntry{name = base..":Generate Sacred Geometry Wavetable", invoke = generate_sacred_geometry_wavetable}
+  PakettiAddMenuEntry{name = base..":Generate Phi Harmonic Strings Wavetable (Lange)", invoke = generate_phi_harmonic_strings_wavetable}
+  PakettiAddMenuEntry{name = base..":Generate Golden Drone Pad", invoke = generate_golden_drone}
+  PakettiAddMenuEntry{name = base..":Generate Golden Binaural Beats", invoke = generate_binaural_instrument}
+  PakettiAddMenuEntry{name = base..":Generate Full Colundi (128 freq)", invoke = generate_colundi_full_instrument}
+  PakettiAddMenuEntry{name = base..":Golden Chord Library...", invoke = show_golden_chord_dialog}
+  PakettiAddMenuEntry{name = base..":Golden Ratio Tempo/Rhythm...", invoke = apply_golden_tempo_relationship}
+  PakettiAddMenuEntry{name = base..":Generate Golden Arpeggio Phrases", invoke = generate_golden_arpeggio_phrases}
+  PakettiAddMenuEntry{name = base..":Tuning Comparison A/B...", invoke = tuning_comparison_ab}
+  PakettiAddMenuEntry{name = base..":Phi Sum/Product Chord Builder (Lange)...", invoke = show_phi_sum_product_dialog}
+  PakettiAddMenuEntry{name = base..":Phi Interval Circle...", invoke = show_phi_interval_circle}
+  PakettiAddMenuEntry{name = base..":Phi Tuning-Aware Note Display...", invoke = show_phi_note_display}
 end
 
 -- ========================================

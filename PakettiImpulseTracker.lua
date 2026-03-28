@@ -3751,7 +3751,7 @@ function PakettiPatternToSampleRenderComplete(temp_path, pattern_index)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-O Pattern to Sample", invoke = PakettiImpulseTrackerPatternToSample}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Impulse Tracker CTRL-O Pattern to Sample", invoke = PakettiImpulseTrackerPatternToSample}
+PakettiAddMenuEntry{name="--Pattern Editor:Paketti:Impulse Tracker CTRL-O Pattern to Sample", invoke = PakettiImpulseTrackerPatternToSample}
 renoise.tool():add_midi_mapping{name="Paketti:Impulse Tracker CTRL-O Pattern to Sample [Trigger]",invoke=function(message) if message:is_trigger() then PakettiImpulseTrackerPatternToSample() end end}
 
 --

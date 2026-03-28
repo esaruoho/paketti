@@ -3274,21 +3274,21 @@ function PakettiAutomationStackDebugPrintAutomationPoints()
   print("=== END DEBUG ===")
 end
 
-renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack", invoke = function() PakettiAutomationStackShowDialog() end }
-renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Single View", invoke = function() PakettiAutomationStackShowSingleView() end }
-renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Stacker (Multi-Pattern)", invoke = function() PakettiAutomationStackShowStackerView() end }
-renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Select Arbitrary Parameters", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
-renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Automation Stack - Debug Print Points", invoke = function() PakettiAutomationStackDebugPrintAutomationPoints() end }
+PakettiAddMenuEntry{ name = "Main Menu:Tools:Automation Stack", invoke = function() PakettiAutomationStackShowDialog() end }
+PakettiAddMenuEntry{ name = "Main Menu:Tools:Automation Stack - Single View", invoke = function() PakettiAutomationStackShowSingleView() end }
+PakettiAddMenuEntry{ name = "Main Menu:Tools:Automation Stack - Stacker (Multi-Pattern)", invoke = function() PakettiAutomationStackShowStackerView() end }
+PakettiAddMenuEntry{ name = "Main Menu:Tools:Automation Stack - Select Arbitrary Parameters", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
+PakettiAddMenuEntry{ name = "Main Menu:Tools:Automation Stack - Debug Print Points", invoke = function() PakettiAutomationStackDebugPrintAutomationPoints() end }
 
-renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack", invoke = function() PakettiAutomationStackShowDialog() end }
-renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Single View", invoke = function() PakettiAutomationStackShowSingleView() end }
-renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Stacker (Multi-Pattern)", invoke = function() PakettiAutomationStackShowStackerView() end }
-renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Select Arbitrary Parameters", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
+PakettiAddMenuEntry{ name = "Pattern Editor:Paketti:Automation:Automation Stack", invoke = function() PakettiAutomationStackShowDialog() end }
+PakettiAddMenuEntry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Single View", invoke = function() PakettiAutomationStackShowSingleView() end }
+PakettiAddMenuEntry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Stacker (Multi-Pattern)", invoke = function() PakettiAutomationStackShowStackerView() end }
+PakettiAddMenuEntry{ name = "Pattern Editor:Paketti:Automation:Automation Stack - Select Arbitrary Parameters", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack...", invoke = function() PakettiAutomationStackShowDialog() end }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack - Single View...", invoke = function() PakettiAutomationStackShowSingleView() end }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack - Stacker (Multi-Pattern)...", invoke = function() PakettiAutomationStackShowStackerView() end }
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:Automation Stack - Select Arbitrary Parameters...", invoke = function() PakettiAutomationStack_ShowParameterSelectionDialog() end }
-renoise.tool():add_menu_entry{ name = "Pattern Editor:Paketti:Automation:Debug Print Points", invoke = function() PakettiAutomationStackDebugPrintAutomationPoints() end }
+PakettiAddMenuEntry{ name = "Pattern Editor:Paketti:Automation:Debug Print Points", invoke = function() PakettiAutomationStackDebugPrintAutomationPoints() end }
 
 
 

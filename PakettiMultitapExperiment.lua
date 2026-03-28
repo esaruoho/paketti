@@ -1635,7 +1635,7 @@ function PakettiMultitapExperimentInit()
 end
 
 renoise.tool():add_keybinding { name = "Global:Paketti:Paketti Multitap Experiment", invoke = PakettiMultitapExperimentInit }
-renoise.tool():add_menu_entry { name = "Main Menu:Tools:Paketti..:Experimental/WIP:Multitap Experiment", invoke = PakettiMultitapExperimentInit }
+PakettiAddMenuEntry { name = "Main Menu:Tools:Paketti..:Experimental/WIP:Multitap Experiment", invoke = PakettiMultitapExperimentInit }
 
 --------------------------------------------------------------------------------
 -- PHRASEGRID INTEGRATION: Multitap Scene Snapshots & Delay Phrase Creation

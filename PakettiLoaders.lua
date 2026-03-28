@@ -1381,13 +1381,13 @@ nativeDeprecatedDevices = {
 -- Generate menu entries for native devices
 for i, device in ipairs(nativeDevices) do
   local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
-  renoise.tool():add_menu_entry{name="DSP Device:Paketti:Load Renoise Native:" .. device, 
+  PakettiAddMenuEntry{name="DSP Device:Paketti:Load Renoise Native:" .. device, 
     invoke=function() loadnative(device_path) end
   }
-  renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Load Renoise Native:" .. device, 
+  PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Load Renoise Native:" .. device, 
     invoke=function() loadnative(device_path) end
   }  
-  renoise.tool():add_menu_entry{name="Mixer:Paketti:Load Renoise Native:" .. device, 
+  PakettiAddMenuEntry{name="Mixer:Paketti:Load Renoise Native:" .. device, 
     invoke=function() loadnative(device_path) end
   }
 end
@@ -1396,13 +1396,13 @@ end
 for i, device in ipairs(nativeDeprecatedDevices) do
   local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
   local separator = i == 1 and "-- " or ""
-  renoise.tool():add_menu_entry{name=separator .. "DSP Device:Paketti:Load Renoise Native:(Hidden) " .. device, 
+  PakettiAddMenuEntry{name=separator .. "DSP Device:Paketti:Load Renoise Native:(Hidden) " .. device, 
     invoke=function() loadnative(device_path) end
   }
-  renoise.tool():add_menu_entry{name=separator .. "Sample FX Mixer:Paketti:Load Renoise Native:(Hidden) " .. device, 
+  PakettiAddMenuEntry{name=separator .. "Sample FX Mixer:Paketti:Load Renoise Native:(Hidden) " .. device, 
     invoke=function() loadnative(device_path) end
   }
-  renoise.tool():add_menu_entry{name=separator .. "Mixer:Paketti:Load Renoise Native:(Hidden) " .. device, 
+  PakettiAddMenuEntry{name=separator .. "Mixer:Paketti:Load Renoise Native:(Hidden) " .. device, 
     invoke=function() loadnative(device_path) end
   }
 end
@@ -1849,7 +1849,7 @@ for _, target in ipairs(targets) do
     -- Check if target.display and device are not nil
     if target.display and device then
       local menu_entry_name = string.format("Sample Modulation Matrix:Paketti:%s %s:%s", target.number, target.display, device)
-      renoise.tool():add_menu_entry{name=menu_entry_name,
+      PakettiAddMenuEntry{name=menu_entry_name,
         invoke=function() loadModulationDevice(device, target.target) end
       }
     else
@@ -1863,7 +1863,7 @@ for _, target in ipairs(targets) do
     -- Check if target.display and device are not nil
     if target.display and device then
       local menu_entry_name = string.format("Modulation Set:Paketti:%s %s:%s", target.number, target.display, device)
-      renoise.tool():add_menu_entry{name=menu_entry_name,
+      PakettiAddMenuEntry{name=menu_entry_name,
         invoke=function()
           loadModulationDevice(device, target.target)
         end

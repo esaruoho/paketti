@@ -1326,12 +1326,12 @@ renoise.tool():add_midi_mapping{
 -- MENU ENTRIES
 --------------------------------------------------------------------------------
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti..:Phrase Recording:Show Recording Dialog",
   invoke = PakettiPhraseRec_ShowDialog
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti..:Phrase Recording:Arm Recording",
   invoke = function()
     if PakettiPhraseRec_CurrentState == PakettiPhraseRec_STATE_IDLE then
@@ -1342,32 +1342,32 @@ renoise.tool():add_menu_entry{
   end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti..:Phrase Recording:Start Recording",
   invoke = PakettiPhraseRec_StartRecording
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti..:Phrase Recording:Stop Recording",
   invoke = PakettiPhraseRec_StopRecording
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti..:Phrase Recording:Quantize Selection",
   invoke = PakettiPhraseRec_QuantizeSelection
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti..:Phrase Recording:Quantize Phrase",
   invoke = PakettiPhraseRec_QuantizePhrase
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Instrument Phrases:Paketti..:Phrase Recording:Show Recording Dialog",
   invoke = PakettiPhraseRec_ShowDialog
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Instrument Phrases:Paketti..:Phrase Recording:Arm Recording",
   invoke = function()
     if PakettiPhraseRec_CurrentState == PakettiPhraseRec_STATE_IDLE then
@@ -1378,12 +1378,12 @@ renoise.tool():add_menu_entry{
   end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Instrument Phrases:Paketti..:Phrase Recording:Quantize Selection",
   invoke = PakettiPhraseRec_QuantizeSelection
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Instrument Phrases:Paketti..:Phrase Recording:Quantize Phrase",
   invoke = PakettiPhraseRec_QuantizePhrase
 }

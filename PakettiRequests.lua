@@ -2339,9 +2339,9 @@ function PakettiDuplicateModulationSetToAll()
   renoise.app():show_status(string.format("Duplicated modulation set '%s' to %d other set(s).", source_modset.name, copied_count))
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Modulation:Duplicate Selected Modulation Set to All Others",invoke=function() PakettiDuplicateModulationSetToAll() end}
-renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti:Duplicate Selected Modulation Set to All Others",invoke=function() PakettiDuplicateModulationSetToAll() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate Selected Modulation Set to All Others",invoke=function() PakettiDuplicateModulationSetToAll() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:Modulation:Duplicate Selected Modulation Set to All Others",invoke=function() PakettiDuplicateModulationSetToAll() end}
+PakettiAddMenuEntry{name="Sample Modulation Matrix:Paketti:Duplicate Selected Modulation Set to All Others",invoke=function() PakettiDuplicateModulationSetToAll() end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Duplicate Selected Modulation Set to All Others",invoke=function() PakettiDuplicateModulationSetToAll() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Modulation Set to All Others",invoke=function(repeated) if not repeated then PakettiDuplicateModulationSetToAll() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Selected Modulation Set to All Others x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiDuplicateModulationSetToAll() end end}
 
@@ -2709,13 +2709,13 @@ local function add_column_tool_entries(column_type, adjustment)
   
   if adjustment == 0 then
     -- Wipe entries
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Wipe Selection " .. column_name .. " Column",invoke=function() adjust_column(column_type, 0) end}
+    PakettiAddMenuEntry{name="Pattern Editor:Paketti:Note Columns:Wipe Selection " .. column_name .. " Column",invoke=function() adjust_column(column_type, 0) end}
     renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe Selection " .. column_name .. " Column",invoke=function() adjust_column(column_type, 0) end}
     renoise.tool():add_midi_mapping{name="Paketti:Clear/Wipe Selection " .. column_name .. " Column",invoke=function() adjust_column(column_type, 0) end}
   else
     -- Adjustment entries
     local adj_str = (adjustment > 0) and "+" .. adjustment or tostring(adjustment)
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Adjust Selection " .. column_name .. " Column " .. adj_str,invoke=function() adjust_column(column_type, adjustment) end}
+    PakettiAddMenuEntry{name="Pattern Editor:Paketti:Note Columns:Adjust Selection " .. column_name .. " Column " .. adj_str,invoke=function() adjust_column(column_type, adjustment) end}
     renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Adjust Selection " .. column_name .. " Column (" .. adj_str .. ")",invoke=function() adjust_column(column_type, adjustment) end}
     renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Adjust Selection " .. column_name .. " Column (" .. adj_str .. ")",invoke=function() adjust_column(column_type, adjustment) end}
   end
@@ -4469,12 +4469,12 @@ for interval = MIN_SHIFT, MAX_SHIFT do
     local midi_mapping_current = "Paketti:Basenote Shift " .. shift_label .. " (Selected Instrument)"
 
     -- Add menu entries under "Main Menu:Tools:Paketti:Pattern Editor:"
-    renoise.tool():add_menu_entry{name=menu_label_all_main,invoke=function() PakettiBaseNoteShifter(interval, "all") end}    
-    renoise.tool():add_menu_entry{name=key_label_current_main,invoke=function() PakettiBaseNoteShifter(interval, "current") end}
-    renoise.tool():add_menu_entry{name=key_label_all_main,invoke=function() PakettiBaseNoteShifter(interval, "all") end}
-    renoise.tool():add_menu_entry{name=menu_label_current_main,invoke=function() PakettiBaseNoteShifter(interval, "current") end}
-    renoise.tool():add_menu_entry{name=menu_label_all_pattern,invoke=function() PakettiBaseNoteShifter(interval, "all") end}
-    renoise.tool():add_menu_entry{name=menu_label_current_pattern,invoke=function() PakettiBaseNoteShifter(interval, "current") end}
+    PakettiAddMenuEntry{name=menu_label_all_main,invoke=function() PakettiBaseNoteShifter(interval, "all") end}    
+    PakettiAddMenuEntry{name=key_label_current_main,invoke=function() PakettiBaseNoteShifter(interval, "current") end}
+    PakettiAddMenuEntry{name=key_label_all_main,invoke=function() PakettiBaseNoteShifter(interval, "all") end}
+    PakettiAddMenuEntry{name=menu_label_current_main,invoke=function() PakettiBaseNoteShifter(interval, "current") end}
+    PakettiAddMenuEntry{name=menu_label_all_pattern,invoke=function() PakettiBaseNoteShifter(interval, "all") end}
+    PakettiAddMenuEntry{name=menu_label_current_pattern,invoke=function() PakettiBaseNoteShifter(interval, "current") end}
     renoise.tool():add_keybinding{name=keybinding_label_all,invoke=function() PakettiBaseNoteShifter(interval, "all") end}
     
     renoise.tool():add_keybinding{name=keybinding_label_current,invoke=function() PakettiBaseNoteShifter(interval, "current") end}
@@ -7651,8 +7651,8 @@ function showHumanizeDialog()
 end
 
 -- Register humanize functions
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Humanize Selection...", invoke = showHumanizeDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Humanize Selection...", invoke = showHumanizeDialog}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Humanize Selection...", invoke = showHumanizeDialog}
+PakettiAddMenuEntry{name="--Main Menu:Tools:Paketti:Pattern Editor:Humanize Selection...", invoke = showHumanizeDialog}
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Humanize Selection...", invoke = showHumanizeDialog}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Quick Humanize 5", invoke = function() humanizeSelection(5, 3, 5) end}
@@ -11671,10 +11671,10 @@ renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Pattern)",inv
 
 -- Add playback versions if API supports it
 if renoise.API_VERSION >= 6.2 then
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Pattern, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}
+  PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
+  PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
+  PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
+  PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Pattern, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}
   renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
   renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
   renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
@@ -12563,8 +12563,8 @@ for interval = MIN_SHIFT, MAX_SHIFT do
     local keybinding_label_all = "Global:Paketti:Transpose Shift " .. shift_label .. " (All Instruments)"
     local midi_mapping_all = "Paketti:Transpose Shift " .. shift_label .. " (All Instruments)"
 
-    renoise.tool():add_menu_entry{name=menu_label_all_main,invoke=function() PakettiTransposeShifter(interval, "all") end}
-    renoise.tool():add_menu_entry{name=menu_label_all_pattern,invoke=function() PakettiTransposeShifter(interval, "all") end}
+    PakettiAddMenuEntry{name=menu_label_all_main,invoke=function() PakettiTransposeShifter(interval, "all") end}
+    PakettiAddMenuEntry{name=menu_label_all_pattern,invoke=function() PakettiTransposeShifter(interval, "all") end}
     renoise.tool():add_keybinding{name=keybinding_label_all,invoke=function() PakettiTransposeShifter(interval, "all") end}
     renoise.tool():add_midi_mapping{name=midi_mapping_all,invoke=function() PakettiTransposeShifter(interval, "all") end}
   end
@@ -12580,8 +12580,8 @@ for interval = MIN_SHIFT, MAX_SHIFT do
     local keybinding_label_current = "Global:Paketti:Transpose Shift " .. shift_label .. " (Selected Instrument)"
     local midi_mapping_current = "Paketti:Transpose Shift " .. shift_label .. " (Selected Instrument)"
 
-    renoise.tool():add_menu_entry{name=menu_label_current_main,invoke=function() PakettiTransposeShifter(interval, "current") end}
-    renoise.tool():add_menu_entry{name=menu_label_current_pattern,invoke=function() PakettiTransposeShifter(interval, "current") end}
+    PakettiAddMenuEntry{name=menu_label_current_main,invoke=function() PakettiTransposeShifter(interval, "current") end}
+    PakettiAddMenuEntry{name=menu_label_current_pattern,invoke=function() PakettiTransposeShifter(interval, "current") end}
     renoise.tool():add_keybinding{name=keybinding_label_current,invoke=function() PakettiTransposeShifter(interval, "current") end}
     renoise.tool():add_midi_mapping{name=midi_mapping_current,invoke=function() PakettiTransposeShifter(interval, "current") end}
   end
@@ -12590,11 +12590,11 @@ end
 
 for i=1,10 do
   local slot = string.format("%02d", i)
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide Slot " .. slot .. " on Master",
+  PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide Slot " .. slot .. " on Master",
     invoke=function() FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "master") end
   }
 
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide Slot " .. slot .. " on Selected Track",
+  PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide Slot " .. slot .. " on Selected Track",
     invoke=function() FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "selected_track") end
   }
 
@@ -12690,7 +12690,7 @@ end
 for i = 1, 16 do
   local ordinal = PakettiOrdinalNumber(i)
   
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name = "Main Menu:Tools:Paketti:Plugins/Devices:Plugin External Editors:Show/Hide " .. ordinal .. " Plugin Instrument External Editor",
     invoke = function() PakettiPluginExternalEditorToggle(i) end
   }
@@ -12756,6 +12756,6 @@ function PakettiInstrumentRenameDialog()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}
+PakettiAddMenuEntry{name="--Mixer:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}
+PakettiAddMenuEntry{name="--Pattern Editor:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}
+PakettiAddMenuEntry{name="--Pattern Matrix:Paketti:Rename Current Instrument...", invoke=PakettiInstrumentRenameDialog}

@@ -713,6 +713,6 @@ end
 
 -- since this feature is not released, it can't be in PakettiMenuConfig.lua 
 -- until it's released.
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Tree Structure Navigator",invoke = PakettiTreeStructureShow}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Tree Structure Navigator",invoke = PakettiTreeStructureShow}
 renoise.tool():add_keybinding{name = "Global:Paketti:Tree Structure Navigator",invoke = PakettiTreeStructureShow}
 renoise.tool():add_midi_mapping{name = "Paketti:Tree Structure Navigator",invoke = PakettiTreeStructureShow}

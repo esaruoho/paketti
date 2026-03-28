@@ -1064,7 +1064,7 @@ end
 for i = 1,32 do
   local padded_number = string.format("%02d", i - 1)
   renoise.tool():add_keybinding{name="Global:Paketti:Set Sequence " .. padded_number .. " as Scheduled List",invoke=function() tknaSetSequenceAsScheduledList(i) end}
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Set Sequence as Scheduled List:Set Sequence " .. padded_number .. " as Scheduled List",invoke=function() tknaSetSequenceAsScheduledList(i) end}
+  PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Set Sequence as Scheduled List:Set Sequence " .. padded_number .. " as Scheduled List",invoke=function() tknaSetSequenceAsScheduledList(i) end}
 end
 
   renoise.tool():add_keybinding{name="Global:Paketti:Set Current Sequence as Scheduled List",invoke=function() renoise.song().transport:set_scheduled_sequence(renoise.song().selected_sequence_index) end}
@@ -2260,10 +2260,10 @@ for i = 0, 64 do
   renoise.tool():add_midi_mapping{name="Paketti:Select&Add to Schedule&Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectAddScheduleLoopSection(i) end end}
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Add Entire Section to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddEntireSectionScheduleLoopSection(i) end}
   renoise.tool():add_midi_mapping{name="Paketti:Select&Add Entire Section to Schedule&Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectAddEntireSectionScheduleLoopSection(i) end end}
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Trigger and Loop:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Schedule and Loop:Select, Schedule and Loop Section " .. section_id,invoke=function() tknaSelectScheduleLoopSection(i) end}
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add to Schedule and Loop:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add Entire Section to Schedule and Loop:Select, Add Entire Section to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddEntireSectionScheduleLoopSection(i) end}
+  PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Trigger and Loop:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
+  PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Schedule and Loop:Select, Schedule and Loop Section " .. section_id,invoke=function() tknaSelectScheduleLoopSection(i) end}
+  PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add to Schedule and Loop:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
+  PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add Entire Section to Schedule and Loop:Select, Add Entire Section to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddEntireSectionScheduleLoopSection(i) end}
 end
 -----
 -- Slice mode settings
@@ -2481,22 +2481,22 @@ renoise.tool():add_keybinding{name="Mixer:Paketti:Double Double Phrase LPB",invo
 renoise.tool():add_keybinding{name="Mixer:Paketti:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
 
 -- Menu entries for Phrase LPB Double/Halve (Phrase Editor)
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Phrases:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Phrases:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Phrases:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Phrases:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
+PakettiAddMenuEntry{name="Phrase Editor:Paketti:Phrases:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
+PakettiAddMenuEntry{name="Phrase Editor:Paketti:Phrases:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
+PakettiAddMenuEntry{name="Phrase Editor:Paketti:Phrases:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
+PakettiAddMenuEntry{name="Phrase Editor:Paketti:Phrases:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
 
 -- Menu entries for Phrase LPB Double/Halve (Instrument Box)
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Phrases:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Phrases:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Phrases:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Phrases:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
 
 -- Menu entries for Phrase LPB Double/Halve (Pattern Editor)
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Phrases:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Phrases:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Phrases:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Phrases:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Phrases:Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Phrases:Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Phrases:Double Double Phrase LPB",invoke=function() PakettiPhraseLPBDouble() PakettiPhraseLPBDouble() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Phrases:Halve Halve Phrase LPB",invoke=function() PakettiPhraseLPBHalve() PakettiPhraseLPBHalve() end}
 --------
 -- Studio Session Workflow: Make track mono and set hard left/right panning
 -- For treating stereo output as two mono channels to output to two amplifiers
@@ -2592,10 +2592,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Selected Track to Mono and Ha
 renoise.tool():add_keybinding{name="Global:Paketti:Master Track to Mono and Hard Left",invoke=function() masterTrackToMonoAndHardLeft() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Master Track to Mono and Hard Right",invoke=function() masterTrackToMonoAndHardRight() end}
 
-renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Selected Track to Mono and Hard Left",invoke=function() selectedTrackToMonoAndHardLeft() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Selected Track to Mono and Hard Right",invoke=function() selectedTrackToMonoAndHardRight() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Master Track to Mono and Hard Left",invoke=function() masterTrackToMonoAndHardLeft() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Master Track to Mono and Hard Right",invoke=function() masterTrackToMonoAndHardRight() end}
+PakettiAddMenuEntry{name="Mixer:Paketti:TKNA:Selected Track to Mono and Hard Left",invoke=function() selectedTrackToMonoAndHardLeft() end}
+PakettiAddMenuEntry{name="Mixer:Paketti:TKNA:Selected Track to Mono and Hard Right",invoke=function() selectedTrackToMonoAndHardRight() end}
+PakettiAddMenuEntry{name="Mixer:Paketti:TKNA:Master Track to Mono and Hard Left",invoke=function() masterTrackToMonoAndHardLeft() end}
+PakettiAddMenuEntry{name="Mixer:Paketti:TKNA:Master Track to Mono and Hard Right",invoke=function() masterTrackToMonoAndHardRight() end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Selected Track to Mono and Hard Left",invoke=function(message) if message:is_trigger() then selectedTrackToMonoAndHardLeft() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Selected Track to Mono and Hard Right",invoke=function(message) if message:is_trigger() then selectedTrackToMonoAndHardRight() end end}
@@ -2756,8 +2756,8 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Selected Track Mono/Pan Cycle",invoke=function() PakettiSelectedTrackMonoCycle() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Master Track Mono/Pan Cycle",invoke=function() PakettiMasterTrackMonoCycle() end}
 
-renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Selected Track Mono/Pan Cycle",invoke=function() PakettiSelectedTrackMonoCycle() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Master Track Mono/Pan Cycle",invoke=function() PakettiMasterTrackMonoCycle() end}
+PakettiAddMenuEntry{name="Mixer:Paketti:TKNA:Selected Track Mono/Pan Cycle",invoke=function() PakettiSelectedTrackMonoCycle() end}
+PakettiAddMenuEntry{name="Mixer:Paketti:TKNA:Master Track Mono/Pan Cycle",invoke=function() PakettiMasterTrackMonoCycle() end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Selected Track Mono/Pan Cycle",invoke=function(message) if message:is_trigger() then PakettiSelectedTrackMonoCycle() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Master Track Mono/Pan Cycle",invoke=function(message) if message:is_trigger() then PakettiMasterTrackMonoCycle() end end}
@@ -3348,8 +3348,8 @@ for i = 1, 32 do
   renoise.tool():add_midi_mapping{name="Paketti:Select&Schedule&Loop Section by Position " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectScheduleLoopSectionByPosition(i) end end}
   renoise.tool():add_keybinding{name="Global:Paketti:Select&Add to Schedule&Loop Section by Position " .. section_id,invoke=function() tknaSelectAddScheduleLoopSectionByPosition(i) end}
   renoise.tool():add_midi_mapping{name="Paketti:Select&Add to Schedule&Loop Section by Position " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectAddScheduleLoopSectionByPosition(i) end end}
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Trigger and Loop by Position:Select, Trigger and Loop Section by Position " .. section_id,invoke=function() tknaSelectTriggerLoopSectionByPosition(i) end}
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Schedule and Loop by Position:Select, Schedule and Loop Section by Position " .. section_id,invoke=function() tknaSelectScheduleLoopSectionByPosition(i) end}
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add to Schedule and Loop by Position:Select, Add to Schedule and Loop Section by Position " .. section_id,invoke=function() tknaSelectAddScheduleLoopSectionByPosition(i) end}
+  PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Trigger and Loop by Position:Select, Trigger and Loop Section by Position " .. section_id,invoke=function() tknaSelectTriggerLoopSectionByPosition(i) end}
+  PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Schedule and Loop by Position:Select, Schedule and Loop Section by Position " .. section_id,invoke=function() tknaSelectScheduleLoopSectionByPosition(i) end}
+  PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add to Schedule and Loop by Position:Select, Add to Schedule and Loop Section by Position " .. section_id,invoke=function() tknaSelectAddScheduleLoopSectionByPosition(i) end}
 end
 

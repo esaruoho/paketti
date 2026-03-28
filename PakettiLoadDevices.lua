@@ -1639,18 +1639,18 @@ function PakettiRandomizeSampleFXDeviceAcrossChains(intensity)
 end
 
 -- Menu entries for Sample Navigator
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (10%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(10) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (25%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(25) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (50%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(50) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (75%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(75) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (100%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(100) end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (10%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(10) end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (25%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(25) end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (50%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(50) end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (75%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(75) end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Randomize Sample FX Device Across Chains (100%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(100) end}
 
 -- Menu entries for Sample FX Mixer
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (10%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(10) end}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (25%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(25) end}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (50%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(50) end}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (75%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(75) end}
-renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (100%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(100) end}
+PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (10%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(10) end}
+PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (25%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(25) end}
+PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (50%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(50) end}
+PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (75%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(75) end}
+PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Randomize Sample FX Device Across Chains (100%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(100) end}
 
 -- Keybindings for Sample FX Chain Device Randomizer with User presets
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Sample FX Device Across Chains with User1 (%)",invoke=function() PakettiRandomizeSampleFXDeviceAcrossChains(preferences.RandomizeSettings.pakettiRandomizeSampleFXDevicePercentageUserPreference1.value) end}

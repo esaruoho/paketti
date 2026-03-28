@@ -890,8 +890,8 @@ function SampleRecorderWithTrackScopes()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Display Sample Recorder with #Line Input and Track Scopes",invoke=function() SampleRecorderWithTrackScopes() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Recording:Display Sample Recorder with #Line Input and Track Scopes",invoke=function() SampleRecorderWithTrackScopes() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Display Sample Recorder with #Line Input and Track Scopes",invoke=function() SampleRecorderWithTrackScopes() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Recording:Display Sample Recorder with #Line Input and Track Scopes",invoke=function() SampleRecorderWithTrackScopes() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Display Sample Recorder with #Line Input and Track Scopes",invoke=function() SampleRecorderWithTrackScopes() end}
 
 --------------------------------------------------------------------------------------------------------------------
 -- Quick Sample to New Track & Instrument Toggle

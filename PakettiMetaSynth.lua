@@ -17636,63 +17636,63 @@ end
 PakettiMetaSynthLoadAllUserProfiles()
 
 -- Menu entries
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Open Architecture Designer...",
   invoke = function()
     PakettiMetaSynthShowDialog()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate Random Instrument",
   invoke = function()
     PakettiMetaSynthGenerateRandomInstrument()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate Random Instrument (with Sends)",
   invoke = function()
     PakettiMetaSynthGenerateRandomInstrumentWithSends()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate Random Instrument (Wavetable)",
   invoke = function()
     PakettiMetaSynthGenerateRandomWavetableInstrument()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate Batch Instruments...",
   invoke = function()
     PakettiMetaSynthShowBatchGenerationDialog()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Instruments",
   invoke = function()
     PakettiMetaSynthLaunchBatchGeneration("standard", 20)
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Instruments (with Sends)",
   invoke = function()
     PakettiMetaSynthLaunchBatchGeneration("sends", 20)
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Generate 20 Random Wavetable Instruments",
   invoke = function()
     PakettiMetaSynthLaunchBatchGeneration("wavetable", 20)
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Modulation Profile...",
   invoke = function()
     PakettiMetaSynthShowProfileDialog()
@@ -17700,14 +17700,14 @@ renoise.tool():add_menu_entry {
 }
 
 -- Neutral profiles
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Neutral:Flat",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("neutral_flat")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Neutral:None",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("neutral_none")
@@ -17715,35 +17715,35 @@ renoise.tool():add_menu_entry {
 }
 
 -- Bass profiles
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Tight",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("bass_tight")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Sustain",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("bass_sustain")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Filter",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("bass_filter")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Wide",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("bass_wide")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bass:Dynamic",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("bass_dynamic")
@@ -17751,28 +17751,28 @@ renoise.tool():add_menu_entry {
 }
 
 -- Pluck profiles
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pluck:Short",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("pluck_short")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pluck:Natural",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("pluck_natural")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pluck:Percussive",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("pluck_percussive")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pluck:Soft",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("pluck_soft")
@@ -17780,35 +17780,35 @@ renoise.tool():add_menu_entry {
 }
 
 -- Lead profiles
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Expressive",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("lead_expressive")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Smooth",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("lead_smooth")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Classic",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("lead_classic")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Wide",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("lead_wide")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Lead:Glide",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("lead_glide")
@@ -17816,28 +17816,28 @@ renoise.tool():add_menu_entry {
 }
 
 -- Pad profiles
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pad:Slow",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("pad_slow")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pad:Evolving",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("pad_evolving")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pad:Ensemble",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("pad_ensemble")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Pad:Formant",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("pad_formant")
@@ -17845,21 +17845,21 @@ renoise.tool():add_menu_entry {
 }
 
 -- Keys profiles
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Keys:Dynamic",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("keys_dynamic")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Keys:Sustain",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("keys_sustain")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Keys:Velocity",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("keys_velocity")
@@ -17867,21 +17867,21 @@ renoise.tool():add_menu_entry {
 }
 
 -- Arp profiles
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Arp:Tight",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("arp_tight")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Arp:Gated",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("arp_gated")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Arp:Rhythmic",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("arp_rhythmic")
@@ -17889,21 +17889,21 @@ renoise.tool():add_menu_entry {
 }
 
 -- FX profiles
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:FX:Envelope",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("fx_envelope")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:FX:Percussive",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("fx_percussive")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:FX:Sustain",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("fx_sustain")
@@ -17911,14 +17911,14 @@ renoise.tool():add_menu_entry {
 }
 
 -- Orchestral profiles
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Orchestral:Strings",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("strings")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Orchestral:Brass",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("brass")
@@ -17926,7 +17926,7 @@ renoise.tool():add_menu_entry {
 }
 
 -- Bell profile
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Bell",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("bell")
@@ -17934,133 +17934,133 @@ renoise.tool():add_menu_entry {
 }
 
 -- Legacy profiles (for backward compatibility)
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Default",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("default")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Pluck",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("pluck")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Bass",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("bass")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Pad",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("pad")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Lead",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("lead")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Organ",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("organ")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Keys",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("keys")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Main Menu:Tools:Paketti:MetaSynth:Apply Profile:Legacy:Percussive",
   invoke = function()
     PakettiMetaSynthQuickApplyProfile("percussive")
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Instrument Box:Paketti:MetaSynth:Open Architecture Designer...",
   invoke = function()
     PakettiMetaSynthShowDialog()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Instrument Box:Paketti:MetaSynth:Generate Random Instrument",
   invoke = function()
     PakettiMetaSynthGenerateRandomInstrument()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Instrument Box:Paketti:MetaSynth:Generate Random Instrument (with Sends)",
   invoke = function()
     PakettiMetaSynthGenerateRandomInstrumentWithSends()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Instrument Box:Paketti:MetaSynth:Generate Random Instrument (Wavetable)",
   invoke = function()
     PakettiMetaSynthGenerateRandomWavetableInstrument()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Instrument Box:Paketti:MetaSynth:Generate Batch Instruments...",
   invoke = function()
     PakettiMetaSynthShowBatchGenerationDialog()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Instruments",
   invoke = function()
     PakettiMetaSynthLaunchBatchGeneration("standard", 20)
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Instruments (with Sends)",
   invoke = function()
     PakettiMetaSynthLaunchBatchGeneration("sends", 20)
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Instrument Box:Paketti:MetaSynth:Generate 20 Random Wavetable Instruments",
   invoke = function()
     PakettiMetaSynthLaunchBatchGeneration("wavetable", 20)
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Instrument Box:Paketti:MetaSynth:Apply Modulation Profile...",
   invoke = function()
     PakettiMetaSynthShowProfileDialog()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Sample Editor:Paketti:MetaSynth:Open Architecture Designer...",
   invoke = function()
     PakettiMetaSynthShowDialog()
   end
 }
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name = "Sample FX Mixer:Paketti:MetaSynth:Open Architecture Designer...",
   invoke = function()
     PakettiMetaSynthShowDialog()

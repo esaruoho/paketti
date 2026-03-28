@@ -901,17 +901,17 @@ renoise.tool():add_keybinding{
   invoke = PakettiAutomateLastTouchedStart
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Automate Last Touched Parameter...",
   invoke = PakettiAutomateLastTouchedStart
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "DSP Device:Paketti:Automate Last Touched Parameter",
   invoke = PakettiAutomateLastTouchedStart
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Mixer:Paketti Gadgets:Automate Last Touched Parameter",
   invoke = PakettiAutomateLastTouchedStart
 }

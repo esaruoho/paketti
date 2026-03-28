@@ -909,10 +909,10 @@ if not success then
 end
 
 -- Menu entries and keybindings
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Tuning:Apply User-Set Tuning to Selected Track",invoke = apply_tuning_to_track}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Tuning:Clear Tuning Effects from Selected Track", invoke = clear_tuning_effects_from_track}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Tuning:User-Set Tuning Preferences Dialog...", invoke = show_tuning_selection_dialog}
-renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Tuning:Toggle Auto-Input Tuning", invoke = toggle_auto_input_tuning}
+PakettiAddMenuEntry {name = "Pattern Editor:Paketti:Tuning:Apply User-Set Tuning to Selected Track",invoke = apply_tuning_to_track}
+PakettiAddMenuEntry {name = "Pattern Editor:Paketti:Tuning:Clear Tuning Effects from Selected Track", invoke = clear_tuning_effects_from_track}
+PakettiAddMenuEntry {name = "Pattern Editor:Paketti:Tuning:User-Set Tuning Preferences Dialog...", invoke = show_tuning_selection_dialog}
+PakettiAddMenuEntry {name = "Pattern Editor:Paketti:Tuning:Toggle Auto-Input Tuning", invoke = toggle_auto_input_tuning}
 
 renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Apply User-Set Tuning to Selected Track",invoke = apply_tuning_to_track}
 renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Clear Tuning Effects from Selected Track",invoke = clear_tuning_effects_from_track}

@@ -990,12 +990,12 @@ end
 -- Menu Entries and Keybindings
 --------------------------------------------------------------------------------
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Editor:Paketti:Video Slicer...",
   invoke = PakettiVideoSlicerShowDialog
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Video Slicer...",
   invoke = PakettiVideoSlicerShowDialog
 }

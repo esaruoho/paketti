@@ -877,7 +877,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Ableton Lin
 
 if os.platform() ~= "WINDOWS" and os.platform() ~= "MACINTOSH" then
   renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Jack)", invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_JACK) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Paketti:Set Sync Mode to (Jack)", invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_JACK)end}
+  PakettiAddMenuEntry{name="Main Menu:Paketti:Set Sync Mode to (Jack)", invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_JACK)end}
 end
 
   function setMetronomeVolume(volume)

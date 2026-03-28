@@ -1438,32 +1438,32 @@ renoise.tool():add_midi_mapping{
 -- Menu Entries
 --------------------------------------------------------------------------------
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Editor:Paketti..:SlicePro:SlicePro Apply",
   invoke = SliceProApplyOrConfig
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Editor:Paketti..:SlicePro:SlicePro Config...",
   invoke = SliceProConfigDialog
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Editor:Paketti..:SlicePro:SlicePro Silent Apply",
   invoke = SliceProSilentApply
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Instrument Box:Paketti..:SlicePro:SlicePro Apply",
   invoke = SliceProApplyOrConfig
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Instrument Box:Paketti..:SlicePro:SlicePro Config...",
   invoke = SliceProConfigDialog
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Instrument Box:Paketti..:SlicePro:SlicePro Silent Apply",
   invoke = SliceProSilentApply
 }
@@ -1748,12 +1748,12 @@ renoise.tool():add_midi_mapping{
 }
 
 -- Menu entries
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Editor:Paketti..:SlicePro:Create Beat-Synced Phrases",
   invoke = PakettiSliceProCreateBeatsyncedPhrases
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Editor:Paketti..:SlicePro:Create Uniform Phrases",
   invoke = PakettiSliceProCreateUniformPhrases
 }

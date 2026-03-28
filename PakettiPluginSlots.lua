@@ -197,11 +197,11 @@ end
 
 -- ─── menu entries, keybindings, MIDI mappings ────────────────────────────────
 
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name   = "Main Menu:Tools:Paketti:Plugins/Devices:Plugin Slots:Configure Plugin Slots...",
   invoke = function() pakettiPluginSlotsDialog() end,
 }
-renoise.tool():add_menu_entry {
+PakettiAddMenuEntry {
   name   = "--Instrument Box:Paketti:Plugins/Devices:Plugin Slots:Configure Plugin Slots...",
   invoke = function() pakettiPluginSlotsDialog() end,
 }
@@ -213,12 +213,12 @@ renoise.tool():add_keybinding {
 for i = 1, 5 do
   local slot = i  -- capture loop variable
 
-  renoise.tool():add_menu_entry {
+  PakettiAddMenuEntry {
     name   = string.format(
                "Main Menu:Tools:Paketti:Plugins/Devices:Plugin Slots:Toggle Slot %d", slot),
     invoke = function() pakettiPluginSlotToggle(slot) end,
   }
-  renoise.tool():add_menu_entry {
+  PakettiAddMenuEntry {
     name   = string.format(
                "Instrument Box:Paketti:Plugins/Devices:Plugin Slots:Toggle Slot %d", slot),
     invoke = function() pakettiPluginSlotToggle(slot) end,

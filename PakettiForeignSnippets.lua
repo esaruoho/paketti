@@ -1093,9 +1093,9 @@ function pakettiSampleVisualizerDialog()
     sample_viz_waveform_cache and #sample_viz_waveform_cache or 0))
 end
 
---renoise.tool():add_menu_entry{name = "Main  Menu:Tools:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
---renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
---renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+--PakettiAddMenuEntry{name = "Main  Menu:Tools:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+--PakettiAddMenuEntry{name = "Sample Editor:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+--PakettiAddMenuEntry{name = "--Sample Editor Ruler:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
 --renoise.tool():add_keybinding{name = "Global:Paketti:Sample Visualizer (Canvas)",invoke = pakettiSampleVisualizerDialog}
 --renoise.tool():add_midi_mapping{name = "Paketti:Sample Visualizer (Canvas)",invoke = function(message) if message:is_trigger() then pakettiSampleVisualizerDialog() end  end}
 

@@ -906,13 +906,13 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Export Digitakt Quick Expor
 
 
 --[[
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Digitakt:Quick Export (Digitakt Mono)", invoke = PakettiDigitaktExportMono}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Digitakt:Quick Export (Digitakt 2 Stereo)", invoke = PakettiDigitaktExportStereo}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Digitakt:Quick Export (Chain Mode)", invoke = PakettiDigitaktExportChain}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
-renoise.tool():add_menu_entry{name = "DSP Device:Paketti:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Digitakt:Quick Export (Digitakt Mono)", invoke = PakettiDigitaktExportMono}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Digitakt:Quick Export (Digitakt 2 Stereo)", invoke = PakettiDigitaktExportStereo}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Digitakt:Quick Export (Chain Mode)", invoke = PakettiDigitaktExportChain}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
+PakettiAddMenuEntry{name = "DSP Device:Paketti:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
+PakettiAddMenuEntry{name = "Mixer:Paketti:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Digitakt Export Sample Chain...", invoke = PakettiDigitaktDialog}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Digitakt Export Sample Chain...", invoke = PakettiDigitaktDialog}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Digitakt Quick Export Mono", invoke = PakettiDigitaktExportMono}

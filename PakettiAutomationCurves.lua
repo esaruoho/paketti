@@ -1755,12 +1755,12 @@ PakettiAutomationCurvesInitShapes()
 -- Menu Entries, Key Bindings, MIDI Mappings
 ------------------------------------------------------------------------
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti Gadgets:Enhanced Automation (Curves)...",
   invoke = PakettiAutomationCurvesShowDialog
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation:Paketti Gadgets:Enhanced Automation (Curves)...",
   invoke = PakettiAutomationCurvesShowDialog
 }
@@ -1849,53 +1849,53 @@ renoise.tool():add_keybinding{
 ------------------------------------------------------------------------
 
 -- Menu Entries for Track Automation
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation:Paketti:Automation Clipboard Cut",
   invoke = PakettiAutomationClipboardCut
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation:Paketti:Automation Clipboard Copy",
   invoke = PakettiAutomationClipboardCopy
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation:Paketti:Automation Clipboard Paste",
   invoke = PakettiAutomationClipboardPaste
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation:Paketti:Automation Clipboard Paste (Stretch)",
   invoke = PakettiAutomationClipboardPasteStretch
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation:Paketti:Automation Clipboard Flood-Fill",
   invoke = PakettiAutomationClipboardFloodFill
 }
 
 -- Menu Entries for Track Automation List
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation List:Paketti:Automation Clipboard Cut",
   invoke = PakettiAutomationClipboardCut
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation List:Paketti:Automation Clipboard Copy",
   invoke = PakettiAutomationClipboardCopy
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation List:Paketti:Automation Clipboard Paste",
   invoke = PakettiAutomationClipboardPaste
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation List:Paketti:Automation Clipboard Paste (Stretch)",
   invoke = PakettiAutomationClipboardPasteStretch
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Track Automation List:Paketti:Automation Clipboard Flood-Fill",
   invoke = PakettiAutomationClipboardFloodFill
 }

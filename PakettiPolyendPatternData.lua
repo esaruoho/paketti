@@ -2343,20 +2343,20 @@ function PakettiExportPolyendPattern()
 end
 
 -- Menu entries and keybindings
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Project", invoke=PakettiImportPolyendProject}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Polyend Project", invoke=PakettiExportPolyendProject}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Project", invoke=PakettiImportPolyendProject}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Polyend Project", invoke=PakettiExportPolyendProject}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
 --[[
-renoise.tool():add_menu_entry{name="Main Menu:Tools::Paketti:Xperimental/WIP:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Project", invoke=PakettiImportPolyendProject}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend WIP:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
+PakettiAddMenuEntry{name="Main Menu:Tools::Paketti:Xperimental/WIP:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Project", invoke=PakettiImportPolyendProject}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Polyend WIP:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Polyend Pattern Browser", invoke=PakettiPolyendPatternBrowser}
 renoise.tool():add_keybinding{name="Global:Paketti:Import Polyend Project", invoke=PakettiImportPolyendProject}

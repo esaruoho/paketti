@@ -3879,6 +3879,6 @@ function pakettiStepSequencerFXRandomizerDialog()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Step Sequencer FX Randomizer Dialog...",invoke=pakettiStepSequencerFXRandomizerDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Step Sequencer FX Randomizer...",invoke=pakettiStepSequencerFXRandomizerDialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Step Sequencer FX Randomizer...",invoke=pakettiStepSequencerFXRandomizerDialog}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Step Sequencer FX Randomizer...",invoke=pakettiStepSequencerFXRandomizerDialog}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Step Sequencer FX Randomizer...",invoke=pakettiStepSequencerFXRandomizerDialog}
 renoise.tool():add_midi_mapping{name="Paketti:Pattern Editor:Step Sequencer FX Randomizer",invoke=function(message) if message:is_trigger() then pakettiStepSequencerFXRandomizerDialog() end end}

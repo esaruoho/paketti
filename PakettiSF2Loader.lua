@@ -2126,10 +2126,10 @@ end
 --------------------------------------------------------------------------------
 -- Menu entry and keybinding for Batch SF2 → XRNI
 --------------------------------------------------------------------------------
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name   = "Sample Editor:Paketti:Batch Convert SF2 to XRNI (Per Preset)...",
   invoke = PakettiBatchSF2ToXRNI}
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name   = "Main Menu:File:Paketti Export..:Batch Convert SF2 to XRNI (Per Preset)...",
   invoke = PakettiBatchSF2ToXRNI}
 renoise.tool():add_keybinding{

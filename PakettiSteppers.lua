@@ -465,7 +465,7 @@ for _, stepperType in pairs(STEPPER_TYPES) do
     renoise.tool():add_keybinding{name=string.format("Global:Paketti:Clear %s Steps", baseText),
         invoke=function() PakettiClearStepper(stepperType) end
     }
-    renoise.tool():add_menu_entry{name=string.format("Sample Modulation Matrix:Paketti:Clear %s Steps", baseText),invoke=function() PakettiClearStepper(stepperType) end
+    PakettiAddMenuEntry{name=string.format("Sample Modulation Matrix:Paketti:Clear %s Steps", baseText),invoke=function() PakettiClearStepper(stepperType) end
     }
 end
 
@@ -974,7 +974,7 @@ local first_stepper = true
 for _, stepperType in pairs(STEPPER_TYPES) do
     local baseText = stepperType:gsub(" Stepper", "")
     local prefix = first_stepper and "--" or ""
-    renoise.tool():add_menu_entry{name = string.format("%sInstrument Box:Paketti:Steppers:Show Selected Instrument %s Stepper", prefix, baseText),
+    PakettiAddMenuEntry{name = string.format("%sInstrument Box:Paketti:Steppers:Show Selected Instrument %s Stepper", prefix, baseText),
         invoke = function() PakettiShowStepper(stepperType) end
     }
     first_stepper = false

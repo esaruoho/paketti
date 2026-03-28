@@ -712,51 +712,51 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Move Slice End +1/32 B
 --------------------------------------------------------------------------------
 
 -- Sample Editor menu entries
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:Advanced Dialog", invoke = PakettiZeroCrossingsAdvancedDialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:Snap Selection to Zero Crossings", invoke = function() PakettiZeroCrossingsSnapSelection(1.0) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:Advanced Dialog", invoke = PakettiZeroCrossingsAdvancedDialog}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:Snap Selection to Zero Crossings", invoke = function() PakettiZeroCrossingsSnapSelection(1.0) end}
 
 -- Zero crossing wipe & slice menu entries
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (002)", invoke = PakettiZeroCrossingsWipeSlice002}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (004)", invoke = PakettiZeroCrossingsWipeSlice004}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (008)", invoke = PakettiZeroCrossingsWipeSlice008}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (016)", invoke = PakettiZeroCrossingsWipeSlice016}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (032)", invoke = PakettiZeroCrossingsWipeSlice032}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (064)", invoke = PakettiZeroCrossingsWipeSlice064}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (128)", invoke = PakettiZeroCrossingsWipeSlice128}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (002)", invoke = PakettiZeroCrossingsWipeSlice002}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (004)", invoke = PakettiZeroCrossingsWipeSlice004}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (008)", invoke = PakettiZeroCrossingsWipeSlice008}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (016)", invoke = PakettiZeroCrossingsWipeSlice016}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (032)", invoke = PakettiZeroCrossingsWipeSlice032}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (064)", invoke = PakettiZeroCrossingsWipeSlice064}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Wipe&Slice:Zero Cross Wipe&Slice (128)", invoke = PakettiZeroCrossingsWipeSlice128}
 
 -- Randomization menu entries
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:Randomize:Randomize Existing Slices", invoke = PakettiZeroCrossingsQuickRandomizeSlices}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:Randomize:Create Random Distributed Slices", invoke = PakettiZeroCrossingsQuickRandomSlices}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:Randomize:Randomize Existing Slices", invoke = PakettiZeroCrossingsQuickRandomizeSlices}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:Randomize:Create Random Distributed Slices", invoke = PakettiZeroCrossingsQuickRandomSlices}
 
 -- BPM movement menu entries
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start -1/4 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.25, -1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start +1/4 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.25, 1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End -1/4 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.25, -1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End +1/4 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.25, 1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start -1/4 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.25, -1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start +1/4 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.25, 1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End -1/4 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.25, -1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End +1/4 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.25, 1) end}
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start -1/8 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.125, -1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start +1/8 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.125, 1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End -1/8 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.125, -1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End +1/8 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.125, 1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start -1/8 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.125, -1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start +1/8 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.125, 1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End -1/8 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.125, -1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End +1/8 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.125, 1) end}
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start -1/16 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.0625, -1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start +1/16 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.0625, 1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End -1/16 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.0625, -1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End +1/16 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.0625, 1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start -1/16 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.0625, -1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start +1/16 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.0625, 1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End -1/16 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.0625, -1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End +1/16 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.0625, 1) end}
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start -1/32 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.03125, -1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start +1/32 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.03125, 1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End -1/32 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.03125, -1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End +1/32 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.03125, 1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start -1/32 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.03125, -1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice Start +1/32 Beat", invoke = function() PakettiZeroCrossingsMoveSliceStart(0.03125, 1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End -1/32 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.03125, -1) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End +1/32 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.03125, 1) end}
 
 -- Instrument Box menu entries (for convenience)
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Zero Crossings:Advanced Dialog", invoke = PakettiZeroCrossingsAdvancedDialog}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Zero Crossings:Zero Cross Wipe&Slice (016)", invoke = PakettiZeroCrossingsWipeSlice016}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Zero Crossings:Randomize Slices", invoke = PakettiZeroCrossingsQuickRandomizeSlices}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Zero Crossings:Advanced Dialog", invoke = PakettiZeroCrossingsAdvancedDialog}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Zero Crossings:Zero Cross Wipe&Slice (016)", invoke = PakettiZeroCrossingsWipeSlice016}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Zero Crossings:Randomize Slices", invoke = PakettiZeroCrossingsQuickRandomizeSlices}
 
 -- Sample Navigator menu entries (for convenience)  
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Zero Crossings:Advanced Dialog", invoke = PakettiZeroCrossingsAdvancedDialog}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Zero Crossings:Zero Cross Wipe&Slice (016)", invoke = PakettiZeroCrossingsWipeSlice016}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Zero Crossings:Advanced Dialog", invoke = PakettiZeroCrossingsAdvancedDialog}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Zero Crossings:Zero Cross Wipe&Slice (016)", invoke = PakettiZeroCrossingsWipeSlice016}
 
 --------------------------------------------------------------------------------
 -- MIDI mappings

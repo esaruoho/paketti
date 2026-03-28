@@ -5329,160 +5329,160 @@ end
 -- Menu Entries
 --------------------------------------------------------------------------------
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Clipboard Dialog...",
   invoke = PakettiClipboardDialog
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Replicate Into Selection",
   invoke = PakettiClipboardReplicateIntoSelection
 }
 
 -- Quick Operations menu entries
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Quick Copy (Slot 01)",
   invoke = PakettiClipboardQuickCopy
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Quick Cut (Slot 01)",
   invoke = PakettiClipboardQuickCut
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Quick Paste (Slot 01)",
   invoke = PakettiClipboardQuickPaste
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Quick Mix-Paste (Slot 01)",
   invoke = PakettiClipboardQuickMixPaste
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Quick Flood Fill (Slot 01)",
   invoke = PakettiClipboardQuickFloodFill
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Quick Paste by EditStep (Slot 01)",
   invoke = PakettiClipboardQuickPasteByEditStep
 }
 
 -- Quick Wonked Paste menu entries
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Wonkify:Humanized (Slot 01)",
   invoke = PakettiClipboardQuickPasteHumanized
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Wonkify:Drunk (Slot 01)",
   invoke = PakettiClipboardQuickPasteDrunk
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Wonkify:Lo-Fi (Slot 01)",
   invoke = PakettiClipboardQuickPasteLoFi
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Wonkify:Glitchy (Slot 01)",
   invoke = PakettiClipboardQuickPasteGlitchy
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Wonkify:Chaos (Slot 01)",
   invoke = PakettiClipboardQuickPasteChaos
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Wonkify:Jazz (Slot 01)",
   invoke = PakettiClipboardQuickPasteJazz
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Wonkify:Tight (Slot 01)",
   invoke = PakettiClipboardQuickPasteTight
 }
 
 -- Transpose Paste menu entries
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Transpose Paste:Quick Paste +1 Semitone (Slot 01)",
   invoke = PakettiClipboardQuickPasteTransposeUp1
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Transpose Paste:Quick Paste -1 Semitone (Slot 01)",
   invoke = PakettiClipboardQuickPasteTransposeDown1
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Transpose Paste:Quick Paste +12 Octave Up (Slot 01)",
   invoke = PakettiClipboardQuickPasteTransposeUp12
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Transpose Paste:Quick Paste -12 Octave Down (Slot 01)",
   invoke = PakettiClipboardQuickPasteTransposeDown12
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Transpose Paste:Quick Paste +7 Fifth Up (Slot 01)",
   invoke = PakettiClipboardQuickPasteTransposeUp7
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Transpose Paste:Quick Paste -7 Fifth Down (Slot 01)",
   invoke = PakettiClipboardQuickPasteTransposeDown7
 }
 
 -- Partial Copy/Paste menu entries
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Partial:Quick Copy Notes Only (Slot 01)",
   invoke = PakettiClipboardQuickCopyNotesOnly
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Partial:Quick Cut Notes Only (Slot 01)",
   invoke = PakettiClipboardQuickCutNotesOnly
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Partial:Quick Paste Notes Only (Slot 01)",
   invoke = PakettiClipboardQuickPasteNotesOnly
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Partial:Quick Copy Effects Only (Slot 01)",
   invoke = PakettiClipboardQuickCopyEffectsOnly
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Partial:Quick Cut Effects Only (Slot 01)",
   invoke = PakettiClipboardQuickCutEffectsOnly
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Partial:Quick Paste Effects Only (Slot 01)",
   invoke = PakettiClipboardQuickPasteEffectsOnly
 }
 
 -- Swap menu entry
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Quick Swap (Slot 01)",
   invoke = PakettiClipboardQuickSwap
 }
 
 -- Inverse Cut/Restore menu entries (Solo Selection)
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Solo Selection:Inverse Cut (Solo Selection)",
   invoke = PakettiClipboardInverseCut
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Solo Selection:Inverse Restore",
   invoke = PakettiClipboardInverseRestore
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Solo Selection:Inverse Clear",
   invoke = PakettiClipboardInverseClear
 }
 
 -- Export/Import menu entries
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Export/Import:Quick Export (Slot 01)",
   invoke = PakettiClipboardQuickExport
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Export/Import:Quick Import (Slot 01)",
   invoke = PakettiClipboardQuickImport
 }
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Export/Import:Export All Slots",
   invoke = PakettiClipboardExportAll
 }
 
 -- Preview menu entry
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Clipboard:Quick Preview (Slot 01)",
   invoke = PakettiClipboardQuickPreview
 }
@@ -5490,41 +5490,41 @@ renoise.tool():add_menu_entry{
 for i = 1, NUM_CLIPBOARD_SLOTS do
   local slot_str = format_slot_index(i)
   
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name = "Pattern Editor:Paketti:Clipboard:Copy to Slot " .. slot_str,
     invoke = function() PakettiClipboardCopy(i) end
   }
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name = "Pattern Editor:Paketti:Clipboard:Cut to Slot " .. slot_str,
     invoke = function() PakettiClipboardCut(i) end
   }
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name = "Pattern Editor:Paketti:Clipboard:Paste from Slot " .. slot_str,
     invoke = function() PakettiClipboardPaste(i) end
   }
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name = "Pattern Editor:Paketti:Clipboard:Flood Fill from Slot " .. slot_str,
     invoke = function() PakettiClipboardFloodFill(i) end
   }
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name = "Pattern Editor:Paketti:Clipboard:Mix-Paste from Slot " .. slot_str,
     invoke = function() PakettiClipboardMixPaste(i) end
   }
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name = "Pattern Editor:Paketti:Clipboard:Paste by EditStep from Slot " .. slot_str,
     invoke = function() PakettiClipboardPasteByEditStep(i) end
   }
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name = "Pattern Editor:Paketti:Clipboard:Swap with Slot " .. slot_str,
     invoke = function() PakettiClipboardSwap(i) end
   }
   
   -- Cross-Editor Menu Entries
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name = "Pattern Editor:Paketti:Clipboard:Cross-Editor:Pattern to Phrase Slot " .. slot_str,
     invoke = function() PakettiClipboardPatternToPhrase(i) end
   }
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name = "Pattern Editor:Paketti:Clipboard:Cross-Editor:Paste from Phrase Slot " .. slot_str,
     invoke = function() PakettiClipboardPasteToPattern(i) end
   }

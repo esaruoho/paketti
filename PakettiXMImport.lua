@@ -406,7 +406,7 @@ local function import_xm_file(filename)
 end
 
 -- Menu & hook
-renoise.tool():add_menu_entry{name="Song:Import.:XM File",invoke=function() import_xm_file(renoise.app():prompt_for_filename_to_read{ title="Open XM File" }) end}
+PakettiAddMenuEntry{name="Song:Import.:XM File",invoke=function() import_xm_file(renoise.app():prompt_for_filename_to_read{ title="Open XM File" }) end}
 
 local xm_hook = {
   category   = "song",

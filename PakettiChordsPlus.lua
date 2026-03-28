@@ -2336,7 +2336,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Order Notes Across Tr
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Order Notes Current Track All Patterns",invoke=function() PakettiOrderNotesCurrentTrackAllPatterns() end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Order Notes Across Track",invoke=function() PakettiOrderNotesAcrossTrack() end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Order Notes Current Track All Patterns",invoke=function() PakettiOrderNotesCurrentTrackAllPatterns() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Order Notes:Order Notes Across Track",invoke=function() PakettiOrderNotesAcrossTrack() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Order Notes:Order Notes Current Track All Patterns",invoke=function() PakettiOrderNotesCurrentTrackAllPatterns() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:Order Notes:Order Notes Across Track",invoke=function() PakettiOrderNotesAcrossTrack() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:Order Notes:Order Notes Current Track All Patterns",invoke=function() PakettiOrderNotesCurrentTrackAllPatterns() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Order Notes:Order Notes Across Track",invoke=function() PakettiOrderNotesAcrossTrack() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Order Notes:Order Notes Current Track All Patterns",invoke=function() PakettiOrderNotesCurrentTrackAllPatterns() end}
+PakettiAddMenuEntry{name="Mixer:Paketti:Order Notes:Order Notes Across Track",invoke=function() PakettiOrderNotesAcrossTrack() end}
+PakettiAddMenuEntry{name="Mixer:Paketti:Order Notes:Order Notes Current Track All Patterns",invoke=function() PakettiOrderNotesCurrentTrackAllPatterns() end}

@@ -1659,17 +1659,17 @@ renoise.tool():add_keybinding{
 --------------------------------------------------------------------------------
 -- MENU ENTRIES
 --------------------------------------------------------------------------------
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti..:Instruments..:Command Wheel...",
   invoke = function() PakettiCommandWheelShowDialog() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti..:Command Wheel...",
   invoke = function() PakettiCommandWheelShowDialog() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Phrase Editor:Paketti..:Command Wheel...",
   invoke = function() PakettiCommandWheelShowDialog() end
 }

@@ -358,8 +358,8 @@ local function add_menu_entries_and_keybindings()
     local menu_entry_name2_xrnt = "DSP Device:Paketti:Device Chains:Load Device Chain (.XRNT) Slot" .. slot_number
     local key_binding_name_xrnt = "Global:Paketti:Load Device Chain (.XRNT) Slot " .. slot_number
 
-    renoise.tool():add_menu_entry{name=menu_entry_name_xrnt,invoke=function() load_device_chain_from_slot(i) end}
-    renoise.tool():add_menu_entry{name=menu_entry_name2_xrnt,invoke=function() load_device_chain_from_slot(i) end}
+    PakettiAddMenuEntry{name=menu_entry_name_xrnt,invoke=function() load_device_chain_from_slot(i) end}
+    PakettiAddMenuEntry{name=menu_entry_name2_xrnt,invoke=function() load_device_chain_from_slot(i) end}
     renoise.tool():add_keybinding{name=key_binding_name_xrnt,invoke=function() load_device_chain_from_slot(i) end}
   end
 
@@ -371,8 +371,8 @@ local function add_menu_entries_and_keybindings()
     local menu_entry_name2_xrni = "DSP Device:Paketti:Device Chains:Load Instrument (.XRNI) Slot" .. slot_number
     local key_binding_name_xrni = "Global:Paketti:Load Instrument (.XRNI) Slot " .. slot_number
 
-    renoise.tool():add_menu_entry{name=menu_entry_name_xrni,invoke=function() load_instrument_from_slot(i) end}
-    renoise.tool():add_menu_entry{name=menu_entry_name2_xrni,invoke=function() load_instrument_from_slot(i) end}
+    PakettiAddMenuEntry{name=menu_entry_name_xrni,invoke=function() load_instrument_from_slot(i) end}
+    PakettiAddMenuEntry{name=menu_entry_name2_xrni,invoke=function() load_instrument_from_slot(i) end}
     renoise.tool():add_keybinding{name=key_binding_name_xrni,invoke=function() load_instrument_from_slot(i) end}
   end
 
@@ -384,8 +384,8 @@ local function add_menu_entries_and_keybindings()
     local menu_entry_name2_load_both = "DSP Device:Paketti:Device Chains:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
     local key_binding_name_load_both = "Global:Paketti:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot " .. slot_number
 
-    renoise.tool():add_menu_entry{name=menu_entry_name_load_both,invoke=function() load_both_from_slot(i) end}
-    renoise.tool():add_menu_entry{name=menu_entry_name2_load_both,invoke=function() load_both_from_slot(i) end}
+    PakettiAddMenuEntry{name=menu_entry_name_load_both,invoke=function() load_both_from_slot(i) end}
+    PakettiAddMenuEntry{name=menu_entry_name2_load_both,invoke=function() load_both_from_slot(i) end}
     renoise.tool():add_keybinding{name=key_binding_name_load_both,invoke=function() load_both_from_slot(i) end}
   end
 end

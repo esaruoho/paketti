@@ -3856,14 +3856,51 @@ function PakettiAddMidiMapping(args)
   return false
 end
 
+-- Map a menu entry name to its per-context preference key
+local function PakettiMenuContextPrefKey(name)
+  if not name then return nil end
+  local clean = name:gsub("^%-%-", "")
+  if clean:match("^Main Menu:File:") then return "MainMenuFile"
+  elseif clean:match("^Main Menu:View:") or clean:match("^Main Menu:Options:") then return "MainMenuView"
+  elseif clean:match("^Main Menu:") then return "MainMenuTools"
+  elseif clean:match("^Instrument Box:") then return "InstrumentBox"
+  elseif clean:match("^Sample Editor") then return "SampleEditor"
+  elseif clean:match("^Sample Navigator:") then return "SampleNavigator"
+  elseif clean:match("^Sample Keyzones:") or clean:match("^Sample Mappings:") then return "SampleKeyzone"
+  elseif clean:match("^Sample FX Mixer:") then return "SampleEditor"
+  elseif clean:match("^Sample Modulation") then return "SampleEditor"
+  elseif clean:match("^Instrument Modulation:") then return "SampleEditor"
+  elseif clean:match("^Mixer:") then return "Mixer"
+  elseif clean:match("^Pattern Editor:") then return "PatternEditor"
+  elseif clean:match("^Pattern Matrix:") then return "PatternMatrix"
+  elseif clean:match("^Pattern Sequencer:") then return "PatternSequencer"
+  elseif clean:match("^Phrase") then return "PhraseEditor"
+  elseif clean:match("^DSP Device:") then return "TrackDSPDevice"
+  elseif clean:match("^DSP Chain:") then return "TrackDSPChain"
+  elseif clean:match("^Track Automation:") then return "Automation"
+  elseif clean:match("^Disk Browser") then return "DiskBrowserFiles"
+  else return nil
+  end
+end
+
 -- Helper function to conditionally add menu entry
+-- Checks both the master toggle AND the per-context preference
 -- Usage: PakettiAddMenuEntry{name="...", invoke=function() end}
 function PakettiAddMenuEntry(args)
-  if PakettiShouldRegisterMenus() then
-    renoise.tool():add_menu_entry(args)
-    return true
+  if not PakettiShouldRegisterMenus() then
+    return false
   end
-  return false
+  -- Check per-context preference
+  if args.name and preferences and preferences.pakettiMenuConfig then
+    local pref_key = PakettiMenuContextPrefKey(args.name)
+    if pref_key and preferences.pakettiMenuConfig[pref_key] then
+      if not preferences.pakettiMenuConfig[pref_key].value then
+        return false
+      end
+    end
+  end
+  renoise.tool():add_menu_entry(args)
+  return true
 end
 
 -- ============================================================================

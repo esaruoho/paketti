@@ -488,22 +488,22 @@ renoise.tool():add_keybinding{
   invoke = function() PakettiDynamicMacroToolbarToggle() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti Gadgets:Dynamic Macro Toolbar...",
   invoke = function() PakettiDynamicMacroToolbarToggle() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "--Pattern Editor:Paketti Gadgets:Dynamic Macro Toolbar...",
   invoke = function() PakettiDynamicMacroToolbarToggle() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Mixer:Paketti Gadgets:Dynamic Macro Toolbar...",
   invoke = function() PakettiDynamicMacroToolbarToggle() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Sample Editor:Paketti Gadgets:Dynamic Macro Toolbar...",
   invoke = function() PakettiDynamicMacroToolbarToggle() end
 }

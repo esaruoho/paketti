@@ -502,8 +502,8 @@ function PakettiMixerParameterExposerShowDialog()
 end
 
 -- Menu entries and keybindings
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Mixer Parameter Exposer...", invoke = PakettiMixerParameterExposerShowDialog}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets:Mixer Parameter Exposer...", invoke = PakettiMixerParameterExposerShowDialog}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti Gadgets:Mixer Parameter Exposer...", invoke = PakettiMixerParameterExposerShowDialog}
+PakettiAddMenuEntry{name = "Mixer:Paketti Gadgets:Mixer Parameter Exposer...", invoke = PakettiMixerParameterExposerShowDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Mixer Parameter Exposer", invoke = PakettiMixerParameterExposerShowDialog}
 
 -- MIDI Mapping for controlling exposed parameters

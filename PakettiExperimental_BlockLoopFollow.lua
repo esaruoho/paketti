@@ -256,19 +256,19 @@ end
 --------------------------------------------------------------------------------
 
 -- Main toggle with checkmark in Options menu
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Options:Block Loop Follows Edit Cursor Toggle",
   invoke = toggle_block_loop_follow_auto,
   selected = function() return block_loop_follow_enabled end
 }
 
 -- Experimental entries for manual control
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Experimental:Block Loop Snap to Cursor (Manual)",
   invoke = snap_block_loop_to_cursor
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Experimental:Block Loop Toggle & Snap to Cursor",
   invoke = toggle_and_snap_block_loop
 }

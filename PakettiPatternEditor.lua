@@ -3880,12 +3880,12 @@ renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:Toggle Note Off on A
 }
 
 -- Menu entries for Pattern Matrix, Pattern Sequencer, Pattern Editor
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern() end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_FirstPattern() end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern() end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_FirstPattern() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_FirstPattern() end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern() end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_FirstPattern() end}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern() end}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_FirstPattern() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_FirstPattern() end}
 
 -- Keybindings for Pattern Matrix, Pattern Sequencer, Pattern Editor, and Global
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern}
@@ -4331,7 +4331,7 @@ for _, row_opt in ipairs(row_options) do
     
     -- For note columns
     local note_menu_entry_name = "Pattern Editor:Paketti:Replicate:Replicate Note/FX Column " .. row_opt.name .. " " .. transpose_opt.name
-    renoise.tool():add_menu_entry{name=note_menu_entry_name,invoke=replicate_function}
+    PakettiAddMenuEntry{name=note_menu_entry_name,invoke=replicate_function}
     
     local note_keybinding_name = "Pattern Editor:Paketti:Replicate Note/FX Column " .. row_opt.name .. " " .. transpose_opt.name
     renoise.tool():add_keybinding{name=note_keybinding_name,invoke=replicate_function}
@@ -4346,7 +4346,7 @@ for _, row_opt in ipairs(row_options) do
 end
 
 -- Menu entries, keybindings, and MIDI mappings for subcolumn replication
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Replicate:Replicate Selected Subcolumn Above Current Row", invoke=function()
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Replicate:Replicate Selected Subcolumn Above Current Row", invoke=function()
   PakettiReplicateSelectedSubcolumn("above_current")
 end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replicate Selected Subcolumn Above Current Row", invoke=function()
@@ -4358,7 +4358,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Replicate Selected Subcolumn Above
   end
 end}
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Replicate:Replicate Selected Subcolumn Above + Current", invoke=function()
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Replicate:Replicate Selected Subcolumn Above + Current", invoke=function()
   PakettiReplicateSelectedSubcolumn("above_and_current")
 end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replicate Selected Subcolumn Above + Current", invoke=function()
@@ -4379,8 +4379,8 @@ renoise.tool():add_midi_mapping{name="Paketti:Replicate Above Into Selection Onl
     PakettiClipboardReplicateIntoSelection()
   end
 end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Replicate:Replicate Above Into Selection Only", invoke=PakettiClipboardReplicateIntoSelection}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Replicate Above Into Selection Only", invoke=PakettiClipboardReplicateIntoSelection}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Replicate:Replicate Above Into Selection Only", invoke=PakettiClipboardReplicateIntoSelection}
+PakettiAddMenuEntry{name="Phrase Editor:Paketti:Replicate Above Into Selection Only", invoke=PakettiClipboardReplicateIntoSelection}
 
 -------
 -------
@@ -4682,7 +4682,7 @@ for _, tracks_opt in ipairs(tracks_options) do
 
       -- Pattern Editor entries (always add these)
       local menu_entry_name = "Pattern Editor:Paketti:Replicate:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
-      renoise.tool():add_menu_entry{name=menu_entry_name,invoke=replicate_function}
+      PakettiAddMenuEntry{name=menu_entry_name,invoke=replicate_function}
       
       local keybinding_name = "Pattern Editor:Paketti:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
       renoise.tool():add_keybinding{name=keybinding_name,invoke=replicate_function}
@@ -4698,7 +4698,7 @@ for _, tracks_opt in ipairs(tracks_options) do
       -- since phrases don't have multiple tracks
       if renoise.API_VERSION >= 6.2 and tracks_opt.value == "selected_track" then
         local phrase_menu_entry_name = "Phrase Editor:Paketti:Replicate:Replicate " .. row_opt.name .. " " .. transpose_opt.name
-        renoise.tool():add_menu_entry{name=phrase_menu_entry_name,invoke=replicate_function}
+        PakettiAddMenuEntry{name=phrase_menu_entry_name,invoke=replicate_function}
         
         local phrase_keybinding_name = "Phrase Editor:Paketti:Replicate " .. row_opt.name .. " " .. transpose_opt.name
         renoise.tool():add_keybinding{name=phrase_keybinding_name,invoke=replicate_function}
@@ -8579,7 +8579,7 @@ if renoise.API_VERSION >= 6.2 then
   }
 
   -- Add menu entry
-  renoise.tool():add_menu_entry{
+  PakettiAddMenuEntry{
     name="Pattern Editor:Paketti:Toggle Audition Current Line on Pattern Row Change",
     invoke=function() PakettiToggleAuditionCurrentLineOnRowChange() end,
     selected=function() return PakettiAuditionOnLineChangeEnabled end
@@ -9040,8 +9040,8 @@ function PakettiFitSampleOffsetToPattern(headless)
   print("=====================================")
 end
 
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx)",invoke = function() PakettiFitSampleOffsetToPattern(false) end}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx Headless)",invoke = function() PakettiFitSampleOffsetToPattern(true) end}
+PakettiAddMenuEntry{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx)",invoke = function() PakettiFitSampleOffsetToPattern(false) end}
+PakettiAddMenuEntry{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx Headless)",invoke = function() PakettiFitSampleOffsetToPattern(true) end}
 
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx)",invoke = function() PakettiFitSampleOffsetToPattern(false) end}
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx Headless)",invoke = function() PakettiFitSampleOffsetToPattern(true) end}
@@ -9533,7 +9533,7 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write BPM (Interpolated) to Master Track", invoke=PakettiTempoInterpolateCurrentToNext}
 renoise.tool():add_keybinding{name="Global:Paketti:Write BPM (Interpolated) to Master Track", invoke=PakettiTempoInterpolateCurrentToNext}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write BPM (Interpolated) to Master Track", invoke=PakettiTempoInterpolateCurrentToNext}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Write BPM (Interpolated) to Master Track", invoke=PakettiTempoInterpolateCurrentToNext}
 
 
 -------
@@ -10501,7 +10501,7 @@ function PakettiEffectColumnCurveFillApply()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column Curve Fill", invoke = PakettiEffectColumnCurveFill}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Column Curve Fill", invoke = PakettiEffectColumnCurveFill}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti..:Effect Column Curve Fill", invoke = PakettiEffectColumnCurveFill}
 renoise.tool():add_midi_mapping{name="Paketti:Effect Column Curve Fill", invoke = function(message) if message:is_trigger() then PakettiEffectColumnCurveFill() end end}
 
 ---------------------------------------------------------------------------
@@ -11217,7 +11217,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Remove Unused Effect Columns", inv
 renoise.tool():add_midi_mapping{name="Paketti:Remove Unused Columns (Note + Effect)", invoke=function(message) if message:is_trigger() then PakettiRemoveUnusedColumns() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Clear Unreferenced Patterns", invoke=function(message) if message:is_trigger() then PakettiClearUnreferencedPatterns() end end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Note Columns", invoke=function() PakettiRemoveUnusedNoteColumns() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Effect Columns", invoke=function() PakettiRemoveUnusedEffectColumns() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Columns (Note + Effect)", invoke=function() PakettiRemoveUnusedColumns() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Clear Unreferenced Patterns", invoke=function() PakettiClearUnreferencedPatterns() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Note Columns", invoke=function() PakettiRemoveUnusedNoteColumns() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Effect Columns", invoke=function() PakettiRemoveUnusedEffectColumns() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Columns (Note + Effect)", invoke=function() PakettiRemoveUnusedColumns() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Clear Unreferenced Patterns", invoke=function() PakettiClearUnreferencedPatterns() end}

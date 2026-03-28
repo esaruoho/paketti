@@ -1267,15 +1267,15 @@ function paketti_manual_slicer_longest_and_export()
 end
 
 -- Menu entries for Longest Slice mode
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Manual Slicer:Fit Slices to Longest Slice with Power of 2 Padding",invoke = paketti_manual_slicer} 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Manual Slicer:Fit Slices to Longest Slice + Export OT/WAV with CUE",invoke = paketti_manual_slicer_longest_and_export}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:Manual Slicer:Fit Slices to Longest Slice with Power of 2 Padding",invoke = paketti_manual_slicer} 
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:Manual Slicer:Fit Slices to Longest Slice + Export OT/WAV with CUE",invoke = paketti_manual_slicer_longest_and_export}
 
 -- Menu entries for Shortest Slice mode
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Manual Slicer:Fit Slices to Shortest Slice with Power of 2 Padding",invoke = paketti_manual_slicer_shortest}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Manual Slicer:Fit Slices to Shortest Slice + Export OT/WAV with CUE",invoke = paketti_manual_slicer_shortest_and_export}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:Manual Slicer:Fit Slices to Shortest Slice with Power of 2 Padding",invoke = paketti_manual_slicer_shortest}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:Manual Slicer:Fit Slices to Shortest Slice + Export OT/WAV with CUE",invoke = paketti_manual_slicer_shortest_and_export}
 
 -- Menu entry for standalone export
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Manual Slicer:Export Current Sliced Sample as OT/WAV with CUE",invoke = paketti_export_sliced_ot_wav_cue}
+PakettiAddMenuEntry{name="Sample Editor:Paketti..:Manual Slicer:Export Current Sliced Sample as OT/WAV with CUE",invoke = paketti_export_sliced_ot_wav_cue}
 
 -- Keybindings for Longest Slice mode
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Fit Slices to Longest Slice with Power of 2 Padding",invoke = paketti_manual_slicer}

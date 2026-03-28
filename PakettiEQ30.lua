@@ -1789,7 +1789,7 @@ function PakettiEQ10ExperimentInit()
 end
 
 -- Add menu entry and keybinding
---renoise.tool():add_menu_entry {name = "Main  Menu:Tools:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
+--PakettiAddMenuEntry {name = "Main  Menu:Tools:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
 --renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
 --renoise.tool():add_midi_mapping{name = "Paketti:Paketti EQ30", invoke = function(message) if message:is_trigger() then PakettiEQ10ExperimentInit() end end}
 

@@ -909,7 +909,7 @@ end
 -- REGISTRATION
 ----------------------------------------------------------------------
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Instruments:MIDI Drum Pattern to Phrase (Import)...",
   invoke = function()
     local path = renoise.app():prompt_for_filename_to_read({"mid", "midi"}, "Select MIDI file to import as phrase")
@@ -919,7 +919,7 @@ renoise.tool():add_menu_entry{
   end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Instruments:MIDI Folder Batch Import to Phrases...",
   invoke = function()
     show_midi_import_dialog()
@@ -964,12 +964,12 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Instruments:Save All Phrases as Presets (.xrnz)...",
   invoke = function() save_all_phrases_as_presets() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Instruments:Load All Phrase Presets from Folder (.xrnz)...",
   invoke = function() load_all_phrase_presets_from_folder() end
 }

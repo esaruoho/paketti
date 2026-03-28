@@ -1254,11 +1254,11 @@ end
 -- TODO: figure out which ones still need to exist
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:BPM:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:BPM:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:BPM:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Global:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
@@ -1889,6 +1889,6 @@ end
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
 renoise.tool():add_keybinding{name="Global:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
 

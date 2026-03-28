@@ -428,11 +428,11 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Track Device Chain",invoke=function() inspectTrackDeviceChain() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Track Device Chain (Clean)",invoke=function() inspectTrackDeviceChainClean() end}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Inspect Track Device Chain", invoke = inspectTrackDeviceChain}
-renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Inspect Track Device Chain (Clean)", invoke = inspectTrackDeviceChainClean}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Track Device Chain", invoke = inspectTrackDeviceChain}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:Inspect Track Device Chain (Clean)", invoke = inspectTrackDeviceChainClean}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
+PakettiAddMenuEntry{name="--DSP Chain:Paketti:Inspect Track Device Chain", invoke = inspectTrackDeviceChain}
+PakettiAddMenuEntry{name="DSP Chain:Paketti:Inspect Track Device Chain (Clean)", invoke = inspectTrackDeviceChainClean}
+PakettiAddMenuEntry{name="--Mixer:Paketti:Inspect Track Device Chain", invoke = inspectTrackDeviceChain}
+PakettiAddMenuEntry{name="Mixer:Paketti:Inspect Track Device Chain (Clean)", invoke = inspectTrackDeviceChainClean}
+PakettiAddMenuEntry{name="Mixer:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
 
 
 
@@ -559,9 +559,9 @@ function SeparateSyncLFOBeatsgo()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:SeparateSyncLFO (Beatsgo) (Preset++)", invoke = SeparateSyncLFOBeatsgo}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:SeparateSyncLFO (Beatsgo LFO)", invoke = SeparateSyncLFOBeatsgo}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:SeparateSyncLFO (Beatsgo) (Preset++)", invoke = SeparateSyncLFOBeatsgo}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:SeparateSyncLFO (Beatsgo LFO)", invoke = SeparateSyncLFOBeatsgo}
+PakettiAddMenuEntry{name="--DSP Device:Paketti:Preset++:SeparateSyncLFO (Beatsgo LFO)", invoke = SeparateSyncLFOBeatsgo}
+PakettiAddMenuEntry{name="--DSP Chain:Paketti:SeparateSyncLFO (Beatsgo) (Preset++)", invoke = SeparateSyncLFOBeatsgo}
+PakettiAddMenuEntry{name="--Mixer:Paketti:Preset++:SeparateSyncLFO (Beatsgo LFO)", invoke = SeparateSyncLFOBeatsgo}
 
 
 
@@ -1158,9 +1158,9 @@ function HipassPlusPlus()
 end
 
 
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Hipass", invoke = HipassPlusPlus}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Hipass", invoke = HipassPlusPlus}
+PakettiAddMenuEntry{name="--DSP Device:Paketti:Preset++:Hipass", invoke = HipassPlusPlus}
+PakettiAddMenuEntry{name="--DSP Chain:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
+PakettiAddMenuEntry{name="--Mixer:Paketti:Preset++:Hipass", invoke = HipassPlusPlus}
 renoise.tool():add_keybinding{name="DSP Device:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
 renoise.tool():add_keybinding{name="Global:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
@@ -1309,9 +1309,9 @@ function LFOEnvelopePanPresetPlusPlus()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:LFOEnvelopePan (Preset++)", invoke = LFOEnvelopePanPresetPlusPlus}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:LFOEnvelopePan", invoke = LFOEnvelopePanPresetPlusPlus}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:LFOEnvelopePan (Preset++)", invoke = LFOEnvelopePanPresetPlusPlus}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:LFOEnvelopePan", invoke = LFOEnvelopePanPresetPlusPlus}
+PakettiAddMenuEntry{name="--DSP Device:Paketti:Preset++:LFOEnvelopePan", invoke = LFOEnvelopePanPresetPlusPlus}
+PakettiAddMenuEntry{name="--DSP Chain:Paketti:LFOEnvelopePan (Preset++)", invoke = LFOEnvelopePanPresetPlusPlus}
+PakettiAddMenuEntry{name="--Mixer:Paketti:Preset++:LFOEnvelopePan", invoke = LFOEnvelopePanPresetPlusPlus}
 
 -- Standalone Send Device Preset++ Function
 function PakettiSendDevicePresetPlusPlus(send_track_name)
@@ -1414,12 +1414,12 @@ end
 -- ADD SEND DEVICE ONLY (connects to existing send tracks via dropdown)
 renoise.tool():add_keybinding{name="Global:Paketti:Send Device (Preset++)", invoke = function() PakettiSendDevicePresetPlusPlus() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Multiband Send Device (Preset++)", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Send Device", invoke = function() PakettiSendDevicePresetPlusPlus() end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Multiband Send Device", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Send Device (Preset++)", invoke = function() PakettiSendDevicePresetPlusPlus() end}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Multiband Send Device (Preset++)", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Send Device", invoke = function() PakettiSendDevicePresetPlusPlus() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Multiband Send Device", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
+PakettiAddMenuEntry{name="--DSP Device:Paketti:Preset++:Send Device", invoke = function() PakettiSendDevicePresetPlusPlus() end}
+PakettiAddMenuEntry{name="--DSP Device:Paketti:Preset++:Multiband Send Device", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
+PakettiAddMenuEntry{name="--DSP Chain:Paketti:Send Device (Preset++)", invoke = function() PakettiSendDevicePresetPlusPlus() end}
+PakettiAddMenuEntry{name="--DSP Chain:Paketti:Multiband Send Device (Preset++)", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
+PakettiAddMenuEntry{name="--Mixer:Paketti:Preset++:Send Device", invoke = function() PakettiSendDevicePresetPlusPlus() end}
+PakettiAddMenuEntry{name="--Mixer:Paketti:Preset++:Multiband Send Device", invoke = function() PakettiMultibandSendDevicePresetPlusPlus() end}
 
 -- Helper function to load Send preset into container device
 function loadSendIntoContainer(device, send_index, send_name)
@@ -2023,11 +2023,11 @@ end
 
 -- CREATE NEW SEND TRACK + DEVICE (creates both track and device)
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Create New Send Track", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Create New Send Track", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Preset++:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Preset++:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="--DSP Device:Paketti:Preset++:Create New Send Track", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="--DSP Chain:Paketti:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="--Mixer:Paketti:Preset++:Create New Send Track", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Preset++:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="--Pattern Editor:Paketti:Preset++:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
 
 -- DRY Create New Send function with mode parameter
 -- mode: "keep" (keep source, send at minimum volume), "mute" (mute source, send at maximum volume)
@@ -2230,26 +2230,26 @@ renoise.tool():add_keybinding{name="Global:Paketti:Create New Send Track (Mute S
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
-renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Create New Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Preset++:Create New Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Preset++:Create New Multiband Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Preset++:Create New Multiband Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Create New Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:Preset++:Create New Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:Preset++:Create New Multiband Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti:Preset++:Create New Multiband Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Preset++:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Preset++:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Preset++:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Preset++:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
+PakettiAddMenuEntry{name="--DSP Chain:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="DSP Chain:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+PakettiAddMenuEntry{name="DSP Chain:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+PakettiAddMenuEntry{name="DSP Chain:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
+PakettiAddMenuEntry{name="--DSP Device:Paketti:Preset++:Create New Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="DSP Device:Paketti:Preset++:Create New Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+PakettiAddMenuEntry{name="DSP Device:Paketti:Preset++:Create New Multiband Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+PakettiAddMenuEntry{name="DSP Device:Paketti:Preset++:Create New Multiband Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
+PakettiAddMenuEntry{name="--Mixer:Paketti:Preset++:Create New Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Mixer:Paketti:Preset++:Create New Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+PakettiAddMenuEntry{name="Mixer:Paketti:Preset++:Create New Multiband Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Mixer:Paketti:Preset++:Create New Multiband Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
+PakettiAddMenuEntry{name="--Pattern Matrix:Paketti:Preset++:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Preset++:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Preset++:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Preset++:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
+PakettiAddMenuEntry{name="--Pattern Editor:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 
 -- Create New Track with Channelstrip function
 function PakettiCreateNewTrackWithChannelstrip()
@@ -2373,10 +2373,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Create New Track with Channel
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
-renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+PakettiAddMenuEntry{name="--DSP Chain:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+PakettiAddMenuEntry{name="--Mixer:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+PakettiAddMenuEntry{name="--Pattern Matrix:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
+PakettiAddMenuEntry{name="--Pattern Editor:Paketti:Create New Track with Channelstrip", invoke = PakettiCreateNewTrackWithChannelstrip}
 
 ---------------------------------------------------------------------------------------------------------
 -- Pattern / Phrase Init Dialog (Combined Two-Column Dialog)

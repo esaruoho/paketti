@@ -536,32 +536,32 @@ renoise.tool():add_midi_mapping{name="Paketti:Pattern Name Loop - List Regions x
 -- MENU ENTRIES
 ---------------------------------------------------------------------------
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Sequencer:Paketti:Pattern Name Loop - Set at Current",
   invoke = PakettiPatternNameLoopSetAtCurrent
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Sequencer:Paketti:Pattern Name Loop - Next",
   invoke = PakettiPatternNameLoopNext
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Sequencer:Paketti:Pattern Name Loop - Previous",
   invoke = PakettiPatternNameLoopPrevious
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Sequencer:Paketti:Pattern Name Loop - Clear",
   invoke = PakettiPatternNameLoopClear
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Sequencer:Paketti:Pattern Name Loop - Toggle",
   invoke = PakettiPatternNameLoopToggle
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Pattern Sequencer:Paketti:Pattern Name Loop - List Regions",
   invoke = PakettiPatternNameLoopList
 }

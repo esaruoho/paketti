@@ -3980,10 +3980,10 @@ function PakettiHyperEditLoadAndShow()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
-renoise.tool():add_menu_entry {name = "--Pattern Editor:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
-renoise.tool():add_menu_entry {name = "--Mixer:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
-renoise.tool():add_menu_entry {name = "--Pattern Matrix:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
-renoise.tool():add_menu_entry {name = "--Track Automation:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+PakettiAddMenuEntry {name = "--Pattern Editor:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+PakettiAddMenuEntry {name = "--Mixer:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+PakettiAddMenuEntry {name = "--Pattern Matrix:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+PakettiAddMenuEntry {name = "--Track Automation:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 
 -- HyperEdit Pattern Functions

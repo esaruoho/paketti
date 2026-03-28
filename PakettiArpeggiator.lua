@@ -1725,8 +1725,8 @@ function PakettiArp_Toggle()
   end
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Musical Chord Progression Arpeggiator...",invoke = PakettiArp_Toggle}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti Gadgets:Musical Chord Progression Arpeggiator...",invoke = PakettiArp_Toggle}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti Gadgets:Musical Chord Progression Arpeggiator...",invoke = PakettiArp_Toggle}
+PakettiAddMenuEntry{name = "Pattern Editor:Paketti Gadgets:Musical Chord Progression Arpeggiator...",invoke = PakettiArp_Toggle}
 renoise.tool():add_keybinding{name = "Global:Paketti:Musical Chord Progression Arpeggiator...",invoke = PakettiArp_Toggle}
 
 -- Add MIDI mapping

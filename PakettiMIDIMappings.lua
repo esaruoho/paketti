@@ -2663,13 +2663,13 @@ function PakettiLoadBundledMidiMappings()
 end
 
 -- Menu Entries
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load Paketti MIDI Mappings",invoke=PakettiLoadBundledMidiMappings}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Save MIDI Mappings (.xrnm)...",invoke=PakettiSaveMidiMappings}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load MIDI Mappings from File (Merge)...",invoke=PakettiLoadMidiMappingsFromFile}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load MIDI Mappings from File (Replace All)...",invoke=PakettiReplaceMidiMappingsFromFile}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load Default MIDI Mappings",invoke=PakettiLoadDefaultMidiMappings}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Clear & Reload Default MIDI Mappings",invoke=PakettiReloadDefaultMidiMappings}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:MIDI Mappings:Clear All MIDI Mappings",invoke=PakettiClearMidiMappings}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load Paketti MIDI Mappings",invoke=PakettiLoadBundledMidiMappings}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI Mappings:Save MIDI Mappings (.xrnm)...",invoke=PakettiSaveMidiMappings}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load MIDI Mappings from File (Merge)...",invoke=PakettiLoadMidiMappingsFromFile}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load MIDI Mappings from File (Replace All)...",invoke=PakettiReplaceMidiMappingsFromFile}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI Mappings:Load Default MIDI Mappings",invoke=PakettiLoadDefaultMidiMappings}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI Mappings:Clear & Reload Default MIDI Mappings",invoke=PakettiReloadDefaultMidiMappings}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI Mappings:Clear All MIDI Mappings",invoke=PakettiClearMidiMappings}
 
 -- Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Load Paketti MIDI Mappings",invoke=PakettiLoadBundledMidiMappings}

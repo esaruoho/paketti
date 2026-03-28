@@ -1146,18 +1146,18 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Glider:Glider Dialog...",
   invoke = function() PakettiGliderShowDialog() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Glider:Glider Toggle",
   invoke = function() PakettiGliderToggle() end,
   selected = function() return PakettiGliderEnabled end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "--Main Menu:Tools:Paketti:Glider:Set Duration 2 Lines",
   invoke = function()
     PakettiGliderDuration = 2
@@ -1166,7 +1166,7 @@ renoise.tool():add_menu_entry{
   selected = function() return PakettiGliderDuration == 2 end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Glider:Set Duration 4 Lines",
   invoke = function()
     PakettiGliderDuration = 4
@@ -1175,7 +1175,7 @@ renoise.tool():add_menu_entry{
   selected = function() return PakettiGliderDuration == 4 end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Glider:Set Duration 8 Lines",
   invoke = function()
     PakettiGliderDuration = 8
@@ -1184,7 +1184,7 @@ renoise.tool():add_menu_entry{
   selected = function() return PakettiGliderDuration == 8 end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Glider:Set Duration 16 Lines",
   invoke = function()
     PakettiGliderDuration = 16
@@ -1193,7 +1193,7 @@ renoise.tool():add_menu_entry{
   selected = function() return PakettiGliderDuration == 16 end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "--Main Menu:Tools:Paketti:Glider:Mode Live",
   invoke = function()
     PakettiGliderMode = "live"
@@ -1202,7 +1202,7 @@ renoise.tool():add_menu_entry{
   selected = function() return PakettiGliderMode == "live" end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Glider:Mode Note-Off",
   invoke = function()
     PakettiGliderMode = "noteoff"
@@ -1211,7 +1211,7 @@ renoise.tool():add_menu_entry{
   selected = function() return PakettiGliderMode == "noteoff" end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "--Main Menu:Tools:Paketti:Glider:Legato Only Toggle",
   invoke = function()
     PakettiGliderLegatoOnly = not PakettiGliderLegatoOnly
@@ -1220,7 +1220,7 @@ renoise.tool():add_menu_entry{
   selected = function() return PakettiGliderLegatoOnly end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Glider:Multi-Line Gxx Toggle",
   invoke = function()
     PakettiGliderWriteMultiLine = not PakettiGliderWriteMultiLine
@@ -1229,12 +1229,12 @@ renoise.tool():add_menu_entry{
   selected = function() return PakettiGliderWriteMultiLine end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "--Main Menu:Tools:Paketti:Glider:Clear State",
   invoke = function() PakettiGliderClearState() end
 }
 
-renoise.tool():add_menu_entry{
+PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Glider:Debug Logging Toggle",
   invoke = function()
     PakettiGliderDebug = not PakettiGliderDebug

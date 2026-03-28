@@ -2076,9 +2076,9 @@ for i = 0, 1, 0.1 do
   local formatted_value = string.format("%.1f", i)
 renoise.tool():add_keybinding{name="Global:Paketti:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 if i == 0 then
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
+PakettiAddMenuEntry{name="--Main Menu:Tools:Paketti:Automation:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 else
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Automation:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 end
 end
 -----------------
@@ -4362,7 +4362,7 @@ function PakettiAutomationCurveFillApply()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Curve Fill", invoke = PakettiAutomationCurveFill}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Automation Curve Fill", invoke = PakettiAutomationCurveFill}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:Automation..:Automation Curve Fill", invoke = PakettiAutomationCurveFill}
 renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Fill", invoke = function(message) if message:is_trigger() then PakettiAutomationCurveFill() end end}
 
 ----------------------------------------------------------------------------

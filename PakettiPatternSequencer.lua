@@ -565,9 +565,9 @@ function PakettiKeepSequenceSorted(state)
   end
 end
 
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Keep Sequence Sorted On", invoke=function() PakettiKeepSequenceSorted(true) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Keep Sequence Sorted Off", invoke=function() PakettiKeepSequenceSorted(false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Keep Sequence Sorted Toggle", invoke=function() PakettiKeepSequenceSorted("toggle") end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Keep Sequence Sorted On", invoke=function() PakettiKeepSequenceSorted(true) end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Keep Sequence Sorted Off", invoke=function() PakettiKeepSequenceSorted(false) end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Keep Sequence Sorted Toggle", invoke=function() PakettiKeepSequenceSorted("toggle") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Keep Sequence Sorted On", invoke=function() PakettiKeepSequenceSorted(true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Keep Sequence Sorted Off", invoke=function() PakettiKeepSequenceSorted(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Keep Sequence Sorted Toggle", invoke=function() PakettiKeepSequenceSorted("toggle") end}
@@ -630,7 +630,7 @@ function PakettiWipeEmptyPatternsFromEnd()
 end
 
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Wipe Empty Patterns From End", invoke=PakettiWipeEmptyPatternsFromEnd}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wipe Empty Patterns From End", invoke=PakettiWipeEmptyPatternsFromEnd}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Wipe Empty Patterns From End", invoke=PakettiWipeEmptyPatternsFromEnd}
 
 -- Function to clear unused patterns (patterns not in the pattern sequencer)
 function PakettiClearUnusedPatterns()
@@ -672,8 +672,8 @@ renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Clear Unused Patte
 renoise.tool():add_keybinding{name="Global:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
 
 ---------
 -- Function to duplicate current pattern and insert it as next sequence entry
@@ -902,19 +902,19 @@ renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Delete All Sequences 
 renoise.tool():add_keybinding{name="Global:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
 
 -- Menu entries for Delete All Sequences Above
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Delete All Sequences Above", invoke=PakettiDeleteAllSequencesAbove}
 
 -- Menu entries for Delete All Sequences Below
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Delete All Sequences Below", invoke=PakettiDeleteAllSequencesBelow}
 
 -- Menu entries for Delete All Sequences Above and Below
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Delete All Sequences Above and Below", invoke=PakettiDeleteAllSequencesAboveAndBelow}
 
 ---------
 -- Pattern Merge / Concatenation
@@ -1135,13 +1135,13 @@ renoise.tool():add_keybinding{name="Global:Paketti:Merge Selected Patterns",    
 renoise.tool():add_keybinding{name="Global:Paketti:Merge All Patterns to Monster Pattern",          invoke=PakettiMergeAllToMonster}
 
 -- Menu entries – Pattern Sequencer context
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Merge Current Pattern with Next",     invoke=PakettiMergeWithNext}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Merge Current Pattern with Previous", invoke=PakettiMergeWithPrevious}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Merge Selected Patterns",             invoke=PakettiMergeSelected}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Merge All Patterns to Monster Pattern",invoke=PakettiMergeAllToMonster}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Merge Current Pattern with Next",     invoke=PakettiMergeWithNext}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Merge Current Pattern with Previous", invoke=PakettiMergeWithPrevious}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Merge Selected Patterns",             invoke=PakettiMergeSelected}
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Merge All Patterns to Monster Pattern",invoke=PakettiMergeAllToMonster}
 
 -- Menu entries – Pattern Matrix context
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Merge Current Pattern with Next",        invoke=PakettiMergeWithNext}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Merge Current Pattern with Previous",    invoke=PakettiMergeWithPrevious}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Merge Selected Patterns",                invoke=PakettiMergeSelected}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Merge All Patterns to Monster Pattern",  invoke=PakettiMergeAllToMonster}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Merge Current Pattern with Next",        invoke=PakettiMergeWithNext}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Merge Current Pattern with Previous",    invoke=PakettiMergeWithPrevious}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Merge Selected Patterns",                invoke=PakettiMergeSelected}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Merge All Patterns to Monster Pattern",  invoke=PakettiMergeAllToMonster}
