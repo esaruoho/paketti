@@ -14,13 +14,13 @@ What supporters funded this month:
 
 ### 2026-03-28 - Fix: Menu Configuration per-context toggles now actually work
 
-The **Paketti Menu Configuration** dialog lets you uncheck entire menu contexts (e.g. Main Menu:Tools, Disk Browser, DSP Device, Sample Editor, etc.) to reduce clutter. Previously, unchecking a context, restarting Renoise, and reopening showed the checkbox still unchecked — but the menus were still there. This was a confirmed bug: roughly 529 menu entries in PakettiMenuConfig.lua and ~500 more entries across 88 other Paketti modules were registered unconditionally at boot, ignoring the per-context preferences entirely.
+The **Paketti Menu Configuration** dialog lets you uncheck entire menu contexts (e.g. Main Menu:Tools, Disk Browser, DSP Device, Sample Editor, etc.) to reduce clutter. Previously, unchecking a context, restarting Renoise, and reopening showed the checkbox still unchecked — but the menus were still there.
+
+**Root cause:** All 278 conditional checks in PakettiMenuConfig.lua were written as `if preferences.pakettiMenuConfig.MainMenuTools then` instead of `if preferences.pakettiMenuConfig.MainMenuTools.value then`. In Renoise's Document system, `preferences.pakettiMenuConfig.MainMenuTools` is a property *object* — it's always truthy because the object exists. You need `.value` to read the actual boolean. So every single conditional check always evaluated to `true`, regardless of what the user had saved.
 
 **What changed:**
 
-- **PakettiMenuConfig.lua**: All 529 previously unconditional `add_menu_entry` calls (covering Main Menu:Tools, Main Menu:File, Sample Editor, DSP Device, DSP Chain, Pattern Editor, Pattern Matrix, Mixer, Instrument Box, Phrase Editor, Automation, Disk Browser, and more) are now wrapped in `if preferences.pakettiMenuConfig.<context> then … end` blocks matching the correct preference key.
-- **Paketti0G01_Loader.lua**: The `PakettiAddMenuEntry` helper function was enhanced with a new `PakettiMenuContextPrefKey()` mapper that auto-detects the menu context from the entry name and checks the corresponding per-context preference before registration. This means all entries registered via `PakettiAddMenuEntry` now respect both the master toggle and the per-context toggle.
-- **88 other Paketti*.lua files + main.lua + legacy_v2_8_tools.lua**: All ~500 raw `renoise.tool():add_menu_entry` calls were replaced with `PakettiAddMenuEntry` so they go through the preference-checking pipeline.
+- **PakettiMenuConfig.lua**: Fixed all 278 conditional checks to use `.value` (e.g. `if preferences.pakettiMenuConfig.MainMenuTools.value then`). This covers all menu contexts: Main Menu (Tools/File/View), Sample Editor, Pattern Editor, DSP Device, DSP Chain, Instrument Box, Mixer, Pattern Matrix, Pattern Sequencer, Phrase Editor, Automation, Disk Browser, and Sample Navigator.
 
 After this fix, unchecking a context in Menu Configuration and restarting Renoise will correctly suppress all menu entries in that context.
 

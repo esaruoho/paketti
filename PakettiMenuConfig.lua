@@ -1,12 +1,12 @@
 -- Organize these to the right places:
 
 -- StemLoader direct File menu entries (unconditional)
-if preferences.pakettiMenuConfig.MainMenuFile then
+if preferences.pakettiMenuConfig.MainMenuFile.value then
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti StemLoader...",invoke=function() pakettiStemLoader() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti StemLoader (Slice to Patterns)...",invoke=function() pakettiStemLoader(false, false, true) end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Toggle Marker Position (CTRL-F7)",invoke = function() PakettiCaptureMarkerPosition() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus Matrix Overview",invoke = function() createMatrixOverview() end}
@@ -19,21 +19,21 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:.WT:Import Wavetable
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:.WT:Export Wavetable...", invoke = paketti_export_wavetable}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:.WT:Wavetable Control...", invoke = show_wavetable_dialog}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:.WT:Import Wavetable...", invoke = paketti_import_wavetable}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:.WT:Export Wavetable...", invoke = paketti_export_wavetable}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Polyend Buddy (PTI File Browser)",invoke=show_polyend_buddy_dialog}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Polyend Buddy (PTI File Browser)",invoke = show_polyend_buddy_dialog}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as 8SVX...",invoke = saveCurrentSampleAs8SVX}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as 16SV...",invoke = saveCurrentSampleAs16SV}
@@ -43,116 +43,116 @@ renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Batch Convert
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Batch Convert WAV to IFF...",invoke = batchConvertWAVToIFF}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Paketti Automation Hack",invoke=function() initialize_doofer_monitoring() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
 end
 
-if preferences.pakettiMenuConfig.Automation then
+if preferences.pakettiMenuConfig.Automation.value then
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
 end
 
-if preferences.pakettiMenuConfig.PatternMatrix then
+if preferences.pakettiMenuConfig.PatternMatrix.value then
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Automation:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
 end
 
-if preferences.pakettiMenuConfig.PatternSequencer then
+if preferences.pakettiMenuConfig.PatternSequencer.value then
 renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:LFO Envelope Editor...", invoke=pakettiLFOEnvelopeEditorDialog}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Custom LFO Envelopes:LFO Envelope Editor...", invoke=pakettiLFOEnvelopeEditorDialog}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
 end
 
-if preferences.pakettiMenuConfig.PatternSequencer then
+if preferences.pakettiMenuConfig.PatternSequencer.value then
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Open Paketti Pattern / Phrase Init Preferences...", invoke = function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Apply Pattern Init Settings to Current Track", invoke = function() pakettiTrackSettingsApplyTrackSettings() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 end
 
-if preferences.pakettiMenuConfig.PatternSequencer then
+if preferences.pakettiMenuConfig.PatternSequencer.value then
 renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 end
 
-if preferences.pakettiMenuConfig.PatternMatrix then
+if preferences.pakettiMenuConfig.PatternMatrix.value then
 renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti:Pattern:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
 end
 
-if preferences.pakettiMenuConfig.PatternSequencer then
+if preferences.pakettiMenuConfig.PatternSequencer.value then
 renoise.tool():add_menu_entry{ name = "Pattern Sequencer:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
 end
 
-if preferences.pakettiMenuConfig.PatternMatrix then
+if preferences.pakettiMenuConfig.PatternMatrix.value then
 renoise.tool():add_menu_entry{ name = "Pattern Matrix:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{ name = "--Pattern Editor:Paketti Gadgets:Paketti Slab'o'Patterns...", invoke = PakettiSlabOPatternsToggle }
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 end
 
-if preferences.pakettiMenuConfig.Mixer then
+if preferences.pakettiMenuConfig.Mixer.value then
 renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets:Sample Offset / Slice Step Sequencer...",invoke = function() PakettiSliceStepCreateDialog() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="--Sample Editor Ruler:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
@@ -160,214 +160,214 @@ renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Open La
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Switcharoo...", invoke = PakettiSwitcharoo_Toggle}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti Switcharoo...", invoke = PakettiSwitcharoo_Toggle}
 end
 
 --renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Scale 50%", invoke=function() pakettiScaleLFOEnvelope(0.5) end}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Scale 50%", invoke=function() pakettiScaleLFOEnvelope(0.5) end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Scale 150%", invoke=function() pakettiScaleLFOEnvelope(1.5) end}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Scale 150%", invoke=function() pakettiScaleLFOEnvelope(1.5) end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Flip", invoke=pakettiFlipLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Flip", invoke=pakettiFlipLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Invert", invoke=pakettiInvertLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Invert", invoke=pakettiInvertLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Mirror", invoke=pakettiInvertLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Mirror", invoke=pakettiInvertLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Slapback", invoke=pakettiSlapbackLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Slapback", invoke=pakettiSlapbackLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Center", invoke=pakettiCenterLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Center", invoke=pakettiCenterLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Min", invoke=pakettiMinLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Min", invoke=pakettiMinLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Max", invoke=pakettiMaxLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Max", invoke=pakettiMaxLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Randomize", invoke=pakettiRandomizeLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Randomize", invoke=pakettiRandomizeLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Humanize", invoke=pakettiHumanizeLFOEnvelope}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Humanize", invoke=pakettiHumanizeLFOEnvelope}
 end
 
 -- LFO Curve Shape menu entries
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Linear Up", invoke=pakettiLFOCurveLinear}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Custom LFO Envelopes:Curve - Linear Up", invoke=pakettiLFOCurveLinear}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Linear Down", invoke=pakettiLFOCurveLinearDown}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Linear Down", invoke=pakettiLFOCurveLinearDown}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Logarithmic Up", invoke=pakettiLFOCurveLogarithmic}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Logarithmic Up", invoke=pakettiLFOCurveLogarithmic}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Logarithmic Down", invoke=pakettiLFOCurveLogarithmicDown}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Logarithmic Down", invoke=pakettiLFOCurveLogarithmicDown}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Exponential Up", invoke=pakettiLFOCurveExponential}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Exponential Up", invoke=pakettiLFOCurveExponential}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Exponential Down", invoke=pakettiLFOCurveExponentialDown}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Exponential Down", invoke=pakettiLFOCurveExponentialDown}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Bell (Peak)", invoke=pakettiLFOCurveUpParabola}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Bell (Peak)", invoke=pakettiLFOCurveUpParabola}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - U-Shape (Valley)", invoke=pakettiLFOCurveDownParabola}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - U-Shape (Valley)", invoke=pakettiLFOCurveDownParabola}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Double Peak", invoke=pakettiLFOCurveDoublePeak}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Double Peak", invoke=pakettiLFOCurveDoublePeak}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Curve - Double Valley", invoke=pakettiLFOCurveDoubleValley}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Curve - Double Valley", invoke=pakettiLFOCurveDoubleValley}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 end
 
-if preferences.pakettiMenuConfig.Mixer then
+if preferences.pakettiMenuConfig.Mixer.value then
 renoise.tool():add_menu_entry {name = "Mixer:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Gadgets:Transpose Blocks Dialog...",invoke = show_transpose_block_dialog}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Pick Up Slices",invoke=function() PakettiPickupSlices() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Apply Slices with Same Relative Positioning",invoke=function() PakettiApplySlicesBasedOnSampleRate() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Pattern / Phrase Init Preferences...", invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
@@ -383,23 +383,23 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Functio
 end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 end
 
-if preferences.pakettiMenuConfig.Mixer then
+if preferences.pakettiMenuConfig.Mixer.value then
 renoise.tool():add_menu_entry{name="Mixer:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Test Shortcut Mappings...", invoke=pakettiTestShortcutMappings}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Command+D Mappings...", invoke=pakettiDebugCommandDMappings}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Matching Logic...", invoke=pakettiDebugMatchingLogic}
@@ -408,21 +408,21 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Functio
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Toggle Loop End Parameter Monitor", invoke=PakettiToggleLoopEndParameterMonitor}
 end
 
-if preferences.pakettiMenuConfig.Automation then
+if preferences.pakettiMenuConfig.Automation.value then
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Toggle Loop End Parameter Monitor", invoke=PakettiToggleLoopEndParameterMonitor}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Pattern Editor:Additive Record Follow Pattern (Dialog)",invoke = function() additive_record_follow:show_dialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Additive Record Follow Pattern (Toggle)",invoke = function() pakettiAdditiveRecordFollowToggle() end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti:Additive Record Follow Pattern (Dialog)",invoke = function() additive_record_follow:show_dialog() end}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Additive Record Follow Pattern (Toggle)",invoke = function() pakettiAdditiveRecordFollowToggle() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
 
@@ -430,27 +430,27 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Solo 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
 end
 
-if preferences.pakettiMenuConfig.PatternMatrix then
+if preferences.pakettiMenuConfig.PatternMatrix.value then
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
 end
 
-if preferences.pakettiMenuConfig.PatternSequencer then
+if preferences.pakettiMenuConfig.PatternSequencer.value then
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
 end
 
-if preferences.pakettiMenuConfig.Mixer then
+if preferences.pakettiMenuConfig.Mixer.value then
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Solo Tracks with Pattern Data", invoke=PakettiSoloTracksWithPatternData}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Unsolo All Tracks", invoke=PakettiUnsoloAllTracks}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Fill Dialog...", invoke = PakettiFillShowDialog}
 
 
@@ -458,19 +458,19 @@ renoise.tool():add_menu_entry{name = "Main Menu:Tools:!Execute Applications...",
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Auto Control Disk Browser on Song Load",invoke = pakettiAutoHideDiskBrowserToggle,selected = pakettiAutoHideDiskBrowserIsEnabled}
 end
 
-if preferences.pakettiMenuConfig.DiskBrowserFiles then
+if preferences.pakettiMenuConfig.DiskBrowserFiles.value then
 renoise.tool():add_menu_entry{name = "Disk Browser:Paketti:Auto Control Disk Browser on Song Load",invoke = pakettiAutoHideDiskBrowserToggle,selected = pakettiAutoHideDiskBrowserIsEnabled}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Metric Modulation Calculator",invoke = function() show_metric_modulation_dialog() end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Xperimental/WIP:Metric Modulation Calculator",invoke = function() show_metric_modulation_dialog() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 4:3 (4/4→3/4 feel)",invoke = function() convert_4_to_3_feel() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 3:2 (Triplet feel)",invoke = function() convert_to_triplet_feel() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 2:3 (From triplet)",invoke = function() convert_from_triplet_feel() end}
@@ -479,22 +479,22 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:De
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",invoke=function() paketti_delete_all_repeaters() end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Plugins/Devices:Deactivate All Repeaters on All Tracks",invoke=function() paketti_deactivate_all_repeaters() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",invoke=function() paketti_delete_all_repeaters() end}
 end
 
-if preferences.pakettiMenuConfig.Mixer then
+if preferences.pakettiMenuConfig.Mixer.value then
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Plugins/Devices:Deactivate All Repeaters on All Tracks",invoke=function() paketti_deactivate_all_repeaters() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",invoke=function() paketti_delete_all_repeaters() end}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPChain then
+if preferences.pakettiMenuConfig.TrackDSPChain.value then
 renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Deactivate All Repeaters on All Tracks",invoke=function() paketti_deactivate_all_repeaters() end}
 renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Delete All Repeaters from All Tracks",invoke=function() paketti_delete_all_repeaters() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Recording:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Recording:Quick Sample to New Track & Instrument (Toggle)",invoke = function() PakettiQuickSampleToNewTrackToggle() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Recording:Quick Sample to New Track & Instrument (Sync Off)",invoke = function() PakettiQuickSampleToNewTrackToggleSyncOff() end}
@@ -504,11 +504,11 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:MIDI Aftertouch / CC Effect 
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti PlayerPro OpenMPT Linear Keyboard Layer...", invoke = PakettiOpenMPTLinearKeyboardLayerToggle}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti PlayerPro OpenMPT Linear Keyboard Layer...", invoke = PakettiOpenMPTLinearKeyboardLayerToggle}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
@@ -516,54 +516,54 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Copy Delay t
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Copy Delay to All Same Notes in Track",invoke=function() PakettiPatternDelayViewerCopyDelayFromSelectedNote() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Custom LFO Envelopes:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Halve LFO Envelope Resolution", invoke=pakettiHalveLFOResolution}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Halve LFO Envelope Resolution", invoke=pakettiHalveLFOResolution}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Plugins/Devices:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Plugins/Devices:List Devices with External Editor Support", invoke = pakettiListDevicesWithExternalEditor}
 end
 
-if preferences.pakettiMenuConfig.Mixer then
+if preferences.pakettiMenuConfig.Mixer.value then
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Device:Quick LFO Custom Editor", invoke = pakettiQuickLFOCustomEditor}
 end
 
-if preferences.pakettiMenuConfig.Mixer then
+if preferences.pakettiMenuConfig.Mixer.value then
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:Quick LFO Custom Editor", invoke = pakettiQuickLFOCustomEditor}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Capture Last Take...", invoke = PakettiCaptureLastTakeToggle}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti Capture Last Take...", invoke = PakettiCaptureLastTakeToggle}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Digitakt:Export Sample Chain...", invoke = PakettiDigitaktDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Digitakt:Quick Export (Digitakt Mono)", invoke = PakettiDigitaktExportMono}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Digitakt:Quick Export (Digitakt 2 Stereo)", invoke = PakettiDigitaktExportStereo}
@@ -594,7 +594,7 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{
   name = "Pattern Editor:Paketti:Transport:Toggle Loop Block and Play (2.x style)",
   invoke = PakettiToggleLoopBlockAndPlay
@@ -621,7 +621,7 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.PatternMatrix then
+if preferences.pakettiMenuConfig.PatternMatrix.value then
 renoise.tool():add_menu_entry{
   name = "Pattern Matrix:Paketti:Transport:Toggle Loop Block and Play (2.x style)",
   invoke = PakettiToggleLoopBlockAndPlay
@@ -648,7 +648,7 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Phrases:Toggle Selected Phrase Looping",
   invoke = pakettiToggleSelectedPhraseLooping
@@ -675,7 +675,7 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{
   name = "Instrument Box:Paketti:Phrases:Toggle Selected Phrase Looping",
   invoke = pakettiToggleSelectedPhraseLooping
@@ -702,7 +702,7 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.PhraseEditor then
+if preferences.pakettiMenuConfig.PhraseEditor.value then
 renoise.tool():add_menu_entry{
   name = "Phrase Editor:Paketti:Toggle Selected Phrase Looping",
   invoke = pakettiToggleSelectedPhraseLooping
@@ -729,7 +729,7 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Instruments:Capture Track from Instrument",
   invoke = PakettiCaptureTrackManual
@@ -767,7 +767,7 @@ renoise.tool():add_menu_entry{
 end
 
 -- Menu entries - Instrument Box
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{
   name = "Instrument Box:Paketti:Capture Track from Instrument",
   invoke = PakettiCaptureTrackManual
@@ -805,7 +805,7 @@ renoise.tool():add_menu_entry{
 end
 
 -- Menu entries - Pattern Editor
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{
   name = "Pattern Editor:Paketti:Navigation:Capture Track from Instrument",
   invoke = PakettiCaptureTrackManual
@@ -843,7 +843,7 @@ renoise.tool():add_menu_entry{
 end
 
 -- Menu entries - Mixer
-if preferences.pakettiMenuConfig.Mixer then
+if preferences.pakettiMenuConfig.Mixer.value then
 renoise.tool():add_menu_entry{
   name = "Mixer:Paketti:Capture Track from Instrument",
   invoke = PakettiCaptureTrackManual
@@ -881,17 +881,17 @@ renoise.tool():add_menu_entry{
 end
 
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Gaps", invoke = pakettiOldschoolSlicePitchDetectGaps}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Xperimental/WIP:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (Reversed)", invoke = pakettiOldschoolSlicePitchFillSelectedGap}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (Copied)", invoke = pakettiOldschoolSlicePitchFillSelectedGapCopied}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (Reversed)", invoke = pakettiOldschoolSlicePitchFillAllGaps}
@@ -900,7 +900,7 @@ renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice P
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (PingPong)", invoke = pakettiOldschoolSlicePitchFillAllGapsPingPong}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Reversed)", invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed") end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied)", invoke = function() pakettiOldschoolSlicePitchWorkflow("copied") end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (PingPong)", invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong") end}
@@ -908,67 +908,67 @@ renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Patter
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatsyncOnly}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatsyncOnly}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
 end
 
 -- Enhanced versions with BPM detection
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (detected BPM, from first row)", invoke = function() pakettiSlicesToPattern(true, true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (detected BPM, from current row)", invoke = function() pakettiSlicesToPattern(false, true) end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (detected BPM, from first row)", invoke = function() pakettiSlicesToPattern(true, true) end}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (detected BPM, from current row)", invoke = function() pakettiSlicesToPattern(false, true) end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (detected BPM, with trigger)", invoke = function() pakettiSlicesToPhrase(true, true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (detected BPM, phrase only)", invoke = function() pakettiSlicesToPhrase(false, true) end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (detected BPM, with trigger)", invoke = function() pakettiSlicesToPhrase(true, true) end}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (detected BPM, phrase only)", invoke = function() pakettiSlicesToPhrase(false, true) end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Reversed, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed", true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("copied", true) end}
 renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (PingPong, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong", true) end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Octatrack:Octatrack Bank (.strd/.work)...",invoke=function() PakettiOTSTRDImporter() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Octatrack:Import STRD Bank...",invoke=function() PakettiOTSTRDImporter() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Horizontal...", invoke = pakettiMiniCheatsheetHorizontal}
@@ -976,78 +976,78 @@ renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Pak
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut Toggle (0C00)", invoke=PakettiPatternEditorNoteCut}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut All Tracks Toggle (0C00)", invoke=PakettiPatternEditorNoteCutAllTracks}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Cut Master Toggle (0C00)", invoke=PakettiPatternEditorNoteCutMaster}
 end
 
 -- Phrase-related menu entries require API 6.2+
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
   if renoise.API_VERSION >= 6.2 then
     renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
   end
 end
 
-if preferences.pakettiMenuConfig.PhraseEditor then
+if preferences.pakettiMenuConfig.PhraseEditor.value then
   if renoise.API_VERSION >= 6.2 then
     renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
   end
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pick & Move Toggle", invoke=PakettiPickAndMoveToggle}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Melodic Slice Export (One-Shot)...", invoke=PakettiMelodicSliceExport}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Melodic Slice Create Chain", invoke=PakettiMelodicSliceCreateChain}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Melodic Slice Export Current...", invoke=PakettiMelodicSliceExportCurrent}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
@@ -1055,7 +1055,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Select
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
@@ -1064,130 +1064,130 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Toggle A
 end
 --renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
 --renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleNavigator then
+if preferences.pakettiMenuConfig.SampleNavigator.value then
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleNavigator then
+if preferences.pakettiMenuConfig.SampleNavigator.value then
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 end
 
-if preferences.pakettiMenuConfig.SampleNavigator then
+if preferences.pakettiMenuConfig.SampleNavigator.value then
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleNavigator then
+if preferences.pakettiMenuConfig.SampleNavigator.value then
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
 end
 
-if preferences.pakettiMenuConfig.SampleNavigator then
+if preferences.pakettiMenuConfig.SampleNavigator.value then
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Inject Key Trackers + Hydras to FX Chain 120",invoke=function() selectedInstrumentInjectKeyTrackersAndHydrasToLastFxChain() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleNavigator then
+if preferences.pakettiMenuConfig.SampleNavigator.value then
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Inject LFO->Gainer->Send Chains to All FX Chains",invoke=function() selectedInstrumentInjectLFOsToAllFxChains() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
 end
 
-if preferences.pakettiMenuConfig.SampleNavigator then
+if preferences.pakettiMenuConfig.SampleNavigator.value then
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Set All Sends to Output Track",invoke=function() selectedInstrumentSetAllSendsToOutputTrack() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample FX/Modulation Chains:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Polyend Slice Switcher...",
   invoke=function()
     if not PakettiPolyendSliceSwitcherIsActive() then
@@ -1199,97 +1199,97 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend:Polyend Slic
 }
 end
 
-if preferences.pakettiMenuConfig.PatternMatrix then
+if preferences.pakettiMenuConfig.PatternMatrix.value then
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
 end
 
-if preferences.pakettiMenuConfig.PatternSequencer then
+if preferences.pakettiMenuConfig.PatternSequencer.value then
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Render Pattern Matrix Selection to New Instrument",invoke=function() pakettiRenderMatrixSelection() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Load Random Sample to Pattern (from Dialog)", invoke=loadRandomSampleToPatternDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
 end
 
-if preferences.pakettiMenuConfig.DiskBrowserFiles then
+if preferences.pakettiMenuConfig.DiskBrowserFiles.value then
 renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
 renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti:Instruments:Paketti Batch XRNI Loader...", invoke = PakettiBatchXRNILoader}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Insert New Instrument", invoke = PakettiInsertNewInstrument}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Delete Current Instrument", invoke = PakettiDeleteCurrentInstrument}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Select Next Instrument", invoke = PakettiSelectNextInstrument}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Select Previous Instrument", invoke = PakettiSelectPreviousInstrument}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Instruments:Insert New Instrument", invoke = PakettiInsertNewInstrument}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Instruments:Delete Current Instrument", invoke = PakettiDeleteCurrentInstrument}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Instruments:Select Next Instrument", invoke = PakettiSelectNextInstrument}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Instruments:Select Previous Instrument", invoke = PakettiSelectPreviousInstrument}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Instruments:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
 renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
 renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Samples:Copy Current Loop Points to All Compatible Instruments",
   invoke = pakettiCopyCurrentLoopPointsGlobally}
@@ -1299,7 +1299,7 @@ renoise.tool():add_menu_entry{
   invoke = pakettiCopyCurrentSampleLoopPointsToAllSamples}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{
   name = "Instrument Box:Paketti:Copy Current Loop Points to All Compatible Instruments",
   invoke = pakettiCopyCurrentLoopPointsGlobally}
@@ -1310,7 +1310,7 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{
   name = "Sample Editor:Paketti:Copy Current Loop Points to All Compatible Instruments",
   invoke = pakettiCopyCurrentLoopPointsGlobally
@@ -1322,33 +1322,33 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Instruments:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Loop Points",invoke = pakettiTrimSelectedSampleToLoop}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Selection",invoke = pakettiTrimSelectedSampleToSelection}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim Selected Sample to Selection and Normalize",invoke = pakettiTrimSelectedSampleToSelectionAndNormalize}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Trim All Samples to Loop Points",invoke = pakettiTrimAllSamplesToLoop}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim Selected Sample to Loop Points",invoke = pakettiTrimSelectedSampleToLoop}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim Selected Sample to Selection",invoke = pakettiTrimSelectedSampleToSelection}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim Selected Sample to Selection and Normalize",invoke = pakettiTrimSelectedSampleToSelectionAndNormalize}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Process:Trim All Samples to Loop Points",invoke = pakettiTrimAllSamplesToLoop}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Renamer:Rename with Note Names (Melodic)",
   invoke = pakettiRenameSamplesWithNoteNames}
@@ -1359,7 +1359,7 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{
   name = "Instrument Box:Paketti:Xperimental/WIP:Sample Renamer:Rename with Note Names (Melodic)",
   invoke = pakettiRenameSamplesWithNoteNames
@@ -1371,34 +1371,34 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt",
   invoke = pakettiKontaktExportSamples
 }
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{
   name = "Instrument Box:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt",
   invoke = pakettiKontaktExportSamples
 }
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{
   name = "Sample Editor:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt",
   invoke = pakettiKontaktExportSamples
 }
 end
 
-if preferences.pakettiMenuConfig.PatternMatrix then
+if preferences.pakettiMenuConfig.PatternMatrix.value then
 renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
 renoise.tool():add_menu_entry{name = "Pattern Matrix:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 end
 
-if preferences.pakettiMenuConfig.PatternSequencer then
+if preferences.pakettiMenuConfig.PatternSequencer.value then
 renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
@@ -1408,7 +1408,7 @@ renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Wonkify Generate
 renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Wonkify Settings...", invoke = PakettiWonkifyDialog}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
@@ -1417,21 +1417,21 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:UIOWA Samp
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:UIOWA Sample Processor",invoke = pakettiUIowaProcessor}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:UIOWA Sample Importer",invoke = pakettiUIowaImporter}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:UIOWA Sample Processor",invoke = pakettiUIowaProcessor}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Load:UIOWA Sample Importer",invoke = pakettiUIowaImporter}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load:UIOWA Sample Processor",invoke = pakettiUIowaProcessor}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{ name = "Main Menu:Tools:Paketti:Pattern Editor:Toggle OctaMED Hold-to-Fill Mode", invoke = function() PakettiHoldToFillShowDialog() end, selected = PakettiHoldToFillIsEnabled }
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{ name = "--Pattern Editor:Paketti:Other Trackers:Toggle OctaMED Hold-to-Fill Mode", invoke = function() PakettiHoldToFillShowDialog() end, selected = PakettiHoldToFillIsEnabled }
 
 
@@ -1439,7 +1439,7 @@ renoise.tool():add_menu_entry{ name = "--Pattern Editor:Paketti:Other Trackers:T
 renoise.tool():add_menu_entry{ name = "--Pattern Editor:Paketti Gadgets:OctaMED Hold-to-Fill...", invoke = function() PakettiHoldToFillShowDialog() end }
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Fuzzy Sample Search Dialog...",invoke = PakettiFuzzySampleSearchDialog}
 
 renoise.tool():add_menu_entry{
@@ -1464,7 +1464,7 @@ renoise.tool():add_keybinding{
   invoke = PakettiSelectPreviousGlobalViewPreset
 }
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Sorter:Sort by Name",
   invoke = pakettiSortSamplesByName
@@ -1486,7 +1486,7 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{
   name = "Instrument Box:Paketti:Xperimental/WIP:Sample Sorter:Sort by Name",
   invoke = pakettiSortSamplesByName
@@ -1508,30 +1508,30 @@ renoise.tool():add_menu_entry{
 }
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
 end
 
-if preferences.pakettiMenuConfig.DiskBrowserFiles then
+if preferences.pakettiMenuConfig.DiskBrowserFiles.value then
 renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
 renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Batch Convert SFZ to XRNI (Save Only)...", invoke = PakettiBatchSFZToXRNI}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load:Batch Convert SFZ to XRNI & Load...", invoke = function() PakettiBatchSFZToXRNI(true) end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Xperimental/WIP:Metric Modulation:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Paketti MIDI Mappings (Dynamic)...",invoke = function() pakettiMIDIMappingsDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Load Default MIDI Mappings",invoke = PakettiLoadDefaultMidiMappings}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Save MIDI Mappings...",invoke = PakettiSaveMidiMappings}
@@ -1544,40 +1544,40 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Squee
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Squeeze Note Columns (Whole Song)",invoke=function() squeeze_note_columns_whole_song() end}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Explode Notes to New Tracks (Whole Song)",invoke=function() explode_notes_to_tracks_whole_song() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Squeeze Note Columns (Pattern)",invoke=function() squeeze_note_columns_pattern() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Squeeze Note Columns (Whole Song)",invoke=function() squeeze_note_columns_whole_song() end}
 end
 
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Set All Instruments Samples NNA to Cut",invoke=function() PakettiNNASetAllInstrumentsSamplesCut() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
 end
 
-if preferences.pakettiMenuConfig.Mixer then
+if preferences.pakettiMenuConfig.Mixer.value then
 renoise.tool():add_menu_entry{name = "Mixer:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
 end
 
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
 end
 
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
 end
 
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
 renoise.tool():add_menu_entry{name = "--DSP Device:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
 end
 
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name = "--Sample FX Mixer:Paketti Gadgets:CCizer Loader...", invoke = PakettiCCizerLoader}
 end
 
 local DIRECTION = { PREVIOUS = 1, NEXT = 2 }
 local SCOPE = { TRACK = 1, PATTERN = 2 }
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
@@ -1586,59 +1586,59 @@ end
 
 
 if renoise.API_VERSION >= 6.2 then
-  if preferences.pakettiMenuConfig.MainMenuTools then
+  if preferences.pakettiMenuConfig.MainMenuTools.value then
     renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Device:Run Notepad Device Code", invoke = pakettiNotepadRun}
   end
-  if preferences.pakettiMenuConfig.TrackDSPDevice then
+  if preferences.pakettiMenuConfig.TrackDSPDevice.value then
     renoise.tool():add_menu_entry{name = "--DSP Device:Paketti:Run Notepad Device Code", invoke = pakettiNotepadRun}
   end
-  if preferences.pakettiMenuConfig.Mixer then
+  if preferences.pakettiMenuConfig.Mixer.value then
     renoise.tool():add_menu_entry{name = "--Mixer:Paketti:Run Notepad Device Code", invoke = pakettiNotepadRun}
   end
-  if preferences.pakettiMenuConfig.MainMenuTools then
+  if preferences.pakettiMenuConfig.MainMenuTools.value then
     renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Enhanced Phrase Generator...",invoke=function() pakettiPhraseGeneratorDialog() end}
   end
-  if preferences.pakettiMenuConfig.PhraseEditor then
+  if preferences.pakettiMenuConfig.PhraseEditor.value then
     renoise.tool():add_menu_entry{name="Phrase Script Editor:Paketti:Paketti Enhanced Phrase Generator",invoke=function() pakettiPhraseGeneratorDialog() end}
   end
-  if preferences.pakettiMenuConfig.MainMenuTools then
+  if preferences.pakettiMenuConfig.MainMenuTools.value then
     renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Image to Sample Converter",invoke = function() PakettiImageToSampleStart() end}
     renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
     renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/WIP:Load 2 Random AKWF as 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
   end
-  if preferences.pakettiMenuConfig.SampleEditor then
+  if preferences.pakettiMenuConfig.SampleEditor.value then
     renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
     renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Load 2 Random AKWF as 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
   end
-  if preferences.pakettiMenuConfig.MainMenuTools then
+  if preferences.pakettiMenuConfig.MainMenuTools.value then
     renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
   end
 
-  if preferences.pakettiMenuConfig.TrackDSPDevice then
+  if preferences.pakettiMenuConfig.TrackDSPDevice.value then
     renoise.tool():add_menu_entry{name="DSP Device:Paketti Gadgets:Paketti Selected Device Parameter Editor...", invoke=PakettiCanvasExperimentsInit}
   end
 
-  if preferences.pakettiMenuConfig.MainMenuTools then
+  if preferences.pakettiMenuConfig.MainMenuTools.value then
     renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Selected Device Parameter Editor",invoke = PakettiCanvasExperimentsInit}
     renoise.tool():add_menu_entry{name = "Main Menu:Tools:Chebyshev Polynomial Waveshaper...",invoke = show_chebyshev_waveshaper}
   end
-  if preferences.pakettiMenuConfig.SampleEditor then
+  if preferences.pakettiMenuConfig.SampleEditor.value then
     renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Chebyshev Polynomial Waveshaper...",invoke = show_chebyshev_waveshaper}
   end
-  if preferences.pakettiMenuConfig.MainMenuTools then
+  if preferences.pakettiMenuConfig.MainMenuTools.value then
     renoise.tool():add_menu_entry {name = "Main Menu:Tools:Load & Show Paketti EQ30", invoke = PakettiEQ30ShowAndFollow}
     renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Paketti EQ30 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ30UnusedNoteFrequencyReductionFlavor}
     renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Paketti EQ64 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ64UnusedNoteFrequencyReductionFlavor}
     renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:V3.5:Example Tool...",invoke=function() show_gui_demo() end}
   end
-  if preferences.pakettiMenuConfig.DiskBrowserFiles then
+  if preferences.pakettiMenuConfig.DiskBrowserFiles.value then
     renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
     renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Songs", invoke=function() SetDiskBrowserCategory(1) end}
     renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
     renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Samples", invoke=function() SetDiskBrowserCategory(3) end}
     renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Other", invoke=function() SetDiskBrowserCategory(4) end}
   end
-  if preferences.pakettiMenuConfig.MainMenuTools then
+  if preferences.pakettiMenuConfig.MainMenuTools.value then
     renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Show/Hide Disk Browser",invoke=function() 
     if renoise.app().window.disk_browser_is_visible then renoise.app().window.disk_browser_is_visible=false else
       renoise.app().window.disk_browser_is_visible=true
@@ -1919,7 +1919,7 @@ end
 
 
 --- Instrument Box Config
-if preferences.pakettiMenuConfig.InstrumentBox then
+if preferences.pakettiMenuConfig.InstrumentBox.value then
   debugPrint("Instrument Box Menus Are Enabled")
 -- Gadgets
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
@@ -2066,7 +2066,7 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Plugins/Devices:Inser
 end
 
 --- Sample Editor Config
-if preferences.pakettiMenuConfig.SampleEditor then
+if preferences.pakettiMenuConfig.SampleEditor.value then
   debugPrint("Sample Editor Menus Are Enabled")
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
 
@@ -2293,7 +2293,7 @@ renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti Gadgets:Quick Load D
 end
 
 --- Sample Navigator Config
-if preferences.pakettiMenuConfig.SampleNavigator then
+if preferences.pakettiMenuConfig.SampleNavigator.value then
   debugPrint("Sample Navigator Menus Are Enabled")
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
@@ -2456,7 +2456,7 @@ end
 
 
 --- Sample Keyzone Config
-if preferences.pakettiMenuConfig.SampleKeyzone then
+if preferences.pakettiMenuConfig.SampleKeyzone.value then
 debugPrint("Sample Keyzone Menus Are Enabled")
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets:Unison Generator",invoke=PakettiCreateUnisonSamples}
@@ -2573,7 +2573,7 @@ renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti:Modify Pitc
 end
 
 --- Mixer Config
-if preferences.pakettiMenuConfig.Mixer then
+if preferences.pakettiMenuConfig.Mixer.value then
   debugPrint("Mixer Menus Are Enabled")
 renoise.tool():add_menu_entry{name="Mixer:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
 renoise.tool():add_menu_entry{name="Mixer:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
@@ -2741,7 +2741,7 @@ end
 
 
 --- Pattern Editor Config
-if preferences.pakettiMenuConfig.PatternEditor then
+if preferences.pakettiMenuConfig.PatternEditor.value then
   
   --- Gadgets
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
@@ -3322,7 +3322,7 @@ renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Export:Octatrack Batc
 
 
 --- Main Menu Tools Config
-if preferences.pakettiMenuConfig.MainMenuTools then
+if preferences.pakettiMenuConfig.MainMenuTools.value then
 debugPrint("Main Menu Tools Menus Are Enabled")
 --- Gadgets
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
@@ -3763,7 +3763,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Fill E
 end
 
 --- Main Menu View Config
-if preferences.pakettiMenuConfig.MainMenuView then
+if preferences.pakettiMenuConfig.MainMenuView.value then
 
 renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
 renoise.tool():add_menu_entry{name="Main Menu:View:Paketti:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
@@ -3798,7 +3798,7 @@ globalChangeVisibleColumnState("panning",false) globalChangeVisibleColumnState("
 end
 
 --- Main Menu File Config
-if preferences.pakettiMenuConfig.MainMenuFile then
+if preferences.pakettiMenuConfig.MainMenuFile.value then
   debugPrint("Main Menu File Menus Are Enabled")
   local file_menu_mode = (preferences.pakettiFileMenuLocationMode and preferences.pakettiFileMenuLocationMode.value) or 3
   if file_menu_mode == 1 or file_menu_mode == 3 then
@@ -3837,7 +3837,7 @@ if preferences.pakettiMenuConfig.MainMenuFile then
 end
 
 --- Pattern Matrix Config
-if preferences.pakettiMenuConfig.PatternMatrix then
+if preferences.pakettiMenuConfig.PatternMatrix.value then
 -- Gadgets
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
@@ -3946,7 +3946,7 @@ debugPrint("Pattern Matrix Menus Are Enabled")
 end
 
 --- Pattern Sequencer Config
-if preferences.pakettiMenuConfig.PatternSequencer then
+if preferences.pakettiMenuConfig.PatternSequencer.value then
   debugPrint("Pattern Sequencer Menus Are Enabled")
 -- gadgets
 
@@ -4006,7 +4006,7 @@ renoise.song().sequencer.keep_sequence_sorted=false end end}
 end
 
 --- Phrase Editor Config
-if preferences.pakettiMenuConfig.PhraseEditor then
+if preferences.pakettiMenuConfig.PhraseEditor.value then
   debugPrint("Phrase Editor Menus Are Enabled")
 renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Apply Phrase Init Settings to Current Phrase",invoke=function() pakettiPhraseSettingsApplyPhraseSettings() end}
@@ -4039,12 +4039,12 @@ end
 end
 
 --- Paketti Gadgets Config
-if preferences.pakettiMenuConfig.PakettiGadgets then
+if preferences.pakettiMenuConfig.PakettiGadgets.value then
   debugPrint("Paketti Gadgets Menus Are Enabled")
 end
 
 --- Track DSP Chain Config
-if preferences.pakettiMenuConfig.TrackDSPChain then
+if preferences.pakettiMenuConfig.TrackDSPChain.value then
   debugPrint("Track DSP Chain Menus Are Enabled")
   renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
   renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
@@ -4054,7 +4054,7 @@ if preferences.pakettiMenuConfig.TrackDSPChain then
 end
 
 --- Track DSP Device Config
-if preferences.pakettiMenuConfig.TrackDSPDevice then
+if preferences.pakettiMenuConfig.TrackDSPDevice.value then
   debugPrint("Track DSP Device Menus Are Enabled")
 renoise.tool():add_menu_entry{name="DSP Device Automation:Follow Off",invoke=function() renoise.song().transport.follow_player=false end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Open Visible Pages to Fit Plugin Parameter Count",invoke=openVisiblePagesToFitParameters}
@@ -4116,7 +4116,7 @@ renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Show Paketti Formula De
 end
 
 --- Track Automation Config
-if preferences.pakettiMenuConfig.Automation then
+if preferences.pakettiMenuConfig.Automation.value then
   debugPrint("Automation Menus Are Enabled")
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Start/Stop Pattern Follow",invoke=function() local fp=renoise.song().transport.follow_player if not fp then fp=true else fp=false end end}
 
@@ -4178,7 +4178,7 @@ end
 end
 
 --- Disk Browser Files Config
-if preferences.pakettiMenuConfig.DiskBrowserFiles then
+if preferences.pakettiMenuConfig.DiskBrowserFiles.value then
 debugPrint("Disk Browser Files Menus Are Enabled")
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti Gadgets:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti Gadgets:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
