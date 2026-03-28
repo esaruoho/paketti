@@ -3204,6 +3204,13 @@ function pakettiMenuConfigDialog()
   end
 
   menu_config_dialog_content = vb:column{
+    margin = 10,
+    spacing = 5,
+    vb:text{
+      text = "Note: Changes will only take effect after Renoise has been restarted.",
+      font = "bold"
+    },
+    vb:space{height = 5},
     create_menu_checkbox("Instrument Box Menus", "InstrumentBox", PakettiMenuApplyInstrumentBoxMenus, 250),
     create_menu_checkbox("Sample Editor Menus", "SampleEditor", PakettiMenuApplySampleEditorMenus, 250),
     create_menu_checkbox("Sample Navigator Menus", "SampleNavigator", PakettiMenuApplySampleNavigatorMenus, 250),
@@ -3589,9 +3596,8 @@ function PakettiTogglerDialog()
     
     -- Warning text
     vb:text{
-      text = "Note: Changes to registration toggles require Renoise restart to take effect.",
-      font = "italic",
-      style = "disabled"
+      text = "Note: Changes will only take effect after Renoise has been restarted.",
+      font = "bold"
     },
     
     vb:space{height = 10},

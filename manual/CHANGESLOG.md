@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-28 - Improvement: Menu Configuration and Toggler dialogs now clearly state restart is required
+
+Both the **Paketti Menu Configuration** and **Paketti Toggler** dialogs now display a prominent bold notice: *"Note: Changes will only take effect after Renoise has been restarted."* Previously, the Menu Configuration dialog had no notice at all, and the Toggler dialog had only a dim italic note that was easy to miss. This makes it clear that toggling checkboxes saves your preference but menus/keybindings/MIDI mappings are only registered at tool load time.
+
 ### 2026-03-27 - Documentation: Version Compatibility section added to manual
 
 Added a new **Version Compatibility** section to the manual explaining which Renoise versions Paketti supports and what features are available on each. Every release now ships two builds: one for Renoise 3.2+ and one legacy build for Renoise 3.1.x. Both are available on the [Releases page](https://github.com/esaruoho/paketti/releases). Features gracefully scale up with your Renoise version — buttons, menus, keybindings, and MIDI mappings for unsupported features are automatically hidden.
