@@ -12,25 +12,19 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-03-28 - Fix: Last 4 bypass entries in PakettiAutomation.lua now respect Menu Configuration
+### 2026-03-28 - Fix: Menu Configuration actually works now
 
-Four `Track Automation:Paketti:Automation Curves:Selection Center->Up/Down (Linear)` and `Selection Up/Down->Center (Linear)` menu entries in PakettiAutomation.lua were still using a direct `tool:add_menu_entry` call instead of `PakettiAddMenuEntry`, bypassing the Menu Configuration preference system entirely. Fixed to use `PakettiAddMenuEntry` so they respect the "Automation Menus" toggle.
+The **Paketti Menu Configuration** dialog (`Main Menu → Tools → Paketti → Paketti Menu Configuration...`) lets you uncheck entire right-click menu contexts to reduce clutter — Disk Browser, DSP Device, Sample Editor, Main Menu (Tools/File/View), Pattern Editor, Mixer, and so on. But until today, **unchecking things did absolutely nothing**. You'd uncheck a context, restart Renoise, and the menus were still there. Here's what was wrong and what got fixed:
 
-### 2026-03-28 - Fix: Menu Configuration per-context toggles now actually work
+**Bug 1 — The toggles never actually toggled.** Every conditional check was written as `if preferences.pakettiMenuConfig.MainMenuTools then` — but in Renoise's preference system, that's checking if the *preference object* exists (it always does), not whether the user set it to true or false. All 278 checks were fixed to `if preferences.pakettiMenuConfig.MainMenuTools.value then`.
 
-The **Paketti Menu Configuration** dialog lets you uncheck entire menu contexts (e.g. Main Menu:Tools, Disk Browser, DSP Device, Sample Editor, etc.) to reduce clutter. Previously, unchecking a context, restarting Renoise, and reopening showed the checkbox still unchecked — but the menus were still there.
+**Bug 2 — Hundreds of menus bypassed the system entirely.** 529 menu entries in PakettiMenuConfig.lua and ~500 more across 88 other files were registered unconditionally — they never checked any preference at all. All were wrapped in proper preference checks or routed through the `PakettiAddMenuEntry` wrapper that respects Menu Configuration.
 
-**Root cause:** All 278 conditional checks in PakettiMenuConfig.lua were written as `if preferences.pakettiMenuConfig.MainMenuTools then` instead of `if preferences.pakettiMenuConfig.MainMenuTools.value then`. In Renoise's Document system, `preferences.pakettiMenuConfig.MainMenuTools` is a property *object* — it's always truthy because the object exists. You need `.value` to read the actual boolean. So every single conditional check always evaluated to `true`, regardless of what the user had saved.
+**Bug 3 — 4 Automation Curve entries still used direct registration.** Four `Track Automation:Paketti:Automation Curves:...` entries in PakettiAutomation.lua bypassed the system. Fixed to use `PakettiAddMenuEntry`.
 
-**What changed:**
+**Bonus — Dialogs now tell you what's going on.** Both Menu Configuration and Paketti Toggler dialogs now show a bold notice: *"Note: Changes will only take effect after Renoise has been restarted."*
 
-- **PakettiMenuConfig.lua**: Fixed all 278 conditional checks to use `.value` (e.g. `if preferences.pakettiMenuConfig.MainMenuTools.value then`). This covers all menu contexts: Main Menu (Tools/File/View), Sample Editor, Pattern Editor, DSP Device, DSP Chain, Instrument Box, Mixer, Pattern Matrix, Pattern Sequencer, Phrase Editor, Automation, Disk Browser, and Sample Navigator.
-
-After this fix, unchecking a context in Menu Configuration and restarting Renoise will correctly suppress all menu entries in that context.
-
-### 2026-03-28 - Improvement: Menu Configuration and Toggler dialogs now clearly state restart is required
-
-Both the **Paketti Menu Configuration** and **Paketti Toggler** dialogs now display a prominent bold notice: *"Note: Changes will only take effect after Renoise has been restarted."* Previously, the Menu Configuration dialog had no notice at all, and the Toggler dialog had only a dim italic note that was easy to miss. This makes it clear that toggling checkboxes saves your preference but menus/keybindings/MIDI mappings are only registered at tool load time.
+**How to use it:** Open `Tools → Paketti → Paketti Menu Configuration...`, uncheck any contexts you don't want (e.g. uncheck "Disk Browser Menus" to remove all Paketti entries from the Disk Browser right-click menu), close the dialog, restart Renoise. The menus will be gone. Every single Paketti menu entry — all 2,200+ of them — now respects these toggles.
 
 ### 2026-03-27 - Documentation: Version Compatibility section added to manual
 
