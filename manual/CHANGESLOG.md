@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-29 - Fix: Paketti fails to load — PakettiAddMenuEntry not yet defined
+
+Fixed a boot crash where `main.lua` called `PakettiAddMenuEntry` at lines 511 and 522 — before `Paketti0G01_Loader.lua` (which defines that function) was loaded at line 1048. The two affected menu entries (`Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?` and `Main Menu:Tools:Paketti:!Preferences:Toggle Timed Require Debug`) now use direct `renoise.tool():add_menu_entry` calls instead, fixing the `variable 'PakettiAddMenuEntry' is not declared` error that prevented the entire tool from loading.
+
 ### 2026-03-28 - Fix: Menu Configuration actually works now
 
 The **Paketti Menu Configuration** dialog (`Main Menu → Tools → Paketti → Paketti Menu Configuration...`) lets you uncheck entire right-click menu contexts to reduce clutter — Disk Browser, DSP Device, Sample Editor, Main Menu (Tools/File/View), Pattern Editor, Mixer, and so on. But until today, **unchecking things did absolutely nothing**. You'd uncheck a context, restart Renoise, and the menus were still there. Here's what was wrong and what got fixed:
