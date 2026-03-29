@@ -12,6 +12,20 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-03-29 - Feature: Launch App Filter Mode — CLI audio processing pipeline
+
+Added **Filter Mode** to the Launch App system. Each of the 6 app slots can now be toggled to filter mode, allowing CLI tools (sox, ffmpeg, shell scripts) to process samples non-blockingly and return the result as a new instrument or new sample slot.
+
+**How it works:** Enable the "Filter Mode" checkbox next to any app slot in the Launch App dialog. Enter arguments in the Args textfield using `$infile` and `$outfile` placeholders (e.g. `$infile -r 8000 $outfile` for sox). When you click "Send Selected Sample to App" or "Send Sample Range to App", instead of launching a GUI application, Paketti saves the sample to a temp WAV, runs the CLI command in the background (non-blocking), polls for completion, and loads the result back into Renoise. The processed audio creates either a new pakettified instrument or a new sample slot, controlled by the "Filter Output" preference in the dialog.
+
+**New preferences (25 total):** `FilterMode1`–`FilterMode6` (checkbox per slot), `FilterArgs1`–`FilterArgs6` (arguments template per slot), `FilterUseStdin1`–`FilterUseStdin6` (reserved for v2), `FilterUseStdout1`–`FilterUseStdout6` (reserved for v2), `FilterOutputMode` (popup: "New Instrument" or "New Sample Slot").
+
+**New functions:** `getSlotIndexForAppPath()`, `filterBuildCommand()`, `filterProcessPoll()`, `filterLoadResult()`, `filterExecuteAsync()`, `filterSendSample()`, `filterSendSampleRange()`. The existing `saveSelectedSampleToTempAndOpen` and `saveSelectedSampleRangeToTempAndOpen` functions transparently redirect to the filter pipeline when filter mode is enabled for a slot — no changes needed to the 20+ menu/keybinding/MIDI invoke closures.
+
+**Dialog changes:** Each app slot row now has a filter controls row beneath it (Filter Mode checkbox, Args textfield, stdin/stdout checkboxes greyed out for v2). A new "Filter Output" popup at the top of the dialog controls whether processed audio becomes a new instrument (pakettified) or a new sample slot.
+
+**Files changed:** `PakettiLaunchApp.lua` (309 lines added), `Paketti0G01_Loader.lua` (25 new preferences + safety defaults).
+
 ### 2026-03-29 - Fix: Paketti fails to load — PakettiAddMenuEntry not yet defined
 
 Fixed a boot crash where `main.lua` called `PakettiAddMenuEntry` at lines 511 and 522 — before `Paketti0G01_Loader.lua` (which defines that function) was loaded at line 1048. The two affected menu entries (`Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?` and `Main Menu:Tools:Paketti:!Preferences:Toggle Timed Require Debug`) now use direct `renoise.tool():add_menu_entry` calls instead, fixing the `variable 'PakettiAddMenuEntry' is not declared` error that prevented the entire tool from loading.

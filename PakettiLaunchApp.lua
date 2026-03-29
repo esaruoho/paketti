@@ -4,6 +4,8 @@ local vb = renoise.ViewBuilder()
 
 local app_paths = {}
 local smart_folder_paths = {}
+local filter_process_running = false
+local filter_process_context = nil
 
 -- Function to browse for an app and update the corresponding field
 function appSelectionBrowseForApp(index)
@@ -47,7 +49,14 @@ end
 -- Function to save selected sample to temp and open with the selected app
 function saveSelectedSampleToTempAndOpen(app_path)
     if renoise.song() == nil then return end
-    
+
+    -- Filter mode redirect: if this slot has filter mode enabled, use filter pipeline instead
+    local slot_index = getSlotIndexForAppPath(app_path)
+    if slot_index and preferences.AppSelection["FilterMode" .. slot_index].value then
+        filterSendSample(slot_index)
+        return
+    end
+
     -- Check if app path is valid
     if app_path == nil or app_path == "" or app_path == "None" then
         renoise.app():show_status("No application selected. Please configure an app first.")
@@ -88,9 +97,16 @@ end
 
 -- Function to save selected sample range to temp and open with the selected app
 function saveSelectedSampleRangeToTempAndOpen(app_path)
+    -- Filter mode redirect: if this slot has filter mode enabled, use filter pipeline instead
+    local slot_index = getSlotIndexForAppPath(app_path)
+    if slot_index and preferences.AppSelection["FilterMode" .. slot_index].value then
+        filterSendSampleRange(slot_index)
+        return
+    end
+
     -- Temporarily disable AutoSamplify monitoring to prevent interference
     local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
-    
+
     if renoise.song() == nil then 
         -- Restore AutoSamplify monitoring state
         PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
@@ -190,170 +206,464 @@ function saveSelectedSampleRangeToTempAndOpen(app_path)
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
 
+-- ============================================================
+-- Filter Mode: CLI audio processing pipeline
+-- ============================================================
+
+-- Reverse-lookup: given an app_path string, find which slot (1-6) it belongs to
+function getSlotIndexForAppPath(app_path)
+    if app_path == nil or app_path == "" then return nil end
+    for i = 1, 6 do
+        local pref_key = "AppSelection" .. i
+        if preferences.AppSelection[pref_key] and preferences.AppSelection[pref_key].value == app_path then
+            return i
+        end
+    end
+    return nil
+end
+
+-- Build the CLI command string by substituting $infile / $outfile placeholders
+local function filterBuildCommand(slot_index, infile_path, outfile_path)
+    local app_path = preferences.AppSelection["AppSelection" .. slot_index].value
+    local args_template = preferences.AppSelection["FilterArgs" .. slot_index].value
+
+    if args_template == nil or args_template == "" then
+        -- No args template: just run "app_path infile outfile"
+        return '"' .. app_path .. '" "' .. infile_path .. '" "' .. outfile_path .. '"'
+    end
+
+    -- Substitute placeholders
+    local cmd = args_template
+    cmd = cmd:gsub("%$infile", '"' .. infile_path .. '"')
+    cmd = cmd:gsub("%$outfile", '"' .. outfile_path .. '"')
+
+    -- If the template doesn't contain the app path, prepend it
+    if not cmd:find(app_path, 1, true) then
+        cmd = '"' .. app_path .. '" ' .. cmd
+    end
+
+    return cmd
+end
+
+-- Timer callback: poll for the done-marker file
+local function filterProcessPoll()
+    if not filter_process_running or not filter_process_context then
+        return
+    end
+
+    local ctx = filter_process_context
+    local marker_file = ctx.marker_path
+
+    -- Check if marker file exists (command finished)
+    local f = io.open(marker_file, "r")
+    if f then
+        f:close()
+        -- Remove marker file
+        os.remove(marker_file)
+
+        -- Stop the timer
+        filter_process_running = false
+        local poll_fn = ctx.poll_fn
+        if poll_fn and renoise.tool():has_timer(poll_fn) then
+            renoise.tool():remove_timer(poll_fn)
+        end
+
+        -- Load the result
+        filterLoadResult(ctx)
+    end
+end
+
+-- Load the processed audio result back into Renoise
+local function filterLoadResult(ctx)
+    local outfile = ctx.outfile_path
+    local song = renoise.song()
+    if not song then return end
+
+    -- Check that output file exists and has data
+    local f = io.open(outfile, "rb")
+    if not f then
+        renoise.app():show_status("Filter processing failed: no output file produced.")
+        return
+    end
+    local size = f:seek("end")
+    f:close()
+    if size < 46 then
+        -- Too small to be a valid WAV
+        renoise.app():show_status("Filter processing failed: output file is empty or invalid.")
+        os.remove(outfile)
+        return
+    end
+
+    local output_mode = preferences.AppSelection.FilterOutputMode.value
+
+    if output_mode == "New Sample Slot" then
+        -- Add as new sample slot in current instrument
+        local instr = song.selected_instrument
+        local new_index = #instr.samples + 1
+        local new_sample = instr:insert_sample_at(new_index)
+        new_sample.sample_buffer:load_from(outfile)
+        local slot_index = ctx.slot_index or 0
+        local app_path = preferences.AppSelection["AppSelection" .. slot_index].value or "filter"
+        local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$") or app_path
+        new_sample.name = ctx.sample_name .. " [" .. app_name .. "]"
+        song.selected_sample_index = new_index
+        renoise.app():show_status("Filter output loaded as new sample slot: " .. new_sample.name)
+    else
+        -- "New Instrument" (default) — create new pakettified instrument
+        local new_instr = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
+        if not new_instr then
+            renoise.app():show_status("Filter processing failed: could not create new instrument (255 max).")
+            os.remove(outfile)
+            return
+        end
+        local new_sample = new_instr:insert_sample_at(1)
+        new_sample.sample_buffer:load_from(outfile)
+        local slot_index = ctx.slot_index or 0
+        local app_path = preferences.AppSelection["AppSelection" .. slot_index].value or "filter"
+        local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$") or app_path
+        new_instr.name = ctx.sample_name .. " [" .. app_name .. "]"
+        new_sample.name = new_instr.name
+        song.selected_instrument_index = song.selected_instrument_index + 1
+        -- Pakettify the new instrument
+        PakettiApplyLoaderModulationSettings(new_instr, "FilterMode")
+        renoise.app():show_status("Filter output loaded as new instrument: " .. new_instr.name)
+    end
+
+    -- Clean up temp files
+    os.remove(outfile)
+    if ctx.infile_path then
+        os.remove(ctx.infile_path)
+    end
+end
+
+-- Launch the filter command asynchronously (non-blocking)
+local function filterExecuteAsync(command, context)
+    if filter_process_running then
+        renoise.app():show_status("A filter process is already running. Please wait.")
+        return
+    end
+
+    -- Create a unique marker file path
+    local marker_path = os.tmpname() .. "_paketti_filter_done"
+    context.marker_path = marker_path
+
+    local os_name = os.platform()
+    local bg_command
+
+    if os_name == "WINDOWS" then
+        -- Write a batch file that runs the command then creates the marker
+        local batch_path = os.tmpname() .. ".bat"
+        local bf = io.open(batch_path, "w")
+        if bf then
+            bf:write('@echo off\r\n')
+            bf:write(command .. '\r\n')
+            bf:write('echo done > "' .. marker_path .. '"\r\n')
+            bf:write('del "%~f0"\r\n')
+            bf:close()
+            bg_command = 'start "" /B cmd /c "' .. batch_path .. '"'
+        end
+    else
+        -- macOS / Linux: subshell in background
+        bg_command = '(' .. command .. ' > /dev/null 2>&1; touch "' .. marker_path .. '") &'
+    end
+
+    if not bg_command then
+        renoise.app():show_status("Filter execution failed: could not construct background command.")
+        return
+    end
+
+    filter_process_running = true
+    filter_process_context = context
+
+    -- Set up the poll function reference in context so we can remove the timer later
+    local function poll_fn()
+        filterProcessPoll()
+    end
+    context.poll_fn = poll_fn
+
+    os.execute(bg_command)
+    renoise.app():show_status("Filter processing started...")
+
+    -- Start polling timer (check every 200ms)
+    renoise.tool():add_timer(poll_fn, 200)
+end
+
+-- Filter: send entire selected sample through CLI filter
+function filterSendSample(slot_index)
+    local song = renoise.song()
+    if not song then return end
+
+    local app_path = preferences.AppSelection["AppSelection" .. slot_index].value
+    if app_path == nil or app_path == "" or app_path == "None" then
+        renoise.app():show_status("No application configured for slot " .. slot_index)
+        return
+    end
+
+    local sample = song.selected_sample
+    if not sample or not sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample data available.")
+        return
+    end
+
+    -- Save sample to temp input file
+    local sample_name = sample.name ~= "" and sample.name or "UnnamedSample"
+    sample_name = sample_name:gsub("%.wav$", "")
+    local infile_path = os.tmpname() .. "_paketti_filter_in.wav"
+    sample.sample_buffer:save_as(infile_path, "wav")
+
+    -- Create temp output file path
+    local outfile_path = os.tmpname() .. "_paketti_filter_out.wav"
+
+    -- Build the command
+    local command = filterBuildCommand(slot_index, infile_path, outfile_path)
+
+    -- Execute asynchronously
+    filterExecuteAsync(command, {
+        slot_index = slot_index,
+        infile_path = infile_path,
+        outfile_path = outfile_path,
+        sample_name = sample_name
+    })
+end
+
+-- Filter: send selected sample range through CLI filter
+function filterSendSampleRange(slot_index)
+    -- Temporarily disable AutoSamplify monitoring
+    local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+
+    local song = renoise.song()
+    if not song then
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+        return
+    end
+
+    local app_path = preferences.AppSelection["AppSelection" .. slot_index].value
+    if app_path == nil or app_path == "" or app_path == "None" then
+        renoise.app():show_status("No application configured for slot " .. slot_index)
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+        return
+    end
+
+    local selected_sample = song.selected_sample
+    if not selected_sample or not selected_sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample data available.")
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+        return
+    end
+
+    local sample_buffer = selected_sample.sample_buffer
+    if not sample_buffer.selection_range or #sample_buffer.selection_range < 2 then
+        renoise.app():show_status("No valid selection range found.")
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+        return
+    end
+
+    local selection_start = sample_buffer.selection_range[1]
+    local selection_end = sample_buffer.selection_range[2]
+    if selection_start == selection_end then
+        renoise.app():show_status("No selection range is defined.")
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+        return
+    end
+
+    -- Extract selection to temp instrument, save, clean up
+    local original_instrument_index = song.selected_instrument_index
+    local new_instrument = safeInsertInstrumentAt(song, #song.instruments + 1)
+    if not new_instrument then
+        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+        return
+    end
+    local new_sample = new_instrument:insert_sample_at(1)
+
+    new_sample.sample_buffer:create_sample_data(
+        sample_buffer.sample_rate,
+        sample_buffer.bit_depth,
+        sample_buffer.number_of_channels,
+        selection_end - selection_start + 1
+    )
+
+    new_sample.sample_buffer:prepare_sample_data_changes()
+    for c = 1, sample_buffer.number_of_channels do
+        for f = selection_start, selection_end do
+            new_sample.sample_buffer:set_sample_data(c, f - selection_start + 1, sample_buffer:sample_data(c, f))
+        end
+    end
+    new_sample.sample_buffer:finalize_sample_data_changes()
+
+    local sample_name = selected_sample.name ~= "" and selected_sample.name or "UnnamedSample"
+    sample_name = sample_name:gsub("%.wav$", "")
+    local infile_path = os.tmpname() .. "_paketti_filter_in.wav"
+    new_sample.sample_buffer:save_as(infile_path, "wav")
+
+    -- Clean up temp instrument
+    song:delete_instrument_at(#song.instruments)
+    song.selected_instrument_index = original_instrument_index
+
+    -- Restore AutoSamplify monitoring
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+
+    -- Create temp output file path
+    local outfile_path = os.tmpname() .. "_paketti_filter_out.wav"
+
+    -- Build and execute
+    local command = filterBuildCommand(slot_index, infile_path, outfile_path)
+    filterExecuteAsync(command, {
+        slot_index = slot_index,
+        infile_path = infile_path,
+        outfile_path = outfile_path,
+        sample_name = sample_name
+    })
+end
+
+-- ============================================================
+-- End Filter Mode
+-- ============================================================
+
+-- Helper: create one app slot row + its filter controls row
+local function createAppSlotUI(index)
+    local pref_key = "AppSelection" .. index
+    local filter_mode_key = "FilterMode" .. index
+    local filter_args_key = "FilterArgs" .. index
+    local filter_stdin_key = "FilterUseStdin" .. index
+    local filter_stdout_key = "FilterUseStdout" .. index
+
+    local app_row = vb:row{
+        vb:button{text="Browse", notifier=function() appSelectionBrowseForApp(index) end},
+        vb:button{text="Send Selected Sample to App",
+            notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection[pref_key].value) end,
+            width=200},
+        vb:button{text="Send Sample Range to App",
+            notifier=function() saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection[pref_key].value) end,
+            width=200},
+        (function()
+            local path = vb:text{
+                text=(preferences.AppSelection[pref_key].value ~= "" and preferences.AppSelection[pref_key].value or "None"),
+                width=400, font="bold", style="strong"}
+            app_paths[index] = path
+            return path
+        end)()
+    }
+
+    local filter_row = vb:row{
+        spacing=4,
+        vb:checkbox{
+            value=preferences.AppSelection[filter_mode_key].value,
+            notifier=function(v)
+                preferences.AppSelection[filter_mode_key].value = v
+                preferences:save_as("preferences.xml")
+            end
+        },
+        vb:text{text="Filter Mode", width=70},
+        vb:text{text="Args:", width=30},
+        vb:textfield{
+            text=preferences.AppSelection[filter_args_key].value,
+            width=450,
+            notifier=function(v)
+                preferences.AppSelection[filter_args_key].value = v
+                preferences:save_as("preferences.xml")
+            end
+        },
+        vb:checkbox{
+            value=preferences.AppSelection[filter_stdin_key].value,
+            active=false,
+            notifier=function(v)
+                preferences.AppSelection[filter_stdin_key].value = v
+                preferences:save_as("preferences.xml")
+            end
+        },
+        vb:text{text="stdin (v2)", style="disabled", width=55},
+        vb:checkbox{
+            value=preferences.AppSelection[filter_stdout_key].value,
+            active=false,
+            notifier=function(v)
+                preferences.AppSelection[filter_stdout_key].value = v
+                preferences:save_as("preferences.xml")
+            end
+        },
+        vb:text{text="stdout (v2)", style="disabled", width=60}
+    }
+
+    return app_row, filter_row
+end
+
 -- Create the dialog UI
 local function create_dialog_content(closeLA_dialog)
     app_paths = {}
     smart_folder_paths = {}
 
-    return vb:column{
+    -- Build app slot rows with filter controls
+    local slot_rows = {}
+    for i = 1, 6 do
+        local app_row, filter_row = createAppSlotUI(i)
+        table.insert(slot_rows, app_row)
+        table.insert(slot_rows, filter_row)
+    end
+
+    -- Filter output mode row
+    local output_mode_items = {"New Instrument", "New Sample Slot"}
+    local current_output_mode = preferences.AppSelection.FilterOutputMode.value
+    local output_mode_index = 1
+    for idx, item in ipairs(output_mode_items) do
+        if item == current_output_mode then
+            output_mode_index = idx
+        end
+    end
+
+    local filter_output_row = vb:row{
+        spacing=4,
+        vb:text{text="Filter Output:", width=80, font="bold"},
+        vb:popup{
+            items=output_mode_items,
+            value=output_mode_index,
+            width=150,
+            notifier=function(idx)
+                preferences.AppSelection.FilterOutputMode.value = output_mode_items[idx]
+                preferences:save_as("preferences.xml")
+            end
+        },
+        vb:text{text="($infile = input wav, $outfile = output wav)", style="disabled"}
+    }
+
+    -- Assemble the full dialog column
+    local content = vb:column{
         style="group",
         width=900,
         vb:row{vb:text{text="App Selection", font="bold", style="strong"}},
-        vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(1) end},
-            vb:button{text="Send Selected Sample to App",
-                notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection1.value) 
-                end,
-                width=200},
-            vb:button{text="Send Sample Range to App",
-                notifier=function() saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection1.value) 
-                end,
-                width=200},
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection1.value ~= "" and preferences.AppSelection.AppSelection1.value or "None"),
-                    width=400,
-                    font="bold", style="strong"}
-                app_paths[1] = path
-                return path
-            end)()
-        },
-        vb:row{
-            vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(2) end},
-            vb:button{text="Send Selected Sample to App",notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection2.value) end,width=200},
-            vb:button{text="Send Sample Range to App",notifier=function() saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection2.value) end,width=200},
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection2.value ~= "" and preferences.AppSelection.AppSelection2.value or "None"),
-                    width=400,
-                    font="bold",style="strong"}
-                app_paths[2] = path
-                return path
-            end)()
-        },
-        vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(3) end},
-            vb:button{text="Send Selected Sample to App",notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection3.value) end,width=200},
-            vb:button{text="Send Sample Range to App",notifier=function() 
-                    saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection3.value) end,width=200},
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection3.value ~= "" and preferences.AppSelection.AppSelection3.value or "None"),
-                    width=400,
-                    font="bold",style="strong"}
-                app_paths[3] = path
-                return path
-            end)()},
-        vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(4) end},
-            vb:button{text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection4.value) 
-                end,width=200},
-            vb:button{text="Send Sample Range to App",
-                notifier=function() 
-                    saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection4.value) 
-                end,width=200},
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection4.value ~= "" and preferences.AppSelection.AppSelection4.value or "None"),
-                    width=400,
-                    font="bold",style="strong"}
-                app_paths[4] = path
-                return path
-            end)()},
-        vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(5) end},
-            vb:button{text="Send Selected Sample to App",
-                notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection5.value) end, width=200
-            },
-            vb:button{text="Send Sample Range to App",
-                notifier=function() saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection5.value) end, width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection5.value ~= "" and preferences.AppSelection.AppSelection5.value or "None"),
-                    width=400,
-                    font="bold",style="strong"}
-                app_paths[5] = path
-                return path
-            end)()},
-        vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(6) end},
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection6.value) 
-                end,
-                width=200},
-            vb:button{
-                text="Send Sample Range to App",
-                notifier=function() 
-                    saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection6.value) 
-                end,
-                width=200},
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection6.value ~= "" and preferences.AppSelection.AppSelection6.value or "None"),
-                    width=400,
-                    font="bold",style="strong"}
-                app_paths[6] = path
-                return path
-            end)()
-        },
-        vb:row{vb:text{text="Smart Folders / Backup Folders", font="bold", style="strong"}},
-        vb:row{
-            vb:button{text="Browse",notifier=function() browseForSmartFolder(1) end},
-            vb:button{text="Save Selected Sample to Folder",notifier=function() saveSampleToSmartFolder(1) end,width=200},
-            vb:button{text="Save All Samples to Folder",notifier=function() saveSamplesToSmartFolder(1) end,width=200},
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.SmartFoldersApp1.value ~= "" and preferences.AppSelection.SmartFoldersApp1.value or "None"),
-                    width=600,font="bold", style="strong"}
-                smart_folder_paths[1] = path
-                return path
-            end)()
-        },
-        vb:row{vb:button{text="Browse",notifier=function() browseForSmartFolder(2) end},
-            vb:button{text="Save Selected Sample to Folder",
-                notifier=function() 
-                    saveSampleToSmartFolder(2) 
-                end,
-                width=200},
-            vb:button{
-                text="Save All Samples to Folder",
-                notifier=function() 
-                    saveSamplesToSmartFolder(2) 
-                end,
-                width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.SmartFoldersApp2.value ~= "" and preferences.AppSelection.SmartFoldersApp2.value or "None"),
-                    width=600,font="bold",style="strong"}
-                smart_folder_paths[2] = path
-                return path
-            end)()
-        },
-        vb:row{
-        
-            vb:button{
-                text="Browse",
-                notifier=function() browseForSmartFolder(3) end
-            },
-            vb:button{text="Save Selected Sample to Folder",notifier=function() saveSampleToSmartFolder(3) end,width=200},
-            vb:button{text="Save All Samples to Folder",notifier=function() saveSamplesToSmartFolder(3) end,width=200},
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.SmartFoldersApp3.value ~= "" and preferences.AppSelection.SmartFoldersApp3.value or "None"),
-                    width=600,font="bold",style="strong"}
-                smart_folder_paths[3] = path
-                return path
-            end)()
-        },
-        vb:button{text="OK",notifier=function()
-                appSelectionUpdateMenuEntries()
-                dialog:close()
-                dialog = nil
-            end
-        }
+        filter_output_row
     }
+
+    -- Add all slot rows
+    for _, row in ipairs(slot_rows) do
+        content:add_child(row)
+    end
+
+    -- Smart Folders section
+    content:add_child(vb:row{vb:text{text="Smart Folders / Backup Folders", font="bold", style="strong"}})
+
+    for sf_i = 1, 3 do
+        local sf_key = "SmartFoldersApp" .. sf_i
+        content:add_child(vb:row{
+            vb:button{text="Browse", notifier=function() browseForSmartFolder(sf_i) end},
+            vb:button{text="Save Selected Sample to Folder", notifier=function() saveSampleToSmartFolder(sf_i) end, width=200},
+            vb:button{text="Save All Samples to Folder", notifier=function() saveSamplesToSmartFolder(sf_i) end, width=200},
+            (function()
+                local path = vb:text{
+                    text=(preferences.AppSelection[sf_key].value ~= "" and preferences.AppSelection[sf_key].value or "None"),
+                    width=600, font="bold", style="strong"}
+                smart_folder_paths[sf_i] = path
+                return path
+            end)()
+        })
+    end
+
+    -- OK button
+    content:add_child(vb:button{text="OK", notifier=function()
+        appSelectionUpdateMenuEntries()
+        dialog:close()
+        dialog = nil
+    end})
+
+    return content
 end
 
 function pakettiAppSelectionDialog()
