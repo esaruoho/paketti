@@ -508,7 +508,8 @@ function whichSubcolumn()
 end
 
 -- Add menu entry and keybinding for whichSubcolumn function
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?", invoke=whichSubcolumn}
+-- Note: Using add_menu_entry directly because PakettiAddMenuEntry is not yet loaded at this point
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?", invoke=whichSubcolumn}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Which Sub-Column?", invoke=whichSubcolumn}
 
 -- Function to toggle timed_require debug output
@@ -519,7 +520,8 @@ function pakettiToggleTimedRequireDebug()
 end
 
 -- Add menu entry and keybinding for timed_require debug toggle
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
+-- Note: Using add_menu_entry directly because PakettiAddMenuEntry is not yet loaded at this point
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
 
 
