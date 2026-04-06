@@ -755,6 +755,144 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Swap Two Pattern Slot
 -- MIDI mapping for Swap Two Pattern Slots function
 renoise.tool():add_midi_mapping{name="Paketti:Swap Two Pattern Slots",invoke=PakettiSwapTwoPatternSlots}
 
+-- Nudge sequence selection down by 1 row (all tracks)
+-- If a selection range exists, moves the entire block down.
+-- If no selection, moves the current single sequence slot down.
+function PakettiNudgeSequenceSelectionDown()
+  local song = renoise.song()
+  local seq = song.sequencer
+  local total = #seq.pattern_sequence
+
+  -- Determine range to nudge
+  local sel = seq.selection_range
+  local sel_start, sel_end
+  if sel and #sel == 2 and sel[1] > 0 and sel[2] > 0 then
+    sel_start = sel[1]
+    sel_end = sel[2]
+  else
+    -- No selection: use current sequence slot
+    sel_start = song.selected_sequence_index
+    sel_end = sel_start
+  end
+
+  -- Boundary check
+  if sel_end >= total then
+    renoise.app():show_status("Cannot nudge further down, already at the bottom")
+    return
+  end
+
+  song:describe_undo("Nudge Sequence Selection Down")
+
+  -- Swap from bottom of selection upward: this rotates the slot below the selection into the top
+  for i = sel_end, sel_start, -1 do
+    local current_pat_idx = seq.pattern_sequence[i]
+    local target_pat_idx = seq.pattern_sequence[i + 1]
+    local current_pattern = song.patterns[current_pat_idx]
+    local target_pattern = song.patterns[target_pat_idx]
+
+    -- Swap all tracks between the two patterns
+    PakettiSwapCompletePatternData(current_pattern, target_pattern)
+
+    -- Swap mute states
+    for track_index = 1, #song.tracks do
+      local current_muted = seq:track_sequence_slot_is_muted(track_index, i)
+      local target_muted = seq:track_sequence_slot_is_muted(track_index, i + 1)
+      seq:set_track_sequence_slot_is_muted(track_index, i, target_muted)
+      seq:set_track_sequence_slot_is_muted(track_index, i + 1, current_muted)
+    end
+  end
+
+  -- Move selection to follow the block
+  local new_start = sel_start + 1
+  local new_end = sel_end + 1
+  seq.selection_range = {new_start, new_end}
+  song.selected_sequence_index = new_end
+
+  local count = sel_end - sel_start + 1
+  renoise.app():show_status("Nudged " .. count .. " sequence slot(s) down")
+end
+
+-- Nudge sequence selection up by 1 row (all tracks)
+-- If a selection range exists, moves the entire block up.
+-- If no selection, moves the current single sequence slot up.
+function PakettiNudgeSequenceSelectionUp()
+  local song = renoise.song()
+  local seq = song.sequencer
+  local total = #seq.pattern_sequence
+
+  -- Determine range to nudge
+  local sel = seq.selection_range
+  local sel_start, sel_end
+  if sel and #sel == 2 and sel[1] > 0 and sel[2] > 0 then
+    sel_start = sel[1]
+    sel_end = sel[2]
+  else
+    -- No selection: use current sequence slot
+    sel_start = song.selected_sequence_index
+    sel_end = sel_start
+  end
+
+  -- Boundary check
+  if sel_start <= 1 then
+    renoise.app():show_status("Cannot nudge further up, already at the top")
+    return
+  end
+
+  song:describe_undo("Nudge Sequence Selection Up")
+
+  -- Swap from top of selection downward: this rotates the slot above the selection into the bottom
+  for i = sel_start, sel_end do
+    local current_pat_idx = seq.pattern_sequence[i]
+    local target_pat_idx = seq.pattern_sequence[i - 1]
+    local current_pattern = song.patterns[current_pat_idx]
+    local target_pattern = song.patterns[target_pat_idx]
+
+    -- Swap all tracks between the two patterns
+    PakettiSwapCompletePatternData(current_pattern, target_pattern)
+
+    -- Swap mute states
+    for track_index = 1, #song.tracks do
+      local current_muted = seq:track_sequence_slot_is_muted(track_index, i)
+      local target_muted = seq:track_sequence_slot_is_muted(track_index, i - 1)
+      seq:set_track_sequence_slot_is_muted(track_index, i, target_muted)
+      seq:set_track_sequence_slot_is_muted(track_index, i - 1, current_muted)
+    end
+  end
+
+  -- Move selection to follow the block
+  local new_start = sel_start - 1
+  local new_end = sel_end - 1
+  seq.selection_range = {new_start, new_end}
+  song.selected_sequence_index = new_start
+
+  local count = sel_end - sel_start + 1
+  renoise.app():show_status("Nudged " .. count .. " sequence slot(s) up")
+end
+
+-- Menu entries for Nudge Sequence Selection
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Nudge Sequence Selection Down",invoke=PakettiNudgeSequenceSelectionDown}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Nudge Sequence Selection Down",invoke=PakettiNudgeSequenceSelectionDown}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Nudge Sequence Selection Down",invoke=PakettiNudgeSequenceSelectionDown}
+
+PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Nudge Sequence Selection Up",invoke=PakettiNudgeSequenceSelectionUp}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Nudge Sequence Selection Up",invoke=PakettiNudgeSequenceSelectionUp}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Nudge Sequence Selection Up",invoke=PakettiNudgeSequenceSelectionUp}
+
+-- Keybindings for Nudge Sequence Selection
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Sequence Selection Down",invoke=PakettiNudgeSequenceSelectionDown}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Nudge Sequence Selection Down",invoke=PakettiNudgeSequenceSelectionDown}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Nudge Sequence Selection Down",invoke=PakettiNudgeSequenceSelectionDown}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge Sequence Selection Down",invoke=PakettiNudgeSequenceSelectionDown}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Sequence Selection Up",invoke=PakettiNudgeSequenceSelectionUp}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Nudge Sequence Selection Up",invoke=PakettiNudgeSequenceSelectionUp}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Nudge Sequence Selection Up",invoke=PakettiNudgeSequenceSelectionUp}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge Sequence Selection Up",invoke=PakettiNudgeSequenceSelectionUp}
+
+-- MIDI mappings for Nudge Sequence Selection
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Sequence Selection Down",invoke=PakettiNudgeSequenceSelectionDown}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Sequence Selection Up",invoke=PakettiNudgeSequenceSelectionUp}
+
 -- Resize all patterns to current pattern length
 function PakettiResizeAllPatternsToCurrentLength()
   local song = renoise.song()

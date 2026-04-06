@@ -12,6 +12,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-06 - Feature: Nudge Sequence Selection Up/Down
+
+Added **Nudge Sequence Selection** — select a range of sequence slots (rows) in the Pattern Sequencer/Matrix, then nudge the entire block up or down one row at a time. Each keypress moves the whole selection by 1 position, so tapping down 5 times moves the block down 5 rows. The selection follows the block automatically. If no selection exists, nudges the current single sequence slot. Swaps all tracks, automation, mute states, and pattern names.
+
+**Menu entries:** `Pattern Sequencer:Paketti:Nudge Sequence Selection Down`, `Pattern Sequencer:Paketti:Nudge Sequence Selection Up`, `Pattern Matrix:Paketti:Nudge Sequence Selection Down`, `Pattern Matrix:Paketti:Nudge Sequence Selection Up`, `Pattern Editor:Paketti:Nudge Sequence Selection Down`, `Pattern Editor:Paketti:Nudge Sequence Selection Up`.
+
+**Keybindings:** `Global:Paketti:Nudge Sequence Selection Down`, `Global:Paketti:Nudge Sequence Selection Up`, plus Pattern Sequencer, Pattern Matrix, and Pattern Editor scoped variants.
+
+**MIDI mappings:** `Paketti:Nudge Sequence Selection Down`, `Paketti:Nudge Sequence Selection Up`.
+
+**Files changed:** `PakettiPatternMatrix.lua` (2 new functions: `PakettiNudgeSequenceSelectionDown`, `PakettiNudgeSequenceSelectionUp`).
+
 ### 2026-03-29 - Feature: Launch App Filter Mode — CLI audio processing pipeline
 
 Added **Filter Mode** to the Launch App system. Each of the 6 app slots can now be toggled to filter mode, allowing CLI tools (sox, ffmpeg, shell scripts) to process samples non-blockingly and return the result as a new instrument or new sample slot.
