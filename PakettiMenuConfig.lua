@@ -393,6 +393,7 @@ end
 
 if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Batch Sample Adjust Dialog...", invoke=show_batch_sample_adjust_dialog}
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then

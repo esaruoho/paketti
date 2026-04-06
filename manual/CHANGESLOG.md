@@ -18,7 +18,7 @@ Added **Batch Sample Adjust Dialog** — converts ALL samples in the selected in
 
 The dialog scans the instrument to show a summary (sample count, most common format) and defaults to the most common settings. Uses ProcessSlicer for non-blocking operation with a progress indicator. All sample properties (name, volume, panning, transpose, fine tune, beat sync, loop, keyzone mapping, etc.) are preserved through the conversion.
 
-**Menu entries:** `Sample Editor:Paketti Gadgets:Batch Sample Adjust Dialog...`, `Sample Navigator:Paketti Gadgets:Batch Sample Adjust Dialog...`, `Sample Mappings:Paketti Gadgets:Batch Sample Adjust Dialog...`, `Main Menu:Tools:Paketti:Paketti Gadgets:Batch Sample Adjust`.
+**Menu entries:** `Sample Editor:Paketti Gadgets:Batch Sample Adjust Dialog...`, `Sample Navigator:Paketti Gadgets:Batch Sample Adjust Dialog...`, `Sample Mappings:Paketti Gadgets:Batch Sample Adjust Dialog...`, `Instrument Box:Paketti Gadgets:Batch Sample Adjust Dialog...`, `Main Menu:Tools:Paketti:Paketti Gadgets:Batch Sample Adjust`.
 
 **Keybindings:** `Sample Editor:Paketti:Batch Sample Adjust Dialog...`, `Global:Paketti:Batch Sample Adjust Dialog...`, `Sample Keyzones:Paketti:Batch Sample Adjust Dialog...`.
 
