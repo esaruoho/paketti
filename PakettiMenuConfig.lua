@@ -2073,6 +2073,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:BPM Calculatio
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Batch Sample Adjust Dialog...",invoke = show_batch_sample_adjust_dialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Set Selection by Hex Offset Dialog...", invoke = pakettiHexOffsetDialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Sample Cycle Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Unison Generator Dialog",invoke=PakettiCreateUnisonSamples}
@@ -2427,6 +2428,7 @@ renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Isolate Slices or
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Protracker MOD Modulation...",invoke = showProtrackerModDialog}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti Gadgets:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti Gadgets:Batch Sample Adjust Dialog...",invoke = show_batch_sample_adjust_dialog}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Wipe Song Retain Sample",invoke=function() WipeRetain() end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
@@ -2459,6 +2461,7 @@ end
 if preferences.pakettiMenuConfig.SampleKeyzone.value then
 debugPrint("Sample Keyzone Menus Are Enabled")
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets:Batch Sample Adjust Dialog...",invoke = show_batch_sample_adjust_dialog}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets:Unison Generator",invoke=PakettiCreateUnisonSamples}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}

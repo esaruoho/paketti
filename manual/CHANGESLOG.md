@@ -12,6 +12,20 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-06 - Feature: Batch Sample Adjust Dialog
+
+Added **Batch Sample Adjust Dialog** — converts ALL samples in the selected instrument at once, combining sample rate, bit depth, channel mode, and phase inversion into a single pass. Previously, Paketti had batch conversion for bit depth and mono/stereo separately, and the single-sample "Paketti Sample Adjust" dialog for combined settings — but no unified batch version. Now there is.
+
+The dialog scans the instrument to show a summary (sample count, most common format) and defaults to the most common settings. Uses ProcessSlicer for non-blocking operation with a progress indicator. All sample properties (name, volume, panning, transpose, fine tune, beat sync, loop, keyzone mapping, etc.) are preserved through the conversion.
+
+**Menu entries:** `Sample Editor:Paketti Gadgets:Batch Sample Adjust Dialog...`, `Sample Navigator:Paketti Gadgets:Batch Sample Adjust Dialog...`, `Sample Mappings:Paketti Gadgets:Batch Sample Adjust Dialog...`, `Main Menu:Tools:Paketti:Paketti Gadgets:Batch Sample Adjust`.
+
+**Keybindings:** `Sample Editor:Paketti:Batch Sample Adjust Dialog...`, `Global:Paketti:Batch Sample Adjust Dialog...`, `Sample Keyzones:Paketti:Batch Sample Adjust Dialog...`.
+
+**MIDI mapping:** `Paketti:Batch Sample Adjust Dialog...`.
+
+**Files changed:** `PakettiAudioProcessing.lua` (new functions: `show_batch_sample_adjust_dialog`, `batch_sample_adjust_process`), `PakettiMenuConfig.lua`, `PakettiMainMenuEntries.lua`.
+
 ### 2026-04-06 - Feature: Nudge Sequence Selection Up/Down
 
 Added **Nudge Sequence Selection** — select a range of sequence slots (rows) in the Pattern Sequencer/Matrix, then nudge the entire block up or down one row at a time. Each keypress moves the whole selection by 1 position, so tapping down 5 times moves the block down 5 rows. The selection follows the block automatically. If no selection exists, nudges the current single sequence slot. Swaps all tracks, automation, mute states, and pattern names.

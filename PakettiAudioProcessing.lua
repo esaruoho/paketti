@@ -2654,6 +2654,465 @@ end
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 
+---------------------------------------------------------------------------
+-- Batch Sample Adjust Dialog
+-- Converts ALL samples in the selected instrument at once:
+-- sample rate, bit depth, channels, and phase inversion in one pass.
+-- Uses ProcessSlicer for non-blocking operation with progress dialog.
+---------------------------------------------------------------------------
 
+local batch_adjust_dialog = nil
+
+function show_batch_sample_adjust_dialog()
+  -- Close existing dialog if open
+  if batch_adjust_dialog and batch_adjust_dialog.visible then
+    batch_adjust_dialog:close()
+    batch_adjust_dialog = nil
+    return
+  end
+
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("Selected instrument has no samples.")
+    return
+  end
+
+  -- Scan all samples to determine most common current settings
+  local rate_counts = {}
+  local depth_counts = {}
+  local channel_counts = {mono = 0, stereo = 0}
+  local valid_count = 0
+
+  for i = 1, #instrument.samples do
+    local buf = instrument:sample(i).sample_buffer
+    if buf.has_sample_data then
+      valid_count = valid_count + 1
+      local r = buf.sample_rate
+      local d = buf.bit_depth
+      rate_counts[r] = (rate_counts[r] or 0) + 1
+      depth_counts[d] = (depth_counts[d] or 0) + 1
+      if buf.number_of_channels == 1 then
+        channel_counts.mono = channel_counts.mono + 1
+      else
+        channel_counts.stereo = channel_counts.stereo + 1
+      end
+    end
+  end
+
+  if valid_count == 0 then
+    renoise.app():show_status("No samples with audio data in selected instrument.")
+    return
+  end
+
+  -- Find most common rate and depth for defaults
+  local function most_common(tbl)
+    local best_k, best_v = nil, 0
+    for k, v in pairs(tbl) do
+      if v > best_v then best_k = k; best_v = v end
+    end
+    return best_k
+  end
+
+  local common_rate = most_common(rate_counts)
+  local common_depth = most_common(depth_counts)
+  local has_stereo = channel_counts.stereo > 0
+
+  local vb = renoise.ViewBuilder()
+
+  local sample_rates = {11025, 22050, 32000, 44100, 48000, 88200, 96000, 192000}
+  local bit_depths = {8, 16, 24, 32}
+
+  -- Find current value indices
+  local current_rate_index = 4
+  for i, rate in ipairs(sample_rates) do
+    if rate == common_rate then current_rate_index = i; break end
+  end
+
+  local current_bit_depth_index = 2
+  for i, depth in ipairs(bit_depths) do
+    if depth == common_depth then current_bit_depth_index = i; break end
+  end
+
+  -- Build channel options based on what the instrument actually contains
+  local channel_items, channel_modes, default_channel_value
+  if has_stereo then
+    channel_items = {"<Keep as-is>", "Mono (Mix)", "Mono (Keep Left)", "Mono (Keep Right)", "Stereo"}
+    channel_modes = {"keep", "mono_mix", "mono_left", "mono_right", "stereo"}
+    default_channel_value = 1
+  else
+    channel_items = {"<Keep as-is>", "Mono", "Stereo"}
+    channel_modes = {"keep", "mono", "stereo"}
+    default_channel_value = 1
+  end
+
+  -- Invert options
+  local invert_items = {"<Do nothing>", "Invert Left/Mono", "Invert Right", "Invert Both"}
+  local invert_modes = {"none", "left", "right", "both"}
+
+  -- Target state
+  local target_rate = sample_rates[current_rate_index]
+  local target_bit_depth = bit_depths[current_bit_depth_index]
+  local target_channel_mode = channel_modes[default_channel_value]
+  local target_invert_mode = "none"
+
+  -- Summary of instrument samples
+  local info_text = string.format(
+    "%s — %d samples (%d with audio)\nMost common: %dHz, %d-bit, %d mono / %d stereo",
+    instrument.name ~= "" and instrument.name or "(unnamed instrument)",
+    #instrument.samples, valid_count,
+    common_rate, common_depth,
+    channel_counts.mono, channel_counts.stereo
+  )
+
+  local dialog_content = vb:column{
+    margin = 5,
+    spacing = 4,
+
+    vb:multiline_text{
+      text = info_text,
+      font = "bold",
+      width = 480,
+      height = 36
+    },
+
+    vb:row{
+      spacing = 4,
+      vb:popup{
+        items = channel_items,
+        value = default_channel_value,
+        width = 150,
+        notifier = function(value)
+          target_channel_mode = channel_modes[value]
+        end
+      },
+      vb:popup{
+        items = {"11025 Hz", "22050 Hz", "32000 Hz", "44100 Hz", "48000 Hz", "88200 Hz", "96000 Hz", "192000 Hz"},
+        value = current_rate_index,
+        width = 90,
+        notifier = function(index)
+          target_rate = sample_rates[index]
+        end
+      },
+      vb:popup{
+        items = {"8 bit", "16 bit", "24 bit", "32 bit"},
+        value = current_bit_depth_index,
+        width = 65,
+        notifier = function(index)
+          target_bit_depth = bit_depths[index]
+        end
+      },
+      vb:popup{
+        items = invert_items,
+        value = 1,
+        width = 120,
+        notifier = function(value)
+          target_invert_mode = invert_modes[value]
+        end
+      }
+    },
+
+    vb:row{
+      spacing = 4,
+      vb:button{
+        text = "Convert All Samples",
+        width = 150,
+        notifier = function()
+          if batch_adjust_dialog and batch_adjust_dialog.visible then
+            batch_adjust_dialog:close()
+            batch_adjust_dialog = nil
+          end
+          batch_sample_adjust_process(target_rate, target_bit_depth, target_channel_mode, target_invert_mode)
+        end
+      },
+      vb:button{
+        text = "Close",
+        width = 80,
+        notifier = function()
+          if batch_adjust_dialog and batch_adjust_dialog.visible then
+            batch_adjust_dialog:close()
+            batch_adjust_dialog = nil
+          end
+        end
+      }
+    }
+  }
+
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return batch_adjust_dialog end,
+    function(value) batch_adjust_dialog = value end
+  )
+  batch_adjust_dialog = renoise.app():show_custom_dialog("Paketti Batch Sample Adjust", dialog_content, keyhandler)
+end
+
+---------------------------------------------------------------------------
+-- Batch Sample Adjust — ProcessSlicer worker
+---------------------------------------------------------------------------
+function batch_sample_adjust_process(target_rate, target_bit_depth, target_channel_mode, target_invert_mode)
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No samples to convert.")
+    return
+  end
+
+  -- Temporarily disable AutoSamplify monitoring
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+
+  local slicer = nil
+  local progress_dialog = nil
+  local progress_vb = nil
+
+  local function process_func()
+    local total_samples = #instrument.samples
+    local converted = 0
+    local skipped = 0
+
+    for sample_index = 1, total_samples do
+      local sample = instrument:sample(sample_index)
+
+      -- Update progress
+      if progress_dialog and progress_dialog.visible then
+        progress_vb.views.progress_text.text = string.format(
+          "Processing sample %d/%d...", sample_index, total_samples)
+      end
+
+      -- Validate sample
+      if not sample or not sample.sample_buffer.has_sample_data then
+        skipped = skipped + 1
+      elseif #sample.slice_markers > 0 then
+        -- Skip sliced samples
+        skipped = skipped + 1
+      else
+        local buffer = sample.sample_buffer
+        local current_rate = buffer.sample_rate
+        local current_bit_depth = buffer.bit_depth
+        local current_channels = buffer.number_of_channels
+        local current_frames = buffer.number_of_frames
+
+        -- Determine effective channel mode for this sample
+        local eff_channel_mode = target_channel_mode
+        if eff_channel_mode == "keep" then
+          eff_channel_mode = current_channels == 1 and "mono" or "stereo"
+        end
+
+        -- Determine target channel count
+        local target_channels
+        if eff_channel_mode == "stereo" then
+          target_channels = 2
+        else
+          target_channels = 1
+        end
+
+        -- Handle edge cases: can't do stereo-to-mono modes on mono samples
+        if current_channels == 1 and (eff_channel_mode == "mono_mix" or eff_channel_mode == "mono_left" or eff_channel_mode == "mono_right") then
+          eff_channel_mode = "mono"
+          target_channels = 1
+        end
+
+        -- Check if any conversion is needed for this sample
+        local current_mode = current_channels == 1 and "mono" or "stereo"
+        if target_rate == current_rate and target_bit_depth == current_bit_depth and eff_channel_mode == current_mode and (target_invert_mode == "none" or not target_invert_mode) then
+          skipped = skipped + 1
+        else
+          -- Set selected sample so user can see progress
+          song.selected_sample_index = sample_index
+
+          -- Store ALL sample properties
+          local properties = {
+            name = sample.name,
+            volume = sample.volume,
+            panning = sample.panning,
+            transpose = sample.transpose,
+            fine_tune = sample.fine_tune,
+            beat_sync_enabled = sample.beat_sync_enabled,
+            beat_sync_lines = sample.beat_sync_lines,
+            beat_sync_mode = pakettiSafeGetBeatSyncMode(sample),
+            oneshot = sample.oneshot,
+            loop_release = sample.loop_release,
+            loop_mode = sample.loop_mode,
+            mute_group = sample.mute_group,
+            new_note_action = sample.new_note_action,
+            autoseek = sample.autoseek,
+            autofade = sample.autofade,
+            oversample_enabled = sample.oversample_enabled,
+            interpolation_mode = sample.interpolation_mode,
+            sample_mapping = {
+              base_note = sample.sample_mapping.base_note,
+              note_range = sample.sample_mapping.note_range,
+              velocity_range = sample.sample_mapping.velocity_range,
+              map_key_to_pitch = sample.sample_mapping.map_key_to_pitch,
+              map_velocity_to_volume = sample.sample_mapping.map_velocity_to_volume
+            }
+          }
+
+          -- Calculate new frame count based on sample rate conversion
+          local rate_ratio = target_rate / current_rate
+          local target_frames = math.floor(current_frames * rate_ratio)
+
+          -- Read all original sample data into memory
+          local original_data = {}
+          for c = 1, current_channels do
+            original_data[c] = {}
+            for f = 1, current_frames do
+              original_data[c][f] = buffer:sample_data(c, f)
+            end
+          end
+
+          -- Create temp sample with target format
+          local temp_index = #instrument.samples + 1
+          instrument:insert_sample_at(temp_index)
+          local temp_sample = instrument:sample(temp_index)
+          local temp_buffer = temp_sample.sample_buffer
+          temp_buffer:create_sample_data(target_rate, target_bit_depth, target_channels, target_frames)
+          temp_buffer:prepare_sample_data_changes()
+
+          -- Convert data in chunks with yielding
+          local processed_frames = 0
+          local total_channel_frames = target_frames * target_channels
+
+          for target_channel = 1, target_channels do
+            for frame = 1, target_frames, CHUNK_SIZE do
+              local block_end = math.min(frame + CHUNK_SIZE - 1, target_frames)
+
+              for f = frame, block_end do
+                local source_frame_pos = (f - 1) / rate_ratio + 1
+                local source_frame = math.max(1, math.min(math.floor(source_frame_pos), current_frames))
+
+                local sample_value = 0
+
+                if current_channels == 1 and target_channels == 1 then
+                  sample_value = original_data[1][source_frame]
+                elseif current_channels == 1 and target_channels == 2 then
+                  sample_value = original_data[1][source_frame]
+                elseif current_channels == 2 and target_channels == 1 then
+                  if eff_channel_mode == "mono" or eff_channel_mode == "mono_mix" then
+                    sample_value = (original_data[1][source_frame] + original_data[2][source_frame]) * 0.5
+                  elseif eff_channel_mode == "mono_left" then
+                    sample_value = original_data[1][source_frame]
+                  elseif eff_channel_mode == "mono_right" then
+                    sample_value = original_data[2][source_frame]
+                  end
+                elseif current_channels == 2 and target_channels == 2 then
+                  sample_value = original_data[target_channel][source_frame]
+                end
+
+                temp_buffer:set_sample_data(target_channel, f, sample_value)
+              end
+
+              processed_frames = processed_frames + (block_end - frame + 1)
+
+              -- Update progress
+              local sample_progress = processed_frames / total_channel_frames
+              local total_progress = ((sample_index - 1) + sample_progress) / total_samples * 100
+              if progress_dialog and progress_dialog.visible then
+                progress_vb.views.progress_text.text = string.format(
+                  "Converting sample %d/%d... %.1f%%",
+                  sample_index, total_samples, total_progress)
+              end
+
+              if slicer:was_cancelled() then
+                temp_buffer:finalize_sample_data_changes()
+                instrument:delete_sample_at(temp_index)
+                PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+                return
+              end
+
+              coroutine.yield()
+            end
+          end
+
+          temp_buffer:finalize_sample_data_changes()
+
+          -- Apply inversion to temp sample if requested
+          if target_invert_mode and target_invert_mode ~= "none" then
+            apply_inversion(temp_buffer, target_invert_mode)
+          end
+
+          -- Replace original: delete original, insert new, copy data
+          instrument:delete_sample_at(sample_index)
+          instrument:insert_sample_at(sample_index)
+          local new_sample = instrument:sample(sample_index)
+          local new_buffer = new_sample.sample_buffer
+          new_buffer:create_sample_data(target_rate, target_bit_depth, target_channels, target_frames)
+          new_buffer:prepare_sample_data_changes()
+
+          for c = 1, target_channels do
+            for f = 1, target_frames do
+              new_buffer:set_sample_data(c, f, temp_buffer:sample_data(c, f))
+            end
+          end
+          new_buffer:finalize_sample_data_changes()
+
+          -- Restore all sample properties
+          new_sample.name = properties.name
+          new_sample.volume = properties.volume
+          new_sample.panning = properties.panning
+          new_sample.transpose = properties.transpose
+          new_sample.fine_tune = properties.fine_tune
+          new_sample.beat_sync_enabled = properties.beat_sync_enabled
+          new_sample.beat_sync_lines = properties.beat_sync_lines
+          pakettiSafeSetBeatSyncMode(new_sample, properties.beat_sync_mode)
+          new_sample.oneshot = properties.oneshot
+          new_sample.loop_release = properties.loop_release
+          new_sample.loop_mode = properties.loop_mode
+          new_sample.mute_group = properties.mute_group
+          new_sample.new_note_action = properties.new_note_action
+          new_sample.autoseek = properties.autoseek
+          new_sample.autofade = properties.autofade
+          new_sample.oversample_enabled = properties.oversample_enabled
+          new_sample.interpolation_mode = properties.interpolation_mode
+          new_sample.sample_mapping.base_note = properties.sample_mapping.base_note
+          new_sample.sample_mapping.note_range = properties.sample_mapping.note_range
+          new_sample.sample_mapping.velocity_range = properties.sample_mapping.velocity_range
+          new_sample.sample_mapping.map_key_to_pitch = properties.sample_mapping.map_key_to_pitch
+          new_sample.sample_mapping.map_velocity_to_volume = properties.sample_mapping.map_velocity_to_volume
+
+          -- Delete temp sample
+          instrument:delete_sample_at(temp_index)
+
+          converted = converted + 1
+        end
+      end
+    end
+
+    if progress_dialog and progress_dialog.visible then
+      progress_dialog:close()
+    end
+
+    -- Restore AutoSamplify monitoring
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+
+    -- Build summary
+    local parts = {}
+    table.insert(parts, string.format("%dHz", target_rate))
+    table.insert(parts, string.format("%d-bit", target_bit_depth))
+    if target_channel_mode ~= "keep" then
+      table.insert(parts, target_channel_mode)
+    end
+    if target_invert_mode ~= "none" then
+      table.insert(parts, "invert:" .. target_invert_mode)
+    end
+
+    local message = string.format(
+      "Batch Sample Adjust: converted %d samples to %s. Skipped %d.",
+      converted, table.concat(parts, ", "), skipped)
+    renoise.app():show_status(message)
+    print(message)
+  end
+
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_func)
+  progress_dialog, progress_vb = slicer:create_dialog("Batch Sample Adjust — Converting All Samples")
+  slicer:start()
+end
+
+-- Keybindings for Batch Sample Adjust
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Batch Sample Adjust Dialog...", invoke=show_batch_sample_adjust_dialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Batch Sample Adjust Dialog...", invoke=show_batch_sample_adjust_dialog}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Batch Sample Adjust Dialog...", invoke=show_batch_sample_adjust_dialog}
+
+-- MIDI mappings for Batch Sample Adjust
+renoise.tool():add_midi_mapping{name="Paketti:Batch Sample Adjust Dialog...", invoke=function(message) if message:is_trigger() then show_batch_sample_adjust_dialog() end end}
 
 
