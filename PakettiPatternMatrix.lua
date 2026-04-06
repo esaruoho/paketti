@@ -755,13 +755,15 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Swap Two Pattern Slot
 -- MIDI mapping for Swap Two Pattern Slots function
 renoise.tool():add_midi_mapping{name="Paketti:Swap Two Pattern Slots",invoke=PakettiSwapTwoPatternSlots}
 
--- Nudge sequence selection down by 1 row (all tracks)
+-- Nudge sequence selection down by 1 row.
+-- Moves sequence slot references (not data) — instant regardless of pattern size.
 -- If a selection range exists, moves the entire block down.
 -- If no selection, moves the current single sequence slot down.
 function PakettiNudgeSequenceSelectionDown()
   local song = renoise.song()
   local seq = song.sequencer
   local total = #seq.pattern_sequence
+  local num_tracks = #song.tracks
 
   -- Determine range to nudge
   local sel = seq.selection_range
@@ -770,12 +772,10 @@ function PakettiNudgeSequenceSelectionDown()
     sel_start = sel[1]
     sel_end = sel[2]
   else
-    -- No selection: use current sequence slot
     sel_start = song.selected_sequence_index
     sel_end = sel_start
   end
 
-  -- Boundary check
   if sel_end >= total then
     renoise.app():show_status("Cannot nudge further down, already at the bottom")
     return
@@ -783,42 +783,44 @@ function PakettiNudgeSequenceSelectionDown()
 
   song:describe_undo("Nudge Sequence Selection Down")
 
-  -- Swap from bottom of selection upward: this rotates the slot below the selection into the top
-  for i = sel_end, sel_start, -1 do
-    local current_pat_idx = seq.pattern_sequence[i]
-    local target_pat_idx = seq.pattern_sequence[i + 1]
-    local current_pattern = song.patterns[current_pat_idx]
-    local target_pattern = song.patterns[target_pat_idx]
+  -- Save the pattern index and mute states of the slot below the selection
+  local below_pat = seq.pattern_sequence[sel_end + 1]
+  local all_mutes = {}
+  for pos = sel_start, sel_end + 1 do
+    all_mutes[pos] = {}
+    for t = 1, num_tracks do
+      all_mutes[pos][t] = seq:track_sequence_slot_is_muted(t, pos)
+    end
+  end
 
-    -- Swap all tracks between the two patterns
-    PakettiSwapCompletePatternData(current_pattern, target_pattern)
+  -- Move: delete the slot below, re-insert it above the selection
+  seq:delete_sequence_at(sel_end + 1)
+  seq:insert_sequence_at(sel_start, below_pat)
 
-    -- Swap mute states
-    for track_index = 1, #song.tracks do
-      local current_muted = seq:track_sequence_slot_is_muted(track_index, i)
-      local target_muted = seq:track_sequence_slot_is_muted(track_index, i + 1)
-      seq:set_track_sequence_slot_is_muted(track_index, i, target_muted)
-      seq:set_track_sequence_slot_is_muted(track_index, i + 1, current_muted)
+  -- Restore mute states: sel_start gets the below slot's mutes,
+  -- sel_start+1..sel_end+1 get the old sel_start..sel_end mutes
+  for t = 1, num_tracks do
+    seq:set_track_sequence_slot_is_muted(t, sel_start, all_mutes[sel_end + 1][t])
+    for pos = sel_start + 1, sel_end + 1 do
+      seq:set_track_sequence_slot_is_muted(t, pos, all_mutes[pos - 1][t])
     end
   end
 
   -- Move selection to follow the block
-  local new_start = sel_start + 1
-  local new_end = sel_end + 1
-  seq.selection_range = {new_start, new_end}
-  song.selected_sequence_index = new_end
+  seq.selection_range = {sel_start + 1, sel_end + 1}
+  song.selected_sequence_index = sel_end + 1
 
-  local count = sel_end - sel_start + 1
-  renoise.app():show_status("Nudged " .. count .. " sequence slot(s) down")
+  renoise.app():show_status("Nudged " .. (sel_end - sel_start + 1) .. " sequence slot(s) down")
 end
 
--- Nudge sequence selection up by 1 row (all tracks)
+-- Nudge sequence selection up by 1 row.
+-- Moves sequence slot references (not data) — instant regardless of pattern size.
 -- If a selection range exists, moves the entire block up.
 -- If no selection, moves the current single sequence slot up.
 function PakettiNudgeSequenceSelectionUp()
   local song = renoise.song()
   local seq = song.sequencer
-  local total = #seq.pattern_sequence
+  local num_tracks = #song.tracks
 
   -- Determine range to nudge
   local sel = seq.selection_range
@@ -827,12 +829,10 @@ function PakettiNudgeSequenceSelectionUp()
     sel_start = sel[1]
     sel_end = sel[2]
   else
-    -- No selection: use current sequence slot
     sel_start = song.selected_sequence_index
     sel_end = sel_start
   end
 
-  -- Boundary check
   if sel_start <= 1 then
     renoise.app():show_status("Cannot nudge further up, already at the top")
     return
@@ -840,33 +840,36 @@ function PakettiNudgeSequenceSelectionUp()
 
   song:describe_undo("Nudge Sequence Selection Up")
 
-  -- Swap from top of selection downward: this rotates the slot above the selection into the bottom
-  for i = sel_start, sel_end do
-    local current_pat_idx = seq.pattern_sequence[i]
-    local target_pat_idx = seq.pattern_sequence[i - 1]
-    local current_pattern = song.patterns[current_pat_idx]
-    local target_pattern = song.patterns[target_pat_idx]
-
-    -- Swap all tracks between the two patterns
-    PakettiSwapCompletePatternData(current_pattern, target_pattern)
-
-    -- Swap mute states
-    for track_index = 1, #song.tracks do
-      local current_muted = seq:track_sequence_slot_is_muted(track_index, i)
-      local target_muted = seq:track_sequence_slot_is_muted(track_index, i - 1)
-      seq:set_track_sequence_slot_is_muted(track_index, i, target_muted)
-      seq:set_track_sequence_slot_is_muted(track_index, i - 1, current_muted)
+  -- Save the pattern index and mute states of the slot above the selection
+  local above_pat = seq.pattern_sequence[sel_start - 1]
+  local all_mutes = {}
+  for pos = sel_start - 1, sel_end do
+    all_mutes[pos] = {}
+    for t = 1, num_tracks do
+      all_mutes[pos][t] = seq:track_sequence_slot_is_muted(t, pos)
     end
   end
 
-  -- Move selection to follow the block
-  local new_start = sel_start - 1
-  local new_end = sel_end - 1
-  seq.selection_range = {new_start, new_end}
-  song.selected_sequence_index = new_start
+  -- Move: delete the slot above, re-insert it below the selection
+  seq:delete_sequence_at(sel_start - 1)
+  -- After delete, the selection content is now at sel_start-1..sel_end-1
+  seq:insert_sequence_at(sel_end, above_pat)
+  -- Now above_pat is at sel_end, selection content is at sel_start-1..sel_end-1
 
-  local count = sel_end - sel_start + 1
-  renoise.app():show_status("Nudged " .. count .. " sequence slot(s) up")
+  -- Restore mute states: sel_start-1..sel_end-1 get the old sel_start..sel_end mutes,
+  -- sel_end gets the above slot's mutes
+  for t = 1, num_tracks do
+    for pos = sel_start - 1, sel_end - 1 do
+      seq:set_track_sequence_slot_is_muted(t, pos, all_mutes[pos + 1][t])
+    end
+    seq:set_track_sequence_slot_is_muted(t, sel_end, all_mutes[sel_start - 1][t])
+  end
+
+  -- Move selection to follow the block
+  seq.selection_range = {sel_start - 1, sel_end - 1}
+  song.selected_sequence_index = sel_start - 1
+
+  renoise.app():show_status("Nudged " .. (sel_end - sel_start + 1) .. " sequence slot(s) up")
 end
 
 -- Menu entries for Nudge Sequence Selection

@@ -28,7 +28,9 @@ The dialog scans the instrument to show a summary (sample count, most common for
 
 ### 2026-04-06 - Feature: Nudge Sequence Selection Up/Down
 
-Added **Nudge Sequence Selection** — select a range of sequence slots (rows) in the Pattern Sequencer/Matrix, then nudge the entire block up or down one row at a time. Each keypress moves the whole selection by 1 position, so tapping down 5 times moves the block down 5 rows. The selection follows the block automatically. If no selection exists, nudges the current single sequence slot. Swaps all tracks, automation, mute states, and pattern names.
+Added **Nudge Sequence Selection** — select a range of sequence slots (rows) in the Pattern Sequencer/Matrix, then nudge the entire block up or down one row at a time. Each keypress moves the whole selection by 1 position, so tapping down 5 times moves the block down 5 rows. The selection follows the block automatically. If no selection exists, nudges the current single sequence slot. Mute states are preserved through the move.
+
+**Optimization (2026-04-06):** Completely rewritten to move sequence slot *references* (`insert_sequence_at` / `delete_sequence_at`) instead of copying all pattern data line-by-line. The old approach iterated every line of every track of every column, causing multi-second freezes with the macOS beachball on large songs. The new approach is O(1) regardless of pattern size or track count — it just relocates which pattern index lives at which sequence position.
 
 **Menu entries:** `Pattern Sequencer:Paketti:Nudge Sequence Selection Down`, `Pattern Sequencer:Paketti:Nudge Sequence Selection Up`, `Pattern Matrix:Paketti:Nudge Sequence Selection Down`, `Pattern Matrix:Paketti:Nudge Sequence Selection Up`, `Pattern Editor:Paketti:Nudge Sequence Selection Down`, `Pattern Editor:Paketti:Nudge Sequence Selection Up`.
 
@@ -36,7 +38,7 @@ Added **Nudge Sequence Selection** — select a range of sequence slots (rows) i
 
 **MIDI mappings:** `Paketti:Nudge Sequence Selection Down`, `Paketti:Nudge Sequence Selection Up`.
 
-**Files changed:** `PakettiPatternMatrix.lua` (2 new functions: `PakettiNudgeSequenceSelectionDown`, `PakettiNudgeSequenceSelectionUp`).
+**Files changed:** `PakettiPatternMatrix.lua` (`PakettiNudgeSequenceSelectionDown`, `PakettiNudgeSequenceSelectionUp` rewritten).
 
 ### 2026-03-29 - Feature: Launch App Filter Mode — CLI audio processing pipeline
 
