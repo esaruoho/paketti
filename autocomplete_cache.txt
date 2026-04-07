@@ -1241,10 +1241,6 @@ Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus Matrix Overview|
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus Step Sequencer|||Xperimental/WIP|||function() createStepSequencerDialog() end|||MMTPXWHSS,main,menu,tools,paketti,xperimental,hotelsinus,step,sequencer|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt|||Xperimental/WIP|||pakettiKontaktExportSamples|||MMTPXWKEESFK,main,menu,tools,paketti,xperimental,kontakt,export,export,samples,kontakt|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Load 2 Random AKWF as 12st_WT Wavetable|||Xperimental/WIP|||PCMWriterSafeAKWFWavetableExport|||MMTPXWL2RAA1WW,main,menu,tools,paketti,xperimental,load,random,akwf,12st,wavetable|||PakettiMenuConfig
-Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:M8:Export Instrument|||Xperimental/WIP|||PakettiM8ExportInstrument|||MMTPXWMEI,main,menu,tools,paketti,xperimental,export,instrument|||PakettiM8Export
-Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:M8:Export Sample Chain|||Xperimental/WIP|||PakettiM8Export|||MMTPXWMESC,main,menu,tools,paketti,xperimental,export,sample,chain|||PakettiM8Export
-Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:M8:Import Instrument|||Xperimental/WIP|||PakettiM8ImportInstrument|||MMTPXWMII,main,menu,tools,paketti,xperimental,import,instrument|||PakettiM8Export
-Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:M8:Import Sample Chain|||Xperimental/WIP|||PakettiM8Import|||MMTPXWMISC,main,menu,tools,paketti,xperimental,import,sample,chain|||PakettiM8Export
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Match EditStep with Delay Pattern|||Xperimental/WIP|||function() toggle_match_editstep() end|||MMTPXWMEWDP,main,menu,tools,paketti,xperimental,match,editstep,with,delay,pattern|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Match Effect Column EditStep with Note Placement|||Xperimental/WIP|||function() toggle_match_editstep_effect() end|||MMTPXWMECEWNP,main,menu,tools,paketti,xperimental,match,effect,column,editstep,with,note,placement|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Match Note Column EditStep with Note Placement|||Xperimental/WIP|||function() toggle_match_editstep_note() end|||MMTPXWMNCEWNP,main,menu,tools,paketti,xperimental,match,note,column,editstep,with,note,placement|||PakettiMenuConfig
@@ -1254,10 +1250,6 @@ Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 2:3
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 3:2 (Triplet feel)|||Xperimental/WIP|||function() convert_to_triplet_feel() end|||MMTPXWMMQ32TF,main,menu,tools,paketti,xperimental,metric,modulation,quick,triplet,feel|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 3:4 (3/4→4/4 feel)|||Xperimental/WIP|||function() convert_3_to_4_feel() end|||MMTPXWMMQ343444F,main,menu,tools,paketti,xperimental,metric,modulation,quick,feel|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Metric Modulation:Quick 4:3 (4/4→3/4 feel)|||Xperimental/WIP|||function() convert_4_to_3_feel() end|||MMTPXWMMQ434434F,main,menu,tools,paketti,xperimental,metric,modulation,quick,feel|||PakettiMenuConfig
-Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Export Drum Kit|||Xperimental/WIP|||PakettiOP1ExportDrumKit|||MMTPXWO1EDK,-1,main,menu,tools,paketti,xperimental,export,drum|||PakettiOP1Export
-Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Export Sample|||Xperimental/WIP|||PakettiOP1ExportSample|||MMTPXWO1ES,-1,main,menu,tools,paketti,xperimental,export,sample|||PakettiOP1Export
-Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Export Tape|||Xperimental/WIP|||PakettiOP1ExportTape|||MMTPXWO1ET,-1,main,menu,tools,paketti,xperimental,export,tape|||PakettiOP1Export
-Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:OP-1:Import Sample|||Xperimental/WIP|||PakettiOP1Import|||MMTPXWO1IS,-1,main,menu,tools,paketti,xperimental,import,sample|||PakettiOP1Export
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Paketti Automation Hack|||Xperimental/WIP|||function() initialize_doofer_monitoring() end|||MMTPXWPAH,main,menu,tools,paketti,xperimental,paketti,automation,hack|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Paketti EQ30 Unused Note Frequency Reduction Flavor|||Xperimental/WIP|||PakettiEQ30UnusedNoteFrequencyReductionFlavor|||MMTPXWPEUNFRF,main,menu,tools,paketti,xperimental,paketti,eq30,unused,note,frequency,reduction,flavor|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Xperimental/WIP:Paketti EQ64 Unused Note Frequency Reduction Flavor|||Xperimental/WIP|||PakettiEQ64UnusedNoteFrequencyReductionFlavor|||MMTPXWPEUNFRF,main,menu,tools,paketti,xperimental,paketti,eq64,unused,note,frequency,reduction,flavor|||PakettiMenuConfig
@@ -2761,7 +2753,6 @@ Menu Entry|||Sample Editor:Paketti:Xperimental/WIP:Cycle Frequency Analysis Cycl
 Menu Entry|||Sample Editor:Paketti:Xperimental/WIP:Detect Sample BPM|||Xperimental/WIP|||pakettiIntelligentBPMDetection|||SEPXWDSB,sample,editor,paketti,xperimental,detect,sample|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Xperimental/WIP:Detect Zero Crossings|||Xperimental/WIP|||detect_zero_crossings|||SEPXWDZC,sample,editor,paketti,xperimental,detect,zero,crossings|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt|||Xperimental/WIP|||pakettiKontaktExportSamples|||SEPXWKEESFK,sample,editor,paketti,xperimental,kontakt,export,export,samples,kontakt|||PakettiMenuConfig
-Menu Entry|||Sample Editor:Paketti:Xperimental/WIP:OP-1:Import Sample|||Xperimental/WIP|||PakettiOP1Import|||SEPXWO1IS,-1,sample,editor,paketti,xperimental,import,sample|||PakettiOP1Export
 Menu Entry|||Sample Editor:Paketti:Xperimental/WIP:Sample Cycle Tuning Calculator...|||Xperimental/WIP|||pakettiSimpleSampleTuningDialog|||SEPXWSCTC,sample,editor,paketti,xperimental,sample,cycle,tuning,calculator|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Xperimental/WIP:Selected Instrument 1 Cycle Tuning|||Xperimental/WIP|||pakettiQuickInstrumentTuning|||SEPXWSI1CT,sample,editor,paketti,xperimental,selected,instrument,cycle,tuning|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Xperimental/WIP:Selected Sample 1 Cycle Tuning|||Xperimental/WIP|||pakettiQuickSelectedSampleTuning|||SEPXWSS1CT,sample,editor,paketti,xperimental,selected,sample,cycle,tuning|||PakettiMenuConfig
@@ -2916,7 +2907,6 @@ Menu Entry|||Sample Mappings:Paketti:Set Selected Sample (+1) Velocity Range 7F 
 Menu Entry|||Sample Mappings:Paketti:Set Selected Sample (-1) Velocity Range 7F others 00|||Sample Mappings|||function() sample_one_up() end|||SMPSSS1VR7O0,-1,sample,mappings,paketti,selected,sample,velocity,range,others|||PakettiMenuConfig
 Menu Entry|||Sample Mappings:Paketti:Set Selected Sample (Random) Velocity Range 7F others 00|||Sample Mappings|||function() sample_random() end|||SMPSSSRVR7O0,sample,mappings,paketti,selected,sample,random,velocity,range,others|||PakettiMenuConfig
 Menu Entry|||Sample Mappings:Paketti:Stack All Samples in Instrument with Velocity Mapping Split|||Sample Mappings|||function() fix_sample_velocity_mappings() end|||SMPSASIIWVMS,sample,mappings,paketti,stack,samples,instrument,with,velocity,mapping,split|||PakettiMenuConfig
-Menu Entry|||Sample Mappings:Paketti:Xperimental/WIP:OP-1:Import Sample|||Xperimental/WIP|||PakettiOP1Import|||SMPXWO1IS,-1,sample,mappings,paketti,xperimental,import,sample|||PakettiOP1Export
 Menu Entry|||Sample Modulation Matrix:Paketti:Clear PitchStep Steps|||Sample Modulation Matrix|||function() PakettiClearStepper("Pitch Stepper") end|||SMMPCPS,sample,modulation,matrix,paketti,clear,pitchstep,steps|||PakettiMenuConfig
 Menu Entry|||Sample Modulation Matrix:Paketti:Modify PitchStep Steps (Hard Detune)|||Sample Modulation Matrix|||function() PakettiFillPitchStepperDigits(0.05,64) end|||SMMPMPSHD,sample,modulation,matrix,paketti,modify,pitchstep,steps,hard,detune|||PakettiMenuConfig
 Menu Entry|||Sample Modulation Matrix:Paketti:Modify PitchStep Steps (Minor Flurry)|||Sample Modulation Matrix|||function() PakettiFillPitchStepperDigits(0.015,64) end|||SMMPMPSMF,sample,modulation,matrix,paketti,modify,pitchstep,steps,minor,flurry|||PakettiMenuConfig
@@ -3892,10 +3882,6 @@ Keybinding|||Global:Paketti:Load XRNI & Wipe Phrases|||Global|||function() loadX
 Keybinding|||Global:Paketti:Load&Slice&Isolate&Stack Sample|||Global|||function() LoadSliceIsolateStack() end|||GPLSISS,global,paketti,load,slice,isolate,stack,sample|||PakettiStacker
 Keybinding|||Global:Paketti:Loop Set Percussion|||Global|||function() PakettiLoopSet("Percussion")end|||GPLSP,global,paketti,loop,percussion|||PakettiRequests
 Keybinding|||Global:Paketti:Loop Set Texture|||Global|||function() PakettiLoopSet("Texture")end|||GPLST,global,paketti,loop,texture|||PakettiRequests
-Keybinding|||Global:Paketti:M8 Export Instrument|||Global|||PakettiM8ExportInstrument|||GPMEI,global,paketti,export,instrument|||PakettiM8Export
-Keybinding|||Global:Paketti:M8 Export Sample Chain|||Global|||PakettiM8Export|||GPMESC,global,paketti,export,sample,chain|||PakettiM8Export
-Keybinding|||Global:Paketti:M8 Import Instrument|||Global|||PakettiM8ImportInstrument|||GPMII,global,paketti,import,instrument|||PakettiM8Export
-Keybinding|||Global:Paketti:M8 Import Sample Chain|||Global|||PakettiM8Import|||GPMISC,global,paketti,import,sample,chain|||PakettiM8Export
 Keybinding|||Global:Paketti:MIDI Aftertouch / CC Effect Writer...|||Global|||function() PakettiMidiEffectWriterShowDialog() end|||GPMACEW,global,paketti,midi,aftertouch,effect,writer|||PakettiMidi
 Keybinding|||Global:Paketti:MPC Cycler Commit Preview|||Global|||mpc_commit_preview|||GPMCCP,global,paketti,cycler,commit,preview|||PakettiMPCCycler
 Keybinding|||Global:Paketti:MPC Cycler Dialog|||Global|||show_mpc_cycler_dialog|||GPMCD,global,paketti,cycler,dialog|||PakettiMPCCycler
@@ -4005,10 +3991,6 @@ Keybinding|||Global:Paketti:Nudge Delay Output Delay -05ms (Rename)|||Global|||f
 Keybinding|||Global:Paketti:Nudge Delay Output Delay -10ms|||Global|||function() nudge_output_delay(-10, false) end|||GPNDOD1,-10,global,paketti,nudge,delay,output,delay,10ms|||PakettiControls
 Keybinding|||Global:Paketti:Nudge Delay Output Delay -10ms (Rename)|||Global|||function() nudge_output_delay(-10, true) end|||GPNDOD1R,-10,global,paketti,nudge,delay,output,delay,10ms,rename|||PakettiControls
 Keybinding|||Global:Paketti:Nuke Autocomplete Cache|||Global|||pakettiAutocompleteNukeCache|||GPNAC,global,paketti,nuke,autocomplete,cache|||PakettiAutocomplete
-Keybinding|||Global:Paketti:OP-1 Export Drum Kit|||Global|||PakettiOP1ExportDrumKit|||GPO1EDK,-1,global,paketti,export,drum|||PakettiOP1Export
-Keybinding|||Global:Paketti:OP-1 Export Sample|||Global|||PakettiOP1ExportSample|||GPO1ES,-1,global,paketti,export,sample|||PakettiOP1Export
-Keybinding|||Global:Paketti:OP-1 Export Tape|||Global|||PakettiOP1ExportTape|||GPO1ET,-1,global,paketti,export,tape|||PakettiOP1Export
-Keybinding|||Global:Paketti:OP-1 Import Sample|||Global|||PakettiOP1Import|||GPO1IS,-1,global,paketti,import,sample|||PakettiOP1Export
 Keybinding|||Global:Paketti:OctaMED Note Spread Decrement|||Global|||function() DecrementSpread() end|||GPONSD,global,paketti,octamed,note,spread,decrement|||PakettiOctaMEDSuite
 Keybinding|||Global:Paketti:OctaMED Note Spread Increment|||Global|||function() IncrementSpread() end|||GPONSI,global,paketti,octamed,note,spread,increment|||PakettiOctaMEDSuite
 Keybinding|||Global:Paketti:Octatrack Import STRD Bank|||Global|||function() PakettiOTSTRDImporter() end|||GPOISB,global,paketti,octatrack,import,strd,bank|||PakettiOTSTRDImporter

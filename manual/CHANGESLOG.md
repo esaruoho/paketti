@@ -12,6 +12,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-07 - Removal: Dirtywave M8 and Teenage Engineering OP-1 modules
+
+Removed **PakettiM8Export.lua** and **PakettiOP1Export.lua** entirely. Both modules were already disabled (commented out in `main.lua`) and non-functional. They have been fully deleted along with all references in the autocomplete cache, preferences, and manual documentation.
+
+**Files removed:** `PakettiM8Export.lua`, `PakettiOP1Export.lua`.
+
+**Files changed:** `main.lua` (removed commented-out require lines), `preferences.xml` (cleared stale M8 reference), `autocomplete_cache.txt` (removed 18 cached entries), `manual/Experimental.md` (removed M8 and OP-1 documentation sections).
+
 ### 2026-04-06 - Feature: Batch Sample Adjust Dialog
 
 Added **Batch Sample Adjust Dialog** — converts ALL samples in the selected instrument at once, combining sample rate, bit depth, channel mode, and phase inversion into a single pass. Previously, Paketti had batch conversion for bit depth and mono/stereo separately, and the single-sample "Paketti Sample Adjust" dialog for combined settings — but no unified batch version. Now there is.

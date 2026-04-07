@@ -51,7 +51,7 @@ end end</Index41>
     <Index07>Keybinding: Global:Paketti:Fill Empty Sample Slots (Randomized Folder)||function() fillEmptySampleSlots() end</Index07>
     <Index08>Menu Entry: Main Menu:Tools:Paketti:Xperimental/WIP:EQ10 XY Control...||pakettiEQ10XYDialog</Index08>
     <Index09>Keybinding: Global:Paketti:Set Master Track Volume to 0.0dB||function() tknaMasterTrackVolume0to1Toggle(1) end</Index09>
-    <Index10>Menu Entry: Main Menu:Tools:Paketti:Xperimental/WIP:M8:Export Sample Chain||PakettiM8Export</Index10>
+    <Index10></Index10>
     <Index11>Menu Entry: Sample Editor:Paketti:Create New Instrument &amp; Loop from Selection||create_new_instrument_from_selection</Index11>
     <Index12>Menu Entry: Pattern Editor:Paketti ChordsPlus:Transposer Row -11||function() PakettiTransposer(-11, false) end</Index12>
     <Index13>Menu Entry: Sample Editor:Paketti:Map Sample to All Keyzones||function() mapsample() end</Index13>
