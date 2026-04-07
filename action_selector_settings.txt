@@ -7,7 +7,6 @@ Menu Entry: Instrument Box:Paketti:Instruments:Isolate Selected Sample to New In
 Keybinding: Global:Paketti:Fill Empty Sample Slots (Randomized Folder)
 Menu Entry: Main Menu:Tools:Paketti:Xperimental/WIP:EQ10 XY Control...
 Keybinding: Global:Paketti:Set Master Track Volume to 0.0dB
-Menu Entry: Main Menu:Tools:Paketti:Xperimental/WIP:M8:Export Sample Chain
 Menu Entry: Sample Editor:Paketti:Create New Instrument & Loop from Selection
 Menu Entry: Pattern Editor:Paketti ChordsPlus:Transposer Row -11
 Menu Entry: Sample Editor:Paketti:Map Sample to All Keyzones
