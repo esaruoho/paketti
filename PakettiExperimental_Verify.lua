@@ -187,239 +187,237 @@ end
 
 local vb = renoise.ViewBuilder()
 local dialog = nil
-local monitoring_enabled = false -- Tracks the monitoring state
-local active = false
 
--- Tracks all SB0/SBX pairs in the playing pattern
-local loop_pairs = {}
+-- SBx state — kept minimal for fast idle callback
+local sbx_monitoring_enabled = false
+local sbx_active = false
+local sbx_last_seen_line = nil
+local sbx_last_pattern_index = nil
 
--- Track which pattern index was last analyzed so we re-analyze on pattern change
-local last_analyzed_pattern_index = nil
+-- Pre-built lookup: sbx_end_lines[line] = {start_line=N, max_repeats=N, repeat_count=0}
+-- Only lines with SBx end markers have entries → O(1) lookup during playback
+local sbx_end_lines = {}
+-- Ordered list of pairs for reset iteration (small, typically 1-4 entries)
+local sbx_pairs = {}
 
--- Track previous line to detect range crossings (idle can skip lines)
-local last_seen_line = nil
-
--- Helper: get the pattern index currently being played back
-local function get_playing_pattern_index()
-  local song = renoise.song()
-  if not song then return nil end
-  local play_pos = song.transport.playback_pos
-  local seq = song.sequencer.pattern_sequence
-  if play_pos.sequence >= 1 and play_pos.sequence <= #seq then
-    return seq[play_pos.sequence]
-  end
-  return nil
-end
-
--- Scan the Master Track of a specific pattern for all SB0/SBX pairs
+---------------------------------------------------------------------------
+-- analyze_loops: scan ALL tracks, ALL effect columns for SB0/SBx pairs
+-- Runs once per pattern change — not on the hot path
+---------------------------------------------------------------------------
 function analyze_loops(pattern_index)
-  if not renoise.song() then
-    return false
-  end
   local song = renoise.song()
+  if not song then return false end
 
-  -- If no pattern_index given, use the currently playing pattern
   if not pattern_index then
-    pattern_index = get_playing_pattern_index()
+    local play_pos = song.transport.playback_pos
+    local seq = song.sequencer.pattern_sequence
+    if play_pos.sequence >= 1 and play_pos.sequence <= #seq then
+      pattern_index = seq[play_pos.sequence]
+    end
   end
-  -- Fallback to selected pattern if not playing
   if not pattern_index then
     pattern_index = song.selected_pattern_index
   end
 
-  local master_track_index = song.sequencer_track_count + 1
   local pattern = song:pattern(pattern_index)
-  local master_track = pattern:track(master_track_index)
-  loop_pairs = {}
-  last_analyzed_pattern_index = pattern_index
+  local num_lines = pattern.number_of_lines
+  local total_tracks = #song.tracks
 
-  for line_idx = 1, pattern.number_of_lines do
-    local line = master_track:line(line_idx)
-    if #line.effect_columns > 0 then
-      local col = line.effect_columns[1]
-      if col.number_string == "0S" then
-        local parameter = col.amount_value - 176 -- Decode by subtracting 0xB0
+  -- Collect all SB0/SBx commands across every track and effect column
+  -- sb0_lines[line] = true, sbx_lines[line] = max_repeats (first SBx wins per line)
+  local sb0_set = {}  -- set of lines with SB0
+  local sbx_map = {}  -- line → repeat count (first found wins)
+  local sb0_list = {} -- ordered list of SB0 lines
 
-        if parameter == 0 then
-          -- Found SB0 (start)
-          table.insert(loop_pairs, {start_line = line_idx, end_line = nil, repeat_count = 0, max_repeats = 0})
-        elseif parameter >= 1 and parameter <= 15 then
-          -- Found SBX (end) for the last SB0
-          local last_pair = loop_pairs[#loop_pairs]
-          if last_pair and not last_pair.end_line then
-            last_pair.end_line = line_idx
-            last_pair.max_repeats = parameter
+  for line_idx = 1, num_lines do
+    for track_idx = 1, total_tracks do
+      local line = pattern:track(track_idx):line(line_idx)
+      local fx_cols = line.effect_columns
+      for col_idx = 1, #fx_cols do
+        local col = fx_cols[col_idx]
+        if col.number_string == "0S" then
+          local param = col.amount_value - 0xB0
+          if param == 0 and not sb0_set[line_idx] then
+            sb0_set[line_idx] = true
+            sb0_list[#sb0_list + 1] = line_idx
+          elseif param >= 1 and param <= 15 and not sbx_map[line_idx] then
+            sbx_map[line_idx] = param
           end
         end
       end
     end
   end
 
-  if #loop_pairs == 0 then
-    print("SBx: No valid SB0/SBX pairs found in Master Track of pattern " .. pattern_index .. ".")
+  -- Pair each SB0 with the next SBx that comes after it
+  -- Sort SB0 lines (they're already in order from the line loop)
+  -- Collect SBx lines sorted
+  local sbx_lines_sorted = {}
+  for ln, _ in pairs(sbx_map) do
+    sbx_lines_sorted[#sbx_lines_sorted + 1] = ln
+  end
+  table.sort(sbx_lines_sorted)
+
+  sbx_end_lines = {}
+  sbx_pairs = {}
+  sbx_last_pattern_index = pattern_index
+
+  local sbx_idx = 1
+  for _, sb0_line in ipairs(sb0_list) do
+    -- Find the first SBx line that comes after this SB0
+    while sbx_idx <= #sbx_lines_sorted and sbx_lines_sorted[sbx_idx] <= sb0_line do
+      sbx_idx = sbx_idx + 1
+    end
+    if sbx_idx <= #sbx_lines_sorted then
+      local end_line = sbx_lines_sorted[sbx_idx]
+      local pair = {
+        start_line = sb0_line,
+        end_line = end_line,
+        max_repeats = sbx_map[end_line],
+        repeat_count = 0
+      }
+      sbx_pairs[#sbx_pairs + 1] = pair
+      -- O(1) lookup table keyed by end_line
+      sbx_end_lines[end_line] = pair
+      sbx_idx = sbx_idx + 1  -- consume this SBx so it can't pair again
+    end
+  end
+
+  if #sbx_pairs == 0 then
     return false
   end
-
-  print("SBx: Detected SB0/SBX pairs in Master Track (pattern " .. pattern_index .. "):")
-  for i, pair in ipairs(loop_pairs) do
-    print("  Pair " .. i .. ": Start=" .. pair.start_line .. ", End=" .. (pair.end_line or "nil") .. ", Max Repeats=" .. pair.max_repeats)
-  end
-
   return true
 end
 
--- Playback Monitoring Function
+---------------------------------------------------------------------------
+-- monitor_playback: called on app_idle — MUST be fast
+-- Hot path: one table lookup per tick, no iteration when no SBx hit
+---------------------------------------------------------------------------
 local function monitor_playback()
   local song = renoise.song()
   if not song then return end
 
-  -- Only act when actually playing
-  if not song.transport.playing then
-    last_seen_line = nil
+  local transport = song.transport
+  if not transport.playing then
+    -- Reset state when stopped so repeat counts start fresh next play
+    if sbx_last_seen_line then
+      sbx_last_seen_line = nil
+      for i = 1, #sbx_pairs do
+        sbx_pairs[i].repeat_count = 0
+      end
+    end
     return
   end
 
-  local play_pos = song.transport.playback_pos
+  local play_pos = transport.playback_pos
   local current_line = play_pos.line
+  local seq = song.sequencer.pattern_sequence
+  local seq_idx = play_pos.sequence
+  if seq_idx < 1 or seq_idx > #seq then return end
+  local current_pattern_index = seq[seq_idx]
 
-  -- Determine which pattern is actually playing
-  local current_pattern_index = get_playing_pattern_index()
-  if not current_pattern_index then return end
-
-  -- Re-analyze if the playing pattern changed since last analysis
-  if current_pattern_index ~= last_analyzed_pattern_index then
-    print("SBx: Pattern changed to " .. current_pattern_index .. ", re-analyzing...")
-    -- Reset counters before re-analyzing
-    for _, pair in ipairs(loop_pairs) do
-      pair.repeat_count = 0
-    end
+  -- Re-analyze on pattern change (runs once, not per tick)
+  if current_pattern_index ~= sbx_last_pattern_index then
+    for i = 1, #sbx_pairs do sbx_pairs[i].repeat_count = 0 end
     analyze_loops(current_pattern_index)
-    last_seen_line = nil
+    sbx_last_seen_line = nil
   end
 
-  -- Get the actual playing pattern's line count
-  local playing_pattern = song:pattern(current_pattern_index)
-  local max_line = playing_pattern.number_of_lines
+  -- Fast exit if no pairs in this pattern
+  if #sbx_pairs == 0 then
+    sbx_last_seen_line = current_line
+    return
+  end
 
-  -- Determine the range of lines we may have crossed since last idle tick.
-  -- This handles the case where app_idle skips lines at high BPM/LPB.
-  local range_start, range_end
-  if last_seen_line and last_seen_line ~= current_line then
-    if current_line > last_seen_line then
-      -- Normal forward movement within same pattern
-      range_start = last_seen_line + 1
-      range_end = current_line
-    else
-      -- Wrapped around (new pattern cycle or loop) — check from 1 to current
-      -- Also check tail of previous cycle
-      -- First reset at pattern boundary
-      for _, pair in ipairs(loop_pairs) do
-        pair.repeat_count = 0
-      end
-      print("SBx: Pattern wrapped, resetting all repeat counts.")
-      range_start = 1
-      range_end = current_line
+  local last = sbx_last_seen_line
+
+  -- Detect wrap (pattern restart / loop) or first tick
+  if not last or current_line < last then
+    -- Reset all repeat counts on wrap
+    if last then
+      for i = 1, #sbx_pairs do sbx_pairs[i].repeat_count = 0 end
     end
-  else
-    -- First tick or same line
-    range_start = current_line
-    range_end = current_line
+    -- On first tick or wrap, check range [1, current_line]
+    last = 0
   end
 
-  last_seen_line = current_line
-
-  -- Reset all repeat counts if we crossed or reached the last line
-  if range_end >= max_line or (range_start <= max_line and range_end >= max_line) then
-    for _, pair in ipairs(loop_pairs) do
-      pair.repeat_count = 0
-    end
-    print("SBx: Reached end of pattern (line " .. max_line .. "), resetting all repeat counts.")
+  -- Same line as last tick — nothing to do
+  if current_line == last then
+    sbx_last_seen_line = current_line
+    return
   end
 
-  -- Handle looping logic for each pair using range check
-  for i, pair in ipairs(loop_pairs) do
-    if pair.end_line and pair.end_line >= range_start and pair.end_line <= range_end then
+  -- Check range (last+1 .. current_line) for any SBx end line
+  -- Use the lookup table: iterate only the lines in range
+  -- For small skips (1-4 lines typical), this is 1-4 lookups
+  local range_start = last + 1
+  for line = range_start, current_line do
+    local pair = sbx_end_lines[line]
+    if pair then
       if pair.repeat_count < pair.max_repeats then
         pair.repeat_count = pair.repeat_count + 1
-        print("SBx: Pair " .. i .. ": Looping back to line " .. pair.start_line .. " (repeat " .. pair.repeat_count .. "/" .. pair.max_repeats .. ")")
-        song.transport.playback_pos = renoise.SongPos(play_pos.sequence, pair.start_line)
-        last_seen_line = pair.start_line
-        return
-      else
-        print("SBx: Pair " .. i .. ": Completed all " .. pair.max_repeats .. " repeats.")
+        transport.playback_pos = renoise.SongPos(seq_idx, pair.start_line)
+        sbx_last_seen_line = pair.start_line
+        return  -- Jump done, exit immediately
       end
+      -- else: exhausted repeats, continue past this SBx
     end
   end
+
+  -- Check if we crossed end of pattern → reset counts for next cycle
+  local max_line = song:pattern(current_pattern_index).number_of_lines
+  if current_line >= max_line and last < max_line then
+    for i = 1, #sbx_pairs do sbx_pairs[i].repeat_count = 0 end
+  end
+
+  sbx_last_seen_line = current_line
 end
 
+---------------------------------------------------------------------------
 -- Global Reset Function
+---------------------------------------------------------------------------
 function reset_repeat_counts()
-  if not monitoring_enabled then
-    print("SBx: Monitoring is disabled. Reset operation skipped.")
-    return
-  end
-
-  -- Reset tracking state
-  last_seen_line = nil
-  last_analyzed_pattern_index = nil
-
-  print("SBx: Checking Master Track for SB0/SBX pairs...")
-  if not analyze_loops() then
-    print("SBx: No valid SB0/SBX pairs found in the Master Track. Reset operation aborted.")
-    return
-  end
-
-  for i, pair in ipairs(loop_pairs) do
-    pair.repeat_count = 0
-    print("SBx: Reset Pair " .. i .. ": Start=" .. pair.start_line .. ", End=" .. (pair.end_line or "nil") .. ", Max Repeats=" .. pair.max_repeats)
-  end
-
-  print("SBx: All repeat counts reset to 0. Monitoring restarted.")
-  InitSBx() -- Reinitialize SBX monitoring
-end
-
--- Initialize SBX Monitoring
-function InitSBx()
-  if monitoring_enabled then
-    print("SBx: Monitoring is enabled. Checking Master Track for SBX...")
-    -- Reset line tracking state so monitor_playback starts clean
-    last_seen_line = nil
-    last_analyzed_pattern_index = nil
-    if not analyze_loops() then
-      print("SBx: No valid SBX commands found in the Master Track. Monitoring will not start.")
-      return
-    end
-    if not active then
-      renoise.tool().app_idle_observable:add_notifier(monitor_playback)
-      print("SBx: Monitoring started.")
-      active = true
-    end
-  end
-end
-
--- Enable Monitoring
-local function enable_monitoring()
-  monitoring_enabled = true
+  if not sbx_monitoring_enabled then return end
+  sbx_last_seen_line = nil
+  sbx_last_pattern_index = nil
+  if not analyze_loops() then return end
+  for i = 1, #sbx_pairs do sbx_pairs[i].repeat_count = 0 end
   InitSBx()
 end
 
--- Disable Monitoring
-local function disable_monitoring()
-  monitoring_enabled = false
-  last_seen_line = nil
-  last_analyzed_pattern_index = nil
-  if active and renoise.tool().app_idle_observable:has_notifier(monitor_playback) then
-    renoise.tool().app_idle_observable:remove_notifier(monitor_playback)
-    print("SBx: Monitoring stopped.")
-    active = false
+---------------------------------------------------------------------------
+-- Initialize / Enable / Disable
+---------------------------------------------------------------------------
+function InitSBx()
+  if not sbx_monitoring_enabled then return end
+  sbx_last_seen_line = nil
+  sbx_last_pattern_index = nil
+  analyze_loops()
+  if not sbx_active then
+    renoise.tool().app_idle_observable:add_notifier(monitor_playback)
+    sbx_active = true
   end
 end
 
--- Toggle SBx Follow (for menu entry)
+local function enable_monitoring()
+  sbx_monitoring_enabled = true
+  InitSBx()
+end
+
+local function disable_monitoring()
+  sbx_monitoring_enabled = false
+  sbx_last_seen_line = nil
+  sbx_last_pattern_index = nil
+  sbx_end_lines = {}
+  sbx_pairs = {}
+  if sbx_active and renoise.tool().app_idle_observable:has_notifier(monitor_playback) then
+    renoise.tool().app_idle_observable:remove_notifier(monitor_playback)
+    sbx_active = false
+  end
+end
+
 function PakettiToggleSBxFollow()
   preferences.PakettiSBxFollowEnabled.value = not preferences.PakettiSBxFollowEnabled.value
   preferences:save_as("preferences.xml")
-  
   if preferences.PakettiSBxFollowEnabled.value then
     enable_monitoring()
     renoise.app():show_status("SBx Pattern Loop Follow: ON")
@@ -429,23 +427,15 @@ function PakettiToggleSBxFollow()
   end
 end
 
--- GUI for Triggering the Script
+---------------------------------------------------------------------------
+-- GUI
+---------------------------------------------------------------------------
 function showSBX_dialog()
   if dialog and dialog.visible then dialog:close() return end
   local content = vb:column{
-    vb:text{text="Trigger SBX Loop Handler" },
-    vb:button{
-      text="Enable Monitoring",
-      released = function()
-        enable_monitoring()
-      end
-    },
-    vb:button{
-      text="Disable Monitoring",
-      released = function()
-        disable_monitoring()
-      end
-    }
+    vb:text{text="Trigger SBX Loop Handler"},
+    vb:button{text="Enable Monitoring", released=function() enable_monitoring() end},
+    vb:button{text="Disable Monitoring", released=function() disable_monitoring() end}
   }
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
@@ -454,33 +444,27 @@ function showSBX_dialog()
   dialog = renoise.app():show_custom_dialog("SBX Playback Handler", content, keyhandler)
 end
 
-
 renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playback",
-  invoke=function() 
+  invoke=function()
     if not renoise.song() then return end
-    reset_repeat_counts() 
-    renoise.song().transport:start() 
+    reset_repeat_counts()
+    renoise.song().transport:start()
   end}
 
--- Tool Initialization
--- Initialize monitoring_enabled from preferences, defaulting to false if not set
+-- Tool Initialization — sync monitoring_enabled from preferences
 if preferences.PakettiSBxFollowEnabled and preferences.PakettiSBxFollowEnabled.value ~= nil then
-  monitoring_enabled = preferences.PakettiSBxFollowEnabled.value
+  sbx_monitoring_enabled = preferences.PakettiSBxFollowEnabled.value
 else
-  monitoring_enabled = false
+  sbx_monitoring_enabled = false
   if preferences.PakettiSBxFollowEnabled then
     preferences.PakettiSBxFollowEnabled.value = false
   end
 end
 
--- Named handler function for proper notifier management
 local function PakettiSBxNewDocumentHandler()
-  if monitoring_enabled then
-    InitSBx()
-  end
+  if sbx_monitoring_enabled then InitSBx() end
 end
 
--- Initialize monitoring when a document becomes available (with guard)
 if not renoise.tool().app_new_document_observable:has_notifier(PakettiSBxNewDocumentHandler) then
   renoise.tool().app_new_document_observable:add_notifier(PakettiSBxNewDocumentHandler)
 end

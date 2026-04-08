@@ -270,10 +270,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F5 Start Play
 -- F6, or Impulse Tracker Play Pattern.
 function playPattern()
 
-if preferences.PakettiSBxFollowEnabled.value then
-  InitSBx()
-end
-
 local s = renoise.song()
 local t = s.transport
 local startpos = t.playback_pos
@@ -297,6 +293,11 @@ end
 pakettiMaybeDisableBlockLoop(t)
 t.loop_pattern = true
 t:start_at(startpos)
+
+-- Initialize SBx AFTER playback position is set so it analyzes the correct pattern
+if preferences.PakettiSBxFollowEnabled.value then
+  InitSBx()
+end
 
 -- Check for Paketti Automation devices and initialize monitoring if they exist
 if type(initialize_doofer_monitoring) == "function" then 
@@ -372,8 +373,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Capture Marke
 -- F7, or Impulse Tracker Play from line.
 -- If marker exists (CTRL-F7), play from marker. Otherwise play from cursor.
 function ImpulseTrackerPlayFromLine()
-local monitoring_enabled = true
-  --InitSBx()
   reset_repeat_counts()
   ResetAllSteppers()
 
