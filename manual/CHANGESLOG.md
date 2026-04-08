@@ -12,6 +12,22 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-08 - Fix: SBx Pattern Loop Hack reliability
+
+Fixed multiple critical bugs in the SBx Pattern Loop Hack (`PakettiExperimental_Verify.lua`) that caused it to be unreliable or non-functional:
+
+1. **Playing pattern vs selected pattern**: `analyze_loops()` and `monitor_playback()` now use the actual playing pattern (derived from `transport.playback_pos.sequence`) instead of `selected_pattern`. Previously, if the cursor was in a different pattern than the one playing, the wrong pattern was analyzed.
+
+2. **Missed lines at high BPM**: The `app_idle_observable` callback can skip lines at high BPM/LPB. The monitor now tracks the previous line position and checks the entire range of lines that may have been crossed between idle ticks, instead of checking for exact line equality.
+
+3. **Stale loop_pairs across patterns**: When the playing pattern changes (sequence advances), the monitor now automatically re-analyzes the new pattern's Master Track for SBx commands, instead of using stale data from the previous pattern.
+
+4. **Off-by-one end-of-pattern reset**: The end-of-pattern counter reset now uses `>= number_of_lines` range check instead of `== number_of_lines - 1`, preventing missed resets.
+
+5. **Pattern wrap detection**: When the playback position wraps around (line goes from high to low), repeat counters are properly reset.
+
+**File changed:** `PakettiExperimental_Verify.lua`.
+
 ### 2026-04-07 - Removal: Dirtywave M8 and Teenage Engineering OP-1 modules
 
 Removed **PakettiM8Export.lua** and **PakettiOP1Export.lua** entirely. Both modules were already disabled (commented out in `main.lua`) and non-functional. They have been fully deleted along with all references in the autocomplete cache, preferences, and manual documentation.

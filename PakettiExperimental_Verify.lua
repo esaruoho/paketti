@@ -190,26 +190,55 @@ local dialog = nil
 local monitoring_enabled = false -- Tracks the monitoring state
 local active = false
 
--- Tracks all SB0/SBX pairs in the Master Track
+-- Tracks all SB0/SBX pairs in the playing pattern
 local loop_pairs = {}
 
--- Scan the Master Track for all SB0/SBX pairs
+-- Track which pattern index was last analyzed so we re-analyze on pattern change
+local last_analyzed_pattern_index = nil
 
-function analyze_loops()
-  -- PLACEHOLDER TO SEE IF LINE CHANGES FROM 206 to 207 on error if there is error.
+-- Track previous line to detect range crossings (idle can skip lines)
+local last_seen_line = nil
+
+-- Helper: get the pattern index currently being played back
+local function get_playing_pattern_index()
+  local song = renoise.song()
+  if not song then return nil end
+  local play_pos = song.transport.playback_pos
+  local seq = song.sequencer.pattern_sequence
+  if play_pos.sequence >= 1 and play_pos.sequence <= #seq then
+    return seq[play_pos.sequence]
+  end
+  return nil
+end
+
+-- Scan the Master Track of a specific pattern for all SB0/SBX pairs
+function analyze_loops(pattern_index)
   if not renoise.song() then
     return false
   end
-  local song=renoise.song()
-  local master_track_index = renoise.song().sequencer_track_count + 1
-  local master_track = song.selected_pattern.tracks[master_track_index]
-  loop_pairs = {}
+  local song = renoise.song()
 
-  for line_idx, line in ipairs(master_track.lines) do
+  -- If no pattern_index given, use the currently playing pattern
+  if not pattern_index then
+    pattern_index = get_playing_pattern_index()
+  end
+  -- Fallback to selected pattern if not playing
+  if not pattern_index then
+    pattern_index = song.selected_pattern_index
+  end
+
+  local master_track_index = song.sequencer_track_count + 1
+  local pattern = song:pattern(pattern_index)
+  local master_track = pattern:track(master_track_index)
+  loop_pairs = {}
+  last_analyzed_pattern_index = pattern_index
+
+  for line_idx = 1, pattern.number_of_lines do
+    local line = master_track:line(line_idx)
     if #line.effect_columns > 0 then
       local col = line.effect_columns[1]
       if col.number_string == "0S" then
-        local parameter = col.amount_value - 176 -- Decode by subtracting `B0`
+        local parameter = col.amount_value - 176 -- Decode by subtracting 0xB0
 
         if parameter == 0 then
           -- Found SB0 (start)
@@ -227,13 +256,13 @@ function analyze_loops()
   end
 
   if #loop_pairs == 0 then
-    print("Error: No valid SB0/SBX pairs found in the Master Track.")
+    print("SBx: No valid SB0/SBX pairs found in Master Track of pattern " .. pattern_index .. ".")
     return false
   end
 
-  print("Detected SB0/SBX pairs in Master Track:")
+  print("SBx: Detected SB0/SBX pairs in Master Track (pattern " .. pattern_index .. "):")
   for i, pair in ipairs(loop_pairs) do
-    print("Pair " .. i .. ": Start=" .. pair.start_line .. ", End=" .. pair.end_line .. ", Max Repeats=" .. pair.max_repeats)
+    print("  Pair " .. i .. ": Start=" .. pair.start_line .. ", End=" .. (pair.end_line or "nil") .. ", Max Repeats=" .. pair.max_repeats)
   end
 
   return true
@@ -241,68 +270,128 @@ end
 
 -- Playback Monitoring Function
 local function monitor_playback()
-  local song=renoise.song()
-  local play_pos = song.transport.playback_pos
-  local current_line = play_pos.line
-  local max_row = renoise.song().selected_pattern.number_of_lines - 1 -- Last row in the pattern
+  local song = renoise.song()
+  if not song then return end
 
-  -- Reset all repeat counts at the end of the pattern
-  if current_line == max_row then
-    for _, pair in ipairs(loop_pairs) do
-      pair.repeat_count = 0
-    end
-    print("Resetting all repeat counts at the end of the pattern.")
+  -- Only act when actually playing
+  if not song.transport.playing then
+    last_seen_line = nil
     return
   end
 
-  -- Handle looping logic for each pair
+  local play_pos = song.transport.playback_pos
+  local current_line = play_pos.line
+
+  -- Determine which pattern is actually playing
+  local current_pattern_index = get_playing_pattern_index()
+  if not current_pattern_index then return end
+
+  -- Re-analyze if the playing pattern changed since last analysis
+  if current_pattern_index ~= last_analyzed_pattern_index then
+    print("SBx: Pattern changed to " .. current_pattern_index .. ", re-analyzing...")
+    -- Reset counters before re-analyzing
+    for _, pair in ipairs(loop_pairs) do
+      pair.repeat_count = 0
+    end
+    analyze_loops(current_pattern_index)
+    last_seen_line = nil
+  end
+
+  -- Get the actual playing pattern's line count
+  local playing_pattern = song:pattern(current_pattern_index)
+  local max_line = playing_pattern.number_of_lines
+
+  -- Determine the range of lines we may have crossed since last idle tick.
+  -- This handles the case where app_idle skips lines at high BPM/LPB.
+  local range_start, range_end
+  if last_seen_line and last_seen_line ~= current_line then
+    if current_line > last_seen_line then
+      -- Normal forward movement within same pattern
+      range_start = last_seen_line + 1
+      range_end = current_line
+    else
+      -- Wrapped around (new pattern cycle or loop) — check from 1 to current
+      -- Also check tail of previous cycle
+      -- First reset at pattern boundary
+      for _, pair in ipairs(loop_pairs) do
+        pair.repeat_count = 0
+      end
+      print("SBx: Pattern wrapped, resetting all repeat counts.")
+      range_start = 1
+      range_end = current_line
+    end
+  else
+    -- First tick or same line
+    range_start = current_line
+    range_end = current_line
+  end
+
+  last_seen_line = current_line
+
+  -- Reset all repeat counts if we crossed or reached the last line
+  if range_end >= max_line or (range_start <= max_line and range_end >= max_line) then
+    for _, pair in ipairs(loop_pairs) do
+      pair.repeat_count = 0
+    end
+    print("SBx: Reached end of pattern (line " .. max_line .. "), resetting all repeat counts.")
+  end
+
+  -- Handle looping logic for each pair using range check
   for i, pair in ipairs(loop_pairs) do
-    if current_line == pair.end_line then
+    if pair.end_line and pair.end_line >= range_start and pair.end_line <= range_end then
       if pair.repeat_count < pair.max_repeats then
         pair.repeat_count = pair.repeat_count + 1
-        print("Pair " .. i .. ": Looping back to SB0 (line " .. pair.start_line .. "). Repeat count: " .. pair.repeat_count)
+        print("SBx: Pair " .. i .. ": Looping back to line " .. pair.start_line .. " (repeat " .. pair.repeat_count .. "/" .. pair.max_repeats .. ")")
         song.transport.playback_pos = renoise.SongPos(play_pos.sequence, pair.start_line)
+        last_seen_line = pair.start_line
         return
       else
-        print("Pair " .. i .. ": Completed all repeats for this iteration.")
+        print("SBx: Pair " .. i .. ": Completed all " .. pair.max_repeats .. " repeats.")
       end
     end
   end
 end
---]]
+
 -- Global Reset Function
 function reset_repeat_counts()
   if not monitoring_enabled then
-    print("Monitoring is disabled. Reset operation skipped.")
+    print("SBx: Monitoring is disabled. Reset operation skipped.")
     return
   end
 
-  print("Checking Master Track for SB0/SBX pairs...")
+  -- Reset tracking state
+  last_seen_line = nil
+  last_analyzed_pattern_index = nil
+
+  print("SBx: Checking Master Track for SB0/SBX pairs...")
   if not analyze_loops() then
-    print("No valid SB0/SBX pairs found in the Master Track. Reset operation aborted.")
+    print("SBx: No valid SB0/SBX pairs found in the Master Track. Reset operation aborted.")
     return
   end
 
   for i, pair in ipairs(loop_pairs) do
     pair.repeat_count = 0
-    print("Reset Pair " .. i .. ": Start=" .. pair.start_line .. ", End=" .. pair.end_line .. ", Max Repeats=" .. pair.max_repeats)
+    print("SBx: Reset Pair " .. i .. ": Start=" .. pair.start_line .. ", End=" .. (pair.end_line or "nil") .. ", Max Repeats=" .. pair.max_repeats)
   end
 
-  print("All repeat counts reset to 0. Monitoring restarted.")
+  print("SBx: All repeat counts reset to 0. Monitoring restarted.")
   InitSBx() -- Reinitialize SBX monitoring
 end
 
 -- Initialize SBX Monitoring
 function InitSBx()
   if monitoring_enabled then
-    print("Monitoring is enabled. Checking Master Track for SBX...")
+    print("SBx: Monitoring is enabled. Checking Master Track for SBX...")
+    -- Reset line tracking state so monitor_playback starts clean
+    last_seen_line = nil
+    last_analyzed_pattern_index = nil
     if not analyze_loops() then
-      print("No valid SBX commands found in the Master Track. Monitoring will not start.")
+      print("SBx: No valid SBX commands found in the Master Track. Monitoring will not start.")
       return
     end
     if not active then
       renoise.tool().app_idle_observable:add_notifier(monitor_playback)
-      print("SBX Monitoring started.")
+      print("SBx: Monitoring started.")
       active = true
     end
   end
@@ -317,9 +406,11 @@ end
 -- Disable Monitoring
 local function disable_monitoring()
   monitoring_enabled = false
+  last_seen_line = nil
+  last_analyzed_pattern_index = nil
   if active and renoise.tool().app_idle_observable:has_notifier(monitor_playback) then
     renoise.tool().app_idle_observable:remove_notifier(monitor_playback)
-    print("SBX Monitoring stopped.")
+    print("SBx: Monitoring stopped.")
     active = false
   end
 end
