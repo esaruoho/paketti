@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-08 - Fix: Cheatsheet Randomize crash on slice effects
+
+Fixed a crash in the Pattern Editor Cheatsheet randomize function (`PakettiPatternEditorCheatsheet.lua`) where randomizing `effect_amount_value` on a note column containing a slice effect (`0S`) could generate a value of 0, causing Renoise to throw `logic_error: 'invalid slice sample position index '0'`. Slice positions in Renoise are 1-based, so the randomizer now clamps the value to a minimum of 1 when a slice effect is present. All 6 randomize assignment sites (phrase selection, phrase single line, phrase whole track, pattern selection, pattern single line, pattern whole track) are protected.
+
 ### 2026-04-08 - Improvement: SBx Pattern Loop Hack robustness improvements
 
 Five additional robustness improvements to the SBx Pattern Loop Hack (`PakettiExperimental_Verify.lua`):
