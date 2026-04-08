@@ -12,9 +12,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-04-08 - Fix: SBx loop verify crash on PatternTrack has_line_notifier
+### 2026-04-08 - Fix: SBx loop verify crash — PatternTrack does not have line notifier methods
 
-Fixed a crash in `PakettiExperimental_Verify.lua` where `has_line_notifier()` was called on `PatternTrack` objects (returned by `pattern:track(idx)`). This method only exists on `Pattern` objects, not `PatternTrack`. The SBx loop analyzer (`sbx_add_line_notifiers` / `sbx_remove_line_notifiers`) now uses `pcall`-protected `remove_line_notifier` and the existing tracking table instead of querying the unavailable method.
+Fixed crashes in `PakettiExperimental_Verify.lua` where `has_line_notifier()`, `add_line_notifier()`, and `remove_line_notifier()` were called on `PatternTrack` objects (returned by `pattern:track(idx)`). These methods only exist on `Pattern` objects, not `PatternTrack`. The SBx loop analyzer (`sbx_add_line_notifiers` / `sbx_remove_line_notifiers`) now uses a single Pattern-level notifier instead of per-PatternTrack notifiers. The Pattern notifier callback already receives `pos.track`, so no functionality is lost.
 
 ### 2026-04-08 - Improvement: Write Notes now writes to all note columns in selection
 
