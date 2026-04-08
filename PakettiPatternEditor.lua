@@ -8605,7 +8605,6 @@ function writeNotesMethod(method)
   local pattern = song:pattern(song.selected_pattern_index)
   local track = pattern:track(song.selected_track_index)
   local instrument = song.selected_instrument
-  local current_line = song.selected_line_index
   local selected_note_column = song.selected_note_column_index
 
   if selected_note_column == 0 then
@@ -8613,22 +8612,33 @@ function writeNotesMethod(method)
     return
   end
 
+  -- Determine write range: use selection if available, otherwise cursor to end of pattern
+  local sel = song.selection_in_pattern
+  local start_line, end_line
+  if sel then
+    start_line = sel.start_line
+    end_line = sel.end_line
+  else
+    start_line = song.selected_line_index
+    end_line = pattern.number_of_lines
+  end
+
   if not instrument or not instrument.sample_mappings[1] then
     renoise.app():show_status("No sample mappings found for this instrument")
     return
   end
-  
+
   -- Check if first sample has slice markers
   local first_sample_has_slices = false
   local slice_start_note = nil
   local slice_count = 0
-  
+
   if #instrument.samples > 0 then
     local first_sample = instrument:sample(1)
     if first_sample and #first_sample.slice_markers > 0 then
       first_sample_has_slices = true
       slice_count = #first_sample.slice_markers
-      
+
       -- Get the slice start note - slices are the SECOND mapping onwards
       local sample_mappings = instrument.sample_mappings[1] -- Note layer
       if sample_mappings and #sample_mappings >= 2 then
@@ -8638,17 +8648,17 @@ function writeNotesMethod(method)
           slice_start_note = first_slice_mapping.base_note
         end
       end
-      
+
       -- Fallback: slices typically start one note above the original sample's base note
       if not slice_start_note and first_sample.sample_mapping and first_sample.sample_mapping.base_note then
         slice_start_note = first_sample.sample_mapping.base_note + 1
       end
     end
   end
-  
+
   -- Create a table of all mapped notes
   local notes = {}
-  
+
   if first_sample_has_slices and slice_start_note then
     -- If slice markers exist, only create notes for slices
     for i = 0, slice_count - 1 do
@@ -8676,12 +8686,12 @@ function writeNotesMethod(method)
       end
     end
   end
-  
+
   if #notes == 0 then
     renoise.app():show_status("No valid sample mappings found for this instrument")
     return
   end
-  
+
   -- Sort or shuffle based on method
   if method == "ascending" then
     table.sort(notes, function(a, b) return a.note < b.note end)
@@ -8694,13 +8704,14 @@ function writeNotesMethod(method)
       notes[i], notes[j] = notes[j], notes[i]
     end
   end
-  
+
   local last_note = -1
   local last_mapping = nil
-  
-  -- Write the notes
+  local current_line = start_line
+
+  -- Write the notes within the range
   for i = 1, #notes do
-    if current_line <= pattern.number_of_lines then
+    if current_line <= end_line then
       local note_column = track:line(current_line):note_column(selected_note_column)
       note_column.note_value = notes[i].note
       note_column.instrument_value = song.selected_instrument_index - 1
@@ -8711,12 +8722,13 @@ function writeNotesMethod(method)
       break
     end
   end
-  
+
   if last_note ~= -1 and last_mapping then
     local note_name = note_value_to_string(last_note)
     renoise.app():show_status(string.format(
-      "Wrote notes until row %d at note %s (base note: %d)", 
-      current_line - 1, 
+      "Wrote notes %s until row %d at note %s (base note: %d)",
+      sel and "in selection" or "from cursor",
+      current_line - 1,
       note_name,
       last_mapping.base_note
     ))
@@ -8729,7 +8741,6 @@ function writeNotesMethodEditStep(method)
   local pattern = song:pattern(song.selected_pattern_index)
   local track = pattern:track(song.selected_track_index)
   local instrument = song.selected_instrument
-  local current_line = song.selected_line_index
   local selected_note_column = song.selected_note_column_index
   local edit_step = song.transport.edit_step
 
@@ -8743,22 +8754,33 @@ function writeNotesMethodEditStep(method)
     edit_step = 1
   end
 
+  -- Determine write range: use selection if available, otherwise cursor to end of pattern
+  local sel = song.selection_in_pattern
+  local start_line, end_line
+  if sel then
+    start_line = sel.start_line
+    end_line = sel.end_line
+  else
+    start_line = song.selected_line_index
+    end_line = pattern.number_of_lines
+  end
+
   if not instrument or not instrument.sample_mappings[1] then
     renoise.app():show_status("No sample mappings found for this instrument")
     return
   end
-  
+
   -- Check if first sample has slice markers
   local first_sample_has_slices = false
   local slice_start_note = nil
   local slice_count = 0
-  
+
   if #instrument.samples > 0 then
     local first_sample = instrument:sample(1)
     if first_sample and #first_sample.slice_markers > 0 then
       first_sample_has_slices = true
       slice_count = #first_sample.slice_markers
-      
+
       -- Get the slice start note - slices are the SECOND mapping onwards
       local sample_mappings = instrument.sample_mappings[1] -- Note layer
       if sample_mappings and #sample_mappings >= 2 then
@@ -8768,17 +8790,17 @@ function writeNotesMethodEditStep(method)
           slice_start_note = first_slice_mapping.base_note
         end
       end
-      
+
       -- Fallback: slices typically start one note above the original sample's base note
       if not slice_start_note and first_sample.sample_mapping and first_sample.sample_mapping.base_note then
         slice_start_note = first_sample.sample_mapping.base_note + 1
       end
     end
   end
-  
+
   -- Create a table of all mapped notes
   local notes = {}
-  
+
   if first_sample_has_slices and slice_start_note then
     -- If slice markers exist, only create notes for slices
     for i = 0, slice_count - 1 do
@@ -8806,12 +8828,12 @@ function writeNotesMethodEditStep(method)
       end
     end
   end
-  
+
   if #notes == 0 then
     renoise.app():show_status("No valid sample mappings found for this instrument")
     return
   end
-  
+
   -- Sort or shuffle based on method
   if method == "ascending" then
     table.sort(notes, function(a, b) return a.note < b.note end)
@@ -8824,9 +8846,9 @@ function writeNotesMethodEditStep(method)
       notes[i], notes[j] = notes[j], notes[i]
     end
   end
-  
-  -- First, clear all existing notes in the selected note column from current line to end of pattern
-  for line_index = current_line, pattern.number_of_lines do
+
+  -- First, clear all existing notes in the selected note column within the range
+  for line_index = start_line, end_line do
     local note_column = track:line(line_index):note_column(selected_note_column)
     note_column.note_value = renoise.PatternLine.EMPTY_NOTE
     note_column.instrument_value = renoise.PatternLine.EMPTY_INSTRUMENT
@@ -8836,14 +8858,14 @@ function writeNotesMethodEditStep(method)
     note_column.effect_number_value = renoise.PatternLine.EMPTY_EFFECT_NUMBER
     note_column.effect_amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
   end
-  
+
   local last_note = -1
   local last_mapping = nil
-  local write_line = current_line
-  
-  -- Write the notes using EditStep
+  local write_line = start_line
+
+  -- Write the notes using EditStep within the range
   for i = 1, #notes do
-    if write_line <= pattern.number_of_lines then
+    if write_line <= end_line then
       local note_column = track:line(write_line):note_column(selected_note_column)
       -- Write the new note
       note_column.note_value = notes[i].note
@@ -8855,13 +8877,14 @@ function writeNotesMethodEditStep(method)
       break
     end
   end
-  
+
   if last_note ~= -1 and last_mapping then
     local note_name = note_value_to_string(last_note)
     renoise.app():show_status(string.format(
-      "Cleared and wrote notes with EditStep %d until row %d at note %s (base note: %d)", 
+      "Cleared and wrote notes %s with EditStep %d until row %d at note %s (base note: %d)",
+      sel and "in selection" or "from cursor",
       edit_step,
-      write_line - edit_step, 
+      write_line - edit_step,
       note_name,
       last_mapping.base_note
     ))

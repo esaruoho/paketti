@@ -12,6 +12,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-08 - Fix: Write Notes now respects pattern selection
+
+Both `writeNotesMethod` and `writeNotesMethodEditStep` (`PakettiPatternEditor.lua`) now respect the highlighted selection in the pattern editor. Previously, these functions always wrote from the cursor position to the end of the pattern. Now, if a selection exists (`selection_in_pattern`), notes are written only within the selected range. If no selection exists, the old behavior (cursor to end of pattern) is preserved.
+
+This affects all six Write Notes variants:
+- `Pattern Editor:Paketti:Write Notes Ascending`
+- `Pattern Editor:Paketti:Write Notes Descending`
+- `Pattern Editor:Paketti:Write Notes Random`
+- `Pattern Editor:Paketti:Write Notes EditStep Ascending`
+- `Pattern Editor:Paketti:Write Notes EditStep Descending`
+- `Pattern Editor:Paketti:Write Notes EditStep Random`
+
 ### 2026-04-08 - Fix: Load New Instrument with Current Slice Markers crash on position 0
 
 Fixed a crash in both `loadNewWithCurrentSliceMarkers` and `loadNewWithCurrentSliceMarkersLengthMatching` (`PakettiLoaders.lua`) where scaling slice marker positions could produce a value of 0 after rounding. Renoise requires slice positions to be >= 1, so assigning a 0 caused `logic_error: 'invalid slice sample position index 0, valid values are 1 to ...'`. Both functions now clamp markers to >= 1, sort them in ascending order, and remove duplicates before applying.
