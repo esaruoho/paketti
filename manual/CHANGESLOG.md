@@ -12,21 +12,25 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-04-08 - Fix: SBx Pattern Loop Hack reliability
+### 2026-04-08 - Fix: SBx Pattern Loop Hack complete rewrite
 
-Fixed multiple critical bugs in the SBx Pattern Loop Hack (`PakettiExperimental_Verify.lua`) that caused it to be unreliable or non-functional:
+Complete rewrite of the SBx Pattern Loop Hack (`PakettiExperimental_Verify.lua`) for reliability and performance:
 
-1. **Playing pattern vs selected pattern**: `analyze_loops()` and `monitor_playback()` now use the actual playing pattern (derived from `transport.playback_pos.sequence`) instead of `selected_pattern`. Previously, if the cursor was in a different pattern than the one playing, the wrong pattern was analyzed.
+1. **Scans all tracks**: SB0/SBx commands are now detected across ALL sequencer tracks, send tracks, and master track, in ALL effect columns — not just the Master Track's first effect column. This matches Impulse Tracker behavior where SBx is a global pattern command.
 
-2. **Missed lines at high BPM**: The `app_idle_observable` callback can skip lines at high BPM/LPB. The monitor now tracks the previous line position and checks the entire range of lines that may have been crossed between idle ticks, instead of checking for exact line equality.
+2. **O(1) playback lookup**: Analysis pre-builds a hash table keyed by SBx end-line numbers. During playback, the idle callback does a simple table lookup per line instead of iterating all pairs — zero overhead when no SBx is on the current line.
 
-3. **Stale loop_pairs across patterns**: When the playing pattern changes (sequence advances), the monitor now automatically re-analyzes the new pattern's Master Track for SBx commands, instead of using stale data from the previous pattern.
+3. **First-tick coverage**: On playback start or pattern wrap, the monitor now checks the range `[1, current_line]` instead of only `[current_line, current_line]`, preventing missed SBx commands if the first idle tick fires late.
 
-4. **Off-by-one end-of-pattern reset**: The end-of-pattern counter reset now uses `>= number_of_lines` range check instead of `== number_of_lines - 1`, preventing missed resets.
+4. **Repeat counts reset on stop**: When playback stops, all repeat counts are immediately reset. Previously they survived across stop/start cycles, causing loops to resume mid-count.
 
-5. **Pattern wrap detection**: When the playback position wraps around (line goes from high to low), repeat counters are properly reset.
+5. **Correct initialization order**: `playPattern()` (Impulse Tracker F6) now initializes SBx monitoring AFTER setting the playback position, so the correct pattern is analyzed.
 
-**File changed:** `PakettiExperimental_Verify.lua`.
+6. **Preference sync**: Replaced ambiguous `monitoring_enabled` with `sbx_monitoring_enabled` to avoid shadowing the same variable name used in `PakettiAutoSamplify.lua`. State now always syncs from `preferences.PakettiSBxFollowEnabled`.
+
+7. **All previous fixes retained**: Playing-pattern-vs-selected-pattern, range-based line checking, stale-pairs-across-patterns, off-by-one reset, and wrap detection — all carried forward from the prior commit.
+
+**Files changed:** `PakettiExperimental_Verify.lua`, `PakettiImpulseTracker.lua`.
 
 ### 2026-04-07 - Removal: Dirtywave M8 and Teenage Engineering OP-1 modules
 
