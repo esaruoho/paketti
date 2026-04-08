@@ -565,12 +565,24 @@ function randomizeNoteColumn(column_name)
     if column_name == "volume_value" or column_name == "panning_value" or column_name == "effect_amount_value" then
       actual_max = math.min(max_value, 0x80)
     end
-    
+
     if randomize_switch then
       return math.random() < 0.5 and math.min(min_value, actual_max) or math.min(max_value, actual_max)
     else
       return math.random(min_value, math.min(max_value, actual_max))
     end
+  end
+
+  -- Safe assignment: when randomizing effect_amount_value on a note column
+  -- with a slice effect ("0S"), Renoise requires slice positions >= 1.
+  local safe_assign = function(note_column, value)
+    if column_name == "effect_amount_value"
+      and note_column.effect_number_string == "0S"
+      and value < 1
+    then
+      value = 1
+    end
+    note_column[column_name] = value
   end
 
   local is_subcolumn_not_empty = function(note_column)
@@ -603,7 +615,7 @@ function randomizeNoteColumn(column_name)
           if col <= note_columns_visible then
             local note_column = line.note_columns[col]
             if note_column and is_subcolumn_not_empty(note_column) and should_apply() then
-              note_column[column_name] = random_value()
+              safe_assign(note_column, random_value())
             end
           end
         end
@@ -616,7 +628,7 @@ function randomizeNoteColumn(column_name)
           local line = phrase:line(target_data.line_index)
           local note_column = line:note_column(note_col_idx)
           if note_column and is_subcolumn_not_empty(note_column) then
-            note_column[column_name] = random_value()
+            safe_assign(note_column, random_value())
           end
         end
       else
@@ -626,7 +638,7 @@ function randomizeNoteColumn(column_name)
           for col = 1, note_columns_visible do
             local note_column = line.note_columns[col]
             if note_column and is_subcolumn_not_empty(note_column) and should_apply() then
-              note_column[column_name] = random_value()
+              safe_assign(note_column, random_value())
             end
           end
         end
@@ -650,7 +662,7 @@ function randomizeNoteColumn(column_name)
               if col <= note_columns_visible then
                 local note_column = line.note_columns[col]
                 if note_column and is_subcolumn_not_empty(note_column) and should_apply() then
-                  note_column[column_name] = random_value()
+                  safe_assign(note_column, random_value())
                 end
               end
             end
@@ -662,7 +674,7 @@ function randomizeNoteColumn(column_name)
         -- Randomize current line
         local note_column = s.selected_line:note_column(s.selected_note_column_index)
         if note_column and is_subcolumn_not_empty(note_column) then
-          note_column[column_name] = random_value()
+          safe_assign(note_column, random_value())
         end
       else
         -- Randomize whole track
@@ -679,7 +691,7 @@ function randomizeNoteColumn(column_name)
               for col = 1, note_columns_visible do
                 local note_column = line.note_columns[col]
                 if note_column and is_subcolumn_not_empty(note_column) and should_apply() then
-                  note_column[column_name] = random_value()
+                  safe_assign(note_column, random_value())
                 end
               end
             end
