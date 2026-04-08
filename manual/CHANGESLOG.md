@@ -12,9 +12,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-04-08 - Fix: Cheatsheet Randomize crash on slice effects
+### 2026-04-08 - Fix: Load New Instrument with Current Slice Markers crash on position 0
 
-Fixed a crash in the Pattern Editor Cheatsheet randomize function (`PakettiPatternEditorCheatsheet.lua`) where randomizing `effect_amount_value` on a note column containing a slice effect (`0S`) could generate a value of 0, causing Renoise to throw `logic_error: 'invalid slice sample position index '0'`. Slice positions in Renoise are 1-based, so the randomizer now clamps the value to a minimum of 1 when a slice effect is present. All 6 randomize assignment sites (phrase selection, phrase single line, phrase whole track, pattern selection, pattern single line, pattern whole track) are protected.
+Fixed a crash in both `loadNewWithCurrentSliceMarkers` and `loadNewWithCurrentSliceMarkersLengthMatching` (`PakettiLoaders.lua`) where scaling slice marker positions could produce a value of 0 after rounding. Renoise requires slice positions to be >= 1, so assigning a 0 caused `logic_error: 'invalid slice sample position index 0, valid values are 1 to ...'`. Both functions now filter out any scaled markers < 1.
+
+- `Instrument Box:Paketti:Load:Load New Instrument with Current Slice Markers`
+- `Instrument Box:Paketti:Load:Load New Instrument with Current Slice Markers (Length Matching)`
 
 ### 2026-04-08 - Improvement: SBx Pattern Loop Hack robustness improvements
 

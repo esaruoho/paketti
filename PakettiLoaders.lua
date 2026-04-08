@@ -3643,7 +3643,7 @@ function loadNewWithCurrentSliceMarkers()
   for _, marker in ipairs(saved_markers) do
     -- Scale the marker position based on sample rate ratio
     local scaled_marker = math.floor(marker * rate_ratio + 0.5) -- Round to nearest frame
-    if scaled_marker <= new_sample_length then
+    if scaled_marker >= 1 and scaled_marker <= new_sample_length then
       table.insert(valid_markers, scaled_marker)
     end
   end
@@ -3775,7 +3775,7 @@ function loadNewWithCurrentSliceMarkersLengthMatching()
   for _, marker in ipairs(saved_markers) do
     -- Scale the marker position based on length ratio
     local scaled_marker = math.floor(marker * length_ratio + 0.5) -- Round to nearest frame
-    if scaled_marker <= new_sample_length then
+    if scaled_marker >= 1 and scaled_marker <= new_sample_length then
       table.insert(valid_markers, scaled_marker)
       print(string.format("  Marker %d -> %d", marker, scaled_marker))
     end
