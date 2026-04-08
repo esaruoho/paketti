@@ -200,9 +200,57 @@ local sbx_end_lines = {}
 -- Ordered list of pairs for reset iteration (small, typically 1-4 entries)
 local sbx_pairs = {}
 
+-- Line edit notifier tracking — so we can remove them on pattern change / disable
+local sbx_line_notifier_tracks = {}  -- {pattern_index, track_index} pairs with active notifiers
+local sbx_needs_reanalyze = false    -- flag set by edit notifier, consumed by monitor
+
+---------------------------------------------------------------------------
+-- Line edit notifier — lightweight flag setter, consumed by monitor
+---------------------------------------------------------------------------
+local function sbx_on_line_edited(pos)
+  sbx_needs_reanalyze = true
+end
+
+local function sbx_remove_line_notifiers()
+  local song = renoise.song()
+  if not song then
+    sbx_line_notifier_tracks = {}
+    return
+  end
+  for i = #sbx_line_notifier_tracks, 1, -1 do
+    local entry = sbx_line_notifier_tracks[i]
+    local ok, pat = pcall(function() return song:pattern(entry.pattern_index) end)
+    if ok and pat then
+      local ok2, pt = pcall(function() return pat:track(entry.track_index) end)
+      if ok2 and pt and pt:has_line_edited_notifier(sbx_on_line_edited) then
+        pt:remove_line_edited_notifier(sbx_on_line_edited)
+      end
+    end
+    table.remove(sbx_line_notifier_tracks, i)
+  end
+end
+
+local function sbx_add_line_notifiers(pattern_index)
+  sbx_remove_line_notifiers()
+  local song = renoise.song()
+  if not song then return end
+  local pattern = song:pattern(pattern_index)
+  local total_tracks = #song.tracks
+  for track_idx = 1, total_tracks do
+    local pt = pattern:track(track_idx)
+    if not pt:has_line_edited_notifier(sbx_on_line_edited) then
+      pt:add_line_edited_notifier(sbx_on_line_edited)
+      sbx_line_notifier_tracks[#sbx_line_notifier_tracks + 1] = {
+        pattern_index = pattern_index,
+        track_index = track_idx
+      }
+    end
+  end
+end
+
 ---------------------------------------------------------------------------
 -- analyze_loops: scan ALL tracks, ALL effect columns for SB0/SBx pairs
--- Runs once per pattern change — not on the hot path
+-- Runs once per pattern change or edit — not on the hot path
 ---------------------------------------------------------------------------
 function analyze_loops(pattern_index)
   local song = renoise.song()
@@ -224,7 +272,6 @@ function analyze_loops(pattern_index)
   local total_tracks = #song.tracks
 
   -- Collect all SB0/SBx commands across every track and effect column
-  -- sb0_lines[line] = true, sbx_lines[line] = max_repeats (first SBx wins per line)
   local sb0_set = {}  -- set of lines with SB0
   local sbx_map = {}  -- line → repeat count (first found wins)
   local sb0_list = {} -- ordered list of SB0 lines
@@ -249,8 +296,6 @@ function analyze_loops(pattern_index)
   end
 
   -- Pair each SB0 with the next SBx that comes after it
-  -- Sort SB0 lines (they're already in order from the line loop)
-  -- Collect SBx lines sorted
   local sbx_lines_sorted = {}
   for ln, _ in pairs(sbx_map) do
     sbx_lines_sorted[#sbx_lines_sorted + 1] = ln
@@ -263,7 +308,6 @@ function analyze_loops(pattern_index)
 
   local sbx_idx = 1
   for _, sb0_line in ipairs(sb0_list) do
-    -- Find the first SBx line that comes after this SB0
     while sbx_idx <= #sbx_lines_sorted and sbx_lines_sorted[sbx_idx] <= sb0_line do
       sbx_idx = sbx_idx + 1
     end
@@ -276,11 +320,13 @@ function analyze_loops(pattern_index)
         repeat_count = 0
       }
       sbx_pairs[#sbx_pairs + 1] = pair
-      -- O(1) lookup table keyed by end_line
       sbx_end_lines[end_line] = pair
-      sbx_idx = sbx_idx + 1  -- consume this SBx so it can't pair again
+      sbx_idx = sbx_idx + 1
     end
   end
+
+  -- Install line edit notifiers on this pattern so edits trigger re-analysis
+  sbx_add_line_notifiers(pattern_index)
 
   if #sbx_pairs == 0 then
     return false
@@ -320,6 +366,27 @@ local function monitor_playback()
     for i = 1, #sbx_pairs do sbx_pairs[i].repeat_count = 0 end
     analyze_loops(current_pattern_index)
     sbx_last_seen_line = nil
+    sbx_needs_reanalyze = false
+  end
+
+  -- Re-analyze if user edited the pattern during playback (flag set by line notifier)
+  if sbx_needs_reanalyze then
+    sbx_needs_reanalyze = false
+    -- Preserve repeat counts across re-analysis — only structural changes matter
+    local old_counts = {}
+    for i = 1, #sbx_pairs do
+      local p = sbx_pairs[i]
+      old_counts[p.start_line .. ":" .. p.end_line] = p.repeat_count
+    end
+    analyze_loops(current_pattern_index)
+    -- Restore counts for pairs that still exist with same line positions
+    for i = 1, #sbx_pairs do
+      local p = sbx_pairs[i]
+      local key = p.start_line .. ":" .. p.end_line
+      if old_counts[key] then
+        p.repeat_count = old_counts[key]
+      end
+    end
   end
 
   -- Fast exit if no pairs in this pattern
@@ -347,14 +414,15 @@ local function monitor_playback()
   end
 
   -- Check range (last+1 .. current_line) for any SBx end line
-  -- Use the lookup table: iterate only the lines in range
-  -- For small skips (1-4 lines typical), this is 1-4 lookups
   local range_start = last + 1
   for line = range_start, current_line do
     local pair = sbx_end_lines[line]
     if pair then
       if pair.repeat_count < pair.max_repeats then
         pair.repeat_count = pair.repeat_count + 1
+        renoise.app():show_status(string.format(
+          "SBx: loop %d/%d (lines %d-%d)",
+          pair.repeat_count, pair.max_repeats, pair.start_line, pair.end_line))
         transport.playback_pos = renoise.SongPos(seq_idx, pair.start_line)
         sbx_last_seen_line = pair.start_line
         return  -- Jump done, exit immediately
@@ -379,9 +447,41 @@ function reset_repeat_counts()
   if not sbx_monitoring_enabled then return end
   sbx_last_seen_line = nil
   sbx_last_pattern_index = nil
-  if not analyze_loops() then return end
+  sbx_needs_reanalyze = false
+  analyze_loops()  -- analyze once
   for i = 1, #sbx_pairs do sbx_pairs[i].repeat_count = 0 end
-  InitSBx()
+  -- Ensure idle notifier is active (InitSBx without redundant re-analyze)
+  if not sbx_active then
+    renoise.tool().app_idle_observable:add_notifier(monitor_playback)
+    sbx_active = true
+  end
+end
+
+---------------------------------------------------------------------------
+-- playing_observable — reset state immediately when playback stops
+---------------------------------------------------------------------------
+local sbx_playing_notifier_installed = false
+
+local function sbx_on_playing_changed()
+  if not sbx_monitoring_enabled then return end
+  local song = renoise.song()
+  if not song then return end
+  if not song.transport.playing then
+    sbx_last_seen_line = nil
+    sbx_needs_reanalyze = false
+    for i = 1, #sbx_pairs do
+      sbx_pairs[i].repeat_count = 0
+    end
+  end
+end
+
+local function sbx_install_playing_notifier()
+  local song = renoise.song()
+  if not song then return end
+  if not song.transport.playing_observable:has_notifier(sbx_on_playing_changed) then
+    song.transport.playing_observable:add_notifier(sbx_on_playing_changed)
+    sbx_playing_notifier_installed = true
+  end
 end
 
 ---------------------------------------------------------------------------
@@ -400,6 +500,7 @@ end
 
 local function enable_monitoring()
   sbx_monitoring_enabled = true
+  sbx_install_playing_notifier()
   InitSBx()
 end
 
@@ -407,8 +508,10 @@ local function disable_monitoring()
   sbx_monitoring_enabled = false
   sbx_last_seen_line = nil
   sbx_last_pattern_index = nil
+  sbx_needs_reanalyze = false
   sbx_end_lines = {}
   sbx_pairs = {}
+  sbx_remove_line_notifiers()
   if sbx_active and renoise.tool().app_idle_observable:has_notifier(monitor_playback) then
     renoise.tool().app_idle_observable:remove_notifier(monitor_playback)
     sbx_active = false
@@ -461,8 +564,14 @@ else
   end
 end
 
+
 local function PakettiSBxNewDocumentHandler()
-  if sbx_monitoring_enabled then InitSBx() end
+  sbx_playing_notifier_installed = false
+  sbx_remove_line_notifiers()
+  if sbx_monitoring_enabled then
+    sbx_install_playing_notifier()
+    InitSBx()
+  end
 end
 
 if not renoise.tool().app_new_document_observable:has_notifier(PakettiSBxNewDocumentHandler) then

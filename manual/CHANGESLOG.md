@@ -12,6 +12,20 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-08 - Improvement: SBx Pattern Loop Hack robustness improvements
+
+Five additional robustness improvements to the SBx Pattern Loop Hack (`PakettiExperimental_Verify.lua`):
+
+1. **`playing_observable` notifier**: Repeat counts and state are now reset *instantly* when playback stops via `transport.playing_observable`, instead of waiting for the next idle callback to notice. This eliminates the brief window where stale state could persist.
+
+2. **Live re-analysis on pattern edits**: Line edit notifiers are installed on the currently-playing pattern's tracks. When the user adds, removes, or modifies SBx commands during playback, the monitor detects the change and re-analyzes on the next idle tick — preserving repeat counts for unchanged loop pairs.
+
+3. **Fixed double analysis in `reset_repeat_counts()`**: Previously called `analyze_loops()` and then `InitSBx()` which called `analyze_loops()` again. Now analyzes once and directly ensures the idle notifier is active.
+
+4. **Status bar feedback**: During playback, the status bar now shows `SBx: loop 2/5 (lines 8-16)` when a loop triggers, giving visual confirmation that SBx is working.
+
+5. **Proper cleanup on disable/document change**: `disable_monitoring()` and `PakettiSBxNewDocumentHandler()` now remove line edit notifiers and reset the `sbx_needs_reanalyze` flag, preventing stale notifiers from accumulating across songs or toggle cycles.
+
 ### 2026-04-08 - Fix: SBx Pattern Loop Hack complete rewrite
 
 Complete rewrite of the SBx Pattern Loop Hack (`PakettiExperimental_Verify.lua`) for reliability and performance:
