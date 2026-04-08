@@ -211,49 +211,37 @@ local function sbx_on_line_edited(pos)
   sbx_needs_reanalyze = true
 end
 
+local sbx_notifier_pattern_index = nil  -- which pattern currently has our notifier
+
 local function sbx_remove_line_notifiers()
   local song = renoise.song()
   if not song then
+    sbx_notifier_pattern_index = nil
     sbx_line_notifier_tracks = {}
     return
   end
-  for i = #sbx_line_notifier_tracks, 1, -1 do
-    local entry = sbx_line_notifier_tracks[i]
-    local ok, pat = pcall(function() return song:pattern(entry.pattern_index) end)
+  if sbx_notifier_pattern_index then
+    local ok, pat = pcall(function() return song:pattern(sbx_notifier_pattern_index) end)
     if ok and pat then
-      local ok2, pt = pcall(function() return pat:track(entry.track_index) end)
-      if ok2 and pt then
-        pcall(function() pt:remove_line_notifier(sbx_on_line_edited) end)
+      if pat:has_line_notifier(sbx_on_line_edited) then
+        pat:remove_line_notifier(sbx_on_line_edited)
       end
     end
-    table.remove(sbx_line_notifier_tracks, i)
+    sbx_notifier_pattern_index = nil
   end
+  sbx_line_notifier_tracks = {}
 end
 
 local function sbx_add_line_notifiers(pattern_index)
   sbx_remove_line_notifiers()
   local song = renoise.song()
   if not song then return end
-  local pattern = song:pattern(pattern_index)
-  local total_tracks = #song.tracks
-  for track_idx = 1, total_tracks do
-    local pt = pattern:track(track_idx)
-    local already_tracked = false
-    for _, entry in ipairs(sbx_line_notifier_tracks) do
-      if entry.pattern_index == pattern_index and entry.track_index == track_idx then
-        already_tracked = true
-        break
-      end
-    end
-    if not already_tracked then
-      pcall(function() pt:remove_line_notifier(sbx_on_line_edited) end)
-      pt:add_line_notifier(sbx_on_line_edited)
-      sbx_line_notifier_tracks[#sbx_line_notifier_tracks + 1] = {
-        pattern_index = pattern_index,
-        track_index = track_idx
-      }
-    end
+  local ok, pattern = pcall(function() return song:pattern(pattern_index) end)
+  if not ok or not pattern then return end
+  if not pattern:has_line_notifier(sbx_on_line_edited) then
+    pattern:add_line_notifier(sbx_on_line_edited)
   end
+  sbx_notifier_pattern_index = pattern_index
 end
 
 ---------------------------------------------------------------------------
