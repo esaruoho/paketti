@@ -12,6 +12,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-08 - Improvement: Write Notes now writes to all note columns in selection
+
+Refactored `writeNotesMethod` and `writeNotesMethodEditStep` (`PakettiPatternEditor.lua`) into a shared `writeNotesCore` function. When a selection exists, notes are now written across ALL note columns in the highlighted selection (across multiple tracks if selected), not just the column where the cursor sits. Effect columns in the selection are silently skipped. If the selection contains only effect columns, the user sees "No note columns in selection. Effect columns cannot contain notes." When no selection exists, the previous behavior is preserved: cursor must be on a note column, writes from cursor to end of pattern.
+
+Affects all six Write Notes variants:
+- `Pattern Editor:Paketti:Write Notes Ascending`
+- `Pattern Editor:Paketti:Write Notes Descending`
+- `Pattern Editor:Paketti:Write Notes Random`
+- `Pattern Editor:Paketti:Write Notes EditStep Ascending`
+- `Pattern Editor:Paketti:Write Notes EditStep Descending`
+- `Pattern Editor:Paketti:Write Notes EditStep Random`
+
 ### 2026-04-08 - Feature: Write Notes Pro (multi-column, multi-track)
 
 Added 6 new "Pro" Write Notes variants that write across ALL selected note columns in a `selection_in_pattern` highlight, spanning multiple tracks. These use `selection_in_pattern_pro()` to identify every selected note column across all selected tracks. Group tracks, send tracks, master tracks, and effect columns are gracefully skipped — no errors.
