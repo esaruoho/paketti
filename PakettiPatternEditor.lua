@@ -8907,6 +8907,268 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
 
 ---
+-- Helper: build the notes list from the selected instrument's sample mappings / slices
+local function buildNotesList(instrument)
+  if not instrument or not instrument.sample_mappings[1] then
+    return nil
+  end
+  local first_sample_has_slices = false
+  local slice_start_note = nil
+  local slice_count = 0
+  if #instrument.samples > 0 then
+    local first_sample = instrument:sample(1)
+    if first_sample and #first_sample.slice_markers > 0 then
+      first_sample_has_slices = true
+      slice_count = #first_sample.slice_markers
+      local sample_mappings = instrument.sample_mappings[1]
+      if sample_mappings and #sample_mappings >= 2 then
+        local first_slice_mapping = sample_mappings[2]
+        if first_slice_mapping and first_slice_mapping.base_note then
+          slice_start_note = first_slice_mapping.base_note
+        end
+      end
+      if not slice_start_note and first_sample.sample_mapping and first_sample.sample_mapping.base_note then
+        slice_start_note = first_sample.sample_mapping.base_note + 1
+      end
+    end
+  end
+  local notes = {}
+  if first_sample_has_slices and slice_start_note then
+    for i = 0, slice_count - 1 do
+      local slice_note = slice_start_note + i
+      if slice_note <= 119 then
+        table.insert(notes, {note = slice_note, mapping = instrument.samples[1].sample_mapping})
+      else
+        break
+      end
+    end
+  else
+    for _, mapping in ipairs(instrument.sample_mappings[1]) do
+      if mapping.note_range then
+        for i = mapping.note_range[1], mapping.note_range[2] do
+          table.insert(notes, {note = i, mapping = mapping})
+        end
+      end
+    end
+  end
+  return (#notes > 0) and notes or nil
+end
+
+-- Helper: sort/shuffle notes by method
+local function orderNotes(notes, method)
+  if method == "ascending" then
+    table.sort(notes, function(a, b) return a.note < b.note end)
+  elseif method == "descending" then
+    table.sort(notes, function(a, b) return a.note > b.note end)
+  elseif method == "random" then
+    for i = #notes, 2, -1 do
+      local j = math.random(i)
+      notes[i], notes[j] = notes[j], notes[i]
+    end
+  end
+end
+
+---
+-- Pro variant: write notes across ALL selected note columns in selection_in_pattern_pro
+-- Skips group tracks and effect columns. If no selection, falls back to cursor column & line to end.
+function writeNotesMethodPro(method)
+  local song = renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  local instrument = song.selected_instrument
+
+  local notes = buildNotesList(instrument)
+  if not notes then
+    renoise.app():show_status("No sample mappings found for this instrument")
+    return
+  end
+  orderNotes(notes, method)
+
+  local sel = song.selection_in_pattern
+  local slots = {}  -- list of {track_index, note_column_index}
+  local start_line, end_line
+
+  if sel then
+    start_line = sel.start_line
+    end_line = sel.end_line
+    local pro = selection_in_pattern_pro()
+    if not pro then
+      renoise.app():show_status("Could not read selection")
+      return
+    end
+    for _, track_info in ipairs(pro) do
+      -- Skip group, send, master tracks
+      if track_info.track_type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        for _, col in ipairs(track_info.note_columns) do
+          table.insert(slots, {track_index = track_info.track_index, col = col})
+        end
+      end
+      -- effect_columns are intentionally ignored
+    end
+  else
+    -- No selection: fall back to current column, cursor to end
+    local selected_note_column = song.selected_note_column_index
+    if selected_note_column == 0 then
+      renoise.app():show_status("Please select a note column first.")
+      return
+    end
+    start_line = song.selected_line_index
+    end_line = pattern.number_of_lines
+    table.insert(slots, {track_index = song.selected_track_index, col = selected_note_column})
+  end
+
+  if #slots == 0 then
+    renoise.app():show_status("No note columns in selection (group/send/master tracks and effect columns are skipped).")
+    return
+  end
+
+  -- Clear all target note columns in the range
+  for line_index = start_line, end_line do
+    for _, slot in ipairs(slots) do
+      local note_column = pattern:track(slot.track_index):line(line_index):note_column(slot.col)
+      note_column.note_value = renoise.PatternLine.EMPTY_NOTE
+      note_column.instrument_value = renoise.PatternLine.EMPTY_INSTRUMENT
+      note_column.volume_value = renoise.PatternLine.EMPTY_VOLUME
+      note_column.panning_value = renoise.PatternLine.EMPTY_PANNING
+      note_column.delay_value = renoise.PatternLine.EMPTY_DELAY
+      note_column.effect_number_value = renoise.PatternLine.EMPTY_EFFECT_NUMBER
+      note_column.effect_amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+    end
+  end
+
+  -- Write notes: iterate line-by-line, slot-by-slot within each line
+  local note_idx = 1
+  local last_note = -1
+  local last_mapping = nil
+  for current_line = start_line, end_line do
+    for _, slot in ipairs(slots) do
+      if note_idx > #notes then break end
+      local note_column = pattern:track(slot.track_index):line(current_line):note_column(slot.col)
+      note_column.note_value = notes[note_idx].note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      last_note = notes[note_idx].note
+      last_mapping = notes[note_idx].mapping
+      note_idx = note_idx + 1
+    end
+    if note_idx > #notes then break end
+  end
+
+  if last_note ~= -1 and last_mapping then
+    renoise.app():show_status(string.format(
+      "Pro: Wrote %d notes %s across %d column(s) %s (base note: %d)",
+      note_idx - 1,
+      method,
+      #slots,
+      sel and "in selection" or "from cursor",
+      last_mapping.base_note
+    ))
+  end
+end
+
+---
+-- Pro variant with EditStep: same as Pro but advances by edit_step lines
+function writeNotesMethodEditStepPro(method)
+  local song = renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  local instrument = song.selected_instrument
+  local edit_step = song.transport.edit_step
+  if edit_step == 0 then edit_step = 1 end
+
+  local notes = buildNotesList(instrument)
+  if not notes then
+    renoise.app():show_status("No sample mappings found for this instrument")
+    return
+  end
+  orderNotes(notes, method)
+
+  local sel = song.selection_in_pattern
+  local slots = {}
+  local start_line, end_line
+
+  if sel then
+    start_line = sel.start_line
+    end_line = sel.end_line
+    local pro = selection_in_pattern_pro()
+    if not pro then
+      renoise.app():show_status("Could not read selection")
+      return
+    end
+    for _, track_info in ipairs(pro) do
+      if track_info.track_type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        for _, col in ipairs(track_info.note_columns) do
+          table.insert(slots, {track_index = track_info.track_index, col = col})
+        end
+      end
+    end
+  else
+    local selected_note_column = song.selected_note_column_index
+    if selected_note_column == 0 then
+      renoise.app():show_status("Please select a note column first.")
+      return
+    end
+    start_line = song.selected_line_index
+    end_line = pattern.number_of_lines
+    table.insert(slots, {track_index = song.selected_track_index, col = selected_note_column})
+  end
+
+  if #slots == 0 then
+    renoise.app():show_status("No note columns in selection (group/send/master tracks and effect columns are skipped).")
+    return
+  end
+
+  -- Clear all target note columns in the range
+  for line_index = start_line, end_line do
+    for _, slot in ipairs(slots) do
+      local note_column = pattern:track(slot.track_index):line(line_index):note_column(slot.col)
+      note_column.note_value = renoise.PatternLine.EMPTY_NOTE
+      note_column.instrument_value = renoise.PatternLine.EMPTY_INSTRUMENT
+      note_column.volume_value = renoise.PatternLine.EMPTY_VOLUME
+      note_column.panning_value = renoise.PatternLine.EMPTY_PANNING
+      note_column.delay_value = renoise.PatternLine.EMPTY_DELAY
+      note_column.effect_number_value = renoise.PatternLine.EMPTY_EFFECT_NUMBER
+      note_column.effect_amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+    end
+  end
+
+  -- Write notes with EditStep: iterate by edit_step, slot-by-slot within each line
+  local note_idx = 1
+  local last_note = -1
+  local last_mapping = nil
+  local current_line = start_line
+  while current_line <= end_line do
+    for _, slot in ipairs(slots) do
+      if note_idx > #notes then break end
+      local note_column = pattern:track(slot.track_index):line(current_line):note_column(slot.col)
+      note_column.note_value = notes[note_idx].note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      last_note = notes[note_idx].note
+      last_mapping = notes[note_idx].mapping
+      note_idx = note_idx + 1
+    end
+    if note_idx > #notes then break end
+    current_line = current_line + edit_step
+  end
+
+  if last_note ~= -1 and last_mapping then
+    renoise.app():show_status(string.format(
+      "Pro: Wrote %d notes %s (EditStep %d) across %d column(s) %s (base note: %d)",
+      note_idx - 1,
+      method,
+      edit_step,
+      #slots,
+      sel and "in selection" or "from cursor",
+      last_mapping.base_note
+    ))
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Pro Ascending",invoke=function() writeNotesMethodPro("ascending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Pro Descending",invoke=function() writeNotesMethodPro("descending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Pro Random",invoke=function() writeNotesMethodPro("random") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Pro EditStep Ascending",invoke=function() writeNotesMethodEditStepPro("ascending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Pro EditStep Descending",invoke=function() writeNotesMethodEditStepPro("descending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Pro EditStep Random",invoke=function() writeNotesMethodEditStepPro("random") end}
+
+---
 -- Fit Sample Offset to Pattern
 -- Calculates sample length and spreads 0Sxx commands from 0S00 to 0SFE across pattern length
 -- This makes the sample play from beginning to end across the entire pattern

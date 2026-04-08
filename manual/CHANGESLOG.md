@@ -12,6 +12,28 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-08 - Feature: Write Notes Pro (multi-column, multi-track)
+
+Added 6 new "Pro" Write Notes variants that write across ALL selected note columns in a `selection_in_pattern` highlight, spanning multiple tracks. These use `selection_in_pattern_pro()` to identify every selected note column across all selected tracks. Group tracks, send tracks, master tracks, and effect columns are gracefully skipped — no errors.
+
+**Behavior:**
+- If a selection exists: writes notes left-to-right, top-to-bottom across all selected note columns in all selected sequencer tracks
+- If no selection: falls back to current note column from cursor to end of pattern
+- Clears all target note columns in the range before writing
+- EditStep variants advance by edit_step lines instead of every line
+
+**New keybindings (Pattern Editor:Paketti:...):**
+- `Write Notes Pro Ascending`
+- `Write Notes Pro Descending`
+- `Write Notes Pro Random`
+- `Write Notes Pro EditStep Ascending`
+- `Write Notes Pro EditStep Descending`
+- `Write Notes Pro EditStep Random`
+
+**New menu entries** under `Pattern Editor:Paketti:Write Notes:` with matching names.
+
+Also refactored shared note-building and ordering logic into helper functions `buildNotesList()` and `orderNotes()` in `PakettiPatternEditor.lua`.
+
 ### 2026-04-08 - Fix: Write Notes now respects pattern selection
 
 Both `writeNotesMethod` and `writeNotesMethodEditStep` (`PakettiPatternEditor.lua`) now respect the highlighted selection in the pattern editor. Previously, these functions always wrote from the cursor position to the end of the pattern. Now, if a selection exists (`selection_in_pattern`), notes are written only within the selected range. If no selection exists, the old behavior (cursor to end of pattern) is preserved.
