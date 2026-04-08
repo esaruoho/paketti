@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-08 - Fix: SBx loop verify crash on PatternTrack has_line_notifier
+
+Fixed a crash in `PakettiExperimental_Verify.lua` where `has_line_notifier()` was called on `PatternTrack` objects (returned by `pattern:track(idx)`). This method only exists on `Pattern` objects, not `PatternTrack`. The SBx loop analyzer (`sbx_add_line_notifiers` / `sbx_remove_line_notifiers`) now uses `pcall`-protected `remove_line_notifier` and the existing tracking table instead of querying the unavailable method.
+
 ### 2026-04-08 - Improvement: Write Notes now writes to all note columns in selection
 
 Refactored `writeNotesMethod` and `writeNotesMethodEditStep` (`PakettiPatternEditor.lua`) into a shared `writeNotesCore` function. When a selection exists, notes are now written across ALL note columns in the highlighted selection (across multiple tracks if selected), not just the column where the cursor sits. Effect columns in the selection are silently skipped. If the selection contains only effect columns, the user sees "No note columns in selection. Effect columns cannot contain notes." When no selection exists, the previous behavior is preserved: cursor must be on a note column, writes from cursor to end of pattern.

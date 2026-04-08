@@ -222,8 +222,8 @@ local function sbx_remove_line_notifiers()
     local ok, pat = pcall(function() return song:pattern(entry.pattern_index) end)
     if ok and pat then
       local ok2, pt = pcall(function() return pat:track(entry.track_index) end)
-      if ok2 and pt and pt:has_line_notifier(sbx_on_line_edited) then
-        pt:remove_line_notifier(sbx_on_line_edited)
+      if ok2 and pt then
+        pcall(function() pt:remove_line_notifier(sbx_on_line_edited) end)
       end
     end
     table.remove(sbx_line_notifier_tracks, i)
@@ -238,7 +238,15 @@ local function sbx_add_line_notifiers(pattern_index)
   local total_tracks = #song.tracks
   for track_idx = 1, total_tracks do
     local pt = pattern:track(track_idx)
-    if not pt:has_line_notifier(sbx_on_line_edited) then
+    local already_tracked = false
+    for _, entry in ipairs(sbx_line_notifier_tracks) do
+      if entry.pattern_index == pattern_index and entry.track_index == track_idx then
+        already_tracked = true
+        break
+      end
+    end
+    if not already_tracked then
+      pcall(function() pt:remove_line_notifier(sbx_on_line_edited) end)
       pt:add_line_notifier(sbx_on_line_edited)
       sbx_line_notifier_tracks[#sbx_line_notifier_tracks + 1] = {
         pattern_index = pattern_index,
