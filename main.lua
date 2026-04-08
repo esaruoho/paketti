@@ -1365,6 +1365,8 @@ timed_require("PakettiSliceToolsDialog")
 
 timed_require("PakettiNoteSplit")
 
+timed_require("PakettiNudge")
+
 timed_require("PakettiDynamicMacroToolbar")
 
 -- PakettiImport MUST be loaded after all other modules so their loader functions are available
