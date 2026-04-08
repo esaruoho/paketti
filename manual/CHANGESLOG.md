@@ -12,6 +12,21 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-08 - Feature: Write Notes Flood variants — write all 120 notes regardless of sample mappings
+
+Added 12 new "Flood" variants of Write Notes. Unlike the standard Write Notes functions (which only write notes that have sample mappings), the Flood variants write ALL 120 notes (C-0 through B-9) regardless of whether the instrument has samples mapped to those notes. This is useful for "flooding" a pattern with note data that doesn't necessarily need to trigger a sample — for example, controlling external MIDI gear, testing, or creative purposes.
+
+New keybindings (all `Pattern Editor:Paketti:` scope):
+- `Write Notes Flood Ascending` / `Descending` / `Random`
+- `Write Notes Flood EditStep Ascending` / `Descending` / `Random`
+- `Write Notes Flood Pro Ascending` / `Descending` / `Random` (multi-column selection via `selection_in_pattern_pro`)
+- `Write Notes Flood Pro EditStep Ascending` / `Descending` / `Random`
+
+New menu entries under `Pattern Editor:Paketti:Write Notes:`:
+- All 12 Flood variants listed above
+
+The Flood Pro variants use `selection_in_pattern_pro()` and silently skip group/send/master tracks and effect columns, same as the existing Pro variants.
+
 ### 2026-04-08 - Fix: SBx loop verify crash — PatternTrack does not have line notifier methods
 
 Fixed crashes in `PakettiExperimental_Verify.lua` where `has_line_notifier()`, `add_line_notifier()`, and `remove_line_notifier()` were called on `PatternTrack` objects (returned by `pattern:track(idx)`). These methods only exist on `Pattern` objects, not `PatternTrack`. The SBx loop analyzer (`sbx_add_line_notifiers` / `sbx_remove_line_notifiers`) now uses a single Pattern-level notifier instead of per-PatternTrack notifiers. The Pattern notifier callback already receives `pos.track`, so no functionality is lost.

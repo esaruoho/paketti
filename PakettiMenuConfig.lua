@@ -2940,6 +2940,18 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Not
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Pro EditStep Ascending",invoke=function() writeNotesMethodEditStepPro("ascending") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Pro EditStep Descending",invoke=function() writeNotesMethodEditStepPro("descending") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Pro EditStep Random",invoke=function() writeNotesMethodEditStepPro("random") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood Ascending",invoke=function() writeNotesMethodFlood("ascending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood Descending",invoke=function() writeNotesMethodFlood("descending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood Random",invoke=function() writeNotesMethodFlood("random") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood EditStep Ascending",invoke=function() writeNotesMethodFloodEditStep("ascending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood EditStep Descending",invoke=function() writeNotesMethodFloodEditStep("descending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood EditStep Random",invoke=function() writeNotesMethodFloodEditStep("random") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood Pro Ascending",invoke=function() writeNotesMethodFloodPro("ascending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood Pro Descending",invoke=function() writeNotesMethodFloodPro("descending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood Pro Random",invoke=function() writeNotesMethodFloodPro("random") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood Pro EditStep Ascending",invoke=function() writeNotesMethodFloodEditStepPro("ascending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood Pro EditStep Descending",invoke=function() writeNotesMethodFloodEditStepPro("descending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Flood Pro EditStep Random",invoke=function() writeNotesMethodFloodEditStepPro("random") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Values/Notes Ascending (SubColumn Aware)",invoke=PakettiSubColumnWriteAscending}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Values/Notes Descending (SubColumn Aware)",invoke=PakettiSubColumnWriteDescending}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Values/Notes Random (SubColumn Aware)",invoke=PakettiSubColumnWriteRandom}
