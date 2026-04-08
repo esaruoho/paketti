@@ -3643,18 +3643,30 @@ function loadNewWithCurrentSliceMarkers()
   for _, marker in ipairs(saved_markers) do
     -- Scale the marker position based on sample rate ratio
     local scaled_marker = math.floor(marker * rate_ratio + 0.5) -- Round to nearest frame
+    if scaled_marker < 1 then scaled_marker = 1 end
     if scaled_marker >= 1 and scaled_marker <= new_sample_length then
       table.insert(valid_markers, scaled_marker)
     end
   end
-  
-  -- Apply the valid slice markers first
-  new_sample.slice_markers = valid_markers
+
+  -- Sort and remove duplicates before applying
+  table.sort(valid_markers)
+  local unique_markers = {}
+  for _, v in ipairs(valid_markers) do
+    if v >= 1 and (unique_markers[#unique_markers] ~= v) then
+      table.insert(unique_markers, v)
+    end
+  end
+
+  -- Apply the valid slice markers
+  if #unique_markers > 0 then
+    new_sample.slice_markers = unique_markers
+  end
   
   -- Show info about the scaling
   if rate_ratio ~= 1.0 then
-    renoise.app():show_status(string.format("Scaled %d slice markers from %dHz to %dHz (ratio: %.4f)", 
-      #valid_markers, original_sample_rate, new_sample_rate, rate_ratio))
+    renoise.app():show_status(string.format("Scaled %d slice markers from %dHz to %dHz (ratio: %.4f)",
+      #unique_markers, original_sample_rate, new_sample_rate, rate_ratio))
   end
   
   -- Copy general sample settings to the main sample
@@ -3775,18 +3787,30 @@ function loadNewWithCurrentSliceMarkersLengthMatching()
   for _, marker in ipairs(saved_markers) do
     -- Scale the marker position based on length ratio
     local scaled_marker = math.floor(marker * length_ratio + 0.5) -- Round to nearest frame
+    if scaled_marker < 1 then scaled_marker = 1 end
     if scaled_marker >= 1 and scaled_marker <= new_sample_length then
       table.insert(valid_markers, scaled_marker)
       print(string.format("  Marker %d -> %d", marker, scaled_marker))
     end
   end
-  
-  -- Apply the valid slice markers first
-  new_sample.slice_markers = valid_markers
+
+  -- Sort and remove duplicates before applying
+  table.sort(valid_markers)
+  local unique_markers = {}
+  for _, v in ipairs(valid_markers) do
+    if v >= 1 and (unique_markers[#unique_markers] ~= v) then
+      table.insert(unique_markers, v)
+    end
+  end
+
+  -- Apply the valid slice markers
+  if #unique_markers > 0 then
+    new_sample.slice_markers = unique_markers
+  end
   
   -- Show info about the scaling
-  renoise.app():show_status(string.format("Applied %d slice markers using length ratio %.4f (%d->%d frames)", 
-    #valid_markers, length_ratio, original_sample_length, new_sample_length))
+  renoise.app():show_status(string.format("Applied %d slice markers using length ratio %.4f (%d->%d frames)",
+    #unique_markers, length_ratio, original_sample_length, new_sample_length))
   
   -- Copy general sample settings to the main sample
   CopySampleSettings(original_instrument.samples[1], new_instrument.samples[1])

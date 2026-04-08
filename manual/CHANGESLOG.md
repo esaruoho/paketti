@@ -14,7 +14,7 @@ What supporters funded this month:
 
 ### 2026-04-08 - Fix: Load New Instrument with Current Slice Markers crash on position 0
 
-Fixed a crash in both `loadNewWithCurrentSliceMarkers` and `loadNewWithCurrentSliceMarkersLengthMatching` (`PakettiLoaders.lua`) where scaling slice marker positions could produce a value of 0 after rounding. Renoise requires slice positions to be >= 1, so assigning a 0 caused `logic_error: 'invalid slice sample position index 0, valid values are 1 to ...'`. Both functions now filter out any scaled markers < 1.
+Fixed a crash in both `loadNewWithCurrentSliceMarkers` and `loadNewWithCurrentSliceMarkersLengthMatching` (`PakettiLoaders.lua`) where scaling slice marker positions could produce a value of 0 after rounding. Renoise requires slice positions to be >= 1, so assigning a 0 caused `logic_error: 'invalid slice sample position index 0, valid values are 1 to ...'`. Both functions now clamp markers to >= 1, sort them in ascending order, and remove duplicates before applying.
 
 - `Instrument Box:Paketti:Load:Load New Instrument with Current Slice Markers`
 - `Instrument Box:Paketti:Load:Load New Instrument with Current Slice Markers (Length Matching)`
