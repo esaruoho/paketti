@@ -103,11 +103,14 @@ end
 --     On 3.1.1, curves degrade gracefully to lines.
 ------------------------------------------------------------------------
 
-if PAKETTI_API >= 6 then
-  PAKETTI_PLAYMODE_CURVES = renoise.PatternTrackAutomation.PLAYMODE_CURVES
-else
-  PAKETTI_PLAYMODE_CURVES = renoise.PatternTrackAutomation.PLAYMODE_LINES
-end
+-- Hardcoded values — do NOT read from renoise.PatternTrackAutomation.*
+-- because those class statics don't exist in older API versions and
+-- even attempting to read them causes a fatal std::logic_error.
+PAKETTI_PLAYMODE_POINTS = 1  -- exists in all versions
+PAKETTI_PLAYMODE_LINES  = 2  -- exists in all versions
+PAKETTI_PLAYMODE_CURVES = (PAKETTI_API >= 6) and 3 or 2
+                              -- API 6+: real curves (3)
+                              -- API 5:  degrades to lines (2)
 
 PAKETTI_HAS_CURVES = (PAKETTI_API >= 6) -- true only when real curves exist
 

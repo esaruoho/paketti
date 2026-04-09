@@ -748,7 +748,7 @@ function PakettiAutomationStack_RebuildAutomations()
                   device_name = dev.display_name or "Device",
                   track_name = PakettiAutomationStack_GetTrackName(track_idx),
                   track_index = track_idx,
-                  playmode = a and a.playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES
+                  playmode = a and a.playmode or PAKETTI_PLAYMODE_LINES
                 }
                 PakettiAutomationStack_automations[#PakettiAutomationStack_automations+1] = entry
               end
@@ -779,7 +779,7 @@ function PakettiAutomationStack_RebuildAutomations()
                 device_name = dev.display_name or "Device",
                 track_name = PakettiAutomationStack_GetTrackName(sel.track_index),
                 track_index = sel.track_index,
-                playmode = a and a.playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES
+                playmode = a and a.playmode or PAKETTI_PLAYMODE_LINES
               }
               PakettiAutomationStack_automations[#PakettiAutomationStack_automations+1] = entry
             end
@@ -811,7 +811,7 @@ function PakettiAutomationStack_RebuildAutomations()
             device_name = dev.display_name or "Device",
             track_name = PakettiAutomationStack_GetTrackName(song.selected_track_index),
             track_index = song.selected_track_index,
-            playmode = a and a.playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES,
+            playmode = a and a.playmode or PAKETTI_PLAYMODE_LINES,
             device_index = d,
             param_index = pi
           }
@@ -947,7 +947,7 @@ function PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, colo
   if not entry or not entry.automation then return end
   local a = entry.automation
   local points = a.points or {}
-  local mode = a.playmode or renoise.PatternTrackAutomation.PLAYMODE_POINTS
+  local mode = a.playmode or PAKETTI_PLAYMODE_POINTS
   local gutter = PakettiAutomationStack_gutter_width
   if #points == 0 then return end
   
@@ -961,7 +961,7 @@ function PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, colo
     point_color = bright_color
   end
   
-  if mode == renoise.PatternTrackAutomation.PLAYMODE_POINTS then
+  if mode == PAKETTI_PLAYMODE_POINTS then
     ctx.stroke_color = main_color
     ctx.line_width = line_width
     for i = 1, #points do
@@ -980,7 +980,7 @@ function PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, colo
       ctx.stroke_color = main_color
       ctx.line_width = line_width
     end
-  elseif mode == renoise.PatternTrackAutomation.PLAYMODE_LINES then
+  elseif mode == PAKETTI_PLAYMODE_LINES then
     ctx.stroke_color = main_color
     ctx.line_width = line_width
     ctx:begin_path()
@@ -1066,7 +1066,7 @@ function PakettiAutomationStack_CollectStackerPoints(entry)
       if pattern_track then
         local automation = pattern_track:find_automation(param)
         if automation and automation.points then
-          local mode = automation.playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES
+          local mode = automation.playmode or PAKETTI_PLAYMODE_LINES
           for _, p in ipairs(automation.points) do
             local global_time = patt_entry.start_offset + (p.time or 1)
             all_points[#all_points + 1] = {
@@ -1165,7 +1165,7 @@ function PakettiAutomationStack_BuildBackgroundCache(W, H, num_lines, sel)
       if entry and entry.automation then
         local a = entry.automation
         local points = a.points or {}
-        local mode = a.playmode or renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        local mode = a.playmode or PAKETTI_PLAYMODE_POINTS
         
         if #points > 0 then
           -- Determine colors
@@ -1185,7 +1185,7 @@ function PakettiAutomationStack_BuildBackgroundCache(W, H, num_lines, sel)
           automation_commands.paths = {}
           
           -- Pre-calculate all curve segments
-          if mode == renoise.PatternTrackAutomation.PLAYMODE_LINES or 
+          if mode == PAKETTI_PLAYMODE_LINES or 
              mode == PAKETTI_PLAYMODE_CURVES then
             for seg = 1, (#points - 1) do
               local p0 = points[math.max(1, seg-1)]
@@ -1243,7 +1243,7 @@ function PakettiAutomationStack_BuildBackgroundCache(W, H, num_lines, sel)
       ctx.stroke_color = auto_cmd.main_color
       ctx.line_width = 2
       
-      if auto_cmd.mode == renoise.PatternTrackAutomation.PLAYMODE_POINTS then
+      if auto_cmd.mode == PAKETTI_PLAYMODE_POINTS then
         -- Draw points mode (no lines)
         ctx.fill_color = auto_cmd.point_color
         for _, pt in ipairs(auto_cmd.points) do
@@ -1256,7 +1256,7 @@ function PakettiAutomationStack_BuildBackgroundCache(W, H, num_lines, sel)
             ctx:fill()
           end
         end
-      elseif auto_cmd.mode == renoise.PatternTrackAutomation.PLAYMODE_LINES then
+      elseif auto_cmd.mode == PAKETTI_PLAYMODE_LINES then
         -- Draw lines mode
         for _, path in ipairs(auto_cmd.paths) do
           ctx:begin_path()
@@ -1617,9 +1617,9 @@ function PakettiAutomationStack_YToValue(y, H)
 end
 
 function PakettiAutomationStack_PlaymodeForIndex(idx)
-  if idx == 1 then return renoise.PatternTrackAutomation.PLAYMODE_POINTS end
+  if idx == 1 then return PAKETTI_PLAYMODE_POINTS end
   if idx == 3 then return PAKETTI_PLAYMODE_CURVES end
-  return renoise.PatternTrackAutomation.PLAYMODE_LINES
+  return PAKETTI_PLAYMODE_LINES
 end
 
 -- Create bridge points at pattern boundaries when drawing crosses them
@@ -1987,14 +1987,14 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
 
     -- Collect points - in stacker mode, collect from all patterns
     local points = {}
-    local mode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+    local mode = PAKETTI_PLAYMODE_LINES
     
     if PakettiAutomationStack_stacker_mode and #PakettiAutomationStack_stacker_patterns > 0 then
       -- Collect points from all stacker patterns
       points = PakettiAutomationStack_CollectStackerPoints(entry)
       -- Use the playmode from the first pattern that has automation
       if #points > 0 then
-        mode = points[1].playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES
+        mode = points[1].playmode or PAKETTI_PLAYMODE_LINES
       end
     else
       -- Single pattern mode - use existing automation
@@ -2003,7 +2003,7 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
         for _, p in ipairs(a.points) do
           points[#points + 1] = {time = p.time, value = p.value}
         end
-        mode = a.playmode or renoise.PatternTrackAutomation.PLAYMODE_LINES
+        mode = a.playmode or PAKETTI_PLAYMODE_LINES
       end
     end
 
@@ -2026,7 +2026,7 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
     -- Get track-based colors
     local base_color, bright_color, dim_color = PakettiAutomationStack_GetTrackAutomationColors(track_idx)
 
-    if mode == renoise.PatternTrackAutomation.PLAYMODE_POINTS then
+    if mode == PAKETTI_PLAYMODE_POINTS then
       -- Vertical bars with dots at values
       ctx.stroke_color = base_color
       ctx.line_width = 2
@@ -2042,7 +2042,7 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
         ctx:fill_rect(x-2, y-2, 4, 4)
         ctx.stroke_color = base_color; ctx.line_width = 2
       end
-    elseif mode == renoise.PatternTrackAutomation.PLAYMODE_LINES then
+    elseif mode == PAKETTI_PLAYMODE_LINES then
       -- Linear segments between points
       ctx.stroke_color = base_color
       ctx.line_width = 3

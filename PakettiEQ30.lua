@@ -461,7 +461,7 @@ function eq30_set_automation_playmode(mode)
       end
     end
   end
-  local name = (mode == renoise.PatternTrackAutomation.PLAYMODE_POINTS and "Points") or (mode == renoise.PatternTrackAutomation.PLAYMODE_LINES and "Lines") or "Curves"
+  local name = (mode == PAKETTI_PLAYMODE_POINTS and "Points") or (mode == PAKETTI_PLAYMODE_LINES and "Lines") or "Curves"
   if changed > 0 then
     renoise.app():show_status("EQ30 Automation Playmode → " .. name .. " on " .. tostring(changed) .. " envelopes")
   else
@@ -691,7 +691,7 @@ function PakettiEQ30RandomizeByEditStep()
         end
         
         -- Set this envelope to POINTS mode after creating content
-        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        automation.playmode = PAKETTI_PLAYMODE_POINTS
       end
     end
   end
@@ -1713,8 +1713,8 @@ function create_eq_dialog()
             preferences.PakettiEQ30AutomationPlaymode.value = value
             preferences:save_as("preferences.xml")
           end
-          local mode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
-          if value == 2 then mode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+          local mode = PAKETTI_PLAYMODE_POINTS
+          if value == 2 then mode = PAKETTI_PLAYMODE_LINES
           elseif value == 3 then mode = PAKETTI_PLAYMODE_CURVES end
           eq30_set_automation_playmode(mode)
         end

@@ -1492,8 +1492,8 @@ function PakettiCanvasExperimentsCreateDialog()
             preferences.PakettiCanvasAutomationPlaymode.value = value
             preferences:save_as("preferences.xml")
           end
-          local mode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
-          if value == 2 then mode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+          local mode = PAKETTI_PLAYMODE_POINTS
+          if value == 2 then mode = PAKETTI_PLAYMODE_LINES
           elseif value == 3 then mode = PAKETTI_PLAYMODE_CURVES end
           -- Apply to existing envelopes of the selected device parameters
           local song = renoise.song()
@@ -2350,7 +2350,7 @@ function PakettiCanvasExperimentsRandomizeByEditStep()
         end
         
         -- Set this envelope to POINTS mode after creating content
-        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        automation.playmode = PAKETTI_PLAYMODE_POINTS
       end
     end
   end

@@ -1121,7 +1121,7 @@ function PakettiHyperEditRefreshExistingAutomation()
         print("DEBUG: Found automation for " .. param_name .. " - refreshing step data")
         
         -- Set automation to POINTS mode
-        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        automation.playmode = PAKETTI_PLAYMODE_POINTS
         
         -- Detect pattern length
         local detected_step_count = PakettiHyperEditDetectPatternLength(automation.points)
@@ -1633,7 +1633,7 @@ function PakettiHyperEditWriteAutomationPattern(row)
     automation:clear()
     
     -- Set to POINTS mode as requested
-    automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+    automation.playmode = PAKETTI_PLAYMODE_POINTS
     
     local row_step_count = row_steps[row] or 16
     local points_written = 0
@@ -1712,7 +1712,7 @@ function PakettiHyperEditSwitchToAutomationView(row)
       if not automation then
         -- No automation exists, create one with 0.5 value across the pattern
         automation = pattern_track:create_automation(parameter)
-        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        automation.playmode = PAKETTI_PLAYMODE_POINTS
         
         -- Get pattern length and add 0.5 points at every row in the pattern
         local pattern_length = song:pattern(current_pattern).number_of_lines
@@ -1740,7 +1740,7 @@ function PakettiHyperEditSwitchToAutomationView(row)
         
       elseif #automation.points == 0 then
         -- Automation exists but is empty, add 0.5 value across the pattern
-        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+        automation.playmode = PAKETTI_PLAYMODE_POINTS
         
         -- Get pattern length and add 0.5 points at every row in the pattern
         local pattern_length = song:pattern(current_pattern).number_of_lines
@@ -1834,7 +1834,7 @@ function PakettiHyperEditAutoReadAutomation(row)
   end
   
   -- IMPORTANT: Set automation to POINTS mode first
-  automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+  automation.playmode = PAKETTI_PLAYMODE_POINTS
   
   -- Check if this is pitchbend with sparse automation - auto-populate if needed
   local param_name = row_parameters[row].name:lower()
@@ -2329,7 +2329,7 @@ function PakettiHyperEditPopulateFromExistingAutomation()
       end
       
       -- Set automation to POINTS mode and read points
-      automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+      automation.playmode = PAKETTI_PLAYMODE_POINTS
       
       -- Initialize step data
       if not step_active[row] then step_active[row] = {} end

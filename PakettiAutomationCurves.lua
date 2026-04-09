@@ -178,8 +178,8 @@ function PakettiAutomationCurvesInitShapes()
   local trapezoid = PakettiAutomationCurvesCalculateTrapezoid()
   
   local CURVES = PAKETTI_PLAYMODE_CURVES
-  local LINES = renoise.PatternTrackAutomation.PLAYMODE_LINES
-  local POINTS = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+  local LINES = PAKETTI_PLAYMODE_LINES
+  local POINTS = PAKETTI_PLAYMODE_POINTS
 
   PakettiAutomationCurvesShapes = {
     -- Ramps (linear)
