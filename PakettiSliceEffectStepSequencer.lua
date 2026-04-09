@@ -4668,7 +4668,7 @@ vb:valuebox{
   })
   
   -- Velocity canvas expandable section (Canvas requires API 6.2+)
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_CANVAS then
     velocity_canvas_toggle_button = vb:button{
       text = velocity_canvas_expanded and "▾" or "▴", -- Set initial state from preference
       width = 22,

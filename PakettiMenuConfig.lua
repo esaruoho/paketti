@@ -1010,13 +1010,13 @@ end
 
 -- Phrase-related menu entries require API 6.2+
 if preferences.pakettiMenuConfig.MainMenuTools.value then
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_PHRASES then
     renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
   end
 end
 
 if preferences.pakettiMenuConfig.PhraseEditor.value then
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_PHRASES then
     renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
   end
 end
@@ -1586,7 +1586,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find 
 end
 
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_API >= 6.2 then
   if preferences.pakettiMenuConfig.MainMenuTools.value then
     renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Device:Run Notepad Device Code", invoke = pakettiNotepadRun}
   end
@@ -1936,7 +1936,7 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Slice to Patt
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Steppers:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
 end
 
@@ -1964,7 +1964,7 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AK
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (128,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(128, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (256,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(256, true) end}
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 end
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Phrases:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
@@ -2017,7 +2017,7 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Bypass Al
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Instruments:Delete Unused Instruments...",invoke=function() deleteUnusedInstruments() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Delete Unused Samples...",invoke=function() deleteUnusedSamples() end}
 
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_API >= 6.2 then
 
   renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Instruments:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
   renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Instruments:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
@@ -2796,7 +2796,7 @@ if preferences.pakettiMenuConfig.PatternEditor.value then
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
   
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_PHRASES then
     renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Create Phrase",invoke=function() createPhrase() end}
   end
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Create Identical Track",invoke=create_identical_track}
@@ -3477,7 +3477,7 @@ end
 
 -- Main Menu Options
 renoise.tool():add_menu_entry{name="Main Menu:Options:Automatically Open Selected Track Device Editors Toggle",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,selected=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_API >= 6.2 then
   renoise.tool():add_menu_entry{name="Main Menu:Options:Open Parameter Editor on Device Selection Toggle",invoke=PakettiCanvasExperimentsToggleAutoOpen,selected=PakettiCanvasExperimentsAutoOpenEnabled}
   renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Sample Effect Generator",invoke = PakettiSampleEffectGeneratorInit}
   renoise.tool():add_menu_entry{name="Main Menu:Options:Audition Current Line on Pattern Row Change Toggle",invoke=function() PakettiToggleAuditionCurrentLineOnRowChange() end,selected=function() return PakettiAuditionOnLineChangeEnabled end}
@@ -3491,7 +3491,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Options:PlayerPro Auto-Open Smart 
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sononym Auto-Transfer Toggle",invoke=function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,selected=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:SBx Pattern Loop Follow Toggle",invoke=function() PakettiToggleSBxFollow() end,selected=function() return preferences.PakettiSBxFollowEnabled.value end}
 -- Phrase Follow Pattern Playback Hack requires API 6.2+
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_menu_entry{name="Main Menu:Options:Phrase Follow Pattern Playback Hack Toggle",invoke=function() PakettiTogglePhraseFollowPatternPlayback() end,selected=function() return preferences.PakettiPhraseFollowPatternPlayback.value end}
 end
 renoise.tool():add_menu_entry{name="Main Menu:Options:Automatic Rename Track Toggle",invoke=function() pakettiToggleAutomaticRenameTrack() end,selected=function() return preferences.pakettiAutomaticRenameTrack.value end}
@@ -3551,7 +3551,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Visib
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Apply Phrase Init Settings to Current Phrase",invoke=function() pakettiPhraseSettingsApplyPhraseSettings() end}
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
   renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
@@ -3727,7 +3727,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete U
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Pattern/Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
 -- Phrase Editor entries require API 6.2+
-if (renoise.API_VERSION >= 6.2) then
+if (PAKETTI_HAS_PHRASES) then
   renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrases:Phrase Length Increase by 8",invoke=function() adjust_length_by(8) end}
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Phrase Length Decrease by 8",invoke=function() adjust_length_by(-8) end}
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Phrase Length Increase by LPB",invoke=function() adjust_length_by("lpb") end}
@@ -4032,7 +4032,7 @@ if preferences.pakettiMenuConfig.PhraseEditor.value then
   debugPrint("Phrase Editor Menus Are Enabled")
 renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Apply Phrase Init Settings to Current Phrase",invoke=function() pakettiPhraseSettingsApplyPhraseSettings() end}
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
   renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
 end
@@ -4048,7 +4048,7 @@ renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti:Load XRNI & Disable 
 renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 
 -- Phrase Grid (entire context is 6.2-only)
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
   renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
   renoise.tool():add_menu_entry{name="Phrase Grid:Paketti:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
@@ -4168,7 +4168,7 @@ renoise.tool():add_menu_entry({name="--Track Automation:Paketti:Automation Curve
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Open External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_API >= 6.2 then
   renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack",invoke=function() PakettiAutomationStackShowDialog() end}
   renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack - Single View",invoke=function() PakettiAutomationStackShowSingleView() end}
   renoise.tool():add_menu_entry{name="Track Automation:Paketti:Automation Stack - Select Arbitrary Parameters",invoke=function() PakettiAutomationStack_ShowParameterSelectionDialog() end}
@@ -4192,7 +4192,7 @@ renoise.tool():add_menu_entry{name="--Track Automation List:Paketti:Generate Aut
 add_automation_points_for_notes() end}
 renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
 renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_API >= 6.2 then
   renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack",invoke=function() PakettiAutomationStackShowDialog() end}
   renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack - Single View",invoke=function() PakettiAutomationStackShowSingleView() end}
   renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack - Select Arbitrary Parameters",invoke=function() PakettiAutomationStack_ShowParameterSelectionDialog() end}

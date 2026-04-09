@@ -2120,7 +2120,7 @@ function randomize_all_settings()
          min = 1,
          max = 32,
          width = 150,
-         steps = (renoise.API_VERSION >= 6) and {1, 4} or nil,  -- Small step: 1, Big step: 4
+         steps = pakettiSteps(1, 4),  -- Small step: 1, Big step: 4
          value = current_settings.pattern_length,
          notifier=function(value) pattern_length_notifier(value) end
        },
@@ -2187,7 +2187,7 @@ function randomize_all_settings()
          max = 32,
          value = math.floor(current_settings.note_count),
          width = 250,
-         steps = (renoise.API_VERSION >= 6) and {1, 4} or nil,  -- Small step: 1, Big step: 4
+         steps = pakettiSteps(1, 4),  -- Small step: 1, Big step: 4
          notifier=function(value) note_count_slider_notifier(value)
          end
        
@@ -2322,7 +2322,7 @@ function randomize_all_settings()
          max = 1,
          value = current_settings.min_volume,
          width = 120,
-         steps = (renoise.API_VERSION >= 6) and {0.05, 0.1} or nil,  -- Small step: 5%, Big step: 10%
+         steps = pakettiSteps(0.05, 0.1),  -- Small step: 5%, Big step: 10%
          notifier=function(value)
            if not value then return end
            current_settings.min_volume = value
@@ -2337,7 +2337,7 @@ function randomize_all_settings()
          max = 1,
          value = current_settings.max_volume,
          width = 120,
-         steps = (renoise.API_VERSION >= 6) and {0.05, 0.1} or nil,  -- Small step: 5%, Big step: 10%
+         steps = pakettiSteps(0.05, 0.1),  -- Small step: 5%, Big step: 10%
          notifier=function(value)
            if not value then return end
            current_settings.max_volume = value
@@ -2457,7 +2457,7 @@ function randomize_all_settings()
          max = 1,
          value = current_settings.shuffle,
          width = 250,
-         steps = (renoise.API_VERSION >= 6) and {0.01, 0.1} or nil,  -- Small step: 1%, Big step: 10%
+         steps = pakettiSteps(0.01, 0.1),  -- Small step: 1%, Big step: 10%
          notifier=function(value)
            if not value then return end
            current_settings.shuffle = value
@@ -2706,7 +2706,7 @@ end
   end
 end
  
- if renoise.API_VERSION >= 6.2 then 
+ if PAKETTI_HAS_PHRASES then 
  renoise.tool():add_keybinding{name="Global:Paketti:Paketti Enhanced Phrase Generator",invoke=function() pakettiPhraseGeneratorDialog() end}
  end
  
@@ -4954,7 +4954,7 @@ function PakettiPhraseGeneratorRestoreSettings(settings)
 end
 
 -- Keybindings for bank generation (API 6.2+ only)
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_keybinding{name="Global:Paketti:Phrase Generator Create Bank (8 Variations)",invoke=function() PakettiPhraseGeneratorCreateBank() end}
   renoise.tool():add_midi_mapping{name="Paketti:Phrase Generator Create Bank [Trigger]",invoke=function(message) if message:is_trigger() then PakettiPhraseGeneratorCreateBank() end end}
 end

@@ -2185,7 +2185,7 @@ end
 
 -- Show Chebyshev Waveshaper dialog
 function show_chebyshev_waveshaper()
-  if renoise.API_VERSION < 6.2 then
+  if not PAKETTI_HAS_CANVAS then
     renoise.app():show_warning("Chebyshev Waveshaper requires Renoise 3.5 or newer.")
     return
   end
@@ -3037,7 +3037,7 @@ function show_chebyshev_waveshaper()
   update_canvas_displays()
 end
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_CANVAS then
   renoise.tool():add_keybinding{name = "Global:Paketti:Show Chebyshev Polynomial Waveshaper",invoke = show_chebyshev_waveshaper}
   renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Show Chebyshev Polynomial Waveshaper",invoke = show_chebyshev_waveshaper}
 end

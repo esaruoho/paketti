@@ -574,7 +574,7 @@ function pakettiPlayerProNoteGridShowDropdownGrid()
   -- Rule 1: If selection exists, always open note dialog
   if song.selection_in_pattern then
     -- Check API version - use canvas version for v6.2+, traditional for older
-    if renoise.API_VERSION >= 6.2 then
+    if PAKETTI_HAS_CANVAS then
       pakettiPlayerProNoteGridShowCanvasGrid()
     else
       pakettiPlayerProNoteGridShowTraditionalGrid()
@@ -607,7 +607,7 @@ function pakettiPlayerProNoteGridShowDropdownGrid()
   end
   
   -- Default: Open note dialog
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_CANVAS then
     pakettiPlayerProNoteGridShowCanvasGrid()
   else
     pakettiPlayerProNoteGridShowTraditionalGrid()
@@ -1011,7 +1011,7 @@ function pakettiPlayerProTranspose(steps, range, playback)
         selected_track.solo_state = true
         
         -- Trigger the line (only the soloed track will play)
-        if renoise.API_VERSION >= 6.2 then
+        if PAKETTI_HAS_TRIGGER_LINE then
           song:trigger_pattern_line(selected_line_index)
         end
 
@@ -1160,7 +1160,7 @@ function pakettiPlayerProTransposeAllInstruments(steps, range, playback)
   if playback then
     if song.transport.playing then
       renoise.app():show_status("Transpose & Play Line will only work if Playback is stopped, doing nothing.")
-    elseif renoise.API_VERSION >= 6.2 then
+    elseif PAKETTI_HAS_TRIGGER_LINE then
       song:trigger_pattern_line(song.selected_line_index)
     end
   end
@@ -1277,7 +1277,7 @@ function pakettiPlayerProScanner()
     end
     
     -- Play line if it has notes
-    if has_notes and renoise.API_VERSION >= 6.2 then
+    if has_notes and PAKETTI_HAS_TRIGGER_LINE then
       selected_track.solo_state = true
       song:trigger_pattern_line(current_line)
       selected_track.solo_state = was_soloed
@@ -1514,7 +1514,7 @@ function pakettiPlayerProEffectDialog()
   end
   
   -- Check API version - use canvas version for v6.2+, traditional for older
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_CANVAS then
     pakettiPlayerProEffectDialogCanvas()
   else
     pakettiPlayerProEffectDialogTraditional()
@@ -3966,7 +3966,7 @@ end
 
 function pakettiPlayerProShowMainDialog()
   -- Check API version - use canvas version for v6.2+, traditional for older
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_CANVAS then
     pakettiPlayerProShowCanvasMainDialog()
   else
     pakettiPlayerProShowTraditionalMainDialog()
@@ -5022,7 +5022,7 @@ function pakettiPlayerProStartMiddleFrameObserver()
              sub_column_type == renoise.Song.SUB_COLUMN_DELAY or 
              sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER then
             -- Open effect dialog for subcolumns
-            if renoise.API_VERSION >= 6.2 then
+            if PAKETTI_HAS_CANVAS then
               pakettiPlayerProEffectDialogCanvas()
             else
               pakettiPlayerProEffectDialogTraditional()
@@ -5034,7 +5034,7 @@ function pakettiPlayerProStartMiddleFrameObserver()
         end
         
         -- Open note dialog
-        if renoise.API_VERSION >= 6.2 then
+        if PAKETTI_HAS_CANVAS then
           pakettiPlayerProNoteGridShowCanvasGrid()
         else
           pakettiPlayerProNoteGridShowTraditionalGrid()
@@ -5043,7 +5043,7 @@ function pakettiPlayerProStartMiddleFrameObserver()
         
       elseif context_type == "effect" then
         -- Open effect dialog
-        if renoise.API_VERSION >= 6.2 then
+        if PAKETTI_HAS_CANVAS then
           pakettiPlayerProEffectDialogCanvas()
         else
           pakettiPlayerProEffectDialogTraditional()
@@ -5210,7 +5210,7 @@ function pakettiPlayerProHandleContextChange()
     end
     
     -- Open note dialog (always ensure it's open when in note context)
-    if renoise.API_VERSION >= 6.2 then
+    if PAKETTI_HAS_CANVAS then
       if not note_canvas_dialog or not note_canvas_dialog.visible then
         pakettiPlayerProNoteGridShowCanvasGrid()
         renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
@@ -5487,7 +5487,7 @@ function pakettiPlayerProPhraseEffectDialog()
 end
 
 -- Keybindings for Phrase Editor Player Pro features (API 6.2+ only)
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   -- Transpose without playback
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Row +1",invoke=function() pakettiPlayerProPhraseTranspose(1, "row", false) end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Player Pro Transpose Selection or Row -1",invoke=function() pakettiPlayerProPhraseTranspose(-1, "row", false) end}

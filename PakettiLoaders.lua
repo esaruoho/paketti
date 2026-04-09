@@ -468,7 +468,7 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
           if open_external and device.external_editor_available then
             device.external_editor_visible = true
           end
-          if open_param_editor and renoise.API_VERSION >= 6.2 then
+          if open_param_editor and PAKETTI_HAS_CANVAS then
             PakettiCanvasExperimentsInit()
           end
         end
@@ -617,7 +617,7 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
         if open_external and device.external_editor_available then
           device.external_editor_visible = true
         end
-        if open_param_editor and renoise.API_VERSION >= 6.2 then
+        if open_param_editor and PAKETTI_HAS_CANVAS then
           PakettiCanvasExperimentsInit()
         end
       end
@@ -644,7 +644,7 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Chorus",
 invoke=function() loadnative("Audio/Effects/Native/Chorus") end}
 -- API 6.1+ (Renoise 3.3+) devices: Chorus 2, Comb Filter 2, Digital Filter,
 -- Distortion 2, Flanger 2, Gate 2, LofiMat 2, mpReverb 2, Phaser 2, RingMod 2
-if renoise.API_VERSION >= 6.1 then
+if PAKETTI_API >= 6.1 then
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Chorus 2 as Vowel Filter",
 invoke=function() loadnative("Audio/Effects/Native/Chorus 2")
   renoise.song().selected_device.parameters[1].value=0.01
@@ -758,7 +758,7 @@ invoke=function() loadnative("Audio/Effects/Native/Repeater",nil,"./Presets/Pake
 
 
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_API >= 6.2 then
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Notepad",
 invoke=function() loadnative("Audio/Effects/Native/Notepad") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Splitter",
@@ -982,7 +982,7 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
         if open_external and inserted_device.external_editor_available then
           inserted_device.external_editor_visible = true
         end
-        if open_param_editor and renoise.API_VERSION >= 6.2 then
+        if open_param_editor and PAKETTI_HAS_CANVAS then
           PakettiCanvasExperimentsInit()
         end
       end
@@ -1142,7 +1142,7 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
       if open_external and inserted_device.external_editor_available then
         inserted_device.external_editor_visible = true
       end
-      if open_param_editor and renoise.API_VERSION >= 6.2 then
+      if open_param_editor and PAKETTI_HAS_CANVAS then
         PakettiCanvasExperimentsInit()
       end
     end
@@ -1356,7 +1356,7 @@ nativeDevices = {
 }
 
 -- v2 devices are API 6.1 (Renoise 3.3) only — add them conditionally
-if renoise.API_VERSION >= 6.1 then
+if PAKETTI_API >= 6.1 then
   local v2_devices = {
     "Chorus 2", "Comb Filter 2", "Digital Filter", "Distortion 2",
     "Flanger 2", "Gate 2", "LofiMat 2", "mpReverb 2", "Phaser 2", "RingMod 2"
@@ -1367,7 +1367,7 @@ if renoise.API_VERSION >= 6.1 then
 end
 
 -- Notepad and Splitter are API 6.2 (Renoise 3.5) only — add them conditionally
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_API >= 6.2 then
   table.insert(nativeDevices, "Notepad")
   table.insert(nativeDevices, "Splitter")
 end

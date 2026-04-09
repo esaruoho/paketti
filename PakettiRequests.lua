@@ -11670,7 +11670,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Pattern)",invoke=
 renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Pattern)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
 
 -- Add playback versions if API supports it
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_TRIGGER_LINE then
   PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
   PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
   PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
@@ -11727,7 +11727,7 @@ function GotoNote(direction, scope, play_note)
     song.selected_line_index = line_idx
     if track_idx then song.selected_track_index = track_idx end
     song.selected_note_column_index = col_idx
-    if play_note and renoise.API_VERSION >= 6.2 then
+    if play_note and PAKETTI_HAS_TRIGGER_LINE then
       song:trigger_pattern_line(line_idx)
     end
   end

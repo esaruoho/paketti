@@ -943,7 +943,7 @@ end
 
 -- Main sample visualizer dialog
 function pakettiSampleVisualizerDialog()
-  if renoise.API_VERSION < 6.2 then
+  if not PAKETTI_HAS_CANVAS then
     renoise.app():show_warning("Sample Visualizer (Canvas) requires Renoise 3.5 or newer.")
     return
   end

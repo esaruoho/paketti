@@ -522,7 +522,7 @@ function PakettiGliderProcessNoteOn(note_value, instrument_index, velocity, line
   -- Determine line index based on active editor
   local is_phrase_mode = PakettiGliderIsPhraseEditorActive()
   if line_index == nil then
-    if is_phrase_mode and renoise.API_VERSION >= 6.2 then
+    if is_phrase_mode and PAKETTI_HAS_PHRASES then
       line_index = song.selected_phrase_line_index or 1
     else
       line_index = song.selected_line_index
@@ -634,7 +634,7 @@ function PakettiGliderProcessNoteOff(note_value)
           local current_line
           local max_lines
           
-          if is_phrase_mode and renoise.API_VERSION >= 6.2 then
+          if is_phrase_mode and PAKETTI_HAS_PHRASES then
             current_line = song.selected_phrase_line_index or 1
             local phrase = PakettiGliderGetSelectedPhrase()
             max_lines = phrase and phrase.number_of_lines or 64

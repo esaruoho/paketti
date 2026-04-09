@@ -398,7 +398,7 @@ function phraseDelayInput(chg)
 end
 
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Delay Column Increase (+1)",invoke=function() phraseDelayInput(1) end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Delay Column Decrease (-1)",invoke=function() phraseDelayInput(-1) end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Delay Column Increase (+10)",invoke=function() phraseDelayInput(10) end}
@@ -527,7 +527,7 @@ function CapsLok(use_editstep)
   
   -- Check if the active middle frame is the Phrase Editor
   elseif renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
-    if renoise.API_VERSION < 6.2 then
+    if not PAKETTI_HAS_PHRASES then
       renoise.app():show_status("This feature requires Renoise API version 6.2 or higher.")
       return
     end
@@ -903,7 +903,7 @@ function PakettiPlayNextNoteLine()
         -- Found a note, jump to it
         s.selected_line_index = line_index
         -- Trigger playback of this line
-        if renoise.API_VERSION >= 6.2 then
+        if PAKETTI_HAS_TRIGGER_LINE then
           s:trigger_pattern_line(line_index)
         end
         renoise.app():show_status("Playing line " .. line_index)
@@ -918,7 +918,7 @@ function PakettiPlayNextNoteLine()
       local note = pattern_track:line(line_index):note_column(col)
       if note.note_value < 120 and note.note_value ~= 121 then
         s.selected_line_index = line_index
-        if renoise.API_VERSION >= 6.2 then
+        if PAKETTI_HAS_TRIGGER_LINE then
           s:trigger_pattern_line(line_index)
         end
         renoise.app():show_status("Playing line " .. line_index .. " (wrapped)")
@@ -946,7 +946,7 @@ function PakettiPlayPreviousNoteLine()
       local note = pattern_track:line(line_index):note_column(col)
       if note.note_value < 120 and note.note_value ~= 121 then
         s.selected_line_index = line_index
-        if renoise.API_VERSION >= 6.2 then
+        if PAKETTI_HAS_TRIGGER_LINE then
           s:trigger_pattern_line(line_index)
         end
         renoise.app():show_status("Playing line " .. line_index)
@@ -961,7 +961,7 @@ function PakettiPlayPreviousNoteLine()
       local note = pattern_track:line(line_index):note_column(col)
       if note.note_value < 120 and note.note_value ~= 121 then
         s.selected_line_index = line_index
-        if renoise.API_VERSION >= 6.2 then
+        if PAKETTI_HAS_TRIGGER_LINE then
           s:trigger_pattern_line(line_index)
         end
         renoise.app():show_status("Playing line " .. line_index .. " (wrapped)")
@@ -3666,7 +3666,7 @@ function PakettiToggleNoteOffAllColumns()
       
   elseif renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
       -- Ensure Renoise API version 6.2 or higher
-      if renoise.API_VERSION < 6.2 then
+      if not PAKETTI_HAS_PHRASES then
           renoise.app():show_status("This feature requires Renoise API version 6.2 or higher.")
           return
       end
@@ -4390,7 +4390,7 @@ function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
   
   -- Check API version and determine if we're in phrase editor
   local in_phrase_editor = false
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_PHRASES then
     if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
       local phrase = song.selected_phrase
       if phrase then
@@ -4696,7 +4696,7 @@ for _, tracks_opt in ipairs(tracks_options) do
 
       -- Add Phrase Editor entries only for "selected_track" option
       -- since phrases don't have multiple tracks
-      if renoise.API_VERSION >= 6.2 and tracks_opt.value == "selected_track" then
+      if PAKETTI_HAS_PHRASES and tracks_opt.value == "selected_track" then
         local phrase_menu_entry_name = "Phrase Editor:Paketti:Replicate:Replicate " .. row_opt.name .. " " .. transpose_opt.name
         PakettiAddMenuEntry{name=phrase_menu_entry_name,invoke=replicate_function}
         
@@ -8396,7 +8396,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Decrease Pattern Leng
 --------------------------------------------------------------------------------
 -- Audition Current Line on Pattern Row Change Toggle (V6.2+ only)
 --------------------------------------------------------------------------------
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_TRIGGER_LINE then
   -- Global state for the audition feature
   PakettiAuditionOnLineChangeEnabled = false
   local last_audition_pos = nil

@@ -555,7 +555,7 @@ function PakettiPhraseRec_Arm()
   end
   
   -- Check API version (same as existing PhraseTransport)
-  if renoise.API_VERSION < 6.1 then
+  if PAKETTI_API < 6.1 then
     renoise.app():show_status("PhraseRec: Requires Renoise API 6.1+ (Renoise 3.4.2+)")
     return
   end

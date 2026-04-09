@@ -1043,7 +1043,7 @@ function PakettiOpenMPTLinearKeyboardLayerDialog()
   -- Enable key release events so we can properly detect when keys are let go
   -- key_handler_options was added in API 6 (Renoise 3.2). On API 5 we fall back
   -- to the 3-arg show_custom_dialog (no key release detection — notes may stick).
-  if renoise.API_VERSION >= 6 then
+  if PAKETTI_API >= 6 then
     local key_handler_options = {
       send_key_repeat = true,   -- We want key repeat events for held keys
       send_key_release = true   -- We NEED key release events to stop notes!

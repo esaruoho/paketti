@@ -1427,7 +1427,7 @@ function pakettiPreferences()
                   notifier=function(value) 
                     preferences.pakettiInstrumentProperties.value=(value-1)
                     -- Update the instrument properties visibility immediately
-                    if renoise.API_VERSION >= 6.2 then
+                    if PAKETTI_API >= 6.2 then
                       if preferences.pakettiInstrumentProperties.value == 1 then
                         renoise.app().window.instrument_properties_is_visible = false
                       elseif preferences.pakettiInstrumentProperties.value == 2 then
@@ -1440,7 +1440,7 @@ function pakettiPreferences()
                   end}},
 
             -- Only show Disk Browser control for API version 6.2 and above
-            renoise.API_VERSION >= 6.2 and 
+            PAKETTI_API >= 6.2 and
               vb:row{
                 vb:text{text="Disk Browser Control",width=150,tooltip="Automatically control Disk Browser visibility when songs are loaded"},
                 vb:popup{items={"Do Nothing","Hide on Song Load","Show on Song Load"},value=preferences.paketti_auto_disk_browser_mode.value+1,width=100,tooltip="Automatically control Disk Browser visibility when songs are loaded",

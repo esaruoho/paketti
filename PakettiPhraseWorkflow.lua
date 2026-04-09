@@ -1960,7 +1960,7 @@ function PakettiPhraseTransportEnable()
   if not song then return end
   
   -- Check API version
-  if renoise.API_VERSION < 6.2 then
+  if not PAKETTI_HAS_PHRASES then
     renoise.app():show_status("Phrase Transport requires API 6.2+")
     return
   end

@@ -1295,7 +1295,7 @@ function PakettiImageToSampleShowDialog()
       },
       
     -- Waveform display section (Canvas requires API 6.2+)
-    (renoise.API_VERSION >= 6.2 and vb:column {
+    (PAKETTI_HAS_CANVAS and vb:column {
       vb:canvas {
         id = "waveform_canvas",
         width = WAVEFORM_CANVAS_WIDTH,
@@ -1357,7 +1357,7 @@ function PakettiImageToSampleShowDialog()
   image_to_sample_dialog = renoise.app():show_custom_dialog(DIALOG_TITLE, dialog_content, my_keyhandler_func)
   
   -- Store canvas reference for updates (only exists on API 6.2+)
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_CANVAS then
     waveform_canvas_view = vb.views.waveform_canvas
   end
   

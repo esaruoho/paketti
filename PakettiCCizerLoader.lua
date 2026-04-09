@@ -257,7 +257,7 @@ local function apply_ccizer_mappings(mappings, filename)
                 if didiRun == true then
                     renoise.tool():remove_timer(timer_func)
                 end
-                if renoise.API_VERSION >= 6.2 then
+                if PAKETTI_HAS_CANVAS then
                     PakettiCanvasExperimentsInit()
                 end
             end
@@ -643,7 +643,7 @@ local function apply_ccizer_to_selected_device(mappings, filename)
             if didiRun == true then
                 renoise.tool():remove_timer(timer_func)
             end
-            if renoise.API_VERSION >= 6.2 then
+            if PAKETTI_HAS_CANVAS then
                 PakettiCanvasExperimentsInit()
             end
         end
@@ -699,7 +699,7 @@ local function apply_ccizer_to_selected_device(mappings, filename)
                     if didiRun == true then
                         renoise.tool():remove_timer(timer_func)
                     end
-                    if renoise.API_VERSION >= 6.2 then
+                    if PAKETTI_HAS_CANVAS then
                         PakettiCanvasExperimentsInit()
                     end
                 end

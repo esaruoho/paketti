@@ -1101,7 +1101,7 @@ end
 
 function HipassPlusPlus()
   -- Digital Filter is API 6.1 (Renoise 3.3) only
-  if renoise.API_VERSION < 6.1 then
+  if PAKETTI_API < 6.1 then
     renoise.app():show_warning("Hipass (Preset++) requires Renoise 3.3+ (Digital Filter device)")
     return
   end

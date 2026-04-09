@@ -1472,7 +1472,7 @@ function PakettiChords_Toggle()
 end
 
 -- Only register tool if API 6.2+ (dialog uses .color and tooltip properties that don't exist in older versions)
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_API >= 6.2 then
   -- Initialize on load (safe - no renoise.song() calls, just creates empty tables)
   PakettiChords_Initialize()
   

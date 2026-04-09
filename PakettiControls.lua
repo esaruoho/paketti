@@ -28,14 +28,14 @@ function RecordFollowToggle()
         -- Playing but not following - enable everything
         t.follow_player = true
         t.edit_mode = true
-        if renoise.API_VERSION >= 6.2 and type(enable_phrase_follow) == "function" then
+        if PAKETTI_HAS_PHRASES and type(enable_phrase_follow) == "function" then
           enable_phrase_follow()
         end
       else
         -- Playing and following - disable everything
         t.follow_player = false
         t.edit_mode = false
-        if renoise.API_VERSION >= 6.2 and type(disable_phrase_follow) == "function" then
+        if PAKETTI_HAS_PHRASES and type(disable_phrase_follow) == "function" then
           disable_phrase_follow()
         end
       end
@@ -994,7 +994,7 @@ local target_devices = {
 }
 
 -- v2 devices are API 6.1 (Renoise 3.3) only
-if renoise.API_VERSION >= 6.1 then
+if PAKETTI_API >= 6.1 then
   local v2_devices = {
     "Audio/Effects/Native/mpReverb 2",
     "Audio/Effects/Native/Gate 2",
@@ -1013,7 +1013,7 @@ if renoise.API_VERSION >= 6.1 then
 end
 
 -- Notepad is API 6.2 (Renoise 3.5) only
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_API >= 6.2 then
   table.insert(target_devices, "Audio/Effects/Native/Notepad")
 end
 
@@ -1283,7 +1283,7 @@ function PlayCurrentLineAdvance(direction)
     
   renoise.song().transport.follow_player = false
   
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_TRIGGER_LINE then
     -- v3.5 method: Clean, immediate line triggering
     s:trigger_pattern_line(sli)
   else

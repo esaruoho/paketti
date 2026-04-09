@@ -62,7 +62,7 @@ METASYNTH_FX_ARCHETYPES = {
     devices = {
       { name = "Analog Filter", enabled = true, weight = 1.0 },
       { name = "Distortion", enabled = true, weight = 0.8 },
-      { name = (renoise.API_VERSION >= 6.1) and "Lofimat 2" or "LofiMat", enabled = true, weight = 0.6 },
+      { name = (PAKETTI_API >= 6.1) and "Lofimat 2" or "LofiMat", enabled = true, weight = 0.6 },
       { name = "Cabinet Simulator", enabled = true, weight = 0.7 }
     },
     weight = 1.0
@@ -84,7 +84,7 @@ METASYNTH_FX_ARCHETYPES = {
     description = "Depth and space",
     devices = {
       { name = "Reverb", enabled = true, weight = 1.0 },
-      { name = (renoise.API_VERSION >= 6.1) and "mpReverb 2" or "mpReverb", enabled = true, weight = 0.8 },
+      { name = (PAKETTI_API >= 6.1) and "mpReverb 2" or "mpReverb", enabled = true, weight = 0.8 },
       { name = "Convolver", enabled = true, weight = 0.5 },
       { name = "Stereo Expander", enabled = true, weight = 0.7 }
     },
@@ -609,13 +609,13 @@ METASYNTH_FX_TENDENCY_PRESETS = {
   warm = { frame = {"Analog Filter"}, group = {}, global = {"EQ 10"} },
   saturated = { frame = {"Distortion"}, group = {}, global = {"EQ 10", "Compressor"} },
   heavily_saturated = { frame = {"Distortion", "Cabinet Simulator"}, group = {"Exciter"}, global = {"EQ 10", "Compressor"} },
-  spatial = { frame = {}, group = {}, global = {"Reverb", (renoise.API_VERSION >= 6.1) and "mpReverb 2" or "mpReverb"} },
+  spatial = { frame = {}, group = {}, global = {"Reverb", (PAKETTI_API >= 6.1) and "mpReverb 2" or "mpReverb"} },
   spatial_delay = { frame = {}, group = {}, global = {"Delay", "Reverb"} },
   movement = { frame = {"Chorus", "Flanger"}, group = {}, global = {} },
   phaser = { frame = {"Phaser"}, group = {}, global = {} },
-  lofi = { frame = {(renoise.API_VERSION >= 6.1) and "Lofimat 2" or "LofiMat"}, group = {}, global = {} },
+  lofi = { frame = {(PAKETTI_API >= 6.1) and "Lofimat 2" or "LofiMat"}, group = {}, global = {} },
   aggressive = { frame = {"Distortion", "Analog Filter"}, group = {"Exciter"}, global = {"Compressor"} },
-  cinematic = { frame = {}, group = {"Stereo Expander"}, global = {"Reverb", (renoise.API_VERSION >= 6.1) and "mpReverb 2" or "mpReverb", "EQ 10"} },
+  cinematic = { frame = {}, group = {"Stereo Expander"}, global = {"Reverb", (PAKETTI_API >= 6.1) and "mpReverb 2" or "mpReverb", "EQ 10"} },
   vintage = { frame = {"Analog Filter", "Chorus"}, group = {}, global = {"Compressor", "EQ 10"} },
 }
 
@@ -6508,7 +6508,7 @@ PakettiMetaSynthFXDeviceList = {
 }
 
 -- v2 devices are API 6.1 (Renoise 3.3) only
-if renoise.API_VERSION >= 6.1 then
+if PAKETTI_API >= 6.1 then
   local v2_fx = {"Chorus 2", "Digital Filter", "Distortion 2", "Flanger 2", "Gate 2", "LofiMat 2", "mpReverb 2", "Phaser 2", "RingMod 2"}
   for _, dev in ipairs(v2_fx) do
     table.insert(PakettiMetaSynthFXDeviceList, dev)
@@ -6743,7 +6743,7 @@ function PakettiMetaSynthCreateDefaultArchitecture()
     },
     fx_randomization = {
       enabled = false,
-      device_pool = {"Analog Filter", (renoise.API_VERSION >= 6.1) and "Chorus 2" or "Chorus"},
+      device_pool = {"Analog Filter", (PAKETTI_API >= 6.1) and "Chorus 2" or "Chorus"},
       param_randomization = 0.3
     },
     modulation = {
@@ -7034,7 +7034,7 @@ end
 -- ============================================================================
 
 -- Available native devices for FX randomization (safe, CPU-friendly choices)
-if renoise.API_VERSION >= 6.1 then
+if PAKETTI_API >= 6.1 then
   PakettiMetaSynthSafeFXDevices = {
     "Analog Filter",
     "Chorus 2",
@@ -7070,7 +7070,7 @@ end
 -- Heavy devices (excluded by default for CPU-aware mode)
 PakettiMetaSynthHeavyFXDevices = {
   "Convolver",
-  (renoise.API_VERSION >= 6.1) and "mpReverb 2" or "mpReverb",
+  (PAKETTI_API >= 6.1) and "mpReverb 2" or "mpReverb",
   "Reverb",
   "Cabinet Simulator"
 }
@@ -7339,7 +7339,7 @@ end
 
 -- Selectable FX types for Group Master and Stack Master (glue-appropriate FX)
 -- Use v2 device names on API 6.1+ (Renoise 3.3+), v1 fallbacks on older
-local _v2 = renoise.API_VERSION >= 6.1
+local _v2 = PAKETTI_API >= 6.1
 PakettiMetaSynthSelectableFXTypes = {
   { name = "Filter", device = "Analog Filter" },
   { name = "Analog Filter", device = "Analog Filter" },  -- Profile name mapping

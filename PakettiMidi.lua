@@ -2674,7 +2674,7 @@ local target_devices = {
 }
 
 -- v2 devices are API 6.1 (Renoise 3.3) only — add MIDI mappings conditionally
-if renoise.API_VERSION >= 6.1 then
+if PAKETTI_API >= 6.1 then
   local v2_target_devices = {
     {path="Audio/Effects/Native/Comb Filter 2", params={"Note", "Transpose", "Feedback", "Dry/Wet"}},
     {path="Audio/Effects/Native/RingMod 2", params={"Note", "Transpose", "Dry/Wet"}},
@@ -4985,7 +4985,7 @@ function PakettiMidiEffectWriterShowDialog()
               id = "x_slider",
               min = 0,
               max = (PakettiMidiEffectWriterEffect <= 3) and 15 or 127,
-              steps = (renoise.API_VERSION >= 6) and {1, 1} or nil,
+              steps = pakettiSteps(1, 1),
               value = PakettiMidiEffectWriterXValue,
               width = 225,
               midi_mapping = "Paketti:MIDI Effect Writer:X Slider",
@@ -5029,7 +5029,7 @@ function PakettiMidiEffectWriterShowDialog()
               id = "y_slider",
               min = 0,
               max = 15,
-              steps = (renoise.API_VERSION >= 6) and {1, 1} or nil,
+              steps = pakettiSteps(1, 1),
               value = PakettiMidiEffectWriterYValue,
               width = 225,
               active = (PakettiMidiEffectWriterEffect <= 3),

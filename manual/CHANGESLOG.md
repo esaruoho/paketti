@@ -12,16 +12,19 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-04-09 - Feature: Renoise 2.8 (API 4) compatibility layer
+### 2026-04-09 - Feature: Centralised PakettiCompat.lua compatibility layer
 
-Extended `PakettiCompat.lua` to support Renoise 2.8 (API version 4). Paketti can now load on Renoise 2.8 without crashing at boot.
+Created `PakettiCompat.lua` — a single centralised file for all API-version compatibility code. This replaces the scattered `renoise.API_VERSION` checks throughout the codebase with clean global flags and helper functions.
 
-**Changes:**
-- **manifest.xml**: `ApiVersion` lowered from 6 to 4, allowing Renoise 2.8 to recognize the tool
-- **PakettiCompat.lua**: Added API 4 documentation, safe ApplicationWindow constant fallbacks for API < 5, new feature-availability flags (`PAKETTI_HAS_PHRASES_BASIC`, `PAKETTI_HAS_MODULATION_SETS`, `PAKETTI_HAS_DEVICE_CHAINS`, `PAKETTI_HAS_SAMPLE_FX_FRAME`, `PAKETTI_HAS_PHRASE_FRAME`, `PAKETTI_HAS_MOD_FRAME`), and safe accessor functions for API 5+ instrument internals (`pakettiSafeGetPhrases`, `pakettiSafeGetModulationSets`, `pakettiSafeGetDeviceChains`, `pakettiSafeSetMiddleFrame`)
-- **main.lua**: Moved `PakettiCompat.lua` loading to very first operation; guarded three API 5+ `ApplicationWindow` constants (`MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION`, `MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR`, `MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS`) behind `if PAKETTI_API >= 5`; gated 6 modules that fundamentally require API 5+ behind version checks: `PakettiSteppers`, `PakettiSamples`, `PakettiMetaSynth`, `PakettiRequests`, `PakettiAutoSamplify`, `PakettiUnisonGenerator`
+**New file: PakettiCompat.lua** — loaded first by main.lua before anything else. Contains:
+- All `pakettiSafe*()` wrapper functions (previously inline in main.lua): `pakettiSafeDeviceShortName`, `pakettiSafeInfoShortName`, `pakettiSafeCopyBeatSyncMode`, `pakettiSafeSetBeatSyncMode`, `pakettiSafeGetBeatSyncMode`, `pakettiSafeGetScaling`, `pakettiSafeAddPointAt`, `pakettiSetViewStyle`, `pakettiSafeTriggerPatternLine`
+- `pakettiSteps(...)` — replaces 36 inline `(renoise.API_VERSION >= 6) and {...} or nil` ternaries for valuebox/slider step properties
+- `pakettiVertSep(vb)` — style-aware vertical separator helper
+- `PAKETTI_API` — cached `renoise.API_VERSION` value used by all checks
+- Feature-availability flags: `PAKETTI_HAS_CANVAS`, `PAKETTI_HAS_PHRASES`, `PAKETTI_HAS_TRIGGER_LINE`, `PAKETTI_HAS_SHORT_NAME`, `PAKETTI_HAS_BEAT_SYNC_MODE`, `PAKETTI_HAS_STYLE`, `PAKETTI_HAS_STEPS`, `PAKETTI_HAS_SCALING`, `PAKETTI_HAS_PHRASES_BASIC`, `PAKETTI_HAS_MODULATION_SETS`, `PAKETTI_HAS_DEVICE_CHAINS`
+- Safe accessors for API 5+ instrument internals: `pakettiSafeGetPhrases`, `pakettiSafeGetModulationSets`, `pakettiSafeGetDeviceChains`, `pakettiSafeSetMiddleFrame`
 
-On Renoise 2.8, the tool loads with a reduced feature set — pattern editing, automation, slicing, transport shortcuts, MIDI tools, and many other features work. Modules requiring phrases, sample modulation sets, or sample device chains are safely skipped. On Renoise 3.0+ (API 5+) and 3.5+ (API 6.2+), all features remain fully available.
+**Refactored 41 files** — replaced all 119 `renoise.API_VERSION` checks with the appropriate `PAKETTI_HAS_*` flags or `PAKETTI_API` references. Replaced all 36 inline `steps` ternaries with `pakettiSteps()` calls. Every API compatibility check in Paketti now flows through one file.
 
 ### 2026-04-09 - Fix: Guard beat_sync_mode in sliceDrumKit for Renoise 3.1.1 compatibility
 

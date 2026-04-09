@@ -62,7 +62,7 @@ function adjust_length_by(amount)
   local is_pattern_editor = is_in_pattern_editor()
   
   -- Check if we're trying to use phrase editor functionality without API 6.2+
-  if not is_pattern_editor and renoise.API_VERSION < 6.2 then
+  if not is_pattern_editor and not PAKETTI_HAS_PHRASES then
     renoise.app():show_status("Phrase Editor functionality not available before Renoise API v6.2")
     return
   end
@@ -380,7 +380,7 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Show Phrase Length Dia
 renoise.tool():add_keybinding{name="Global:Paketti:Show Pattern/Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Pattern/Phrase Length Dialog...",invoke=function(message) if message:is_trigger() then pakettiLengthDialog() end end}
 -- Phrase Editor keybindings require API 6.2+
-if (renoise.API_VERSION >= 6.2) then
+if (PAKETTI_HAS_PHRASES) then
   renoise.tool():add_keybinding{name="--Phrase Editor:Paketti:Increase Phrase Length by 8",invoke=function() adjust_length_by(8) end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Phrase Length by 8",invoke=function() adjust_length_by(-8) end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Increase Phrase Length by LPB",invoke=function() adjust_length_by("lpb") end}

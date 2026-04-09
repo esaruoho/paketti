@@ -731,7 +731,7 @@ function PakettiFillShowDialog()
     value = density_value,
     width = 80,  -- Match other sliders for consistency
     height = 200,
-    steps = (renoise.API_VERSION >= 6) and {1, 10} or nil,  -- Small step: 1%, Big step: 10%
+    steps = pakettiSteps(1, 10),  -- Small step: 1%, Big step: 10%
     notifier = function(value)
       density_value = math.floor(value)
       paketti_fill_density_value = density_value  -- Save to global
@@ -763,7 +763,7 @@ function PakettiFillShowDialog()
     value = from_note_value,
     width = 80,  -- Match From Sample text width
     height = 200,
-    steps = (renoise.API_VERSION >= 6) and {1, 12} or nil,  -- Small step: 1 semitone, Big step: 1 octave
+    steps = pakettiSteps(1, 12),  -- Small step: 1 semitone, Big step: 1 octave
     notifier = function(value)
       from_note_value = math.min(119, math.floor(value))  -- Clamp to max 119
       paketti_fill_from_note_value = from_note_value  -- Save to global
@@ -795,7 +795,7 @@ function PakettiFillShowDialog()
     value = to_note_value,
     width = 80,  -- Match To Sample text width
     height = 200,
-    steps = (renoise.API_VERSION >= 6) and {1, 12} or nil,  -- Small step: 1 semitone, Big step: 1 octave
+    steps = pakettiSteps(1, 12),  -- Small step: 1 semitone, Big step: 1 octave
     active = false, -- Start disabled since we're in Constant mode
     notifier = function(value)
       to_note_value = math.min(119, math.floor(value))  -- Clamp to max 119
@@ -853,7 +853,7 @@ function PakettiFillShowDialog()
     value = step_interval,
     width = 80,  -- Match Step Length text width
     height = 200,
-    steps = (renoise.API_VERSION >= 6) and {1, 4} or nil,  -- Small step: 1, Big step: 4
+    steps = pakettiSteps(1, 4),  -- Small step: 1, Big step: 4
     active = (where_mode == 7 and not use_editstep),  -- Active when Euclidean mode and not using EditStep
     notifier = function(value)
       step_interval = math.floor(value)
@@ -1134,7 +1134,7 @@ function PakettiFillShowDialog()
     value = effect_min_value,
     width = 80,  -- Match other sliders
     height = 200,  -- Match From/To sliders
-    steps = (renoise.API_VERSION >= 6) and {1, 16} or nil,  -- Small step: 1, Big step: 16 (0x10)
+    steps = pakettiSteps(1, 16),  -- Small step: 1, Big step: 16 (0x10)
     active = false,  -- Initially disabled
     notifier = function(value)
       effect_min_value = math.floor(value)
@@ -1169,7 +1169,7 @@ function PakettiFillShowDialog()
     value = effect_max_value,
     width = 80,  -- Match other sliders
     height = 200,  -- Match From/To sliders
-    steps = (renoise.API_VERSION >= 6) and {1, 16} or nil,  -- Small step: 1, Big step: 16 (0x10)
+    steps = pakettiSteps(1, 16),  -- Small step: 1, Big step: 16 (0x10)
     active = false,  -- Initially disabled
     notifier = function(value)
       effect_max_value = math.floor(value)

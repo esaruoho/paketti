@@ -1272,7 +1272,7 @@ end
 -- ========================================
 
 local function show_phi_interval_circle()
-  if renoise.API_VERSION < 6.2 then
+  if not PAKETTI_HAS_CANVAS then
     renoise.app():show_warning("Phi Interval Circle requires Renoise 3.5 or newer (Canvas API).")
     return
   end

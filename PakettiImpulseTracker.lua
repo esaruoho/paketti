@@ -687,7 +687,7 @@ function DoubleSelect()
   -- PHRASE EDITOR branch
   ------------------------------------------------------------------------------
   if middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
-    if renoise.API_VERSION >= 6.2 then
+    if PAKETTI_HAS_PHRASES then
       local phrase = s.selected_phrase
       if not phrase then
         renoise.app():show_error("No phrase is selected!")
@@ -853,7 +853,7 @@ function HalveSelect()
   -- PHRASE EDITOR branch
   ------------------------------------------------------------------------------
   if middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
-    if renoise.API_VERSION >= 6.2 then
+    if PAKETTI_HAS_PHRASES then
       local phrase = s.selected_phrase
       if not phrase then
         renoise.app():show_error("No phrase is selected!")
@@ -1177,7 +1177,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Twice",invoke=function() ShrinkSelection() ShrinkSelection() end}
 
 -- Phrase Editor versions (API 6.2+)
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   -- Helper function for phrase line operations
   function cpclex_phrase_line(from_line, to_line)
     local s = renoise.song()
@@ -1768,7 +1768,7 @@ function PakettiPhraseEditorMarkNoteColumnMarkPhrase()
   renoise.app():show_status(string.format("Selected column %d for entire phrase", column_index))
 end
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-L Mark Note Column/Mark Phrase",invoke=function() PakettiPhraseEditorMarkNoteColumnMarkPhrase() end}
 end
 
@@ -1938,7 +1938,7 @@ function homehome()
 
   -- Check if we're in the phrase editor and have API 6.2+
   if w.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
-    if renoise.API_VERSION >= 6.2 then
+    if PAKETTI_HAS_PHRASES then
       -- Print debug info about phrase editor state
       if s.selected_phrase_note_column then
         oprint("Selected phrase note column:", s.selected_phrase_note_column)
@@ -2052,7 +2052,7 @@ function endend()
 
   -- Check if we're in the phrase editor and have API 6.2+
   if w.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
-    if renoise.API_VERSION >= 6.2 then
+    if PAKETTI_HAS_PHRASES then
       -- Print debug info about phrase editor state
       if s.selected_phrase_note_column then
         oprint("Selected phrase note column:", s.selected_phrase_note_column)
@@ -2129,7 +2129,7 @@ function PlayCurrentLine(should_step)
   local s = renoise.song()
   local sli = s.selected_line_index
   
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_TRIGGER_LINE then
     s:trigger_pattern_line(sli)
   else
     local t = s.transport

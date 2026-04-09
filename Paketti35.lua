@@ -611,7 +611,7 @@
     end end)
 end
 
-if renoise.API_VERSION >= 6.2 then 
+if PAKETTI_API >= 6.2 then
 --[[  renoise.app().window.instrument_box_is_visible=true
   -- Handle instrument properties visibility: 0=Do Nothing, 1=Hide, 2=Show
   if preferences.pakettiInstrumentProperties.value == 1 then

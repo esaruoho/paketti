@@ -245,7 +245,7 @@ local function block_loop_follow_init()
   end
 end
 
-if renoise.API_VERSION >= 6.1 then
+if PAKETTI_API >= 6.1 then
   renoise.tool().tool_finished_loading_observable:add_notifier(block_loop_follow_init)
 else
   renoise.tool().app_new_document_observable:add_notifier(block_loop_follow_init)

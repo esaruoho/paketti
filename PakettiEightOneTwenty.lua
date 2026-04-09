@@ -1068,7 +1068,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   local output_delay_slider = vb:slider{
     min= -100,
     max=100,
-    steps=(renoise.API_VERSION >= 6) and {1,-1} or nil,
+    steps=pakettiSteps(1, -1),
     value=renoise.song().tracks[row_index].output_delay,  -- Initialize with current value
     width=100,
     notifier=function(value)
@@ -1549,7 +1549,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     local yxx_slider = vb:slider{
       min = 0,
       max = 255,
-      steps = (renoise.API_VERSION >= 6) and {1, -1} or nil,
+      steps = pakettiSteps(1, -1),
       value = 32, -- Default to 0x20
       width=100,
       notifier=function(value)
@@ -1772,7 +1772,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     max = 120,
     value = 1,
     width=150,
-    steps = (renoise.API_VERSION >= 6) and {1, -1} or nil,
+    steps = pakettiSteps(1, -1),
     notifier=function(value)
       value = math.floor(value)
       local instrument_index = row_elements.instrument_popup.value
@@ -2425,7 +2425,7 @@ end
     end
   }
   local eq30_button
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_CANVAS then
     eq30_button = vb:button{
       text="EQ30",
       notifier=function()
@@ -2490,7 +2490,7 @@ end
   }
 
   local hyper_edit_button
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_CANVAS then
     hyper_edit_button = vb:button{ text="HyperEdit", notifier=(function(idx)
       return function()
         PakettiEightOneTwentyHighlightRow(row_index)
@@ -2782,7 +2782,7 @@ function create_global_controls()
   end}
 
   fill_empty_label = vb:text{ text="Fill Empty Steps: 0%", style="strong", font="bold",width=140 }
-  fill_empty_slider = vb:slider{min = 0, max = 20, value = 0,width=150, steps = (renoise.API_VERSION >= 6) and {0.1, -0.1} or nil, midi_mapping="Paketti:Paketti Groovebox 8120:Fill Empty Steps Slider", notifier=function(value)
+  fill_empty_slider = vb:slider{min = 0, max = 20, value = 0,width=150, steps = pakettiSteps(0.1, -0.1), midi_mapping="Paketti:Paketti Groovebox 8120:Fill Empty Steps Slider", notifier=function(value)
     if initializing then return end
     fill_empty_label.text="Fill Empty Steps: " .. tostring(math.floor(value)) .. "%"
     if value == 0 then
@@ -3730,7 +3730,7 @@ function pakettiEightSlotsByOneTwentyDialog()
   local global_controls, global_groove_controls, global_buttons, global_step_buttons = create_global_controls()
   -- Add 'Initialize EQ30' to the top control row (6.2+ only — PakettiEQ30 uses Canvas)
   local init_eq30_button
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_CANVAS then
     init_eq30_button = vb:button{
       text = "Initialize EQ30",
       notifier = function()
@@ -3973,7 +3973,7 @@ function pakettiEightSlotsByOneTwentyDialog()
         if inst then
           local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
           local smp = smp_idx and inst.samples[smp_idx] or nil
-          if smp and renoise.API_VERSION >= 6 and smp.beat_sync_mode_observable then
+          if smp and PAKETTI_HAS_BEAT_SYNC_MODE and smp.beat_sync_mode_observable then
             local function on_mode_change()
               local v = pakettiSafeGetBeatSyncMode(smp) or 1
               if v < 1 or v > 3 then v = 1 end

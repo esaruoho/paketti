@@ -3591,7 +3591,7 @@ function PakettiPlayCurrentLineInPhrase()
   temp_line:copy_from(phrase_line)
   
   -- Play the line using the standard pattern trigger
-  if renoise.API_VERSION >= 6.2 then
+  if PAKETTI_HAS_TRIGGER_LINE then
     song:trigger_pattern_line(song.selected_line_index)
   else
     local t = song.transport

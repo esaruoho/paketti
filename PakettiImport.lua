@@ -432,7 +432,7 @@ if should_register_hook("pakettiImportImage") then
 end
 
 -- CSV Import Hook (.csv) - PCMWriter - API 6.2+ only
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_API >= 6.2 then
   if should_register_hook("pakettiImportCSV") then
     if not renoise.tool():has_file_import_hook("sample", {"csv"}) then
       renoise.tool():add_file_import_hook({

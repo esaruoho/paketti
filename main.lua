@@ -815,7 +815,7 @@ function PakettiOnNewDocument()
   end
 
   -- 11. Initialize Audition on Line Change from preference (API 6.2+ only)
-  if renoise.API_VERSION >= 6.2 and preferences.pakettiAuditionOnLineChangeEnabled then
+  if PAKETTI_HAS_TRIGGER_LINE and preferences.pakettiAuditionOnLineChangeEnabled then
     PakettiAuditionOnLineChangeEnabled = preferences.pakettiAuditionOnLineChangeEnabled.value
     if PakettiAuditionOnLineChangeEnabled then
       PakettiToggleAuditionCurrentLineOnRowChange()
@@ -1112,7 +1112,7 @@ timed_require("PakettiFuzzySampleSearch")
 timed_require("PakettiKeyBindings")
 
 -- Phrase-related modules require API 6.2+ (Renoise 3.5.4+)
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   timed_require("PakettiPhraseEditor")
   timed_require("PakettiPhraseWorkflow")
   timed_require("PakettiPhraseTransportRecording")
@@ -1252,7 +1252,7 @@ end
 timed_require("PakettiImageToSample")
 timed_require("PakettiSliceEffectStepSequencer")
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_API >= 6.2 then
   timed_require("Paketti35")
   timed_require("PakettiArpeggiator")
   timed_require("PakettiPCMWriter")

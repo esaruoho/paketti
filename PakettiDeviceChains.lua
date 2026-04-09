@@ -15,7 +15,7 @@ function PakettiRandomDeviceChain(path)
   for file in io.popen('ls "' .. path .. '"'):lines() do
     if file:match("%.xrnt$") or file:match("%.xrdp$") then
       -- On API < 6.1, skip presets containing v2 devices
-      if renoise.API_VERSION >= 6.1 or not v2_only_preset_files[file] then
+      if PAKETTI_API >= 6.1 or not v2_only_preset_files[file] then
         table.insert(files, file)
       end
     end
@@ -70,7 +70,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain Paketti Doo
 end}
 
 -- ClippyClip uses Distortion2Device (API 6.1+ / Renoise 3.3+)
-if renoise.API_VERSION >= 6.1 then
+if PAKETTI_API >= 6.1 then
   renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain ClippyClip",invoke=function()
     PakettiLoadDevicePreset("DeviceChains/ClippyClip.xrdp")
     for i = 2, #renoise.song().selected_track.devices do
@@ -90,7 +90,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain Track Compr
 end}
 
 -- Low - High Cut presets use DigitalFilterDevice (API 6.1+ / Renoise 3.3+)
-if renoise.API_VERSION >= 6.1 then
+if PAKETTI_API >= 6.1 then
   renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain Low - High Cut (steep) (NPC1)",invoke=function()
     PakettiLoadDevicePreset("DeviceChains/Low - High Cut (steep) (NPC1).xrdp")
   end}

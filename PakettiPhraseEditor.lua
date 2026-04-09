@@ -332,7 +332,7 @@ function enable_phrase_follow()
   local w = renoise.app().window
 
   -- Check API version first
-  if renoise.API_VERSION < 6.2 then
+  if not PAKETTI_HAS_PHRASES then
     renoise.app():show_error("Phrase Editor observation requires API version 6.2 or higher!")
     return
   end
@@ -377,7 +377,7 @@ function observe_phrase_playhead()
   local w = renoise.app().window
 
   -- Check API version first
-  if renoise.API_VERSION < 6.2 then
+  if not PAKETTI_HAS_PHRASES then
     renoise.app():show_error("Phrase Editor observation requires API version 6.2 or higher!")
     return
   end
@@ -673,13 +673,13 @@ function ShrinkSelectionReplicatePhrase()
 end
 
 -- Keybindings for Phrase Editor Replicate versions (API 6.2+)
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-F Expand Selection Replicate",invoke=function() ExpandSelectionReplicatePhrase() end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Replicate",invoke=function() ShrinkSelectionReplicatePhrase() end}
 end
 
 -- Initialize phrase follow when a song becomes available (deferred - never call at boot time)
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool().app_new_document_observable:add_notifier(function()
     if phrase_follow_enabled then
       enable_phrase_follow()
@@ -1312,7 +1312,7 @@ function PakettiPhraseEditorTranspose(steps)
   end
 end
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Transpose Octave Up (Selection/Phrase)",invoke=function() PakettiPhraseEditorTranspose(12) end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Transpose Octave Down (Selection/Phrase)",invoke=function() PakettiPhraseEditorTranspose(-12) end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Transpose +1 (Selection/Phrase)",invoke=function() PakettiPhraseEditorTranspose(1) end}
@@ -1541,7 +1541,7 @@ function PakettiPhraseEditorShiftNotes(direction)
   end
 end
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker Shift-Right Selection In Phrase",invoke=function() PakettiPhraseEditorShift("right") end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker Shift-Left Selection In Phrase",invoke=function() PakettiPhraseEditorShift("left") end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker Shift-Down Selection In Phrase",invoke=function() PakettiPhraseEditorShift("down") end}
@@ -1912,7 +1912,7 @@ function PakettiPhraseEditorNudgeWithDelay(direction)
   renoise.app():show_status("Nudge " .. direction .. " with delay applied in phrase.")
 end
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Down",invoke=function() PakettiPhraseEditorNudge("down") end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Up",invoke=function() PakettiPhraseEditorNudge("up") end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge with Delay (Down)",invoke=function() PakettiPhraseEditorNudgeWithDelay("down") end}
@@ -2469,7 +2469,7 @@ function PakettiPhraseEditorNudgeByRow(direction)
   end
 end
 
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Up by Delay",invoke=function() PakettiPhraseEditorNudgeByDelay(-1) end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Down by Delay",invoke=function() PakettiPhraseEditorNudgeByDelay(1) end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge Up by Row",invoke=function() PakettiPhraseEditorNudgeByRow(-1) end}
@@ -2659,7 +2659,7 @@ function PakettiPhraseEditorNudgeAndMoveSelectionDown()
 end
 
 -- Add keybindings
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge and Move Selection Up", invoke=PakettiPhraseEditorNudgeAndMoveSelectionUp}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Nudge and Move Selection Down", invoke=PakettiPhraseEditorNudgeAndMoveSelectionDown}
   renoise.tool():add_midi_mapping{name="Paketti:Phrase Editor Nudge and Move Selection Up", invoke=function(message) if message:is_trigger() then PakettiPhraseEditorNudgeAndMoveSelectionUp() end end}
@@ -2890,7 +2890,7 @@ function PakettiPhraseEditorOrderNotesAllPhrases()
 end
 
 -- Add keybindings and menu entries
-if renoise.API_VERSION >= 6.2 then
+if PAKETTI_HAS_PHRASES then
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Order Notes Current Phrase",invoke=function() PakettiPhraseEditorOrderNotesCurrentPhrase() end}
   renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Order Notes All Phrases",invoke=function() PakettiPhraseEditorOrderNotesAllPhrases() end}
   PakettiAddMenuEntry{name="Phrase Editor:Paketti:Order Notes:Order Notes Current Phrase",invoke=function() PakettiPhraseEditorOrderNotesCurrentPhrase() end}

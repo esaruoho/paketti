@@ -16,7 +16,7 @@ local canvas_content_margin = 10
 
 -- API Version Detection
 local function is_canvas_api_available()
-  return renoise.API_VERSION >= 6.2
+  return PAKETTI_HAS_CANVAS
 end
 
 -- Volume dB conversion
