@@ -705,7 +705,6 @@ function pakettiTimestretchDialog()
         max = 119,
         value = 48,
         width=300,
-        steps = {1, 12},  -- Small steps = 1, large steps = 12 (one octave)
         notifier=function(new_value)
             new_value = math.floor(new_value)
             
@@ -773,7 +772,6 @@ function pakettiTimestretchDialog()
         max = 256,
         value = math.min(256, song.transport.bpm),
         width=300,
-        steps = {1, 10},  -- Small steps = 1, large steps = 10
         notifier=function(new_value)
             new_value = math.floor(new_value)  -- Ensure whole number
             song.transport.bpm = new_value
@@ -791,7 +789,6 @@ function pakettiTimestretchDialog()
         max = 256,
         value = math.min(256, song.transport.lpb),
         width=300,
-        steps = {1, 16},  -- Small steps = 1, large steps = 16
         notifier=function(new_value)
             new_value = math.floor(new_value)  -- Ensure whole number
             song.transport.lpb = new_value
@@ -825,7 +822,6 @@ step_slider = vb:slider{
     max = 64,  -- Direct range from 1 to 64
     value = 1,
     width=200,
-    steps = {1, -1},  -- Small steps = 1, large steps = 1
     notifier=function(new_value)
         -- Force to nearest integer and clamp to valid range
         new_value = math.max(1, math.min(64, math.floor(new_value)))

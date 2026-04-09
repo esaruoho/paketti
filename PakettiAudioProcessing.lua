@@ -60,7 +60,6 @@ local function createProtrackerModDialog()
       vb:slider{
         min = -128,
         max = 127,
-        steps = {1, -1},
         value = protrackerModSpeed,
         width = 200,
         notifier = function(value)

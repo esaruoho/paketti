@@ -726,7 +726,6 @@ function pakettiBpmFromSampleDialog()
         max = get_current_range().range,
         value = 0,
         width = 370,  -- Full dialog width
-        steps = {1, -1},  -- Fine step increments for precision
         notifier = function(value)
           -- Skip notifier during initialization to prevent overwriting sample values
           if initializing_vinyl_slider then
@@ -1434,7 +1433,6 @@ function show_sample_pitch_modifier_dialog()
         max = get_current_range().range,
         value = 0,
         width = 400,  -- Slightly smaller to fit the range switch
-        steps = {1, -1},
         notifier = function(value)
           -- Skip notifier during initialization to prevent overwriting sample values
           if initializing_vinyl_slider then
@@ -1565,7 +1563,6 @@ function show_sample_pitch_modifier_dialog()
         max = get_current_range().range,
         value = 0,
         width = 392,  -- Match combined width of controls above
-        steps = {1, -1},
         notifier = function(value)
           -- Skip notifier during initialization to prevent overwriting sample values
           if initializing_vinyl_slider then

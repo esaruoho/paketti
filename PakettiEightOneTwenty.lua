@@ -1068,7 +1068,6 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   local output_delay_slider = vb:slider{
     min= -100,
     max=100,
-    steps={1,-1},
     value=renoise.song().tracks[row_index].output_delay,  -- Initialize with current value
     width=100,
     notifier=function(value)
@@ -1549,7 +1548,6 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     local yxx_slider = vb:slider{
       min = 0,
       max = 255,
-      steps = {1, -1},
       value = 32, -- Default to 0x20
       width=100,
       notifier=function(value)
@@ -1772,7 +1770,6 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     max = 120,
     value = 1,
     width=150,
-    steps = {1, -1},
     notifier=function(value)
       value = math.floor(value)
       local instrument_index = row_elements.instrument_popup.value
@@ -2782,7 +2779,7 @@ function create_global_controls()
   end}
 
   fill_empty_label = vb:text{ text="Fill Empty Steps: 0%", style="strong", font="bold",width=140 }
-  fill_empty_slider = vb:slider{min = 0, max = 20, value = 0,width=150, steps = {0.1, -0.1}, midi_mapping="Paketti:Paketti Groovebox 8120:Fill Empty Steps Slider", notifier=function(value)
+  fill_empty_slider = vb:slider{min = 0, max = 20, value = 0,width=150, midi_mapping="Paketti:Paketti Groovebox 8120:Fill Empty Steps Slider", notifier=function(value)
     if initializing then return end
     fill_empty_label.text="Fill Empty Steps: " .. tostring(math.floor(value)) .. "%"
     if value == 0 then

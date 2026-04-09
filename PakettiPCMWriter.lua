@@ -8438,7 +8438,6 @@ function PCMWriterShowPcmDialog()
         max = 64,
         value = shape_segments,
         width = 120,  -- Much larger slider
-        steps = {1, -1},  -- Step by 1 for proper integer increments
         notifier = function(value)
           shape_segments = math.floor(value)
           hex_field_has_focus = false
