@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-09 - Feature: Paketti Function Search added to Main Menu Options
+
+Added `Main Menu:Options:Paketti Function Search...` menu entry so that the Function Search dialog is easy to find from the Options menu. The entry invokes `pakettiAutocompleteToggle`, the same function used by the existing keybinding `Global:Paketti:Paketti Function Search...` and the `Main Menu:Tools:Paketti Gadgets` entry.
+
 ### 2026-04-09 - Fix: All PLAYMODE constants crash on Renoise 3.1.1
 
 All three `renoise.PatternTrackAutomation.PLAYMODE_*` class statics (`PLAYMODE_POINTS`, `PLAYMODE_LINES`, `PLAYMODE_CURVES`) do not exist in API 5 (Renoise 3.1.1) — even reading them causes a fatal `std::logic_error` at boot. Replaced all 53 references across 6 files with safe global constants `PAKETTI_PLAYMODE_POINTS` (1), `PAKETTI_PLAYMODE_LINES` (2), `PAKETTI_PLAYMODE_CURVES` (3 on API 6+, degrades to 2 on API 5) defined in `PakettiCompat.lua` using hardcoded numeric values. Files changed: `PakettiAutomation.lua`, `PakettiAutomationCurves.lua`, `PakettiAutomationStack.lua`, `PakettiCanvasExperiments.lua`, `PakettiEQ30.lua`, `PakettiHyperEdit.lua`.

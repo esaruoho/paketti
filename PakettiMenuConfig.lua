@@ -3476,7 +3476,8 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Amig
 end
 
 -- Main Menu Options
-renoise.tool():add_menu_entry{name="Main Menu:Options:Automatically Open Selected Track Device Editors Toggle",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,selected=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Function Search...",invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="--Main Menu:Options:Automatically Open Selected Track Device Editors Toggle",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,selected=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
 if PAKETTI_API >= 6.2 then
   renoise.tool():add_menu_entry{name="Main Menu:Options:Open Parameter Editor on Device Selection Toggle",invoke=PakettiCanvasExperimentsToggleAutoOpen,selected=PakettiCanvasExperimentsAutoOpenEnabled}
   renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Sample Effect Generator",invoke = PakettiSampleEffectGeneratorInit}
