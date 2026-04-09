@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-09 - Fix: PLAYMODE_CURVES crash on Renoise 3.1.1
+
+Added a polyfill in `PakettiCompat.lua` for `renoise.PatternTrackAutomation.PLAYMODE_CURVES`, which was added in API 6 (Renoise 3.2). On Renoise 3.1.1 (API 5), accessing this constant caused a fatal `std::logic_error` at boot because `PakettiAutomationCurves.lua` calls `PakettiAutomationCurvesInitShapes()` at load time. The polyfill maps `PLAYMODE_CURVES` to `PLAYMODE_LINES` on older APIs — automation curves gracefully degrade to linear interpolation. Also added `PAKETTI_HAS_CURVES` flag for code that needs to distinguish real curves from the fallback.
+
 ### 2026-04-09 - Feature: Renoise 2.8 (API 4) compatibility — Paketti 2.8
 
 Paketti now supports Renoise 2.8 (API version 4). The module loading in `main.lua` has been restructured into three clearly separated tiers:
