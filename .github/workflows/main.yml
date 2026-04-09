@@ -43,8 +43,8 @@ jobs:
           tag_name: ${{ steps.gen.outputs.tag_name }}
           release_name: Release ${{ steps.gen.outputs.tag_name }}
           body: |
-            **Renoise 3.2 – 3.5+** → download the standard .xrnx
-            **Renoise 3.1.x** → download the Renoise3.1 .xrnx
+            **Renoise 3.2 – 3.5+** → download **Paketti** (standard .xrnx)
+            **Renoise 3.1.x** → download **Paketti 3.1** (Paketti31 .xrnx) — installable side-by-side
 
             Support Paketti development: https://github.com/sponsors/esaruoho
           draft: false
@@ -135,10 +135,14 @@ jobs:
           find . -type f -name "*.lua" -exec sed -i "s/,\s*style\s*=\s*'[^']*'//g" {} +
           find . -type f -name "*.lua" -exec sed -i "s/style\s*=\s*'[^']*'\s*,\s*//g" {} +
 
-      # Change manifest API version from 6 to 5
-      - name: Set API version to 5
+      # Change manifest for side-by-side installation with the API 6 build.
+      # Different Id allows both versions to coexist in Renoise's Tools folder.
+      - name: Set manifest to API 5 (Paketti 3.1)
         run: |
           sed -i 's/<ApiVersion>6<\/ApiVersion>/<ApiVersion>5<\/ApiVersion>/g' manifest.xml
+          sed -i 's/<Id>org.lackluster.Paketti<\/Id>/<Id>org.lackluster.Paketti31<\/Id>/g' manifest.xml
+          sed -i 's/<Name>Paketti<\/Name>/<Name>Paketti 3.1<\/Name>/g' manifest.xml
+          sed -i 's/<Version>3.54<\/Version>/<Version>3.1<\/Version>/g' manifest.xml
 
       # Verify no syntax errors were introduced by the sed transformations
       - name: Syntax check all Lua files
@@ -160,7 +164,7 @@ jobs:
 
       - name: Set filename
         run: |
-          echo "FILENAME=org.lackluster.Paketti_V3.54_Renoise3.1_${{ needs.create-release.outputs.tag_name }}.xrnx" >> $GITHUB_ENV
+          echo "FILENAME=org.lackluster.Paketti31_V3.1_Renoise3.1_${{ needs.create-release.outputs.tag_name }}.xrnx" >> $GITHUB_ENV
 
       - name: Zip XRNX Package (API 5)
         run: |

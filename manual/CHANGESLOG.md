@@ -12,6 +12,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-09 - Improvement: Paketti 3.1 now installable side-by-side with Paketti 3.5
+
+Updated the CI/CD build pipeline so the Renoise 3.1.x legacy build uses a different tool identity, allowing both versions to be installed simultaneously in Renoise's Tools folder.
+
+**Changes to the API 5 (Renoise 3.1.x) build:**
+- `<Id>` changed from `org.lackluster.Paketti` to `org.lackluster.Paketti31` — Renoise uses this to identify tools, so different Ids = side-by-side installation
+- `<Name>` changed from `Paketti` to `Paketti 3.1` — clearly distinguishes it in Renoise's Tools menu
+- `<Version>` changed from `3.54` to `3.1` — matches the target Renoise version
+- Release filename updated to reflect the new identity
+
+Users running Renoise 3.1.x and 3.5 on the same machine can now have both "Paketti" and "Paketti 3.1" installed without conflicts.
+
 ### 2026-04-09 - Feature: Centralised PakettiCompat.lua compatibility layer
 
 Created `PakettiCompat.lua` — a single centralised file for all API-version compatibility code. This replaces the scattered `renoise.API_VERSION` checks throughout the codebase with clean global flags and helper functions.
