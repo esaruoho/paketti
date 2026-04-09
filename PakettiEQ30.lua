@@ -1715,7 +1715,7 @@ function create_eq_dialog()
           end
           local mode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
           if value == 2 then mode = renoise.PatternTrackAutomation.PLAYMODE_LINES
-          elseif value == 3 then mode = renoise.PatternTrackAutomation.PLAYMODE_CURVES end
+          elseif value == 3 then mode = PAKETTI_PLAYMODE_CURVES end
           eq30_set_automation_playmode(mode)
         end
       }

@@ -2758,12 +2758,12 @@ renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode (N
 renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode (Previous)",invoke=PakettiAutomationPlayModeChange_Previous}
 renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode 01 Points",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_POINTS) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode 02 Lines",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_LINES) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode 03 Curves",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_CURVES) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode 03 Curves",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(PAKETTI_PLAYMODE_CURVES) end}
 renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode (Next)",invoke=PakettiAutomationPlayModeChange_Next}
 renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode (Previous)",invoke=PakettiAutomationPlayModeChange_Previous}
 renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 01 Points",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_POINTS) end}
 renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 02 Lines",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_LINES) end}
-renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 03 Curves",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_CURVES) end}
+renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 03 Curves",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(PAKETTI_PLAYMODE_CURVES) end}
 
 
 function clone_sequence_with_automation_only()
@@ -3383,7 +3383,7 @@ function read_fx_to_automation(move)
                 elseif preferences.pakettiAutomationFormat.value == 2 then
                   automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
                 else
-                  automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_CURVES
+                  automation.playmode = PAKETTI_PLAYMODE_CURVES
                 end
                 print(string.format("Added mixer point to automation for %s at line %d with value %.3f", 
                                  param.name, line_index, amount))
@@ -3433,7 +3433,7 @@ function read_fx_to_automation(move)
                         elseif preferences.pakettiAutomationFormat.value == 2 then
                           automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
                         else
-                          automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_CURVES
+                          automation.playmode = PAKETTI_PLAYMODE_CURVES
                         end
                         print(string.format("Added point to automation for device %d %s at line %d with value %.3f", 
                                         device_num, param.name, line_index, amount))
@@ -3745,7 +3745,7 @@ function snapshot_all_devices_to_automation()
         elseif preferences.pakettiAutomationFormat.value == 2 then
           automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
         else
-          automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_CURVES
+          automation.playmode = PAKETTI_PLAYMODE_CURVES
         end
         
         print(string.format("Created automation for device %s parameter %d (%s) with value %.3f", 
@@ -3802,7 +3802,7 @@ function snapshot_selected_device_to_automation()
       elseif preferences.pakettiAutomationFormat.value == 2 then
         automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
       else
-        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_CURVES
+        automation.playmode = PAKETTI_PLAYMODE_CURVES
       end
       
       automation_count = automation_count + 1
@@ -3952,7 +3952,7 @@ function PakettiAutomationGlobalSetToCurves()
       
       -- Iterate through all automation in the track
       for _, automation in ipairs(track.automation) do
-        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_CURVES
+        automation.playmode = PAKETTI_PLAYMODE_CURVES
         envelope_count = envelope_count + 1
       end
     end

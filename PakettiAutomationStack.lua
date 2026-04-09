@@ -1186,7 +1186,7 @@ function PakettiAutomationStack_BuildBackgroundCache(W, H, num_lines, sel)
           
           -- Pre-calculate all curve segments
           if mode == renoise.PatternTrackAutomation.PLAYMODE_LINES or 
-             mode == renoise.PatternTrackAutomation.PLAYMODE_CURVES then
+             mode == PAKETTI_PLAYMODE_CURVES then
             for seg = 1, (#points - 1) do
               local p0 = points[math.max(1, seg-1)]
               local p1c = points[seg]
@@ -1202,7 +1202,7 @@ function PakettiAutomationStack_BuildBackgroundCache(W, H, num_lines, sel)
               if x2 >= 0 and x1 <= W then
                 local path = {x1=x1, y1=y1, x2=x2, y2=y2, points_data={}}
                 
-                if mode == renoise.PatternTrackAutomation.PLAYMODE_CURVES then
+                if mode == PAKETTI_PLAYMODE_CURVES then
                   -- Reduce quality for background automations (half the steps)
                   local steps = math.max(4, math.floor((x2 - x1) / 10))
                   local function hermite(t, y_0, y_1, y_2, y_3)
@@ -1276,7 +1276,7 @@ function PakettiAutomationStack_BuildBackgroundCache(W, H, num_lines, sel)
             ctx:fill()
           end
         end
-      elseif auto_cmd.mode == renoise.PatternTrackAutomation.PLAYMODE_CURVES then
+      elseif auto_cmd.mode == PAKETTI_PLAYMODE_CURVES then
         -- Draw curves mode using pre-calculated points
         for _, path in ipairs(auto_cmd.paths) do
           ctx:begin_path()
@@ -1618,7 +1618,7 @@ end
 
 function PakettiAutomationStack_PlaymodeForIndex(idx)
   if idx == 1 then return renoise.PatternTrackAutomation.PLAYMODE_POINTS end
-  if idx == 3 then return renoise.PatternTrackAutomation.PLAYMODE_CURVES end
+  if idx == 3 then return PAKETTI_PLAYMODE_CURVES end
   return renoise.PatternTrackAutomation.PLAYMODE_LINES
 end
 

@@ -99,11 +99,14 @@ end
 -- 2b. PLAYMODE_CURVES constant  (API 6+)
 --     On API 5 (Renoise 3.1.1) only PLAYMODE_POINTS (1) and
 --     PLAYMODE_LINES (2) exist.  PLAYMODE_CURVES (3) was added in API 6.
---     We polyfill it so code compiles — curves degrade to lines on 3.1.1.
+--     We use a global constant so code compiles on all versions.
+--     On 3.1.1, curves degrade gracefully to lines.
 ------------------------------------------------------------------------
 
-if not renoise.PatternTrackAutomation.PLAYMODE_CURVES then
-  renoise.PatternTrackAutomation.PLAYMODE_CURVES = renoise.PatternTrackAutomation.PLAYMODE_LINES
+if PAKETTI_API >= 6 then
+  PAKETTI_PLAYMODE_CURVES = renoise.PatternTrackAutomation.PLAYMODE_CURVES
+else
+  PAKETTI_PLAYMODE_CURVES = renoise.PatternTrackAutomation.PLAYMODE_LINES
 end
 
 PAKETTI_HAS_CURVES = (PAKETTI_API >= 6) -- true only when real curves exist

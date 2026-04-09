@@ -14,7 +14,7 @@ What supporters funded this month:
 
 ### 2026-04-09 - Fix: PLAYMODE_CURVES crash on Renoise 3.1.1
 
-Added a polyfill in `PakettiCompat.lua` for `renoise.PatternTrackAutomation.PLAYMODE_CURVES`, which was added in API 6 (Renoise 3.2). On Renoise 3.1.1 (API 5), accessing this constant caused a fatal `std::logic_error` at boot because `PakettiAutomationCurves.lua` calls `PakettiAutomationCurvesInitShapes()` at load time. The polyfill maps `PLAYMODE_CURVES` to `PLAYMODE_LINES` on older APIs — automation curves gracefully degrade to linear interpolation. Also added `PAKETTI_HAS_CURVES` flag for code that needs to distinguish real curves from the fallback.
+Replaced the crashing polyfill approach (you cannot assign new static fields to Renoise built-in classes) with a global constant `PAKETTI_PLAYMODE_CURVES`. On API 6+ it holds the real `renoise.PatternTrackAutomation.PLAYMODE_CURVES` value; on API 5 it falls back to `PLAYMODE_LINES`. All 14 references across 6 files (`PakettiAutomation.lua`, `PakettiAutomationCurves.lua`, `PakettiAutomationStack.lua`, `PakettiCanvasExperiments.lua`, `PakettiEQ30.lua`) now use `PAKETTI_PLAYMODE_CURVES` instead of accessing the class constant directly.
 
 ### 2026-04-09 - Feature: Renoise 2.8 (API 4) compatibility — Paketti 2.8
 
