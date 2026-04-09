@@ -12,9 +12,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-04-09 - Fix: PakettieSpeak.lua crash on Renoise 3.1.1 — unknown property 'steps'
+### 2026-04-09 - Fix: Full Renoise 3.1.1 compatibility — remove all `steps` properties from ViewBuilder widgets
 
-Removed all `steps` properties from `valuebox` widgets in PakettieSpeak.lua. The `steps` property on `valuebox` is not available in Renoise 3.1.1 (it was added in a later API version). Because PakettieSpeak.lua constructs its ViewBuilder widgets at module load time (not inside a dialog function), the unsupported property caused a fatal `std::logic_error` at boot that prevented the entire tool from loading. Removed 5 occurrences: Word Gap, Pitch Capitals, Pitch, Amplitude, and Speed valueboxes.
+Removed all `steps` properties from `valuebox` and `slider` widgets across the entire codebase for full Renoise 3.1.1 API compatibility. The `steps` property was added in a later API version and causes crashes on 3.1.1. Removed 35 total occurrences across 10 files: PakettieSpeak.lua (5 — boot-time crash fix), PakettiPhraseGenerator.lua (5), PakettiStemLoader.lua (5), PakettiFill.lua (6), PakettiEightOneTwenty.lua (4), PakettiStretch.lua (4), PakettiPitchControl.lua (3), PakettiMidi.lua (2), PakettiPCMWriter.lua (1), PakettiAudioProcessing.lua (1). Valueboxes and sliders still function — arrow keys default to ±1 step instead of custom increments.
 
 ### 2026-04-08 - Feature: Write Notes Flood variants — write all 120 notes regardless of sample mappings
 
