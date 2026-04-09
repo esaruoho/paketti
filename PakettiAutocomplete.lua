@@ -1533,36 +1533,38 @@ local function filter_commands(filter_text)
             end
           end
         else
-          -- Single-word search: prefer the group representative  
-          if not added_commands[representative.name] then
-            local score = calculate_command_score(representative, search_terms)
-            
-            -- Check for exact abbreviation match and give massive priority bonus
-            for abbrev, full_command in pairs(user_abbreviations) do
-              if abbrev:lower() == filter_lower and representative.name:lower() == full_command:lower() then
-                score = score + 50000  -- MASSIVE bonus for exact abbreviation match
-                print("ABBREVIATION MATCH BONUS: '" .. abbrev .. "' -> '" .. representative.name .. "' (+50000)")
-                break
+          -- Single-word search: show ALL commands in the group, not just the representative
+          for _, command in ipairs(group_commands) do
+            if not added_commands[command.name] then
+              local score = calculate_command_score(command, search_terms)
+
+              -- Check for exact abbreviation match and give massive priority bonus
+              for abbrev, full_command in pairs(user_abbreviations) do
+                if abbrev:lower() == filter_lower and command.name:lower() == full_command:lower() then
+                  score = score + 50000  -- MASSIVE bonus for exact abbreviation match
+                  print("ABBREVIATION MATCH BONUS: '" .. abbrev .. "' -> '" .. command.name .. "' (+50000)")
+                  break
+                end
               end
-            end
-            
-            -- Set priority reason
-            representative.priority_reason = nil
-            for _, fav_name in ipairs(favorite_commands) do
-              if representative.name == fav_name then
-                representative.priority_reason = "[FAVORITE]"
-                break
+
+              -- Set priority reason
+              command.priority_reason = nil
+              for _, fav_name in ipairs(favorite_commands) do
+                if command.name == fav_name then
+                  command.priority_reason = "[FAVORITE]"
+                  break
+                end
               end
-            end
-            for _, recent_name in ipairs(recent_commands) do
-              if representative.name == recent_name then
-                representative.priority_reason = "[RECENTLY]"
-                break
+              for _, recent_name in ipairs(recent_commands) do
+                if command.name == recent_name then
+                  command.priority_reason = "[RECENTLY]"
+                  break
+                end
               end
+
+              table.insert(scored_commands, {command = command, score = score})
+              added_commands[command.name] = true
             end
-            
-            table.insert(scored_commands, {command = representative, score = score})
-            added_commands[representative.name] = true
           end
         end
       end
