@@ -842,7 +842,6 @@ local eSpeakgapbox= vb:row{
           min = 1,
           max = 10000,
           value = eSpeak.word_gap.value,
-          steps = {1, 10, 100},
           notifier=function(gap)
             eSpeak.word_gap.value = gap
             print("Word Gap set to:", gap)
@@ -858,7 +857,6 @@ local eSpeakpitchcap=  vb:row{
           min = 1,
           max = 100,
           value = eSpeak.capitals.value,
-          steps = {1, 5},
           notifier=function(capitals)
             eSpeak.capitals.value = capitals
             print("Pitch Capitals set to:", capitals)
@@ -874,7 +872,6 @@ local eSpeakpitchbox=     vb:row{
           min = 0,
           max = 99,
           value = eSpeak.pitch.value,
-          steps = {1, 5},
           notifier=function(pitch)
             eSpeak.pitch.value = pitch
             print("Pitch set to:", pitch)
@@ -890,7 +887,6 @@ local eSpeakamplitude=      vb:row{
           min = 0,
           max = 200,
           value = eSpeak.amplitude.value,
-          steps = {1, 5},
           notifier=function(amplitude)
             eSpeak.amplitude.value = amplitude
             print("Amplitude set to:", amplitude)
@@ -906,7 +902,6 @@ local eSpeakamplitude=      vb:row{
           min = 1,
           max = 500,
           value = eSpeak.speed.value,
-          steps = {1, 5},
           notifier=function(speed)
             eSpeak.speed.value = speed
             print("Speed set to:", speed)

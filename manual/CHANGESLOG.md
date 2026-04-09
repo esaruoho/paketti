@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-09 - Fix: PakettieSpeak.lua crash on Renoise 3.1.1 — unknown property 'steps'
+
+Removed all `steps` properties from `valuebox` widgets in PakettieSpeak.lua. The `steps` property on `valuebox` is not available in Renoise 3.1.1 (it was added in a later API version). Because PakettieSpeak.lua constructs its ViewBuilder widgets at module load time (not inside a dialog function), the unsupported property caused a fatal `std::logic_error` at boot that prevented the entire tool from loading. Removed 5 occurrences: Word Gap, Pitch Capitals, Pitch, Amplitude, and Speed valueboxes.
+
 ### 2026-04-08 - Feature: Write Notes Flood variants — write all 120 notes regardless of sample mappings
 
 Added 12 new "Flood" variants of Write Notes. Unlike the standard Write Notes functions (which only write notes that have sample mappings), the Flood variants write ALL 120 notes (C-0 through B-9) regardless of whether the instrument has samples mapped to those notes. This is useful for "flooding" a pattern with note data that doesn't necessarily need to trigger a sample — for example, controlling external MIDI gear, testing, or creative purposes.
