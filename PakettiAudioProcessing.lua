@@ -60,6 +60,7 @@ local function createProtrackerModDialog()
       vb:slider{
         min = -128,
         max = 127,
+        steps = (renoise.API_VERSION >= 6) and {1, -1} or nil,
         value = protrackerModSpeed,
         width = 200,
         notifier = function(value)

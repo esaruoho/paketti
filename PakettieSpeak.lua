@@ -841,6 +841,7 @@ local eSpeakgapbox= vb:row{
           width=valuebox_width,
           min = 1,
           max = 10000,
+          steps = (renoise.API_VERSION >= 6) and {1, 10, 100} or nil,
           value = eSpeak.word_gap.value,
           notifier=function(gap)
             eSpeak.word_gap.value = gap
@@ -856,6 +857,7 @@ local eSpeakpitchcap=  vb:row{
           width=valuebox_width,
           min = 1,
           max = 100,
+          steps = (renoise.API_VERSION >= 6) and {1, 5} or nil,
           value = eSpeak.capitals.value,
           notifier=function(capitals)
             eSpeak.capitals.value = capitals
@@ -871,6 +873,7 @@ local eSpeakpitchbox=     vb:row{
           width=valuebox_width,
           min = 0,
           max = 99,
+          steps = (renoise.API_VERSION >= 6) and {1, 5} or nil,
           value = eSpeak.pitch.value,
           notifier=function(pitch)
             eSpeak.pitch.value = pitch
@@ -886,6 +889,7 @@ local eSpeakamplitude=      vb:row{
           width=valuebox_width,
           min = 0,
           max = 200,
+          steps = (renoise.API_VERSION >= 6) and {1, 5} or nil,
           value = eSpeak.amplitude.value,
           notifier=function(amplitude)
             eSpeak.amplitude.value = amplitude
@@ -901,6 +905,7 @@ local eSpeakamplitude=      vb:row{
           width=valuebox_width,
           min = 1,
           max = 500,
+          steps = (renoise.API_VERSION >= 6) and {1, 5} or nil,
           value = eSpeak.speed.value,
           notifier=function(speed)
             eSpeak.speed.value = speed

@@ -2120,6 +2120,7 @@ function randomize_all_settings()
          min = 1,
          max = 32,
          width = 150,
+         steps = (renoise.API_VERSION >= 6) and {1, 4} or nil,  -- Small step: 1, Big step: 4
          value = current_settings.pattern_length,
          notifier=function(value) pattern_length_notifier(value) end
        },
@@ -2186,6 +2187,7 @@ function randomize_all_settings()
          max = 32,
          value = math.floor(current_settings.note_count),
          width = 250,
+         steps = (renoise.API_VERSION >= 6) and {1, 4} or nil,  -- Small step: 1, Big step: 4
          notifier=function(value) note_count_slider_notifier(value)
          end
        
@@ -2320,6 +2322,7 @@ function randomize_all_settings()
          max = 1,
          value = current_settings.min_volume,
          width = 120,
+         steps = (renoise.API_VERSION >= 6) and {0.05, 0.1} or nil,  -- Small step: 5%, Big step: 10%
          notifier=function(value)
            if not value then return end
            current_settings.min_volume = value
@@ -2334,6 +2337,7 @@ function randomize_all_settings()
          max = 1,
          value = current_settings.max_volume,
          width = 120,
+         steps = (renoise.API_VERSION >= 6) and {0.05, 0.1} or nil,  -- Small step: 5%, Big step: 10%
          notifier=function(value)
            if not value then return end
            current_settings.max_volume = value
@@ -2453,6 +2457,7 @@ function randomize_all_settings()
          max = 1,
          value = current_settings.shuffle,
          width = 250,
+         steps = (renoise.API_VERSION >= 6) and {0.01, 0.1} or nil,  -- Small step: 1%, Big step: 10%
          notifier=function(value)
            if not value then return end
            current_settings.shuffle = value

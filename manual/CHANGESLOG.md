@@ -12,9 +12,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-04-09 - Fix: Full Renoise 3.1.1 compatibility — remove all `steps` properties from ViewBuilder widgets
+### 2026-04-09 - Fix: Version-guarded `steps` properties for dual Renoise 3.1.1 / 3.5 compatibility
 
-Removed all `steps` properties from `valuebox` and `slider` widgets across the entire codebase for full Renoise 3.1.1 API compatibility. The `steps` property was added in a later API version and causes crashes on 3.1.1. Removed 35 total occurrences across 10 files: PakettieSpeak.lua (5 — boot-time crash fix), PakettiPhraseGenerator.lua (5), PakettiStemLoader.lua (5), PakettiFill.lua (6), PakettiEightOneTwenty.lua (4), PakettiStretch.lua (4), PakettiPitchControl.lua (3), PakettiMidi.lua (2), PakettiPCMWriter.lua (1), PakettiAudioProcessing.lua (1). Valueboxes and sliders still function — arrow keys default to ±1 step instead of custom increments.
+Restored all 36 `steps` properties on `valuebox` and `slider` widgets across 10 files, wrapped with `(renoise.API_VERSION >= 6) and {...} or nil`. On Renoise 3.5+ (API 6.2), custom step increments work as designed. On Renoise 3.1.1 (older API), the guard evaluates to nil, which is the same as omitting the property entirely — no crash. Files: PakettiFill.lua (6), PakettieSpeak.lua (5), PakettiPhraseGenerator.lua (5), PakettiStemLoader.lua (5), PakettiEightOneTwenty.lua (4), PakettiStretch.lua (4), PakettiPitchControl.lua (3), PakettiMidi.lua (2), PakettiPCMWriter.lua (1), PakettiAudioProcessing.lua (1).
 
 ### 2026-04-08 - Feature: Write Notes Flood variants — write all 120 notes regardless of sample mappings
 
