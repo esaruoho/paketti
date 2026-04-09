@@ -154,6 +154,7 @@ end
 PAKETTI_HAS_PHRASES_BASIC    = (PAKETTI_API >= 5)    -- .phrases, insert_phrase_at, phrase_playback_mode
 PAKETTI_HAS_MODULATION_SETS  = (PAKETTI_API >= 5)    -- .sample_modulation_sets
 PAKETTI_HAS_DEVICE_CHAINS    = (PAKETTI_API >= 5)    -- .sample_device_chains
+PAKETTI_HAS_SLICING          = (PAKETTI_API >= 5)    -- .slice_markers, insert_slice_marker
 PAKETTI_HAS_SAMPLE_FX_FRAME  = (PAKETTI_API >= 5)    -- MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
 PAKETTI_HAS_PHRASE_FRAME     = (PAKETTI_API >= 5)    -- MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
 PAKETTI_HAS_MOD_FRAME        = (PAKETTI_API >= 5)    -- MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION

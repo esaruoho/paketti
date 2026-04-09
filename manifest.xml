@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RenoiseScriptingTool doc_version="0">
-  <ApiVersion>6</ApiVersion>
-  <Id>org.lackluster.Paketti</Id>
-  <Version>3.54</Version>
+  <ApiVersion>4</ApiVersion>
+  <Id>org.lackluster.Paketti28</Id>
+  <Version>2.80</Version>
   <Author>lackluster | esaruoho@icloud.com</Author>
-  <Name>Paketti</Name>
+  <Name>Paketti 2.8</Name>
   <Category>Workflow</Category>
   <Description>Shortcuts, midimappings, menu entries for sample modification, clean rendering, ImpulseTracker shortcuts, Pattern Editor features, loading VST,VST3,AudioUnit devices, etc.</Description>
   <Homepage>http://www.lackluster.org/</Homepage>

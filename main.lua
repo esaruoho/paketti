@@ -222,7 +222,8 @@ function align_instrument_names()
     local uses_fx = false
 
     -- Check for FX chains (even empty ones should be counted as using FX)
-    if #instrument.sample_device_chains > 0 then
+    -- sample_device_chains requires API 5+ (Renoise 3.0+)
+    if PAKETTI_HAS_DEVICE_CHAINS and #instrument.sample_device_chains > 0 then
       uses_fx = true  -- FX chain exists, even if empty, it adds an icon in the GUI
     end
 
@@ -1085,13 +1086,16 @@ for _ in pairs(PakettiShortcutHintsTable) do _hint_count = _hint_count + 1 end
 print("PakettiShortcutHints: renoise.tool() proxy installed, hint table has " .. _hint_count .. " entries")
 
 -- ============================================================================
+-- MODULE LOADING: Grouped by minimum API version required
+-- ============================================================================
 
+-- ----------------------------------------------------------------------------
+-- API 4+ modules (safe for Renoise 2.8+) — load unconditionally
+-- ----------------------------------------------------------------------------
 timed_require("PakettieSpeak")
-timed_require("PakettiChordsPlus")
 timed_require("PakettiLaunchApp")
 timed_require("PakettiDeviceChains")
 timed_require("PakettiExecute")
-timed_require("PakettiLoadDevices")
 timed_require("PakettiSandbox")
 timed_require("PakettiTupletGenerator")
 timed_require("PakettiLoadPlugins")
@@ -1099,25 +1103,13 @@ timed_require("PakettiPluginSlots")
 timed_require("PakettiPatternSequencer")
 timed_require("PakettiFollowPagePattern")
 timed_require("PakettiPatternNameLoop")
-timed_require("PakettiWonkify")
 timed_require("PakettiPatternMatrix")
-timed_require("PakettiInstrumentBox")
 timed_require("PakettiYTDLP")
 timed_require("PakettiStretch")
-timed_require("PakettiStacker")
-timed_require("PakettiRecorder")
 timed_require("PakettiHoldToFill")
 timed_require("PakettiFuzzySearchUtil")
 timed_require("PakettiFuzzySampleSearch")
 timed_require("PakettiKeyBindings")
-
--- Phrase-related modules require API 6.2+ (Renoise 3.5.4+)
-if PAKETTI_HAS_PHRASES then
-  timed_require("PakettiPhraseEditor")
-  timed_require("PakettiPhraseWorkflow")
-  timed_require("PakettiPhraseTransportRecording")
-end
-
 timed_require("PakettiControls")
 timed_require("PakettiWavetabler")
 timed_require("PakettiAKWF")
@@ -1128,130 +1120,154 @@ timed_require("PakettiPlayerProSuite")
 timed_require("PakettiOctaMEDSuite")
 timed_require("PakettiClipboard")
 
-timed_require("PakettiBeatDetect")
-
-timed_require("PakettiAudioProcessing")
-timed_require("PakettiPatternEditorCheatSheet")
 timed_require("PakettiZDxx")
 timed_require("PakettiThemeSelector")
 timed_require("PakettiMidiPopulator")
-timed_require("PakettiGater")
 timed_require("PakettiAutomation")
 timed_require("PakettiAutomationCurves")
 timed_require("PakettiAutomateLastTouched")
--- PakettiUnisonGenerator requires API 5+ (phrases, modulation sets)
-if PAKETTI_API >= 5 then
-  timed_require("PakettiUnisonGenerator")
-end
 timed_require("PakettiMainMenuEntries")
-timed_require("PakettiMidi")
 timed_require("PakettiDynamicViews")
-
-timed_require("PakettiExperimental_Verify")
 timed_require("PakettiExperimental_BlockLoopFollow")
-timed_require("PakettiFill")
-timed_require("PakettiLoaders")
-timed_require("PakettiPatternEditor")
-timed_require("PakettiTkna")
--- PakettiSamples requires API 5+ (sample_modulation_sets, sample_device_chains)
-if PAKETTI_API >= 5 then
-  timed_require("PakettiSamples")
-end
-timed_require("PakettiStemLoader")
-timed_require("PakettiMPCCycler")
-timed_require("PakettiSlicePro")
 timed_require("PakettiSliceSafely")
-timed_require("PakettiSampleFXChainSlicer")
-timed_require("PakettiZeroCrossings")
 timed_require("Research/FormulaDeviceManual")
-timed_require("PakettiXRNSProbe")
--- PakettiSteppers requires API 5+ (sample_modulation_sets throughout)
-if PAKETTI_API >= 5 then
-  timed_require("PakettiSteppers")
-end
 timed_require("PakettiPatternIterator")
-timed_require("PakettiPatternDelayViewer")
+timed_require("PakettiMPCCycler")
 
-
---- File Import / Export business
-timed_require("PakettiREXLoader")
-timed_require("PakettiRX2Loader")
+--- File Import / Export (API 4-safe)
 timed_require("PakettiIFFLoader")
-timed_require("PakettiWavCueExtract")
-timed_require("PakettiVideoSlicer")
-
-timed_require("PakettiSF2Loader")
-
-timed_require("PakettiMODLoader")
 timed_require("PakettiITIImport")
 timed_require("PakettiITIExport")
-timed_require("PakettiOTExport")
-timed_require("PakettiXIExport")
-timed_require("PakettiWTImport")
-
 
 timed_require("process_slicer")
-timed_require("PakettiProcess")
 timed_require("PakettiSubColumnModifier")
 timed_require("PakettiPatternLength")
 timed_require("PakettiKeyzoneDistributor")
-timed_require("PakettiHexSliceLoop")
-timed_require("PakettiMergeInstruments")
 timed_require("PakettiGlobalGrooveToDelayValues")
 timed_require("PakettiAmigoInspect")
 timed_require("PakettiRePitch")
-timed_require("PakettiXMLizer")
 timed_require("PakettiDeviceValues")
-timed_require("PakettiCommandWheel")
 timed_require("PakettiMIDIMappings")
 timed_require("PakettiMIDIMappingCategories")
 timed_require("legacy_v2_8_tools")
 timed_require("PakettiPitchControl")
 timed_require("hotelsinus_stepseq/hotelsinus_stepseq")
 timed_require("PakettiTuningDisplay")
-timed_require("PakettiMicrotonalTunings")
-timed_require("PakettiOctaCycle")
-timed_require("PakettiOTSTRDImporter")
-timed_require("PakettiCCizerLoader")
-timed_require("PakettiDigitakt")
-timed_require("PakettiForeignSnippets")
-timed_require("PakettiManualSlicer")
 timed_require("Sononymph/AppMain")
-timed_require("PakettiChebyshevWaveshaper")
 timed_require("PakettiMetricModulation")
-timed_require("PakettiPresetPlusPlus")
 timed_require("PakettiXRNIT")
--- PakettiImport moved to load last (before PakettiMenuConfig) for centralized import hook registration
-timed_require("PakettiClearance")
-timed_require("PakettiRoutings")
 timed_require("PakettiViews")
 timed_require("PakettiMixerParameterExposer")
 timed_require("PakettiTransposeBlock")
 timed_require("PakettiBeatstructureEditor")
-timed_require("PakettiSlice")
 timed_require("PakettiCaptureLastTake")
 timed_require("PakettiTrackInstrumentOrganize")
-
 timed_require("PakettiOpenMPTLinearKeyboardLayer")
-timed_require("PakettiGlider")
 timed_require("PakettiSlabOPatterns")
 timed_require("PakettiSwitcharoo")
 timed_require("PakettiChords")
-timed_require("PakettiPTILoader")
-timed_require("PakettiPolyendSuite")
-timed_require("PakettiPolyendSliceSwitcher")
-timed_require("PakettiPolyendMelodicSliceExport")
--- TODO: PakettiPolyendPatternData is disabled by default until ready for use
--- Set to true to enable Polyend pattern data export functionality
-local PakettiPolyendPatternDataEnabled = true
-if PakettiPolyendPatternDataEnabled then
-  timed_require("PakettiPolyendPatternData")
+timed_require("PakettiInstrumentTranspose")
+timed_require("PakettiBPM")
+timed_require("PakettiFrameCalculator")
+timed_require("PakettiActionSelector")
+timed_require("PakettiAutocomplete")
+timed_require("PakettiNoteSplit")
+timed_require("PakettiNudge")
+
+-- ----------------------------------------------------------------------------
+-- API 5+ modules (Renoise 3.0+) — require slice_markers, phrases,
+-- sample_modulation_sets, and/or sample_device_chains
+-- ----------------------------------------------------------------------------
+if PAKETTI_API >= 5 then
+  timed_require("PakettiChordsPlus")
+  timed_require("PakettiLoadDevices")
+  timed_require("PakettiWonkify")
+  timed_require("PakettiInstrumentBox")
+  timed_require("PakettiStacker")
+  timed_require("PakettiRecorder")
+  timed_require("PakettiBeatDetect")
+  timed_require("PakettiAudioProcessing")
+  timed_require("PakettiPatternEditorCheatSheet")
+  timed_require("PakettiGater")
+  timed_require("PakettiUnisonGenerator")
+  timed_require("PakettiMidi")
+  timed_require("PakettiExperimental_Verify")
+  timed_require("PakettiFill")
+  timed_require("PakettiLoaders")
+  timed_require("PakettiPatternEditor")
+  timed_require("PakettiTkna")
+  timed_require("PakettiSamples")
+  timed_require("PakettiStemLoader")
+  timed_require("PakettiSlicePro")
+  timed_require("PakettiSampleFXChainSlicer")
+  timed_require("PakettiZeroCrossings")
+  timed_require("PakettiXRNSProbe")
+  timed_require("PakettiSteppers")
+  timed_require("PakettiPatternDelayViewer")
+
+  --- File Import / Export (API 5+)
+  timed_require("PakettiREXLoader")
+  timed_require("PakettiRX2Loader")
+  timed_require("PakettiWavCueExtract")
+  timed_require("PakettiVideoSlicer")
+  timed_require("PakettiSF2Loader")
+  timed_require("PakettiMODLoader")
+  timed_require("PakettiOTExport")
+  timed_require("PakettiXIExport")
+  timed_require("PakettiWTImport")
+
+  timed_require("PakettiProcess")
+  timed_require("PakettiHexSliceLoop")
+  timed_require("PakettiMergeInstruments")
+  timed_require("PakettiXMLizer")
+  timed_require("PakettiCommandWheel")
+  timed_require("PakettiMicrotonalTunings")
+  timed_require("PakettiOctaCycle")
+  timed_require("PakettiOTSTRDImporter")
+  timed_require("PakettiCCizerLoader")
+  timed_require("PakettiDigitakt")
+  timed_require("PakettiForeignSnippets")
+  timed_require("PakettiManualSlicer")
+  timed_require("PakettiChebyshevWaveshaper")
+  timed_require("PakettiPresetPlusPlus")
+  timed_require("PakettiClearance")
+  timed_require("PakettiRoutings")
+  timed_require("PakettiSlice")
+  timed_require("PakettiGlider")
+  timed_require("PakettiPTILoader")
+  timed_require("PakettiPolyendSuite")
+  timed_require("PakettiPolyendSliceSwitcher")
+  timed_require("PakettiPolyendMelodicSliceExport")
+  local PakettiPolyendPatternDataEnabled = true
+  if PakettiPolyendPatternDataEnabled then
+    timed_require("PakettiPolyendPatternData")
+  end
+  timed_require("PakettiImageToSample")
+  timed_require("PakettiSliceEffectStepSequencer")
+  timed_require("PakettiMetaSynth")
+  timed_require("PakettiRequests")
+  timed_require("PakettiAutoSamplify")
+  timed_require("PakettiRender")
+  timed_require("PakettiStemSlicer")
+  timed_require("PakettiOldschoolSlicePitch")
+  timed_require("PakettiEightOneTwenty")
+  timed_require("PakettiMidiImport")
+  timed_require("PakettiSliceToolsDialog")
+  timed_require("PakettiDynamicMacroToolbar")
+end -- PAKETTI_API >= 5
+
+-- ----------------------------------------------------------------------------
+-- API 6.2+ phrase modules (Renoise 3.5.4+)
+-- ----------------------------------------------------------------------------
+if PAKETTI_HAS_PHRASES then
+  timed_require("PakettiPhraseEditor")
+  timed_require("PakettiPhraseWorkflow")
+  timed_require("PakettiPhraseTransportRecording")
 end
 
--- These modules work on all API versions but gate canvas elements internally
-timed_require("PakettiImageToSample")
-timed_require("PakettiSliceEffectStepSequencer")
-
+-- ----------------------------------------------------------------------------
+-- API 6.2+ modules (Renoise 3.5.4+) — require canvas, phrase.script, etc.
+-- ----------------------------------------------------------------------------
 if PAKETTI_API >= 6.2 then
   timed_require("Paketti35")
   timed_require("PakettiArpeggiator")
@@ -1268,50 +1284,20 @@ if PAKETTI_API >= 6.2 then
   timed_require("PakettiMultitapExperiment")
   timed_require("PakettiPlayerProWaveformViewer")
   timed_require("PakettiAutomationStack")
-  timed_require("PakettiPhraseGenerator")  -- Enhanced headless phrase generator uses phrase.script (6.2+)
+  timed_require("PakettiPhraseGenerator")
 else
   -- Fallback stub for PCMWriter functions on older API versions
-  -- Always returns false so AutoSamplify works normally on non-6.2
   function PCMWriterIsCreatingSamples()
     return false
   end
   function PCMWriterSetCreatingSamples(creating)
-    -- No-op on older versions
   end
 end
 
-
 --timed_require("PakettiExperimentalDialog")
-
--- These modules fundamentally require API 5+ (sample_modulation_sets, sample_device_chains)
-if PAKETTI_API >= 5 then
-  timed_require("PakettiMetaSynth")
-  timed_require("PakettiRequests")
-  timed_require("PakettiAutoSamplify")
-end
-timed_require("PakettiInstrumentTranspose")
-timed_require("PakettiRender")
-timed_require("PakettiBPM")
-timed_require("PakettiFrameCalculator")
-timed_require("PakettiStemSlicer")
-timed_require("PakettiOldschoolSlicePitch")
-timed_require("PakettiActionSelector")
-timed_require("PakettiAutocomplete")
 --timed_require("PakettiTreeStructure")
---timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
+--timed_require("PakettiCustomization")
 --timed_require("PakettiAKAI")
-
-timed_require("PakettiEightOneTwenty")
-
-timed_require("PakettiMidiImport")
-
-timed_require("PakettiSliceToolsDialog")
-
-timed_require("PakettiNoteSplit")
-
-timed_require("PakettiNudge")
-
-timed_require("PakettiDynamicMacroToolbar")
 
 -- PakettiImport MUST be loaded after all other modules so their loader functions are available
 -- This centralizes all file import hook registrations with preference checks

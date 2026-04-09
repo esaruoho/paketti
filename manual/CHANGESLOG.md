@@ -12,6 +12,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-09 - Feature: Renoise 2.8 (API 4) compatibility — Paketti 2.8
+
+Paketti now supports Renoise 2.8 (API version 4). The module loading in `main.lua` has been restructured into three clearly separated tiers:
+
+- **API 4+ (Renoise 2.8+)**: ~60 modules load unconditionally — pattern editing, automation, transport shortcuts, MIDI tools, theme selector, fill tools, clipboard, ImpulseTracker/OctaMED/PlayerPro shortcuts, keybindings, ViewBuilder dialogs, DSP device chains, and more
+- **API 5+ (Renoise 3.0+)**: ~64 modules gated behind `if PAKETTI_API >= 5 then` — all slice_markers, phrases, sample_modulation_sets, and sample_device_chains features
+- **API 6.2+ (Renoise 3.5+)**: ~19 Canvas modules and advanced phrase features, already gated
+
+The manifest is set to `<ApiVersion>4</ApiVersion>` with `<Id>org.lackluster.Paketti28</Id>` and `<Name>Paketti 2.8</Name>`, allowing side-by-side installation with Paketti 3.1 and Paketti 3.5.
+
+Added `PAKETTI_HAS_SLICING` flag to PakettiCompat.lua. Fixed `align_instrument_names()` in main.lua to guard `sample_device_chains` access behind `PAKETTI_HAS_DEVICE_CHAINS`.
+
 ### 2026-04-09 - Improvement: Paketti 3.1 now installable side-by-side with Paketti 3.5
 
 Updated the CI/CD build pipeline so the Renoise 3.1.x legacy build uses a different tool identity, allowing both versions to be installed simultaneously in Renoise's Tools folder.
