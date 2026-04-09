@@ -12,9 +12,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-04-09 - Fix: PLAYMODE_CURVES crash on Renoise 3.1.1
+### 2026-04-09 - Fix: All PLAYMODE constants crash on Renoise 3.1.1
 
-Replaced the crashing polyfill approach (you cannot assign new static fields to Renoise built-in classes) with a global constant `PAKETTI_PLAYMODE_CURVES`. On API 6+ it holds the real `renoise.PatternTrackAutomation.PLAYMODE_CURVES` value; on API 5 it falls back to `PLAYMODE_LINES`. All 14 references across 6 files (`PakettiAutomation.lua`, `PakettiAutomationCurves.lua`, `PakettiAutomationStack.lua`, `PakettiCanvasExperiments.lua`, `PakettiEQ30.lua`) now use `PAKETTI_PLAYMODE_CURVES` instead of accessing the class constant directly.
+All three `renoise.PatternTrackAutomation.PLAYMODE_*` class statics (`PLAYMODE_POINTS`, `PLAYMODE_LINES`, `PLAYMODE_CURVES`) do not exist in API 5 (Renoise 3.1.1) — even reading them causes a fatal `std::logic_error` at boot. Replaced all 53 references across 6 files with safe global constants `PAKETTI_PLAYMODE_POINTS` (1), `PAKETTI_PLAYMODE_LINES` (2), `PAKETTI_PLAYMODE_CURVES` (3 on API 6+, degrades to 2 on API 5) defined in `PakettiCompat.lua` using hardcoded numeric values. Files changed: `PakettiAutomation.lua`, `PakettiAutomationCurves.lua`, `PakettiAutomationStack.lua`, `PakettiCanvasExperiments.lua`, `PakettiEQ30.lua`, `PakettiHyperEdit.lua`.
 
 ### 2026-04-09 - Feature: Renoise 2.8 (API 4) compatibility — Paketti 2.8
 
