@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-09 - Improvement: Function Search auto-detects stale cache
+
+The Function Search (autocomplete) now automatically detects when any `.lua` file has been modified since the cache was last built, and rebuilds the cache on next open. Previously, newly added menu entries, keybindings, or MIDI mappings would not appear in the Function Search until the user manually rebuilt the cache via `Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Rebuild Autocomplete Cache`.
+
 ### 2026-04-09 - Feature: Paketti Dynamic Views added to Main Menu Options
 
 Added three Dynamic Views menu entries to `Main Menu:Options`:
