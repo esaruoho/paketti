@@ -12,6 +12,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-09 - Feature: Paketti Dynamic Views added to Main Menu Options
+
+Added three Dynamic Views menu entries to `Main Menu:Options`:
+- `Main Menu:Options:Paketti Dynamic Views 1-3...`
+- `Main Menu:Options:Paketti Dynamic Views 4-6...`
+- `Main Menu:Options:Paketti Dynamic Views 7-9...`
+
+These open the Dynamic View configuration dialogs directly from the Options menu, making it easy to set up your preferred view layouts without navigating through `Tools:Paketti:!Preferences`.
+
 ### 2026-04-09 - Feature: Paketti Function Search added to Main Menu Options
 
 Added `Main Menu:Options:Paketti Function Search...` menu entry so that the Function Search dialog is easy to find from the Options menu. The entry invokes `pakettiAutocompleteToggle`, the same function used by the existing keybinding `Global:Paketti:Paketti Function Search...` and the `Main Menu:Tools:Paketti Gadgets` entry.

@@ -3477,6 +3477,9 @@ end
 
 -- Main Menu Options
 renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Function Search...",invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Dynamic Views 1-3...",invoke=function() pakettiDynamicViewDialog(1,3) end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Dynamic Views 4-6...",invoke=function() pakettiDynamicViewDialog(4,6) end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Dynamic Views 7-9...",invoke=function() pakettiDynamicViewDialog(7,9) end}
 renoise.tool():add_menu_entry{name="--Main Menu:Options:Automatically Open Selected Track Device Editors Toggle",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,selected=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
 if PAKETTI_API >= 6.2 then
   renoise.tool():add_menu_entry{name="Main Menu:Options:Open Parameter Editor on Device Selection Toggle",invoke=PakettiCanvasExperimentsToggleAutoOpen,selected=PakettiCanvasExperimentsAutoOpenEnabled}
