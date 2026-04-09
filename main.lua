@@ -4,25 +4,46 @@ local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
 -- Global variable to control timed_require debug output (default: disabled)
 PakettiTimedRequireDebug = false
 
+-- ApplicationWindow frame constants.
+-- Most exist since API 4 (Renoise 2.8). Three were added in API 5 (Renoise 3.0):
+--   MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION
+--   MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+--   MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
+-- On API 4 the three API 5+ globals remain nil (Lua default).
+
+-- Centralised API compatibility layer — loaded FIRST before everything else.
+-- All pakettiSafe*() functions, PAKETTI_HAS_* flags, and pakettiSteps()
+-- are defined in PakettiCompat.lua.
+dofile(renoise.tool().bundle_path .. "PakettiCompat.lua")
+
 sampleEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 patternEditor = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 pe = patternEditor
 sampleMappings = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_KEYZONES
-sampleModulation = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION
 mixer = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
-phraseEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
-phrase = phraseEditor
 midiEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR
-sampleFX = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
 lowerTrackdsp=renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
 lowerAutomation=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
 upperScopes=renoise.ApplicationWindow.UPPER_FRAME_TRACK_SCOPES
 upperSpectrum=renoise.ApplicationWindow.UPPER_FRAME_MASTER_SPECTRUM
+
+-- API 5+ frame constants — nil on Renoise 2.8
+if PAKETTI_API >= 5 then
+  sampleModulation = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION
+  phraseEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+  phrase = phraseEditor
+  sampleFX = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
+end
 ----------------------------------------------------------------------------------------------------------------------------------------
 -- Helper function to create a vertical separator in ViewBuilder dialogs
 -- Must be passed a ViewBuilder instance and returns the text view element
+-- (style-safe version lives in PakettiCompat.lua as pakettiVertSep)
 function vertsep(vb)
-  return vb:text{text="|", font="bold", style="strong", width=8}
+  if PAKETTI_HAS_STYLE then
+    return vb:text{text="|", font="bold", style="strong", width=8}
+  else
+    return vb:text{text="|", font="bold", width=8}
+  end
 end
 
 -- Convert decimal to hexadecimal string
@@ -37,15 +58,15 @@ function DEC_HEX(IN)
   return OUT
 end
 
--- Debug print  
-function dbug(msg)  
- local base_types = {  
- ["nil"]=true, ["boolean"]=true, ["number"]=true,  
- ["string"]=true, ["thread"]=true, ["table"]=true  
- }  
- if not base_types[type(msg)] then oprint(msg)  
- elseif type(msg) == 'table' then rprint(msg)  
- else print(msg) end  
+-- Debug print
+function dbug(msg)
+ local base_types = {
+ ["nil"]=true, ["boolean"]=true, ["number"]=true,
+ ["string"]=true, ["thread"]=true, ["table"]=true
+ }
+ if not base_types[type(msg)] then oprint(msg)
+ elseif type(msg) == 'table' then rprint(msg)
+ else print(msg) end
 end
 
 -- Global function for truly random seeding - used throughout Paketti
@@ -53,96 +74,6 @@ function trueRandomSeed()
   math.randomseed(os.time())
   -- Add some additional random calls to further randomize the sequence
   math.random(); math.random(); math.random()
-end
-
--- Backwards compatibility helpers for API 6.0 (Renoise 3.2) support.
--- `short_name` was added in API 6.1 (Renoise 3.3). On older versions we
--- fall back to `display_name` or `name`, which always exist.
-
--- Safe accessor for AudioDevice.short_name (device instances on a track)
-function pakettiSafeDeviceShortName(device)
-  if renoise.API_VERSION >= 6.1 and device.short_name then
-    return device.short_name
-  elseif device.display_name and device.display_name ~= "" then
-    return device.display_name
-  else
-    return device.name or "Unknown"
-  end
-end
-
--- Safe accessor for AudioDeviceInfo / PluginInfo .short_name (info structs
--- from available_device_infos / available_plugin_infos)
-function pakettiSafeInfoShortName(info)
-  if renoise.API_VERSION >= 6.1 and info.short_name then
-    return info.short_name
-  elseif info.name and info.name ~= "" then
-    return info.name
-  elseif info.path then
-    return info.path:match("([^/\\]+)$") or "Unknown"
-  else
-    return "Unknown"
-  end
-end
-
--- Backwards compatibility helpers for API 5 (Renoise 3.1.x) support.
--- `beat_sync_mode` was added in API 6 (Renoise 3.2). On older versions
--- we silently skip beat_sync_mode operations.
-
--- Safe copy of beat_sync_mode from one sample to another
-function pakettiSafeCopyBeatSyncMode(dst_sample, src_sample)
-  if renoise.API_VERSION >= 6 then
-    dst_sample.beat_sync_mode = src_sample.beat_sync_mode
-  end
-end
-
--- Safe setter for beat_sync_mode
-function pakettiSafeSetBeatSyncMode(sample, mode)
-  if renoise.API_VERSION >= 6 then
-    sample.beat_sync_mode = mode
-  end
-end
-
--- Safe getter for beat_sync_mode (returns nil on API < 6)
-function pakettiSafeGetBeatSyncMode(sample)
-  if renoise.API_VERSION >= 6 then
-    return sample.beat_sync_mode
-  end
-  return nil
-end
-
--- Automation point `.scaling` was added in API 6 (Renoise 3.2). On older
--- versions we return 0 (no curve tension). Works for both Renoise userdata
--- automation points and plain Lua tables with a `scaling` field.
-function pakettiSafeGetScaling(point)
-  if type(point) == "table" then
-    return point.scaling or 0
-  end
-  -- Renoise userdata automation point
-  if renoise.API_VERSION >= 6 then
-    return point.scaling or 0
-  end
-  return 0
-end
-
--- Safe wrapper for automation:add_point_at() — on API 5 only passes
--- (time, value) since the scaling parameter doesn't exist.
-function pakettiSafeAddPointAt(automation, time, value, scaling)
-  if renoise.API_VERSION >= 6 then
-    automation:add_point_at(time, value, scaling or 0)
-  else
-    automation:add_point_at(time, value)
-  end
-end
-
--- Safe setter for ViewBuilder view `.style` property.
--- The `style` property on views (e.g. "strong", "disabled", "group", "body")
--- does not exist on API 5 (Renoise 3.1.x). This helper is a no-op on API < 6.
--- Use this for ALL runtime `.style = "..."` assignments so the API5 build's sed
--- (which strips style from ViewBuilder constructors) doesn't create syntax errors.
-function pakettiSetViewStyle(view, style_value)
-  if renoise.API_VERSION >= 6 then
-    view.style = style_value
-  end
 end
 
 -- Global helper function to get proper temporary file path - fixes os.tmpname() issues
@@ -1208,7 +1139,10 @@ timed_require("PakettiGater")
 timed_require("PakettiAutomation")
 timed_require("PakettiAutomationCurves")
 timed_require("PakettiAutomateLastTouched")
-timed_require("PakettiUnisonGenerator")
+-- PakettiUnisonGenerator requires API 5+ (phrases, modulation sets)
+if PAKETTI_API >= 5 then
+  timed_require("PakettiUnisonGenerator")
+end
 timed_require("PakettiMainMenuEntries")
 timed_require("PakettiMidi")
 timed_require("PakettiDynamicViews")
@@ -1219,7 +1153,10 @@ timed_require("PakettiFill")
 timed_require("PakettiLoaders")
 timed_require("PakettiPatternEditor")
 timed_require("PakettiTkna")
-timed_require("PakettiSamples")
+-- PakettiSamples requires API 5+ (sample_modulation_sets, sample_device_chains)
+if PAKETTI_API >= 5 then
+  timed_require("PakettiSamples")
+end
 timed_require("PakettiStemLoader")
 timed_require("PakettiMPCCycler")
 timed_require("PakettiSlicePro")
@@ -1228,7 +1165,10 @@ timed_require("PakettiSampleFXChainSlicer")
 timed_require("PakettiZeroCrossings")
 timed_require("Research/FormulaDeviceManual")
 timed_require("PakettiXRNSProbe")
-timed_require("PakettiSteppers")
+-- PakettiSteppers requires API 5+ (sample_modulation_sets throughout)
+if PAKETTI_API >= 5 then
+  timed_require("PakettiSteppers")
+end
 timed_require("PakettiPatternIterator")
 timed_require("PakettiPatternDelayViewer")
 
@@ -1342,9 +1282,13 @@ end
 
 
 --timed_require("PakettiExperimentalDialog")
-timed_require("PakettiMetaSynth")
-timed_require("PakettiRequests")
-timed_require("PakettiAutoSamplify")
+
+-- These modules fundamentally require API 5+ (sample_modulation_sets, sample_device_chains)
+if PAKETTI_API >= 5 then
+  timed_require("PakettiMetaSynth")
+  timed_require("PakettiRequests")
+  timed_require("PakettiAutoSamplify")
+end
 timed_require("PakettiInstrumentTranspose")
 timed_require("PakettiRender")
 timed_require("PakettiBPM")

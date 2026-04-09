@@ -12,6 +12,17 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-09 - Feature: Renoise 2.8 (API 4) compatibility layer
+
+Extended `PakettiCompat.lua` to support Renoise 2.8 (API version 4). Paketti can now load on Renoise 2.8 without crashing at boot.
+
+**Changes:**
+- **manifest.xml**: `ApiVersion` lowered from 6 to 4, allowing Renoise 2.8 to recognize the tool
+- **PakettiCompat.lua**: Added API 4 documentation, safe ApplicationWindow constant fallbacks for API < 5, new feature-availability flags (`PAKETTI_HAS_PHRASES_BASIC`, `PAKETTI_HAS_MODULATION_SETS`, `PAKETTI_HAS_DEVICE_CHAINS`, `PAKETTI_HAS_SAMPLE_FX_FRAME`, `PAKETTI_HAS_PHRASE_FRAME`, `PAKETTI_HAS_MOD_FRAME`), and safe accessor functions for API 5+ instrument internals (`pakettiSafeGetPhrases`, `pakettiSafeGetModulationSets`, `pakettiSafeGetDeviceChains`, `pakettiSafeSetMiddleFrame`)
+- **main.lua**: Moved `PakettiCompat.lua` loading to very first operation; guarded three API 5+ `ApplicationWindow` constants (`MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION`, `MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR`, `MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS`) behind `if PAKETTI_API >= 5`; gated 6 modules that fundamentally require API 5+ behind version checks: `PakettiSteppers`, `PakettiSamples`, `PakettiMetaSynth`, `PakettiRequests`, `PakettiAutoSamplify`, `PakettiUnisonGenerator`
+
+On Renoise 2.8, the tool loads with a reduced feature set — pattern editing, automation, slicing, transport shortcuts, MIDI tools, and many other features work. Modules requiring phrases, sample modulation sets, or sample device chains are safely skipped. On Renoise 3.0+ (API 5+) and 3.5+ (API 6.2+), all features remain fully available.
+
 ### 2026-04-09 - Fix: Guard beat_sync_mode in sliceDrumKit for Renoise 3.1.1 compatibility
 
 `PakettiTkna.lua` `sliceDrumKit()` now uses `pakettiSafeSetBeatSyncMode()` to apply `beat_sync_mode` only on API ≥ 6. On Renoise 3.1.1, percussion/texture beat sync modes are silently skipped instead of crashing. Affects `Sample Editor:Paketti:Slice Drumkit (Percussion)` and `Sample Editor:Paketti:Slice Drumkit (Texture)`.
