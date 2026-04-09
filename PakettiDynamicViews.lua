@@ -614,13 +614,17 @@ function pakettiDynamicViewDialog(start_dv, end_dv)
     function() return dialog end,
     function(value) dialog = value end
   )
-  dialog = renoise.app():show_custom_dialog("Paketti Dynamic View Preferences Dialog " .. start_dv .. "-" .. end_dv, dialog_content, keyhandler, function()
-    -- Save settings when the dialog is closed
-    saveDynamicViewPreferences()
-    dialog:close()
-    dialog = nil  -- Clear reference when dialog closes
-    renoise.app():show_status("Settings saved.")
-  end)
+  if PAKETTI_API >= 6 then
+    dialog = renoise.app():show_custom_dialog("Paketti Dynamic View Preferences Dialog " .. start_dv .. "-" .. end_dv, dialog_content, keyhandler, function()
+      -- Save settings when the dialog is closed
+      saveDynamicViewPreferences()
+      dialog:close()
+      dialog = nil  -- Clear reference when dialog closes
+      renoise.app():show_status("Settings saved.")
+    end)
+  else
+    dialog = renoise.app():show_custom_dialog("Paketti Dynamic View Preferences Dialog " .. start_dv .. "-" .. end_dv, dialog_content, keyhandler)
+  end
 end
 
 -- Save Dynamic Views as .txt
