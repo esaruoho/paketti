@@ -3185,13 +3185,36 @@ function close_autocomplete_dialog()
   end
 end
 
+-- Check if any Paketti*.lua file is newer than the cache
+local function is_cache_stale()
+  local cache_stat = io.stat(cache_file_path)
+  if not cache_stat then return true end
+  local cache_mtime = cache_stat.mtime
+
+  local bundle_path = renoise.tool().bundle_path
+  local lua_files = os.filenames(bundle_path, "*.lua")
+  for _, filename in ipairs(lua_files) do
+    local file_stat = io.stat(bundle_path .. filename)
+    if file_stat and file_stat.mtime > cache_mtime then
+      print("PakettiAutocomplete: Cache stale - " .. filename .. " is newer than cache")
+      return true
+    end
+  end
+  return false
+end
+
 -- Initialize commands ONLY when dialog opens (lazy loading)
 local function initialize_paketti_commands()
   print("PakettiAutocomplete: Loading Paketti commands...")
-  
-  -- Try to load from cache first
+
+  -- Try to load from cache first, but check staleness
   local cache_loaded = load_commands_cache()
-  
+
+  if cache_loaded and is_cache_stale() then
+    print("PakettiAutocomplete: Cache is stale, rescanning files...")
+    cache_loaded = false
+  end
+
   if not cache_loaded then
     print("PakettiAutocomplete: Cache not found or invalid, scanning files...")
     scan_paketti_commands()
