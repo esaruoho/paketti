@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-09 - Fix: Guard beat_sync_mode in sliceDrumKit for Renoise 3.1.1 compatibility
+
+`PakettiTkna.lua` `sliceDrumKit()` now uses `pakettiSafeSetBeatSyncMode()` to apply `beat_sync_mode` only on API ≥ 6. On Renoise 3.1.1, percussion/texture beat sync modes are silently skipped instead of crashing. Affects `Sample Editor:Paketti:Slice Drumkit (Percussion)` and `Sample Editor:Paketti:Slice Drumkit (Texture)`.
+
 ### 2026-04-09 - Fix: Version-guarded `steps` properties for dual Renoise 3.1.1 / 3.5 compatibility
 
 Restored all 36 `steps` properties on `valuebox` and `slider` widgets across 10 files, wrapped with `(renoise.API_VERSION >= 6) and {...} or nil`. On Renoise 3.5+ (API 6.2), custom step increments work as designed. On Renoise 3.1.1 (older API), the guard evaluates to nil, which is the same as omitting the property entirely — no crash. Files: PakettiFill.lua (6), PakettieSpeak.lua (5), PakettiPhraseGenerator.lua (5), PakettiStemLoader.lua (5), PakettiEightOneTwenty.lua (4), PakettiStretch.lua (4), PakettiPitchControl.lua (3), PakettiMidi.lua (2), PakettiPCMWriter.lua (1), PakettiAudioProcessing.lua (1).
