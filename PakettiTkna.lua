@@ -2324,7 +2324,11 @@ function sliceDrumKit(mode)
   
   -- Apply original sample settings
   for key, value in pairs(settings.original) do
-    sample[key] = value
+    if key == "beat_sync_mode" then
+      pakettiSafeSetBeatSyncMode(sample, value)
+    else
+      sample[key] = value
+    end
   end
   
   -- Create slices if none exist
