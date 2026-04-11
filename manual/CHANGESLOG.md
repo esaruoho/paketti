@@ -12,6 +12,35 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-11 - Feature: Delay Column Randomization (Humanize Micro-Timing)
+
+Added delay column fill/randomization to Paketti, both integrated into the existing Fill dialog and as a standalone tool.
+
+**Paketti Fill Dialog** — New "Fill Delay" checkbox with Delay Min / Delay Max vertical sliders (00-FF). When enabled, filled lines also receive random delay values in the specified range. The delay column is auto-made visible when filling. This works with all existing fill modes (Constant, From-To, Random, Euclidean, etc.).
+
+**Standalone Randomize Delay Column Dialog** — A dedicated dialog (`Main Menu:Tools:Paketti Gadgets:Randomize Delay Column Dialog...`) with Min/Max sliders and buttons for Selection and Track operations. Enter key triggers "Randomize Track". Includes clear functions to zero out delay values.
+
+Menu entries added:
+- `Main Menu:Tools:Paketti Gadgets:Randomize Delay Column Dialog...`
+- `Main Menu:Tools:Paketti:Pattern Editor:Randomize Delay Column (Selection)`
+- `Main Menu:Tools:Paketti:Pattern Editor:Randomize Delay Column (Track)`
+- `Main Menu:Tools:Paketti:Pattern Editor:Clear Delay Column (Selection)`
+- `Main Menu:Tools:Paketti:Pattern Editor:Clear Delay Column (Track)`
+
+Keyboard shortcuts added:
+- `Global:Paketti:Randomize Delay Column Dialog...`
+- `Pattern Editor:Paketti:Randomize Delay Column (Selection)`
+- `Pattern Editor:Paketti:Randomize Delay Column (Track)`
+- `Pattern Editor:Paketti:Clear Delay Column (Selection)`
+- `Pattern Editor:Paketti:Clear Delay Column (Track)`
+
+MIDI mappings added:
+- `Paketti:Pattern Editor:Randomize Delay Column (Selection)`
+- `Paketti:Pattern Editor:Randomize Delay Column (Track)`
+- `Paketti:Pattern Editor:Clear Delay Column (Selection)`
+- `Paketti:Pattern Editor:Clear Delay Column (Track)`
+- `Paketti:Pattern Editor:Randomize Delay Column Dialog`
+
 ### 2026-04-09 - Improvement: Function Search auto-detects stale cache
 
 The Function Search (autocomplete) now automatically detects when any `.lua` file has been modified since the cache was last built, and rebuilds the cache on next open. Previously, newly added menu entries, keybindings, or MIDI mappings would not appear in the Function Search until the user manually rebuilt the cache via `Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Rebuild Autocomplete Cache`.

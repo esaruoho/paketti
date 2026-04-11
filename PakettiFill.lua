@@ -443,7 +443,7 @@ function PakettiFillShouldFillLine(pattern_line, where_mode, line_index, step_in
 end
 
 -- Apply fill to pattern selection
-function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_note, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, remembered_fx_lines)
+function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_note, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, remembered_fx_lines, delay_enabled, delay_min, delay_max)
   trueRandomSeed()
   
   local song = renoise.song()
@@ -652,6 +652,23 @@ function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_n
               end
             end
           end
+
+          -- Write delay values if enabled
+          if delay_enabled and delay_min and delay_max then
+            local d_min = math.min(delay_min, delay_max)
+            local d_max = math.max(delay_min, delay_max)
+            -- Make delay column visible
+            if not track.delay_column_visible then
+              track.delay_column_visible = true
+            end
+            for col = start_column, math.min(end_column, note_columns_visible) do
+              local note_column = pattern_line:note_column(col)
+              -- Only write delay if the column has a note (or if we just wrote one)
+              if note_column and note_column.note_value ~= renoise.PatternLine.EMPTY_NOTE then
+                note_column.delay_value = math.random(d_min, d_max)
+              end
+            end
+          end
         end
       end
     end
@@ -682,6 +699,9 @@ local paketti_fill_step_interval = 8 -- For "Each" and Euclidean modes
 local paketti_fill_effect_min_value = 0  -- Min parameter value (00-FF)
 local paketti_fill_effect_max_value = 255  -- Max parameter value (00-FF)
 local paketti_fill_use_editstep = true  -- Use EditStep instead of Step Length slider in Euclidean mode
+local paketti_fill_delay_enabled = false  -- Fill delay column with random values
+local paketti_fill_delay_min_value = 0   -- Min delay value (00-FF)
+local paketti_fill_delay_max_value = 255 -- Max delay value (00-FF)
 
 -- Create the main dialog
 function PakettiFillShowDialog()
@@ -708,6 +728,9 @@ function PakettiFillShowDialog()
   local effect_min_value = paketti_fill_effect_min_value
   local effect_max_value = paketti_fill_effect_max_value
   local use_editstep = paketti_fill_use_editstep
+  local delay_enabled = paketti_fill_delay_enabled
+  local delay_min_value = paketti_fill_delay_min_value
+  local delay_max_value = paketti_fill_delay_max_value
   
   -- Function to update effects only checkbox (declare before use)
   local update_effects_only_checkbox = nil
@@ -1185,6 +1208,86 @@ function PakettiFillShowDialog()
     end
   }
   
+  -- Delay column controls
+  local delay_min_label = vb:text{
+    text = "Delay Min",
+    style = "strong",
+    font = "bold"
+  }
+
+  local delay_min_value_text = vb:text{
+    text = string.format("%02X", delay_min_value),
+    style = "strong",
+    font = "bold"
+  }
+
+  local delay_min_slider, delay_max_slider
+
+  delay_min_slider = vb:slider{
+    min = 0,
+    max = 255,
+    value = delay_min_value,
+    width = 80,
+    height = 200,
+    steps = pakettiSteps(1, 16),
+    active = delay_enabled,
+    notifier = function(value)
+      delay_min_value = math.floor(value)
+      paketti_fill_delay_min_value = delay_min_value
+      delay_min_value_text.text = string.format("%02X", delay_min_value)
+      if delay_min_value > delay_max_value then
+        delay_max_value = delay_min_value
+        paketti_fill_delay_max_value = delay_max_value
+        delay_max_slider.value = delay_max_value
+        delay_max_value_text.text = string.format("%02X", delay_max_value)
+      end
+    end
+  }
+
+  local delay_max_label = vb:text{
+    text = "Delay Max",
+    style = "strong",
+    font = "bold"
+  }
+
+  local delay_max_value_text = vb:text{
+    text = string.format("%02X", delay_max_value),
+    style = "strong",
+    font = "bold"
+  }
+
+  delay_max_slider = vb:slider{
+    min = 0,
+    max = 255,
+    value = delay_max_value,
+    width = 80,
+    height = 200,
+    steps = pakettiSteps(1, 16),
+    active = delay_enabled,
+    notifier = function(value)
+      delay_max_value = math.floor(value)
+      paketti_fill_delay_max_value = delay_max_value
+      delay_max_value_text.text = string.format("%02X", delay_max_value)
+      if delay_max_value < delay_min_value then
+        delay_min_value = delay_max_value
+        paketti_fill_delay_min_value = delay_min_value
+        delay_min_slider.value = delay_min_value
+        delay_min_value_text.text = string.format("%02X", delay_min_value)
+      end
+    end
+  }
+
+  -- Fill Delay checkbox
+  local delay_checkbox = vb:checkbox{
+    value = delay_enabled,
+    notifier = function(value)
+      delay_enabled = value
+      paketti_fill_delay_enabled = value
+      delay_min_slider.active = value
+      delay_max_slider.active = value
+    end
+  }
+
   -- Now define the actual update function after sliders are created
   update_effect_sliders_active = function()
     local should_be_active = use_random_fx or (selected_effect_index > 1)  -- Active if Random FX checked OR specific effect selected (not <No Effect>)
@@ -1267,8 +1370,8 @@ function PakettiFillShowDialog()
         selected_effect = available_effects[selected_effect_index - 1]  -- Adjust for "<No Effect>" offset
       end
       
-      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, nil)
-      
+      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, nil, delay_enabled, delay_min_value, delay_max_value)
+
       -- Return focus to middle frame for keyboard shortcuts
       renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
     end
@@ -1370,7 +1473,7 @@ function PakettiFillShowDialog()
       local original_selection = song.selection_in_pattern
       song.selection_in_pattern = temp_selection
       
-      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, remembered_fx_lines)
+      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, remembered_fx_lines, delay_enabled, delay_min_value, delay_max_value)
       
       -- Restore original selection
       song.selection_in_pattern = original_selection
@@ -1431,6 +1534,10 @@ function PakettiFillShowDialog()
           use_editstep_checkbox,
           vb:text{text = "Use EditStep", style="strong", font="bold"}
         },
+        vb:row{
+          delay_checkbox,
+          vb:text{text = "Fill Delay", style="strong", font="bold"}
+        },
         configure_effects_button,
         fill_button,
         fill_track_button
@@ -1485,6 +1592,32 @@ function PakettiFillShowDialog()
         vb:horizontal_aligner{
           mode = "center",
           effect_max_value_text
+        }
+      },
+
+      -- Delay Min vertical slider
+      vb:column{
+        vb:horizontal_aligner{
+          mode = "center",
+          delay_min_label
+        },
+        delay_min_slider,
+        vb:horizontal_aligner{
+          mode = "center",
+          delay_min_value_text
+        }
+      },
+
+      -- Delay Max vertical slider
+      vb:column{
+        vb:horizontal_aligner{
+          mode = "center",
+          delay_max_label
+        },
+        delay_max_slider,
+        vb:horizontal_aligner{
+          mode = "center",
+          delay_max_value_text
         }
       }
     }
@@ -1617,7 +1750,7 @@ function PakettiFillShowDialog()
       local original_selection = song.selection_in_pattern
       song.selection_in_pattern = temp_selection
       
-      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, remembered_fx_lines)
+      PakettiFillApplyFill(density_value, fill_type, from_note_value, to_note_value, constant_note_value, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep, remembered_fx_lines, delay_enabled, delay_min_value, delay_max_value)
       
       -- Restore original selection
       song.selection_in_pattern = original_selection
@@ -1703,3 +1836,297 @@ function PakettiFillShowDialog()
 end
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Fill Dialog...", invoke = PakettiFillShowDialog}
+
+-- ============================================================================
+-- Standalone Randomize Delay Column Dialog
+-- ============================================================================
+
+local delay_dialog = nil
+local delay_vb = nil
+local paketti_delay_min = 0
+local paketti_delay_max = 255
+
+-- Core function: randomize delay column on selection or track
+function PakettiFillRandomizeDelay(min_val, max_val, mode)
+  trueRandomSeed()
+  local song = renoise.song()
+  local pattern_index = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local pattern = song:pattern(pattern_index)
+  local track = song:track(track_index)
+
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Paketti Randomize Delay: Only works on sequencer tracks.")
+    return
+  end
+
+  local d_min = math.min(min_val, max_val)
+  local d_max = math.max(min_val, max_val)
+
+  -- Make delay column visible
+  if not track.delay_column_visible then
+    track.delay_column_visible = true
+  end
+
+  song:describe_undo("Paketti Randomize Delay Column")
+
+  local start_line, end_line, start_col, end_col
+
+  if mode == "selection" then
+    local selection = song.selection_in_pattern
+    if not selection then
+      renoise.app():show_status("Paketti Randomize Delay: No pattern selection. Select some notes first.")
+      return
+    end
+    -- Only operate on the selected track
+    if selection.start_track ~= track_index and selection.end_track ~= track_index then
+      renoise.app():show_status("Paketti Randomize Delay: Selection is not on current track.")
+      return
+    end
+    start_line = selection.start_line
+    end_line = selection.end_line
+    start_col = selection.start_column
+    end_col = selection.end_column
+  else
+    -- Full track
+    start_line = 1
+    end_line = pattern.number_of_lines
+    start_col = 1
+    end_col = track.visible_note_columns
+  end
+
+  local count = 0
+  for line_index = start_line, end_line do
+    local pattern_line = pattern:track(track_index):line(line_index)
+    for col = start_col, math.min(end_col, track.visible_note_columns) do
+      local note_column = pattern_line:note_column(col)
+      if note_column and note_column.note_value ~= renoise.PatternLine.EMPTY_NOTE then
+        note_column.delay_value = math.random(d_min, d_max)
+        count = count + 1
+      end
+    end
+  end
+
+  renoise.app():show_status(string.format("Paketti Randomize Delay: Set delay %02X-%02X on %d notes (%s)", d_min, d_max, count, mode))
+end
+
+-- Clear delay column
+function PakettiFillClearDelay(mode)
+  local song = renoise.song()
+  local pattern_index = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local pattern = song:pattern(pattern_index)
+  local track = song:track(track_index)
+
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Paketti Clear Delay: Only works on sequencer tracks.")
+    return
+  end
+
+  song:describe_undo("Paketti Clear Delay Column")
+
+  local start_line, end_line, start_col, end_col
+
+  if mode == "selection" then
+    local selection = song.selection_in_pattern
+    if not selection then
+      renoise.app():show_status("Paketti Clear Delay: No pattern selection.")
+      return
+    end
+    start_line = selection.start_line
+    end_line = selection.end_line
+    start_col = selection.start_column
+    end_col = selection.end_column
+  else
+    start_line = 1
+    end_line = pattern.number_of_lines
+    start_col = 1
+    end_col = track.visible_note_columns
+  end
+
+  local count = 0
+  for line_index = start_line, end_line do
+    local pattern_line = pattern:track(track_index):line(line_index)
+    for col = start_col, math.min(end_col, track.visible_note_columns) do
+      local note_column = pattern_line:note_column(col)
+      if note_column and note_column.delay_value ~= 0 then
+        note_column.delay_value = 0
+        count = count + 1
+      end
+    end
+  end
+
+  renoise.app():show_status(string.format("Paketti Clear Delay: Cleared %d delay values (%s)", count, mode))
+end
+
+-- Standalone dialog
+function PakettiFillRandomizeDelayDialog()
+  if delay_dialog and delay_dialog.visible then
+    delay_dialog:close()
+    return
+  end
+
+  delay_vb = renoise.ViewBuilder()
+
+  local min_value_text = delay_vb:text{
+    text = string.format("%02X", paketti_delay_min),
+    style = "strong",
+    font = "bold"
+  }
+
+  local max_value_text = delay_vb:text{
+    text = string.format("%02X", paketti_delay_max),
+    style = "strong",
+    font = "bold"
+  }
+
+  local min_slider, max_slider
+
+  min_slider = delay_vb:slider{
+    min = 0,
+    max = 255,
+    value = paketti_delay_min,
+    width = 80,
+    height = 200,
+    steps = pakettiSteps(1, 16),
+    notifier = function(value)
+      paketti_delay_min = math.floor(value)
+      min_value_text.text = string.format("%02X", paketti_delay_min)
+      if paketti_delay_min > paketti_delay_max then
+        paketti_delay_max = paketti_delay_min
+        max_slider.value = paketti_delay_max
+        max_value_text.text = string.format("%02X", paketti_delay_max)
+      end
+    end
+  }
+
+  max_slider = delay_vb:slider{
+    min = 0,
+    max = 255,
+    value = paketti_delay_max,
+    width = 80,
+    height = 200,
+    steps = pakettiSteps(1, 16),
+    notifier = function(value)
+      paketti_delay_max = math.floor(value)
+      max_value_text.text = string.format("%02X", paketti_delay_max)
+      if paketti_delay_max < paketti_delay_min then
+        paketti_delay_min = paketti_delay_max
+        min_slider.value = paketti_delay_min
+        min_value_text.text = string.format("%02X", paketti_delay_min)
+      end
+    end
+  }
+
+  local content = delay_vb:column{
+    margin = 10,
+    spacing = 5,
+    delay_vb:row{
+      spacing = 5,
+      -- Min slider column
+      delay_vb:column{
+        delay_vb:horizontal_aligner{
+          mode = "center",
+          delay_vb:text{text = "Delay Min", style = "strong", font = "bold"}
+        },
+        min_slider,
+        delay_vb:horizontal_aligner{
+          mode = "center",
+          min_value_text
+        }
+      },
+      -- Max slider column
+      delay_vb:column{
+        delay_vb:horizontal_aligner{
+          mode = "center",
+          delay_vb:text{text = "Delay Max", style = "strong", font = "bold"}
+        },
+        max_slider,
+        delay_vb:horizontal_aligner{
+          mode = "center",
+          max_value_text
+        }
+      },
+      -- Buttons column
+      delay_vb:column{
+        spacing = 5,
+        delay_vb:button{
+          text = "Randomize Selection",
+          width = 140,
+          pressed = function()
+            PakettiFillRandomizeDelay(paketti_delay_min, paketti_delay_max, "selection")
+          end
+        },
+        delay_vb:button{
+          text = "Randomize Track",
+          width = 140,
+          pressed = function()
+            PakettiFillRandomizeDelay(paketti_delay_min, paketti_delay_max, "track")
+          end
+        },
+        delay_vb:space{height = 5},
+        delay_vb:button{
+          text = "Clear Selection Delay",
+          width = 140,
+          pressed = function()
+            PakettiFillClearDelay("selection")
+          end
+        },
+        delay_vb:button{
+          text = "Clear Track Delay",
+          width = 140,
+          pressed = function()
+            PakettiFillClearDelay("track")
+          end
+        }
+      }
+    }
+  }
+
+  local keyhandler = function(dialog_obj, key)
+    local closer = preferences.pakettiDialogClose.value
+    if key.modifiers == "" and key.name == closer then
+      dialog_obj:close()
+      delay_dialog = nil
+      return nil
+    elseif key.modifiers == "" and key.name == "return" then
+      PakettiFillRandomizeDelay(paketti_delay_min, paketti_delay_max, "track")
+      return nil
+    else
+      return key
+    end
+  end
+
+  delay_dialog = renoise.app():show_custom_dialog("Paketti Randomize Delay Column", content, keyhandler)
+end
+
+-- Wrapper functions for direct keybinding/MIDI use (no dialog)
+function PakettiFillRandomizeDelaySelection()
+  PakettiFillRandomizeDelay(paketti_delay_min, paketti_delay_max, "selection")
+end
+
+function PakettiFillRandomizeDelayTrack()
+  PakettiFillRandomizeDelay(paketti_delay_min, paketti_delay_max, "track")
+end
+
+function PakettiFillClearDelaySelection()
+  PakettiFillClearDelay("selection")
+end
+
+function PakettiFillClearDelayTrack()
+  PakettiFillClearDelay("track")
+end
+
+-- Keybindings
+renoise.tool():add_keybinding{name = "Global:Paketti:Randomize Delay Column Dialog...", invoke = PakettiFillRandomizeDelayDialog}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Randomize Delay Column (Selection)", invoke = PakettiFillRandomizeDelaySelection}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Randomize Delay Column (Track)", invoke = PakettiFillRandomizeDelayTrack}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Clear Delay Column (Selection)", invoke = PakettiFillClearDelaySelection}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Clear Delay Column (Track)", invoke = PakettiFillClearDelayTrack}
+
+-- MIDI Mappings
+renoise.tool():add_midi_mapping{name = "Paketti:Pattern Editor:Randomize Delay Column (Selection)", invoke = function(message) if message:is_trigger() then PakettiFillRandomizeDelaySelection() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Pattern Editor:Randomize Delay Column (Track)", invoke = function(message) if message:is_trigger() then PakettiFillRandomizeDelayTrack() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Pattern Editor:Clear Delay Column (Selection)", invoke = function(message) if message:is_trigger() then PakettiFillClearDelaySelection() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Pattern Editor:Clear Delay Column (Track)", invoke = function(message) if message:is_trigger() then PakettiFillClearDelayTrack() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Pattern Editor:Randomize Delay Column Dialog", invoke = function(message) if message:is_trigger() then PakettiFillRandomizeDelayDialog() end end}

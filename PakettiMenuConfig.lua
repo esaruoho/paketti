@@ -453,7 +453,11 @@ end
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Fill Dialog...", invoke = PakettiFillShowDialog}
-
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Randomize Delay Column Dialog...", invoke = PakettiFillRandomizeDelayDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Randomize Delay Column (Selection)", invoke = PakettiFillRandomizeDelaySelection}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Randomize Delay Column (Track)", invoke = PakettiFillRandomizeDelayTrack}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Clear Delay Column (Selection)", invoke = PakettiFillClearDelaySelection}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Clear Delay Column (Track)", invoke = PakettiFillClearDelayTrack}
 
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:!Execute Applications...",invoke = PakettiExecuteShowDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Auto Control Disk Browser on Song Load",invoke = pakettiAutoHideDiskBrowserToggle,selected = pakettiAutoHideDiskBrowserIsEnabled}
