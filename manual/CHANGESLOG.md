@@ -12,6 +12,31 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-13 - Feature: Ping-Pong / Down-Up / Skip Note-Order Shapes (Phrase Generator + Musical Chord Progression Arpeggiator)
+
+Two tools gained classic chiptune arpeggio note-order shapes inspired by Halebop's 8chip Renoise tool.
+
+**Paketti Phrase Generator** — Added three new buttons next to the existing Random / Ascending / Descending / Same / Dedupe row in the note-order section:
+
+- **Ping-Pong** — Sorts the phrase notes ascending, then walks back down skipping the endpoints (1,2,3,4,3,2). Doubles the note count to 2N-2.
+- **Down-Up** — Sorts the notes descending, then walks back up skipping the endpoints (4,3,2,1,2,3). Doubles the note count to 2N-2.
+- **Skip** — Interleaves odd-position notes followed by even-position notes (1,3,2,4). Same length as input.
+
+The three new shapes also auto-update the dialog's note-count slider/text so the displayed count stays in sync. The Phrase Generator dialog is opened via `Main Menu:Tools:Paketti Gadgets:Phrase Generator...`.
+
+**Musical Chord Progression Arpeggiator** (`PakettiArpeggiator.lua`) — Added six named pattern-shape Type buttons alongside the existing "Straight" and "Looped" permutation modes. Previously, picking a 4-step arpeggio meant choosing between 24 permutations on a canvas grid. The new shapes give you a single direct choice:
+
+- **Asc** — `0,1,2,3` ascending through chord notes
+- **Desc** — `3,2,1,0` descending
+- **Ping-Pong** — `0,1,2,3,2,1` (no endpoint repeat)
+- **Down-Up** — `3,2,1,0,1,2` (mirror of ping-pong)
+- **Skip** — odd-position then even-position chord tones
+- **Random** — Fisher-Yates shuffled permutation (regenerates on each press)
+
+When a named shape is selected, only one pattern canvas appears (no grid clutter). The Arpeggiator dialog is opened via `Main Menu:Tools:Paketti Gadgets:Musical Chord Progression Arpeggiator...` or `Global:Paketti:Musical Chord Progression Arpeggiator...`.
+
+No new menu entries, keybindings, or MIDI mappings — both changes extend existing dialogs.
+
 ### 2026-04-11 - Feature: Delay Column Randomization (Humanize Micro-Timing)
 
 Added delay column fill/randomization to Paketti, both integrated into the existing Fill dialog and as a standalone tool.

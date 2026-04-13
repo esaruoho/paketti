@@ -149,10 +149,10 @@ end
 function PakettiArp_GeneratePatterns(steps)
   local arr = {}
   for i = 0, steps - 1 do table.insert(arr, i) end
-  
+
   local straight = {}
   PakettiArp_Permute(arr, {}, straight)
-  
+
   local looped = {}
   for p = 1, #straight do
     local perm = straight[p]
@@ -163,8 +163,50 @@ function PakettiArp_GeneratePatterns(steps)
     end
     table.insert(looped, loop)
   end
-  
-  return { straight = straight, looped = looped }
+
+  -- Named shape patterns (single-pattern types — chosen directly without picking a permutation index)
+  local n = steps
+  local ascending  = {}
+  local descending = {}
+  local pingpong   = {}
+  local downup     = {}
+  local skip       = {}
+  local randomp    = {}
+
+  for i = 0, n - 1 do
+    table.insert(ascending,  i)
+    table.insert(descending, n - 1 - i)
+  end
+
+  -- Ping-Pong: 0,1,2,...,N-1,N-2,...,1
+  for i = 0, n - 1 do table.insert(pingpong, i) end
+  for i = n - 2, 1, -1 do table.insert(pingpong, i) end
+
+  -- Down-Up: N-1,N-2,...,0,1,...,N-2
+  for i = n - 1, 0, -1 do table.insert(downup, i) end
+  for i = 1, n - 2 do table.insert(downup, i) end
+
+  -- Skip: odd positions then even positions (1st,3rd,5th,..., 2nd,4th,6th,...)
+  for i = 0, n - 1, 2 do table.insert(skip, i) end
+  for i = 1, n - 1, 2 do table.insert(skip, i) end
+
+  -- Random: shuffled copy (regenerated each call so user gets a fresh shuffle on type-press)
+  for i = 0, n - 1 do table.insert(randomp, i) end
+  for i = #randomp, 2, -1 do
+    local j = math.random(1, i)
+    randomp[i], randomp[j] = randomp[j], randomp[i]
+  end
+
+  return {
+    straight   = straight,
+    looped     = looped,
+    ascending  = { ascending  },
+    descending = { descending },
+    pingpong   = { pingpong   },
+    downup     = { downup     },
+    skip       = { skip       },
+    random     = { randomp    },
+  }
 end
 
 -- Convert note to MIDI value
@@ -1258,27 +1300,17 @@ function PakettiArp_ShowDialog()
   local steps_row = PakettiArp_vb:row(steps_row_content)
   
   -- Type Section
-  local type_row = PakettiArp_vb:row{
-    PakettiArp_vb:text{ text = "Type:", width = 60, style = "strong", font = "bold" },
-    PakettiArp_vb:button{
-      text = "Straight",
-      width = 80,
-      color = (PakettiArp_pattern_type == "straight") and {255, 187, 0} or nil,
+  -- "Straight" / "Looped" generate ALL N! permutations of the chord notes (geek mode).
+  -- The named-shape types (Asc/Desc/Ping-Pong/Down-Up/Skip/Random) generate ONE pattern
+  -- directly without making the user pick from a permutation grid.
+  local function make_type_button(label, key, btn_width)
+    return PakettiArp_vb:button{
+      text = label,
+      width = btn_width or 80,
+      color = (PakettiArp_pattern_type == key) and {255, 187, 0} or nil,
       notifier = function()
-        PakettiArp_pattern_type = "straight"
-        PakettiArp_UpdatePatterns()
-        if PakettiArp_dialog and PakettiArp_dialog.visible then
-          PakettiArp_dialog:close()
-          PakettiArp_ShowDialog()
-        end
-      end
-    },
-    PakettiArp_vb:button{
-      text = "Looped",
-      width = 80,
-      color = (PakettiArp_pattern_type == "looped") and {255, 187, 0} or nil,
-      notifier = function()
-        PakettiArp_pattern_type = "looped"
+        PakettiArp_pattern_type = key
+        PakettiArp_pattern_id = 1  -- named shapes only have one pattern
         PakettiArp_UpdatePatterns()
         if PakettiArp_dialog and PakettiArp_dialog.visible then
           PakettiArp_dialog:close()
@@ -1286,6 +1318,18 @@ function PakettiArp_ShowDialog()
         end
       end
     }
+  end
+
+  local type_row = PakettiArp_vb:row{
+    PakettiArp_vb:text{ text = "Type:", width = 60, style = "strong", font = "bold" },
+    make_type_button("Straight",   "straight",   80),
+    make_type_button("Looped",     "looped",     80),
+    make_type_button("Asc",        "ascending",  60),
+    make_type_button("Desc",       "descending", 60),
+    make_type_button("Ping-Pong",  "pingpong",   80),
+    make_type_button("Down-Up",    "downup",     70),
+    make_type_button("Skip",       "skip",       50),
+    make_type_button("Random",     "random",     70),
   }
   
   -- Pattern Selection Section with Canvas

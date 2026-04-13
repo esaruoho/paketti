@@ -99,6 +99,9 @@ local STATUS_TEXT = {
   random = "Random Order",
   ascending = "Ascending",
   descending = "Descending",
+  pingpong = "Ping-Pong",
+  downup = "Down-Up",
+  skip = "Skip",
   same = "All C-4",
   dedupe = nil  -- This will be set dynamically based on had_duplicates
 }
@@ -2295,6 +2298,24 @@ function randomize_all_settings()
          notifier=function() handle_note_order("descending") end
        },
        vb:button {
+         text = "Ping-Pong",
+         width = 70,
+         tooltip = "Sort ascending then walk back down (1,2,3,4,3,2)",
+         notifier=function() handle_note_order("pingpong") end
+       },
+       vb:button {
+         text = "Down-Up",
+         width = 70,
+         tooltip = "Sort descending then walk back up (4,3,2,1,2,3)",
+         notifier=function() handle_note_order("downup") end
+       },
+       vb:button {
+         text = "Skip",
+         width = 60,
+         tooltip = "Interleave odd then even positions (1,3,2,4)",
+         notifier=function() handle_note_order("skip") end
+       },
+       vb:button {
          text = "Same",
          width = 60,
          tooltip = "Set all notes to C-4",
@@ -3965,6 +3986,19 @@ function handle_note_order(order_type)
   
   if #notes == 0 then return end
   
+  -- Local note-pitch helper for shape-based ordering
+  local function note_pitch_value(note_entry)
+    local note_values = {
+      ["c"] = 0, ["c#"] = 1, ["d"] = 2, ["d#"] = 3,
+      ["e"] = 4, ["f"] = 5, ["f#"] = 6, ["g"] = 7,
+      ["g#"] = 8, ["a"] = 9, ["a#"] = 10, ["b"] = 11
+    }
+    local nname, noct = note_entry.key:match("([a-g][#%-]?)([0-9])")
+    if not nname or not noct then return 0 end
+    nname = nname:gsub("%-$", "")
+    return (tonumber(noct) * 12) + (note_values[nname] or 0)
+  end
+
   -- Handle different ordering types
   if order_type == "random" then
     -- Fisher-Yates shuffle
@@ -3974,31 +4008,43 @@ function handle_note_order(order_type)
     end
   elseif order_type == "ascending" or order_type == "descending" then
     table.sort(notes, function(a, b)
-      -- Extract note and octave for comparison
-      local a_note, a_oct = a.key:match("([a-g][#%-]?)([0-9])")
-      local b_note, b_oct = b.key:match("([a-g][#%-]?)([0-9])")
-      
-      -- Clean up note names (remove trailing -)
-      a_note = a_note:gsub("%-$", "")
-      b_note = b_note:gsub("%-$", "")
-      
-      -- Note order mapping
-      local note_values = {
-        ["c"] = 0, ["c#"] = 1, ["d"] = 2, ["d#"] = 3,
-        ["e"] = 4, ["f"] = 5, ["f#"] = 6, ["g"] = 7,
-        ["g#"] = 8, ["a"] = 9, ["a#"] = 10, ["b"] = 11
-      }
-      
-      -- Calculate total semitones for comparison
-      local a_value = (tonumber(a_oct) * 12) + note_values[a_note]
-      local b_value = (tonumber(b_oct) * 12) + note_values[b_note]
-      
       if order_type == "ascending" then
-        return a_value < b_value
+        return note_pitch_value(a) < note_pitch_value(b)
       else
-        return a_value > b_value
+        return note_pitch_value(a) > note_pitch_value(b)
       end
     end)
+  elseif order_type == "pingpong" or order_type == "downup" or order_type == "skip" then
+    -- Sort ascending first so the shape is musically meaningful
+    table.sort(notes, function(a, b)
+      return note_pitch_value(a) < note_pitch_value(b)
+    end)
+    local n = #notes
+    if n >= 2 then
+      local shaped = {}
+      if order_type == "pingpong" then
+        -- 1,2,3,...,N,N-1,...,2  (length 2N-2)
+        for i = 1, n do shaped[#shaped + 1] = notes[i] end
+        for i = n - 1, 2, -1 do shaped[#shaped + 1] = notes[i] end
+      elseif order_type == "downup" then
+        -- N,N-1,...,1,2,...,N-1  (length 2N-2)
+        for i = n, 1, -1 do shaped[#shaped + 1] = notes[i] end
+        for i = 2, n - 1 do shaped[#shaped + 1] = notes[i] end
+      else  -- skip
+        -- Odd positions first, then even (1,3,5,...,2,4,6,...) — same length N
+        for i = 1, n, 2 do shaped[#shaped + 1] = notes[i] end
+        for i = 2, n, 2 do shaped[#shaped + 1] = notes[i] end
+      end
+      notes = shaped
+      -- Sync note_count with the new length so the dialog stays accurate
+      current_settings.note_count = #notes
+      if vb.views.note_count_slider then
+        vb.views.note_count_slider.value = current_settings.note_count
+      end
+      if vb.views.note_count_text then
+        vb.views.note_count_text.text = string.format("%02d notes", current_settings.note_count)
+      end
+    end
   elseif order_type == "same" then
     -- Set all notes to C-4 while preserving velocities
     for i = 1, #notes do
