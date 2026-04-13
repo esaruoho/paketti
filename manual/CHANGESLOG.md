@@ -12,28 +12,23 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-04-13 - Feature: Ping-Pong / Down-Up / Skip Note-Order Shapes (Phrase Generator + Musical Chord Progression Arpeggiator)
+### 2026-04-13 - Feature: Chiptune-style Note Shapes for Phrase Generator + Musical Chord Progression Arpeggiator
 
-Two tools gained classic chiptune arpeggio note-order shapes inspired by Halebop's 8chip Renoise tool.
+Inspired by Halebop's gorgeous **8chip** Renoise tool, both Paketti's phrase tools gained the classic tracker-arp note motions that were missing.
 
-**Paketti Phrase Generator** — Added three new buttons next to the existing Random / Ascending / Descending / Same / Dedupe row in the note-order section:
+**Paketti Phrase Generator** — three new buttons next to Random / Ascending / Descending in the note-order row:
 
-- **Ping-Pong** — Sorts the phrase notes ascending, then walks back down skipping the endpoints (1,2,3,4,3,2). Doubles the note count to 2N-2.
-- **Down-Up** — Sorts the notes descending, then walks back up skipping the endpoints (4,3,2,1,2,3). Doubles the note count to 2N-2.
-- **Skip** — Interleaves odd-position notes followed by even-position notes (1,3,2,4). Same length as input.
+- **Ping-Pong** — climbs up your chord, then walks back down (1-2-3-4-3-2). Doubles the note count to 2N-2.
+- **Down-Up** — falls from the top, then steps back up (4-3-2-1-2-3). Doubles the note count to 2N-2.
+- **Skip** — interleaves odd-then-even positions (1-3-2-4) for that snake-charmer twist. Same length as input.
 
-The three new shapes also auto-update the dialog's note-count slider/text so the displayed count stays in sync. The Phrase Generator dialog is opened via `Main Menu:Tools:Paketti Gadgets:Phrase Generator...`.
+The three shapes auto-sync the dialog's note-count slider so the displayed count stays accurate. Open via `Main Menu:Tools:Paketti Gadgets:Phrase Generator...`.
 
-**Musical Chord Progression Arpeggiator** (`PakettiArpeggiator.lua`) — Added six named pattern-shape Type buttons alongside the existing "Straight" and "Looped" permutation modes. Previously, picking a 4-step arpeggio meant choosing between 24 permutations on a canvas grid. The new shapes give you a single direct choice:
+**Musical Chord Progression Arpeggiator** — six new named pattern-shape Type buttons (**Asc · Desc · Ping-Pong · Down-Up · Skip · Random**) alongside the existing "Straight" and "Looped" permutation modes. Before, picking a 4-note arp meant scrolling through 24 permutations on the canvas grid. Now you click the shape you want and get one clean pattern. **Random** reshuffles every time you press it — instant inspiration. When a named shape is selected, only one pattern canvas appears (no grid clutter). Open via `Main Menu:Tools:Paketti Gadgets:Musical Chord Progression Arpeggiator...` or `Global:Paketti:Musical Chord Progression Arpeggiator...`.
 
-- **Asc** — `0,1,2,3` ascending through chord notes
-- **Desc** — `3,2,1,0` descending
-- **Ping-Pong** — `0,1,2,3,2,1` (no endpoint repeat)
-- **Down-Up** — `3,2,1,0,1,2` (mirror of ping-pong)
-- **Skip** — odd-position then even-position chord tones
-- **Random** — Fisher-Yates shuffled permutation (regenerates on each press)
+Both tools work with any chord, any scale, any instrument — drop them into a phrase, hit play, done.
 
-When a named shape is selected, only one pattern canvas appears (no grid clutter). The Arpeggiator dialog is opened via `Main Menu:Tools:Paketti Gadgets:Musical Chord Progression Arpeggiator...` or `Global:Paketti:Musical Chord Progression Arpeggiator...`.
+Big thanks to **Halebop** for 8chip — go grab it, it's a beauty: https://github.com/halebop17/8chip
 
 No new menu entries, keybindings, or MIDI mappings — both changes extend existing dialogs.
 
