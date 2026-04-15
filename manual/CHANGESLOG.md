@@ -12,22 +12,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
-### 2026-04-15 - Fix: Switch Note Instrument Dialog hardened against crash and zombie reopening
+### 2026-04-15 - Fix: Switch Note Instrument Dialog no longer haunts you after closing
 
-Fixed critical bugs in the Switch Note Instrument Dialog (`Pattern Editor:Paketti:Switch Note Instrument Dialog...`) that caused the dialog to reopen by itself after being closed, and eventually crash Renoise.
+The Switch Note Instrument Dialog (`Pattern Editor:Paketti:Switch Note Instrument Dialog...`) had a bug where closing the window with the X button didn't actually fully close it — the dialog would pop back up every time you switched tracks, and after a few cycles of this, Renoise would crash.
 
-**Root causes fixed:**
-- **X-button close didn't clean up notifiers**: Clicking the window X button closed the dialog visually but left track/pattern-change notifiers attached. Every subsequent track switch would reopen the dialog.
-- **Notifier function recreated on each open**: The `show_dialog` closure was recreated every time the dialog opened, making it impossible to find and remove old notifiers — they accumulated with each open/close cycle, compounding the problem.
-- **Stale ViewBuilder access**: Reading UI state from a closed dialog's ViewBuilder could crash.
+**What was happening:** The dialog was leaving invisible "listeners" behind when you X'd it out. Those listeners kept watching for track changes, and every track switch would force the dialog back open. Each reopen left more listeners behind, piling up until Renoise gave up and crashed.
 
-**Hardening applied:**
-- All notifier callbacks are now stable module-level function references (never recreated)
-- Every notifier callback checks if the dialog is still visible before acting; if not, it self-cleans all notifiers and bails
-- Reentrancy guard prevents cascading refresh loops
-- The entire refresh cycle is wrapped in pcall — if anything fails, the dialog closes cleanly instead of leaving zombie notifiers
-- Track type guard prevents crashes when a send/master/group track is selected
-- `patternEditor` bare variable replaced with the correct `renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR` constant
+**What's fixed:** Closing the dialog now properly cleans up after itself no matter how you close it — X button, ESC key, or switching songs. If anything unexpected happens during a refresh, the dialog quietly closes itself instead of crashing. It also no longer tries to scan send tracks, master tracks, or group tracks (which don't have notes and would cause errors).
 
 ### 2026-04-13 - Feature: Chiptune-style Note Shapes for Phrase Generator + Musical Chord Progression Arpeggiator
 
