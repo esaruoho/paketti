@@ -12,6 +12,23 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-15 - Fix: Switch Note Instrument Dialog hardened against crash and zombie reopening
+
+Fixed critical bugs in the Switch Note Instrument Dialog (`Pattern Editor:Paketti:Switch Note Instrument Dialog...`) that caused the dialog to reopen by itself after being closed, and eventually crash Renoise.
+
+**Root causes fixed:**
+- **X-button close didn't clean up notifiers**: Clicking the window X button closed the dialog visually but left track/pattern-change notifiers attached. Every subsequent track switch would reopen the dialog.
+- **Notifier function recreated on each open**: The `show_dialog` closure was recreated every time the dialog opened, making it impossible to find and remove old notifiers — they accumulated with each open/close cycle, compounding the problem.
+- **Stale ViewBuilder access**: Reading UI state from a closed dialog's ViewBuilder could crash.
+
+**Hardening applied:**
+- All notifier callbacks are now stable module-level function references (never recreated)
+- Every notifier callback checks if the dialog is still visible before acting; if not, it self-cleans all notifiers and bails
+- Reentrancy guard prevents cascading refresh loops
+- The entire refresh cycle is wrapped in pcall — if anything fails, the dialog closes cleanly instead of leaving zombie notifiers
+- Track type guard prevents crashes when a send/master/group track is selected
+- `patternEditor` bare variable replaced with the correct `renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR` constant
+
 ### 2026-04-13 - Feature: Chiptune-style Note Shapes for Phrase Generator + Musical Chord Progression Arpeggiator
 
 Inspired by Halebop's gorgeous **8chip** Renoise tool, both Paketti's phrase tools gained the classic tracker-arp note motions that were missing.
