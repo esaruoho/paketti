@@ -3933,7 +3933,19 @@ local function PakettiMenuContextPrefKey(name)
   end
 end
 
--- Helper function to conditionally add menu entry
+-- ============================================================================
+-- Deferred Menu Registration System
+-- ============================================================================
+-- Instead of calling add_menu_entry immediately, entries are queued into a
+-- pending table and registered in sorted order when PakettiFlushMenuEntries()
+-- is called at the end of main.lua. This ensures alphabetical ordering within
+-- each menu context (e.g. "Mixer:Paketti Gadgets" entries appear A-Z).
+-- ============================================================================
+
+PakettiPendingMenuEntries = {}
+PakettiFlushingInProgress = false  -- bypass flag for proxy during flush
+
+-- Helper function to conditionally add menu entry (QUEUED, not immediate)
 -- Checks both the master toggle AND the per-context preference
 -- Usage: PakettiAddMenuEntry{name="...", invoke=function() end}
 function PakettiAddMenuEntry(args)
@@ -3949,8 +3961,31 @@ function PakettiAddMenuEntry(args)
       end
     end
   end
-  renoise.tool():add_menu_entry(args)
+  table.insert(PakettiPendingMenuEntries, args)
   return true
+end
+
+-- Flush all pending menu entries in sorted order, then clear the queue.
+-- Called once at the end of main.lua after all modules have loaded.
+-- During flush, PakettiFlushingInProgress is set to true so the proxy
+-- in main.lua registers entries immediately instead of re-queuing them.
+function PakettiFlushMenuEntries()
+  -- Sort alphabetically by name (strip leading "--" for comparison)
+  table.sort(PakettiPendingMenuEntries, function(a, b)
+    local name_a = (a.name or ""):gsub("^%-%-", "")
+    local name_b = (b.name or ""):gsub("^%-%-", "")
+    return name_a:lower() < name_b:lower()
+  end)
+  -- Set bypass flag so the proxy registers immediately (not re-queue)
+  PakettiFlushingInProgress = true
+  -- Register all entries in sorted order (goes through proxy for hint injection)
+  for _, args in ipairs(PakettiPendingMenuEntries) do
+    renoise.tool():add_menu_entry(args)
+  end
+  PakettiFlushingInProgress = false
+  local count = #PakettiPendingMenuEntries
+  PakettiPendingMenuEntries = {}
+  print(string.format("PakettiFlushMenuEntries: Registered %d menu entries (sorted)", count))
 end
 
 -- ============================================================================

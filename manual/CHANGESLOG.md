@@ -12,6 +12,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-20 - Improvement: Alphabetically sorted menu entries across all contexts
+
+All Paketti menu entries (including "Paketti Gadgets" submenus in Mixer, Pattern Editor, Sample Editor, Instrument Box, etc.) are now registered in alphabetical order. Previously, menu entries appeared in the order their source files happened to load — which was effectively random and changed unpredictably across Renoise sessions.
+
+**How it works:** Instead of registering menu entries immediately as each module loads, they are now queued into a pending table. After all modules finish loading, the entire queue is sorted alphabetically by name and then registered in sorted order. This is a two-phase approach: accumulate → sort → flush.
+
+This affects ALL ~500+ menu entries registered via `PakettiAddMenuEntry` and `renoise.tool():add_menu_entry`. The `--` prefix (disabled/separator entries) is stripped for sorting purposes so disabled entries sort alongside their enabled counterparts. Shortcut hints are still appended during registration.
+
 ### 2026-04-20 - Improvement: Paketti Menu Configuration added to Main Menu:Options
 
 The Paketti Menu Configuration dialog is now also available under `Main Menu:Options:Paketti Menu Configuration...`, right next to the existing Paketti Preferences entry. This makes it much easier to discover — previously it was only accessible via `Main Menu:Tools:Paketti:!Preferences:Paketti Menu Configuration...`.

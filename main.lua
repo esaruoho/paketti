@@ -1005,8 +1005,17 @@ PakettiActualRegistrations = {
   midi_mappings_skipped = 0
 }
 
--- Intercepted: add_menu_entry with shortcut hints
+-- Intercepted: add_menu_entry with shortcut hints + deferred queue
+-- During normal loading: queues entries into PakettiPendingMenuEntries for sorted flush.
+-- During flush (PakettiFlushingInProgress=true): adds hints and registers immediately.
+-- Before Paketti0G01_Loader loads (PakettiPendingMenuEntries=nil): registers immediately.
 local function proxy_add_menu_entry(proxy_self, args)
+  -- If the pending queue exists and we're NOT flushing, queue for later
+  if PakettiPendingMenuEntries and not PakettiFlushingInProgress then
+    table.insert(PakettiPendingMenuEntries, args)
+    return
+  end
+  -- Otherwise register immediately (with shortcut hints)
   if args and args.name and PakettiShortcutHintsTable then
     local name = args.name
     local prefix = ""
@@ -1466,6 +1475,13 @@ _AUTO_RELOAD_DEBUG = true
 if preferences.PakettiBlockLoopFollowEnabled.value and type(PakettiBlockLoopFollowEnable) == "function" then
   PakettiBlockLoopFollowEnable()
 end
+
+-- ============================================================================
+-- FINAL STEP: Flush all queued menu entries in sorted (alphabetical) order.
+-- This MUST be the LAST thing in main.lua, after ALL modules have loaded
+-- and all PakettiAddMenuEntry / renoise.tool():add_menu_entry calls are done.
+-- ============================================================================
+PakettiFlushMenuEntries()
 
 --dbug(renoise.song())
 -- Added: PakettiSelectNextInstrument, PakettiSelectPreviousInstrument
