@@ -3276,7 +3276,21 @@ function pakettiMenuConfigDialog()
     create_menu_checkbox("Paketti Gadgets Menus", "PakettiGadgets", nil, 250),
     create_menu_checkbox("Track DSP Device Menus", "TrackDSPDevice", PakettiMenuApplyTrackDSPDeviceMenus, 250),
     create_menu_checkbox("Automation Menus", "Automation", PakettiMenuApplyAutomationMenus, 250),
-    create_menu_checkbox("Disk Browser Files Menus", "DiskBrowserFiles", PakettiMenuApplyDiskBrowserFilesMenus, 250)
+    create_menu_checkbox("Disk Browser Files Menus", "DiskBrowserFiles", PakettiMenuApplyDiskBrowserFilesMenus, 250),
+    vb:space{height = 5},
+    vb:button{
+      text = "Remember to Restart Renoise!",
+      width = 270,
+      height = 30,
+      pressed = function()
+        if menu_config_dialog and menu_config_dialog.visible then
+          menu_config_dialog_content = nil
+          menu_config_dialog:close()
+          menu_config_dialog = nil
+        end
+        renoise.app():show_status("Remember to restart Renoise for menu changes to take effect!")
+      end
+    }
   }
 
   menu_config_dialog = renoise.app():show_custom_dialog("Paketti Menu Configuration",menu_config_dialog_content,my_keyhandler_func)

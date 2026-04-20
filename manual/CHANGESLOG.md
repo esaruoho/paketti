@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-20 - Improvement: "Remember to Restart Renoise" button in Menu Configuration
+
+Added a "Remember to Restart Renoise!" button at the bottom of the Paketti Menu Configuration dialog (`Main Menu:Options:Paketti Menu Configuration...`). Since the Renoise Lua API does not provide a way to quit or restart Renoise programmatically, this button closes the dialog and shows a status bar reminder that Renoise needs to be restarted for menu changes to take effect.
+
 ### 2026-04-20 - Fix: Instrument Transpose Dialog "Apply" crash
 
 Fixed a crash when pressing "Apply" in the Paketti Instrument Transpose dialog. The error was `unknown property or function 'number_of_lines' for an object of type 'PatternTrack'` — the code was accessing `number_of_lines` on a `PatternTrack` object, but that property belongs to `Pattern`. Changed to use `pattern.number_of_lines` instead.
