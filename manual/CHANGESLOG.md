@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-20 - Improvement: Paketti Menu Configuration added to Main Menu:Options
+
+The Paketti Menu Configuration dialog is now also available under `Main Menu:Options:Paketti Menu Configuration...`, right next to the existing Paketti Preferences entry. This makes it much easier to discover — previously it was only accessible via `Main Menu:Tools:Paketti:!Preferences:Paketti Menu Configuration...`.
+
 ### 2026-04-15 - Fix: Switch Note Instrument Dialog no longer haunts you after closing
 
 The Switch Note Instrument Dialog (`Pattern Editor:Paketti:Switch Note Instrument Dialog...`) had a bug where closing the window with the X button didn't actually fully close it — the dialog would pop back up every time you switched tracks, and after a few cycles of this, Renoise would crash.
