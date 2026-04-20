@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 What supporters funded this month:
 
+### 2026-04-20 - Fix: Instrument Transpose Dialog "Apply" crash
+
+Fixed a crash when pressing "Apply" in the Paketti Instrument Transpose dialog. The error was `unknown property or function 'number_of_lines' for an object of type 'PatternTrack'` — the code was accessing `number_of_lines` on a `PatternTrack` object, but that property belongs to `Pattern`. Changed to use `pattern.number_of_lines` instead.
+
 ### 2026-04-20 - Improvement: Alphabetically sorted menu entries across all contexts
 
 All Paketti menu entries (including "Paketti Gadgets" submenus in Mixer, Pattern Editor, Sample Editor, Instrument Box, etc.) are now registered in alphabetical order. Previously, menu entries appeared in the order their source files happened to load — which was effectively random and changed unpredictably across Renoise sessions.

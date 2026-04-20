@@ -368,7 +368,7 @@ function PakettiInstrumentTransposeDialogApply()
           local track_in_pattern = pattern.tracks[track_index]
           
           -- Check all lines and all note columns for this instrument
-          for line_index = 1, track_in_pattern.number_of_lines do
+          for line_index = 1, pattern.number_of_lines do
             local line = track_in_pattern:line(line_index)
             
             -- Check all note columns, not just the first one
