@@ -1903,9 +1903,9 @@ R64@T11:E1=0,0</Slot01>
     <MasterMenusEnabled>true</MasterMenusEnabled>
     <MasterKeybindingsEnabled>true</MasterKeybindingsEnabled>
     <MasterMidiMappingsEnabled>true</MasterMidiMappingsEnabled>
-    <InstrumentBox>false</InstrumentBox>
-    <SampleEditor>false</SampleEditor>
-    <SampleNavigator>false</SampleNavigator>
+    <InstrumentBox>true</InstrumentBox>
+    <SampleEditor>true</SampleEditor>
+    <SampleNavigator>true</SampleNavigator>
   </pakettiMenuConfig>
   <singlewaveformwriterhex>false</singlewaveformwriterhex>
   <paketti_auto_disk_browser_mode>0.0</paketti_auto_disk_browser_mode>
