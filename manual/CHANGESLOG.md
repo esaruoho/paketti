@@ -12559,12 +12559,6 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 
 
 ---
-### 2026-02-23 - Fixed: Bug identified during triage — see thread for details
+### 2026-02-23 - Fix: Slice Rough crashed with "invalid slice sample_position index '0'"
 
-The fix is committed. Here's a summary:
-
----
-
-**Bug:** `std::logic_error: 'invalid slice sample_position index '0'. valid values are (1 to 3).'`
-
-**Root cause:** In `PakettiSamples.lua`, `slicerough()` calculates slice marker positions as `tw * i` where `tw = number_of_frames / changer`. When the sa
+Slicing a sample via Paketti's Rough slicer would sometimes crash Renoise with `std::logic_error: invalid slice sample_position index '0'`. Two root causes in `slicerough()` (`PakettiSamples.lua`): a duplicate `insert_slice_marker(1)` call that attempted to place a marker at position 0, and slice marker positions calculated as `tw * i` that could round down to 0 on small samples. Fixed by removing the duplicate insert and clamping all slice marker positions to a minimum of 1.
