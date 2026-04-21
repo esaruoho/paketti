@@ -1074,27 +1074,6 @@ Toggle behaviour per slot:
 })();
 </script>
 
----
-
-## You Made This Possible
-
-Every entry above represents real development time — design, testing, debugging, refinement.
-
-Paketti's continued development is sustained by supporters who believe in open-source music tools.
-
-- **[Patreon](http://patreon.com/esaruoho)** — Monthly support from €3.50 (keeps development moving)
-- **[GitHub Sponsors](https://github.com/sponsors/esaruoho)** — Sponsor through GitHub
-- **[Gumroad](https://lackluster.gumroad.com/l/paketti)** — One-time purchase
-- **[Ko-Fi](https://ko-fi.com/esaruoho)** — One-time or monthly
-- **[Buy Me a Coffee](https://buymeacoffee.com/esaruoho)** — One-time or monthly
-- **[PayPal](http://paypal.me/esaruoho)** — Direct donation
-- **[Report issues on GitHub](https://github.com/esaruoho/paketti/issues)** — Bug reports and feature requests
-- **[Join the Discord](https://discord.gg/xNT6eH7W)** — Community discussion and feedback
-
-Thank you for using Paketti. — Esa
-
----
-
 ### 2026-02-26 - Improvement: Plugin Slots Configuration added to Dialog of Dialogs
 
 The Plugin Slots Configuration dialog is now registered in Paketti's Dialog of Dialogs (the central hub for launching all Paketti dialogs). Search for "plugin slots" or "slot" to open it alongside all other Paketti dialogs.
@@ -12562,3 +12541,22 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 ### 2026-02-23 - Fix: Slice Rough crashed with "invalid slice sample_position index '0'"
 
 Slicing a sample via Paketti's Rough slicer would sometimes crash Renoise with `std::logic_error: invalid slice sample_position index '0'`. Two root causes in `slicerough()` (`PakettiSamples.lua`): a duplicate `insert_slice_marker(1)` call that attempted to place a marker at position 0, and slice marker positions calculated as `tw * i` that could round down to 0 on small samples. Fixed by removing the duplicate insert and clamping all slice marker positions to a minimum of 1.
+
+---
+
+## You Made This Possible
+
+Every entry above represents real development time — design, testing, debugging, refinement.
+
+Paketti's continued development is sustained by supporters who believe in open-source music tools.
+
+- **[Patreon](http://patreon.com/esaruoho)** — Monthly support from €3.50 (keeps development moving)
+- **[GitHub Sponsors](https://github.com/sponsors/esaruoho)** — Sponsor through GitHub
+- **[Gumroad](https://lackluster.gumroad.com/l/paketti)** — One-time purchase
+- **[Ko-Fi](https://ko-fi.com/esaruoho)** — One-time or monthly
+- **[Buy Me a Coffee](https://buymeacoffee.com/esaruoho)** — One-time or monthly
+- **[PayPal](http://paypal.me/esaruoho)** — Direct donation
+- **[Report issues on GitHub](https://github.com/esaruoho/paketti/issues)** — Bug reports and feature requests
+- **[Join the Discord](https://discord.gg/xNT6eH7W)** — Community discussion and feedback
+
+Thank you for using Paketti. — Esa
