@@ -1,10 +1,16 @@
 # Paketti
 
-Paketti is a workflow expansion layer for Renoise. It closes the gap between the idea you have and the sound that comes out — 8,000+ keyboard shortcuts, 150+ dialogs, 1,000+ MIDI mappings, 701 themes, dozens of import/export formats, compatibility across Renoise 3.1 and 3.5 side-by-side.
+> "When you only have 45 minutes to make music, anything that shaves a minute or two is like an eternity."
 
-Built by a musician who's been making electronic music in trackers since 1994 and releasing it as Lackluster since 1997. Every feature exists because something slowed me down while I was making a record, and I couldn't keep working until I'd fixed it. The design principle is one sentence: **Paketti is about saving clicks.**
+Paketti is a workflow expansion layer for Renoise. It closes the gap between the idea you have and the sound that comes out.
 
-Free and open source (GPLv3). Fourteen musicians currently fund ongoing development via Patreon.
+**Renoise gives you the instrument. Paketti is the other 98%.**
+
+8,000+ keyboard shortcuts. 150+ dialogs. 1,000+ MIDI mappings. 701 themes. Dozens of import/export formats. Compatibility across Renoise 3.1 and 3.5 side-by-side.
+
+I've been making electronic music in trackers since 1994 and releasing it as Lackluster since 1997. Every feature in Paketti exists because something slowed me down while I was making a record, and I couldn't keep working until I'd fixed it. The design principle is one sentence: **Paketti is about saving clicks.**
+
+I've been building Paketti for fifteen years and I ship updates almost every day. I've done forty-six one-on-one calls with Renoise users where I show features and the musician reacts, suggests, and embellishes — features I've shaped in real time from those collisions. Fourteen musicians support me via Patreon to keep this going. Free and open source (GPLv3). Commercial DAW companies optimize for marketing bullet points. I optimize for the next song you want to finish tonight.
 
 > "This is by far the most thought out tool ever. Why is this not natively implemented?"
 
@@ -12,7 +18,7 @@ Free and open source (GPLv3). Fourteen musicians currently fund ongoing developm
 
 > "You are essentially writing a completely new framework over the engine."
 
-> "When you only have 45 minutes to make music, anything that shaves a minute or two is like an eternity."
+> "Paketti itself deserves a lifetime movie about star-crossed lovers who have obscure script needs."
 
 [Read more feedback →](FEEDBACK.md)
 
