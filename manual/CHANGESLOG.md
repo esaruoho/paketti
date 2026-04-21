@@ -959,129 +959,119 @@ Toggle behaviour per slot:
 </div>
 
 <script>
-function sortChangelog(order) {
-  console.log('Sort function called with order:', order);
-  
-  // Find all h3 elements with date pattern
-  const allH3s = document.querySelectorAll('h3');
-  const dateEntries = [];
-  
-  allH3s.forEach((h3, index) => {
-    const text = h3.textContent.trim();
-    const dateMatch = text.match(/^(\d{4}-\d{2}-\d{2}) - (.+)$/);
-    
-    if (dateMatch) {
-      // Collect all elements after this h3 until next date h3
-      const elements = [h3];
-      let nextEl = h3.nextElementSibling;
-      
-      while (nextEl) {
-        // Stop at next date header or "under the radar"
-        if (nextEl.tagName === 'H3') {
-          const nextText = nextEl.textContent.trim();
-          if (/^\d{4}-\d{2}-\d{2} - /.test(nextText) || nextText.includes('under the radar')) {
-            break;
-          }
+(function () {
+  'use strict';
+
+  // Regexes are module-scoped so the entry-grouping pass and the stop-condition
+  // check can never drift apart (the previous bug was exactly this: outer used
+  // ^date - .+$, inner used ^date - , so they could disagree on edge cases).
+  var DATE_RE = /^(\d{4}-\d{2}-\d{2}) - (.+)$/;
+  var SORT_DIV_SELECTOR = 'div[style*="background-color: rgba(240,240,240,0.7)"]';
+
+  function findSortDiv() {
+    return document.querySelector(SORT_DIV_SELECTOR);
+  }
+
+  // Walk siblings starting after sortDiv. Group each date h3 with every
+  // following sibling until the next date h3. Hard-stop at the first h1/h2,
+  // which marks the end of the changelog region (e.g. "You Made This Possible").
+  // Only same-parent siblings are considered — we never descend into nested
+  // structures, so an iframe <div> embed or any wrapper cannot confuse us.
+  function collectEntries(sortDiv) {
+    var entries = [];
+    var current = null;
+    var index = 0;
+    for (var node = sortDiv.nextElementSibling; node; node = node.nextElementSibling) {
+      var tag = node.tagName;
+      if (tag === 'H1' || tag === 'H2') break;
+      if (tag === 'H3') {
+        var m = node.textContent.trim().match(DATE_RE);
+        if (m) {
+          current = { date: m[1], elements: [node], originalIndex: index++ };
+          entries.push(current);
+          continue;
         }
-        elements.push(nextEl);
-        nextEl = nextEl.nextElementSibling;
       }
-      
-      dateEntries.push({
-        date: dateMatch[1],
-        elements: elements,
-        originalIndex: index
-      });
+      if (current) current.elements.push(node);
+      // Siblings before the first date h3 belong to no entry and stay put.
     }
-  });
-  
-  console.log('Found', dateEntries.length, 'date entries');
-  
-  if (dateEntries.length === 0) return;
-  
-  // Sort by date, then by original index for same dates
-  dateEntries.sort((a, b) => {
-    const dateCompare = (order === 'newest') ? 
-      b.date.localeCompare(a.date) : 
-      a.date.localeCompare(b.date);
-    
-    // If dates are the same, sort by original index
-    if (dateCompare === 0) {
-      if (order === 'newest') {
-        // For newest first: reverse document order within same date (3, 2, 1)
-        return b.originalIndex - a.originalIndex;
-      } else {
-        // For oldest first: document order within same date (1, 2, 3)
-        return a.originalIndex - b.originalIndex;
+    return entries;
+  }
+
+  function compareEntries(order) {
+    var newest = order === 'newest';
+    return function (a, b) {
+      var cmp = newest ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date);
+      if (cmp !== 0) return cmp;
+      // Stable within same date: newest reverses original order, oldest preserves it.
+      return newest ? b.originalIndex - a.originalIndex : a.originalIndex - b.originalIndex;
+    };
+  }
+
+  // Atomic DOM rewrite via DocumentFragment. Removes every prior mid-loop-failure
+  // failure mode: either the full sorted sequence lands, or nothing moves at all.
+  function rearrange(entries, sortDiv) {
+    var fragment = document.createDocumentFragment();
+    for (var i = 0; i < entries.length; i++) {
+      var els = entries[i].elements;
+      for (var j = 0; j < els.length; j++) {
+        var el = els[j];
+        if (el && el.nodeType === 1) fragment.appendChild(el);
       }
     }
-    
-    return dateCompare;
-  });
-  
-  // Find insertion point (after sort buttons)
-  const sortDiv = document.querySelector('div[style*="background-color: rgba(240,240,240,0.7)"]');
-  if (!sortDiv) {
-    console.error('Could not find sort div');
-    return;
+    sortDiv.parentNode.insertBefore(fragment, sortDiv.nextSibling);
   }
-  
-  // Build sorted content atomically in a DocumentFragment, then insert once.
-  // (Previous chained-insertBefore approach could leave the DOM in a half-sorted
-  // state if any single insertBefore failed, making every year below the failure
-  // point vanish from the page.)
-  const fragment = document.createDocumentFragment();
-  dateEntries.forEach(entry => {
-    entry.elements.forEach(el => fragment.appendChild(el));
-  });
-  sortDiv.parentNode.insertBefore(fragment, sortDiv.nextSibling);
-  
-  // Update status and button styles
-  const statusEl = document.getElementById('sortStatus');
-  const oldestBtn = document.querySelector('button[onclick*="oldest"]');
-  const newestBtn = document.querySelector('button[onclick*="newest"]');
-  
-  if (statusEl) {
-    statusEl.textContent = order === 'newest' ? 'Currently: Newest First' : 'Currently: Oldest First';
-  }
-  
-  // Update button styles to show active state
-  if (oldestBtn && newestBtn) {
-    if (order === 'newest') {
-      oldestBtn.style.backgroundColor = '#666';
-      newestBtn.style.backgroundColor = '#2196F3';
-    } else {
-      oldestBtn.style.backgroundColor = '#4CAF50';
-      newestBtn.style.backgroundColor = '#666';
+
+  function updateUI(order) {
+    var statusEl = document.getElementById('sortStatus');
+    if (statusEl) {
+      statusEl.textContent = order === 'newest' ? 'Currently: Newest First' : 'Currently: Oldest First';
+    }
+    var oldestBtn = document.querySelector('button[onclick*="oldest"]');
+    var newestBtn = document.querySelector('button[onclick*="newest"]');
+    if (oldestBtn && newestBtn) {
+      oldestBtn.style.backgroundColor = order === 'newest' ? '#666' : '#4CAF50';
+      newestBtn.style.backgroundColor = order === 'newest' ? '#2196F3' : '#666';
     }
   }
-  
-  console.log('Sorting completed');
-}
 
-function getInitialSortOrder() {
-  // Check URL parameters first
-  const urlParams = new URLSearchParams(window.location.search);
-  const sortParam = urlParams.get('sort');
-  
-  if (sortParam === 'oldest' || sortParam === 'newest') {
-    return sortParam;
+  // Global entry point — kept on window so inline onclick="sortChangelog(...)"
+  // still works. Any failure is caught so the page never ends up half-sorted
+  // with content detached from the DOM.
+  window.sortChangelog = function (order) {
+    if (order !== 'newest' && order !== 'oldest') order = 'newest';
+    try {
+      var sortDiv = findSortDiv();
+      if (!sortDiv) {
+        console.error('sortChangelog: sort div not found');
+        return;
+      }
+      var entries = collectEntries(sortDiv);
+      if (entries.length >= 2) {
+        entries.sort(compareEntries(order));
+        rearrange(entries, sortDiv);
+      }
+      updateUI(order);
+    } catch (err) {
+      console.error('sortChangelog failed:', err);
+      // Intentionally don't rethrow — partial failure must not nuke the page.
+      // Still try to reflect the requested order in the UI.
+      try { updateUI(order); } catch (_) { /* give up silently */ }
+    }
+  };
+
+  function getInitialSortOrder() {
+    var params = new URLSearchParams(window.location.search);
+    var p = params.get('sort');
+    return (p === 'oldest' || p === 'newest') ? p : 'newest';
   }
-  
-  // Default to newest first
-  return 'newest';
-}
 
-// Auto-sort when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  const initialOrder = getInitialSortOrder();
-  console.log('Initial sort order:', initialOrder);
-  
-  // Wait a bit for the page to fully render
-  setTimeout(() => {
-    sortChangelog(initialOrder);
-  }, 100);
-});
+  document.addEventListener('DOMContentLoaded', function () {
+    // Defer one tick to let any late-rendering content settle before we
+    // enumerate siblings.
+    setTimeout(function () { window.sortChangelog(getInitialSortOrder()); }, 0);
+  });
+})();
 </script>
 
 ---
