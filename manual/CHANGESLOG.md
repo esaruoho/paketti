@@ -2323,6 +2323,7 @@ this fetches a random line from the official Oblique Strategies list and shows i
 
 Feature: Paketti Dater & Titler - (Save Song As replacement)
 <div style="position: relative; padding-bottom: 64.90384615384616%; height: 0;"><iframe src="https://www.loom.com/embed/6d1b8cf98ee0471cb67156b6a98fa383?sid=6373355d-068c-46fc-b1c1-028d0d5074df" loading="lazy" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 ![](attachments/2024-08-02_Screenshot_2024-08-02_at_10.23.43.png)
 
 
@@ -3831,6 +3832,7 @@ these are not yet configured for anything since I'm trying to find usecases for 
 
 Here's a little video of how it works:
 <div style="position: relative; padding-bottom: 64.90384615384616%; height: 0;"><iframe src="https://www.loom.com/embed/f24ab48833aa47aab640aa3a79350b16?sid=891d6b7d-f83b-48a6-a43e-dcd256bb2a0e" loading="lazy" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 ![](attachments/2024-08-31_Screenshot_2024-08-31_at_17.41.00.png)
 
 
@@ -5813,6 +5815,7 @@ Plumbing: I've removed 30 duplicate themes (different namings) and added grymmja
 
 Feature: "Load new sample with current slice markers". select a sample with slice markers. run it via shortcut, or two menu entries (sample editor, or instrument box). prompt comes up, for loading the sample. load the sample -> markers from previous sample are applied to it. if there's less sampleframes, only the markers that fit inside the sample length are applied.
 <div style="position: relative; padding-bottom: 64.90384615384616%; height: 0;"><iframe src="https://www.loom.com/embed/f8a4d31abb1643459ca58389357fc78a?sid=ffe72a17-f359-4618-802e-0ad79eb7ccf2" loading="lazy" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 (Closes https://github.com/esaruoho/org.lackluster.Paketti.xrnx/issues/668)
 
 ---
@@ -5828,6 +5831,7 @@ select 4 rows. press shortcut. introduces 4 rows of silence, duplicates the 4 ro
 
 video only of "padding clearing" flavor (1) 
 <div style="position: relative; padding-bottom: 64.90384615384616%; height: 0;"><iframe src="https://www.loom.com/embed/7dc5d7710ad844f081e4af89a8d85af8?sid=77436d53-6c74-416e-9b46-f21f78b7c1ca" loading="lazy" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 ![](attachments/2024-11-02_Screenshot_2024-11-02_at_15.42.04.png)
 
 ![](attachments/2024-11-02_duplicate_selection_with_padding_and_move_cursor_dont_wreck_silence_multicolumn.gif)
@@ -6185,6 +6189,7 @@ Improvement: added Duplicate Selected Sample to +12 +24 -12 -24 to Sample Mappin
 
 Feature: GlobalGainer - adds a `GlobalGainer` to each track - and the same midi knob that controls the volume of each GlobalGainer device.  and if you add more tracks, the same midi knob will add more GlobalGainers to the new tracks.
 <div style="position: relative; padding-bottom: 64.90384615384616%; height: 0;"><iframe src="https://www.loom.com/embed/41c362b9a8c44ff79bd869f49cbbdab1?sid=b139a6df-f1b8-4d23-a9db-c8b6f19967b7" loading="lazy" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 as requested by [Patreon subscriber](https://www.patreon.com/esaruoho) number two
 
 ---
@@ -6192,6 +6197,7 @@ as requested by [Patreon subscriber](https://www.patreon.com/esaruoho) number tw
 
 Feature: A/B Shortcuts for adding A or B - Gainer device to selected track -- and a midiknob that does a crossfade between A & B.
 <div style="position: relative; padding-bottom: 64.90384615384616%; height: 0;"><iframe src="https://www.loom.com/embed/4d19d732f7f643c69da83c50dc402103?sid=a0d975ad-61ee-4019-a373-08f7f3dbae10" loading="lazy" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 as requested by [Patreon subscriber](https://www.patreon.com/c/esaruoho) number one
 
 (Closes https://github.com/esaruoho/paketti/issues/700 )
@@ -6218,6 +6224,7 @@ repost since gif added
 ### 2024-11-15 - Feature: Load 32 random samples from user-defined folder. (One sample per instrument)
 
 <div style="position: relative; padding-bottom: 64.90384615384616%; height: 0;"><iframe src="https://www.loom.com/embed/fe011e3d56d441918a9eb70659c22c79?sid=482a730a-a58a-4e61-b8fc-35e679d8cf38" loading="lazy" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 (Closes https://github.com/esaruoho/paketti/issues/701 )
 
 ---
@@ -6361,6 +6368,7 @@ Improvement: Clear All Tracks Below Current Row
 
 Feature: XY Audio Mixer for 4 AKWF + 4 random samples in same instrument
 <div style="position: relative; padding-bottom: 64.90384615384616%; height: 0;"><iframe src="https://www.loom.com/embed/7ed3c942a53241b58a43fceabb932dc2?sid=532ca7ad-bbaa-4457-8aee-6c5f3416e1be" loading="lazy" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 ![](attachments/2024-11-24_Screenshot_2024-11-24_at_12.05.18.png)
 
 
@@ -6902,6 +6910,7 @@ Feature: Paketti Tuplet Generator - a very WIP feature based on the tuplet calcu
 (the gif is pretty outdated, check the video)
 
  <div style="position: relative; padding-bottom: 64.90384615384616%; height: 0;"><iframe src="https://www.loom.com/embed/454f3cdb1ccf402dbbc15fda6e7c508b?sid=f211f6ca-cfe6-48f0-9371-6f86ff55c3a4" loading="lazy" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 ![](attachments/2024-12-22_tuplet_generator.gif)
 
 
