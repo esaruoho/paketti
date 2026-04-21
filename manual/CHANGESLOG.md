@@ -6,7 +6,7 @@
 
 Every changelog entry below represents hours of development time. Paketti is free, but building it isn't.
 
-**[Join 18 supporters keeping Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
+**[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
 ### Recent Highlights: April 2026
 
@@ -1094,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 Every entry above represents real development time — design, testing, debugging, refinement.
 
-Paketti's continued development is sustained by **18 supporters** who believe in open-source music tools.
+Paketti's continued development is sustained by supporters who believe in open-source music tools.
 
 - **[Patreon](http://patreon.com/esaruoho)** — Monthly support from €3.50 (keeps development moving)
 - **[GitHub Sponsors](https://github.com/sponsors/esaruoho)** — Sponsor through GitHub

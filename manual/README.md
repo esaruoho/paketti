@@ -82,7 +82,7 @@ When you become a Patreon supporter:
 - **You shape what comes next.** Patrons get to vote on feature priorities and see what's coming before anyone else.
 - **You keep the lights on.** Literally. This is how I afford to keep doing this instead of contract work.
 
-**[Join 18 supporters on Patreon →](http://patreon.com/esaruoho)**
+**[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)**
 
 <details>
 <summary><strong>Other ways to support</strong></summary>
