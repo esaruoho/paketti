@@ -1026,19 +1026,15 @@ function sortChangelog(order) {
     return;
   }
   
-  // Remove all elements from DOM
+  // Build sorted content atomically in a DocumentFragment, then insert once.
+  // (Previous chained-insertBefore approach could leave the DOM in a half-sorted
+  // state if any single insertBefore failed, making every year below the failure
+  // point vanish from the page.)
+  const fragment = document.createDocumentFragment();
   dateEntries.forEach(entry => {
-    entry.elements.forEach(el => el.remove());
+    entry.elements.forEach(el => fragment.appendChild(el));
   });
-  
-  // Insert sorted entries back
-  let insertAfter = sortDiv;
-  dateEntries.forEach(entry => {
-    entry.elements.forEach(el => {
-      insertAfter.parentNode.insertBefore(el, insertAfter.nextSibling);
-      insertAfter = el;
-    });
-  });
+  sortDiv.parentNode.insertBefore(fragment, sortDiv.nextSibling);
   
   // Update status and button styles
   const statusEl = document.getElementById('sortStatus');
