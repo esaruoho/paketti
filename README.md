@@ -1,14 +1,18 @@
-# Paketti - a suite of macros, scripts, workflow improvements for Renoise.
+# Paketti
 
-8,000+ keyboard shortcuts. 150+ dialogs. 1,000+ MIDI mappings. Import/export for dozens of formats. Built by a tracker musician since 2011.
+Paketti is a workflow expansion layer for Renoise. It closes the gap between the idea you have and the sound that comes out — 8,000+ keyboard shortcuts, 150+ dialogs, 1,000+ MIDI mappings, 701 themes, dozens of import/export formats, compatibility across Renoise 3.1 and 3.5 side-by-side.
+
+Built by a musician who's been making electronic music in trackers since 1994 and releasing it as Lackluster since 1997. Every feature exists because something slowed me down while I was making a record, and I couldn't keep working until I'd fixed it. The design principle is one sentence: **Paketti is about saving clicks.**
+
+Free and open source (GPLv3). Fourteen musicians currently fund ongoing development via Patreon.
 
 > "This is by far the most thought out tool ever. Why is this not natively implemented?"
 
-> "I genuinely think that I can't use Renoise without Paketti anymore"
+> "I genuinely think that I can't use Renoise without Paketti anymore."
+
+> "You are essentially writing a completely new framework over the engine."
 
 > "When you only have 45 minutes to make music, anything that shaves a minute or two is like an eternity."
-
-> "your toolset is a game changer. Not the first to say I'm sure and won't be the last."
 
 [Read more feedback →](FEEDBACK.md)
 

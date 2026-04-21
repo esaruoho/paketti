@@ -15,6 +15,8 @@
 
 # Paketti
 
+Paketti is a workflow expansion layer for Renoise. It closes the gap between the idea you have and the sound that comes out. Built by a musician making electronic music in trackers since 1994, releasing it as Lackluster since 1997 — every feature exists because something slowed me down while I was making a record, and I couldn't keep working until I'd fixed it. The design principle is one sentence: **Paketti is about saving clicks.**
+
 **Paketti is the Renoise Enhancement Suite (RES)** y'all been looking for.
 
 It touches on every single area of Renoise.
