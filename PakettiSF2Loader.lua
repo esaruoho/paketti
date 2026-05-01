@@ -2130,7 +2130,7 @@ PakettiAddMenuEntry{
   name   = "Sample Editor:Paketti:Batch Convert SF2 to XRNI (Per Preset)...",
   invoke = PakettiBatchSF2ToXRNI}
 PakettiAddMenuEntry{
-  name   = "Main Menu:File:Paketti Export..:Batch Convert SF2 to XRNI (Per Preset)...",
+  name   = "Main Menu:File:Paketti Export:Batch Convert SF2 to XRNI (Per Preset)...",
   invoke = PakettiBatchSF2ToXRNI}
 renoise.tool():add_keybinding{
   name   = "Global:Paketti:Batch Convert SF2 to XRNI",

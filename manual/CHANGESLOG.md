@@ -38,6 +38,11 @@ All Paketti menu entries (including "Paketti Gadgets" submenus in Mixer, Pattern
 
 This affects ALL ~500+ menu entries registered via `PakettiAddMenuEntry` and `renoise.tool():add_menu_entry`. The `--` prefix (disabled/separator entries) is stripped for sorting purposes so disabled entries sort alongside their enabled counterparts. Shortcut hints are still appended during registration.
 
+### 2026-05-01 - Fix: Batch Convert SF2 to XRNI menu was in wrong submenu
+
+The "Batch Convert SF2 to XRNI (Per Preset)..." menu entry was incorrectly placed under `Main Menu:File:Paketti Export..` (with trailing dots) instead of the standard `Main Menu:File:Paketti Export` submenu. Fixed the menu path so it appears alongside all other export entries.
+- Menu: `Main Menu:File:Paketti Export:Batch Convert SF2 to XRNI (Per Preset)...`
+
 ### 2026-04-20 - Improvement: Paketti Menu Configuration added to Main Menu:Options
 
 The Paketti Menu Configuration dialog is now also available under `Main Menu:Options:Paketti Menu Configuration...`, right next to the existing Paketti Preferences entry. This makes it much easier to discover — previously it was only accessible via `Main Menu:Tools:Paketti:!Preferences:Paketti Menu Configuration...`.
@@ -12528,9 +12533,9 @@ and if you're drawing to a canvas and press Space, the external editor will appe
 ### 2026-02-19 - Fix: Auto-Samplify now correctly handles sliced samples. Previously, running Auto-Samplify on an instrument containing a sample with slice markers would crash with "copy_from is not allowed for sliced samples". The fix detects both slice alias sub-samples and parent samples that own slice markers, routes them through a manual buffer copy instead, and preserves all slice marker positions in the destination sample.
 - File: `PakettiAutoSamplify.lua`
 
-### 2026-02-19 - Improvement: Batch Convert SF2 to XRNI (Per Preset) is now also accessible from **Main Menu → File → Paketti Export..** in addition to the Sample Editor context menu, making it easier to find without having to be in the Sample Editor first.
+### 2026-02-19 - Improvement: Batch Convert SF2 to XRNI (Per Preset) is now also accessible from **Main Menu → File → Paketti Export** in addition to the Sample Editor context menu, making it easier to find without having to be in the Sample Editor first.
 - Menu: `Sample Editor:Paketti:Batch Convert SF2 to XRNI (Per Preset)...`
-- Menu: `Main Menu:File:Paketti Export..:Batch Convert SF2 to XRNI (Per Preset)...`
+- Menu: `Main Menu:File:Paketti Export:Batch Convert SF2 to XRNI (Per Preset)...`
 
 ---
 ### 2026-02-19 - Fix: Phrase Follow Pattern Playback crashed Renoise on boot when the preference was saved as enabled. The feature's initialization code was executing at file-load time, where `renoise.song()` returns `nil`. Fixed by deferring the call through `app_new_document_observable` so it only runs after a song is fully loaded and ready.

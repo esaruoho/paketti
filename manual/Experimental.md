@@ -9135,7 +9135,7 @@ Batch-converts an entire folder of SF2 SoundFont files into Renoise XRNI instrum
 
 **Menu Entries:**
 - `Sample Editor:Paketti:Batch Convert SF2 to XRNI (Per Preset)...` 📋
-- `Main Menu:File:Paketti Export..:Batch Convert SF2 to XRNI (Per Preset)...` 📋
+- `Main Menu:File:Paketti Export:Batch Convert SF2 to XRNI (Per Preset)...` 📋
 
 **Keybindings:**
 - `Global:Paketti:Batch Convert SF2 to XRNI` ⌨️
