@@ -514,11 +514,11 @@ renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti P
 end
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Pattern Delay Viewer...",invoke=function() PakettiPatternDelayViewerShowDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Copy Delay to All Same Notes in Track",invoke=function() PakettiPatternDelayViewerCopyDelayFromSelectedNote() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Copy Delay to All Same Notes in Track",invoke=function() PakettiPatternDelayViewerCopyDelayFromSelectedNote() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Set Delay for All Same Notes in Track...",invoke=function() PakettiPatternDelayViewerPromptSetDelayForNote() end}
 end
 
 if preferences.pakettiMenuConfig.PatternEditor.value then
@@ -1414,9 +1414,9 @@ renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti:Wonkify Settings
 end
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Alias Identical Pattern Slots", invoke = PakettiPatternAliasIdenticalSlots}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Match Automation with all Aliases", invoke = PakettiPatternAliasMatchAutomation}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Clear Pattern Aliases", invoke = PakettiPatternAliasClearAliases}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:UIOWA Sample Importer",invoke = pakettiUIowaImporter}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:UIOWA Sample Processor",invoke = pakettiUIowaProcessor}

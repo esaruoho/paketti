@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-01 - Fix: Menu organization cleanup (Pattern → Pattern Editor, Paketti Export)
+
+Moved 6 menu entries from the orphan submenu `Main Menu:Tools:Paketti:Pattern` into the established `Main Menu:Tools:Paketti:Pattern Editor` submenu where they belong. Affected entries: Alias Identical Pattern Slots, Clear Pattern Aliases, Copy Delay to All Same Notes in Track, Match Automation with all Aliases, Pattern Delay Viewer, Set Delay for All Same Notes in Track. Also fixed the previously shipped `Paketti Export..` → `Paketti Export` typo in Main Menu → File that caused Batch Convert SF2 to XRNI to appear in a separate rogue submenu.
+
 ### 2026-04-20 - Improvement: "Remember to Restart Renoise" button in Menu Configuration
 
 Added a "Remember to Restart Renoise!" button at the bottom of the Paketti Menu Configuration dialog (`Main Menu:Options:Paketti Menu Configuration...`). Since the Renoise Lua API does not provide a way to quit or restart Renoise programmatically, this button closes the dialog and shows a status bar reminder that Renoise needs to be restarted for menu changes to take effect.
