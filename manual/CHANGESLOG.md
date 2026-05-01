@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-01 - Fix: ValhallaVintageVerb Mix parameter wrong in Sample FX Chain
+
+Fixed ValhallaVintageVerb's Mix parameter (parameter 1) being set to 0.304 (30.4% wet) instead of 0 (fully dry) when inserted into a Sample FX Chain. The Track FX chain version already correctly set Mix to 0. Also added missing ValhallaDelay and ValhallaShimmer default parameter overrides to the Sample FX chain path — these were only present in the Track FX chain path before.
+
 ### 2026-05-01 - Fix: Menu organization cleanup (Pattern → Pattern Editor, Paketti Export)
 
 Moved 6 menu entries from the orphan submenu `Main Menu:Tools:Paketti:Pattern` into the established `Main Menu:Tools:Paketti:Pattern Editor` submenu where they belong. Affected entries: Alias Identical Pattern Slots, Clear Pattern Aliases, Copy Delay to All Same Notes in Track, Match Automation with all Aliases, Pattern Delay Viewer, Set Delay for All Same Notes in Track. Also fixed the previously shipped `Paketti Export..` → `Paketti Export` typo in Main Menu → File that caused Batch Convert SF2 to XRNI to appear in a separate rogue submenu.
