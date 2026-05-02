@@ -12,6 +12,8 @@ I've been making electronic music in trackers since 1994 and releasing it as Lac
 
 I've been building Paketti for fifteen years and I ship updates almost every day. I've done forty-six one-on-one calls with Renoise users where I show features and the musician reacts, suggests, and embellishes — features I've shaped in real time from those collisions. Fourteen musicians support me via Patreon to keep this going. Free and open source (GPLv3). Commercial DAW companies optimize for marketing bullet points. I optimize for the next song you want to finish tonight.
 
+> "Paketti continues to be quite possibly the most valuable add-on ever, not just Renoise, but any audio environment I work in. Keep up the amazing work! Wow!" — newnumbertwo (Bluesky)
+
 > "This is by far the most thought out tool ever. Why is this not natively implemented?"
 
 > "I genuinely think that I can't use Renoise without Paketti anymore."

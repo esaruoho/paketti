@@ -28,6 +28,8 @@
 
 ## Scale — "This Is Beyond a Tool"
 
+> "Paketti continues to be quite possibly the most valuable add-on ever, not just Renoise, but any audio environment I work in. Keep up the amazing work! Wow!" — [newnumbertwo](https://bsky.app/profile/newnumbertwo.bsky.social) (Bluesky, May 2026)
+
 > "you are essentially writing... a completely new framework over the engine."
 
 > "may I point one thing: your work on renoise is light years further in advance than 3.5 update."
