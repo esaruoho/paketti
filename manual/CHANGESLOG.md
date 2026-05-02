@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-02 - Feature: Sidechain Curve Pack (8 ducking-shaped LFO custom waveforms)
+
+Added 8 ready-made sidechain ducking curves that plug into the existing PakettiAutomationCurves LFO Custom Waveform writer. Each shape applies to the currently selected `*LFO` device in a track DSP chain or sample FX chain — useful inside Mr. Zenspher–style sidechain Doofers (Key Tracker → Custom LFO → Compressor) or any rhythm-locked parameter modulation. The pack: **EDM Pump** (instant drop, exponential recovery), **Reverse Pump** (slow descent, snap recovery — for cycling LFOs), **Double Tap** (two pumps per cycle), **Triple Tap** (three pumps per cycle), **Kick Ghost** (tiny brief dip near start, mostly flat), **Bump Pump** (fast drop, two-stage release), **Breath Pump** (smooth cosine swell), **Swing Duck** (asymmetric off-beat duck with secondary dip). Menu entries added under `Main Menu:Tools:Paketti:DSP:Sidechain Curves:<Name>` and `DSP Device:Paketti:Sidechain Curves:<Name>`. Keybindings added: `Global:Paketti:Sidechain Curve <Name>` for all 8. MIDI mappings added: `Paketti:Sidechain Curve <Name>` for all 8. Shapes are also injected into the global `PakettiAutomationCurvesShapes` table so the existing automation insert pipeline can use them.
+
 ### 2026-05-01 - Fix: ValhallaVintageVerb Mix parameter wrong in Sample FX Chain
 
 Fixed ValhallaVintageVerb's Mix parameter (parameter 1) being set to 0.304 (30.4% wet) instead of 0 (fully dry) when inserted into a Sample FX Chain. The Track FX chain version already correctly set Mix to 0. Also added missing ValhallaDelay and ValhallaShimmer default parameter overrides to the Sample FX chain path — these were only present in the Track FX chain path before.
