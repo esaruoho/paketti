@@ -341,7 +341,46 @@ function PakettiInsertSidechainDoofer(opts)
     end
   end
 
-  -- 6. Select the Key Tracker so the user lands on the head of the chain
+  -- 6. Optional: insert *Velocity Tracker before the LFO for velocity-sensitive duck depth
+  --    Velocity Tracker → LFO Amplitude. Soft kicks duck softly, hard kicks slam.
+  if opts.velocity_sensitive then
+    local vt_pos = nil
+    for i = 1, #track.devices do
+      if rawequal(track.devices[i], lfo_dev) then vt_pos = i; break end
+    end
+    if vt_pos then
+      local vt_dev = track:insert_device_at("Audio/Effects/Native/*Velocity Tracker", vt_pos)
+      vt_dev.display_name = "Sidechain Velocity"
+
+      -- Re-find LFO position after insertion
+      local lfo_track_idx_zero_based = nil
+      for i = 1, #track.devices do
+        if rawequal(track.devices[i], lfo_dev) then
+          lfo_track_idx_zero_based = i - 1
+          break
+        end
+      end
+
+      -- Find LFO Amplitude param index
+      local lfo_amp_idx = select(1, find_param_by_name(lfo_dev, "Amplitude"))
+
+      local _, p_dest_effect = find_param_by_name(vt_dev, "Dest. Effect", "Dest Effect")
+      local _, p_dest_param  = find_param_by_name(vt_dev, "Dest. Parameter", "Dest Parameter")
+      local _, p_min         = find_param_by_name(vt_dev, "Min")
+      local _, p_max         = find_param_by_name(vt_dev, "Max")
+      local _, p_linked      = find_param_by_name(vt_dev, "Linked Instrument", "LinkedInstrument", "Instr.", "Instrument")
+
+      if p_dest_effect and lfo_track_idx_zero_based then p_dest_effect.value = lfo_track_idx_zero_based end
+      if p_dest_param and lfo_amp_idx then p_dest_param.value = lfo_amp_idx - 1 end
+      if p_min then p_min.value = p_min.value_min end
+      if p_max then p_max.value = p_max.value_max end
+      if p_linked and instrument_index and instrument_index >= p_linked.value_min and instrument_index <= p_linked.value_max then
+        p_linked.value = instrument_index
+      end
+    end
+  end
+
+  -- 7. Select the Key Tracker so the user lands on the head of the chain
   for i = 1, #track.devices do
     if rawequal(track.devices[i], kt_dev) then
       song.selected_device_index = i
@@ -465,6 +504,15 @@ function PakettiSidechainDooferShowDialog()
     },
 
     vb:row{
+      vb:text{text = "Velocity-sensitive:", width = 130},
+      vb:checkbox{
+        id = "vel_check",
+        value = false
+      },
+      vb:text{text = "  (adds *Velocity Tracker → LFO Amplitude)", style = "disabled"}
+    },
+
+    vb:row{
       spacing = 6,
       vb:button{
         text = "Insert",
@@ -475,7 +523,8 @@ function PakettiSidechainDooferShowDialog()
             instrument_index = vb.views.instr_popup.value,
             curve = curve_keys[vb.views.curve_popup.value] or "edmPump",
             envelope_length = env_lengths[vb.views.env_popup.value] or 64,
-            lines_per_cycle = vb.views.lpc_box.value
+            lines_per_cycle = vb.views.lpc_box.value,
+            velocity_sensitive = vb.views.vel_check.value
           }
         end
       },
@@ -488,7 +537,8 @@ function PakettiSidechainDooferShowDialog()
             instrument_index = vb.views.instr_popup.value,
             curve = curve_keys[vb.views.curve_popup.value] or "edmPump",
             envelope_length = env_lengths[vb.views.env_popup.value] or 64,
-            lines_per_cycle = vb.views.lpc_box.value
+            lines_per_cycle = vb.views.lpc_box.value,
+            velocity_sensitive = vb.views.vel_check.value
           }
           if PakettiSidechainDooferDialog and PakettiSidechainDooferDialog.visible then
             PakettiSidechainDooferDialog:close()
@@ -511,6 +561,259 @@ function PakettiSidechainDooferShowDialog()
 
   PakettiSidechainDooferDialog = renoise.app():show_custom_dialog(
     "Paketti: Sidechain Doofer Auto-Loader", content)
+end
+
+------------------------------------------------------------------------
+-- Trigger Column Mirror
+------------------------------------------------------------------------
+-- Mirrors note positions from a source track's note column N to a target
+-- track's note column M, writing the chosen trigger instrument at every
+-- source hit. Optionally renames the target column "trigger" (column tagging).
+--
+-- opts:
+--   source_track_index, source_column_index   (1-based)
+--   target_track_index, target_column_index   (1-based)
+--   trigger_instrument_index                  (1-based)
+--   scope            "current_pattern" | "all_patterns"
+--   every_n          1=every hit, 2=every other, etc.   (default 1)
+--   min_velocity     0..127, only mirror hits ≥ this    (default 0)
+--   beats_filter     {true,true,true,true} for 4/4 beats; nil = no filter
+--   tag_column       boolean — set target column name to "trigger" (default true)
+
+local function get_track_pattern_track(pattern, track_index)
+  return pattern:track(track_index)
+end
+
+function PakettiSidechainMirrorTriggers(opts)
+  opts = opts or {}
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_status("No song loaded")
+    return
+  end
+
+  local source_track_idx  = opts.source_track_index  or song.selected_track_index
+  local source_col_idx    = opts.source_column_index or 1
+  local target_track_idx  = opts.target_track_index  or song.selected_track_index
+  local target_col_idx    = opts.target_column_index or 2
+  local trig_idx          = opts.trigger_instrument_index or find_trigger_instrument_index() or 1
+  local scope             = opts.scope or "current_pattern"
+  local every_n           = math.max(1, opts.every_n or 1)
+  local min_velocity      = math.max(0, math.min(127, opts.min_velocity or 0))
+  local beats_filter      = opts.beats_filter   -- nil or array of booleans
+  local tag_column        = (opts.tag_column ~= false)
+
+  local source_track = song.tracks[source_track_idx]
+  local target_track = song.tracks[target_track_idx]
+  if not source_track or not target_track then
+    renoise.app():show_status("Source/target track invalid")
+    return
+  end
+
+  -- Make sure target column is visible
+  if target_col_idx > target_track.visible_note_columns then
+    target_track.visible_note_columns = math.min(12, math.max(target_track.visible_note_columns, target_col_idx))
+  end
+
+  -- Tag the target column (visual)
+  if tag_column then
+    pcall(function() target_track:set_column_name(target_col_idx, "trigger") end)
+  end
+
+  song:describe_undo("Paketti: Mirror Trigger Notes")
+
+  local lpb = song.transport.lpb
+
+  local function process_pattern(pattern_index)
+    local pattern = song.patterns[pattern_index]
+    if not pattern then return 0 end
+    local src_pt = pattern:track(source_track_idx)
+    local tgt_pt = pattern:track(target_track_idx)
+    if not src_pt or not tgt_pt then return 0 end
+
+    local hit_count = 0
+    local kept_count = 0
+    for line_idx = 1, pattern.number_of_lines do
+      local src_line = src_pt:line(line_idx)
+      local src_col  = src_line.note_columns[source_col_idx]
+      local has_note = src_col and not src_col.is_empty
+                        and src_col.note_value < renoise.PatternLine.NOTE_OFF
+      if has_note then
+        hit_count = hit_count + 1
+        local pass_n = ((hit_count - 1) % every_n == 0)
+        local pass_v = (src_col.volume_value == 255) -- "empty" volume slot = full
+                        or (src_col.volume_value >= min_velocity)
+        local pass_b = true
+        if beats_filter then
+          local beat_idx = math.floor((line_idx - 1) / lpb) % #beats_filter + 1
+          pass_b = beats_filter[beat_idx] == true
+        end
+
+        if pass_n and pass_v and pass_b then
+          local tgt_line = tgt_pt:line(line_idx)
+          local tgt_col = tgt_line.note_columns[target_col_idx]
+          if tgt_col then
+            tgt_col.note_value = (src_col.note_value < 120) and src_col.note_value or 48 -- C-4 default
+            tgt_col.instrument_value = trig_idx - 1
+            -- Preserve velocity if source had explicit volume
+            if src_col.volume_value ~= 255 then
+              tgt_col.volume_value = src_col.volume_value
+            end
+            -- Preserve delay column for sub-line accuracy
+            tgt_col.delay_value = src_col.delay_value
+            kept_count = kept_count + 1
+          end
+        end
+      end
+    end
+    return kept_count
+  end
+
+  local total = 0
+  if scope == "all_patterns" then
+    for i = 1, #song.patterns do
+      total = total + process_pattern(i)
+    end
+  else
+    total = process_pattern(song.selected_pattern_index)
+  end
+
+  renoise.app():show_status(string.format(
+    "Mirrored %d trigger note(s) — %s col %d → %s col %d (instr %02X)",
+    total,
+    source_track.name, source_col_idx,
+    target_track.name, target_col_idx,
+    trig_idx - 1))
+end
+
+------------------------------------------------------------------------
+-- Trigger Column Mirror Dialog
+------------------------------------------------------------------------
+
+PakettiSidechainMirrorDialog = nil
+
+function PakettiSidechainMirrorShowDialog()
+  if PakettiSidechainMirrorDialog and PakettiSidechainMirrorDialog.visible then
+    PakettiSidechainMirrorDialog:close()
+    PakettiSidechainMirrorDialog = nil
+    return
+  end
+
+  local song = renoise.song()
+  if not song then return end
+
+  local track_items = {}
+  for i, t in ipairs(song.tracks) do
+    table.insert(track_items, string.format("%02d: %s", i, t.name ~= "" and t.name or "<unnamed>"))
+  end
+
+  local instr_items = {}
+  for i, instr in ipairs(song.instruments) do
+    table.insert(instr_items, string.format("%02X: %s", i - 1, instr.name ~= "" and instr.name or "<unnamed>"))
+  end
+  local default_trig = find_trigger_instrument_index() or 1
+
+  local vb = renoise.ViewBuilder()
+  local content = vb:column{
+    margin = 10,
+    spacing = 6,
+
+    vb:text{text = "Mirror notes from a source column → trigger notes in a target column", style = "strong"},
+
+    vb:row{
+      vb:text{text = "Source track:", width = 110},
+      vb:popup{id = "src_track", items = track_items, value = song.selected_track_index, width = 280}
+    },
+    vb:row{
+      vb:text{text = "Source column:", width = 110},
+      vb:valuebox{id = "src_col", min = 1, max = 12, value = 1, width = 60}
+    },
+    vb:row{
+      vb:text{text = "Target track:", width = 110},
+      vb:popup{id = "tgt_track", items = track_items, value = song.selected_track_index, width = 280}
+    },
+    vb:row{
+      vb:text{text = "Target column:", width = 110},
+      vb:valuebox{id = "tgt_col", min = 1, max = 12, value = 2, width = 60}
+    },
+    vb:row{
+      vb:text{text = "Trigger instrument:", width = 110},
+      vb:popup{id = "trig", items = #instr_items > 0 and instr_items or {"<none>"}, value = default_trig, width = 280}
+    },
+    vb:row{
+      vb:text{text = "Scope:", width = 110},
+      vb:popup{id = "scope", items = {"Current pattern", "All patterns"}, value = 1, width = 200}
+    },
+    vb:row{
+      vb:text{text = "Every Nth hit:", width = 110},
+      vb:valuebox{id = "every_n", min = 1, max = 16, value = 1, width = 60}
+    },
+    vb:row{
+      vb:text{text = "Min velocity:", width = 110},
+      vb:valuebox{id = "min_vel", min = 0, max = 127, value = 0, width = 60}
+    },
+    vb:row{
+      vb:text{text = "Tag target column 'trigger':", width = 200},
+      vb:checkbox{id = "tag_col", value = true}
+    },
+
+    vb:row{
+      spacing = 6,
+      vb:button{
+        text = "Mirror",
+        width = 110,
+        notifier = function()
+          PakettiSidechainMirrorTriggers{
+            source_track_index = vb.views.src_track.value,
+            source_column_index = vb.views.src_col.value,
+            target_track_index = vb.views.tgt_track.value,
+            target_column_index = vb.views.tgt_col.value,
+            trigger_instrument_index = vb.views.trig.value,
+            scope = vb.views.scope.value == 2 and "all_patterns" or "current_pattern",
+            every_n = vb.views.every_n.value,
+            min_velocity = vb.views.min_vel.value,
+            tag_column = vb.views.tag_col.value
+          }
+        end
+      },
+      vb:button{
+        text = "Close",
+        width = 80,
+        notifier = function()
+          if PakettiSidechainMirrorDialog and PakettiSidechainMirrorDialog.visible then
+            PakettiSidechainMirrorDialog:close()
+            PakettiSidechainMirrorDialog = nil
+          end
+        end
+      }
+    }
+  }
+
+  PakettiSidechainMirrorDialog = renoise.app():show_custom_dialog(
+    "Paketti: Trigger Column Mirror", content)
+end
+
+------------------------------------------------------------------------
+-- Column Tagging — manual helper
+------------------------------------------------------------------------
+-- Tags the currently selected note column on the selected track as "trigger"
+-- so users can see at a glance which columns are sidechain triggers.
+
+function PakettiSidechainTagSelectedColumn(label)
+  label = label or "trigger"
+  local song = renoise.song()
+  local track = song and song.selected_track
+  local col_idx = song and song.selected_note_column_index
+  if not track or not col_idx or col_idx < 1 then
+    renoise.app():show_status("Select a note column to tag")
+    return
+  end
+  local ok, err = pcall(function() track:set_column_name(col_idx, label) end)
+  if ok then
+    renoise.app():show_status("Tagged column " .. col_idx .. " as '" .. label .. "'")
+  else
+    renoise.app():show_status("Could not tag column: " .. tostring(err))
+  end
 end
 
 ------------------------------------------------------------------------
@@ -696,5 +999,38 @@ renoise.tool():add_midi_mapping{
   name = "Paketti:Insert Sidechain Doofer",
   invoke = function(message)
     if message:is_trigger() then PakettiInsertSidechainDoofer{} end
+  end
+}
+
+------------------------------------------------------------------------
+-- Trigger Column Mirror registrations
+------------------------------------------------------------------------
+
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:DSP:Trigger Column Mirror...",
+  invoke = PakettiSidechainMirrorShowDialog
+}
+PakettiAddMenuEntry{
+  name = "Pattern Editor:Paketti:Trigger Column Mirror...",
+  invoke = PakettiSidechainMirrorShowDialog
+}
+
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Trigger Column Mirror Dialog",
+  invoke = PakettiSidechainMirrorShowDialog
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Trigger Column Mirror Dialog",
+  invoke = PakettiSidechainMirrorShowDialog
+}
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Tag Selected Note Column as Trigger",
+  invoke = function() PakettiSidechainTagSelectedColumn("trigger") end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Trigger Column Mirror Dialog",
+  invoke = function(message)
+    if message:is_trigger() then PakettiSidechainMirrorShowDialog() end
   end
 }
