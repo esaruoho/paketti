@@ -68,10 +68,6 @@ If a question has the word "we already have" or "doesn't Paketti do" in it, that
 
 For binary format details, **always read the `polyend-tracker` skill first** — it has offset tables and FX maps.
 
-### Akai sampler cluster
-
-`PakettiAKAI.lua` (entry), `PakettiAkaiFormats.lua` (shared parsers), then per-device: `PakettiAkaiMPC2000.lua`, `PakettiAkaiS900.lua`, `PakettiAkaiS1000.lua`, `PakettiAkaiS3000.lua`, `PakettiAkaiPrograms.lua`.
-
 ### Format loaders/exporters
 
 Loaders: `PakettiIFFLoader.lua`, `PakettiSF2Loader.lua`, `PakettiREXLoader.lua`, `PakettiRX2Loader.lua`, `PakettiMODLoader.lua`, `PakettiXMImport.lua`, `PakettiITIImport.lua`, `PakettiOTSTRDImporter.lua`, `PakettiStemLoader.lua`, `PakettiWavCueExtract.lua`, `PakettiWTImport.lua`.
