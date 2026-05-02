@@ -22,6 +22,20 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-02 - Feature: Sidechain Workflow Pack III — Phrases, Recipes, Modulator, Hydra Fanout, Capture
+
+Five more Sidechain Doofer follow-ons completing the Mr. Zensphere video roadmap.
+
+**Trigger Phrase Library.** Generates 12 ready-made rhythmic ducking phrases inside the chosen trigger instrument (named with `SC:` prefix): 4-on-floor, Half-time, 8th-gate, 16th-gate, Trance gate, Dub-stab, Garage swing, Beats 1+3, Beats 2+4, Off-beats, Triplet 8ths, Build-up. Drop a phrase trigger in your pattern instead of placing notes by hand. Skips duplicates if phrases already exist. Menu: `Main Menu:Tools:Paketti:DSP:Generate Trigger Phrase Library` and `Instrument Box:Paketti:Generate Trigger Phrase Library`. Keybinding: `Global:Paketti:Generate Trigger Phrase Library`. MIDI mapping: `Paketti:Generate Trigger Phrase Library`.
+
+**Sidechain Recipe save/load.** Save the full `active_preset_data` of the Sidechain Doofer's three (or four) devices on the selected track to an XML file in `Presets/SidechainRecipes/`. Reload writes it back onto the matching devices. Use case: save "Verse Pump", "Chorus Pump", "Bridge Pump" recipes and switch them per song section. Menu: `Main Menu:Tools:Paketti:DSP:Save Sidechain Recipe...` and `Load Sidechain Recipe...`. Keybindings: `Global:Paketti:Save Sidechain Recipe Dialog`, `Global:Paketti:Load Sidechain Recipe Dialog`.
+
+**Trigger-Driven Modulator.** Same Key Tracker → Custom LFO chassis as the Sidechain Doofer, but the LFO destination is user-pickable: any device on the track, any parameter on that device. Reframes "sidechain compression" as generic rhythm-locked modulation. Apply the Sidechain Curve Pack to filter cutoff, send amount, sample offset, reverb size, EQ band gain — anything modulatable. Dialog with target-device popup, target-parameter popup, and curve picker. Menu: `Main Menu:Tools:Paketti:DSP:Trigger-Driven Modulator...` (also Mixer + DSP Chain). Keybinding: `Global:Paketti:Trigger-Driven Modulator Dialog`. MIDI mapping: `Paketti:Trigger-Driven Modulator Dialog`.
+
+**Sidechain Hydra Fanout.** Inserts Key Tracker → *LFO → *Hydra on the selected track and wires the LFO into the Hydra's Input. The Hydra's 9 outputs can each be routed to a different destination (manually wired by user), so one trigger curve drives nine destinations across the project at near-zero CPU. Project-wide ducking from a single shape. Menu: `Main Menu:Tools:Paketti:DSP:Insert Sidechain Hydra Fanout` (also Mixer). Keybinding: `Global:Paketti:Insert Sidechain Hydra Fanout`. MIDI mapping: `Paketti:Insert Sidechain Hydra Fanout`.
+
+**Capture Trigger Notes from Sample.** Walks the selected sample's audio buffer in line-sized windows (`samples_per_line = sample_rate × 60 / (BPM × LPB)`), peak-detects with onset/debounce thresholds, and writes trigger notes into a target pattern column at the corresponding line + delay position (sub-line accurate via delay column). Velocity = scaled peak amplitude with linear / sqrt / squared curves. Use case: take any audio kick, snare, or rhythmic loop and convert it to a programmable trigger pattern. Dialog at `Main Menu:Tools:Paketti:DSP:Capture Trigger Notes from Sample...` and `Sample Editor:Paketti:Capture Trigger Notes from Sample...`. Keybindings: `Sample Editor:Paketti:Capture Trigger Notes from Sample Dialog`, `Global:Paketti:Capture Trigger Notes from Sample Dialog`. MIDI mapping: `Paketti:Capture Trigger Notes from Sample Dialog`.
+
 ### 2026-05-02 - Feature: Trigger Column Mirror + Velocity-Sensitive Doofer + Column Tagging
 
 Three follow-on features for the Sidechain workflow.
