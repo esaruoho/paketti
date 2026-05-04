@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Fix: Groovebox 8120 load error on Renoise 3.5.4 (strict globals)
+
+`PakettiEightOneTwentyFocusedRow = PakettiEightOneTwentyFocusedRow or 1` read the global before declaring it, which trips Renoise's strict-globals guard (`__index` blocks unknown globals) and prevented Paketti from loading at all on a fresh tool install. Replaced with a `rawget` / `rawset` pair so the variable is created without a prior read. Reported by Issou2suc on Renoise 3.5.4 / Windows.
+
 ### 2026-05-04 - Feature: Groovebox 8120 — Akai MidiMix Auto-Bridge with LED Feedback
 
 The Akai MidiMix is now auto-opened (input + output) when the 8120 dialog appears, and auto-closed when it goes away. No MIDI-learn dance, no Renoise mapping required — Paketti talks to the device directly.
