@@ -164,8 +164,8 @@ local C = {
   trig_on_white = rgb(0x18,0x18,0x1c),
   trig_on_black = rgb(0xe8,0xe8,0xec),
   cell_grid     = rgb(0x3a,0x3a,0x42),
-  selection_fill= rgb(0xb0,0x60,0xd8, 60),
-  selection_brd = rgb(0xb0,0x60,0xd8),
+  selection_fill= rgb(0xb0,0x60,0xd8, 170),
+  selection_brd = rgb(0xc0,0x80,0xe8),
   playhead      = rgb(0xff,0xb0,0x40),
   lane_div      = rgb(0x4a,0x4a,0x54),
   muted_overlay = rgb(0x18,0x18,0x1c, 130),
@@ -858,18 +858,44 @@ local function lane_strip_left(row)
   }
 end
 
-local function lane_strip_right(_row)
+local function lane_strip_right(row)
+  -- Sample slider — picks which sample within the instrument is the active
+  -- velocity-mapped one. Read-through to 8120's rows[row].slider so changing
+  -- it here fires 8120's own notifier (which selects the sample, swaps the
+  -- pakettified sample, etc.).
+  local re = row_elements(row)
+  local slider_initial = 1
+  if re and re.slider then slider_initial = re.slider.value or 1 end
+  local sample_slider = vb:slider{
+    min = 1, max = 120,
+    value = slider_initial,
+    width = 160,
+    notifier = function(value)
+      value = math.floor(value)
+      local re_now = row_elements(row)
+      if re_now and re_now.slider then
+        re_now.slider.value = value
+      else
+        -- Fallback: select the sample directly when 8120 dialog is closed.
+        local song = renoise.song()
+        if row <= #song.instruments then
+          song.selected_instrument_index = row
+          local inst = song.instruments[row]
+          if inst and inst.samples and #inst.samples > 0 then
+            local idx = value
+            if idx > #inst.samples then idx = #inst.samples end
+            if idx < 1 then idx = 1 end
+            song.selected_sample_index = idx
+          end
+        end
+      end
+    end
+  }
   return vb:column{
     width = 180,
     vb:row{
-      vb:text{ text="pitch", style="disabled" },
-      vb:text{ text="  vol", style="disabled" },
-      vb:text{ text="  loop", style="disabled" },
-    },
-    vb:row{
-      vb:rotary{ min=-64, max=64, value=0, width=22, height=22 },
-      vb:rotary{ min=-1, max=1, value=0, width=22, height=22 },
-      vb:switch{ items={"○","→","←","↔"}, width=80, value=2 },
+      vb:text{ text="sample", style="disabled" },
+      sample_slider,
     },
   }
 end
@@ -916,14 +942,14 @@ local function build_view()
     vb:button{ text="↑",  width=30, notifier=function() nudge_rows(-1) end },
     vb:button{ text="↓",  width=30, notifier=function() nudge_rows( 1) end },
     vb:text{ text=" |", style="disabled" },
-    vb:button{ text="invert",  notifier = verb_invert },
-    vb:button{ text="reverse", notifier = verb_reverse },
-    vb:button{ text="fill",    notifier = verb_fill },
-    vb:button{ text="clear",   notifier = verb_clear },
+    vb:button{ text="invert",   width=60, notifier = verb_invert },
+    vb:button{ text="reverse",  width=70, notifier = verb_reverse },
+    vb:button{ text="fill",     width=50, notifier = verb_fill },
+    vb:button{ text="clear",    width=50, notifier = verb_clear },
     vb:text{ text=" |", style="disabled" },
-    vb:button{ text="density−", notifier = verb_density_minus },
-    vb:button{ text="density+", notifier = verb_density_plus },
-    vb:button{ text="humanize", notifier = verb_humanize },
+    vb:button{ text="density−", width=72, notifier = verb_density_minus },
+    vb:button{ text="density+", width=72, notifier = verb_density_plus },
+    vb:button{ text="humanize", width=82, notifier = verb_humanize },
   }
 
   v.verb_palette_2 = vb:row{
@@ -932,29 +958,29 @@ local function build_view()
     vb:button{ text="−", width=30, notifier = verb_roll_dec },
     vb:button{ text="+", width=30, notifier = verb_roll_inc },
     vb:text{ text=" |", style="disabled" },
-    vb:button{ text="copy",  notifier = verb_copy },
-    vb:button{ text="paste", notifier = verb_paste },
+    vb:button{ text="copy",  width=50, notifier = verb_copy },
+    vb:button{ text="paste", width=50, notifier = verb_paste },
     vb:text{ text=" |", style="disabled" },
-    vb:button{ text="euclid…", notifier = show_euclid_dialog },
-    vb:button{ text="apply curve…", notifier = show_curve_dialog },
+    vb:button{ text="euclid…",      width=72, notifier = show_euclid_dialog },
+    vb:button{ text="apply curve…", width=110, notifier = show_curve_dialog },
     vb:text{ text=" |", style="disabled" },
-    -- Sequential Load family — these populate the actual song instruments
-    -- (not the local prototype model), same as the 8120 dialog. Live here so
-    -- you don't have to bounce between dialogs to load samples.
-    vb:button{ text="Load…", notifier = function()
+    -- Sequential Load family — populates actual song instruments via 8120's
+    -- existing functions. Always available so you don't have to bounce
+    -- dialogs to load samples.
+    vb:button{ text="Load…",          width=70,  notifier = function()
       if loadSequentialSamplesWithFolderPrompts then loadSequentialSamplesWithFolderPrompts()
       else renoise.app():show_status("loadSequentialSamplesWithFolderPrompts not available") end
     end },
-    vb:button{ text="RandomLoad…", notifier = function()
+    vb:button{ text="RandomLoad…",    width=110, notifier = function()
       if loadSequentialDrumkitSamples then loadSequentialDrumkitSamples()
       else renoise.app():show_status("loadSequentialDrumkitSamples not available") end
     end },
-    vb:button{ text="RandomLoadAll…", notifier = function()
+    vb:button{ text="RandomLoadAll…", width=130, notifier = function()
       if loadSequentialRandomLoadAll then loadSequentialRandomLoadAll()
       else renoise.app():show_status("loadSequentialRandomLoadAll not available") end
     end },
     vb:text{ text=" |", style="disabled" },
-    vb:button{ text="refresh", notifier = function()
+    vb:button{ text="refresh", width=64, notifier = function()
       ensure_local_state(); selection = nil; update_selection_label()
       for r = 1, NUM_LANES do
         if view_buttons[r] then
