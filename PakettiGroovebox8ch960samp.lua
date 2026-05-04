@@ -931,13 +931,58 @@ local function build_view()
   v.step_toggle_text = vb:text{ text = string.format("Steps: %d", MAX_STEPS), font="bold", style="strong" }
   v.selection_label  = vb:text{ text = "selection: (none)", style="strong" }
 
+  -- Real transport — same calls 8120's own checkboxes make. Reads/writes
+  -- renoise.song().transport directly. BPM label shown live; click it to
+  -- nudge focus into the BPM box (Renoise lets the user double-click any
+  -- BPM display to type a new value in the main UI — we just expose the
+  -- current value here).
+  local function song_t() return renoise.song().transport end
+  local play_btn = vb:button{ text="▶", width=28, notifier = function()
+    song_t():start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
+  end }
+  local stop_btn = vb:button{ text="■", width=28, notifier = function()
+    song_t():stop()
+  end }
+  local rec_btn = vb:button{ text="●", width=28, notifier = function()
+    song_t().edit_mode = not song_t().edit_mode
+  end }
+  local bpm_label = vb:text{
+    text = string.format("  BPM %d", math.floor((song_t().bpm or 120) + 0.5)),
+    font = "bold", style = "strong"
+  }
+  v.bpm_label = bpm_label
+  local follow_cb = vb:checkbox{
+    value = song_t().follow_player and true or false,
+    notifier = function(value) song_t().follow_player = value end
+  }
+  local groove_cb = vb:checkbox{
+    value = song_t().groove_enabled and true or false,
+    notifier = function(value) song_t().groove_enabled = value end
+  }
+  -- Refresh BPM label on dialog open + when the BPM observable fires.
+  pcall(function()
+    if not song_t().bpm_observable:has_notifier(function() end) then
+      song_t().bpm_observable:add_notifier(function()
+        if v.bpm_label and dialog and dialog.visible then
+          v.bpm_label.text = string.format("  BPM %d", math.floor((song_t().bpm or 120) + 0.5))
+        end
+      end)
+    end
+  end)
+
   v.transport_bar = vb:row{
     style = "panel",
-    vb:button{ text="▶", width=28 }, vb:button{ text="■", width=28 }, vb:button{ text="●", width=28 },
-    vb:text{ text="  BPM 124", font="bold", style="strong" },
-    vb:text{ text="  follow ✓  groove ✓  rand gates  fill 35%", style="disabled" },
+    play_btn, stop_btn, rec_btn,
+    bpm_label,
+    vb:text{ text="  follow", style="strong" }, follow_cb,
+    vb:text{ text="  groove", style="strong" }, groove_cb,
+    vb:text{ text="  |", style="disabled" },
     vb:button{ text="16 / 32", width=70, notifier = toggle_step_count },
     v.step_toggle_text,
+    vb:text{ text="    ", style="disabled" },
+    vb:button{ text="Show 8120…", width=88, notifier = function()
+      if GrooveboxShowClose then GrooveboxShowClose() end
+    end },
   }
 
   v.verb_palette_1 = vb:row{
