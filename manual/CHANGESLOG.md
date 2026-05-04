@@ -22,6 +22,22 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Feature: Groovebox 8120 — Akai MidiMix Auto-Bridge with LED Feedback
+
+The Akai MidiMix is now auto-opened (input + output) when the 8120 dialog appears, and auto-closed when it goes away. No MIDI-learn dance, no Renoise mapping required — Paketti talks to the device directly.
+
+- **Top row (Mute 1–8)** = steps 1–8 of the focused row
+- **Bottom row (Rec Arm 1–8)** = steps 9–16 of the focused row
+- **Bank Left** = focused row previous (wraps)
+- **Bank Right** = focused row next (wraps)
+- **LED feedback** mirrors the focused row's step state in real time. Idle-poll diff catches state changes from any source (mouse clicks, MIDI mappings, randomize, fetch, pattern changes — anything). Switching the focused row instantly redraws all 16 LEDs to mirror the new row. Closing the dialog clears all LEDs.
+
+Device detection is name-fuzzy (matches "MIDI Mix", "MidiMix", "MIDIMIX", with or without bus suffixes). If no MidiMix is attached the bridge silently no-ops; the rest of 8120 is unaffected.
+
+New mapping for manual control: `Paketti:Paketti Groovebox 8120:MidiMix Bridge Toggle [Trigger]` — toggle the bridge on/off without closing the dialog.
+
+The "Solo" button (note 27) is currently unused — reserved for a future modifier (clear / half-velocity / select).
+
 ### 2026-05-04 - Feature: Groovebox 8120 — Focused-Row MIDI Page Model
 
 A single bank of 16 physical buttons on a MIDI controller (e.g. EXP1-EXP8 + P1-P8) can now drive the step grid of *whichever* of the 8 rows is currently focused, instead of needing one bank per row. The focused row is changed with "Focused Row Next/Previous" or "Focused Row Set 1..8" mappings — typically bound to a "page" / "scene" button on the controller. The focused row is highlighted in the dialog as you switch.

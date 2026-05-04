@@ -4349,6 +4349,11 @@ function pakettiEightSlotsByOneTwentyDialog()
   if prev_selected_instrument and prev_selected_instrument >= 1 and prev_selected_instrument <= #song.instruments then
     song.selected_instrument_index = prev_selected_instrument
   end
+  -- Auto-open the Akai MidiMix bridge if available (idempotent — safe to call
+  -- when the dialog is recreated by the 16/32 step toggle, etc.)
+  if PakettiEightOneTwentyMidiMixOpen then
+    PakettiEightOneTwentyMidiMixOpen()
+  end
 end
 
 
@@ -4723,6 +4728,209 @@ for _, btn in ipairs(PAKETTI_FOCUSED_ROW_BUTTONS) do
   }
 end
 
+-- =============================================================================
+-- Akai MidiMix bridge — auto-open device, dispatch buttons, drive LEDs
+-- =============================================================================
+-- Opens the MidiMix as both input and output when the 8120 dialog is shown,
+-- closes it when the dialog goes away. The 16 channel buttons (Mute row 1-8 +
+-- Rec Arm row 1-8) become focused-row step toggles 1-16. Bank Left/Right walk
+-- the focused row through the 8 lanes. LEDs mirror the focused row's step
+-- state and redraw on every focus change.
+--
+-- Factory firmware note layout (channel 1):
+--   Mute row    (steps 1-8)  : notes 1, 4, 7, 10, 13, 16, 19, 22
+--   Rec Arm row (steps 9-16) : notes 3, 6, 9, 12, 15, 18, 21, 24
+--   Bank Left  (focused row -) : note 25
+--   Bank Right (focused row +) : note 26
+--   Solo                       : note 27 (currently unused; reserved for later)
+
+local PAKETTI_MIDIMIX_MUTE_NOTES   = {1, 4, 7, 10, 13, 16, 19, 22}
+local PAKETTI_MIDIMIX_RECARM_NOTES = {3, 6, 9, 12, 15, 18, 21, 24}
+local PAKETTI_MIDIMIX_BANK_LEFT  = 25
+local PAKETTI_MIDIMIX_BANK_RIGHT = 26
+
+local paketti_midimix_in    = nil
+local paketti_midimix_out   = nil
+local paketti_midimix_name  = nil
+local paketti_midimix_last_led = {}  -- [step] = bool, last value we wrote
+local paketti_midimix_idle_attached = false
+
+local function paketti_midimix_find_device()
+  -- Match common name variants across OSes: "MIDI Mix", "MIDI Mix 1",
+  -- "MIDIMIX", "MidiMix", optional bus suffixes.
+  local candidates = {
+    inputs  = renoise.Midi.available_input_devices()  or {},
+    outputs = renoise.Midi.available_output_devices() or {},
+  }
+  local function match(name)
+    local lower = name:lower()
+    return lower:find("midi%s*mix") ~= nil
+  end
+  local in_name, out_name
+  for _, n in ipairs(candidates.inputs)  do if match(n) then in_name  = n; break end end
+  for _, n in ipairs(candidates.outputs) do if match(n) then out_name = n; break end end
+  return in_name, out_name
+end
+
+local function paketti_midimix_step_for_note(note)
+  for i, n in ipairs(PAKETTI_MIDIMIX_MUTE_NOTES)   do if n == note then return i      end end
+  for i, n in ipairs(PAKETTI_MIDIMIX_RECARM_NOTES) do if n == note then return i + 8  end end
+  return nil
+end
+
+local function paketti_midimix_note_for_step(step)
+  if step >= 1 and step <= 8  then return PAKETTI_MIDIMIX_MUTE_NOTES[step]   end
+  if step >= 9 and step <= 16 then return PAKETTI_MIDIMIX_RECARM_NOTES[step - 8] end
+  return nil
+end
+
+local function paketti_midimix_set_led(step, on)
+  if not paketti_midimix_out then return end
+  local note = paketti_midimix_note_for_step(step)
+  if not note then return end
+  local velocity = on and 127 or 0
+  -- Note On, channel 1
+  paketti_midimix_out:send({0x90, note, velocity})
+  paketti_midimix_last_led[step] = on
+end
+
+local function paketti_midimix_redraw_all_leds()
+  if not paketti_midimix_out then return end
+  local row = PakettiEightOneTwentyFocusedRow or 1
+  local row_elements = rows and rows[row]
+  for step = 1, 16 do
+    local on = false
+    if row_elements and row_elements.checkboxes and row_elements.checkboxes[step] then
+      on = row_elements.checkboxes[step].value and true or false
+    end
+    paketti_midimix_set_led(step, on)
+  end
+end
+
+local function paketti_midimix_clear_all_leds()
+  if not paketti_midimix_out then return end
+  for step = 1, 16 do
+    paketti_midimix_set_led(step, false)
+  end
+end
+
+-- Idle poller: cheap diff between checkbox state and last-written LED state.
+-- Catches state changes that come from mouse clicks, MIDI mappings other than
+-- our own, pattern fetch, randomize, etc. — without us having to instrument
+-- every notifier site.
+local function paketti_midimix_idle_handler()
+  if not paketti_midimix_out then return end
+  local row = PakettiEightOneTwentyFocusedRow or 1
+  local row_elements = rows and rows[row]
+  if not (row_elements and row_elements.checkboxes) then return end
+  for step = 1, 16 do
+    local cb = row_elements.checkboxes[step]
+    local cur = (cb and cb.value) and true or false
+    if paketti_midimix_last_led[step] ~= cur then
+      paketti_midimix_set_led(step, cur)
+    end
+  end
+end
+
+local function paketti_midimix_install_idle()
+  if paketti_midimix_idle_attached then return end
+  if not renoise.tool().app_idle_observable:has_notifier(paketti_midimix_idle_handler) then
+    renoise.tool().app_idle_observable:add_notifier(paketti_midimix_idle_handler)
+  end
+  paketti_midimix_idle_attached = true
+end
+
+local function paketti_midimix_remove_idle()
+  if not paketti_midimix_idle_attached then return end
+  if renoise.tool().app_idle_observable:has_notifier(paketti_midimix_idle_handler) then
+    renoise.tool().app_idle_observable:remove_notifier(paketti_midimix_idle_handler)
+  end
+  paketti_midimix_idle_attached = false
+end
+
+local function paketti_midimix_on_midi(message)
+  if type(message) ~= "table" or #message < 3 then return end
+  local status, data1, data2 = message[1], message[2], message[3]
+  local msg_type = math.floor(status / 16) * 16
+  -- Note On with non-zero velocity = press; Note Off OR Note On vel 0 = release
+  if msg_type == 0x90 and data2 > 0 then
+    if data1 == PAKETTI_MIDIMIX_BANK_LEFT then
+      local cur = PakettiEightOneTwentyFocusedRow or 1
+      paketti_set_focused_row(((cur - 2) % 8) + 1)
+      paketti_midimix_redraw_all_leds()
+      return
+    end
+    if data1 == PAKETTI_MIDIMIX_BANK_RIGHT then
+      local cur = PakettiEightOneTwentyFocusedRow or 1
+      paketti_set_focused_row(cur % 8 + 1)
+      paketti_midimix_redraw_all_leds()
+      return
+    end
+    local step = paketti_midimix_step_for_note(data1)
+    if step then
+      local row = PakettiEightOneTwentyFocusedRow or 1
+      local row_elements = rows and rows[row]
+      if row_elements and row_elements.checkboxes and row_elements.checkboxes[step] then
+        row_elements.checkboxes[step].value = not row_elements.checkboxes[step].value
+        paketti_midimix_set_led(step, row_elements.checkboxes[step].value)
+      end
+    end
+  end
+end
+
+function PakettiEightOneTwentyMidiMixOpen()
+  if paketti_midimix_in then return true end  -- already open
+  local in_name, out_name = paketti_midimix_find_device()
+  if not in_name and not out_name then
+    renoise.app():show_status("Groovebox 8120: Akai MidiMix not detected — input/output unchanged")
+    return false
+  end
+  paketti_midimix_name = in_name or out_name
+  if in_name then
+    local ok, dev = pcall(renoise.Midi.create_input_device, in_name, paketti_midimix_on_midi)
+    if ok and dev then paketti_midimix_in = dev
+    else print("Groovebox 8120: failed to open MidiMix input: " .. tostring(dev)) end
+  end
+  if out_name then
+    local ok, dev = pcall(renoise.Midi.create_output_device, out_name)
+    if ok and dev then paketti_midimix_out = dev
+    else print("Groovebox 8120: failed to open MidiMix output: " .. tostring(dev)) end
+  end
+  paketti_midimix_last_led = {}
+  paketti_midimix_install_idle()
+  paketti_midimix_redraw_all_leds()
+  renoise.app():show_status("Groovebox 8120: Akai MidiMix opened — buttons drive focused row, LEDs mirror it")
+  return true
+end
+
+function PakettiEightOneTwentyMidiMixClose()
+  paketti_midimix_remove_idle()
+  if paketti_midimix_out then
+    paketti_midimix_clear_all_leds()
+    pcall(function() paketti_midimix_out:close() end)
+    paketti_midimix_out = nil
+  end
+  if paketti_midimix_in then
+    pcall(function() paketti_midimix_in:close() end)
+    paketti_midimix_in = nil
+  end
+  paketti_midimix_name = nil
+  paketti_midimix_last_led = {}
+end
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Paketti Groovebox 8120:MidiMix Bridge Toggle [Trigger]",
+  invoke = function(message)
+    if not message:is_trigger() then return end
+    if paketti_midimix_in or paketti_midimix_out then
+      PakettiEightOneTwentyMidiMixClose()
+      renoise.app():show_status("Groovebox 8120: MidiMix bridge closed")
+    else
+      PakettiEightOneTwentyMidiMixOpen()
+    end
+  end
+}
+
 -- Add MIDI mapping for step mode switch
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)
   if message:is_trigger() then
@@ -4745,10 +4953,14 @@ function GrooveboxShowClose()
   if dialog and dialog.visible then
     -- Cleanup BPM observable before closing
     cleanup_bpm_observable()
+    if PakettiEightOneTwentyMidiMixClose then PakettiEightOneTwentyMidiMixClose() end
     dialog:close()
     dialog = nil
     rows = {}
-  else pakettiEightSlotsByOneTwentyDialog() end
+  else
+    pakettiEightSlotsByOneTwentyDialog()
+    if PakettiEightOneTwentyMidiMixOpen then PakettiEightOneTwentyMidiMixOpen() end
+  end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function() GrooveboxShowClose() end}
