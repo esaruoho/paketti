@@ -4604,9 +4604,7 @@ assign_midi_mappings()
 -- vocabulary differs per controller. Tell me which controller you have and I'll
 -- wire that next.
 
-if rawget(_G, "PakettiEightOneTwentyFocusedRow") == nil then
-  rawset(_G, "PakettiEightOneTwentyFocusedRow", 1)
-end
+PakettiEightOneTwentyFocusedRow = 1
 
 local function paketti_set_focused_row(target)
   if target < 1 then target = 1 end
