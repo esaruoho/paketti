@@ -7583,7 +7583,7 @@ local function cv_lane_strip_left(row)
     mute_btn, solo_btn, random_btn, more_btn,
     vb:text{ text=string.format(" %02d ", row), font="bold", style="strong", width=22 },
     steps_box,
-    vb:text{ text=cv_truncate(name, 14), width=96, style=(name == "—") and "disabled" or "normal" },
+    vb:text{ text=cv_truncate(name, 30), width=210, style=(name == "—") and "disabled" or "normal" },
   }
 end
 
