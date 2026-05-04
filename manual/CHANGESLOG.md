@@ -22,6 +22,28 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Feature: Canvas View — per-cell velocity + parity batch 1
+
+Per-cell velocity is now a real 8120 feature, not a canvas-only illusion. Both views read/write the same `row_elements.velocities[step]` table; `print_to_pattern` writes the explicit `volume_value` into the pattern's note column. `nil` (default) leaves the volume column empty so Renoise plays the note at full velocity, identical to pre-refactor behaviour.
+
+**Canvas mouse model now matches the spec:**
+- Single click on empty cell → toggle on at full
+- Single click on active cell → toggle off
+- **Double-click active cell → reset to full velocity** (clears any prior drag value)
+- **Click + drag inside a cell → vertical position sets velocity** (top = full, bottom = minimum, ~1)
+- Click + drag *outside* the starting cell → falls back to range-select like before
+- Alt + click → quadrant select; Shift + click → extend selection (unchanged)
+
+Cells render velocity as bar height, dropping back to full when the velocity is `nil`. In Yxx mode the velocity is irrelevant (Yxx is boolean), so cells render full-height there.
+
+**Parity batch 1 — per-row controls in left strip:**
+- **S**olo button (read/write `rows[r].solo_checkbox.value`)
+- **R**andom button (calls `rows[r].random_button_pressed()` — same as 8120's Random per row)
+- **Per-row valuebox** (each lane's own step count, read/write `rows[r].valuebox.value`). Cells past the per-row step count render dimmed so you can see the active region.
+- Mute button stays.
+
+**Animated playhead in canvas:** hooked into 8120's existing `play_step_index` update loop. The amber border now follows the play cursor across cells just like 8120's classic dialog highlights its number buttons.
+
 ### 2026-05-04 - Refactor: Canvas View moves into 8120, standalone 8ch960samp file removed
 
 The standalone `PakettiGroovebox8ch960samp.lua` file was a parallel re-implementation that could only access ~15% of 8120's surface (file-local functions like `random_gate`, `fill_empty_steps`, `clear_all`, `fetch_pattern`, `reverse_all`, `random_all` were unreachable). The MK2 promise — feature-complete with 8120, plus selection-based editing on top — was unachievable from outside.

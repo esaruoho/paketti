@@ -414,6 +414,10 @@ function PakettiEightOneTwentyUpdatePlayheadHighlights()
       if row_elements.play_step_index ~= display_index then
         row_elements.play_step_index = display_index
         update_row_button_colors(row_elements)
+        -- Mirror the playhead in the canvas view if it's open.
+        if cv_canvas and cv_dialog and cv_dialog.visible then
+          cv_canvas:update()
+        end
       end
     end
   end
@@ -873,7 +877,13 @@ end
 -- Function to create a row in the UI
 function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   local row_elements = {}
-  
+  -- Per-cell velocity (used by both classic and canvas views). Indexed by step.
+  -- nil = "full velocity, no explicit volume column" (default Renoise behaviour).
+  -- 1..127 = explicit volume_value written into the pattern's note column.
+  -- The canvas view's cell-drag and double-click set this; the classic view
+  -- doesn't expose it directly but reads/writes through it via print_to_pattern.
+  row_elements.velocities = {}
+
   -- Create Instrument Popup first
   local instrument_popup = vb:popup{
     items = instrument_names,
@@ -2024,6 +2034,14 @@ function row_elements.print_to_pattern()
     if note_checkbox_value then
       note_line.note_string = "C-4"
       note_line.instrument_value = instrument_index - 1
+      -- Per-cell velocity: only set the volume column when explicitly chosen.
+      -- nil = leave the volume column empty so Renoise uses default (full).
+      local v = row_elements.velocities and row_elements.velocities[line]
+      if v then
+        if v < 1 then v = 1 end
+        if v > 127 then v = 127 end
+        note_line.volume_value = v
+      end
       notes_written = notes_written + 1
       print("8120 PATTERN DEBUG: Wrote note at line " .. line)
 
@@ -6774,6 +6792,65 @@ local function cv_write_trigger(r, s, v)
   if cbs and cbs[s] then cbs[s].value = v and true or false end
 end
 
+-- Per-cell velocity (1..127, or nil for "default full"). Lives in the same
+-- row_elements table 8120's pattern writer reads from, so the classic view
+-- and the canvas always agree.
+local function cv_read_velocity(r, s)
+  if rows and rows[r] and rows[r].velocities then
+    return rows[r].velocities[s]
+  end
+  return nil
+end
+
+local function cv_write_velocity(r, s, v)
+  if rows and rows[r] and rows[r].velocities then
+    rows[r].velocities[s] = v
+    -- Re-fire the pattern writer so the new volume_value lands in the pattern.
+    if rows[r].print_to_pattern then rows[r].print_to_pattern() end
+  end
+end
+
+local function cv_read_solo(r)
+  if rows and rows[r] and rows[r].solo_checkbox then
+    return rows[r].solo_checkbox.value and true or false
+  end
+  return false
+end
+
+local function cv_set_solo(r, v)
+  if rows and rows[r] and rows[r].solo_checkbox then
+    rows[r].solo_checkbox.value = v and true or false
+  end
+end
+
+local function cv_random_for_row(r)
+  if rows and rows[r] and rows[r].random_button_pressed then
+    rows[r].random_button_pressed()
+  end
+end
+
+local function cv_read_row_steps(r)
+  if rows and rows[r] and rows[r].valuebox then
+    return rows[r].valuebox.value or MAX_STEPS
+  end
+  return MAX_STEPS
+end
+
+local function cv_set_row_steps(r, n)
+  if rows and rows[r] and rows[r].valuebox then
+    if n < 1 then n = 1 end
+    if n > MAX_STEPS then n = MAX_STEPS end
+    rows[r].valuebox.value = n
+  end
+end
+
+local function cv_read_playhead(r)
+  if rows and rows[r] and rows[r].play_step_index then
+    return rows[r].play_step_index
+  end
+  return nil
+end
+
 -- Sample name (the loaded sample inside the active instrument), not the
 -- instrument name. 8120's row tracks this in row_elements.sample_name_label
 -- and updates it whenever the active sample changes.
@@ -6851,15 +6928,34 @@ local function cv_draw_lane(ctx, row)
     end
   end
 
+  -- Per-lane step count from the row's valuebox. Cells past this index render
+  -- dimmed (still visible, but greyed) since they're outside the active loop.
+  local row_steps = cv_read_row_steps(row)
+
   for s = 1, MAX_STEPS do
     if cv_read_trigger(row, s) then
-      local block_h = CV_INNER_H - 4
-      local block_y = y0 + 2
+      local v = cv_read_velocity(row, s)
+      -- Trigger-mode cells render velocity as bar height. Yxx-mode cells
+      -- render full because Yxx is boolean.
+      local frac = (cv_yxx_mode or v == nil) and 1.0 or (v / 127)
+      if frac < 0.05 then frac = 0.05 end
+      local max_h = CV_INNER_H - 4
+      local block_h = math.floor(max_h * frac)
+      if block_h < 3 then block_h = 3 end
+      local block_y = y0 + 2 + (max_h - block_h)
       local block_x = (s - 1) * cw + 3
       local block_w = cw - 6
       ctx.fill_color = cv_quad_dark(s) and CV_C.trig_on_black or CV_C.trig_on_white
       ctx:fill_rect(block_x, block_y, block_w, block_h)
     end
+  end
+
+  -- Cells past the per-row step count: dim overlay so user can see the
+  -- inactive region.
+  if row_steps < MAX_STEPS then
+    local sx = row_steps * cw
+    ctx.fill_color = CV_C.muted_overlay
+    ctx:fill_rect(sx, y0, CV_CANVAS_W - sx, CV_INNER_H)
   end
 
   if cv_read_lane_muted(row) then
@@ -6878,6 +6974,16 @@ local function cv_draw_lane(ctx, row)
       ctx.line_width = 2
       ctx:begin_path(); ctx:rect(sx, y0, sw, CV_INNER_H); ctx:stroke()
     end
+  end
+
+  -- Playhead — read from 8120's existing per-row play_step_index. 2px amber
+  -- border preserving the cell's underlying colors.
+  local ph = cv_read_playhead(row)
+  if ph and ph >= 1 and ph <= MAX_STEPS then
+    local px = (ph - 1) * cw
+    ctx.stroke_color = CV_C.playhead
+    ctx.line_width = 2.5
+    ctx:begin_path(); ctx:rect(px, y0, cw, CV_INNER_H); ctx:stroke()
   end
 
   -- step number labels — drawn LAST so nothing covers them
@@ -6912,6 +7018,29 @@ local function cv_hit_test(x, y)
   return row, step
 end
 
+-- Double-click detection state.
+local cv_last_click_t = 0
+local cv_last_click_r = -1
+local cv_last_click_s = -1
+local CV_DOUBLECLICK_MS = 350
+
+-- Velocity drag — when the user clicks an active trigger and drags vertically
+-- INSIDE the cell, the y-position sets the velocity (top = full, bottom = min).
+-- A drag that exits the cell or moves to a different cell falls back to range
+-- selection like before.
+local cv_velocity_drag = nil  -- {row, step, cell_top_y, cell_bottom_y}
+
+local function cv_velocity_from_y(local_y, top, bottom)
+  local span = bottom - top
+  if span <= 0 then return 127 end
+  local frac = 1.0 - ((local_y - top) / span)
+  if frac < 0 then frac = 0 end
+  if frac > 1 then frac = 1 end
+  local v = math.floor(frac * 127 + 0.5)
+  if v < 1 then v = 1 end
+  return v
+end
+
 local function cv_handle_mouse(ev)
   if ev.type == "exit" then return end
   local mods = ev.modifiers or ""
@@ -6921,6 +7050,7 @@ local function cv_handle_mouse(ev)
   if ev.type == "down" then
     local row, step = cv_hit_test(ev.position.x, ev.position.y)
     if not row then return end
+
     if has_alt then
       local q = math.floor((step - 1) / 4)
       cv_set_selection(row, q * 4 + 1, row, q * 4 + 4)
@@ -6934,6 +7064,38 @@ local function cv_handle_mouse(ev)
       if cv_canvas then cv_canvas:update() end
       return
     end
+
+    -- Double-click detection: same cell, within window → set to full velocity.
+    local now = os.clock() * 1000
+    if row == cv_last_click_r and step == cv_last_click_s
+        and (now - cv_last_click_t) < CV_DOUBLECLICK_MS
+        and not cv_yxx_mode then
+      cv_write_trigger(row, step, true)
+      cv_write_velocity(row, step, nil)  -- nil = full / clean default
+      cv_last_click_t = 0
+      if cv_canvas then cv_canvas:update() end
+      return
+    end
+    cv_last_click_t = now
+    cv_last_click_r = row
+    cv_last_click_s = step
+
+    -- If clicking an already-active trigger in trigger mode, start a velocity
+    -- drag inside the cell. The drag is committed on mouse-up; if the user
+    -- moves to another cell, it falls back to range-select like before.
+    if not cv_yxx_mode and cv_read_trigger(row, step) then
+      local y0 = (row - 1) * CV_LANE_H + CV_INSET_TOP
+      cv_velocity_drag = {
+        row = row, step = step,
+        cell_top = y0 + 2,
+        cell_bottom = y0 + 2 + (CV_INNER_H - 4),
+      }
+      cv_set_selection(row, step, row, step)
+      cv_update_selection_label()
+      -- DON'T set velocity yet — wait for first move so a pure click stays
+      -- clean (toggle off on up) while a click+drag adjusts velocity.
+    end
+
     cv_mouse_down_pos = { row = row, step = step }
     cv_mouse_did_drag = false
     cv_drag = { anchor_row = row, anchor_step = step }
@@ -6942,6 +7104,19 @@ local function cv_handle_mouse(ev)
     if cv_canvas then cv_canvas:update() end
 
   elseif ev.type == "move" then
+    if cv_velocity_drag then
+      local row, step = cv_hit_test(ev.position.x, ev.position.y)
+      if row == cv_velocity_drag.row and step == cv_velocity_drag.step then
+        local v = cv_velocity_from_y(ev.position.y, cv_velocity_drag.cell_top, cv_velocity_drag.cell_bottom)
+        cv_write_velocity(row, step, v)
+        cv_mouse_did_drag = true   -- so mouse-up doesn't toggle the cell off
+        if cv_canvas then cv_canvas:update() end
+        return
+      else
+        -- Left the cell — drop velocity-drag, switch to range-select.
+        cv_velocity_drag = nil
+      end
+    end
     if not cv_drag then return end
     local row, step = cv_hit_test(ev.position.x, ev.position.y)
     if not row then return end
@@ -6953,6 +7128,13 @@ local function cv_handle_mouse(ev)
     if cv_canvas then cv_canvas:update() end
 
   elseif ev.type == "up" then
+    if cv_velocity_drag then
+      cv_velocity_drag = nil
+      cv_drag = nil
+      cv_mouse_down_pos = nil
+      cv_mouse_did_drag = false
+      return
+    end
     if cv_mouse_down_pos and not cv_mouse_did_drag then
       local r, s = cv_mouse_down_pos.row, cv_mouse_down_pos.step
       cv_write_trigger(r, s, not cv_read_trigger(r, s))
@@ -7114,6 +7296,7 @@ local function cv_verb_randomize_groove()  randomize_groove() end
 local function cv_lane_strip_left(row)
   local name      = cv_read_lane_name(row)
   local is_muted  = cv_read_lane_muted(row)
+  local is_soloed = cv_read_solo(row)
   local mute_btn  = vb:button{
     text = "M", width = 22,
     color = is_muted and {0xd8,0x50,0x60} or nil,
@@ -7122,11 +7305,31 @@ local function cv_lane_strip_left(row)
       cv_refresh()
     end
   }
+  local solo_btn = vb:button{
+    text = "S", width = 22,
+    color = is_soloed and {0xff,0xb0,0x40} or nil,
+    notifier = function()
+      cv_set_solo(row, not cv_read_solo(row))
+      cv_refresh()
+    end
+  }
+  local random_btn = vb:button{
+    text = "R", width = 22,
+    tooltip = "Randomize this lane's steps",
+    notifier = function() cv_random_for_row(row); cv_refresh() end
+  }
+  -- Per-row step count valuebox — same widget the classic 8120 uses.
+  local steps_box = vb:valuebox{
+    min = 1, max = MAX_STEPS, value = cv_read_row_steps(row), width = 42,
+    tooltip = "Steps for this lane (per-row step count)",
+    notifier = function(v) cv_set_row_steps(row, v); cv_refresh() end
+  }
   return vb:row{
     height = CV_LANE_H,
-    mute_btn,
-    vb:text{ text=string.format(" %02d ", row), font="bold", style="strong", width=24 },
-    vb:text{ text=cv_truncate(name, 18), width=130, style=(name == "—") and "disabled" or "normal" },
+    mute_btn, solo_btn, random_btn,
+    vb:text{ text=string.format(" %02d ", row), font="bold", style="strong", width=22 },
+    steps_box,
+    vb:text{ text=cv_truncate(name, 16), width=110, style=(name == "—") and "disabled" or "normal" },
   }
 end
 
