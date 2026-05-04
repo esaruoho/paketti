@@ -1650,7 +1650,7 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
     phrase.loop_start = 1
     phrase.loop_end = phrase_length
     phrase.delay_column_visible = true
-    phrase.instrument_column_visible = true
+    phrase.instrument_column_visible = false
     phrase.volume_column_visible = false
     phrase.panning_column_visible = false
     phrase.key_tracking = renoise.InstrumentPhrase.KEY_TRACKING_NONE
@@ -1697,7 +1697,6 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
 
           local nc = line.note_columns[column]
           nc.note_value = abs_positions[slice_idx].note
-          nc.instrument_value = 0
           nc.delay_value = delay_value
         end
       end
@@ -1708,9 +1707,9 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
   -- Set playback mode to keymap
   new_instrument.phrase_playback_mode = renoise.Instrument.PHRASES_PLAY_KEYMAP
 
-  -- Map each phrase to a single consecutive note
+  -- Map each phrase to a single consecutive note, starting from C#0 (note 1)
   for i = 1, slice_count do
-    local mapping_note = i - 1 -- 0-based: C-0, C#0, D-0, ...
+    local mapping_note = i -- C#0=1, D-0=2, D#0=3, ...
     if mapping_note > 119 then break end
 
     if new_instrument:can_insert_phrase_mapping_at(i) then

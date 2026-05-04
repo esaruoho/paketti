@@ -22,9 +22,19 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Fix: Slices to Phrases Per Starting Slice — playback and keymapping fixes
+
+Fixed two playback bugs and adjusted keymapping for the Slices to Phrases Per Starting Slice feature:
+
+1. **Removed forced instrument column value** — phrases were writing `instrument_value = 0` which forced sample 0 (the unsliced parent sample) to trigger on every note, causing the full break to play through on top of the individual slice hits. Now the instrument column is left empty so Renoise's keyzone routing correctly triggers each slice.
+2. **Fixed ascending pitch issue** — same root cause: with instrument 0 forced, ascending slice notes were pitching up the parent sample instead of triggering individual slices at their correct pitch.
+3. **Keymappings now start from C#0 (note 1)** instead of C-0 (note 0), making it easy to octave-transpose a typical play-through sequence into the phrase-mapped range.
+
+Instrument column is now hidden in generated phrases since it's no longer needed.
+
 ### 2026-05-04 - Feature: Slices to Phrases Per Starting Slice
 
-New feature that creates N phrases from a sliced break — one phrase per starting slice. Phrase 1 plays from slice 1 through the entire break. Phrase 2 starts from slice 2 onward, etc. All note timing is recalculated relative to each phrase's starting slice (first note forced to line 1 delay 0, subsequent notes repositioned with sub-line delay precision). The result is a new duplicated instrument with phrase playback set to Keymap mode, each phrase mapped to a consecutive note starting from C-0.
+New feature that creates N phrases from a sliced break — one phrase per starting slice. Phrase 1 plays from slice 1 through the entire break. Phrase 2 starts from slice 2 onward, etc. All note timing is recalculated relative to each phrase's starting slice (first note forced to line 1 delay 0, subsequent notes repositioned with sub-line delay precision). The result is a new duplicated instrument with phrase playback set to Keymap mode, each phrase mapped to a consecutive note starting from C#0.
 
 Supports both beat-sync timing (when the sample has beat sync enabled) and BPM/LPB-based frame-accurate timing. Optional detected-BPM variants use transient analysis for orphaned breaks without known tempo.
 
