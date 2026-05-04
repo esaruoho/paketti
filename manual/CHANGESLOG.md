@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Design: Groovebox 8ch960samp (MK2) — Canvas Mockup
+
+First sketch of the Groovebox 8120 successor. Canvas-rendered grid with 4-white/4-black quadrant backgrounds (and 8-quadrant 32-step variant), selection-as-primary-gesture (single-row range, alt+click quadrant, shift+drag rectangle across rows), verb palette acting on the active selection (nudge ←/→/↑/↓, invert, reverse, density±, humanize, roll, copy/paste/stamp, euclid, apply curve, probability), per-cell velocity rendered as bar height, playhead drawn as a 2px border so quadrant identity survives playback, per-lane settings collapsed into a right-side ribbon. Mockup files: `manual/Screenshots/groovebox_8ch960samp_mockup.svg` (source) and `groovebox_8ch960samp_mockup.png` (2560-wide render). No code changes — design exploration only.
+
 ### 2026-05-02 - Feature: Sidechain Workflow Pack III — Phrases, Recipes, Modulator, Hydra Fanout, Capture
 
 Five more Sidechain Doofer follow-ons completing the Mr. Zensphere video roadmap.

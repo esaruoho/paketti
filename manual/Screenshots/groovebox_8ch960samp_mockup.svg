@@ -1,0 +1,631 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" font-family="Menlo, Monaco, monospace">
+  <defs>
+    <style>
+      .chrome { fill: #1e1e22; }
+      .panel  { fill: #2a2a30; stroke: #3a3a42; stroke-width: 1; }
+      .label  { fill: #d8d8dc; font-size: 11px; }
+      .label-bold { fill: #ffffff; font-size: 11px; font-weight: 700; }
+      .label-dim  { fill: #8a8a92; font-size: 10px; }
+      .quad-white { fill: #e8e8ec; }
+      .quad-black { fill: #18181c; }
+      .trigger-on-white { fill: #18181c; }
+      .trigger-on-black { fill: #e8e8ec; }
+      .cell-grid { stroke: #3a3a42; stroke-width: 0.5; fill: none; }
+      .selection { fill: rgba(160,80,200,0.18); stroke: #b060d8; stroke-width: 2; }
+      .playhead  { fill: none; stroke: #ffb040; stroke-width: 2.5; }
+      .verb-btn  { fill: #34343c; stroke: #4a4a54; stroke-width: 1; }
+      .verb-btn-disabled { fill: #28282e; stroke: #34343c; stroke-width: 1; }
+      .verb-text { fill: #e0e0e4; font-size: 11px; }
+      .verb-text-disabled { fill: #5a5a62; font-size: 11px; }
+      .accent-purple { fill: #b060d8; }
+      .accent-amber { fill: #ffb040; }
+      .accent-green { fill: #60c080; }
+      .accent-red { fill: #d85060; }
+      .divider { stroke: #3a3a42; stroke-width: 1; }
+      .heavy-divider { stroke: #4a4a54; stroke-width: 2; }
+      .lane-strip-bg { fill: #232328; }
+      .lane-right-bg { fill: #232328; }
+    </style>
+  </defs>
+
+  <!-- background -->
+  <rect width="1280" height="940" class="chrome"/>
+
+  <!-- ============================================================ -->
+  <!-- TRANSPORT / GLOBAL BAR -->
+  <!-- ============================================================ -->
+  <g transform="translate(0,0)">
+    <rect x="0" y="0" width="1280" height="48" class="panel"/>
+    <text x="14" y="29" class="label-bold">Groovebox 8ch960samp</text>
+    <text x="190" y="29" class="label-dim">canvas mockup · render-only</text>
+
+    <!-- transport buttons -->
+    <g transform="translate(420,12)">
+      <rect x="0" y="0" width="28" height="24" rx="3" class="verb-btn"/>
+      <polygon points="9,6 9,18 21,12" class="accent-green"/>
+      <rect x="32" y="0" width="28" height="24" rx="3" class="verb-btn"/>
+      <rect x="40" y="6" width="12" height="12" fill="#d8d8dc"/>
+      <rect x="64" y="0" width="28" height="24" rx="3" class="verb-btn"/>
+      <circle cx="78" cy="12" r="6" class="accent-red"/>
+    </g>
+
+    <text x="535" y="29" class="label-bold">BPM 124</text>
+    <text x="600" y="29" class="label">follow ✓</text>
+    <text x="660" y="29" class="label">groove ✓</text>
+    <text x="725" y="29" class="label">rand gates</text>
+    <text x="800" y="29" class="label">fill empty: 35%</text>
+
+    <!-- step-count switch -->
+    <g transform="translate(910,10)">
+      <rect width="120" height="28" rx="4" class="verb-btn"/>
+      <rect x="0" y="0" width="60" height="28" rx="4" class="accent-purple"/>
+      <text x="22" y="19" class="label-bold">16</text>
+      <text x="82" y="19" class="label-dim">32</text>
+    </g>
+
+    <!-- selection summary right -->
+    <text x="1052" y="29" class="label-dim">selection:</text>
+    <text x="1115" y="29" class="label-bold">row 3 · 5–12</text>
+    <text x="1215" y="29" class="label-dim">8 cells</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- VERB PALETTE -->
+  <!-- ============================================================ -->
+  <g transform="translate(0,48)">
+    <rect x="0" y="0" width="1280" height="56" class="panel"/>
+    <text x="14" y="20" class="label-dim">verbs (act on selection)</text>
+
+    <!-- row of verb buttons -->
+    <g transform="translate(14,26)" font-size="11">
+      <!-- nudge group -->
+      <g>
+        <rect x="0" y="0" width="36" height="22" rx="3" class="verb-btn"/>
+        <text x="13" y="15" class="verb-text">←</text>
+        <rect x="38" y="0" width="36" height="22" rx="3" class="verb-btn"/>
+        <text x="51" y="15" class="verb-text">→</text>
+        <rect x="76" y="0" width="36" height="22" rx="3" class="verb-btn"/>
+        <text x="89" y="15" class="verb-text">↑</text>
+        <rect x="114" y="0" width="36" height="22" rx="3" class="verb-btn"/>
+        <text x="127" y="15" class="verb-text">↓</text>
+      </g>
+      <line x1="160" y1="-2" x2="160" y2="24" class="divider"/>
+      <!-- transform group -->
+      <g transform="translate(170,0)">
+        <rect x="0" y="0" width="56" height="22" rx="3" class="verb-btn"/><text x="14" y="15" class="verb-text">invert</text>
+        <rect x="60" y="0" width="60" height="22" rx="3" class="verb-btn"/><text x="71" y="15" class="verb-text">reverse</text>
+        <rect x="124" y="0" width="60" height="22" rx="3" class="verb-btn"/><text x="135" y="15" class="verb-text">density−</text>
+        <rect x="188" y="0" width="60" height="22" rx="3" class="verb-btn"/><text x="200" y="15" class="verb-text">density+</text>
+        <rect x="252" y="0" width="68" height="22" rx="3" class="verb-btn"/><text x="266" y="15" class="verb-text">humanize</text>
+        <rect x="324" y="0" width="44" height="22" rx="3" class="verb-btn"/><text x="335" y="15" class="verb-text">roll</text>
+      </g>
+      <line x1="546" y1="-2" x2="546" y2="24" class="divider"/>
+      <!-- clipboard group -->
+      <g transform="translate(556,0)">
+        <rect x="0" y="0" width="44" height="22" rx="3" class="verb-btn"/><text x="13" y="15" class="verb-text">copy</text>
+        <rect x="48" y="0" width="44" height="22" rx="3" class="verb-btn"/><text x="59" y="15" class="verb-text">paste</text>
+        <rect x="96" y="0" width="48" height="22" rx="3" class="verb-btn"/><text x="108" y="15" class="verb-text">stamp</text>
+      </g>
+      <line x1="704" y1="-2" x2="704" y2="24" class="divider"/>
+      <!-- generators -->
+      <g transform="translate(714,0)">
+        <rect x="0" y="0" width="68" height="22" rx="3" class="verb-btn"/><text x="11" y="15" class="verb-text">euclid…</text>
+        <rect x="72" y="0" width="92" height="22" rx="3" class="verb-btn"/><text x="84" y="15" class="verb-text">apply curve…</text>
+        <rect x="168" y="0" width="86" height="22" rx="3" class="verb-btn-disabled"/><text x="178" y="15" class="verb-text-disabled">probability…</text>
+      </g>
+    </g>
+
+    <!-- last verb indicator -->
+    <text x="1086" y="44" class="label-dim">last verb:</text>
+    <text x="1145" y="44" class="label-bold">nudge → ×2</text>
+  </g>
+
+  <!-- heavy divider -->
+  <line x1="0" y1="104" x2="1280" y2="104" class="heavy-divider"/>
+
+  <!-- ============================================================ -->
+  <!-- 8 LANES — each 90px tall, total 720px starting y=108 -->
+  <!-- Layout per lane:
+       x=0..160   identity strip (M/S/R, name, instrument, track)
+       x=160..1100 step grid (16 cells × 58px wide × 78px tall, 6px gutter top/bottom)
+       x=1100..1280 right ribbon (pitch / vol / loop / valuebox / settings cog)
+  -->
+  <!-- ============================================================ -->
+
+  <!-- helper: each cell is 58.75 wide. 16 cells = 940px exactly across step area -->
+
+  <!-- LANE TEMPLATE — render lane 1 fully decorated, then lanes 2..8 with varying triggers -->
+
+  <!-- ===== LANE 1: kick ===== -->
+  <g transform="translate(0,108)">
+    <!-- identity strip -->
+    <rect x="0" y="0" width="160" height="90" class="lane-strip-bg"/>
+    <line x1="160" y1="0" x2="160" y2="90" class="divider"/>
+    <!-- M S R -->
+    <g transform="translate(8,8)">
+      <rect width="22" height="20" rx="3" class="verb-btn"/><text x="7" y="14" class="label-bold">M</text>
+      <rect x="26" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="33" y="14" class="label-bold">S</text>
+      <rect x="52" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="59" y="14" class="label-bold">R</text>
+    </g>
+    <text x="84" y="22" class="label-bold">01</text>
+    <text x="8" y="48" class="label">kick-808.wav</text>
+    <text x="8" y="64" class="label-dim">inst 01 ▾</text>
+    <text x="80" y="64" class="label-dim">trk 01 ▾</text>
+    <text x="8" y="80" class="label-dim">bs:16</text>
+
+    <!-- step grid: 16 cells, quadrant fills -->
+    <g transform="translate(160,6)">
+      <!-- quadrant backgrounds (4 cells each, 58.75px wide) -->
+      <rect x="0"   y="0" width="235" height="78" class="quad-white"/>
+      <rect x="235" y="0" width="235" height="78" class="quad-black"/>
+      <rect x="470" y="0" width="235" height="78" class="quad-white"/>
+      <rect x="705" y="0" width="235" height="78" class="quad-black"/>
+
+      <!-- cell dividers (subtle) -->
+      <g class="cell-grid">
+        <line x1="58.75"  y1="0" x2="58.75"  y2="78"/>
+        <line x1="117.5"  y1="0" x2="117.5"  y2="78"/>
+        <line x1="176.25" y1="0" x2="176.25" y2="78"/>
+        <line x1="293.75" y1="0" x2="293.75" y2="78"/>
+        <line x1="352.5"  y1="0" x2="352.5"  y2="78"/>
+        <line x1="411.25" y1="0" x2="411.25" y2="78"/>
+        <line x1="528.75" y1="0" x2="528.75" y2="78"/>
+        <line x1="587.5"  y1="0" x2="587.5"  y2="78"/>
+        <line x1="646.25" y1="0" x2="646.25" y2="78"/>
+        <line x1="763.75" y1="0" x2="763.75" y2="78"/>
+        <line x1="822.5"  y1="0" x2="822.5"  y2="78"/>
+        <line x1="881.25" y1="0" x2="881.25" y2="78"/>
+      </g>
+
+      <!-- triggers: kick on 1, 5, 9, 13 (full velocity) -->
+      <!-- cell 1 (white): block draws black, height = full -->
+      <rect x="6"   y="10" width="46" height="58" class="trigger-on-white"/>
+      <!-- cell 5 (black): block white -->
+      <rect x="241" y="10" width="46" height="58" class="trigger-on-black"/>
+      <!-- cell 9 (white) -->
+      <rect x="476" y="10" width="46" height="58" class="trigger-on-white"/>
+      <!-- cell 13 (black) -->
+      <rect x="711" y="10" width="46" height="58" class="trigger-on-black"/>
+
+      <!-- step number labels (tiny, top-left of each cell) -->
+      <g font-size="9" font-family="Menlo">
+        <text x="3"   y="10" fill="#7a7a82">1</text>
+        <text x="62"  y="10" fill="#7a7a82">2</text>
+        <text x="120" y="10" fill="#7a7a82">3</text>
+        <text x="179" y="10" fill="#7a7a82">4</text>
+        <text x="238" y="10" fill="#9090a0">5</text>
+        <text x="296" y="10" fill="#9090a0">6</text>
+        <text x="355" y="10" fill="#9090a0">7</text>
+        <text x="414" y="10" fill="#9090a0">8</text>
+        <text x="473" y="10" fill="#7a7a82">9</text>
+        <text x="531" y="10" fill="#7a7a82">10</text>
+        <text x="590" y="10" fill="#7a7a82">11</text>
+        <text x="649" y="10" fill="#7a7a82">12</text>
+        <text x="708" y="10" fill="#9090a0">13</text>
+        <text x="766" y="10" fill="#9090a0">14</text>
+        <text x="825" y="10" fill="#9090a0">15</text>
+        <text x="884" y="10" fill="#9090a0">16</text>
+      </g>
+    </g>
+
+    <!-- right ribbon -->
+    <rect x="1100" y="0" width="180" height="90" class="lane-right-bg"/>
+    <line x1="1100" y1="0" x2="1100" y2="90" class="divider"/>
+    <text x="1108" y="14" class="label-dim">pitch</text>
+    <circle cx="1126" cy="34" r="14" fill="#34343c" stroke="#5a5a62"/>
+    <line x1="1126" y1="34" x2="1126" y2="22" stroke="#e8e8ec" stroke-width="2"/>
+    <text x="1148" y="14" class="label-dim">vol</text>
+    <circle cx="1166" cy="34" r="14" fill="#34343c" stroke="#5a5a62"/>
+    <line x1="1166" y1="34" x2="1175" y2="26" stroke="#e8e8ec" stroke-width="2"/>
+    <text x="1190" y="14" class="label-dim">loop</text>
+    <g transform="translate(1190,18)">
+      <rect width="80" height="18" rx="3" class="verb-btn"/>
+      <rect x="20" y="0" width="20" height="18" rx="3" class="accent-purple"/>
+      <text x="3"  y="13" class="label-dim">○</text>
+      <text x="26" y="13" class="label-bold">→</text>
+      <text x="46" y="13" class="label-dim">←</text>
+      <text x="66" y="13" class="label-dim">↔</text>
+    </g>
+    <text x="1108" y="68" class="label-dim">delay 0ms</text>
+    <text x="1190" y="68" class="label-dim">⚙ settings</text>
+  </g>
+
+  <!-- ===== LANE 2: snare — selection example, steps 5–12 selected ===== -->
+  <g transform="translate(0,198)">
+    <rect x="0" y="0" width="160" height="90" class="lane-strip-bg"/>
+    <line x1="160" y1="0" x2="160" y2="90" class="divider"/>
+    <g transform="translate(8,8)">
+      <rect width="22" height="20" rx="3" class="verb-btn"/><text x="7" y="14" class="label-bold">M</text>
+      <rect x="26" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="33" y="14" class="label-bold">S</text>
+      <rect x="52" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="59" y="14" class="label-bold">R</text>
+    </g>
+    <text x="84" y="22" class="label-bold">02</text>
+    <text x="8" y="48" class="label">snare-clap.wav</text>
+    <text x="8" y="64" class="label-dim">inst 02 ▾</text>
+    <text x="80" y="64" class="label-dim">trk 02 ▾</text>
+    <text x="8" y="80" class="label-dim">bs:16</text>
+
+    <g transform="translate(160,6)">
+      <rect x="0"   y="0" width="235" height="78" class="quad-white"/>
+      <rect x="235" y="0" width="235" height="78" class="quad-black"/>
+      <rect x="470" y="0" width="235" height="78" class="quad-white"/>
+      <rect x="705" y="0" width="235" height="78" class="quad-black"/>
+      <g class="cell-grid">
+        <line x1="58.75"  y1="0" x2="58.75"  y2="78"/>
+        <line x1="117.5"  y1="0" x2="117.5"  y2="78"/>
+        <line x1="176.25" y1="0" x2="176.25" y2="78"/>
+        <line x1="293.75" y1="0" x2="293.75" y2="78"/>
+        <line x1="352.5"  y1="0" x2="352.5"  y2="78"/>
+        <line x1="411.25" y1="0" x2="411.25" y2="78"/>
+        <line x1="528.75" y1="0" x2="528.75" y2="78"/>
+        <line x1="587.5"  y1="0" x2="587.5"  y2="78"/>
+        <line x1="646.25" y1="0" x2="646.25" y2="78"/>
+        <line x1="763.75" y1="0" x2="763.75" y2="78"/>
+        <line x1="822.5"  y1="0" x2="822.5"  y2="78"/>
+        <line x1="881.25" y1="0" x2="881.25" y2="78"/>
+      </g>
+
+      <!-- snare on 5 and 13 (full velocity, mid velocity) -->
+      <rect x="241" y="10" width="46" height="58" class="trigger-on-black"/>
+      <rect x="711" y="22" width="46" height="46" class="trigger-on-black"/>
+
+      <!-- SELECTION OVERLAY: cells 5..12 -->
+      <rect x="235" y="0" width="470" height="78" class="selection"/>
+
+      <g font-size="9" font-family="Menlo">
+        <text x="3" y="10" fill="#7a7a82">1</text>
+        <text x="62" y="10" fill="#7a7a82">2</text>
+        <text x="120" y="10" fill="#7a7a82">3</text>
+        <text x="179" y="10" fill="#7a7a82">4</text>
+        <text x="238" y="10" fill="#9090a0">5</text>
+        <text x="296" y="10" fill="#9090a0">6</text>
+        <text x="355" y="10" fill="#9090a0">7</text>
+        <text x="414" y="10" fill="#9090a0">8</text>
+        <text x="473" y="10" fill="#7a7a82">9</text>
+        <text x="531" y="10" fill="#7a7a82">10</text>
+        <text x="590" y="10" fill="#7a7a82">11</text>
+        <text x="649" y="10" fill="#7a7a82">12</text>
+        <text x="708" y="10" fill="#9090a0">13</text>
+        <text x="766" y="10" fill="#9090a0">14</text>
+        <text x="825" y="10" fill="#9090a0">15</text>
+        <text x="884" y="10" fill="#9090a0">16</text>
+      </g>
+    </g>
+
+    <rect x="1100" y="0" width="180" height="90" class="lane-right-bg"/>
+    <line x1="1100" y1="0" x2="1100" y2="90" class="divider"/>
+    <text x="1108" y="14" class="label-dim">pitch</text>
+    <circle cx="1126" cy="34" r="14" fill="#34343c" stroke="#5a5a62"/>
+    <line x1="1126" y1="34" x2="1130" y2="22" stroke="#e8e8ec" stroke-width="2"/>
+    <text x="1148" y="14" class="label-dim">vol</text>
+    <circle cx="1166" cy="34" r="14" fill="#34343c" stroke="#5a5a62"/>
+    <line x1="1166" y1="34" x2="1166" y2="22" stroke="#e8e8ec" stroke-width="2"/>
+    <text x="1190" y="14" class="label-dim">loop</text>
+    <g transform="translate(1190,18)">
+      <rect width="80" height="18" rx="3" class="verb-btn"/>
+      <text x="3"  y="13" class="label-bold">○</text>
+      <text x="26" y="13" class="label-dim">→</text>
+      <text x="46" y="13" class="label-dim">←</text>
+      <text x="66" y="13" class="label-dim">↔</text>
+    </g>
+    <text x="1108" y="68" class="label-dim">delay −12ms</text>
+    <text x="1190" y="68" class="label-dim">⚙ settings</text>
+  </g>
+
+  <!-- ===== LANE 3: hat — playhead at cell 7, varied velocity ===== -->
+  <g transform="translate(0,288)">
+    <rect x="0" y="0" width="160" height="90" class="lane-strip-bg"/>
+    <line x1="160" y1="0" x2="160" y2="90" class="divider"/>
+    <g transform="translate(8,8)">
+      <rect width="22" height="20" rx="3" class="verb-btn"/><text x="7" y="14" class="label-bold">M</text>
+      <rect x="26" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="33" y="14" class="label-bold">S</text>
+      <rect x="52" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="59" y="14" class="label-bold">R</text>
+    </g>
+    <text x="84" y="22" class="label-bold">03</text>
+    <text x="8" y="48" class="label">hat-closed.wav</text>
+    <text x="8" y="64" class="label-dim">inst 03 ▾</text>
+    <text x="80" y="64" class="label-dim">trk 03 ▾</text>
+    <text x="8" y="80" class="label-dim">bs:16</text>
+
+    <g transform="translate(160,6)">
+      <rect x="0"   y="0" width="235" height="78" class="quad-white"/>
+      <rect x="235" y="0" width="235" height="78" class="quad-black"/>
+      <rect x="470" y="0" width="235" height="78" class="quad-white"/>
+      <rect x="705" y="0" width="235" height="78" class="quad-black"/>
+      <g class="cell-grid">
+        <line x1="58.75"  y1="0" x2="58.75"  y2="78"/>
+        <line x1="117.5"  y1="0" x2="117.5"  y2="78"/>
+        <line x1="176.25" y1="0" x2="176.25" y2="78"/>
+        <line x1="293.75" y1="0" x2="293.75" y2="78"/>
+        <line x1="352.5"  y1="0" x2="352.5"  y2="78"/>
+        <line x1="411.25" y1="0" x2="411.25" y2="78"/>
+        <line x1="528.75" y1="0" x2="528.75" y2="78"/>
+        <line x1="587.5"  y1="0" x2="587.5"  y2="78"/>
+        <line x1="646.25" y1="0" x2="646.25" y2="78"/>
+        <line x1="763.75" y1="0" x2="763.75" y2="78"/>
+        <line x1="822.5"  y1="0" x2="822.5"  y2="78"/>
+        <line x1="881.25" y1="0" x2="881.25" y2="78"/>
+      </g>
+
+      <!-- hat on every step, varied velocity, demonstrating bar-as-velocity -->
+      <rect x="6"   y="10" width="46" height="58" class="trigger-on-white"/>
+      <rect x="65"  y="35" width="46" height="33" class="trigger-on-white"/>
+      <rect x="123" y="22" width="46" height="46" class="trigger-on-white"/>
+      <rect x="182" y="40" width="46" height="28" class="trigger-on-white"/>
+      <rect x="241" y="10" width="46" height="58" class="trigger-on-black"/>
+      <rect x="300" y="35" width="46" height="33" class="trigger-on-black"/>
+      <rect x="358" y="22" width="46" height="46" class="trigger-on-black"/>
+      <rect x="417" y="40" width="46" height="28" class="trigger-on-black"/>
+      <rect x="476" y="10" width="46" height="58" class="trigger-on-white"/>
+      <rect x="535" y="35" width="46" height="33" class="trigger-on-white"/>
+      <rect x="593" y="22" width="46" height="46" class="trigger-on-white"/>
+      <rect x="652" y="40" width="46" height="28" class="trigger-on-white"/>
+      <rect x="711" y="10" width="46" height="58" class="trigger-on-black"/>
+      <rect x="770" y="35" width="46" height="33" class="trigger-on-black"/>
+      <rect x="828" y="22" width="46" height="46" class="trigger-on-black"/>
+      <rect x="887" y="40" width="46" height="28" class="trigger-on-black"/>
+
+      <!-- PLAYHEAD: cell 7 -->
+      <rect x="352.5" y="0" width="58.75" height="78" class="playhead"/>
+
+      <g font-size="9" font-family="Menlo">
+        <text x="3" y="10" fill="#7a7a82">1</text><text x="62" y="10" fill="#7a7a82">2</text><text x="120" y="10" fill="#7a7a82">3</text><text x="179" y="10" fill="#7a7a82">4</text>
+        <text x="238" y="10" fill="#9090a0">5</text><text x="296" y="10" fill="#9090a0">6</text><text x="355" y="10" fill="#ffd080">7</text><text x="414" y="10" fill="#9090a0">8</text>
+        <text x="473" y="10" fill="#7a7a82">9</text><text x="531" y="10" fill="#7a7a82">10</text><text x="590" y="10" fill="#7a7a82">11</text><text x="649" y="10" fill="#7a7a82">12</text>
+        <text x="708" y="10" fill="#9090a0">13</text><text x="766" y="10" fill="#9090a0">14</text><text x="825" y="10" fill="#9090a0">15</text><text x="884" y="10" fill="#9090a0">16</text>
+      </g>
+    </g>
+
+    <rect x="1100" y="0" width="180" height="90" class="lane-right-bg"/>
+    <line x1="1100" y1="0" x2="1100" y2="90" class="divider"/>
+    <text x="1108" y="14" class="label-dim">pitch</text>
+    <circle cx="1126" cy="34" r="14" fill="#34343c" stroke="#5a5a62"/>
+    <line x1="1126" y1="34" x2="1126" y2="22" stroke="#e8e8ec" stroke-width="2"/>
+    <text x="1148" y="14" class="label-dim">vol</text>
+    <circle cx="1166" cy="34" r="14" fill="#34343c" stroke="#5a5a62"/>
+    <line x1="1166" y1="34" x2="1170" y2="24" stroke="#e8e8ec" stroke-width="2"/>
+    <text x="1190" y="14" class="label-dim">loop</text>
+    <g transform="translate(1190,18)">
+      <rect width="80" height="18" rx="3" class="verb-btn"/>
+      <text x="3"  y="13" class="label-bold">○</text>
+      <text x="26" y="13" class="label-dim">→</text>
+      <text x="46" y="13" class="label-dim">←</text>
+      <text x="66" y="13" class="label-dim">↔</text>
+    </g>
+    <text x="1108" y="68" class="label-dim">delay 0ms</text>
+    <text x="1190" y="68" class="label-dim">⚙ settings</text>
+  </g>
+
+  <!-- ===== LANE 4: openhat (sparse) ===== -->
+  <g transform="translate(0,378)">
+    <rect x="0" y="0" width="160" height="90" class="lane-strip-bg"/>
+    <line x1="160" y1="0" x2="160" y2="90" class="divider"/>
+    <g transform="translate(8,8)">
+      <rect width="22" height="20" rx="3" class="verb-btn"/><text x="7" y="14" class="label-bold">M</text>
+      <rect x="26" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="33" y="14" class="label-bold">S</text>
+      <rect x="52" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="59" y="14" class="label-bold">R</text>
+    </g>
+    <text x="84" y="22" class="label-bold">04</text>
+    <text x="8" y="48" class="label">hat-open.wav</text>
+    <text x="8" y="64" class="label-dim">inst 04 ▾</text>
+    <text x="80" y="64" class="label-dim">trk 04 ▾</text>
+    <text x="8" y="80" class="label-dim">bs:16</text>
+
+    <g transform="translate(160,6)">
+      <rect x="0"   y="0" width="235" height="78" class="quad-white"/>
+      <rect x="235" y="0" width="235" height="78" class="quad-black"/>
+      <rect x="470" y="0" width="235" height="78" class="quad-white"/>
+      <rect x="705" y="0" width="235" height="78" class="quad-black"/>
+      <g class="cell-grid">
+        <line x1="58.75"  y1="0" x2="58.75"  y2="78"/><line x1="117.5"  y1="0" x2="117.5"  y2="78"/><line x1="176.25" y1="0" x2="176.25" y2="78"/>
+        <line x1="293.75" y1="0" x2="293.75" y2="78"/><line x1="352.5"  y1="0" x2="352.5"  y2="78"/><line x1="411.25" y1="0" x2="411.25" y2="78"/>
+        <line x1="528.75" y1="0" x2="528.75" y2="78"/><line x1="587.5"  y1="0" x2="587.5"  y2="78"/><line x1="646.25" y1="0" x2="646.25" y2="78"/>
+        <line x1="763.75" y1="0" x2="763.75" y2="78"/><line x1="822.5"  y1="0" x2="822.5"  y2="78"/><line x1="881.25" y1="0" x2="881.25" y2="78"/>
+      </g>
+      <!-- offbeat openhat: 3 and 11 -->
+      <rect x="123" y="10" width="46" height="58" class="trigger-on-white"/>
+      <rect x="593" y="10" width="46" height="58" class="trigger-on-white"/>
+      <g font-size="9" font-family="Menlo">
+        <text x="3" y="10" fill="#7a7a82">1</text><text x="62" y="10" fill="#7a7a82">2</text><text x="120" y="10" fill="#7a7a82">3</text><text x="179" y="10" fill="#7a7a82">4</text>
+        <text x="238" y="10" fill="#9090a0">5</text><text x="296" y="10" fill="#9090a0">6</text><text x="355" y="10" fill="#9090a0">7</text><text x="414" y="10" fill="#9090a0">8</text>
+        <text x="473" y="10" fill="#7a7a82">9</text><text x="531" y="10" fill="#7a7a82">10</text><text x="590" y="10" fill="#7a7a82">11</text><text x="649" y="10" fill="#7a7a82">12</text>
+        <text x="708" y="10" fill="#9090a0">13</text><text x="766" y="10" fill="#9090a0">14</text><text x="825" y="10" fill="#9090a0">15</text><text x="884" y="10" fill="#9090a0">16</text>
+      </g>
+    </g>
+    <rect x="1100" y="0" width="180" height="90" class="lane-right-bg"/>
+    <line x1="1100" y1="0" x2="1100" y2="90" class="divider"/>
+    <text x="1108" y="14" class="label-dim">pitch</text>
+    <circle cx="1126" cy="34" r="14" fill="#34343c" stroke="#5a5a62"/>
+    <line x1="1126" y1="34" x2="1120" y2="24" stroke="#e8e8ec" stroke-width="2"/>
+    <text x="1148" y="14" class="label-dim">vol</text>
+    <circle cx="1166" cy="34" r="14" fill="#34343c" stroke="#5a5a62"/>
+    <line x1="1166" y1="34" x2="1166" y2="22" stroke="#e8e8ec" stroke-width="2"/>
+    <text x="1190" y="14" class="label-dim">loop</text>
+    <g transform="translate(1190,18)">
+      <rect width="80" height="18" rx="3" class="verb-btn"/>
+      <text x="3"  y="13" class="label-bold">○</text><text x="26" y="13" class="label-dim">→</text><text x="46" y="13" class="label-dim">←</text><text x="66" y="13" class="label-dim">↔</text>
+    </g>
+    <text x="1108" y="68" class="label-dim">delay 0ms</text>
+    <text x="1190" y="68" class="label-dim">⚙ settings</text>
+  </g>
+
+  <!-- ===== LANE 5: ride (muted) ===== -->
+  <g transform="translate(0,468)" opacity="0.45">
+    <rect x="0" y="0" width="160" height="90" class="lane-strip-bg"/>
+    <line x1="160" y1="0" x2="160" y2="90" class="divider"/>
+    <g transform="translate(8,8)">
+      <rect width="22" height="20" rx="3" class="accent-red"/><text x="7" y="14" class="label-bold">M</text>
+      <rect x="26" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="33" y="14" class="label-bold">S</text>
+      <rect x="52" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="59" y="14" class="label-bold">R</text>
+    </g>
+    <text x="84" y="22" class="label-bold">05</text>
+    <text x="8" y="48" class="label">ride-cymbal.wav</text>
+    <text x="8" y="64" class="label-dim">inst 05 ▾</text>
+    <text x="80" y="64" class="label-dim">trk 05 ▾</text>
+    <text x="8" y="80" class="label-dim">bs:16</text>
+    <g transform="translate(160,6)">
+      <rect x="0"   y="0" width="235" height="78" class="quad-white"/>
+      <rect x="235" y="0" width="235" height="78" class="quad-black"/>
+      <rect x="470" y="0" width="235" height="78" class="quad-white"/>
+      <rect x="705" y="0" width="235" height="78" class="quad-black"/>
+      <g class="cell-grid">
+        <line x1="58.75"  y1="0" x2="58.75"  y2="78"/><line x1="117.5"  y1="0" x2="117.5"  y2="78"/><line x1="176.25" y1="0" x2="176.25" y2="78"/>
+        <line x1="293.75" y1="0" x2="293.75" y2="78"/><line x1="352.5"  y1="0" x2="352.5"  y2="78"/><line x1="411.25" y1="0" x2="411.25" y2="78"/>
+        <line x1="528.75" y1="0" x2="528.75" y2="78"/><line x1="587.5"  y1="0" x2="587.5"  y2="78"/><line x1="646.25" y1="0" x2="646.25" y2="78"/>
+        <line x1="763.75" y1="0" x2="763.75" y2="78"/><line x1="822.5"  y1="0" x2="822.5"  y2="78"/><line x1="881.25" y1="0" x2="881.25" y2="78"/>
+      </g>
+      <rect x="6"   y="22" width="46" height="46" class="trigger-on-white"/>
+      <rect x="241" y="22" width="46" height="46" class="trigger-on-black"/>
+      <rect x="476" y="22" width="46" height="46" class="trigger-on-white"/>
+      <rect x="711" y="22" width="46" height="46" class="trigger-on-black"/>
+    </g>
+    <rect x="1100" y="0" width="180" height="90" class="lane-right-bg"/>
+    <line x1="1100" y1="0" x2="1100" y2="90" class="divider"/>
+  </g>
+
+  <!-- ===== LANE 6: bass (varied velocities) ===== -->
+  <g transform="translate(0,558)">
+    <rect x="0" y="0" width="160" height="90" class="lane-strip-bg"/>
+    <line x1="160" y1="0" x2="160" y2="90" class="divider"/>
+    <g transform="translate(8,8)">
+      <rect width="22" height="20" rx="3" class="verb-btn"/><text x="7" y="14" class="label-bold">M</text>
+      <rect x="26" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="33" y="14" class="label-bold">S</text>
+      <rect x="52" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="59" y="14" class="label-bold">R</text>
+    </g>
+    <text x="84" y="22" class="label-bold">06</text>
+    <text x="8" y="48" class="label">bass-sub.wav</text>
+    <text x="8" y="64" class="label-dim">inst 06 ▾</text>
+    <text x="80" y="64" class="label-dim">trk 06 ▾</text>
+    <text x="8" y="80" class="label-dim">bs:16</text>
+    <g transform="translate(160,6)">
+      <rect x="0"   y="0" width="235" height="78" class="quad-white"/>
+      <rect x="235" y="0" width="235" height="78" class="quad-black"/>
+      <rect x="470" y="0" width="235" height="78" class="quad-white"/>
+      <rect x="705" y="0" width="235" height="78" class="quad-black"/>
+      <g class="cell-grid">
+        <line x1="58.75"  y1="0" x2="58.75"  y2="78"/><line x1="117.5"  y1="0" x2="117.5"  y2="78"/><line x1="176.25" y1="0" x2="176.25" y2="78"/>
+        <line x1="293.75" y1="0" x2="293.75" y2="78"/><line x1="352.5"  y1="0" x2="352.5"  y2="78"/><line x1="411.25" y1="0" x2="411.25" y2="78"/>
+        <line x1="528.75" y1="0" x2="528.75" y2="78"/><line x1="587.5"  y1="0" x2="587.5"  y2="78"/><line x1="646.25" y1="0" x2="646.25" y2="78"/>
+        <line x1="763.75" y1="0" x2="763.75" y2="78"/><line x1="822.5"  y1="0" x2="822.5"  y2="78"/><line x1="881.25" y1="0" x2="881.25" y2="78"/>
+      </g>
+      <rect x="6"   y="10" width="46" height="58" class="trigger-on-white"/>
+      <rect x="123" y="28" width="46" height="40" class="trigger-on-white"/>
+      <rect x="241" y="14" width="46" height="54" class="trigger-on-black"/>
+      <rect x="358" y="32" width="46" height="36" class="trigger-on-black"/>
+      <rect x="476" y="10" width="46" height="58" class="trigger-on-white"/>
+      <rect x="652" y="28" width="46" height="40" class="trigger-on-white"/>
+      <rect x="828" y="22" width="46" height="46" class="trigger-on-black"/>
+    </g>
+    <rect x="1100" y="0" width="180" height="90" class="lane-right-bg"/>
+    <line x1="1100" y1="0" x2="1100" y2="90" class="divider"/>
+  </g>
+
+  <!-- ===== LANE 7: empty ===== -->
+  <g transform="translate(0,648)">
+    <rect x="0" y="0" width="160" height="90" class="lane-strip-bg"/>
+    <line x1="160" y1="0" x2="160" y2="90" class="divider"/>
+    <g transform="translate(8,8)">
+      <rect width="22" height="20" rx="3" class="verb-btn"/><text x="7" y="14" class="label-bold">M</text>
+      <rect x="26" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="33" y="14" class="label-bold">S</text>
+      <rect x="52" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="59" y="14" class="label-bold">R</text>
+    </g>
+    <text x="84" y="22" class="label-bold">07</text>
+    <text x="8" y="48" class="label-dim">— empty —</text>
+    <text x="8" y="64" class="label-dim">inst — ▾</text>
+    <text x="80" y="64" class="label-dim">trk 07 ▾</text>
+    <g transform="translate(160,6)">
+      <rect x="0"   y="0" width="235" height="78" class="quad-white"/>
+      <rect x="235" y="0" width="235" height="78" class="quad-black"/>
+      <rect x="470" y="0" width="235" height="78" class="quad-white"/>
+      <rect x="705" y="0" width="235" height="78" class="quad-black"/>
+    </g>
+    <rect x="1100" y="0" width="180" height="90" class="lane-right-bg"/>
+    <line x1="1100" y1="0" x2="1100" y2="90" class="divider"/>
+  </g>
+
+  <!-- ===== LANE 8: perc (32-step preview — twice the cells, same rule) ===== -->
+  <g transform="translate(0,738)">
+    <rect x="0" y="0" width="160" height="90" class="lane-strip-bg"/>
+    <line x1="160" y1="0" x2="160" y2="90" class="divider"/>
+    <g transform="translate(8,8)">
+      <rect width="22" height="20" rx="3" class="verb-btn"/><text x="7" y="14" class="label-bold">M</text>
+      <rect x="26" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="33" y="14" class="label-bold">S</text>
+      <rect x="52" y="0" width="22" height="20" rx="3" class="verb-btn"/><text x="59" y="14" class="label-bold">R</text>
+    </g>
+    <text x="84" y="22" class="label-bold">08</text>
+    <text x="8" y="48" class="label">perc-shot.wav</text>
+    <text x="8" y="64" class="label-dim">inst 08 ▾</text>
+    <text x="80" y="64" class="label-dim">trk 08 ▾</text>
+    <text x="8" y="80" class="accent-amber" font-size="10" font-weight="700">32-step</text>
+
+    <!-- 32 cells across 940px = 29.375 each, 8 quadrants of 4 -->
+    <g transform="translate(160,6)">
+      <rect x="0"      y="0" width="117.5" height="78" class="quad-white"/>
+      <rect x="117.5"  y="0" width="117.5" height="78" class="quad-black"/>
+      <rect x="235"    y="0" width="117.5" height="78" class="quad-white"/>
+      <rect x="352.5"  y="0" width="117.5" height="78" class="quad-black"/>
+      <rect x="470"    y="0" width="117.5" height="78" class="quad-white"/>
+      <rect x="587.5"  y="0" width="117.5" height="78" class="quad-black"/>
+      <rect x="705"    y="0" width="117.5" height="78" class="quad-white"/>
+      <rect x="822.5"  y="0" width="117.5" height="78" class="quad-black"/>
+
+      <!-- subtle grid every cell -->
+      <g class="cell-grid">
+        <line x1="29.375"  y1="0" x2="29.375"  y2="78"/><line x1="58.75"   y1="0" x2="58.75"   y2="78"/><line x1="88.125"  y1="0" x2="88.125"  y2="78"/>
+        <line x1="146.875" y1="0" x2="146.875" y2="78"/><line x1="176.25"  y1="0" x2="176.25"  y2="78"/><line x1="205.625" y1="0" x2="205.625" y2="78"/>
+        <line x1="264.375" y1="0" x2="264.375" y2="78"/><line x1="293.75"  y1="0" x2="293.75"  y2="78"/><line x1="323.125" y1="0" x2="323.125" y2="78"/>
+        <line x1="381.875" y1="0" x2="381.875" y2="78"/><line x1="411.25"  y1="0" x2="411.25"  y2="78"/><line x1="440.625" y1="0" x2="440.625" y2="78"/>
+        <line x1="499.375" y1="0" x2="499.375" y2="78"/><line x1="528.75"  y1="0" x2="528.75"  y2="78"/><line x1="558.125" y1="0" x2="558.125" y2="78"/>
+        <line x1="616.875" y1="0" x2="616.875" y2="78"/><line x1="646.25"  y1="0" x2="646.25"  y2="78"/><line x1="675.625" y1="0" x2="675.625" y2="78"/>
+        <line x1="734.375" y1="0" x2="734.375" y2="78"/><line x1="763.75"  y1="0" x2="763.75"  y2="78"/><line x1="793.125" y1="0" x2="793.125" y2="78"/>
+        <line x1="851.875" y1="0" x2="851.875" y2="78"/><line x1="881.25"  y1="0" x2="881.25"  y2="78"/><line x1="910.625" y1="0" x2="910.625" y2="78"/>
+      </g>
+
+      <!-- some triggers across 32 cells -->
+      <rect x="3"   y="22" width="23" height="46" class="trigger-on-white"/>
+      <rect x="91"  y="34" width="23" height="34" class="trigger-on-white"/>
+      <rect x="120" y="14" width="23" height="54" class="trigger-on-black"/>
+      <rect x="237" y="22" width="23" height="46" class="trigger-on-white"/>
+      <rect x="384" y="22" width="23" height="46" class="trigger-on-black"/>
+      <rect x="473" y="22" width="23" height="46" class="trigger-on-white"/>
+      <rect x="590" y="34" width="23" height="34" class="trigger-on-black"/>
+      <rect x="708" y="14" width="23" height="54" class="trigger-on-white"/>
+      <rect x="825" y="22" width="23" height="46" class="trigger-on-black"/>
+      <rect x="913" y="22" width="23" height="46" class="trigger-on-black"/>
+    </g>
+    <rect x="1100" y="0" width="180" height="90" class="lane-right-bg"/>
+    <line x1="1100" y1="0" x2="1100" y2="90" class="divider"/>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- STATUS BAR -->
+  <!-- ============================================================ -->
+  <line x1="0" y1="828" x2="1280" y2="828" class="heavy-divider"/>
+  <g transform="translate(0,828)">
+    <rect x="0" y="0" width="1280" height="32" class="panel"/>
+    <text x="14" y="20" class="label-dim">selection: row 2 · steps 5–12 (8 cells)  ·  click cell to toggle  ·  click+drag to range-select  ·  alt+click for quadrant  ·  shift+drag across rows for rectangle</text>
+  </g>
+
+  <!-- legend -->
+  <g transform="translate(0,876)">
+    <rect x="0" y="0" width="1280" height="64" class="chrome"/>
+    <text x="14" y="18" class="label-dim">legend:</text>
+    <rect x="60" y="6" width="20" height="14" class="quad-white"/><text x="86" y="18" class="label-dim">quadrant 1/3 (beats 1, 3)</text>
+    <rect x="240" y="6" width="20" height="14" class="quad-black"/><text x="266" y="18" class="label-dim">quadrant 2/4 (beats 2, 4)</text>
+    <rect x="430" y="6" width="20" height="14" class="trigger-on-white"/><text x="456" y="18" class="label-dim">trigger (height = velocity)</text>
+    <rect x="640" y="2" width="22" height="22" class="playhead"/><text x="668" y="18" class="label-dim">playhead (border, preserves quadrant)</text>
+    <rect x="900" y="2" width="40" height="22" class="selection"/><text x="946" y="18" class="label-dim">selection (purple wash + border)</text>
+
+    <text x="14" y="44" class="label-dim">key bindings (proposed):</text>
+    <text x="160" y="44" class="label">←/→ nudge</text>
+    <text x="240" y="44" class="label">⇧←/→ rotate within selection</text>
+    <text x="430" y="44" class="label">i invert</text>
+    <text x="490" y="44" class="label">r reverse</text>
+    <text x="560" y="44" class="label">+/− density</text>
+    <text x="660" y="44" class="label">h humanize</text>
+    <text x="740" y="44" class="label">c/v copy/paste</text>
+    <text x="850" y="44" class="label">e euclid…</text>
+    <text x="930" y="44" class="label">space play/stop</text>
+  </g>
+</svg>
