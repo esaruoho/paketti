@@ -7293,6 +7293,160 @@ local function cv_verb_randomize_groove()  randomize_groove() end
 
 -- ----------- dialog construction -----------
 
+-- Sub-dialog: every per-row action and config that doesn't fit in the lane
+-- strip. Opens via the ⋯ button on each lane. Calls 8120's existing per-row
+-- functions (browse_instrument, select_instrument, show_automation, etc.)
+-- and existing per-row widgets via the rows[] table.
+local function cv_show_row_details(row)
+  local re = rows and rows[row]
+  if not re then
+    renoise.app():show_status("Canvas View: classic 8120 dialog not open — open it first")
+    return
+  end
+  local d = nil
+  local vb_local = renoise.ViewBuilder()
+  local function close() if d then d:close() end end
+
+  local content = vb_local:column{
+    margin = 8, spacing = 6,
+    vb_local:text{
+      text = string.format("Row %d — %s", row, cv_truncate(cv_read_lane_name(row), 40)),
+      font = "bold", style = "strong"
+    },
+    vb_local:row{
+      style = "panel",
+      vb_local:text{ text = "Steps:", font="bold", style="strong" },
+      vb_local:button{ text="<<", width=36, tooltip="Shift left", notifier=function()
+        re.updating_checkboxes = true
+        re.updating_yxx_checkboxes = true
+        local first_n = re.checkboxes[1].value
+        local first_y = re.yxx_checkboxes[1].value
+        for i = 1, MAX_STEPS - 1 do
+          re.checkboxes[i].value = re.checkboxes[i+1].value
+          re.yxx_checkboxes[i].value = re.yxx_checkboxes[i+1].value
+        end
+        re.checkboxes[MAX_STEPS].value = first_n
+        re.yxx_checkboxes[MAX_STEPS].value = first_y
+        re.print_to_pattern()
+        re.updating_checkboxes = false
+        re.updating_yxx_checkboxes = false
+        cv_refresh()
+      end },
+      vb_local:button{ text=">>", width=36, tooltip="Shift right", notifier=function()
+        re.updating_checkboxes = true
+        re.updating_yxx_checkboxes = true
+        local last_n = re.checkboxes[MAX_STEPS].value
+        local last_y = re.yxx_checkboxes[MAX_STEPS].value
+        for i = MAX_STEPS, 2, -1 do
+          re.checkboxes[i].value = re.checkboxes[i-1].value
+          re.yxx_checkboxes[i].value = re.yxx_checkboxes[i-1].value
+        end
+        re.checkboxes[1].value = last_n
+        re.yxx_checkboxes[1].value = last_y
+        re.print_to_pattern()
+        re.updating_checkboxes = false
+        re.updating_yxx_checkboxes = false
+        cv_refresh()
+      end },
+      vb_local:button{ text="Clear", width=64, notifier=function()
+        re.updating_checkboxes = true
+        re.updating_yxx_checkboxes = true
+        for i = 1, MAX_STEPS do
+          re.checkboxes[i].value = false
+          re.yxx_checkboxes[i].value = false
+          if re.velocities then re.velocities[i] = nil end
+        end
+        re.updating_checkboxes = false
+        re.updating_yxx_checkboxes = false
+        re.print_to_pattern()
+        cv_refresh()
+      end },
+      vb_local:button{ text="Randomize", width=90, notifier=function()
+        if re.randomize then re.randomize() end
+        cv_refresh()
+      end },
+      vb_local:button{ text="Reverse Sample", width=120, notifier=function()
+        reverse_sample(re); cv_refresh()
+      end },
+    },
+    vb_local:row{
+      style = "panel",
+      vb_local:text{ text = "Sample:", font="bold", style="strong" },
+      vb_local:button{ text="Load…", width=70, notifier=function()
+        if re.browse_instrument then re.browse_instrument() end
+      end },
+      vb_local:button{ text="Show", width=60, notifier=function()
+        if re.select_instrument then re.select_instrument() end
+      end },
+      vb_local:button{ text="Random", width=80, notifier=function()
+        if re.random_button_pressed then re.random_button_pressed() end
+      end },
+      vb_local:button{ text="Automation", width=110, notifier=function()
+        if re.show_automation then re.show_automation() end
+      end },
+    },
+    -- Output delay — fresh widgets that read/write the song's track output_delay
+    -- (and mirror the classic dialog's widgets via 8120's own observers).
+    (function()
+      local tracks = renoise.song().tracks
+      local track_idx = (re.track_popup and re.track_popup.value) or row
+      local current = (tracks[track_idx] and tracks[track_idx].output_delay) or 0
+      local delay_label = vb_local:text{ text=string.format("%+04dms", current), font="bold", style="strong", width=60 }
+      local delay_slider = vb_local:slider{
+        min = -100, max = 100, value = current, width = 200,
+        steps = pakettiSteps(1, -1),
+        notifier = function(v)
+          v = math.floor(v)
+          delay_label.text = string.format("%+04dms", v)
+          if tracks[track_idx] then tracks[track_idx].output_delay = v end
+          if re.output_delay_slider then re.output_delay_slider.value = v end
+          if re.output_delay_value_label then
+            re.output_delay_value_label.text = string.format("%+04dms", v)
+          end
+        end
+      }
+      return vb_local:row{
+        style = "panel",
+        vb_local:text{ text = "Output Delay:", font="bold", style="strong" },
+        delay_slider, delay_label,
+        vb_local:button{ text="Reset", notifier=function()
+          delay_slider.value = 0
+          if tracks[track_idx] then tracks[track_idx].output_delay = 0 end
+          if re.output_delay_slider then re.output_delay_slider.value = 0 end
+        end },
+      }
+    end)(),
+    -- Yxx amount — fresh widgets read/write re.yxx_valuebox.value.
+    (function()
+      local current = (re.yxx_valuebox and re.yxx_valuebox.value) or 0
+      local yxx_box = vb_local:valuebox{
+        min = 0, max = 255, value = current, width = 60,
+        notifier = function(v)
+          if re.yxx_valuebox then re.yxx_valuebox.value = v end
+          if re.yxx_slider then re.yxx_slider.value = v end
+          if re.print_to_pattern then re.print_to_pattern() end
+        end
+      }
+      local yxx_slider = vb_local:slider{
+        min = 0, max = 255, value = current, width = 200,
+        notifier = function(v)
+          v = math.floor(v)
+          yxx_box.value = v
+        end
+      }
+      return vb_local:row{
+        style = "panel",
+        vb_local:text{ text = "Yxx amount:", font="bold", style="strong" },
+        yxx_slider, yxx_box,
+      }
+    end)(),
+    vb_local:row{
+      vb_local:button{ text="Close", notifier=close },
+    },
+  }
+  d = renoise.app():show_custom_dialog(string.format("Row %d details", row), content)
+end
+
 local function cv_lane_strip_left(row)
   local name      = cv_read_lane_name(row)
   local is_muted  = cv_read_lane_muted(row)
@@ -7318,6 +7472,11 @@ local function cv_lane_strip_left(row)
     tooltip = "Randomize this lane's steps",
     notifier = function() cv_random_for_row(row); cv_refresh() end
   }
+  local more_btn = vb:button{
+    text = "⋯", width = 22,
+    tooltip = "Per-row details: shift, clear, randomize, load, show, automation, reverse, output delay, Yxx",
+    notifier = function() cv_show_row_details(row) end
+  }
   -- Per-row step count valuebox — same widget the classic 8120 uses.
   local steps_box = vb:valuebox{
     min = 1, max = MAX_STEPS, value = cv_read_row_steps(row), width = 42,
@@ -7326,10 +7485,10 @@ local function cv_lane_strip_left(row)
   }
   return vb:row{
     height = CV_LANE_H,
-    mute_btn, solo_btn, random_btn,
+    mute_btn, solo_btn, random_btn, more_btn,
     vb:text{ text=string.format(" %02d ", row), font="bold", style="strong", width=22 },
     steps_box,
-    vb:text{ text=cv_truncate(name, 16), width=110, style=(name == "—") and "disabled" or "normal" },
+    vb:text{ text=cv_truncate(name, 14), width=96, style=(name == "—") and "disabled" or "normal" },
   }
 end
 
@@ -7426,17 +7585,61 @@ local function cv_build_view()
     end)
   end)
 
+  -- Fill Empty Steps slider — same notifier 8120's classic uses; feeds
+  -- fill_empty_steps(probability) (file-local) which writes triggers into
+  -- empty cells across all rows.
+  local fill_pct_label = vb:text{ text="Fill 0%", style="strong", font="bold", width=54 }
+  local fill_slider = vb:slider{
+    min = 0, max = 20, value = 0, width = 110,
+    steps = pakettiSteps(0.1, -0.1),
+    notifier = function(v)
+      v = math.floor(v)
+      fill_pct_label.text = string.format("Fill %d%%", v)
+      if v == 0 then clear_all() else fill_empty_steps(v / 100) end
+    end
+  }
+
+  -- Step mode toggle (16/32) — fires the existing toggle path so classic
+  -- and canvas stay in sync. classic re-creates its dialog on toggle; the
+  -- canvas just refreshes since it reads MAX_STEPS each render.
+  local step_mode_btn = vb:button{
+    text = string.format("%d steps", MAX_STEPS), width = 70,
+    tooltip = "Toggle between 16-step and 32-step mode (classic dialog rebuilds; canvas keeps running)",
+    notifier = function()
+      MAX_STEPS = (MAX_STEPS == 16) and 32 or 16
+      if dialog and dialog.visible then
+        cleanup_bpm_observable()
+        dialog:close()
+        dialog = nil
+        rows = {}
+        pakettiEightSlotsByOneTwentyDialog()
+      end
+      if cv_canvas then cv_canvas:update() end
+      renoise.app():show_status("Toggled to " .. MAX_STEPS .. " steps mode")
+    end
+  }
+
   local transport_bar = vb:row{
     style = "panel",
     vb:button{ text="▶", width=28, notifier=function() song_t():start(renoise.Transport.PLAYMODE_RESTART_PATTERN) end },
     vb:button{ text="■", width=28, notifier=function() song_t():stop() end },
     vb:button{ text="●", width=28, notifier=function() song_t().edit_mode = not song_t().edit_mode end },
+    vb:text{ text=" |", style="disabled" },
+    vb:button{ text="/2", width=28, notifier=divide_bpm },
+    vb:button{ text="−",  width=24, notifier=decrease_bpm },
     u.bpm_label,
+    vb:button{ text="+",  width=24, notifier=increase_bpm },
+    vb:button{ text="×2", width=28, notifier=multiply_bpm },
     vb:text{ text="  follow", style="strong" },
     vb:checkbox{ value=song_t().follow_player and true or false, notifier=function(v) song_t().follow_player=v end },
     vb:text{ text="  groove", style="strong" },
     vb:checkbox{ value=song_t().groove_enabled and true or false, notifier=function(v) song_t().groove_enabled=v end },
-    vb:text{ text="  |", style="disabled" },
+    vb:text{ text=" |", style="disabled" },
+    fill_pct_label, fill_slider,
+    vb:text{ text=" |", style="disabled" },
+    step_mode_btn,
+    vb:button{ text="Duplicate Pattern", width=130, notifier=PakettiEightOneTwentyDuplicatePattern },
+    vb:text{ text=" |", style="disabled" },
     vb:button{ text="Switch to MK1 (Classic)", width=170,
       tooltip = "Open the classic 8120 dialog with all controls. Both windows stay open and share state; close whichever you don't need via its X button.",
       notifier = function()
