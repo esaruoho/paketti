@@ -6643,3 +6643,635 @@ for i = 1, 8 do
     invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyRowToPhraseTriggersInPattern(i, i) end end
   }
 end
+
+-- =============================================================================
+-- Groovebox 8120 — CANVAS VIEW (MK2)
+-- =============================================================================
+-- Alternate rendering of the same 8120 state, optimized for at-a-glance step
+-- editing and selection-based operations. This lives inside the 8120 module
+-- (instead of a separate file) so the canvas's verbs can call 8120's file-local
+-- functions directly (random_gate, fill_empty_steps, clear_all, fetch_pattern,
+-- reverse_all, random_all). Both the canvas view and the classic view edit the
+-- same rows[] table — clicking a cell here fires 8120's own checkbox notifier
+-- which writes to the pattern.
+--
+-- Visual rules:
+--   - 8 lanes, each lane is a horizontal band of 16 (or 32) cells
+--   - Cells 1-4 white, 5-8 black, 9-12 white, 13-16 black (and the same
+--     pattern doubled in 32-step mode)
+--   - Active triggers render contrast-inverted inside the cell
+--   - Selection: deep purple wash + bright purple border
+--   - Step number labels are drawn LAST so nothing covers them
+--   - Playhead: 2px amber border that preserves cell colors
+--
+-- Interaction:
+--   - Click a cell to toggle the trigger
+--   - Click + drag to range-select (within a row or across rows)
+--   - Alt + click selects the entire 4-step quadrant containing the cell
+--   - Shift + click extends the current selection to the cell
+--   - Verb palette acts on the active selection
+
+if PAKETTI_HAS_CANVAS then
+
+local cv_dialog       = nil
+local cv_canvas       = nil
+local cv_ui           = nil  -- holds widget references for live updates
+
+local CV_NUM_LANES    = 8
+local CV_CANVAS_W     = 960
+local CV_LANE_H       = 28
+local CV_CANVAS_H     = CV_NUM_LANES * CV_LANE_H
+local CV_INSET_TOP    = 2
+local CV_INNER_H      = CV_LANE_H - 4
+
+local function cv_cell_w() return CV_CANVAS_W / MAX_STEPS end
+local function cv_quad_dark(step) return (math.floor((step - 1) / 4) % 2) == 1 end
+
+local function cv_rgb(r,g,b,a) return {r,g,b,a or 255} end
+local CV_C = {
+  bg            = cv_rgb(0x1e,0x1e,0x22),
+  quad_white    = cv_rgb(0xe8,0xe8,0xec),
+  quad_black    = cv_rgb(0x18,0x18,0x1c),
+  trig_on_white = cv_rgb(0x18,0x18,0x1c),
+  trig_on_black = cv_rgb(0xe8,0xe8,0xec),
+  cell_grid     = cv_rgb(0x3a,0x3a,0x42),
+  selection_fill= cv_rgb(0xb0,0x60,0xd8, 170),
+  selection_brd = cv_rgb(0xc0,0x80,0xe8),
+  playhead      = cv_rgb(0xff,0xb0,0x40),
+  lane_div      = cv_rgb(0x4a,0x4a,0x54),
+  muted_overlay = cv_rgb(0x18,0x18,0x1c, 130),
+  step_label_l  = cv_rgb(0x6a,0x6a,0x70),
+  step_label_d  = cv_rgb(0x9a,0x9a,0xa6),
+}
+
+-- 3x5 pixel digit glyphs for cell-corner labels.
+local CV_DIGITS = {
+  ["0"]={{1,1,1},{1,0,1},{1,0,1},{1,0,1},{1,1,1}},
+  ["1"]={{0,1,0},{1,1,0},{0,1,0},{0,1,0},{1,1,1}},
+  ["2"]={{1,1,1},{0,0,1},{1,1,1},{1,0,0},{1,1,1}},
+  ["3"]={{1,1,1},{0,0,1},{1,1,1},{0,0,1},{1,1,1}},
+  ["4"]={{1,0,1},{1,0,1},{1,1,1},{0,0,1},{0,0,1}},
+  ["5"]={{1,1,1},{1,0,0},{1,1,1},{0,0,1},{1,1,1}},
+  ["6"]={{1,1,1},{1,0,0},{1,1,1},{1,0,1},{1,1,1}},
+  ["7"]={{1,1,1},{0,0,1},{0,1,0},{0,1,0},{0,1,0}},
+  ["8"]={{1,1,1},{1,0,1},{1,1,1},{1,0,1},{1,1,1}},
+  ["9"]={{1,1,1},{1,0,1},{1,1,1},{0,0,1},{1,1,1}},
+}
+
+local function cv_draw_number(ctx, n, x, y, px, color)
+  ctx.fill_color = color
+  local s = tostring(n)
+  for i = 1, #s do
+    local g = CV_DIGITS[s:sub(i, i)]
+    if g then
+      local x0 = x + (i - 1) * (4 * px)
+      for r = 1, 5 do
+        for c = 1, 3 do
+          if g[r][c] == 1 then
+            ctx:fill_rect(x0 + (c - 1) * px, y + (r - 1) * px, px, px)
+          end
+        end
+      end
+    end
+  end
+end
+
+-- Selection state lives at module scope so verbs can read it.
+local cv_selection = nil
+local cv_drag = nil
+local cv_mouse_down_pos = nil
+local cv_mouse_did_drag = false
+
+local function cv_read_trigger(r, s)
+  if rows and rows[r] and rows[r].checkboxes and rows[r].checkboxes[s] then
+    return rows[r].checkboxes[s].value and true or false
+  end
+  return false
+end
+
+local function cv_write_trigger(r, s, v)
+  if rows and rows[r] and rows[r].checkboxes and rows[r].checkboxes[s] then
+    rows[r].checkboxes[s].value = v and true or false
+  end
+end
+
+local function cv_read_lane_name(r)
+  if rows and rows[r] and rows[r].instrument_popup then
+    local idx = rows[r].instrument_popup.value
+    local song = renoise.song()
+    if song and song.instruments[idx] and song.instruments[idx].name ~= "" then
+      return song.instruments[idx].name
+    end
+  end
+  return "—"
+end
+
+local function cv_read_lane_muted(r)
+  if rows and rows[r] and rows[r].mute_checkbox then
+    return rows[r].mute_checkbox.value and true or false
+  end
+  return false
+end
+
+local function cv_set_lane_muted(r, v)
+  if rows and rows[r] and rows[r].mute_checkbox then
+    rows[r].mute_checkbox.value = v and true or false
+  end
+end
+
+local function cv_truncate(s, n)
+  if not s then return "" end
+  if #s <= n then return s end
+  return s:sub(1, n - 1) .. "…"
+end
+
+local function cv_set_selection(r1, s1, r2, s2)
+  if r2 < r1 then r1, r2 = r2, r1 end
+  if s2 < s1 then s1, s2 = s2, s1 end
+  cv_selection = { r1, s1, r2, s2 }
+end
+
+local function cv_update_selection_label()
+  if not (cv_ui and cv_ui.selection_label) then return end
+  if not cv_selection then
+    cv_ui.selection_label.text = "selection: (none)"
+    return
+  end
+  local r1, s1, r2, s2 = cv_selection[1], cv_selection[2], cv_selection[3], cv_selection[4]
+  local cells = (r2 - r1 + 1) * (s2 - s1 + 1)
+  if r1 == r2 then
+    cv_ui.selection_label.text = string.format("selection: row %d · steps %d–%d (%d cells)", r1, s1, s2, cells)
+  else
+    cv_ui.selection_label.text = string.format("selection: rows %d–%d · steps %d–%d (%d cells)", r1, r2, s1, s2, cells)
+  end
+end
+
+local function cv_draw_lane(ctx, row)
+  local y0 = (row - 1) * CV_LANE_H + CV_INSET_TOP
+  local cw = cv_cell_w()
+  local quad_w = cw * 4
+
+  for q = 0, (MAX_STEPS / 4) - 1 do
+    ctx.fill_color = (q % 2 == 0) and CV_C.quad_white or CV_C.quad_black
+    ctx:fill_rect(q * quad_w, y0, quad_w, CV_INNER_H)
+  end
+
+  ctx.stroke_color = CV_C.cell_grid
+  ctx.line_width = 1
+  for s = 1, MAX_STEPS - 1 do
+    if (s % 4) ~= 0 then
+      local x = s * cw
+      ctx:begin_path(); ctx:move_to(x, y0); ctx:line_to(x, y0 + CV_INNER_H); ctx:stroke()
+    end
+  end
+
+  for s = 1, MAX_STEPS do
+    if cv_read_trigger(row, s) then
+      local block_h = CV_INNER_H - 4
+      local block_y = y0 + 2
+      local block_x = (s - 1) * cw + 3
+      local block_w = cw - 6
+      ctx.fill_color = cv_quad_dark(s) and CV_C.trig_on_black or CV_C.trig_on_white
+      ctx:fill_rect(block_x, block_y, block_w, block_h)
+    end
+  end
+
+  if cv_read_lane_muted(row) then
+    ctx.fill_color = CV_C.muted_overlay
+    ctx:fill_rect(0, y0, CV_CANVAS_W, CV_INNER_H)
+  end
+
+  if cv_selection then
+    local r1, s1, r2, s2 = cv_selection[1], cv_selection[2], cv_selection[3], cv_selection[4]
+    if row >= r1 and row <= r2 then
+      local sx = (s1 - 1) * cw
+      local sw = (s2 - s1 + 1) * cw
+      ctx.fill_color = CV_C.selection_fill
+      ctx:fill_rect(sx, y0, sw, CV_INNER_H)
+      ctx.stroke_color = CV_C.selection_brd
+      ctx.line_width = 2
+      ctx:begin_path(); ctx:rect(sx, y0, sw, CV_INNER_H); ctx:stroke()
+    end
+  end
+
+  -- step number labels — drawn LAST so nothing covers them
+  local label_px = (MAX_STEPS == 16) and 2 or 1
+  for s = 1, MAX_STEPS do
+    local color = cv_quad_dark(s) and CV_C.step_label_d or CV_C.step_label_l
+    cv_draw_number(ctx, s, (s - 1) * cw + 3, y0 + 3, label_px, color)
+  end
+
+  if row < CV_NUM_LANES then
+    ctx.stroke_color = CV_C.lane_div
+    ctx.line_width = 1
+    ctx:begin_path(); ctx:move_to(0, row * CV_LANE_H); ctx:line_to(CV_CANVAS_W, row * CV_LANE_H); ctx:stroke()
+  end
+end
+
+local function cv_render(ctx)
+  ctx:clear_rect(0, 0, CV_CANVAS_W, CV_CANVAS_H)
+  ctx.fill_color = CV_C.bg
+  ctx:fill_rect(0, 0, CV_CANVAS_W, CV_CANVAS_H)
+  for r = 1, CV_NUM_LANES do cv_draw_lane(ctx, r) end
+end
+
+local function cv_hit_test(x, y)
+  if x < 0 or x >= CV_CANVAS_W or y < 0 or y >= CV_CANVAS_H then return nil end
+  local row = math.floor(y / CV_LANE_H) + 1
+  local local_y = y - (row - 1) * CV_LANE_H
+  if local_y < CV_INSET_TOP or local_y > CV_INSET_TOP + CV_INNER_H then return nil end
+  local step = math.floor(x / cv_cell_w()) + 1
+  if step < 1 then step = 1 end
+  if step > MAX_STEPS then step = MAX_STEPS end
+  return row, step
+end
+
+local function cv_handle_mouse(ev)
+  if ev.type == "exit" then return end
+  local mods = ev.modifiers or ""
+  local has_alt   = mods:find("alt") or mods:find("option")
+  local has_shift = mods:find("shift")
+
+  if ev.type == "down" then
+    local row, step = cv_hit_test(ev.position.x, ev.position.y)
+    if not row then return end
+    if has_alt then
+      local q = math.floor((step - 1) / 4)
+      cv_set_selection(row, q * 4 + 1, row, q * 4 + 4)
+      cv_update_selection_label()
+      if cv_canvas then cv_canvas:update() end
+      return
+    end
+    if has_shift and cv_selection then
+      cv_set_selection(cv_selection[1], cv_selection[2], row, step)
+      cv_update_selection_label()
+      if cv_canvas then cv_canvas:update() end
+      return
+    end
+    cv_mouse_down_pos = { row = row, step = step }
+    cv_mouse_did_drag = false
+    cv_drag = { anchor_row = row, anchor_step = step }
+    cv_set_selection(row, step, row, step)
+    cv_update_selection_label()
+    if cv_canvas then cv_canvas:update() end
+
+  elseif ev.type == "move" then
+    if not cv_drag then return end
+    local row, step = cv_hit_test(ev.position.x, ev.position.y)
+    if not row then return end
+    if row ~= cv_drag.anchor_row or step ~= cv_drag.anchor_step then
+      cv_mouse_did_drag = true
+    end
+    cv_set_selection(cv_drag.anchor_row, cv_drag.anchor_step, row, step)
+    cv_update_selection_label()
+    if cv_canvas then cv_canvas:update() end
+
+  elseif ev.type == "up" then
+    if cv_mouse_down_pos and not cv_mouse_did_drag then
+      local r, s = cv_mouse_down_pos.row, cv_mouse_down_pos.step
+      cv_write_trigger(r, s, not cv_read_trigger(r, s))
+      if cv_canvas then cv_canvas:update() end
+    end
+    cv_drag = nil
+    cv_mouse_down_pos = nil
+    cv_mouse_did_drag = false
+  end
+end
+
+-- ----------- selection-scoped verbs -----------
+
+local function cv_require_selection()
+  if not cv_selection then
+    renoise.app():show_status("Canvas View: drag a selection first")
+    return false
+  end
+  return true
+end
+
+local function cv_each(fn)
+  if not cv_selection then return end
+  local r1, s1, r2, s2 = cv_selection[1], cv_selection[2], cv_selection[3], cv_selection[4]
+  for r = r1, r2 do for s = s1, s2 do fn(r, s) end end
+end
+
+local function cv_refresh() if cv_canvas then cv_canvas:update() end end
+
+local function cv_verb_invert()  if cv_require_selection() then cv_each(function(r,s) cv_write_trigger(r,s, not cv_read_trigger(r,s)) end); cv_refresh() end end
+local function cv_verb_clear()   if cv_require_selection() then cv_each(function(r,s) cv_write_trigger(r,s,false) end); cv_refresh() end end
+local function cv_verb_fill()    if cv_require_selection() then cv_each(function(r,s) cv_write_trigger(r,s,true)  end); cv_refresh() end end
+
+local function cv_verb_reverse()
+  if not cv_require_selection() then return end
+  local r1, s1, r2, s2 = cv_selection[1], cv_selection[2], cv_selection[3], cv_selection[4]
+  local n = s2 - s1 + 1
+  for r = r1, r2 do
+    local t = {}
+    for s = s1, s2 do t[s - s1 + 1] = cv_read_trigger(r, s) end
+    for s = s1, s2 do cv_write_trigger(r, s, t[n - (s - s1)]) end
+  end
+  cv_refresh()
+end
+
+local function cv_nudge(direction)
+  if not cv_require_selection() then return end
+  local r1, s1, r2, s2 = cv_selection[1], cv_selection[2], cv_selection[3], cv_selection[4]
+  local n = s2 - s1 + 1
+  for r = r1, r2 do
+    local t = {}
+    for s = s1, s2 do t[s - s1 + 1] = cv_read_trigger(r, s) end
+    for s = s1, s2 do
+      local idx = s - s1
+      cv_write_trigger(r, s, t[((idx - direction) % n) + 1])
+    end
+  end
+  cv_refresh()
+end
+
+local function cv_nudge_rows(direction)
+  if not cv_require_selection() then return end
+  local r1, s1, r2, s2 = cv_selection[1], cv_selection[2], cv_selection[3], cv_selection[4]
+  local nrows = r2 - r1 + 1
+  if nrows < 2 then
+    renoise.app():show_status("Canvas View: row-nudge needs a multi-row selection")
+    return
+  end
+  for s = s1, s2 do
+    local t = {}
+    for r = r1, r2 do t[r - r1 + 1] = cv_read_trigger(r, s) end
+    for r = r1, r2 do
+      local idx = r - r1
+      cv_write_trigger(r, s, t[((idx - direction) % nrows) + 1])
+    end
+  end
+  cv_refresh()
+end
+
+local cv_clipboard = nil
+local function cv_verb_copy()
+  if not cv_require_selection() then return end
+  local r1, s1, r2, s2 = cv_selection[1], cv_selection[2], cv_selection[3], cv_selection[4]
+  cv_clipboard = { rows = r2 - r1 + 1, steps = s2 - s1 + 1, cells = {} }
+  for r = r1, r2 do
+    local row_cells = {}
+    for s = s1, s2 do table.insert(row_cells, cv_read_trigger(r, s)) end
+    table.insert(cv_clipboard.cells, row_cells)
+  end
+  renoise.app():show_status(string.format("Canvas View: copied %dx%d", cv_clipboard.rows, cv_clipboard.steps))
+end
+
+local function cv_verb_paste()
+  if not cv_clipboard then renoise.app():show_status("Canvas View: clipboard empty"); return end
+  if not cv_require_selection() then return end
+  local r1, s1 = cv_selection[1], cv_selection[2]
+  for ri = 1, cv_clipboard.rows do
+    for si = 1, cv_clipboard.steps do
+      local rr, ss = r1 + ri - 1, s1 + si - 1
+      if rr <= CV_NUM_LANES and ss <= MAX_STEPS then
+        cv_write_trigger(rr, ss, cv_clipboard.cells[ri][si])
+      end
+    end
+  end
+  cv_refresh()
+end
+
+-- Euclidean fill into the selection.
+local function cv_euclidean(k, n, offset)
+  local pat = {}
+  for i = 1, n do pat[i] = false end
+  if k <= 0 then return pat end
+  if k >= n then for i = 1, n do pat[i] = true end; return pat end
+  for i = 0, k - 1 do
+    local idx = math.floor(i * n / k) + 1
+    pat[((idx - 1 + (offset or 0)) % n) + 1] = true
+  end
+  return pat
+end
+
+local function cv_show_euclid_dialog()
+  if not cv_require_selection() then return end
+  local r1, s1, r2, s2 = cv_selection[1], cv_selection[2], cv_selection[3], cv_selection[4]
+  local n = s2 - s1 + 1
+  local vb_local = renoise.ViewBuilder()
+  local d = nil
+  local pulses = vb_local:valuebox{ min=0, max=n, value=math.max(1, math.floor(n/4)) }
+  local offset = vb_local:valuebox{ min=0, max=n-1, value=0 }
+  local content = vb_local:column{
+    margin = 6, spacing = 4,
+    vb_local:text{ text=string.format("Euclidean fill across %d steps × %d rows", n, r2-r1+1), font="bold", style="strong" },
+    vb_local:row{ vb_local:text{text="pulses ", width=60}, pulses },
+    vb_local:row{ vb_local:text{text="offset ", width=60}, offset },
+    vb_local:row{
+      vb_local:button{ text="Apply", notifier=function()
+        local pat = cv_euclidean(pulses.value, n, offset.value)
+        for r = r1, r2 do for s = s1, s2 do cv_write_trigger(r, s, pat[s - s1 + 1]) end end
+        cv_refresh()
+        if d then d:close() end
+      end },
+      vb_local:button{ text="Cancel", notifier=function() if d then d:close() end end },
+    }
+  }
+  d = renoise.app():show_custom_dialog("Euclidean Fill", content)
+end
+
+-- ----------- 8120 global-action verbs (call file-local 8120 fns directly) -----------
+
+local function cv_verb_random_gate()       if not initializing then random_gate() end; cv_refresh() end
+local function cv_verb_clear_all()         if not initializing then clear_all()  end; cv_refresh() end
+local function cv_verb_fetch_pattern()     if not initializing then fetch_pattern() end; cv_refresh() end
+local function cv_verb_reverse_all()       reverse_all(); cv_refresh() end
+local function cv_verb_random_all()        random_all();  cv_refresh() end
+local function cv_verb_randomize_all()     randomize_all(); cv_refresh() end
+local function cv_verb_randomize_groove()  randomize_groove() end
+
+-- ----------- dialog construction -----------
+
+local function cv_lane_strip_left(row)
+  local name      = cv_read_lane_name(row)
+  local is_muted  = cv_read_lane_muted(row)
+  local mute_btn  = vb:button{
+    text = "M", width = 22,
+    color = is_muted and {0xd8,0x50,0x60} or nil,
+    notifier = function()
+      cv_set_lane_muted(row, not cv_read_lane_muted(row))
+      cv_refresh()
+    end
+  }
+  return vb:row{
+    height = CV_LANE_H,
+    mute_btn,
+    vb:text{ text=string.format(" %02d ", row), font="bold", style="strong", width=24 },
+    vb:text{ text=cv_truncate(name, 18), width=130, style=(name == "—") and "disabled" or "normal" },
+  }
+end
+
+local function cv_lane_strip_right(row)
+  local re = rows and rows[row]
+  local slider_initial = (re and re.slider) and (re.slider.value or 1) or 1
+  local sample_slider = vb:slider{
+    min = 1, max = 120, value = slider_initial, width = 150,
+    notifier = function(value)
+      value = math.floor(value)
+      if rows and rows[row] and rows[row].slider then
+        rows[row].slider.value = value
+      else
+        local song = renoise.song()
+        if row <= #song.instruments then
+          song.selected_instrument_index = row
+          local inst = song.instruments[row]
+          if inst and inst.samples and #inst.samples > 0 then
+            local idx = value
+            if idx > #inst.samples then idx = #inst.samples end
+            if idx < 1 then idx = 1 end
+            song.selected_sample_index = idx
+          end
+        end
+      end
+    end
+  }
+  return vb:row{
+    height = CV_LANE_H,
+    vb:text{ text=" smp ", style="disabled", width=30 },
+    sample_slider,
+  }
+end
+
+local function cv_build_view()
+  cv_canvas = vb:canvas{
+    width = CV_CANVAS_W, height = CV_CANVAS_H,
+    mode = "plain",
+    render = cv_render,
+    mouse_handler = cv_handle_mouse,
+    mouse_events = {"down","up","move","exit"},
+  }
+
+  local left_col  = { spacing = 0, margin = 0 }
+  local right_col = { spacing = 0, margin = 0 }
+  for r = 1, CV_NUM_LANES do
+    table.insert(left_col,  cv_lane_strip_left(r))
+    table.insert(right_col, cv_lane_strip_right(r))
+  end
+
+  local function song_t() return renoise.song().transport end
+
+  local u = {}
+  u.bpm_label = vb:text{
+    text = string.format("  BPM %d", math.floor((song_t().bpm or 120) + 0.5)),
+    font = "bold", style = "strong"
+  }
+  u.selection_label = vb:text{ text = "selection: (none)", style="strong" }
+
+  -- live BPM follow
+  pcall(function()
+    song_t().bpm_observable:add_notifier(function()
+      if u.bpm_label and cv_dialog and cv_dialog.visible then
+        u.bpm_label.text = string.format("  BPM %d", math.floor((song_t().bpm or 120) + 0.5))
+      end
+    end)
+  end)
+
+  local transport_bar = vb:row{
+    style = "panel",
+    vb:button{ text="▶", width=28, notifier=function() song_t():start(renoise.Transport.PLAYMODE_RESTART_PATTERN) end },
+    vb:button{ text="■", width=28, notifier=function() song_t():stop() end },
+    vb:button{ text="●", width=28, notifier=function() song_t().edit_mode = not song_t().edit_mode end },
+    u.bpm_label,
+    vb:text{ text="  follow", style="strong" },
+    vb:checkbox{ value=song_t().follow_player and true or false, notifier=function(v) song_t().follow_player=v end },
+    vb:text{ text="  groove", style="strong" },
+    vb:checkbox{ value=song_t().groove_enabled and true or false, notifier=function(v) song_t().groove_enabled=v end },
+    vb:text{ text="  |", style="disabled" },
+    vb:button{ text="Show Classic 8120…", width=140, notifier=function()
+      if not (dialog and dialog.visible) then pakettiEightSlotsByOneTwentyDialog() end
+    end },
+  }
+
+  local verb_palette_1 = vb:row{
+    style = "panel",
+    vb:text{ text="step:", style="strong" },
+    vb:button{ text="←", width=30, notifier=function() cv_nudge(-1) end },
+    vb:button{ text="→", width=30, notifier=function() cv_nudge( 1) end },
+    vb:text{ text=" row:", style="strong" },
+    vb:button{ text="↑", width=30, notifier=function() cv_nudge_rows(-1) end },
+    vb:button{ text="↓", width=30, notifier=function() cv_nudge_rows( 1) end },
+    vb:text{ text=" |", style="disabled" },
+    vb:button{ text="invert",   width=60, notifier=cv_verb_invert },
+    vb:button{ text="reverse",  width=70, notifier=cv_verb_reverse },
+    vb:button{ text="fill",     width=50, notifier=cv_verb_fill },
+    vb:button{ text="clear",    width=50, notifier=cv_verb_clear },
+    vb:text{ text=" |", style="disabled" },
+    vb:button{ text="copy",     width=50, notifier=cv_verb_copy },
+    vb:button{ text="paste",    width=50, notifier=cv_verb_paste },
+    vb:button{ text="euclid…",  width=72, notifier=cv_show_euclid_dialog },
+  }
+
+  local verb_palette_2 = vb:row{
+    style = "panel",
+    vb:text{ text="all-rows:", style="strong" },
+    vb:button{ text="Random Gate",   width=100, notifier=cv_verb_random_gate },
+    vb:button{ text="Clear All",     width=80,  notifier=cv_verb_clear_all },
+    vb:button{ text="Fetch Pattern", width=110, notifier=cv_verb_fetch_pattern },
+    vb:button{ text="Reverse All",   width=90,  notifier=cv_verb_reverse_all },
+    vb:button{ text="Random All",    width=90,  notifier=cv_verb_random_all },
+    vb:button{ text="Randomize All", width=110, notifier=cv_verb_randomize_all },
+    vb:button{ text="Random Groove", width=110, notifier=cv_verb_randomize_groove },
+    vb:text{ text=" |", style="disabled" },
+    vb:button{ text="Load…",          width=70,  notifier=function() loadSequentialSamplesWithFolderPrompts() end },
+    vb:button{ text="RandomLoad…",    width=110, notifier=function() loadSequentialDrumkitSamples() end },
+    vb:button{ text="RandomLoadAll…", width=130, notifier=function() loadSequentialRandomLoadAll() end },
+  }
+
+  local body = vb:row{
+    vb:column(left_col),
+    cv_canvas,
+    vb:column(right_col),
+  }
+
+  local status = vb:row{
+    style = "panel",
+    u.selection_label,
+    vb:text{ text="  ·  click cell · drag = range · alt+click = quadrant · shift+click = extend",
+      style="disabled" },
+  }
+
+  cv_ui = u
+  return vb:column{
+    margin = 6, spacing = 4,
+    transport_bar,
+    verb_palette_1,
+    verb_palette_2,
+    body,
+    status,
+  }
+end
+
+function PakettiEightOneTwentyCanvasViewShow()
+  if cv_dialog and cv_dialog.visible then
+    cv_dialog:close()
+    cv_dialog = nil
+    return
+  end
+  -- Classic 8120 dialog must exist for rows[] to be populated.
+  if not (dialog and dialog.visible) then
+    pakettiEightSlotsByOneTwentyDialog()
+  end
+  cv_selection = nil
+  local content = cv_build_view()
+  cv_update_selection_label()
+  cv_dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8120 — Canvas View (MK2)", content)
+end
+
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Groovebox:Canvas View (MK2)…",
+  invoke = PakettiEightOneTwentyCanvasViewShow }
+PakettiAddMenuEntry{
+  name = "Pattern Editor:Paketti:Groovebox 8120 Canvas View (MK2)…",
+  invoke = PakettiEightOneTwentyCanvasViewShow }
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Paketti Groovebox 8120 Canvas View",
+  invoke = PakettiEightOneTwentyCanvasViewShow }
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Paketti Groovebox 8120:Canvas View [Trigger]",
+  invoke = function(m) if m:is_trigger() then PakettiEightOneTwentyCanvasViewShow() end end }
+
+end -- if PAKETTI_HAS_CANVAS

@@ -22,6 +22,29 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Refactor: Canvas View moves into 8120, standalone 8ch960samp file removed
+
+The standalone `PakettiGroovebox8ch960samp.lua` file was a parallel re-implementation that could only access ~15% of 8120's surface (file-local functions like `random_gate`, `fill_empty_steps`, `clear_all`, `fetch_pattern`, `reverse_all`, `random_all` were unreachable). The MK2 promise — feature-complete with 8120, plus selection-based editing on top — was unachievable from outside.
+
+Moved the canvas view to live INSIDE `PakettiEightOneTwenty.lua` at the bottom of the file, where it has direct access to every file-local 8120 function. The canvas is now a real second view of 8120's actual state — clicking a cell fires 8120's existing `print_to_pattern` notifier, the verb palette calls 8120's actual `random_gate`/`clear_all`/`fetch_pattern`/`reverse_all`/`random_all`/`randomize_all`/`randomize_groove` directly, and the Sequential Load family is on the same palette.
+
+Verbs that work right now in Canvas View:
+- **Selection-scoped** (acts on whatever cells you have selected): nudge ←/→ (rotate within selection), nudge ↑/↓ (rotate rows), invert, reverse, fill, clear, copy, paste, euclid…
+- **All-rows** (fires 8120's existing functions directly): Random Gate, Clear All, Fetch Pattern, Reverse All, Random All, Randomize All, Random Groove, Load…, RandomLoad…, RandomLoadAll…
+- **Transport**: Play, Stop, Record, BPM (live), follow, groove
+
+Selection model: click a cell to toggle, click+drag to range-select within or across rows, alt+click selects the entire 4-step quadrant, shift+click extends the existing selection.
+
+Launch points:
+- `Main Menu:Tools:Paketti:Groovebox:Canvas View (MK2)…`
+- `Pattern Editor:Paketti:Groovebox 8120 Canvas View (MK2)…`
+- Keybinding: `Global:Paketti:Paketti Groovebox 8120 Canvas View`
+- MIDI mapping: `Paketti:Paketti Groovebox 8120:Canvas View [Trigger]`
+
+The classic 8120 dialog auto-opens in the background if it isn't already (so `rows[]` is populated). Closing the canvas view leaves the classic 8120 dialog open. Both windows can be visible simultaneously and edit the same state. Future passes will layer in automation-stack drawing per row, automatron-style modulator generators, per-cell velocity/probability/roll modes, and Akai MidiMix LED feedback for selection — all alongside the canvas, all with full access to 8120's data model.
+
+Removed: `PakettiGroovebox8ch960samp.lua` (deleted), `timed_require("PakettiGroovebox8ch960samp")` (removed from `main.lua`). The previous standalone-file CHANGESLOG entries for the 8ch960samp prototype refer to functionality that is now part of 8120 itself.
+
 ### 2026-05-04 - Fix: Groovebox 8ch960samp (MK2) is no longer imaginary
 
 The MK2 prototype was rendering seeded fake data (`kick-808.wav`, `snare-clap.wav`, etc.) and a hardcoded "lane 5 muted" — none of which reflected the user's actual song or 8120 state. Lane heights also didn't align with the side-strip text rows because `style="panel"` added chrome padding the canvas didn't account for, so the canvas extended below the side strips.

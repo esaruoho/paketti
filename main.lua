@@ -1262,7 +1262,6 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiStemSlicer")
   timed_require("PakettiOldschoolSlicePitch")
   timed_require("PakettiEightOneTwenty")
-  timed_require("PakettiGroovebox8ch960samp")
   timed_require("PakettiMidiImport")
   timed_require("PakettiSliceToolsDialog")
   timed_require("PakettiDynamicMacroToolbar")
