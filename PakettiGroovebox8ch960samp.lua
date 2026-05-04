@@ -826,9 +826,22 @@ end
 
 -- ---------- dialog construction ----------
 
+-- Each lane strip is a SINGLE vb:row with explicit height=LANE_H so the side
+-- columns are exactly NUM_LANES * LANE_H tall — matching the canvas pixel-for-
+-- pixel. Mixed-height children inside (buttons ~22px, text ~16px) all top-
+-- align within the row, but the row itself is forced to LANE_H so 8 stacked
+-- rows = canvas height. The wrapping vb:column uses spacing=0 to remove
+-- inter-row gaps.
+
+local function truncate(s, n)
+  if not s then return "" end
+  if #s <= n then return s end
+  return s:sub(1, n - 1) .. "…"
+end
+
 local function lane_strip_left(row)
-  local name      = read_lane_name(row)
-  local is_muted  = read_lane_muted(row)
+  local name     = read_lane_name(row)
+  local is_muted = read_lane_muted(row)
   local view_btn = vb:button{
     text = ({triggers="T",velocity="V",probability="P"})[lane_view[row] or "triggers"] or "T",
     width = 22,
@@ -842,41 +855,35 @@ local function lane_strip_left(row)
       refresh()
     end
   }
-  return {
-    column = vb:column{
-      width = 160,
-      vb:row{
-        mute_btn,
-        vb:button{ text="S", width=22 },
-        vb:button{ text="R", width=22 },
-        view_btn,
-        vb:text{ text=string.format(" %02d", row), font="bold", style="strong" },
-      },
-      vb:text{ text = name, style = (name == "—") and "disabled" or "normal" },
-    },
-    view_btn = view_btn,
+  local strip = vb:row{
+    height = LANE_H,
+    mute_btn,
+    vb:button{ text="S", width=22 },
+    vb:button{ text="R", width=22 },
+    view_btn,
+    vb:text{ text=string.format(" %02d ", row), font="bold", style="strong", width=24 },
+    vb:text{ text=truncate(name, 18), width=130, style = (name == "—") and "disabled" or "normal" },
   }
+  return { column = strip, view_btn = view_btn }
 end
 
 local function lane_strip_right(row)
-  -- Sample slider — picks which sample within the instrument is the active
-  -- velocity-mapped one. Read-through to 8120's rows[row].slider so changing
-  -- it here fires 8120's own notifier (which selects the sample, swaps the
-  -- pakettified sample, etc.).
+  -- Sample slider read-through to 8120's rows[row].slider; same notifier
+  -- fires (selects the sample, swaps pakettified sample, restores
+  -- automation). Headless fallback selects the sample directly.
   local re = row_elements(row)
   local slider_initial = 1
   if re and re.slider then slider_initial = re.slider.value or 1 end
   local sample_slider = vb:slider{
     min = 1, max = 120,
     value = slider_initial,
-    width = 160,
+    width = 150,
     notifier = function(value)
       value = math.floor(value)
       local re_now = row_elements(row)
       if re_now and re_now.slider then
         re_now.slider.value = value
       else
-        -- Fallback: select the sample directly when 8120 dialog is closed.
         local song = renoise.song()
         if row <= #song.instruments then
           song.selected_instrument_index = row
@@ -891,18 +898,18 @@ local function lane_strip_right(row)
       end
     end
   }
-  return vb:column{
-    width = 180,
-    vb:row{
-      vb:text{ text="sample", style="disabled" },
-      sample_slider,
-    },
+  return vb:row{
+    height = LANE_H,
+    vb:text{ text=" smp ", style="disabled", width=30 },
+    sample_slider,
   }
 end
 
 local function build_view()
-  local left_col_children  = { vb:column{} }
-  local right_col_children = { vb:column{} }
+  -- spacing=0 + margin=0 so 8 strips of height=LANE_H stack to exactly
+  -- NUM_LANES * LANE_H — same as the canvas — and the lane bands align.
+  local left_col_children  = { spacing = 0, margin = 0 }
+  local right_col_children = { spacing = 0, margin = 0 }
   local view_buttons = {}
   for r = 1, NUM_LANES do
     local strip = lane_strip_left(r)
