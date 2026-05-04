@@ -7828,6 +7828,63 @@ local function cv_build_view()
     vb:button{ text="Sequential RandomLoadAll", width=190, notifier=function() loadSequentialRandomLoadAll() end },
   }
 
+  -- Output Mode switch — pattern / phrase / phrase_trigger. Same setter the
+  -- classic dialog and the cycle-output-mode keybinding use, so all three
+  -- views agree on the current mode.
+  local output_mode_value = 1
+  if     PakettiEightOneTwentyOutputMode == "phrase"         then output_mode_value = 2
+  elseif PakettiEightOneTwentyOutputMode == "phrase_trigger" then output_mode_value = 3 end
+  local output_mode_switch = vb:switch{
+    items = {"Pattern","Phrase","Phrase Trigger"},
+    width = 220, value = output_mode_value,
+    notifier = function(v)
+      if     v == 1 then PakettiEightOneTwentySetOutputMode("pattern")
+      elseif v == 2 then PakettiEightOneTwentySetOutputMode("phrase")
+      elseif v == 3 then PakettiEightOneTwentySetOutputMode("phrase_trigger")
+      end
+    end
+  }
+
+  local verb_palette_4 = vb:row{
+    style = "panel",
+    vb:text{ text="output:", style="strong" },
+    output_mode_switch,
+    vb:text{ text=" |", style="disabled" },
+    vb:text{ text="phrases:", style="strong" },
+    vb:button{ text="All Rows → Phrases",         width=160, tooltip="Convert all 8 rows into phrases on their instruments",
+      notifier = function() PakettiEightOneTwentyAllRowsToPhrasesBank() end },
+    vb:button{ text="All Rows as Phrase Triggers", width=180, tooltip="Write phrase-trigger Zxx commands into the pattern",
+      notifier = function() PakettiEightOneTwentyAllRowsAsPhraseTriggersToPattern() end },
+    vb:text{ text=" |", style="disabled" },
+    vb:text{ text="global pitch:", style="strong" },
+    vb:button{ text="-12", width=40, notifier=function() PakettiGrooveboxGlobalPitch(-12) end },
+    vb:button{ text="-1",  width=32, notifier=function() PakettiGrooveboxGlobalPitch(-1) end },
+    vb:button{ text="0",   width=32, notifier=function() PakettiGrooveboxGlobalPitchAbsolute(0) end },
+    vb:button{ text="+1",  width=32, notifier=function() PakettiGrooveboxGlobalPitch( 1) end },
+    vb:button{ text="+12", width=40, notifier=function() PakettiGrooveboxGlobalPitch(12) end },
+  }
+
+  -- Expand / Shrink Replicate — operates on the *currently selected* track
+  -- (so user picks which row's pattern to replicate via the track popup,
+  -- then hits Expand or Shrink). The row-specific MIDI mappings already
+  -- exist; this exposes them in canvas form.
+  local expand_row_box = vb:valuebox{
+    min = 1, max = 8, value = 1, width = 50,
+    tooltip = "Which row to expand/shrink-replicate",
+  }
+  local verb_palette_5 = vb:row{
+    style = "panel",
+    vb:text{ text="replicate:", style="strong" },
+    vb:text{ text="row", style="disabled" },
+    expand_row_box,
+    vb:button{ text="Expand",  width=80, notifier=function()
+      PakettiGroovebox8120ExpandSelectionReplicate(expand_row_box.value)
+    end },
+    vb:button{ text="Shrink",  width=80, notifier=function()
+      PakettiGroovebox8120ShrinkSelectionReplicate(expand_row_box.value)
+    end },
+  }
+
   local body = vb:row{
     vb:column(left_col),
     cv_canvas,
@@ -7848,6 +7905,8 @@ local function cv_build_view()
     verb_palette_1,
     verb_palette_2,
     verb_palette_3,
+    verb_palette_4,
+    verb_palette_5,
     body,
     status,
   }
