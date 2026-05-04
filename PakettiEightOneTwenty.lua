@@ -4581,6 +4581,148 @@ end
 
 assign_midi_mappings()
 
+-- =============================================================================
+-- Focused-Row MIDI Mappings (controller "page" model)
+-- =============================================================================
+-- Lets a single bank of 16 physical buttons on a MIDI controller (e.g. EXP1-EXP8
+-- + P1-P8) drive the step grid of *whichever* of the 8 rows is currently
+-- focused, instead of one bank per row. The focused row is changed with
+-- "Focused Row Next/Previous" or "Focused Row Set 1..8" mappings — typically
+-- bound to a "page" / "scene" button on the controller.
+--
+-- Companion mirror mappings exist for the per-row utility buttons (<, >, Clear,
+-- Randomize, Load, Show, Random, Automation, Reverse) so the same row-relative
+-- workflow extends beyond just the step toggles.
+--
+-- LED-feedback (lighting the controller's buttons to mirror the focused row's
+-- step state) is a follow-up: it requires sending MIDI back out and the SysEx
+-- vocabulary differs per controller. Tell me which controller you have and I'll
+-- wire that next.
+
+PakettiEightOneTwentyFocusedRow = PakettiEightOneTwentyFocusedRow or 1
+
+local function paketti_set_focused_row(target)
+  if target < 1 then target = 1 end
+  if target > 8 then target = 8 end
+  PakettiEightOneTwentyFocusedRow = target
+  if PakettiEightOneTwentyHighlightRow then
+    PakettiEightOneTwentyHighlightRow(target)
+  end
+  renoise.app():show_status(string.format("Groovebox 8120: focused row = %d", target))
+end
+
+-- Step toggles for the focused row — one mapping per step, MAX_STEPS deep.
+for step = 1, MAX_STEPS do
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Paketti Groovebox 8120:Focused Row Step%d", step),
+    invoke = function(message)
+      if not message:is_trigger() then return end
+      if step > MAX_STEPS then return end
+      local row = PakettiEightOneTwentyFocusedRow or 1
+      local row_elements = rows and rows[row]
+      if row_elements and row_elements.checkboxes and row_elements.checkboxes[step] then
+        row_elements.checkboxes[step].value = not row_elements.checkboxes[step].value
+      end
+    end
+  }
+end
+
+-- Move focus across the 8 rows.
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Paketti Groovebox 8120:Focused Row Next [Trigger]",
+  invoke = function(message)
+    if not message:is_trigger() then return end
+    paketti_set_focused_row((PakettiEightOneTwentyFocusedRow or 1) % 8 + 1)
+  end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Paketti Groovebox 8120:Focused Row Previous [Trigger]",
+  invoke = function(message)
+    if not message:is_trigger() then return end
+    local cur = PakettiEightOneTwentyFocusedRow or 1
+    paketti_set_focused_row(((cur - 2) % 8) + 1)
+  end
+}
+
+-- Direct row jumps — bind these to dedicated controller buttons if you want to
+-- skip a row at a time.
+for row = 1, 8 do
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Paketti Groovebox 8120:Focused Row Set %d [Trigger]", row),
+    invoke = function(message)
+      if not message:is_trigger() then return end
+      paketti_set_focused_row(row)
+    end
+  }
+end
+
+-- Mirror the per-row utility buttons onto the focused row so the same controller
+-- bank can drive < / > / Clear / Randomize / Load / Show / Random / Automation /
+-- Reverse against whichever row is in focus.
+local PAKETTI_FOCUSED_ROW_BUTTONS = {"<", ">", "Clear", "Randomize", "Load", "Show", "Random", "Automation", "Reverse"}
+for _, btn in ipairs(PAKETTI_FOCUSED_ROW_BUTTONS) do
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Paketti Groovebox 8120:Focused Row %s", btn),
+    invoke = function(message)
+      if not message:is_trigger() then return end
+      local row = PakettiEightOneTwentyFocusedRow or 1
+      local row_elements = rows and rows[row]
+      if not row_elements then return end
+      if btn == "<" then
+        row_elements.updating_checkboxes = true
+        row_elements.updating_yxx_checkboxes = true
+        local first_note_value = row_elements.checkboxes[1].value
+        local first_yxx_value = row_elements.yxx_checkboxes[1].value
+        for i = 1, MAX_STEPS - 1 do
+          row_elements.checkboxes[i].value = row_elements.checkboxes[i + 1].value
+          row_elements.yxx_checkboxes[i].value = row_elements.yxx_checkboxes[i + 1].value
+        end
+        row_elements.checkboxes[MAX_STEPS].value = first_note_value
+        row_elements.yxx_checkboxes[MAX_STEPS].value = first_yxx_value
+        row_elements.print_to_pattern()
+        row_elements.updating_checkboxes = false
+        row_elements.updating_yxx_checkboxes = false
+      elseif btn == ">" then
+        row_elements.updating_checkboxes = true
+        row_elements.updating_yxx_checkboxes = true
+        local last_note_value = row_elements.checkboxes[MAX_STEPS].value
+        local last_yxx_value = row_elements.yxx_checkboxes[MAX_STEPS].value
+        for i = MAX_STEPS, 2, -1 do
+          row_elements.checkboxes[i].value = row_elements.checkboxes[i - 1].value
+          row_elements.yxx_checkboxes[i].value = row_elements.yxx_checkboxes[i - 1].value
+        end
+        row_elements.checkboxes[1].value = last_note_value
+        row_elements.yxx_checkboxes[1].value = last_yxx_value
+        row_elements.print_to_pattern()
+        row_elements.updating_checkboxes = false
+        row_elements.updating_yxx_checkboxes = false
+      elseif btn == "Clear" then
+        row_elements.updating_checkboxes = true
+        row_elements.updating_yxx_checkboxes = true
+        for i = 1, MAX_STEPS do
+          row_elements.checkboxes[i].value = false
+          row_elements.yxx_checkboxes[i].value = false
+        end
+        row_elements.updating_checkboxes = false
+        row_elements.updating_yxx_checkboxes = false
+        row_elements.print_to_pattern()
+      elseif btn == "Randomize" then
+        row_elements.randomize()
+      elseif btn == "Load" then
+        row_elements.browse_instrument()
+      elseif btn == "Show" then
+        row_elements.select_instrument()
+      elseif btn == "Random" then
+        row_elements.random_button_pressed()
+      elseif btn == "Automation" then
+        row_elements.show_automation()
+      elseif btn == "Reverse" then
+        reverse_sample(row_elements)
+      end
+    end
+  }
+end
+
 -- Add MIDI mapping for step mode switch
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)
   if message:is_trigger() then

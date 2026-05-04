@@ -22,6 +22,19 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Feature: Groovebox 8120 — Focused-Row MIDI Page Model
+
+A single bank of 16 physical buttons on a MIDI controller (e.g. EXP1-EXP8 + P1-P8) can now drive the step grid of *whichever* of the 8 rows is currently focused, instead of needing one bank per row. The focused row is changed with "Focused Row Next/Previous" or "Focused Row Set 1..8" mappings — typically bound to a "page" / "scene" button on the controller. The focused row is highlighted in the dialog as you switch.
+
+New MIDI mappings under `Paketti:Paketti Groovebox 8120:`:
+
+- `Focused Row Step1 .. Focused Row Step16` (or 32 in 32-step mode) — toggle the step on the currently focused row
+- `Focused Row Next [Trigger]` / `Focused Row Previous [Trigger]` — wrap-around row navigation
+- `Focused Row Set 1 [Trigger] .. Focused Row Set 8 [Trigger]` — direct row jump
+- `Focused Row <` / `>` / `Clear` / `Randomize` / `Load` / `Show` / `Random` / `Automation` / `Reverse` — utility buttons re-routed to the focused row
+
+LED feedback (lighting the controller's buttons to mirror the focused row's step state) is a follow-up: it requires sending MIDI back out and the SysEx vocabulary differs per controller — name the controller to wire that next.
+
 ### 2026-05-04 - Prototype: Groovebox 8ch960samp (MK2) — Full Verb Suite + View Modes
 
 Second pass on the canvas prototype — wired every stub verb, added per-lane view modes, and added the modifier-key selection model.
