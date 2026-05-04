@@ -891,6 +891,22 @@ local function build_view()
     vb:button{ text="euclid…", notifier = show_euclid_dialog },
     vb:button{ text="apply curve…", notifier = show_curve_dialog },
     vb:text{ text=" |", style="disabled" },
+    -- Sequential Load family — these populate the actual song instruments
+    -- (not the local prototype model), same as the 8120 dialog. Live here so
+    -- you don't have to bounce between dialogs to load samples.
+    vb:button{ text="Load…", notifier = function()
+      if loadSequentialSamplesWithFolderPrompts then loadSequentialSamplesWithFolderPrompts()
+      else renoise.app():show_status("loadSequentialSamplesWithFolderPrompts not available") end
+    end },
+    vb:button{ text="RandomLoad…", notifier = function()
+      if loadSequentialDrumkitSamples then loadSequentialDrumkitSamples()
+      else renoise.app():show_status("loadSequentialDrumkitSamples not available") end
+    end },
+    vb:button{ text="RandomLoadAll…", notifier = function()
+      if loadSequentialRandomLoadAll then loadSequentialRandomLoadAll()
+      else renoise.app():show_status("loadSequentialRandomLoadAll not available") end
+    end },
+    vb:text{ text=" |", style="disabled" },
     vb:button{ text="reset model", notifier = function()
       reset_model(); selection = nil; update_selection_label()
       for r = 1, NUM_LANES do

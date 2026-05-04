@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Feature: Groovebox 8ch960samp (MK2) — Sequential Load buttons added
+
+The MK2 prototype now exposes the same `Load…`, `RandomLoad…`, and `RandomLoadAll…` buttons as 8120 in its verb palette. They call the existing 8120 load functions (`loadSequentialSamplesWithFolderPrompts`, `loadSequentialDrumkitSamples`, `loadSequentialRandomLoadAll`) which populate the actual song instruments — independent of the prototype's local model — so the same workflow works in both dialogs without bouncing between them.
+
 ### 2026-05-04 - Feature: Groovebox 8120 — Sequential Load family is now triggerable
 
 The three Sequential Load actions (`Sequential Load`, `Sequential RandomLoad`, `Sequential RandomLoadAll`) used to live only as buttons inside the open dialog, which meant: no MIDI mapping (couldn't fire from a controller), no keybinding, no menu entry, and no way to use them when nothing was selected or no row was focused. Now wired for all three trigger paths so you can repopulate the entire 8120 from any state — including a fresh empty song where nothing has been touched yet.
