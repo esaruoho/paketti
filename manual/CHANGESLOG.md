@@ -22,6 +22,25 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Feature: Groovebox 8120 — Sequential Load family is now triggerable
+
+The three Sequential Load actions (`Sequential Load`, `Sequential RandomLoad`, `Sequential RandomLoadAll`) used to live only as buttons inside the open dialog, which meant: no MIDI mapping (couldn't fire from a controller), no keybinding, no menu entry, and no way to use them when nothing was selected or no row was focused. Now wired for all three trigger paths so you can repopulate the entire 8120 from any state — including a fresh empty song where nothing has been touched yet.
+
+Each safe-launcher opens the 8120 dialog first if it isn't already open, so the launchers also serve as a one-shot "boot a Groovebox from scratch" button.
+
+- Keybindings (under `Global:Paketti:`):
+  - `Paketti Groovebox 8120 Sequential Load`
+  - `Paketti Groovebox 8120 Sequential RandomLoad`
+  - `Paketti Groovebox 8120 Sequential RandomLoadAll`
+- MIDI mappings (under `Paketti:Paketti Groovebox 8120:`):
+  - `Sequential Load [Trigger]`
+  - `Sequential RandomLoad [Trigger]`
+  - `Sequential RandomLoadAll [Trigger]`
+- Menu entries (under `Main Menu:Tools:Paketti:Groovebox:`):
+  - `Sequential Load (8 folders)…`
+  - `Sequential RandomLoad (8 folders, random sample each)…`
+  - `Sequential RandomLoadAll (1 folder, all 8 rows)…`
+
 ### 2026-05-04 - Fix: Groovebox 8120 load error on Renoise 3.5.4 (strict globals)
 
 `PakettiEightOneTwentyFocusedRow = PakettiEightOneTwentyFocusedRow or 1` read the global before declaring it, which trips Renoise's strict-globals guard (`__index` blocks unknown globals) and prevented Paketti from loading at all on a fresh tool install. Replaced with a `rawget` / `rawset` pair so the variable is created without a prior read. Reported by Issou2suc on Renoise 3.5.4 / Windows.

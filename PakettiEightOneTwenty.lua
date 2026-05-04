@@ -4966,6 +4966,59 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function() GrooveboxShowClose() end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=function(message) if message:is_trigger() then GrooveboxShowClose() end end }
 
+-- Sequential Load family — trigger access (MIDI mapping + keybinding + menu).
+-- These three actions fill all 8 rows in one go so they don't depend on a
+-- focused-row selection: bind any to a controller button or key and you can
+-- repopulate the entire 8120 from any state, including a fresh empty song.
+local function paketti_8120_sequential_load_safe()
+  if pakettiEightSlotsByOneTwentyDialog and not (dialog and dialog.visible) then
+    pakettiEightSlotsByOneTwentyDialog()
+  end
+  loadSequentialSamplesWithFolderPrompts()
+end
+local function paketti_8120_sequential_random_safe()
+  if pakettiEightSlotsByOneTwentyDialog and not (dialog and dialog.visible) then
+    pakettiEightSlotsByOneTwentyDialog()
+  end
+  loadSequentialDrumkitSamples()
+end
+local function paketti_8120_sequential_random_all_safe()
+  if pakettiEightSlotsByOneTwentyDialog and not (dialog and dialog.visible) then
+    pakettiEightSlotsByOneTwentyDialog()
+  end
+  loadSequentialRandomLoadAll()
+end
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Paketti Groovebox 8120 Sequential Load",
+  invoke = paketti_8120_sequential_load_safe }
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Paketti Groovebox 8120 Sequential RandomLoad",
+  invoke = paketti_8120_sequential_random_safe }
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Paketti Groovebox 8120 Sequential RandomLoadAll",
+  invoke = paketti_8120_sequential_random_all_safe }
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Paketti Groovebox 8120:Sequential Load [Trigger]",
+  invoke = function(message) if message:is_trigger() then paketti_8120_sequential_load_safe() end end }
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Paketti Groovebox 8120:Sequential RandomLoad [Trigger]",
+  invoke = function(message) if message:is_trigger() then paketti_8120_sequential_random_safe() end end }
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Paketti Groovebox 8120:Sequential RandomLoadAll [Trigger]",
+  invoke = function(message) if message:is_trigger() then paketti_8120_sequential_random_all_safe() end end }
+
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Groovebox:Sequential Load (8 folders)…",
+  invoke = paketti_8120_sequential_load_safe }
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Groovebox:Sequential RandomLoad (8 folders, random sample each)…",
+  invoke = paketti_8120_sequential_random_safe }
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Groovebox:Sequential RandomLoadAll (1 folder, all 8 rows)…",
+  invoke = paketti_8120_sequential_random_all_safe }
+
 -- Duplicate current pattern below and jump to it (no clearing of muted tracks)
 function PakettiEightOneTwentyDuplicatePattern()
   local song=renoise.song()
