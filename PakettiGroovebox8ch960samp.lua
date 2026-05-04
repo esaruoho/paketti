@@ -37,42 +37,94 @@ local step_canvas = nil
 local NUM_LANES = 8
 local MAX_STEPS = 16  -- toggleable to 32
 
-local triggers, velocity, probability, roll_count, lane_meta
+-- 8ch960samp is a CANVAS-RENDERED ALTERNATE VIEW of 8120, not a separate
+-- engine. Trigger state lives in 8120's rows[] table; we read it on every
+-- repaint and write back through the same checkbox.value assignment 8120's
+-- own dialog uses (which fires 8120's print_to_pattern notifier). Velocity,
+-- probability, and roll_count are local-only for now (8120's data model
+-- doesn't expose those concepts directly).
+--
+-- velocity[r][s] is initialised to 1.0 so cells render at full height when
+-- the trigger is on. probability defaults to 1.0 (full alpha). roll_count
+-- defaults to 1 (no badge).
 
-local function reset_model()
-  triggers, velocity, probability, roll_count, lane_meta = {}, {}, {}, {}, {}
+local velocity, probability, roll_count, lane_view = {}, {}, {}, {}
+
+local function ensure_local_state()
   for r = 1, NUM_LANES do
-    triggers[r], velocity[r], probability[r], roll_count[r] = {}, {}, {}, {}
+    velocity[r]    = velocity[r]    or {}
+    probability[r] = probability[r] or {}
+    roll_count[r]  = roll_count[r]  or {}
     for s = 1, 32 do
-      triggers[r][s] = false
-      velocity[r][s] = 1.0
-      probability[r][s] = 1.0
-      roll_count[r][s] = 1
+      if velocity[r][s]    == nil then velocity[r][s]    = 1.0 end
+      if probability[r][s] == nil then probability[r][s] = 1.0 end
+      if roll_count[r][s]  == nil then roll_count[r][s]  = 1   end
     end
-    lane_meta[r] = {
-      name = ({"kick-808.wav","snare-clap.wav","hat-closed.wav","hat-open.wav",
-               "ride-cymbal.wav","bass-sub.wav","— empty —","perc-shot.wav"})[r] or "lane",
-      muted   = (r == 5),
-      soloed  = false,
-      random  = false,
-      view    = "triggers",  -- "triggers" / "velocity" / "probability"
-    }
+    lane_view[r] = lane_view[r] or "triggers"
   end
-  triggers[1][1]=true; triggers[1][5]=true; triggers[1][9]=true; triggers[1][13]=true
-  triggers[2][5]=true; triggers[2][13]=true; velocity[2][13]=0.75
-  for s=1,16 do
-    triggers[3][s] = true
-    velocity[3][s] = ({1.0,0.55,0.75,0.45,1.0,0.55,0.75,0.45,1.0,0.55,0.75,0.45,1.0,0.55,0.75,0.45})[s]
+end
+
+-- ---------- 8120 read-through ----------
+
+local function rows_table()
+  return rawget(_G, "rows")  -- 8120's per-row state table
+end
+
+local function row_elements(r)
+  local t = rows_table()
+  return t and t[r] or nil
+end
+
+local function read_trigger(r, s)
+  local re = row_elements(r)
+  if re and re.checkboxes and re.checkboxes[s] then
+    return re.checkboxes[s].value and true or false
   end
-  triggers[4][3]=true; triggers[4][11]=true
-  triggers[6][1]=true; triggers[6][3]=true; triggers[6][5]=true; triggers[6][7]=true
-  triggers[6][9]=true; triggers[6][12]=true; triggers[6][15]=true
-  velocity[6][3]=0.7; velocity[6][7]=0.6; velocity[6][12]=0.7; velocity[6][15]=0.8
-  triggers[8][1]=true; triggers[8][4]=true; triggers[8][9]=true
-  -- demo probability: lane 6 step 15 is "maybe" (rendered with reduced opacity)
-  probability[6][15] = 0.5
-  -- demo roll: lane 1 step 13 is a 3-roll
-  roll_count[1][13] = 3
+  return false
+end
+
+local function write_trigger(r, s, v)
+  local re = row_elements(r)
+  if re and re.checkboxes and re.checkboxes[s] then
+    re.checkboxes[s].value = v and true or false
+    -- 8120's own checkbox notifier writes to the pattern.
+  end
+end
+
+local function read_lane_name(r)
+  local song = renoise.song and renoise.song()
+  if not song then return "—" end
+  local instrument = song.instruments and song.instruments[r]
+  if instrument and instrument.name and instrument.name ~= "" then
+    return instrument.name
+  end
+  return "—"
+end
+
+local function read_lane_muted(r)
+  local re = row_elements(r)
+  if re and re.mute_checkbox then return re.mute_checkbox.value and true or false end
+  local song = renoise.song and renoise.song()
+  if not song then return false end
+  local track = song.tracks and song.tracks[r]
+  if track and track.mute_state then
+    return track.mute_state == renoise.Track.MUTE_STATE_MUTED
+       or  track.mute_state == renoise.Track.MUTE_STATE_OFF
+  end
+  return false
+end
+
+local function read_lane_soloed(r)
+  local re = row_elements(r)
+  if re and re.solo_checkbox then return re.solo_checkbox.value and true or false end
+  return false
+end
+
+local function set_lane_muted(r, v)
+  local re = row_elements(r)
+  if re and re.mute_checkbox then
+    re.mute_checkbox.value = v and true or false
+  end
 end
 
 -- selection rectangle: {row1, step1, row2, step2} or nil
@@ -86,10 +138,10 @@ local playhead_lane, playhead_step = 3, 7
 -- ---------- canvas geometry ----------
 
 local CANVAS_W = 960
-local LANE_H   = 90
+local LANE_H   = 56     -- tightened so cells visually match the side strip's text rows
 local CANVAS_H = NUM_LANES * LANE_H
-local LANE_INSET_TOP = 6
-local LANE_INNER_H   = LANE_H - 12  -- 78px
+local LANE_INSET_TOP = 4
+local LANE_INNER_H   = LANE_H - 8
 
 local function cell_w() return CANVAS_W / MAX_STEPS end
 
@@ -204,41 +256,39 @@ local function draw_lane(ctx, row)
   end
 
   -- view-mode tint band along the bottom of the lane
-  local m = lane_meta[row]
-  if m.view == "velocity" then
-    fill_rect(ctx, 0, y0 + LANE_INNER_H - 6, CANVAS_W, 6, C.velocity_band)
-  elseif m.view == "probability" then
-    fill_rect(ctx, 0, y0 + LANE_INNER_H - 6, CANVAS_W, 6, C.prob_band)
+  local view_mode = lane_view[row] or "triggers"
+  if view_mode == "velocity" then
+    fill_rect(ctx, 0, y0 + LANE_INNER_H - 4, CANVAS_W, 4, C.velocity_band)
+  elseif view_mode == "probability" then
+    fill_rect(ctx, 0, y0 + LANE_INNER_H - 4, CANVAS_W, 4, C.prob_band)
   end
 
-  -- triggers
+  -- triggers (read-through from 8120's rows[])
   for s = 1, MAX_STEPS do
-    if triggers[row][s] then
+    if read_trigger(row, s) then
       local v = velocity[row][s] or 1.0
       local p = probability[row][s] or 1.0
       if v < 0.05 then v = 0.05 end
-      local block_h = math.floor(LANE_INNER_H * v) - 4
-      if block_h < 4 then block_h = 4 end
-      local block_y = y0 + LANE_INNER_H - block_h - 2
-      local block_x = (s - 1) * cw + 4
-      local block_w = cw - 8
+      local block_h = math.floor(LANE_INNER_H * v) - 3
+      if block_h < 3 then block_h = 3 end
+      local block_y = y0 + LANE_INNER_H - block_h - 1
+      local block_x = (s - 1) * cw + 3
+      local block_w = cw - 6
       local base = quadrant_is_dark(s) and C.trig_on_black or C.trig_on_white
       local color = { base[1], base[2], base[3], math.floor(255 * p) }
       fill_rect(ctx, block_x, block_y, block_w, block_h, color)
 
-      -- roll-count badge (top-right of cell) when > 1
       local rc = roll_count[row][s] or 1
       if rc > 1 then
-        local px = (MAX_STEPS == 16) and 2 or 1
+        local px = 1
         local badge_w = 4 * px
-        local badge_x = (s - 1) * cw + cw - badge_w - 3
-        draw_number(ctx, rc, badge_x, y0 + 3, px, C.playhead_label)
+        local badge_x = (s - 1) * cw + cw - badge_w - 2
+        draw_number(ctx, rc, badge_x, y0 + 2, px, C.playhead_label)
       end
     end
   end
 
-  -- mute overlay
-  if m.muted then
+  if read_lane_muted(row) then
     fill_rect(ctx, 0, y0, CANVAS_W, LANE_INNER_H, C.muted_overlay)
   end
 
@@ -336,13 +386,12 @@ local function handle_mouse(ev)
   if ev.type == "down" then
     local row, step, norm = hit_test(x, y)
     if not row then return end
-    local m = lane_meta[row]
+    local view_mode = lane_view[row] or "triggers"
 
-    -- velocity / probability mode: drag inside cell adjusts value (only when trigger is on)
-    if m.view == "velocity" or m.view == "probability" then
-      if triggers[row][step] then
-        edit_drag = { row = row, step = step, mode = m.view }
-        if m.view == "velocity" then
+    if view_mode == "velocity" or view_mode == "probability" then
+      if read_trigger(row, step) then
+        edit_drag = { row = row, step = step, mode = view_mode }
+        if view_mode == "velocity" then
           velocity[row][step] = norm
         else
           probability[row][step] = norm
@@ -350,8 +399,7 @@ local function handle_mouse(ev)
         if step_canvas then step_canvas:update() end
         return
       end
-      -- if trigger is off in velocity/probability mode, click still toggles it
-      triggers[row][step] = true
+      write_trigger(row, step, true)
       if step_canvas then step_canvas:update() end
       return
     end
@@ -409,10 +457,9 @@ local function handle_mouse(ev)
       return
     end
     if mouse_down_pos and not mouse_did_drag then
-      -- pure click (no drag) in triggers mode: toggle the cell
       local r, s = mouse_down_pos.row, mouse_down_pos.step
-      if lane_meta[r].view == "triggers" then
-        triggers[r][s] = not triggers[r][s]
+      if (lane_view[r] or "triggers") == "triggers" then
+        write_trigger(r, s, not read_trigger(r, s))
         if step_canvas then step_canvas:update() end
       end
     end
@@ -448,19 +495,19 @@ end
 
 local function verb_invert()
   if not require_selection() then return end
-  for_each_in_selection(function(r, s) triggers[r][s] = not triggers[r][s] end)
+  for_each_in_selection(function(r, s) write_trigger(r, s, not read_trigger(r, s)) end)
   refresh()
 end
 
 local function verb_clear()
   if not require_selection() then return end
-  for_each_in_selection(function(r, s) triggers[r][s] = false end)
+  for_each_in_selection(function(r, s) write_trigger(r, s, false) end)
   refresh()
 end
 
 local function verb_fill()
   if not require_selection() then return end
-  for_each_in_selection(function(r, s) triggers[r][s] = true end)
+  for_each_in_selection(function(r, s) write_trigger(r, s, true) end)
   refresh()
 end
 
@@ -472,11 +519,11 @@ local function verb_reverse()
     local t, v, p, rc = {}, {}, {}, {}
     for s = s1, s2 do
       local i = s - s1 + 1
-      t[i], v[i], p[i], rc[i] = triggers[r][s], velocity[r][s], probability[r][s], roll_count[r][s]
+      t[i], v[i], p[i], rc[i] = read_trigger(r, s), velocity[r][s], probability[r][s], roll_count[r][s]
     end
     for s = s1, s2 do
       local src = n - (s - s1)
-      triggers[r][s], velocity[r][s], probability[r][s], roll_count[r][s] = t[src], v[src], p[src], rc[src]
+      write_trigger(r, s, t[src]); velocity[r][s], probability[r][s], roll_count[r][s] = v[src], p[src], rc[src]
     end
   end
   refresh()
@@ -490,12 +537,12 @@ local function nudge(direction)
     local t, v, p, rc = {}, {}, {}, {}
     for s = s1, s2 do
       local i = s - s1 + 1
-      t[i], v[i], p[i], rc[i] = triggers[r][s], velocity[r][s], probability[r][s], roll_count[r][s]
+      t[i], v[i], p[i], rc[i] = read_trigger(r, s), velocity[r][s], probability[r][s], roll_count[r][s]
     end
     for s = s1, s2 do
       local idx = s - s1
       local src = ((idx - direction) % n) + 1
-      triggers[r][s], velocity[r][s], probability[r][s], roll_count[r][s] = t[src], v[src], p[src], rc[src]
+      write_trigger(r, s, t[src]); velocity[r][s], probability[r][s], roll_count[r][s] = v[src], p[src], rc[src]
     end
   end
   refresh()
@@ -514,12 +561,13 @@ local function nudge_rows(direction)
     local t, v, p, rc = {}, {}, {}, {}
     for r = r1, r2 do
       local i = r - r1 + 1
-      t[i], v[i], p[i], rc[i] = triggers[r][s], velocity[r][s], probability[r][s], roll_count[r][s]
+      t[i], v[i], p[i], rc[i] = read_trigger(r, s), velocity[r][s], probability[r][s], roll_count[r][s]
     end
     for r = r1, r2 do
       local idx = r - r1
       local src = ((idx - direction) % nrows) + 1
-      triggers[r][s], velocity[r][s], probability[r][s], roll_count[r][s] = t[src], v[src], p[src], rc[src]
+      write_trigger(r, s, t[src])
+      velocity[r][s], probability[r][s], roll_count[r][s] = v[src], p[src], rc[src]
     end
   end
   refresh()
@@ -532,7 +580,7 @@ local function verb_density_plus()
   for r = r1, r2 do
     local best_start, best_len, cur_start, cur_len = nil, 0, nil, 0
     for s = s1, s2 do
-      if not triggers[r][s] then
+      if not read_trigger(r, s) then
         if cur_start == nil then cur_start = s end
         cur_len = cur_len + 1
         if cur_len > best_len then best_len, best_start = cur_len, cur_start end
@@ -542,7 +590,7 @@ local function verb_density_plus()
     end
     if best_start then
       local target = best_start + math.floor(best_len / 2)
-      triggers[r][target] = true
+      write_trigger(r, target, true)
       velocity[r][target] = 0.7
     end
   end
@@ -556,12 +604,12 @@ local function verb_density_minus()
   for r = r1, r2 do
     local weakest_s, weakest_v = nil, 2.0
     for s = s1, s2 do
-      if triggers[r][s] then
+      if read_trigger(r, s) then
         local v = velocity[r][s] or 1.0
         if v < weakest_v then weakest_v, weakest_s = v, s end
       end
     end
-    if weakest_s then triggers[r][weakest_s] = false end
+    if weakest_s then write_trigger(r, weakest_s, false) end
   end
   refresh()
 end
@@ -569,7 +617,7 @@ end
 local function verb_humanize()
   if not require_selection() then return end
   for_each_in_selection(function(r, s)
-    if triggers[r][s] then
+    if read_trigger(r, s) then
       local jitter = (math.random() - 0.5) * 0.3  -- ±15%
       local v = (velocity[r][s] or 1.0) + jitter
       if v < 0.15 then v = 0.15 end
@@ -583,7 +631,7 @@ end
 local function verb_roll_inc()
   if not require_selection() then return end
   for_each_in_selection(function(r, s)
-    if triggers[r][s] then
+    if read_trigger(r, s) then
       roll_count[r][s] = math.min(8, (roll_count[r][s] or 1) + 1)
     end
   end)
@@ -593,7 +641,7 @@ end
 local function verb_roll_dec()
   if not require_selection() then return end
   for_each_in_selection(function(r, s)
-    if triggers[r][s] then
+    if read_trigger(r, s) then
       roll_count[r][s] = math.max(1, (roll_count[r][s] or 1) - 1)
     end
   end)
@@ -608,7 +656,7 @@ local function verb_copy()
     local row_cells = {}
     for s = s1, s2 do
       table.insert(row_cells, {
-        t  = triggers[r][s],
+        t  = read_trigger(r, s),
         v  = velocity[r][s],
         p  = probability[r][s],
         rc = roll_count[r][s],
@@ -631,7 +679,8 @@ local function verb_paste()
       local rr, ss = r1 + ri - 1, s1 + si - 1
       if rr <= NUM_LANES and ss <= MAX_STEPS then
         local c = clipboard.cells[ri][si]
-        triggers[rr][ss], velocity[rr][ss], probability[rr][ss], roll_count[rr][ss] = c.t, c.v, c.p, c.rc
+        write_trigger(rr, ss, c.t)
+        velocity[rr][ss], probability[rr][ss], roll_count[rr][ss] = c.v, c.p, c.rc
       end
     end
   end
@@ -668,7 +717,7 @@ local function show_euclid_dialog()
         local pattern = euclidean(pulses_box.value, n, offset_box.value)
         for r = r1, r2 do
           for s = s1, s2 do
-            triggers[r][s] = pattern[s - s1 + 1]
+            write_trigger(r, s, pattern[s - s1 + 1])
           end
         end
         refresh()
@@ -763,9 +812,9 @@ end
 
 local function cycle_lane_view(row)
   local order = { triggers = "velocity", velocity = "probability", probability = "triggers" }
-  lane_meta[row].view = order[lane_meta[row].view] or "triggers"
+  lane_view[row] = order[lane_view[row] or "triggers"] or "triggers"
   if view and view.view_buttons and view.view_buttons[row] then
-    view.view_buttons[row].text = ({triggers="T",velocity="V",probability="P"})[lane_meta[row].view] or "T"
+    view.view_buttons[row].text = ({triggers="T",velocity="V",probability="P"})[lane_view[row]] or "T"
   end
   refresh()
 end
@@ -773,20 +822,24 @@ end
 -- ---------- dialog construction ----------
 
 local function lane_strip_left(row)
-  local m = lane_meta[row]
-  local view_btn = vb:button{ text = ({triggers="T",velocity="V",probability="P"})[m.view] or "T",
-    width=22, notifier = function() cycle_lane_view(row) end }
-  local mute_btn = vb:button{ text="M", width=22,
-    color = m.muted and {0xd8,0x50,0x60} or nil,
+  local name      = read_lane_name(row)
+  local is_muted  = read_lane_muted(row)
+  local view_btn = vb:button{
+    text = ({triggers="T",velocity="V",probability="P"})[lane_view[row] or "triggers"] or "T",
+    width = 22,
+    notifier = function() cycle_lane_view(row) end
+  }
+  local mute_btn = vb:button{
+    text = "M", width = 22,
+    color = is_muted and {0xd8,0x50,0x60} or nil,
     notifier = function()
-      lane_meta[row].muted = not lane_meta[row].muted
+      set_lane_muted(row, not read_lane_muted(row))
       refresh()
-    end }
+    end
+  }
   return {
     column = vb:column{
       width = 160,
-      style = "panel",
-      height = LANE_H,
       vb:row{
         mute_btn,
         vb:button{ text="S", width=22 },
@@ -794,12 +847,7 @@ local function lane_strip_left(row)
         view_btn,
         vb:text{ text=string.format(" %02d", row), font="bold", style="strong" },
       },
-      vb:text{ text = m.name, style = (m.name=="— empty —") and "disabled" or "normal" },
-      vb:row{
-        vb:text{ text=string.format("inst %02d", row), style="disabled" },
-        vb:text{ text="  ", width=4 },
-        vb:text{ text=string.format("trk %02d", row), style="disabled" },
-      },
+      vb:text{ text = name, style = (name == "—") and "disabled" or "normal" },
     },
     view_btn = view_btn,
   }
@@ -808,21 +856,15 @@ end
 local function lane_strip_right(_row)
   return vb:column{
     width = 180,
-    style = "panel",
-    height = LANE_H,
     vb:row{
       vb:text{ text="pitch", style="disabled" },
       vb:text{ text="  vol", style="disabled" },
       vb:text{ text="  loop", style="disabled" },
     },
     vb:row{
-      vb:rotary{ min=-64, max=64, value=0, width=24, height=24 },
-      vb:rotary{ min=-1, max=1, value=0, width=24, height=24 },
+      vb:rotary{ min=-64, max=64, value=0, width=22, height=22 },
+      vb:rotary{ min=-1, max=1, value=0, width=22, height=22 },
       vb:switch{ items={"○","→","←","↔"}, width=80, value=2 },
-    },
-    vb:row{
-      vb:text{ text="delay 0ms", style="disabled" },
-      vb:button{ text="⚙", width=22 },
     },
   }
 end
@@ -907,11 +949,11 @@ local function build_view()
       else renoise.app():show_status("loadSequentialRandomLoadAll not available") end
     end },
     vb:text{ text=" |", style="disabled" },
-    vb:button{ text="reset model", notifier = function()
-      reset_model(); selection = nil; update_selection_label()
+    vb:button{ text="refresh", notifier = function()
+      ensure_local_state(); selection = nil; update_selection_label()
       for r = 1, NUM_LANES do
         if view_buttons[r] then
-          view_buttons[r].text = ({triggers="T",velocity="V",probability="P"})[lane_meta[r].view] or "T"
+          view_buttons[r].text = ({triggers="T",velocity="V",probability="P"})[lane_view[r] or "triggers"] or "T"
         end
       end
       refresh()
@@ -956,11 +998,40 @@ function PakettiGroovebox8ch960sampShow()
     dialog = nil
     return
   end
-  reset_model()
+  -- 8ch960samp is a view of 8120's state. Open 8120 first so rows[] is
+  -- populated; otherwise the canvas will render empty cells with no way
+  -- for clicks to land anywhere meaningful.
+  if pakettiEightSlotsByOneTwentyDialog then
+    local ok, _ = pcall(function()
+      if not (rows_table() and rows_table()[1]) then
+        pakettiEightSlotsByOneTwentyDialog()
+      end
+    end)
+    if not ok then
+      renoise.app():show_status("Groovebox 8ch960samp: could not open 8120 backend; canvas will be read-only")
+    end
+  end
+  ensure_local_state()
   selection = nil
   local content = build_view()
   update_selection_label()
-  dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8ch960samp (MK2 prototype)", content)
+  dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8ch960samp (MK2 prototype — view of 8120)", content)
+  -- Idle redraw so changes from 8120 (mouse clicks on its own checkboxes,
+  -- pattern fetch, randomize, MidiMix, etc.) reflect here without us having
+  -- to instrument every notifier site.
+  if step_canvas and renoise.tool().app_idle_observable then
+    local idle_fn
+    idle_fn = function()
+      if not (dialog and dialog.visible) then
+        if renoise.tool().app_idle_observable:has_notifier(idle_fn) then
+          renoise.tool().app_idle_observable:remove_notifier(idle_fn)
+        end
+        return
+      end
+      step_canvas:update()
+    end
+    renoise.tool().app_idle_observable:add_notifier(idle_fn)
+  end
 end
 
 PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Groovebox:Groovebox 8ch960samp (MK2 prototype)…",

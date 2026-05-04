@@ -22,6 +22,20 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Fix: Groovebox 8ch960samp (MK2) is no longer imaginary
+
+The MK2 prototype was rendering seeded fake data (`kick-808.wav`, `snare-clap.wav`, etc.) and a hardcoded "lane 5 muted" — none of which reflected the user's actual song or 8120 state. Lane heights also didn't align with the side-strip text rows because `style="panel"` added chrome padding the canvas didn't account for, so the canvas extended below the side strips.
+
+Changes:
+- **Trigger state is now read-through to 8120's `rows[]`** (the existing per-row checkbox state). Click a cell and 8120's own `print_to_pattern` notifier fires — same path as if you'd clicked the checkbox in 8120's dialog. All verbs (nudge / invert / reverse / fill / clear / density / euclid / curve) operate on the real pattern.
+- **Lane names read from `renoise.song().instruments[r].name`** so you see the actual instrument names you've loaded, not the hardcoded demo strings.
+- **Mute state read from 8120's `mute_checkbox`** (or track mute state as a fallback). Clicking M in the prototype toggles the real lane.
+- **Side strip `style="panel"` removed** and lane height tightened (90 → 56 px) so the cells align with the side text rows pixel-for-pixel rather than overflowing.
+- **Auto-opens the 8120 dialog** if it isn't already open, so `rows[]` is populated before the canvas tries to read it.
+- **Idle-driven repaint** so changes made in 8120 (mouse clicks on its checkboxes, randomize, fetch, MidiMix bridge inputs) reflect in 8ch960samp's canvas without polling every notifier site.
+- Velocity / probability / roll-count remain local-only (8120 has no equivalent fields) — these are MK2-specific overlays the user paints on top of the read-through state.
+- "reset model" button renamed "refresh" since it no longer seeds anything; it just nudges the canvas to redraw.
+
 ### 2026-05-04 - Feature: Groovebox 8ch960samp (MK2) — Sequential Load buttons added
 
 The MK2 prototype now exposes the same `Load…`, `RandomLoad…`, and `RandomLoadAll…` buttons as 8120 in its verb palette. They call the existing 8120 load functions (`loadSequentialSamplesWithFolderPrompts`, `loadSequentialDrumkitSamples`, `loadSequentialRandomLoadAll`) which populate the actual song instruments — independent of the prototype's local model — so the same workflow works in both dialogs without bouncing between them.
