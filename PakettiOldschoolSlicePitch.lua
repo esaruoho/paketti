@@ -1530,6 +1530,205 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
 end
 
 
+-- Slices to Phrases Per Starting Slice
+-- Creates N phrases (one per slice), each starting from that slice through to the end.
+-- Phrase 1 = full break, Phrase 2 = from slice 2 onward, etc.
+-- All timing is recalculated relative to each phrase's starting slice.
+function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
+  use_detected_bpm = use_detected_bpm or false
+
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No instrument or no samples found.")
+    return
+  end
+
+  local sample = instrument.samples[1]
+  if not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("First sample has no sample data.")
+    return
+  end
+
+  local buffer = sample.sample_buffer
+  local sample_frames = buffer.number_of_frames
+  local sample_rate = buffer.sample_rate
+
+  -- Gather slice markers
+  local slice_markers = {}
+  if sample.slice_markers then
+    for _, marker in ipairs(sample.slice_markers) do
+      table.insert(slice_markers, marker)
+    end
+  end
+
+  if #slice_markers == 0 then
+    renoise.app():show_status("No slice markers found — slice the sample first.")
+    return
+  end
+
+  -- Add final marker at end of sample if not present
+  if slice_markers[#slice_markers] ~= sample_frames then
+    table.insert(slice_markers, sample_frames)
+  end
+
+  local slice_count = #slice_markers - 1 -- exclude the end-of-sample sentinel
+
+  if slice_count > 126 then
+    renoise.app():show_status("Too many slices (" .. slice_count .. "). Maximum 126 phrases allowed.")
+    return
+  end
+
+  -- Duplicate the instrument so we don't destroy the original
+  local new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
+  if not new_instrument then return end
+  new_instrument:copy_from(instrument)
+  new_instrument.name = instrument.name .. " (Phrases Per Slice)"
+
+  -- Determine frames_per_line (beat-sync preferred, then BPM/LPB)
+  local bpm = song.transport.bpm
+  local lpb = song.transport.lpb
+  local frames_per_line
+  local phrase_length -- in pattern lines
+
+  if sample.beat_sync_enabled and sample.beat_sync_lines > 0 then
+    frames_per_line = sample_frames / sample.beat_sync_lines
+    phrase_length = sample.beat_sync_lines
+    print("SlicesToPhrasesPerSlice: Using beat sync — " .. sample.beat_sync_lines .. " lines, " .. frames_per_line .. " frames/line")
+  else
+    if use_detected_bpm then
+      local detected_bpm = pakettiBPMDetectFromTransients(buffer, slice_count)
+      if detected_bpm then
+        bpm = detected_bpm
+        renoise.app():show_status(string.format("Phrases using detected BPM: %.2f", detected_bpm))
+      end
+    end
+    local frames_per_second = sample_rate
+    local beats_per_second = bpm / 60
+    local lines_per_second = beats_per_second * lpb
+    frames_per_line = frames_per_second / lines_per_second
+    phrase_length = math.ceil(sample_frames / frames_per_line)
+    print(string.format("SlicesToPhrasesPerSlice: Using BPM/LPB — BPM=%.2f LPB=%d → %d lines, %.2f frames/line", bpm, lpb, phrase_length, frames_per_line))
+  end
+
+  -- Clamp phrase length to valid range
+  if phrase_length < 1 then phrase_length = 1 end
+  if phrase_length > 512 then phrase_length = 512 end
+
+  -- Calculate absolute position (in fractional lines) for every slice
+  local abs_positions = {} -- {pos = fractional_line, note = slice_note_value}
+  -- Get the slice base note from sample mappings
+  local slice_base_note = 60
+  local sample_mappings = new_instrument.sample_mappings[1]
+  if sample_mappings and #sample_mappings >= 2 then
+    local first_slice_mapping = sample_mappings[2]
+    if first_slice_mapping and first_slice_mapping.base_note then
+      slice_base_note = first_slice_mapping.base_note
+    end
+  end
+
+  for i = 1, slice_count do
+    local marker_frame = slice_markers[i]
+    local line_float = marker_frame / frames_per_line
+    local slice_note = slice_base_note + (i - 1)
+    if slice_note > 119 then slice_note = 119 end
+    abs_positions[i] = {pos = line_float, note = slice_note}
+  end
+
+  -- Remove any existing phrases from the new instrument
+  while #new_instrument.phrases > 0 do
+    new_instrument:delete_phrase_at(#new_instrument.phrases)
+  end
+
+  -- Create one phrase per starting slice
+  for start_idx = 1, slice_count do
+    local phrase = new_instrument:insert_phrase_at(start_idx)
+    phrase.name = "From Slice " .. start_idx
+    phrase.number_of_lines = phrase_length
+    phrase.looping = true
+    phrase.loop_start = 1
+    phrase.loop_end = phrase_length
+    phrase.delay_column_visible = true
+    phrase.instrument_column_visible = true
+    phrase.volume_column_visible = false
+    phrase.panning_column_visible = false
+    phrase.key_tracking = renoise.InstrumentPhrase.KEY_TRACKING_NONE
+    phrase.base_note = 48 -- C-4
+    phrase.lpb = lpb
+
+    local offset = abs_positions[start_idx].pos
+
+    for slice_idx = start_idx, slice_count do
+      local rel_pos = abs_positions[slice_idx].pos - offset
+      local target_line
+      local delay_value
+
+      if slice_idx == start_idx then
+        -- First note in this phrase: force line 1, delay 0
+        target_line = 1
+        delay_value = 0
+      else
+        local line_int = math.floor(rel_pos)
+        local frac = rel_pos - line_int
+        target_line = line_int + 1 -- 1-based
+        delay_value = math.floor(frac * 256)
+        if delay_value > 255 then delay_value = 255 end
+      end
+
+      -- Skip notes that fall outside the phrase
+      if target_line >= 1 and target_line <= phrase_length then
+        -- Find an available note column (handle two slices landing on same line)
+        local line = phrase:line(target_line)
+        local column = 1
+        while column <= 12 do
+          local nc = line.note_columns[column]
+          if nc.is_empty then
+            break
+          end
+          column = column + 1
+        end
+
+        if column <= 12 then
+          -- Expand visible columns if needed
+          if phrase.visible_note_columns < column then
+            phrase.visible_note_columns = column
+          end
+
+          local nc = line.note_columns[column]
+          nc.note_value = abs_positions[slice_idx].note
+          nc.instrument_value = 0
+          nc.delay_value = delay_value
+        end
+      end
+    end
+  end
+
+  -- Create phrase mappings: one note per phrase, starting from C-0 (note 0)
+  -- Set playback mode to keymap
+  new_instrument.phrase_playback_mode = renoise.Instrument.PHRASES_PLAY_KEYMAP
+
+  -- Map each phrase to a single consecutive note
+  for i = 1, slice_count do
+    local mapping_note = i - 1 -- 0-based: C-0, C#0, D-0, ...
+    if mapping_note > 119 then break end
+
+    if new_instrument:can_insert_phrase_mapping_at(i) then
+      local mapping = new_instrument:insert_phrase_mapping_at(i, new_instrument:phrase(i))
+      mapping.note_range = {mapping_note, mapping_note}
+      mapping.base_note = 48
+      mapping.key_tracking = renoise.InstrumentPhraseMapping.KEY_TRACKING_NONE
+      mapping.looping = true
+      mapping.loop_start = 1
+      mapping.loop_end = phrase_length
+    end
+  end
+
+  -- Select the new instrument
+  song.selected_instrument_index = song.selected_instrument_index + 1
+
+  renoise.app():show_status(string.format("Created %d phrases (one per starting slice) in new instrument '%s'", slice_count, new_instrument.name))
+end
 
 
 
@@ -1739,4 +1938,14 @@ renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (detected BPM
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (detected BPM, from current row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(false, true) end end}
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrase (detected BPM, with trigger)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(true, true) end end}
 renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrase (detected BPM, phrase only)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(false, true) end end}
-renoise.tool():add_midi_mapping {name = "Paketti:Detect Sample BPM", invoke = function(message) if message:is_trigger() then pakettiIntelligentBPMDetection() end end} 
+renoise.tool():add_midi_mapping {name = "Paketti:Detect Sample BPM", invoke = function(message) if message:is_trigger() then pakettiIntelligentBPMDetection() end end}
+
+-- Slices to Phrases Per Starting Slice — keybindings
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Phrases Per Starting Slice", invoke = function() pakettiSlicesToPhrasesPerSlice() end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Phrases Per Starting Slice", invoke = function() pakettiSlicesToPhrasesPerSlice() end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Phrases Per Starting Slice (detected BPM)", invoke = function() pakettiSlicesToPhrasesPerSlice(true) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Phrases Per Starting Slice (detected BPM)", invoke = function() pakettiSlicesToPhrasesPerSlice(true) end}
+
+-- Slices to Phrases Per Starting Slice — MIDI mappings
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrases Per Starting Slice", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrasesPerSlice() end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrases Per Starting Slice (detected BPM)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrasesPerSlice(true) end end} 

@@ -22,6 +22,19 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Feature: Slices to Phrases Per Starting Slice
+
+New feature that creates N phrases from a sliced break — one phrase per starting slice. Phrase 1 plays from slice 1 through the entire break. Phrase 2 starts from slice 2 onward, etc. All note timing is recalculated relative to each phrase's starting slice (first note forced to line 1 delay 0, subsequent notes repositioned with sub-line delay precision). The result is a new duplicated instrument with phrase playback set to Keymap mode, each phrase mapped to a consecutive note starting from C-0.
+
+Supports both beat-sync timing (when the sample has beat sync enabled) and BPM/LPB-based frame-accurate timing. Optional detected-BPM variants use transient analysis for orphaned breaks without known tempo.
+
+- Keybinding: `Pattern Editor:Paketti:Slices to Phrases Per Starting Slice`
+- Keybinding: `Sample Editor:Paketti:Slices to Phrases Per Starting Slice`
+- Keybinding: `Pattern Editor:Paketti:Slices to Phrases Per Starting Slice (detected BPM)`
+- Keybinding: `Sample Editor:Paketti:Slices to Phrases Per Starting Slice (detected BPM)`
+- MIDI Mapping: `Paketti:Slices to Phrases Per Starting Slice`
+- MIDI Mapping: `Paketti:Slices to Phrases Per Starting Slice (detected BPM)`
+
 ### 2026-05-04 - Feature: Canvas View — per-cell velocity + parity batch 1
 
 Per-cell velocity is now a real 8120 feature, not a canvas-only illusion. Both views read/write the same `row_elements.velocities[step]` table; `print_to_pattern` writes the explicit `volume_value` into the pattern's note column. `nil` (default) leaves the volume column empty so Renoise plays the note at full velocity, identical to pre-refactor behaviour.
