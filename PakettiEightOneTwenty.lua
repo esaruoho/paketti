@@ -2852,7 +2852,18 @@ local randomize_all_yxx_button = vb:button{
       random_gate_button,
       vb:button{text="Fetch", midi_mapping="Paketti:Paketti Groovebox 8120:Fetch Pattern", notifier = fetch_pattern},
       fill_empty_label,
-      fill_empty_slider}}
+      fill_empty_slider,
+      vb:text{text=" | ", font = "bold", style = "strong"},
+      vb:button{
+        text = "Switch to MK2 (Canvas)",
+        width = 160,
+        tooltip = "Open the canvas-rendered MK2 view of the same state. Both windows stay open and edit shared data; close the one you don't want via its X button.",
+        notifier = function()
+          if PakettiEightOneTwentyCanvasViewShow then
+            PakettiEightOneTwentyCanvasViewShow()
+          end
+        end
+      }}}
 
   -- Function to check if groovebox tracks exist
   function PakettiGrooveboxCheckTracksExist()
@@ -7180,9 +7191,11 @@ local function cv_build_view()
     vb:text{ text="  groove", style="strong" },
     vb:checkbox{ value=song_t().groove_enabled and true or false, notifier=function(v) song_t().groove_enabled=v end },
     vb:text{ text="  |", style="disabled" },
-    vb:button{ text="Show Classic 8120…", width=140, notifier=function()
-      if not (dialog and dialog.visible) then pakettiEightSlotsByOneTwentyDialog() end
-    end },
+    vb:button{ text="Switch to MK1 (Classic)", width=170,
+      tooltip = "Open the classic 8120 dialog with all controls. Both windows stay open and share state; close whichever you don't need via its X button.",
+      notifier = function()
+        if not (dialog and dialog.visible) then pakettiEightSlotsByOneTwentyDialog() end
+      end },
   }
 
   local verb_palette_1 = vb:row{
