@@ -22,6 +22,15 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Prototype: Groovebox 8ch960samp (MK2) — Canvas Dialog
+
+Working render-only Lua prototype of the rethought 8120 dialog. Single canvas paints all 8 lanes (4-white/4-black quadrant backgrounds, contrast-inverted triggers, velocity-as-bar-height, playhead as 2px amber border, selection as purple wash + border). Click toggles a cell, click+drag selects a range or rectangle, verb palette acts on the active selection. Working verbs: nudge ←/→ (rotate within selection), invert, reverse, fill, clear. Stub verbs (status-line only): density±, humanize, roll, copy/paste, euclid…, curve…. Step count toggles 16↔32 live. **No song integration yet** — this is a visual scratchpad to refine layout before wiring to the EightOneTwenty data model.
+
+- New file: `PakettiGroovebox8ch960samp.lua`
+- Menu entries: `Main Menu:Tools:Paketti:Groovebox:Groovebox 8ch960samp (MK2 prototype)…` and `Pattern Editor:Paketti:Groovebox 8ch960samp (MK2 prototype)…`
+- Keybinding: `Global:Paketti:Show Groovebox 8ch960samp (MK2 prototype)`
+- Loaded after `PakettiEightOneTwenty` in `main.lua`
+
 ### 2026-05-04 - Design: Groovebox 8ch960samp (MK2) — Canvas Mockup
 
 First sketch of the Groovebox 8120 successor. Canvas-rendered grid with 4-white/4-black quadrant backgrounds (and 8-quadrant 32-step variant), selection-as-primary-gesture (single-row range, alt+click quadrant, shift+drag rectangle across rows), verb palette acting on the active selection (nudge ←/→/↑/↓, invert, reverse, density±, humanize, roll, copy/paste/stamp, euclid, apply curve, probability), per-cell velocity rendered as bar height, playhead drawn as a 2px border so quadrant identity survives playback, per-lane settings collapsed into a right-side ribbon. Mockup files: `manual/Screenshots/groovebox_8ch960samp_mockup.svg` (source) and `groovebox_8ch960samp_mockup.png` (2560-wide render). No code changes — design exploration only.
