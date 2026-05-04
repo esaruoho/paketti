@@ -7416,6 +7416,94 @@ local function cv_show_row_details(row)
         end },
       }
     end)(),
+    -- Beatsync — read/write the active sample's beat_sync_enabled and lines.
+    -- Mirrors 8120's beatsync_checkboxes[row] which uses the same sample.
+    (function()
+      local function active_sample()
+        local inst_idx = (re.instrument_popup and re.instrument_popup.value) or row
+        local inst = renoise.song().instruments[inst_idx]
+        if not inst or not inst.samples or #inst.samples == 0 then return nil end
+        for _, smp in ipairs(inst.samples) do
+          local vr = smp.sample_mapping and smp.sample_mapping.velocity_range
+          if vr and vr[1] == 0x00 and vr[2] == 0x7F then return smp end
+        end
+        return inst.samples[1]
+      end
+      local smp = active_sample()
+      local enabled = smp and smp.beat_sync_enabled or false
+      local lines = smp and smp.beat_sync_lines or 16
+      local lines_box = vb_local:valuebox{
+        min = 1, max = 512, value = lines, width = 60,
+        notifier = function(v)
+          local s = active_sample(); if s then s.beat_sync_lines = math.floor(v) end
+        end
+      }
+      return vb_local:row{
+        style = "panel",
+        vb_local:text{ text = "Beatsync:", font="bold", style="strong" },
+        vb_local:checkbox{ value = enabled, notifier = function(v)
+          local s = active_sample(); if s then s.beat_sync_enabled = v end
+        end },
+        vb_local:text{ text = "lines:", style="strong" },
+        lines_box,
+      }
+    end)(),
+    -- Loop mode + loop range — read/write the active sample's loop_mode and
+    -- loop_start/loop_end. Same logic as 8120's per-row loop switches.
+    (function()
+      local function active_sample()
+        local inst_idx = (re.instrument_popup and re.instrument_popup.value) or row
+        local inst = renoise.song().instruments[inst_idx]
+        if not inst or not inst.samples or #inst.samples == 0 then return nil end
+        for _, smp in ipairs(inst.samples) do
+          local vr = smp.sample_mapping and smp.sample_mapping.velocity_range
+          if vr and vr[1] == 0x00 and vr[2] == 0x7F then return smp end
+        end
+        return inst.samples[1]
+      end
+      local smp = active_sample()
+      local mode_value = 1
+      if smp then
+        if     smp.loop_mode == renoise.Sample.LOOP_MODE_OFF       then mode_value = 1
+        elseif smp.loop_mode == renoise.Sample.LOOP_MODE_FORWARD   then mode_value = 2
+        elseif smp.loop_mode == renoise.Sample.LOOP_MODE_REVERSE   then mode_value = 3
+        elseif smp.loop_mode == renoise.Sample.LOOP_MODE_PING_PONG then mode_value = 4
+        end
+      end
+      local mode_switch = vb_local:switch{
+        items = {"Off","→","←","↔"}, width = 140, value = mode_value,
+        notifier = function(v)
+          local s = active_sample(); if not s then return end
+          if     v == 1 then s.loop_mode = renoise.Sample.LOOP_MODE_OFF
+          elseif v == 2 then s.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+          elseif v == 3 then s.loop_mode = renoise.Sample.LOOP_MODE_REVERSE
+          elseif v == 4 then s.loop_mode = renoise.Sample.LOOP_MODE_PING_PONG
+          end
+        end
+      }
+      local range_switch = vb_local:switch{
+        items = {"[--]","[- ]","[ -]"}, width = 100, value = 1,
+        notifier = function(v)
+          local s = active_sample(); if not s then return end
+          local buf = s.sample_buffer
+          if not (buf and buf.has_sample_data) then return end
+          local n = buf.number_of_frames or 0
+          if n <= 1 then return end
+          local half = math.floor(n / 2)
+          if     v == 1 then s.loop_start = 1;    s.loop_end = n
+          elseif v == 2 then s.loop_start = 1;    s.loop_end = half
+          elseif v == 3 then s.loop_start = half; s.loop_end = n
+          end
+        end
+      }
+      return vb_local:row{
+        style = "panel",
+        vb_local:text{ text = "Loop:", font="bold", style="strong" },
+        mode_switch,
+        vb_local:text{ text = "range:", style="strong" },
+        range_switch,
+      }
+    end)(),
     -- Yxx amount — fresh widgets read/write re.yxx_valuebox.value.
     (function()
       local current = (re.yxx_valuebox and re.yxx_valuebox.value) or 0
