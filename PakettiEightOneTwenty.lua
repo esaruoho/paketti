@@ -6752,21 +6752,36 @@ local cv_selection = nil
 local cv_drag = nil
 local cv_mouse_down_pos = nil
 local cv_mouse_did_drag = false
+-- Yxx mode: when true, all read/write hits the yxx_checkboxes layer instead
+-- of the note-trigger checkboxes. Lets the canvas edit Yxx effect commands
+-- using the same selection model and verbs.
+local cv_yxx_mode = false
+
+local function cv_active_checkboxes(r)
+  if not (rows and rows[r]) then return nil end
+  if cv_yxx_mode then return rows[r].yxx_checkboxes end
+  return rows[r].checkboxes
+end
 
 local function cv_read_trigger(r, s)
-  if rows and rows[r] and rows[r].checkboxes and rows[r].checkboxes[s] then
-    return rows[r].checkboxes[s].value and true or false
-  end
+  local cbs = cv_active_checkboxes(r)
+  if cbs and cbs[s] then return cbs[s].value and true or false end
   return false
 end
 
 local function cv_write_trigger(r, s, v)
-  if rows and rows[r] and rows[r].checkboxes and rows[r].checkboxes[s] then
-    rows[r].checkboxes[s].value = v and true or false
-  end
+  local cbs = cv_active_checkboxes(r)
+  if cbs and cbs[s] then cbs[s].value = v and true or false end
 end
 
+-- Sample name (the loaded sample inside the active instrument), not the
+-- instrument name. 8120's row tracks this in row_elements.sample_name_label
+-- and updates it whenever the active sample changes.
 local function cv_read_lane_name(r)
+  if rows and rows[r] and rows[r].sample_name_label and rows[r].sample_name_label.text then
+    local t = rows[r].sample_name_label.text
+    if t and t ~= "" then return t end
+  end
   if rows and rows[r] and rows[r].instrument_popup then
     local idx = rows[r].instrument_popup.value
     local song = renoise.song()
@@ -7117,9 +7132,10 @@ end
 
 local function cv_lane_strip_right(row)
   local re = rows and rows[row]
+  -- Sample slider — read-through to 8120's rows[row].slider.
   local slider_initial = (re and re.slider) and (re.slider.value or 1) or 1
   local sample_slider = vb:slider{
-    min = 1, max = 120, value = slider_initial, width = 150,
+    min = 1, max = 120, value = slider_initial, width = 110,
     notifier = function(value)
       value = math.floor(value)
       if rows and rows[row] and rows[row].slider then
@@ -7139,9 +7155,36 @@ local function cv_lane_strip_right(row)
       end
     end
   }
+  -- Pitch rotary — read-through to rows[row].transpose_rotary so it fires
+  -- 8120's existing notifier (which writes instrument.transpose, restores
+  -- automation, etc.).
+  local pitch_initial = (re and re.transpose_rotary) and re.transpose_rotary.value or 0
+  local pitch_rotary = vb:rotary{
+    min = -64, max = 64, value = pitch_initial, width = 22, height = 22,
+    tooltip = "Pitch (instrument transpose, semitones)",
+    notifier = function(value)
+      if rows and rows[row] and rows[row].transpose_rotary then
+        rows[row].transpose_rotary.value = value
+      end
+    end
+  }
+  -- Volume rotary — same pattern. 8120's volume_rotary uses range -1..+1
+  -- mapped to instrument volume 0..2 internally.
+  local vol_initial = (re and re.volume_rotary) and re.volume_rotary.value or 0
+  local vol_rotary = vb:rotary{
+    min = -1, max = 1, value = vol_initial, width = 22, height = 22,
+    tooltip = "Volume",
+    notifier = function(value)
+      if rows and rows[row] and rows[row].volume_rotary then
+        rows[row].volume_rotary.value = value
+      end
+    end
+  }
   return vb:row{
     height = CV_LANE_H,
-    vb:text{ text=" smp ", style="disabled", width=30 },
+    pitch_rotary,
+    vol_rotary,
+    vb:text{ text=" smp ", style="disabled", width=28 },
     sample_slider,
   }
 end
@@ -7198,8 +7241,24 @@ local function cv_build_view()
       end },
   }
 
+  -- Trig/Yxx mode toggle. Switching mode swaps which checkbox layer the
+  -- canvas reads/writes (note triggers vs Yxx effect commands). Selection
+  -- and verbs work the same way in both modes.
+  local mode_btn = vb:button{
+    text = cv_yxx_mode and "Mode: Yxx" or "Mode: Trig",
+    width = 96,
+    tooltip = "Toggle between editing the note-trigger row and the Yxx effect-command row.",
+  }
+  mode_btn.notifier = function()
+    cv_yxx_mode = not cv_yxx_mode
+    mode_btn.text = cv_yxx_mode and "Mode: Yxx" or "Mode: Trig"
+    cv_refresh()
+  end
+
   local verb_palette_1 = vb:row{
     style = "panel",
+    mode_btn,
+    vb:text{ text=" |", style="disabled" },
     vb:text{ text="step:", style="strong" },
     vb:button{ text="←", width=30, notifier=function() cv_nudge(-1) end },
     vb:button{ text="→", width=30, notifier=function() cv_nudge( 1) end },
@@ -7214,8 +7273,33 @@ local function cv_build_view()
     vb:text{ text=" |", style="disabled" },
     vb:button{ text="copy",     width=50, notifier=cv_verb_copy },
     vb:button{ text="paste",    width=50, notifier=cv_verb_paste },
-    vb:button{ text="euclid…",  width=72, notifier=cv_show_euclid_dialog },
+    vb:button{ text="euclid…",  width=88, notifier=cv_show_euclid_dialog },
   }
+
+  -- Live mini-sliders for transport.groove_amounts so "Random Groove" isn't
+  -- a black box — user can also see and tweak the four values.
+  local function song_t() return renoise.song().transport end
+  local groove_widgets = {}
+  local groove_value_labels = {}
+  for i = 1, 4 do
+    local g = (song_t().groove_amounts or {0,0,0,0})[i] or 0
+    groove_value_labels[i] = vb:text{
+      text = string.format("%2d%%", math.floor(g * 100 + 0.5)),
+      style = "strong", width = 32
+    }
+    groove_widgets[i] = vb:slider{
+      min = 0, max = 1, value = g, width = 56,
+      notifier = function(value)
+        local arr = {}
+        for j = 1, 4 do
+          arr[j] = (j == i) and value or ((song_t().groove_amounts or {0,0,0,0})[j] or 0)
+        end
+        song_t().groove_amounts = arr
+        song_t().groove_enabled = true
+        groove_value_labels[i].text = string.format("%2d%%", math.floor(value * 100 + 0.5))
+      end
+    }
+  end
 
   local verb_palette_2 = vb:row{
     style = "panel",
@@ -7226,11 +7310,28 @@ local function cv_build_view()
     vb:button{ text="Reverse All",   width=90,  notifier=cv_verb_reverse_all },
     vb:button{ text="Random All",    width=90,  notifier=cv_verb_random_all },
     vb:button{ text="Randomize All", width=110, notifier=cv_verb_randomize_all },
-    vb:button{ text="Random Groove", width=110, notifier=cv_verb_randomize_groove },
     vb:text{ text=" |", style="disabled" },
-    vb:button{ text="Load…",          width=70,  notifier=function() loadSequentialSamplesWithFolderPrompts() end },
-    vb:button{ text="RandomLoad…",    width=110, notifier=function() loadSequentialDrumkitSamples() end },
-    vb:button{ text="RandomLoadAll…", width=130, notifier=function() loadSequentialRandomLoadAll() end },
+    vb:button{ text="Random Groove", width=110, notifier=function()
+      cv_verb_randomize_groove()
+      -- After randomizing, push the new transport values back into the mini-sliders.
+      local arr = song_t().groove_amounts or {0,0,0,0}
+      for i = 1, 4 do
+        groove_widgets[i].value = arr[i] or 0
+        groove_value_labels[i].text = string.format("%2d%%", math.floor((arr[i] or 0) * 100 + 0.5))
+      end
+    end },
+    groove_widgets[1], groove_value_labels[1],
+    groove_widgets[2], groove_value_labels[2],
+    groove_widgets[3], groove_value_labels[3],
+    groove_widgets[4], groove_value_labels[4],
+  }
+
+  local verb_palette_3 = vb:row{
+    style = "panel",
+    vb:text{ text="load:", style="strong" },
+    vb:button{ text="Sequential Load",          width=130, notifier=function() loadSequentialSamplesWithFolderPrompts() end },
+    vb:button{ text="Sequential RandomLoad",    width=170, notifier=function() loadSequentialDrumkitSamples() end },
+    vb:button{ text="Sequential RandomLoadAll", width=190, notifier=function() loadSequentialRandomLoadAll() end },
   }
 
   local body = vb:row{
@@ -7252,6 +7353,7 @@ local function cv_build_view()
     transport_bar,
     verb_palette_1,
     verb_palette_2,
+    verb_palette_3,
     body,
     status,
   }
