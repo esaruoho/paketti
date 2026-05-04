@@ -138,10 +138,14 @@ local playhead_lane, playhead_step = 3, 7
 -- ---------- canvas geometry ----------
 
 local CANVAS_W = 960
-local LANE_H   = 56     -- tightened so cells visually match the side strip's text rows
+-- LANE_H is the natural height of a single vb:row of buttons (M/S/R/T + index +
+-- name on one line) — the side strip is built as exactly that one row, so the
+-- canvas's per-lane band matches the strip pixel-for-pixel without padding
+-- tricks. If you change side strip layout, change LANE_H to match.
+local LANE_H   = 28
 local CANVAS_H = NUM_LANES * LANE_H
-local LANE_INSET_TOP = 4
-local LANE_INNER_H   = LANE_H - 8
+local LANE_INSET_TOP = 2
+local LANE_INNER_H   = LANE_H - 4
 
 local function cell_w() return CANVAS_W / MAX_STEPS end
 
@@ -248,13 +252,6 @@ local function draw_lane(ctx, row)
     end
   end
 
-  -- step number labels in cell corners (top-left)
-  local label_px = (MAX_STEPS == 16) and 2 or 1
-  for s = 1, MAX_STEPS do
-    local color = quadrant_is_dark(s) and C.step_label_d or C.step_label_l
-    draw_number(ctx, s, (s-1)*cw + 3, y0 + 3, label_px, color)
-  end
-
   -- view-mode tint band along the bottom of the lane
   local view_mode = lane_view[row] or "triggers"
   if view_mode == "velocity" then
@@ -307,6 +304,14 @@ local function draw_lane(ctx, row)
   if row == playhead_lane and playhead_step >= 1 and playhead_step <= MAX_STEPS then
     local px = (playhead_step - 1) * cw
     stroke_rect(ctx, px, y0, cw, LANE_INNER_H, C.playhead, 2.5)
+  end
+
+  -- step number labels — drawn LAST so the selection wash, mute overlay,
+  -- triggers etc. can never hide them
+  local label_px = (MAX_STEPS == 16) and 2 or 1
+  for s = 1, MAX_STEPS do
+    local color = quadrant_is_dark(s) and C.step_label_d or C.step_label_l
+    draw_number(ctx, s, (s-1)*cw + 3, y0 + 3, label_px, color)
   end
 
   -- lane divider
@@ -1016,22 +1021,9 @@ function PakettiGroovebox8ch960sampShow()
   local content = build_view()
   update_selection_label()
   dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8ch960samp (MK2 prototype — view of 8120)", content)
-  -- Idle redraw so changes from 8120 (mouse clicks on its own checkboxes,
-  -- pattern fetch, randomize, MidiMix, etc.) reflect here without us having
-  -- to instrument every notifier site.
-  if step_canvas and renoise.tool().app_idle_observable then
-    local idle_fn
-    idle_fn = function()
-      if not (dialog and dialog.visible) then
-        if renoise.tool().app_idle_observable:has_notifier(idle_fn) then
-          renoise.tool().app_idle_observable:remove_notifier(idle_fn)
-        end
-        return
-      end
-      step_canvas:update()
-    end
-    renoise.tool().app_idle_observable:add_notifier(idle_fn)
-  end
+  -- No idle-redraw loop: it caused visible "animation" between user input
+  -- frames and made selection feel laggy. Use the "refresh" verb button to
+  -- pull external 8120 changes when needed.
 end
 
 PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Groovebox:Groovebox 8ch960samp (MK2 prototype)…",
