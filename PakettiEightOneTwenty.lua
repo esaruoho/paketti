@@ -23,6 +23,11 @@ PakettiEightOneTwentyOutputMode = "pattern"
 -- Add this line right after stored_step_counts
 local sequential_load_current_row = 1
 
+-- Forward declarations for the canvas view module at the bottom of this file.
+-- Defined here so file-local helpers above (e.g. the playhead update loop)
+-- can reference them without tripping Renoise's strict-globals __index.
+local cv_dialog, cv_canvas, cv_ui
+
 -- BPM observable tracking
 local bpm_observer = nil
 local instruments_list_observer = nil
@@ -6702,9 +6707,11 @@ end
 
 if PAKETTI_HAS_CANVAS then
 
-local cv_dialog       = nil
-local cv_canvas       = nil
-local cv_ui           = nil  -- holds widget references for live updates
+-- (cv_dialog, cv_canvas, cv_ui are forward-declared at the top of the file
+-- so file-local helpers above can reference them.)
+cv_dialog = nil
+cv_canvas = nil
+cv_ui     = nil  -- holds widget references for live updates
 
 local CV_NUM_LANES    = 8
 local CV_CANVAS_W     = 960
@@ -7738,16 +7745,20 @@ local function cv_build_view()
   -- Trig/Yxx mode toggle. Switching mode swaps which checkbox layer the
   -- canvas reads/writes (note triggers vs Yxx effect commands). Selection
   -- and verbs work the same way in both modes.
-  local mode_btn = vb:button{
+  -- Renoise's vb:button doesn't allow assigning .notifier after construction,
+  -- so the closure captures a forward-declared `mode_btn` that's reassigned
+  -- once the button exists.
+  local mode_btn
+  mode_btn = vb:button{
     text = cv_yxx_mode and "Mode: Yxx" or "Mode: Trig",
     width = 96,
     tooltip = "Toggle between editing the note-trigger row and the Yxx effect-command row.",
+    notifier = function()
+      cv_yxx_mode = not cv_yxx_mode
+      mode_btn.text = cv_yxx_mode and "Mode: Yxx" or "Mode: Trig"
+      cv_refresh()
+    end
   }
-  mode_btn.notifier = function()
-    cv_yxx_mode = not cv_yxx_mode
-    mode_btn.text = cv_yxx_mode and "Mode: Yxx" or "Mode: Trig"
-    cv_refresh()
-  end
 
   local verb_palette_1 = vb:row{
     style = "panel",
