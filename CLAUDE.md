@@ -12,7 +12,9 @@ cd /Users/esaruoho/work/paketti && git fetch origin && git pull origin master
 
 This is non-negotiable. The local working tree can be behind `origin/master` — other sessions, other machines, or the user themselves may have pushed changes. Reading stale local files and then confidently saying "this variable doesn't exist" when it's been on `origin/master` for days is unacceptable.
 
-**Real incident (2026-05-04):** I told the user that `PakettiEightOneTwentyFocusedRow` "has never existed in git history" — four times — because I was reading a stale local checkout. It was on `origin/master` the whole time. The user had to drag me through multiple messages before I finally ran `git fetch`. This wasted time and eroded trust.
+**Real incident (2026-05-04):** I told the user that `PakettiEightOneTwentyFocusedRow` "has never existed in git history" — four times — because I was reading a stale local checkout. It was on `origin/master` the whole time. The user had to drag me through **six messages** saying things like "I think what you're ignoring is that you are not updating the repo," "please look at the remote main or master branch," and "you are simply not checked the branch" — and each time I deflected, theorized about corrupted installs, or doubled down on my wrong answer instead of just running `git fetch`. This wasted time and eroded trust.
+
+**The pattern to break:** When the user says something contradicts my findings, my first action must be `git fetch origin && git pull origin master`, not another explanation of why I think I'm right. The user knows their own codebase better than a stale local checkout does.
 
 ### When working on branches
 
