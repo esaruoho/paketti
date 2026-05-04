@@ -22,6 +22,30 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-04 - Prototype: Groovebox 8ch960samp (MK2) — Full Verb Suite + View Modes
+
+Second pass on the canvas prototype — wired every stub verb, added per-lane view modes, and added the modifier-key selection model.
+
+- **Per-lane view modes** (T / V / P button on each lane strip cycles): triggers (click toggles), velocity (drag inside cell sets velocity, height = value), probability (drag inside cell sets probability, opacity = value).
+- **Modifier-key selection**: alt+click selects the entire quadrant containing the cell, shift+click extends selection to cell (anchor preserved).
+- **Step-grid rendering upgrades**: step number labels in every cell corner (3×5 pixel font, color-tuned per quadrant), trigger blocks now render with probability as alpha, roll-count badge in top-right when > 1, view-mode tint band along the bottom of each lane.
+- **All verbs now functional on the local model**:
+  - `nudge ←/→` rotates within the selection (per row)
+  - `nudge ↑/↓` rotates rows within multi-row selection (move pattern between lanes)
+  - `invert` / `reverse` / `fill` / `clear`
+  - `density+` finds the longest empty stretch in each selected row and inserts a trigger in the middle
+  - `density−` removes the lowest-velocity trigger in each selected row
+  - `humanize` jitters velocities ±15%
+  - `roll −/+` decrements/increments the roll-count per cell (1..8, badge rendered)
+  - `copy` / `paste` use a module-local clipboard (rectangular)
+  - `euclid…` opens a sub-dialog (pulses + offset valueboxes), fills the selection with an Euclidean rhythm
+  - `apply curve…` opens a sub-dialog using `PakettiAutomationCurvesShapes`, samples the chosen curve at each step's normalized position, writes into either velocity or probability
+  - `reset model` re-seeds the demo data
+- **Status bar** documents the input model: click / drag / alt+click / shift+click / T-V-P cycle.
+- Canvas widened from 940 → 960 px to match the "ch960samp" name.
+
+Still no song integration — next pass wires the EightOneTwenty pattern read/write so the prototype edits actual tracks.
+
 ### 2026-05-04 - Prototype: Groovebox 8ch960samp (MK2) — Canvas Dialog
 
 Working render-only Lua prototype of the rethought 8120 dialog. Single canvas paints all 8 lanes (4-white/4-black quadrant backgrounds, contrast-inverted triggers, velocity-as-bar-height, playhead as 2px amber border, selection as purple wash + border). Click toggles a cell, click+drag selects a range or rectangle, verb palette acts on the active selection. Working verbs: nudge ←/→ (rotate within selection), invert, reverse, fill, clear. Stub verbs (status-line only): density±, humanize, roll, copy/paste, euclid…, curve…. Step count toggles 16↔32 live. **No song integration yet** — this is a visual scratchpad to refine layout before wiring to the EightOneTwenty data model.
