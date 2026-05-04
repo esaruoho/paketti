@@ -2,6 +2,30 @@
 
 This file is the **first thing to read** before answering any question or writing any code in this repo. The full development reference is in the `paketti` skill (`~/.claude/skills/paketti/SKILL.md`); this file captures the *hierarchy*, *cross-module wiring*, and *house rules that keep tripping me up*.
 
+## Rule -1 — ALWAYS PULL BEFORE DOING ANYTHING
+
+**Before reading files, grepping, or making any claims about the codebase**, run:
+
+```bash
+cd /Users/esaruoho/work/paketti && git fetch origin && git pull origin master
+```
+
+This is non-negotiable. The local working tree can be behind `origin/master` — other sessions, other machines, or the user themselves may have pushed changes. Reading stale local files and then confidently saying "this variable doesn't exist" when it's been on `origin/master` for days is unacceptable.
+
+**Real incident (2026-05-04):** I told the user that `PakettiEightOneTwentyFocusedRow` "has never existed in git history" — four times — because I was reading a stale local checkout. It was on `origin/master` the whole time. The user had to drag me through multiple messages before I finally ran `git fetch`. This wasted time and eroded trust.
+
+### When working on branches
+
+- Use **git worktrees** (`isolation: "worktree"` in Agent calls) for branch work so that `master` stays clean.
+- If the user says "look at branch X," fetch first, then check it out in a worktree — never switch the main working tree off `master` without asking.
+- If a branch exists on the remote but not locally, `git fetch origin` will make it available.
+
+### Order of operations for every session
+
+1. `git fetch origin && git pull origin master` (sync local master)
+2. THEN grep / read / answer questions
+3. If working on a branch: use a worktree
+
 ## Rule 0 — SEARCH BEFORE THEORIZING
 
 Paketti has **181 Lua files** and 1,180+ commits of accumulated infrastructure. Before claiming "we'd need to build X" or estimating that a feature is "~150 lines," **grep first**:
@@ -139,10 +163,11 @@ These globals are declared in one file and read/mutated by many. Search before a
 
 When the user names a feature or asks "can we…":
 
+0. **Pull first** — `git fetch origin && git pull origin master` — to ensure local state matches remote.
 1. **Grep the codebase** — `grep -rn "<keyword>" --include="*.lua" -l` — to locate any existing implementation.
 2. **Read the owning file** to understand the actual API surface, not theorize about it.
 3. **Estimate scope based on what exists**, not on what would need to be built from scratch.
 4. **Confirm with the user** before writing code if it's a substantial feature.
-5. **Build** — reuse existing infrastructure, don't duplicate engines.
+5. **Build** — reuse existing infrastructure, don't duplicate engines. Use worktrees for branch work.
 6. **Update CHANGESLOG.md** in the same turn.
 7. **Commit + push** in the same turn.
