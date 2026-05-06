@@ -1650,7 +1650,7 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
     phrase.loop_start = 1
     phrase.loop_end = phrase_length
     phrase.delay_column_visible = true
-    phrase.instrument_column_visible = false
+    phrase.instrument_column_visible = true
     phrase.volume_column_visible = false
     phrase.panning_column_visible = false
     phrase.key_tracking = renoise.InstrumentPhrase.KEY_TRACKING_NONE
@@ -1697,6 +1697,7 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
 
           local nc = line.note_columns[column]
           nc.note_value = abs_positions[slice_idx].note
+          nc.instrument_value = slice_idx -- sample 01=slice 1, 02=slice 2, etc.
           nc.delay_value = delay_value
         end
       end

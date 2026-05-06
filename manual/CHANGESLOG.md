@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-06 - Fix: Slices to Phrases Per Starting Slice — use explicit instrument column for slice targeting
+
+Fixed the persistent C-4-on-line-1 bug: without an explicit instrument value, note events were resolved through keyzone lookup where the parent sample (sample 00, full break) covers the entire keyboard and "wins" the conflict, causing the whole sample to play through on every phrase. Now each note explicitly sets `instrument_value` to the correct slice sample index (sample 01 = slice 1, sample 02 = slice 2, etc.), bypassing keyzone ambiguity entirely. The instrument column is now visible in generated phrases.
+
 ### 2026-05-04 - Fix: Slices to Phrases Per Starting Slice — playback and keymapping fixes
 
 Fixed two playback bugs and adjusted keymapping for the Slices to Phrases Per Starting Slice feature:
