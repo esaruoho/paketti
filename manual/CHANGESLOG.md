@@ -22,6 +22,30 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-06 - Feature: Note Release Device Gate — robust MIDI note-on/off → device active toggle
+
+A robust replacement for the brittle "Note Release Device Gate" prototype tool. Plays a MIDI note → the targeted device on the track turns ON; release the note → the device turns OFF. Solves the long-standing gap that Signal Follower can't fill: held-key gating that doesn't depend on an audio signal (so a snare hit can feed into a delay that keeps building until you actually release the key).
+
+Differences from the prototype it replaces:
+
+- **Robust device references** — targets stored as `{track_index, device_index}` and resolved at fire-time, so device insert/delete/swap can't dangle them.
+- **Polyphonic gate** — multiple held notes that target the same device keep it ON until the LAST one releases (per-target hold counter, not a single global flag).
+- **Multiple targets across multiple tracks**, each with its own note-range filter.
+- **Channel filter** (any / 1-16) via preferences.
+- **Latch mode** (note-on toggles, note-off ignored) for free-running effects.
+- **Automation writing dedup** — same value at same `(pattern, line)` is not re-written.
+- **Pattern scanner** is opt-in and runs only when at least one target exists; reads pattern note-ons and OFFs to drive `is_active` while playing back.
+- **Targets persist** across sessions (preferences).
+- **Lifecycle cleanup** on tool unload and song change; optional auto-start on song load.
+
+Menu entries added under `Main Menu:Tools:Paketti:Note Release Gate:` — `Add Selected Device as Target`, `Remove Targets For Current Track`, `Clear All Targets`, `List Targets`, `Start`, `Stop`, `Toggle Start/Stop`, `Toggle Latch Mode`, `Toggle Automation Writing`, `Toggle Pattern Scanner`. Also `DSP Device:Paketti:Note Release Gate Add as Target` and `Mixer:Paketti:Note Release Gate Toggle Start/Stop`.
+
+Keybindings (Global): `Paketti:Note Release Gate Add Selected Device as Target`, `Paketti:Note Release Gate Toggle Start/Stop`, `Paketti:Note Release Gate Start`, `Paketti:Note Release Gate Stop`, `Paketti:Note Release Gate Toggle Latch Mode`, `Paketti:Note Release Gate Toggle Automation Writing`, `Paketti:Note Release Gate Toggle Pattern Scanner`, `Paketti:Note Release Gate Clear All Targets`, `Paketti:Note Release Gate List Targets`.
+
+MIDI mappings: `Paketti:Note Release Gate Toggle Start/Stop`, `Paketti:Note Release Gate Toggle Latch Mode`.
+
+Engine landed first; UI dialog (target list editor with per-row note range / channel / latch toggle / velocity → param mapping) ships as a follow-up.
+
 ### 2026-05-06 - Fix: Slices to Phrases Per Starting Slice — use explicit instrument column for slice targeting
 
 Fixed the persistent C-4-on-line-1 bug: without an explicit instrument value, note events were resolved through keyzone lookup where the parent sample (sample 00, full break) covers the entire keyboard and "wins" the conflict, causing the whole sample to play through on every phrase. Now each note explicitly sets `instrument_value` to the correct slice sample index (sample 01 = slice 1, sample 02 = slice 2, etc.), bypassing keyzone ambiguity entirely. The instrument column is now visible in generated phrases.

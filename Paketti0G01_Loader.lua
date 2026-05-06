@@ -128,6 +128,13 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiRotateSampleBufferCoarse=1000,
   pakettiRotateSampleBufferFine=10,
   pakettiBlendValue = 40,
+  pakettiNoteGateMidiDeviceName = "",
+  pakettiNoteGateChannel = 0, -- 0 = any, 1-16 = specific
+  pakettiNoteGateLatchMode = false,
+  pakettiNoteGateWriteAutomation = true,
+  pakettiNoteGatePatternScanner = true,
+  pakettiNoteGateAutoStart = false,
+  pakettiNoteGateTargets = "", -- serialized "track,device,note_lo,note_hi;..."
   pakettiDialogClose="esc",
   pakettiShowShortcutHints = true,
   pakettiObliqueStrategiesOnStartup = true,
