@@ -136,6 +136,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiNoteGateAutoStart = false,
   pakettiNoteGateTargets = "", -- legacy v1 format (auto-migrated)
   pakettiNoteGateTargetsBySong = "", -- v2: per-song bucketed targets
+  pakettiNoteGateSustainPedalEnabled = false,
   pakettiDialogClose="esc",
   pakettiShowShortcutHints = true,
   pakettiObliqueStrategiesOnStartup = true,

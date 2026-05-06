@@ -46,6 +46,17 @@ MIDI mappings: `Paketti:Note Release Gate Toggle Start/Stop`, `Paketti:Note Rele
 
 Engine landed first; UI dialog (target list editor with per-row note range / channel / latch toggle) ships in the same release.
 
+### 2026-05-06 - Feature: Note Release Gate — attack/release ramps, velocity → on, sustain pedal
+
+Three musical primitives added to make the gate genuinely performable:
+
+- **Per-target attack/release in milliseconds.** Each target now has `attack_ms` and `release_ms` fields (0–5000 ms). On note-on the parameter ramps from its current value to `on_value` over `attack_ms`; on note-off it ramps to `off_value` over `release_ms`. A 16ms timer drives the interpolation. Ramps are linear and only apply to non-`is_active` parameters (the bypass flag stays binary). New ramps cancel any in-flight ramp on the same target. Exposed in the dialog as `atk(ms)` and `rel(ms)` valueboxes per row.
+- **Velocity → on_value.** Per-target checkbox `velocity → on` scales the effective on-value by note velocity: `effective_on = off_value + (velocity / 127) * (on_value - off_value)`. A soft-played note opens the gate less than a hard hit. Off by default; per target.
+- **Sustain pedal (CC 64) as a master gate trigger.** Global toggle `pakettiNoteGateSustainPedalEnabled`. When enabled, pedal-down (CC 64 ≥ 64) opens every target matching the channel filter as if held; pedal-up closes them. Foot-driven all-gates-open performance gesture. Independent of note-driven holds; both can coexist.
+
+New menu entry: `Main Menu:Tools:Paketti:Note Release Gate:Toggle Sustain Pedal (CC 64)`.
+New keybinding: `Global:Paketti:Note Release Gate Toggle Sustain Pedal`.
+
 ### 2026-05-06 - Fix: Note Release Gate — pattern scanner no longer overrides live MIDI holds
 
 The pattern scanner and the live MIDI gate previously fought when a held key and a pattern note OFF on the same track collided: the scanner would force the target off mid-hold, then the MIDI release would set off again. With this fix, a live MIDI hold beats the scanner — held targets are not force-released by pattern OFFs while the key is still down. The scanner regains control as soon as the key releases.

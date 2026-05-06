@@ -42,6 +42,10 @@ local NOTE_GATE = {
   -- target.id -> true if a live MIDI hold is currently keeping it open;
   -- the pattern scanner respects this and won't force-off a MIDI-held target.
   midi_held = {},
+  -- target.id -> {param, start_value, end_value, start_time_ms, duration_ms, is_active_param, device}
+  active_ramps = {},
+  -- channel -> array of target ids currently sustained by the pedal
+  sustain_active = {},
 }
 
 ------------------------------------------------------------------------
@@ -88,6 +92,9 @@ local function make_target(opts)
     channel = opts.channel or 0,
     device_name_snapshot = safe_name(opts.device_name_snapshot or ""),
     parameter_name_snapshot = safe_name(opts.parameter_name_snapshot or ""),
+    attack_ms = opts.attack_ms or 0,
+    release_ms = opts.release_ms or 0,
+    velocity_to_on = opts.velocity_to_on and true or false,
   }
 end
 
@@ -106,6 +113,8 @@ local function serialize_one(t)
     tostring(t.note_lo), tostring(t.note_hi),
     tostring(t.channel),
     t.device_name_snapshot, t.parameter_name_snapshot,
+    tostring(t.attack_ms), tostring(t.release_ms),
+    t.velocity_to_on and "1" or "0",
   }, US)
 end
 
@@ -124,6 +133,9 @@ local function deserialize_one(s)
     note_lo = tonumber(f[10]), note_hi = tonumber(f[11]),
     channel = tonumber(f[12]),
     device_name_snapshot = f[13], parameter_name_snapshot = f[14],
+    attack_ms = tonumber(f[15] or "0") or 0,
+    release_ms = tonumber(f[16] or "0") or 0,
+    velocity_to_on = (f[17] == "1"),
   }
 end
 
@@ -342,23 +354,87 @@ local function write_param_automation(t, container_track_index, param, pattern_i
 end
 
 ------------------------------------------------------------------------
+-- Ramp engine (timer-driven attack/release)
+------------------------------------------------------------------------
+
+local RAMP_TIMER_INTERVAL_MS = 16
+
+local function now_ms()
+  return os.clock() * 1000
+end
+
+local function ramp_tick()
+  if not next(NOTE_GATE.active_ramps) then return end
+  local now = now_ms()
+  local to_remove = {}
+  for id, r in pairs(NOTE_GATE.active_ramps) do
+    local elapsed = now - r.start_time_ms
+    local progress = elapsed / r.duration_ms
+    if progress < 0 then progress = 0 end
+    if progress > 1 then progress = 1 end
+    local v = r.start_value + (r.end_value - r.start_value) * progress
+    if r.is_active_param then
+      -- is_active is a discrete flag; only flip at completion
+      if progress >= 1.0 then r.device.is_active = (r.end_value >= 0.5) end
+    else
+      local p = r.param
+      if p then
+        local cv = v
+        if cv < p.value_min then cv = p.value_min end
+        if cv > p.value_max then cv = p.value_max end
+        p.value = cv
+      end
+    end
+    if progress >= 1.0 then to_remove[#to_remove + 1] = id end
+  end
+  for _, id in ipairs(to_remove) do NOTE_GATE.active_ramps[id] = nil end
+end
+
+local function start_ramp_timer()
+  if not renoise.tool():has_timer(ramp_tick) then
+    renoise.tool():add_timer(ramp_tick, RAMP_TIMER_INTERVAL_MS)
+  end
+end
+
+local function stop_ramp_timer()
+  if renoise.tool():has_timer(ramp_tick) then
+    renoise.tool():remove_timer(ramp_tick)
+  end
+end
+
+local function cancel_ramp_for(id)
+  NOTE_GATE.active_ramps[id] = nil
+end
+
+------------------------------------------------------------------------
 -- Apply value to target
 ------------------------------------------------------------------------
 
-local function set_target_value(t, value, pattern_index, line)
+local function set_target_value(t, value, pattern_index, line, ramp_ms)
   local device, param, container_track_index = resolve_target_full(t)
   if not device or not param then return end
 
-  -- For is_active parameter, also flip device.is_active directly so the
-  -- mixer LED updates and signal gating happens immediately
-  if t.parameter_index == PARAM_IS_ACTIVE then
-    device.is_active = (value >= 0.5)
+  -- Ramping only for non-is_active parameters; is_active is discrete
+  if (ramp_ms or 0) > 0 and t.parameter_index ~= PARAM_IS_ACTIVE then
+    NOTE_GATE.active_ramps[t.id] = {
+      param = param,
+      start_value = param.value,
+      end_value = value,
+      start_time_ms = now_ms(),
+      duration_ms = ramp_ms,
+      is_active_param = false,
+      device = device,
+    }
   else
-    -- Clamp to parameter range
-    local v = value
-    if v < param.value_min then v = param.value_min end
-    if v > param.value_max then v = param.value_max end
-    param.value = v
+    cancel_ramp_for(t.id)
+    if t.parameter_index == PARAM_IS_ACTIVE then
+      device.is_active = (value >= 0.5)
+    else
+      local v = value
+      if v < param.value_min then v = param.value_min end
+      if v > param.value_max then v = param.value_max end
+      param.value = v
+    end
   end
 
   write_param_automation(t, container_track_index, param,
@@ -372,12 +448,15 @@ local function release_all_targets()
     -- Do not write automation on a forced release (user pressed Stop)
     local saved = preferences.pakettiNoteGateWriteAutomation.value
     preferences.pakettiNoteGateWriteAutomation.value = false
+    cancel_ramp_for(t.id)
     set_target_value(t, t.off_value)
     preferences.pakettiNoteGateWriteAutomation.value = saved
   end
   NOTE_GATE.hold_count = {}
   NOTE_GATE.active_holds = {}
   NOTE_GATE.midi_held = {}
+  NOTE_GATE.sustain_active = {}
+  NOTE_GATE.active_ramps = {}
 end
 
 ------------------------------------------------------------------------
@@ -411,7 +490,7 @@ local function find_target_by_id(id)
   return nil
 end
 
-local function gate_note_on(channel, note)
+local function gate_note_on(channel, note, velocity)
   local hits = targets_for_event(channel, note)
   if #hits == 0 then return end
 
@@ -435,18 +514,26 @@ local function gate_note_on(channel, note)
     NOTE_GATE.midi_held[t.id] = true
     stamped[#stamped + 1] = t.id
 
+    -- Velocity scaling on the on_value
+    local effective_on = t.on_value
+    if t.velocity_to_on and velocity then
+      local v01 = math.max(0, math.min(1, velocity / 127))
+      effective_on = t.off_value + v01 * (t.on_value - t.off_value)
+    end
+
     if preferences.pakettiNoteGateLatchMode.value then
-      -- Latch: each note-on toggles between on_value and off_value
+      -- Latch: each note-on toggles between effective_on and off_value
       local _, param = resolve_target_full(t)
       if param then
         local at_off = math.abs(param.value - t.off_value)
-                       < math.abs(param.value - t.on_value)
-        local target_v = at_off and t.on_value or t.off_value
-        set_target_value(t, target_v, on_pattern, on_line)
+                       < math.abs(param.value - effective_on)
+        local target_v = at_off and effective_on or t.off_value
+        local ramp = at_off and t.attack_ms or t.release_ms
+        set_target_value(t, target_v, on_pattern, on_line, ramp)
       end
     else
       if prev == 0 then
-        set_target_value(t, t.on_value, on_pattern, on_line)
+        set_target_value(t, effective_on, on_pattern, on_line, t.attack_ms)
       end
     end
   end
@@ -476,7 +563,55 @@ local function gate_note_off(channel, note)
     if count == 0 then
       NOTE_GATE.midi_held[id] = nil
       local t = find_target_by_id(id)
-      if t then set_target_value(t, t.off_value, pattern_index, line) end
+      if t then set_target_value(t, t.off_value, pattern_index, line, t.release_ms) end
+    end
+  end
+end
+
+------------------------------------------------------------------------
+-- Sustain pedal (CC 64): a master gate trigger
+------------------------------------------------------------------------
+
+local function pass_channel(t, channel)
+  local global_ch = preferences.pakettiNoteGateChannel.value
+  if t.channel ~= 0 then return channel == t.channel
+  elseif global_ch ~= 0 then return channel == global_ch
+  else return true end
+end
+
+local function sustain_pedal_down(channel)
+  if NOTE_GATE.sustain_active[channel] then return end
+  local stamped = {}
+  local s = renoise.song()
+  local on_line = get_step_record_note_on_line()
+  local on_pattern = s.selected_pattern_index
+  for _, t in ipairs(NOTE_GATE.targets) do
+    if pass_channel(t, channel) then
+      local prev = NOTE_GATE.hold_count[t.id] or 0
+      NOTE_GATE.hold_count[t.id] = prev + 1
+      NOTE_GATE.midi_held[t.id] = true
+      stamped[#stamped + 1] = t.id
+      if prev == 0 then
+        set_target_value(t, t.on_value, on_pattern, on_line, t.attack_ms)
+      end
+    end
+  end
+  NOTE_GATE.sustain_active[channel] = stamped
+end
+
+local function sustain_pedal_up(channel)
+  local stamped = NOTE_GATE.sustain_active[channel]
+  if not stamped then return end
+  NOTE_GATE.sustain_active[channel] = nil
+  local pattern_index = get_pattern_index_from_playback()
+  local line = get_current_line()
+  for _, id in ipairs(stamped) do
+    local count = math.max(0, (NOTE_GATE.hold_count[id] or 1) - 1)
+    NOTE_GATE.hold_count[id] = count
+    if count == 0 then
+      NOTE_GATE.midi_held[id] = nil
+      local t = find_target_by_id(id)
+      if t then set_target_value(t, t.off_value, pattern_index, line, t.release_ms) end
     end
   end
 end
@@ -488,19 +623,27 @@ end
 local function midi_callback(message)
   if not message or #message < 3 then return end
   local status = message[1]
-  local note = message[2]
-  local velocity = message[3]
+  local data1 = message[2]
+  local data2 = message[3]
   local message_type = bit.band(status, 0xF0)
   local channel = bit.band(status, 0x0F) + 1
 
-  local is_note_on = (message_type == 0x90) and (velocity > 0)
+  -- CC 64 sustain pedal
+  if message_type == 0xB0 and data1 == 64
+     and preferences.pakettiNoteGateSustainPedalEnabled.value then
+    if data2 >= 64 then sustain_pedal_down(channel)
+    else sustain_pedal_up(channel) end
+    return
+  end
+
+  local is_note_on = (message_type == 0x90) and (data2 > 0)
   local is_note_off = (message_type == 0x80)
-                   or ((message_type == 0x90) and (velocity == 0))
+                   or ((message_type == 0x90) and (data2 == 0))
 
   if is_note_on then
-    gate_note_on(channel, note)
+    gate_note_on(channel, data1, data2)
   elseif is_note_off then
-    gate_note_off(channel, note)
+    gate_note_off(channel, data1)
   end
 end
 
@@ -788,6 +931,7 @@ function PakettiNoteReleaseGateStart()
   NOTE_GATE.midi_device = renoise.Midi.create_input_device(selected_name, midi_callback)
   NOTE_GATE.midi_listening = true
   start_pattern_scanner()
+  start_ramp_timer()
   renoise.app():show_status("Note Gate: started on '" .. selected_name
     .. "', " .. #NOTE_GATE.targets .. " target(s)")
 end
@@ -800,6 +944,7 @@ function PakettiNoteReleaseGateStop()
   NOTE_GATE.midi_listening = false
   release_all_targets()
   stop_pattern_scanner()
+  stop_ramp_timer()
   NOTE_GATE.last_auto = {}
   renoise.app():show_status("Note Gate: stopped")
 end
@@ -824,6 +969,13 @@ function PakettiNoteReleaseGateToggleAutomationWriting()
   preferences.pakettiNoteGateWriteAutomation.value = v
   preferences:save_as("preferences.xml")
   renoise.app():show_status("Note Gate: automation writing " .. (v and "ON" or "OFF"))
+end
+
+function PakettiNoteReleaseGateToggleSustainPedal()
+  local v = not preferences.pakettiNoteGateSustainPedalEnabled.value
+  preferences.pakettiNoteGateSustainPedalEnabled.value = v
+  preferences:save_as("preferences.xml")
+  renoise.app():show_status("Note Gate: sustain pedal (CC 64) " .. (v and "ON" or "OFF"))
 end
 
 function PakettiNoteReleaseGateTogglePatternScanner()
@@ -908,6 +1060,10 @@ PakettiAddMenuEntry{
   invoke = PakettiNoteReleaseGateTogglePatternScanner
 }
 PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Note Release Gate:Toggle Sustain Pedal (CC 64)",
+  invoke = PakettiNoteReleaseGateToggleSustainPedal
+}
+PakettiAddMenuEntry{
   name = "DSP Device:Paketti:Note Release Gate Add as Target",
   invoke = PakettiNoteReleaseGateAddSelectedDevice
 }
@@ -951,6 +1107,10 @@ renoise.tool():add_keybinding{
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Note Release Gate Toggle Pattern Scanner",
   invoke = PakettiNoteReleaseGateTogglePatternScanner
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Note Release Gate Toggle Sustain Pedal",
+  invoke = PakettiNoteReleaseGateToggleSustainPedal
 }
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Note Release Gate Clear All Targets",
@@ -1096,6 +1256,30 @@ local function build_target_row(vb, idx, t)
         end,
       },
     },
+    vb:row{
+      spacing = 6,
+      vb:text{ text = "atk(ms)", style = "strong" },
+      vb:valuebox{
+        min = 0, max = 5000, value = t.attack_ms, width = 70,
+        notifier = function(v)
+          NOTE_GATE.targets[idx].attack_ms = v; save_targets()
+        end,
+      },
+      vb:text{ text = "rel(ms)", style = "strong" },
+      vb:valuebox{
+        min = 0, max = 5000, value = t.release_ms, width = 70,
+        notifier = function(v)
+          NOTE_GATE.targets[idx].release_ms = v; save_targets()
+        end,
+      },
+      vb:checkbox{
+        value = t.velocity_to_on,
+        notifier = function(v)
+          NOTE_GATE.targets[idx].velocity_to_on = v; save_targets()
+        end,
+      },
+      vb:text{ text = "velocity → on" },
+    },
   }
 end
 
@@ -1211,6 +1395,17 @@ function PakettiNoteReleaseGateShowDialog()
           end,
         },
         vb:text{ text = "Auto-start on song load" },
+      },
+      vb:row{
+        spacing = 4,
+        vb:checkbox{
+          value = preferences.pakettiNoteGateSustainPedalEnabled.value,
+          notifier = function(v)
+            preferences.pakettiNoteGateSustainPedalEnabled.value = v
+            preferences:save_as("preferences.xml")
+          end,
+        },
+        vb:text{ text = "Sustain pedal (CC 64) opens all matching gates" },
       },
     },
 
