@@ -46,6 +46,10 @@ MIDI mappings: `Paketti:Note Release Gate Toggle Start/Stop`, `Paketti:Note Rele
 
 Engine landed first; UI dialog (target list editor with per-row note range / channel / latch toggle) ships in the same release.
 
+### 2026-05-06 - Fix: Note Release Gate — pattern scanner no longer overrides live MIDI holds
+
+The pattern scanner and the live MIDI gate previously fought when a held key and a pattern note OFF on the same track collided: the scanner would force the target off mid-hold, then the MIDI release would set off again. With this fix, a live MIDI hold beats the scanner — held targets are not force-released by pattern OFFs while the key is still down. The scanner regains control as soon as the key releases.
+
 ### 2026-05-06 - Feature: Note Release Gate v2 — gate any parameter, Sample FX Chain scope, per-song targets
 
 Rewrote the engine to gate an arbitrary parameter on a device, not only the device's bypass. New default behaviour: when you add a `#Send` or `#Multiband Send` device as a target, the gate automatically wires up the Send's `Amount` (or `Band1Volume`) parameter with on=1.0 / off=0.0. Note-on opens the gate, note-off closes it; the destination effect on the Send track keeps running, so the delay/reverb tail decays naturally. This is the use case Signal Follower can't handle (audio gating depends on signal presence; this is gestural).

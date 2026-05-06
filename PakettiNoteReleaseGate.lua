@@ -33,12 +33,15 @@ local US = "\31" -- unit separator (between fields within a target)
 local NOTE_GATE = {
   midi_device = nil,
   midi_listening = false,
-  hold_count = {},          -- target.id -> int
+  hold_count = {},          -- target.id -> int (number of MIDI keys holding)
   active_holds = {},        -- "ch:note" event_key -> array of target ids
   last_auto = {},           -- target.id -> "pattern:line:value" stamp (dedup)
   targets = {},             -- live targets for the current song
   last_scan_key = nil,
   current_song_key = "",
+  -- target.id -> true if a live MIDI hold is currently keeping it open;
+  -- the pattern scanner respects this and won't force-off a MIDI-held target.
+  midi_held = {},
 }
 
 ------------------------------------------------------------------------
@@ -374,6 +377,7 @@ local function release_all_targets()
   end
   NOTE_GATE.hold_count = {}
   NOTE_GATE.active_holds = {}
+  NOTE_GATE.midi_held = {}
 end
 
 ------------------------------------------------------------------------
@@ -428,6 +432,7 @@ local function gate_note_on(channel, note)
   for _, t in ipairs(hits) do
     local prev = NOTE_GATE.hold_count[t.id] or 0
     NOTE_GATE.hold_count[t.id] = prev + 1
+    NOTE_GATE.midi_held[t.id] = true
     stamped[#stamped + 1] = t.id
 
     if preferences.pakettiNoteGateLatchMode.value then
@@ -469,6 +474,7 @@ local function gate_note_off(channel, note)
     local count = math.max(0, (NOTE_GATE.hold_count[id] or 1) - 1)
     NOTE_GATE.hold_count[id] = count
     if count == 0 then
+      NOTE_GATE.midi_held[id] = nil
       local t = find_target_by_id(id)
       if t then set_target_value(t, t.off_value, pattern_index, line) end
     end
@@ -548,7 +554,10 @@ local function scan_pattern_notes()
           elseif seen_off then
             for _, t in ipairs(NOTE_GATE.targets) do
               if t.scope == SCOPE_TRACK and t.track_index == track_index then
-                set_target_value(t, t.off_value, pattern_index, line_index)
+                -- Source priority: a live MIDI hold beats the scanner.
+                if not NOTE_GATE.midi_held[t.id] then
+                  set_target_value(t, t.off_value, pattern_index, line_index)
+                end
               end
             end
           end
