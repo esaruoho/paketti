@@ -44,7 +44,13 @@ Keybindings (Global): `Paketti:Note Release Gate Add Selected Device as Target`,
 
 MIDI mappings: `Paketti:Note Release Gate Toggle Start/Stop`, `Paketti:Note Release Gate Toggle Latch Mode`.
 
-Engine landed first; UI dialog (target list editor with per-row note range / channel / latch toggle / velocity → param mapping) ships as a follow-up.
+Engine landed first; UI dialog (target list editor with per-row note range / channel / latch toggle) ships in the same release.
+
+### 2026-05-06 - Feature: Note Release Gate Dialog
+
+Configuration dialog for the Note Release Gate. Pick the MIDI input device and channel filter, toggle Latch / Automation Writing / Pattern Scanner / Auto-start, manage the target list (add selected device, jump to a target's track and device, edit per-target note range with note-name display, remove individual targets, clear all), and Start/Stop the gate from one window. Note range valueboxes display as `C-4`, `F#3`, etc.
+
+Added: `Main Menu:Tools:Paketti:Note Release Gate:Show Dialog...`, keybinding `Global:Paketti:Note Release Gate Show Dialog`, MIDI mapping `Paketti:Note Release Gate Show Dialog`.
 
 ### 2026-05-06 - Fix: Slices to Phrases Per Starting Slice — use explicit instrument column for slice targeting
 

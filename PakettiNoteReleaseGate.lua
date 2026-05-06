@@ -656,3 +656,318 @@ renoise.tool():add_midi_mapping{
     if message:is_trigger() then PakettiNoteReleaseGateToggleLatch() end
   end
 }
+
+------------------------------------------------------------------------
+-- Dialog (UI follow-up)
+------------------------------------------------------------------------
+
+local NOTE_NAMES = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
+local function fmt_note(v)
+  if v < 0 or v > 119 then return tostring(v) end
+  local n = NOTE_NAMES[(v % 12) + 1]
+  local oct = math.floor(v / 12)
+  return n .. tostring(oct)
+end
+
+local dialog_ref = nil
+
+local function build_target_row(vb, idx, t)
+  local device, track = resolve_target(t)
+  local label
+  if device then
+    label = string.format("[%d] T%d %s / D%d %s",
+      idx, t.track_index, track.name, t.device_index, device.display_name)
+  else
+    label = string.format("[%d] T%d / D%d  (UNRESOLVED)",
+      idx, t.track_index, t.device_index)
+  end
+
+  return vb:row{
+    spacing = 4,
+    vb:text{ text = label, width = 360, style = device and "normal" or "disabled" },
+    vb:text{ text = "lo", style = "strong" },
+    vb:valuebox{
+      min = 0, max = 119, value = t.note_lo, width = 60,
+      tostring = fmt_note,
+      tonumber = function(s)
+        local n = tonumber(s); if n then return n end
+        return 0
+      end,
+      notifier = function(v)
+        NOTE_GATE.targets[idx].note_lo = v
+        if v > NOTE_GATE.targets[idx].note_hi then
+          NOTE_GATE.targets[idx].note_hi = v
+        end
+        save_targets()
+      end,
+    },
+    vb:text{ text = "hi", style = "strong" },
+    vb:valuebox{
+      min = 0, max = 119, value = t.note_hi, width = 60,
+      tostring = fmt_note,
+      tonumber = function(s)
+        local n = tonumber(s); if n then return n end
+        return 119
+      end,
+      notifier = function(v)
+        NOTE_GATE.targets[idx].note_hi = v
+        if v < NOTE_GATE.targets[idx].note_lo then
+          NOTE_GATE.targets[idx].note_lo = v
+        end
+        save_targets()
+      end,
+    },
+    vb:button{
+      text = "Show",
+      width = 50,
+      notifier = function()
+        local s = renoise.song()
+        if s.tracks[t.track_index] then
+          s.selected_track_index = t.track_index
+          if s.tracks[t.track_index].devices[t.device_index] then
+            s.selected_device_index = t.device_index
+          end
+        end
+      end,
+    },
+    vb:button{
+      text = "Remove",
+      width = 70,
+      notifier = function()
+        table.remove(NOTE_GATE.targets, idx)
+        save_targets()
+        PakettiNoteReleaseGateShowDialog() -- rebuild
+      end,
+    },
+  }
+end
+
+function PakettiNoteReleaseGateShowDialog()
+  if dialog_ref and dialog_ref.visible then
+    dialog_ref:close()
+    dialog_ref = nil
+    return
+  end
+
+  load_targets()
+  local vb = renoise.ViewBuilder()
+
+  local inputs = renoise.Midi.available_input_devices() or {}
+  local input_items = { "(first available)" }
+  for _, name in ipairs(inputs) do table.insert(input_items, name) end
+  local current_device_pref = preferences.pakettiNoteGateMidiDeviceName.value
+  local input_index = 1
+  for i, name in ipairs(inputs) do
+    if name == current_device_pref then input_index = i + 1 end
+  end
+
+  local channel_items = { "Any" }
+  for i = 1, 16 do table.insert(channel_items, "Ch " .. i) end
+
+  local target_rows = vb:column{ spacing = 2 }
+  if #NOTE_GATE.targets == 0 then
+    target_rows:add_child(vb:text{
+      text = "No targets. Select a device on a track and click 'Add Selected Device'.",
+      style = "disabled",
+    })
+  else
+    for i, t in ipairs(NOTE_GATE.targets) do
+      target_rows:add_child(build_target_row(vb, i, t))
+    end
+  end
+
+  local status_text = vb:text{
+    text = NOTE_GATE.midi_listening and "Status: LISTENING" or "Status: stopped",
+    style = "strong",
+  }
+
+  local content = vb:column{
+    margin = 10,
+    spacing = 8,
+
+    vb:column{
+      style = "group",
+      margin = 6,
+      spacing = 4,
+      vb:text{ text = "MIDI Input", style = "strong" },
+      vb:row{
+        spacing = 4,
+        vb:text{ text = "Device", width = 60 },
+        vb:popup{
+          items = input_items, value = input_index, width = 320,
+          notifier = function(idx)
+            if idx == 1 then
+              preferences.pakettiNoteGateMidiDeviceName.value = ""
+            else
+              preferences.pakettiNoteGateMidiDeviceName.value = inputs[idx - 1] or ""
+            end
+            preferences:save_as("preferences.xml")
+          end,
+        },
+      },
+      vb:row{
+        spacing = 4,
+        vb:text{ text = "Channel", width = 60 },
+        vb:popup{
+          items = channel_items,
+          value = preferences.pakettiNoteGateChannel.value + 1,
+          width = 80,
+          notifier = function(idx)
+            preferences.pakettiNoteGateChannel.value = idx - 1
+            preferences:save_as("preferences.xml")
+          end,
+        },
+      },
+    },
+
+    vb:column{
+      style = "group",
+      margin = 6,
+      spacing = 4,
+      vb:text{ text = "Modes", style = "strong" },
+      vb:row{
+        spacing = 4,
+        vb:checkbox{
+          value = preferences.pakettiNoteGateLatchMode.value,
+          notifier = function(v)
+            preferences.pakettiNoteGateLatchMode.value = v
+            preferences:save_as("preferences.xml")
+          end,
+        },
+        vb:text{ text = "Latch (note-on toggles, note-off ignored)" },
+      },
+      vb:row{
+        spacing = 4,
+        vb:checkbox{
+          value = preferences.pakettiNoteGateWriteAutomation.value,
+          notifier = function(v)
+            preferences.pakettiNoteGateWriteAutomation.value = v
+            preferences:save_as("preferences.xml")
+          end,
+        },
+        vb:text{ text = "Write is_active automation while gating" },
+      },
+      vb:row{
+        spacing = 4,
+        vb:checkbox{
+          value = preferences.pakettiNoteGatePatternScanner.value,
+          notifier = function(v)
+            preferences.pakettiNoteGatePatternScanner.value = v
+            preferences:save_as("preferences.xml")
+            if v and NOTE_GATE.midi_listening then
+              start_pattern_scanner()
+            elseif not v then
+              stop_pattern_scanner()
+            end
+          end,
+        },
+        vb:text{ text = "Pattern scanner (drive gate from pattern note-ons/OFFs)" },
+      },
+      vb:row{
+        spacing = 4,
+        vb:checkbox{
+          value = preferences.pakettiNoteGateAutoStart.value,
+          notifier = function(v)
+            preferences.pakettiNoteGateAutoStart.value = v
+            preferences:save_as("preferences.xml")
+          end,
+        },
+        vb:text{ text = "Auto-start on song load" },
+      },
+    },
+
+    vb:column{
+      style = "group",
+      margin = 6,
+      spacing = 4,
+      vb:text{ text = "Targets", style = "strong" },
+      target_rows,
+      vb:row{
+        spacing = 4,
+        vb:button{
+          text = "Add Selected Device",
+          width = 160,
+          notifier = function()
+            PakettiNoteReleaseGateAddSelectedDevice()
+            PakettiNoteReleaseGateShowDialog()
+          end,
+        },
+        vb:button{
+          text = "Remove Targets For Current Track",
+          width = 220,
+          notifier = function()
+            PakettiNoteReleaseGateRemoveTargetsForCurrentTrack()
+            PakettiNoteReleaseGateShowDialog()
+          end,
+        },
+        vb:button{
+          text = "Clear All",
+          width = 80,
+          notifier = function()
+            local resp = renoise.app():show_prompt("Clear all Note Gate targets?",
+              "Remove all " .. #NOTE_GATE.targets .. " target(s)?",
+              {"Yes", "Cancel"})
+            if resp == "Yes" then
+              PakettiNoteReleaseGateClearAllTargets()
+              PakettiNoteReleaseGateShowDialog()
+            end
+          end,
+        },
+      },
+    },
+
+    vb:column{
+      style = "group",
+      margin = 6,
+      spacing = 4,
+      status_text,
+      vb:row{
+        spacing = 4,
+        vb:button{
+          text = "Start",
+          width = 80,
+          notifier = function()
+            PakettiNoteReleaseGateStart()
+            PakettiNoteReleaseGateShowDialog()
+          end,
+        },
+        vb:button{
+          text = "Stop",
+          width = 80,
+          notifier = function()
+            PakettiNoteReleaseGateStop()
+            PakettiNoteReleaseGateShowDialog()
+          end,
+        },
+        vb:button{
+          text = "Refresh",
+          width = 80,
+          notifier = function() PakettiNoteReleaseGateShowDialog() end,
+        },
+      },
+    },
+  }
+
+  dialog_ref = renoise.app():show_custom_dialog(
+    "Paketti Note Release Gate", content,
+    function(d, key)
+      if key.name == "esc" then d:close() ; return nil end
+      return key
+    end
+  )
+end
+
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Note Release Gate:Show Dialog...",
+  invoke = PakettiNoteReleaseGateShowDialog
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Note Release Gate Show Dialog",
+  invoke = PakettiNoteReleaseGateShowDialog
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Note Release Gate Show Dialog",
+  invoke = function(message)
+    if message:is_trigger() then PakettiNoteReleaseGateShowDialog() end
+  end
+}
