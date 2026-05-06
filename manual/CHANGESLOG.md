@@ -46,6 +46,10 @@ MIDI mappings: `Paketti:Note Release Gate Toggle Start/Stop`, `Paketti:Note Rele
 
 Engine landed first; UI dialog (target list editor with per-row note range / channel / latch toggle) ships in the same release.
 
+### 2026-05-06 - Feature: Note Release Gate — quantized release
+
+Per-target `release_quantize_lines` (0–64, 0 = immediate). When transport is playing and a key is released, instead of firing the gate-off immediately, the gate schedules it to fire at the next pattern line where `(line - 1) % N == 0`. With LPB=4 and `release_quantize_lines = 4`, releases snap to the next downbeat. Note-on for the same target before the scheduled release fires cancels the pending release (clean re-trigger). If the transport stops or the pattern changes before the fire line is reached, the pending release fires immediately. Pending releases are cleared on Stop. Exposed in the dialog as the `quant(lines)` valuebox per row.
+
 ### 2026-05-06 - Feature: Note Release Gate — attack/release ramps, velocity → on, sustain pedal
 
 Three musical primitives added to make the gate genuinely performable:

@@ -30,6 +30,10 @@ local GS = "\29" -- group separator (song-name vs targets payload)
 local RS = "\30" -- record separator (between targets within a song)
 local US = "\31" -- unit separator (between fields within a target)
 
+-- Forward declarations (assigned later) so earlier helpers can reference them
+local set_target_value
+local find_target_by_id
+
 local NOTE_GATE = {
   midi_device = nil,
   midi_listening = false,
@@ -46,6 +50,8 @@ local NOTE_GATE = {
   active_ramps = {},
   -- channel -> array of target ids currently sustained by the pedal
   sustain_active = {},
+  -- target.id -> {fire_pattern, fire_line, value, ramp_ms}
+  pending_offs = {},
 }
 
 ------------------------------------------------------------------------
@@ -95,6 +101,7 @@ local function make_target(opts)
     attack_ms = opts.attack_ms or 0,
     release_ms = opts.release_ms or 0,
     velocity_to_on = opts.velocity_to_on and true or false,
+    release_quantize_lines = opts.release_quantize_lines or 0,
   }
 end
 
@@ -115,6 +122,7 @@ local function serialize_one(t)
     t.device_name_snapshot, t.parameter_name_snapshot,
     tostring(t.attack_ms), tostring(t.release_ms),
     t.velocity_to_on and "1" or "0",
+    tostring(t.release_quantize_lines),
   }, US)
 end
 
@@ -136,6 +144,7 @@ local function deserialize_one(s)
     attack_ms = tonumber(f[15] or "0") or 0,
     release_ms = tonumber(f[16] or "0") or 0,
     velocity_to_on = (f[17] == "1"),
+    release_quantize_lines = tonumber(f[18] or "0") or 0,
   }
 end
 
@@ -363,7 +372,46 @@ local function now_ms()
   return os.clock() * 1000
 end
 
+local function compute_quantized_fire_line(current_line, n, num_lines)
+  if n <= 0 then return current_line end
+  local fire = current_line + n - ((current_line - 1) % n)
+  if fire > num_lines then fire = num_lines end
+  return fire
+end
+
+local function check_pending_offs()
+  if not next(NOTE_GATE.pending_offs) then return end
+  local s = renoise.song()
+  if not s.transport.playing then
+    -- Transport stopped: fire all pending offs immediately
+    for id, p in pairs(NOTE_GATE.pending_offs) do
+      local t = find_target_by_id(id)
+      if t then set_target_value(t, p.value, nil, nil, p.ramp_ms) end
+    end
+    NOTE_GATE.pending_offs = {}
+    return
+  end
+  local pi = get_pattern_index_from_playback()
+  local li = s.transport.playback_pos.line
+  local to_fire = {}
+  for id, p in pairs(NOTE_GATE.pending_offs) do
+    if pi ~= p.fire_pattern then
+      -- Pattern changed before fire line was reached — fire now
+      to_fire[#to_fire + 1] = id
+    elseif li >= p.fire_line then
+      to_fire[#to_fire + 1] = id
+    end
+  end
+  for _, id in ipairs(to_fire) do
+    local p = NOTE_GATE.pending_offs[id]
+    NOTE_GATE.pending_offs[id] = nil
+    local t = find_target_by_id(id)
+    if t then set_target_value(t, p.value, pi, li, p.ramp_ms) end
+  end
+end
+
 local function ramp_tick()
+  check_pending_offs()
   if not next(NOTE_GATE.active_ramps) then return end
   local now = now_ms()
   local to_remove = {}
@@ -410,7 +458,7 @@ end
 -- Apply value to target
 ------------------------------------------------------------------------
 
-local function set_target_value(t, value, pattern_index, line, ramp_ms)
+function set_target_value(t, value, pattern_index, line, ramp_ms)
   local device, param, container_track_index = resolve_target_full(t)
   if not device or not param then return end
 
@@ -457,6 +505,7 @@ local function release_all_targets()
   NOTE_GATE.midi_held = {}
   NOTE_GATE.sustain_active = {}
   NOTE_GATE.active_ramps = {}
+  NOTE_GATE.pending_offs = {}
 end
 
 ------------------------------------------------------------------------
@@ -483,7 +532,7 @@ local function targets_for_event(channel, note)
   return hits
 end
 
-local function find_target_by_id(id)
+function find_target_by_id(id)
   for _, t in ipairs(NOTE_GATE.targets) do
     if t.id == id then return t end
   end
@@ -509,6 +558,8 @@ local function gate_note_on(channel, note, velocity)
   local on_pattern = s.selected_pattern_index
 
   for _, t in ipairs(hits) do
+    -- Cancel any pending quantized release for this target — re-trigger
+    NOTE_GATE.pending_offs[t.id] = nil
     local prev = NOTE_GATE.hold_count[t.id] or 0
     NOTE_GATE.hold_count[t.id] = prev + 1
     NOTE_GATE.midi_held[t.id] = true
@@ -557,13 +608,30 @@ local function gate_note_off(channel, note)
   local pattern_index = get_pattern_index_from_playback()
   local line = get_current_line()
 
+  local s = renoise.song()
+
   for _, id in ipairs(stamped) do
     local count = math.max(0, (NOTE_GATE.hold_count[id] or 1) - 1)
     NOTE_GATE.hold_count[id] = count
     if count == 0 then
       NOTE_GATE.midi_held[id] = nil
       local t = find_target_by_id(id)
-      if t then set_target_value(t, t.off_value, pattern_index, line, t.release_ms) end
+      if t then
+        if t.release_quantize_lines > 0 and s.transport.playing then
+          local pat = s.patterns[pattern_index]
+          local nlines = pat and pat.number_of_lines or 64
+          local fire = compute_quantized_fire_line(s.transport.playback_pos.line,
+            t.release_quantize_lines, nlines)
+          NOTE_GATE.pending_offs[id] = {
+            fire_pattern = pattern_index,
+            fire_line = fire,
+            value = t.off_value,
+            ramp_ms = t.release_ms,
+          }
+        else
+          set_target_value(t, t.off_value, pattern_index, line, t.release_ms)
+        end
+      end
     end
   end
 end
@@ -587,6 +655,7 @@ local function sustain_pedal_down(channel)
   local on_pattern = s.selected_pattern_index
   for _, t in ipairs(NOTE_GATE.targets) do
     if pass_channel(t, channel) then
+      NOTE_GATE.pending_offs[t.id] = nil
       local prev = NOTE_GATE.hold_count[t.id] or 0
       NOTE_GATE.hold_count[t.id] = prev + 1
       NOTE_GATE.midi_held[t.id] = true
@@ -603,6 +672,7 @@ local function sustain_pedal_up(channel)
   local stamped = NOTE_GATE.sustain_active[channel]
   if not stamped then return end
   NOTE_GATE.sustain_active[channel] = nil
+  local s = renoise.song()
   local pattern_index = get_pattern_index_from_playback()
   local line = get_current_line()
   for _, id in ipairs(stamped) do
@@ -611,7 +681,22 @@ local function sustain_pedal_up(channel)
     if count == 0 then
       NOTE_GATE.midi_held[id] = nil
       local t = find_target_by_id(id)
-      if t then set_target_value(t, t.off_value, pattern_index, line, t.release_ms) end
+      if t then
+        if t.release_quantize_lines > 0 and s.transport.playing then
+          local pat = s.patterns[pattern_index]
+          local nlines = pat and pat.number_of_lines or 64
+          local fire = compute_quantized_fire_line(s.transport.playback_pos.line,
+            t.release_quantize_lines, nlines)
+          NOTE_GATE.pending_offs[id] = {
+            fire_pattern = pattern_index,
+            fire_line = fire,
+            value = t.off_value,
+            ramp_ms = t.release_ms,
+          }
+        else
+          set_target_value(t, t.off_value, pattern_index, line, t.release_ms)
+        end
+      end
     end
   end
 end
@@ -1279,6 +1364,13 @@ local function build_target_row(vb, idx, t)
         end,
       },
       vb:text{ text = "velocity → on" },
+      vb:text{ text = "  quant(lines)", style = "strong" },
+      vb:valuebox{
+        min = 0, max = 64, value = t.release_quantize_lines, width = 60,
+        notifier = function(v)
+          NOTE_GATE.targets[idx].release_quantize_lines = v; save_targets()
+        end,
+      },
     },
   }
 end
