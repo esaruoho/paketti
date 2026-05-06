@@ -46,6 +46,29 @@ MIDI mappings: `Paketti:Note Release Gate Toggle Start/Stop`, `Paketti:Note Rele
 
 Engine landed first; UI dialog (target list editor with per-row note range / channel / latch toggle) ships in the same release.
 
+### 2026-05-06 - Feature: Note Release Gate v2 — gate any parameter, Sample FX Chain scope, per-song targets
+
+Rewrote the engine to gate an arbitrary parameter on a device, not only the device's bypass. New default behaviour: when you add a `#Send` or `#Multiband Send` device as a target, the gate automatically wires up the Send's `Amount` (or `Band1Volume`) parameter with on=1.0 / off=0.0. Note-on opens the gate, note-off closes it; the destination effect on the Send track keeps running, so the delay/reverb tail decays naturally. This is the use case Signal Follower can't handle (audio gating depends on signal presence; this is gestural).
+
+Changes:
+
+- **Target schema v2.** Each target now stores `(scope, track_index | instrument_index/chain_index, device_index, parameter_index, on_value, off_value, channel, note_lo, note_hi, device_name_snapshot, parameter_name_snapshot)`. The legacy "gate `is_active`" mode survives as a `parameter_index = -1` sentinel.
+- **Sample FX Chain scope.** Add a device sitting inside an instrument's Sample FX Chain (`Instrument > Sample FX > devices`) as a target. Gate works the same way — wired to the chain's device parameters.
+- **Auto-detect Send Amount.** When the selected device is `#Send` or `#Multiband Send`, the new target defaults to its `Amount` (or `Band1Volume`) parameter with on=1.0 / off=0.0, and the parameter is set to off at rest so the gate is closed by default.
+- **Per-target channel.** Each target can override the global MIDI channel filter (default: inherit global).
+- **Per-target on/off values.** Editable in the dialog.
+- **Per-song targets.** Targets are now stored in a per-song bucket keyed by the song's filename. Open a different song → its own target list loads. The legacy global target list is auto-migrated into the current song's bucket on first load.
+- **Identity reconciliation.** Targets snapshot the device's `display_name` and the parameter's `name` at add time; on resolve, if the indexed slot doesn't match the snapshot, the gate searches the device list / parameter list for a name match before declaring the target unresolved. Survives `swap_devices_at` and `insert_device_at` reshuffles.
+- **Stable target IDs.** Hold-counters and dedup keys use stable IDs assigned at add time, not the volatile track/device indices.
+- **`describe_undo("Note Gate Automation Write")`** on every automation write.
+- **Sample-chain targets skip automation writing.** Sample FX Chain devices don't have pattern-track automation lanes the same way; live parameter values are written, automation is not. Track-scope targets behave the same as before.
+
+New menu entries: `Main Menu:Tools:Paketti:Note Release Gate:Add Selected Sample FX Chain Device as Target`, `Sample Editor:Paketti:Note Release Gate Add Sample FX Device as Target`.
+
+New keybinding: `Global:Paketti:Note Release Gate Add Sample FX Device as Target`.
+
+Dialog updates: per-row parameter readout, per-row channel popup (`Inherit` + Ch 1-16), per-row `on` / `off` valuefields, per-song header showing current song's filename, scope indicator (track vs Sample FX Chain), and an `Add Sample FX Device` button.
+
 ### 2026-05-06 - Feature: Note Release Gate Dialog
 
 Configuration dialog for the Note Release Gate. Pick the MIDI input device and channel filter, toggle Latch / Automation Writing / Pattern Scanner / Auto-start, manage the target list (add selected device, jump to a target's track and device, edit per-target note range with note-name display, remove individual targets, clear all), and Start/Stop the gate from one window. Note range valueboxes display as `C-4`, `F#3`, etc.
