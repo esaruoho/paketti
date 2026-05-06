@@ -3076,9 +3076,21 @@ vb:row{
         vb:text{text="Goodies",width=150,style="strong",font="bold"},
         vb:button{text="Load Pale Green Theme",width=150,notifier=function() update_loadPaleGreenTheme_preferences() end},
         vb:button{text="Load Plaid Zap .XRNI",width=125,notifier=function() renoise.app():load_instrument("Gifts/plaidzap.xrni") end},
-        vb:button{text="Load 200 Drum Machines (.zip)",width=150,notifier=function() 
+        vb:button{text="Load 200 Drum Machines (.zip)",width=150,notifier=function()
         renoise.app():open_url("http://www.hexawe.net/mess/200.Drum.Machines/") end}
         },
+
+      vb:row{
+        vb:text{text="Folders",width=150,style="strong",font="bold"},
+        vb:button{text="Open folder to Paketti KeyBindings (macOS/Linux/Windows)",notifier=function()
+          local keybindings_path = renoise.tool().bundle_path .. "KeyBindings/"
+          if io.exists(keybindings_path) then
+            renoise.app():open_path(keybindings_path)
+          else
+            renoise.app():show_warning("KeyBindings folder not found at:\n" .. keybindings_path)
+          end
+        end}
+      },
 
 
 

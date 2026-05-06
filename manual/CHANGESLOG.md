@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-06 - Feature: Paketti Preferences "Open folder to Paketti KeyBindings" button
+
+Added a new "Folders" row in the Paketti Preferences dialog with a button labelled **"Open folder to Paketti KeyBindings (macOS/Linux/Windows)"**. Clicking it opens the `KeyBindings/` folder inside the Paketti tool bundle in the OS file manager (Finder on macOS, file manager on Linux, Explorer on Windows). Uses `renoise.app():open_path()` for cross-platform compatibility with an `io.exists()` guard to show a warning if the folder is missing.
+
 ### 2026-05-06 - Feature: Note Release Device Gate — robust MIDI note-on/off → device active toggle
 
 A robust replacement for the brittle "Note Release Device Gate" prototype tool. Plays a MIDI note → the targeted device on the track turns ON; release the note → the device turns OFF. Solves the long-standing gap that Signal Follower can't fill: held-key gating that doesn't depend on an audio signal (so a snare hit can feed into a delay that keeps building until you actually release the key).
