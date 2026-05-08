@@ -354,13 +354,39 @@ PakettiAddMenuEntry{
   invoke = PakettiPatternPresetDialog,
 }
 PakettiAddMenuEntry{
+  name = "Main Menu:Options:Paketti Pattern Preset Menu",
+  invoke = PakettiPatternPresetDialog,
+}
+PakettiAddMenuEntry{
   name = "Pattern Editor:Paketti:Pattern Preset Dialog...",
   invoke = PakettiPatternPresetDialog,
 }
 PakettiAddMenuEntry{
-  name = "Pattern Matrix:Paketti:Pattern Preset Dialog...",
+  name = "Pattern Matrix:Paketti:Pattern Preset:Open Dialog",
   invoke = PakettiPatternPresetDialog,
 }
+
+for i = 1, NUM_SLOTS do
+  local label = string.format("%02d", i)
+  PakettiAddMenuEntry{
+    name = "Pattern Matrix:Paketti:Pattern Preset:Pick " .. label,
+    invoke = function() PakettiPatternPresetPick(i) end,
+  }
+end
+for i = 1, NUM_SLOTS do
+  local label = string.format("%02d", i)
+  PakettiAddMenuEntry{
+    name = "Pattern Matrix:Paketti:Pattern Preset:Put " .. label,
+    invoke = function() PakettiPatternPresetPut(i) end,
+  }
+end
+for i = 1, NUM_SLOTS do
+  local label = string.format("%02d", i)
+  PakettiAddMenuEntry{
+    name = "Pattern Matrix:Paketti:Pattern Preset:Clear " .. label,
+    invoke = function() PakettiPatternPresetClear(i) end,
+  }
+end
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Pattern Preset Dialog",
