@@ -22,6 +22,13 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-08 - Fix: Renoise 3.1 compatibility — device_chain_index crash and show_custom_dialog overload error
+
+Fixed two Renoise 3.1 (API 5) crashes:
+
+- **PakettiSamples.lua**: `PakettiInjectDefaultXRNI` ("Pakettify Current Instrument") unconditionally set `to_sample.device_chain_index = 1` in three locations without checking whether the instrument has any device chains. On Renoise 3.1, the loaded XRNI template may have 0 device chains, causing `std::logic_error: 'invalid device_chain_index value'`. All three assignments now guarded with `if #instrument.sample_device_chains > 0`.
+- **PakettiOldschoolSlicePitch.lua**: "Intelligent BPM Detection" dialog passed a close-cleanup function as the 3rd argument to `show_custom_dialog` (where a key handler is expected). On Renoise 3.1 this causes a `No matching overload` error. Fixed by adding a proper `create_keyhandler_for_dialog()` keyhandler and guarding the close callback (4th arg) behind `PAKETTI_API >= 6`.
+
 ### 2026-05-06 - Feature: Paketti Preferences "Open folder to Paketti KeyBindings" button
 
 Added a new "Folders" row in the Paketti Preferences dialog with a button labelled **"Open folder to Paketti KeyBindings (macOS/Linux/Windows)"**. Clicking it opens the `KeyBindings/` folder inside the Paketti tool bundle in the OS file manager (Finder on macOS, file manager on Linux, Explorer on Windows). Uses `renoise.app():open_path()` for cross-platform compatibility with an `io.exists()` guard to show a warning if the folder is missing.

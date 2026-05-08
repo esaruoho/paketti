@@ -753,13 +753,25 @@ function pakettiIntelligentBPMDetection()
     }
   }
   
-  dialog = renoise.app():show_custom_dialog("Intelligent BPM Detection", content, function()
+  local function bpm_dialog_close_notifier()
     -- Clean up observer when dialog closes (following PakettiPlayerProSuite.lua pattern)
     if instrument_observer and song.selected_instrument_index_observable:has_notifier(instrument_observer) then
       song.selected_instrument_index_observable:remove_notifier(instrument_observer)
       print("Removed instrument observer for BPM dialog")
     end
-  end)
+  end
+
+  if PAKETTI_API >= 6 then
+    dialog = renoise.app():show_custom_dialog("Intelligent BPM Detection", content, create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    ), bpm_dialog_close_notifier)
+  else
+    dialog = renoise.app():show_custom_dialog("Intelligent BPM Detection", content, create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    ))
+  end
   
   -- Set up observer for live updates with throttling to prevent excessive recalculation
   local last_update_time = 0

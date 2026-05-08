@@ -3903,8 +3903,10 @@ function PakettiInjectDefaultXRNI()
       to_sample.mute_group = sample_data.mute_group
       to_sample.interpolation_mode = sample_data.interpolation_mode
       to_sample.oversample_enabled = sample_data.oversample_enabled
-      to_sample.device_chain_index = 1
-      
+      if #current_instrument.sample_device_chains > 0 then
+        to_sample.device_chain_index = 1
+      end
+
       -- Restore sample mapping properties
       if sample_data.sample_mapping then
         to_sample.sample_mapping.base_note = sample_data.sample_mapping.base_note
@@ -4065,11 +4067,13 @@ function PakettiInjectDefaultXRNI()
         to_sample.mute_group = from_sample.mute_group
         to_sample.interpolation_mode = from_sample.interpolation_mode
         to_sample.oversample_enabled = from_sample.oversample_enabled
-        to_sample.device_chain_index = 1
+        if #new_instrument.sample_device_chains > 0 then
+          to_sample.device_chain_index = 1
+        end
 
         -- Apply Paketti Loader settings to the main sample
         PakettiInjectApplyLoaderSettings(to_sample)
-        
+
         print("Slices copied for sample #" .. i .. " - name: " .. to_sample.name)
         
         -- Now copy properties for each slice alias (samples 2, 3, 4, etc.)
@@ -4122,8 +4126,10 @@ function PakettiInjectDefaultXRNI()
         end
         local to_sample = new_instrument:sample(i)
         to_sample:copy_from(from_sample)
-        to_sample.device_chain_index = 1 
-        
+        if #new_instrument.sample_device_chains > 0 then
+          to_sample.device_chain_index = 1
+        end
+
         -- Apply Paketti Loader settings to the copied sample
         PakettiInjectApplyLoaderSettings(to_sample)
         
