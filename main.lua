@@ -1128,6 +1128,7 @@ timed_require("PakettiAKWF")
 timed_require("PakettiImpulseTracker")
 timed_require("PakettiPlayerProSuite")
 timed_require("PakettiOctaMEDSuite")
+timed_require("PakettiPatternPreset")
 timed_require("PakettiClipboard")
 
 timed_require("PakettiZDxx")
@@ -1300,7 +1301,6 @@ if PAKETTI_API >= 6.2 then
   timed_require("PakettiClaudeChat")
   timed_require("PakettiClaudeProbe")
   timed_require("PakettiMCPMain")
-  timed_require("PakettiDump")
 else
   -- Fallback stub for PCMWriter functions on older API versions
   function PCMWriterIsCreatingSamples()
@@ -1493,5 +1493,5 @@ PakettiFlushMenuEntries()
 --dbug(renoise.song())
 -- Added: PakettiSelectNextInstrument, PakettiSelectPreviousInstrument
 
-print("this is how we go")
+
 
