@@ -22,6 +22,29 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-08 - Improvement: Pattern Preset — bank file format v2 (human-editable)
+
+**Pattern Preset bank text files are now actually editable by humans.** The previous v1 format dumped the internal storage (`H#32#1#1#1~L#1#48,12,255,255,0,0,0#0,0…`) which was efficient for `preferences.xml` but unreadable. The new **v2** format uses Renoise-style notation with sectioned slots, hex bytes, and dot sentinels for empty fields. Save now writes v2; Load auto-detects v1 vs v2 from the `PakettiPatternPresetBank vN` header, so existing v1 files keep working.
+
+Example v2 output:
+
+```
+PakettiPatternPresetBank v2
+
+[Slot01]
+Name=Kick (P1/T2)
+Lines=32
+NoteCols=1
+EffectCols=1
+TrackType=1
+001: C-4 0C .. .. 00 00 00 || 00 00
+005: C-4 0C .. .. 00 00 00 || 00 00
+009: C-4 12 .. .. 00 00 00 || 00 00
+…
+```
+
+Per-line: `<line>: <NC> | <NC> | … || <EC> | <EC> | …`. NC fields: `<note> <inst> <vol> <pan> <delay> <fxN> <fxA>`. EC fields: `<num> <amt>`. Notes `C-4` / `C#4` / `OFF` / `---`. Bytes `00`–`FF` hex, `..` for empty (instrument / volume / panning only — delay and FX bytes are always shown as hex). Section header per slot includes `Lines`, `NoteCols`, `EffectCols`, `TrackType` (1=Sequencer, 2=Master, 3=Send, 4=Group). You can edit a saved bank in any text editor — change a note from `C-4` to `D#5`, a volume from `7F` to `40`, add or remove rows — and Load will round-trip cleanly.
+
 ### 2026-05-08 - Feature: Pattern Preset — slice current pattern into N banks + save/load bank text files
 
 Two big additions to **Pattern Preset**:

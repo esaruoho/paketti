@@ -487,11 +487,223 @@ function PakettiPatternPresetSliceCurrent(num_slices, start_slot)
     start_slot, start_slot + num_slices - 1))
 end
 
--- Save all 32 slot banks to a text file. Format:
---   PakettiPatternPresetBank v1
---   Slot01|Name|<name>
---   Slot01|Data|<serialized data>
---   ... (32 slots)
+-- Human-readable encoding helpers --------------------------------------------
+
+local PITCH_TO_VAL = {
+  ["C-"]=0,["C#"]=1,["D-"]=2,["D#"]=3,["E-"]=4,["F-"]=5,
+  ["F#"]=6,["G-"]=7,["G#"]=8,["A-"]=9,["A#"]=10,["B-"]=11,
+}
+
+local function note_value_to_str(v)
+  if v == nil or v == 121 then return "---" end
+  if v == 120 then return "OFF" end
+  if v >= 0 and v < 120 then
+    local oct = math.floor(v / 12)
+    local n = v % 12
+    return NOTE_NAMES[n + 1] .. tostring(oct)
+  end
+  return "---"
+end
+
+local function str_to_note_value(s)
+  if s == nil then return 121 end
+  s = s:upper()
+  if s == "---" or s == ".." or s == "" then return 121 end
+  if s == "OFF" then return 120 end
+  local pitch_str, oct_str = s:match("^([A-G][-#])(%d)$")
+  if pitch_str and oct_str then
+    local p = PITCH_TO_VAL[pitch_str]
+    local o = tonumber(oct_str)
+    if p and o then return o * 12 + p end
+  end
+  return 121
+end
+
+local function byte_to_str(v, empty_val)
+  if v == nil then return ".." end
+  if empty_val ~= nil and v == empty_val then return ".." end
+  return string.format("%02X", v)
+end
+
+local function str_to_byte(s, empty_val)
+  if s == nil or s == ".." or s == "" then
+    return empty_val ~= nil and empty_val or 0
+  end
+  return tonumber(s, 16) or 0
+end
+
+local function split_str(s, sep)
+  local out = {}
+  local pos = 1
+  while true do
+    local found = s:find(sep, pos, true)
+    if found then
+      out[#out+1] = s:sub(pos, found - 1)
+      pos = found + #sep
+    else
+      out[#out+1] = s:sub(pos)
+      break
+    end
+  end
+  return out
+end
+
+-- Convert internal compact format → table of human-readable line strings
+-- plus header values. Returns: { lines, total_lines, ncols, ecols, ttype }
+local function slot_to_human(data)
+  local result = { lines = {}, total_lines = 0, ncols = 0, ecols = 0, ttype = 1 }
+  if data == nil or data == "" then return result end
+
+  local first_sep = data:find("~", 1, true)
+  local header = first_sep and data:sub(1, first_sep - 1) or data
+  local lines_s, ncols_s, ecols_s, ttype_s = header:match("^H#(%d+)#(%d+)#(%d+)#(%d+)$")
+  if not lines_s then return result end
+  result.total_lines = tonumber(lines_s) or 0
+  result.ncols = tonumber(ncols_s) or 0
+  result.ecols = tonumber(ecols_s) or 0
+  result.ttype = tonumber(ttype_s) or 1
+
+  if not first_sep then return result end
+
+  for chunk in (data:sub(first_sep + 1) .. "~"):gmatch("([^~]+)~") do
+    if chunk:sub(1, 2) == "L#" then
+      local body = chunk:sub(3)
+      local h1 = body:find("#", 1, true)
+      if h1 then
+        local stored_idx = tonumber(body:sub(1, h1 - 1))
+        local rest_body = body:sub(h1 + 1)
+        local h2 = rest_body:find("#", 1, true)
+        local nc_part, ec_part
+        if h2 then
+          nc_part = rest_body:sub(1, h2 - 1)
+          ec_part = rest_body:sub(h2 + 1)
+        else
+          nc_part = rest_body
+          ec_part = ""
+        end
+
+        local nc_strs = {}
+        if nc_part ~= "" then
+          for nc_str in (nc_part .. ":"):gmatch("([^:]*):") do
+            if nc_str ~= "" then
+              local nv, iv, vv, pv, dv, env, eav = nc_str:match(
+                "^(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+)$")
+              if nv then
+                nc_strs[#nc_strs + 1] = string.format("%s %s %s %s %s %s %s",
+                  note_value_to_str(tonumber(nv)),
+                  byte_to_str(tonumber(iv), 255),
+                  byte_to_str(tonumber(vv), 255),
+                  byte_to_str(tonumber(pv), 255),
+                  string.format("%02X", tonumber(dv) or 0),
+                  string.format("%02X", tonumber(env) or 0),
+                  string.format("%02X", tonumber(eav) or 0))
+              end
+            end
+          end
+        end
+
+        local ec_strs = {}
+        if ec_part ~= "" then
+          for ec_str in (ec_part .. ":"):gmatch("([^:]*):") do
+            if ec_str ~= "" then
+              local en, ea = ec_str:match("^(%d+),(%d+)$")
+              if en then
+                ec_strs[#ec_strs + 1] = string.format("%02X %02X",
+                  tonumber(en), tonumber(ea))
+              end
+            end
+          end
+        end
+
+        local nc_combined = table.concat(nc_strs, " | ")
+        local ec_combined = table.concat(ec_strs, " | ")
+        if stored_idx then
+          if ec_combined ~= "" then
+            result.lines[#result.lines + 1] = string.format("%03d: %s || %s",
+              stored_idx, nc_combined, ec_combined)
+          else
+            result.lines[#result.lines + 1] = string.format("%03d: %s",
+              stored_idx, nc_combined)
+          end
+        end
+      end
+    end
+  end
+  return result
+end
+
+-- Convert parsed human meta + line strings → internal compact format.
+local function human_to_slot(meta, line_strs)
+  local lines_count = tonumber(meta.Lines) or 0
+  local ncols = tonumber(meta.NoteCols) or 0
+  local ecols = tonumber(meta.EffectCols) or 0
+  local ttype = tonumber(meta.TrackType) or 1
+  if lines_count <= 0 then return "" end
+
+  local out = {}
+  out[#out + 1] = string.format("H#%d#%d#%d#%d", lines_count, ncols, ecols, ttype)
+
+  for _, raw in ipairs(line_strs) do
+    local idx_str, payload = raw:match("^%s*(%d+)%s*:%s*(.-)%s*$")
+    if idx_str then
+      local line_idx = tonumber(idx_str)
+      local nc_part_str, ec_part_str
+      local sep_pos = payload:find("||", 1, true)
+      if sep_pos then
+        nc_part_str = payload:sub(1, sep_pos - 1):match("^%s*(.-)%s*$")
+        ec_part_str = payload:sub(sep_pos + 2):match("^%s*(.-)%s*$")
+      else
+        nc_part_str = payload:match("^%s*(.-)%s*$")
+        ec_part_str = ""
+      end
+
+      local nc_strs = {}
+      if nc_part_str and nc_part_str ~= "" then
+        for _, nc_human in ipairs(split_str(nc_part_str, " | ")) do
+          nc_human = nc_human:match("^%s*(.-)%s*$") or ""
+          if nc_human ~= "" then
+            local fields = {}
+            for f in nc_human:gmatch("%S+") do fields[#fields + 1] = f end
+            if #fields >= 7 then
+              local nv = str_to_note_value(fields[1])
+              local iv = str_to_byte(fields[2], 255)
+              local vv = str_to_byte(fields[3], 255)
+              local pv = str_to_byte(fields[4], 255)
+              local dv = str_to_byte(fields[5], 0)
+              local en = str_to_byte(fields[6], 0)
+              local ea = str_to_byte(fields[7], 0)
+              nc_strs[#nc_strs + 1] = string.format("%d,%d,%d,%d,%d,%d,%d",
+                nv, iv, vv, pv, dv, en, ea)
+            end
+          end
+        end
+      end
+
+      local ec_strs = {}
+      if ec_part_str and ec_part_str ~= "" then
+        for _, ec_human in ipairs(split_str(ec_part_str, " | ")) do
+          ec_human = ec_human:match("^%s*(.-)%s*$") or ""
+          if ec_human ~= "" then
+            local fields = {}
+            for f in ec_human:gmatch("%S+") do fields[#fields + 1] = f end
+            if #fields >= 2 then
+              local en = str_to_byte(fields[1], 0)
+              local ea = str_to_byte(fields[2], 0)
+              ec_strs[#ec_strs + 1] = string.format("%d,%d", en, ea)
+            end
+          end
+        end
+      end
+
+      out[#out + 1] = string.format("L#%d#%s#%s",
+        line_idx, table.concat(nc_strs, ":"), table.concat(ec_strs, ":"))
+    end
+  end
+
+  return table.concat(out, "~")
+end
+
+-- Save all 32 slot banks to a human-readable text file (v2 format).
 function PakettiPatternPresetSaveBank(filename)
   if not filename or filename == "" then
     filename = renoise.app():prompt_for_filename_to_write(
@@ -499,17 +711,37 @@ function PakettiPatternPresetSaveBank(filename)
     if not filename or filename == "" then return end
   end
 
-  local lines = { "PakettiPatternPresetBank v1" }
+  local lines = {
+    "# Paketti Pattern Preset Bank — human-editable",
+    "#",
+    "# Per-line entry: <line>: <NC> | <NC> | ... || <EC> | <EC> | ...",
+    "#   NC fields: <note> <inst> <vol> <pan> <delay> <fxN> <fxA>",
+    "#   EC fields: <num> <amt>",
+    "#   note: C-4, C#4, D-3, ..., OFF, ---",
+    "#   bytes: 00-FF hex, .. = empty (inst/vol/pan only)",
+    "#   delay/fxN/fxA always shown as 00-FF hex",
+    "# Header per slot: Lines (pattern length), NoteCols, EffectCols,",
+    "#   TrackType (1=Sequencer, 2=Master, 3=Send, 4=Group)",
+    "PakettiPatternPresetBank v2",
+    "",
+  }
   for i = 1, NUM_SLOTS do
     local label = string.format("%02d", i)
     local name = preferences.PakettiPatternPreset[slot_name_key(i)].value or ""
     local data = preferences.PakettiPatternPreset[slot_key(i)].value or ""
-    -- Strip any newlines defensively (data format never contains them, but
-    -- a hand-edited preferences.xml could still slip something in).
     name = name:gsub("[\r\n]", " ")
-    data = data:gsub("[\r\n]", "")
-    lines[#lines+1] = string.format("Slot%s|Name|%s", label, name)
-    lines[#lines+1] = string.format("Slot%s|Data|%s", label, data)
+
+    local h = slot_to_human(data)
+    lines[#lines + 1] = "[Slot" .. label .. "]"
+    lines[#lines + 1] = "Name=" .. name
+    lines[#lines + 1] = "Lines=" .. tostring(h.total_lines)
+    lines[#lines + 1] = "NoteCols=" .. tostring(h.ncols)
+    lines[#lines + 1] = "EffectCols=" .. tostring(h.ecols)
+    lines[#lines + 1] = "TrackType=" .. tostring(h.ttype)
+    for _, l in ipairs(h.lines) do
+      lines[#lines + 1] = l
+    end
+    lines[#lines + 1] = ""
   end
 
   local fh, err = io.open(filename, "w")
@@ -518,34 +750,12 @@ function PakettiPatternPresetSaveBank(filename)
     return
   end
   fh:write(table.concat(lines, "\n"))
-  fh:write("\n")
   fh:close()
   renoise.app():show_status("Pattern Preset: Saved bank to " .. filename)
 end
 
--- Load all 32 slot banks from a text file written by PakettiPatternPresetSaveBank.
-function PakettiPatternPresetLoadBank(filename)
-  if not filename or filename == "" then
-    filename = renoise.app():prompt_for_filename_to_read(
-      { "*.txt" }, "Load Pattern Preset Bank")
-    if not filename or filename == "" then return end
-  end
-
-  local fh, err = io.open(filename, "r")
-  if not fh then
-    renoise.app():show_error("Pattern Preset: cannot open file for reading: " .. tostring(err))
-    return
-  end
-  local content = fh:read("*a")
-  fh:close()
-
-  local first_nl = content:find("\n", 1, true)
-  local header = first_nl and content:sub(1, first_nl - 1) or content
-  if not header:match("^PakettiPatternPresetBank") then
-    renoise.app():show_error("Pattern Preset: file is not a Paketti Pattern Preset bank.")
-    return
-  end
-
+-- Internal: parse v1 (compact pipe-separated) bank file format.
+local function load_bank_v1(content)
   local count = 0
   for raw_line in (content .. "\n"):gmatch("([^\r\n]*)\r?\n") do
     local idx_str, field, value = raw_line:match("^Slot(%d%d)|([^|]+)|(.*)$")
@@ -561,11 +771,89 @@ function PakettiPatternPresetLoadBank(filename)
       end
     end
   end
+  return count
+end
+
+-- Internal: parse v2 (human-readable section-based) bank file format.
+local function load_bank_v2(content)
+  local count = 0
+  local current_slot = nil
+  local current_meta = {}
+  local current_lines = {}
+
+  local function flush()
+    if current_slot then
+      local data = ""
+      if (tonumber(current_meta.Lines) or 0) > 0 then
+        data = human_to_slot(current_meta, current_lines)
+      end
+      preferences.PakettiPatternPreset[slot_key(current_slot)].value = data
+      preferences.PakettiPatternPreset[slot_name_key(current_slot)].value =
+        current_meta.Name or ""
+      if data ~= "" then count = count + 1 end
+    end
+    current_slot = nil
+    current_meta = {}
+    current_lines = {}
+  end
+
+  for raw in (content .. "\n"):gmatch("([^\r\n]*)\r?\n") do
+    local stripped = raw:match("^%s*(.-)%s*$") or ""
+    if stripped == "" or stripped:sub(1, 1) == "#" or
+       stripped:match("^PakettiPatternPresetBank") then
+      -- comment / blank / header line — skip
+    else
+      local section_idx = stripped:match("^%[Slot(%d%d)%]$")
+      if section_idx then
+        flush()
+        current_slot = tonumber(section_idx)
+      elseif current_slot then
+        local key, val = stripped:match("^([A-Za-z]+)=(.*)$")
+        if key then
+          current_meta[key] = val
+        elseif stripped:match("^%d+%s*:") then
+          current_lines[#current_lines + 1] = stripped
+        end
+      end
+    end
+  end
+  flush()
+  return count
+end
+
+-- Load all 32 slot banks from a text file. Supports v1 (compact) and v2 (human).
+function PakettiPatternPresetLoadBank(filename)
+  if not filename or filename == "" then
+    filename = renoise.app():prompt_for_filename_to_read(
+      { "*.txt" }, "Load Pattern Preset Bank")
+    if not filename or filename == "" then return end
+  end
+
+  local fh, err = io.open(filename, "r")
+  if not fh then
+    renoise.app():show_error("Pattern Preset: cannot open file for reading: " .. tostring(err))
+    return
+  end
+  local content = fh:read("*a")
+  fh:close()
+
+  if not content:match("PakettiPatternPresetBank") then
+    renoise.app():show_error("Pattern Preset: file is not a Paketti Pattern Preset bank.")
+    return
+  end
+
+  local count
+  if content:match("PakettiPatternPresetBank v2") then
+    count = load_bank_v2(content)
+  else
+    count = load_bank_v1(content)
+  end
+
   preferences:save_as("preferences.xml")
   refresh_all_displays()
   renoise.app():show_status(string.format(
     "Pattern Preset: Loaded bank from %s (%d non-empty slots).",
-    filename, count))
+    filename, count or 0))
 end
 
 local CARD_W = 130
