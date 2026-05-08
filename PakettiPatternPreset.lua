@@ -71,6 +71,17 @@ local function get_use_edit_step()
   return preferences.PakettiPatternPreset.UseEditStep.value or false
 end
 
+local function get_advance_to_end()
+  return preferences.PakettiPatternPreset.AdvanceToEnd.value or false
+end
+
+-- Read the stored pattern length (header field "lines") from a serialized slot.
+local function slot_stored_lines(data)
+  if data == nil or data == "" then return 0 end
+  local lines_s = data:match("^H#(%d+)#")
+  return tonumber(lines_s) or 0
+end
+
 -- Serialize the currently selected matrix slot (track-in-pattern cell)
 -- Format: H#lines#ncols#ecols#ttype~L#n#NC#EC~L#n#NC#EC...
 --   NC = note columns separated by ':', each col = "note,inst,vol,pan,delay,fxN,fxA"
@@ -340,16 +351,28 @@ function PakettiPatternPresetPut(slot_index)
     return
   end
 
-  -- Advance the cursor by edit_step (only when both Put-at-cursor and Use Edit Step are on)
+  -- Advance cursor after a Put-at-cursor placement.
+  --   AdvanceToEnd takes precedence (jump to one past the placed preset),
+  --   else UseEditStep advances by transport.edit_step.
   local advanced_to = nil
-  if put_at_cursor and get_use_edit_step() then
-    local step = song.transport.edit_step or 0
-    if step > 0 then
-      local pattern_lines = song.selected_pattern.number_of_lines
-      local new_line = applied_at_line + step
-      if new_line > pattern_lines then new_line = pattern_lines end
-      song.selected_line_index = new_line
-      advanced_to = new_line
+  if put_at_cursor then
+    local pattern_lines = song.selected_pattern.number_of_lines
+    if get_advance_to_end() then
+      local span = slot_stored_lines(get_slot_data(slot_index))
+      if span > 0 then
+        local new_line = applied_at_line + span
+        if new_line > pattern_lines then new_line = pattern_lines end
+        song.selected_line_index = new_line
+        advanced_to = new_line
+      end
+    elseif get_use_edit_step() then
+      local step = song.transport.edit_step or 0
+      if step > 0 then
+        local new_line = applied_at_line + step
+        if new_line > pattern_lines then new_line = pattern_lines end
+        song.selected_line_index = new_line
+        advanced_to = new_line
+      end
     end
   end
 
@@ -527,6 +550,19 @@ function PakettiPatternPresetDialog()
       },
       vb:text{
         text = "Use Edit Step (after Put-at-cursor, advance cursor by transport edit_step — same as OctaMED Pick/Put Row)",
+      },
+    },
+    vb:row{
+      spacing = 8,
+      vb:checkbox{
+        value = get_advance_to_end(),
+        notifier = function(v)
+          preferences.PakettiPatternPreset.AdvanceToEnd.value = v
+          preferences:save_as("preferences.xml")
+        end,
+      },
+      vb:text{
+        text = "Advance to End of Put (after Put-at-cursor, jump cursor to the line right after the placed preset — overrides Edit Step)",
       },
     },
     row1,

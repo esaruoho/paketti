@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-08 - Improvement: Pattern Preset — Advance to End of Put checkbox
+
+New **Advance to End of Put** checkbox in the Pattern Preset dialog. When **Put at cursor** is on and this checkbox is enabled, every Put jumps `selected_line_index` to the line right after the placed preset (cursor lands on `applied_at_line + stored_pattern_length`, clamped to the last pattern line). Lets you stack consecutive presets back-to-back regardless of edit-step value: pick a 16-line pattern, put it at line 1, cursor jumps to 17, put a 12-line pattern, cursor jumps to 29, and so on. Takes precedence over **Use Edit Step** if both are checked. Persisted in `preferences.xml` (`PakettiPatternPreset.AdvanceToEnd`).
+
 ### 2026-05-08 - Improvement: Pattern Preset — Use Edit Step checkbox
 
 New **Use Edit Step** checkbox in the Pattern Preset dialog (mirrors the OctaMED Pick/Put Row dialog's behaviour). When both **Put at cursor** and **Use Edit Step** are enabled, every Put advances `song.selected_line_index` by `transport.edit_step` after placing the preset, so you can stack consecutive presets down a pattern by tapping `1`, `2`, `3` … without manually moving the cursor between Puts. Persisted in `preferences.xml` (`PakettiPatternPreset.UseEditStep`). Cursor stops advancing at the last line of the pattern.
