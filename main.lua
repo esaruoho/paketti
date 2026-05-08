@@ -1299,6 +1299,7 @@ if PAKETTI_API >= 6.2 then
   timed_require("PakettiPhraseGenerator")
   timed_require("PakettiClaudeChat")
   timed_require("PakettiClaudeProbe")
+  timed_require("PakettiMCPMain")
 else
   -- Fallback stub for PCMWriter functions on older API versions
   function PCMWriterIsCreatingSamples()
