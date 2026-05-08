@@ -1718,6 +1718,146 @@ end
 
 renoise.tool():add_midi_mapping{name="Paketti:Change Current Slot Instruments x[Knob]",invoke=function(message) PakettiChangeCurrentSlotInstrumentsKnobHandler(message) end}
 
+-- Block-loop-sized selection knob: divides the current pattern into N equal blocks
+-- (where N = transport.loop_block_range_coeff, range 2..16) and lets a MIDI knob
+-- pick which block becomes the Pattern Editor selection on the current track.
+-- Pair this with `Paketti:Change Current Slot Instruments x[Knob]` so one knob picks
+-- the block and another knob slams a new instrument across that block.
+--
+-- Examples (loop_block_range_coeff dictates block count):
+--   coeff=4, 64-row pattern -> 4 blocks of 16 lines: 1-16, 17-32, 33-48, 49-64
+--     knob at 0   -> block 1 (lines 1-16)
+--     knob at 127 -> block 4 (lines 49-64)
+--   coeff=8, 64-row pattern -> 8 blocks of 8 lines
+--   coeff=16, 64-row pattern -> 16 blocks of 4 lines
+--
+-- Set the block coefficient in Renoise's transport (block-loop button shows N/coeff)
+-- to control the granularity. The knob always picks the currently selected track only.
+PakettiBlockLoopSelectionKnobLastBlock = nil
+function PakettiBlockLoopSelectionKnobHandler(message)
+  local song = renoise.song()
+  if not song then return end
+  local pattern = song.selected_pattern
+  if not pattern then return end
+  local pattern_lines = pattern.number_of_lines
+  if pattern_lines < 1 then return end
+
+  local block_coeff = song.transport.loop_block_range_coeff
+  if block_coeff < 2 then block_coeff = 2 end
+  if block_coeff > 16 then block_coeff = 16 end
+
+  -- Use ceil so a 65-line pattern with coeff=4 still gives 4 reachable blocks
+  -- (lines 1-17, 18-34, 35-51, 52-65) instead of leaving the tail unselectable.
+  local block_size = math.ceil(pattern_lines / block_coeff)
+  if block_size < 1 then block_size = 1 end
+  local num_blocks = math.ceil(pattern_lines / block_size)
+  if num_blocks < 1 then num_blocks = 1 end
+
+  local target_block = nil
+  if message:is_abs_value() then
+    local scaled = scaleValue(message.int_value, 0, 127, 1, num_blocks)
+    target_block = math.floor(math.max(1, math.min(scaled, num_blocks)) + 0.5)
+  elseif message:is_rel_value() then
+    local current_block = PakettiBlockLoopSelectionKnobLastBlock or 1
+    local new_block = current_block + message.int_value
+    target_block = math.max(1, math.min(new_block, num_blocks))
+  else
+    return
+  end
+
+  if target_block == PakettiBlockLoopSelectionKnobLastBlock then
+    -- Knob landed on the same block; skip the redundant selection write.
+    return
+  end
+
+  local start_line = (target_block - 1) * block_size + 1
+  local end_line = math.min(start_line + block_size - 1, pattern_lines)
+
+  local track_idx = song.selected_track_index
+  local track = song.tracks[track_idx]
+  local last_column = track.visible_note_columns + track.visible_effect_columns
+  if last_column < 1 then last_column = 1 end
+
+  song.selection_in_pattern = {
+    start_line = start_line,
+    end_line = end_line,
+    start_track = track_idx,
+    end_track = track_idx,
+    start_column = 1,
+    end_column = last_column,
+  }
+
+  PakettiBlockLoopSelectionKnobLastBlock = target_block
+
+  print(string.format("PakettiBlockLoopSelectionKnobHandler: knob -> block %d/%d (coeff=%d, %d lines/block) lines %d-%d on track %d",
+    target_block, num_blocks, block_coeff, block_size, start_line, end_line, track_idx))
+
+  renoise.app():show_status(string.format("Block %d/%d selected: lines %d-%d (block size %d, coeff %d)",
+    target_block, num_blocks, start_line, end_line, block_size, block_coeff))
+end
+
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Selection to Block Loop x[Knob]",invoke=function(message) PakettiBlockLoopSelectionKnobHandler(message) end}
+
+-- Companion trigger actions: step the block-loop selection by one block. Wraps at
+-- the ends. Useful when you want a button/footswitch instead of a continuous knob.
+function PakettiBlockLoopSelectionStep(direction)
+  local song = renoise.song()
+  if not song then return end
+  local pattern = song.selected_pattern
+  if not pattern then return end
+  local pattern_lines = pattern.number_of_lines
+  if pattern_lines < 1 then return end
+
+  local block_coeff = song.transport.loop_block_range_coeff
+  if block_coeff < 2 then block_coeff = 2 end
+  if block_coeff > 16 then block_coeff = 16 end
+
+  local block_size = math.ceil(pattern_lines / block_coeff)
+  if block_size < 1 then block_size = 1 end
+  local num_blocks = math.ceil(pattern_lines / block_size)
+  if num_blocks < 1 then num_blocks = 1 end
+
+  local current_block = PakettiBlockLoopSelectionKnobLastBlock or 1
+  local new_block = current_block + direction
+  if new_block < 1 then new_block = num_blocks
+  elseif new_block > num_blocks then new_block = 1 end
+
+  local start_line = (new_block - 1) * block_size + 1
+  local end_line = math.min(start_line + block_size - 1, pattern_lines)
+
+  local track_idx = song.selected_track_index
+  local track = song.tracks[track_idx]
+  local last_column = track.visible_note_columns + track.visible_effect_columns
+  if last_column < 1 then last_column = 1 end
+
+  song.selection_in_pattern = {
+    start_line = start_line,
+    end_line = end_line,
+    start_track = track_idx,
+    end_track = track_idx,
+    start_column = 1,
+    end_column = last_column,
+  }
+
+  PakettiBlockLoopSelectionKnobLastBlock = new_block
+
+  print(string.format("PakettiBlockLoopSelectionStep: dir=%+d, %d -> %d/%d, lines %d-%d on track %d",
+    direction, current_block, new_block, num_blocks, start_line, end_line, track_idx))
+
+  renoise.app():show_status(string.format("Block %d/%d selected: lines %d-%d (block size %d, coeff %d)",
+    new_block, num_blocks, start_line, end_line, block_size, block_coeff))
+end
+
+function PakettiBlockLoopSelectionStepNext() PakettiBlockLoopSelectionStep(1) end
+function PakettiBlockLoopSelectionStepPrevious() PakettiBlockLoopSelectionStep(-1) end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selection to Next Block Loop",invoke=function(repeated) if not repeated then PakettiBlockLoopSelectionStepNext() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selection to Previous Block Loop",invoke=function(repeated) if not repeated then PakettiBlockLoopSelectionStepPrevious() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Selection to Next Block Loop",invoke=function(repeated) if not repeated then PakettiBlockLoopSelectionStepNext() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Selection to Previous Block Loop",invoke=function(repeated) if not repeated then PakettiBlockLoopSelectionStepPrevious() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Selection to Next Block Loop",invoke=function(message) if message:is_trigger() then PakettiBlockLoopSelectionStepNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Selection to Previous Block Loop",invoke=function(message) if message:is_trigger() then PakettiBlockLoopSelectionStepPrevious() end end}
+
 -- Wrap-around bumper used by the "Set ... Instrument to Next/Previous" trio.
 -- direction = +1 (next) or -1 (previous). At the last instrument, Next wraps to
 -- the first; at the first instrument, Previous wraps to the last.
