@@ -24,9 +24,21 @@ local function key_for_slot(i)
   return SLOT_KEYS[i] or "?"
 end
 
+-- Map shifted-character variants back to their base key, so that platforms
+-- which deliver the shifted glyph (e.g. "!" for shift+1, ":" for shift+;)
+-- still resolve to the correct slot.
+local SHIFTED_TO_BASE = {
+  ["!"] = "1", ["@"] = "2", ["#"] = "3", ["$"] = "4", ["%"] = "5",
+  ["^"] = "6", ["&"] = "7", ["*"] = "8", ["("] = "9", [")"] = "0",
+  [":"] = ";",
+}
+
 local function slot_for_key(name)
+  if name == nil or name == "" then return nil end
+  local lowered = name:lower()
+  if SHIFTED_TO_BASE[lowered] then lowered = SHIFTED_TO_BASE[lowered] end
   for i, k in ipairs(SLOT_KEYS) do
-    if k == name then return i end
+    if k == lowered then return i end
   end
   return nil
 end
@@ -432,6 +444,11 @@ local function build_keyboard_row(slot_indices)
 end
 
 local function pattern_preset_keyhandler(dialog_obj, key)
+  if not key or not key.name then return key end
+  print(string.format(
+    "PakettiPatternPreset keyhandler: name='%s' modifiers='%s'",
+    tostring(key.name), tostring(key.modifiers)))
+
   local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
     if dialog_obj and dialog_obj.visible then dialog_obj:close() end
@@ -439,7 +456,12 @@ local function pattern_preset_keyhandler(dialog_obj, key)
     return nil
   end
 
-  if key.modifiers == "" then
+  -- Treat any modifier string containing shift (and nothing else) as a Pick
+  local mods = tostring(key.modifiers or "")
+  local is_shift_only = (mods == "shift")
+  local is_no_mod = (mods == "")
+
+  if is_no_mod then
     local slot = slot_for_key(key.name)
     if slot then
       PakettiPatternPresetPut(slot)
@@ -447,7 +469,7 @@ local function pattern_preset_keyhandler(dialog_obj, key)
     end
   end
 
-  if key.modifiers == "shift" then
+  if is_shift_only then
     local slot = slot_for_key(key.name)
     if slot then
       PakettiPatternPresetPick(slot)
