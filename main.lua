@@ -1298,6 +1298,7 @@ if PAKETTI_API >= 6.2 then
   timed_require("PakettiAutomationStack")
   timed_require("PakettiPhraseGenerator")
   timed_require("PakettiClaudeChat")
+  timed_require("PakettiClaudeProbe")
 else
   -- Fallback stub for PCMWriter functions on older API versions
   function PCMWriterIsCreatingSamples()
@@ -1490,15 +1491,3 @@ PakettiFlushMenuEntries()
 --dbug(renoise.song())
 -- Added: PakettiSelectNextInstrument, PakettiSelectPreviousInstrument
 
--- Claude Opus 4.7 smoke-test branch: only fires when the flag file exists.
--- Re-arm by writing /tmp/paketti-claude-flag.txt and saving any source file.
-do
-  local flag_path = "/tmp/paketti-claude-flag.txt"
-  local f = io.open(flag_path, "r")
-  if f then
-    local payload = f:read("*a") or ""
-    f:close()
-    os.remove(flag_path)
-    renoise.app():show_message(payload)
-  end
-end
