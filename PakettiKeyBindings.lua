@@ -1027,3 +1027,237 @@ function convert_key_name(key)
   end
   return table.concat(parts, " + ")
 end
+
+------------------------------------------------------------------------------
+-- Paketti Keybindings Loader Dialog
+------------------------------------------------------------------------------
+-- Renoise's Lua API has NO function to apply default keyboard shortcuts:
+-- the Tool API explicitly says "Users manually have to bind them in the
+-- keyboard prefs pane" (renoise/tool.lua, ToolKeybindingEntry docstring).
+-- This dialog guides the user through the manual import: it lists the
+-- bundled Paketti preset XML files in the tool bundle, highlights the
+-- recommended one for the current OS, opens the source folder in the OS
+-- file manager, and explains the Renoise Preferences > Keys > Import flow.
+
+PakettiKeybindingsLoaderDialog_dialog = nil
+
+function PakettiKeybindingsLoaderListBundledPresets()
+  local bundle_path = renoise.tool().bundle_path
+  local sep = (os.platform() == "WINDOWS") and "\\" or "/"
+  local folder = bundle_path .. "KeyBindings" .. sep
+  local files = {}
+  local ok, names = pcall(os.filenames, folder)
+  if ok and names then
+    for _, name in ipairs(names) do
+      if name:lower():match("%.xml$") then
+        table.insert(files, name)
+      end
+    end
+  end
+  table.sort(files, function(a, b) return a:lower() < b:lower() end)
+  return files, folder
+end
+
+function PakettiKeybindingsLoaderRecommendedPreset(files)
+  local os_name = os.platform()
+  for _, name in ipairs(files) do
+    local lower = name:lower()
+    local is_other_os = lower:match("linux") or lower:match("windows")
+    if os_name == "MACINTOSH" and not is_other_os then
+      return name
+    elseif (os_name == "WINDOWS" or os_name == "LINUX") and is_other_os then
+      return name
+    end
+  end
+  return files[1]
+end
+
+function PakettiKeybindingsLoaderRenoisePrefsFolder()
+  local os_name = os.platform()
+  local renoise_version = renoise.RENOISE_VERSION:match("(%d+%.%d+%.%d+)")
+  if os_name == "WINDOWS" then
+    local home = os.getenv("USERPROFILE") or os.getenv("HOME")
+    return home .. "\\AppData\\Roaming\\Renoise\\V" .. renoise_version
+  elseif os_name == "MACINTOSH" then
+    local home = os.getenv("HOME")
+    return home .. "/Library/Preferences/Renoise/V" .. renoise_version
+  else
+    local home = os.getenv("HOME")
+    return home .. "/.config/Renoise/V" .. renoise_version
+  end
+end
+
+function PakettiKeybindingsLoaderDialog()
+  if PakettiKeybindingsLoaderDialog_dialog and PakettiKeybindingsLoaderDialog_dialog.visible then
+    PakettiKeybindingsLoaderDialog_dialog:close()
+    PakettiKeybindingsLoaderDialog_dialog = nil
+    return
+  end
+
+  local files, bundle_folder = PakettiKeybindingsLoaderListBundledPresets()
+  local recommended = PakettiKeybindingsLoaderRecommendedPreset(files)
+  local prefs_folder = PakettiKeybindingsLoaderRenoisePrefsFolder()
+  local os_name = os.platform()
+  local pretty_os_map = { MACINTOSH = "macOS", WINDOWS = "Windows", LINUX = "Linux" }
+  local pretty_os = pretty_os_map[os_name] or os_name
+
+  print("PakettiKeybindingsLoaderDialog: opening")
+  print("  bundle_folder: " .. tostring(bundle_folder))
+  print("  prefs_folder:  " .. tostring(prefs_folder))
+  print("  detected OS:   " .. tostring(pretty_os))
+  print("  preset files found: " .. tostring(#files))
+  for _, name in ipairs(files) do
+    print("    - " .. name .. (name == recommended and "  (recommended)" or ""))
+  end
+
+  local vbl = renoise.ViewBuilder()
+  local content_width = 660
+
+  local header = vbl:text{
+    text = "Paketti Keybindings Loader",
+    font = "big",
+    style = "strong",
+    width = content_width
+  }
+
+  local body_lines = {
+    "Renoise's Lua API does not allow tools to set default keyboard shortcuts —",
+    "you have to import them once via Renoise's Preferences > Keys panel.",
+    "",
+    "This dialog points you at the Paketti-bundled preset .xml files inside the",
+    "tool. Pick the file for your platform, follow the steps below, and your",
+    "Paketti-recommended shortcuts are live."
+  }
+  local body = vbl:text{
+    text = table.concat(body_lines, "\n"),
+    width = content_width
+  }
+
+  local detect_text = vbl:text{
+    text = "Detected: " .. pretty_os .. "  |  Renoise " .. renoise.RENOISE_VERSION,
+    font = "bold",
+    width = content_width
+  }
+
+  local files_column = vbl:column{ width = content_width, spacing = 2 }
+  if #files == 0 then
+    files_column:add_child(vbl:text{
+      text = "(No .xml preset files found in: " .. bundle_folder .. ")",
+      style = "disabled",
+      width = content_width
+    })
+  else
+    files_column:add_child(vbl:text{
+      text = "Bundled keybinding presets (in Paketti tool bundle):",
+      font = "bold",
+      width = content_width
+    })
+    for _, name in ipairs(files) do
+      local label
+      if name == recommended then
+        label = "  * " .. name .. "   (recommended for " .. pretty_os .. ")"
+      else
+        label = "    " .. name
+      end
+      files_column:add_child(vbl:text{
+        text = label,
+        font = (name == recommended) and "bold" or "normal",
+        width = content_width
+      })
+    end
+  end
+
+  local steps_lines = {
+    "Steps to import:",
+    "  1. Click \"Open Paketti's KeyBindings Folder\" below to reveal the preset files.",
+    "  2. In Renoise, open Edit > Preferences (Renoise > Preferences on macOS).",
+    "  3. Go to the \"Keys\" tab.",
+    "  4. Click the \"Import...\" button at the bottom of the Keys panel.",
+    "  5. Browse to the Paketti KeyBindings folder and select the recommended .xml.",
+    "  6. Confirm. Done — Paketti-recommended shortcuts are now active.",
+    "",
+    "Notes:",
+    "  - Renoise's \"Import...\" merges with your existing bindings; it does not wipe them.",
+    "  - Renoise saves your live KeyBindings.xml only when it quits, so the import",
+    "    becomes permanent on the next quit.",
+    "  - Re-running this loader after a Paketti update is safe; just re-import the",
+    "    preset to pick up any new pre-bound shortcuts."
+  }
+  local steps = vbl:text{
+    text = table.concat(steps_lines, "\n"),
+    width = content_width
+  }
+
+  local buttons = vbl:row{
+    spacing = 8,
+    vbl:button{
+      text = "Open Paketti's KeyBindings Folder",
+      width = 300,
+      notifier = function()
+        print("PakettiKeybindingsLoaderDialog: opening bundle folder " .. bundle_folder)
+        if io.exists(bundle_folder) then
+          renoise.app():open_path(bundle_folder)
+        else
+          renoise.app():show_warning("KeyBindings folder not found at:\n" .. bundle_folder)
+        end
+      end
+    },
+    vbl:button{
+      text = "Open Renoise Preferences Folder",
+      width = 300,
+      notifier = function()
+        print("PakettiKeybindingsLoaderDialog: opening prefs folder " .. prefs_folder)
+        if io.exists(prefs_folder) then
+          renoise.app():open_path(prefs_folder)
+        else
+          renoise.app():show_warning(
+            "Renoise preferences folder not found at:\n" .. prefs_folder ..
+            "\n\nThis folder is created the first time Renoise saves preferences." ..
+            "\nQuit Renoise once after launch and re-check."
+          )
+        end
+      end
+    }
+  }
+
+  local close_row = vbl:row{
+    vbl:button{
+      text = "Close",
+      width = 120,
+      notifier = function()
+        if PakettiKeybindingsLoaderDialog_dialog and PakettiKeybindingsLoaderDialog_dialog.visible then
+          PakettiKeybindingsLoaderDialog_dialog:close()
+        end
+        PakettiKeybindingsLoaderDialog_dialog = nil
+      end
+    }
+  }
+
+  local dialog_content = vbl:column{
+    margin = 10,
+    spacing = 8,
+    header,
+    body,
+    detect_text,
+    files_column,
+    steps,
+    buttons,
+    close_row
+  }
+
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return PakettiKeybindingsLoaderDialog_dialog end,
+    function(value) PakettiKeybindingsLoaderDialog_dialog = value end
+  )
+
+  PakettiKeybindingsLoaderDialog_dialog = renoise.app():show_custom_dialog(
+    "Paketti Keybindings Loader", dialog_content, keyhandler
+  )
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Keybindings Loader Dialog...",invoke=PakettiKeybindingsLoaderDialog}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Keybindings Loader Dialog",invoke=PakettiKeybindingsLoaderDialog}
+
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Keybindings Loader Dialog x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiKeybindingsLoaderDialog() end end}
