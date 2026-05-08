@@ -46,10 +46,6 @@ local function set_slot_data(i, data, name)
   preferences:save_as("preferences.xml")
 end
 
-local function get_slot_name(i)
-  return preferences.PakettiPatternPreset[slot_name_key(i)].value or ""
-end
-
 local function is_slot_empty(i)
   local d = get_slot_data(i)
   return d == nil or d == ""
@@ -226,29 +222,73 @@ local function apply_to_selected_slot(data)
   return true
 end
 
-local function slot_summary(i)
-  local d = get_slot_data(i)
-  local k = key_for_slot(i):upper()
-  if d == nil or d == "" then
-    return string.format("[%s] %02d: Empty", k, i)
+local NOTE_NAMES = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
+
+local function note_value_to_string(v)
+  if v == nil then return "..." end
+  if v == 121 then return "..." end
+  if v == 120 then return "OFF" end
+  if v >= 0 and v < 120 then
+    local oct = math.floor(v / 12)
+    local n = v % 12
+    return NOTE_NAMES[n + 1] .. tostring(oct)
   end
+  return "???"
+end
+
+local function slot_stats(i)
+  local d = get_slot_data(i)
+  if d == nil or d == "" then return "Empty" end
   local lines, ncols, ecols = d:match("^H#(%d+)#(%d+)#(%d+)#")
   local count = 0
   for _ in d:gmatch("L#") do count = count + 1 end
-  local name = get_slot_name(i)
-  if name and name ~= "" then
-    return string.format("[%s] %02d (%s): %s ln, %s nc, %s ec, %d filled",
-      k, i, name, lines or "?", ncols or "?", ecols or "?", count)
+  return string.format("%sL %sN %sE %dF",
+    lines or "?", ncols or "?", ecols or "?", count)
+end
+
+-- Build a content preview string of up to ~max_notes first-column notes
+local function slot_preview(i, max_notes)
+  max_notes = max_notes or 6
+  local d = get_slot_data(i)
+  if d == nil or d == "" then return "(empty)" end
+  local notes = {}
+  for chunk in d:gmatch("[^~]+") do
+    if chunk:sub(1, 2) == "L#" then
+      if #notes >= max_notes then break end
+      local body = chunk:sub(3)
+      local h1 = body:find("#", 1, true)
+      if h1 then
+        local rest_body = body:sub(h1 + 1)
+        local h2 = rest_body:find("#", 1, true)
+        local nc = h2 and rest_body:sub(1, h2 - 1) or rest_body
+        local first_col = nc:match("^([^:]*)") or nc
+        local nv = first_col:match("^(%-?%d+),")
+        if nv then
+          notes[#notes + 1] = note_value_to_string(tonumber(nv))
+        else
+          notes[#notes + 1] = "fx"
+        end
+      end
+    end
   end
-  return string.format("[%s] %02d: %s ln, %s nc, %s ec, %d filled",
-    k, i, lines or "?", ncols or "?", ecols or "?", count)
+  if #notes == 0 then return "(empty)" end
+  return table.concat(notes, " ")
+end
+
+local function slot_label(i)
+  local k = key_for_slot(i):upper()
+  return string.format("%s . %02d", k, i)
 end
 
 local function refresh_slot_display(i)
   if vb and vb.views then
-    local id = string.format("pp_slot_display_%02d", i)
-    if vb.views[id] then
-      vb.views[id].text = slot_summary(i)
+    local stats_id = string.format("pp_slot_stats_%02d", i)
+    local prev_id = string.format("pp_slot_preview_%02d", i)
+    if vb.views[stats_id] then
+      vb.views[stats_id].text = slot_stats(i)
+    end
+    if vb.views[prev_id] then
+      vb.views[prev_id].text = slot_preview(i)
     end
   end
 end
@@ -306,39 +346,51 @@ function PakettiPatternPresetClearAll()
   renoise.app():show_status("Pattern Preset: Cleared All Slots")
 end
 
--- Build a single slot mini-card (vertical column with key + Pick/Put/Clear)
+local CARD_W = 130
+local INNER_W = CARD_W - 8
+
+-- Build a single slot mini-card with key label, Pick/Put/Clear, stats, preview
 local function build_slot_card(i)
-  local k = key_for_slot(i):upper()
   return vb:column{
     spacing = 1,
-    width = 64,
+    width = CARD_W,
     style = "group",
-    margin = 2,
+    margin = 3,
     vb:text{
-      text = string.format("%s · %02d", k, i),
+      text = slot_label(i),
       style = "strong",
       align = "center",
-      width = 60,
+      width = INNER_W,
+    },
+    vb:row{
+      spacing = 1,
+      vb:button{
+        text = "Pick",
+        width = math.floor(INNER_W / 2),
+        pressed = function() PakettiPatternPresetPick(i) end,
+      },
+      vb:button{
+        text = "Put",
+        width = math.ceil(INNER_W / 2),
+        pressed = function() PakettiPatternPresetPut(i) end,
+      },
     },
     vb:button{
-      text = "Put",
-      width = 60,
-      pressed = function() PakettiPatternPresetPut(i) end,
-    },
-    vb:button{
-      text = "Pick",
-      width = 60,
-      pressed = function() PakettiPatternPresetPick(i) end,
-    },
-    vb:button{
-      text = "Clr",
-      width = 60,
+      text = "Clear",
+      width = INNER_W,
       pressed = function() PakettiPatternPresetClear(i) end,
     },
     vb:text{
-      id = string.format("pp_slot_display_%02d", i),
-      text = slot_summary(i),
-      width = 60,
+      id = string.format("pp_slot_stats_%02d", i),
+      text = slot_stats(i),
+      width = INNER_W,
+      font = "mono",
+      align = "center",
+    },
+    vb:text{
+      id = string.format("pp_slot_preview_%02d", i),
+      text = slot_preview(i),
+      width = INNER_W,
       font = "mono",
     },
   }

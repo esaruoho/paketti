@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-08 - Improvement: Pattern Preset — readable slot cards with note preview
+
+Each Pattern Preset slot card now has two persistent text rows under the buttons: a compact stats line (`<lines>L <ncols>N <ecols>E <filled>F`) and a multi-character preview of the slot's first six first-column notes (`C-4 D#5 G-4 A-4 E-5 ...` style). Cards widened to 130 px / ~16 monospace characters of preview, so you can spot what's stored in each slot at a glance instead of having to put it into a pattern to find out. Empty slots show `Empty` and `(empty)` respectively.
+
 ### 2026-05-08 - Improvement: Pattern Preset — keyboard-style dialog, hotkey Pick/Put, Put-at-cursor
 
 The **Pattern Preset** dialog is rebuilt around a QWERTY-keyboard layout: 32 slot mini-cards arranged in four rows that mirror the keyboard — `1234567890` (slots 01–10), `qwertyuiop` (11–20), `asdfghjkl;` (21–30), `zx` (31–32). Each card shows the key letter, the slot number, Put / Pick / Clear buttons, and a live summary line. While the dialog is focused: pressing `<key>` puts that slot, pressing `Shift+<key>` picks into that slot — same one-handed flow as the **Paketti Enhanced Automation** dialog. Click cards directly for the same actions. New **Put at cursor** checkbox: when on, Put places the preset starting at the currently selected line and only clears the destination range it overwrites — outside lines stay untouched. So picking a 16-line pattern and putting it at line 16 of a 32-line pattern lays the 16 lines into rows 16–31 without nuking rows 1–15. The checkbox state persists in `preferences.xml` (`PakettiPatternPreset.PutAtCursor`). Pressing the standard dialog-close key (default `esc`) closes the dialog. All previously registered keybindings, MIDI mappings, and Pattern Matrix submenu entries remain intact.
