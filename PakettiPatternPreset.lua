@@ -369,21 +369,21 @@ PakettiAddMenuEntry{
 for i = 1, NUM_SLOTS do
   local label = string.format("%02d", i)
   PakettiAddMenuEntry{
-    name = "Pattern Matrix:Paketti:Pattern Preset:Pick " .. label,
+    name = "Pattern Matrix:Paketti:Pattern Preset:Pick:" .. label,
     invoke = function() PakettiPatternPresetPick(i) end,
   }
 end
 for i = 1, NUM_SLOTS do
   local label = string.format("%02d", i)
   PakettiAddMenuEntry{
-    name = "Pattern Matrix:Paketti:Pattern Preset:Put " .. label,
+    name = "Pattern Matrix:Paketti:Pattern Preset:Put:" .. label,
     invoke = function() PakettiPatternPresetPut(i) end,
   }
 end
 for i = 1, NUM_SLOTS do
   local label = string.format("%02d", i)
   PakettiAddMenuEntry{
-    name = "Pattern Matrix:Paketti:Pattern Preset:Clear " .. label,
+    name = "Pattern Matrix:Paketti:Pattern Preset:Clear:" .. label,
     invoke = function() PakettiPatternPresetClear(i) end,
   }
 end
