@@ -1461,9 +1461,15 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-S Set Selection to Instrument",invoke=function() SetInstrument() end} 
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Impulse Tracker ALT-S Set Selection to Instrument",invoke=function() SetInstrument() end} 
 
--- Change instrument values in selected pattern matrix slots to the currently selected
--- instrument, color the slots with the instrument color (or a fallback highlight color)
--- so the change is visible, and report which slots got modified in the status bar.
+-- Change instrument values to the currently selected instrument across the most
+-- specific scope available. Priority order:
+--   1) Pattern Editor selection_in_pattern (line range + note-column range across
+--      the selected track range, in the current sequence)
+--   2) Pattern Matrix selected slots (whole pattern, all visible note columns)
+--   3) Fallback to the currently selected slot (track + sequence, whole pattern)
+-- Colors the affected slot(s) with an inverted+hardened version of the selected
+-- track's color so the change is visible at a glance, and reports each modified
+-- slot/region in the status bar.
 function PakettiChangeCurrentSlotInstrumentsToSelectedInstrument()
   local s = renoise.song()
   if not s then return end
@@ -1506,51 +1512,103 @@ function PakettiChangeCurrentSlotInstrumentsToSelectedInstrument()
   local total_tracks = s.sequencer_track_count
   local total_seqs = #sequencer.pattern_sequence
 
-  local slots = {}
-  for track_idx = 1, total_tracks do
-    for seq_idx = 1, total_seqs do
-      if sequencer:track_sequence_slot_is_selected(track_idx, seq_idx) then
-        table.insert(slots, {track_idx = track_idx, seq_idx = seq_idx})
+  -- Build a list of operations. Each op = {track_idx, seq_idx, line_start, line_end,
+  -- col_start, col_end}. line_start/end are nil to mean "whole pattern"; col_start/end
+  -- are 1..visible_note_columns. Selection priority:
+  --   1) Pattern Editor selection_in_pattern (most specific) - current sequence only,
+  --      restricted to the selected line range and the selected note-column range
+  --   2) Pattern Matrix selected slots - whole-pattern, all visible note columns
+  --   3) Fallback: the currently selected slot (track + sequence) - whole-pattern
+  local ops = {}
+  local source = nil
+  local pe_sel = s.selection_in_pattern
+
+  if pe_sel ~= nil then
+    source = "selection"
+    local seq_idx = s.selected_sequence_index
+    local start_track = pe_sel.start_track
+    local end_track = pe_sel.end_track
+    for tr = start_track, end_track do
+      local col_start = (tr == start_track) and pe_sel.start_column or 1
+      local col_end = (tr == end_track) and pe_sel.end_column or nil
+      table.insert(ops, {
+        track_idx = tr,
+        seq_idx = seq_idx,
+        line_start = pe_sel.start_line,
+        line_end = pe_sel.end_line,
+        col_start = col_start,
+        col_end = col_end,
+      })
+    end
+  else
+    local matrix_slots = {}
+    for track_idx = 1, total_tracks do
+      for seq_idx = 1, total_seqs do
+        if sequencer:track_sequence_slot_is_selected(track_idx, seq_idx) then
+          table.insert(matrix_slots, {track_idx = track_idx, seq_idx = seq_idx})
+        end
       end
+    end
+    if #matrix_slots > 0 then
+      source = "matrix"
+      for _, slot in ipairs(matrix_slots) do
+        table.insert(ops, {
+          track_idx = slot.track_idx,
+          seq_idx = slot.seq_idx,
+          line_start = nil, line_end = nil,
+          col_start = 1, col_end = nil,
+        })
+      end
+    else
+      source = "current"
+      table.insert(ops, {
+        track_idx = s.selected_track_index,
+        seq_idx = s.selected_sequence_index,
+        line_start = nil, line_end = nil,
+        col_start = 1, col_end = nil,
+      })
     end
   end
 
-  -- Fall back to the currently selected slot when no matrix selection exists
-  if #slots == 0 then
-    table.insert(slots, {track_idx = s.selected_track_index, seq_idx = s.selected_sequence_index})
-  end
-
-  print(string.format("PakettiChangeCurrentSlotInstrumentsToSelectedInstrument: %d slot(s) to process, instrument %02X (%s)",
-    #slots, selected_instr_idx - 1, instr_name))
+  print(string.format("PakettiChangeCurrentSlotInstrumentsToSelectedInstrument: source=%s, %d op(s), instrument %02X (%s)",
+    source, #ops, selected_instr_idx - 1, instr_name))
 
   local changed_count = 0
   local skipped_count = 0
   local last_status = nil
 
-  for _, slot in ipairs(slots) do
-    local track_idx = slot.track_idx
-    local seq_idx = slot.seq_idx
+  for _, op in ipairs(ops) do
+    local track_idx = op.track_idx
+    local seq_idx = op.seq_idx
     local pattern_idx = sequencer.pattern_sequence[seq_idx]
     local pattern = s.patterns[pattern_idx]
     local track = s.tracks[track_idx]
 
     if not pattern or not track then
-      print(string.format("  Slot track=%d seq=%d -> missing pattern or track, skipping", track_idx, seq_idx))
+      print(string.format("  Op track=%d seq=%d -> missing pattern or track, skipping", track_idx, seq_idx))
       skipped_count = skipped_count + 1
     elseif track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
-      print(string.format("  Slot track=%d seq=%d -> not a sequencer track (type=%d), skipping", track_idx, seq_idx, track.type))
+      print(string.format("  Op track=%d seq=%d -> not a sequencer track (type=%d), skipping", track_idx, seq_idx, track.type))
       skipped_count = skipped_count + 1
     else
       local pattern_track = pattern.tracks[track_idx]
       local visible_note_columns = track.visible_note_columns
       local notes_changed = 0
 
+      local line_start = op.line_start or 1
+      local line_end = op.line_end or pattern.number_of_lines
+      local col_start = math.max(1, op.col_start or 1)
+      local col_end = math.min(visible_note_columns, op.col_end or visible_note_columns)
+
+      -- selection_in_pattern columns count both note + effect columns; if the
+      -- selection is entirely inside the effect-column area, col_start may exceed
+      -- col_end after clamping, which makes the inner for-loop a no-op (correct).
       if pattern_track.is_alias then
-        print(string.format("  Slot track=%d seq=%d (pattern %d) is an alias, only coloring", track_idx, seq_idx, pattern_idx))
+        print(string.format("  Op track=%d seq=%d (pattern %d) is an alias, only coloring", track_idx, seq_idx, pattern_idx))
       else
-        for line_idx = 1, pattern.number_of_lines do
+        for line_idx = line_start, line_end do
           local line = pattern_track:line(line_idx)
-          for nc = 1, visible_note_columns do
+          for nc = col_start, col_end do
             local note_col = line.note_columns[nc]
             if note_col.instrument_value ~= EMPTY_INSTRUMENT then
               note_col.instrument_value = selected_instr_idx - 1
@@ -1565,8 +1623,13 @@ function PakettiChangeCurrentSlotInstrumentsToSelectedInstrument()
       changed_count = changed_count + 1
       local track_name = track.name
       if track_name == "" then track_name = string.format("Track %d", track_idx) end
-      last_status = string.format("Changed Pattern %d Track %d (%s) Slot %d to instrument %02X (%s)",
-        pattern_idx, track_idx, track_name, seq_idx, selected_instr_idx - 1, instr_name)
+      if op.line_start ~= nil then
+        last_status = string.format("Changed Pattern %d Track %d (%s) Slot %d lines %d-%d cols %d-%d to instrument %02X (%s)",
+          pattern_idx, track_idx, track_name, seq_idx, line_start, line_end, col_start, col_end, selected_instr_idx - 1, instr_name)
+      else
+        last_status = string.format("Changed Pattern %d Track %d (%s) Slot %d to instrument %02X (%s)",
+          pattern_idx, track_idx, track_name, seq_idx, selected_instr_idx - 1, instr_name)
+      end
       print(string.format("  %s [%d note column entries updated]", last_status, notes_changed))
     end
   end
@@ -1576,7 +1639,7 @@ function PakettiChangeCurrentSlotInstrumentsToSelectedInstrument()
   elseif changed_count == 1 then
     renoise.app():show_status(last_status)
   else
-    renoise.app():show_status(string.format("Changed %d slots to instrument %02X (%s)",
+    renoise.app():show_status(string.format("Changed %d slots/regions to instrument %02X (%s)",
       changed_count, selected_instr_idx - 1, instr_name))
   end
 end
@@ -1675,8 +1738,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Current Slot Instrument t
 renoise.tool():add_keybinding{name="Global:Paketti:Set Current Slot Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetCurrentSlotInstrumentToPrevious() end end}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Set Current Slot Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetCurrentSlotInstrumentToNext() end end}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Set Current Slot Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetCurrentSlotInstrumentToPrevious() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Set Current Slot Instrument to Next",invoke=function(message) if message:is_trigger() then PakettiSetCurrentSlotInstrumentToNext() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Set Current Slot Instrument to Previous",invoke=function(message) if message:is_trigger() then PakettiSetCurrentSlotInstrumentToPrevious() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Current Slot Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetCurrentSlotInstrumentToNext() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Current Slot Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetCurrentSlotInstrumentToPrevious() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Current Slot Instrument to Next",invoke=function(message) if message:is_trigger() then PakettiSetCurrentSlotInstrumentToNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Current Slot Instrument to Previous",invoke=function(message) if message:is_trigger() then PakettiSetCurrentSlotInstrumentToPrevious() end end}
 ----------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------
 function MarkTrackMarkPattern()
