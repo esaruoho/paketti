@@ -11,6 +11,11 @@
 local INBOX_PATH = "/tmp/claude-inbox.txt"
 local OUTBOX_LOG = "/tmp/claude-chat-log.txt"
 
+-- Migration verification marker — set on every file load so we can confirm
+-- Renoise auto-reload picked up edits made directly in /work/paketti
+-- (which is now a symlink to the iCloud xrnx dir, post .git relocation).
+_PakettiMigrationProbe = "loaded-at-" .. os.date("%H:%M:%S")
+
 local dialog = nil
 local vb = nil
 local response_view = nil
