@@ -82,11 +82,34 @@ local function slot_stored_lines(data)
   return tonumber(lines_s) or 0
 end
 
+-- Serialize a single pattern line into the "L#<idx>#<NC>#<EC>" chunk format.
+local function serialize_line(line, ncols, ecols, ttype, stored_idx)
+  local nc_part = ""
+  if ttype == renoise.Track.TRACK_TYPE_SEQUENCER and ncols > 0 then
+    local nc_strs = {}
+    for c = 1, ncols do
+      local nc = line.note_columns[c]
+      nc_strs[#nc_strs+1] = string.format("%d,%d,%d,%d,%d,%d,%d",
+        nc.note_value, nc.instrument_value, nc.volume_value,
+        nc.panning_value, nc.delay_value,
+        nc.effect_number_value, nc.effect_amount_value)
+    end
+    nc_part = table.concat(nc_strs, ":")
+  end
+  local ec_part = ""
+  if ecols > 0 then
+    local ec_strs = {}
+    for c = 1, ecols do
+      local ec = line.effect_columns[c]
+      ec_strs[#ec_strs+1] = string.format("%d,%d", ec.number_value, ec.amount_value)
+    end
+    ec_part = table.concat(ec_strs, ":")
+  end
+  return string.format("L#%d#%s#%s", stored_idx, nc_part, ec_part)
+end
+
 -- Serialize the currently selected matrix slot (track-in-pattern cell)
 -- Format: H#lines#ncols#ecols#ttype~L#n#NC#EC~L#n#NC#EC...
---   NC = note columns separated by ':', each col = "note,inst,vol,pan,delay,fxN,fxA"
---   EC = effect columns separated by ':', each col = "num,amt"
---   Only non-empty lines are stored.
 local function serialize_selected_slot()
   local song = renoise.song()
   local pattern = song.selected_pattern
@@ -101,37 +124,44 @@ local function serialize_selected_slot()
 
   local out = {}
   out[#out+1] = string.format("H#%d#%d#%d#%d", lines_count, ncols, ecols, ttype)
-
   for line_idx = 1, lines_count do
     local line = pattern_track:line(line_idx)
     if not line.is_empty then
-      local nc_part = ""
-      if ttype == renoise.Track.TRACK_TYPE_SEQUENCER and ncols > 0 then
-        local nc_strs = {}
-        for c = 1, ncols do
-          local nc = line.note_columns[c]
-          nc_strs[#nc_strs+1] = string.format("%d,%d,%d,%d,%d,%d,%d",
-            nc.note_value, nc.instrument_value, nc.volume_value,
-            nc.panning_value, nc.delay_value,
-            nc.effect_number_value, nc.effect_amount_value)
-        end
-        nc_part = table.concat(nc_strs, ":")
-      end
-
-      local ec_part = ""
-      if ecols > 0 then
-        local ec_strs = {}
-        for c = 1, ecols do
-          local ec = line.effect_columns[c]
-          ec_strs[#ec_strs+1] = string.format("%d,%d", ec.number_value, ec.amount_value)
-        end
-        ec_part = table.concat(ec_strs, ":")
-      end
-
-      out[#out+1] = string.format("L#%d#%s#%s", line_idx, nc_part, ec_part)
+      out[#out+1] = serialize_line(line, ncols, ecols, ttype, line_idx)
     end
   end
+  return table.concat(out, "~")
+end
 
+-- Serialize a sub-range of the currently selected matrix slot, with line
+-- indices remapped to start at 1 (so the resulting preset behaves as a
+-- standalone N-line pattern).
+local function serialize_selected_slot_range(source_start, source_end)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  local track = song.tracks[track_index]
+  local pattern_track = pattern.tracks[track_index]
+
+  local ncols = track.visible_note_columns or 0
+  local ecols = track.visible_effect_columns or 0
+  local total_lines = pattern.number_of_lines
+  local ttype = track.type
+
+  if source_start < 1 then source_start = 1 end
+  if source_end > total_lines then source_end = total_lines end
+  local span = source_end - source_start + 1
+  if span < 1 then return "" end
+
+  local out = {}
+  out[#out+1] = string.format("H#%d#%d#%d#%d", span, ncols, ecols, ttype)
+  for line_idx = source_start, source_end do
+    local line = pattern_track:line(line_idx)
+    if not line.is_empty then
+      local rel_idx = line_idx - source_start + 1
+      out[#out+1] = serialize_line(line, ncols, ecols, ttype, rel_idx)
+    end
+  end
   return table.concat(out, "~")
 end
 
@@ -408,6 +438,136 @@ function PakettiPatternPresetClearAll()
   renoise.app():show_status("Pattern Preset: Cleared All Slots")
 end
 
+-- Slice the currently selected matrix slot into num_slices equal-length
+-- pieces and store them into consecutive banks starting at start_slot.
+function PakettiPatternPresetSliceCurrent(num_slices, start_slot)
+  num_slices = tonumber(num_slices) or 0
+  start_slot = tonumber(start_slot) or 1
+  if num_slices < 2 then
+    renoise.app():show_status("Pattern Preset: Slice count must be 2 or more.")
+    return
+  end
+  if start_slot < 1 or start_slot > NUM_SLOTS then
+    renoise.app():show_status("Pattern Preset: Start slot out of range.")
+    return
+  end
+  if start_slot + num_slices - 1 > NUM_SLOTS then
+    renoise.app():show_status(string.format(
+      "Pattern Preset: %d slices starting at slot %02d would exceed slot %02d.",
+      num_slices, start_slot, NUM_SLOTS))
+    return
+  end
+
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local total_lines = pattern.number_of_lines
+  local chunk_size = math.floor(total_lines / num_slices)
+  if chunk_size < 1 then
+    renoise.app():show_status(string.format(
+      "Pattern Preset: pattern has only %d lines — too few for %d slices.",
+      total_lines, num_slices))
+    return
+  end
+
+  for slice = 1, num_slices do
+    local slot_idx = start_slot + slice - 1
+    local source_start = (slice - 1) * chunk_size + 1
+    local source_end = source_start + chunk_size - 1
+    local data = serialize_selected_slot_range(source_start, source_end)
+    local nm = string.format("Slice %d/%d (P%d/T%d)",
+      slice, num_slices,
+      song.selected_pattern_index, song.selected_track_index)
+    set_slot_data(slot_idx, data, nm)
+    refresh_slot_display(slot_idx)
+  end
+
+  renoise.app():show_status(string.format(
+    "Pattern Preset: Sliced %d-line pattern into %d × %d-line slices, slots %02d-%02d.",
+    total_lines, num_slices, chunk_size,
+    start_slot, start_slot + num_slices - 1))
+end
+
+-- Save all 32 slot banks to a text file. Format:
+--   PakettiPatternPresetBank v1
+--   Slot01|Name|<name>
+--   Slot01|Data|<serialized data>
+--   ... (32 slots)
+function PakettiPatternPresetSaveBank(filename)
+  if not filename or filename == "" then
+    filename = renoise.app():prompt_for_filename_to_write(
+      "txt", "Save Pattern Preset Bank")
+    if not filename or filename == "" then return end
+  end
+
+  local lines = { "PakettiPatternPresetBank v1" }
+  for i = 1, NUM_SLOTS do
+    local label = string.format("%02d", i)
+    local name = preferences.PakettiPatternPreset[slot_name_key(i)].value or ""
+    local data = preferences.PakettiPatternPreset[slot_key(i)].value or ""
+    -- Strip any newlines defensively (data format never contains them, but
+    -- a hand-edited preferences.xml could still slip something in).
+    name = name:gsub("[\r\n]", " ")
+    data = data:gsub("[\r\n]", "")
+    lines[#lines+1] = string.format("Slot%s|Name|%s", label, name)
+    lines[#lines+1] = string.format("Slot%s|Data|%s", label, data)
+  end
+
+  local fh, err = io.open(filename, "w")
+  if not fh then
+    renoise.app():show_error("Pattern Preset: cannot open file for writing: " .. tostring(err))
+    return
+  end
+  fh:write(table.concat(lines, "\n"))
+  fh:write("\n")
+  fh:close()
+  renoise.app():show_status("Pattern Preset: Saved bank to " .. filename)
+end
+
+-- Load all 32 slot banks from a text file written by PakettiPatternPresetSaveBank.
+function PakettiPatternPresetLoadBank(filename)
+  if not filename or filename == "" then
+    filename = renoise.app():prompt_for_filename_to_read(
+      { "*.txt" }, "Load Pattern Preset Bank")
+    if not filename or filename == "" then return end
+  end
+
+  local fh, err = io.open(filename, "r")
+  if not fh then
+    renoise.app():show_error("Pattern Preset: cannot open file for reading: " .. tostring(err))
+    return
+  end
+  local content = fh:read("*a")
+  fh:close()
+
+  local first_nl = content:find("\n", 1, true)
+  local header = first_nl and content:sub(1, first_nl - 1) or content
+  if not header:match("^PakettiPatternPresetBank") then
+    renoise.app():show_error("Pattern Preset: file is not a Paketti Pattern Preset bank.")
+    return
+  end
+
+  local count = 0
+  for raw_line in (content .. "\n"):gmatch("([^\r\n]*)\r?\n") do
+    local idx_str, field, value = raw_line:match("^Slot(%d%d)|([^|]+)|(.*)$")
+    if idx_str then
+      local i = tonumber(idx_str)
+      if i and i >= 1 and i <= NUM_SLOTS then
+        if field == "Name" then
+          preferences.PakettiPatternPreset[slot_name_key(i)].value = value or ""
+        elseif field == "Data" then
+          preferences.PakettiPatternPreset[slot_key(i)].value = value or ""
+          if value and value ~= "" then count = count + 1 end
+        end
+      end
+    end
+  end
+  preferences:save_as("preferences.xml")
+  refresh_all_displays()
+  renoise.app():show_status(string.format(
+    "Pattern Preset: Loaded bank from %s (%d non-empty slots).",
+    filename, count))
+end
+
 local CARD_W = 130
 local INNER_W = CARD_W - 8
 
@@ -571,6 +731,44 @@ function PakettiPatternPresetDialog()
     row4,
     vb:row{
       spacing = 4,
+      vb:text{ text = "Slice current pattern into", style = "strong" },
+      vb:popup{
+        id = "pp_slice_count",
+        items = { "2", "4", "8", "16", "32" },
+        value = 3,
+        width = 50,
+      },
+      vb:text{ text = "equal pieces, starting at slot" },
+      vb:valuebox{
+        id = "pp_slice_start",
+        min = 1,
+        max = NUM_SLOTS,
+        value = 1,
+        width = 50,
+      },
+      vb:button{
+        text = "Slice & Distribute",
+        width = 130,
+        pressed = function()
+          local items = { 2, 4, 8, 16, 32 }
+          local n = items[vb.views.pp_slice_count.value] or 8
+          local start_slot = vb.views.pp_slice_start.value or 1
+          PakettiPatternPresetSliceCurrent(n, start_slot)
+        end,
+      },
+    },
+    vb:row{
+      spacing = 4,
+      vb:button{
+        text = "Save Bank to File...",
+        width = 150,
+        pressed = function() PakettiPatternPresetSaveBank() end,
+      },
+      vb:button{
+        text = "Load Bank from File...",
+        width = 150,
+        pressed = function() PakettiPatternPresetLoadBank() end,
+      },
       vb:button{
         text = "Refresh Displays",
         width = 120,
@@ -636,6 +834,76 @@ for i = 1, NUM_SLOTS do
     invoke = function() PakettiPatternPresetClear(i) end,
   }
 end
+
+PakettiAddMenuEntry{
+  name = "Pattern Matrix:Paketti:Pattern Preset:Slice into 2",
+  invoke = function() PakettiPatternPresetSliceCurrent(2, 1) end,
+}
+PakettiAddMenuEntry{
+  name = "Pattern Matrix:Paketti:Pattern Preset:Slice into 4",
+  invoke = function() PakettiPatternPresetSliceCurrent(4, 1) end,
+}
+PakettiAddMenuEntry{
+  name = "Pattern Matrix:Paketti:Pattern Preset:Slice into 8",
+  invoke = function() PakettiPatternPresetSliceCurrent(8, 1) end,
+}
+PakettiAddMenuEntry{
+  name = "Pattern Matrix:Paketti:Pattern Preset:Slice into 16",
+  invoke = function() PakettiPatternPresetSliceCurrent(16, 1) end,
+}
+PakettiAddMenuEntry{
+  name = "Pattern Matrix:Paketti:Pattern Preset:Slice into 32",
+  invoke = function() PakettiPatternPresetSliceCurrent(32, 1) end,
+}
+PakettiAddMenuEntry{
+  name = "Pattern Matrix:Paketti:Pattern Preset:Save Bank to File...",
+  invoke = function() PakettiPatternPresetSaveBank() end,
+}
+PakettiAddMenuEntry{
+  name = "Pattern Matrix:Paketti:Pattern Preset:Load Bank from File...",
+  invoke = function() PakettiPatternPresetLoadBank() end,
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Pattern Preset Slice into 2",
+  invoke = function() PakettiPatternPresetSliceCurrent(2, 1) end,
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Pattern Preset Slice into 4",
+  invoke = function() PakettiPatternPresetSliceCurrent(4, 1) end,
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Pattern Preset Slice into 8",
+  invoke = function() PakettiPatternPresetSliceCurrent(8, 1) end,
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Pattern Preset Slice into 16",
+  invoke = function() PakettiPatternPresetSliceCurrent(16, 1) end,
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Pattern Preset Slice into 32",
+  invoke = function() PakettiPatternPresetSliceCurrent(32, 1) end,
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Pattern Preset Save Bank to File",
+  invoke = function() PakettiPatternPresetSaveBank() end,
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Pattern Preset Load Bank from File",
+  invoke = function() PakettiPatternPresetLoadBank() end,
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Pattern Preset Save Bank to File",
+  invoke = function(message)
+    if message:is_trigger() then PakettiPatternPresetSaveBank() end
+  end,
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Pattern Preset Load Bank from File",
+  invoke = function(message)
+    if message:is_trigger() then PakettiPatternPresetLoadBank() end
+  end,
+}
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Pattern Preset Dialog",

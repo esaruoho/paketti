@@ -22,6 +22,14 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-08 - Feature: Pattern Preset — slice current pattern into N banks + save/load bank text files
+
+Two big additions to **Pattern Preset**:
+
+**Slice & Distribute.** Take the currently selected matrix slot, divide it into 2 / 4 / 8 / 16 / 32 equal-length pieces, and drop each piece into its own preset bank starting at a chosen slot. A 64-row pattern sliced into 8 fills slots 01–08 with eight 8-row chunks; each chunk's stored line numbers are remapped to start at 1 so it behaves as a standalone N-line preset. Combined with **Put at cursor** + **Advance to End of Put** you can hammer `1, 2, 3, 4, 5, 6, 7, 8` to lay them down sequentially in any destination matrix slot. Dialog row: `Slice current pattern into [N] equal pieces, starting at slot [NN]` + button. `PakettiPatternPresetSliceCurrent(num_slices, start_slot)`. Menu entries: `Pattern Matrix:Paketti:Pattern Preset:Slice into 2`, `... into 4`, `... into 8`, `... into 16`, `... into 32`. Keybindings: `Global:Paketti:Pattern Preset Slice into 2/4/8/16/32`.
+
+**Bank text-file save/load.** Save all 32 slots (data + names) to a plain text file, load them back later. Format is line-based and human-readable: a `PakettiPatternPresetBank v1` header followed by `Slot01|Name|<name>` and `Slot01|Data|<serialized>` rows for each slot. Lets you share preset banks, snapshot them into a project folder, or version-control them. `PakettiPatternPresetSaveBank(filename)` / `PakettiPatternPresetLoadBank(filename)` (filename optional — pops a file chooser if omitted). Dialog buttons: `Save Bank to File...`, `Load Bank from File...`. Menu entries: `Pattern Matrix:Paketti:Pattern Preset:Save Bank to File...`, `... Load Bank from File...`. Keybindings: `Global:Paketti:Pattern Preset Save Bank to File`, `... Load Bank from File`. MIDI mappings: `Paketti:Pattern Preset Save Bank to File`, `... Load Bank from File`.
+
 ### 2026-05-08 - Improvement: Pattern Preset — Advance to End of Put checkbox
 
 New **Advance to End of Put** checkbox in the Pattern Preset dialog. When **Put at cursor** is on and this checkbox is enabled, every Put jumps `selected_line_index` to the line right after the placed preset (cursor lands on `applied_at_line + stored_pattern_length`, clamped to the last pattern line). Lets you stack consecutive presets back-to-back regardless of edit-step value: pick a 16-line pattern, put it at line 1, cursor jumps to 17, put a 12-line pattern, cursor jumps to 29, and so on. Takes precedence over **Use Edit Step** if both are checked. Persisted in `preferences.xml` (`PakettiPatternPreset.AdvanceToEnd`).
