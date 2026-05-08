@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-08 - Feature: pdump() global helper for Scripting Terminal
+
+`PakettiDump.lua` adds a global function `pdump(value, label)` callable from Renoise's Scripting Terminal that takes any Lua value, dumps it to `/tmp/paketti-<label>-<timestamp>.txt`, and opens the file in the system default editor (`open` on macOS, `start` on Windows). Tables are walked via `rprint` with `print` temporarily monkey-patched to redirect into the file; userdata is walked via `oprint`; primitives are `tostring`'d. Companion `pdump_quiet(value, label)` writes the file without opening it. Designed to make introspection one-liners trivial — e.g. `pdump(renoise.song().selected_track.available_device_infos, "devices")` produces a grep-able file with all VST/VST3/AU/Native plugin names + paths.
+
 ### 2026-05-08 - Feature: Paketti MCP Server (Streamable HTTP MCP inside Paketti)
 
 Paketti now hosts a Streamable HTTP MCP server on `localhost:19714/mcp`, letting Claude (or any MCP client) drive Renoise via JSON-RPC 2.0 over HTTP. The MCP core (json/router/server/dialog + tools for transport, song, tracks, patterns, sequencer, instruments, devices) is adapted from kraken@renoise.com's ReMCP project (https://github.com/renoise/xrnx, MIT licensed) into Paketti's namespace under `PakettiMCP/`. Start the server via menu entry `Main Menu:Tools:Paketti:!Preferences:MCP Server Start` or keybinding `Global:Paketti:MCP Server Start`. Verify with `curl http://localhost:19714/health`. Tools/list and tools/call work from any MCP client — Claude Desktop, Claude Code via mcp-remote, plain curl. This collapses the OSC + probe-file feedback hack into a proper bidirectional API surface. Added: 3 keybindings (`MCP Server Dialog/Start/Stop`), 3 menu entries under Paketti Preferences, full server source under `PakettiMCP/` (json.lua, router.lua, server.lua, dialog.lua, tools/{transport,song,tracks,patterns,sequencer,instruments,devices}.lua).
@@ -45,6 +49,17 @@ Added a new dialog that walks the user through importing Paketti's bundled keybi
 - **Inline step-by-step instructions** for the manual `Edit > Preferences > Keys > Import...` flow with notes that import merges (does not wipe), and that Renoise only persists the merged result on next quit.
 
 Registered via `Main Menu:Tools:Paketti:!Preferences:Paketti Keybindings Loader Dialog...` and `Main Menu:Options:Paketti Keybindings Loader Dialog...` (both via the sortable `PakettiAddMenuEntry{}` wrapper), `Global:Paketti:Paketti Keybindings Loader Dialog` keybinding, and `Paketti:Paketti Keybindings Loader Dialog x[Toggle]` MIDI mapping. Toggle behaviour: invoking the menu/key while the dialog is open closes it.
+
+### 2026-05-08 - Update: Duplicate Pattern Above/Below & Clear Muted Tracks now hands loop+playback off to the new duplicate
+
+The Ctrl+Up / Ctrl+Down "Duplicate Pattern Above/Below & Clear Muted Tracks" actions in `PakettiPatternMatrix.lua` now keep the workflow fluid when the user is mid-loop. If, at the moment of duplication, **playback is on AND the current pattern is being looped** (either via `transport.loop_pattern` or via a single-slot `transport.loop_sequence_range == {N, N}`), the loop and the playhead are now handed off to the freshly created duplicate. Specifically:
+
+- **Single-slot Pattern Sequencer loop (`{N, N}`)** is moved to `{new_seq_index, new_seq_index}`. Multi-slot ranges (e.g. `{3, 7}`) are intentionally left alone — those are song-structure loops, not "loop this one pattern".
+- **Playback handoff** uses `transport:set_scheduled_sequence(new_seq_index)`, which queues the jump for the next pattern boundary. The current loop iteration finishes naturally and playback rolls into the duplicate without a mid-bar cut. Pattern Loop (`transport.loop_pattern`) is left as-is — once playback lands on the duplicate, it auto-loops the new pattern just like it did the old one.
+- **No-op when not playing** — if you Ctrl+Down while stopped, behaviour is unchanged from before. The handover branch only fires when both `was_playing` and `was_looping` were true.
+- **Status bar suffix** — when handover happens, the existing status message gains `[loop+playback moved to new pattern]` so it's clear what just changed.
+
+Two new global helpers in `PakettiPatternMatrix.lua` factor the logic: `PakettiCapturePatternLoopState(song, seq_index)` snapshots the relevant loop fields before mutation, and `PakettiHandoverPatternLoopAndPlayback(song, prior_state, new_seq_index)` performs the loop-range move and the scheduled-sequence jump after insertion. Both emit verbose `print()` debug lines so the scripting console shows exactly what was decided each time.
 
 ### 2026-05-08 - Update: Pattern Sequencer Ctrl+Up/Ctrl+Down bound to Duplicate Pattern Above/Below & Clear Muted Tracks
 
