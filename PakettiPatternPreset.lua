@@ -1,10 +1,35 @@
 -- PakettiPatternPreset.lua
 -- Pick/Put a complete Pattern Matrix slot (one track-in-pattern cell)
 -- across 32 banks stored persistently in preferences.
+--
+-- Dialog layout mirrors the QWERTY keyboard:
+--   Row 1 (slots 01-10): 1 2 3 4 5 6 7 8 9 0
+--   Row 2 (slots 11-20): q w e r t y u i o p
+--   Row 3 (slots 21-30): a s d f g h j k l ;
+--   Row 4 (slots 31-32): z x
+-- While the dialog is focused: <key> = Put, Shift+<key> = Pick.
 
 local NUM_SLOTS = 32
 local vb = renoise.ViewBuilder()
 local dialog = nil
+
+local SLOT_KEYS = {
+  "1","2","3","4","5","6","7","8","9","0",
+  "q","w","e","r","t","y","u","i","o","p",
+  "a","s","d","f","g","h","j","k","l",";",
+  "z","x"
+}
+
+local function key_for_slot(i)
+  return SLOT_KEYS[i] or "?"
+end
+
+local function slot_for_key(name)
+  for i, k in ipairs(SLOT_KEYS) do
+    if k == name then return i end
+  end
+  return nil
+end
 
 local function slot_key(i) return string.format("Slot%02d", i) end
 local function slot_name_key(i) return string.format("Slot%02d", i) .. "Name" end
@@ -28,6 +53,10 @@ end
 local function is_slot_empty(i)
   local d = get_slot_data(i)
   return d == nil or d == ""
+end
+
+local function get_put_at_cursor()
+  return preferences.PakettiPatternPreset.PutAtCursor.value or false
 end
 
 -- Serialize the currently selected matrix slot (track-in-pattern cell)
@@ -83,7 +112,9 @@ local function serialize_selected_slot()
   return table.concat(out, "~")
 end
 
--- Apply serialized slot data to the currently selected matrix slot
+-- Apply serialized slot data to the currently selected matrix slot.
+-- When PutAtCursor preference is true, places the preset starting at
+-- the current selected_line_index instead of overwriting the whole pattern.
 local function apply_to_selected_slot(data)
   if data == nil or data == "" then return false, "Empty preset" end
 
@@ -93,16 +124,14 @@ local function apply_to_selected_slot(data)
   local track = song.tracks[track_index]
   local pattern_track = pattern.tracks[track_index]
 
-  -- Parse header (first chunk before first '~')
   local first_sep = data:find("~", 1, true)
   local header = first_sep and data:sub(1, first_sep - 1) or data
   local lines_s, ncols_s, ecols_s = header:match("^H#(%d+)#(%d+)#(%d+)#%d+$")
   if not lines_s then return false, "Invalid preset header" end
-  local _ = lines_s
+  local stored_lines = tonumber(lines_s) or 0
   local stored_ncols = tonumber(ncols_s) or 0
   local stored_ecols = tonumber(ecols_s) or 0
 
-  -- Update visible columns to fit stored data (clamped, but never reduce)
   if track.type == renoise.Track.TRACK_TYPE_SEQUENCER and stored_ncols > 0 then
     if stored_ncols > track.visible_note_columns then
       track.visible_note_columns = math.min(stored_ncols, 12)
@@ -112,24 +141,31 @@ local function apply_to_selected_slot(data)
     track.visible_effect_columns = math.min(stored_ecols, 8)
   end
 
-  -- Clear destination track in pattern
-  for line_idx = 1, pattern.number_of_lines do
+  local put_at_cursor = get_put_at_cursor()
+  local line_offset = 0
+  local clear_start, clear_end
+  if put_at_cursor then
+    line_offset = song.selected_line_index - 1
+    clear_start = math.max(1, line_offset + 1)
+    clear_end = math.min(pattern.number_of_lines, line_offset + stored_lines)
+  else
+    clear_start = 1
+    clear_end = pattern.number_of_lines
+  end
+
+  for line_idx = clear_start, clear_end do
     pattern_track:line(line_idx):clear()
   end
 
-  if not first_sep then
-    return true  -- empty pattern
-  end
+  if not first_sep then return true end
 
-  -- Walk the rest
   local rest = data:sub(first_sep + 1)
   for chunk in (rest .. "~"):gmatch("([^~]+)~") do
     if chunk:sub(1, 2) == "L#" then
       local body = chunk:sub(3)
-      -- body = "<line>#<nc>#<ec>" — but nc and ec may contain ':' and ',' but not '#'
       local hash1 = body:find("#", 1, true)
       if hash1 then
-        local line_idx = tonumber(body:sub(1, hash1 - 1))
+        local stored_line_idx = tonumber(body:sub(1, hash1 - 1))
         local rest2 = body:sub(hash1 + 1)
         local hash2 = rest2:find("#", 1, true)
         local nc_part, ec_part
@@ -141,42 +177,45 @@ local function apply_to_selected_slot(data)
           ec_part = ""
         end
 
-        if line_idx and line_idx >= 1 and line_idx <= pattern.number_of_lines then
-          local line = pattern_track:line(line_idx)
+        if stored_line_idx then
+          local target_line = stored_line_idx + line_offset
+          if target_line >= 1 and target_line <= pattern.number_of_lines then
+            local line = pattern_track:line(target_line)
 
-          if nc_part ~= "" and track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-            local col = 1
-            for nc_str in (nc_part .. ":"):gmatch("([^:]*):") do
-              if nc_str ~= "" and col <= track.visible_note_columns then
-                local nv, iv, vv, pv, dv, env, eav = nc_str:match(
-                  "^(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+)$")
-                if nv then
-                  local nc = line.note_columns[col]
-                  nc.note_value = tonumber(nv)
-                  nc.instrument_value = tonumber(iv)
-                  nc.volume_value = tonumber(vv)
-                  nc.panning_value = tonumber(pv)
-                  nc.delay_value = tonumber(dv)
-                  nc.effect_number_value = tonumber(env)
-                  nc.effect_amount_value = tonumber(eav)
+            if nc_part ~= "" and track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+              local col = 1
+              for nc_str in (nc_part .. ":"):gmatch("([^:]*):") do
+                if nc_str ~= "" and col <= track.visible_note_columns then
+                  local nv, iv, vv, pv, dv, env, eav = nc_str:match(
+                    "^(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+),(%-?%d+)$")
+                  if nv then
+                    local nc = line.note_columns[col]
+                    nc.note_value = tonumber(nv)
+                    nc.instrument_value = tonumber(iv)
+                    nc.volume_value = tonumber(vv)
+                    nc.panning_value = tonumber(pv)
+                    nc.delay_value = tonumber(dv)
+                    nc.effect_number_value = tonumber(env)
+                    nc.effect_amount_value = tonumber(eav)
+                  end
                 end
+                col = col + 1
               end
-              col = col + 1
             end
-          end
 
-          if ec_part ~= "" then
-            local col = 1
-            for ec_str in (ec_part .. ":"):gmatch("([^:]*):") do
-              if ec_str ~= "" and col <= track.visible_effect_columns then
-                local ev, av = ec_str:match("^(%d+),(%d+)$")
-                if ev then
-                  local ec = line.effect_columns[col]
-                  ec.number_value = tonumber(ev)
-                  ec.amount_value = tonumber(av)
+            if ec_part ~= "" then
+              local col = 1
+              for ec_str in (ec_part .. ":"):gmatch("([^:]*):") do
+                if ec_str ~= "" and col <= track.visible_effect_columns then
+                  local ev, av = ec_str:match("^(%d+),(%d+)$")
+                  if ev then
+                    local ec = line.effect_columns[col]
+                    ec.number_value = tonumber(ev)
+                    ec.amount_value = tonumber(av)
+                  end
                 end
+                col = col + 1
               end
-              col = col + 1
             end
           end
         end
@@ -187,25 +226,24 @@ local function apply_to_selected_slot(data)
   return true
 end
 
--- Build a short summary describing the slot for the UI
 local function slot_summary(i)
   local d = get_slot_data(i)
+  local k = key_for_slot(i):upper()
   if d == nil or d == "" then
-    return string.format("Slot %02d: Empty", i)
+    return string.format("[%s] %02d: Empty", k, i)
   end
   local lines, ncols, ecols = d:match("^H#(%d+)#(%d+)#(%d+)#")
   local count = 0
   for _ in d:gmatch("L#") do count = count + 1 end
   local name = get_slot_name(i)
   if name and name ~= "" then
-    return string.format("Slot %02d (%s): %s lines, %s nc, %s ec, %d filled",
-      i, name, lines or "?", ncols or "?", ecols or "?", count)
+    return string.format("[%s] %02d (%s): %s ln, %s nc, %s ec, %d filled",
+      k, i, name, lines or "?", ncols or "?", ecols or "?", count)
   end
-  return string.format("Slot %02d: %s lines, %s nc, %s ec, %d filled",
-    i, lines or "?", ncols or "?", ecols or "?", count)
+  return string.format("[%s] %02d: %s ln, %s nc, %s ec, %d filled",
+    k, i, lines or "?", ncols or "?", ecols or "?", count)
 end
 
--- Update single slot's display in the dialog (if open)
 local function refresh_slot_display(i)
   if vb and vb.views then
     local id = string.format("pp_slot_display_%02d", i)
@@ -243,9 +281,12 @@ function PakettiPatternPresetPut(slot_index)
     renoise.app():show_status(string.format("Pattern Preset Put failed: %s", err or "?"))
     return
   end
+  local where = get_put_at_cursor()
+    and string.format("at line %d", song.selected_line_index)
+    or "(full pattern)"
   renoise.app():show_status(string.format(
-    "Pattern Preset: Put Slot %02d into Pattern %d, Track %d",
-    slot_index, song.selected_pattern_index, song.selected_track_index))
+    "Pattern Preset: Put Slot %02d into Pattern %d, Track %d %s",
+    slot_index, song.selected_pattern_index, song.selected_track_index, where))
 end
 
 function PakettiPatternPresetClear(slot_index)
@@ -265,31 +306,77 @@ function PakettiPatternPresetClearAll()
   renoise.app():show_status("Pattern Preset: Cleared All Slots")
 end
 
-local function build_slot_row(i)
-  return vb:row{
-    spacing = 4,
+-- Build a single slot mini-card (vertical column with key + Pick/Put/Clear)
+local function build_slot_card(i)
+  local k = key_for_slot(i):upper()
+  return vb:column{
+    spacing = 1,
+    width = 64,
+    style = "group",
+    margin = 2,
     vb:text{
-      id = string.format("pp_slot_display_%02d", i),
-      text = slot_summary(i),
-      width = 260,
+      text = string.format("%s · %02d", k, i),
       style = "strong",
-    },
-    vb:button{
-      text = "Pick",
-      width = 44,
-      pressed = function() PakettiPatternPresetPick(i) end,
+      align = "center",
+      width = 60,
     },
     vb:button{
       text = "Put",
-      width = 44,
+      width = 60,
       pressed = function() PakettiPatternPresetPut(i) end,
     },
     vb:button{
-      text = "Clear",
-      width = 50,
+      text = "Pick",
+      width = 60,
+      pressed = function() PakettiPatternPresetPick(i) end,
+    },
+    vb:button{
+      text = "Clr",
+      width = 60,
       pressed = function() PakettiPatternPresetClear(i) end,
     },
+    vb:text{
+      id = string.format("pp_slot_display_%02d", i),
+      text = slot_summary(i),
+      width = 60,
+      font = "mono",
+    },
   }
+end
+
+local function build_keyboard_row(slot_indices)
+  local r = vb:row{ spacing = 2 }
+  for _, i in ipairs(slot_indices) do
+    r:add_child(build_slot_card(i))
+  end
+  return r
+end
+
+local function pattern_preset_keyhandler(dialog_obj, key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.modifiers == "" and key.name == closer then
+    if dialog_obj and dialog_obj.visible then dialog_obj:close() end
+    dialog = nil
+    return nil
+  end
+
+  if key.modifiers == "" then
+    local slot = slot_for_key(key.name)
+    if slot then
+      PakettiPatternPresetPut(slot)
+      return nil
+    end
+  end
+
+  if key.modifiers == "shift" then
+    local slot = slot_for_key(key.name)
+    if slot then
+      PakettiPatternPresetPick(slot)
+      return nil
+    end
+  end
+
+  return key
 end
 
 function PakettiPatternPresetDialog()
@@ -300,27 +387,40 @@ function PakettiPatternPresetDialog()
   end
   vb = renoise.ViewBuilder()
 
-  local left_col = vb:column{ spacing = 2 }
-  local right_col = vb:column{ spacing = 2 }
-  for i = 1, 16 do left_col:add_child(build_slot_row(i)) end
-  for i = 17, NUM_SLOTS do right_col:add_child(build_slot_row(i)) end
+  local row1 = build_keyboard_row({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 })
+  local row2 = build_keyboard_row({ 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 })
+  local row3 = build_keyboard_row({ 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 })
+  local row4 = build_keyboard_row({ 31, 32 })
 
   local content = vb:column{
     margin = 8,
-    spacing = 6,
+    spacing = 4,
     vb:text{
-      text = "Pattern Preset — Pick/Put complete Pattern Matrix slots (32 banks).",
+      text = "Pattern Preset — pick/put complete Pattern Matrix slots (32 banks).",
       style = "strong",
     },
     vb:text{
-      text = "Pick captures the currently selected matrix cell (selected pattern × selected track). Put writes the stored cell into the currently selected matrix cell.",
+      text = "Keys: <key> = Put, Shift+<key> = Pick. Click cards directly for the same actions.",
     },
     vb:row{
       spacing = 8,
-      left_col,
-      right_col,
+      vb:checkbox{
+        value = get_put_at_cursor(),
+        notifier = function(v)
+          preferences.PakettiPatternPreset.PutAtCursor.value = v
+          preferences:save_as("preferences.xml")
+        end,
+      },
+      vb:text{
+        text = "Put at cursor (place preset starting at the selected line; outside lines untouched)",
+      },
     },
+    row1,
+    row2,
+    row3,
+    row4,
     vb:row{
+      spacing = 4,
       vb:button{
         text = "Refresh Displays",
         width = 120,
@@ -339,11 +439,10 @@ function PakettiPatternPresetDialog()
     },
   }
 
-  local keyhandler = create_keyhandler_for_dialog(
-    function() return dialog end,
-    function(d) dialog = d end
-  )
-  dialog = renoise.app():show_custom_dialog("Paketti Pattern Preset", content, keyhandler)
+  dialog = renoise.app():show_custom_dialog(
+    "Paketti Pattern Preset",
+    content,
+    pattern_preset_keyhandler)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 

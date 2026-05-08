@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-08 - Improvement: Pattern Preset — keyboard-style dialog, hotkey Pick/Put, Put-at-cursor
+
+The **Pattern Preset** dialog is rebuilt around a QWERTY-keyboard layout: 32 slot mini-cards arranged in four rows that mirror the keyboard — `1234567890` (slots 01–10), `qwertyuiop` (11–20), `asdfghjkl;` (21–30), `zx` (31–32). Each card shows the key letter, the slot number, Put / Pick / Clear buttons, and a live summary line. While the dialog is focused: pressing `<key>` puts that slot, pressing `Shift+<key>` picks into that slot — same one-handed flow as the **Paketti Enhanced Automation** dialog. Click cards directly for the same actions. New **Put at cursor** checkbox: when on, Put places the preset starting at the currently selected line and only clears the destination range it overwrites — outside lines stay untouched. So picking a 16-line pattern and putting it at line 16 of a 32-line pattern lays the 16 lines into rows 16–31 without nuking rows 1–15. The checkbox state persists in `preferences.xml` (`PakettiPatternPreset.PutAtCursor`). Pressing the standard dialog-close key (default `esc`) closes the dialog. All previously registered keybindings, MIDI mappings, and Pattern Matrix submenu entries remain intact.
+
 ### 2026-05-08 - Improvement: Pattern Preset — full Pattern Matrix submenu and Options menu entry
 
 The 32 banks added to **Pattern Preset** earlier today are now fully exposed as menu entries inside the Pattern Matrix right-click menu under a `Pattern Preset` submenu: `Pattern Matrix:Paketti:Pattern Preset:Open Dialog`, plus `Pick 01`–`Pick 32`, `Put 01`–`Put 32`, and `Clear 01`–`Clear 32` (97 entries total). The dialog also gets a top-level slot in the Renoise main menu — `Main Menu:Options:Paketti Pattern Preset Menu` — so the editing UI is reachable directly from the Options menu without diving into the Tools submenu.
