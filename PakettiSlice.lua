@@ -2432,17 +2432,25 @@ function PakettiSliceCreateRhythmicDrumChain(normalize_slices)
   local process_cancelled = false
   
   local function process_samples_coroutine()
-    -- Process slice_count samples, skipping silent ones and cycling through filenames
+    -- Process slice_count samples, skipping silent ones and cycling through filenames.
+    -- Each slice gets its own attempt budget — the cap is "tried every file twice
+    -- without finding non-silence", which is the only true infinite-loop guard.
+    -- Why: previously `attempts` and `max_attempts = #filenames * 3` were declared
+    -- once outside the for-loop, so the entire chain shared a single budget. With
+    -- 1 file selected, the chain silently capped at 3 slices and the rest became
+    -- silence-padding — matching the "cut off at 3 samples" report.
     local file_index = 0
-    local attempts = 0
-    local max_attempts = #filenames * 3  -- Prevent infinite loop
-    
+
     for i = 1, slice_count do
       if process_cancelled then
         print("PakettiSlice: Processing cancelled by user")
         return
       end
-      
+
+      -- Per-slice attempt budget (RESET for each slice).
+      local attempts = 0
+      local max_attempts = math.max(#filenames, 1) * 2
+
       -- Keep trying files until we find a non-silent one
       local found_valid_sample = false
       while not found_valid_sample and attempts < max_attempts do
@@ -3057,17 +3065,25 @@ function PakettiSliceCreateRhythmicDrumChainRandomize(normalize_slices)
   local process_cancelled = false
   
   local function process_samples_coroutine()
-    -- Process slice_count samples, skipping silent ones and cycling through filenames
+    -- Process slice_count samples, skipping silent ones and cycling through filenames.
+    -- Each slice gets its own attempt budget — the cap is "tried every file twice
+    -- without finding non-silence", which is the only true infinite-loop guard.
+    -- Why: previously `attempts` and `max_attempts = #filenames * 3` were declared
+    -- once outside the for-loop, so the entire chain shared a single budget. With
+    -- 1 file selected, the chain silently capped at 3 slices and the rest became
+    -- silence-padding — matching the "cut off at 3 samples" report.
     local file_index = 0
-    local attempts = 0
-    local max_attempts = #filenames * 3  -- Prevent infinite loop
-    
+
     for i = 1, slice_count do
       if process_cancelled then
         print("PakettiSlice: Processing cancelled by user")
         return
       end
-      
+
+      -- Per-slice attempt budget (RESET for each slice).
+      local attempts = 0
+      local max_attempts = math.max(#filenames, 1) * 2
+
       -- Keep trying files until we find a non-silent one
       local found_valid_sample = false
       while not found_valid_sample and attempts < max_attempts do
