@@ -1460,17 +1460,37 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-S Set Selection to Instrument",invoke=function() SetInstrument() end} 
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Impulse Tracker ALT-S Set Selection to Instrument",invoke=function() SetInstrument() end} 
+renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker ALT-S Set Selection to Instrument",invoke=function() SetInstrument() end} 
 
--- Change instrument values to the currently selected instrument across the most
--- specific scope available. Priority order:
---   1) Pattern Editor selection_in_pattern (line range + note-column range across
---      the selected track range, in the current sequence)
---   2) Pattern Matrix selected slots (whole pattern, all visible note columns)
---   3) Fallback to the currently selected slot (track + sequence, whole pattern)
--- Colors the affected slot(s) with an inverted+hardened version of the selected
--- track's color so the change is visible at a glance, and reports each modified
--- slot/region in the status bar.
-function PakettiChangeCurrentSlotInstrumentsToSelectedInstrument()
+-- Compute the slot color: INVERT the currently selected track's color (255-c) so the
+-- slot reads as a high-contrast counterpart to the track header, then push each
+-- channel toward its nearest extreme (0 or 255) to make it "harder" / more saturated.
+-- Fallback: a hard magenta when the track has no color set. Pure black is nudged to
+-- white so Renoise still renders a slot color.
+function PakettiChangeSlotInstrumentsComputeSlotColor()
+  local s = renoise.song()
+  local function harden(c) if c < 128 then return 0 else return 255 end end
+  local slot_color = {0xFF, 0x00, 0xFF}
+  local sel_track = s and s.selected_track or nil
+  if sel_track and sel_track.color and not (sel_track.color[1] == 0 and sel_track.color[2] == 0 and sel_track.color[3] == 0) then
+    local ir = 255 - sel_track.color[1]
+    local ig = 255 - sel_track.color[2]
+    local ib = 255 - sel_track.color[3]
+    slot_color = {harden(ir), harden(ig), harden(ib)}
+    if slot_color[1] == 0 and slot_color[2] == 0 and slot_color[3] == 0 then
+      slot_color = {0xFF, 0xFF, 0xFF}
+    end
+  end
+  return slot_color
+end
+
+-- Apply the currently selected instrument to a list of operations.
+-- ops format: {{track_idx, seq_idx, line_start, line_end, col_start, col_end}, ...}
+-- where line_start/end == nil means "whole pattern" and col_end == nil means
+-- "all visible note columns". Skips Send/Master/Group tracks; aliased pattern
+-- tracks are only colored, not rewritten. Status bar reports each modified
+-- region/slot, or a summary when multiple operations were applied.
+function PakettiChangeSlotInstrumentsApplyOps(ops, source_label)
   local s = renoise.song()
   if not s then return end
 
@@ -1487,91 +1507,11 @@ function PakettiChangeCurrentSlotInstrumentsToSelectedInstrument()
     instr_name = string.format("Instrument %02X", selected_instr_idx - 1)
   end
 
-  -- Renoise's Instrument API does not expose a color property. Derive the slot
-  -- color from the currently selected track's color: INVERT it (255-c) so the
-  -- slot reads as a high-contrast counterpart to the track header, then push
-  -- each channel toward its nearest extreme (0 or 255) to make it "harder" /
-  -- more saturated. Fallback: a hard purple when the track has no color set.
-  local function harden(c)
-    if c < 128 then return 0 else return 255 end
-  end
-  local slot_color = {0xFF, 0x00, 0xFF}
-  local sel_track = s.selected_track
-  if sel_track and sel_track.color and not (sel_track.color[1] == 0 and sel_track.color[2] == 0 and sel_track.color[3] == 0) then
-    local ir = 255 - sel_track.color[1]
-    local ig = 255 - sel_track.color[2]
-    local ib = 255 - sel_track.color[3]
-    slot_color = {harden(ir), harden(ig), harden(ib)}
-    -- Avoid pure black (which Renoise treats as "no color") by nudging to white.
-    if slot_color[1] == 0 and slot_color[2] == 0 and slot_color[3] == 0 then
-      slot_color = {0xFF, 0xFF, 0xFF}
-    end
-  end
-
+  local slot_color = PakettiChangeSlotInstrumentsComputeSlotColor()
   local sequencer = s.sequencer
-  local total_tracks = s.sequencer_track_count
-  local total_seqs = #sequencer.pattern_sequence
 
-  -- Build a list of operations. Each op = {track_idx, seq_idx, line_start, line_end,
-  -- col_start, col_end}. line_start/end are nil to mean "whole pattern"; col_start/end
-  -- are 1..visible_note_columns. Selection priority:
-  --   1) Pattern Editor selection_in_pattern (most specific) - current sequence only,
-  --      restricted to the selected line range and the selected note-column range
-  --   2) Pattern Matrix selected slots - whole-pattern, all visible note columns
-  --   3) Fallback: the currently selected slot (track + sequence) - whole-pattern
-  local ops = {}
-  local source = nil
-  local pe_sel = s.selection_in_pattern
-
-  if pe_sel ~= nil then
-    source = "selection"
-    local seq_idx = s.selected_sequence_index
-    local start_track = pe_sel.start_track
-    local end_track = pe_sel.end_track
-    for tr = start_track, end_track do
-      local col_start = (tr == start_track) and pe_sel.start_column or 1
-      local col_end = (tr == end_track) and pe_sel.end_column or nil
-      table.insert(ops, {
-        track_idx = tr,
-        seq_idx = seq_idx,
-        line_start = pe_sel.start_line,
-        line_end = pe_sel.end_line,
-        col_start = col_start,
-        col_end = col_end,
-      })
-    end
-  else
-    local matrix_slots = {}
-    for track_idx = 1, total_tracks do
-      for seq_idx = 1, total_seqs do
-        if sequencer:track_sequence_slot_is_selected(track_idx, seq_idx) then
-          table.insert(matrix_slots, {track_idx = track_idx, seq_idx = seq_idx})
-        end
-      end
-    end
-    if #matrix_slots > 0 then
-      source = "matrix"
-      for _, slot in ipairs(matrix_slots) do
-        table.insert(ops, {
-          track_idx = slot.track_idx,
-          seq_idx = slot.seq_idx,
-          line_start = nil, line_end = nil,
-          col_start = 1, col_end = nil,
-        })
-      end
-    else
-      source = "current"
-      table.insert(ops, {
-        track_idx = s.selected_track_index,
-        seq_idx = s.selected_sequence_index,
-        line_start = nil, line_end = nil,
-        col_start = 1, col_end = nil,
-      })
-    end
-  end
-
-  print(string.format("PakettiChangeCurrentSlotInstrumentsToSelectedInstrument: source=%s, %d op(s), instrument %02X (%s)",
-    source, #ops, selected_instr_idx - 1, instr_name))
+  print(string.format("PakettiChangeSlotInstrumentsApplyOps: source=%s, %d op(s), instrument %02X (%s)",
+    source_label or "?", #ops, selected_instr_idx - 1, instr_name))
 
   local changed_count = 0
   local skipped_count = 0
@@ -1644,6 +1584,92 @@ function PakettiChangeCurrentSlotInstrumentsToSelectedInstrument()
   end
 end
 
+-- Scope builder: the currently selected slot only (current sequence + selected
+-- track, whole pattern, all visible note columns).
+function PakettiChangeSlotInstrumentsBuildOpsTrackOnly()
+  local s = renoise.song()
+  return {{
+    track_idx = s.selected_track_index,
+    seq_idx = s.selected_sequence_index,
+    line_start = nil, line_end = nil,
+    col_start = 1, col_end = nil,
+  }}, "track"
+end
+
+-- Scope builder: Pattern Editor selection_in_pattern only. Returns nil ops + the
+-- "selection-empty" label when no selection exists.
+function PakettiChangeSlotInstrumentsBuildOpsSelectionOnly()
+  local s = renoise.song()
+  local pe_sel = s.selection_in_pattern
+  if pe_sel == nil then return nil, "selection-empty" end
+
+  local ops = {}
+  local seq_idx = s.selected_sequence_index
+  local start_track = pe_sel.start_track
+  local end_track = pe_sel.end_track
+  for tr = start_track, end_track do
+    local col_start = (tr == start_track) and pe_sel.start_column or 1
+    local col_end = (tr == end_track) and pe_sel.end_column or nil
+    table.insert(ops, {
+      track_idx = tr,
+      seq_idx = seq_idx,
+      line_start = pe_sel.start_line,
+      line_end = pe_sel.end_line,
+      col_start = col_start,
+      col_end = col_end,
+    })
+  end
+  return ops, "selection"
+end
+
+-- Scope builder: selection_in_pattern if it exists, otherwise the current track.
+function PakettiChangeSlotInstrumentsBuildOpsSelectionOrTrack()
+  local ops, label = PakettiChangeSlotInstrumentsBuildOpsSelectionOnly()
+  if ops == nil then
+    return PakettiChangeSlotInstrumentsBuildOpsTrackOnly()
+  end
+  return ops, label
+end
+
+-- Scope builder: Pattern Matrix selected slots (whole pattern), or current slot.
+function PakettiChangeSlotInstrumentsBuildOpsMatrixOrCurrent()
+  local s = renoise.song()
+  local sequencer = s.sequencer
+  local total_tracks = s.sequencer_track_count
+  local total_seqs = #sequencer.pattern_sequence
+
+  local ops = {}
+  for track_idx = 1, total_tracks do
+    for seq_idx = 1, total_seqs do
+      if sequencer:track_sequence_slot_is_selected(track_idx, seq_idx) then
+        table.insert(ops, {
+          track_idx = track_idx, seq_idx = seq_idx,
+          line_start = nil, line_end = nil,
+          col_start = 1, col_end = nil,
+        })
+      end
+    end
+  end
+
+  if #ops > 0 then return ops, "matrix" end
+  return PakettiChangeSlotInstrumentsBuildOpsTrackOnly()
+end
+
+-- Public action used by existing keybindings/menu/MIDI: applies to the most specific
+-- scope that exists (Pattern Editor selection > Pattern Matrix slots > current slot).
+function PakettiChangeCurrentSlotInstrumentsToSelectedInstrument()
+  local s = renoise.song()
+  if not s then return end
+  local pe_sel = s.selection_in_pattern
+  local ops, label
+  if pe_sel ~= nil then
+    ops, label = PakettiChangeSlotInstrumentsBuildOpsSelectionOnly()
+  else
+    ops, label = PakettiChangeSlotInstrumentsBuildOpsMatrixOrCurrent()
+  end
+  PakettiChangeSlotInstrumentsApplyOps(ops, label)
+end
+
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Change Current Slot Instruments to Selected Instrument",invoke=function() PakettiChangeCurrentSlotInstrumentsToSelectedInstrument() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Change Current Slot Instruments to Selected Instrument",invoke=function() PakettiChangeCurrentSlotInstrumentsToSelectedInstrument() end}
 renoise.tool():add_midi_mapping{name="Paketti:Change Current Slot Instruments to Selected Instrument",invoke=function(message) if message:is_trigger() then PakettiChangeCurrentSlotInstrumentsToSelectedInstrument() end end}
@@ -1691,6 +1717,117 @@ function PakettiChangeCurrentSlotInstrumentsKnobHandler(message)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Change Current Slot Instruments x[Knob]",invoke=function(message) PakettiChangeCurrentSlotInstrumentsKnobHandler(message) end}
+
+-- Wrap-around bumper used by the "Set ... Instrument to Next/Previous" trio.
+-- direction = +1 (next) or -1 (previous). At the last instrument, Next wraps to
+-- the first; at the first instrument, Previous wraps to the last.
+function PakettiChangeSlotInstrumentsBumpInstrumentWrap(direction)
+  local song = renoise.song()
+  if not song then return false end
+  local count = #song.instruments
+  if count < 1 then
+    renoise.app():show_status("No instruments available")
+    return false
+  end
+  local current = song.selected_instrument_index
+  local new_index = current + direction
+  local wrapped = false
+  if new_index < 1 then
+    new_index = count
+    wrapped = true
+  elseif new_index > count then
+    new_index = 1
+    wrapped = true
+  end
+  song.selected_instrument_index = new_index
+  print(string.format("PakettiChangeSlotInstrumentsBumpInstrumentWrap: dir=%+d, %d -> %d (instrument %02X)%s",
+    direction, current, new_index, new_index - 1, wrapped and " [WRAPPED]" or ""))
+  return true
+end
+
+-- TRIO #1 - Whole current track always (no selection awareness), wrap-around.
+function PakettiSetCurrentTrackInstrumentToNext()
+  if not PakettiChangeSlotInstrumentsBumpInstrumentWrap(1) then return end
+  local ops, label = PakettiChangeSlotInstrumentsBuildOpsTrackOnly()
+  PakettiChangeSlotInstrumentsApplyOps(ops, label)
+end
+
+function PakettiSetCurrentTrackInstrumentToPrevious()
+  if not PakettiChangeSlotInstrumentsBumpInstrumentWrap(-1) then return end
+  local ops, label = PakettiChangeSlotInstrumentsBuildOpsTrackOnly()
+  PakettiChangeSlotInstrumentsApplyOps(ops, label)
+end
+
+-- TRIO #2 - Pattern Editor selection ONLY, wrap-around. Bails with a status notice
+-- when no selection exists (so Next/Previous won't silently scroll the instrument
+-- list when there's nothing to apply to).
+function PakettiSetSelectionInstrumentToNext()
+  local s = renoise.song()
+  if not s then return end
+  if s.selection_in_pattern == nil then
+    renoise.app():show_status("No selection in pattern - use 'Selection or Track' variant to fall back to whole track")
+    return
+  end
+  if not PakettiChangeSlotInstrumentsBumpInstrumentWrap(1) then return end
+  local ops, label = PakettiChangeSlotInstrumentsBuildOpsSelectionOnly()
+  PakettiChangeSlotInstrumentsApplyOps(ops, label)
+end
+
+function PakettiSetSelectionInstrumentToPrevious()
+  local s = renoise.song()
+  if not s then return end
+  if s.selection_in_pattern == nil then
+    renoise.app():show_status("No selection in pattern - use 'Selection or Track' variant to fall back to whole track")
+    return
+  end
+  if not PakettiChangeSlotInstrumentsBumpInstrumentWrap(-1) then return end
+  local ops, label = PakettiChangeSlotInstrumentsBuildOpsSelectionOnly()
+  PakettiChangeSlotInstrumentsApplyOps(ops, label)
+end
+
+-- TRIO #3 - Pattern Editor selection if it exists, otherwise the whole current
+-- track. Wrap-around. The "do the right thing" middle-ground variant.
+function PakettiSetSelectionOrTrackInstrumentToNext()
+  if not PakettiChangeSlotInstrumentsBumpInstrumentWrap(1) then return end
+  local ops, label = PakettiChangeSlotInstrumentsBuildOpsSelectionOrTrack()
+  PakettiChangeSlotInstrumentsApplyOps(ops, label)
+end
+
+function PakettiSetSelectionOrTrackInstrumentToPrevious()
+  if not PakettiChangeSlotInstrumentsBumpInstrumentWrap(-1) then return end
+  local ops, label = PakettiChangeSlotInstrumentsBuildOpsSelectionOrTrack()
+  PakettiChangeSlotInstrumentsApplyOps(ops, label)
+end
+
+-- TRIO #1 registrations: whole track, wrap
+renoise.tool():add_keybinding{name="Global:Paketti:Set Current Track Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetCurrentTrackInstrumentToNext() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Current Track Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetCurrentTrackInstrumentToPrevious() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Current Track Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetCurrentTrackInstrumentToNext() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Current Track Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetCurrentTrackInstrumentToPrevious() end end}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Set Current Track Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetCurrentTrackInstrumentToNext() end end}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Set Current Track Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetCurrentTrackInstrumentToPrevious() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Current Track Instrument to Next",invoke=function(message) if message:is_trigger() then PakettiSetCurrentTrackInstrumentToNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Current Track Instrument to Previous",invoke=function(message) if message:is_trigger() then PakettiSetCurrentTrackInstrumentToPrevious() end end}
+
+-- TRIO #2 registrations: selection only, wrap
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selection Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetSelectionInstrumentToNext() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selection Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetSelectionInstrumentToPrevious() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Selection Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetSelectionInstrumentToNext() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Selection Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetSelectionInstrumentToPrevious() end end}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Set Selection Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetSelectionInstrumentToNext() end end}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Set Selection Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetSelectionInstrumentToPrevious() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Selection Instrument to Next",invoke=function(message) if message:is_trigger() then PakettiSetSelectionInstrumentToNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Selection Instrument to Previous",invoke=function(message) if message:is_trigger() then PakettiSetSelectionInstrumentToPrevious() end end}
+
+-- TRIO #3 registrations: selection or track fallback, wrap
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selection or Track Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetSelectionOrTrackInstrumentToNext() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selection or Track Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetSelectionOrTrackInstrumentToPrevious() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Selection or Track Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetSelectionOrTrackInstrumentToNext() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Selection or Track Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetSelectionOrTrackInstrumentToPrevious() end end}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Set Selection or Track Instrument to Next",invoke=function(repeated) if not repeated then PakettiSetSelectionOrTrackInstrumentToNext() end end}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Set Selection or Track Instrument to Previous",invoke=function(repeated) if not repeated then PakettiSetSelectionOrTrackInstrumentToPrevious() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Selection or Track Instrument to Next",invoke=function(message) if message:is_trigger() then PakettiSetSelectionOrTrackInstrumentToNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Set Selection or Track Instrument to Previous",invoke=function(message) if message:is_trigger() then PakettiSetSelectionOrTrackInstrumentToPrevious() end end}
 
 -- Bump the selected instrument by +/-1 (clamped to [1..#instruments]) and immediately
 -- rewrite the current slot(s) so the change is audible and visible in one shot.
