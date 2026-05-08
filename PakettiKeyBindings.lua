@@ -1257,6 +1257,7 @@ function PakettiKeybindingsLoaderDialog()
 end
 
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Keybindings Loader Dialog...",invoke=PakettiKeybindingsLoaderDialog}
+PakettiAddMenuEntry{name="Main Menu:Options:Paketti Keybindings Loader Dialog...",invoke=PakettiKeybindingsLoaderDialog}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Keybindings Loader Dialog",invoke=PakettiKeybindingsLoaderDialog}
 

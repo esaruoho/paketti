@@ -36,7 +36,7 @@ Added a new dialog that walks the user through importing Paketti's bundled keybi
 - **"Open Renoise Preferences Folder"** button reveals the per-version Renoise prefs folder where the live `KeyBindings.xml` is read from at startup and saved back to at quit (`~/Library/Preferences/Renoise/V<ver>/` on macOS, `%APPDATA%\Renoise\V<ver>\` on Windows, `~/.config/Renoise/V<ver>/` on Linux). Falls back to a friendly warning if the folder doesn't exist yet.
 - **Inline step-by-step instructions** for the manual `Edit > Preferences > Keys > Import...` flow with notes that import merges (does not wipe), and that Renoise only persists the merged result on next quit.
 
-Registered via `Main Menu:Tools:Paketti:!Preferences:Paketti Keybindings Loader Dialog...` (sortable menu wrapper), `Global:Paketti:Paketti Keybindings Loader Dialog` keybinding, and `Paketti:Paketti Keybindings Loader Dialog x[Toggle]` MIDI mapping. Toggle behaviour: invoking the menu/key while the dialog is open closes it.
+Registered via `Main Menu:Tools:Paketti:!Preferences:Paketti Keybindings Loader Dialog...` and `Main Menu:Options:Paketti Keybindings Loader Dialog...` (both via the sortable `PakettiAddMenuEntry{}` wrapper), `Global:Paketti:Paketti Keybindings Loader Dialog` keybinding, and `Paketti:Paketti Keybindings Loader Dialog x[Toggle]` MIDI mapping. Toggle behaviour: invoking the menu/key while the dialog is open closes it.
 
 ### 2026-05-08 - Update: Pattern Sequencer Ctrl+Up/Ctrl+Down bound to Duplicate Pattern Above/Below & Clear Muted Tracks
 
