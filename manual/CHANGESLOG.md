@@ -22,6 +22,17 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-08 - Feature: PakettiMCP voice verbs — Pattern Preset / Groovebox / Shrink / Expand from "Hey Sal"
+
+Added `PakettiMCP/tools/paketti.lua` with four MCP verbs that wrap existing Paketti functions so they can be invoked from any external process via the MCP server on `localhost:19714`:
+
+- `paketti_pattern_preset_dialog` — toggles `PakettiPatternPresetDialog()`
+- `paketti_groovebox` — toggles `GrooveboxShowClose()` (Paketti Groovebox 8120)
+- `paketti_pattern_shrink` — calls `resize_pattern(selected_pattern, lines * 0.5, 0)` (dBlue Pattern Shrink)
+- `paketti_pattern_expand` — calls `resize_pattern(selected_pattern, lines * 2, 0)` (dBlue Pattern Expand)
+
+These are MCP tools only — no new menu entries, no new keybindings, no new MIDI mappings. They expose the existing Pattern Editor keybindings (`Pattern Editor:Paketti:Pattern Shrink (dBlue)` / `Pattern Expand (dBlue)`), the global Groovebox keybinding (`Global:Paketti:Paketti Groovebox 8120`), and the Pattern Preset Dialog function so they can be triggered from `pmcp`, the Apple repo's `hey-sal` voice router, AppleScript / Shortcuts / Loupedeck, or any HTTP client. Demo: `pmcp paketti_groovebox` from a shell or "open the groovebox" via `hey-sal`.
+
 ### 2026-05-08 - Improvement: Pattern Preset — bank file format v2 (human-editable)
 
 **Pattern Preset bank text files are now actually editable by humans.** The previous v1 format dumped the internal storage (`H#32#1#1#1~L#1#48,12,255,255,0,0,0#0,0…`) which was efficient for `preferences.xml` but unreadable. The new **v2** format uses Renoise-style notation with sectioned slots, hex bytes, and dot sentinels for empty fields. Save now writes v2; Load auto-detects v1 vs v2 from the `PakettiPatternPresetBank vN` header, so existing v1 files keep working.
