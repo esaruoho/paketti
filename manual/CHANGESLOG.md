@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-08 - Improvement: Pattern Preset — Use Edit Step checkbox
+
+New **Use Edit Step** checkbox in the Pattern Preset dialog (mirrors the OctaMED Pick/Put Row dialog's behaviour). When both **Put at cursor** and **Use Edit Step** are enabled, every Put advances `song.selected_line_index` by `transport.edit_step` after placing the preset, so you can stack consecutive presets down a pattern by tapping `1`, `2`, `3` … without manually moving the cursor between Puts. Persisted in `preferences.xml` (`PakettiPatternPreset.UseEditStep`). Cursor stops advancing at the last line of the pattern.
+
 ### 2026-05-08 - Improvement: Pattern Preset — readable slot cards with note preview
 
 Each Pattern Preset slot card now has two persistent text rows under the buttons: a compact stats line (`<lines>L <ncols>N <ecols>E <filled>F`) and a multi-character preview of the slot's first six first-column notes (`C-4 D#5 G-4 A-4 E-5 ...` style). Cards widened to 130 px / ~16 monospace characters of preview, so you can spot what's stored in each slot at a glance instead of having to put it into a pattern to find out. Empty slots show `Empty` and `(empty)` respectively.

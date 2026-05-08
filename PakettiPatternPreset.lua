@@ -55,6 +55,10 @@ local function get_put_at_cursor()
   return preferences.PakettiPatternPreset.PutAtCursor.value or false
 end
 
+local function get_use_edit_step()
+  return preferences.PakettiPatternPreset.UseEditStep.value or false
+end
+
 -- Serialize the currently selected matrix slot (track-in-pattern cell)
 -- Format: H#lines#ncols#ecols#ttype~L#n#NC#EC~L#n#NC#EC...
 --   NC = note columns separated by ':', each col = "note,inst,vol,pan,delay,fxN,fxA"
@@ -316,14 +320,37 @@ function PakettiPatternPresetPut(slot_index)
     return
   end
   local song = renoise.song()
+  local put_at_cursor = get_put_at_cursor()
+  local applied_at_line = song.selected_line_index
   local ok, err = apply_to_selected_slot(get_slot_data(slot_index))
   if not ok then
     renoise.app():show_status(string.format("Pattern Preset Put failed: %s", err or "?"))
     return
   end
-  local where = get_put_at_cursor()
-    and string.format("at line %d", song.selected_line_index)
-    or "(full pattern)"
+
+  -- Advance the cursor by edit_step (only when both Put-at-cursor and Use Edit Step are on)
+  local advanced_to = nil
+  if put_at_cursor and get_use_edit_step() then
+    local step = song.transport.edit_step or 0
+    if step > 0 then
+      local pattern_lines = song.selected_pattern.number_of_lines
+      local new_line = applied_at_line + step
+      if new_line > pattern_lines then new_line = pattern_lines end
+      song.selected_line_index = new_line
+      advanced_to = new_line
+    end
+  end
+
+  local where
+  if put_at_cursor then
+    if advanced_to then
+      where = string.format("at line %d (advanced to %d)", applied_at_line, advanced_to)
+    else
+      where = string.format("at line %d", applied_at_line)
+    end
+  else
+    where = "(full pattern)"
+  end
   renoise.app():show_status(string.format(
     "Pattern Preset: Put Slot %02d into Pattern %d, Track %d %s",
     slot_index, song.selected_pattern_index, song.selected_track_index, where))
@@ -465,6 +492,19 @@ function PakettiPatternPresetDialog()
       },
       vb:text{
         text = "Put at cursor (place preset starting at the selected line; outside lines untouched)",
+      },
+    },
+    vb:row{
+      spacing = 8,
+      vb:checkbox{
+        value = get_use_edit_step(),
+        notifier = function(v)
+          preferences.PakettiPatternPreset.UseEditStep.value = v
+          preferences:save_as("preferences.xml")
+        end,
+      },
+      vb:text{
+        text = "Use Edit Step (after Put-at-cursor, advance cursor by transport edit_step — same as OctaMED Pick/Put Row)",
       },
     },
     row1,
