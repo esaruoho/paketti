@@ -1297,6 +1297,7 @@ if PAKETTI_API >= 6.2 then
   timed_require("PakettiPlayerProWaveformViewer")
   timed_require("PakettiAutomationStack")
   timed_require("PakettiPhraseGenerator")
+  timed_require("PakettiClaudeChat")
 else
   -- Fallback stub for PCMWriter functions on older API versions
   function PCMWriterIsCreatingSamples()
