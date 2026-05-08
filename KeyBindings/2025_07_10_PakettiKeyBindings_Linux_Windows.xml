@@ -27410,10 +27410,12 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Duplicate Pattern Above &amp; Clear Muted Tracks</Binding>
+          <Key>Control + Up</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Duplicate Pattern Below &amp; Clear Muted Tracks</Binding>
+          <Key>Control + Down</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>

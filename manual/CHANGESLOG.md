@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-08 - Update: Pattern Sequencer Ctrl+Up/Ctrl+Down bound to Duplicate Pattern Above/Below & Clear Muted Tracks
+
+The duplicate-pattern-and-wipe-muted-tracks workflow that has lived under Ctrl+Up / Ctrl+Down in the **Pattern Matrix** is now bound to the same keys in the **Pattern Sequencer** by default. The Lua keybindings (`Pattern Sequencer:Paketti:Duplicate Pattern Above & Clear Muted Tracks` and `Pattern Sequencer:Paketti:Duplicate Pattern Below & Clear Muted Tracks`) were already registered against the existing `duplicate_pattern_and_clear_muted_above` / `duplicate_pattern_and_clear_muted` functions in `PakettiPatternMatrix.lua` — they just weren't bound to keys in the default keybinding presets. Added `<Key>Control + Up</Key>` and `<Key>Control + Down</Key>` to both `KeyBindings/2025_07_10_PakettiKeyBindings.xml` (macOS) and `KeyBindings/2025_07_10_PakettiKeyBindings_Linux_Windows.xml` (Linux/Windows) inside the Pattern Sequencer section (`<Identifier>Pattern Sequencer</Identifier>`). Re-import the keybinding preset to get the new defaults; existing users can also bind these manually via Edit → Preferences → Keys → Pattern Sequencer → Paketti.
+
 ### 2026-05-08 - Fix: Renoise 3.1 compatibility — device_chain_index crash and show_custom_dialog overload error
 
 Fixed two Renoise 3.1 (API 5) crashes:
