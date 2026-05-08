@@ -1,0 +1,11 @@
+Cursor smoke-test flag
+======================
+Generated: Friday 2026-05-08 17:35 UTC+3
+Source:    Cursor agent session (Claude Opus 4.7)
+Trigger:   User asked "are you able to modify main.lua and have a dialog pop up"
+Verifies:  Cursor can write source files into the Paketti tool bundle, and
+           Renoise's tool reload mechanism picks them up and runs them.
+
+If you are reading this in the Renoise modal info dialog, the answer is YES.
+The flag file itself has been auto-deleted by main.lua's smoke-test branch
+the moment this dialog appeared.

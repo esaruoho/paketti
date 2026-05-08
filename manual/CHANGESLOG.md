@@ -26,6 +26,10 @@ What supporters funded this month:
 
 `PakettiClaudeChat.lua` adds a chat dialog inside Renoise that talks to a Claude Code session via the OSC `/renoise/evaluate` channel and a `/tmp/claude-inbox.txt` mailbox. You type a message, click **Send** (or press Return), the message is written to the inbox file with a timestamp; Claude (running in `/loop` mode) polls the inbox, generates a reply, and sends it back via OSC `/renoise/evaluate` calling the global `_PakettiClaudeReply(text)`, which appends to the dialog's response area. Round-trip latency is ~20-60s — this is an "ambient assistant inside Renoise," not real-time chat. Includes Esc-to-close, Return-to-send, Shift+Return for newline, a Clear button, and a persistent on-disk log at `/tmp/claude-chat-log.txt`. Pairs with the new `~/.claude/bin/renoise-eval` Python helper that sends Lua to Renoise via UDP/8000. Added: keybinding `Global:Paketti:Claude Chat Dialog`, menu entry `Main Menu:Tools:Paketti:!Preferences:Claude Chat Dialog...`. Requires Renoise's OSC server enabled in Preferences > OSC (UDP, port 8000).
 
+### 2026-05-08 - Dev: Cursor Smoke Test — one-shot startup proof dialog gated by flag file
+
+Added a small block at the end of `main.lua` that checks for a `cursor_smoke_test.flag` file in the tool bundle root. If present, it reads the payload, deletes the flag, and pops a modal `renoise.app():show_message()` confirming that a Cursor-driven code change has reached Renoise and executed. After firing once, the flag is gone and future reloads stay silent until the flag is recreated. Used to validate the round-trip: Cursor edits → git push → user reloads tool → Renoise runs the new code.
+
 ### 2026-05-08 - Feature: Paketti Keybindings Loader Dialog
 
 Added a new dialog that walks the user through importing Paketti's bundled keybinding presets into Renoise. The Renoise Lua API has no function to apply default keyboard shortcuts — the Tool API doc explicitly states `"Users manually have to bind them in the keyboard prefs pane"` — so this dialog automates everything Paketti is allowed to automate around that constraint:

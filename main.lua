@@ -1487,5 +1487,33 @@ end
 -- ============================================================================
 PakettiFlushMenuEntries()
 
+-- ============================================================================
+-- Cursor Smoke Test — one-shot startup dialog gated by a flag file.
+-- When cursor_smoke_test.flag exists in the tool bundle, this fires a modal
+-- info dialog confirming that a Cursor-driven code change has reached Renoise,
+-- then deletes the flag so subsequent reloads are silent. To re-arm, just
+-- recreate the flag file with any contents (or push it via Cursor again).
+-- ============================================================================
+do
+  local flag_path = renoise.tool().bundle_path .. "cursor_smoke_test.flag"
+  if io.exists(flag_path) then
+    local payload = ""
+    local f = io.open(flag_path, "r")
+    if f then
+      payload = f:read("*a") or ""
+      f:close()
+    end
+    os.remove(flag_path)
+    print("Cursor Smoke Test: flag detected, firing dialog. Payload:")
+    print(payload)
+    renoise.app():show_message(
+      "Yes, Cursor can run codechanges and trigger Renoise.\n\n" ..
+      "Paketti just reloaded and main.lua executed the smoke-test branch.\n\n" ..
+      "Flag payload:\n" .. payload .. "\n" ..
+      "(Flag auto-removed; future reloads stay quiet until re-armed.)"
+    )
+  end
+end
+
 --dbug(renoise.song())
 -- Added: PakettiSelectNextInstrument, PakettiSelectPreviousInstrument
