@@ -13,10 +13,93 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Pattern Matrix",invoke=function() showhidepatternmatrix() end}
 -------
+------------------------------------------------------------------------------
+-- Pattern-loop / playback handover helpers.
+--
+-- Used by the "Duplicate Pattern Above/Below & Clear Muted Tracks" actions:
+-- when the user is playing AND looping the current pattern (either via
+-- transport.loop_pattern or via a single-slot transport.loop_sequence_range
+-- pointing at this sequence position), the loop and the playhead should land
+-- on the freshly created duplicate so the workflow stays fluid:
+--   "make a variation of what's playing, keep playing, but on the duplicate".
+--
+-- We use transport:set_scheduled_sequence(new_seq_index) so the jump fires at
+-- the NEXT pattern boundary — no audible glitch, no mid-bar cut.
+------------------------------------------------------------------------------
+
+-- Capture the loop state of `seq_index` BEFORE we insert/duplicate, so we can
+-- decide afterwards whether handover is appropriate. We treat a single-slot
+-- loop_sequence_range ({N, N}) as "the user is looping this single pattern in
+-- the Pattern Sequencer". Multi-slot ranges (e.g. {3, 7}) are intentionally
+-- left alone — those are song-structure loops, not "loop this one pattern".
+function PakettiCapturePatternLoopState(song, seq_index)
+  local transport = song.transport
+  local state = {
+    was_playing = transport.playing,
+    pattern_loop_was_on = transport.loop_pattern,
+    sequence_loop_was_single_on_target = false,
+    captured_seq_index = seq_index
+  }
+  local range = transport.loop_sequence_range
+  if range and #range == 2 and range[1] == seq_index and range[2] == seq_index then
+    state.sequence_loop_was_single_on_target = true
+  end
+  print(string.format(
+    "PakettiCapturePatternLoopState: seq=%d  playing=%s  loop_pattern=%s  single_seq_loop_on_target=%s  range=%s",
+    seq_index,
+    tostring(state.was_playing),
+    tostring(state.pattern_loop_was_on),
+    tostring(state.sequence_loop_was_single_on_target),
+    (range and #range == 2) and ("{" .. range[1] .. "," .. range[2] .. "}") or "{}"
+  ))
+  return state
+end
+
+-- After inserting the duplicate at `new_seq_index`, move the loop range and
+-- schedule the playback jump as appropriate. Returns true if handover happened
+-- (so callers can decorate their status message), false otherwise.
+function PakettiHandoverPatternLoopAndPlayback(song, prior_state, new_seq_index)
+  local transport = song.transport
+  local handed_over = false
+
+  if prior_state.sequence_loop_was_single_on_target then
+    transport.loop_sequence_range = { new_seq_index, new_seq_index }
+    print(string.format(
+      "PakettiHandoverPatternLoopAndPlayback: moved single-slot sequence loop range to {%d, %d}",
+      new_seq_index, new_seq_index
+    ))
+    handed_over = true
+  end
+
+  local was_looping = prior_state.pattern_loop_was_on or prior_state.sequence_loop_was_single_on_target
+  if prior_state.was_playing and was_looping then
+    -- set_scheduled_sequence replaces the scheduled list with this single
+    -- destination, fires at the next pattern boundary, overrides loop_pattern.
+    transport:set_scheduled_sequence(new_seq_index)
+    print(string.format(
+      "PakettiHandoverPatternLoopAndPlayback: scheduled jump to sequence %d (fires at next pattern boundary)",
+      new_seq_index
+    ))
+    handed_over = true
+  else
+    print(string.format(
+      "PakettiHandoverPatternLoopAndPlayback: no playback jump (was_playing=%s  was_looping=%s)",
+      tostring(prior_state.was_playing), tostring(was_looping)
+    ))
+  end
+
+  return handed_over
+end
+
 function duplicate_pattern_and_clear_muted_above()
   local song=renoise.song()
   local current_pattern_index=song.selected_pattern_index
   local current_sequence_index=song.selected_sequence_index
+
+  -- Capture loop+playback state BEFORE we mutate the sequence, so that
+  -- if the user is playing and looping this pattern we can hand the loop
+  -- and the playhead off to the duplicate after insertion.
+  local prior_loop_state = PakettiCapturePatternLoopState(song, current_sequence_index)
 
   -- Insert a new, unreferenced pattern above the current sequence index
   local new_sequence_index = current_sequence_index
@@ -81,7 +164,11 @@ function duplicate_pattern_and_clear_muted_above()
     print("Cleared track " .. track_index .. " in duplicated pattern.")
   end
 
-  renoise.app():show_status("Duplicated pattern above current sequence with mute states, complete automation, and cleared muted tracks.")
+  -- Hand the pattern loop and playhead off to the new duplicate so the user
+  -- keeps hearing the same loop, but on the new pattern slot — no glitch.
+  local handed_over = PakettiHandoverPatternLoopAndPlayback(song, prior_loop_state, new_sequence_index)
+  local handover_suffix = handed_over and " [loop+playback moved to new pattern]" or ""
+  renoise.app():show_status("Duplicated pattern above current sequence with mute states, complete automation, and cleared muted tracks." .. handover_suffix)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Above & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted_above}
@@ -97,6 +184,11 @@ function duplicate_pattern_and_clear_muted()
   local song=renoise.song()
   local current_pattern_index=song.selected_pattern_index
   local current_sequence_index=song.selected_sequence_index
+
+  -- Capture loop+playback state BEFORE we mutate the sequence, so that
+  -- if the user is playing and looping this pattern we can hand the loop
+  -- and the playhead off to the duplicate after insertion.
+  local prior_loop_state = PakettiCapturePatternLoopState(song, current_sequence_index)
 
   -- Insert a new, unreferenced pattern below the current sequence index
   local new_sequence_index = current_sequence_index + 1
@@ -157,7 +249,11 @@ function duplicate_pattern_and_clear_muted()
     song.patterns[new_pattern_index].tracks[track_index]:clear()
   end
 
-  renoise.app():show_status("Duplicated pattern below current sequence with mute states, complete automation, and cleared muted tracks.")
+  -- Hand the pattern loop and playhead off to the new duplicate so the user
+  -- keeps hearing the same loop, but on the new pattern slot — no glitch.
+  local handed_over = PakettiHandoverPatternLoopAndPlayback(song, prior_loop_state, new_sequence_index)
+  local handover_suffix = handed_over and " [loop+playback moved to new pattern]" or ""
+  renoise.app():show_status("Duplicated pattern below current sequence with mute states, complete automation, and cleared muted tracks." .. handover_suffix)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Below & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted}
