@@ -725,8 +725,8 @@ function import_sf2(file_path)
       
       local is_drumkit = (map.bank == 128)
       local preset_file = is_drumkit and
-        (renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni") or
-        "Presets/12st_Pitchbend.xrni"
+        pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni") or
+        pakettiGetVersionedPresetPath("12st_Pitchbend.xrni")
 
       -- Try to find an empty slot first
       local empty_slot_found = false
@@ -1352,7 +1352,7 @@ local function PakettiSF2ExtractSamplesCore(file_path, chromatic_mode)
       samples_to_extract, #stereo_pairs))
 
     local song = renoise.song()
-    local scaffolding_path = "Presets" .. package.config:sub(1,1) .. "12st_Pitchbend.xrni"
+    local scaffolding_path = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni")
     local extracted_count = 0
     local max_instruments = 255
     local start_index = song.selected_instrument_index
@@ -1988,8 +1988,8 @@ function PakettiBatchSF2ToXRNI_Worker(sf2_files, output_folder, dialog, vb)
 
                 local is_drumkit   = (map.bank == 128)
                 local preset_file  = is_drumkit
-                  and (renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
-                  or  "Presets/12st_Pitchbend.xrni"
+                  and pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
+                  or  pakettiGetVersionedPresetPath("12st_Pitchbend.xrni")
 
                 local safe_preset  = sf2_sanitize_name(map.preset_name)
                 local xrni_name    = sf2_sanitize_name(sf2_name) .. "_" .. safe_preset

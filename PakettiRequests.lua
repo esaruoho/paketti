@@ -884,7 +884,7 @@ function selectedInstrumentLoadMuteTrigDrumkit()
   end
 
   -- Load the 12st_Pitchbend_Drumkit_C0_mutegroup.xrni instrument (the scaffolding)
-  local mutetrig_instrument_path = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0_mutegroup.xrni"
+  local mutetrig_instrument_path = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0_mutegroup.xrni")
   renoise.app():load_instrument(mutetrig_instrument_path)
 
   -- Update the instrument reference after loading the instrument
@@ -1479,7 +1479,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Double Double Beatsync Lines 
 renoise.tool():add_keybinding{name="Global:Paketti:Double Double Beatsync Lines (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() doubleBeatsyncLinesSelected()  end}
 -- Function to load a pitchbend instrument
 function pitchedInstrument(st)
-  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets" .. separator .. st .. "st_Pitchbend.xrni")
+  renoise.app():load_instrument(pakettiGetVersionedPresetPath(st .. "st_Pitchbend.xrni"))
   local selected_instrument = renoise.song().selected_instrument
   selected_instrument.name = st .. "st_Pitchbend Instrument"
   selected_instrument.macros_visible = true
@@ -1491,7 +1491,7 @@ end
 
 function pitchedDrumkit()
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-  local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
+  local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
 
 --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
 renoise.app():load_instrument(defaultInstrument)
@@ -3633,7 +3633,7 @@ function PakettiIsolateSlicesToInstrumentDirect()
     if not safeInsertInstrumentAt(song, index) then return nil end
     song.selected_instrument_index = index
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-    local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
+    local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
 
     renoise.app():load_instrument(defaultInstrument)
     local new_instrument = song.instruments[index]
@@ -3790,7 +3790,7 @@ function PakettiIsolateSlicesToInstrumentNoProcess()
     if not safeInsertInstrumentAt(song, index) then return nil end
     song.selected_instrument_index = index
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-    local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
+    local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
     renoise.app():load_instrument(defaultInstrument)
     local new_instrument = song.instruments[index]
     -- Clear only placeholder samples from the drumkit template before copying real samples
@@ -4110,14 +4110,12 @@ function PakettiIsolateSelectedSampleToInstrument()
   if not safeInsertInstrumentAt(song, insert_index) then return end
   song.selected_instrument_index = insert_index
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-  local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
+  local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
 
-
---  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
-renoise.app():load_instrument(defaultInstrument)
+  renoise.app():load_instrument(defaultInstrument)
   local new_instrument = song.instruments[insert_index]
   new_instrument.name = sample.name .. " (Isolated)"
-  
+
   -- Apply modulation settings using helper function
   PakettiApplyLoaderModulationSettings(new_instrument, "isolate_sample_to_new_instrument")
 

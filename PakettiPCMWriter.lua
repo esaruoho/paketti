@@ -6042,9 +6042,9 @@ function PCMWriterExportWaveAAndBToSample(skip_devices)
   song.selected_instrument_index = song.selected_instrument_index + 1
   inst = song.selected_instrument
 
-  -- Load the pre-configured 12st_WT.xrni instrument
-  local preset_path = "Presets" .. separator .. "12st_WT.xrni"
-  
+  -- Load the pre-configured 12st_WT.xrni instrument (version-aware)
+  local preset_path = pakettiGetVersionedPresetPath("12st_WT.xrni")
+
   -- Function to check if a file exists
   local function file_exists(file)
     local f = io.open(file, "r")
@@ -6054,7 +6054,7 @@ function PCMWriterExportWaveAAndBToSample(skip_devices)
 
   -- Check if the file exists, fallback if needed
   if not file_exists(preset_path) then
-    preset_path = "Presets" .. separator .. "12st_Pitchbend.xrni"
+    preset_path = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni")
     renoise.app():show_status("12st_WT.xrni not found, using fallback 12st_Pitchbend.xrni")
   end
 

@@ -243,8 +243,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiHyperEditCaptureTrackColor=false,
   PakettiHyperEditAutoFit=true,
   PakettiHyperEditManualRows=8,
-  pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni",
-  pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
+  pakettiDefaultXRNI = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni"),
+  pakettiDefaultDrumkitXRNI = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni"),
   pakettiDefaultMidiMappingPath = "",
   pakettiPresetPlusPlusDeviceChain = "DeviceChains" .. separator .. "hipass_lopass_dcoffset.xrnt",
   -- AutoSamplify Settings
@@ -2038,15 +2038,15 @@ vb:row{
               local newPath
               
               if selectedFile:match("^<") then
-                newPath = bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni"
+                newPath = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni")
               else
-                newPath = bundle_path .. "Presets" .. separator .. selectedFile
+                newPath = pakettiGetVersionedPresetPath(selectedFile)
               end
-              
+
               -- Update both the preference value and the display
               preferences.pakettiDefaultXRNI.value = newPath
               vb.views[pakettiDefaultXRNIDisplayId].text = selectedFile
-              
+
               -- Save preferences immediately
               preferences:save_as("preferences.xml")
             end}},
@@ -2072,15 +2072,15 @@ vb:row{
               local newPath
               
               if selectedFile:match("^<") then
-                newPath = bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
+                newPath = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
               else
-                newPath = bundle_path .. "Presets" .. separator .. selectedFile
+                newPath = pakettiGetVersionedPresetPath(selectedFile)
               end
-              
+
               -- Update both the preference value and the display
               preferences.pakettiDefaultDrumkitXRNI.value = newPath
               vb.views[pakettiDefaultDrumkitXRNIDisplayId].text = selectedFile
-              
+
               -- Save preferences immediately
               preferences:save_as("preferences.xml")
             end}},
@@ -3861,16 +3861,16 @@ function load_Pakettipreferences()
         print("[Paketti] Checking if XRNI exists: " .. tostring(xrni_path))
         if not file_exists(xrni_path) then
             print("[Paketti] XRNI file does NOT exist, attempting to fix path")
-            -- File doesn't exist - try to find it in Presets
+            -- File doesn't exist - try version-aware resolver
             local filename = xrni_path:match("[^/\\]+$") or "12st_Pitchbend.xrni"
-            local preset_path = bundle_path .. "Presets/" .. filename
-            print("[Paketti] Trying preset path: " .. preset_path)
-            if file_exists(preset_path) then
-                preferences.pakettiDefaultXRNI.value = preset_path
-                print("[Paketti] Found in Presets, set to: " .. preset_path)
+            local versioned_path = pakettiGetVersionedPresetPath(filename)
+            print("[Paketti] Trying versioned path: " .. versioned_path)
+            if file_exists(versioned_path) then
+                preferences.pakettiDefaultXRNI.value = versioned_path
+                print("[Paketti] Found via versioned resolver, set to: " .. versioned_path)
             else
                 -- Ultimate fallback to default
-                preferences.pakettiDefaultXRNI.value = bundle_path .. "Presets/12st_Pitchbend.xrni"
+                preferences.pakettiDefaultXRNI.value = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni")
                 print("[Paketti] Fallback to default: " .. preferences.pakettiDefaultXRNI.value)
             end
         else
@@ -3883,13 +3883,13 @@ function load_Pakettipreferences()
         if not file_exists(drumkit_path) then
             print("[Paketti] Drumkit XRNI file does NOT exist, attempting to fix path")
             local filename = drumkit_path:match("[^/\\]+$") or "12st_Pitchbend_Drumkit_C0.xrni"
-            local preset_path = bundle_path .. "Presets/" .. filename
-            print("[Paketti] Trying preset path: " .. preset_path)
-            if file_exists(preset_path) then
-                preferences.pakettiDefaultDrumkitXRNI.value = preset_path
-                print("[Paketti] Found in Presets, set to: " .. preset_path)
+            local versioned_path = pakettiGetVersionedPresetPath(filename)
+            print("[Paketti] Trying versioned path: " .. versioned_path)
+            if file_exists(versioned_path) then
+                preferences.pakettiDefaultDrumkitXRNI.value = versioned_path
+                print("[Paketti] Found via versioned resolver, set to: " .. versioned_path)
             else
-                preferences.pakettiDefaultDrumkitXRNI.value = bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+                preferences.pakettiDefaultDrumkitXRNI.value = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
                 print("[Paketti] Fallback to default: " .. preferences.pakettiDefaultDrumkitXRNI.value)
             end
         else

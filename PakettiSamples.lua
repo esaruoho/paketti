@@ -371,7 +371,7 @@ end
 
 function pakettiPreferencesDefaultInstrumentLoader()
   local defaultInstrument = preferences.pakettiDefaultXRNI.value
-  local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend.xrni"
+  local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni")
   
   -- Function to check if a file exists
   local function file_exists(file)
@@ -383,7 +383,7 @@ function pakettiPreferencesDefaultInstrumentLoader()
   -- Check if the defaultInstrument is nil or the file doesn't exist
   if not defaultInstrument or not file_exists(defaultInstrument) then
     defaultInstrument = fallbackInstrument
-    renoise.app():show_status("The Default XRNI has not been set, using Paketti/Presets/12st_Pitchbend.xrni")
+    renoise.app():show_status("The Default XRNI has not been set, using Paketti default 12st_Pitchbend.xrni")
   end
 
   print("Loading instrument from path: " .. defaultInstrument)
@@ -422,11 +422,9 @@ function pitchBendDrumkitLoader()
 
   -- Load the preset instrument
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-  local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
+  local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
 
-
---  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
-renoise.app():load_instrument(defaultInstrument)
+  renoise.app():load_instrument(defaultInstrument)
 
   -- Ensure the new instrument is selected
   current_instrument_index = song.selected_instrument_index
@@ -566,8 +564,8 @@ function loadRandomDrumkitSamples(num_samples, folder_path, create_automation_de
     end
 
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-    local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
-    
+    local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
+
     renoise.app():load_instrument(defaultInstrument)
 
     -- Update the instrument reference after loading the instrument

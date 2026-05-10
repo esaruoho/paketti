@@ -1018,12 +1018,12 @@ function makeDrumkitInstrument(file_list, title, reverse_threshold)
     if defaultInstrument and defaultInstrument ~= "" then
       renoise.app():load_instrument(defaultInstrument)
     else
-      renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+      renoise.app():load_instrument(pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni"))
     end
   end)
   local inst = song:instrument(idx)
   inst.name = title
-  
+
   -- Apply modulation settings using helper function
   PakettiApplyLoaderModulationSettings(inst, "PakettiStemSlicer loadAsDrumkitsFromFolder")
 
@@ -1751,7 +1751,7 @@ local function processFileWithNativeSlicing(file_path, beat_lengths_to_process, 
                     if defaultInstrument and defaultInstrument ~= "" then
                         renoise.app():load_instrument(defaultInstrument)
                     else
-                        renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+                        renoise.app():load_instrument(pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni"))
                     end
                 end)
                 

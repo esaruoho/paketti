@@ -193,7 +193,45 @@ PAKETTI_HAS_PHRASES          = (PAKETTI_API >= 6.2)  -- Advanced phrase features
 PAKETTI_HAS_TRIGGER_LINE     = (PAKETTI_API >= 6.2)  -- trigger_pattern_line()
 
 ------------------------------------------------------------------------
--- 7. Safe trigger_pattern_line() wrapper  (API 6.2+)
+-- 7. Version-aware XRNI preset path resolver
+--    Renoise 3.1 (API 5) cannot load doc_version 33/34 instruments.
+--    We ship stripped-down v31 copies in Presets/v31/ for those users.
+--    On API 6+ we use the normal Presets/ files (v33/v34).
+------------------------------------------------------------------------
+
+-- Given a bare XRNI filename (e.g. "12st_Pitchbend.xrni"), returns the
+-- full absolute path to the version-appropriate copy.
+-- If a v31 copy doesn't exist, falls back to the normal Presets/ path.
+function pakettiGetVersionedPresetPath(filename)
+  local sep = package.config:sub(1, 1)
+  local bundle = renoise.tool().bundle_path
+
+  if PAKETTI_API < 6 then
+    -- Renoise 3.0/3.1: try the v31 subdirectory first
+    local v31_path = bundle .. "Presets" .. sep .. "v31" .. sep .. filename
+    local f = io.open(v31_path, "r")
+    if f then
+      f:close()
+      return v31_path
+    end
+  end
+
+  -- API 6+ or v31 file missing: use normal Presets/ path
+  return bundle .. "Presets" .. sep .. filename
+end
+
+-- Convenience: given a relative preset path like "Presets/SomeFile.xrni",
+-- extracts the filename and routes through the versioned resolver.
+function pakettiResolvePresetPath(relative_path)
+  local filename = relative_path:match("[^/\\]+$")
+  if filename then
+    return pakettiGetVersionedPresetPath(filename)
+  end
+  return renoise.tool().bundle_path .. relative_path
+end
+
+------------------------------------------------------------------------
+-- 7b. Safe trigger_pattern_line() wrapper  (API 6.2+)
 ------------------------------------------------------------------------
 
 function pakettiSafeTriggerPatternLine(track_index, line_index)

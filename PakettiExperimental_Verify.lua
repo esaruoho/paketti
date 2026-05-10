@@ -3000,16 +3000,16 @@ function PakettiGroupSamplesByName()
     
     -- Load the default drumkit instrument template
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
-    local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
-    
+    local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
+
     local success, error_msg = pcall(function()
       renoise.app():load_instrument(defaultInstrument)
     end)
-    
+
     if not success then
       -- Try fallback
       pcall(function()
-        renoise.app():load_instrument(renoise.tool().bundle_path .. fallbackInstrument)
+        renoise.app():load_instrument(fallbackInstrument)
       end)
     end
     
@@ -3706,11 +3706,11 @@ function PakettiLoadRingModInstrument()
   if not safeInsertInstrumentAt(song, index) then return end
   song.selected_instrument_index = index
   
-  -- Load the RingMod instrument template
-  local ringmod_instrument = "Presets" .. separator .. "RingMod.xrni"
-  
+  -- Load the RingMod instrument template (version-aware)
+  local ringmod_instrument = pakettiGetVersionedPresetPath("RingMod.xrni")
+
   local success, error_msg = pcall(function()
-    renoise.app():load_instrument(renoise.tool().bundle_path .. ringmod_instrument)
+    renoise.app():load_instrument(ringmod_instrument)
   end)
   
   if success then
@@ -3729,11 +3729,11 @@ function PakettiLoadRingModLegacyInstrument()
   if not safeInsertInstrumentAt(song, index) then return end
   song.selected_instrument_index = index
   
-  -- Load the RingMod Legacy instrument template
-  local ringmod_legacy_instrument = "Presets" .. separator .. "RingModLegacy.xrni"
-  
+  -- Load the RingMod Legacy instrument template (version-aware)
+  local ringmod_legacy_instrument = pakettiGetVersionedPresetPath("RingModLegacy.xrni")
+
   local success, error_msg = pcall(function()
-    renoise.app():load_instrument(renoise.tool().bundle_path .. ringmod_legacy_instrument)
+    renoise.app():load_instrument(ringmod_legacy_instrument)
   end)
   
   if success then

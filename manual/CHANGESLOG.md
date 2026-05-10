@@ -22,6 +22,20 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-10 - Improvement: Renoise 3.1 (API 5) compatible XRNI instrument presets
+
+Added version-aware XRNI preset loading so Paketti works correctly on Renoise 3.1 (API 5). The XRNI instrument presets shipped in `Presets/` are doc_version 33/34 (Renoise 3.3/3.5 format) which Renoise 3.1 cannot load. This caused silent failures when Paketti tried to load scaffolding instruments for features like pitchbend instruments, drumkits, RingMod, wavetable, SF2 import, stem slicing, and MuteTrig.
+
+**What changed:**
+
+- **Backed up** all original v33/v34 presets to `Presets/backup_v33_v34/`
+- **Created** `Presets/v31/` containing stripped-down doc_version=31 copies of all 13 active preset XRNI files (removed `PitchbendMacro`, `ModulationWheelMacro`, `ChannelPressureMacro`, `FilterBankVersion`, `MonophonicGlide`, `BeatSyncMode`, `AutoFade`, `SingleSliceTriggerEnabled`, `MtsEspTuning`, `SelectedPresetLibrary`)
+- **Added** `pakettiGetVersionedPresetPath(filename)` helper in `PakettiCompat.lua` — on API < 6 (Renoise 3.0/3.1) it resolves to `Presets/v31/filename`, on API 6+ it uses the normal `Presets/filename`
+- **Updated** all hardcoded preset path references across 7 files: `Paketti0G01_Loader.lua`, `PakettiRequests.lua`, `PakettiSamples.lua`, `PakettiSF2Loader.lua`, `PakettiStemSlicer.lua`, `PakettiPCMWriter.lua`, `PakettiExperimental_Verify.lua`
+- The user-facing Preferences XRNI picker dropdown still shows the same file list (the `v31/` subdirectory is not scanned), and selected presets are resolved through the versioned path helper automatically
+
+**Files affected:** `12st_Pitchbend.xrni`, `12st_Pitchbend_Drumkit_C0.xrni`, `12st_Pitchbend_Drumkit_C0_mutegroup.xrni`, `12st_WT.xrni`, `RingMod.xrni`, `RingModLegacy.xrni`, `empty.xrni`, and all 6 `*_Legacy_with_VolAmp_VolFreq.xrni` variants.
+
 ### 2026-05-08 - Feature: PakettiMCP voice verbs — Pattern Preset / Groovebox / Shrink / Expand from "Hey Sal"
 
 Added `PakettiMCP/tools/paketti.lua` with four MCP verbs that wrap existing Paketti functions so they can be invoked from any external process via the MCP server on `localhost:19714`:
