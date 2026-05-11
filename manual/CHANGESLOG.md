@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-11 - Fix: Note Release Gate crash on Renoise 3.1
+
+`PakettiNoteReleaseGate.lua` used `tool_will_unload_observable` and `tool_finished_loading_observable` unconditionally at load time. Both observables were introduced in API 6.1 (Renoise 3.3) and do not exist in Renoise 3.1, causing a fatal `unknown property or function 'tool_will_unload_observable'` error that prevented the entire tool from loading. Both calls are now guarded with `if PAKETTI_API >= 6.1`, matching the established pattern in `PakettiExperimental_BlockLoopFollow.lua`. On older Renoise versions, cleanup happens via `app_new_document_observable` (already registered) and natural tool unload.
+
 ### 2026-05-11 - Improvement: GitHub Actions now ships correct v31 instruments in Paketti 3.1 build
 
 The GitHub Actions CI pipeline (`package-api5` job) now automatically replaces v33/v34 XRNI presets with their v31-compatible versions before packaging the Renoise 3.1 build. Previously, the Paketti 3.1 `.xrnx` release contained v33/v34 instrument files that Renoise 3.1 cannot load — the runtime `pakettiGetVersionedPresetPath()` routing worked for code paths that used it, but any direct `Presets/filename` reference would still fail. Now the build copies `Presets/v31/*.xrni` over the originals in `Presets/` before zipping, providing belt-and-suspenders coverage. Both the API 6 and API 5 builds also now exclude `Presets/v31/` and `Presets/backup_v33_v34/` from their zip archives to reduce package size.

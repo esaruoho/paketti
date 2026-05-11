@@ -1076,9 +1076,13 @@ end
 -- Lifecycle
 ------------------------------------------------------------------------
 
-renoise.tool().tool_will_unload_observable:add_notifier(function()
-  if NOTE_GATE.midi_listening then PakettiNoteReleaseGateStop() end
-end)
+-- tool_will_unload_observable was added in API 6.1 (Renoise 3.3).
+-- On older versions the cleanup happens naturally when the tool unloads.
+if PAKETTI_API >= 6.1 then
+  renoise.tool().tool_will_unload_observable:add_notifier(function()
+    if NOTE_GATE.midi_listening then PakettiNoteReleaseGateStop() end
+  end)
+end
 
 renoise.tool().app_new_document_observable:add_notifier(function()
   if NOTE_GATE.midi_listening then PakettiNoteReleaseGateStop() end
@@ -1094,7 +1098,12 @@ local function deferred_initial_load()
     load_targets_for_current_song()
   end
 end
-renoise.tool().tool_finished_loading_observable:add_notifier(deferred_initial_load)
+
+-- tool_finished_loading_observable was added in API 6.1 (Renoise 3.3).
+-- On older versions fall back to app_new_document_observable (already registered above).
+if PAKETTI_API >= 6.1 then
+  renoise.tool().tool_finished_loading_observable:add_notifier(deferred_initial_load)
+end
 
 ------------------------------------------------------------------------
 -- Menu / keybindings / MIDI mappings
