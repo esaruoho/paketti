@@ -82,6 +82,8 @@ jobs:
             "preferencesDynamicView.xml" \
             "definitions/*" \
             "manual/*" \
+            "Presets/v31/*" \
+            "Presets/backup_v33_v34/*" \
             ".dsp_cache" \
             "action_selector_settings.txt" \
             "free_keybindings_20250302_160606.txt" \
@@ -144,6 +146,19 @@ jobs:
           sed -i 's/<Name>Paketti<\/Name>/<Name>Paketti 3.1<\/Name>/g' manifest.xml
           sed -i 's/<Version>3.54<\/Version>/<Version>3.1<\/Version>/g' manifest.xml
 
+      # Replace v33/v34 XRNI presets with v31-compatible versions.
+      # The Lua code routes via pakettiGetVersionedPresetPath() at runtime,
+      # but overwriting the originals is belt-and-suspenders insurance for any
+      # code path that references Presets/ directly.
+      - name: Replace instrument presets with v31-compatible versions
+        run: |
+          echo "Replacing Presets/ instruments with v31 versions:"
+          for f in Presets/v31/*.xrni; do
+            base=$(basename "$f")
+            echo "  $base"
+            cp "$f" "Presets/$base"
+          done
+
       # Verify no syntax errors were introduced by the sed transformations
       - name: Syntax check all Lua files
         run: |
@@ -177,6 +192,8 @@ jobs:
             "preferences_pluginLoaders.xml" \
             "definitions/*" \
             "manual/*" \
+            "Presets/v31/*" \
+            "Presets/backup_v33_v34/*" \
             ".dsp_cache" \
             "action_selector_settings.txt" \
             "free_keybindings_20250302_160606.txt" \

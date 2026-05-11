@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-11 - Improvement: GitHub Actions now ships correct v31 instruments in Paketti 3.1 build
+
+The GitHub Actions CI pipeline (`package-api5` job) now automatically replaces v33/v34 XRNI presets with their v31-compatible versions before packaging the Renoise 3.1 build. Previously, the Paketti 3.1 `.xrnx` release contained v33/v34 instrument files that Renoise 3.1 cannot load — the runtime `pakettiGetVersionedPresetPath()` routing worked for code paths that used it, but any direct `Presets/filename` reference would still fail. Now the build copies `Presets/v31/*.xrni` over the originals in `Presets/` before zipping, providing belt-and-suspenders coverage. Both the API 6 and API 5 builds also now exclude `Presets/v31/` and `Presets/backup_v33_v34/` from their zip archives to reduce package size.
+
 ### 2026-05-10 - Improvement: Renoise 3.1 (API 5) compatible XRNI instrument presets
 
 Added version-aware XRNI preset loading so Paketti works correctly on Renoise 3.1 (API 5). The XRNI instrument presets shipped in `Presets/` are doc_version 33/34 (Renoise 3.3/3.5 format) which Renoise 3.1 cannot load. This caused silent failures when Paketti tried to load scaffolding instruments for features like pitchbend instruments, drumkits, RingMod, wavetable, SF2 import, stem slicing, and MuteTrig.
