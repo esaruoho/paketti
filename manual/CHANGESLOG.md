@@ -22,6 +22,15 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-11 - Feature: Record+Follow Toggle MIDI Mappings (1st–4th)
+
+Added four MIDI mappings for the Record+Follow Toggle function, allowing it to be mapped to multiple MIDI controllers simultaneously. These call the same `RecordFollowToggle()` used by the existing keybindings (2nd/3rd/4th), which handles pattern editor, phrase editor, and various edit/follow/play state toggling.
+
+- MIDI Mapping: `Paketti:Record+Follow Toggle (1st) x[Toggle]`
+- MIDI Mapping: `Paketti:Record+Follow Toggle (2nd) x[Toggle]`
+- MIDI Mapping: `Paketti:Record+Follow Toggle (3rd) x[Toggle]`
+- MIDI Mapping: `Paketti:Record+Follow Toggle (4th) x[Toggle]`
+
 ### 2026-05-11 - Fix: Preset++ device chain incompatible on Renoise 3.1
 
 The default Preset++ device chain (`hipass_lopass_dcoffset.xrnt`) uses `DigitalFilterDevice`, a Renoise 3.5-only (doc_version 22) DSP type that does not exist before API 6.1. On Renoise 3.1 this caused the error "was saved with an incompatible, more recent version of Renoise" when creating a new track with channelstrip. Fixed by:

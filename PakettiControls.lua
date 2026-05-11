@@ -71,6 +71,11 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Record+Follow Toggle (2nd)",invoke=function() RecordFollowToggle() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Record+Follow Toggle (3rd)",invoke=function() RecordFollowToggle() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Record+Follow Toggle (4th)",invoke=function() RecordFollowToggle() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Record+Follow Toggle (1st) x[Toggle]",invoke=function(message) if message:is_trigger() then RecordFollowToggle() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Record+Follow Toggle (2nd) x[Toggle]",invoke=function(message) if message:is_trigger() then RecordFollowToggle() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Record+Follow Toggle (3rd) x[Toggle]",invoke=function(message) if message:is_trigger() then RecordFollowToggle() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Record+Follow Toggle (4th) x[Toggle]",invoke=function(message) if message:is_trigger() then RecordFollowToggle() end end}
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 --esa- 2nd keybind for Record Toggle ON/OFF with effect_column reading
 previous_edit_step = nil
