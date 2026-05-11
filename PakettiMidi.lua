@@ -147,9 +147,9 @@ w.lock_keyboard_focus = true
 end
 end
 
-renoise.tool():add_midi_mapping{name="Paketti:Record and Follow x[Toggle]",invoke=function(message) if message:is_trigger() then MidiRecordAndFollowToggle() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Record and Follow and Start/Stop Playback x[Toggle]",invoke=function(message) if message:is_trigger() then MidiRecordAndFollowToggle() end end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Record and Follow On/Off x[Knob]",invoke=function(midi_message) 
+renoise.tool():add_midi_mapping{name="Paketti:Record and Follow and Start/Stop Playback On/Off x[Knob]",invoke=function(midi_message) 
 --Aided by dblue
 local t=renoise.song().transport
 local w=renoise.app().window

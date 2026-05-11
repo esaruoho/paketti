@@ -22,6 +22,13 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-11 - Improvement: Rename Record and Follow MIDI Mappings to Clarify Playback Start/Stop
+
+Renamed the two older MIDI mappings in `PakettiMidi.lua` (`MidiRecordAndFollowToggle`) to make it clear they also start/stop playback — unlike the newer Record+Follow Toggle mappings which only toggle edit mode and follow player.
+
+- MIDI Mapping renamed: `Paketti:Record and Follow x[Toggle]` → `Paketti:Record and Follow and Start/Stop Playback x[Toggle]`
+- MIDI Mapping renamed: `Paketti:Record and Follow On/Off x[Knob]` → `Paketti:Record and Follow and Start/Stop Playback On/Off x[Knob]`
+
 ### 2026-05-11 - Feature: Record+Follow Toggle MIDI Mappings (1st–4th)
 
 Added four MIDI mappings for the Record+Follow Toggle function, allowing it to be mapped to multiple MIDI controllers simultaneously. These call the same `RecordFollowToggle()` used by the existing keybindings (2nd/3rd/4th), which handles pattern editor, phrase editor, and various edit/follow/play state toggling.
