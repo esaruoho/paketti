@@ -41,7 +41,25 @@ else
 end
 
 ------------------------------------------------------------------------
--- 1. AudioDevice / PluginInfo  short_name  (API 6.1+)
+-- 1. V2-only device chain / preset blacklist  (API 6.1+ / Renoise 3.3+)
+--    These XRNT/XRDP files contain DigitalFilterDevice or Distortion2Device
+--    which do not exist before API 6.1.  Shared by PakettiDeviceChains,
+--    Paketti0G01_Loader (Preset++ default & file picker), and
+--    PakettiPresetPlusPlus (channelstrip loader).
+------------------------------------------------------------------------
+
+PAKETTI_V2_ONLY_DEVICE_CHAINS = {
+  ["ClippyClip.xrdp"] = true,
+  ["ClippyClip_.xrdp"] = true,
+  ["ClippyClip.xrnt"] = true,
+  ["hipass_lopass_dcoffset.xrnt"] = true,
+  ["Low - High Cut (flat) (NPC1).xrdp"] = true,
+  ["Low - High Cut (halfsteep) (NPC1).xrdp"] = true,
+  ["Low - High Cut (steep) (NPC1).xrdp"] = true,
+}
+
+------------------------------------------------------------------------
+-- 2. AudioDevice / PluginInfo  short_name  (API 6.1+)
 ------------------------------------------------------------------------
 
 -- Safe accessor for AudioDevice.short_name (device instances on a track)

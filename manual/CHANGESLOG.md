@@ -22,6 +22,14 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-11 - Fix: Preset++ device chain incompatible on Renoise 3.1
+
+The default Preset++ device chain (`hipass_lopass_dcoffset.xrnt`) uses `DigitalFilterDevice`, a Renoise 3.5-only (doc_version 22) DSP type that does not exist before API 6.1. On Renoise 3.1 this caused the error "was saved with an incompatible, more recent version of Renoise" when creating a new track with channelstrip. Fixed by:
+- Moving the v2-only device chain blacklist to a shared global `PAKETTI_V2_ONLY_DEVICE_CHAINS` in `PakettiCompat.lua`
+- Filtering blacklisted chains from the Preset++ device chain dropdown (`pakettiGetXRNTDeviceChainFiles()`) on API < 6.1
+- Defaulting `pakettiPresetPlusPlusDeviceChain` to `""` (none) on API < 6.1 instead of the incompatible chain
+- Adding a runtime guard in `PakettiCreateNewTrackWithChannelstrip()` to catch persisted preferences pointing to blacklisted chains
+
 ### 2026-05-11 - Fix: Note Release Gate crash on Renoise 3.1
 
 `PakettiNoteReleaseGate.lua` used `tool_will_unload_observable` and `tool_finished_loading_observable` unconditionally at load time. Both observables were introduced in API 6.1 (Renoise 3.3) and do not exist in Renoise 3.1, causing a fatal `unknown property or function 'tool_will_unload_observable'` error that prevented the entire tool from loading. Both calls are now guarded with `if PAKETTI_API >= 6.1`, matching the established pattern in `PakettiExperimental_BlockLoopFollow.lua`. On older Renoise versions, cleanup happens via `app_new_document_observable` (already registered) and natural tool unload.

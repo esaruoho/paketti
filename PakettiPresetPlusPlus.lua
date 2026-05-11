@@ -2258,10 +2258,18 @@ function PakettiCreateNewTrackWithChannelstrip()
   
   -- Get device chain path from preferences
   local device_chain_path = renoise.tool().preferences.pakettiPresetPlusPlusDeviceChain.value
-  
+
+  -- On older API, block v2-only chains even if the preference was persisted from a newer Renoise
+  if PAKETTI_API < 6.1 and device_chain_path ~= "" then
+    local chain_filename = device_chain_path:match("[^/\\]+$")
+    if chain_filename and PAKETTI_V2_ONLY_DEVICE_CHAINS[chain_filename] then
+      device_chain_path = ""
+    end
+  end
+
   -- Check if device chain is disabled (<None> was selected)
   local device_chain_enabled = device_chain_path ~= ""
-  
+
   -- If device chain is enabled, validate the file
   if device_chain_enabled then
     -- If it's a relative path, make it absolute from tool bundle

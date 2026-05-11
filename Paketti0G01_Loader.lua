@@ -246,7 +246,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiDefaultXRNI = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni"),
   pakettiDefaultDrumkitXRNI = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni"),
   pakettiDefaultMidiMappingPath = "",
-  pakettiPresetPlusPlusDeviceChain = "DeviceChains" .. separator .. "hipass_lopass_dcoffset.xrnt",
+  pakettiPresetPlusPlusDeviceChain = (PAKETTI_API >= 6.1)
+    and ("DeviceChains" .. separator .. "hipass_lopass_dcoffset.xrnt")
+    or "",  -- v2-only chain; use <None> on older API
   -- AutoSamplify Settings
   pakettiAutoSamplifyMonitoring = false,
   pakettiAutoSamplifyPakettify = false,
@@ -1046,26 +1048,29 @@ end
 -- Function to get available .xrnt device chain files
 function pakettiGetXRNTDeviceChainFiles()
     local deviceChainsFolder = renoise.tool().bundle_path .. "DeviceChains" .. separator
-    local files = {}
-    
+    local raw_files = {}
+
     -- Try to get files from the DeviceChains folder
     local success, result = pcall(os.filenames, deviceChainsFolder, "*.xrnt")
     if success and result then
-        files = result
+        raw_files = result
     end
-    
-    -- Process filenames to remove path and use correct separator
-    for i, file in ipairs(files) do
-        -- Extract just the filename from the full path
-        files[i] = file:match("[^"..separator.."]+$")
+
+    -- Process filenames: extract basename and filter out v2-only chains on old API
+    local files = {}
+    for _, file in ipairs(raw_files) do
+        local basename = file:match("[^"..separator.."]+$")
+        if PAKETTI_API >= 6.1 or not PAKETTI_V2_ONLY_DEVICE_CHAINS[basename] then
+            table.insert(files, basename)
+        end
     end
-    
+
     -- Sort the files alphabetically for better user experience
     table.sort(files, function(a, b) return a:lower() < b:lower() end)
-    
+
     -- Always add <None> as the first option
     table.insert(files, 1, "<None>")
-    
+
     return files
 end
 

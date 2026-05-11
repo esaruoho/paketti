@@ -1,21 +1,12 @@
--- Blacklist of device chain presets that contain v2 DSP devices (API 6.1+ / Renoise 3.3+)
--- These use DigitalFilterDevice or Distortion2Device which don't exist on Renoise 3.2
-local v2_only_preset_files = {
-  ["ClippyClip.xrdp"] = true,
-  ["ClippyClip_.xrdp"] = true,
-  ["ClippyClip.xrnt"] = true,
-  ["hipass_lopass_dcoffset.xrnt"] = true,
-  ["Low - High Cut (flat) (NPC1).xrdp"] = true,
-  ["Low - High Cut (halfsteep) (NPC1).xrdp"] = true,
-  ["Low - High Cut (steep) (NPC1).xrdp"] = true,
-}
+-- V2-only blacklist is now a shared global in PakettiCompat.lua:
+-- PAKETTI_V2_ONLY_DEVICE_CHAINS
 
 function PakettiRandomDeviceChain(path)
   local files = {}
   for file in io.popen('ls "' .. path .. '"'):lines() do
     if file:match("%.xrnt$") or file:match("%.xrdp$") then
       -- On API < 6.1, skip presets containing v2 devices
-      if PAKETTI_API >= 6.1 or not v2_only_preset_files[file] then
+      if PAKETTI_API >= 6.1 or not PAKETTI_V2_ONLY_DEVICE_CHAINS[file] then
         table.insert(files, file)
       end
     end
