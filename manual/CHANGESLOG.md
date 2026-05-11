@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-11 - Fix: Remove Stepper Modulation Devices from v31-compatible Instruments
+
+Removed all `SampleStepperModulationDevice` entries from the four v31-compatible instrument presets (`12st_Pitchbend.xrni`, `12st_Pitchbend_Drumkit_C0.xrni`, `12st_Pitchbend_Drumkit_C0_mutegroup.xrni`, `12st_WT.xrni`). The Stepper's `<Nodes>` format includes `<ValueQuantum>` and `<Polarity>` elements from modulation set v5 (Renoise 3.2+), which Renoise 3.1 cannot parse correctly — causing all Stepper point values to reset to 0. Since the Volume and Cutoff Steppers use the `*` (multiply) operator, this resulted in volume=0 (silence), cutoff=0 (filter closed, silence), and panning hard-left. All removed Steppers were at neutral values (no sonic effect) so the instruments sound identical without them. Remaining modulation devices (LFO, AHDSR, Operand, Mixer) are all 3.0+ compatible.
+
 ### 2026-05-11 - Improvement: Rename Record and Follow MIDI Mappings to Clarify Playback Start/Stop
 
 Renamed the two older MIDI mappings in `PakettiMidi.lua` (`MidiRecordAndFollowToggle`) to make it clear they also start/stop playback — unlike the newer Record+Follow Toggle mappings which only toggle edit mode and follow player.
