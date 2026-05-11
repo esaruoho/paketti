@@ -22,9 +22,9 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
-### 2026-05-11 - Fix: Remove Stepper Modulation Devices from v31-compatible Instruments
+### 2026-05-11 - Fix: Restore Stepper Modulation Devices in v31-compatible Instruments with Safe Defaults
 
-Removed all `SampleStepperModulationDevice` entries from the four v31-compatible instrument presets (`12st_Pitchbend.xrni`, `12st_Pitchbend_Drumkit_C0.xrni`, `12st_Pitchbend_Drumkit_C0_mutegroup.xrni`, `12st_WT.xrni`). The Stepper's `<Nodes>` format includes `<ValueQuantum>` and `<Polarity>` elements from modulation set v5 (Renoise 3.2+), which Renoise 3.1 cannot parse correctly — causing all Stepper point values to reset to 0. Since the Volume and Cutoff Steppers use the `*` (multiply) operator, this resulted in volume=0 (silence), cutoff=0 (filter closed, silence), and panning hard-left. All removed Steppers were at neutral values (no sonic effect) so the instruments sound identical without them. Remaining modulation devices (LFO, AHDSR, Operand, Mixer) are all 3.0+ compatible.
+Restored all 6 `SampleStepperModulationDevice` entries in the four v31-compatible instrument presets (`12st_Pitchbend.xrni`, `12st_Pitchbend_Drumkit_C0.xrni`, `12st_Pitchbend_Drumkit_C0_mutegroup.xrni`, `12st_WT.xrni`). The Stepper's `<Nodes>` format includes `<ValueQuantum>` and `<Polarity>` elements from modulation set v5 (Renoise 3.2+), which Renoise 3.1 cannot parse — causing all Stepper point values to reset to 0 (Volume×0 = silence, Cutoff×0 = filter closed). Fix: rebuilt from v33/v34 backups, stripped `<ValueQuantum>` and `<Polarity>` from inside `<Nodes>`, and set all Stepper point values to 1.0 (neutral for multiply operators, maximum range for additive operators). The Stepper devices are now present and ready for the user to program on Renoise 3.1. Targets: Panning (+), Drive (+), Resonance (+), Pitch (+), Cutoff (×), Volume (×).
 
 ### 2026-05-11 - Improvement: Rename Record and Follow MIDI Mappings to Clarify Playback Start/Stop
 
