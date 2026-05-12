@@ -5508,8 +5508,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Cycle Paketti Dynamic View 07</Binding>
-          <Key>Control + F7</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Cycle Paketti Dynamic View 08</Binding>
@@ -6960,8 +6959,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Load New Instrument with Current Slice Markers</Binding>
-          <Key>Control + N</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Load New Instrument with Current Slice Markers (Length Matching)</Binding>
@@ -13306,8 +13304,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Show BPM Calculation Dialog...</Binding>
-          <Key>Control + B</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Convert Beatsync to Sample Pitch</Binding>
@@ -13973,8 +13970,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Paketti PlayerPro OpenMPT Linear Keyboard Layer...</Binding>
-          <Key>Control + K</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Glider Toggle</Binding>
@@ -14201,8 +14197,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Paketti Sample Effect Generator</Binding>
-          <Key>Control + S</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Run Notepad Device Code</Binding>
@@ -15161,8 +15156,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Add Gainer A to Selected Track</Binding>
-          <Key>Control + O</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Add Gainer B to Selected Track</Binding>
@@ -19083,8 +19077,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Cycle Chord Inversion Up</Binding>
-          <Key>Control + Up</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Cycle Chord Inversion Down</Binding>
@@ -22007,8 +22000,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Replicate Selected Track Above Current Row </Binding>
-          <Key>Control + Down</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Replicate Selected Track Above Current Row (+1)</Binding>
@@ -22081,13 +22073,11 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Delay Column Increase Selection/Row (+1)</Binding>
-          <Key>Control + Right</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Delay Column Decrease Selection/Row (-1)</Binding>
-          <Key>Control + Left</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Delay Column Increase Selection/Row (+10)</Binding>
@@ -26771,8 +26761,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Move DSPs to Previous Track</Binding>
-          <Key>Alt + Control + Left</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Move DSPs to Next Track</Binding>
@@ -26825,23 +26814,19 @@
         <KeyBinding>
           <Topic>Device</Topic>
           <Binding>∿ Parama Param Next Parameter</Binding>
-          <Key>Control + Down</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Device</Topic>
           <Binding>∿ Parama Param Previous Parameter</Binding>
-          <Key>Control + Up</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Device</Topic>
           <Binding>∿ Parama Param Increase</Binding>
-          <Key>Control + Right</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Device</Topic>
           <Binding>∿ Parama Param Decrease</Binding>
-          <Key>Control + Left</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Device</Topic>
           <Binding>∿ Parama Param Parameter 01 Value Increase</Binding>

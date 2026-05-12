@@ -22,6 +22,29 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-13 - Fix: Linux/Windows keybindings — Impulse Tracker bindings now win their Ctrl-shortcut conflicts
+
+The shipped `KeyBindings/2025_07_10_PakettiKeyBindings_Linux_Windows.xml` had 48 keyboard shortcut collisions (the macOS file has zero — Cmd vs Ctrl gives Mac users two separate spaces; Linux/Windows users had to fold everything onto Ctrl and bindings collided). 15 of the worst collisions (same key combination bound to two different actions in the same scope) are now resolved by stripping the `<Key>` element from the loser side (the keybinding entry remains so menus and Lua references still work — only the default chord assignment is removed). Re-import the keybinding preset to pick up the new defaults.
+
+**Impulse Tracker emulation wins (11 chords):**
+
+- `Ctrl+F7` — IT Capture Marker Position keeps it (Cycle Paketti Dynamic View 07 unbound)
+- `Ctrl+N` — IT New Song Dialog keeps it (Load New Instrument with Current Slice Markers unbound)
+- `Ctrl+O` — IT Pattern to Sample keeps it (Add Gainer A unbound)
+- `Pattern Editor Ctrl+Up` — IT Home*2 keeps it (Cycle Chord Inversion Up unbound)
+- `Pattern Editor Ctrl+Down` — IT End*2 keeps it (Replicate Selected Track Above unbound)
+- `Pattern Editor Ctrl+Left` / `Ctrl+Right` — IT Alt-Left/Right keep them (Delay Column ±1 unbound)
+- `Mixer Ctrl+Up` / `Ctrl+Down` / `Ctrl+Left` / `Ctrl+Right` — IT navigation keeps them (Parama Param previous/next/decrease/increase unbound)
+
+**Renoise natives win (4 chords):**
+
+- `Ctrl+B` — Show/Hide Disk Browser keeps it (Show BPM Calculation Dialog unbound)
+- `Ctrl+K` — Show/Focus Track Editors keeps it (PlayerPro OpenMPT Keyboard Layer unbound)
+- `Ctrl+S` — Save Song keeps it (Sample Effect Generator unbound)
+- `Mixer Alt+Ctrl+Left` — Move Track Left keeps it (Move DSPs to Previous Track unbound)
+
+33 Paketti-vs-Paketti keyboard shortcut collisions remain (Ctrl+C, Ctrl+D, Ctrl+E, Ctrl+P, Ctrl+U, Ctrl+V, Ctrl+Z, Ctrl+Shift+A/P/Q/S/X, etc.) and need per-chord decisions — list saved to `/tmp/paketti_lwin_deferred.md` for follow-up.
+
 ### 2026-05-12 - Feature: Esa Ruoho ParaEQ (AU) loader + external-editor preference
 
 Added an AU loader for the Esa Ruoho ParaEQ plugin (`aufx:peQA:EsaR`). When loaded — either via the new keybinding or any pathway that goes through `loadvst()` — the plugin opens its external editor instead of the Renoise parameter editor, matching the existing FabFilter Pro-Q 3 behaviour. Detection works either by VST/AU identifier prefix or by `"esa ruoho"` + `"paraeq"` in the device name (case-insensitive), so manually-loaded instances are handled too.
