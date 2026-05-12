@@ -266,3 +266,7 @@ PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:!Preferences:Claude Probe Song",
   invoke = PakettiClaudeProbeSong
 }
+
+-- Load marker so we can confirm reload picked up this file
+print("[PakettiClaudeProbe] loaded at " .. os.date("%H:%M:%S")
+      .. " — PakettiClaudeProbeRun is " .. type(PakettiClaudeProbeRun))

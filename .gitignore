@@ -16,3 +16,7 @@ manual/_paketti-skill/
 manual/_forum/
 manual/.obsidian/
 manual/.claude/
+
+# Renoise-generated autocomplete state (user-local churn)
+autocomplete_cache.txt
+autocomplete_usage.txt

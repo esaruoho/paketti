@@ -903,6 +903,15 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
     return has_vendor and has_product
   end
 
+  local function is_esa_ruoho_paraeq(device)
+    if vstname and string.find(vstname, "peQA:EsaR", 1, true) ~= nil then return true end
+    if not device or not device.name then return false end
+    local n = string.lower(device.name)
+    local has_vendor = string.find(n, "esa ruoho", 1, true) ~= nil
+    local has_product = string.find(n, "paraeq", 1, true) ~= nil
+    return has_vendor and has_product
+  end
+
   if (force_in_sample_fx ~= nil and force_in_sample_fx) or (raw.active_middle_frame == 7) then
     -- Sample chain device handling
     local chain = s.selected_sample_device_chain
@@ -967,6 +976,9 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
           open_external = false
           open_param_editor = true
         elseif is_fabfilter_pro_q3(inserted_device) then
+          open_external = true
+          open_param_editor = false
+        elseif is_esa_ruoho_paraeq(inserted_device) then
           open_external = true
           open_param_editor = false
         end
@@ -1137,6 +1149,9 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
         open_external = false
         open_param_editor = true
       elseif is_fabfilter_pro_q3(inserted_device) then
+        open_external = true
+        open_param_editor = false
+      elseif is_esa_ruoho_paraeq(inserted_device) then
         open_external = true
         open_param_editor = false
       end
@@ -1317,6 +1332,9 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Reverb 4",invo
 renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Dub 3 AU",invoke=function() loadvst("Audio/Effects/AU/aumf:xg70:TOGU") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Chorus LX",invoke=function() loadvst("Audio/Effects/AU/aufx:cHL1:TOGU") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Chorus",invoke=function() loadvst("Audio/Effects/AU/aufx:Chor:Togu") end}
+
+-- Esa Ruoho (AU)
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Esa Ruoho ParaEQ (AU)",invoke=function() loadvst("Audio/Effects/AU/aufx:peQA:EsaR") end}
 
 -- ValhallaDSP (AU)
 renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaRoom",invoke=function() loadvst("Audio/Effects/AU/aufx:Ruum:oDin") end}

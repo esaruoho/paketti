@@ -22,6 +22,12 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-12 - Feature: Esa Ruoho ParaEQ (AU) loader + external-editor preference
+
+Added an AU loader for the Esa Ruoho ParaEQ plugin (`aufx:peQA:EsaR`). When loaded — either via the new keybinding or any pathway that goes through `loadvst()` — the plugin opens its external editor instead of the Renoise parameter editor, matching the existing FabFilter Pro-Q 3 behaviour. Detection works either by VST/AU identifier prefix or by `"esa ruoho"` + `"paraeq"` in the device name (case-insensitive), so manually-loaded instances are handled too.
+
+- Keybinding: `Global:Track Devices:Load Esa Ruoho ParaEQ (AU)`
+
 ### 2026-05-11 - Fix: Restore Stepper Modulation Devices in v31-compatible Instruments with Safe Defaults
 
 Restored all 6 `SampleStepperModulationDevice` entries in the four v31-compatible instrument presets (`12st_Pitchbend.xrni`, `12st_Pitchbend_Drumkit_C0.xrni`, `12st_Pitchbend_Drumkit_C0_mutegroup.xrni`, `12st_WT.xrni`). The Stepper's `<Nodes>` format includes `<ValueQuantum>` and `<Polarity>` elements from modulation set v5 (Renoise 3.2+), which Renoise 3.1 cannot parse — causing all Stepper point values to reset to 0 (Volume×0 = silence, Cutoff×0 = filter closed). Fix: rebuilt from v33/v34 backups, stripped `<ValueQuantum>` and `<Polarity>` from inside `<Nodes>`, and set all Stepper point values to 1.0 (neutral for multiply operators, maximum range for additive operators). The Stepper devices are now present and ready for the user to program on Renoise 3.1. Targets: Panning (+), Drive (+), Resonance (+), Pitch (+), Cutoff (×), Volume (×).
@@ -71,7 +77,6 @@ Added version-aware XRNI preset loading so Paketti works correctly on Renoise 3.
 - The user-facing Preferences XRNI picker dropdown still shows the same file list (the `v31/` subdirectory is not scanned), and selected presets are resolved through the versioned path helper automatically
 
 **Files affected:** `12st_Pitchbend.xrni`, `12st_Pitchbend_Drumkit_C0.xrni`, `12st_Pitchbend_Drumkit_C0_mutegroup.xrni`, `12st_WT.xrni`, `RingMod.xrni`, `RingModLegacy.xrni`, `empty.xrni`, and all 6 `*_Legacy_with_VolAmp_VolFreq.xrni` variants.
-
 ### 2026-05-08 - Feature: PakettiMCP voice verbs — Pattern Preset / Groovebox / Shrink / Expand from "Hey Sal"
 
 Added `PakettiMCP/tools/paketti.lua` with four MCP verbs that wrap existing Paketti functions so they can be invoked from any external process via the MCP server on `localhost:19714`:
