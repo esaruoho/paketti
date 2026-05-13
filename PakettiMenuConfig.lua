@@ -3078,6 +3078,8 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Fill E
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0U00",invoke=function() writeEffectToPattern("0U00") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0G01+0D00",invoke=function() writeEffectToPattern("0D00", "0G01") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0G01+0U00",invoke=function() writeEffectToPattern("0U00", "0G01") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0G01+0D00 (From Cursor)",invoke=function() writeEffectFromCursor("0D00", "0G01") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0G01+0U00 (From Cursor)",invoke=function() writeEffectFromCursor("0U00", "0G01") end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Move DSPs to Previous Track",invoke=function() move_dsps_to_adjacent_track(-1) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Move DSPs to Next Track",invoke=function() move_dsps_to_adjacent_track(1) end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Move Selected DSP to Previous Track",invoke=function() move_selected_dsp_to_adjacent_track(-1) end}

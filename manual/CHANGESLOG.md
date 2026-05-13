@@ -22,6 +22,17 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-13 - Feature: Fill Effect Column with 0G01+0D00 / 0G01+0U00 (From Cursor)
+
+Two new variants of the existing "Fill Effect Column with 0G01+0Xxx" commands. The existing ones overwrite the whole pattern. The "(From Cursor)" variants behave smarter: if the cursor is on row 1 they do exactly the same as the original (0G01 on row 1, 0U00/0D00 on rows 2..end). If the cursor is on any other row N, they fill only rows N..end with the glide effect and leave rows 1..N-1 untouched — useful when you've already laid down `0G01` at the top of the pattern and now want to swap the glide direction from a specific row onward without re-writing the whole column.
+
+- Menu: `Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0G01+0D00 (From Cursor)`
+- Menu: `Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0G01+0U00 (From Cursor)`
+- Keybinding: `Pattern Editor:Paketti:Fill Effect Column with 0G01+0D00 (From Cursor)`
+- Keybinding: `Pattern Editor:Paketti:Fill Effect Column with 0G01+0U00 (From Cursor)`
+- MIDI Mapping: `Paketti:Fill Effect Column with 0G01+0D00 (From Cursor) [Trigger]`
+- MIDI Mapping: `Paketti:Fill Effect Column with 0G01+0U00 (From Cursor) [Trigger]`
+
 ### 2026-05-13 - Feature: Impulse Tracker Bootstrap
 
 One-shot command that brings Renoise into IT-style working mode in a single keypress. Loads the bundled Dynamic Views layout from `KeyBindings/Paketti Dynamic Views F2 F3 F4 F11.txt` into the Dynamic Views preferences (note: you still have to assign Dynamic View 01/02/03/04 to F2/F3/F4/F11 yourself in Renoise keybindings for them to fire — Paketti just provides the layout), and force-enables three IT-mode toggles regardless of their current state: SBx Pattern Loop Follow, Trigger Sample on Pattern Input During Record, and Audition Current Line on Pattern Row Change. Safe to run again any time you want to reset back to IT-mode defaults. `load_dynamic_views_from_txt()` now accepts an optional path argument; passing nil keeps the existing file-prompt behaviour.

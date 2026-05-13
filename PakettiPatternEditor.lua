@@ -7056,6 +7056,46 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column wi
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column with 0G01+0D00",invoke=function() writeEffectToPattern("0D00", "0G01") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column with 0G01+0U00",invoke=function() writeEffectToPattern("0U00", "0G01") end}
 
+-- "From cursor" variants: when on row 1, behave exactly like the full-pattern
+-- 0G01+0Xxx fill above. When on any other row N, fill only rows N..end with
+-- the glide effect (0U00 or 0D00) and leave rows 1..N-1 untouched — useful
+-- when you've already laid down 0G01 at row 1 and want to swap the glide
+-- direction from a specific row onward.
+function writeEffectFromCursor(effect_string, first_row_effect)
+  if not canWriteToEffectColumn() then return end
+
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  if not pattern or not track_index then return end
+
+  local cursor_line = song.selected_line_index
+  local num_lines = pattern.number_of_lines
+
+  if cursor_line == 1 then
+    -- Same as full-pattern: row 1 = first_row_effect, rows 2..end = effect_string
+    writeEffectToPattern(effect_string, first_row_effect)
+    return
+  end
+
+  -- Cursor is on row N > 1: write effect_string from row N to end, leave 1..N-1 alone
+  local number_string = effect_string:sub(1, 2)
+  local amount_string = effect_string:sub(3, 4)
+
+  for line_index = cursor_line, num_lines do
+    local effect_column = pattern.tracks[track_index].lines[line_index].effect_columns[1]
+    effect_column.number_string = number_string
+    effect_column.amount_string = amount_string
+  end
+
+  song.selected_effect_column_index = 1
+  renoise.app():show_status(string.format("Filled effect column with %s from row %d to %d (rows 1-%d left untouched)",
+    effect_string, cursor_line, num_lines, cursor_line - 1))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column with 0G01+0D00 (From Cursor)",invoke=function() writeEffectFromCursor("0D00", "0G01") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column with 0G01+0U00 (From Cursor)",invoke=function() writeEffectFromCursor("0U00", "0G01") end}
+
 
 renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0D00 [Trigger]",
   invoke=function(message)
@@ -7085,6 +7125,20 @@ renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0G01+0U00 
   invoke=function(message)
     if message:is_trigger() then
       writeEffectToPattern("0U00", "0G01")
+    end
+  end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0G01+0D00 (From Cursor) [Trigger]",
+  invoke=function(message)
+    if message:is_trigger() then
+      writeEffectFromCursor("0D00", "0G01")
+    end
+  end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0G01+0U00 (From Cursor) [Trigger]",
+  invoke=function(message)
+    if message:is_trigger() then
+      writeEffectFromCursor("0U00", "0G01")
     end
   end}
 
