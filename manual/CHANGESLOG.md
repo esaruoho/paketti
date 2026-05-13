@@ -37,6 +37,22 @@ Fixed a crash when toggling "Audition Current Line on Pattern Row Change" on or 
 
 - **File**: `PakettiPatternEditor.lua` (lines ~8453, ~8504)
 
+### 2026-05-13 - Parked: Trigger Sample on Pattern Input During Record — not currently possible with Renoise API
+
+After exhausting every available path, this feature is **parked**. The Renoise 3.5 / API 6.2 Lua and OSC interfaces do not expose any way to preview a note during playback without also recording it into the pattern. Specifically:
+
+1. `trigger_pattern_line()` errors out when playback is running (documented).
+2. `trigger_instrument_note_on()` is silent during playback (verified empirically via manual test that bypassed our notifier path — same instrument, same track, same note, only difference was `transport.playing` — stopped played sound, playing produced nothing). This restriction is **not** documented anywhere.
+3. `/renoise/trigger/note_on` via the built-in OSC server is implemented internally as `song:trigger_instrument_note_on(...)` (osc.md line 248), so it inherits #2 — AND when edit mode is on, OSC trigger inputs get **recorded** into the pattern like an external MIDI controller, which combined with `add_line_edited_notifier` creates immediate runaway feedback that fills the pattern and freezes Renoise.
+
+The 7 built-in OSC commands do not include any preview-without-recording endpoint.
+
+The toggle, keybinding, MIDI mapping, and menu entries remain in place (so existing user setups don't break) but they now show a status-bar message explaining the limitation instead of doing anything. The persisted preference is forced to `false` on every boot so legacy `true` state from earlier broken attempts can't auto-re-enable.
+
+**Workaround for users:** keep Follow Player ON. Renoise auditions natively when the edit cursor and the playback cursor coincide.
+
+- **File**: `PakettiTriggerOnInput.lua`
+
 ### 2026-05-13 - Fix: Trigger Sample on Pattern Input During Record — switch to `add_line_edited_notifier` + duplicate-menu crash
 
 Two real bugs were keeping the feature silent and causing a boot crash:
