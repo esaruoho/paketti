@@ -88,13 +88,64 @@ local function toi_on_line_edited(pos)
     return
   end
 
+  -- Sanity check the track: send / group / master tracks cannot play notes
+  local track = song:track(pos.track)
+  if track then
+    local t = track.type
+    toi_log(string.format("track %d type=%d (1=seq, 2=master, 3=send, 4=group)", pos.track, t))
+    if t ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+      renoise.app():show_status(string.format("TriggerOnInput: track %d is not a sequencer track (type %d) — can't preview", pos.track, t))
+      return
+    end
+  end
+
   toi_log(string.format("trigger at p%d t%d l%d", pos.pattern, pos.track, pos.line))
 
   for instr_idx, info in pairs(instr_notes) do
-    song:trigger_instrument_note_on(instr_idx, pos.track, info.notes, info.velocity)
-    table.insert(toi_active_notes, {instr = instr_idx, track = pos.track, notes = info.notes})
-    renoise.app():show_status(string.format("TriggerOnInput: instr %02X note %d vel %.2f", instr_idx - 1, info.notes[1], info.velocity))
+    local instr = song.instruments[instr_idx]
+    if not instr then
+      toi_log(string.format("instrument %d (0x%02X) does not exist — skipping", instr_idx, instr_idx - 1))
+      renoise.app():show_status(string.format("TriggerOnInput: instr 0x%02X does not exist", instr_idx - 1))
+    else
+      local n_samples = #instr.samples
+      toi_log(string.format("instrument %d name='%s' samples=%d", instr_idx, instr.name, n_samples))
+      if n_samples == 0 then
+        renoise.app():show_status(string.format("TriggerOnInput: instr 0x%02X '%s' has no samples", instr_idx - 1, instr.name))
+      end
+      song:trigger_instrument_note_on(instr_idx, pos.track, info.notes, info.velocity)
+      table.insert(toi_active_notes, {instr = instr_idx, track = pos.track, notes = info.notes})
+      renoise.app():show_status(string.format("TriggerOnInput: instr 0x%02X '%s' note %d vel %.2f", instr_idx - 1, instr.name, info.notes[1], info.velocity))
+    end
   end
+end
+
+--------------------------------------------------------------------------------
+-- Manual test: trigger the selected instrument/note directly (bypass notifier)
+-- Bind this to a keybinding to test whether trigger_instrument_note_on works
+-- at all in your current Renoise state, independent of the notifier path.
+--------------------------------------------------------------------------------
+function PakettiTriggerOnInputManualTest()
+  local song = renoise.song()
+  if not song then return end
+  local instr_idx = song.selected_instrument_index
+  local track_idx = song.selected_track_index
+  local instr = song.instruments[instr_idx]
+  local track = song:track(track_idx)
+  local note = 48  -- C-4
+
+  if not instr then
+    renoise.app():show_status("Manual test: no instrument at " .. tostring(instr_idx))
+    return
+  end
+  if track and track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status(string.format("Manual test: track %d type %d is not sequencer", track_idx, track.type))
+    return
+  end
+
+  print(string.format("[ManualTest] trigger instr=%d '%s' track=%d note=%d samples=%d",
+    instr_idx, instr.name, track_idx, note, #instr.samples))
+  song:trigger_instrument_note_on(instr_idx, track_idx, {note}, 1.0)
+  renoise.app():show_status(string.format("Manual test fired: instr 0x%02X '%s' note C-4", instr_idx - 1, instr.name))
 end
 
 --------------------------------------------------------------------------------
@@ -206,6 +257,11 @@ end
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Trigger Sample on Pattern Input During Record Toggle",
   invoke = function() PakettiTriggerOnInputToggle() end
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Trigger Sample on Pattern Input — Manual Test (selected instr/track, C-4)",
+  invoke = function() PakettiTriggerOnInputManualTest() end
 }
 
 -- Main Menu:Options entry is registered in PakettiMenuConfig.lua (central menu config)
