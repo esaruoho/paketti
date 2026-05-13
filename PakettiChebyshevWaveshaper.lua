@@ -6,8 +6,17 @@ local abs, min, max, floor = math.abs, math.min, math.max, math.floor
 
 local vb = renoise.ViewBuilder()
 local dialog = nil
--- Harmonic gains for harmonics 2-13 (skip DC and fundamental)  
+-- Harmonic gains for harmonics 2-13 (skip DC and fundamental)
 local harmonic_gains = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0} -- H2-H13, all start at 0
+
+-- Per-polynomial pow() shape exponents for harmonics 2-13. 1.0 = identity
+-- (no extra shaping; behaves exactly like the original Clenshaw path). Values
+-- < 1.0 expand (steepen near zero, soften peaks); values > 1.0 compress
+-- (flatten near zero, sharpen peaks). Applied as sign(T_k(x)) * |T_k(x)|^exp
+-- BEFORE multiplying by the harmonic gain and summing — so each polynomial's
+-- contribution to the LUT is reshaped individually. The shaping bakes into
+-- the LUT at parameter-change time (cold path), so per-sample cost is zero.
+local harmonic_exponents = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
 local oversampling_factor = 1 -- 1x, 2x, 4x, 8x
 local dry_value = 1.0
 local wet_value = 1.0  -- FIXED: Default to 100% wet (much better UX!)  
@@ -258,6 +267,61 @@ local function make_series_clenshaw(coeffs, N)
     end
     return x*b1 - b2 + c0
   end
+end
+
+-- Per-polynomial evaluator: like make_series_clenshaw, but evaluates each
+-- Chebyshev polynomial T_k(x) individually, applies sign(y)*|y|^exp[k] to
+-- each, then sums with its coefficient. Used only when at least one
+-- exponent != 1.0 (otherwise we keep the faster Clenshaw path).
+-- coeffs[k] maps to gain for T_k. exponents[k] is the pow exponent for T_k
+-- (k>=1; k=0 is DC, always 0 here, no shaping).
+local function make_series_per_polynomial(coeffs, exponents, N)
+  N = N or 13
+  local c0 = coeffs[0] or 0.0
+  return function(x)
+    local sum = c0
+    if N >= 1 then
+      -- T_1(x) = x; apply pow shape
+      local t_prev1 = x
+      local c1 = coeffs[1] or 0.0
+      if c1 ~= 0.0 then
+        local exp1 = exponents[1] or 1.0
+        if exp1 == 1.0 then
+          sum = sum + c1 * t_prev1
+        else
+          local a = t_prev1 >= 0.0 and t_prev1 or -t_prev1
+          local s = t_prev1 >= 0.0 and 1.0 or -1.0
+          sum = sum + c1 * s * (a ^ exp1)
+        end
+      end
+      local t_prev2 = 1.0  -- T_0
+      for k = 2, N do
+        local t_k = 2.0 * x * t_prev1 - t_prev2
+        local ck = coeffs[k] or 0.0
+        if ck ~= 0.0 then
+          local expk = exponents[k] or 1.0
+          if expk == 1.0 then
+            sum = sum + ck * t_k
+          else
+            local a = t_k >= 0.0 and t_k or -t_k
+            local s = t_k >= 0.0 and 1.0 or -1.0
+            sum = sum + ck * s * (a ^ expk)
+          end
+        end
+        t_prev2, t_prev1 = t_prev1, t_k
+      end
+    end
+    return sum
+  end
+end
+
+-- Returns true if any exponent differs from identity (1.0). Used to skip the
+-- per-polynomial path when shaping is disabled — Clenshaw stays the default.
+local function any_per_polynomial_shaping(exponents, N)
+  for k = 1, (N or 13) do
+    if (exponents[k] or 1.0) ~= 1.0 then return true end
+  end
+  return false
 end
 
 -- OPTIMIZED: Build LUT and normalize in single pass (eliminates 8-16K probe sweep!)
@@ -800,7 +864,21 @@ local function build_processor()
   end
 
   local curve_fn = make_precurve(curve_yL, curve_yC, curve_yR)
-  local bank_fn = make_series_clenshaw(coeffs, max_harmonic)  -- Trimmed Clenshaw!
+
+  -- Map harmonic_exponents (indexed 1..12 for H2..H13) onto coef_exponents
+  -- (indexed 2..13 to align with coeffs[k] = T_k coefficient).
+  local coef_exponents = {}
+  coef_exponents[1] = 1.0  -- T_1 (fundamental) — coeff is 0 anyway
+  for i = 1, 12 do coef_exponents[i + 1] = harmonic_exponents[i] or 1.0 end
+
+  local bank_fn
+  if any_per_polynomial_shaping(coef_exponents, max_harmonic) then
+    -- Slower per-poly evaluator (O(N) per LUT entry), only when shaping active
+    bank_fn = make_series_per_polynomial(coeffs, coef_exponents, max_harmonic)
+  else
+    -- Faster Clenshaw recurrence — unchanged default behavior
+    bank_fn = make_series_clenshaw(coeffs, max_harmonic)
+  end
   
   -- composite nonlinearity: bank(curve(x))
   local function nl_raw(x) return bank_fn(curve_fn(x)) end
@@ -915,6 +993,7 @@ reset_sample = function()
   -- BUGFIX: Reset ALL parameters to defaults
   for i = 1, 12 do
     harmonic_gains[i] = 0.0
+    harmonic_exponents[i] = 1.0
   end
   curve_yL, curve_yC, curve_yR = -1.0, 0.0, 1.0  -- Identity curve
   dry_value, wet_value = 0.0, 1.0  -- 0% dry, 100% wet (FIXED: better default!)
@@ -2249,6 +2328,7 @@ function show_chebyshev_waveshaper()
   -- Reset all parameter values to defaults
   for i = 1, 12 do
     harmonic_gains[i] = 0.0
+    harmonic_exponents[i] = 1.0
   end
   curve_yL, curve_yC, curve_yR = -1.0, 0.0, 1.0
   dry_value = 1.0
@@ -2697,7 +2777,51 @@ function show_chebyshev_waveshaper()
         
         -- Labels and values now drawn directly on canvas using PakettiCanvasFont
       },
-      
+
+      -- Per-Harmonic Shape (pow exponent per polynomial)
+      -- 1.0 = identity (no shaping, falls back to faster Clenshaw path).
+      -- < 1.0 expands (steepens near zero); > 1.0 compresses (sharpens peaks).
+      -- The shaping bakes into the LUT at parameter-change time — per-sample
+      -- cost stays at zero.
+      (function()
+        local rand_suffix = tostring(math.random(2, 30000))
+        local exp_ids = {}
+        for i = 1, 12 do exp_ids[i] = "cheby_exp_" .. i .. "_" .. rand_suffix end
+        local function make_exp_field(idx)
+          return vb:valuefield{
+            id = exp_ids[idx],
+            min = 0.25,
+            max = 4.0,
+            value = harmonic_exponents[idx] or 1.0,
+            width = 50,
+            notifier = function(v)
+              harmonic_exponents[idx] = v
+              mark_dirty()
+            end,
+          }
+        end
+        local function reset_exponents()
+          for i = 1, 12 do
+            harmonic_exponents[i] = 1.0
+            local view = vb.views[exp_ids[i]]
+            if view then view.value = 1.0 end
+          end
+          mark_dirty()
+          renoise.app():show_status("Chebyshev: per-harmonic shape exponents reset to 1.0")
+        end
+        return vb:column{
+          style = "group",
+          vb:row{
+            vb:text{ text = "H Shape", width = 56, font = "bold" },
+            make_exp_field(1),  make_exp_field(2),  make_exp_field(3),
+            make_exp_field(4),  make_exp_field(5),  make_exp_field(6),
+            make_exp_field(7),  make_exp_field(8),  make_exp_field(9),
+            make_exp_field(10), make_exp_field(11), make_exp_field(12),
+            vb:button{ text = "Reset Shapes", width = 100, notifier = reset_exponents },
+          },
+        }
+      end)(),
+
       -- Waveform Canvas
       vb:column{
 --        vb:text{

@@ -22,6 +22,14 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-13 - Feature: Chebyshev Waveshaper — per-harmonic pow() shape exponents
+
+Each Chebyshev polynomial T_k(x) now gets an optional `sign(y) * |y|^exp[k]` shaping pass applied BEFORE its coefficient multiplies and sums into the LUT. The shaping is a 12-element exponent table (one per harmonic H2..H13), default 1.0 across the board (identity — behaves exactly like before, hits the fast Clenshaw path). Values < 1.0 expand each harmonic's contribution (steepens near zero, softens peaks); values > 1.0 compress it (flattens near zero, sharpens peaks). Each polynomial reshapes independently, giving a different timbral palette than linear gain mixing alone.
+
+Per-sample cost stays at zero — the shaping bakes into the existing 4096-entry LUT at parameter-change time (cold path). LUT build is roughly 33K extra `pow()` calls per parameter change with all harmonics active, ~5–30ms in Lua 5.1 — imperceptible during slider drag. When all 12 exponents are 1.0, the code falls back to the original Clenshaw recurrence so existing presets behave identically.
+
+- **File**: `PakettiChebyshevWaveshaper.lua` — new state array `harmonic_exponents`, new `make_series_per_polynomial()` evaluator alongside `make_series_clenshaw()`, branch selection at LUT build, "H Shape" UI row of 12 valuefields under the parameter canvas, "Reset Shapes" button, dynamic ViewBuilder IDs (per Paketti house rule).
+
 ### 2026-05-13 - Unparked: Trigger Sample on Pattern Input During Record — re-enabled after Taktik confirmation
 
 Taktik confirmed (2026-05-13) that `renoise.song():trigger_instrument_note_on(1, 1, 48, 1.0)` works fine during playback. My earlier "this API is silently broken during playback" conclusion was wrong — it was based on a single test that called the function with the note wrapped in a table (`{48}`) instead of as a plain integer (`48`). The integer form works. I never tested the integer form before parking the feature. Mea culpa.
