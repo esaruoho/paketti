@@ -22,9 +22,9 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
-### 2026-05-13 - Feature: Fill Effect Column with 0G01+0D00 / 0G01+0U00 (From Cursor)
+### 2026-05-13 - Feature: Fill Effect Column with 0G01+0D00 / 0G01+0U00 (From Cursor) — toggle
 
-Two new variants of the existing "Fill Effect Column with 0G01+0Xxx" commands. The existing ones overwrite the whole pattern. The "(From Cursor)" variants behave smarter: if the cursor is on row 1 they do exactly the same as the original (0G01 on row 1, 0U00/0D00 on rows 2..end). If the cursor is on any other row N, they fill only rows N..end with the glide effect and leave rows 1..N-1 untouched — useful when you've already laid down `0G01` at the top of the pattern and now want to swap the glide direction from a specific row onward without re-writing the whole column.
+Two new variants of the existing "Fill Effect Column with 0G01+0Xxx" commands. The existing ones overwrite the whole pattern. The "(From Cursor)" variants behave smarter and **toggle**: if the cursor is on row 1 they do exactly the same as the original (0G01 on row 1, 0U00/0D00 on rows 2..end). If the cursor is on any other row N, they fill only rows N..end with the glide effect and leave rows 1..N-1 untouched. **Same shortcut twice = wipe**: when the target range is already filled with the exact effect being requested, running the command again clears that same range instead. Third press refills. So you can use the same keybinding/MIDI button to create, wipe, and recreate without touching anything else.
 
 - Menu: `Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0G01+0D00 (From Cursor)`
 - Menu: `Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0G01+0U00 (From Cursor)`
