@@ -42,6 +42,15 @@ local function toi_on_line_edited(pos)
     return
   end
 
+  -- Only fire when playback is RUNNING. When stopped, Renoise already
+  -- auditions notes on entry natively — double-triggering would just
+  -- cause flams / phasing. This feature exists specifically to fill the
+  -- silence-during-playback gap.
+  if not song.transport.playing then
+    toi_log("skip: playback stopped (Renoise auditions natively in this state)")
+    return
+  end
+
   local pattern = song:pattern(pos.pattern)
   if not pattern then
     toi_log("skip: no pattern at " .. tostring(pos.pattern))
