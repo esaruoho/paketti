@@ -2050,23 +2050,34 @@ local function restore_sample_range()
   
   local buf = s.sample_buffer
   local sfrm, efrm = backup_range[1], backup_range[2]
+
+  -- Buffer may have shrunk since the backup was taken (user trimmed the
+  -- sample with the dialog open). Invalidate the stale backup and bail
+  -- instead of writing past the new end.
+  if sfrm > buf.number_of_frames or efrm > buf.number_of_frames
+      or buf.number_of_channels < #backup_sample_data then
+    backup_sample_data = nil
+    backup_range = nil
+    return false
+  end
+
   buf:prepare_sample_data_changes()
-  
+
   for ch = 1, #backup_sample_data do
     local v = backup_sample_data[ch]
     -- Try bulk copy first (much faster than frame by frame)
     local success = pcall(function()
       buf:copy_channel_data_from_table(ch, sfrm, v)
     end)
-    
+
     -- Fallback to frame-by-frame if bulk copy fails
     if not success then
-      for i = 1, #v do 
-        buf:set_sample_data(ch, sfrm + i - 1, v[i]) 
+      for i = 1, #v do
+        buf:set_sample_data(ch, sfrm + i - 1, v[i])
       end
     end
   end
-  
+
   buf:finalize_sample_data_changes()
   return true
 end
@@ -2084,10 +2095,15 @@ end
 -- Update preview
 function PakettiChebyshevUpdatePreview()
   if not preview_enabled then return end
-  
-  -- Restore original sample first
-  restore_sample_range()
-  
+
+  -- Restore original sample first. If the backup is stale (user trimmed/
+  -- resized the sample with the dialog open) restore returns false and
+  -- clears the backup; in that case the CURRENT buffer becomes the new
+  -- baseline, so re-capture before applying.
+  if not restore_sample_range() then
+    backup_sample_range()
+  end
+
   -- Apply current settings
   local sample = renoise.song().selected_sample
   if apply_chebyshev_waveshaping(sample) then
