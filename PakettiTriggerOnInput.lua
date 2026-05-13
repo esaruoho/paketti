@@ -136,25 +136,36 @@ end
 function PakettiTriggerOnInputManualTest()
   local song = renoise.song()
   if not song then return end
-  local instr_idx = song.selected_instrument_index
   local track_idx = song.selected_track_index
-  local instr = song.instruments[instr_idx]
   local track = song:track(track_idx)
   local note = 48  -- C-4
 
-  if not instr then
-    renoise.app():show_status("Manual test: no instrument at " .. tostring(instr_idx))
-    return
-  end
   if track and track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
-    renoise.app():show_status(string.format("Manual test: track %d type %d is not sequencer", track_idx, track.type))
-    return
+    renoise.app():show_status(string.format("Manual test: track %d type %d is not sequencer — switching to track 1", track_idx, track.type))
+    track_idx = 1
   end
 
-  print(string.format("[ManualTest] trigger instr=%d '%s' track=%d note=%d samples=%d",
-    instr_idx, instr.name, track_idx, note, #instr.samples))
-  song:trigger_instrument_note_on(instr_idx, track_idx, {note}, 1.0)
-  renoise.app():show_status(string.format("Manual test fired: instr 0x%02X '%s' note C-4", instr_idx - 1, instr.name))
+  -- Fire instruments 1, 2, 3 (Renoise display 0x00, 0x01, 0x02) at C-4 — if any
+  -- of them has a sample at C-4 you should hear it. Verifies whether
+  -- trigger_instrument_note_on produces audio in this transport state at all.
+  local playing = song.transport.playing
+  print(string.format("[ManualTest] playback=%s track=%d note=%d (C-4) — firing instr 1,2,3",
+    tostring(playing), track_idx, note))
+
+  for i = 1, 3 do
+    local instr = song.instruments[i]
+    if instr then
+      local n_samples = #instr.samples
+      print(string.format("[ManualTest]   instr %d (Renoise 0x%02X) name='%s' samples=%d — triggering",
+        i, i - 1, instr.name, n_samples))
+      song:trigger_instrument_note_on(i, track_idx, {note}, 1.0)
+    else
+      print(string.format("[ManualTest]   instr %d (Renoise 0x%02X) does not exist", i, i - 1))
+    end
+  end
+
+  renoise.app():show_status(string.format("Manual test fired instr 0x00/0x01/0x02 at C-4 on track %d (playing=%s)",
+    track_idx, tostring(playing)))
 end
 
 --------------------------------------------------------------------------------
