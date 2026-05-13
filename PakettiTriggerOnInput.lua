@@ -222,21 +222,31 @@ function PakettiTriggerOnInputManualTest()
   end
 
   local playing = song.transport.playing
-  print(string.format("[ManualTest] playback=%s track=%d note=%d (C-4) — firing instr 1,2,3 with INTEGER note",
+  print(string.format("[ManualTest] playback=%s track=%d note=%d (C-4)",
     tostring(playing), track_idx, note))
+  print("[ManualTest] Pass A: INTEGER-form note (Taktik's call form)")
 
   for i = 1, 3 do
     local instr = song.instruments[i]
     if instr then
-      print(string.format("[ManualTest]   instr %d (Renoise 0x%02X) name='%s' samples=%d",
+      print(string.format("[ManualTest]   integer: instr %d (Renoise 0x%02X) '%s' samples=%d",
         i, i - 1, instr.name, #instr.samples))
       song:trigger_instrument_note_on(i, track_idx, note, 1.0)
-    else
-      print(string.format("[ManualTest]   instr %d does not exist", i))
     end
   end
 
-  renoise.app():show_status(string.format("Manual test fired instr 1/2/3 at C-4 on track %d (playing=%s, integer note)",
+  print("[ManualTest] Pass B: TABLE-form note (chord-form, the one that failed earlier)")
+  for i = 1, 3 do
+    local instr = song.instruments[i]
+    if instr then
+      print(string.format("[ManualTest]   table:   instr %d (Renoise 0x%02X) '%s' samples=%d",
+        i, i - 1, instr.name, #instr.samples))
+      song:trigger_instrument_note_on(i, track_idx, {note}, 1.0)
+    end
+  end
+
+  renoise.app():show_status(string.format(
+    "Manual test fired instr 1/2/3 at C-4 on track %d (playing=%s) — Pass A=integer, Pass B=table — check Scripting Terminal",
     track_idx, tostring(playing)))
 end
 
