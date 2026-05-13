@@ -1385,6 +1385,7 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
   
   -- Create a new phrase
   local phrase = new_instrument:insert_phrase_at(1)
+  phrase:clear() -- Remove default C-4 that Renoise inserts on line 1
   phrase.name = "Sliced Break"
   
   -- Find the base note for slices by looking at sample mappings
@@ -1656,6 +1657,7 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
   -- Create one phrase per starting slice
   for start_idx = 1, slice_count do
     local phrase = new_instrument:insert_phrase_at(start_idx)
+    phrase:clear() -- Remove default C-4 that Renoise inserts on line 1
     phrase.name = "From Slice " .. start_idx
     phrase.number_of_lines = phrase_length
     phrase.looping = true
