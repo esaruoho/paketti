@@ -1169,8 +1169,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Load Device (AudioUnit) Uhbik-D</Binding>
-          <Key>Control + Alt + Control + V</Key>
-        </KeyBinding>
+          <Key>Shift + Alt + Control + V</Key></KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Load Device (AudioUnit) D-Pole</Binding>
@@ -1415,8 +1414,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Pattern Name Loop - Next</Binding>
-          <Key>Shift + Control + Alt + Control + Right</Key>
-        </KeyBinding>
+          <Key>Shift + Alt + Right</Key></KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Pattern Name Loop - Previous</Binding>
@@ -1540,7 +1538,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Duplicate Pattern Above &amp; Clear Muted Tracks</Binding>
-          <Key>Shift + Control + Control + 0</Key>
+          <Key>Shift + Alt + Control + 0</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -1569,12 +1567,12 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Toggle Track Slot Mute 01</Binding>
-          <Key>Control + Control + 1</Key>
+          <Key>Alt + Control + 1</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Toggle Track Slot Mute 02</Binding>
-          <Key>Control + Control + 2</Key>
+          <Key>Alt + Control + 2</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -2165,7 +2163,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ TouchOSC Sample Editor</Binding>
-          <Key>Control + Control + F3</Key>
+          <Key>Alt + Control + F3</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -2187,13 +2185,12 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Quick Sample to New Track &amp; Instrument (Sync Off)</Binding>
-          <Key>Control + Control + Q</Key>
+          <Key>Alt + Control + Q</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Quick Sample to New Track &amp; Instrument (Sync On + 0G01)</Binding>
-          <Key>Control + Alt + Q</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Toggle OctaMED Hold-to-Fill Mode</Binding>
@@ -4689,7 +4686,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Select First Instrument Box Slot</Binding>
-          <Key>Shift + Control + Control + 1</Key>
+          <Key>Shift + Alt + Control + 1</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -4922,7 +4919,7 @@
         <KeyBinding>
           <Topic>Paketti Theme Selector</Topic>
           <Binding>∿ Pick a Random Theme (All)</Binding>
-          <Key>Shift + Control + Control + Comma</Key>
+          <Key>Shift + Alt + Control + Comma</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti Theme Selector</Topic>
@@ -6040,7 +6037,7 @@
         <KeyBinding>
           <Topic>Track Devices</Topic>
           <Binding>∿ Load Renoise Chorus 2 as Vowel Filter</Binding>
-          <Key>Control + Control + V</Key>
+          <Key>Alt + Control + V</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Track Devices</Topic>
@@ -7678,7 +7675,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Flood Fill Column with Row</Binding>
-          <Key>Shift + Control + Control + Down</Key>
+          <Key>Shift + Alt + Control + Down</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -9641,13 +9638,11 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Sequence Selection (Next)</Binding>
-          <Key>Alt + Control + 2</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Sequence Selection (Previous)</Binding>
-          <Key>Alt + Control + 1</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Sequence Loop Selection (Next)</Binding>
@@ -10501,7 +10496,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Master Track Mono/Pan Cycle</Binding>
-          <Key>Shift + Control + Control + Q</Key>
+          <Key>Shift + Alt + Control + Q</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -11655,8 +11650,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Paketti PitchBend Drumkit Sample Loader (Random)</Binding>
-          <Key>Control + Alt + O</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Create New Instrument &amp; Loop from Selection</Binding>
@@ -12304,7 +12298,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Paketti Stem Loader (Slice to Patterns)</Binding>
-          <Key>Control + Control + O</Key>
+          <Key>Alt + Control + O</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -12390,7 +12384,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Stem Slice Randomizer Dialog...</Binding>
-          <Key>Shift + Control + Control + Z</Key>
+          <Key>Shift + Alt + Control + Z</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -12756,8 +12750,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Modify PitchStep Steps (Hard Detune)</Binding>
-          <Key>Shift + Control + Alt + Control + P</Key>
-        </KeyBinding>
+          <Key>Shift + Alt + P</Key></KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Clear PitchStep Steps</Binding>
@@ -19255,8 +19248,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ ChordsPlus Arpeggio Up (All Chords)</Binding>
-          <Key>Shift + Control + Alt + Control + Up</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ ChordsPlus Arpeggio Down (All Chords)</Binding>
@@ -19745,8 +19737,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Transpose Octave Down Note Column (Selection/Note Column)</Binding>
-          <Key>Shift + Control + Alt + A</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Transpose +1 Note Column (Selection/Note Column)</Binding>
@@ -20833,7 +20824,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Automate Last Touched Parameter</Binding>
-          <Key>Shift + Control + Control + A</Key>
+          <Key>Shift + Alt + Control + A</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -20842,8 +20833,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Rename Tracks By Played Samples</Binding>
-          <Key>Control + Alt + Control + R</Key>
-        </KeyBinding>
+          <Key>Alt + Control + R</Key></KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Rename Current Track to Selected Instrument Name</Binding>
@@ -20951,7 +20941,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Clever Note Off Right Before</Binding>
-          <Key>Control + Control + PeakedBracket</Key>
+          <Key>Alt + Control + PeakedBracket</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -21987,8 +21977,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Replicate Above Into Selection Only</Binding>
-          <Key>Shift + Control + Alt + Control + Down</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Replicate Selected Track Above Current Row (-12)</Binding>
@@ -22446,7 +22435,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Note-Off Paste (from Selection)</Binding>
-          <Key>Shift + Control + Control + P</Key>
+          <Key>Shift + Alt + Control + P</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22551,13 +22540,11 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Nudge and Move Selection Up</Binding>
-          <Key>Control + Alt + Control + Up</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Nudge and Move Selection Down</Binding>
-          <Key>Control + Alt + Control + Down</Key>
-        </KeyBinding>
+          </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Effect Column Curve Fill</Binding>
@@ -24286,7 +24273,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Destructive Repeat Sample Range</Binding>
-          <Key>Shift + Control + Control + Right</Key>
+          <Key>Shift + Alt + Control + Right</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -29204,13 +29191,11 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Nudge and Move Selection Up</Binding>
-          <Key>Control + Alt + Control + Up</Key>
-        </KeyBinding>
+          <Key>Alt + Control + Up</Key></KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Nudge and Move Selection Down</Binding>
-          <Key>Control + Alt + Control + Down</Key>
-        </KeyBinding>
+          <Key>Alt + Control + Down</Key></KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Order Notes Current Phrase</Binding>

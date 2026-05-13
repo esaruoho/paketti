@@ -22,11 +22,23 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-13 - Fix: Linux/Windows keybindings — Mac→LWin conversion was broken (`Option`→`Control` instead of `Option`→`Alt`)
+
+A previous Mac→Linux/Windows keybinding conversion silently produced malformed entries: any binding that used both `Option` and `Control` on Mac became `Control + Control + X` on LWin (duplicate modifier). Renoise can't parse duplicate modifiers, so on load it dropped both Controls and re-saved the binding as a fragmentary `Shift + Alt + Control +` with no actual key — making the feature un-triggerable. The Mac convention `Option + Control + 1` (Toggle Track Slot Mute 01) is correctly `Alt + Control + 1` on LWin, but the shipped file had it as `Control + Control + 1` (junk).
+
+**26 duplicate-modifier entries fixed in `KeyBindings/2025_07_10_PakettiKeyBindings_Linux_Windows.xml`:**
+
+- **16 remapped** under the correct convention (Mac `Option`→LWin `Alt`, Mac `Command`→LWin `Control`). Examples: `Toggle Track Slot Mute 01/02` → `Alt + Control + 1/2`, `TouchOSC Sample Editor` → `Alt + Control + F3`, `Quick Sample to New Track (Sync Off)` → `Alt + Control + Q`, `Stem Loader` → `Alt + Control + O`, `Master Track Mono/Pan Cycle` → `Shift + Alt + Control + Q`, `Pick a Random Theme (All)` → `Shift + Alt + Control + Comma`, plus 10 more.
+- **10 reassigned** to new LWin slots — Mac source uses three non-Shift modifiers (`Option + Command + Control + X`) which can't fit on LWin (only two non-Shift modifiers exist). Examples: `Rename Tracks By Played Samples` → `Alt + Control + R`; `Phrase Editor :: Nudge and Move Selection Up/Down` → `Alt + Control + Up/Down`; `Pattern Name Loop - Next` → `Shift + Alt + Right`; `Modify PitchStep Steps (Hard Detune)` → `Shift + Alt + P`; `Load Device (AudioUnit) Uhbik-D` → `Shift + Alt + Control + V`. Four Pattern Editor cases (`ChordsPlus Arpeggio Up`, `Replicate Above Into Selection Only`, Pattern Editor `Nudge and Move Selection Up/Down`) left unbound because the arrow-key space in that scope is fully saturated by Impulse Tracker emulation and existing Paketti bindings.
+- **5 squatters cleared** — bindings that had taken slots which belong (under the correct convention) to the 16 remapped entries: `Sequence Selection (Next)/(Previous)`, `Quick Sample to New Track (Sync On + 0G01)`, `Paketti PitchBend Drumkit Sample Loader (Random)`, and `Transpose Octave Down Note Column (Selection/Note Column)` lost their `<Key>` so the remapped bindings claim their rightful position.
+
+Re-import the keybinding preset (Edit → Preferences → Keys → Load) to pick up the new defaults. The Mac file (`2025_07_10_PakettiKeyBindings.xml`) is unchanged.
+
 ### 2026-05-13 - Fix: Linux/Windows keybindings — Impulse Tracker bindings now win their Ctrl-shortcut conflicts
 
-The shipped `KeyBindings/2025_07_10_PakettiKeyBindings_Linux_Windows.xml` had 48 keyboard shortcut collisions (the macOS file has zero — Cmd vs Ctrl gives Mac users two separate spaces; Linux/Windows users had to fold everything onto Ctrl and bindings collided). 15 of the worst collisions (same key combination bound to two different actions in the same scope) are now resolved by stripping the `<Key>` element from the loser side (the keybinding entry remains so menus and Lua references still work — only the default chord assignment is removed). Re-import the keybinding preset to pick up the new defaults.
+The shipped `KeyBindings/2025_07_10_PakettiKeyBindings_Linux_Windows.xml` had 48 keyboard shortcut collisions (the macOS file has zero — Cmd vs Ctrl gives Mac users two separate spaces; Linux/Windows users had to fold everything onto Ctrl and bindings collided). 15 of the worst collisions (same key combination bound to two different actions in the same scope) are now resolved by stripping the `<Key>` element from the loser side (the keybinding entry remains so menus and Lua references still work — only the default keyboard shortcut assignment is removed). Re-import the keybinding preset to pick up the new defaults.
 
-**Impulse Tracker emulation wins (11 chords):**
+**Impulse Tracker emulation wins (11 keyboard shortcuts):**
 
 - `Ctrl+F7` — IT Capture Marker Position keeps it (Cycle Paketti Dynamic View 07 unbound)
 - `Ctrl+N` — IT New Song Dialog keeps it (Load New Instrument with Current Slice Markers unbound)
@@ -36,7 +48,7 @@ The shipped `KeyBindings/2025_07_10_PakettiKeyBindings_Linux_Windows.xml` had 48
 - `Pattern Editor Ctrl+Left` / `Ctrl+Right` — IT Alt-Left/Right keep them (Delay Column ±1 unbound)
 - `Mixer Ctrl+Up` / `Ctrl+Down` / `Ctrl+Left` / `Ctrl+Right` — IT navigation keeps them (Parama Param previous/next/decrease/increase unbound)
 
-**Renoise natives win (4 chords):**
+**Renoise natives win (4 keyboard shortcuts):**
 
 - `Ctrl+B` — Show/Hide Disk Browser keeps it (Show BPM Calculation Dialog unbound)
 - `Ctrl+K` — Show/Focus Track Editors keeps it (PlayerPro OpenMPT Keyboard Layer unbound)
