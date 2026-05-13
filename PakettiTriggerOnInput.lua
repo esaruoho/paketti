@@ -3,13 +3,17 @@
 -- "Trigger Sample on Pattern Input During Record"
 --
 -- When enabled: any note typed into the pattern while edit_mode is ON will
--- immediately audition the edited line via trigger_pattern_line(), regardless
+-- immediately audition the note via trigger_instrument_note_on(), regardless
 -- of whether playback is running or stopped, and regardless of follow mode.
 --
--- Uses pattern:add_line_notifier() (event-driven, not timer polling).
+-- Uses trigger_instrument_note_on (NOT trigger_pattern_line, which only works
+-- when playback is stopped — API limitation discovered in PakettiPatternEditor
+-- line 8449).
+--
+-- Detection: pattern:add_line_notifier() (event-driven, not timer polling).
 -- Lifecycle follows the proven SBx / Column Cycle Keyjazz pattern.
 --
--- API 6.2+ only (requires trigger_pattern_line).
+-- API 6.2+ only.
 --------------------------------------------------------------------------------
 if not PAKETTI_HAS_TRIGGER_LINE then return end
 
@@ -19,7 +23,7 @@ if not PAKETTI_HAS_TRIGGER_LINE then return end
 PakettiTriggerOnInputEnabled = false
 
 local toi_notifier_pattern_index = nil  -- which pattern currently has our notifier
-local toi_previous_line_snapshot = {}   -- {[track_idx] = {line_hash}} to detect actual note entry
+local toi_active_notes = {}  -- currently ringing preview notes for note-off
 
 --------------------------------------------------------------------------------
 -- Core callback: fires when any line in the current pattern is edited
@@ -42,21 +46,52 @@ local function toi_on_line_edited(pos)
   if not ok2 or not pattern_track then return end
 
   local line = pattern_track:line(pos.line)
-  local has_note = false
+
+  -- Stop previously triggered preview notes
+  for _, note_info in ipairs(toi_active_notes) do
+    pcall(function()
+      song:trigger_instrument_note_off(note_info.instr, note_info.track, note_info.notes)
+    end)
+  end
+  toi_active_notes = {}
+
+  -- Collect notes from all note columns, grouped by instrument
+  local instr_notes = {}  -- {[instr_index] = {notes={...}, velocity=float}}
+  local has_any_note = false
+
   for col_idx = 1, #line.note_columns do
     local nc = line:note_column(col_idx)
     if nc.note_value < 120 then
-      has_note = true
-      break
+      has_any_note = true
+      local instr_idx
+      if nc.instrument_value ~= 255 then
+        instr_idx = nc.instrument_value + 1  -- 0-based column → 1-based API
+      else
+        instr_idx = song.selected_instrument_index
+      end
+
+      if not instr_notes[instr_idx] then
+        instr_notes[instr_idx] = {notes = {}, velocity = 1.0}
+      end
+      table.insert(instr_notes[instr_idx].notes, nc.note_value)
+
+      -- Respect volume column if present (0-127, 255=empty)
+      if nc.volume_value ~= 255 and nc.volume_value <= 127 then
+        instr_notes[instr_idx].velocity = nc.volume_value / 127.0
+      end
     end
   end
 
-  if not has_note then return end
+  if not has_any_note then return end
 
-  -- Trigger the line — plays all note columns with correct instruments/volumes
-  pcall(function()
-    song:trigger_pattern_line(pos.line)
-  end)
+  -- Use trigger_instrument_note_on — works during playback
+  -- (trigger_pattern_line only works when stopped — API limitation)
+  for instr_idx, info in pairs(instr_notes) do
+    pcall(function()
+      song:trigger_instrument_note_on(instr_idx, pos.track, info.notes, info.velocity)
+    end)
+    table.insert(toi_active_notes, {instr = instr_idx, track = pos.track, notes = info.notes})
+  end
 end
 
 --------------------------------------------------------------------------------

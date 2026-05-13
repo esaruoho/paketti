@@ -28,9 +28,15 @@ Fixed a crash when toggling "Audition Current Line on Pattern Row Change" on or 
 
 - **File**: `PakettiPatternEditor.lua` (lines ~8453, ~8504)
 
+### 2026-05-13 - Fix: Trigger Sample on Pattern Input During Record — no sound during playback
+
+Fixed the core bug: `trigger_pattern_line()` only works when playback is **stopped** (Renoise API limitation). Replaced with `trigger_instrument_note_on()` which works in all states — playing, stopped, follow on/off. The feature now correctly reads note values and instrument indices from the edited line, respects volume column for velocity, groups notes by instrument for multi-instrument lines, and sends proper `trigger_instrument_note_off()` to stop previously previewed notes before triggering new ones.
+
+- **File**: `PakettiTriggerOnInput.lua`
+
 ### 2026-05-13 - Feature: Trigger Sample on Pattern Input During Record
 
-New toggle feature that auditions notes as you type them into the pattern editor during record mode. When enabled, every note entered triggers `trigger_pattern_line()` so you hear what you typed — regardless of whether playback is running, stopped, or what the follow mode is. This fills the gap where Renoise is silent during note entry in certain states (playing + follow OFF).
+New toggle feature that auditions notes as you type them into the pattern editor during record mode. When enabled, every note entered triggers `trigger_instrument_note_on()` so you hear what you typed — regardless of whether playback is running, stopped, or what the follow mode is. This fills the gap where Renoise is silent during note entry in certain states (playing + follow OFF).
 
 Uses event-driven `add_line_notifier` (not timer polling), following the proven SBx Pattern Loop Follow lifecycle. Only fires when edit mode is ON and an actual note (value < 120) is present on the edited line.
 
@@ -40,7 +46,7 @@ Uses event-driven `add_line_notifier` (not timer polling), following the proven 
 - **MIDI**: `Paketti:Trigger Sample on Pattern Input During Record x[Toggle]`
 - **Preference**: `pakettiTriggerOnInputEnabled` (persisted, restored on new document)
 - **File**: `PakettiTriggerOnInput.lua`
-- Requires API 6.2+ (`trigger_pattern_line`)
+- Requires API 6.2+
 
 ### 2026-05-13 - Fix: Linux/Windows keybindings — Mac→LWin conversion was broken (`Option`→`Control` instead of `Option`→`Alt`)
 
