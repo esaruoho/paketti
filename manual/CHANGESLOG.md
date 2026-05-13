@@ -22,6 +22,28 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-13 - Unparked: Trigger Sample on Pattern Input During Record — re-enabled after Taktik confirmation
+
+Taktik confirmed (2026-05-13) that `renoise.song():trigger_instrument_note_on(1, 1, 48, 1.0)` works fine during playback. My earlier "this API is silently broken during playback" conclusion was wrong — it was based on a single test that called the function with the note wrapped in a table (`{48}`) instead of as a plain integer (`48`). The integer form works. I never tested the integer form before parking the feature. Mea culpa.
+
+What's restored:
+- `Main Menu:Options:Trigger Sample on Pattern Input During Record Toggle` checkmark
+- `Pattern Editor:Paketti:Trigger Sample on Pattern Input During Record Toggle` checkmark
+- `Main Menu:Tools:Paketti:Debug:Trigger Sample Manual Test`
+- IT Bootstrap once again force-enables this toggle alongside the other IT-mode defaults
+
+What changed in the implementation:
+- Each note column is triggered individually with `trigger_instrument_note_on(idx, track, note, vel)` — note as a plain integer, not a table.
+- All `pcall` error-swallowing removed so real errors surface in the Scripting Terminal.
+- Diagnostic prints + status-bar messages remain on by default (`toi_debug = true`) for one round of testing — flip to `false` in the file once you've confirmed it works.
+
+The OSC code is gone. The `Parked Features` section in `manual/README.md` has been removed.
+
+- **File**: `PakettiTriggerOnInput.lua`
+- **File**: `PakettiMenuConfig.lua` (menu entry uncommented)
+- **File**: `PakettiImpulseTracker.lua` (IT Bootstrap auto-enable restored)
+- **File**: `manual/README.md` (Parked Features section removed)
+
 ### 2026-05-13 - Feature: Fill Effect Column with 0G01+0D00 / 0G01+0U00 (From Cursor) — toggle
 
 Two new variants of the existing "Fill Effect Column with 0G01+0Xxx" commands. The existing ones overwrite the whole pattern. The "(From Cursor)" variants behave smarter and **toggle**: if the cursor is on row 1 they do exactly the same as the original (0G01 on row 1, 0U00/0D00 on rows 2..end). If the cursor is on any other row N, they fill only rows N..end with the glide effect and leave rows 1..N-1 untouched. **Same shortcut twice = wipe**: when the target range is already filled with the exact effect being requested, running the command again clears that same range instead. Third press refills. So you can use the same keybinding/MIDI button to create, wipe, and recreate without touching anything else.
