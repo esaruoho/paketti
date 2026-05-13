@@ -22,6 +22,12 @@ local toi_notifier_pattern_index = nil
 local toi_active_notes = {}            -- previously-triggered notes for note-off
 local toi_debug = true                 -- flip to false once verified
 
+local function toi_log(msg)
+  if toi_debug then
+    print("[TriggerOnInput] " .. msg)
+  end
+end
+
 -- OSC self-trigger client. trigger_instrument_note_on() from the Lua API is
 -- silently broken during playback (despite docs); Renoise's built-in OSC
 -- server path goes through the native audio engine and works in all states.
@@ -78,12 +84,6 @@ local function toi_osc_note_off(instr_idx, track_idx, note)
   return true
 end
 
-
-local function toi_log(msg)
-  if toi_debug then
-    print("[TriggerOnInput] " .. msg)
-  end
-end
 
 --------------------------------------------------------------------------------
 -- Core callback: fires when the user edits a line via keyboard/MIDI
