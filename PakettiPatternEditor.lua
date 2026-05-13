@@ -8449,10 +8449,8 @@ if PAKETTI_HAS_TRIGGER_LINE then
       if not song.transport.playing then
         -- Send Note OFF to previously triggered notes before triggering new ones
         for _, note_info in ipairs(triggered_notes) do
-          local track = song:track(note_info.track_index)
-          if track and note_info.instrument_index <= #song.instruments then
-            local instrument = song:instrument(note_info.instrument_index)
-            instrument:trigger_note_off(note_info.track_index, note_info.note_value, note_info.note_column)
+          if note_info.instrument_index <= #song.instruments then
+            song:trigger_instrument_note_off(note_info.instrument_index, note_info.track_index, note_info.note_value)
           end
         end
         
@@ -8502,10 +8500,8 @@ if PAKETTI_HAS_TRIGGER_LINE then
       
       -- Send Note OFF to all tracked notes
       for _, note_info in ipairs(triggered_notes) do
-        local track = song:track(note_info.track_index)
-        if track and note_info.instrument_index <= #song.instruments then
-          local instrument = song:instrument(note_info.instrument_index)
-          instrument:trigger_note_off(note_info.track_index, note_info.note_value, note_info.note_column)
+        if note_info.instrument_index <= #song.instruments then
+          song:trigger_instrument_note_off(note_info.instrument_index, note_info.track_index, note_info.note_value)
         end
       end
       

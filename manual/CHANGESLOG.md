@@ -22,6 +22,12 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-13 - Fix: Audition Current Line on Pattern Row Change crash on enable
+
+Fixed a crash when toggling "Audition Current Line on Pattern Row Change" on or off. The code was calling `instrument:trigger_note_off()` which does not exist on the `Instrument` object. Replaced both occurrences (in the timer callback and in the toggle-off path) with the correct Song-level API: `song:trigger_instrument_note_off(instrument_index, track_index, note_value)`.
+
+- **File**: `PakettiPatternEditor.lua` (lines ~8453, ~8504)
+
 ### 2026-05-13 - Feature: Trigger Sample on Pattern Input During Record
 
 New toggle feature that auditions notes as you type them into the pattern editor during record mode. When enabled, every note entered triggers `trigger_pattern_line()` so you hear what you typed — regardless of whether playback is running, stopped, or what the follow mode is. This fills the gap where Renoise is silent during note entry in certain states (playing + follow OFF).
