@@ -2,9 +2,9 @@
 -- PakettiModernViewsDemo.lua
 -- Live demo of three Renoise 6.2 (Renoise 3.4+) view types that Paketti has
 -- never used:
---   * vb:stack{}          — free-positioned children via origin = {x, y}
---   * vb:rotaryencoder{}  — the modern variant of vb:rotary{}
---   * vb:textlink{}       — clickable styled text with pressed/released notifiers
+--   * vb:stack{}  — free-positioned children via origin = {x, y}
+--   * vb:rotary{} — same widget as before, just hosted inside the stack
+--   * vb:link{}   — clickable styled text (TextLink) with a pressed notifier
 --
 -- Auto-shows once on tool load. After that, use the menu entry or keybinding
 -- to reopen it.
@@ -77,32 +77,31 @@ local function show_modern_views_demo()
     vb:row{
       spacing = 8,
       vb:text{ text = "Cutoff", width = 60 },
-      vb:rotaryencoder{
-        size = { width = 36, height = 36 },
+      vb:rotary{
+        width = 36, height = 36,
         min = 0.0,
         max = 1.0,
         default = 0.5,
         value = 0.5,
-        polarity = "unipolar",
-        tooltip = "Filter cutoff (0..1) — modern rotary",
+        tooltip = "Filter cutoff (0..1)",
         notifier = update_dot,
       },
       vb:text{
-        text = "  vb:rotaryencoder{} — drop-in for vb:rotary{}",
+        text = "  vb:rotary{} drives the dot's x in the Stack",
         style = "disabled",
       },
     },
 
-    vb:textlink{
+    vb:link{
       text = "Open Paketti manual",
       style = "strong",
-      tooltip = "vb:textlink{} — clickable styled text",
+      tooltip = "vb:link{} — clickable styled text (TextLink)",
       pressed = function()
         renoise.app():open_url("https://esaruoho.github.io/paketti-manual/")
       end,
     },
 
-    vb:textlink{
+    vb:link{
       text = "Close this demo",
       style = "normal",
       pressed = function()
