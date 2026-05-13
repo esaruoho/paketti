@@ -7074,52 +7074,32 @@ function writeEffectFromCursor(effect_string, first_row_effect)
 
   local number_string = effect_string:sub(1, 2)
   local amount_string = effect_string:sub(3, 4)
-  local first_number_string, first_amount_string
-  if first_row_effect then
-    first_number_string = first_row_effect:sub(1, 2)
-    first_amount_string = first_row_effect:sub(3, 4)
-  end
 
-  -- Check whether the target range is ALREADY filled with what we'd write.
-  -- If yes, this is a "run again to wipe" toggle: clear the range instead.
-  local already_filled = true
-  if cursor_line == 1 and first_row_effect then
-    -- Expect row 1 = first_row_effect, rows 2..end = effect_string
-    for line_index = 1, num_lines do
-      local ec = pattern.tracks[track_index].lines[line_index].effect_columns[1]
-      local expected_num, expected_amt
-      if line_index == 1 then
-        expected_num, expected_amt = first_number_string, first_amount_string
-      else
-        expected_num, expected_amt = number_string, amount_string
-      end
-      if ec.number_string ~= expected_num or ec.amount_string ~= expected_amt then
-        already_filled = false
-        break
-      end
-    end
-  else
-    -- Expect rows cursor_line..end = effect_string
-    for line_index = cursor_line, num_lines do
-      local ec = pattern.tracks[track_index].lines[line_index].effect_columns[1]
-      if ec.number_string ~= number_string or ec.amount_string ~= amount_string then
-        already_filled = false
-        break
-      end
+  -- Determine the wipe range (same range we would write to)
+  local wipe_from = (cursor_line == 1 and first_row_effect) and 1 or cursor_line
+
+  -- If the target range has ANY existing effect content, this press WIPES.
+  -- Next press fills. So a single shortcut cycles: fill -> wipe -> fill...
+  -- (And if the user had different effects in there like U50, this still
+  -- wipes first instead of silently overwriting with U00.)
+  local has_existing_content = false
+  for line_index = wipe_from, num_lines do
+    local ec = pattern.tracks[track_index].lines[line_index].effect_columns[1]
+    if ec.number_string ~= ".." or ec.amount_string ~= ".." then
+      has_existing_content = true
+      break
     end
   end
 
-  if already_filled then
-    -- WIPE mode: clear the same range we would have written
-    local wipe_from = (cursor_line == 1 and first_row_effect) and 1 or cursor_line
+  if has_existing_content then
     for line_index = wipe_from, num_lines do
       local ec = pattern.tracks[track_index].lines[line_index].effect_columns[1]
       ec.number_string = ".."
       ec.amount_string = ".."
     end
     song.selected_effect_column_index = 1
-    renoise.app():show_status(string.format("Cleared effect column rows %d-%d (was already filled with the same effect)",
-      wipe_from, num_lines))
+    renoise.app():show_status(string.format("Cleared effect column rows %d-%d. Run again to fill with %s.",
+      wipe_from, num_lines, effect_string))
     return
   end
 
