@@ -4383,7 +4383,7 @@ function pakettiEightSlotsByOneTwentyDialog()
   if prev_selected_instrument and prev_selected_instrument >= 1 and prev_selected_instrument <= #song.instruments then
     song.selected_instrument_index = prev_selected_instrument
   end
-  -- Auto-open the Akai MidiMix bridge if available (idempotent — safe to call
+  -- Auto-open the Akai MidiMix bridge if available (safe to call again
   -- when the dialog is recreated by the 16/32 step toggle, etc.)
   if PakettiEightOneTwentyMidiMixOpen then
     PakettiEightOneTwentyMidiMixOpen()
