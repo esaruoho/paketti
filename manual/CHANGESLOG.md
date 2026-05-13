@@ -22,6 +22,15 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-13 - Feature: Impulse Tracker Bootstrap
+
+One-shot command that brings Renoise into IT-style working mode in a single keypress. Loads the bundled Dynamic Views layout (F2/F3/F4/F11 mapped IT-style) from `KeyBindings/Paketti Dynamic Views F2 F3 F4 F11.txt` into the Dynamic Views preferences, and force-enables three IT-mode toggles regardless of their current state: SBx Pattern Loop Follow, Trigger Sample on Pattern Input During Record, and Audition Current Line on Pattern Row Change. Idempotent — safe to run any time you want to reset back to IT-mode defaults. `load_dynamic_views_from_txt()` now accepts an optional path argument; passing nil keeps the existing file-prompt behaviour.
+
+- Keybinding: `Global:Paketti:Impulse Tracker Bootstrap`
+- MIDI Mapping: `Paketti:Impulse Tracker Bootstrap`
+- Menu: `Main Menu:Tools:Paketti:Impulse Tracker Bootstrap`
+- Menu: `Pattern Editor:Paketti:Impulse Tracker Bootstrap`
+
 ### 2026-05-13 - Fix: Audition Current Line on Pattern Row Change crash on enable
 
 Fixed a crash when toggling "Audition Current Line on Pattern Row Change" on or off. The code was calling `instrument:trigger_note_off()` which does not exist on the `Instrument` object. Replaced both occurrences (in the timer callback and in the toggle-off path) with the correct Song-level API: `song:trigger_instrument_note_off(instrument_index, track_index, note_value)`.

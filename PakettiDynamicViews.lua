@@ -706,14 +706,17 @@ function save_dynamic_views_to_txt()
 end
 
 -- Load Dynamic Views from .txt
-function load_dynamic_views_from_txt()
-  local file_path = renoise.app():prompt_for_filename_to_read({"*.txt"}, "Load Dynamic Views from .txt")
-  if not file_path then return end
-  
+-- Optional file_path: if nil, prompts user. If provided, loads from that path directly.
+function load_dynamic_views_from_txt(file_path)
+  if not file_path then
+    file_path = renoise.app():prompt_for_filename_to_read({"*.txt"}, "Load Dynamic Views from .txt")
+    if not file_path or file_path == "" then return false end
+  end
+
   local file = io.open(file_path, "r")
   if not file then
-    renoise.app():show_status("Error opening file for loading.")
-    return
+    renoise.app():show_status("Error opening file for loading: " .. tostring(file_path))
+    return false
   end
 
   local dv = nil
@@ -814,6 +817,7 @@ function load_dynamic_views_from_txt()
   file:close()
   saveDynamicViewPreferences()
   renoise.app():show_status("Dynamic Views loaded successfully.")
+  return true
 end
 
 -- Updated function to set dynamic view step from MIDI knob value

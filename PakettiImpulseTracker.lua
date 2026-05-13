@@ -4699,3 +4699,50 @@ function pakettiSpeedTempoDialog()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Speed and Tempo to BPM Dialog...",invoke=pakettiSpeedTempoDialog}
+
+---------------------------------------------------------------------------
+-- Impulse Tracker Bootstrap
+-- One-shot setup that brings Renoise into IT-style working mode:
+--   1. Load Dynamic Views from KeyBindings/Paketti Dynamic Views F2 F3 F4 F11.txt
+--   2. Force SBx Pattern Loop Follow ON
+--   3. Force "Trigger Sample on Pattern Input During Record" ON
+--   4. Force "Audition Current Line on Pattern Row Change" ON
+---------------------------------------------------------------------------
+function PakettiImpulseTrackerBootstrap()
+  local bundle = renoise.tool().bundle_path
+  local dv_path = bundle .. "KeyBindings/Paketti Dynamic Views F2 F3 F4 F11.txt"
+
+  local dv_ok = false
+  if type(load_dynamic_views_from_txt) == "function" then
+    dv_ok = load_dynamic_views_from_txt(dv_path) == true
+  end
+
+  if preferences.PakettiSBxFollowEnabled and not preferences.PakettiSBxFollowEnabled.value then
+    if type(PakettiToggleSBxFollow) == "function" then PakettiToggleSBxFollow() end
+  end
+
+  if not PakettiTriggerOnInputEnabled then
+    if type(PakettiTriggerOnInputToggle) == "function" then PakettiTriggerOnInputToggle() end
+  end
+
+  if not PakettiAuditionOnLineChangeEnabled then
+    if type(PakettiToggleAuditionCurrentLineOnRowChange) == "function" then
+      PakettiToggleAuditionCurrentLineOnRowChange()
+    end
+  end
+
+  preferences:save_as("preferences.xml")
+
+  local dv_msg = dv_ok and "Dynamic Views loaded" or "Dynamic Views file not found"
+  renoise.app():show_status("Paketti: Impulse Tracker Bootstrap complete — " .. dv_msg ..
+    ", SBx ON, Trigger-on-Input ON, Audition-on-Row-Change ON")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Bootstrap",
+  invoke=function() PakettiImpulseTrackerBootstrap() end}
+renoise.tool():add_midi_mapping{name="Paketti:Impulse Tracker Bootstrap",
+  invoke=function(message) if message:is_trigger() then PakettiImpulseTrackerBootstrap() end end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Impulse Tracker Bootstrap",
+  invoke=function() PakettiImpulseTrackerBootstrap() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Impulse Tracker Bootstrap",
+  invoke=function() PakettiImpulseTrackerBootstrap() end}
