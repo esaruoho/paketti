@@ -37,6 +37,18 @@ Fixed a crash when toggling "Audition Current Line on Pattern Row Change" on or 
 
 - **File**: `PakettiPatternEditor.lua` (lines ~8453, ~8504)
 
+### 2026-05-13 - Fix: Trigger Sample on Pattern Input During Record — switch to `add_line_edited_notifier` + duplicate-menu crash
+
+Two real bugs were keeping the feature silent and causing a boot crash:
+
+1. **Wrong notifier API.** The implementation used `pattern:add_line_notifier()` (generic — fires on any pattern content change, including script-driven). Switched to `pattern:add_line_edited_notifier()`, which is the dedicated API documented as: *"fires only when the user added, changed or deleted a line with the computer or MIDI keyboard."* This is exactly the event we want.
+2. **`pcall` was swallowing errors.** Any failure inside the callback or note trigger was hidden, so when something went wrong you just got silence with no clue. Removed the error-swallowing pcalls; real errors now surface in the Scripting Terminal.
+3. **Duplicate `Main Menu:Options` entry** crashed boot — the same menu name was registered both in `PakettiTriggerOnInput.lua` and `PakettiMenuConfig.lua`. Kept the one in `PakettiMenuConfig.lua` (central menu config owns Options-menu entries).
+
+Also added diagnostic `print()` lines and `show_status()` calls so it's possible to confirm at runtime that the notifier is attaching and firing — flip `toi_debug = false` in the file once it's verified working.
+
+- **File**: `PakettiTriggerOnInput.lua`
+
 ### 2026-05-13 - Fix: Trigger Sample on Pattern Input During Record — no sound during playback
 
 Fixed the core bug: `trigger_pattern_line()` only works when playback is **stopped** (Renoise API limitation). Replaced with `trigger_instrument_note_on()` which works in all states — playing, stopped, follow on/off. The feature now correctly reads note values and instrument indices from the edited line, respects volume column for velocity, groups notes by instrument for multi-instrument lines, and sends proper `trigger_instrument_note_off()` to stop previously previewed notes before triggering new ones.
