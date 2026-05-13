@@ -129,7 +129,7 @@ Anything drawing pixels into a Renoise dialog. See SKILL.md "Canvas Inventory" t
 
 Many files are self-contained features (e.g. `PakettiBPM.lua`, `PakettiBPMCalculator.lua`, `PakettiArpeggiator.lua`, `PakettiChords.lua`, `PakettiChordsPlus.lua`, `PakettiClipboard.lua`, `PakettiCommandWheel.lua`, `PakettiFill.lua`, `PakettiGater.lua`, `PakettiGlider.lua`, `PakettiTuningDisplay.lua`, `PakettiTupletGenerator.lua`, etc.). When the user names a feature, grep first — there is almost always an existing file that owns it.
 
-## House Rules (load-bearing — violating these breaks the tool)
+## House Rules (violating these breaks the tool)
 
 These extend the rules already in the `paketti` skill (which you've read). The ones below have caused real production incidents:
 
