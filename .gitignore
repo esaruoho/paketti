@@ -20,3 +20,6 @@ manual/.claude/
 # Renoise-generated autocomplete state (user-local churn)
 autocomplete_cache.txt
 autocomplete_usage.txt
+
+# Paketti keybinding debug log (local-only)
+KeyBindings/Debug_Paketti_KeyBindings.log
