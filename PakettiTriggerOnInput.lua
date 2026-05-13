@@ -21,6 +21,10 @@ PakettiTriggerOnInputEnabled = false
 local toi_notifier_pattern_index = nil
 local toi_active_notes = {}            -- previously-triggered notes for note-off
 local toi_debug = true                 -- flip to false once verified
+local toi_suppress_until = 0           -- os.clock() until which to ignore line-edited callbacks (anti-feedback)
+local TOI_SUPPRESS_WINDOW = 0.03       -- 30ms — Renoise's OSC trigger in edit mode RECORDS the note,
+                                       -- which fires line_edited again. This window swallows the echo
+                                       -- without losing fast keystrokes (sub-50ms typing is uncommon).
 
 local function toi_log(msg)
   if toi_debug then
@@ -69,6 +73,7 @@ local function toi_osc_note_on(instr_idx, track_idx, note, velocity)
     {tag = "i", value = note},
     {tag = "f", value = velocity},
   })
+  toi_suppress_until = os.clock() + TOI_SUPPRESS_WINDOW  -- anti-feedback BEFORE send
   toi_osc_client:send(msg.binary_data)
   return true
 end
@@ -80,6 +85,7 @@ local function toi_osc_note_off(instr_idx, track_idx, note)
     {tag = "i", value = track_idx - 1},
     {tag = "i", value = note},
   })
+  toi_suppress_until = os.clock() + TOI_SUPPRESS_WINDOW
   toi_osc_client:send(msg.binary_data)
   return true
 end
@@ -90,6 +96,15 @@ end
 --------------------------------------------------------------------------------
 local function toi_on_line_edited(pos)
   if not PakettiTriggerOnInputEnabled then return end
+
+  -- Anti-feedback: when WE send /renoise/trigger/note_on while edit_mode is on,
+  -- Renoise records that note into the pattern, which fires this callback
+  -- again, which would send another OSC, etc. -> runaway loop filling the
+  -- pattern. Suppress for a brief window after every OSC send.
+  if os.clock() < toi_suppress_until then
+    toi_log("skip: within echo-suppress window")
+    return
+  end
 
   local song = renoise.song()
   if not song then return end
