@@ -3489,7 +3489,13 @@ if PAKETTI_API >= 6.2 then
   renoise.tool():add_menu_entry{name="Main Menu:Options:Open Parameter Editor on Device Selection Toggle",invoke=PakettiCanvasExperimentsToggleAutoOpen,selected=PakettiCanvasExperimentsAutoOpenEnabled}
   renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Sample Effect Generator",invoke = PakettiSampleEffectGeneratorInit}
   renoise.tool():add_menu_entry{name="Main Menu:Options:Audition Current Line on Pattern Row Change Toggle",invoke=function() PakettiToggleAuditionCurrentLineOnRowChange() end,selected=function() return PakettiAuditionOnLineChangeEnabled end}
-  renoise.tool():add_menu_entry{name="Main Menu:Options:Trigger Sample on Pattern Input During Record Toggle",invoke=function() PakettiTriggerOnInputToggle() end,selected=function() return PakettiTriggerOnInputEnabled end}
+  -- PARKED 2026-05-13: feature is not currently possible — Renoise's
+  -- trigger_instrument_note_on / OSC routes produce no audio during
+  -- playback. Menu entry removed so users dont see a broken toggle.
+  -- Keybinding + MIDI mapping (in PakettiTriggerOnInput.lua) stay
+  -- registered but are no-ops with a status message. Re-enable this
+  -- line once Renoise exposes preview-during-playback.
+  -- renoise.tool():add_menu_entry{name="Main Menu:Options:Trigger Sample on Pattern Input During Record Toggle",invoke=function() PakettiTriggerOnInputToggle() end,selected=function() return PakettiTriggerOnInputEnabled end}
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}

@@ -5,13 +5,14 @@
  3. [Support](#support)
  4. [Roadmap](#roadmap)
  5. [VersionCompatibility](#versioncompatibility)
- 6. [GettingStarted](#gettingstarted)
- 7. [ManualOrganization](#manualorganization)
- 8. [Automation](#automation)
- 9. [SampleManagement](#samplemanagement)
- 10. [RewriteSoon](#rewritesoon)
- 11. [Changeslog](CHANGESLOG.html)
- 12. [Experimental](Experimental.html)
+ 6. [Parked Features](#parked-features-waiting-on-renoise-api)
+ 7. [GettingStarted](#gettingstarted)
+ 8. [ManualOrganization](#manualorganization)
+ 9. [Automation](#automation)
+ 10. [SampleManagement](#samplemanagement)
+ 11. [RewriteSoon](#rewritesoon)
+ 12. [Changeslog](CHANGESLOG.html)
+ 13. [Experimental](Experimental.html)
 
 # Paketti
 
@@ -183,6 +184,26 @@ Same as above minus the "v2" DSP devices (Chorus 2, Digital Filter, Distortion 2
 The Renoise 3.1 build includes all core Paketti features — pattern editor tools, shortcuts, sample slicing, Polyend/AKAI/Digitakt import and export, MIDI controller support, automation curves, theme management, and hundreds of workflow enhancements. Features that require newer Renoise versions (Canvas visual editors, v2 DSP devices, Phrase tools) are automatically hidden.
 
 **Renoise 3.0.x and older — Not Supported**
+
+# Parked Features (waiting on Renoise API)
+
+These features are designed and implemented in the codebase but **disabled** until Renoise exposes the API support they need. The menu entries are removed; the keybinding and MIDI mapping registrations stay so existing user setups don't break. They'll be re-enabled the moment the API supports them.
+
+### Trigger Sample on Pattern Input During Record
+
+**The idea:** when you're in Record mode (Edit Mode on) and you type a note into the pattern, Renoise normally plays that note back to you so you can hear what you just entered. But there's a gap — if you're playing the song with Follow Player turned off (e.g. listening to your drums loop while writing a bass line a few patterns ahead), Renoise goes silent on your input. You're typing notes blind, with no audio feedback. This feature was meant to fill that gap.
+
+**Why it's parked:** As of Renoise 3.5 / API 6.2, there is no Lua or OSC path that produces audio during playback without also recording into the pattern. We tried every documented route:
+
+- `trigger_pattern_line()` — explicitly errors when the transport is playing (documented).
+- `trigger_instrument_note_on()` — silently produces no audio during playback (undocumented restriction; verified by manual test that bypassed all our notifier code).
+- `/renoise/trigger/note_on` via the built-in OSC server — is internally implemented as `trigger_instrument_note_on()`, so it inherits the same silence. **Additionally**, when edit mode is on, OSC trigger inputs get recorded into the pattern like an external MIDI controller, which creates immediate runaway feedback when combined with `add_line_edited_notifier`.
+
+The 7 built-in OSC commands do not include any preview-without-recording endpoint.
+
+**Status:** waiting on Renoise to expose a preview-during-playback API (e.g. a `trigger_instrument_note_on()` that actually produces audio during playback, or an OSC endpoint like `/renoise/preview/note_on` that bypasses the recording pipeline).
+
+**Workaround:** keep Follow Player ON. Renoise auditions natively when the edit cursor and the playback cursor coincide.
 
 # GettingStarted
 

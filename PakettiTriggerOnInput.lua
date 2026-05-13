@@ -78,16 +78,20 @@ renoise.tool():add_keybinding{
   invoke = function() PakettiTriggerOnInputManualTest() end
 }
 
-PakettiAddMenuEntry{
-  name = "Pattern Editor:Paketti:Trigger Sample on Pattern Input During Record Toggle",
-  invoke = function() PakettiTriggerOnInputToggle() end,
-  selected = function() return PakettiTriggerOnInputEnabled end
-}
-
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Debug:Trigger Sample Manual Test",
-  invoke = function() PakettiTriggerOnInputManualTest() end
-}
+-- PARKED 2026-05-13: menu entries disabled. Keybinding + MIDI mapping
+-- remain so user-customised setups dont break. Re-enable both menu
+-- entries (and PakettiMenuConfig.lua line 3492 for Main Menu:Options)
+-- when Renoise exposes a preview-during-playback API.
+-- PakettiAddMenuEntry{
+--   name = "Pattern Editor:Paketti:Trigger Sample on Pattern Input During Record Toggle",
+--   invoke = function() PakettiTriggerOnInputToggle() end,
+--   selected = function() return PakettiTriggerOnInputEnabled end
+-- }
+--
+-- PakettiAddMenuEntry{
+--   name = "Main Menu:Tools:Paketti:Debug:Trigger Sample Manual Test",
+--   invoke = function() PakettiTriggerOnInputManualTest() end
+-- }
 
 renoise.tool():add_midi_mapping{
   name = "Paketti:Trigger Sample on Pattern Input During Record x[Toggle]",

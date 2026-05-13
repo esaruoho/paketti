@@ -4705,8 +4705,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Speed and Tempo to BP
 -- One-shot setup that brings Renoise into IT-style working mode:
 --   1. Load Dynamic Views from KeyBindings/Paketti Dynamic Views F2 F3 F4 F11.txt
 --   2. Force SBx Pattern Loop Follow ON
---   3. Force "Trigger Sample on Pattern Input During Record" ON
---   4. Force "Audition Current Line on Pattern Row Change" ON
+--   3. Force "Audition Current Line on Pattern Row Change" ON
+-- (Note: "Trigger Sample on Pattern Input During Record" used to be in this
+-- list but is parked as of 2026-05-13 — Renoise API does not currently
+-- expose preview-during-playback. Will be re-added when the API supports it.)
 ---------------------------------------------------------------------------
 function PakettiImpulseTrackerBootstrap()
   local bundle = renoise.tool().bundle_path
@@ -4721,9 +4723,12 @@ function PakettiImpulseTrackerBootstrap()
     if type(PakettiToggleSBxFollow) == "function" then PakettiToggleSBxFollow() end
   end
 
-  if not PakettiTriggerOnInputEnabled then
-    if type(PakettiTriggerOnInputToggle) == "function" then PakettiTriggerOnInputToggle() end
-  end
+  -- Trigger on Input is parked (2026-05-13) — skip the auto-enable so
+  -- IT Bootstrap doesnt spam a "not currently possible" status message.
+  -- Re-add this block when Renoise exposes preview-during-playback:
+  --   if not PakettiTriggerOnInputEnabled then
+  --     if type(PakettiTriggerOnInputToggle) == "function" then PakettiTriggerOnInputToggle() end
+  --   end
 
   if not PakettiAuditionOnLineChangeEnabled then
     if type(PakettiToggleAuditionCurrentLineOnRowChange) == "function" then
