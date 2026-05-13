@@ -1307,7 +1307,6 @@ if PAKETTI_API >= 6.2 then
   timed_require("PakettiClaudeProbe")
   timed_require("PakettiMCPMain")
   timed_require("PakettiTriggerOnInput")
-  timed_require("PakettiModernViewsDemo")
 else
   -- Fallback stub for PCMWriter functions on older API versions
   function PCMWriterIsCreatingSamples()
