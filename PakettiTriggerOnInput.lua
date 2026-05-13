@@ -22,6 +22,63 @@ local toi_notifier_pattern_index = nil
 local toi_active_notes = {}            -- previously-triggered notes for note-off
 local toi_debug = true                 -- flip to false once verified
 
+-- OSC self-trigger client. trigger_instrument_note_on() from the Lua API is
+-- silently broken during playback (despite docs); Renoise's built-in OSC
+-- server path goes through the native audio engine and works in all states.
+-- REQUIRES: Renoise Preferences -> OSC -> Enable Server (UDP, default 8000).
+local TOI_OSC_HOST = "127.0.0.1"
+local TOI_OSC_PORT = 8000
+local toi_osc_client = nil
+local toi_osc_error_shown = false
+
+local function toi_osc_connect()
+  if toi_osc_client then return true end
+  local client, err = renoise.Socket.create_client(TOI_OSC_HOST, TOI_OSC_PORT, renoise.Socket.PROTOCOL_UDP)
+  if not client then
+    if not toi_osc_error_shown then
+      renoise.app():show_status("TriggerOnInput: OSC connect failed (" .. tostring(err) .. ") — enable Renoise Prefs -> OSC server (UDP " .. TOI_OSC_PORT .. ")")
+      toi_osc_error_shown = true
+    end
+    toi_log("OSC connect failed: " .. tostring(err))
+    return false
+  end
+  toi_osc_client = client
+  toi_log("OSC client connected to " .. TOI_OSC_HOST .. ":" .. TOI_OSC_PORT)
+  return true
+end
+
+local function toi_osc_disconnect()
+  if toi_osc_client then
+    toi_osc_client:close()
+    toi_osc_client = nil
+    toi_log("OSC client disconnected")
+  end
+end
+
+local function toi_osc_note_on(instr_idx, track_idx, note, velocity)
+  if not toi_osc_connect() or not toi_osc_client then return false end
+  local msg = renoise.Osc.Message("/renoise/trigger/note_on", {
+    {tag = "i", value = instr_idx - 1},   -- OSC API expects 0-based instrument
+    {tag = "i", value = track_idx - 1},   -- OSC API expects 0-based track
+    {tag = "i", value = note},
+    {tag = "f", value = velocity},
+  })
+  toi_osc_client:send(msg.binary_data)
+  return true
+end
+
+local function toi_osc_note_off(instr_idx, track_idx, note)
+  if not toi_osc_connect() or not toi_osc_client then return false end
+  local msg = renoise.Osc.Message("/renoise/trigger/note_off", {
+    {tag = "i", value = instr_idx - 1},
+    {tag = "i", value = track_idx - 1},
+    {tag = "i", value = note},
+  })
+  toi_osc_client:send(msg.binary_data)
+  return true
+end
+
+
 local function toi_log(msg)
   if toi_debug then
     print("[TriggerOnInput] " .. msg)
@@ -65,7 +122,9 @@ local function toi_on_line_edited(pos)
 
   -- Stop previously-previewed notes so they don't pile up
   for _, ni in ipairs(toi_active_notes) do
-    song:trigger_instrument_note_off(ni.instr, ni.track, ni.notes)
+    for _, n in ipairs(ni.notes) do
+      toi_osc_note_off(ni.instr, ni.track, n)
+    end
   end
   toi_active_notes = {}
 
@@ -121,9 +180,11 @@ local function toi_on_line_edited(pos)
       if n_samples == 0 then
         renoise.app():show_status(string.format("TriggerOnInput: instr 0x%02X '%s' has no samples", instr_idx - 1, instr.name))
       end
-      song:trigger_instrument_note_on(instr_idx, pos.track, info.notes, info.velocity)
+      for _, n in ipairs(info.notes) do
+        toi_osc_note_on(instr_idx, pos.track, n, info.velocity)
+      end
       table.insert(toi_active_notes, {instr = instr_idx, track = pos.track, notes = info.notes})
-      renoise.app():show_status(string.format("TriggerOnInput: instr 0x%02X '%s' note %d vel %.2f", instr_idx - 1, instr.name, info.notes[1], info.velocity))
+      renoise.app():show_status(string.format("TriggerOnInput[OSC]: instr 0x%02X '%s' note %d vel %.2f", instr_idx - 1, instr.name, info.notes[1], info.velocity))
     end
   end
 end
@@ -158,13 +219,13 @@ function PakettiTriggerOnInputManualTest()
       local n_samples = #instr.samples
       print(string.format("[ManualTest]   instr %d (Renoise 0x%02X) name='%s' samples=%d — triggering",
         i, i - 1, instr.name, n_samples))
-      song:trigger_instrument_note_on(i, track_idx, {note}, 1.0)
+      toi_osc_note_on(i, track_idx, note, 1.0)
     else
       print(string.format("[ManualTest]   instr %d (Renoise 0x%02X) does not exist", i, i - 1))
     end
   end
 
-  renoise.app():show_status(string.format("Manual test fired instr 0x00/0x01/0x02 at C-4 on track %d (playing=%s)",
+  renoise.app():show_status(string.format("Manual test [OSC] fired instr 0x00/0x01/0x02 at C-4 on track %d (playing=%s)",
     track_idx, tostring(playing)))
 end
 
@@ -249,6 +310,7 @@ local function toi_disable()
   preferences:save_as("preferences.xml")
   toi_remove_notifier()
   toi_remove_pattern_observer()
+  toi_osc_disconnect()
   renoise.app():show_status("Paketti: Trigger Sample on Pattern Input During Record OFF")
   toi_log("DISABLED")
 end
