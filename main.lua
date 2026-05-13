@@ -823,6 +823,11 @@ function PakettiOnNewDocument()
     end
   end
 
+  -- 11b. Initialize Trigger on Input from preference (API 6.2+ only)
+  if PAKETTI_HAS_TRIGGER_LINE and type(PakettiTriggerOnInputOnNewDocument) == "function" then
+    PakettiTriggerOnInputOnNewDocument()
+  end
+
   -- 12. Initialize PlayerPro Always Open Dialog system (only if preference enabled)
   if preferences.pakettiPlayerProAlwaysOpen and preferences.pakettiPlayerProAlwaysOpen.value then
     if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
@@ -1301,6 +1306,7 @@ if PAKETTI_API >= 6.2 then
   timed_require("PakettiClaudeChat")
   timed_require("PakettiClaudeProbe")
   timed_require("PakettiMCPMain")
+  timed_require("PakettiTriggerOnInput")
 else
   -- Fallback stub for PCMWriter functions on older API versions
   function PCMWriterIsCreatingSamples()

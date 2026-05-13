@@ -22,6 +22,20 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-13 - Feature: Trigger Sample on Pattern Input During Record
+
+New toggle feature that auditions notes as you type them into the pattern editor during record mode. When enabled, every note entered triggers `trigger_pattern_line()` so you hear what you typed — regardless of whether playback is running, stopped, or what the follow mode is. This fills the gap where Renoise is silent during note entry in certain states (playing + follow OFF).
+
+Uses event-driven `add_line_notifier` (not timer polling), following the proven SBx Pattern Loop Follow lifecycle. Only fires when edit mode is ON and an actual note (value < 120) is present on the edited line.
+
+- **Menu**: `Main Menu:Options:Trigger Sample on Pattern Input During Record Toggle` (checkmark toggle)
+- **Menu**: `Pattern Editor:Paketti:Trigger Sample on Pattern Input During Record Toggle` (checkmark toggle)
+- **Keybinding**: `Global:Paketti:Trigger Sample on Pattern Input During Record Toggle`
+- **MIDI**: `Paketti:Trigger Sample on Pattern Input During Record x[Toggle]`
+- **Preference**: `pakettiTriggerOnInputEnabled` (persisted, restored on new document)
+- **File**: `PakettiTriggerOnInput.lua`
+- Requires API 6.2+ (`trigger_pattern_line`)
+
 ### 2026-05-13 - Fix: Linux/Windows keybindings — Mac→LWin conversion was broken (`Option`→`Control` instead of `Option`→`Alt`)
 
 A previous Mac→Linux/Windows keybinding conversion silently produced malformed entries: any binding that used both `Option` and `Control` on Mac became `Control + Control + X` on LWin (duplicate modifier). Renoise can't parse duplicate modifiers, so on load it dropped both Controls and re-saved the binding as a fragmentary `Shift + Alt + Control +` with no actual key — making the feature un-triggerable. The Mac convention `Option + Control + 1` (Toggle Track Slot Mute 01) is correctly `Alt + Control + 1` on LWin, but the shipped file had it as `Control + Control + 1` (junk).

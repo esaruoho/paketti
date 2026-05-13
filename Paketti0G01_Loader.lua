@@ -156,6 +156,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiRandomizeBPMOnNewSong=false,
   pakettiPatternStatusMonitor=false,
   pakettiAuditionOnLineChangeEnabled=false,
+  pakettiTriggerOnInputEnabled=false,
   pakettiFrameCalculatorLiveUpdate=1, -- 1=Off, 2=Song to Line, 3=Pattern to Line, 4=Both
   PakettiSBxFollowEnabled=true,
   PakettiPhraseFollowPatternPlayback=false,
@@ -1663,6 +1664,20 @@ vb:row{
                 value=preferences.pakettiAuditionOnLineChangeEnabled.value,
                 tooltip="Automatically audition the current line when moving cursor (API 6.2+ only)",
                 notifier=function(value) preferences.pakettiAuditionOnLineChangeEnabled.value=value end
+              },
+              vb:space{width=checkbox_spacing},
+              vb:text{text="Trigger on Input",width=150,tooltip="Trigger/audition note when typing into pattern during record mode (API 6.2+ only)"},
+              vb:checkbox{
+                value=preferences.pakettiTriggerOnInputEnabled.value,
+                tooltip="Trigger/audition note when typing into pattern during record mode (API 6.2+ only)",
+                notifier=function(value)
+                  -- Only toggle if state actually changed
+                  if value ~= PakettiTriggerOnInputEnabled then
+                    if type(PakettiTriggerOnInputToggle) == "function" then
+                      PakettiTriggerOnInputToggle()
+                    end
+                  end
+                end
               }
             },
             vb:row{
