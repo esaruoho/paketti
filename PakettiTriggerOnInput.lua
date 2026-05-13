@@ -280,7 +280,12 @@ renoise.tool():add_keybinding{
 }
 
 renoise.tool():add_keybinding{
-  name = "Global:Paketti:Trigger Sample on Pattern Input — Manual Test (selected instr/track, C-4)",
+  name = "Global:Paketti:Trigger Sample Manual Test",
+  invoke = function() PakettiTriggerOnInputManualTest() end
+}
+
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Debug:Trigger Sample Manual Test",
   invoke = function() PakettiTriggerOnInputManualTest() end
 }
 
