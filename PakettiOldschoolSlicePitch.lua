@@ -1387,7 +1387,9 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
   local phrase = new_instrument:insert_phrase_at(1)
   phrase:clear() -- Remove default C-4 that Renoise inserts on line 1
   phrase.name = "Sliced Break"
-  
+  phrase.instrument_column_visible = true
+  phrase.delay_column_visible = true
+
   -- Find the base note for slices by looking at sample mappings
   local slice_base_note = 60 -- Default to C-4
   
@@ -1460,13 +1462,12 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
       if target_line <= phrase_lines then
         local line = phrase:line(target_line)
         local note_column = line.note_columns[1]
-        
-        local slice_note = slice_base_note + (i - 1)
-        if slice_note >= 0 and slice_note <= 119 then
-          note_column.note_value = slice_note
-          note_column.instrument_value = song.selected_instrument_index -- Point to new instrument
-          note_column.delay_value = 0 -- No delay needed for equal spacing
-        end
+
+        -- All slices use the same base note — instrument_value selects which
+        -- slice to play, the note just controls pitch (no ascending pitch)
+        note_column.note_value = slice_base_note
+        note_column.instrument_value = i -- sample index: 01=slice 1, 02=slice 2, etc.
+        note_column.delay_value = 0 -- No delay needed for equal spacing
       end
     end
   else
@@ -1500,20 +1501,18 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
         local line_offset = math.floor(total_lines_from_start)
         local delay_fraction = total_lines_from_start - line_offset
         local delay_value = math.floor(delay_fraction * 256)
-        
+
         -- Ensure we stay within phrase bounds
         local target_line = line_offset + 1
         if target_line <= phrase_lines then
           local line = phrase:line(target_line)
           local note_column = line.note_columns[1]
-          
-          -- Set note to trigger slice
-          local slice_note = slice_base_note + (i - 1)
-          if slice_note >= 0 and slice_note <= 119 then
-            note_column.note_value = slice_note
-            note_column.instrument_value = song.selected_instrument_index -- Point to new instrument
-            note_column.delay_value = math.min(255, delay_value)
-          end
+
+          -- All slices use the same base note — instrument_value selects
+          -- which slice to play, the note just controls pitch
+          note_column.note_value = slice_base_note
+          note_column.instrument_value = i -- sample index: 01=slice 1, 02=slice 2, etc.
+          note_column.delay_value = math.min(255, delay_value)
         end
       end
     end
@@ -1644,9 +1643,10 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
   for i = 1, slice_count do
     local marker_frame = slice_markers[i]
     local line_float = marker_frame / frames_per_line
-    local slice_note = slice_base_note + (i - 1)
-    if slice_note > 119 then slice_note = 119 end
-    abs_positions[i] = {pos = line_float, note = slice_note}
+    -- All slices use the same base note — instrument_value selects which slice
+    -- to play, and the note just controls pitch. Ascending notes here would
+    -- cause each successive slice to be pitched up by a semitone.
+    abs_positions[i] = {pos = line_float, note = slice_base_note}
   end
 
   -- Remove any existing phrases from the new instrument
