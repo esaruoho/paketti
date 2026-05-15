@@ -22,6 +22,22 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Fix: Slices to Phrase / Per Starting Slice — eliminate rising pitch (Option A)
+
+Both `pakettiSlicesToPhrase` and `pakettiSlicesToPhrasesPerSlice` produced phrases where each successive slice played progressively higher in pitch. Discord report from tdel00 confirmed the workaround: toggling off the phrase's sample column (`##` button, `phrase.instrument_column_visible`) eliminated the rise. That pinpointed the root cause.
+
+Root cause: previous fixes wrote `instrument_value = slice_idx` AND set `note_value` to the keyzone mapping's `base_note`. With the instrument (sample) column visible, Renoise plays the slice sample directly and compares `note_value` to the **sample's intrinsic base_note** (uniformly C-4 across all slices in a sliced instrument — they share one buffer). The keyzone mapping's `base_note` is a different field (the natural-pitch reference *for the keyzone slot*), often ascending (C-4, C#4, D-4, …). Writing those ascending values as `note_value` caused +1, +2, +3 semitone shifts per slice → rising pitch.
+
+Fix (Option A — matches the empirically-working `pakettiSlicesToPattern` → Pattern-to-Phrase path):
+
+- Set `phrase.instrument_column_visible = false` — playback routes purely through the instrument's keyzone.
+- Do NOT write `instrument_value` per note.
+- Write `note_value = mapping.note_range[1]` — the keyzone *trigger* note (what `pakettiSlicesToPattern` uses at line 977). This is the note that, played through the keyzone, selects the corresponding slice at natural pitch.
+
+Reverts the `base_note`-based logic from commit `56e7b2e` (2026-05-15) — that fix was reading the wrong field. The ascending-pitch bug (`e091cfa`) and the rogue C-4 bug (`5772872`) both stay fixed because the keyzone trigger notes are ascending and per-slice, not a single shared C-4.
+
+- **File**: `PakettiOldschoolSlicePitch.lua` — `pakettiSlicesToPhrase()`, `pakettiSlicesToPhrasesPerSlice()`
+
 ### 2026-05-15 - Improvement: Paketti Slice Tools dialog — fill in missing Slices→Pattern and Slices→Phrase variants
 
 The "Slices to Pattern" and "Slices to Phrase" sections were missing four bound-but-unsurfaced features. Added:

@@ -1389,27 +1389,28 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
   local phrase = new_instrument:insert_phrase_at(1)
   phrase:clear() -- Remove default C-4 that Renoise inserts on line 1
   phrase.name = "Sliced Break"
-  phrase.instrument_column_visible = true
+  -- Hide the instrument (sample) column and route playback purely via keyzone
+  -- lookup of note_value. Setting it visible + writing instrument_value caused
+  -- rising pitch because the sample's intrinsic base_note (uniform C-4) does
+  -- not match the keyzone mapping's ascending trigger notes. Mirrors the
+  -- working pakettiSlicesToPattern → Pattern-to-Phrase path. See changelog
+  -- 2026-05-15 "Slices to Phrase — fix rising pitch (Option A)".
+  phrase.instrument_column_visible = false
   phrase.delay_column_visible = true
 
-  -- Get per-slice base_notes from sample mappings.
-  -- In a sliced instrument: sample_mappings[1] = original, [2] = slice 1, [3] = slice 2, etc.
-  -- Each slice has its own base_note (typically incrementing by 1 semitone).
-  -- When instrument_value selects a slice sample, the note must match that
-  -- sample's base_note for natural (unshifted) pitch.
-  local sample_mappings = new_instrument.sample_mappings[1] -- Note-on layer
-  local slice_base_notes = {}
+  -- Get each slice's KEYZONE TRIGGER NOTE (note_range[1]) — the note that
+  -- routes through the instrument's keyzone to play that slice at natural
+  -- pitch. NOT the mapping's base_note (which is the natural-pitch reference,
+  -- usually C-4 across all slices — using that caused the rising-pitch bug).
+  -- Mirrors PakettiOldschoolSlicePitch.lua:977 in pakettiSlicesToPattern.
+  local slice_keyzone_notes = {}
   for i = 1, slice_count do
     local fallback = 48 -- C-4
-    if sample_mappings and #sample_mappings >= (i + 1) then
-      local mapping = sample_mappings[i + 1]
-      if mapping and mapping.base_note then
-        slice_base_notes[i] = mapping.base_note
-      else
-        slice_base_notes[i] = fallback
-      end
+    local mapping = new_instrument:sample_mapping(1, i + 1) -- [1]=original, [i+1]=slice i
+    if mapping and mapping.note_range then
+      slice_keyzone_notes[i] = mapping.note_range[1]
     else
-      slice_base_notes[i] = fallback
+      slice_keyzone_notes[i] = fallback
     end
   end
 
@@ -1446,9 +1447,8 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
         local line = phrase:line(target_line)
         local note_column = line.note_columns[1]
 
-        -- Each slice's note must match its own base_note for natural pitch
-        note_column.note_value = slice_base_notes[i] or 48
-        note_column.instrument_value = i -- sample index: 01=slice 1, 02=slice 2, etc.
+        -- Use keyzone trigger note; do NOT set instrument_value (column hidden).
+        note_column.note_value = slice_keyzone_notes[i] or 48
         note_column.delay_value = 0 -- No delay needed for equal spacing
       end
     end
@@ -1490,9 +1490,8 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
           local line = phrase:line(target_line)
           local note_column = line.note_columns[1]
 
-          -- Each slice's note must match its own base_note for natural pitch
-          note_column.note_value = slice_base_notes[i] or 48
-          note_column.instrument_value = i -- sample index: 01=slice 1, 02=slice 2, etc.
+          -- Use keyzone trigger note; do NOT set instrument_value (column hidden).
+          note_column.note_value = slice_keyzone_notes[i] or 48
           note_column.delay_value = math.min(255, delay_value)
         end
       end
@@ -1609,25 +1608,20 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
   if phrase_length < 1 then phrase_length = 1 end
   if phrase_length > 512 then phrase_length = 512 end
 
-  -- Calculate absolute position (in fractional lines) for every slice
-  local abs_positions = {} -- {pos = fractional_line, note = slice_note_value}
-  -- Get each slice's own base_note from its sample mapping.
-  -- In a sliced instrument, sample_mappings[1] = original, [2] = slice 1, [3] = slice 2, etc.
-  -- Each slice has its own base_note (typically incrementing by 1 semitone).
-  -- When instrument_value selects a slice sample, the note must match that
-  -- sample's base_note for natural (unshifted) pitch.
-  local sample_mappings = new_instrument.sample_mappings[1]
+  -- Calculate absolute position (in fractional lines) for every slice.
+  -- Use each slice's KEYZONE TRIGGER NOTE (mapping.note_range[1]) — the note
+  -- that routes through the instrument's keyzone to play that slice at natural
+  -- pitch. NOT the mapping's base_note (uniform C-4, causes rising-pitch).
+  -- Mirrors pakettiSlicesToPattern:977 and the working Pattern→Phrase path.
+  local abs_positions = {} -- {pos = fractional_line, note = slice_keyzone_note}
 
   for i = 1, slice_count do
     local marker_frame = slice_markers[i]
     local line_float = marker_frame / frames_per_line
-    -- Get this slice's own base_note (mapping index i+1 because [1] is the original)
     local slice_note = 48 -- fallback to C-4
-    if sample_mappings and #sample_mappings >= (i + 1) then
-      local mapping = sample_mappings[i + 1]
-      if mapping and mapping.base_note then
-        slice_note = mapping.base_note
-      end
+    local mapping = new_instrument:sample_mapping(1, i + 1) -- [1]=original, [i+1]=slice i
+    if mapping and mapping.note_range then
+      slice_note = mapping.note_range[1]
     end
     abs_positions[i] = {pos = line_float, note = slice_note}
   end
@@ -1647,7 +1641,9 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
     phrase.loop_start = 1
     phrase.loop_end = phrase_length
     phrase.delay_column_visible = true
-    phrase.instrument_column_visible = true
+    -- Hide the instrument (sample) column — route playback via keyzone lookup
+    -- of note_value. See pakettiSlicesToPhrase header for full rationale.
+    phrase.instrument_column_visible = false
     phrase.volume_column_visible = false
     phrase.panning_column_visible = false
     phrase.key_tracking = renoise.InstrumentPhrase.KEY_TRACKING_NONE
@@ -1694,7 +1690,7 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
 
           local nc = line.note_columns[column]
           nc.note_value = abs_positions[slice_idx].note
-          nc.instrument_value = slice_idx -- sample 01=slice 1, 02=slice 2, etc.
+          -- Do NOT set instrument_value — column hidden, keyzone routes playback.
           nc.delay_value = delay_value
         end
       end
