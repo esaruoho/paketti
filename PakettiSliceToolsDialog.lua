@@ -91,6 +91,38 @@ function PakettiSliceToolsDialog()
       })
     end),
 
+    -- Section 1b: Wipe & Slice → Phrase (Continuous, destructive)
+    collapsible_section(vb, "pakettiSliceToolsShowWipeSlicePhrase", "Wipe & Slice → Phrase (Continuous)", function(col)
+      col:add_child(vb:row{
+        vb:button{text="2", width=sw, notifier=function() WipeSliceAndPhraseContinuous(2) end},
+        vb:button{text="4", width=sw, notifier=function() WipeSliceAndPhraseContinuous(4) end},
+        vb:button{text="8", width=sw, notifier=function() WipeSliceAndPhraseContinuous(8) end},
+        vb:button{text="16", width=sw, notifier=function() WipeSliceAndPhraseContinuous(16) end},
+      })
+      col:add_child(vb:row{
+        vb:button{text="32", width=sw, notifier=function() WipeSliceAndPhraseContinuous(32) end},
+        vb:button{text="64", width=sw, notifier=function() WipeSliceAndPhraseContinuous(64) end},
+        vb:button{text="128", width=sw, notifier=function() WipeSliceAndPhraseContinuous(128) end},
+        vb:button{text="256", width=sw, notifier=function() WipeSliceAndPhraseContinuous(256) end},
+      })
+    end),
+
+    -- Section 1c: Wipe & Slice → Pattern (even spacing)
+    collapsible_section(vb, "pakettiSliceToolsShowWipeSlicePattern", "Wipe & Slice → Pattern", function(col)
+      col:add_child(vb:row{
+        vb:button{text="2", width=sw, notifier=function() WipeSliceAndPatternEqual(2) end},
+        vb:button{text="4", width=sw, notifier=function() WipeSliceAndPatternEqual(4) end},
+        vb:button{text="8", width=sw, notifier=function() WipeSliceAndPatternEqual(8) end},
+        vb:button{text="16", width=sw, notifier=function() WipeSliceAndPatternEqual(16) end},
+      })
+      col:add_child(vb:row{
+        vb:button{text="32", width=sw, notifier=function() WipeSliceAndPatternEqual(32) end},
+        vb:button{text="64", width=sw, notifier=function() WipeSliceAndPatternEqual(64) end},
+        vb:button{text="128", width=sw, notifier=function() WipeSliceAndPatternEqual(128) end},
+        vb:button{text="256", width=sw, notifier=function() WipeSliceAndPatternEqual(256) end},
+      })
+    end),
+
     -- Section 2: Zero-Crossing Slicing
     collapsible_section(vb, "pakettiSliceToolsShowZeroCrossing", "Zero-Crossing Slicing", function(col)
       col:add_child(vb:row{

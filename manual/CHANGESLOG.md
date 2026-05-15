@@ -22,6 +22,29 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Feature: Wipe&Slice&Phrase (Continuous) and Wipe&Slice&Pattern — eight slice-count buttons each
+
+Two new button banks in the Slice Tools dialog, mirroring the existing Equal Slicing (Wipe & Slice) 2/4/8/16/32/64/128/256 set:
+
+- **Wipe & Slice → Phrase (Continuous)** — equal-cuts the current sample into N slices, then **wipes all existing phrases on the current instrument** and builds one new continuous phrase containing every slice in order. Destructive on phrases by design. One click → sliced instrument + ready-to-play phrase, no instrument duplicate.
+- **Wipe & Slice → Pattern** — equal-cuts into N slices, then writes one slice trigger per row evenly spaced across the current pattern. 64-row pattern + 64 slices = one slice per row. 128-row pattern + 16 slices = one slice every 8 rows. Math: `lines_per_slice = pattern_lines / slice_count`.
+
+Implementation reuses existing primitives: `slicerough(N)` for the wipe&slice step; `pakettiSlicesToPhrase(false, false, in_place=true)` (new in-place parameter) for the phrase build; `pakettiSlicesToPatternEvenly(true)` for the pattern write. Two ~3-line wrappers (`WipeSliceAndPhraseContinuous`, `WipeSliceAndPatternEqual`) in `PakettiSlice.lua`.
+
+Surfaced as:
+
+- **Dialog**: two new collapsible sections in column 1 of `Paketti Slice Tools`, named "Wipe & Slice → Phrase (Continuous)" and "Wipe & Slice → Pattern", each with eight slice-count buttons.
+- **Keybindings**: `Global:Paketti:Wipe&Slice&Phrase (002)` through `(256)` and `Global:Paketti:Wipe&Slice&Pattern (002)` through `(256)` — 16 new bindings.
+- **MIDI Mappings**: `Paketti:Wipe&Slice&Phrase (002) x[Toggle]` through `(256)` and `Paketti:Wipe&Slice&Pattern (002) x[Toggle]` through `(256)` — 16 new mappings.
+
+The new `in_place` parameter on `pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm, in_place)` defaults to `false` so existing callers (the dialog "With Trigger" / "Phrase Only" buttons, keybindings, MIDI mappings) keep their non-destructive copy-instrument behavior unchanged.
+
+- **File**: `PakettiSlice.lua` — new `WipeSliceAndPhraseContinuous`, `WipeSliceAndPatternEqual`, 16 new keybindings
+- **File**: `PakettiOldschoolSlicePitch.lua` — `pakettiSlicesToPhrase` gains `in_place` parameter
+- **File**: `PakettiMidi.lua` — 16 new MIDI mappings
+- **File**: `PakettiSliceToolsDialog.lua` — two new collapsible sections in column 1
+- **File**: `Paketti0G01_Loader.lua` — new `pakettiSliceToolsShowWipeSlicePhrase` and `pakettiSliceToolsShowWipeSlicePattern` preferences
+
 ### 2026-05-15 - Fix: Paketti Slice Tools dialog — every row sums to the same width
 
 After the three-column split, button rows within sections had different total widths because the original constants (`sw=45`, `bw=160`, `fw=325`) didn't divide cleanly. The 2-button row (320px) was 5px narrower than the full-row button (325px); the 4-button row (180px) left 140px of empty padding inside its 320px-wide section. Result: in the same panel, "Manual Slicer (Longest) | Manual Slicer (Shortest)" appeared narrower than the "Slice Step Sequencer…" button above it, and the numeric slice-count buttons floated in oversized empty space.

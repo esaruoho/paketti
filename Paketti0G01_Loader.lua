@@ -290,6 +290,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiGliderScaleFactor = 16,     -- Base scale factor for Gxx calculation
   pakettiGliderDebug = false,        -- Debug logging toggle
   -- Slice Tools Dialog section visibility
+  pakettiSliceToolsShowWipeSlicePhrase = true,
+  pakettiSliceToolsShowWipeSlicePattern = true,
   pakettiSliceToolsShowEqualSlicing = true,
   pakettiSliceToolsShowZeroCrossing = true,
   pakettiSliceToolsShowAdvanced = true,

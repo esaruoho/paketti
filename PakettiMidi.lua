@@ -206,6 +206,24 @@ renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice (064) x[Toggle]",invoke
 renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice (128) x[Toggle]",invoke=function(message) if message:is_trigger() then slicerough(128) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice (256) x[Toggle]",invoke=function(message) if message:is_trigger() then slicerough(256) end end}
 
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Phrase (002) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPhraseContinuous(2) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Phrase (004) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPhraseContinuous(4) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Phrase (008) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPhraseContinuous(8) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Phrase (016) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPhraseContinuous(16) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Phrase (032) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPhraseContinuous(32) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Phrase (064) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPhraseContinuous(64) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Phrase (128) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPhraseContinuous(128) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Phrase (256) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPhraseContinuous(256) end end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Pattern (002) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPatternEqual(2) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Pattern (004) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPatternEqual(4) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Pattern (008) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPatternEqual(8) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Pattern (016) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPatternEqual(16) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Pattern (032) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPatternEqual(32) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Pattern (064) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPatternEqual(64) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Pattern (128) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPatternEqual(128) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice&Pattern (256) x[Toggle]",invoke=function(message) if message:is_trigger() then WipeSliceAndPatternEqual(256) end end}
+
 renoise.tool():add_midi_mapping{name="Paketti:Set Delay (+1) x[Toggle]",invoke=function(message) if message:is_trigger() then delayInput(1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Delay (-1) x[Toggle]",invoke=function(message) if message:is_trigger() then delayInput(-1) end end}
 

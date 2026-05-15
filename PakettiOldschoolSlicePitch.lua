@@ -1328,9 +1328,14 @@ function pakettiSlicesToPatternBeatsyncOnly()
   renoise.app():show_status(string.format("Placed %d slices using beat sync (external tool method)", num_slices))
 end
 
-function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
+-- in_place: when true, operate on the current instrument and wipe its
+-- existing phrases first (destructive, used by Wipe&Slice&Phrase wrapper).
+-- when false (default), duplicate the instrument as "(Phrase)" and put the
+-- phrase on the duplicate.
+function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm, in_place)
   add_trigger_note = add_trigger_note or false
   use_detected_bpm = use_detected_bpm or false
+  in_place = in_place or false
   
   local song = renoise.song()
   local instrument = song.selected_instrument
@@ -1379,11 +1384,20 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
   
   local slice_count = #slice_markers - 1 -- Don't count final end marker
 
-  -- Duplicate the instrument
-  local new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
-  if not new_instrument then return end
-  new_instrument:copy_from(instrument)
-  new_instrument.name = instrument.name .. " (Phrase)"
+  local new_instrument
+  if in_place then
+    -- Destructive: operate on the current instrument, wipe its phrases first.
+    new_instrument = instrument
+    while #new_instrument.phrases > 0 do
+      new_instrument:delete_phrase_at(#new_instrument.phrases)
+    end
+  else
+    -- Non-destructive: duplicate the instrument and put the phrase on the copy.
+    new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
+    if not new_instrument then return end
+    new_instrument:copy_from(instrument)
+    new_instrument.name = instrument.name .. " (Phrase)"
+  end
 
   -- Create a new phrase
   local phrase = new_instrument:insert_phrase_at(1)
@@ -1498,27 +1512,30 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
     end
   end
   
-  -- Select the new instrument
-  song.selected_instrument_index = song.selected_instrument_index + 1
-  
+  -- Select the new instrument (only when we created one)
+  if not in_place then
+    song.selected_instrument_index = song.selected_instrument_index + 1
+  end
+
   -- Add trigger note to pattern if requested
   if add_trigger_note then
     local pattern = song.selected_pattern
     local track = song.selected_track
     local start_line = song.selected_line_index
-    
+
     local line = pattern:track(song.selected_track_index):line(start_line)
     local note_column = line.note_columns[1]
-    
+
     -- Clear existing note
     note_column:clear()
-    
+
     -- Add phrase trigger note (typically C-4)
     note_column.note_value = 60 -- C-4
     note_column.instrument_value = song.selected_instrument_index - 1
   end
-  
-  renoise.app():show_status(string.format("Created phrase with %d slices in new instrument", slice_count))
+
+  local where = in_place and "current instrument" or "new instrument"
+  renoise.app():show_status(string.format("Created phrase with %d slices in %s", slice_count, where))
 end
 
 

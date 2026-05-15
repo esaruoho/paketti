@@ -81,6 +81,24 @@ renoise.tool():add_midi_mapping{name="Paketti:Delete Slice Markers in Selection"
 
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Phrase (002)",invoke=function() WipeSliceAndPhraseContinuous(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Phrase (004)",invoke=function() WipeSliceAndPhraseContinuous(4) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Phrase (008)",invoke=function() WipeSliceAndPhraseContinuous(8) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Phrase (016)",invoke=function() WipeSliceAndPhraseContinuous(16) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Phrase (032)",invoke=function() WipeSliceAndPhraseContinuous(32) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Phrase (064)",invoke=function() WipeSliceAndPhraseContinuous(64) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Phrase (128)",invoke=function() WipeSliceAndPhraseContinuous(128) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Phrase (256)",invoke=function() WipeSliceAndPhraseContinuous(256) end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Pattern (002)",invoke=function() WipeSliceAndPatternEqual(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Pattern (004)",invoke=function() WipeSliceAndPatternEqual(4) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Pattern (008)",invoke=function() WipeSliceAndPatternEqual(8) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Pattern (016)",invoke=function() WipeSliceAndPatternEqual(16) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Pattern (032)",invoke=function() WipeSliceAndPatternEqual(32) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Pattern (064)",invoke=function() WipeSliceAndPatternEqual(64) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Pattern (128)",invoke=function() WipeSliceAndPatternEqual(128) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Pattern (256)",invoke=function() WipeSliceAndPatternEqual(256) end}
+
 function WipeSliceAndWrite()
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
@@ -253,6 +271,23 @@ end
 
 ---
 --------
+
+-- Wipe & Slice & Phrase (Continuous): equal-cut into N slices, then build one
+-- continuous phrase on the SAME instrument, wiping any existing phrases first.
+-- Destructive by design — confirmed with user.
+function WipeSliceAndPhraseContinuous(slice_count)
+  slicerough(slice_count)
+  pakettiSlicesToPhrase(false, false, true)  -- no trigger, project BPM, in_place=true
+end
+
+-- Wipe & Slice & Pattern: equal-cut into N slices, then write slice triggers
+-- evenly across the current pattern (e.g. 64 rows + 64 slices = 1 per row;
+-- 128 rows + 16 slices = 1 every 8 rows).
+function WipeSliceAndPatternEqual(slice_count)
+  slicerough(slice_count)
+  pakettiSlicesToPatternEvenly(true)  -- start from first row
+end
+
 -- At the very start of the file
 local dialog = nil  -- Proper global dialog reference
 
