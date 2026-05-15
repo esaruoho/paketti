@@ -1377,12 +1377,14 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
     table.insert(slice_markers, sample_frames)
   end
   
+  local slice_count = #slice_markers - 1 -- Don't count final end marker
+
   -- Duplicate the instrument
   local new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
   if not new_instrument then return end
   new_instrument:copy_from(instrument)
   new_instrument.name = instrument.name .. " (Phrase)"
-  
+
   -- Create a new phrase
   local phrase = new_instrument:insert_phrase_at(1)
   phrase:clear() -- Remove default C-4 that Renoise inserts on line 1
@@ -1390,47 +1392,28 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
   phrase.instrument_column_visible = true
   phrase.delay_column_visible = true
 
-  -- Find the base note for slices by looking at sample mappings
-  local slice_base_note = 60 -- Default to C-4
-  
-  -- For sliced instruments, get the base note directly from the first sample's mapping
-  if #slice_markers > 0 then
-    -- The original sample (full sample) is at sample_mappings[1][1]
-    -- The first slice is at sample_mappings[1][2] (if it exists)
-    local sample_mappings = new_instrument.sample_mappings[1] -- Note layer
-    
-    if sample_mappings and #sample_mappings >= 2 then
-      -- Get the first slice mapping (slices start at index 2)
-      local first_slice_mapping = sample_mappings[2]
-      if first_slice_mapping and first_slice_mapping.base_note then
-        slice_base_note = first_slice_mapping.base_note
-        print("Debug: Found first slice base note directly:", slice_base_note)
+  -- Get per-slice base_notes from sample mappings.
+  -- In a sliced instrument: sample_mappings[1] = original, [2] = slice 1, [3] = slice 2, etc.
+  -- Each slice has its own base_note (typically incrementing by 1 semitone).
+  -- When instrument_value selects a slice sample, the note must match that
+  -- sample's base_note for natural (unshifted) pitch.
+  local sample_mappings = new_instrument.sample_mappings[1] -- Note-on layer
+  local slice_base_notes = {}
+  for i = 1, slice_count do
+    local fallback = 48 -- C-4
+    if sample_mappings and #sample_mappings >= (i + 1) then
+      local mapping = sample_mappings[i + 1]
+      if mapping and mapping.base_note then
+        slice_base_notes[i] = mapping.base_note
       else
-        -- Fallback: get original sample base note and add 1
-        local original_mapping = sample_mappings[1]
-        if original_mapping and original_mapping.base_note then
-          slice_base_note = original_mapping.base_note + 1
-          print("Debug: Using original sample base note + 1:", slice_base_note)
-        end
+        slice_base_notes[i] = fallback
       end
     else
-      -- Fallback to original approach if mapping structure is unexpected
-      for note = 0, 119 do
-        local mapping = sample_mappings[note + 1] -- Lua 1-based indexing
-        if mapping and mapping.sample then
-          -- First mapping found - slices typically start one note higher
-          slice_base_note = note + 1
-          print("Debug: Fallback - found mapping at note", note, "- slices start at", slice_base_note)
-          break
-        end
-      end
+      slice_base_notes[i] = fallback
     end
   end
-  
-  print("Debug: Using slice base note:", slice_base_note)
-  
+
   -- Check if slices are equally spaced (mathematical slicing)
-  local slice_count = #slice_markers - 1 -- Don't count final end marker
   local is_equal_slicing = true
   if slice_count > 1 then
     local expected_spacing = sample_frames / slice_count
@@ -1463,9 +1446,8 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
         local line = phrase:line(target_line)
         local note_column = line.note_columns[1]
 
-        -- All slices use the same base note — instrument_value selects which
-        -- slice to play, the note just controls pitch (no ascending pitch)
-        note_column.note_value = slice_base_note
+        -- Each slice's note must match its own base_note for natural pitch
+        note_column.note_value = slice_base_notes[i] or 48
         note_column.instrument_value = i -- sample index: 01=slice 1, 02=slice 2, etc.
         note_column.delay_value = 0 -- No delay needed for equal spacing
       end
@@ -1508,9 +1490,8 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
           local line = phrase:line(target_line)
           local note_column = line.note_columns[1]
 
-          -- All slices use the same base note — instrument_value selects
-          -- which slice to play, the note just controls pitch
-          note_column.note_value = slice_base_note
+          -- Each slice's note must match its own base_note for natural pitch
+          note_column.note_value = slice_base_notes[i] or 48
           note_column.instrument_value = i -- sample index: 01=slice 1, 02=slice 2, etc.
           note_column.delay_value = math.min(255, delay_value)
         end
@@ -1630,23 +1611,25 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
 
   -- Calculate absolute position (in fractional lines) for every slice
   local abs_positions = {} -- {pos = fractional_line, note = slice_note_value}
-  -- Get the slice base note from sample mappings
-  local slice_base_note = 60
+  -- Get each slice's own base_note from its sample mapping.
+  -- In a sliced instrument, sample_mappings[1] = original, [2] = slice 1, [3] = slice 2, etc.
+  -- Each slice has its own base_note (typically incrementing by 1 semitone).
+  -- When instrument_value selects a slice sample, the note must match that
+  -- sample's base_note for natural (unshifted) pitch.
   local sample_mappings = new_instrument.sample_mappings[1]
-  if sample_mappings and #sample_mappings >= 2 then
-    local first_slice_mapping = sample_mappings[2]
-    if first_slice_mapping and first_slice_mapping.base_note then
-      slice_base_note = first_slice_mapping.base_note
-    end
-  end
 
   for i = 1, slice_count do
     local marker_frame = slice_markers[i]
     local line_float = marker_frame / frames_per_line
-    -- All slices use the same base note — instrument_value selects which slice
-    -- to play, and the note just controls pitch. Ascending notes here would
-    -- cause each successive slice to be pitched up by a semitone.
-    abs_positions[i] = {pos = line_float, note = slice_base_note}
+    -- Get this slice's own base_note (mapping index i+1 because [1] is the original)
+    local slice_note = 48 -- fallback to C-4
+    if sample_mappings and #sample_mappings >= (i + 1) then
+      local mapping = sample_mappings[i + 1]
+      if mapping and mapping.base_note then
+        slice_note = mapping.base_note
+      end
+    end
+    abs_positions[i] = {pos = line_float, note = slice_note}
   end
 
   -- Remove any existing phrases from the new instrument

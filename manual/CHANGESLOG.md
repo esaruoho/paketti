@@ -22,6 +22,14 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Fix: Slices to Phrases — per-slice pitch correction
+
+Fixed a regression where all slice notes in phrases came out as the same note (e.g. C#3) regardless of which slice was playing, causing progressive pitch drift. The previous fix had swung too far: it replaced the ascending-note bug with a single shared base note for every slice. But in a Renoise sliced instrument, each slice sample has its own `base_note` in the keyzone mapping (incrementing by one semitone per slice). When `instrument_value` selects a specific slice sample, the phrase note must match *that slice's* `base_note` for zero pitch offset — otherwise earlier/later slices play sharp or flat relative to their natural pitch.
+
+Fix: both `pakettiSlicesToPhrase()` and `pakettiSlicesToPhrasesPerSlice()` now read each slice's individual `base_note` from `instrument.sample_mappings[1][i+1]` (where `[1]` is the original sample and `[i+1]` is slice *i*). Each slice note in the phrase gets its own correct pitch value instead of a single shared one.
+
+- **File**: `PakettiOldschoolSlicePitch.lua` — `pakettiSlicesToPhrasesPerSlice()` and `pakettiSlicesToPhrase()`
+
 ### 2026-05-14 - Fix: Slices to Phrases — ascending pitch bug
 
 Fixed a bug where each triggered slice in a phrase was gradually increasing in pitch. The root cause: when writing slice notes into phrases, ascending note values were used (C-4, C#4, D-4, D#4, ...) alongside the `instrument_value` column that selects each slice. In a phrase, `instrument_value` already handles which slice to play — the note value only controls pitch. Using ascending notes caused each successive slice to play one semitone higher than the last. Fix: all slices now use the same base note (the first slice's mapping base note), and only `instrument_value` varies to select the correct slice.
