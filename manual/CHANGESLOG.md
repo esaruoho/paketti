@@ -22,6 +22,17 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Improvement: Paketti Slice Tools dialog — fill in missing Slices→Pattern and Slices→Phrase variants
+
+The "Slices to Pattern" and "Slices to Phrase" sections were missing four bound-but-unsurfaced features. Added:
+
+- **Slices to Pattern → BPM Detect (1st Row)** and **BPM Detect (Cur Row)** — invokes `pakettiSlicesToPattern` with `use_detected_bpm=true`
+- **Slices to Phrase → BPM Detect (Trigger)** and **BPM Detect (Phrase Only)** — invokes `pakettiSlicesToPhrase` with `use_detected_bpm=true`
+- **Slices to Phrase → Per Starting Slice** — invokes `pakettiSlicesToPhrasesPerSlice()` (the multi-phrase per-slice generator that creates one phrase per slice with the correct per-slice base_note)
+- **Slices to Phrase → Per Starting Slice (BPM Detect)** — same with `use_detected_bpm=true`
+
+- **File**: `PakettiSliceToolsDialog.lua` — `PakettiSliceToolsDialog()`
+
 ### 2026-05-15 - Improvement: Paketti Slice Tools dialog — three-column layout
 
 The Paketti Slice Tools dialog was previously a single tall column of 11 collapsible sections, forcing vertical scrolling on most displays. It is now laid out in three side-by-side columns, source order preserved:

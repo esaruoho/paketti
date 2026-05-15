@@ -138,6 +138,10 @@ function PakettiSliceToolsDialog()
         vb:button{text="To Pattern (Cur Row)", width=bw, notifier=function() pakettiSlicesToPattern(false) end},
       })
       col:add_child(vb:row{
+        vb:button{text="BPM Detect (1st Row)", width=bw, notifier=function() pakettiSlicesToPattern(true, true) end},
+        vb:button{text="BPM Detect (Cur Row)", width=bw, notifier=function() pakettiSlicesToPattern(false, true) end},
+      })
+      col:add_child(vb:row{
         vb:button{text="Evenly (1st Row)", width=bw, notifier=function() pakettiSlicesToPatternEvenly(true) end},
         vb:button{text="Evenly (Cur Row)", width=bw, notifier=function() pakettiSlicesToPatternEvenly(false) end},
       })
@@ -156,6 +160,12 @@ function PakettiSliceToolsDialog()
         vb:button{text="With Trigger", width=bw, notifier=function() pakettiSlicesToPhrase(true) end},
         vb:button{text="Phrase Only", width=bw, notifier=function() pakettiSlicesToPhrase(false) end},
       })
+      col:add_child(vb:row{
+        vb:button{text="BPM Detect (Trigger)", width=bw, notifier=function() pakettiSlicesToPhrase(true, true) end},
+        vb:button{text="BPM Detect (Phrase Only)", width=bw, notifier=function() pakettiSlicesToPhrase(false, true) end},
+      })
+      col:add_child(vb:button{text="Per Starting Slice", width=fw, notifier=function() pakettiSlicesToPhrasesPerSlice() end})
+      col:add_child(vb:button{text="Per Starting Slice (BPM Detect)", width=fw, notifier=function() pakettiSlicesToPhrasesPerSlice(true) end})
       col:add_child(vb:button{text="Template from Slices", width=fw, notifier=function() PakettiPhraseTemplateFromSlices() end})
       col:add_child(vb:button{text="To Phrase Bank", width=fw, notifier=function() PakettiSlicesToPhraseBank({}) end})
       col:add_child(vb:button{text="Auto-Slice & Phrase", width=fw, notifier=function() PakettiAutoSliceAndPhraseCreate({}) end})
