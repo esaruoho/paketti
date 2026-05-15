@@ -1689,9 +1689,14 @@ end
         s.instruments[currInst].samples[1]:delete_slice_marker(s.instruments[currInst].samples[1].slice_markers[i])
     end
 
-    -- Insert new slice markers
+    -- Insert new slice markers. First marker at frame 1 so the first slice
+    -- region starts at the sample beginning (matches WipeSliceAndWrite and
+    -- pre-f60f8e5 behavior). last_inserted=1 ensures the loop's first
+    -- iteration is skipped when tw < 1 (sample shorter than changer frames),
+    -- which was the duplicate-position-1 crash the f60f8e5 fix was after.
     local tw = s.selected_sample.sample_buffer.number_of_frames / changer
-    local last_inserted = 0
+    s.instruments[currInst].samples[currSamp]:insert_slice_marker(1)
+    local last_inserted = 1
     for i = 1, changer - 1 do
         local pos = math.max(1, math.floor(tw * i))
         if pos > last_inserted then

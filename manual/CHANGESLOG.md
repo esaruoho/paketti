@@ -22,6 +22,16 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Fix: Wipe&Slice — restore frame-1 slice marker
+
+`slicerough()` (the function behind every MIDI-mapped Wipe&Slice 004 / 008 / 016 / 032 / 064 / 128 / 256) stopped inserting a slice marker at frame 1 in February. The first slice region therefore ran from the implicit sample start to the first computed marker, instead of from an explicit frame-1 marker — a regression that broke the round-trip with `WipeSliceAndWrite` and made the first slice's keyzone mapping inconsistent.
+
+Root cause: commit `f60f8e5` (Feb 23 2026) removed `insert_slice_marker(1)` to dodge a duplicate-position-1 crash that only happens when `tw < 1` (sample has fewer frames than `changer` slices). The crash guard was correct; throwing away the frame-1 marker for the 99.9% common path was not.
+
+Fix: restore `insert_slice_marker(1)` and seed `last_inserted = 1`. The existing `pos > last_inserted` guard still skips the duplicate when `tw < 1`.
+
+- **File**: `PakettiSamples.lua` — `slicerough()`
+
 ### 2026-05-15 - Improvement: Menu Configuration disable now short-circuits direct registrations too
 
 Disabling a context (e.g. Mixer, Pattern Editor, Sample Editor) in `Main Menu:Options:Paketti Menu Configuration` now actually skips registering those menu entries at boot, including the ~2,390 entries that call `renoise.tool():add_menu_entry{...}` directly instead of going through the `PakettiAddMenuEntry` helper. Previously only the ~860 helper-routed entries honored the per-context preference; the remaining 2,390 direct calls were always queued, sorted, and registered regardless of the toggle — so disabling a category never made reloads faster.
