@@ -22,6 +22,16 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Guide: Wipe & Slice → Phrase (Continuous) — what it does, for musicians
+
+Drop a drum loop on the instrument. Click any of the eight buttons under **Wipe & Slice → Phrase (Continuous)** (2 / 4 / 8 / 16 / 32 / 64 / 128 / 256). Paketti does three things in one click:
+
+1. **Chops the sample** into that many equal slices.
+2. **Wipes existing phrases** on the instrument (destructive, by design).
+3. **Builds one looping phrase per slice** — phrase 1 plays the whole loop, phrase 2 starts from slice 2, phrase K starts from slice K and runs to the end.
+
+Each phrase is mapped to a consecutive note starting at C#0 (phrase 1 = C#0, phrase 2 = D-0, phrase 3 = D#0, …) and loops continuously until you release the note. So with a 32-slice cut: hit C#0 → full loop cycles forever; hit D-0 → loop starts from slice 2 and cycles; hit G#0 → loop starts from slice 8 and cycles. Pick up the groove from any beat without re-slicing or touching the original audio. Mapped to keybindings (`Global:Paketti:Wipe&Slice&Phrase (064)` etc.) and MIDI mappings too, so a controller pad can do it.
+
 ### 2026-05-15 - Fix: Wipe&Slice&Phrase (Continuous) — actually build per-slice phrases
 
 The "Continuous" wrapper was building one phrase containing all slices, then looping it. That's not what "Continuous" was supposed to mean.
