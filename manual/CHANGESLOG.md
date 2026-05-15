@@ -22,6 +22,22 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Fix: Paketti Slice Tools dialog — every row sums to the same width
+
+After the three-column split, button rows within sections had different total widths because the original constants (`sw=45`, `bw=160`, `fw=325`) didn't divide cleanly. The 2-button row (320px) was 5px narrower than the full-row button (325px); the 4-button row (180px) left 140px of empty padding inside its 320px-wide section. Result: in the same panel, "Manual Slicer (Longest) | Manual Slicer (Shortest)" appeared narrower than the "Slice Step Sequencer…" button above it, and the numeric slice-count buttons floated in oversized empty space.
+
+Fix: reset the width constants so every row sums to the same `fw=320`:
+
+- `sw = 80` (quarter-row, was 45) — 4 * 80 = 320
+- `tw = 107` (third-row, new) — 3 * 107 = 321
+- `bw = 160` (half-row, unchanged) — 2 * 160 = 320
+- `fw = 320` (full-row, was 325) — single button
+- `cw = 336` (column lock, was 340) — fits `fw` + section group margin + slack
+
+Zero-Crossing Slicing's second row (`32 / 64 / 128`) now uses `tw` per button so it spans the same width as the 4-button row above it instead of leaving a quarter of the panel empty.
+
+- **File**: `PakettiSliceToolsDialog.lua`
+
 ### 2026-05-15 - Fix: Slices to Phrase / Per Starting Slice — eliminate rising pitch (Option A)
 
 Both `pakettiSlicesToPhrase` and `pakettiSlicesToPhrasesPerSlice` produced phrases where each successive slice played progressively higher in pitch. Discord report from tdel00 confirmed the workaround: toggling off the phrase's sample column (`##` button, `phrase.instrument_column_visible`) eliminated the rise. That pinpointed the root cause.

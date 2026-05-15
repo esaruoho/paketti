@@ -49,10 +49,18 @@ function PakettiSliceToolsDialog()
   end
 
   local vb = renoise.ViewBuilder()
-  local sw = 45   -- numeric slice count button width
-  local bw = 160  -- half-row button width
-  local fw = 325  -- full-row button width
-  local cw = 340  -- column width (fits fw + group margin; pin all three columns to this)
+  -- Button widths chosen so that EVERY row sums to fw exactly:
+  --   4-button rows: 4 * sw  = 4 * 80  = 320
+  --   3-button rows: 3 * tw  = 3 * 107 = 321 (1px overage, invisible)
+  --   2-button rows: 2 * bw  = 2 * 160 = 320
+  --   1-button rows:     fw  =          320
+  -- All sections in all columns therefore have identical content width, so
+  -- buttons line up across rows and panel borders sit flush.
+  local fw = 320  -- full-row button width
+  local bw = 160  -- half-row button width (fw / 2)
+  local tw = 107  -- third-row button width (fw / 3, rounded up)
+  local sw = 80   -- quarter-row button width (fw / 4)
+  local cw = 336  -- column width (fw + section group margin 4*2 + slack)
 
   -- Three-column layout, source order preserved:
   --   Column 1: Equal Slicing, Zero-Crossing Slicing, Advanced Slicing, All Slices Loop Mode
@@ -92,9 +100,9 @@ function PakettiSliceToolsDialog()
         vb:button{text="16", width=sw, notifier=function() PakettiZeroCrossingsWipeSlice(16, true, 1.0) end},
       })
       col:add_child(vb:row{
-        vb:button{text="32", width=sw, notifier=function() PakettiZeroCrossingsWipeSlice(32, true, 1.0) end},
-        vb:button{text="64", width=sw, notifier=function() PakettiZeroCrossingsWipeSlice(64, true, 1.0) end},
-        vb:button{text="128", width=sw, notifier=function() PakettiZeroCrossingsWipeSlice(128, true, 1.0) end},
+        vb:button{text="32", width=tw, notifier=function() PakettiZeroCrossingsWipeSlice(32, true, 1.0) end},
+        vb:button{text="64", width=tw, notifier=function() PakettiZeroCrossingsWipeSlice(64, true, 1.0) end},
+        vb:button{text="128", width=tw, notifier=function() PakettiZeroCrossingsWipeSlice(128, true, 1.0) end},
       })
       col:add_child(vb:row{
         vb:button{text="Randomize Slices", width=bw, notifier=function() PakettiZeroCrossingsRandomizeSlices(15, true, 1.0) end},
