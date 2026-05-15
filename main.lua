@@ -1017,6 +1017,14 @@ PakettiActualRegistrations = {
 local function proxy_add_menu_entry(proxy_self, args)
   -- If the pending queue exists and we're NOT flushing, queue for later
   if PakettiPendingMenuEntries and not PakettiFlushingInProgress then
+    -- Honor master toggle + per-context preference for direct callers too.
+    -- PakettiAddMenuEntry helper handles this for its 860 callsites; the other
+    -- ~2,390 direct renoise.tool():add_menu_entry{...} calls go through here.
+    -- Short-circuiting at queue time means no sort cost and no flush cost for
+    -- entries the user has disabled in the Menu Configuration dialog.
+    if args and PakettiShouldRegisterMenuEntry and not PakettiShouldRegisterMenuEntry(args.name) then
+      return
+    end
     table.insert(PakettiPendingMenuEntries, args)
     return
   end

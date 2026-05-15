@@ -3983,7 +3983,8 @@ function PakettiAddMidiMapping(args)
 end
 
 -- Map a menu entry name to its per-context preference key
-local function PakettiMenuContextPrefKey(name)
+-- Global so the proxy in main.lua can use the same mapping.
+function PakettiMenuContextPrefKey(name)
   if not name then return nil end
   local clean = name:gsub("^%-%-", "")
   if clean:match("^Main Menu:File:") then return "MainMenuFile"
@@ -4021,21 +4022,31 @@ end
 PakettiPendingMenuEntries = {}
 PakettiFlushingInProgress = false  -- bypass flag for proxy during flush
 
--- Helper function to conditionally add menu entry (QUEUED, not immediate)
--- Checks both the master toggle AND the per-context preference
--- Usage: PakettiAddMenuEntry{name="...", invoke=function() end}
-function PakettiAddMenuEntry(args)
+-- Single decision point: should a menu entry with this name be registered at all?
+-- Honors the master toggle AND the per-context preference. Called by both the
+-- PakettiAddMenuEntry helper AND the proxy_add_menu_entry interceptor in main.lua,
+-- so direct renoise.tool():add_menu_entry{...} calls also short-circuit when their
+-- context is disabled in the Menu Configuration dialog.
+function PakettiShouldRegisterMenuEntry(name)
   if not PakettiShouldRegisterMenus() then
     return false
   end
-  -- Check per-context preference
-  if args.name and preferences and preferences.pakettiMenuConfig then
-    local pref_key = PakettiMenuContextPrefKey(args.name)
+  if name and preferences and preferences.pakettiMenuConfig then
+    local pref_key = PakettiMenuContextPrefKey(name)
     if pref_key and preferences.pakettiMenuConfig[pref_key] then
       if not preferences.pakettiMenuConfig[pref_key].value then
         return false
       end
     end
+  end
+  return true
+end
+
+-- Helper function to conditionally add menu entry (QUEUED, not immediate)
+-- Usage: PakettiAddMenuEntry{name="...", invoke=function() end}
+function PakettiAddMenuEntry(args)
+  if not PakettiShouldRegisterMenuEntry(args.name) then
+    return false
   end
   table.insert(PakettiPendingMenuEntries, args)
   return true

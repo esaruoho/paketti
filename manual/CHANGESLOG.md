@@ -22,6 +22,15 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Improvement: Menu Configuration disable now short-circuits direct registrations too
+
+Disabling a context (e.g. Mixer, Pattern Editor, Sample Editor) in `Main Menu:Options:Paketti Menu Configuration` now actually skips registering those menu entries at boot, including the ~2,390 entries that call `renoise.tool():add_menu_entry{...}` directly instead of going through the `PakettiAddMenuEntry` helper. Previously only the ~860 helper-routed entries honored the per-context preference; the remaining 2,390 direct calls were always queued, sorted, and registered regardless of the toggle — so disabling a category never made reloads faster.
+
+Fix: the per-context decision is now a shared global `PakettiShouldRegisterMenuEntry(name)` called by both the helper and the proxy interceptor in `main.lua`. Entries with a disabled context return early before queueing — no queue cost, no sort cost, no `add_menu_entry` cost at flush.
+
+- **File**: `Paketti0G01_Loader.lua` — new `PakettiShouldRegisterMenuEntry`, `PakettiMenuContextPrefKey` promoted to global
+- **File**: `main.lua` — `proxy_add_menu_entry` checks `PakettiShouldRegisterMenuEntry` before queueing
+
 ### 2026-05-15 - Fix: Slices to Phrases — per-slice pitch correction
 
 Fixed a regression where all slice notes in phrases came out as the same note (e.g. C#3) regardless of which slice was playing, causing progressive pitch drift. The previous fix had swung too far: it replaced the ascending-note bug with a single shared base note for every slice. But in a Renoise sliced instrument, each slice sample has its own `base_note` in the keyzone mapping (incrementing by one semitone per slice). When `instrument_value` selects a specific slice sample, the phrase note must match *that slice's* `base_note` for zero pitch offset — otherwise earlier/later slices play sharp or flat relative to their natural pitch.
