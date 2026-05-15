@@ -52,12 +52,13 @@ function PakettiSliceToolsDialog()
   local sw = 45   -- numeric slice count button width
   local bw = 160  -- half-row button width
   local fw = 325  -- full-row button width
+  local cw = 340  -- column width (fits fw + group margin; pin all three columns to this)
 
   -- Three-column layout, source order preserved:
   --   Column 1: Equal Slicing, Zero-Crossing Slicing, Advanced Slicing, All Slices Loop Mode
   --   Column 2: Slices to Pattern, Slices to Phrase, Slice Marker Management
   --   Column 3: DrumChain / Conversion, Beatsync, Specialized Tools, Oldschool Gap Fill
-  local col1 = vb:column{spacing=4,
+  local col1 = vb:column{width=cw, spacing=4,
     -- Section 1: Equal Slicing (Wipe & Slice)
     collapsible_section(vb, "pakettiSliceToolsShowEqualSlicing", "Equal Slicing (Wipe & Slice)", function(col)
       col:add_child(vb:row{
@@ -128,7 +129,7 @@ function PakettiSliceToolsDialog()
 
   }
 
-  local col2 = vb:column{spacing=4,
+  local col2 = vb:column{width=cw, spacing=4,
     -- Section 5: Slices to Pattern
     collapsible_section(vb, "pakettiSliceToolsShowToPattern", "Slices to Pattern", function(col)
       col:add_child(vb:button{text="Wipe&Slice&Write", width=fw, notifier=function() WipeSliceAndWrite() end})
@@ -174,7 +175,7 @@ function PakettiSliceToolsDialog()
 
   }
 
-  local col3 = vb:column{spacing=4,
+  local col3 = vb:column{width=cw, spacing=4,
     -- Section 8: DrumChain / Conversion
     collapsible_section(vb, "pakettiSliceToolsShowDrumChain", "DrumChain / Conversion", function(col)
       col:add_child(vb:row{
