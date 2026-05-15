@@ -53,10 +53,11 @@ function PakettiSliceToolsDialog()
   local bw = 160  -- half-row button width
   local fw = 325  -- full-row button width
 
-  local content = vb:column{
-    margin=4,
-    spacing=4,
-
+  -- Three-column layout, source order preserved:
+  --   Column 1: Equal Slicing, Zero-Crossing Slicing, Advanced Slicing, All Slices Loop Mode
+  --   Column 2: Slices to Pattern, Slices to Phrase, Slice Marker Management
+  --   Column 3: DrumChain / Conversion, Beatsync, Specialized Tools, Oldschool Gap Fill
+  local col1 = vb:column{spacing=4,
     -- Section 1: Equal Slicing (Wipe & Slice)
     collapsible_section(vb, "pakettiSliceToolsShowEqualSlicing", "Equal Slicing (Wipe & Slice)", function(col)
       col:add_child(vb:row{
@@ -125,6 +126,9 @@ function PakettiSliceToolsDialog()
       })
     end),
 
+  }
+
+  local col2 = vb:column{spacing=4,
     -- Section 5: Slices to Pattern
     collapsible_section(vb, "pakettiSliceToolsShowToPattern", "Slices to Pattern", function(col)
       col:add_child(vb:button{text="Wipe&Slice&Write", width=fw, notifier=function() WipeSliceAndWrite() end})
@@ -168,6 +172,9 @@ function PakettiSliceToolsDialog()
       })
     end),
 
+  }
+
+  local col3 = vb:column{spacing=4,
     -- Section 8: DrumChain / Conversion
     collapsible_section(vb, "pakettiSliceToolsShowDrumChain", "DrumChain / Conversion", function(col)
       col:add_child(vb:row{
@@ -223,6 +230,14 @@ function PakettiSliceToolsDialog()
       col:add_child(vb:button{text="Fill All (PingPong)", width=fw, notifier=function() pakettiOldschoolSlicePitchFillAllGapsPingPong() end})
       col:add_child(vb:button{text="Oldschool Workflow", width=fw, notifier=function() pakettiOldschoolSlicePitchWorkflow(false, false) end})
     end),
+  }
+
+  local content = vb:row{
+    margin=4,
+    spacing=8,
+    col1,
+    col2,
+    col3,
   }
 
   local keyhandler = create_keyhandler_for_dialog(

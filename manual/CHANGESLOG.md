@@ -22,6 +22,18 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Improvement: Paketti Slice Tools dialog — three-column layout
+
+The Paketti Slice Tools dialog was previously a single tall column of 11 collapsible sections, forcing vertical scrolling on most displays. It is now laid out in three side-by-side columns, source order preserved:
+
+- **Column 1**: Equal Slicing (Wipe & Slice), Zero-Crossing Slicing, Advanced Slicing, All Slices Loop Mode
+- **Column 2**: Slices to Pattern, Slices to Phrase, Slice Marker Management
+- **Column 3**: DrumChain / Conversion, Beatsync, Specialized Tools, Oldschool Gap Fill
+
+Each section's collapsed/expanded state is still individually preserved via the existing `pakettiSliceToolsShow*` preferences — collapse a section in column 2 and it stays collapsed across reopens, exactly as before.
+
+- **File**: `PakettiSliceToolsDialog.lua` — `PakettiSliceToolsDialog()`
+
 ### 2026-05-15 - Fix: Wipe&Slice — restore frame-1 slice marker
 
 `slicerough()` (the function behind every MIDI-mapped Wipe&Slice 004 / 008 / 016 / 032 / 064 / 128 / 256) stopped inserting a slice marker at frame 1 in February. The first slice region therefore ran from the implicit sample start to the first computed marker, instead of from an explicit frame-1 marker — a regression that broke the round-trip with `WipeSliceAndWrite` and made the first slice's keyzone mapping inconsistent.
