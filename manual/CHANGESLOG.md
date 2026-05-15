@@ -22,6 +22,17 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Fix: Wipe&Slice&Phrase (Continuous) — actually build per-slice phrases
+
+The "Continuous" wrapper was building one phrase containing all slices, then looping it. That's not what "Continuous" was supposed to mean.
+
+Correct semantics, confirmed: for `BOOM TCHIK CLAP TCHIK`, triggering phrase 1 plays `BOOM TCHIK CLAP TCHIK`; phrase 2 plays `TCHIK CLAP TCHIK`; phrase 3 plays `CLAP TCHIK`; phrase 4 plays `TCHIK`. One looping phrase per starting slice, mapped to consecutive notes (C#0, D-0, D#0, …). This is exactly what `pakettiSlicesToPhrasesPerSlice` already does.
+
+Fix: `WipeSliceAndPhraseContinuous(N)` now calls `pakettiSlicesToPhrasesPerSlice(false, true)` with a new `in_place` parameter on that function (mirroring the one added to `pakettiSlicesToPhrase` earlier today). The `in_place` mode wipes existing phrase mappings + phrases on the current instrument and rebuilds them — no instrument duplicate. The dropped looping-on-single-phrase logic is gone.
+
+- **File**: `PakettiSlice.lua` — `WipeSliceAndPhraseContinuous()`
+- **File**: `PakettiOldschoolSlicePitch.lua` — `pakettiSlicesToPhrasesPerSlice()` gains `in_place` parameter
+
 ### 2026-05-15 - Fix: Wipe&Slice&Phrase (Continuous) — actually make the phrase loop
 
 The "Continuous" wrapper shipped earlier only built the phrase; it didn't enable looping, so triggering the phrase played the slice sequence once and stopped. "Continuous" was just a label. Fix: after the phrase is built, the wrapper now sets `phrase.looping = true` with `loop_start = 1` and `loop_end = phrase.number_of_lines`. Triggering the phrase now cycles the slice sequence indefinitely until note-off, matching drum-loop intent.

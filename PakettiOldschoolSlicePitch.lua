@@ -1543,8 +1543,13 @@ end
 -- Creates N phrases (one per slice), each starting from that slice through to the end.
 -- Phrase 1 = full break, Phrase 2 = from slice 2 onward, etc.
 -- All timing is recalculated relative to each phrase's starting slice.
-function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
+-- in_place: when true, operate on the current instrument and wipe its
+-- existing phrases first (destructive, used by Wipe&Slice&Phrase (Continuous)
+-- wrapper). when false (default), duplicate the instrument as
+-- "(Phrases Per Slice)" and put the phrases on the duplicate.
+function pakettiSlicesToPhrasesPerSlice(use_detected_bpm, in_place)
   use_detected_bpm = use_detected_bpm or false
+  in_place = in_place or false
 
   local song = renoise.song()
   local instrument = song.selected_instrument
@@ -1589,11 +1594,24 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
     return
   end
 
-  -- Duplicate the instrument so we don't destroy the original
-  local new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
-  if not new_instrument then return end
-  new_instrument:copy_from(instrument)
-  new_instrument.name = instrument.name .. " (Phrases Per Slice)"
+  local new_instrument
+  if in_place then
+    -- Destructive: operate on the current instrument, wipe its phrase
+    -- mappings + phrases first.
+    new_instrument = instrument
+    while #new_instrument.phrase_mappings > 0 do
+      new_instrument:delete_phrase_mapping_at(#new_instrument.phrase_mappings)
+    end
+    while #new_instrument.phrases > 0 do
+      new_instrument:delete_phrase_at(#new_instrument.phrases)
+    end
+  else
+    -- Non-destructive: duplicate the instrument and put the phrases on the copy.
+    new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
+    if not new_instrument then return end
+    new_instrument:copy_from(instrument)
+    new_instrument.name = instrument.name .. " (Phrases Per Slice)"
+  end
 
   -- Determine frames_per_line (beat-sync preferred, then BPM/LPB)
   local bpm = song.transport.bpm
@@ -1734,10 +1752,13 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm)
     end
   end
 
-  -- Select the new instrument
-  song.selected_instrument_index = song.selected_instrument_index + 1
+  -- Select the new instrument (only when we created one)
+  if not in_place then
+    song.selected_instrument_index = song.selected_instrument_index + 1
+  end
 
-  renoise.app():show_status(string.format("Created %d phrases (one per starting slice) in new instrument '%s'", slice_count, new_instrument.name))
+  local where = in_place and "current instrument" or ("new instrument '" .. new_instrument.name .. "'")
+  renoise.app():show_status(string.format("Created %d phrases (one per starting slice) in %s", slice_count, where))
 end
 
 

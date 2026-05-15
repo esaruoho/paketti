@@ -272,23 +272,16 @@ end
 ---
 --------
 
--- Wipe & Slice & Phrase (Continuous): equal-cut into N slices, then build one
--- looping phrase on the SAME instrument, wiping any existing phrases first.
--- "Continuous" = phrase.looping = true so triggering it once cycles the slice
--- sequence forever (drum-loop behavior) until note-off.
+-- Wipe & Slice & Phrase (Continuous): equal-cut into N slices, then build N
+-- phrases on the SAME instrument — one per starting slice. Phrase 1 plays all
+-- slices in order; phrase 2 plays slices 2..N; phrase K plays slices K..N.
+-- Triggering note C#0 fires phrase 1 (full loop), D-0 fires phrase 2 (loop
+-- minus first slice), and so on — letting you start the slice sequence from
+-- any point. Each phrase loops continuously until note-off.
 -- Destructive on phrases by design — confirmed with user.
 function WipeSliceAndPhraseContinuous(slice_count)
   slicerough(slice_count)
-  pakettiSlicesToPhrase(false, false, true)  -- no trigger, project BPM, in_place=true
-
-  -- Mark the freshly-built phrase as continuously looping.
-  local instrument = renoise.song().selected_instrument
-  if instrument and instrument.phrases and #instrument.phrases >= 1 then
-    local phrase = instrument:phrase(1)
-    phrase.looping = true
-    phrase.loop_start = 1
-    phrase.loop_end = phrase.number_of_lines
-  end
+  pakettiSlicesToPhrasesPerSlice(false, true)  -- project BPM, in_place=true
 end
 
 -- Wipe & Slice & Pattern: equal-cut into N slices, then write slice triggers
