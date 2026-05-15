@@ -1489,11 +1489,7 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm, in_place)
     local beats_per_second = bpm / 60
     local lines_per_second = beats_per_second * lpb
     local frames_per_line = frames_per_second / lines_per_second
-    -- Compensate for sample transpose + finetune so slice markers land at the
-    -- rows that match audible playback, not natural-pitch playback.
-    local pitch_factor = 2 ^ ((sample.transpose + sample.fine_tune / 128) / 12)
-    frames_per_line = frames_per_line / pitch_factor
-
+    
     for i, marker_frame in ipairs(slice_markers) do
       if i <= #slice_markers - 1 then -- Don't trigger the final end marker
         -- Calculate phrase position
@@ -1639,16 +1635,8 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm, in_place)
     local beats_per_second = bpm / 60
     local lines_per_second = beats_per_second * lpb
     frames_per_line = frames_per_second / lines_per_second
-    -- Compensate for sample transpose + finetune. Renoise plays a transposed
-    -- sample at a different speed (2^(semitones/12) faster when transposed up).
-    -- Audible duration per line = natural frames_per_line / pitch_factor. The
-    -- same scaled frames_per_line is reused below to place slice markers, so
-    -- both phrase_length and slice positions stay aligned with what you hear.
-    local pitch_factor = 2 ^ ((sample.transpose + sample.fine_tune / 128) / 12)
-    frames_per_line = frames_per_line / pitch_factor
     phrase_length = math.ceil(sample_frames / frames_per_line)
-    print(string.format("SlicesToPhrasesPerSlice: BPM=%.2f LPB=%d transpose=%d finetune=%d pitch_factor=%.4f → %d lines, %.2f frames/line",
-      bpm, lpb, sample.transpose, sample.fine_tune, pitch_factor, phrase_length, frames_per_line))
+    print(string.format("SlicesToPhrasesPerSlice: Using BPM/LPB — BPM=%.2f LPB=%d → %d lines, %.2f frames/line", bpm, lpb, phrase_length, frames_per_line))
   end
 
   -- Clamp phrase length to valid range
@@ -1678,22 +1666,15 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm, in_place)
     new_instrument:delete_phrase_at(#new_instrument.phrases)
   end
 
-  -- Renoise's loop_end is exclusive — the playhead wraps just BEFORE that
-  -- line, so loop_end = phrase_length cuts off the last line of content.
-  -- Use phrase_length + 1 for both phrase.number_of_lines and loop_end so
-  -- the full phrase_length lines play before wrapping, with one empty tail
-  -- line acting as the wrap point.
-  local loop_lines = phrase_length + 1
-
   -- Create one phrase per starting slice
   for start_idx = 1, slice_count do
     local phrase = new_instrument:insert_phrase_at(start_idx)
     phrase:clear() -- Remove default C-4 that Renoise inserts on line 1
     phrase.name = "From Slice " .. start_idx
-    phrase.number_of_lines = loop_lines
+    phrase.number_of_lines = phrase_length
     phrase.looping = true
     phrase.loop_start = 1
-    phrase.loop_end = loop_lines
+    phrase.loop_end = phrase_length
     phrase.delay_column_visible = true
     -- Hide the instrument (sample) column — route playback via keyzone lookup
     -- of note_value. See pakettiSlicesToPhrase header for full rationale.
@@ -1767,7 +1748,7 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm, in_place)
       mapping.key_tracking = renoise.InstrumentPhraseMapping.KEY_TRACKING_NONE
       mapping.looping = true
       mapping.loop_start = 1
-      mapping.loop_end = loop_lines  -- phrase_length + 1, see comment above
+      mapping.loop_end = phrase_length
     end
   end
 

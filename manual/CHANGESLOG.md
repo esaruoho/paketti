@@ -22,20 +22,6 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
-### 2026-05-15 - Fix: Slices to Phrase — honor sample Transpose + Finetune, and stop cutting the last line off the loop
-
-Two independent bugs in the slice-to-phrase functions, both reported by tdel00 on Discord.
-
-**Issue 1: Transpose + Finetune ignored.** The BPM/LPB timing math in both `pakettiSlicesToPhrase` and `pakettiSlicesToPhrasesPerSlice` computed `frames_per_line` from project BPM, project LPB, sample rate, and sample frame count. It never read `sample.transpose` or `sample.fine_tune`. Renoise plays a transposed sample at a different speed (faster when transposed up by `2^(semitones/12)`) — so the audible duration of the sample is shorter or longer than its natural-pitch duration, but the phrase was always built for the natural-pitch duration. Result: transposed samples produced phrases of the wrong length, with slice markers landing at the wrong rows.
-
-Fix: compute `pitch_factor = 2^((sample.transpose + sample.fine_tune / 128) / 12)` and divide `frames_per_line` by it. `phrase_length` falls out correctly via the existing `math.ceil(sample_frames / frames_per_line)`. Slice marker placement uses the same `frames_per_line`, so it stays aligned.
-
-**Issue 2: Loop ends one line short, last note cut off.** Renoise's phrase `loop_end` is exclusive — the playhead wraps just before that line, so setting `phrase.loop_end = phrase_length` on a 64-line phrase cut off line 64 (visible in the UI as the loop ending at 3E instead of 3F). User workaround was disabling the loop on each phrase manually.
-
-Fix in `pakettiSlicesToPhrasesPerSlice`: extend the phrase by one empty tail line. `phrase.number_of_lines = phrase_length + 1`, `phrase.loop_end = phrase_length + 1`, `mapping.loop_end = phrase_length + 1`. Slice notes still land on lines 1..`phrase_length`; the extra empty line acts as the wrap point so all `phrase_length` lines of content play in full each loop iteration.
-
-- **File**: `PakettiOldschoolSlicePitch.lua` — `pakettiSlicesToPhrase()`, `pakettiSlicesToPhrasesPerSlice()`
-
 ### 2026-05-15 - Guide: Wipe & Slice → Phrase (Continuous) — what it does, for musicians
 
 Drop a drum loop on the instrument. Click any of the eight buttons under **Wipe & Slice → Phrase (Continuous)** (2 / 4 / 8 / 16 / 32 / 64 / 128 / 256). Paketti does three things in one click:
