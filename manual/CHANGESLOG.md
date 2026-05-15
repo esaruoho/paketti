@@ -22,6 +22,12 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-15 - Fix: Wipe&Slice&Phrase (Continuous) — actually make the phrase loop
+
+The "Continuous" wrapper shipped earlier only built the phrase; it didn't enable looping, so triggering the phrase played the slice sequence once and stopped. "Continuous" was just a label. Fix: after the phrase is built, the wrapper now sets `phrase.looping = true` with `loop_start = 1` and `loop_end = phrase.number_of_lines`. Triggering the phrase now cycles the slice sequence indefinitely until note-off, matching drum-loop intent.
+
+- **File**: `PakettiSlice.lua` — `WipeSliceAndPhraseContinuous()`
+
 ### 2026-05-15 - Feature: Wipe&Slice&Phrase (Continuous) and Wipe&Slice&Pattern — eight slice-count buttons each
 
 Two new button banks in the Slice Tools dialog, mirroring the existing Equal Slicing (Wipe & Slice) 2/4/8/16/32/64/128/256 set:
