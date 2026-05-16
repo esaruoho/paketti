@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-16 - Fix: Start/Stop Sample Recording and Pakettify nil crash
+
+Fixed a crash in `handle_sample_recording()` (`PakettiRecorder.lua`) where pressing the "Start/Stop Sample Recording and Pakettify" keybinding a second time (to stop recording) would error with "attempt to index local 'sample' (a nil value)" if `renoise.song().selected_sample` was nil after the recording stopped. Added a nil guard so the function returns safely with a status message instead of crashing. Also removed a dead local variable from the `else` block. Affects keybinding `Global:Paketti:Start/Stop Sample Recording and Pakettify` and `Global:Paketti:TouchOSC Sample Recorder and Record`.
+
 ### 2026-05-15 - Guide: Wipe & Slice → Phrase (Continuous) — what it does, for musicians
 
 Drop a drum loop on the instrument. Click any of the eight buttons under **Wipe & Slice → Phrase (Continuous)** (2 / 4 / 8 / 16 / 32 / 64 / 128 / 256). Paketti does three things in one click:

@@ -722,11 +722,12 @@ renoise.song().selected_instrument_index=renoise.song().selected_instrument_inde
     return
   else
     song.transport:start_stop_sample_recording()
-    local sample=renoise.song().selected_sample
   end
- --   renoise.song().selected_sample_index=1
     local sample=renoise.song().selected_sample
---    sample.mute_group = 1
+    if not sample then
+      renoise.app():show_status("Paketti: No sample available after recording stopped.")
+      return
+    end
   sample.interpolation_mode=preferences.pakettiLoaderInterpolation.value
     sample.beat_sync_enabled = false
     pakettiSafeSetBeatSyncMode(sample, 2)
