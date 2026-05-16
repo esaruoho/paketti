@@ -240,21 +240,69 @@ function exs24_loadinstrument(filepath)
 
     coroutine.yield()
 
-    -- Group zones by the EXS24 sample they reference. Logic's factory patches
-    -- commonly use the "monolithic" layout where every zone points to a
-    -- single big WAV and each zone is a sub-range defined by sample_start/
-    -- sample_end (frame offsets, not bytes). We load each unique sample WAV
-    -- once into a scratch slot, then for each zone create a destination slot
-    -- and copy just the zone's frame range from the scratch buffer.
+    -- Dedupe zones that overlap on (key, velocity) cells.
+    -- EXS24 patches commonly use 28+ "groups" to separate articulations
+    -- (e.g. one group per guitar string, or palm-mute/harmonic/release
+    -- layers). Logic's runtime decides which group plays via group routing
+    -- (round-robin, polyphony, key-switches, mod-wheel). We don't parse the
+    -- 132-byte group chunks yet, so without dedup, every articulation's
+    -- zones overlap on the same MIDI cells and Renoise's "Overlap: Play All"
+    -- triggers all of them simultaneously, producing flanging mush.
+    -- First-wins dedup: keep the first zone for each (key, velocity) cell,
+    -- skip later zones that would collide with already-claimed territory.
+    -- This drops articulation alternatives but produces a playable
+    -- instrument. Real group-aware routing is a follow-up.
+    local function dedupe_zones(zones)
+      local kept = {}
+      local coverage = {}  -- coverage[key * 128 + velocity] = true
+      local skipped = 0
+      for _, zone in ipairs(zones) do
+        local kl = clamp(zone.key_low, 0, 119)
+        local kh = math.max(kl, clamp(zone.key_high, 0, 119))
+        local vl = clamp(zone.velocity_low, 0, 127)
+        local vh = math.max(vl, clamp(zone.velocity_high, 0, 127))
+        local clash = false
+        for k = kl, kh do
+          if clash then break end
+          for v = vl, vh do
+            if coverage[k * 128 + v] then clash = true; break end
+          end
+        end
+        if clash then
+          skipped = skipped + 1
+        else
+          table.insert(kept, zone)
+          for k = kl, kh do
+            for v = vl, vh do coverage[k * 128 + v] = true end
+          end
+        end
+      end
+      return kept, skipped
+    end
+
+    local original_zone_count = #exs_file.zones
+    local active_zones, overlap_skipped = dedupe_zones(exs_file.zones)
+    if overlap_skipped > 0 then
+      dprint(string.format(
+        "Overlap dedup: kept %d / %d zones (%d skipped — articulation routing not yet supported)",
+        #active_zones, original_zone_count, overlap_skipped))
+    end
+
+    -- Group surviving zones by the EXS24 sample they reference. Logic's
+    -- factory patches commonly use the "monolithic" layout where every zone
+    -- points to a single big WAV and each zone is a sub-range defined by
+    -- sample_start / sample_end (frame offsets, not bytes). We load each
+    -- unique sample WAV once into a scratch slot, then for each zone create
+    -- a destination slot and copy just the zone's frame range.
     local zones_by_sample = {}
-    for _, zone in ipairs(exs_file.zones) do
+    for _, zone in ipairs(active_zones) do
       local idx = zone.sample_index + 1
       zones_by_sample[idx] = zones_by_sample[idx] or {}
       table.insert(zones_by_sample[idx], zone)
     end
 
     local missing = 0
-    local total = #exs_file.zones
+    local total = #active_zones
     local done = 0
 
     for sample_idx = 1, #exs_file.samples do
@@ -332,11 +380,25 @@ function exs24_loadinstrument(filepath)
 
     if dialog and dialog.visible then dialog:close() end
 
+    local detail = ""
+    if overlap_skipped > 0 then
+      detail = string.format(
+        "\n%d / %d zones skipped because they overlap on (key, velocity) " ..
+        "cells with earlier zones. EXS24 group routing (per-string / per-" ..
+        "articulation switching) is not yet implemented — without it, " ..
+        "overlapping zones would all trigger simultaneously.",
+        overlap_skipped, original_zone_count)
+    end
+
     if missing > 0 then
       app:show_warning(string.format(
         "EXS24 import complete — %d of %d samples could not be found.\n" ..
-        "Tip: add the sample library root to Preferences > pakettiSampleLibraryRoots.",
-        missing, total))
+        "Tip: add the sample library root to Preferences > pakettiSampleLibraryRoots.%s",
+        missing, total, detail))
+    elseif overlap_skipped > 0 then
+      app:show_status(string.format(
+        "EXS24 import complete: %s (%d zones loaded, %d overlapping zones skipped)",
+        exs_name, total, overlap_skipped))
     else
       app:show_status(string.format("EXS24 import complete: %s (%d zones)", exs_name, total))
     end
