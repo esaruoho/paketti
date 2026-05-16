@@ -984,19 +984,19 @@ function ot_import_filehook(filename)
     return false
   end
   
-  -- Look for corresponding .wav file in the same directory
-  local base_path = filename:match("(.+)%..+$")  -- Remove .ot extension
-  local wav_filename = base_path .. ".wav"
-  local wav_found = false
-  
-  -- Check if .wav file exists
-  local function file_exists(name)
-    local f = io.open(name, "rb")
-    if f then f:close() end
-    return f ~= nil
-  end
-  
-  wav_found = file_exists(wav_filename)
+  -- Look for the corresponding .wav file. Octatrack convention is .ot and .wav
+  -- as a pair sharing a basename, but they aren't always co-located (project
+  -- folders separate metadata from audio; .ot received without its .wav). Use
+  -- pakettiFSPath.resolve so we try the sibling first, then rebase against the
+  -- user-configured pakettiSampleLibraryRoots before giving up.
+  local base_path = filename:match("(.+)%..+$")  -- strip .ot extension
+  local sibling_wav = base_path .. ".wav"
+  local extra_roots = (pakettiFSPath and pakettiFSPath.library_roots) and
+                       pakettiFSPath.library_roots() or {}
+  local wav_filename = (pakettiFSPath and pakettiFSPath.resolve)
+    and pakettiFSPath.resolve(sibling_wav, filename, extra_roots)
+    or (io.exists(sibling_wav) and sibling_wav or nil)
+  local wav_found = wav_filename ~= nil
   
   -- If .wav file found, load it into a new instrument
   local sample_loaded = false

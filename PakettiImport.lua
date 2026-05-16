@@ -315,6 +315,20 @@ if should_register_hook("pakettiImportITI") then
   end
 end
 
+-- EXS24 Import Hook (.exs) - Logic EXS24 Sampler Instrument
+-- Note: the standalone matt-allan/renoise-exs24 tool (com.matta.exs24) also
+-- registers an .exs instrument hook. Only one wins; disable the other in the
+-- Renoise tool browser to switch.
+if should_register_hook("pakettiImportEXS24") then
+  if not renoise.tool():has_file_import_hook("instrument", {"exs"}) then
+    renoise.tool():add_file_import_hook({
+      category = "instrument",
+      extensions = {"exs"},
+      invoke = exs24_loadinstrument
+    })
+  end
+end
+
 -- OT Import Hook (.ot) - Octatrack
 if should_register_hook("pakettiImportOT") then
   if not renoise.tool():has_file_import_hook("sample", {"ot"}) then

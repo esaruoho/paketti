@@ -1,9 +1,6 @@
 local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
-
-
 -- Global variable to control timed_require debug output (default: disabled)
-PakettiTimedRequireDebug = false
-
+PakettiTimedRequireDebug = true
 -- ApplicationWindow frame constants.
 -- Most exist since API 4 (Renoise 2.8). Three were added in API 5 (Renoise 3.0):
 --   MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION
@@ -1237,6 +1234,9 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiWavCueExtract")
   timed_require("PakettiVideoSlicer")
   timed_require("PakettiSF2Loader")
+  timed_require("PakettiFSPath")
+  timed_require("PakettiEXS24Parser")
+  timed_require("PakettiEXS24Loader")
   timed_require("PakettiMODLoader")
   timed_require("PakettiOTExport")
   timed_require("PakettiXIExport")
