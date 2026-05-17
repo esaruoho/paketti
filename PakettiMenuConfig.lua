@@ -3231,9 +3231,13 @@ end
 end
 
 -- Main Menu File:Paketti Import entries - organized to match Export menu structure
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Import .ITI (Impulse Tracker Instrument)...",invoke=function() 
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Import .ITI (Impulse Tracker Instrument)...",invoke=function()
   local filename = renoise.app():prompt_for_filename_to_read({"*.iti","*.ITI"}, "Import Impulse Tracker Instrument")
   if filename then iti_loadinstrument(filename) end end}
+
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Import .EXS (Logic EXS24 Sampler Instrument)...",invoke=function()
+  local filename = renoise.app():prompt_for_filename_to_read({"*.exs","*.EXS"}, "Import Logic EXS24 Sampler Instrument")
+  if filename and filename ~= "" then exs24_loadinstrument(filename) end end}
 
 renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti Import:Load IFF Sample File (8SVX/16SV)...",invoke = loadIFFSampleFromDialog}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti Import:Load WAV with CUE Markers...",invoke = PakettiWavCuePromptAndImportWithCues}
