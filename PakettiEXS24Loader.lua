@@ -139,8 +139,13 @@ local function apply_zone_metadata(rns_sample, zone, sample, frame_offset)
 end
 
 ---Copy a frame range from the master buffer into the destination buffer.
----Wrapped between prepare/finalize. Yields every ~16384 frames per channel
----so Renoise stays responsive on large slices.
+---Wrapped between prepare/finalize. Yields every ~65536 frames per channel
+---so Renoise stays responsive on large slices without paying for context
+---switches too often. The inner loop hoists the userdata method refs into
+---locals — LuaJIT's optimiser cares about this.
+---NOTE: per-frame copy is the only path. There is no buffer-level copy in
+---renoise.SampleBuffer (verified against the Renoise Lua API definition);
+---see ~/.claude/skills/paketti/Renoise API Limits.md for the full surface.
 ---@param master renoise.SampleBuffer
 ---@param target renoise.SampleBuffer
 ---@param master_start integer  -- 1-based master frame index
@@ -154,10 +159,13 @@ local function copy_frame_range(master, target, master_start, length)
   )
   target:prepare_sample_data_changes()
   local channels = master.number_of_channels
+  local master_sample_data = master.sample_data
+  local target_set_sample_data = target.set_sample_data
   for ch = 1, channels do
     for f = 1, length do
-      target:set_sample_data(ch, f, master:sample_data(ch, master_start + f - 1))
-      if (f % 16384) == 0 then coroutine.yield() end
+      target_set_sample_data(target, ch, f,
+        master_sample_data(master, ch, master_start + f - 1))
+      if (f % 65536) == 0 then coroutine.yield() end
     end
   end
   target:finalize_sample_data_changes()
