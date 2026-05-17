@@ -205,12 +205,19 @@ end
 ---@field file_path string
 ---@field file_name string?
 
+---@class EXS24Group
+---@field index integer     -- the value zone.group_index references
+---@field name string
+---@field offset integer
+---@field size integer
+
 ---@class EXS24File
 ---@field chunks table[]
 ---@field headers EXS24Header[]
 ---@field instruments EXS24Instrument[]
 ---@field zones EXS24Zone[]
 ---@field samples EXS24Sample[]
+---@field groups table<integer, EXS24Group>  -- keyed by index (== zone.group_index)
 
 -- ---------------------------------------------------------------------------
 -- Chunk parsers
@@ -346,6 +353,7 @@ function pakettiEXS24Parser.parse(data)
   ---@type EXS24File
   local exs_file = {
     chunks = {}, headers = {}, instruments = {}, zones = {}, samples = {},
+    groups = {},
   }
 
   while buf:seek() + HEADER_SIZE < buf.size do
@@ -376,13 +384,24 @@ function pakettiEXS24Parser.parse(data)
       zone.header = header
       table.insert(exs_file.chunks, zone)
       table.insert(exs_file.zones, zone)
+    elseif chunk_type == 2 then
+      -- We don't parse the 132-byte group body yet (round-robin / poly /
+      -- key-switch routing flags live in here, undocumented), but the
+      -- header gives us the group's name and index — enough to split EXS
+      -- patches into one Renoise instrument per articulation.
+      exs_file.groups[header.index] = {
+        index = header.index,
+        name = header.name,
+        offset = header.offset,
+        size = size,
+      }
     elseif chunk_type == 3 then
       local sample = parse_sample(buf, size)
       sample.header = header
       table.insert(exs_file.chunks, sample)
       table.insert(exs_file.samples, sample)
     end
-    -- chunk_type 2 (group), 4 (param), 0xB (binary plist) intentionally skipped
+    -- chunk_type 4 (param), 0xB (binary plist) intentionally skipped
 
     buf:seek("set", header.offset + HEADER_SIZE + size)
   end

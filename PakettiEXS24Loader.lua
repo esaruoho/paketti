@@ -9,14 +9,27 @@ What is supported per zone:
   name, fine_tune, pan, volume (dB→lin), oneshot, base_note, note_range,
   velocity_range, loop_start/end, loop_mode (forward/reverse/ping-pong).
 
-Known limitations (inherited from the upstream parser, document and accept
-for the first cut — tracked in the EXS24 follow-up):
-  • Group chunks (chunk_type 2) are skipped — group-level volume/pan/output
-    is not honoured. Drum kits relying on group balance will sound wrong.
-  • Param + binary-plist chunks (4, 0xB) are skipped — no filter/env/LFO
-    transfer. Sustained EXS patches play as raw samples.
-  • renoise.Sample.sample_buffer:load_from() handles WAV/AIFF only —
-    EXS24 patches referencing CAF or Apple Loops will count as missing.
+Groups → instruments:
+  EXS24 patches commonly use 28+ "groups" to separate articulations (e.g.
+  one group per guitar string, or palm-mute / harmonic / release layers).
+  Logic's runtime decides which group plays via group routing (round-
+  robin, polyphony, key-switches, mod-wheel) — none of which Renoise has
+  a direct equivalent for. When pakettiImportEXS24SplitGroups is true
+  (default), we map each EXS group to its own Renoise instrument; the
+  user picks which articulation to play by selecting the instrument. When
+  false (or for single-group patches), all zones go into one instrument
+  with first-wins overlap dedup as a safety net.
+
+Known limitations:
+  • The 132-byte group chunk body is not parsed — only the group name and
+    index. Group-level volume / pan / output / mute / poly flags are not
+    transferred. Drum-kit patches relying on group-level balance may
+    sound wrong.
+  • Param + binary-plist chunks (4, 0xB) are skipped — no filter / env /
+    LFO transfer. Sustained EXS patches play as raw samples.
+  • renoise.Sample.sample_buffer:load_from() handles whatever Renoise
+    natively reads (WAV / AIFF / CAF on macOS via CoreAudio). Formats
+    Renoise can't load are counted as missing.
   • Multi-folder velocity-layer libraries (samples split into subfolders)
     fall back to the user folder-prompt; recursive search not implemented.
   • Tool-ID collision: if matt-allan/renoise-exs24 (com.matta.exs24) is
@@ -210,6 +223,62 @@ function exs24_loadinstrument(filepath)
     exs_name = pakettiFSPath.basename(filepath, ".exs")
   end
 
+  -- First-wins dedupe — used per group (or for the whole patch when split is
+  -- off) as a safety net against any within-set overlap.
+  local function dedupe_zones(zones)
+    local kept, coverage, skipped = {}, {}, 0
+    for _, zone in ipairs(zones) do
+      local kl = clamp(zone.key_low, 0, 119)
+      local kh = math.max(kl, clamp(zone.key_high, 0, 119))
+      local vl = clamp(zone.velocity_low, 0, 127)
+      local vh = math.max(vl, clamp(zone.velocity_high, 0, 127))
+      local clash = false
+      for k = kl, kh do
+        if clash then break end
+        for v = vl, vh do
+          if coverage[k * 128 + v] then clash = true; break end
+        end
+      end
+      if clash then
+        skipped = skipped + 1
+      else
+        table.insert(kept, zone)
+        for k = kl, kh do
+          for v = vl, vh do coverage[k * 128 + v] = true end
+        end
+      end
+    end
+    return kept, skipped
+  end
+
+  -- Group zones by their EXS group_index. Logic's "groups" are separate
+  -- articulations meant to be routed at runtime; we map them onto Renoise
+  -- instruments, one per group, so the user picks the articulation by
+  -- selecting the instrument.
+  local zones_by_group = {}
+  for _, zone in ipairs(exs_file.zones) do
+    local g = zone.group_index or 0
+    zones_by_group[g] = zones_by_group[g] or {}
+    table.insert(zones_by_group[g], zone)
+  end
+  local group_ids = {}
+  for g in pairs(zones_by_group) do table.insert(group_ids, g) end
+  table.sort(group_ids)
+
+  -- Resolve the split-groups preference. Default ON. Single-group patches
+  -- always import as one instrument regardless.
+  local split_groups = true
+  if preferences and preferences.pakettiImportEXS24SplitGroups then
+    split_groups = preferences.pakettiImportEXS24SplitGroups.value
+  end
+  if #group_ids <= 1 then split_groups = false end
+
+  local function group_name_for(group_idx)
+    local meta = exs_file.groups and exs_file.groups[group_idx]
+    if meta and meta.name and meta.name ~= "" then return meta.name end
+    return string.format("Group %d", group_idx)
+  end
+
   -- Now drive the heavy work (instrument creation + per-zone sample loads)
   -- through a ProcessSlicer so Renoise's UI thread keeps breathing.
   local slicer = nil
@@ -219,157 +288,148 @@ function exs24_loadinstrument(filepath)
       dialog, vb = slicer:create_dialog("Importing EXS24: " .. exs_name)
     end
 
-    if type(pakettiPreferencesDefaultInstrumentLoader) == "function" then
-      if not safeInsertInstrumentAt(renoise.song(), renoise.song().selected_instrument_index + 1) then
-        if dialog and dialog.visible then dialog:close() end
-        return
-      end
-      renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
-      pakettiPreferencesDefaultInstrumentLoader()
+    local song = renoise.song()
+    local base_idx = song.selected_instrument_index
+
+    -- Phase 1: load each unique master sample WAV into a hidden scratch
+    -- instrument. We slice every group's zones from these buffers without
+    -- re-reading the WAV per group (Vintage Strat references one 580-second
+    -- CAF — reloading per group would be 28× slower).
+    if not safeInsertInstrumentAt(song, base_idx + 1) then
+      if dialog and dialog.visible then dialog:close() end
+      app:show_error("EXS24: could not allocate scratch instrument")
+      return
+    end
+    song.selected_instrument_index = base_idx + 1
+    local scratch_instrument = song.selected_instrument
+    scratch_instrument.name = string.format("[EXS24 scratch: %s]", exs_name)
+
+    -- Empty whatever the default template might have inserted.
+    while #scratch_instrument.samples > 0 do
+      scratch_instrument:delete_sample_at(#scratch_instrument.samples)
     end
 
-    local instrument = renoise.song().selected_instrument
-    instrument.name = exs_name
-
-    -- Empty out anything the default-instrument template left behind so we
-    -- start with a clean slot list. (The template typically leaves an empty
-    -- placeholder sample at index 1.)
-    while #instrument.samples > 0 do
-      instrument:delete_sample_at(#instrument.samples)
+    local sample_buffer_by_idx = {}  -- exs sample_idx (1-based) → SampleBuffer
+    local needed_samples = {}
+    for _, zone in ipairs(exs_file.zones) do
+      needed_samples[zone.sample_index + 1] = true
     end
 
-    coroutine.yield()
+    local total_missing = 0
+    local total_zones = #exs_file.zones
 
-    -- Dedupe zones that overlap on (key, velocity) cells.
-    -- EXS24 patches commonly use 28+ "groups" to separate articulations
-    -- (e.g. one group per guitar string, or palm-mute/harmonic/release
-    -- layers). Logic's runtime decides which group plays via group routing
-    -- (round-robin, polyphony, key-switches, mod-wheel). We don't parse the
-    -- 132-byte group chunks yet, so without dedup, every articulation's
-    -- zones overlap on the same MIDI cells and Renoise's "Overlap: Play All"
-    -- triggers all of them simultaneously, producing flanging mush.
-    -- First-wins dedup: keep the first zone for each (key, velocity) cell,
-    -- skip later zones that would collide with already-claimed territory.
-    -- This drops articulation alternatives but produces a playable
-    -- instrument. Real group-aware routing is a follow-up.
-    local function dedupe_zones(zones)
-      local kept = {}
-      local coverage = {}  -- coverage[key * 128 + velocity] = true
-      local skipped = 0
-      for _, zone in ipairs(zones) do
-        local kl = clamp(zone.key_low, 0, 119)
-        local kh = math.max(kl, clamp(zone.key_high, 0, 119))
-        local vl = clamp(zone.velocity_low, 0, 127)
-        local vh = math.max(vl, clamp(zone.velocity_high, 0, 127))
-        local clash = false
-        for k = kl, kh do
-          if clash then break end
-          for v = vl, vh do
-            if coverage[k * 128 + v] then clash = true; break end
-          end
-        end
-        if clash then
-          skipped = skipped + 1
-        else
-          table.insert(kept, zone)
-          for k = kl, kh do
-            for v = vl, vh do coverage[k * 128 + v] = true end
-          end
-        end
-      end
-      return kept, skipped
-    end
-
-    local original_zone_count = #exs_file.zones
-    local active_zones, overlap_skipped = dedupe_zones(exs_file.zones)
-    if overlap_skipped > 0 then
-      dprint(string.format(
-        "Overlap dedup: kept %d / %d zones (%d skipped — articulation routing not yet supported)",
-        #active_zones, original_zone_count, overlap_skipped))
-    end
-
-    -- Group surviving zones by the EXS24 sample they reference. Logic's
-    -- factory patches commonly use the "monolithic" layout where every zone
-    -- points to a single big WAV and each zone is a sub-range defined by
-    -- sample_start / sample_end (frame offsets, not bytes). We load each
-    -- unique sample WAV once into a scratch slot, then for each zone create
-    -- a destination slot and copy just the zone's frame range.
-    local zones_by_sample = {}
-    for _, zone in ipairs(active_zones) do
-      local idx = zone.sample_index + 1
-      zones_by_sample[idx] = zones_by_sample[idx] or {}
-      table.insert(zones_by_sample[idx], zone)
-    end
-
-    local missing = 0
-    local total = #active_zones
-    local done = 0
-
-    for sample_idx = 1, #exs_file.samples do
-      local zones = zones_by_sample[sample_idx]
-      local exs_sample = exs_file.samples[sample_idx]
-      if zones and exs_sample then
+    for exs_sample_idx in pairs(needed_samples) do
+      local exs_sample = exs_file.samples[exs_sample_idx]
+      if exs_sample then
         local filename = exs_sample.file_name or exs_sample.header.name
         local sample_path = pakettiFSPath.join(samples_path, filename)
-
-        if not io.exists(sample_path) then
-          missing = missing + #zones
-          done = done + #zones
-          dprint("missing wav:", sample_path)
-        else
-          -- Load the master WAV into a temporary scratch slot at position 1.
-          -- We delete it after all zones for this sample are sliced out.
-          local scratch_index = #instrument.samples + 1
-          instrument:insert_sample_at(scratch_index)
-          local scratch = instrument.samples[scratch_index]
-          if not scratch.sample_buffer:load_from(sample_path) then
-            instrument:delete_sample_at(scratch_index)
-            missing = missing + #zones
-            done = done + #zones
-            dprint("failed to load wav:", sample_path)
+        if vb and vb.views and vb.views.progress_text then
+          vb.views.progress_text.text = "Loading master sample: " .. filename
+        end
+        if io.exists(sample_path) then
+          scratch_instrument:insert_sample_at(#scratch_instrument.samples + 1)
+          local s = scratch_instrument.samples[#scratch_instrument.samples]
+          if s.sample_buffer:load_from(sample_path) then
+            sample_buffer_by_idx[exs_sample_idx] = s.sample_buffer
           else
-            local master = scratch.sample_buffer
-            local total_frames = master.number_of_frames
-            coroutine.yield()
-
-            for _, zone in ipairs(zones) do
-              -- sample_start / sample_end are 0-based frame offsets into the
-              -- master WAV. Treat 0/0 (or end <= start) as "use whole sample".
-              local s_start_0 = zone.sample_start or 0
-              local s_end_0   = zone.sample_end or 0
-              if s_end_0 <= s_start_0 then
-                s_start_0 = 0
-                s_end_0 = total_frames - 1
-              end
-              s_start_0 = math.max(0, math.min(s_start_0, total_frames - 1))
-              s_end_0   = math.max(s_start_0, math.min(s_end_0, total_frames - 1))
-              local length = s_end_0 - s_start_0 + 1
-
-              local target_idx = #instrument.samples + 1
-              instrument:insert_sample_at(target_idx)
-              local target = instrument.samples[target_idx]
-              copy_frame_range(master, target.sample_buffer, s_start_0 + 1, length)
-              apply_zone_metadata(target, zone, exs_sample, s_start_0)
-
-              done = done + 1
-              if vb and vb.views and vb.views.progress_text then
-                vb.views.progress_text.text = string.format(
-                  "Slicing zone %d / %d (%d missing)", done, total, missing)
-              end
-              app:show_status(string.format(
-                "Importing EXS24 %s (%d%%)...", exs_name,
-                math.floor((done / total) * 100)))
-              coroutine.yield()
-            end
-
-            -- Scratch sits at scratch_index; per-zone targets are always
-            -- inserted at the tail (higher indices), so the scratch never
-            -- shifts. Delete it by its recorded index.
-            instrument:delete_sample_at(scratch_index)
+            dprint("failed to load master:", sample_path)
           end
+        else
+          dprint("missing master:", sample_path)
         end
       end
       coroutine.yield()
+    end
+
+    -- Phase 2: per group, allocate a Renoise instrument and slice the
+    -- group's zones from the scratch buffers. Inserts always go above
+    -- `current_inst_idx` so we know exactly where each new instrument lands.
+    local current_inst_idx = base_idx + 1  -- scratch sits here
+    local created_instruments = {}  -- list of indices we made (pre-scratch-delete)
+    local group_count = 0
+
+    local function create_user_instrument(name)
+      if not safeInsertInstrumentAt(song, current_inst_idx + 1) then return nil end
+      current_inst_idx = current_inst_idx + 1
+      song.selected_instrument_index = current_inst_idx
+      if type(pakettiPreferencesDefaultInstrumentLoader) == "function" then
+        pakettiPreferencesDefaultInstrumentLoader()
+      end
+      local inst = song.selected_instrument
+      inst.name = name
+      while #inst.samples > 0 do
+        inst:delete_sample_at(#inst.samples)
+      end
+      table.insert(created_instruments, current_inst_idx)
+      return inst
+    end
+
+    local function slice_zones_into(inst, zones_to_load)
+      local done = 0
+      local total = #zones_to_load
+      for _, zone in ipairs(zones_to_load) do
+        local master = sample_buffer_by_idx[zone.sample_index + 1]
+        if not master then
+          total_missing = total_missing + 1
+        else
+          local total_frames = master.number_of_frames
+          local s_start_0 = zone.sample_start or 0
+          local s_end_0   = zone.sample_end or 0
+          if s_end_0 <= s_start_0 then
+            s_start_0 = 0
+            s_end_0 = total_frames - 1
+          end
+          s_start_0 = math.max(0, math.min(s_start_0, total_frames - 1))
+          s_end_0   = math.max(s_start_0, math.min(s_end_0, total_frames - 1))
+          local length = s_end_0 - s_start_0 + 1
+
+          local target_idx = #inst.samples + 1
+          inst:insert_sample_at(target_idx)
+          local target = inst.samples[target_idx]
+          copy_frame_range(master, target.sample_buffer, s_start_0 + 1, length)
+          apply_zone_metadata(target, zone, exs_file.samples[zone.sample_index + 1], s_start_0)
+        end
+        done = done + 1
+        if vb and vb.views and vb.views.progress_text then
+          vb.views.progress_text.text = string.format(
+            "[%s] zone %d / %d", inst.name, done, total)
+        end
+        app:show_status(string.format(
+          "Importing EXS24 %s (%d%%)...", exs_name,
+          math.floor((done / total) * 100)))
+        coroutine.yield()
+      end
+    end
+
+    if split_groups then
+      for _, group_idx in ipairs(group_ids) do
+        local zones = zones_by_group[group_idx]
+        local kept, skipped = dedupe_zones(zones)
+        local g_name = group_name_for(group_idx)
+        local inst_name = string.format("%s (%s)", exs_name, g_name)
+        if skipped > 0 then
+          dprint(string.format("[%s] %d/%d zones kept (%d within-group dedup)",
+            inst_name, #kept, #zones, skipped))
+        end
+        local inst = create_user_instrument(inst_name)
+        if inst and #kept > 0 then
+          slice_zones_into(inst, kept)
+          group_count = group_count + 1
+        end
+        coroutine.yield()
+      end
+    else
+      -- Lump everything into one instrument with cross-group dedup.
+      local kept, skipped = dedupe_zones(exs_file.zones)
+      local inst = create_user_instrument(exs_name)
+      if inst and #kept > 0 then
+        slice_zones_into(inst, kept)
+        group_count = 1
+      end
+      if skipped > 0 then
+        dprint(string.format("Lumped mode: %d/%d zones kept (%d overlap-dedup)",
+          #kept, #exs_file.zones, skipped))
+      end
     end
 
     if preferences.pakettiLoaderNormalizeSamples and preferences.pakettiLoaderNormalizeSamples.value then
@@ -378,29 +438,24 @@ function exs24_loadinstrument(filepath)
       end
     end
 
+    -- Phase 3: delete the scratch instrument. Created instruments above
+    -- base_idx + 1 shift down by 1. Focus the first newly-created group
+    -- instrument so the user lands on a playable patch.
+    song:delete_instrument_at(base_idx + 1)
+    song.selected_instrument_index = math.min(base_idx + 1, #song.instruments)
+
     if dialog and dialog.visible then dialog:close() end
 
-    local detail = ""
-    if overlap_skipped > 0 then
-      detail = string.format(
-        "\n%d / %d zones skipped because they overlap on (key, velocity) " ..
-        "cells with earlier zones. EXS24 group routing (per-string / per-" ..
-        "articulation switching) is not yet implemented — without it, " ..
-        "overlapping zones would all trigger simultaneously.",
-        overlap_skipped, original_zone_count)
-    end
-
-    if missing > 0 then
-      app:show_warning(string.format(
-        "EXS24 import complete — %d of %d samples could not be found.\n" ..
-        "Tip: add the sample library root to Preferences > pakettiSampleLibraryRoots.%s",
-        missing, total, detail))
-    elseif overlap_skipped > 0 then
+    if split_groups then
       app:show_status(string.format(
-        "EXS24 import complete: %s (%d zones loaded, %d overlapping zones skipped)",
-        exs_name, total, overlap_skipped))
+        "EXS24 import complete: %s → %d articulation instruments%s",
+        exs_name, group_count,
+        total_missing > 0 and string.format(" (%d zones with missing samples)", total_missing) or ""))
     else
-      app:show_status(string.format("EXS24 import complete: %s (%d zones)", exs_name, total))
+      app:show_status(string.format(
+        "EXS24 import complete: %s%s",
+        exs_name,
+        total_missing > 0 and string.format(" (%d zones with missing samples)", total_missing) or ""))
     end
   end
 
