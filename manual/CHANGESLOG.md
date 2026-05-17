@@ -22,6 +22,10 @@ What supporters funded this month:
 - **Centralised `PakettiCompat.lua`** — all API-version compatibility flows through one file (41 files refactored)
 - **Write Notes Flood + Pro variants** — 12 new variants writing all 120 notes and across multi-column selections
 
+### 2026-05-17 - Fix: PakettiLaunchApp filterLoadResult forward-reference crash
+
+Fixed a Lua forward-reference error in `PakettiLaunchApp.lua` where `filterProcessPoll()` called `filterLoadResult()` before it was declared, causing `variable 'filterLoadResult' is not declared` at runtime. Reordered the two functions so `filterLoadResult` is defined before `filterProcessPoll`, which is the standard Lua 5.1 requirement for local functions.
+
 ### 2026-05-16 - Fix: Start/Stop Sample Recording and Pakettify nil crash
 
 Fixed a crash in `handle_sample_recording()` (`PakettiRecorder.lua`) where pressing the "Start/Stop Sample Recording and Pakettify" keybinding a second time (to stop recording) would error with "attempt to index local 'sample' (a nil value)" if `renoise.song().selected_sample` was nil after the recording stopped. Added a nil guard so the function returns safely with a status message instead of crashing. Also removed a dead local variable from the `else` block. Affects keybinding `Global:Paketti:Start/Stop Sample Recording and Pakettify` and `Global:Paketti:TouchOSC Sample Recorder and Record`.

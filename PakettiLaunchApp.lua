@@ -245,34 +245,6 @@ local function filterBuildCommand(slot_index, infile_path, outfile_path)
     return cmd
 end
 
--- Timer callback: poll for the done-marker file
-local function filterProcessPoll()
-    if not filter_process_running or not filter_process_context then
-        return
-    end
-
-    local ctx = filter_process_context
-    local marker_file = ctx.marker_path
-
-    -- Check if marker file exists (command finished)
-    local f = io.open(marker_file, "r")
-    if f then
-        f:close()
-        -- Remove marker file
-        os.remove(marker_file)
-
-        -- Stop the timer
-        filter_process_running = false
-        local poll_fn = ctx.poll_fn
-        if poll_fn and renoise.tool():has_timer(poll_fn) then
-            renoise.tool():remove_timer(poll_fn)
-        end
-
-        -- Load the result
-        filterLoadResult(ctx)
-    end
-end
-
 -- Load the processed audio result back into Renoise
 local function filterLoadResult(ctx)
     local outfile = ctx.outfile_path
@@ -333,6 +305,34 @@ local function filterLoadResult(ctx)
     os.remove(outfile)
     if ctx.infile_path then
         os.remove(ctx.infile_path)
+    end
+end
+
+-- Timer callback: poll for the done-marker file
+local function filterProcessPoll()
+    if not filter_process_running or not filter_process_context then
+        return
+    end
+
+    local ctx = filter_process_context
+    local marker_file = ctx.marker_path
+
+    -- Check if marker file exists (command finished)
+    local f = io.open(marker_file, "r")
+    if f then
+        f:close()
+        -- Remove marker file
+        os.remove(marker_file)
+
+        -- Stop the timer
+        filter_process_running = false
+        local poll_fn = ctx.poll_fn
+        if poll_fn and renoise.tool():has_timer(poll_fn) then
+            renoise.tool():remove_timer(poll_fn)
+        end
+
+        -- Load the result
+        filterLoadResult(ctx)
     end
 end
 
