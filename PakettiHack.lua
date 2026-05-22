@@ -261,32 +261,28 @@ function pakettiBeatSyncHackRenderAndRestore()
   }
 
   local function cleanup()
-    -- Delete the temp render track
+    -- CANNOT auto-delete temp track / seq slots / patterns: Renoise's
+    -- TPatternWasRemovedObservable destructor SIGSEGVs (TWeakRefOwner
+    -- use-after-free) when these are removed shortly after song:render
+    -- finishes. The artifacts are left in place. We just unsolo, restore
+    -- mute states, and rename so the user can identify and delete manually.
     if song.tracks[temp_track_idx]
       and song.tracks[temp_track_idx].name == "[BSH render]" then
-      song:delete_track_at(temp_track_idx)
+      song.tracks[temp_track_idx].name = "[BSH render — delete me]"
+      song.tracks[temp_track_idx].solo_state = false
     end
-    -- Delete added sequence slots (reverse order so indices stay valid).
-    -- Note: we do NOT call song:delete_pattern_at on the orphan patterns —
-    -- doing so during cleanup right after slot deletion triggers a Renoise
-    -- weak-ref-owner SIGSEGV in TPatternWasRemovedObservable. The orphan
-    -- patterns are empty 512-line shells; they linger in the pattern pool
-    -- harmlessly and are cleared when the song is reloaded.
-    table.sort(snap.added_seq_indices, function(a, b) return a > b end)
-    for _, s_idx in ipairs(snap.added_seq_indices) do
-      if seq.pattern_sequence[s_idx] then
-        pcall(function() seq:delete_sequence_at(s_idx) end)
-      end
-    end
-    -- Restore mute + solo states (PakettiRender convention)
+    -- Restore mute + solo states for original tracks
     for t = 1, math.min(#song.tracks, #snap.mutes) do
-      if song.tracks[t].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      if t ~= temp_track_idx
+        and song.tracks[t].type == renoise.Track.TRACK_TYPE_SEQUENCER then
         song.tracks[t].mute_state = snap.mutes[t]
       end
     end
     if snap.solos then
       for t = 1, math.min(#song.tracks, #snap.solos) do
-        song.tracks[t].solo_state = snap.solos[t] or false
+        if t ~= temp_track_idx then
+          song.tracks[t].solo_state = snap.solos[t] or false
+        end
       end
     end
     -- Restore the original sample's beat_sync_mode if we forced it
@@ -334,8 +330,10 @@ function pakettiBeatSyncHackRenderAndRestore()
       song.selected_sample_index = new_idx
     end
     renoise.app():show_status(string.format(
-      "BSHRender: rendered %d lines (%.1fs) to sample [%d]; original clamped to 512.",
-      hacked_lines, duration_sec, new_idx))
+      "BSHRender: rendered to sample [%d] (%.1fs). Original clamped to 512. " ..
+      "Manually delete track '[BSH render — delete me]' and the %d added " ..
+      "sequence slot(s) at the end (engine bug prevents auto-cleanup).",
+      new_idx, duration_sec, #snap.added_seq_indices))
   end
 
   renoise.app():show_status(string.format(
