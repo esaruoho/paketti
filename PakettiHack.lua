@@ -188,9 +188,21 @@ function pakettiBeatSyncHackRenderAndRestore()
     edit_mode = song.transport.edit_mode,
     added_seq_indices = {},
     added_pattern_indices = {},
+    bs_enabled = sample.beat_sync_enabled,
   }
   for t = 1, #song.tracks do snap.mutes[t] = song.tracks[t].mute_state end
   if song.transport.edit_mode then song.transport.edit_mode = false end
+
+  -- Force BeatSync ON for the duration of the render. Without this, the engine
+  -- plays the sample at its natural rate and ignores beat_sync_lines, so the
+  -- render captures a tiny burst at the start followed by 24 minutes of silence.
+  if not sample.beat_sync_enabled then
+    sample.beat_sync_enabled = true
+  end
+
+  print(string.format(
+    "[BSHRender] sample %d: beat_sync_lines=%d, mode=%d, expected duration=%.1fs",
+    sample_idx, sample.beat_sync_lines, sample.beat_sync_mode, duration_sec))
 
   song:describe_undo("PakettiHack: Render & Restore sample " .. tostring(sample_idx))
 
