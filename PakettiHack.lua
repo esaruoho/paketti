@@ -228,22 +228,20 @@ function pakettiBeatSyncHackRenderAndRestore()
   end
   local last_seq_idx = cur_seq_idx + extra_slots
 
-  -- Mute every track except the temp render track
-  for t = 1, #song.tracks do
-    if t ~= temp_track_idx
-      and song.tracks[t].type == renoise.Track.TRACK_TYPE_SEQUENCER then
-      song.tracks[t].mute_state = renoise.Track.MUTE_STATE_MUTED
-    end
-  end
+  -- Solo the temp track (PakettiRender convention — cleaner than per-track mute)
+  snap.solos = {}
+  for t = 1, #song.tracks do snap.solos[t] = song.tracks[t].solo_state end
+  for t = 1, #song.tracks do song.tracks[t].solo_state = false end
+  song.tracks[temp_track_idx].solo_state = true
 
-  local tmp_wav = os.tmpname() .. ".wav"
+  -- Use Paketti's central temp file path helper (main.lua:77)
+  local tmp_wav = pakettiGetTempFilePath(".wav")
 
+  -- Same render options pattern PakettiRender uses (preferences-driven)
   local render_opts = {
-    sample_rate = (preferences and preferences.renderSampleRate
-      and preferences.renderSampleRate.value) or 44100,
-    bit_depth = (preferences and preferences.renderBitDepth
-      and preferences.renderBitDepth.value) or 24,
-    interpolation = "precise",
+    sample_rate = preferences.renderSampleRate.value,
+    bit_depth = preferences.renderBitDepth.value,
+    interpolation = preferences.renderInterpolation.value,
     priority = "high",
     start_pos = renoise.SongPos(cur_seq_idx, 1),
     end_pos = renoise.SongPos(last_seq_idx, lines_per_pattern),
@@ -266,10 +264,15 @@ function pakettiBeatSyncHackRenderAndRestore()
     if song.patterns[cur_pattern_idx] then
       song.patterns[cur_pattern_idx].number_of_lines = snap.pattern_length
     end
-    -- Restore mute states
+    -- Restore mute + solo states (PakettiRender convention)
     for t = 1, math.min(#song.tracks, #snap.mutes) do
       if song.tracks[t].type == renoise.Track.TRACK_TYPE_SEQUENCER then
         song.tracks[t].mute_state = snap.mutes[t]
+      end
+    end
+    if snap.solos then
+      for t = 1, math.min(#song.tracks, #snap.solos) do
+        song.tracks[t].solo_state = snap.solos[t] or false
       end
     end
     -- Restore the original sample's beat_sync_mode if we forced it
@@ -286,6 +289,9 @@ function pakettiBeatSyncHackRenderAndRestore()
   end
 
   local function on_render_done()
+    if renoise.tool():has_timer(monitor_rendering) then
+      renoise.tool():remove_timer(monitor_rendering)
+    end
     local new_idx = #instr.samples + 1
     local new_sample = instr:insert_sample_at(new_idx)
     local ok = new_sample.sample_buffer:load_from(tmp_wav)
@@ -324,6 +330,10 @@ function pakettiBeatSyncHackRenderAndRestore()
     cleanup()
     os.remove(tmp_wav)
     renoise.app():show_status("BSHRender: render call failed: " .. tostring(err))
+  else
+    if not renoise.tool():has_timer(monitor_rendering) then
+      renoise.tool():add_timer(monitor_rendering, 500)
+    end
   end
 end
 
