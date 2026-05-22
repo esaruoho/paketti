@@ -132,8 +132,12 @@ end
 -- ============================================================================
 -- Render & Restore: bake the stretched audio to a new sample, then clamp the
 -- original sample's BeatSyncLines back to 512 so the song is XRNS-safe.
+-- DISABLED: engine bugs (TPlayerEngine OnCalcBuffer crash on Texture/Percussion
+-- stretch + TPatternWasRemovedObservable dtor crash on slot deletion) make
+-- this feature unreliable. Code preserved for future revisit.
 -- ============================================================================
 
+--[[ DISABLED
 function pakettiBeatSyncHackRenderAndRestore()
   local song = renoise.song()
   if not song then return end
@@ -397,6 +401,7 @@ function pakettiBeatSyncHackRenderAndRestore()
     end
   end
 end
+--]] -- end DISABLED Render & Restore
 
 -- ============================================================================
 -- Save protection: clamp hacked samples to 512 before XRNS save, re-apply after.
@@ -506,19 +511,8 @@ function pakettiBeatSyncHackDialog()
         paketti_hack_set_beatsync_lines(value_view.value)
         renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
       end
-    },
-    vb:text{
-      style = "strong", font = "bold",
-      text = "Render & Restore (bake stretched audio, clamp original to 512):"
-    },
-    vb:button{
-      text = "Render Current Sample + Restore BeatSync",
-      width = 360,
-      notifier = function()
-        pakettiBeatSyncHackRenderAndRestore()
-        renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
-      end
     }
+    -- Render & Restore button disabled (engine bugs cause crashes); see top of file
   }
   paketti_hack_dialog = renoise.app():show_custom_dialog("Paketti BeatSyncHack Dialog", content)
 end
@@ -561,6 +555,8 @@ renoise.tool():add_keybinding{
   invoke = pakettiBeatSyncHackDialog
 }
 
+-- Render & Restore menu entries / keybinding disabled (engine crash bugs):
+--[[ DISABLED
 PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatSyncHack:Render & Restore Current Sample",
   invoke = pakettiBeatSyncHackRenderAndRestore
@@ -577,3 +573,4 @@ renoise.tool():add_keybinding{
   name = "Global:Paketti:BeatSyncHack Render & Restore",
   invoke = pakettiBeatSyncHackRenderAndRestore
 }
+--]] -- end DISABLED Render & Restore entries
