@@ -260,12 +260,8 @@ function pakettiBeatSyncHackRenderAndRestore()
     end_pos = renoise.SongPos(last_seq_idx, lines_per_pattern),
   }
 
-  local function cleanup()
-    -- CANNOT auto-delete temp track / seq slots / patterns: Renoise's
-    -- TPatternWasRemovedObservable destructor SIGSEGVs (TWeakRefOwner
-    -- use-after-free) when these are removed shortly after song:render
-    -- finishes. The artifacts are left in place. We just unsolo, restore
-    -- mute states, and rename so the user can identify and delete manually.
+  local function restore_state()
+    -- Unsolo + rename temp track (still alive at this point)
     if song.tracks[temp_track_idx]
       and song.tracks[temp_track_idx].name == "[BSH render]" then
       song.tracks[temp_track_idx].name = "[BSH render — delete me]"
@@ -301,6 +297,53 @@ function pakettiBeatSyncHackRenderAndRestore()
     end
   end
 
+  -- Run the destructive cleanup prompts on an idle tick, NOT inside the render
+  -- callback. Renoise's command queue is mid-flight on the render-done path,
+  -- and destructive ops there crash. Idle tick = clean dispatcher state.
+  local function ask_user_about_cleanup()
+    if renoise.tool():has_timer(ask_user_about_cleanup) then
+      renoise.tool():remove_timer(ask_user_about_cleanup)
+    end
+
+    -- Prompt 1: delete the temp track?
+    local ans = renoise.app():show_prompt(
+      "BSH Render — cleanup step 1 of 2",
+      "Delete the temporary render track '[BSH render — delete me]'?\n\n"
+      .. "(If Renoise crashes during deletion, the rendered sample is already "
+      .. "loaded and saved-safe — just relaunch.)",
+      {"Yes, delete track", "No, keep it"})
+    if ans == "Yes, delete track" then
+      if song.tracks[temp_track_idx]
+        and (song.tracks[temp_track_idx].name == "[BSH render — delete me]"
+             or song.tracks[temp_track_idx].name == "[BSH render]") then
+        pcall(function() song:delete_track_at(temp_track_idx) end)
+      end
+    end
+
+    -- Prompt 2: delete the added sequence slots?
+    if #snap.added_seq_indices > 0 then
+      ans = renoise.app():show_prompt(
+        "BSH Render — cleanup step 2 of 2",
+        string.format(
+          "Delete the %d added sequence slot(s) at the end of the song?\n\n"
+          .. "(This may trigger a Renoise engine bug — TPatternWasRemovedObservable "
+          .. "SIGSEGV. If it crashes, the rendered sample is already loaded; "
+          .. "just relaunch and manually delete leftover slots/patterns.)",
+          #snap.added_seq_indices),
+        {"Yes, delete slots", "No, keep them"})
+      if ans == "Yes, delete slots" then
+        table.sort(snap.added_seq_indices, function(a, b) return a > b end)
+        for _, s_idx in ipairs(snap.added_seq_indices) do
+          if seq.pattern_sequence[s_idx] then
+            pcall(function() seq:delete_sequence_at(s_idx) end)
+          end
+        end
+      end
+    end
+
+    renoise.app():show_status("BSH Render: cleanup done.")
+  end
+
   local function on_render_done()
     if renoise.tool():has_timer(monitor_rendering) then
       renoise.tool():remove_timer(monitor_rendering)
@@ -310,7 +353,7 @@ function pakettiBeatSyncHackRenderAndRestore()
     local ok = new_sample.sample_buffer:load_from(tmp_wav)
     if not ok then
       instr:delete_sample_at(new_idx)
-      cleanup()
+      restore_state()
       os.remove(tmp_wav)
       renoise.app():show_status("BSHRender: WAV load_from failed")
       return
@@ -323,17 +366,21 @@ function pakettiBeatSyncHackRenderAndRestore()
     sample.beat_sync_lines = 512
     sample.beat_sync_enabled = false
 
-    cleanup()
+    restore_state()
     os.remove(tmp_wav)
 
     if #instr.samples >= new_idx then
       song.selected_sample_index = new_idx
     end
     renoise.app():show_status(string.format(
-      "BSHRender: rendered to sample [%d] (%.1fs). Original clamped to 512. " ..
-      "Manually delete track '[BSH render — delete me]' and the %d added " ..
-      "sequence slot(s) at the end (engine bug prevents auto-cleanup).",
-      new_idx, duration_sec, #snap.added_seq_indices))
+      "BSHRender: rendered to sample [%d] (%.1fs). Original clamped to 512.",
+      new_idx, duration_sec))
+
+    -- Defer cleanup prompts to a clean idle tick (avoids crashing inside the
+    -- render-done dispatch path).
+    if not renoise.tool():has_timer(ask_user_about_cleanup) then
+      renoise.tool():add_timer(ask_user_about_cleanup, 250)
+    end
   end
 
   renoise.app():show_status(string.format(
