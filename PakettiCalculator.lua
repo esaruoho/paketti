@@ -247,6 +247,13 @@ function pakettiCalculatorDialog()
 
   do_eval_holder.fn = do_eval
 
+  local function append_token(token)
+    return function()
+      expr_field.value = (expr_field.value or "") .. token
+      expr_field.edit_mode = true
+    end
+  end
+
   refresh_history()
 
   local content = vb:column{
@@ -275,9 +282,49 @@ function pakettiCalculatorDialog()
       vb:button{text = "Panning", width = 70, notifier = with_value(paketti_calc_set_panning)},
       vb:button{text = "Delay", width = 70, notifier = with_value(paketti_calc_set_delay)},
     },
-    vb:text{style = "strong", text = "Helpers: bpm() lpb() tpl() ms_per_line() ms_per_beat() hz_from_bpm()"},
-    vb:text{text = "cents_to_ratio(c) ratio_to_cents(r) semi_to_ratio(s) ratio_to_semi(r) ans"},
-    vb:text{text = "Math: sin cos tan sqrt abs exp log log2 log10 floor ceil round pow min max"},
+    vb:text{style = "strong", text = "Append token (clicks add to end of expression):"},
+    vb:row{
+      spacing = 2,
+      vb:button{text = "bpm()", width = 50, notifier = append_token("bpm()")},
+      vb:button{text = "lpb()", width = 50, notifier = append_token("lpb()")},
+      vb:button{text = "tpl()", width = 50, notifier = append_token("tpl()")},
+      vb:button{text = "ms/line", width = 65, notifier = append_token("ms_per_line()")},
+      vb:button{text = "ms/beat", width = 65, notifier = append_token("ms_per_beat()")},
+      vb:button{text = "hz/bpm", width = 65, notifier = append_token("hz_from_bpm()")},
+    },
+    vb:row{
+      spacing = 2,
+      vb:button{text = "cents->ratio", width = 80, notifier = append_token("cents_to_ratio(")},
+      vb:button{text = "ratio->cents", width = 80, notifier = append_token("ratio_to_cents(")},
+      vb:button{text = "semi->ratio", width = 80, notifier = append_token("semi_to_ratio(")},
+      vb:button{text = "ratio->semi", width = 80, notifier = append_token("ratio_to_semi(")},
+    },
+    vb:row{
+      spacing = 2,
+      vb:button{text = "ans", width = 40, notifier = append_token("ans")},
+      vb:button{text = "pi", width = 40, notifier = append_token("pi")},
+      vb:button{text = "0x", width = 40, notifier = append_token("0x")},
+      vb:button{text = "(", width = 25, notifier = append_token("(")},
+      vb:button{text = ")", width = 25, notifier = append_token(")")},
+      vb:button{text = "+", width = 25, notifier = append_token("+")},
+      vb:button{text = "-", width = 25, notifier = append_token("-")},
+      vb:button{text = "*", width = 25, notifier = append_token("*")},
+      vb:button{text = "/", width = 25, notifier = append_token("/")},
+      vb:button{text = "^", width = 25, notifier = append_token("^")},
+    },
+    vb:row{
+      spacing = 2,
+      vb:button{text = "sin(", width = 45, notifier = append_token("sin(")},
+      vb:button{text = "cos(", width = 45, notifier = append_token("cos(")},
+      vb:button{text = "tan(", width = 45, notifier = append_token("tan(")},
+      vb:button{text = "sqrt(", width = 50, notifier = append_token("sqrt(")},
+      vb:button{text = "abs(", width = 45, notifier = append_token("abs(")},
+      vb:button{text = "log(", width = 45, notifier = append_token("log(")},
+      vb:button{text = "log2(", width = 50, notifier = append_token("log2(")},
+      vb:button{text = "round(", width = 55, notifier = append_token("round(")},
+      vb:button{text = "floor(", width = 50, notifier = append_token("floor(")},
+      vb:button{text = "ceil(", width = 45, notifier = append_token("ceil(")},
+    },
     vb:text{text = "Examples:  0x40*2   |   60000/(bpm()*lpb())   |   ans+1   |   2^16"},
     vb:text{style = "strong", text = "History (newest first):"},
     history_text,
