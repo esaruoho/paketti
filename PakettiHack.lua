@@ -2,6 +2,19 @@
 -- XRNI XML roundtrip to bypass Renoise UI clamps.
 -- Currently: BeatSyncLines beyond the 1-512 API range (XML accepts 8192, 16384, 32768, ...).
 -- Pipeline: save_instrument -> unzip Instrument.xml -> patch -> zip update -> load_instrument.
+--
+-- Save protection: the engine still holds the >512 in-memory value after the hack
+-- is applied, and writing it into an XRNS produces a file that hard-crashes on reload
+-- (SIGSEGV in TPatternPool teardown during the load swap). To prevent this, we hook
+-- app_will_save_document_observable to clamp all hacked samples to 512 right before
+-- the XRNS serializer reads them, then re-apply the hack via the XML roundtrip after
+-- the save completes (app_saved_document_observable). The cache below is populated
+-- whenever paketti_hack_set_beatsync_lines succeeds; it is the source of truth for
+-- "which samples are hacked and to what value".
+
+-- cache_key = "<instr_idx>:<sample_idx>" -> hacked lines value
+PakettiHackCache = PakettiHackCache or {}
+local paketti_hack_save_restore_queue = {}
 
 local function paketti_hack_run_shell(cmd)
   local handle = io.popen(cmd .. " 2>&1; echo __RC__$?")
@@ -110,12 +123,85 @@ local function paketti_hack_set_beatsync_lines(target_lines)
   os.remove(xml_path)
   os.remove(tmp_xrni)
 
+  -- Cache the hacked value so save-protection knows which samples to clamp+restore
+  PakettiHackCache[string.format("%d:%d", sel_inst_idx, sel_sample_idx)] = target_lines
+
   renoise.app():show_status(string.format(
     "PakettiHack: BeatSyncLines=%d on sample %d (save %.0fms + load %.0fms = %.0fms)",
     target_lines, sel_sample_idx,
     (t_saved - t0) * 1000,
     (t_loaded - t_saved) * 1000,
     (t_loaded - t0) * 1000))
+end
+
+-- ============================================================================
+-- Save protection: clamp hacked samples to 512 before XRNS save, re-apply after.
+-- ============================================================================
+
+local function paketti_hack_on_will_save()
+  local song = renoise.song()
+  if not song then return end
+  paketti_hack_save_restore_queue = {}
+  for key, hacked_lines in pairs(PakettiHackCache) do
+    if hacked_lines > 512 then
+      local i_idx, s_idx = key:match("^(%d+):(%d+)$")
+      i_idx = tonumber(i_idx); s_idx = tonumber(s_idx)
+      if i_idx and s_idx
+        and song.instruments[i_idx]
+        and song.instruments[i_idx].samples[s_idx] then
+        local sample = song.instruments[i_idx].samples[s_idx]
+        table.insert(paketti_hack_save_restore_queue, {
+          instr_idx = i_idx,
+          sample_idx = s_idx,
+          original_lines = hacked_lines,
+          had_sync = sample.beat_sync_enabled
+        })
+        -- Clamp to safe value (API setter accepts 1..512)
+        sample.beat_sync_lines = 512
+      end
+    end
+  end
+  if #paketti_hack_save_restore_queue > 0 then
+    renoise.app():show_status(string.format(
+      "BeatSyncHack: clamped %d sample(s) to 512 for safe XRNS save (will restore after)",
+      #paketti_hack_save_restore_queue))
+  end
+end
+
+local function paketti_hack_on_did_save()
+  if #paketti_hack_save_restore_queue == 0 then return end
+  local song = renoise.song()
+  if not song then
+    paketti_hack_save_restore_queue = {}
+    return
+  end
+  local restored = 0
+  local sel_inst_before = song.selected_instrument_index
+  local sel_sample_before = song.selected_sample_index
+  for _, entry in ipairs(paketti_hack_save_restore_queue) do
+    if song.instruments[entry.instr_idx]
+      and song.instruments[entry.instr_idx].samples[entry.sample_idx] then
+      song.selected_instrument_index = entry.instr_idx
+      song.selected_sample_index = entry.sample_idx
+      paketti_hack_set_beatsync_lines(entry.original_lines)
+      restored = restored + 1
+    end
+  end
+  song.selected_instrument_index = sel_inst_before
+  if sel_sample_before <= #song.selected_instrument.samples then
+    song.selected_sample_index = sel_sample_before
+  end
+  paketti_hack_save_restore_queue = {}
+  renoise.app():show_status(string.format(
+    "BeatSyncHack: restored %d sample(s) to hacked BeatSyncLines after save",
+    restored))
+end
+
+if not renoise.tool().app_will_save_document_observable:has_notifier(paketti_hack_on_will_save) then
+  renoise.tool().app_will_save_document_observable:add_notifier(paketti_hack_on_will_save)
+end
+if not renoise.tool().app_saved_document_observable:has_notifier(paketti_hack_on_did_save) then
+  renoise.tool().app_saved_document_observable:add_notifier(paketti_hack_on_did_save)
 end
 
 local paketti_hack_dialog = nil
