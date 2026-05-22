@@ -356,6 +356,7 @@ function create_button_list()
     {"SBX Playback Handler", "showSBX_dialog"},
     {"Paketti Sample Adjust", "show_paketti_sample_adjust_dialog"},
     {"Batch Sample Adjust", "show_batch_sample_adjust_dialog"},
+    {"BeatSyncHack (BeatSyncLines > 512)", "pakettiBeatSyncHackDialog"},
   }
   
   -- These dialogs work on all API versions (canvas elements gated internally)

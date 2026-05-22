@@ -120,7 +120,7 @@ end
 
 local paketti_hack_dialog = nil
 
-local function paketti_hack_show_dialog()
+function pakettiBeatSyncHackDialog()
   if paketti_hack_dialog and paketti_hack_dialog.visible then
     paketti_hack_dialog:close()
     paketti_hack_dialog = nil
@@ -130,6 +130,14 @@ local function paketti_hack_show_dialog()
   local value_view = vb:valuebox{min = 1, max = 65535, value = 8192, width = 100}
   local content = vb:column{
     margin = 8, spacing = 6,
+    vb:text{
+      style = "strong", font = "bold",
+      text = "DO NOT SAVE THESE SONGS AS XRNS"
+    },
+    vb:text{
+      style = "strong", font = "bold",
+      text = "WITHOUT SETTING BEATSYNC BACK TO <512"
+    },
     vb:text{text = "BeatSyncLines (1 - 65535). UI normally caps at 512."},
     vb:row{
       spacing = 4,
@@ -153,7 +161,7 @@ local function paketti_hack_show_dialog()
       end
     }
   }
-  paketti_hack_dialog = renoise.app():show_custom_dialog("PakettiHack: BeatSyncLines", content)
+  paketti_hack_dialog = renoise.app():show_custom_dialog("Paketti BeatSyncHack Dialog", content)
 end
 
 local presets = {1024, 2048, 4096, 8192, 16384, 32768}
@@ -179,17 +187,17 @@ end
 
 PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatSyncHack:Set BeatSyncLines Dialog...",
-  invoke = paketti_hack_show_dialog
+  invoke = pakettiBeatSyncHackDialog
 }
 PakettiAddMenuEntry{
   name = "Sample Editor:Paketti:BeatSyncHack:Set BeatSyncLines Dialog...",
-  invoke = paketti_hack_show_dialog
+  invoke = pakettiBeatSyncHackDialog
 }
 PakettiAddMenuEntry{
   name = "Instrument Box:Paketti:BeatSyncHack:Set BeatSyncLines Dialog...",
-  invoke = paketti_hack_show_dialog
+  invoke = pakettiBeatSyncHackDialog
 }
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Set BeatSyncLines Dialog",
-  invoke = paketti_hack_show_dialog
+  invoke = pakettiBeatSyncHackDialog
 }
