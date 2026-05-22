@@ -258,7 +258,6 @@ function pakettiCalculatorDialog()
 
   local content = vb:column{
     margin = 8, spacing = 6,
-    vb:text{style = "strong", font = "bold", text = "Paketti Calculator"},
     vb:text{text = "Expression (Lua math + helpers). Press = or Enter to evaluate."},
     vb:row{
       spacing = 4,
