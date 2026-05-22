@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-05-22 - Feature: Enhanced Automation adds log, exponential, pump, and double-pulse shapes
+
+`PakettiAutomationCurves.lua` now ships seven extra Automation Curves / LFO Custom Waveform shapes aimed at more immediately musical movement: **Log Up**, **Log Down**, **Exponential Up**, **Exponential Down**, **Half-Sine Pump**, **Half-Sine Lift**, and **Double Pulse**. They are available directly in the `Enhanced Automation (Curves)` dialog as a new extra row of shape buttons, and each shape also gets its own generated keybinding under `Global:Paketti:Automation Curve Insert <Shape Name>`. While wiring this in, the generated per-shape keybinding list was also brought into line with the existing pulse buttons so `Pulse 33%`, `Pulse 66%`, and `Pulse 90%` are included too.
+
 ### Recent Highlights: April 2026
 
 What supporters funded this month:

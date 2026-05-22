@@ -77,6 +77,12 @@ function PakettiAutomationCurvesCalculateShapes()
   local sCurveDown_values = {}
   local bounceUp_values = {}
   local bounceDown_values = {}
+  local logUp_values = {}
+  local logDown_values = {}
+  local expUp_values = {}
+  local expDown_values = {}
+  local pumpDown_values = {}
+  local pumpUp_values = {}
   
   for i = 0, (res - 1) do
     local x = i / res
@@ -112,6 +118,19 @@ function PakettiAutomationCurvesCalculateShapes()
     local bounceOsc = math.abs(math.sin(x * 3.141 * 4))
     table.insert(bounceUp_values, {x, (1 - bounceDecay * bounceOsc)})
     table.insert(bounceDown_values, {x, bounceDecay * bounceOsc})
+
+    -- Log / exponential style ramps
+    local logY = x * x * x
+    local expY = 1 - ((1 - x) * (1 - x) * (1 - x))
+    table.insert(logUp_values, {x, logY})
+    table.insert(logDown_values, {x, 1 - logY})
+    table.insert(expUp_values, {x, expY})
+    table.insert(expDown_values, {x, (1 - x) * (1 - x) * (1 - x)})
+
+    -- Half-sine pump / lift
+    local pumpY = 0.5 + 0.5 * math.cos(x * 2 * 3.141)
+    table.insert(pumpDown_values, {x, pumpY})
+    table.insert(pumpUp_values, {x, 1 - pumpY})
   end
   
   -- Add final points
@@ -129,6 +148,12 @@ function PakettiAutomationCurvesCalculateShapes()
   table.insert(sCurveDown_values, {0.99, 0})
   table.insert(bounceUp_values, {0.99, 1})
   table.insert(bounceDown_values, {0.99, 0})
+  table.insert(logUp_values, {0.99, 1})
+  table.insert(logDown_values, {0.99, 0})
+  table.insert(expUp_values, {0.99, 1})
+  table.insert(expDown_values, {0.99, 0})
+  table.insert(pumpDown_values, {0.99, 1})
+  table.insert(pumpUp_values, {0.99, 0})
   
   return {
     sinUp = sinUp_values,
@@ -144,7 +169,13 @@ function PakettiAutomationCurvesCalculateShapes()
     sCurveUp = sCurveUp_values,
     sCurveDown = sCurveDown_values,
     bounceUp = bounceUp_values,
-    bounceDown = bounceDown_values
+    bounceDown = bounceDown_values,
+    logUp = logUp_values,
+    logDown = logDown_values,
+    expUp = expUp_values,
+    expDown = expDown_values,
+    pumpDown = pumpDown_values,
+    pumpUp = pumpUp_values
   }
 end
 
@@ -233,6 +264,15 @@ function PakettiAutomationCurvesInitShapes()
     -- Bounce (cubic curves for smooth decay)
     bounceUp = {values = calculated.bounceUp, key = "l", image = "bounce-up.png", label = "Bounce Up", playmode = CURVES},
     bounceDown = {values = calculated.bounceDown, key = "b", image = "bounce-down.png", label = "Bounce Down", playmode = CURVES},
+
+    -- Additional musical ramps / pumps
+    logUp = {values = calculated.logUp, image = "circ-bl.png", label = "Log Up", playmode = CURVES},
+    logDown = {values = calculated.logDown, image = "circ-tr.png", label = "Log Down", playmode = CURVES},
+    expUp = {values = calculated.expUp, image = "scurve-up.png", label = "Exponential Up", playmode = CURVES},
+    expDown = {values = calculated.expDown, image = "scurve-down.png", label = "Exponential Down", playmode = CURVES},
+    pumpDown = {values = calculated.pumpDown, image = "sin-down.png", label = "Half-Sine Pump", playmode = CURVES},
+    pumpUp = {values = calculated.pumpUp, image = "sin-up.png", label = "Half-Sine Lift", playmode = CURVES},
+    doublePulse = {values = {{0, 0}, {0.18, 0}, {0.19, 1}, {0.39, 1}, {0.4, 0}, {0.58, 0}, {0.59, 1}, {0.79, 1}, {0.8, 0}, {0.99, 0}}, image = "pulse50.png", label = "Double Pulse", playmode = POINTS},
 
     -- Pulse variations (step/hold for sharp transitions) - keys 2-9
     pulse10 = {values = {{0, 0}, {0.10, 0}, {0.11, 1}, {0.99, 1}}, key = "2", image = "pulse10.png", label = "Pulse 10%", playmode = POINTS},
@@ -1530,6 +1570,18 @@ function PakettiAutomationCurvesShowDialog()
           PakettiAutomationCurvesMakeButton(vb, "randomStep"),   -- m
           PakettiAutomationCurvesMakeButton(vb, "sawtoothUp"),   -- , (comma)
           PakettiAutomationCurvesMakeButton(vb, "sawtoothDown")  -- . (period)
+        },
+
+        -- Row 5: additional musical shapes
+        vb:row{
+          spacing = 4,
+          PakettiAutomationCurvesMakeButton(vb, "logUp"),
+          PakettiAutomationCurvesMakeButton(vb, "logDown"),
+          PakettiAutomationCurvesMakeButton(vb, "expUp"),
+          PakettiAutomationCurvesMakeButton(vb, "expDown"),
+          PakettiAutomationCurvesMakeButton(vb, "pumpDown"),
+          PakettiAutomationCurvesMakeButton(vb, "pumpUp"),
+          PakettiAutomationCurvesMakeButton(vb, "doublePulse")
         }
       },
       
@@ -1785,7 +1837,9 @@ local shape_list = {
   "tri", "vee", "circBl", "circBr", "sinUp", "sinDown",
   "stairUp", "stairDown", "cosUp", "cosDown", "on", "off",
   "bellUp", "bellDown", "sCurveUp", "sCurveDown", "bounceUp", "bounceDown",
-  "pulse10", "pulse25", "pulse50", "pulse75", "pulse80", "randomSmooth", "randomStep", "sawtoothUp", "sawtoothDown"
+  "logUp", "logDown", "expUp", "expDown", "pumpDown", "pumpUp", "doublePulse",
+  "pulse10", "pulse25", "pulse33", "pulse50", "pulse66", "pulse75", "pulse80", "pulse90",
+  "randomSmooth", "randomStep", "sawtoothUp", "sawtoothDown"
 }
 
 for _, shape_name in ipairs(shape_list) do
