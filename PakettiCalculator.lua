@@ -93,6 +93,32 @@ local function paketti_calc_format_result(v)
   return dec_str, int_str, hex_full, byte_str
 end
 
+local function paketti_calc_current_note_column()
+  local song = renoise.song()
+  local col = song.selected_note_column
+  if col then return col end
+  -- Fall back to first note column of the current line on the selected track
+  local track = song.selected_track
+  if not track or track.visible_note_columns < 1 then return nil end
+  local line = song.selected_line
+  if not line or not line.note_columns or #line.note_columns < 1 then return nil end
+  return line.note_columns[1]
+end
+
+local function paketti_calc_current_effect_column()
+  local song = renoise.song()
+  local track = song.selected_track
+  if not track then return nil end
+  if track.visible_effect_columns < 1 then
+    track.visible_effect_columns = 1
+  end
+  local col = song.selected_effect_column
+  if col then return col end
+  local line = song.selected_line
+  if not line or not line.effect_columns or #line.effect_columns < 1 then return nil end
+  return line.effect_columns[1]
+end
+
 local function paketti_calc_set_effect_amount(byte_val)
   local song = renoise.song()
   if not song then return end
@@ -100,9 +126,9 @@ local function paketti_calc_set_effect_amount(byte_val)
     renoise.app():show_status("PakettiCalc: value " .. byte_val .. " out of 0-255 effect range")
     return
   end
-  local col = song.selected_effect_column
+  local col = paketti_calc_current_effect_column()
   if not col then
-    renoise.app():show_status("PakettiCalc: no effect column selected")
+    renoise.app():show_status("PakettiCalc: cannot find an effect column on selected track")
     return
   end
   col.amount_value = byte_val
@@ -112,9 +138,11 @@ end
 local function paketti_calc_set_volume(byte_val)
   local song = renoise.song()
   if not song then return end
-  local col = song.selected_note_column
+  local track = song.selected_track
+  if track then track.volume_column_visible = true end
+  local col = paketti_calc_current_note_column()
   if not col then
-    renoise.app():show_status("PakettiCalc: no note column selected")
+    renoise.app():show_status("PakettiCalc: cannot find a note column on selected track")
     return
   end
   col.volume_value = math.min(math.max(byte_val, 0), 255)
@@ -124,9 +152,11 @@ end
 local function paketti_calc_set_panning(byte_val)
   local song = renoise.song()
   if not song then return end
-  local col = song.selected_note_column
+  local track = song.selected_track
+  if track then track.panning_column_visible = true end
+  local col = paketti_calc_current_note_column()
   if not col then
-    renoise.app():show_status("PakettiCalc: no note column selected")
+    renoise.app():show_status("PakettiCalc: cannot find a note column on selected track")
     return
   end
   col.panning_value = math.min(math.max(byte_val, 0), 255)
@@ -136,9 +166,11 @@ end
 local function paketti_calc_set_delay(byte_val)
   local song = renoise.song()
   if not song then return end
-  local col = song.selected_note_column
+  local track = song.selected_track
+  if track then track.delay_column_visible = true end
+  local col = paketti_calc_current_note_column()
   if not col then
-    renoise.app():show_status("PakettiCalc: no note column selected")
+    renoise.app():show_status("PakettiCalc: cannot find a note column on selected track")
     return
   end
   col.delay_value = math.min(math.max(byte_val, 0), 255)
@@ -153,7 +185,14 @@ function pakettiCalculatorDialog()
   end
 
   local vb = renoise.ViewBuilder()
-  local expr_field = vb:textfield{width = 360, value = "", text = ""}
+  local do_eval_holder = {fn = function() end}
+  local expr_field = vb:textfield{
+    width = 360,
+    value = "",
+    notifier = function(_)
+      do_eval_holder.fn()
+    end
+  }
   local dec_text = vb:text{width = 200, text = "—", style = "strong", font = "bold"}
   local int_text = vb:text{width = 200, text = "—"}
   local hex_text = vb:text{width = 200, text = "—"}
@@ -173,7 +212,7 @@ function pakettiCalculatorDialog()
 
   local function do_eval()
     local expr = expr_field.value
-    if expr == "" then return end
+    if expr == nil or expr == "" then return end
     local val, err = paketti_calc_evaluate(expr)
     if val == nil then
       err_text.text = "error: " .. tostring(err)
@@ -205,6 +244,8 @@ function pakettiCalculatorDialog()
       renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
     end
   end
+
+  do_eval_holder.fn = do_eval
 
   refresh_history()
 
