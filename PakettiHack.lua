@@ -190,9 +190,18 @@ function pakettiBeatSyncHackRenderAndRestore()
     sel_sample = sample_idx,
     edit_mode = song.transport.edit_mode,
     added_slot_indices = {},
+    bs_mode = sample.beat_sync_mode,
   }
   for t = 1, #song.tracks do snap.mutes[t] = song.tracks[t].mute_state end
   if song.transport.edit_mode then song.transport.edit_mode = false end
+
+  -- Force Repitch mode for the render. Texture/Percussion granular algorithms
+  -- segfault in TPlayerEngine::OnCalcBuffer when given extreme stretch ratios
+  -- (e.g. 32767 lines on a small sample). Repitch is a simple rate change and
+  -- handles any ratio without crashing.
+  if sample.beat_sync_mode ~= renoise.Sample.BEAT_SYNC_REPITCH then
+    sample.beat_sync_mode = renoise.Sample.BEAT_SYNC_REPITCH
+  end
 
   song:describe_undo("PakettiHack: Render & Restore sample " .. tostring(sample_idx))
 
@@ -262,6 +271,12 @@ function pakettiBeatSyncHackRenderAndRestore()
       if song.tracks[t].type == renoise.Track.TRACK_TYPE_SEQUENCER then
         song.tracks[t].mute_state = snap.mutes[t]
       end
+    end
+    -- Restore the original sample's beat_sync_mode if we forced it
+    if song.instruments[snap.sel_instr]
+      and song.instruments[snap.sel_instr].samples[snap.sel_sample]
+      and snap.bs_mode then
+      song.instruments[snap.sel_instr].samples[snap.sel_sample].beat_sync_mode = snap.bs_mode
     end
     -- Restore edit mode + selection
     if snap.edit_mode then song.transport.edit_mode = true end
