@@ -37,6 +37,12 @@ def calculate_shapes():
     scurve_down = []
     bounce_up = []
     bounce_down = []
+    log_up = []
+    log_down = []
+    exp_up = []
+    exp_down = []
+    pump_down = []
+    pump_up = []
     
     for i in range(RESOLUTION):
         x = i / RESOLUTION
@@ -72,6 +78,19 @@ def calculate_shapes():
         bounce_osc = abs(math.sin(x * math.pi * 4))
         bounce_up.append((x, (1 - bounce_decay * bounce_osc)))
         bounce_down.append((x, bounce_decay * bounce_osc))
+
+        # Log / exponential style ramps
+        log_y = x * x * x
+        exp_y = 1 - ((1 - x) * (1 - x) * (1 - x))
+        log_up.append((x, log_y))
+        log_down.append((x, 1 - log_y))
+        exp_up.append((x, exp_y))
+        exp_down.append((x, (1 - x) * (1 - x) * (1 - x)))
+
+        # Half-sine pump / lift
+        pump_y = 0.5 + 0.5 * math.cos(x * 2 * math.pi)
+        pump_down.append((x, pump_y))
+        pump_up.append((x, 1 - pump_y))
     
     # Add final points
     sin_up.append((0.99, 0))
@@ -88,6 +107,12 @@ def calculate_shapes():
     scurve_down.append((0.99, 0))
     bounce_up.append((0.99, 1))
     bounce_down.append((0.99, 0))
+    log_up.append((0.99, 1))
+    log_down.append((0.99, 0))
+    exp_up.append((0.99, 1))
+    exp_down.append((0.99, 0))
+    pump_down.append((0.99, 1))
+    pump_up.append((0.99, 0))
     
     return {
         'sinUp': sin_up,
@@ -103,7 +128,13 @@ def calculate_shapes():
         'sCurveUp': scurve_up,
         'sCurveDown': scurve_down,
         'bounceUp': bounce_up,
-        'bounceDown': bounce_down
+        'bounceDown': bounce_down,
+        'logUp': log_up,
+        'logDown': log_down,
+        'expUp': exp_up,
+        'expDown': exp_down,
+        'pumpDown': pump_down,
+        'pumpUp': pump_up
     }
 
 def calculate_trapezoid():
@@ -232,6 +263,15 @@ def main():
         # Bounce
         'bounceUp': {'values': calculated['bounceUp'], 'filename': 'bounce-up.png'},
         'bounceDown': {'values': calculated['bounceDown'], 'filename': 'bounce-down.png'},
+
+        # Additional musical ramps / pumps
+        'logUp': {'values': calculated['logUp'], 'filename': 'log-up.png'},
+        'logDown': {'values': calculated['logDown'], 'filename': 'log-down.png'},
+        'expUp': {'values': calculated['expUp'], 'filename': 'exp-up.png'},
+        'expDown': {'values': calculated['expDown'], 'filename': 'exp-down.png'},
+        'pumpDown': {'values': calculated['pumpDown'], 'filename': 'pump-down.png'},
+        'pumpUp': {'values': calculated['pumpUp'], 'filename': 'pump-up.png'},
+        'doublePulse': {'values': [(0, 0), (0.18, 0), (0.19, 1), (0.39, 1), (0.4, 0), (0.58, 0), (0.59, 1), (0.79, 1), (0.8, 0), (0.99, 0)], 'filename': 'double-pulse.png'},
         
         # Pulse variations (25%, 50%, 75% duty cycle)
         'pulse25': {'values': [(0, 0), (0.25, 0), (0.26, 1), (0.99, 1)], 'filename': 'pulse25.png'},

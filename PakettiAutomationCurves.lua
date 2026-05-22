@@ -266,13 +266,13 @@ function PakettiAutomationCurvesInitShapes()
     bounceDown = {values = calculated.bounceDown, key = "b", image = "bounce-down.png", label = "Bounce Down", playmode = CURVES},
 
     -- Additional musical ramps / pumps
-    logUp = {values = calculated.logUp, image = "circ-bl.png", label = "Log Up", playmode = CURVES},
-    logDown = {values = calculated.logDown, image = "circ-tr.png", label = "Log Down", playmode = CURVES},
-    expUp = {values = calculated.expUp, image = "scurve-up.png", label = "Exponential Up", playmode = CURVES},
-    expDown = {values = calculated.expDown, image = "scurve-down.png", label = "Exponential Down", playmode = CURVES},
-    pumpDown = {values = calculated.pumpDown, image = "sin-down.png", label = "Half-Sine Pump", playmode = CURVES},
-    pumpUp = {values = calculated.pumpUp, image = "sin-up.png", label = "Half-Sine Lift", playmode = CURVES},
-    doublePulse = {values = {{0, 0}, {0.18, 0}, {0.19, 1}, {0.39, 1}, {0.4, 0}, {0.58, 0}, {0.59, 1}, {0.79, 1}, {0.8, 0}, {0.99, 0}}, image = "pulse50.png", label = "Double Pulse", playmode = POINTS},
+    logUp = {values = calculated.logUp, image = "log-up.png", label = "Log Up", playmode = CURVES},
+    logDown = {values = calculated.logDown, image = "log-down.png", label = "Log Down", playmode = CURVES},
+    expUp = {values = calculated.expUp, image = "exp-up.png", label = "Exponential Up", playmode = CURVES},
+    expDown = {values = calculated.expDown, image = "exp-down.png", label = "Exponential Down", playmode = CURVES},
+    pumpDown = {values = calculated.pumpDown, image = "pump-down.png", label = "Half-Sine Pump", playmode = CURVES},
+    pumpUp = {values = calculated.pumpUp, image = "pump-up.png", label = "Half-Sine Lift", playmode = CURVES},
+    doublePulse = {values = {{0, 0}, {0.18, 0}, {0.19, 1}, {0.39, 1}, {0.4, 0}, {0.58, 0}, {0.59, 1}, {0.79, 1}, {0.8, 0}, {0.99, 0}}, image = "double-pulse.png", label = "Double Pulse", playmode = POINTS},
 
     -- Pulse variations (step/hold for sharp transitions) - keys 2-9
     pulse10 = {values = {{0, 0}, {0.10, 0}, {0.11, 1}, {0.99, 1}}, key = "2", image = "pulse10.png", label = "Pulse 10%", playmode = POINTS},
