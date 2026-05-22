@@ -13,7 +13,7 @@
 -- "which samples are hacked and to what value".
 
 -- cache_key = "<instr_idx>:<sample_idx>" -> hacked lines value
-PakettiHackCache = PakettiHackCache or {}
+rawset(_G, "PakettiHackCache", rawget(_G, "PakettiHackCache") or {})
 local paketti_hack_save_restore_queue = {}
 
 local function paketti_hack_run_shell(cmd)
