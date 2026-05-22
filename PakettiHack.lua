@@ -135,6 +135,190 @@ local function paketti_hack_set_beatsync_lines(target_lines)
 end
 
 -- ============================================================================
+-- Render & Restore: bake the stretched audio to a new sample, then clamp the
+-- original sample's BeatSyncLines back to 512 so the song is XRNS-safe.
+-- ============================================================================
+
+function pakettiBeatSyncHackRenderAndRestore()
+  local song = renoise.song()
+  if not song then return end
+
+  local instr_idx = song.selected_instrument_index
+  local sample_idx = song.selected_sample_index
+  if instr_idx < 1 or sample_idx < 1 then
+    renoise.app():show_status("BSHRender: no instrument/sample selected"); return
+  end
+  local instr = song.instruments[instr_idx]
+  if not instr or not instr.samples[sample_idx] then
+    renoise.app():show_status("BSHRender: invalid sample selection"); return
+  end
+  local sample = instr.samples[sample_idx]
+
+  local cache_key = string.format("%d:%d", instr_idx, sample_idx)
+  local hacked_lines = PakettiHackCache[cache_key]
+  if not hacked_lines or hacked_lines <= 512 then
+    renoise.app():show_status(
+      "BSHRender: this sample is not BeatSyncHacked (no cache entry > 512). Apply hack first.")
+    return
+  end
+
+  local bpm = song.transport.bpm
+  local lpb = song.transport.lpb
+  local duration_sec = hacked_lines * 60 / (bpm * lpb)
+  local lines_per_pattern = math.min(512, hacked_lines)
+  local extra_slots = math.ceil(hacked_lines / lines_per_pattern) - 1
+
+  local was_playing = song.transport.playing
+  if was_playing then song.transport:stop() end
+
+  local master_idx = #song.tracks
+  for t = 1, #song.tracks do
+    if song.tracks[t].type == renoise.Track.TRACK_TYPE_MASTER then
+      master_idx = t; break
+    end
+  end
+  if master_idx < 2 then
+    renoise.app():show_status("BSHRender: no sequencer track exists to anchor render"); return
+  end
+
+  local seq = song.sequencer
+  local cur_seq_idx = song.selected_sequence_index
+  local cur_pattern_idx = seq:pattern(cur_seq_idx)
+  local cur_pattern = song.patterns[cur_pattern_idx]
+
+  -- Snapshot state for cleanup
+  local snap = {
+    pattern_length = cur_pattern.number_of_lines,
+    mutes = {},
+    sel_track = song.selected_track_index,
+    sel_instr = instr_idx,
+    sel_sample = sample_idx,
+    edit_mode = song.transport.edit_mode,
+    added_slot_indices = {},
+  }
+  for t = 1, #song.tracks do snap.mutes[t] = song.tracks[t].mute_state end
+  if song.transport.edit_mode then song.transport.edit_mode = false end
+
+  song:describe_undo("PakettiHack: Render & Restore sample " .. tostring(sample_idx))
+
+  -- Insert temp track at master_idx - 1 (before master, becomes a sequencer track)
+  local insert_at = master_idx - 1
+  local temp_track = song:insert_track_at(insert_at)
+  temp_track.name = "[BSH render]"
+  local temp_track_idx = insert_at
+
+  -- Set selected pattern's length to 512 (or hacked_lines if smaller)
+  cur_pattern.number_of_lines = lines_per_pattern
+
+  -- Place C-4 note triggering the BeatSyncHacked instrument on the temp track
+  local note_col = cur_pattern:track(temp_track_idx):line(1).note_columns[1]
+  note_col.note_value = 48 -- C-4
+  note_col.instrument_value = instr_idx - 1
+  note_col.volume_value = 0x80
+
+  -- Add extra sequence slots referencing the same pattern (covers >512 lines)
+  for k = 1, extra_slots do
+    local s_idx = cur_seq_idx + k
+    seq:insert_sequence_at(s_idx, cur_pattern_idx)
+    table.insert(snap.added_slot_indices, s_idx)
+  end
+  local last_seq_idx = cur_seq_idx + extra_slots
+
+  -- Mute every track except the temp render track
+  for t = 1, #song.tracks do
+    if t ~= temp_track_idx
+      and song.tracks[t].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      song.tracks[t].mute_state = renoise.Track.MUTE_STATE_MUTED
+    end
+  end
+
+  local tmp_wav = os.tmpname() .. ".wav"
+
+  local render_opts = {
+    sample_rate = (preferences and preferences.renderSampleRate
+      and preferences.renderSampleRate.value) or 44100,
+    bit_depth = (preferences and preferences.renderBitDepth
+      and preferences.renderBitDepth.value) or 24,
+    interpolation = "precise",
+    priority = "high",
+    start_pos = renoise.SongPos(cur_seq_idx, 1),
+    end_pos = renoise.SongPos(last_seq_idx, lines_per_pattern),
+  }
+
+  local function cleanup()
+    -- Delete the temp render track
+    if song.tracks[temp_track_idx]
+      and song.tracks[temp_track_idx].name == "[BSH render]" then
+      song:delete_track_at(temp_track_idx)
+    end
+    -- Delete extra sequence slots (reverse order)
+    table.sort(snap.added_slot_indices, function(a, b) return a > b end)
+    for _, s_idx in ipairs(snap.added_slot_indices) do
+      if seq.pattern_sequence[s_idx] then
+        pcall(function() seq:delete_sequence_at(s_idx) end)
+      end
+    end
+    -- Restore pattern length
+    if song.patterns[cur_pattern_idx] then
+      song.patterns[cur_pattern_idx].number_of_lines = snap.pattern_length
+    end
+    -- Restore mute states
+    for t = 1, math.min(#song.tracks, #snap.mutes) do
+      if song.tracks[t].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        song.tracks[t].mute_state = snap.mutes[t]
+      end
+    end
+    -- Restore edit mode + selection
+    if snap.edit_mode then song.transport.edit_mode = true end
+    if song.instruments[snap.sel_instr] then
+      song.selected_instrument_index = snap.sel_instr
+    end
+  end
+
+  local function on_render_done()
+    local new_idx = #instr.samples + 1
+    local new_sample = instr:insert_sample_at(new_idx)
+    local ok = new_sample.sample_buffer:load_from(tmp_wav)
+    if not ok then
+      instr:delete_sample_at(new_idx)
+      cleanup()
+      os.remove(tmp_wav)
+      renoise.app():show_status("BSHRender: WAV load_from failed")
+      return
+    end
+    new_sample.name = sample.name .. " (BSH render)"
+    new_sample.beat_sync_enabled = false
+    new_sample.beat_sync_lines = 512
+
+    -- Clamp original sample so the song is XRNS-safe now
+    sample.beat_sync_lines = 512
+    sample.beat_sync_enabled = false
+    PakettiHackCache[cache_key] = nil
+
+    cleanup()
+    os.remove(tmp_wav)
+
+    if #instr.samples >= new_idx then
+      song.selected_sample_index = new_idx
+    end
+    renoise.app():show_status(string.format(
+      "BSHRender: rendered %d lines (%.1fs) to sample [%d]; original clamped to 512.",
+      hacked_lines, duration_sec, new_idx))
+  end
+
+  renoise.app():show_status(string.format(
+    "BSHRender: rendering %d lines (~%.1fs)... GUI will be blocked.",
+    hacked_lines, duration_sec))
+
+  local success, err = song:render(render_opts, tmp_wav, on_render_done)
+  if not success then
+    cleanup()
+    os.remove(tmp_wav)
+    renoise.app():show_status("BSHRender: render call failed: " .. tostring(err))
+  end
+end
+
+-- ============================================================================
 -- Save protection: clamp hacked samples to 512 before XRNS save, re-apply after.
 -- ============================================================================
 
@@ -245,6 +429,18 @@ function pakettiBeatSyncHackDialog()
         paketti_hack_set_beatsync_lines(value_view.value)
         renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
       end
+    },
+    vb:text{
+      style = "strong", font = "bold",
+      text = "Render & Restore (bake stretched audio, clamp original to 512):"
+    },
+    vb:button{
+      text = "Render Current Sample + Restore BeatSync",
+      width = 360,
+      notifier = function()
+        pakettiBeatSyncHackRenderAndRestore()
+        renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+      end
     }
   }
   paketti_hack_dialog = renoise.app():show_custom_dialog("Paketti BeatSyncHack Dialog", content)
@@ -286,4 +482,21 @@ PakettiAddMenuEntry{
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Set BeatSyncLines Dialog",
   invoke = pakettiBeatSyncHackDialog
+}
+
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatSyncHack:Render & Restore Current Sample",
+  invoke = pakettiBeatSyncHackRenderAndRestore
+}
+PakettiAddMenuEntry{
+  name = "Sample Editor:Paketti:BeatSyncHack:Render & Restore Current Sample",
+  invoke = pakettiBeatSyncHackRenderAndRestore
+}
+PakettiAddMenuEntry{
+  name = "Instrument Box:Paketti:BeatSyncHack:Render & Restore Current Sample",
+  invoke = pakettiBeatSyncHackRenderAndRestore
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:BeatSyncHack Render & Restore",
+  invoke = pakettiBeatSyncHackRenderAndRestore
 }
