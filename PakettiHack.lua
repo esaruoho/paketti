@@ -177,56 +177,69 @@ function pakettiBeatSyncHackRenderAndRestore()
   end
 
   local seq = song.sequencer
-  local cur_seq_idx = song.selected_sequence_index
-  local cur_pattern_idx = seq:pattern(cur_seq_idx)
-  local cur_pattern = song.patterns[cur_pattern_idx]
 
   -- Snapshot state for cleanup
   local snap = {
-    pattern_length = cur_pattern.number_of_lines,
     mutes = {},
     sel_track = song.selected_track_index,
     sel_instr = instr_idx,
     sel_sample = sample_idx,
+    sel_seq = song.selected_sequence_index,
     edit_mode = song.transport.edit_mode,
-    added_slot_indices = {},
+    added_seq_indices = {},
+    added_pattern_indices = {},
     bs_mode = sample.beat_sync_mode,
   }
   for t = 1, #song.tracks do snap.mutes[t] = song.tracks[t].mute_state end
   if song.transport.edit_mode then song.transport.edit_mode = false end
 
   -- Force Repitch mode for the render. Texture/Percussion granular algorithms
-  -- segfault in TPlayerEngine::OnCalcBuffer when given extreme stretch ratios
-  -- (e.g. 32767 lines on a small sample). Repitch is a simple rate change and
-  -- handles any ratio without crashing.
+  -- segfault in TPlayerEngine::OnCalcBuffer when given extreme stretch ratios.
   if sample.beat_sync_mode ~= renoise.Sample.BEAT_SYNC_REPITCH then
     sample.beat_sync_mode = renoise.Sample.BEAT_SYNC_REPITCH
   end
 
   song:describe_undo("PakettiHack: Render & Restore sample " .. tostring(sample_idx))
 
-  -- Insert temp track at master_idx - 1 (before master, becomes a sequencer track)
-  local insert_at = master_idx - 1
-  local temp_track = song:insert_track_at(insert_at)
+  -- Temp track at master_idx - 1 (before master => regular sequencer track)
+  local temp_track_idx = master_idx - 1
+  local temp_track = song:insert_track_at(temp_track_idx)
   temp_track.name = "[BSH render]"
-  local temp_track_idx = insert_at
 
-  -- Set selected pattern's length to 512 (or hacked_lines if smaller)
-  cur_pattern.number_of_lines = lines_per_pattern
+  -- Build render slots at the END of the sequence (don't touch user's existing
+  -- sequence). Pattern A holds the C-4 note; Pattern B is empty filler so the
+  -- note triggers ONCE in slot A and the stretched sample plays through all
+  -- following B slots without re-trigger interruptions.
+  local first_render_seq_idx = #seq.pattern_sequence + 1
+  seq:insert_new_pattern_at(first_render_seq_idx)
+  local pat_a_idx = seq:pattern(first_render_seq_idx)
+  song.patterns[pat_a_idx].number_of_lines = lines_per_pattern
+  song.patterns[pat_a_idx].name = "[BSH render A]"
+  table.insert(snap.added_seq_indices, first_render_seq_idx)
+  table.insert(snap.added_pattern_indices, pat_a_idx)
 
-  -- Place C-4 note triggering the BeatSyncHacked instrument on the temp track
-  local note_col = cur_pattern:track(temp_track_idx):line(1).note_columns[1]
+  -- Place C-4 on temp track of pattern A, line 1
+  local note_col = song.patterns[pat_a_idx]:track(temp_track_idx):line(1).note_columns[1]
   note_col.note_value = 48 -- C-4
   note_col.instrument_value = instr_idx - 1
   note_col.volume_value = 0x80
 
-  -- Add extra sequence slots referencing the same pattern (covers >512 lines)
-  for k = 1, extra_slots do
-    local s_idx = cur_seq_idx + k
-    seq:insert_sequence_at(s_idx, cur_pattern_idx)
-    table.insert(snap.added_slot_indices, s_idx)
+  -- For hacked > 512 lines: one shared empty pattern B, reused across extra slots
+  if extra_slots > 0 then
+    seq:insert_new_pattern_at(first_render_seq_idx + 1)
+    local pat_b_idx = seq:pattern(first_render_seq_idx + 1)
+    song.patterns[pat_b_idx].number_of_lines = lines_per_pattern
+    song.patterns[pat_b_idx].name = "[BSH render B]"
+    table.insert(snap.added_seq_indices, first_render_seq_idx + 1)
+    table.insert(snap.added_pattern_indices, pat_b_idx)
+    -- Slots 2..extra_slots: all reference pattern B (no extra patterns created)
+    for k = 2, extra_slots do
+      local s_idx = first_render_seq_idx + k
+      seq:insert_sequence_at(s_idx, pat_b_idx)
+      table.insert(snap.added_seq_indices, s_idx)
+    end
   end
-  local last_seq_idx = cur_seq_idx + extra_slots
+  local last_seq_idx = first_render_seq_idx + extra_slots
 
   -- Solo the temp track (PakettiRender convention — cleaner than per-track mute)
   snap.solos = {}
@@ -243,7 +256,7 @@ function pakettiBeatSyncHackRenderAndRestore()
     bit_depth = preferences.renderBitDepth.value,
     interpolation = preferences.renderInterpolation.value,
     priority = "high",
-    start_pos = renoise.SongPos(cur_seq_idx, 1),
+    start_pos = renoise.SongPos(first_render_seq_idx, 1),
     end_pos = renoise.SongPos(last_seq_idx, lines_per_pattern),
   }
 
@@ -253,16 +266,17 @@ function pakettiBeatSyncHackRenderAndRestore()
       and song.tracks[temp_track_idx].name == "[BSH render]" then
       song:delete_track_at(temp_track_idx)
     end
-    -- Delete extra sequence slots (reverse order)
-    table.sort(snap.added_slot_indices, function(a, b) return a > b end)
-    for _, s_idx in ipairs(snap.added_slot_indices) do
+    -- Delete added sequence slots (reverse order so indices stay valid)
+    table.sort(snap.added_seq_indices, function(a, b) return a > b end)
+    for _, s_idx in ipairs(snap.added_seq_indices) do
       if seq.pattern_sequence[s_idx] then
         pcall(function() seq:delete_sequence_at(s_idx) end)
       end
     end
-    -- Restore pattern length
-    if song.patterns[cur_pattern_idx] then
-      song.patterns[cur_pattern_idx].number_of_lines = snap.pattern_length
+    -- Delete the orphan render patterns from the pattern pool (reverse order)
+    table.sort(snap.added_pattern_indices, function(a, b) return a > b end)
+    for _, p_idx in ipairs(snap.added_pattern_indices) do
+      pcall(function() song:delete_pattern_at(p_idx) end)
     end
     -- Restore mute + solo states (PakettiRender convention)
     for t = 1, math.min(#song.tracks, #snap.mutes) do
@@ -283,6 +297,9 @@ function pakettiBeatSyncHackRenderAndRestore()
     end
     -- Restore edit mode + selection
     if snap.edit_mode then song.transport.edit_mode = true end
+    if snap.sel_seq and snap.sel_seq <= #seq.pattern_sequence then
+      song.selected_sequence_index = snap.sel_seq
+    end
     if song.instruments[snap.sel_instr] then
       song.selected_instrument_index = snap.sel_instr
     end
