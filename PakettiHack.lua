@@ -8,12 +8,10 @@
 -- (SIGSEGV in TPatternPool teardown during the load swap). To prevent this, we hook
 -- app_will_save_document_observable to clamp all hacked samples to 512 right before
 -- the XRNS serializer reads them, then re-apply the hack via the XML roundtrip after
--- the save completes (app_saved_document_observable). The cache below is populated
--- whenever paketti_hack_set_beatsync_lines succeeds; it is the source of truth for
--- "which samples are hacked and to what value".
+-- the save completes (app_saved_document_observable). The engine's beat_sync_lines
+-- getter returns the actual value (not clamped on read), so we just iterate all
+-- samples to find the hacked ones — no cache needed.
 
--- cache_key = "<instr_idx>:<sample_idx>" -> hacked lines value
-rawset(_G, "PakettiHackCache", rawget(_G, "PakettiHackCache") or {})
 local paketti_hack_save_restore_queue = {}
 
 local function paketti_hack_run_shell(cmd)
@@ -123,9 +121,6 @@ local function paketti_hack_set_beatsync_lines(target_lines)
   os.remove(xml_path)
   os.remove(tmp_xrni)
 
-  -- Cache the hacked value so save-protection knows which samples to clamp+restore
-  PakettiHackCache[string.format("%d:%d", sel_inst_idx, sel_sample_idx)] = target_lines
-
   renoise.app():show_status(string.format(
     "PakettiHack: BeatSyncLines=%d on sample %d (save %.0fms + load %.0fms = %.0fms)",
     target_lines, sel_sample_idx,
@@ -154,43 +149,11 @@ function pakettiBeatSyncHackRenderAndRestore()
   end
   local sample = instr.samples[sample_idx]
 
-  local cache_key = string.format("%d:%d", instr_idx, sample_idx)
-  local hacked_lines = PakettiHackCache[cache_key]
-  -- Cache miss: probe the on-disk XML to recover the engine's true value.
-  -- The API getter clamps to 512, but the XRNI XML stores the real value.
-  if (not hacked_lines or hacked_lines <= 512) and os.platform() ~= "WINDOWS" then
-    local probe_xrni = os.tmpname() .. ".xrni"
-    local probe_dir = probe_xrni .. ".d"
-    os.mkdir(probe_dir)
-    renoise.app():save_instrument(probe_xrni)
-    local ok = paketti_hack_run_shell(string.format(
-      'unzip -o -j %q Instrument.xml -d %q', probe_xrni, probe_dir))
-    if ok then
-      local f = io.open(probe_dir .. "/Instrument.xml", "rb")
-      if f then
-        local xml = f:read("*a") or ""; f:close()
-        local count = 0
-        for v in xml:gmatch("<BeatSyncLines>(%-?%d+)</BeatSyncLines>") do
-          count = count + 1
-          if count == sample_idx then
-            local n = tonumber(v)
-            if n and n > 512 then
-              hacked_lines = n
-              PakettiHackCache[cache_key] = n
-              renoise.app():show_status(string.format(
-                "BSHRender: cache restored from XRNI probe (BeatSyncLines=%d)", n))
-            end
-            break
-          end
-        end
-      end
-    end
-    os.remove(probe_dir .. "/Instrument.xml")
-    os.remove(probe_xrni)
-  end
+  local hacked_lines = sample.beat_sync_lines
   if not hacked_lines or hacked_lines <= 512 then
-    renoise.app():show_status(
-      "BSHRender: this sample is not BeatSyncHacked (XML probe also <= 512). Apply hack first.")
+    renoise.app():show_status(string.format(
+      "BSHRender: sample's BeatSyncLines is %s (<=512); nothing to render. Apply hack first.",
+      tostring(hacked_lines)))
     return
   end
 
@@ -325,7 +288,6 @@ function pakettiBeatSyncHackRenderAndRestore()
     -- Clamp original sample so the song is XRNS-safe now
     sample.beat_sync_lines = 512
     sample.beat_sync_enabled = false
-    PakettiHackCache[cache_key] = nil
 
     cleanup()
     os.remove(tmp_wav)
@@ -358,21 +320,18 @@ local function paketti_hack_on_will_save()
   local song = renoise.song()
   if not song then return end
   paketti_hack_save_restore_queue = {}
-  for key, hacked_lines in pairs(PakettiHackCache) do
-    if hacked_lines > 512 then
-      local i_idx, s_idx = key:match("^(%d+):(%d+)$")
-      i_idx = tonumber(i_idx); s_idx = tonumber(s_idx)
-      if i_idx and s_idx
-        and song.instruments[i_idx]
-        and song.instruments[i_idx].samples[s_idx] then
-        local sample = song.instruments[i_idx].samples[s_idx]
+  for i_idx = 1, #song.instruments do
+    local instr = song.instruments[i_idx]
+    for s_idx = 1, #instr.samples do
+      local sample = instr.samples[s_idx]
+      local lines = sample.beat_sync_lines
+      if lines and lines > 512 then
         table.insert(paketti_hack_save_restore_queue, {
           instr_idx = i_idx,
           sample_idx = s_idx,
-          original_lines = hacked_lines,
+          original_lines = lines,
           had_sync = sample.beat_sync_enabled
         })
-        -- Clamp to safe value (API setter accepts 1..512)
         sample.beat_sync_lines = 512
       end
     end
