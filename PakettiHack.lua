@@ -156,9 +156,41 @@ function pakettiBeatSyncHackRenderAndRestore()
 
   local cache_key = string.format("%d:%d", instr_idx, sample_idx)
   local hacked_lines = PakettiHackCache[cache_key]
+  -- Cache miss: probe the on-disk XML to recover the engine's true value.
+  -- The API getter clamps to 512, but the XRNI XML stores the real value.
+  if (not hacked_lines or hacked_lines <= 512) and os.platform() ~= "WINDOWS" then
+    local probe_xrni = os.tmpname() .. ".xrni"
+    local probe_dir = probe_xrni .. ".d"
+    os.mkdir(probe_dir)
+    renoise.app():save_instrument(probe_xrni)
+    local ok = paketti_hack_run_shell(string.format(
+      'unzip -o -j %q Instrument.xml -d %q', probe_xrni, probe_dir))
+    if ok then
+      local f = io.open(probe_dir .. "/Instrument.xml", "rb")
+      if f then
+        local xml = f:read("*a") or ""; f:close()
+        local count = 0
+        for v in xml:gmatch("<BeatSyncLines>(%-?%d+)</BeatSyncLines>") do
+          count = count + 1
+          if count == sample_idx then
+            local n = tonumber(v)
+            if n and n > 512 then
+              hacked_lines = n
+              PakettiHackCache[cache_key] = n
+              renoise.app():show_status(string.format(
+                "BSHRender: cache restored from XRNI probe (BeatSyncLines=%d)", n))
+            end
+            break
+          end
+        end
+      end
+    end
+    os.remove(probe_dir .. "/Instrument.xml")
+    os.remove(probe_xrni)
+  end
   if not hacked_lines or hacked_lines <= 512 then
     renoise.app():show_status(
-      "BSHRender: this sample is not BeatSyncHacked (no cache entry > 512). Apply hack first.")
+      "BSHRender: this sample is not BeatSyncHacked (XML probe also <= 512). Apply hack first.")
     return
   end
 
