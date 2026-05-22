@@ -266,17 +266,17 @@ function pakettiBeatSyncHackRenderAndRestore()
       and song.tracks[temp_track_idx].name == "[BSH render]" then
       song:delete_track_at(temp_track_idx)
     end
-    -- Delete added sequence slots (reverse order so indices stay valid)
+    -- Delete added sequence slots (reverse order so indices stay valid).
+    -- Note: we do NOT call song:delete_pattern_at on the orphan patterns —
+    -- doing so during cleanup right after slot deletion triggers a Renoise
+    -- weak-ref-owner SIGSEGV in TPatternWasRemovedObservable. The orphan
+    -- patterns are empty 512-line shells; they linger in the pattern pool
+    -- harmlessly and are cleared when the song is reloaded.
     table.sort(snap.added_seq_indices, function(a, b) return a > b end)
     for _, s_idx in ipairs(snap.added_seq_indices) do
       if seq.pattern_sequence[s_idx] then
         pcall(function() seq:delete_sequence_at(s_idx) end)
       end
-    end
-    -- Delete the orphan render patterns from the pattern pool (reverse order)
-    table.sort(snap.added_pattern_indices, function(a, b) return a > b end)
-    for _, p_idx in ipairs(snap.added_pattern_indices) do
-      pcall(function() song:delete_pattern_at(p_idx) end)
     end
     -- Restore mute + solo states (PakettiRender convention)
     for t = 1, math.min(#song.tracks, #snap.mutes) do
