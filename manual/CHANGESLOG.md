@@ -8,9 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-05-24 - Fix: Beatsync Seamless — second crash, sample_buffer:normalize() does not exist
+### 2026-05-24 - Fix: Beatsync Seamless — second crash, reuse existing PakettiNormalizeSample helper
 
-After the prepare/finalize fix, Beatsync Seamless Auto-Chop hit a second crash: `unknown property or function 'normalize' for an object of type 'SampleBuffer'`. `renoise.SampleBuffer` has no built-in `normalize()` method — that API call was imagined. Replaced with a hand-rolled `normalize_buffer(sbuf)` helper: walks every channel × every frame to find the absolute peak, then if peak is non-zero and below 0.9999 (skips silent / already-full-scale samples), wraps `set_sample_data` in `prepare_sample_data_changes` / `finalize_sample_data_changes` and multiplies every frame by `1.0 / peak`. The prepare/finalize wrap is correct here because the buffer already exists — this is genuine modification of existing data, not initial creation.
+After the prepare/finalize fix, Beatsync Seamless Auto-Chop hit a second crash: `unknown property or function 'normalize' for an object of type 'SampleBuffer'`. `renoise.SampleBuffer` has no built-in `normalize()` method — that API call was imagined. **Initial fix** added a local `normalize_buffer(sbuf)` helper, but Paketti already had a normalize implementation (the inner `process_sample` closure inside `normalize_and_reduce` in `PakettiProcess.lua`) doing exactly the same peak-scan + scale work. **Real fix**: extracted that closure as a public `PakettiNormalizeSample(sample, db_reduction)` function in `PakettiProcess.lua` (db_reduction=0 → pure 0 dBFS normalize, db_reduction=-12 → menu/keybinding behavior), routed `normalize_and_reduce` through it (backward compatible), and replaced the local helper in `PakettiBeatsyncSeamless.lua` with a single `PakettiNormalizeSample(sample, 0)` call. Future Paketti code that needs synchronous normalize on a specific sample now has one shared entry point instead of growing more copies.
 
 ### 2026-05-24 - Fix: Beatsync Seamless — std::logic_error on prepare/finalize around create_sample_data
 

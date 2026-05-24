@@ -689,37 +689,47 @@ renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Samples in Inst
 renoise.tool():add_midi_mapping{name="Paketti:Normalize All Samples in Instrument",invoke=function(message) if message:is_trigger() then normalize_all_samples_in_instrument() end end}
 
 ------
-function normalize_and_reduce(scope, db_reduction)
-  local function process_sample(sample, reduction_factor)
-    if not sample then return false, "No sample provided!" end
-    local buffer = sample.sample_buffer
-    if not buffer or not buffer.has_sample_data then return false, "Sample has no data!" end
+-- Public synchronous normalize-and-reduce on a passed-in sample.
+-- db_reduction = 0 → pure peak-normalize to 0 dBFS.
+-- db_reduction = -12 → peak-normalize then drop 12 dB (the menu/keybinding behavior).
+-- Returns (success, message). Safe to call from any other Paketti code that
+-- needs a one-shot synchronous normalize on a specific sample.
+function PakettiNormalizeSample(sample, db_reduction)
+  if not sample then return false, "No sample provided!" end
+  local buffer = sample.sample_buffer
+  if not buffer or not buffer.has_sample_data then return false, "Sample has no data!" end
 
-    buffer:prepare_sample_data_changes()
+  local reduction_factor = 10 ^ ((db_reduction or 0) / 20)
 
-    local max_amplitude = 0
-    for channel = 1, buffer.number_of_channels do
-      for frame = 1, buffer.number_of_frames do
-        local sample_value = math.abs(buffer:sample_data(channel, frame))
-        if sample_value > max_amplitude then max_amplitude = sample_value end
-      end
+  buffer:prepare_sample_data_changes()
+
+  local max_amplitude = 0
+  for channel = 1, buffer.number_of_channels do
+    for frame = 1, buffer.number_of_frames do
+      local sample_value = math.abs(buffer:sample_data(channel, frame))
+      if sample_value > max_amplitude then max_amplitude = sample_value end
     end
-
-    if max_amplitude > 0 then
-      local normalization_factor = 1 / max_amplitude
-      for channel = 1, buffer.number_of_channels do
-        for frame = 1, buffer.number_of_frames do
-          local sample_value = buffer:sample_data(channel, frame)
-          buffer:set_sample_data(channel, frame, sample_value * normalization_factor * reduction_factor)
-        end
-      end
-    end
-
-    buffer:finalize_sample_data_changes()
-    return true, "Sample processed successfully!"
   end
 
+  if max_amplitude > 0 then
+    local normalization_factor = 1 / max_amplitude
+    for channel = 1, buffer.number_of_channels do
+      for frame = 1, buffer.number_of_frames do
+        local sample_value = buffer:sample_data(channel, frame)
+        buffer:set_sample_data(channel, frame, sample_value * normalization_factor * reduction_factor)
+      end
+    end
+  end
+
+  buffer:finalize_sample_data_changes()
+  return true, "Sample processed successfully!"
+end
+
+function normalize_and_reduce(scope, db_reduction)
   local reduction_factor = 10 ^ (db_reduction / 20)
+  local function process_sample(sample, _unused)
+    return PakettiNormalizeSample(sample, db_reduction)
+  end
 
   if scope == "current_sample" then
     local sample = renoise.song().selected_sample
