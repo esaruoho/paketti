@@ -475,7 +475,15 @@ local dod_search_display_text = nil
 local dod_status_text = nil
 local dod_button_widgets = {}
 local dod_keyhandler = nil
-local dod_buttons_per_row = preferences.pakettiDialogOfDialogsColumnsPerRow.value  -- User-configurable buttons per row, loaded from preferences
+-- Sanitize on load: any stored value < 3 (legacy / accidental) snaps to 3
+-- and is re-saved, so it cannot crash the dialog on next open.
+local _dod_pref = preferences.pakettiDialogOfDialogsColumnsPerRow.value
+if not _dod_pref or _dod_pref < 3 then
+  preferences.pakettiDialogOfDialogsColumnsPerRow.value = 3
+  preferences:save_as("preferences.xml")
+  _dod_pref = 3
+end
+local dod_buttons_per_row = _dod_pref  -- User-configurable buttons per row, loaded from preferences
 local dod_columns_valuebox = nil
 
 -- Function to update dialog of dialogs search display
@@ -687,34 +695,30 @@ end
 
 -- Function to calculate optimal dialog width based on columns and content
 function calculate_dod_dialog_width(buttons_per_row, button_list)
-  local max_visible_rows = math.ceil(120 / buttons_per_row)
-  
-  -- Calculate column widths based on longest text in each column
+  -- Inspect EVERY button in the list, not just the first 120 — otherwise
+  -- columns sized off the early items would clip later, longer names.
+  local total_buttons = #button_list
+  local max_visible_rows = math.ceil(total_buttons / buttons_per_row)
+
   local column_widths = {}
   local total_button_width = 0
-  
+
   for col = 1, buttons_per_row do
     local max_length = 0
-    -- Check every button that would be in this column
     for row = 0, max_visible_rows - 1 do
       local button_index = row * buttons_per_row + col
-      if button_index <= #button_list then
+      if button_index <= total_buttons then
         local text_length = #button_list[button_index][1]
         if text_length > max_length then
           max_length = text_length
         end
       end
     end
-    -- Convert character count to pixels (approx 7px per char + 16px padding)
     column_widths[col] = math.max(80, math.min(200, max_length * 7 + 16))
     total_button_width = total_button_width + column_widths[col]
   end
-  
-  -- Calculate dialog width: button widths + minimal spacing + margins
-  local dialog_width = total_button_width  -- Add minimal padding
-  dialog_width = math.max(600, math.min(1800, dialog_width))  -- Reasonable limits
-  
-  print("DOD: Calculated width for " .. buttons_per_row .. " columns: " .. dialog_width .. "px (total button width: " .. total_button_width .. "px)")
+
+  local dialog_width = math.max(600, math.min(1800, total_button_width))
   return dialog_width, column_widths
 end
 
@@ -749,14 +753,27 @@ function pakettiDialogOfDialogs(search_query, custom_keyhandler)
   
   -- Calculate dialog width and column widths based on current settings
   local buttons_per_row = dod_buttons_per_row  -- User-configurable buttons per row
-  local max_visible_rows = math.ceil(#dod_filtered_buttons / buttons_per_row)  -- SHOW ALL DIALOGS
   local BUTTON_HEIGHT = 20  -- Normal button height like Renoise default
-  local max_buttons_to_show = #dod_filtered_buttons  -- SHOW ALL DIALOGS, NO LIMIT
-  
+
+  -- Auto-clamp columns UP if the resulting grid would be taller than the
+  -- screen. Renoise rejects content views taller than the screen with
+  -- "view layout is broken". We never overwrite the user's preference —
+  -- this only widens the grid for the current render.
+  local MAX_CONTENT_HEIGHT = 720       -- safe for 800px-tall displays
+  local HEADER_HEIGHT = 80              -- search/columns/status row + margins
+  local PER_ROW_HEIGHT = BUTTON_HEIGHT + 2
+  local available_rows = math.floor((MAX_CONTENT_HEIGHT - HEADER_HEIGHT) / PER_ROW_HEIGHT)
+  if available_rows < 1 then available_rows = 1 end
+  if math.ceil(#dod_filtered_buttons / buttons_per_row) > available_rows then
+    buttons_per_row = math.ceil(#dod_filtered_buttons / available_rows)
+    if buttons_per_row > 12 then buttons_per_row = 12 end  -- valuebox max
+  end
+
+  local max_visible_rows = math.ceil(#dod_filtered_buttons / buttons_per_row)
+  local max_buttons_to_show = #dod_filtered_buttons
+
   -- Calculate optimal dialog width and column widths
   local dialog_width, column_widths = calculate_dod_dialog_width(buttons_per_row, button_list)
-
-  print("DOD: Using " .. buttons_per_row .. " buttons per row, " .. max_visible_rows .. " rows, showing ALL " .. #dod_filtered_buttons .. " dialogs")
   
   dod_button_widgets = {}
   local rows = {}
@@ -806,77 +823,61 @@ function pakettiDialogOfDialogs(search_query, custom_keyhandler)
     table.insert(rows, vb:row(current_row))
   end
   
-  local visible_count = math.min(#dod_filtered_buttons, max_buttons_to_show)
-  print("DOD: Created " .. #rows .. " rows, showing " .. visible_count .. " of " .. #dod_filtered_buttons .. " dialogs")
-  
-  -- Debug: Show first few button names
-  if #dod_filtered_buttons > 0 then
-    print("DOD: First few buttons:")
-    for i = 1, math.min(5, #dod_filtered_buttons) do
-      print("  " .. i .. ": " .. dod_filtered_buttons[i][1])
-    end
-  else
-    print("DOD: ERROR - No buttons in dod_filtered_buttons!")
+  local auto_clamped = buttons_per_row ~= dod_buttons_per_row
+  local status_text_value = string.format("%d matches", #dod_filtered_buttons)
+  if auto_clamped then
+    status_text_value = status_text_value ..
+      string.format("  (auto-fit %d cols — your pref %d would not fit screen)",
+        buttons_per_row, dod_buttons_per_row)
   end
-  
+
   return vb:column{
+    margin = 6,
+    spacing = 4,
+    -- Single header row: search input, columns valuebox, status — all on one line
     vb:row{
-      vb:text{
-        text = "Type to search:",
-        width = 100, font="bold",style="strong"
-      },
+      spacing = 8,
+      vb:text{ text = "Search:", width = 50, font = "bold", style = "strong" },
       (function()
         dod_search_display_text = vb:text{
-          width = 300,
+          width = 260,
           text = "'" .. dod_current_search_text .. "'",
           style = "strong"
         }
         return dod_search_display_text
-      end)()
-    },
-    
-    -- Add columns per row control between search and dialogs
-    vb:row{
-      vb:text{
-        text = "Columns per row:",
-        width = 100,style="strong",font="bold"
-      },
+      end)(),
+      vb:text{ text = "Cols:", width = 36, font = "bold", style = "strong" },
       (function()
         dod_columns_valuebox = vb:valuebox{
-          min = 1,
+          min = 3,   -- Cols < 3 produces a vertical wall taller than screens
           max = 12,
           value = dod_buttons_per_row,
-          width = 60,
+          width = 50,
           notifier = function(value)
+            if value < 3 then value = 3 end  -- defence in depth
             dod_buttons_per_row = value
             preferences.pakettiDialogOfDialogsColumnsPerRow.value = value
-            preferences:save_as("preferences.xml")  -- Save preference immediately
+            preferences:save_as("preferences.xml")
             rebuild_dod_dialog()
           end
         }
         return dod_columns_valuebox
-      end)()
-    },
-    
-    vb:row{
-      vb:text{
-        text = "Dialogs:",
-        style = "strong",font="bold",
-        width = 100
-      },
+      end)(),
       (function()
         dod_status_text = vb:text{
-          text = string.format("(%d matches)", #dod_filtered_buttons),font="bold",style="strong",
-          --style = "disabled",
-          width = 300
+          text = status_text_value,
+          font = "bold",
+          style = "strong"
         }
         return dod_status_text
-      end)()
+      end)(),
     },
-    
+
     vb:column{
       style = "group",
-      width = dialog_width,  -- DYNAMIC WIDTH - adapts to number of columns but stays fixed during search
+      width = dialog_width,
+      margin = 4,
+      spacing = 2,
       unpack(rows)
     }
   }
@@ -912,8 +913,13 @@ function pakettiDialogOfDialogsToggle()
     local button_list = create_button_list()
     local dialog_count = #button_list
     
-    -- Load columns per row setting from preferences
+    -- Load columns per row setting from preferences, sanitizing < 3 to 3
     dod_buttons_per_row = preferences.pakettiDialogOfDialogsColumnsPerRow.value
+    if not dod_buttons_per_row or dod_buttons_per_row < 3 then
+      dod_buttons_per_row = 3
+      preferences.pakettiDialogOfDialogsColumnsPerRow.value = 3
+      preferences:save_as("preferences.xml")
+    end
     
     -- Reset search state
     dod_current_search_text = ""
