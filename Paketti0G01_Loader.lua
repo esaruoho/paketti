@@ -3150,6 +3150,27 @@ vb:row{
           else
             renoise.app():show_warning("KeyBindings folder not found at:\n" .. keybindings_path)
           end
+        end},
+        vb:button{text="Reveal preferences.xml (for esaruoho@gmail.com)",notifier=function()
+          preferences:save_as("preferences.xml")
+          local prefs_path = renoise.tool().bundle_path .. "preferences.xml"
+          if io.exists(prefs_path) then
+            renoise.app():open_path(prefs_path)
+            renoise.app():show_status("preferences.xml revealed — drag it into a new email to esaruoho@gmail.com")
+          else
+            renoise.app():show_warning("preferences.xml not found at:\n" .. prefs_path)
+          end
+        end},
+        vb:button{text="Email preferences.xml to esaruoho",notifier=function()
+          preferences:save_as("preferences.xml")
+          local prefs_path = renoise.tool().bundle_path .. "preferences.xml"
+          if io.exists(prefs_path) then
+            renoise.app():open_path(prefs_path)
+          end
+          local subject = "Paketti preferences.xml"
+          local body = "Hi Esa,\n\nAttached: my Paketti preferences.xml (it should be open in Finder/Explorer now — drag it into this email).\n\nContext / issue I'm seeing:\n\n"
+          local url = "mailto:esaruoho@gmail.com?subject=" .. subject:gsub(" ", "%%20") .. "&body=" .. body:gsub("\n", "%%0A"):gsub(" ", "%%20")
+          renoise.app():open_url(url)
         end}
       },
 
