@@ -45,14 +45,14 @@ local function trim_sample_range(instr, sample_idx, first, last)
   local new_sample = instr:insert_sample_at(sample_idx)
   new_sample:copy_from(source)
   local nb = new_sample.sample_buffer
-  nb:prepare_sample_data_changes()
+  -- create_sample_data allocates a fresh buffer — prepare/finalize_sample_data_changes
+  -- is ONLY for modifying existing data, not for freshly created buffers.
   nb:create_sample_data(rate, depth, channels, out_frames)
   for ch = 1, channels do
     for f = 1, out_frames do
       nb:set_sample_data(ch, f, sbuf:sample_data(ch, first + f - 1))
     end
   end
-  nb:finalize_sample_data_changes()
   instr:delete_sample_at(sample_idx + 1)
   return instr.samples[sample_idx]
 end
@@ -120,7 +120,7 @@ function PakettiBeatsyncSeamlessAutoChop()
 
   local function populate_chunk(target, chunk_index)
     local nb = target.sample_buffer
-    nb:prepare_sample_data_changes()
+    -- create_sample_data allocates a fresh buffer — no prepare/finalize wrap.
     nb:create_sample_data(rate, depth, channels, chunk_frames)
     local source_start = (chunk_index - 1) * chunk_frames
     for ch = 1, channels do
@@ -128,7 +128,6 @@ function PakettiBeatsyncSeamlessAutoChop()
         nb:set_sample_data(ch, f, sbuf:sample_data(ch, source_start + f))
       end
     end
-    nb:finalize_sample_data_changes()
     target.name = string.format("%s [%d/%d]", source_name, chunk_index, N)
   end
 

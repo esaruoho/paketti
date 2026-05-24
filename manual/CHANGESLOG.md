@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-05-24 - Fix: Beatsync Seamless — std::logic_error on prepare/finalize around create_sample_data
+
+`PakettiBeatsyncSeamless.lua` crashed with `std::logic_error: 'do NOT call 'prepare/finalize_sample_data_changes' before/after loading or creating new sample buffers'` when triggered. Two callers wrapped `create_sample_data` + `set_sample_data` in `prepare_sample_data_changes()` / `finalize_sample_data_changes()` — `trim_sample_range` (silence trim path) and `populate_chunk` (per-chunk fill). The Renoise rule is that prepare/finalize is **only** for modifying existing buffer data; freshly created buffers via `create_sample_data` must not be wrapped. Removed both `prepare_sample_data_changes()` / `finalize_sample_data_changes()` calls. The `sbuf:normalize()` wrap remains correct (that one modifies existing data).
+
 ### 2026-05-24 - Improvement: Paketti Preferences Email button — also attach Renoise KeyBindings.xml + report Renoise version
 
 The Email button now derives Renoise's user prefs folder from `renoise.tool().bundle_path` (stripping the trailing `Scripts<sep>Tools<sep><toolname><sep>` to land on the `V<version>` root), checks whether `KeyBindings.xml` exists there, and attaches it alongside `preferences.xml` when present. The subject line is now `Paketti report (Renoise <X.Y.Z>)` using `renoise.RENOISE_VERSION`, and the body lists both attachments, the detected Renoise version, and the detected OS — so reports come in pre-tagged with the most useful debug context. All three branches handle the second attachment: macOS adds a second `make new attachment` AppleScript line; Linux adds a second `--attach` flag to xdg-email; Windows Thunderbird uses Thunderbird's comma-separated `attachment=file:///a,file:///b` syntax. Windows without Thunderbird reveals both files in Explorer.
