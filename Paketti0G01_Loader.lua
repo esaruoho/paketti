@@ -158,7 +158,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiAuditionOnLineChangeEnabled=false,
   pakettiTriggerOnInputEnabled=false,
   pakettiFrameCalculatorLiveUpdate=1, -- 1=Off, 2=Song to Line, 3=Pattern to Line, 4=Both
-  PakettiSBxFollowEnabled=true,
+  PakettiSBxFollowEnabled=false,
   PakettiPhraseFollowPatternPlayback=false,
   pakettiFollowPagePattern=false,
   
@@ -1705,8 +1705,23 @@ vb:row{
               vb:checkbox{
                 value=preferences.PakettiSelectTrackSelectInstrument.value,
                 tooltip="When switching tracks, automatically select the instrument used in that track (like 'Capture Nearest Instrument')",
-                notifier=function(value) 
+                notifier=function(value)
                   preferences.PakettiSelectTrackSelectInstrument.value=value
+                end
+              },
+              vb:space{width=checkbox_spacing},
+              vb:text{text="SBx Pattern Loop Follow",width=150,tooltip="0SB0/0SBx tracker-style loop commands: jump back to SB0 marker N times. Adds an idle-tick playback monitor and per-pattern line-edit notifier — leave OFF unless you actually use SB-commands."},
+              vb:checkbox{
+                value=preferences.PakettiSBxFollowEnabled.value,
+                tooltip="0SB0/0SBx tracker-style loop commands: jump back to SB0 marker N times. Adds an idle-tick playback monitor and per-pattern line-edit notifier — leave OFF unless you actually use SB-commands.",
+                notifier=function(value)
+                  if value ~= preferences.PakettiSBxFollowEnabled.value then
+                    if type(PakettiToggleSBxFollow) == "function" then
+                      PakettiToggleSBxFollow()
+                    else
+                      preferences.PakettiSBxFollowEnabled.value=value
+                    end
+                  end
                 end
               }
             },

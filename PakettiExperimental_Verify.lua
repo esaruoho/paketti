@@ -200,18 +200,27 @@ local sbx_end_lines = {}
 -- Ordered list of pairs for reset iteration (small, typically 1-4 entries)
 local sbx_pairs = {}
 
+-- Per-pattern analysis cache: pattern_index → {end_lines = {...}, pairs = {...}}
+-- Avoids re-scanning every track × every line on every pattern change.
+-- Invalidated for a pattern when its line notifier fires, or globally on song change.
+local sbx_pattern_cache = {}
+
 -- Line edit notifier tracking — so we can remove them on pattern change / disable
 local sbx_line_notifier_tracks = {}  -- {pattern_index, track_index} pairs with active notifiers
 local sbx_needs_reanalyze = false    -- flag set by edit notifier, consumed by monitor
+local sbx_notifier_pattern_index = nil  -- which pattern currently has our notifier
 
 ---------------------------------------------------------------------------
 -- Line edit notifier — lightweight flag setter, consumed by monitor
+-- Also invalidates the cache for whichever pattern the notifier was attached to
+-- (notifier is only ever attached to a single pattern at a time).
 ---------------------------------------------------------------------------
 local function sbx_on_line_edited(pos)
   sbx_needs_reanalyze = true
+  if sbx_notifier_pattern_index then
+    sbx_pattern_cache[sbx_notifier_pattern_index] = nil
+  end
 end
-
-local sbx_notifier_pattern_index = nil  -- which pattern currently has our notifier
 
 local function sbx_remove_line_notifiers()
   local song = renoise.song()
@@ -261,6 +270,17 @@ function analyze_loops(pattern_index)
   end
   if not pattern_index then
     pattern_index = song.selected_pattern_index
+  end
+
+  -- Cache hit: reuse a prior scan of this pattern. Cache is invalidated by the
+  -- line edit notifier whenever the pattern's content changes.
+  local cached = sbx_pattern_cache[pattern_index]
+  if cached then
+    sbx_end_lines = cached.end_lines
+    sbx_pairs = cached.pairs
+    sbx_last_pattern_index = pattern_index
+    sbx_add_line_notifiers(pattern_index)
+    return #sbx_pairs > 0
   end
 
   local pattern = song:pattern(pattern_index)
@@ -323,6 +343,12 @@ function analyze_loops(pattern_index)
 
   -- Install line edit notifiers on this pattern so edits trigger re-analysis
   sbx_add_line_notifiers(pattern_index)
+
+  -- Store fresh scan in the per-pattern cache so the next visit is O(1)
+  sbx_pattern_cache[pattern_index] = {
+    end_lines = sbx_end_lines,
+    pairs = sbx_pairs,
+  }
 
   if #sbx_pairs == 0 then
     return false
@@ -507,6 +533,7 @@ local function disable_monitoring()
   sbx_needs_reanalyze = false
   sbx_end_lines = {}
   sbx_pairs = {}
+  sbx_pattern_cache = {}
   sbx_remove_line_notifiers()
   if sbx_active and renoise.tool().app_idle_observable:has_notifier(monitor_playback) then
     renoise.tool().app_idle_observable:remove_notifier(monitor_playback)
@@ -564,6 +591,9 @@ end
 local function PakettiSBxNewDocumentHandler()
   sbx_playing_notifier_installed = false
   sbx_remove_line_notifiers()
+  -- Per-song cache must be cleared — pattern indices belong to the old song.
+  sbx_pattern_cache = {}
+  sbx_last_pattern_index = nil
   if sbx_monitoring_enabled then
     sbx_install_playing_notifier()
     InitSBx()
