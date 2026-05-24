@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-05-24 - Fix: Beatsync Seamless — second crash, sample_buffer:normalize() does not exist
+
+After the prepare/finalize fix, Beatsync Seamless Auto-Chop hit a second crash: `unknown property or function 'normalize' for an object of type 'SampleBuffer'`. `renoise.SampleBuffer` has no built-in `normalize()` method — that API call was imagined. Replaced with a hand-rolled `normalize_buffer(sbuf)` helper: walks every channel × every frame to find the absolute peak, then if peak is non-zero and below 0.9999 (skips silent / already-full-scale samples), wraps `set_sample_data` in `prepare_sample_data_changes` / `finalize_sample_data_changes` and multiplies every frame by `1.0 / peak`. The prepare/finalize wrap is correct here because the buffer already exists — this is genuine modification of existing data, not initial creation.
+
 ### 2026-05-24 - Fix: Beatsync Seamless — std::logic_error on prepare/finalize around create_sample_data
 
 `PakettiBeatsyncSeamless.lua` crashed with `std::logic_error: 'do NOT call 'prepare/finalize_sample_data_changes' before/after loading or creating new sample buffers'` when triggered. Two callers wrapped `create_sample_data` + `set_sample_data` in `prepare_sample_data_changes()` / `finalize_sample_data_changes()` — `trim_sample_range` (silence trim path) and `populate_chunk` (per-chunk fill). The Renoise rule is that prepare/finalize is **only** for modifying existing buffer data; freshly created buffers via `create_sample_data` must not be wrapped. Removed both `prepare_sample_data_changes()` / `finalize_sample_data_changes()` calls. The `sbuf:normalize()` wrap remains correct (that one modifies existing data).

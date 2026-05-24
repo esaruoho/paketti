@@ -8,6 +8,29 @@ local MAX_PATTERN_LINES = 512
 local MAX_BEAT_SYNC_LINES = 512
 local BASE_NOTE = 48 -- C-4
 
+-- Manual peak-normalize: SampleBuffer has no built-in normalize method.
+-- Find max |sample| across all channels/frames, scale every frame so peak = 1.0.
+local function normalize_buffer(sbuf)
+  local frames = sbuf.number_of_frames
+  local channels = sbuf.number_of_channels
+  local peak = 0
+  for ch = 1, channels do
+    for f = 1, frames do
+      local v = math.abs(sbuf:sample_data(ch, f))
+      if v > peak then peak = v end
+    end
+  end
+  if peak <= 0 or peak >= 0.9999 then return end  -- silent or already at full scale
+  local gain = 1.0 / peak
+  sbuf:prepare_sample_data_changes()
+  for ch = 1, channels do
+    for f = 1, frames do
+      sbuf:set_sample_data(ch, f, sbuf:sample_data(ch, f) * gain)
+    end
+  end
+  sbuf:finalize_sample_data_changes()
+end
+
 local function find_audible_bounds(sbuf)
   local frames = sbuf.number_of_frames
   local channels = sbuf.number_of_channels
@@ -99,10 +122,8 @@ function PakettiBeatsyncSeamlessAutoChop()
     sbuf = sample.sample_buffer
   end
 
-  -- 2. Normalize
-  sbuf:prepare_sample_data_changes()
-  sbuf:normalize()
-  sbuf:finalize_sample_data_changes()
+  -- 2. Normalize (manual peak-normalize — SampleBuffer has no built-in normalize)
+  normalize_buffer(sbuf)
 
   -- 3. Compute chop params from current BPM / LPB
   local bpm = song.transport.bpm
