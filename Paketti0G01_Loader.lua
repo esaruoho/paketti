@@ -3165,25 +3165,53 @@ vb:row{
           preferences:save_as("preferences.xml")
           local prefs_path = renoise.tool().bundle_path .. "preferences.xml"
           local platform = os.platform()
-          local subject = "Paketti preferences.xml"
+          local sep = (platform == "WINDOWS") and "\\" or "/"
+
+          -- Derive Renoise's user prefs folder (where KeyBindings.xml lives)
+          -- by stripping "Scripts<sep>Tools<sep><toolname><sep>" from bundle_path.
+          local bundle = renoise.tool().bundle_path
+          if bundle:sub(-1) == sep then bundle = bundle:sub(1, -2) end
+          local renoise_root = bundle
+          for i = 1, 3 do
+            local pos = renoise_root:reverse():find(sep, 1, true)
+            if pos then renoise_root = renoise_root:sub(1, #renoise_root - pos) end
+          end
+          local kb_path = renoise_root .. sep .. "KeyBindings.xml"
+          local has_kb = io.exists(kb_path)
+
+          local renoise_ver = renoise.RENOISE_VERSION or "unknown"
+          local subject = "Paketti report (Renoise " .. renoise_ver .. ")"
           local body_lines = {
             "Hi Esa,",
             "",
-            "My Paketti preferences.xml is attached.",
-            "",
-            "Context / issue I'm seeing:",
-            "",
-            ""
+            "Attached:",
+            "  - Paketti preferences.xml",
           }
+          if has_kb then
+            table.insert(body_lines, "  - Renoise KeyBindings.xml")
+          end
+          table.insert(body_lines, "")
+          table.insert(body_lines, "Renoise version: " .. renoise_ver)
+          table.insert(body_lines, "OS: " .. platform)
+          table.insert(body_lines, "")
+          table.insert(body_lines, "Context / issue I'm seeing:")
+          table.insert(body_lines, "")
+          table.insert(body_lines, "")
 
           if platform == "MACINTOSH" and io.exists(prefs_path) then
             -- macOS: bypass mailto: entirely. AppleScript to Mail.app gives us
-            -- a real attachment AND avoids the URL-encoding mess where Mail
+            -- real attachments AND avoids the URL-encoding mess where Mail
             -- shows literal %20/%0A in subject/body.
             local function esc(s) return (s:gsub("\\", "\\\\"):gsub('"', '\\"')) end
             local body_quoted = '"' .. esc(body_lines[1]) .. '"'
             for i = 2, #body_lines do
               body_quoted = body_quoted .. ' & return & "' .. esc(body_lines[i]) .. '"'
+            end
+            local attachment_block =
+              '      make new attachment with properties {file name:(POSIX file "' .. esc(prefs_path) .. '")} at after last paragraph\n'
+            if has_kb then
+              attachment_block = attachment_block ..
+                '      make new attachment with properties {file name:(POSIX file "' .. esc(kb_path) .. '")} at after last paragraph\n'
             end
             local script =
               'tell application "Mail"\n' ..
@@ -3191,7 +3219,7 @@ vb:row{
               '  tell newMsg\n' ..
               '    make new to recipient with properties {address:"esaruoho@gmail.com"}\n' ..
               '    tell content\n' ..
-              '      make new attachment with properties {file name:(POSIX file "' .. esc(prefs_path) .. '")} at after last paragraph\n' ..
+              attachment_block ..
               '    end tell\n' ..
               '  end tell\n' ..
               '  activate\n' ..
@@ -3203,43 +3231,49 @@ vb:row{
               f:close()
               os.execute('osascript "' .. tmpfile .. '"')
               os.remove(tmpfile)
-              renoise.app():show_status("Mail.app: new message with preferences.xml attached")
+              renoise.app():show_status("Mail.app: new message with " .. (has_kb and "preferences.xml + KeyBindings.xml" or "preferences.xml") .. " attached")
             else
               renoise.app():show_warning("Could not write AppleScript to tempfile")
             end
           elseif platform == "LINUX" and io.exists(prefs_path) then
-            -- Linux: xdg-email from xdg-utils handles real attachments via
-            -- the user's configured default mail handler (Thunderbird,
-            -- Evolution, KMail, etc.). Quoting the body keeps newlines intact.
+            -- Linux: xdg-email from xdg-utils handles real attachments via the
+            -- configured default mail handler. Multiple --attach is supported.
             local body_str = table.concat(body_lines, "\n")
             local cmd = 'xdg-email --utf8' ..
               ' --subject "' .. subject .. '"' ..
               ' --body "' .. body_str:gsub('"', '\\"') .. '"' ..
-              ' --attach "' .. prefs_path .. '"' ..
-              ' esaruoho@gmail.com &'
+              ' --attach "' .. prefs_path .. '"'
+            if has_kb then
+              cmd = cmd .. ' --attach "' .. kb_path .. '"'
+            end
+            cmd = cmd .. ' esaruoho@gmail.com &'
             os.execute(cmd)
-            renoise.app():show_status("xdg-email: new message with preferences.xml attached")
+            renoise.app():show_status("xdg-email: new message with " .. (has_kb and "preferences.xml + KeyBindings.xml" or "preferences.xml") .. " attached")
           elseif platform == "WINDOWS" and io.exists(prefs_path) then
             -- Windows: try Thunderbird's -compose CLI first (real attachment).
             -- If Thunderbird isn't installed, fall back to reveal + bare mailto:.
-            -- `where` returns 0 if the binary is on PATH.
             local has_tb = os.execute('where thunderbird >NUL 2>&1') == 0
             if has_tb then
               local body_str = table.concat(body_lines, "\n")
-              -- Thunderbird's -compose uses comma-separated key=value pairs;
-              -- the whole thing must be quoted. Attachment uses file:/// URL.
-              local file_url = "file:///" .. prefs_path:gsub("\\", "/")
+              -- Thunderbird -compose attachment field accepts comma-separated
+              -- file:/// URLs. The outer compose CSV also uses comma, but
+              -- Thunderbird parses 'attachment=' as a multi-value field.
+              local attach_value = "file:///" .. prefs_path:gsub("\\", "/")
+              if has_kb then
+                attach_value = attach_value .. ",file:///" .. kb_path:gsub("\\", "/")
+              end
               local compose_arg =
                 'to=esaruoho@gmail.com,' ..
                 'subject=' .. subject .. ',' ..
                 'body=' .. body_str .. ',' ..
-                'attachment=' .. file_url
+                'attachment=' .. attach_value
               os.execute('start "" thunderbird -compose "' .. compose_arg:gsub('"', '""') .. '"')
-              renoise.app():show_status("Thunderbird: new message with preferences.xml attached")
+              renoise.app():show_status("Thunderbird: new message with " .. (has_kb and "preferences.xml + KeyBindings.xml" or "preferences.xml") .. " attached")
             else
               renoise.app():open_path(prefs_path)
+              if has_kb then renoise.app():open_path(kb_path) end
               os.execute('start "" "mailto:esaruoho@gmail.com"')
-              renoise.app():show_status("preferences.xml revealed — drag it into the new email (install Thunderbird for auto-attach)")
+              renoise.app():show_status("Files revealed — drag them into the new email (install Thunderbird for auto-attach)")
             end
           else
             -- File missing (shouldn't happen — just saved it above) — degrade
