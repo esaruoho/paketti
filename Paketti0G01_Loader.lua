@@ -3164,28 +3164,66 @@ vb:row{
         vb:button{text="Email preferences.xml to esaruoho",notifier=function()
           preferences:save_as("preferences.xml")
           local prefs_path = renoise.tool().bundle_path .. "preferences.xml"
-          if io.exists(prefs_path) then
-            renoise.app():open_path(prefs_path)
-          end
-          -- renoise.app():open_url() routes through the default BROWSER, not the
-          -- OS default-handler, so mailto: gets dropped. Shell out via the
-          -- native opener instead.
-          local subject = "Paketti preferences.xml"
-          local body = "Hi Esa,\n\nAttached: my Paketti preferences.xml (it should be open in Finder/Explorer now — drag it into this email).\n\nContext / issue I'm seeing:\n\n"
-          local function urlencode(s)
-            return (s:gsub("\n", "%%0A"):gsub(" ", "%%20"))
-          end
-          local url = "mailto:esaruoho@gmail.com?subject=" .. urlencode(subject) .. "&body=" .. urlencode(body)
           local platform = os.platform()
-          local cmd
-          if platform == "MACINTOSH" then
-            cmd = 'open "' .. url .. '"'
-          elseif platform == "WINDOWS" then
-            cmd = 'start "" "' .. url .. '"'
-          else  -- LINUX
-            cmd = 'xdg-open "' .. url .. '" &'
+          local subject = "Paketti preferences.xml"
+          local body_lines = {
+            "Hi Esa,",
+            "",
+            "My Paketti preferences.xml is attached.",
+            "",
+            "Context / issue I'm seeing:",
+            "",
+            ""
+          }
+
+          if platform == "MACINTOSH" and io.exists(prefs_path) then
+            -- macOS: bypass mailto: entirely. AppleScript to Mail.app gives us
+            -- a real attachment AND avoids the URL-encoding mess where Mail
+            -- shows literal %20/%0A in subject/body.
+            local function esc(s) return (s:gsub("\\", "\\\\"):gsub('"', '\\"')) end
+            local body_quoted = '"' .. esc(body_lines[1]) .. '"'
+            for i = 2, #body_lines do
+              body_quoted = body_quoted .. ' & return & "' .. esc(body_lines[i]) .. '"'
+            end
+            local script =
+              'tell application "Mail"\n' ..
+              '  set newMsg to make new outgoing message with properties {visible:true, subject:"' .. esc(subject) .. '", content:' .. body_quoted .. '}\n' ..
+              '  tell newMsg\n' ..
+              '    make new to recipient with properties {address:"esaruoho@gmail.com"}\n' ..
+              '    tell content\n' ..
+              '      make new attachment with properties {file name:(POSIX file "' .. esc(prefs_path) .. '")} at after last paragraph\n' ..
+              '    end tell\n' ..
+              '  end tell\n' ..
+              '  activate\n' ..
+              'end tell\n'
+            local tmpfile = os.tmpname()
+            local f = io.open(tmpfile, "w")
+            if f then
+              f:write(script)
+              f:close()
+              os.execute('osascript "' .. tmpfile .. '"')
+              os.remove(tmpfile)
+              renoise.app():show_status("Mail.app: new message with preferences.xml attached")
+            else
+              renoise.app():show_warning("Could not write AppleScript to tempfile")
+            end
+          else
+            -- Windows / Linux fallback: reveal the file, open a minimal
+            -- mailto: with only the address (body/subject often render as
+            -- literal %20 in many clients). User drags the revealed file in.
+            if io.exists(prefs_path) then
+              renoise.app():open_path(prefs_path)
+            end
+            local url = "mailto:esaruoho@gmail.com"
+            local cmd
+            if platform == "WINDOWS" then
+              cmd = 'start "" "' .. url .. '"'
+            else  -- LINUX
+              cmd = 'xdg-open "' .. url .. '" &'
+            end
+            os.execute(cmd)
+            renoise.app():show_status("preferences.xml revealed — drag it into the new email to esaruoho@gmail.com")
           end
-          os.execute(cmd)
         end}
       },
 
