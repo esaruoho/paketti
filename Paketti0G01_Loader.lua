@@ -3167,10 +3167,25 @@ vb:row{
           if io.exists(prefs_path) then
             renoise.app():open_path(prefs_path)
           end
+          -- renoise.app():open_url() routes through the default BROWSER, not the
+          -- OS default-handler, so mailto: gets dropped. Shell out via the
+          -- native opener instead.
           local subject = "Paketti preferences.xml"
           local body = "Hi Esa,\n\nAttached: my Paketti preferences.xml (it should be open in Finder/Explorer now — drag it into this email).\n\nContext / issue I'm seeing:\n\n"
-          local url = "mailto:esaruoho@gmail.com?subject=" .. subject:gsub(" ", "%%20") .. "&body=" .. body:gsub("\n", "%%0A"):gsub(" ", "%%20")
-          renoise.app():open_url(url)
+          local function urlencode(s)
+            return (s:gsub("\n", "%%0A"):gsub(" ", "%%20"))
+          end
+          local url = "mailto:esaruoho@gmail.com?subject=" .. urlencode(subject) .. "&body=" .. urlencode(body)
+          local platform = os.platform()
+          local cmd
+          if platform == "MACINTOSH" then
+            cmd = 'open "' .. url .. '"'
+          elseif platform == "WINDOWS" then
+            cmd = 'start "" "' .. url .. '"'
+          else  -- LINUX
+            cmd = 'xdg-open "' .. url .. '" &'
+          end
+          os.execute(cmd)
         end}
       },
 
