@@ -3207,22 +3207,54 @@ vb:row{
             else
               renoise.app():show_warning("Could not write AppleScript to tempfile")
             end
-          else
-            -- Windows / Linux fallback: reveal the file, open a minimal
-            -- mailto: with only the address (body/subject often render as
-            -- literal %20 in many clients). User drags the revealed file in.
-            if io.exists(prefs_path) then
+          elseif platform == "LINUX" and io.exists(prefs_path) then
+            -- Linux: xdg-email from xdg-utils handles real attachments via
+            -- the user's configured default mail handler (Thunderbird,
+            -- Evolution, KMail, etc.). Quoting the body keeps newlines intact.
+            local body_str = table.concat(body_lines, "\n")
+            local cmd = 'xdg-email --utf8' ..
+              ' --subject "' .. subject .. '"' ..
+              ' --body "' .. body_str:gsub('"', '\\"') .. '"' ..
+              ' --attach "' .. prefs_path .. '"' ..
+              ' esaruoho@gmail.com &'
+            os.execute(cmd)
+            renoise.app():show_status("xdg-email: new message with preferences.xml attached")
+          elseif platform == "WINDOWS" and io.exists(prefs_path) then
+            -- Windows: try Thunderbird's -compose CLI first (real attachment).
+            -- If Thunderbird isn't installed, fall back to reveal + bare mailto:.
+            -- `where` returns 0 if the binary is on PATH.
+            local has_tb = os.execute('where thunderbird >NUL 2>&1') == 0
+            if has_tb then
+              local body_str = table.concat(body_lines, "\n")
+              -- Thunderbird's -compose uses comma-separated key=value pairs;
+              -- the whole thing must be quoted. Attachment uses file:/// URL.
+              local file_url = "file:///" .. prefs_path:gsub("\\", "/")
+              local compose_arg =
+                'to=esaruoho@gmail.com,' ..
+                'subject=' .. subject .. ',' ..
+                'body=' .. body_str .. ',' ..
+                'attachment=' .. file_url
+              os.execute('start "" thunderbird -compose "' .. compose_arg:gsub('"', '""') .. '"')
+              renoise.app():show_status("Thunderbird: new message with preferences.xml attached")
+            else
               renoise.app():open_path(prefs_path)
+              os.execute('start "" "mailto:esaruoho@gmail.com"')
+              renoise.app():show_status("preferences.xml revealed — drag it into the new email (install Thunderbird for auto-attach)")
             end
+          else
+            -- File missing (shouldn't happen — just saved it above) — degrade
+            -- gracefully to a bare mailto: so the user can still write.
             local url = "mailto:esaruoho@gmail.com"
             local cmd
-            if platform == "WINDOWS" then
+            if platform == "MACINTOSH" then
+              cmd = 'open "' .. url .. '"'
+            elseif platform == "WINDOWS" then
               cmd = 'start "" "' .. url .. '"'
-            else  -- LINUX
+            else
               cmd = 'xdg-open "' .. url .. '" &'
             end
             os.execute(cmd)
-            renoise.app():show_status("preferences.xml revealed — drag it into the new email to esaruoho@gmail.com")
+            renoise.app():show_warning("preferences.xml not found at:\n" .. prefs_path)
           end
         end}
       },
