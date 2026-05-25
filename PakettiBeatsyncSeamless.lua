@@ -2,16 +2,27 @@
 -- Auto-chop a long sample into N pieces that each fit Renoise's
 -- beat_sync_lines = 512 cap, keyzone them as a drumkit, and lay them
 -- across the pattern so playback at the song BPM is seamless.
+--
+-- Heavy work runs inside a ProcessSlicer so Renoise's UI thread stays
+-- responsive on multi-minute samples (hundreds of millions of frame writes).
 
 local SILENCE_THRESHOLD = 0.001 -- -60 dB peak
 local MAX_PATTERN_LINES = 512
 local MAX_BEAT_SYNC_LINES = 512
 local BASE_NOTE = 48 -- C-4
+local YIELD_EVERY_FRAMES = 65536
 
-local function find_audible_bounds(sbuf)
+local function set_progress(vb, msg)
+  if vb and vb.views and vb.views.progress_text then
+    vb.views.progress_text.text = msg
+  end
+end
+
+local function find_audible_bounds(sbuf, vb)
   local frames = sbuf.number_of_frames
   local channels = sbuf.number_of_channels
   local first_audible, last_audible
+  set_progress(vb, "Scanning for audible start...")
   for f = 1, frames do
     for ch = 1, channels do
       if math.abs(sbuf:sample_data(ch, f)) > SILENCE_THRESHOLD then
@@ -20,8 +31,10 @@ local function find_audible_bounds(sbuf)
       end
     end
     if first_audible then break end
+    if (f % YIELD_EVERY_FRAMES) == 0 then coroutine.yield() end
   end
   if not first_audible then return nil, nil end
+  set_progress(vb, "Scanning for audible end...")
   for f = frames, first_audible, -1 do
     for ch = 1, channels do
       if math.abs(sbuf:sample_data(ch, f)) > SILENCE_THRESHOLD then
@@ -30,11 +43,12 @@ local function find_audible_bounds(sbuf)
       end
     end
     if last_audible then break end
+    if ((frames - f) % YIELD_EVERY_FRAMES) == 0 then coroutine.yield() end
   end
   return first_audible, last_audible
 end
 
-local function trim_sample_range(instr, sample_idx, first, last)
+local function trim_sample_range(instr, sample_idx, first, last, vb)
   local source = instr.samples[sample_idx]
   local sbuf = source.sample_buffer
   local rate = sbuf.sample_rate
@@ -45,12 +59,15 @@ local function trim_sample_range(instr, sample_idx, first, last)
   local new_sample = instr:insert_sample_at(sample_idx)
   new_sample:copy_from(source)
   local nb = new_sample.sample_buffer
-  -- create_sample_data allocates a fresh buffer — prepare/finalize_sample_data_changes
-  -- is ONLY for modifying existing data, not for freshly created buffers.
+  -- create_sample_data allocates a fresh buffer — no prepare/finalize wrap.
   nb:create_sample_data(rate, depth, channels, out_frames)
   for ch = 1, channels do
     for f = 1, out_frames do
       nb:set_sample_data(ch, f, sbuf:sample_data(ch, first + f - 1))
+      if (f % YIELD_EVERY_FRAMES) == 0 then
+        set_progress(vb, string.format("Trimming silence: ch %d/%d, %d%%", ch, channels, math.floor(f / out_frames * 100)))
+        coroutine.yield()
+      end
     end
   end
   instr:delete_sample_at(sample_idx + 1)
@@ -71,9 +88,10 @@ local function compute_chop_params(seconds, bpm, lpb)
 end
 
 -- Trim + normalize + chop into N equal pieces, set beatsync/keyzone.
+-- Runs inside a ProcessSlicer coroutine; yields periodically.
 -- Returns: instr, sample_idx (start of chunks), N, per_chunk, bpm, lpb
 -- Or: nil, error_message
-local function prepare_and_chop(song)
+local function prepare_and_chop(song, vb)
   local instr = song.selected_instrument
   local sample_idx = song.selected_sample_index
   local sample = instr.samples[sample_idx]
@@ -85,28 +103,27 @@ local function prepare_and_chop(song)
     return nil, "selected sample is read-only (sliced?)"
   end
 
-  -- 1. Trim leading/trailing silence
   local sbuf = sample.sample_buffer
-  local first, last = find_audible_bounds(sbuf)
+  local first, last = find_audible_bounds(sbuf, vb)
   if not first then
     return nil, "entire sample is below -60 dB"
   end
   if first > 1 or last < sbuf.number_of_frames then
-    sample = trim_sample_range(instr, sample_idx, first, last)
+    sample = trim_sample_range(instr, sample_idx, first, last, vb)
     sbuf = sample.sample_buffer
   end
+  coroutine.yield()
 
-  -- 2. Normalize (uses the shared PakettiNormalizeSample helper from PakettiProcess.lua)
+  set_progress(vb, "Normalizing...")
   PakettiNormalizeSample(sample, 0)
   sbuf = sample.sample_buffer
+  coroutine.yield()
 
-  -- 3. Compute chop params from current BPM / LPB
   local bpm = song.transport.bpm
   local lpb = song.transport.lpb
   local seconds = sbuf.number_of_frames / sbuf.sample_rate
   local N, per_chunk = compute_chop_params(seconds, bpm, lpb)
 
-  -- 4. Duplicate + chop into N equal pieces (only if N > 1)
   local rate = sbuf.sample_rate
   local depth = sbuf.bit_depth
   local channels = sbuf.number_of_channels
@@ -121,12 +138,17 @@ local function prepare_and_chop(song)
     for ch = 1, channels do
       for f = 1, chunk_frames do
         nb:set_sample_data(ch, f, sbuf:sample_data(ch, source_start + f))
+        if (f % YIELD_EVERY_FRAMES) == 0 then
+          set_progress(vb, string.format("Chunk %d/%d: ch %d/%d, %d%%", chunk_index, N, ch, channels, math.floor(f / chunk_frames * 100)))
+          coroutine.yield()
+        end
       end
     end
     target.name = string.format("%s [%d/%d]", source_name, chunk_index, N)
   end
 
   if N > 1 then
+    set_progress(vb, string.format("Creating %d chunks...", N))
     local chunk1 = instr:insert_sample_at(sample_idx)
     chunk1:copy_from(sample)
     populate_chunk(chunk1, 1)
@@ -140,7 +162,7 @@ local function prepare_and_chop(song)
     sample.name = source_name
   end
 
-  -- 5/6/7. Apply beatsync, autoseek, autofade, keyzone
+  set_progress(vb, "Applying beatsync + keyzones...")
   for i = 1, N do
     local s = instr.samples[sample_idx + i - 1]
     s.beat_sync_enabled = true
@@ -154,25 +176,27 @@ local function prepare_and_chop(song)
     s.sample_mapping.base_note = note
     s.sample_mapping.velocity_range = {0, 127}
   end
+  coroutine.yield()
 
   return instr, sample_idx, N, per_chunk, bpm, lpb
 end
 
-function PakettiBeatsyncSeamlessAutoChop()
+local function single_pattern_worker(dialog, vb)
   local song = renoise.song()
   song:describe_undo("Paketti Beatsync Seamless Auto-Chop")
 
-  local instr, sample_idx, N, per_chunk, bpm, lpb = prepare_and_chop(song)
+  local instr, sample_idx, N, per_chunk, bpm, lpb = prepare_and_chop(song, vb)
   if not instr then
+    if dialog and dialog.visible then dialog:close() end
     renoise.app():show_status("Beatsync Seamless: " .. sample_idx)
     return
   end
 
-  -- 8. Resize pattern + place notes
   local pattern = song.selected_pattern
   local track_idx = song.selected_track_index
   local track = song.tracks[track_idx]
   if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    if dialog and dialog.visible then dialog:close() end
     renoise.app():show_status("Beatsync Seamless: chops created, but selected track is not a sequencer track \226\128\148 notes not placed")
     return
   end
@@ -192,6 +216,7 @@ function PakettiBeatsyncSeamlessAutoChop()
     track.visible_note_columns = 1
   end
 
+  set_progress(vb, "Placing notes in pattern...")
   local pattern_track = pattern:track(track_idx)
   local instr_value = song.selected_instrument_index - 1
   for i = 1, fit_chunks do
@@ -201,6 +226,8 @@ function PakettiBeatsyncSeamlessAutoChop()
     note_col.note_value = BASE_NOTE + i - 1
     note_col.instrument_value = instr_value
   end
+
+  if dialog and dialog.visible then dialog:close() end
 
   if overflow then
     renoise.app():show_status(string.format(
@@ -213,22 +240,21 @@ function PakettiBeatsyncSeamlessAutoChop()
   end
 end
 
--- Variant: chop into N pieces, then create N new patterns (each per_chunk lines),
--- place chunk i at line 1 of pattern i. Mark the first new sequence slot as the
--- start of a section named after the instrument.
-function PakettiBeatsyncSeamlessAutoChopMultiPattern()
+local function multi_pattern_worker(dialog, vb)
   local song = renoise.song()
   song:describe_undo("Paketti Beatsync Seamless Auto-Chop (Multi-Pattern)")
 
   local track_idx = song.selected_track_index
   local track = song.tracks[track_idx]
   if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    if dialog and dialog.visible then dialog:close() end
     renoise.app():show_status("Beatsync Seamless: selected track is not a sequencer track")
     return
   end
 
-  local instr, sample_idx, N, per_chunk, bpm, lpb = prepare_and_chop(song)
+  local instr, sample_idx, N, per_chunk, bpm, lpb = prepare_and_chop(song, vb)
   if not instr then
+    if dialog and dialog.visible then dialog:close() end
     renoise.app():show_status("Beatsync Seamless: " .. sample_idx)
     return
   end
@@ -244,9 +270,9 @@ function PakettiBeatsyncSeamlessAutoChopMultiPattern()
     section_name = string.format("Instrument %02d", song.selected_instrument_index)
   end
 
-  -- Insert N new patterns immediately after the currently selected sequence slot.
   local start_seq = song.selected_sequence_index + 1
   for i = 1, N do
+    set_progress(vb, string.format("Creating pattern %d/%d...", i, N))
     local seq_pos = start_seq + i - 1
     local new_pat_idx = sequencer:insert_new_pattern_at(seq_pos)
     local pat = song.patterns[new_pat_idx]
@@ -255,6 +281,7 @@ function PakettiBeatsyncSeamlessAutoChopMultiPattern()
     local note_col = pat:track(track_idx):line(1).note_columns[1]
     note_col.note_value = BASE_NOTE + i - 1
     note_col.instrument_value = instr_value
+    if (i % 8) == 0 then coroutine.yield() end
   end
 
   sequencer:set_sequence_is_start_of_section(start_seq, true)
@@ -262,9 +289,25 @@ function PakettiBeatsyncSeamlessAutoChopMultiPattern()
 
   song.selected_sequence_index = start_seq
 
+  if dialog and dialog.visible then dialog:close() end
+
   renoise.app():show_status(string.format(
     "Beatsync Seamless: %d patterns \195\151 %d lines @ %.2f BPM / %d LPB, section \226\128\156%s\226\128\157",
     N, per_chunk, bpm, lpb, section_name))
+end
+
+function PakettiBeatsyncSeamlessAutoChop()
+  local dialog, vb
+  local slicer = ProcessSlicer(function() single_pattern_worker(dialog, vb) end)
+  dialog, vb = slicer:create_dialog("Beatsync Seamless: Auto-Chop")
+  slicer:start()
+end
+
+function PakettiBeatsyncSeamlessAutoChopMultiPattern()
+  local dialog, vb
+  local slicer = ProcessSlicer(function() multi_pattern_worker(dialog, vb) end)
+  dialog, vb = slicer:create_dialog("Beatsync Seamless: Auto-Chop to Multiple Patterns")
+  slicer:start()
 end
 
 renoise.tool():add_menu_entry{
