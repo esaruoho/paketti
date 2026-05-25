@@ -224,7 +224,9 @@ function PakettiDialogOfDialogsSmokeTest()
         if type(target) == "function" then
           fn = target
         elseif type(target) == "string" then
-          fn = _G[target]
+          -- rawget bypasses Renoise's strict-mode global metatable which
+          -- otherwise raises "variable is not declared" for missing names.
+          fn = rawget(_G, target)
           if type(fn) ~= "function" then
             resolution = "MISSING_GLOBAL(" .. target .. ")"
             fn = nil
