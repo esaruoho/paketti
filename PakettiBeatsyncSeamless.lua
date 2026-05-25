@@ -70,29 +70,26 @@ local function compute_chop_params(seconds, bpm, lpb)
   return N, per_chunk
 end
 
-function PakettiBeatsyncSeamlessAutoChop()
-  local song = renoise.song()
+-- Trim + normalize + chop into N equal pieces, set beatsync/keyzone.
+-- Returns: instr, sample_idx (start of chunks), N, per_chunk, bpm, lpb
+-- Or: nil, error_message
+local function prepare_and_chop(song)
   local instr = song.selected_instrument
   local sample_idx = song.selected_sample_index
   local sample = instr.samples[sample_idx]
 
   if not sample or not sample.sample_buffer.has_sample_data then
-    renoise.app():show_status("Beatsync Seamless: no sample data on selected sample")
-    return
+    return nil, "no sample data on selected sample"
   end
   if sample.sample_buffer.read_only then
-    renoise.app():show_status("Beatsync Seamless: selected sample is read-only (sliced?)")
-    return
+    return nil, "selected sample is read-only (sliced?)"
   end
-
-  song:describe_undo("Paketti Beatsync Seamless Auto-Chop")
 
   -- 1. Trim leading/trailing silence
   local sbuf = sample.sample_buffer
   local first, last = find_audible_bounds(sbuf)
   if not first then
-    renoise.app():show_status("Beatsync Seamless: entire sample is below -60 dB")
-    return
+    return nil, "entire sample is below -60 dB"
   end
   if first > 1 or last < sbuf.number_of_frames then
     sample = trim_sample_range(instr, sample_idx, first, last)
@@ -119,7 +116,6 @@ function PakettiBeatsyncSeamlessAutoChop()
 
   local function populate_chunk(target, chunk_index)
     local nb = target.sample_buffer
-    -- create_sample_data allocates a fresh buffer — no prepare/finalize wrap.
     nb:create_sample_data(rate, depth, channels, chunk_frames)
     local source_start = (chunk_index - 1) * chunk_frames
     for ch = 1, channels do
@@ -131,17 +127,14 @@ function PakettiBeatsyncSeamlessAutoChop()
   end
 
   if N > 1 then
-    -- Insert chunk 1 at sample_idx (pushes source to sample_idx+1)
     local chunk1 = instr:insert_sample_at(sample_idx)
     chunk1:copy_from(sample)
     populate_chunk(chunk1, 1)
-    -- chunks 2..N go at sample_idx+i-1 each time (source slides further down)
     for i = 2, N do
       local chunki = instr:insert_sample_at(sample_idx + i - 1)
       chunki:copy_from(sample)
       populate_chunk(chunki, i)
     end
-    -- Remove the now-redundant source sample (sits at sample_idx + N)
     instr:delete_sample_at(sample_idx + N)
   else
     sample.name = source_name
@@ -160,6 +153,19 @@ function PakettiBeatsyncSeamlessAutoChop()
     s.sample_mapping.note_range = {note, note}
     s.sample_mapping.base_note = note
     s.sample_mapping.velocity_range = {0, 127}
+  end
+
+  return instr, sample_idx, N, per_chunk, bpm, lpb
+end
+
+function PakettiBeatsyncSeamlessAutoChop()
+  local song = renoise.song()
+  song:describe_undo("Paketti Beatsync Seamless Auto-Chop")
+
+  local instr, sample_idx, N, per_chunk, bpm, lpb = prepare_and_chop(song)
+  if not instr then
+    renoise.app():show_status("Beatsync Seamless: " .. sample_idx)
+    return
   end
 
   -- 8. Resize pattern + place notes
@@ -207,6 +213,60 @@ function PakettiBeatsyncSeamlessAutoChop()
   end
 end
 
+-- Variant: chop into N pieces, then create N new patterns (each per_chunk lines),
+-- place chunk i at line 1 of pattern i. Mark the first new sequence slot as the
+-- start of a section named after the instrument.
+function PakettiBeatsyncSeamlessAutoChopMultiPattern()
+  local song = renoise.song()
+  song:describe_undo("Paketti Beatsync Seamless Auto-Chop (Multi-Pattern)")
+
+  local track_idx = song.selected_track_index
+  local track = song.tracks[track_idx]
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Beatsync Seamless: selected track is not a sequencer track")
+    return
+  end
+
+  local instr, sample_idx, N, per_chunk, bpm, lpb = prepare_and_chop(song)
+  if not instr then
+    renoise.app():show_status("Beatsync Seamless: " .. sample_idx)
+    return
+  end
+
+  if track.visible_note_columns < 1 then
+    track.visible_note_columns = 1
+  end
+
+  local sequencer = song.sequencer
+  local instr_value = song.selected_instrument_index - 1
+  local section_name = instr.name
+  if section_name == "" then
+    section_name = string.format("Instrument %02d", song.selected_instrument_index)
+  end
+
+  -- Insert N new patterns immediately after the currently selected sequence slot.
+  local start_seq = song.selected_sequence_index + 1
+  for i = 1, N do
+    local seq_pos = start_seq + i - 1
+    local new_pat_idx = sequencer:insert_new_pattern_at(seq_pos)
+    local pat = song.patterns[new_pat_idx]
+    pat.number_of_lines = per_chunk
+    pat.name = string.format("%s [%d/%d]", section_name, i, N)
+    local note_col = pat:track(track_idx):line(1).note_columns[1]
+    note_col.note_value = BASE_NOTE + i - 1
+    note_col.instrument_value = instr_value
+  end
+
+  sequencer:set_sequence_is_start_of_section(start_seq, true)
+  sequencer:set_sequence_section_name(start_seq, section_name)
+
+  song.selected_sequence_index = start_seq
+
+  renoise.app():show_status(string.format(
+    "Beatsync Seamless: %d patterns \195\151 %d lines @ %.2f BPM / %d LPB, section \226\128\156%s\226\128\157",
+    N, per_chunk, bpm, lpb, section_name))
+end
+
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Samples:Beatsync Seamless (Auto-Chop Long Sample)",
   invoke = function() PakettiBeatsyncSeamlessAutoChop() end
@@ -222,4 +282,21 @@ renoise.tool():add_keybinding{
 renoise.tool():add_midi_mapping{
   name = "Paketti:Beatsync Seamless Auto-Chop",
   invoke = function(message) if message:is_trigger() then PakettiBeatsyncSeamlessAutoChop() end end
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Samples:Beatsync Seamless (Auto-Chop to Multiple Patterns)",
+  invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end
+}
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:Process:Beatsync Seamless (Auto-Chop to Multiple Patterns)",
+  invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Beatsync Seamless Auto-Chop Multi-Pattern",
+  invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Beatsync Seamless Auto-Chop Multi-Pattern",
+  invoke = function(message) if message:is_trigger() then PakettiBeatsyncSeamlessAutoChopMultiPattern() end end
 }

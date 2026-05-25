@@ -8,6 +8,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-05-25 - Feature: Beatsync Seamless Auto-Chop to Multiple Patterns
+
+New variant of the Beatsync Seamless tool that lays each chunk into its own new pattern instead of stacking them into a single pattern. After the same trim/normalize/chop pipeline, the tool inserts N new patterns immediately after the current sequence slot — each pattern is `per_chunk` lines long, with the i-th chunk's note placed at line 1 of the i-th pattern. The first of the new sequence slots is marked as the start of a section named after the source instrument, so a single 37-chunk sample yields 37 patterns under one named section in the matrix. Useful when you want pattern-per-chunk playback for arrangement instead of a single long pattern.
+
+- Menu: `Main Menu:Tools:Paketti:Samples:Beatsync Seamless (Auto-Chop to Multiple Patterns)`
+- Menu: `Sample Editor:Paketti:Process:Beatsync Seamless (Auto-Chop to Multiple Patterns)`
+- Keybinding: `Global:Paketti:Beatsync Seamless Auto-Chop Multi-Pattern`
+- MIDI Mapping: `Paketti:Beatsync Seamless Auto-Chop Multi-Pattern`
+
 ### 2026-05-25 - Feature: 4 more dialogs added to Dialog of Dialogs (Euclidean Fill, Chords Progression Player, MIDI Import, PlayerPro Waveform Viewer)
 
 Second pass on the cross-reference picked up 4 more legitimate dialogs missing from Dialog of Dialogs. Added to `PakettiMainMenuEntries.lua`:
