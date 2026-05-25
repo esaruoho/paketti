@@ -4,7 +4,7 @@
   -- text styles, and cursor shapes.
   -- It also integrates new controls (Chooser, RotaryEncoder, Switch, ScrollBar)
   -- and a Canvas that draws shapes based on these controls.
-  function show_gui_demo()
+function pakettiGUIDemo()
   local vb = renoise.ViewBuilder()
 
   --------------------------------------------------------------------------------

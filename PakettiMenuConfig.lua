@@ -1634,7 +1634,7 @@ if PAKETTI_API >= 6.2 then
     renoise.tool():add_menu_entry {name = "Main Menu:Tools:Load & Show Paketti EQ30", invoke = PakettiEQ30ShowAndFollow}
     renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Paketti EQ30 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ30UnusedNoteFrequencyReductionFlavor}
     renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:Paketti EQ64 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ64UnusedNoteFrequencyReductionFlavor}
-    renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:V3.5:Example Tool...",invoke=function() show_gui_demo() end}
+    renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:V3.5:Example Tool...",invoke=function() pakettiGUIDemo() end}
   end
   if preferences.pakettiMenuConfig.DiskBrowserFiles.value then
     renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
