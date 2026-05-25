@@ -8,6 +8,22 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-05-25 - Fix: 7 more Dialog of Dialogs MISSING entries — mapped to real functions via keybinding grep
+
+User correctly pointed out that "Advanced Subdivision Calculator" has a working keybinding — meaning the feature exists, just under a different function name than the button list referenced. Re-grepped via keybinding registration name (`grep -E "add_keybinding|add_menu_entry" | grep -i <label>`) to find the real function for each label instead of guessing from the broken global name. Updated `PakettiMainMenuEntries.lua`:
+
+- `Advanced Subdivision Calculator` → `show_subdivision_calculator_dialog` (was `pakettiAdvancedSubdivisionDialog`)
+- `Category Management (MIDI)` → `show_category_statistics` (was `pakettiCategoryManagementDialog`)
+- `CCizer TXT->CC Loader` → `PakettiCCizerLoader` (was `pakettiCCizerTXTCCDialog`)
+- `CCizer TXT->MIDI Control Loader` → `PakettiCreateMIDIControlFromTextFile` (was `pakettiCCizerTXTMIDIDialog`)
+- `Effect Details` → `pakettiDebugDeviceInfoDialog` (was `pakettiEffectDetailsDialog`)
+- `Octatrack .OT File Analysis` → `PakettiOTDebugDialog` (was `pakettiOTFileAnalysisDialog` — same function as the working `OT Debug` button, kept both labels)
+- `Paketti Minimize Cheatsheet` → `pakettiMiniCheatsheetHorizontal` (was `pakettiMinimizeCheatsheetDialog` — vertical variant `pakettiMiniCheatsheetVertical` also available)
+- `Plugin Details` → `pakettiDebugPluginInfoDialog` (was `pakettiPluginDetailsDialog`)
+- `Set Pattern/Phrase Length` → `pakettiLengthDialog` (was `pakettiPatternPhraseLength` — same function as the working `Paketti Pattern/Phrase Length Dialog` button, kept both labels)
+
+**Still MISSING — 5 entries with no keybinding/menu match anywhere in the codebase:** `Offset Sample Buffer` (only `PakettiOffsetSampleBuffer(op, num)` exists as an action helper with args, no dialog wrapper), `Paketti RePitch` (no `RePitch` dialog opener in `PakettiRePitch.lua`), `Paketti XYPad Sample Rotator` (no Sample Rotator dialog found; `XY Pad Sound Mixer` works as a different button), `Set EditStep&Enter` (no dedicated keybinding; closest is `pakettiEditStepDialog` already wired up as `EditStep Dialog`), `Track Mapping` (no Track Mapping dialog opener; closest helpers are `PakettiOrganizeInstrumentsByTrackUse` / `PakettiOrganizeTracksByInstrumentBox` which are non-dialog actions). These need the user to point at the correct function names.
+
 ### 2026-05-25 - Fix: First Smoke Test run surfaced 2 LUA_ERRORs + 20 MISSING globals — 8 cleaned up
 
 First completed Smoke Test run found 154 OK / 2 LUA_ERROR / 0 LOG_ERROR / 20 MISSING out of 213 buttons. This commit fixes 2 LUA_ERROR + 6 MISSING (the remaining 14 MISSING are genuinely unimplemented features the user needs to triage manually).
