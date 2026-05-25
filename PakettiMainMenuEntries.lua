@@ -275,194 +275,189 @@ function create_button_list()
     {"About Paketti/Donations", "pakettiAboutDonations"},
     {"Paketti Preferences", "pakettiPreferences"},
     {"Paketti Menu Configuration", "pakettiMenuConfigDialog"},
-    {"Paketti Pattern / Phrase Init Preferences", "pakettiPatternPhraseInitDialog"},
-    {"Theme Selector", "pakettiThemeSelectorDialogShow"},
-    {"Gater", "pakettiGaterDialog"},
-    {"Effect Column CheatSheet", "pakettiPatternEditorCheatsheetDialog"},
+    {"Paketti Pattern/Phrase Init Prefs", "pakettiPatternPhraseInitDialog"},
+    {"AKWF Load 04 Samples (XY)", "pakettiLoad04AKWFSamplesXYDialog"},
+    {"AM Sine Wave Generator", "createCustomAmplitudeModulatedSinewave"},
+    {"Audio Processing", "pakettiAudioProcessingToolsDialog"},
+    {"Automation Value Dialog", "pakettiAutomationValue"},
+    {"Batch Sample Adjust", "show_batch_sample_adjust_dialog"},
+    {"Beat Structure Editor", "pakettiBeatStructureEditorDialog"},
+    {"BeatDetector", "pakettiBeatDetectorDialog"},
+    {"BeatSyncHack (BeatSyncLines >512)", "pakettiBeatSyncHackDialog"},
+    {"BPM From Sample Length", "pakettiBpmFromSampleDialog"},
+    {"BPM to MS Delay Calculator", "pakettiBPMMSCalculator"},
+    {"Configure Launch App Selection/Path", "pakettiAppSelectionDialog"},
+    {"Convolver Dialog", "pakettiConvolverSelectionDialog"},
+    {"Debug: Available Device Information", "pakettiDebugDeviceInfoDialog"},
+    {"Debug: Available Plugin Information", "pakettiDebugPluginInfoDialog"},
+    {"Debug: Squiggler", "squigglerdialog"},
     {"Dynamic Views 1-3", function() pakettiDynamicViewDialog(1,3) end},
     {"Dynamic Views 4-6", function() pakettiDynamicViewDialog(4,6) end},
     {"Dynamic Views 7-9", function() pakettiDynamicViewDialog(7,9) end},
-    {"Automation Value Dialog", "pakettiAutomationValue"},
-    {"Enhanced Automation (Curves)", "PakettiAutomationCurvesShowDialog"},
-    {"Merge Instruments", "pakettiMergeInstrumentsDialog"},
-    {"Track DSP Device&Instrument Loader", "pakettiDeviceChainDialog"},
-    {"Volume/Delay/Pan Slider Controls", "pakettiVolDelayPanSliderDialog"},
-    {"Paketti Global Volume Adjustment", "pakettiGlobalVolumeDialog"},
-    {"Paketti Offset Dialog", "pakettiOffsetDialog"},
-    {"PitchStepper Demo", "pakettiPitchStepperDemo"},
-    {"Value Interpolation Looper Dialog", "pakettiVolumeInterpolationLooper"},
-    {"MIDI Populator", "pakettiMIDIPopulator"},
-    {"New Song Dialog", "pakettiImpulseTrackerNewSongDialog"},
-    {"Paketti Stacker", function() pakettiStackerDialog(proceed_with_stacking) end},
-    {"SlotShow", "pakettiUserPreferencesShowerDialog"},
-    {"Configure Launch App Selection/Path", "pakettiAppSelectionDialog"},
-    {"Paketti KeyBindings", "pakettiKeyBindingsDialog"},
-    {"Renoise KeyBindings", "pakettiRenoiseKeyBindingsDialog"},
-    {"Find Free KeyBindings", "pakettiFreeKeybindingsDialog"},
-    {"TimeStretch Dialog", "pakettiTimestretchDialog"},
-    {"Fuzzy Search Track", "pakettiFuzzySearchTrackDialog"},
-    {"Keyzone Distributor", "pakettiKeyzoneDistributorDialog"},
-    {"Paketti Formula Device Manual", "pakettiFormulaDeviceDialog"},
-    {"Paketti Pattern/Phrase Length Dialog", "pakettiLengthDialog"},
-    {"Paketti EQ10 XY Control Dialog", "pakettiEQ10XYDialog"},
     {"EditStep Dialog", "pakettiEditStepDialog"},
-    {"Switch Note Instrument Dialog", "pakettiSwitchNoteInstrumentDialog"},
-    {"Show Largest Samples", "pakettiShowLargestSamplesDialog"},
-    {"Beat Structure Editor", "pakettiBeatStructureEditorDialog"},
-    {"Paketti XRNS Probe", "pakettiXRNSProbeShowDialog"},
-    {"Audio Processing", "pakettiAudioProcessingToolsDialog"},
+    {"Effect Column CheatSheet", "pakettiPatternEditorCheatsheetDialog"},
+    {"Enhanced Automation (Curves)", "PakettiAutomationCurvesShowDialog"},
     {"eSpeak Text-to-Speech", "pakettieSpeakDialog"},
-    {"YT-DLP Downloader", "pakettiYTDLPDialog"},
-    {"User-Defined Sample Folders", "pakettiUserDefinedSamplesDialog"},
-    {"Output Routings", "pakettiTrackOutputRoutingsDialog"},
-    {"Convolver Dialog", "pakettiConvolverSelectionDialog"},
-    {"Oblique Strategies", "pakettiObliqueStrategiesDialog"},
-    {"Quick Load Device", "pakettiQuickLoadDialog"},
-    {"Native/VST/VST3/AU Devices", "pakettiLoadDevicesDialog"},
-    {"VST/VST3/AU Plugins", "pakettiLoadPluginsDialog"},
-    {"Randomize Plugins/Devices", "pakettiRandomizerDialog"},
-    {"Track Renamer", "pakettiTrackRenamerDialog"},
-    {"Track Dater / Titler", "pakettiTitlerDialog"},
-    {"Paketti Action Selector", "pakettiActionSelectorDialog"},
-    {"Debug: Squiggler", "squigglerdialog"},
-    {"Paketti Groovebox 8120", "pakettiEightSlotsByOneTwentyDialog"},
+    {"Find Free KeyBindings", "pakettiFreeKeybindingsDialog"},
+    {"Fuzzy Search Track", "pakettiFuzzySearchTrackDialog"},
+    {"Hotelsinus Matrix Overview", "createMatrixOverview"},
+    {"Hotelsinus Stepsequencer","createStepSequencerDialog"},
+    {"Keyzone Distributor", "pakettiKeyzoneDistributorDialog"},
+    {"Merge Instruments", "pakettiMergeInstrumentsDialog"},
     {"Midi Mappings", "pakettiMIDIMappingsDialog"},
-    {"BeatDetector", "pakettiBeatDetectorDialog"},
+    {"MIDI Populator", "pakettiMIDIPopulator"},
+    {"Native/VST/VST3/AU Devices", "pakettiLoadDevicesDialog"},
+    {"New Song Dialog", "pakettiImpulseTrackerNewSongDialog"},
+    {"Oblique Strategies", "pakettiObliqueStrategiesDialog"},
     {"OctaMED Note Echo", "pakettiOctaMEDNoteEchoDialog"},
     {"OctaMED Pick/Put Row", "pakettiOctaMEDPickPutRowDialog"},
-    {"PlayerPro Note Dropdown Grid", "pakettiPlayerProNoteGridShowDropdownGrid"},
-    {"PlayerPro Main Dialog", "pakettiPlayerProShowMainDialog"},
-    {"PlayerPro Effect Dialog", "pakettiPlayerProEffectDialog"},
-    {"Set Selection by Hex Offset", "pakettiHexOffsetDialog"},
-    {"Paketti Tuplet Writer", "pakettiTupletDialog"},
-    {"Speed and Tempo to BPM", "pakettiSpeedTempoDialog"},
-    {"Debug: Available Plugin Information", "pakettiDebugPluginInfoDialog"},
-    {"Debug: Available Device Information", "pakettiDebugDeviceInfoDialog"},
-    {"AKWF Load 04 Samples (XY)", "pakettiLoad04AKWFSamplesXYDialog"},
-    {"BPM to MS Delay Calculator", "pakettiBPMMSCalculator"},
-    {"Sample Cycle Tuning Calculator", "pakettiSimpleSampleTuningDialog"},
-    {"Paketti Sequencer Settings Dialog", "pakettiSequencerSettingsDialog"},
-    {"Paketti Steppers Dialog", "PakettiSteppersDialog"},
-    {"Protracker MOD modulation Dialog", "showProtrackerModDialog"},
-    {"Slice->Pattern Sequencer Dialog", "showSliceToPatternSequencerInterface"},
-    {"Polyend Buddy", "show_polyend_buddy_dialog"},
-    {"Sample Pitch Modifier Dialog", "show_sample_pitch_modifier_dialog"},
-    {"BPM From Sample Length", "pakettiBpmFromSampleDialog"},
-    {"Hotelsinus Stepsequencer","createStepSequencerDialog"},
-    {"Hotelsinus Matrix Overview", "createMatrixOverview"},
-    {"AM Sine Wave Generator", "createCustomAmplitudeModulatedSinewave"},
-    {"Sine Wave Generator", "createCustomSinewave"},
-    {"XY Pad Sound Mixer", "showXyPaddialog"},
-    {"SBX Playback Handler", "showSBX_dialog"},
-    {"Paketti Sample Adjust", "show_paketti_sample_adjust_dialog"},
-    {"Batch Sample Adjust", "show_batch_sample_adjust_dialog"},
-    {"BeatSyncHack (BeatSyncLines > 512)", "pakettiBeatSyncHackDialog"},
+    {"Output Routings", "pakettiTrackOutputRoutingsDialog"},
+    {"Paketti Action Selector", "pakettiActionSelectorDialog"},
     {"Paketti Calculator", "pakettiCalculatorDialog"},
+    {"Paketti EQ10 XY Control Dialog", "pakettiEQ10XYDialog"},
+    {"Paketti Formula Device Manual", "pakettiFormulaDeviceDialog"},
+    {"Paketti Gater", "pakettiGaterDialog"},
+    {"Paketti Global Volume Adjustment", "pakettiGlobalVolumeDialog"},
+    {"Paketti Groovebox 8120", "pakettiEightSlotsByOneTwentyDialog"},
+    {"Paketti KeyBindings", "pakettiKeyBindingsDialog"},
+    {"Paketti Offset Dialog", "pakettiOffsetDialog"},
+    {"Paketti Pattern/Phrase Length Dialog", "pakettiLengthDialog"},
+    {"Paketti Sample Adjust", "show_paketti_sample_adjust_dialog"},
+    {"Paketti Sequencer Settings Dialog", "pakettiSequencerSettingsDialog"},
+    {"Paketti Stacker", function() pakettiStackerDialog(proceed_with_stacking) end},
+    {"Paketti Steppers Dialog", "PakettiSteppersDialog"},
+    {"Paketti Tuplet Writer", "pakettiTupletDialog"},
+    {"Paketti XRNS Probe", "pakettiXRNSProbeShowDialog"},
+    {"PitchStepper Demo", "pakettiPitchStepperDemo"},
+    {"PlayerPro Effect Dialog", "pakettiPlayerProEffectDialog"},
+    {"PlayerPro Main Dialog", "pakettiPlayerProShowMainDialog"},
+    {"PlayerPro Note Dropdown Grid", "pakettiPlayerProNoteGridShowDropdownGrid"},
+    {"Polyend Buddy", "show_polyend_buddy_dialog"},
+    {"Protracker MOD modulation Dialog", "showProtrackerModDialog"},
+    {"Quick Load Device", "pakettiQuickLoadDialog"},
+    {"Randomize Plugins/Devices", "pakettiRandomizerDialog"},
+    {"Renoise KeyBindings", "pakettiRenoiseKeyBindingsDialog"},
+    {"Sample Cycle Tuning Calculator", "pakettiSimpleSampleTuningDialog"},
+    {"Sample Pitch Modifier Dialog", "show_sample_pitch_modifier_dialog"},
+    {"SBX Playback Handler", "showSBX_dialog"},
+    {"Set Selection by Hex Offset", "pakettiHexOffsetDialog"},
+    {"Show Largest Samples", "pakettiShowLargestSamplesDialog"},
+    {"Sine Wave Generator", "createCustomSinewave"},
+    {"Slice->Pattern Sequencer Dialog", "showSliceToPatternSequencerInterface"},
+    {"SlotShow", "pakettiUserPreferencesShowerDialog"},
+    {"Speed and Tempo to BPM", "pakettiSpeedTempoDialog"},
+    {"Switch Note Instrument Dialog", "pakettiSwitchNoteInstrumentDialog"},
+    {"Theme Selector", "pakettiThemeSelectorDialogShow"},
+    {"TimeStretch Dialog", "pakettiTimestretchDialog"},
+    {"Track Dater / Titler", "pakettiTitlerDialog"},
+    {"Track DSP Device&Instrument Loader", "pakettiDeviceChainDialog"},
+    {"Track Renamer", "pakettiTrackRenamerDialog"},
+    {"User-Defined Sample Folders", "pakettiUserDefinedSamplesDialog"},
+    {"Value Interpolation Looper Dialog", "pakettiVolumeInterpolationLooper"},
+    {"Volume/Delay/Pan Slider Controls", "pakettiVolDelayPanSliderDialog"},
+    {"VST/VST3/AU Plugins", "pakettiLoadPluginsDialog"},
+    {"XY Pad Sound Mixer", "showXyPaddialog"},
+    {"YT-DLP Downloader", "pakettiYTDLPDialog"},
   }
   
   -- These dialogs work on all API versions (canvas elements gated internally)
-  table.insert(buttons, {"Sample Offset / Slice Step Sequencer", "PakettiSliceStepCreateDialog"})
   table.insert(buttons, {"Image to Sample", "PakettiImageToSampleStart"})
+  table.insert(buttons, {"Sample Offset / Slice Step Sequencer", "PakettiSliceStepCreateDialog"})
 
   -- Add API 6.2+ specific dialogs only if supported
   if PAKETTI_API >= 6.2 then
-    table.insert(buttons, {"V3.5 GUI Demo", "pakettiGUIDemo"})
-    table.insert(buttons, {"Paketti Enhanced Phrase Generator", "pakettiPhraseGeneratorDialog"})
+    table.insert(buttons, {"Automation Stack", "PakettiAutomationStackShowDialog"})
+    table.insert(buttons, {"Canvas Font Preview", "PakettiCanvasFontPreviewInit"})
     table.insert(buttons, {"Chebyshev Polynomial Waveshaper", "show_chebyshev_waveshaper"})
-    table.insert(buttons, {"Paketti Device Parameter Editor", "PakettiCanvasExperimentsInit"})
-    table.insert(buttons, {"Paketti PCM Writer", "PCMWriterShowPcmDialog"})
-    table.insert(buttons, {"Paketti HyperEdit", "PakettiHyperEditInit"})
     table.insert(buttons, {"EQ Dialog", "create_eq_dialog"})
+    table.insert(buttons, {"Equation Calculator", "PakettiEquationCalculator"})
+    table.insert(buttons, {"Multitap", "PakettiMultitap_create_dialog"})
+    table.insert(buttons, {"Paketti Device Parameter Editor", "PakettiCanvasExperimentsInit"})
+    table.insert(buttons, {"Paketti Enhanced Phrase Generator", "pakettiPhraseGeneratorDialog"})
+    table.insert(buttons, {"Paketti HyperEdit", "PakettiHyperEditInit"})
+    table.insert(buttons, {"Paketti PCM Writer", "PCMWriterShowPcmDialog"})
+    table.insert(buttons, {"Phrase Grid Performance", "PakettiPhraseGridShowPerformanceDialog"})
+    table.insert(buttons, {"Phrase Grid", "PakettiPhraseGridShowDialog"})
+    table.insert(buttons, {"PlayerPro Canvas Main", "pakettiPlayerProShowCanvasMainDialog"})
+    table.insert(buttons, {"Sample Effect Generator", "PakettiSampleEffectGeneratorCreateDialog"})
     table.insert(buttons, {"Unused Note EQ", "create_unused_note_eq_dialog"})
     table.insert(buttons, {"Unused Note EQ64", "create_unused_note_eq64_dialog"})
-    table.insert(buttons, {"Automation Stack", "PakettiAutomationStackShowDialog"})
-    table.insert(buttons, {"Sample Effect Generator", "PakettiSampleEffectGeneratorCreateDialog"})
-    table.insert(buttons, {"Multitap", "PakettiMultitap_create_dialog"})
-    table.insert(buttons, {"PlayerPro Canvas Main", "pakettiPlayerProShowCanvasMainDialog"})
-    table.insert(buttons, {"Phrase Grid", "PakettiPhraseGridShowDialog"})
-    table.insert(buttons, {"Phrase Grid Performance", "PakettiPhraseGridShowPerformanceDialog"})
-    table.insert(buttons, {"Equation Calculator", "PakettiEquationCalculator"})
-    table.insert(buttons, {"Canvas Font Preview", "PakettiCanvasFontPreviewInit"})
+    table.insert(buttons, {"V3.5 GUI Demo", "pakettiGUIDemo"})
   end
-  
-  -- **ALL MISSING DIALOGS ADDED (FROM COMPREHENSIVE GREP):**
-  table.insert(buttons, {"Digitakt Sample Chain", "PakettiDigitaktDialog"})
-  table.insert(buttons, {"LFO Envelope Editor", "pakettiLFOEnvelopeEditorDialog"})
-  table.insert(buttons, {"Wavetable", "show_wavetable_dialog"})
+
+  --table.insert(buttons, {"PlayerPro Waveform Viewer", "PakettiPlayerProWaveformViewerShowDialog"})
+  --table.insert(buttons, {"Sample Visualizer", "show_sample_visualizer"})
+  table.insert(buttons, {"Advanced Subdivision Calculator", "pakettiAdvancedSubdivisionDialog"})
+  table.insert(buttons, {"Automation Curve Fill", "PakettiAutomationCurveFill"})
+  table.insert(buttons, {"BPM-Based Slice", "showBPMBasedSliceDialog"})
+  table.insert(buttons, {"Category Management (MIDI)", "pakettiCategoryManagementDialog"})
   table.insert(buttons, {"CCizer TXT->CC Loader", "pakettiCCizerTXTCCDialog"})
   table.insert(buttons, {"CCizer TXT->MIDI Control Loader", "pakettiCCizerTXTMIDIDialog"})
-  table.insert(buttons, {"Metric Modulation Calculator", "pakettiMetricModulationDialog"})
-  table.insert(buttons, {"Advanced Subdivision Calculator", "pakettiAdvancedSubdivisionDialog"})
-  table.insert(buttons, {"OctaCycle Generator", "pakettiOctaCycleDialog"})
-  table.insert(buttons, {"Track Mapping", "showTrackMappingDialog"})
-  table.insert(buttons, {"Polyend Pattern Browser", "showPolyendPatternBrowser"})
+  table.insert(buttons, {"Clipboard", "PakettiClipboardDialog"})
+  table.insert(buttons, {"Digitakt Sample Chain", "PakettiDigitaktDialog"})
+  table.insert(buttons, {"Dynamic Macro Toolbar", "PakettiDynamicMacroToolbarToggle"})
+  table.insert(buttons, {"Effect Column Curve Fill", "PakettiEffectColumnCurveFill"})
+  table.insert(buttons, {"Effect Details", "pakettiEffectDetailsDialog"})
+  table.insert(buttons, {"Frame Calculator Song Length", "PakettiFrameCalculatorShowSongLengthDialog"})
+  table.insert(buttons, {"Frame Calculator", "PakettiFrameCalculatorDialog"})
+  table.insert(buttons, {"Fuzzy Sample Search", "PakettiFuzzySampleSearchDialog"})
+  table.insert(buttons, {"Hold To Fill", "PakettiHoldToFillShowDialog"})
   table.insert(buttons, {"Humanize Selection", "pakettiHumanizeDialog"})
-  table.insert(buttons, {"Paketti XYPad Sample Rotator", "pakettiXYPadSampleRotatorDialog"})
+  table.insert(buttons, {"Humanize", "showHumanizeDialog"})
+  table.insert(buttons, {"IFF Loader", "loadIFFSampleFromDialog"})
+  table.insert(buttons, {"Instrument Info", "pakettiInstrumentInfoDialog"})
+  table.insert(buttons, {"Instrument Rename", "PakettiInstrumentRenameDialog"})
+  table.insert(buttons, {"Instrument Transpose Dialog", "PakettiInstrumentTransposeDialog"})
+  table.insert(buttons, {"ITI Export", "pakettiITIExportDialog"})
+  table.insert(buttons, {"Keyzone Distributor Filename", "pakettiKeyzoneDistributorFilenameDialog"})
+  table.insert(buttons, {"LFO Envelope Editor", "pakettiLFOEnvelopeEditorDialog"})
+  table.insert(buttons, {"Load Random Sample to Pattern", "loadRandomSampleToPatternDialog"})
+  table.insert(buttons, {"Metric Modulation Calculator", "pakettiMetricModulationDialog"})
+  table.insert(buttons, {"Metric Modulation", "show_metric_modulation_dialog"})
+  table.insert(buttons, {"MIDI Effect Writer", "PakettiMidiEffectWriterShowDialog"})
+  table.insert(buttons, {"Mixer Parameter Exposer", "PakettiMixerParameterExposerShowDialog"})
+  table.insert(buttons, {"MPC Cycler", "show_mpc_cycler_dialog"})
+  table.insert(buttons, {"OctaCycle Generator", "pakettiOctaCycleDialog"})
   table.insert(buttons, {"Octatrack .OT File Analysis", "pakettiOTFileAnalysisDialog"})
   table.insert(buttons, {"Offset Sample Buffer", "pakettiOffsetSampleBufferDialog"})
-  table.insert(buttons, {"Set EditStep&Enter", "pakettiEditStepEnterDialog"})
-  table.insert(buttons, {"Player Pro Note Selector", "pakettiPlayerProNoteGridShowDropdownGrid"})
-  table.insert(buttons, {"Player Pro FX Dialog", "pakettiPlayerProEffectDialog"})
-  table.insert(buttons, {"Paketti Minimize Cheatsheet", "pakettiMinimizeCheatsheetDialog"})
-  table.insert(buttons, {"Category Management (MIDI)", "pakettiCategoryManagementDialog"})
-  --table.insert(buttons, {"Sample Visualizer", "show_sample_visualizer"})
-  table.insert(buttons, {"Sononymph", "show_sononymph_dialog"})
-  table.insert(buttons, {"Paketti RePitch", "show_paketti_repitch_dialog"})
-  table.insert(buttons, {"Switch Note Instrument Dialog", "pakettiSwitchNoteInstrumentDialog"})
-  table.insert(buttons, {"Plugin Details", "pakettiPluginDetailsDialog"})
-  table.insert(buttons, {"Effect Details", "pakettiEffectDetailsDialog"})
-  table.insert(buttons, {"Set Pattern/Phrase Length", "pakettiPatternPhraseLength"})
-  table.insert(buttons, {"Instrument Transpose Dialog", "PakettiInstrumentTransposeDialog"})
-  
-  -- **ADDITIONAL MISSING DIALOGS (2025-11-05):**
-  table.insert(buttons, {"Paketti Capture Last Take", "PakettiCaptureLastTakeDialog"})
-  table.insert(buttons, {"Paketti Fill Dialog", "PakettiFillShowDialog"})
-  table.insert(buttons, {"Metric Modulation", "show_metric_modulation_dialog"})
-  table.insert(buttons, {"Subdivision Calculator", "show_subdivision_calculator_dialog"})
-  table.insert(buttons, {"Instrument Info", "pakettiInstrumentInfoDialog"})
-  table.insert(buttons, {"Sample Visualizer", "pakettiSampleVisualizerDialog"})
-  table.insert(buttons, {"Paketti Execute", "PakettiExecuteShowDialog"})
-  table.insert(buttons, {"Pattern Delay Viewer", "PakettiPatternDelayViewerShowDialog"})
-  table.insert(buttons, {"Stem Slicer", "pakettiStemSlicerDialog"})
-  table.insert(buttons, {"Frame Calculator", "PakettiFrameCalculatorDialog"})
-  table.insert(buttons, {"Frame Calculator Song Length", "PakettiFrameCalculatorShowSongLengthDialog"})
-  table.insert(buttons, {"Fuzzy Sample Search", "PakettiFuzzySampleSearchDialog"})
-  table.insert(buttons, {"Transpose Block", "show_transpose_block_dialog"})
-  --table.insert(buttons, {"PlayerPro Waveform Viewer", "PakettiPlayerProWaveformViewerShowDialog"})
   table.insert(buttons, {"OpenMPT Linear Keyboard Layer", "PakettiOpenMPTLinearKeyboardLayerDialog"})
-  table.insert(buttons, {"Switcharoo", "PakettiSwitcharoo_CreateDialog"})
-  table.insert(buttons, {"Hold To Fill", "PakettiHoldToFillShowDialog"})
-  table.insert(buttons, {"Tuning Selection", "show_tuning_selection_dialog"})
-  table.insert(buttons, {"ITI Export", "pakettiITIExportDialog"})
-  table.insert(buttons, {"Zero Crossings Advanced", "PakettiZeroCrossingsAdvancedDialog"})
-  table.insert(buttons, {"BPM-Based Slice", "showBPMBasedSliceDialog"})
-  table.insert(buttons, {"MIDI Effect Writer", "PakettiMidiEffectWriterShowDialog"})
-  table.insert(buttons, {"Load Random Sample to Pattern", "loadRandomSampleToPatternDialog"})
-  table.insert(buttons, {"Humanize", "showHumanizeDialog"})
-  table.insert(buttons, {"Instrument Rename", "PakettiInstrumentRenameDialog"})
-  table.insert(buttons, {"PlayerPro Traditional Main", "pakettiPlayerProShowTraditionalMainDialog"})
-  table.insert(buttons, {"IFF Loader", "loadIFFSampleFromDialog"})
-  table.insert(buttons, {"Keyzone Distributor Filename", "pakettiKeyzoneDistributorFilenameDialog"})
   table.insert(buttons, {"OT Debug", "PakettiOTDebugDialog"})
+  table.insert(buttons, {"Paketti Capture Last Take", "PakettiCaptureLastTakeDialog"})
+  table.insert(buttons, {"Paketti Execute", "PakettiExecuteShowDialog"})
+  table.insert(buttons, {"Paketti Fill Dialog", "PakettiFillShowDialog"})
+  table.insert(buttons, {"Paketti Minimize Cheatsheet", "pakettiMinimizeCheatsheetDialog"})
+  table.insert(buttons, {"Paketti RePitch", "show_paketti_repitch_dialog"})
+  table.insert(buttons, {"Paketti Toggler", "PakettiTogglerDialog"})
+  table.insert(buttons, {"Paketti XYPad Sample Rotator", "pakettiXYPadSampleRotatorDialog"})
+  table.insert(buttons, {"Pattern Delay Viewer", "PakettiPatternDelayViewerShowDialog"})
+  table.insert(buttons, {"Player Pro FX Dialog", "pakettiPlayerProEffectDialog"})
+  table.insert(buttons, {"Player Pro Note Selector", "pakettiPlayerProNoteGridShowDropdownGrid"})
+  table.insert(buttons, {"PlayerPro Traditional Main", "pakettiPlayerProShowTraditionalMainDialog"})
+  table.insert(buttons, {"Plugin Details", "pakettiPluginDetailsDialog"})
+  table.insert(buttons, {"Plugin Slots Configuration", "pakettiPluginSlotsDialog"})
+  table.insert(buttons, {"Polyend Pattern Browser", "showPolyendPatternBrowser"})
   table.insert(buttons, {"Polyend Slice Switcher", "PakettiPolyendSliceSwitcherCreateDialog"})
-  
-  -- **ADDITIONAL MISSING DIALOGS (2025-01-08):**
-  table.insert(buttons, {"Stem Slice Randomizer", "pakettiStemSliceRandomizerDialog"})
-  table.insert(buttons, {"Mixer Parameter Exposer", "PakettiMixerParameterExposerShowDialog"})
-  table.insert(buttons, {"Wonkify Quick", "PakettiWonkifyQuickDialog"})
-  table.insert(buttons, {"Wonkify Advanced", "PakettiWonkifyDialog"})
-  table.insert(buttons, {"Clipboard", "PakettiClipboardDialog"})
-  table.insert(buttons, {"Automation Curve Fill", "PakettiAutomationCurveFill"})
-  table.insert(buttons, {"Effect Column Curve Fill", "PakettiEffectColumnCurveFill"})
   table.insert(buttons, {"Quick Flicks", "PakettiQuickFlicksShowDialog"})
+  table.insert(buttons, {"Sample Visualizer", "pakettiSampleVisualizerDialog"})
+  table.insert(buttons, {"Set EditStep&Enter", "pakettiEditStepEnterDialog"})
+  table.insert(buttons, {"Set Pattern/Phrase Length", "pakettiPatternPhraseLength"})
+  table.insert(buttons, {"Slab'o'Patterns", "PakettiSlabOPatternsToggle"})
   table.insert(buttons, {"SlicePro Config", "SliceProConfigDialog"})
   table.insert(buttons, {"SliceSafely", "SliceSafelyDialog"})
-  table.insert(buttons, {"MPC Cycler", "show_mpc_cycler_dialog"})
+  table.insert(buttons, {"Sononymph", "show_sononymph_dialog"})
+  table.insert(buttons, {"Stem Slice Randomizer", "pakettiStemSliceRandomizerDialog"})
+  table.insert(buttons, {"Stem Slicer", "pakettiStemSlicerDialog"})
+  table.insert(buttons, {"Subdivision Calculator", "show_subdivision_calculator_dialog"})
+  table.insert(buttons, {"Switch Note Instrument Dialog", "pakettiSwitchNoteInstrumentDialog"})
+  table.insert(buttons, {"Switcharoo", "PakettiSwitcharoo_CreateDialog"})
+  table.insert(buttons, {"Track Mapping", "showTrackMappingDialog"})
+  table.insert(buttons, {"Transpose Block", "show_transpose_block_dialog"})
+  table.insert(buttons, {"Tuning Selection", "show_tuning_selection_dialog"})
+  table.insert(buttons, {"Wavetable", "show_wavetable_dialog"})
+  table.insert(buttons, {"Wonkify Advanced", "PakettiWonkifyDialog"})
+  table.insert(buttons, {"Wonkify Quick", "PakettiWonkifyQuickDialog"})
   table.insert(buttons, {"ZDxx Pattern Delay", "show_zdxx_dialog"})
-  table.insert(buttons, {"Slab'o'Patterns", "PakettiSlabOPatternsToggle"})
-  table.insert(buttons, {"Paketti Toggler", "PakettiTogglerDialog"})
-  table.insert(buttons, {"Plugin Slots Configuration", "pakettiPluginSlotsDialog"})
-  table.insert(buttons, {"Dynamic Macro Toolbar", "PakettiDynamicMacroToolbarToggle"})
+  table.insert(buttons, {"Zero Crossings Advanced", "PakettiZeroCrossingsAdvancedDialog"})
 
   return buttons
 end
