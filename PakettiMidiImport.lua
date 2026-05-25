@@ -562,7 +562,7 @@ end
 -- BATCH IMPORT DIALOG
 ----------------------------------------------------------------------
 
-local function show_midi_import_dialog()
+function show_midi_import_dialog()
   if dialog and dialog.visible then
     dialog:close()
   end

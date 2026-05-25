@@ -8,6 +8,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-05-25 - Feature: 4 more dialogs added to Dialog of Dialogs (Euclidean Fill, Chords Progression Player, MIDI Import, PlayerPro Waveform Viewer)
+
+Second pass on the cross-reference picked up 4 more legitimate dialogs missing from Dialog of Dialogs. Added to `PakettiMainMenuEntries.lua`:
+
+- `Euclidean Fill` → `show_euclid_dialog` (`PakettiGroovebox8ch960samp.lua:708`) — was `local function`, removed `local` so the string lookup finds it
+- `Paketti Chords - Progression Player` → `PakettiChords_CreateDialog` (`PakettiChords.lua:1454`) — the sEptIQ progression player
+- `Paketti MIDI Import` → `show_midi_import_dialog` (`PakettiMidiImport.lua:565`) — .mid file importer (distinct from existing `Midi Mappings` button); was `local function`, removed `local`
+- `PlayerPro Waveform Viewer` → `PakettiPlayerProWaveformViewerShowDialog` — uncommented the existing entry at `PakettiMainMenuEntries.lua:388`
+
 ### 2026-05-25 - Feature: 8 new entries added to Dialog of Dialogs; 3 local dialog functions made global
 
 Cross-referenced every `show_custom_dialog("Title", ...)` in the codebase against existing DoD button labels. Found 8 genuine dialogs missing from DoD (skipped 6 confirmed duplicates: `Show Largest Samples`, `Slice to Pattern Sequencer Dialog`, `Randomize Devices and Plugins`, `Protracker MOD Modulation Effect`, `Rename Instrument`, `Volume Delay Pan Equation Calculator` — all already had DoD entries under slightly different wording pointing at the same function).

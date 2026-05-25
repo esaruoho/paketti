@@ -705,7 +705,7 @@ local function euclidean(k, n, offset)
   return pattern
 end
 
-local function show_euclid_dialog()
+function show_euclid_dialog()
   if not require_selection() then return end
   local r1, s1, r2, s2 = selection[1], selection[2], selection[3], selection[4]
   local n = s2 - s1 + 1
