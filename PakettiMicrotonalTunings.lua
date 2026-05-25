@@ -1769,7 +1769,7 @@ local function insert_golden_chord(chord_index, root_note)
   renoise.app():show_status("Inserted " .. chord.name .. " from note " .. root_note)
 end
 
-local function show_golden_chord_dialog()
+function show_golden_chord_dialog()
   local vb = renoise.ViewBuilder()
   local chords = get_golden_chords()
   local chord_names = {}
@@ -1844,7 +1844,7 @@ end
 -- GOLDEN RATIO TEMPO/RHYTHM
 -- ========================================
 
-local function apply_golden_tempo_relationship()
+function apply_golden_tempo_relationship()
   local song = renoise.song()
   if not song then return end
 
@@ -2045,7 +2045,7 @@ end
 -- MAIN DIALOG
 -- ========================================
 
-local function show_microtonal_tuning_dialog()
+function show_microtonal_tuning_dialog()
   if microtonal_dialog and microtonal_dialog.visible then
     microtonal_dialog:close()
   end

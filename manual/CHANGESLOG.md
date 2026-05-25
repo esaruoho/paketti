@@ -8,6 +8,22 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-05-25 - Feature: 8 new entries added to Dialog of Dialogs; 3 local dialog functions made global
+
+Cross-referenced every `show_custom_dialog("Title", ...)` in the codebase against existing DoD button labels. Found 8 genuine dialogs missing from DoD (skipped 6 confirmed duplicates: `Show Largest Samples`, `Slice to Pattern Sequencer Dialog`, `Randomize Devices and Plugins`, `Protracker MOD Modulation Effect`, `Rename Instrument`, `Volume Delay Pan Equation Calculator` — all already had DoD entries under slightly different wording pointing at the same function).
+
+Added to `PakettiMainMenuEntries.lua`:
+- `BPM Switcher` → `PakettiBPMSwitcherDialog` (`PakettiPatternEditor.lua:220`)
+- `Paketti Arpeggiator` → `PakettiArp_ShowDialog` (`PakettiArpeggiator.lua:1753`)
+- `Paketti Golden Chord Library` → `show_golden_chord_dialog` (`PakettiMicrotonalTunings.lua:1772`)
+- `Paketti Golden Ratio Tempo/Rhythm` → `apply_golden_tempo_relationship` (`PakettiMicrotonalTunings.lua:1847`)
+- `Paketti Microtonal Tunings` → `show_microtonal_tuning_dialog` (`PakettiMicrotonalTunings.lua:2048`)
+- `Paketti Randomize Delay Column` → `PakettiFillRandomizeDelayDialog` (`PakettiFill.lua:2100`)
+- `Paketti Sectionizer` → `PakettiSectionizer` (`PakettiSandbox.lua:541`)
+- `Paketti Split Note into N Equal Pieces` → `PakettiNoteSplitDialog` (`PakettiNoteSplit.lua:225`)
+
+Three of those (Golden Chord, Golden Tempo, Microtonal) were declared as `local function ...` in `PakettiMicrotonalTunings.lua`. They worked via keybindings (closure capture) but couldn't be resolved by the DoD string-lookup which uses `rawget(_G, name)`. Removed the `local` qualifier from all three so the names appear in the global table.
+
 ### 2026-05-25 - Fix: Last 5 Dialog of Dialogs MISSING entries — mapped via show_custom_dialog title grep
 
 User pointed out the correct grep technique: `grep "show_custom_dialog(\"<title>"` directly returns the file:line of the dialog, then `awk` finds the enclosing `function`. Should have done this from the start. Each remaining MISSING entry resolved in one shot:
