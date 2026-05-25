@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-05-25 - Fix: Last 5 Dialog of Dialogs MISSING entries — mapped via show_custom_dialog title grep
+
+User pointed out the correct grep technique: `grep "show_custom_dialog(\"<title>"` directly returns the file:line of the dialog, then `awk` finds the enclosing `function`. Should have done this from the start. Each remaining MISSING entry resolved in one shot:
+
+- `Offset Sample Buffer` → `pakettiOffsetDialog` (same function as the working `Paketti Offset Dialog` button)
+- `Paketti RePitch` → `pakettiSimpleSampleTuningDialog` (same function as the working `Sample Cycle Tuning Calculator` button — `PakettiRePitch.lua` has no `RePitch`-named dialog opener; the file's actual dialog opener is the Cycle Tuning Calculator)
+- `Paketti XYPad Sample Rotator` → `xypad` (in `PakettiExperimental_Verify.lua:967`)
+- `Set EditStep&Enter` → `pakettiEditStepDialog` (same function as the working `EditStep Dialog` button)
+- `Track Mapping` → **REMOVED from button list** with explanatory comment. The dialog at `PakettiPolyendPatternData.lua:1642` is a sub-dialog inside `import_pattern_to_renoise(pattern_data, target_pattern_index, track_mapping, filepath)` and needs real import args to render — it can't be opened standalone. If a standalone version is wanted, a wrapper function needs to be written first.
+
+Smoke Test should now show 0 MISSING.
+
 ### 2026-05-25 - Fix: 7 more Dialog of Dialogs MISSING entries — mapped to real functions via keybinding grep
 
 User correctly pointed out that "Advanced Subdivision Calculator" has a working keybinding — meaning the feature exists, just under a different function name than the button list referenced. Re-grepped via keybinding registration name (`grep -E "add_keybinding|add_menu_entry" | grep -i <label>`) to find the real function for each label instead of guessing from the broken global name. Updated `PakettiMainMenuEntries.lua`:
