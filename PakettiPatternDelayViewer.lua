@@ -153,6 +153,19 @@ function PakettiPatternDelayViewerBuildPatternColumn(pattern_info, column_index,
     end
   end
   
+  -- Cap visible lines per pattern column so the dialog never exceeds Renoise's
+  -- ~800px screen ceiling. 35 lines * 17px ≈ 595px per column, leaving headroom
+  -- for headers + control panel. Overflow gets a "+N more" footer below.
+  local MAX_VISIBLE_LINES_PER_COLUMN = 35
+  local total_lines_with_data = #lines_with_data
+  local truncated = false
+  if total_lines_with_data > MAX_VISIBLE_LINES_PER_COLUMN then
+    local trimmed = {}
+    for i = 1, MAX_VISIBLE_LINES_PER_COLUMN do trimmed[i] = lines_with_data[i] end
+    lines_with_data = trimmed
+    truncated = true
+  end
+
   -- Show only lines with notes (more compact)
   for _, line_index in ipairs(lines_with_data) do
     local line_row_views = {}
@@ -218,7 +231,17 @@ function PakettiPatternDelayViewerBuildPatternColumn(pattern_info, column_index,
       style = "disabled"
     })
   end
-  
+
+  -- Overflow indicator if we capped the visible rows
+  if truncated then
+    table.insert(col_views, vb:text {
+      text = string.format("+%d more lines (capped at %d)",
+        total_lines_with_data - MAX_VISIBLE_LINES_PER_COLUMN, MAX_VISIBLE_LINES_PER_COLUMN),
+      style = "disabled",
+      font = "italic"
+    })
+  end
+
   return vb:column { views = col_views }
 end
 

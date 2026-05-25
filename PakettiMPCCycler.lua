@@ -1071,7 +1071,7 @@ local function create_dialog_content()
   }
 end
 
-local function show_mpc_cycler_dialog()
+function show_mpc_cycler_dialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil

@@ -152,12 +152,13 @@ function show_zdxx_dialog()
   end
   
   local delay_value = 16  -- Default value
-  
+  local apply_button  -- forward-declared so the slider notifier can update its text
+
   local delay_text = vb:text{
     style = "strong",
     text = string.format("Delay: %d lines (0x%02X)", delay_value, delay_value)
   }
-  
+
   local delay_slider = vb:slider{
     width = 500,
     min = 0,
@@ -166,23 +167,19 @@ function show_zdxx_dialog()
     notifier = function(value)
       delay_value = math.floor(value + 0.5)
       delay_text.text = string.format("Delay: %d lines (0x%02X)", delay_value, delay_value)
+      if apply_button then
+        apply_button.text = "Apply ZD" .. string.format("%02X", delay_value)
+      end
     end
   }
-  
-  local apply_button = vb:button{
+
+  apply_button = vb:button{
     text = "Apply ZD" .. string.format("%02X", delay_value),
     width = 200,
     notifier = function()
       write_zdxx(delay_value)
     end
   }
-  
-  -- Update button text when slider changes
-  delay_slider.notifier = function(value)
-    delay_value = math.floor(value + 0.5)
-    delay_text.text = string.format("Delay: %d lines (0x%02X)", delay_value, delay_value)
-    apply_button.text = "Apply ZD" .. string.format("%02X", delay_value)
-  end
   
   local info_text = vb:column{
     style = "group",
