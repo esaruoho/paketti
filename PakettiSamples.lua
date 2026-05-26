@@ -8297,3 +8297,91 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Append Random Samples (01) to Instrument", invoke = function() PakettiAppendRandomSamplesQuick(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Append Random Samples (04) to Instrument", invoke = function() PakettiAppendRandomSamplesQuick(4) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Append Random Samples (12) to Instrument", invoke = function() PakettiAppendRandomSamplesQuick(12) end}
+
+------------------------------------------------------------------------
+-- Basenote Octave Shift (Up / Down by 12 semitones, clamped to 0-119)
+------------------------------------------------------------------------
+-- Shifts the base_note of every sample in the selected instrument by
+-- +12 or -12 semitones.  When the instrument's first sample has slice
+-- markers, only the first sample's basenote is shifted (slices inherit).
+-- Clamped so it never errors: at the ceiling the note stays at the
+-- highest valid octave-aligned value, and at the floor it stays at C-0.
+
+function PakettiBasenoteOctaveShift(direction)
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No instrument or no samples.")
+    return
+  end
+
+  local interval = (direction == "up") and 12 or -12
+
+  -- Helper: note value -> "C-4" style string
+  local notes_table = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
+  local function note_str(v)
+    return notes_table[(v % 12) + 1] .. math.floor(v / 12)
+  end
+
+  local first_sample = instrument.samples[1]
+  local has_slices = first_sample.slice_markers and #first_sample.slice_markers > 0
+
+  local shifted_count = 0
+  local skipped = false
+  local last_note = nil
+
+  local function shift_sample(sample)
+    local old = sample.sample_mapping.base_note
+    local new = old + interval
+    -- Clamp to valid MIDI range 0-119
+    if new > 119 then new = 119 - (119 % 12) + (old % 12)
+      if new > 119 then new = new - 12 end
+      if new == old then skipped = true return end
+    end
+    if new < 0 then new = old % 12
+      if new == old then skipped = true return end
+    end
+    sample.sample_mapping.base_note = new
+    last_note = new
+    shifted_count = shifted_count + 1
+  end
+
+  song:describe_undo("Paketti Basenote Octave " .. (direction == "up" and "Up" or "Down"))
+
+  if has_slices then
+    shift_sample(first_sample)
+  else
+    for _, sample in ipairs(instrument.samples) do
+      shift_sample(sample)
+    end
+  end
+
+  -- Status message
+  if shifted_count > 0 and last_note then
+    local arrow = (direction == "up") and "▲" or "▼"
+    renoise.app():show_status("Basenote " .. arrow .. " octave → " .. note_str(last_note) ..
+      (shifted_count > 1 and (" (" .. shifted_count .. " samples)") or ""))
+  elseif skipped then
+    renoise.app():show_status("Basenote already at " .. (direction == "up" and "maximum" or "minimum") .. " octave — no change.")
+  end
+end
+
+-- Keybindings: Global, Pattern Editor, Sample Editor
+renoise.tool():add_keybinding{name="Global:Paketti:Basenote Octave Up",invoke=function() PakettiBasenoteOctaveShift("up") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Basenote Octave Down",invoke=function() PakettiBasenoteOctaveShift("down") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Basenote Octave Up",invoke=function() PakettiBasenoteOctaveShift("up") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Basenote Octave Down",invoke=function() PakettiBasenoteOctaveShift("down") end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Basenote Octave Up",invoke=function() PakettiBasenoteOctaveShift("up") end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Basenote Octave Down",invoke=function() PakettiBasenoteOctaveShift("down") end}
+
+-- Menu entries: Sample Navigator, Sample Editor, Instrument Box
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Basenote:Basenote Octave Up",invoke=function() PakettiBasenoteOctaveShift("up") end}
+PakettiAddMenuEntry{name="Sample Navigator:Paketti:Basenote:Basenote Octave Down",invoke=function() PakettiBasenoteOctaveShift("down") end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Basenote:Basenote Octave Up",invoke=function() PakettiBasenoteOctaveShift("up") end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Basenote:Basenote Octave Down",invoke=function() PakettiBasenoteOctaveShift("down") end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Basenote:Basenote Octave Up",invoke=function() PakettiBasenoteOctaveShift("up") end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Basenote:Basenote Octave Down",invoke=function() PakettiBasenoteOctaveShift("down") end}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:Basenote Octave Up",invoke=function(message) if message:is_trigger() then PakettiBasenoteOctaveShift("up") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Basenote Octave Down",invoke=function(message) if message:is_trigger() then PakettiBasenoteOctaveShift("down") end end}

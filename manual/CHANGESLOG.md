@@ -8,6 +8,25 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-05-26 - Feature: Basenote Octave Up/Down Shortcuts
+
+New shortcuts to shift the basenote of all samples in the selected instrument up or down by one octave (12 semitones). Useful when a loaded sample plays back too fast or too slow — nudge the basenote by octave until it sits at the right pitch. Clamped to valid MIDI range (C-0 through B-9) so it never errors out at the extremes. When the instrument has slice markers, only the first sample's basenote is shifted (slices inherit from it).
+
+- Menu: `Sample Navigator:Paketti:Basenote:Basenote Octave Up`
+- Menu: `Sample Navigator:Paketti:Basenote:Basenote Octave Down`
+- Menu: `Sample Editor:Paketti:Basenote:Basenote Octave Up`
+- Menu: `Sample Editor:Paketti:Basenote:Basenote Octave Down`
+- Menu: `Instrument Box:Paketti:Basenote:Basenote Octave Up`
+- Menu: `Instrument Box:Paketti:Basenote:Basenote Octave Down`
+- Keybinding: `Global:Paketti:Basenote Octave Up`
+- Keybinding: `Global:Paketti:Basenote Octave Down`
+- Keybinding: `Pattern Editor:Paketti:Basenote Octave Up`
+- Keybinding: `Pattern Editor:Paketti:Basenote Octave Down`
+- Keybinding: `Sample Editor:Paketti:Basenote Octave Up`
+- Keybinding: `Sample Editor:Paketti:Basenote Octave Down`
+- MIDI Mapping: `Paketti:Basenote Octave Up`
+- MIDI Mapping: `Paketti:Basenote Octave Down`
+
 ### 2026-05-25 - Improvement: Beatsync Seamless now runs through ProcessSlicer
 
 Both Beatsync Seamless variants (single-pattern and multi-pattern) now run their trim, normalize, chop, and pattern-creation work inside a ProcessSlicer with a progress dialog. Multi-minute samples (hundreds of millions of sample-frame writes across all chunks) no longer freeze Renoise's UI or trigger the "Script not responding" dialog — progress updates as each chunk is built, and the dialog has a Cancel button.
