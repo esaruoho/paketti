@@ -437,6 +437,10 @@ function write_ot_file(filename, ot)
   
   -- Write to file
   local f = io.open(ot_filename, "wb")
+  if not f then
+    renoise.app():show_error("Could not write .ot file: " .. ot_filename)
+    return
+  end
   for i = 1, 832 do
     f:write(string.char(byte_array[i] or 0))
   end

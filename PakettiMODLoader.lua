@@ -73,7 +73,7 @@ function load_samples_from_mod()
 
   -- channels from ID
   local id = data:sub(1081,1084)
-  local channel_map = { M_K=4, ["4CHN"]=4, ["6CHN"]=6, ["8CHN"]=8, ["FLT4"]=4, ["FLT8"]=8 }
+  local channel_map = { ["M.K."]=4, ["4CHN"]=4, ["6CHN"]=6, ["8CHN"]=8, ["FLT4"]=4, ["FLT8"]=8 }
   local channels = channel_map[id] or 4
 
   -- skip to sample data

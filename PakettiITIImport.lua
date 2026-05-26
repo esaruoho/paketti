@@ -18,11 +18,13 @@ end
 
 local function read_word(data, pos)
   local b1, b2 = data:byte(pos, pos + 1)
+  if not b1 or not b2 then return 0 end
   return b1 + (b2 * 256)
 end
 
 local function read_dword(data, pos)
   local b1, b2, b3, b4 = data:byte(pos, pos + 3)
+  if not b1 or not b2 or not b3 or not b4 then return 0 end
   return b1 + (b2 * 256) + (b3 * 65536) + (b4 * 16777216)
 end
 
