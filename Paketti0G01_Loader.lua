@@ -398,6 +398,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   },
   SlicePro = {
     SliceProBeatsyncEnabled=false,  -- Enable/disable beat sync on slices (default off)
+    SliceProExtendedSync=false, -- Inject >512 beat_sync_lines via BeatSyncHack XRNI roundtrip (macOS/Linux; runtime only, XRNS stays safe)
     SliceProBeatsyncMode=1,     -- 1=Repitch, 2=Percussion, 3=Texture
     SliceProMuteGroup=0,        -- 0-15 (0 = none)
     SliceProNNA=1,              -- 1=Cut, 2=Note Off, 3=Sustain

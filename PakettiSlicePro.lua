@@ -688,16 +688,29 @@ function SliceProApply(silent)
   
   -- Check if beat sync should be enabled for slices (default is OFF)
   local beatsync_enabled = preferences.SlicePro.SliceProBeatsyncEnabled and preferences.SlicePro.SliceProBeatsyncEnabled.value or false
-  
+  -- Extended sync: route >512 line values through the BeatSyncHack XRNI roundtrip
+  -- (macOS/Linux). Values stay runtime-only; XRNS save protection clamps them back.
+  local extended_enabled = preferences.SlicePro.SliceProExtendedSync and preferences.SlicePro.SliceProExtendedSync.value or false
+
   if #markers == 0 then
     -- No slices, just apply to root sample
-    local sync_lines = math.max(1, math.min(512, math.floor(effective_total_beats * lpb + 0.5)))
+    local true_lines = math.max(1, math.floor(effective_total_beats * lpb + 0.5))
+    local sync_lines = math.min(512, true_lines)
     root_sample.beat_sync_enabled = beatsync_enabled
     if beatsync_enabled then
       root_sample.beat_sync_lines = sync_lines
       pakettiSafeSetBeatSyncMode(root_sample, preferences.SlicePro.SliceProBeatsyncMode.value)
+      if extended_enabled and true_lines > 512 then
+        local ok, msg = pakettiBeatSyncHackRoundtrip(song.selected_instrument_index, { [1] = true_lines })
+        if not silent then
+          renoise.app():show_status(ok
+            and string.format("SlicePro: root sample extended sync %d lines (runtime only, XRNS-safe)", true_lines)
+            or ("SlicePro: extended sync failed - " .. tostring(msg)))
+        end
+        return true
+      end
     end
-    
+
     if not silent then
       renoise.app():show_status(string.format("SlicePro: Applied %d lines to root sample%s", sync_lines, beatsync_enabled and "" or " (Beatsync off)"))
     end
@@ -707,7 +720,8 @@ function SliceProApply(silent)
   -- Slices are samples[2], samples[3], etc.
   local applied_count = 0
   local warnings = {}
-  
+  local extended_map = {}  -- sample_index -> true_lines (>512), injected in one roundtrip
+
   for i = 2, #instrument.samples do
     local sample = instrument.samples[i]
     local slice_index = i - 1
@@ -719,13 +733,18 @@ function SliceProApply(silent)
       
       if beats then
         -- Convert beats to beat_sync_lines
-        local sync_lines = math.max(1, math.min(512, math.floor(beats * lpb + 0.5)))
-        
-        -- Check if we're clamping
-        if beats * lpb > 512 then
-          table.insert(warnings, string.format("Slice %d: %.1f beats clamped to 512 lines", slice_index, beats))
+        local true_lines = math.max(1, math.floor(beats * lpb + 0.5))
+        local sync_lines = math.min(512, true_lines)
+
+        -- Over 512: either inject via BeatSyncHack (extended), or clamp + warn.
+        if true_lines > 512 then
+          if extended_enabled and beatsync_enabled then
+            extended_map[i] = true_lines
+          else
+            table.insert(warnings, string.format("Slice %d: %.1f beats clamped to 512 lines", slice_index, beats))
+          end
         end
-        
+
         sample.beat_sync_enabled = beatsync_enabled
         if beatsync_enabled then
           sample.beat_sync_lines = sync_lines
@@ -754,15 +773,37 @@ function SliceProApply(silent)
   -- Only slices get beat sync applied (if enabled)
   -- The root sample's beat sync state is left as-is
   
+  -- Extended sync: inject every >512 slice in a SINGLE XRNI roundtrip. This runs
+  -- AFTER all per-slice properties are set, so save_instrument captures them and
+  -- the reload restores everything plus the patched >512 values.
+  local extended_count = 0
+  for _ in pairs(extended_map) do extended_count = extended_count + 1 end
+  if extended_count > 0 then
+    local ok, msg, n = pakettiBeatSyncHackRoundtrip(song.selected_instrument_index, extended_map)
+    if ok then
+      print(string.format("SlicePro: extended sync injected %d slice(s) >512 lines", n or extended_count))
+    else
+      print("SlicePro: extended sync FAILED - " .. tostring(msg))
+      extended_count = 0
+      table.insert(warnings, "extended sync failed: " .. tostring(msg))
+    end
+  end
+
   -- Show warnings if any
   if #warnings > 0 then
     for _, warning in ipairs(warnings) do
       print("SlicePro WARNING: " .. warning)
     end
   end
-  
+
   if not silent then
-    renoise.app():show_status(string.format("SlicePro: Applied to %d slices (LPB=%d%s)", applied_count, lpb, beatsync_enabled and "" or ", Beatsync off"))
+    if extended_count > 0 then
+      renoise.app():show_status(string.format(
+        "SlicePro: Applied to %d slices, %d via extended sync >512 (runtime only, XRNS-safe)",
+        applied_count, extended_count))
+    else
+      renoise.app():show_status(string.format("SlicePro: Applied to %d slices (LPB=%d%s)", applied_count, lpb, beatsync_enabled and "" or ", Beatsync off"))
+    end
   end
   return true
 end
@@ -1024,7 +1065,21 @@ function SliceProConfigDialog()
             end
           }
         },
-        
+
+        -- Extended sync: inject >512 line values via BeatSyncHack (macOS/Linux).
+        vb:row{
+          vb:checkbox{
+            id = "slicepro_extended_sync",
+            value = preferences.SlicePro.SliceProExtendedSync and preferences.SlicePro.SliceProExtendedSync.value or false,
+            notifier = function(val)
+              if preferences.SlicePro.SliceProExtendedSync then
+                preferences.SlicePro.SliceProExtendedSync.value = val
+              end
+            end
+          },
+          vb:text{text = "Extended sync >512 (runtime only, XRNS-safe)", width = 280}
+        },
+
         -- Mute Group
         vb:row{
           vb:text{text = "Mute Group:", width = 90},

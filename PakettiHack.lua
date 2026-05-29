@@ -24,12 +24,112 @@ local function paketti_hack_run_shell(cmd)
   return rc == "0", out
 end
 
-local function paketti_hack_set_beatsync_lines(target_lines)
+-- Core: patch one instrument's <BeatSyncLines> blocks in a SINGLE XRNI roundtrip.
+-- sample_lines_map: { [sample_index] = target_lines, ... } (1-based sample indices).
+-- The Nth <BeatSyncLines> block in Instrument.xml corresponds to samples[N], so a
+-- sliced instrument's slice aliases each get their own block — we can patch every
+-- over-512 slice in one save/reload instead of one reload per sample.
+-- GLOBAL so PakettiSlicePro (and the save/reload restorers below) can call it.
+-- Returns: ok(boolean), message(string), patched_count(number).
+function pakettiBeatSyncHackRoundtrip(instr_idx, sample_lines_map)
   if os.platform() == "WINDOWS" then
-    renoise.app():show_status("PakettiHack: shell zip/unzip not wired for Windows yet")
-    return
+    return false, "shell zip/unzip not wired for Windows yet", 0
+  end
+  local song = renoise.song()
+  if not song then return false, "no song", 0 end
+  local instr = song.instruments[instr_idx]
+  if not instr then return false, "invalid instrument index " .. tostring(instr_idx), 0 end
+  if #instr.samples == 0 then return false, "instrument has no samples", 0 end
+
+  -- Validate + normalise targets
+  local want = 0
+  for s_idx, lines in pairs(sample_lines_map) do
+    if type(lines) ~= "number" or lines < 1 or lines > 65535 then
+      return false, string.format("target %s out of range (1-65535)", tostring(lines)), 0
+    end
+    sample_lines_map[s_idx] = math.floor(lines)
+    want = want + 1
+  end
+  if want == 0 then return true, "nothing to patch", 0 end
+
+  local sel_inst_before = song.selected_instrument_index
+  local sel_sample_before = song.selected_sample_index
+  local instr_name = instr.name
+
+  -- save_instrument saves the SELECTED instrument; select the target.
+  song.selected_instrument_index = instr_idx
+
+  -- Force BeatSync on for the targeted samples so the patched value takes effect.
+  for s_idx in pairs(sample_lines_map) do
+    local s = instr.samples[s_idx]
+    if s and s.beat_sync_enabled == false then s.beat_sync_enabled = true end
   end
 
+  local t0 = os.clock()
+  local tmp_xrni = os.tmpname() .. ".xrni"
+  local tmp_dir = tmp_xrni .. ".d"
+  os.mkdir(tmp_dir)
+
+  renoise.app():save_instrument(tmp_xrni)
+
+  local ok, err = paketti_hack_run_shell(string.format(
+    'unzip -o -j %q Instrument.xml -d %q', tmp_xrni, tmp_dir))
+  if not ok then
+    os.remove(tmp_xrni)
+    return false, "unzip failed - " .. tostring(err), 0
+  end
+  local xml_path = tmp_dir .. "/Instrument.xml"
+
+  local f = io.open(xml_path, "rb")
+  if not f then return false, "cannot read extracted XML", 0 end
+  local xml = f:read("*a"); f:close()
+
+  local count = 0
+  local patched = 0
+  xml = xml:gsub("(<BeatSyncLines>)(%-?%d+)(</BeatSyncLines>)", function(open_tag, val, close_tag)
+    count = count + 1
+    local target = sample_lines_map[count]
+    if target then
+      patched = patched + 1
+      return open_tag .. tostring(target) .. close_tag
+    end
+    return open_tag .. val .. close_tag
+  end)
+
+  if patched == 0 then
+    os.remove(xml_path); os.remove(tmp_xrni)
+    return false, string.format("no matching <BeatSyncLines> tag (found %d blocks)", count), 0
+  end
+
+  local fo = io.open(xml_path, "wb")
+  if not fo then return false, "cannot write XML", 0 end
+  fo:write(xml); fo:close()
+
+  ok, err = paketti_hack_run_shell(string.format(
+    'cd %q && zip -q %q Instrument.xml', tmp_dir, tmp_xrni))
+  if not ok then
+    os.remove(xml_path); os.remove(tmp_xrni)
+    return false, "zip update failed - " .. tostring(err), 0
+  end
+
+  renoise.app():load_instrument(tmp_xrni)
+
+  -- Restore name + selection (load_instrument loads into the selected slot).
+  local reloaded = song.instruments[instr_idx]
+  if reloaded then reloaded.name = instr_name end
+  song.selected_instrument_index = sel_inst_before
+  if song.instruments[sel_inst_before]
+    and sel_sample_before <= #song.instruments[sel_inst_before].samples then
+    song.selected_sample_index = sel_sample_before
+  end
+
+  os.remove(xml_path)
+  os.remove(tmp_xrni)
+  return true, string.format("patched %d sample(s) in %.0fms", patched, (os.clock() - t0) * 1000), patched
+end
+
+-- Thin wrapper for the dialog / menu presets: hack the currently selected sample.
+local function paketti_hack_set_beatsync_lines(target_lines)
   local song = renoise.song()
   if not song then return end
   local instr = song.selected_instrument
@@ -39,94 +139,80 @@ local function paketti_hack_set_beatsync_lines(target_lines)
   end
   local sample_idx = song.selected_sample_index
   if sample_idx < 1 then sample_idx = 1 end
-  local sample = instr.samples[sample_idx]
-
-  if type(target_lines) ~= "number" or target_lines < 1 or target_lines > 65535 then
-    renoise.app():show_status("PakettiHack: target_lines out of range (1-65535)")
-    return
-  end
-  target_lines = math.floor(target_lines)
-
-  -- Force BeatSync on so the patched value has effect when reloaded
-  if sample.beat_sync_enabled == false then
-    sample.beat_sync_enabled = true
-  end
-
-  local instr_name = instr.name
-  local sel_inst_idx = song.selected_instrument_index
-  local sel_sample_idx = sample_idx
-
-  local t0 = os.clock()
-  local tmp_xrni = os.tmpname() .. ".xrni"
-  local tmp_dir = tmp_xrni .. ".d"
-  os.mkdir(tmp_dir)
-
-  renoise.app():save_instrument(tmp_xrni)
-  local t_saved = os.clock()
-
-  local ok, err = paketti_hack_run_shell(string.format(
-    'unzip -o -j %q Instrument.xml -d %q', tmp_xrni, tmp_dir))
-  if not ok then
-    renoise.app():show_status("PakettiHack: unzip failed - " .. tostring(err))
-    return
-  end
-  local xml_path = tmp_dir .. "/Instrument.xml"
-
-  local f = io.open(xml_path, "rb")
-  if not f then renoise.app():show_status("PakettiHack: cannot read extracted XML") return end
-  local xml = f:read("*a"); f:close()
-
-  local count = 0
-  local patched = false
-  xml = xml:gsub("(<BeatSyncLines>)(%-?%d+)(</BeatSyncLines>)", function(open_tag, val, close_tag)
-    count = count + 1
-    if count == sel_sample_idx then
-      patched = true
-      return open_tag .. tostring(target_lines) .. close_tag
-    end
-    return open_tag .. val .. close_tag
-  end)
-
-  if not patched then
+  local ok, msg = pakettiBeatSyncHackRoundtrip(song.selected_instrument_index, { [sample_idx] = target_lines })
+  if ok then
     renoise.app():show_status(string.format(
-      "PakettiHack: no <BeatSyncLines> tag for sample %d (only %d found)", sel_sample_idx, count))
-    return
+      "PakettiHack: BeatSyncLines=%d on sample %d (%s)", math.floor(target_lines), sample_idx, msg))
+  else
+    renoise.app():show_status("PakettiHack: " .. msg)
   end
+end
 
-  local fo = io.open(xml_path, "wb")
-  if not fo then renoise.app():show_status("PakettiHack: cannot write XML") return end
-  fo:write(xml); fo:close()
+-- ============================================================================
+-- Restoration metadata (tool_data): persisted INSIDE the XRNS as a legal string
+-- so extended (>512) values come back automatically after a project reload.
+-- We never store the illegal value in a song property — only the restore recipe.
+-- ============================================================================
+local PAKETTI_HACK_TOOLDATA_TAG = "PKTBSH1"
 
-  ok, err = paketti_hack_run_shell(string.format(
-    'cd %q && zip -q %q Instrument.xml', tmp_dir, tmp_xrni))
-  if not ok then
-    renoise.app():show_status("PakettiHack: zip update failed - " .. tostring(err))
-    return
+local function paketti_hack_serialize(entries)
+  local t = { PAKETTI_HACK_TOOLDATA_TAG }
+  for _, e in ipairs(entries) do
+    t[#t + 1] = string.format("%d,%d,%d", e.instr_idx, e.sample_idx, e.lines)
   end
+  return table.concat(t, "\n")
+end
 
-  renoise.app():load_instrument(tmp_xrni)
-  local t_loaded = os.clock()
-
-  -- Restore name + selection (load_instrument can rename based on filename)
-  local reloaded = song.instruments[sel_inst_idx]
-  if reloaded then
-    reloaded.name = instr_name
+local function paketti_hack_deserialize(s)
+  local entries = {}
+  if type(s) ~= "string" or s == "" then return entries end
+  local lines = {}
+  for line in s:gmatch("[^\n]+") do lines[#lines + 1] = line end
+  if lines[1] ~= PAKETTI_HACK_TOOLDATA_TAG then return entries end
+  for i = 2, #lines do
+    local a, b, c = lines[i]:match("^(%d+),(%d+),(%d+)$")
+    if a then
+      entries[#entries + 1] = { instr_idx = tonumber(a), sample_idx = tonumber(b), lines = tonumber(c) }
+    end
   end
-  song.selected_instrument_index = sel_inst_idx
-  if sel_sample_idx <= #song.selected_instrument.samples then
-    song.selected_sample_index = sel_sample_idx
+  return entries
+end
+
+-- Group entries by instrument and re-inject each instrument in ONE roundtrip.
+-- Returns: restored(count), failed(count), last_fail_message.
+local function paketti_hack_inject_entries(entries)
+  local song = renoise.song()
+  if not song then return 0, #entries, "no song" end
+  local by_instr = {}
+  for _, e in ipairs(entries) do
+    by_instr[e.instr_idx] = by_instr[e.instr_idx] or {}
+    by_instr[e.instr_idx][e.sample_idx] = e.lines
   end
-
-  -- Best-effort cleanup
-  os.remove(xml_path)
-  os.remove(tmp_xrni)
-
-  renoise.app():show_status(string.format(
-    "PakettiHack: BeatSyncLines=%d on sample %d (save %.0fms + load %.0fms = %.0fms)",
-    target_lines, sel_sample_idx,
-    (t_saved - t0) * 1000,
-    (t_loaded - t_saved) * 1000,
-    (t_loaded - t0) * 1000))
+  local sel_inst_before = song.selected_instrument_index
+  local sel_sample_before = song.selected_sample_index
+  local restored, failed, fail_msg = 0, 0, nil
+  for instr_idx, map in pairs(by_instr) do
+    local n_targets = 0
+    for _ in pairs(map) do n_targets = n_targets + 1 end
+    if song.instruments[instr_idx] then
+      local pok, rok, rmsg, rn = pcall(pakettiBeatSyncHackRoundtrip, instr_idx, map)
+      if pok and rok then
+        restored = restored + (rn or n_targets)
+      else
+        failed = failed + n_targets
+        fail_msg = pok and rmsg or tostring(rok)
+      end
+    else
+      failed = failed + n_targets
+      fail_msg = "instrument " .. instr_idx .. " no longer exists"
+    end
+  end
+  song.selected_instrument_index = sel_inst_before
+  if song.instruments[sel_inst_before]
+    and sel_sample_before <= #song.instruments[sel_inst_before].samples then
+    song.selected_sample_index = sel_sample_before
+  end
+  return restored, failed, fail_msg
 end
 
 -- ============================================================================
@@ -420,17 +506,22 @@ local function paketti_hack_on_will_save()
         table.insert(paketti_hack_save_restore_queue, {
           instr_idx = i_idx,
           sample_idx = s_idx,
-          original_lines = lines,
+          lines = lines,
           had_sync = sample.beat_sync_enabled
         })
         sample.beat_sync_lines = 512
       end
     end
   end
+  -- Persist the restore recipe inside the song (legal string) so a reload can
+  -- re-apply the extended values automatically. Clear stale data when none.
   if #paketti_hack_save_restore_queue > 0 then
+    song.tool_data = paketti_hack_serialize(paketti_hack_save_restore_queue)
     renoise.app():show_status(string.format(
-      "BeatSyncHack: clamped %d sample(s) to 512 for safe XRNS save (will restore after)",
+      "BeatSyncHack: clamped %d sample(s) to 512 for safe XRNS save (metadata stored, will restore)",
       #paketti_hack_save_restore_queue))
+  elseif song.tool_data and song.tool_data ~= "" then
+    song.tool_data = ""
   end
 end
 
@@ -441,26 +532,53 @@ local function paketti_hack_on_did_save()
     paketti_hack_save_restore_queue = {}
     return
   end
-  local restored = 0
-  local sel_inst_before = song.selected_instrument_index
-  local sel_sample_before = song.selected_sample_index
-  for _, entry in ipairs(paketti_hack_save_restore_queue) do
-    if song.instruments[entry.instr_idx]
-      and song.instruments[entry.instr_idx].samples[entry.sample_idx] then
-      song.selected_instrument_index = entry.instr_idx
-      song.selected_sample_index = entry.sample_idx
-      paketti_hack_set_beatsync_lines(entry.original_lines)
-      restored = restored + 1
+  local restored, failed, fail_msg = paketti_hack_inject_entries(paketti_hack_save_restore_queue)
+  paketti_hack_save_restore_queue = {}
+  if failed > 0 then
+    renoise.app():show_status(string.format(
+      "BeatSyncHack: restored %d, FAILED %d sample(s) after save (%s) - re-apply manually",
+      restored, failed, tostring(fail_msg)))
+  else
+    renoise.app():show_status(string.format(
+      "BeatSyncHack: restored %d sample(s) to extended BeatSyncLines after save", restored))
+  end
+end
+
+-- After a project reload: read tool_data and re-inject any extended values.
+-- Run on a one-shot idle tick, NOT inside the new-document notifier (the document
+-- just swapped in; instrument reloads there are risky).
+local function paketti_hack_restore_from_tool_data()
+  if renoise.tool():has_timer(paketti_hack_restore_from_tool_data) then
+    renoise.tool():remove_timer(paketti_hack_restore_from_tool_data)
+  end
+  local song = renoise.song()
+  if not song then return end
+  local entries = paketti_hack_deserialize(song.tool_data)
+  if #entries == 0 then return end
+  -- Only restore entries still clamped (<=512) to avoid double-injecting.
+  local todo = {}
+  for _, e in ipairs(entries) do
+    local instr = song.instruments[e.instr_idx]
+    local s = instr and instr.samples[e.sample_idx]
+    if s and (s.beat_sync_lines or 0) <= 512 and e.lines > 512 then
+      todo[#todo + 1] = e
     end
   end
-  song.selected_instrument_index = sel_inst_before
-  if sel_sample_before <= #song.selected_instrument.samples then
-    song.selected_sample_index = sel_sample_before
+  if #todo == 0 then return end
+  local restored, failed, fail_msg = paketti_hack_inject_entries(todo)
+  if failed > 0 then
+    renoise.app():show_status(string.format(
+      "BeatSyncHack: reload restore - %d done, %d FAILED (%s)", restored, failed, tostring(fail_msg)))
+  else
+    renoise.app():show_status(string.format(
+      "BeatSyncHack: reload restore - re-applied extended BeatSyncLines to %d sample(s)", restored))
   end
-  paketti_hack_save_restore_queue = {}
-  renoise.app():show_status(string.format(
-    "BeatSyncHack: restored %d sample(s) to hacked BeatSyncLines after save",
-    restored))
+end
+
+local function paketti_hack_on_new_document()
+  if not renoise.tool():has_timer(paketti_hack_restore_from_tool_data) then
+    renoise.tool():add_timer(paketti_hack_restore_from_tool_data, 400)
+  end
 end
 
 if not renoise.tool().app_will_save_document_observable:has_notifier(paketti_hack_on_will_save) then
@@ -468,6 +586,9 @@ if not renoise.tool().app_will_save_document_observable:has_notifier(paketti_hac
 end
 if not renoise.tool().app_saved_document_observable:has_notifier(paketti_hack_on_did_save) then
   renoise.tool().app_saved_document_observable:add_notifier(paketti_hack_on_did_save)
+end
+if not renoise.tool().app_new_document_observable:has_notifier(paketti_hack_on_new_document) then
+  renoise.tool().app_new_document_observable:add_notifier(paketti_hack_on_new_document)
 end
 
 local paketti_hack_dialog = nil
