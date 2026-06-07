@@ -3,7 +3,7 @@ Docs/
 Research/TrackerFilesDocs
 # macOS metadata
 **/.DS_Store
-
+KeyBindings/Debug_Renoise_KeyBindings.log
 preferences.xml
 
 Research/TrackerFilesDocs
@@ -25,3 +25,7 @@ autocomplete_usage.txt
 
 # Paketti keybinding debug log (local-only)
 KeyBindings/Debug_Paketti_KeyBindings.log
+
+# Convey DreamGraph — derived, never commit
+kb/
+features/generated/
