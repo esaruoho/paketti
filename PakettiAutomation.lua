@@ -2531,7 +2531,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Scale Automation to 90%",invoke=function() ScaleAutomation(0.9) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Scale Automation to 110%",invoke=function() ScaleAutomation(1.1) end}
-renoise.tool():add_keybinding{name="Globael:Paketti:Scale Automation to 200%",invoke=function() ScaleAutomation(2.0) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Scale Automation to 200%",invoke=function() ScaleAutomation(2.0) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Scale Automation to 50%",invoke=function() ScaleAutomation(0.5) end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Scale Automation to 90%",invoke=function(message) if message:is_trigger() then ScaleAutomation(0.9) end end}
