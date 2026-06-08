@@ -241,6 +241,7 @@ function PakettiEightOneTwentyAttachBeatsyncObserversFor(i)
   local smp = inst.samples[smp_idx]
   beatsync_enabled_observers[i] = function()
     local enabled = smp.beat_sync_enabled and true or false
+    print(string.format("8120 BEATSYNC DEBUG: enabled-observer fired row=%d sample beat_sync_enabled=%s (this observer is bound to inst=%s smp=%s)", i, tostring(enabled), tostring(beatsync_attached_inst_index[i]), tostring(beatsync_attached_sample_index[i])))
     if beatsync_checkboxes[i] and beatsync_checkboxes[i].value ~= enabled then
       beatsync_updating[i] = true
       beatsync_checkboxes[i].value = enabled
@@ -277,6 +278,7 @@ function PakettiEightOneTwentyUpdateBeatsyncUiFor(i)
   end
   local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
   local smp = smp_idx and inst.samples[smp_idx] or nil
+  print(string.format("8120 BEATSYNC DEBUG: UpdateBeatsyncUiFor row=%d inst_idx=%s smp_idx=%s smp=%s", i, tostring(inst_idx), tostring(smp_idx), tostring(smp ~= nil)))
   if not smp then
     if beatsync_checkboxes[i] then beatsync_checkboxes[i].active = false end
     if beatsync_valueboxes[i] then beatsync_valueboxes[i].active = false end
@@ -3941,15 +3943,28 @@ function pakettiEightSlotsByOneTwentyDialog()
       value=false,
       tooltip = string.format("Instrument %02d Beatsync On/Off (set to Off when value is 0)", idx),
       notifier=function(value)
-        if beatsync_updating[idx] then return end
+        print(string.format("8120 BEATSYNC DEBUG: checkbox row=%d clicked value=%s updating=%s", idx, tostring(value), tostring(beatsync_updating[idx])))
+        if beatsync_updating[idx] then print("8120 BEATSYNC DEBUG:   -> early return (updating flag stuck true)") return end
         local re = rows[idx]
-        if not re then return end
+        if not re then print("8120 BEATSYNC DEBUG:   -> no row_elements") return end
         local inst_idx = re.instrument_popup and re.instrument_popup.value
         local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
-        if not inst then return end
+        print(string.format("8120 BEATSYNC DEBUG:   row instrument_popup.value=%s", tostring(inst_idx)))
+        if not inst then print("8120 BEATSYNC DEBUG:   -> no instrument at that index") return end
+        print(string.format("8120 BEATSYNC DEBUG:   instrument '%s' has %d sample(s):", inst.name, #inst.samples))
+        for si = 1, #inst.samples do
+          local s = inst.samples[si]
+          local vr = s.sample_mapping and s.sample_mapping.velocity_range
+          local buf = s.sample_buffer
+          print(string.format("8120 BEATSYNC DEBUG:     [%d] '%s' vel={%s,%s} has_data=%s beat_sync_enabled=%s lines=%s",
+            si, s.name,
+            vr and tostring(vr[1]) or "?", vr and tostring(vr[2]) or "?",
+            tostring(buf and buf.has_sample_data), tostring(s.beat_sync_enabled), tostring(s.beat_sync_lines)))
+        end
         local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
         local smp = smp_idx and inst.samples[smp_idx] or nil
-        if not smp then return end
+        print(string.format("8120 BEATSYNC DEBUG:   FindPrimarySampleIndex -> %s", tostring(smp_idx)))
+        if not smp then print("8120 BEATSYNC DEBUG:   -> no primary sample resolved") return end
         -- Select instrument and sample, show sample editor
         renoise.song().selected_instrument_index = inst_idx
         renoise.song().selected_sample_index = smp_idx
@@ -3960,8 +3975,10 @@ function pakettiEightSlotsByOneTwentyDialog()
           if new_lines > 512 then new_lines = 512 end
           smp.beat_sync_lines = new_lines
           smp.beat_sync_enabled = true
+          print(string.format("8120 BEATSYNC DEBUG:   wrote lines=%d enabled=true -> read back enabled=%s lines=%s", new_lines, tostring(smp.beat_sync_enabled), tostring(smp.beat_sync_lines)))
         else
           smp.beat_sync_enabled = false
+          print(string.format("8120 BEATSYNC DEBUG:   wrote enabled=false -> read back enabled=%s", tostring(smp.beat_sync_enabled)))
         end
         beatsync_updating[idx] = false
       end
