@@ -58,26 +58,31 @@ gbx_prev_sample_count = {0,0,0,0,0,0,0,0}
 gbx_record_instrument_index = {0,0,0,0,0,0,0,0}
 
 -- Map the just-recorded take to 00-7F (others to 00-00), select it, enable the
--- convenience flags, and re-point the per-row beatsync controls at it. The
--- recorded take is the highest-index sample that actually carries audio (it is
--- appended after any pre-existing placeholder slots). Safe to call repeatedly:
--- it is idempotent, which is what lets the deferred retry below cover the case
--- where Renoise commits the recorded sample a document tick late.
+-- convenience flags, refresh the row's sample-name label, and re-point the
+-- per-row beatsync controls at it.
+--
+-- Renoise commits the recorded sample ASYNCHRONOUSLY: when recording stops the
+-- new slot and its audio may not exist yet, so we only act once a data-bearing
+-- sample is actually present. Returns true when the take has been finalized,
+-- false when nothing is ready yet (so the caller's poll loop keeps trying).
+-- Idempotent: re-running after success is a harmless no-op-equivalent.
 function PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_index)
   local song = renoise.song()
   if not song then return false end
   local inst = target_inst_index and song.instruments[target_inst_index] or nil
   if not inst or #inst.samples == 0 then return false end
 
+  -- The recorded take is the highest-index sample that actually carries audio.
   local new_index
   for si = #inst.samples, 1, -1 do
     local smp = inst.samples[si]
     local buf = smp and smp.sample_buffer
     if buf and buf.has_sample_data then new_index = si break end
   end
-  if not new_index then new_index = song.selected_sample_index end
-  if new_index < 1 then new_index = 1 end
-  if new_index > #inst.samples then new_index = #inst.samples end
+  if not new_index then
+    -- Recorded audio not committed yet — let the poll loop retry.
+    return false
+  end
 
   song.selected_instrument_index = target_inst_index
   song.selected_sample_index = new_index
@@ -98,7 +103,8 @@ function PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_inde
   -- Refresh the row's sample-name label so it stops showing "No sample available"
   -- once the recorded sample exists, and re-point the per-row beatsync
   -- controls/observers at the recorded sample so toggling beatsync (here or in
-  -- the Sample List) reflects on the recorded take.
+  -- the Sample List) reflects on the recorded take and the checkbox becomes
+  -- active.
   local re = rows and rows[row_index]
   if re and re.update_sample_name_label then
     re.update_sample_name_label()
@@ -106,7 +112,7 @@ function PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_inde
   if beatsync_visible then
     PakettiEightOneTwentyUpdateBeatsyncUiFor(row_index)
   end
-  print(string.format("8120 BEATSYNC DEBUG: FinalizeRecordedSample row=%d inst=%s chose smp_idx=%d (label refreshed, beatsync %s)", row_index, tostring(target_inst_index), new_index, beatsync_visible and "updated" or "skipped(collapsed)"))
+  print(string.format("8120 BEATSYNC DEBUG: FinalizeRecordedSample row=%d inst=%s chose smp_idx=%d (#samples=%d, label refreshed, beatsync %s)", row_index, tostring(target_inst_index), new_index, #inst.samples, beatsync_visible and "updated" or "skipped(collapsed)"))
   return true
 end
 
@@ -151,24 +157,32 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
 
     local target_inst_index = gbx_record_instrument_index[row_index] or ii
 
-    -- Map immediately (covers the synchronous case where the recorded sample is
-    -- already committed), then once more shortly after, because Renoise may
-    -- commit the recorded sample on a later document tick. The helper is
-    -- idempotent, so the retry is a safe no-op when the first pass already saw it.
-    PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_index)
-    local retry_fn
-    retry_fn = function()
-      if renoise.tool():has_timer(retry_fn) then
-        renoise.tool():remove_timer(retry_fn)
+    -- Recording commits the new sample asynchronously, so the slot/audio may not
+    -- exist the instant recording stops. Try immediately (covers the rare
+    -- synchronous case), and if it's not ready, poll until the recorded sample
+    -- actually appears, then finalize once and stop. Bounded to ~6s so a
+    -- cancelled/empty recording can never leave a timer running.
+    if not PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_index) then
+      local attempts = 0
+      local poll_fn
+      poll_fn = function()
+        attempts = attempts + 1
+        local done = PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_index)
+        if done or attempts >= 60 then
+          if renoise.tool():has_timer(poll_fn) then renoise.tool():remove_timer(poll_fn) end
+          if not done then
+            print(string.format("8120 BEATSYNC DEBUG: poll gave up for row=%d after %d attempts (no data-bearing sample appeared)", row_index, attempts))
+          end
+        end
       end
-      PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_index)
+      if renoise.tool():has_timer(poll_fn) then renoise.tool():remove_timer(poll_fn) end
+      renoise.tool():add_timer(poll_fn, 100)
     end
-    renoise.tool():add_timer(retry_fn, 150)
 
     gbx_record_phase[row_index] = 0
     gbx_prev_sample_count[row_index] = 0
     gbx_record_instrument_index[row_index] = 0
-    renoise.app():show_status(string.format("8120 Row %02d: Recording stopped. Sample selected and mapped.", row_index))
+    renoise.app():show_status(string.format("8120 Row %02d: Recording stopped. Mapping sample…", row_index))
     return
   end
 end
