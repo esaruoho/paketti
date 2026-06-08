@@ -95,11 +95,18 @@ function PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_inde
     inst.samples[new_index].autofade = true
   end
 
-  -- Re-point the per-row beatsync controls/observers at the recorded sample so
-  -- toggling beatsync (here or in the Sample List) reflects on the recorded take.
+  -- Refresh the row's sample-name label so it stops showing "No sample available"
+  -- once the recorded sample exists, and re-point the per-row beatsync
+  -- controls/observers at the recorded sample so toggling beatsync (here or in
+  -- the Sample List) reflects on the recorded take.
+  local re = rows and rows[row_index]
+  if re and re.update_sample_name_label then
+    re.update_sample_name_label()
+  end
   if beatsync_visible then
     PakettiEightOneTwentyUpdateBeatsyncUiFor(row_index)
   end
+  print(string.format("8120 BEATSYNC DEBUG: FinalizeRecordedSample row=%d inst=%s chose smp_idx=%d (label refreshed, beatsync %s)", row_index, tostring(target_inst_index), new_index, beatsync_visible and "updated" or "skipped(collapsed)"))
   return true
 end
 
@@ -2127,27 +2134,24 @@ function row_elements.print_to_pattern()
   end
 end
 
-  -- Function to Update Sample Name Label
+  -- Function to Update Sample Name Label.
+  -- Resolves the row's sample through the SAME helper the beatsync controls use
+  -- (PakettiEightOneTwentyFindPrimarySampleIndex), so the label and the beatsync
+  -- row never disagree about which sample the row represents. The old version
+  -- required an exact 00-7F velocity match and showed "No sample available"
+  -- whenever a freshly recorded sample didn't have that mapping yet.
   function row_elements.update_sample_name_label()
     local instrument = renoise.song().instruments[row_elements.instrument_popup.value]
     local sample_name = "No sample available"
     if instrument and #instrument.samples > 0 then
-      for sample_idx, sample in ipairs(instrument.samples) do
-        local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
-        local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2]
-        if velocity_min == 0x00 and velocity_max == 0x7F then
-          sample_name = sample.name ~= "" and sample.name or string.format("Sample %d", sample_idx)
-          -- Truncate sample name if longer than 50 characters
-          if #sample_name > 50 then
-            sample_name = sample_name:sub(1, 47) .. "..."
-          end
-          break
+      local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(instrument)
+      local sample = smp_idx and instrument.samples[smp_idx] or nil
+      if sample then
+        sample_name = sample.name ~= "" and sample.name or string.format("Sample %d", smp_idx)
+        -- Truncate sample name if longer than 50 characters
+        if #sample_name > 50 then
+          sample_name = sample_name:sub(1, 47) .. "..."
         end
-      end
-      -- Only show status if we have an instrument but couldn't find a valid sample
-      if sample_name == "No sample available" then
-        renoise.app():show_status(string.format("Instrument %d ('%s') has no samples with full velocity range (00-7F)", 
-          row_elements.instrument_popup.value, instrument.name))
       end
     end
     row_elements.sample_name_label.text = sample_name
