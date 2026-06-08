@@ -8,6 +8,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-08 - Feature: HyperEdit live MIDI Write — record knob tweaks into the playing step
+
+HyperEdit can now capture external MIDI knobs straight into its step grid while a song plays. Map your controller's knobs to the new per-row MIDI mappings (one per row, up to 16), turn on the new **MIDI Write** checkbox in the HyperEdit toolbar, and tweaking a knob writes its value into that row's step that is currently playing (with Follow on this records as the playhead moves). When the transport is stopped it writes into the step under the edit cursor instead. So knob 1 records into row 1's parameter, knob 8 into row 8's, etc. Each write reuses HyperEdit's existing per-row step data and automation writer, so the result is identical to drawing the step by hand (POINTS-mode automation on the row's parameter). Absolute knobs (0–127) and endless/relative encoders are both supported; redundant repeats on a parked knob are ignored. The toggle is saved in preferences (`PakettiHyperEditMidiWrite`).
+
+- MIDI Mapping: `Paketti:Paketti HyperEdit:MIDI Write Row 01` … `Paketti:Paketti HyperEdit:MIDI Write Row 16` (map one knob per row in Renoise's MIDI mapping dialog)
+- Toggle: **MIDI Write** checkbox in the HyperEdit toolbar
+
+(A raw "open a MIDI device and auto-bind CC..CC+7 to rows 1–8" capture mode is planned as a follow-up; this release uses Renoise's MIDI-Learn mappings, which persist per controller and need no device handling.)
+
 ### 2026-06-08 - Fix: Groovebox 8120 crash (SIGSEGV) on New Song / Load Song with the dialog or canvas open
 
 Creating a new song or loading a song while the Groovebox 8120 (or its Canvas View) was open could crash Renoise with a SIGSEGV in the song/pattern-pool teardown. The 8120 only detached its observers and timers when the dialog was *closed*, so on a song change its per-row mute/solo/transpose/volume observers, the playhead timer, the beatsync/BPM observers, and the canvas's pattern reads were all left pointing at the song Renoise was about to destroy. The tool now also tears everything down on `app_release_document_observable` — which fires while the outgoing song is still valid — detaching every observer/timer and closing the 8120 dialog and Canvas View before the song is released. Reopen the 8120 after the new song has loaded.

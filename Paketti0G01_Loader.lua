@@ -244,6 +244,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiHyperEditCaptureTrackColor=false,
   PakettiHyperEditAutoFit=true,
   PakettiHyperEditManualRows=8,
+  PakettiHyperEditMidiWrite=false,  -- live MIDI-knob writing into the playing/edit step
   pakettiDefaultXRNI = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni"),
   pakettiDefaultDrumkitXRNI = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni"),
   pakettiDefaultMidiMappingPath = "",

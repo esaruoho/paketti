@@ -196,6 +196,11 @@ end
 local hyperedit_dialog = nil
 local dialog_vb = nil    -- Store ViewBuilder instance
 local row_canvases = {}  -- [row] = canvas
+-- Live MIDI Write: when enabled, an external MIDI knob mapped to "MIDI Write Row N"
+-- writes its value into row N's currently-playing step (or the edit-cursor step
+-- when stopped). Initialized from preferences when the dialog opens.
+local hyperedit_midi_write_enabled = false
+local hyperedit_midi_last = {}  -- [row] = {step, value} — de-dupe redundant CC writes
 local pre_configuration_applied = false
 
 -- Playhead variables (like PakettiGater)
@@ -3240,7 +3245,11 @@ function PakettiHyperEditCreateDialog()
     row_parameters[row] = nil
     parameter_lists[row] = {}
   end
-  
+
+  -- Sync the live MIDI Write toggle from preferences for this dialog session.
+  hyperedit_midi_write_enabled = preferences.PakettiHyperEditMidiWrite.value
+  hyperedit_midi_last = {}
+
   local dialog_content = vb:column {
     -- Global controls
     vb:row {
@@ -3378,6 +3387,22 @@ function PakettiHyperEditCreateDialog()
           PakettiHyperEditDuplicateToNextPattern()
         end
       },
+      vb:text{text="|",style="strong",font="bold"},
+      vb:checkbox {
+        id = "midi_write_checkbox",
+        value = preferences.PakettiHyperEditMidiWrite.value,
+        notifier = function(value)
+          hyperedit_midi_write_enabled = value
+          preferences.PakettiHyperEditMidiWrite.value = value
+          preferences:save_as("preferences.xml")
+          if value then
+            renoise.app():show_status("HyperEdit MIDI Write: ON — map knobs to 'Paketti:Paketti HyperEdit:MIDI Write Row NN', tweak to record into the playing/edit step")
+          else
+            renoise.app():show_status("HyperEdit MIDI Write: OFF")
+          end
+        end
+      },
+      vb:text { text = "MIDI Write", style="strong", font="bold", width = 80, tooltip = "When ON, a MIDI knob mapped to 'MIDI Write Row NN' writes its value into that row's currently-playing step (or the edit-cursor step when stopped)." },
 --[[      vb:space { width = 10 },
       vb:button {
         text = "DEBUG",
@@ -3988,3 +4013,76 @@ renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit",invoke 
 
 -- HyperEdit Pattern Functions
 renoise.tool():add_keybinding {name = "Global:Paketti:HyperEdit Duplicate to Next Pattern",invoke = PakettiHyperEditDuplicateToNextPattern}
+
+-- ============================================================================
+-- Live MIDI Write
+-- ----------------------------------------------------------------------------
+-- Map up to 16 external MIDI knobs to "Paketti:Paketti HyperEdit:MIDI Write Row
+-- NN" (one per row) in Renoise's MIDI mapping dialog. With the dialog open and
+-- the "MIDI Write" checkbox ON, tweaking knob N writes its value into row N's
+-- step that is currently playing (when the transport is running) or under the
+-- edit cursor (when stopped). It reuses the existing per-row step tables and
+-- automation writer, so the result is identical to drawing the step by hand.
+
+-- Resolve the row's "current" step the same way the playhead highlight does:
+-- the playing line while running, else the edit-cursor (selected) line.
+function PakettiHyperEditCurrentStepForRow(row)
+  local song = renoise.song()
+  if not song then return 1 end
+  local current_line = song.selected_line_index
+  if song.transport.playing then
+    local pos = song.transport.playback_pos
+    if pos and pos.line then current_line = pos.line end
+  end
+  local row_step_count = row_steps[row] or 16
+  if row_step_count < 1 then row_step_count = 1 end
+  return ((current_line - 1) % row_step_count) + 1
+end
+
+function PakettiHyperEditMidiWriteRow(row, message)
+  if not hyperedit_midi_write_enabled then return end
+  if not (hyperedit_dialog and hyperedit_dialog.visible) then return end
+  if row < 1 or row > NUM_ROWS then return end
+  if not row_parameters[row] then
+    renoise.app():show_status(string.format("HyperEdit MIDI Write: Row %02d has no parameter assigned", row))
+    return
+  end
+
+  -- Resolve the knob to a 0..1 value. Absolute knobs send 0..127; endless
+  -- encoders send a relative -63..63 that nudges the current step value.
+  local step = PakettiHyperEditCurrentStepForRow(row)
+  local value
+  if message:is_abs_value() then
+    value = (message.int_value or 0) / 127
+  elseif message:is_rel_value() then
+    local cur = (step_data[row] and step_data[row][step]) or 0.5
+    value = cur + (message.int_value or 0) / 127
+  else
+    return
+  end
+  if value < 0 then value = 0 elseif value > 1 then value = 1 end
+
+  -- Skip redundant rewrites when the knob is parked on the same step/value.
+  local last = hyperedit_midi_last[row]
+  if last and last.step == step and math.abs(last.value - value) < (1 / 256) then
+    return
+  end
+  hyperedit_midi_last[row] = {step = step, value = value}
+
+  step_active[row] = step_active[row] or {}
+  step_data[row] = step_data[row] or {}
+  step_active[row][step] = true
+  step_data[row][step] = value
+
+  -- Re-render this row's automation envelope and redraw its canvas.
+  PakettiHyperEditWriteAutomationPattern(row)
+  if row_canvases[row] then row_canvases[row]:update() end
+end
+
+for midi_write_row = 1, 16 do
+  local r = midi_write_row
+  renoise.tool():add_midi_mapping {
+    name = string.format("Paketti:Paketti HyperEdit:MIDI Write Row %02d", r),
+    invoke = function(message) PakettiHyperEditMidiWriteRow(r, message) end
+  }
+end
