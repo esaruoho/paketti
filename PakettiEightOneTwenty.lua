@@ -28,6 +28,11 @@ local sequential_load_current_row = 1
 -- can reference them without tripping Renoise's strict-globals __index.
 local cv_dialog, cv_canvas, cv_ui
 
+-- Forward-declared here (initialized further down) so functions defined above
+-- the initialization block (e.g. PakettiEightOneTwentyRowRecordToggle) capture
+-- these file-locals as upvalues instead of hitting the strict-globals __index.
+local track_names, track_indices, instrument_names
+
 -- BPM observable tracking
 local bpm_observer = nil
 local instruments_list_observer = nil
@@ -284,7 +289,8 @@ end
 local vb = renoise.ViewBuilder()
 dialog = nil
 rows = {}
-local track_names, track_indices, instrument_names
+-- track_names, track_indices, instrument_names are forward-declared near the top
+-- of this file so functions above this point capture them as upvalues.
 track_names = {}  -- Initialize as empty table to avoid nil errors
 track_indices = {}  -- Initialize as empty table to avoid nil errors
 instrument_names = {}  -- Initialize as empty table to avoid nil errors

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# pre-commit — the everyday push-side hook. Two whitelabeled, zero-token jobs:
+#   1. RESULT-LOG stamp  — stamp each report card whose WATCHed symbols are in the
+#      STAGED diff and `git add` it so the stamp rides INTO the same commit.
+#   2. DreamGraph auto-feed — when a .feature card or .lua/.py source is staged,
+#      refresh <repo>/kb/graph so the repo's DreamGraph stays current with the
+#      code+cards. Runs in ANY repo (not just Paketti), detached so it never slows
+#      the commit. Deterministic Python parsing — no Claude, no tokens.
+# Installed by `convey hooks install`. Canonical source: Convey templates/hooks/.
+#
+# Direct-commit stamp lines carry no self-SHA (the commit doesn't exist yet); the
+# exact commit is recoverable with `git blame` / `git log -L`. The merge path
+# (post-merge) records the merge sha instead.
+#
+# Defensive: always exits 0 so it can never abort a commit. Enable per clone:
+#   git config core.hooksPath .githooks
+# -----------------------------------------------------------------------------
+GIT_DIR="$(git rev-parse --git-dir 2>/dev/null)" || exit 0
+
+# Don't stamp while finalizing a merge (post-merge owns that) or replaying a
+# rebase (would stamp every replayed commit). Quiet no-ops.
+[ -f "$GIT_DIR/MERGE_HEAD" ]   && exit 0
+[ -d "$GIT_DIR/rebase-merge" ] && exit 0
+[ -d "$GIT_DIR/rebase-apply" ] && exit 0
+
+DATE="$(date +%F 2>/dev/null)"   # commit doesn't exist yet; use today
+
+DIR="$(dirname "$0")"
+"$DIR/report-card-stamp.sh" "--cached" "$DATE" "direct-commit" "" "1" || true
+
+# --- DreamGraph auto-feed (whitelabeled, zero-token) -------------------------
+# If this commit touches a report card (.feature) or source (.lua/.py), refresh
+# the repo's own DreamGraph at <repo>/kb/graph so feature graphs are AUTOMATICALLY
+# added — in every repo, not just Paketti. Detached (`&`, nohup) so the commit is
+# never slowed or blocked; a quiet no-op when `convey` isn't on PATH. The graph is
+# gitignored/derived, so nothing is staged here.
+if git diff --cached --name-only --diff-filter=ACMR 2>/dev/null \
+     | grep -qiE '\.(feature|lua|py)$'; then
+  if command -v convey >/dev/null 2>&1; then
+    REPO_TOP="$(git rev-parse --show-toplevel 2>/dev/null)"
+    [ -n "$REPO_TOP" ] && ( cd "$REPO_TOP" \
+       && nohup convey dreamgraph --no-open >/dev/null 2>&1 & ) >/dev/null 2>&1
+  fi
+fi
+exit 0

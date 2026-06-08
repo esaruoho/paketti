@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-08 - Fix: Groovebox 8120 Row Record crashed with "track_indices is not declared"
+
+Pressing the per-row **Record** button in the Groovebox 8120 dialog threw `variable 'track_indices' is not declared` and aborted. `PakettiEightOneTwentyRowRecordToggle` is defined near the top of `PakettiEightOneTwenty.lua`, but `track_indices` was declared as a file-local lower down — so the function's reference resolved to the (undeclared) global namespace and tripped Renoise's strict-globals check. Fixed by forward-declaring `track_names`, `track_indices`, and `instrument_names` alongside the existing canvas forward declarations at the top of the file, so functions defined above the initialization block capture them as upvalues. No behavior change beyond the crash being gone.
+
 ### 2026-05-29 - Feature: SlicePro Extended Sync — per-slice beat sync beyond 512 lines
 
 SlicePro now optionally pushes slices (and the root sample) past Renoise's 512 `beat_sync_lines` cap so long-form sliced material stays tempo-locked far beyond what the native UI allows. When **Extended sync** is enabled, any slice whose musical length works out to more than 512 lines is injected with its true value through the BeatSyncHack XRNI roundtrip instead of being silently clamped to 512. All over-512 slices in an instrument are injected in a **single** save/reload pass (not one reload per slice), and the injection runs after every other per-slice property is set, so mute group, NNA, loop mode, autofade, oneshot and beat sync mode are all preserved. The extended values exist only at runtime — saving the song stays crash-safe (see the BeatSyncHack save protection below). Default is OFF. macOS/Linux only (uses shell `zip`/`unzip`). Toggle via the new "Extended sync >512 (runtime only, XRNS-safe)" checkbox in the SlicePro dialog, or the `SliceProExtendedSync` preference. When disabled, behavior is unchanged (clamp to 512 with a warning).

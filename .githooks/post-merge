@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# post-merge — RESULT-LOG stamp for the MERGE / non-ff-pull path.
+# Installed by `convey hooks install`. Canonical source: Convey templates/hooks/.
+#
+# After a merge or `git pull` that produced a merge, append a dated line to each
+# report card whose WATCHed symbols changed in the merge. Matching + appending
+# lives in report-card-stamp.sh (shared with pre-commit); this hook just computes
+# the merge's range/date/label and delegates.
+#
+# Working tree only; never commits; never aborts the merge (post-merge runs after
+# the merge already succeeded). Enable per clone:
+#   git config core.hooksPath .githooks
+# -----------------------------------------------------------------------------
+git rev-parse -q --verify ORIG_HEAD >/dev/null 2>&1 || exit 0   # no merge => nothing
+HEAD_SHA="$(git rev-parse --short HEAD 2>/dev/null)" || exit 0
+DATE="$(git log -1 --format=%cs HEAD 2>/dev/null)"               # YYYY-MM-DD
+SUBJ="$(git log -1 --format=%s HEAD 2>/dev/null)"
+
+# Parse "Merge pull request #N ..." without regex (ugrep-safe, no backtracking).
+PR_LABEL="direct-merge"
+case "$SUBJ" in
+  *"Merge pull request #"*)
+    rest="${SUBJ#*Merge pull request #}"; pr="${rest%% *}"
+    case "$pr" in ''|*[!0-9]*) : ;; *) PR_LABEL="PR #$pr" ;; esac ;;
+esac
+
+DIR="$(dirname "$0")"
+"$DIR/report-card-stamp.sh" "ORIG_HEAD..HEAD" "$DATE" "$PR_LABEL  merge $HEAD_SHA" "merge $HEAD_SHA" "0"
+exit 0
