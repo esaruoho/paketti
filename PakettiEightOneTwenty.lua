@@ -130,28 +130,27 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
   if ti then song.selected_track_index = ti end
   if ii then song.selected_instrument_index = ii end
 
+  -- Two-phase toggle, matching the obvious mental model: the first press opens
+  -- the sample recorder AND starts recording; the second press stops recording
+  -- and finalizes (maps the take, refreshes the label, activates beatsync). The
+  -- old three-press flow (open -> start -> stop) meant a take recorded with
+  -- Renoise's own record button never advanced this state to "stop", so finalize
+  -- never ran and the row never updated.
   local phase = gbx_record_phase[row_index] or 0
   if phase == 0 then
-    -- Arm: show recorder dialog and keep keyboard focus with Renoise
+    -- Start: open the sample recorder and begin recording immediately.
+    local inst = song.instruments[ii]
+    gbx_prev_sample_count[row_index] = (inst and #inst.samples or 0)
+    gbx_record_instrument_index[row_index] = ii or 0
     renoise.app().window.sample_record_dialog_is_visible = true
     renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+    song.transport:start_stop_sample_recording()
     gbx_record_phase[row_index] = 1
-    renoise.app():show_status(string.format("8120 Row %02d: Recorder opened. Press Record to start.", row_index))
+    renoise.app():show_status(string.format("8120 Row %02d: Recording… Press Record again to stop.", row_index))
     return
   end
 
   if phase == 1 then
-    -- Start recording
-    local inst = song.instruments[ii]
-    gbx_prev_sample_count[row_index] = (inst and #inst.samples or 0)
-    gbx_record_instrument_index[row_index] = ii or 0
-    song.transport:start_stop_sample_recording()
-    gbx_record_phase[row_index] = 2
-    renoise.app():show_status(string.format("8120 Row %02d: Recording... Press Record to stop.", row_index))
-    return
-  end
-
-  if phase == 2 then
     -- Stop recording and finalize sample mapping
     song.transport:start_stop_sample_recording()
 
@@ -3987,18 +3986,27 @@ function pakettiEightSlotsByOneTwentyDialog()
         renoise.song().selected_instrument_index = inst_idx
         renoise.song().selected_sample_index = smp_idx
         beatsync_updating[idx] = true
-        if value then
-          local new_lines = beatsync_valueboxes[idx] and beatsync_valueboxes[idx].value or 64
-          if new_lines < 1 then new_lines = 1 end
-          if new_lines > 512 then new_lines = 512 end
-          smp.beat_sync_lines = new_lines
-          smp.beat_sync_enabled = true
-          print(string.format("8120 BEATSYNC DEBUG:   wrote lines=%d enabled=true -> read back enabled=%s lines=%s", new_lines, tostring(smp.beat_sync_enabled), tostring(smp.beat_sync_lines)))
-        else
-          smp.beat_sync_enabled = false
-          print(string.format("8120 BEATSYNC DEBUG:   wrote enabled=false -> read back enabled=%s", tostring(smp.beat_sync_enabled)))
-        end
+        -- pcall the writes so that if Renoise ever rejects beat_sync_enabled the
+        -- updating flag is still cleared in the finally-style line below — a
+        -- thrown write must never wedge the flag true and block all later clicks.
+        local ok, err = pcall(function()
+          if value then
+            local new_lines = beatsync_valueboxes[idx] and beatsync_valueboxes[idx].value or 64
+            if new_lines < 1 then new_lines = 1 end
+            if new_lines > 512 then new_lines = 512 end
+            smp.beat_sync_lines = new_lines
+            smp.beat_sync_enabled = true
+            print(string.format("8120 BEATSYNC DEBUG:   wrote lines=%d enabled=true -> read back enabled=%s lines=%s", new_lines, tostring(smp.beat_sync_enabled), tostring(smp.beat_sync_lines)))
+          else
+            smp.beat_sync_enabled = false
+            print(string.format("8120 BEATSYNC DEBUG:   wrote enabled=false -> read back enabled=%s", tostring(smp.beat_sync_enabled)))
+          end
+        end)
         beatsync_updating[idx] = false
+        if not ok then
+          print(string.format("8120 BEATSYNC DEBUG:   *** WRITE REJECTED: %s", tostring(err)))
+          renoise.app():show_status("8120 beatsync write rejected: " .. tostring(err))
+        end
       end
     }
     local vb_lines = vb:valuebox{
