@@ -53,9 +53,20 @@ beatsync_adv_columns = {}
 -- Baseline for absolute global pitch control (already initialized above)
 
 -- Per-row recording state for Groovebox 8120
-gbx_record_phase = {0,0,0,0,0,0,0,0} -- 0=idle, 1=armed (dialog visible), 2=recording
+gbx_record_phase = {0,0,0,0,0,0,0,0} -- 0=idle, 1=recording
 gbx_prev_sample_count = {0,0,0,0,0,0,0,0}
 gbx_record_instrument_index = {0,0,0,0,0,0,0,0}
+
+-- Return keyboard focus to Renoise's middle frame after interacting with any
+-- 8120 control (checkbox/knob/slider/valuebox). Clicking a control in the tool
+-- dialog steals keyboard focus, which would otherwise swallow Renoise global
+-- shortcuts like Shift-V (load plugin) and Shift-A (load device). Re-assigning
+-- active_middle_frame to itself hands focus back to Renoise without changing
+-- which frame is shown.
+function PakettiEightOneTwentyReturnFocus()
+  local w = renoise.app().window
+  w.active_middle_frame = w.active_middle_frame
+end
 
 -- Map the just-recorded take to 00-7F (others to 00-00), select it, enable the
 -- convenience flags, refresh the row's sample-name label, and re-point the
@@ -112,6 +123,21 @@ function PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_inde
   if beatsync_visible then
     PakettiEightOneTwentyUpdateBeatsyncUiFor(row_index)
   end
+
+  -- Trigger the freshly recorded sample on the next play by enabling this row's
+  -- first step — but only if the row currently has no active steps, so we never
+  -- disturb a pattern the user already programmed. Setting the checkbox value
+  -- fires its notifier, which writes the note into the pattern.
+  if re and re.checkboxes and #re.checkboxes > 0 then
+    local any_on = false
+    for _, c in ipairs(re.checkboxes) do
+      if c.value then any_on = true break end
+    end
+    if not any_on and re.checkboxes[1] then
+      re.checkboxes[1].value = true
+    end
+  end
+
   print(string.format("8120 BEATSYNC DEBUG: FinalizeRecordedSample row=%d inst=%s chose smp_idx=%d (#samples=%d, label refreshed, beatsync %s)", row_index, tostring(target_inst_index), new_index, #inst.samples, beatsync_visible and "updated" or "skipped(collapsed)"))
   return true
 end
@@ -949,6 +975,11 @@ function PakettiEightOneTwentyHighlightRow(row_index)
         end
       end
   end
+  -- HighlightRow is the common entry point for nearly every row-control notifier
+  -- (and never runs from the playhead timer, which colors buttons directly), so
+  -- returning focus here hands keyboard focus back to Renoise after any row
+  -- interaction — keeping Shift-V / Shift-A and other global shortcuts working.
+  PakettiEightOneTwentyReturnFocus()
 end
 
 -- Function to create a row in the UI
@@ -1022,6 +1053,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
           row_elements.print_to_pattern()
           print("8120 AUTOMATION DEBUG: *** AFTER print_to_pattern() *** Final automation: " .. (renoise.song().selected_automation_device and renoise.song().selected_automation_device.name or "nil") .. " / " .. (renoise.song().selected_automation_parameter and renoise.song().selected_automation_parameter.name or "nil"))
           renoise.app():show_status(string.format("Set steps to %d for row %d", step, row_index))
+          PakettiEightOneTwentyReturnFocus()
         end
       end)(i),
       active = true  -- Make buttons active
@@ -1094,6 +1126,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
       end
       --renoise.app():show_status(string.format("Set transpose to %+d for instrument %d: %s.", value, instrument_index, renoise.song().selected_sample.name))
+      PakettiEightOneTwentyReturnFocus()
     end
   }
     -- Create transpose label
@@ -1139,9 +1172,10 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
           row_elements.last_volume_time = now
           row_elements.last_volume_value = value
         end
+        PakettiEightOneTwentyReturnFocus()
       end
     }
-    
+
     -- Obsolete transpose_column not used in layout
     local transpose_column = nil
   
@@ -1478,6 +1512,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         
         -- Always clear the updating flag at the end
         row_elements.updating_checkboxes = false
+        PakettiEightOneTwentyReturnFocus()
       end
     }
     table.insert(checkbox_row_elements, checkboxes[i])
@@ -2831,18 +2866,19 @@ function create_global_controls()
     else
       renoise.song().transport:stop()
     end
-    --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    PakettiEightOneTwentyReturnFocus()
   end}
   follow_checkbox = vb:checkbox{value = renoise.song().transport.follow_player, notifier=function(value)
     if initializing then return end
     renoise.song().transport.follow_player = value
-    --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    PakettiEightOneTwentyReturnFocus()
   end}
   groove_enabled_checkbox = vb:checkbox{value = renoise.song().transport.groove_enabled, notifier=function(value)
     if initializing then return end
     renoise.song().transport.groove_enabled = value
     --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
+    PakettiEightOneTwentyReturnFocus()
   end}
   bpm_display = vb:button{text="BPM: " .. tostring(renoise.song().transport.bpm),width=60, tooltip="Clicking on this button will randomize the BPM", notifier = update_bpm}
 
@@ -2863,6 +2899,7 @@ function create_global_controls()
       renoise.song().transport.groove_enabled = true
       groove_enabled_checkbox.value = true
       renoise.song().selected_track_index = renoise.song().sequencer_track_count + 1
+      PakettiEightOneTwentyReturnFocus()
     end}
     groove_controls:add_child(vb:row{local_groove_sliders[i], local_groove_labels[i]})
   end
@@ -2882,8 +2919,8 @@ function create_global_controls()
     else
       fill_empty_steps(value / 100)
       renoise.app():show_status("Filled empty steps with " .. tostring(math.floor(value)) .. "% probability.")
-      --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
+    PakettiEightOneTwentyReturnFocus()
   end}
 
   local reverse_all_button = vb:button{text="Reverse Samples", midi_mapping="Paketti:Paketti Groovebox 8120:Reverse All", notifier = reverse_all}
@@ -3903,6 +3940,7 @@ function pakettiEightSlotsByOneTwentyDialog()
       if delta ~= 0 then
         PakettiGrooveboxGlobalPitch(delta)
       end
+      PakettiEightOneTwentyReturnFocus()
     end
   }
   local global_pitch_label = vb:text{text="Global Pitch", style="strong", font="bold"}
@@ -4007,6 +4045,7 @@ function pakettiEightSlotsByOneTwentyDialog()
           print(string.format("8120 BEATSYNC DEBUG:   *** WRITE REJECTED: %s", tostring(err)))
           renoise.app():show_status("8120 beatsync write rejected: " .. tostring(err))
         end
+        PakettiEightOneTwentyReturnFocus()
       end
     }
     local vb_lines = vb:valuebox{
@@ -4039,6 +4078,7 @@ function pakettiEightSlotsByOneTwentyDialog()
           cb.value = true
         end
         beatsync_updating[idx] = false
+        PakettiEightOneTwentyReturnFocus()
       end
     }
     beatsync_checkboxes[idx] = cb

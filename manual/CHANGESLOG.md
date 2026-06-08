@@ -8,9 +8,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-08 - Improvement: Groovebox 8120 controls return keyboard focus to Renoise
+
+Clicking a checkbox, knob, slider, or valuebox in the 8120 dialog used to leave keyboard focus on the tool window, which swallowed Renoise global shortcuts — you couldn't press Shift-V to load a plugin or Shift-A to load a device after touching a control. Every interactive 8120 control now hands keyboard focus back to Renoise's middle frame after you use it (step checkboxes, number buttons, pitch/volume/global-pitch knobs, output-delay/groove/fill/Yxx sliders, mute/solo/play/follow/groove checkboxes, and the per-instrument beatsync checkbox + lines valuebox). The row controls share a single focus-return point in the row-highlight routine; the rest call it directly.
+
 ### 2026-06-08 - Improvement: Groovebox 8120 per-row Record is now a clean start/stop toggle
 
-The per-row **Record** button used to need three presses (open recorder → start → stop). If you recorded with Renoise's own record control instead of advancing through all three, the row's "stop" step never ran, so the sample name, sample slider, and beatsync state never updated. Record is now a two-press toggle: the first press opens the sample recorder and starts recording immediately; the second press stops recording and finalizes the take (maps it to 00-7F, refreshes the sample-name label, and activates the per-row beatsync controls). This is what makes the beatsync/name/slider updates actually fire after a recording.
+The per-row **Record** button used to need three presses (open recorder → start → stop). If you recorded with Renoise's own record control instead of advancing through all three, the row's "stop" step never ran, so the sample name, sample slider, and beatsync state never updated. Record is now a two-press toggle: the first press opens the sample recorder and starts recording immediately; the second press stops recording and finalizes the take (maps it to 00-7F, refreshes the sample-name label, and activates the per-row beatsync controls). On finalize, if the row has no active steps yet, its first step is switched on automatically so the recording is audible on the next play (an already-programmed row is left untouched). This is what makes the beatsync/name/slider updates actually fire after a recording.
 
 ### 2026-06-08 - Fix: Groovebox 8120 beatsync now follows recorded samples reliably
 
