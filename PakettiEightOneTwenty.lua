@@ -4462,52 +4462,78 @@ function pakettiEightSlotsByOneTwentyDialog()
 
   -- Attach dialog close cleanup via idle watcher (no closed_observable on Dialog)
   local dialog_idle_watcher
+  local release_doc_observer
+  -- Shared teardown: detach every observer/timer this dialog attached to the
+  -- current song, persist prefs, and unregister the idle watcher + release
+  -- observer. Used both when the dialog closes (idle watcher) and right before
+  -- the song is released (new song / load). Each removal is guarded, so calling
+  -- it twice is safe.
+  local function perform_8120_teardown()
+    if rows then
+      for i = 1, #rows do
+        local re = rows[i]
+        if re and re.detach_mute_observer then re.detach_mute_observer() end
+        if re and re.detach_transpose_observer then re.detach_transpose_observer() end
+        if re and re.detach_solo_observer then re.detach_solo_observer() end
+        if re and re.detach_volume_observer then re.detach_volume_observer() end
+      end
+    end
+    -- Cleanup playhead observers/timer
+    PakettiEightOneTwentyCleanupPlayhead()
+    -- Detach beatsync observers
+    for i=1,8 do PakettiEightOneTwentyDetachBeatsyncObserversFor(i) end
+    -- Clear mode observers
+    beatsync_mode_observers = {}
+    cleanup_bpm_observable()
+    -- Persist preferences explicitly
+    if preferences and preferences.save_as then
+      preferences:save_as("preferences.xml")
+    end
+    -- Clear local Beatsync state tables; do not touch vb.views (read-only)
+    beatsync_checkboxes = {}
+    beatsync_valueboxes = {}
+    beatsync_updating = {}
+    local s = renoise.song()
+    if instruments_list_observer and s and s.instruments_observable:has_notifier(instruments_list_observer) then
+      s.instruments_observable:remove_notifier(instruments_list_observer)
+    end
+    instruments_list_observer = nil
+    if dialog_idle_watcher and renoise.tool().app_idle_observable:has_notifier(dialog_idle_watcher) then
+      renoise.tool().app_idle_observable:remove_notifier(dialog_idle_watcher)
+    end
+    dialog_idle_watcher = nil
+    if release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(release_doc_observer) then
+      renoise.tool().app_release_document_observable:remove_notifier(release_doc_observer)
+    end
+    release_doc_observer = nil
+  end
+
   dialog_idle_watcher = function()
     if not dialog or (dialog and not dialog.visible) then
-      if rows then
-        for i = 1, #rows do
-          local re = rows[i]
-          if re and re.detach_mute_observer then
-            re.detach_mute_observer()
-          end
-          if re and re.detach_transpose_observer then
-            re.detach_transpose_observer()
-          end
-          if re and re.detach_solo_observer then
-            re.detach_solo_observer()
-          end
-          if re and re.detach_volume_observer then
-            re.detach_volume_observer()
-          end
-        end
-      end
-      -- Cleanup playhead observers/timer when dialog closes
-      PakettiEightOneTwentyCleanupPlayhead()
-      -- Detach beatsync observers
-      for i=1,8 do PakettiEightOneTwentyDetachBeatsyncObserversFor(i) end
-      -- Clear mode observers
-      beatsync_mode_observers = {}
-      cleanup_bpm_observable()
-      -- Persist preferences explicitly on close
-      if preferences and preferences.save_as then
-        preferences:save_as("preferences.xml")
-      end
-      -- Clear local Beatsync state tables; do not touch vb.views (read-only)
-      beatsync_checkboxes = {}
-      beatsync_valueboxes = {}
-      beatsync_updating = {}
-      if instruments_list_observer and renoise.song().instruments_observable:has_notifier(instruments_list_observer) then
-        renoise.song().instruments_observable:remove_notifier(instruments_list_observer)
-        instruments_list_observer = nil
-      end
-      if dialog_idle_watcher and renoise.tool().app_idle_observable:has_notifier(dialog_idle_watcher) then
-        renoise.tool().app_idle_observable:remove_notifier(dialog_idle_watcher)
-      end
-      dialog_idle_watcher = nil
+      perform_8120_teardown()
     end
   end
   if not renoise.tool().app_idle_observable:has_notifier(dialog_idle_watcher) then
     renoise.tool().app_idle_observable:add_notifier(dialog_idle_watcher)
+  end
+
+  -- Tear down BEFORE the song is released (New Song / Load Song). At this point
+  -- renoise.song() is still the OLD song, so observers detach cleanly. The 8120
+  -- and its canvas are closed too, because their rows/observers/timers and the
+  -- canvas's pattern reads are all bound to the song that is about to die —
+  -- leaving them live caused a SIGSEGV in Renoise's pattern-pool teardown
+  -- (TWeakRefOwner::SOnWeakReferencableDying) when the canvas was open.
+  release_doc_observer = function()
+    if cv_dialog and cv_dialog.visible then cv_dialog:close() end
+    cv_dialog = nil
+    cv_canvas = nil
+    cv_ui = nil
+    if dialog and dialog.visible then dialog:close() end
+    dialog = nil
+    perform_8120_teardown()
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(release_doc_observer)
   end
   -- Restore original selection to avoid unexpected focus changes on open
   if prev_selected_track and prev_selected_track >= 1 and prev_selected_track <= #song.tracks then

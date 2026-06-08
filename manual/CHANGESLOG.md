@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-08 - Fix: Groovebox 8120 crash (SIGSEGV) on New Song / Load Song with the dialog or canvas open
+
+Creating a new song or loading a song while the Groovebox 8120 (or its Canvas View) was open could crash Renoise with a SIGSEGV in the song/pattern-pool teardown. The 8120 only detached its observers and timers when the dialog was *closed*, so on a song change its per-row mute/solo/transpose/volume observers, the playhead timer, the beatsync/BPM observers, and the canvas's pattern reads were all left pointing at the song Renoise was about to destroy. The tool now also tears everything down on `app_release_document_observable` — which fires while the outgoing song is still valid — detaching every observer/timer and closing the 8120 dialog and Canvas View before the song is released. Reopen the 8120 after the new song has loaded.
+
 ### 2026-06-08 - Improvement: Groovebox 8120 controls return keyboard focus to Renoise
 
 Clicking a checkbox, knob, slider, or valuebox in the 8120 dialog used to leave keyboard focus on the tool window, which swallowed Renoise global shortcuts — you couldn't press Shift-V to load a plugin or Shift-A to load a device after touching a control. Every interactive 8120 control now hands keyboard focus back to Renoise's middle frame after you use it (step checkboxes, number buttons, pitch/volume/global-pitch knobs, output-delay/groove/fill/Yxx sliders, mute/solo/play/follow/groove checkboxes, and the per-instrument beatsync checkbox + lines valuebox). The row controls share a single focus-return point in the row-highlight routine; the rest call it directly.
