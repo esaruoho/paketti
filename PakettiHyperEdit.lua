@@ -3621,9 +3621,21 @@ function PakettiHyperEditCreateDialog()
           notifier = function()
             PakettiHyperEditSetAllStepsToValue(row, 1.0)
           end
+        },
+        -- Per-row MIDI Map target. With Renoise's MIDI Map mode ON this button
+        -- highlights; click it and move a knob to bind that knob to this row's
+        -- "MIDI Write" mapping — no need to hunt in the MIDI mapping list.
+        vb:button {
+          text = "MIDI",
+          width = 40,
+          midi_mapping = string.format("Paketti:Paketti HyperEdit:MIDI Write Row %02d", row),
+          tooltip = "Turn on Renoise's MIDI Map mode, then click this button and tweak a knob to bind it to this row. With 'MIDI Write' ON the knob then records into this row's playing/edit step.",
+          notifier = function()
+            renoise.app():show_status(string.format("HyperEdit: enable Renoise MIDI Map mode, click this 'MIDI' button (Row %02d), then move a knob to bind it.", row))
+          end
         }
       },
-      
+
       -- Row canvas
       vb:canvas {
         id = "row_canvas_" .. row,
